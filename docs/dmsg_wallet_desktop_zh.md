@@ -115,3 +115,14 @@ RPC 配置只允许 HTTPS；Local 环境额外允许回环 HTTP，拒绝 URL 用
 自动测试覆盖：精确金额和标识、角色矩阵、时钟、旧响应隔离、完整策略审批、提案分页、表单预览失效、慢网络下本地请求可用、独立 ICP 账本的首页预检与激活付款、登录 targets 外的公开余额查询、无 WalletApprove 不扣款、双成员 ICP 转账、两个独立 daemon 的 P-256 2-of-2 协签与审计核验。Electron 测试使用模拟 daemon，PocketIC 使用测试账本与私有中继；它们分别证明窗口接线和客户端/canister 闭环。
 
 真实外链广播、真实硬件协签、完整屏幕阅读器和各平台桌面发布仍需要独立验收。实际运行命令与本次结果以提交说明为准，未执行的检查不计为通过。
+
+
+## 2026-10-24 审查修复
+
+钱包批准与协签读取认证提案，结合认证钱包版本和当前时间展示状态。原生 EVM 预览和执行使用同一个调用参数构造器与 gas 估计，不再把合约收款当作 21000 gas 的普通账户转账。
+
+资产与地址区可为 Solana 地址创建持久 nonce；待确认 EVM 转账详情提供取消/释放入口，复核显示被操作的提案和 nonce，释放不意味着原已签交易失效。ICP/ICRC 未知结果的详情可填写转账序号和账本区块，由 canister 核对原始参数后恢复，不能用“重做一笔”替代对账。
+
+激活款列表显示超额/迟到款，并允许终止尚未安装代码的中断激活后退款。报价追踪记录在创建、退款完成后保留，没有余额时不显示。新增 daemon 方法 `wallet/reconcile_transfer`、`wallet/activation_abort`；CLI 对应 `wallet reconcile-transfer`、`wallet abort-activation`。上述 canister 与客户端合同须配套发布。
+
+相关最小回归位于 `tests/dmsg_integration/tests/control_plane/wallet_review.rs`；真实链用例默认为 ignored，须显式指定回环 Solana/Anvil RPC 后执行。测试结果以本次提交说明为准；没有把测试链、模拟 Electron 或软件签名器等同于生产与真实硬件验收。

@@ -10,7 +10,7 @@
   import { call } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { isMemberId } from './new-wallet'
-  import { assetIdentity, assetKey, policyDraft, sameCosign, cosignerReferences, removedMemberKeys, unreachableCosigners, utf8Length, type Asset, type Wallet } from './model'
+  import { assetIdentity, assetKey, policyDraft, sameCosign, cosignerReferences, removedMemberKeys, unreachableCosigners, utf8Length, toAtomic, type Asset, type Wallet } from './model'
   import Policy from './Policy.svelte'
   import { w } from './text'
   let {
@@ -55,6 +55,7 @@
     from = $state('0')
   let selected = $state<number[]>(untrack(() => [...(target?.cosign?.cosigners ?? [])])),
     threshold = $state(untrack(() => target?.cosign?.threshold ?? 1))
+  let nonceFee = $state('0.00002')
   let confirmed = $state(false)
   let removeCosign = $state(false)
   const candidate = $derived(removeCosign ? null : { cosigners: selected, threshold })
@@ -74,7 +75,8 @@
     refuel: 'refuel',
     remove_cosigner: 'remove_cosigner',
     lock_code: 'lockCode',
-    unfreeze: 'unfreeze'
+    unfreeze: 'unfreeze',
+    sol_nonce: 'init_sol_nonce'
   })
   const invalid = $derived(
     (kind === 'member' && (!isMemberId(id.trim()) || utf8Length(label) > 64)) ||
@@ -113,6 +115,9 @@
           break
         case 'refuel':
           change = { kind, from: Number(from), amount }
+          break
+        case 'sol_nonce':
+          change = { kind: 'sol_nonce', address: target.id, max_fee: toAtomic(nonceFee, 9) }
           break
         case 'remove_cosigner':
           change = { kind, id: target.id }
@@ -209,6 +214,10 @@
         /></Field
       >
       <Field label={`${w('amount')} · ICP`}><input bind:value={amount} inputmode="decimal" dir="ltr" /></Field>
+    {:else if kind === 'sol_nonce'}
+      <p class="font-mono text-[12px] break-all">{target.text}</p>
+      <Notice>{w('nonceHint')}</Notice>
+      <Field label={`${w('fee')} · SOL`}><input bind:value={nonceFee} inputmode="decimal" dir="ltr" /></Field>
     {:else if kind === 'lock_code'}
       <Notice tone="danger">{w('lockHint')}</Notice><Checkbox bind:checked={confirmed}>{w('lockCode')}</Checkbox>
     {:else if kind === 'unfreeze'}<Notice>{w('freezeHint')}</Notice>

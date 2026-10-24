@@ -564,6 +564,12 @@ pub enum Intent {
         address: u32,
         /// Chain.
         chain_id: u64,
+        /// Exact pending proposal to replace.
+        #[serde(default)]
+        proposal: u64,
+        /// Nonce of that proposal's signed transaction.
+        #[serde(default)]
+        nonce: u64,
         /// Highest network fee in wei.
         max_fee: u128,
     },
@@ -573,6 +579,12 @@ pub enum Intent {
         address: u32,
         /// Chain.
         chain_id: u64,
+        /// Exact pending proposal to release.
+        #[serde(default)]
+        proposal: u64,
+        /// Nonce of that proposal's signed transaction.
+        #[serde(default)]
+        nonce: u64,
     },
     /// Create the Solana durable nonce account of an address.
     InitSolNonce {

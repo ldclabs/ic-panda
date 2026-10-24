@@ -49,6 +49,7 @@ fn wallet() -> Wallet {
         next_proposal: 1,
         frozen: false,
         code: CodeAcceptance::None,
+        code_busy: false,
         key_roots: KeyRoots::default(),
         audit_head: Hash::new([0; 32]),
         day: 0,

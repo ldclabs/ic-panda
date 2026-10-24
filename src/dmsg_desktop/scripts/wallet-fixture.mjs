@@ -35,6 +35,7 @@ export function walletFixture(account, created) {
     policy,
     addresses: [
       { id: 0, chain: 'Icp', control: 'chain_key', text: id, label: 'Operating account', verified: true, cosign: null },
+      { id: 3, chain: 'Solana', control: 'chain_key', text: 'So11111111111111111111111111111111111111112', label: 'Solana', verified: true, cosign: null, sol_nonce: null },
       { id: 1, chain: 'Bitcoin', control: 'chain_key', text: 'bc1pfixture', label: 'Bitcoin reserve', verified: true, cosign: state.btcCosign },
       {
         id: 2,
@@ -100,6 +101,7 @@ export function walletFixture(account, created) {
       const v = proposals.find((v) => v.id === p.proposal)
       return { ...v, plan_details: v.plan_details ?? Array.from({ length: v.plans }, (_, i) => ({ seq: i + 1, chain: 'Evm', from: '0x01', fee: '10000', expires_at: Date.now() + 600000 })) }
     },
+    'wallet/reconcile_transfer': (p) => { state.reconciled = p; const v = proposals.find((v) => v.id === p.proposal); v.status = 'Settled'; return v },
     'wallet/prepare': (p) => {
       const v = proposals.find((v) => v.id === p.proposal)
       if (!v.plan_details?.some((v) => v.expires_at > Date.now())) {
@@ -127,7 +129,8 @@ export function walletFixture(account, created) {
       v.wallet = p.wallet
       v.status = 'Open'
       v.requirement = { approvals: policy.admin_threshold, admin: true, delay_ms: 86400000 }
-      v.intent = p.change.kind === 'cosign' ? { kind: 'set_cosign', address: p.change.address, cosign: p.change.cosign }
+      v.intent = p.change.kind === 'sol_nonce' ? { kind: 'init_sol_nonce', address: p.change.address, max_fee: p.change.max_fee }
+        : p.change.kind === 'cosign' ? { kind: 'set_cosign', address: p.change.address, cosign: p.change.cosign }
         : p.change.kind === 'cosigner' ? { kind: 'add_cosigner', ...state.localKeys.find((k) => k.label === p.change.label), member: account, curve: 'P256', envelope: 'Raw' }
         : p.change.kind === 'unfreeze' ? { kind: 'unfreeze' } : { kind: 'set_policy', policy }
       proposals.unshift(v)

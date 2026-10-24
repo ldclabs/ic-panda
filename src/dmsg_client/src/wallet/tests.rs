@@ -329,3 +329,88 @@ async fn evm_fee_reads_run_together_and_preserve_the_estimate() {
     }
     assert_eq!(work.await.unwrap().unwrap(), (210, 10));
 }
+
+#[tokio::test]
+async fn native_evm_execution_estimates_the_exact_call_instead_of_assuming_21000() {
+    use tokio::io::AsyncWriteExt;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    client.config.wallet.evm_rpc =
+        vec![(8453, format!("http://{}", listener.local_addr().unwrap()))];
+    let vectors: Json = serde_json::from_str(include_str!(
+        "../../../../tests/vectors/wallet/plans-v1.json"
+    ))
+    .unwrap();
+    let view: WalletView = dmsg_protocol::decode_canonical(
+        &hex::decode(vectors["view_cbor_hex"].as_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let intent: Intent = dmsg_protocol::decode_canonical(
+        &hex::decode(vectors["plans"][4]["intent_cbor_hex"].as_str().unwrap()).unwrap(),
+    )
+    .unwrap();
+    let address = view
+        .addresses
+        .iter()
+        .find(|a| a.chain == Chain::Evm)
+        .unwrap()
+        .clone();
+    let expected = ops::evm_call(&intent, &address).unwrap();
+    let p = Proposal {
+        id: 1,
+        op_id: Hash::new([1; 32]),
+        intent,
+        policy_version: 1,
+        proposer: MemberId::Account(client.account().unwrap().id),
+        via_agent: None,
+        digest: Hash::new([2; 32]),
+        created_at_ms: 0,
+        expires_at_ms: u64::MAX,
+        requirement: Requirement {
+            approvals: 1,
+            admin: false,
+            delay_ms: 0,
+            window_amount: 0,
+        },
+        status: ProposalStatus::Ready,
+        votes: vec![],
+        ready_at_ms: Some(0),
+        plans: 0,
+        signed: vec![],
+        broadcasts: vec![],
+        outcome: None,
+        failure: None,
+        updated_at_ms: 0,
+    };
+    let task =
+        tokio::spawn(
+            async move { ops::params(&client.hold(), &view, &p, &address, Chain::Evm).await },
+        );
+    let mut estimated = false;
+    for _ in 0..4 {
+        let (mut socket, bytes) = held_request(&listener).await;
+        let at = bytes.windows(4).position(|b| b == b"\r\n\r\n").unwrap() + 4;
+        let request: Json = serde_json::from_slice(&bytes[at..]).unwrap();
+        let result = match request["method"].as_str().unwrap() {
+            "eth_getTransactionCount" => json!("0x7"),
+            "eth_getBlockByNumber" => json!({"baseFeePerGas":"0x64"}),
+            "eth_maxPriorityFeePerGas" => json!("0xa"),
+            "eth_estimateGas" => {
+                assert_eq!(request["params"][0]["to"], expected.1);
+                assert_eq!(request["params"][0]["data"], "0x");
+                assert_eq!(request["params"][0]["value"], format!("0x{:x}", expected.3));
+                estimated = true;
+                json!("0x9c40")
+            }
+            method => panic!("unexpected {method}"),
+        };
+        let body = json!({"jsonrpc":"2.0","id":1,"result":result}).to_string();
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
+    }
+    assert!(estimated);
+    let ExecutionParams::Evm { gas_limit, .. } = task.await.unwrap().unwrap() else {
+        panic!()
+    };
+    assert_eq!(gas_limit, 48_000);
+}

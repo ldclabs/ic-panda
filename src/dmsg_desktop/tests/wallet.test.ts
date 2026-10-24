@@ -294,8 +294,8 @@ test('every supported management intent exposes all committed fields for review'
     { kind: 'refuel', from: 0, icp_e8s: '100000000' },
     { kind: 'accept_upgrade', version: 2, module_hash: '11'.repeat(32) },
     { kind: 'lock_code' },
-    { kind: 'cancel_evm_nonce', address: 2, chain_id: 1, max_fee: '1000000000000000' },
-    { kind: 'release_evm_nonce', address: 2, chain_id: 1 },
+    { kind: 'cancel_evm_nonce', address: 2, chain_id: 1, proposal: 8, nonce: '7', max_fee: '1000000000000000' },
+    { kind: 'release_evm_nonce', address: 2, chain_id: 1, proposal: 8, nonce: '7' },
     { kind: 'init_sol_nonce', address: 3, max_fee: '10000' }
   ]
   for (const intent of intents) {
@@ -323,4 +323,16 @@ test('cosigning applies to spending sources and all ICP addresses of a general c
   assert.deepEqual(unreachableCosigners(wallet, false), [])
   assert.equal(sameCosign({threshold:2,cosigners:[1,2]}, {threshold:2,cosigners:[2,1]}), true)
   assert.equal(sameCosign(wallet.addresses[0].cosign, null), false)
+})
+
+
+test('a Solana recent-blockhash payment only offers rebroadcast, not another signature', () => {
+  const wallet=sampleWallet()
+  wallet.addresses=[{id:3,chain:'Solana',sol_nonce:null}]
+  const p=sampleProposal({status:'Signed',intent:{kind:'transfer',from:3,asset:{asset:'SOL'}}})
+  assert.equal(actions(p,wallet,100).resign,false)
+  assert.equal(actions(p,wallet,100).rebroadcast,true)
+  wallet.addresses[0].sol_nonce='durable'
+  assert.equal(actions(p,wallet,100).resign,true)
+  assert.equal(actions({...p,intent:{kind:'init_sol_nonce',address:3}},wallet,100).resign,false)
 })

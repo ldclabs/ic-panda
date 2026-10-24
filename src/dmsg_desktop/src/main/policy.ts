@@ -214,6 +214,8 @@ export const WINDOW_METHODS = new Set([
   'wallet/proposal',
   'wallet/refuel',
   'wallet/reconcile',
+  'wallet/reconcile_transfer',
+  'wallet/activation_abort',
   'wallet/list',
   'wallet/show',
   'wallet/principal',

@@ -25,8 +25,8 @@ use dmsg_types::{
 use ic_cdk_management_canister::{
     CanisterIdRecord, CanisterInstallMode, CanisterSettings, CanisterStatusType, ChunkHash,
     CreateCanisterArgs, InstallChunkedCodeArgs, LogVisibility, UpdateSettingsArgs, UploadChunkArgs,
-    canister_status, clear_chunk_store, create_canister_with_extra_cycles, install_chunked_code,
-    start_canister, stop_canister, update_settings, upload_chunk,
+    canister_status, clear_chunk_store, create_canister_with_extra_cycles, delete_canister,
+    install_chunked_code, start_canister, stop_canister, update_settings, upload_chunk,
 };
 use icrc_ledger_types::icrc1::{
     account::Account,
@@ -123,6 +123,7 @@ fn post_upgrade() {
         STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
+    store::initialize_version_uses();
 }
 
 #[ic_cdk::query]
@@ -375,6 +376,7 @@ async fn create_wallet(req: CreateWallet) -> Result<ActivationOrder> {
     let at = now();
     ensure(at < quote.expires_at_ms, Error::Expired)?;
     ensure(store::payout(&id).is_none(), Error::Forbidden)?;
+    ensure(store::module(quote.version).is_some(), Error::NotFound)?;
     let quota = store::with(|h| {
         ensure(!h.init.pricing.paused, Error::Locked)?;
         Ok::<_, Error>(plan_quota(h, &quote.plan))
@@ -472,6 +474,10 @@ async fn activate(id: Hash, me: Principal) -> Result<ActivationOrder> {
         let order = store::order(&id).ok_or(Error::NotFound)?;
         match order.status {
             ActivationStatus::Paid => {
+                ensure(
+                    store::module(order.quote.version).is_some(),
+                    Error::NotFound,
+                )?;
                 let created = create_canister_with_extra_cycles(
                     &CreateCanisterArgs {
                         settings: Some(CanisterSettings {
@@ -505,7 +511,16 @@ async fn activate(id: Hash, me: Principal) -> Result<ActivationOrder> {
                 let module = store::module(version).ok_or(Error::NotFound)?;
                 let arg = store::with(|h| candid::encode_one(wallet_init(h, &order, me)))
                     .map_err(unavailable)?;
-                install(wallet, &module, CanisterInstallMode::Install, arg).await?;
+                // Only this activation can install code before the wallet is
+                // indexed. Recover an install whose successful reply was lost.
+                let status = canister_status(&CanisterIdRecord {
+                    canister_id: wallet,
+                })
+                .await
+                .map_err(unavailable)?;
+                if status.module_hash.is_none() {
+                    install(wallet, &module, CanisterInstallMode::Install, arg).await?;
+                }
                 let at = now();
                 let mut order = store::order(&id).ok_or(Error::NotFound)?;
                 order.status = ActivationStatus::Ready;
@@ -537,11 +552,12 @@ fn transfer_arg(
     from: &Hash,
     t: &PayoutTransfer,
     created_at_time: u64,
+    fee: Option<u128>,
 ) -> TransferArg {
     TransferArg {
         from_subaccount: Some(deposit_subaccount(me, from).into_array()),
         to: t.to,
-        fee: None,
+        fee: fee.map(Nat::from),
         created_at_time: Some(created_at_time),
         memo: t.memo.clone().map(Memo),
         amount: Nat::from(t.amount),
@@ -550,11 +566,26 @@ fn transfer_arg(
 
 /// Send a payout's transfers in order, then, for revenue, notify the CMC of
 /// the hub's top-up.
-async fn pay_out(id: Hash, me: Principal) -> Result<Payout> {
-    let _busy = Busy::take(id)?;
+async fn pay_out(id: Hash, me: Principal, refund: bool) -> Result<Payout> {
+    // The caller owns the quote's Busy guard through reads and writes.
+    let read = || {
+        (if refund {
+            store::refund(&id)
+        } else {
+            store::payout(&id)
+        })
+        .ok_or(Error::NotFound)
+    };
+    let save = |p: &Payout| {
+        if refund {
+            store::save_refund(&id, p)
+        } else {
+            store::save_payout(&id, p)
+        }
+    };
     let (ledger, cmc) = store::with(|h| (h.init.icp_ledger, h.init.cmc));
     loop {
-        let mut payout = store::payout(&id).ok_or(Error::NotFound)?;
+        let mut payout = read()?;
         let Some(i) = payout.transfers.iter().position(|t| t.block.is_none()) else {
             if payout.refund || payout.cycles.is_some() {
                 return Ok(payout);
@@ -566,28 +597,72 @@ async fn pay_out(id: Hash, me: Principal) -> Result<Payout> {
                 Notified::Refunded(_) => 0,
                 Notified::Pending => return Err(Error::Pending),
             };
-            payout = store::payout(&id).ok_or(Error::NotFound)?;
+            payout = read()?;
             payout.cycles = Some(cycles);
-            store::save_payout(&id, &payout);
+            save(&payout);
             return Ok(payout);
         };
-        let arg = transfer_arg(me, &id, &payout.transfers[i], payout.created_at_time);
+        let arg = transfer_arg(
+            me,
+            &id,
+            &payout.transfers[i],
+            payout.created_at_time,
+            payout.fee,
+        );
         let block = match send(ledger, arg).await {
             Sent::Block(block) => block,
             Sent::Refused(reason) => return Err(Error::InvalidInput(reason)),
             Sent::Unknown => return Err(Error::ExecutionUnknown),
         };
-        payout = store::payout(&id).ok_or(Error::NotFound)?;
+        payout = read()?;
         payout.transfers[i].block = Some(block);
-        store::save_payout(&id, &payout);
+        save(&payout);
     }
 }
 
-/// Return the deposit of a failed activation, or of a quote that expired
-/// without one, less the ledger fee, to `to`: an account outside the hub
-/// that the quote's caller names, such as the payer's. The first claim
-/// fixes the account and later ones finish that refund; returns the ledger
-/// block.
+/// Money still owed to activation revenue. Surplus is never revenue, and
+/// partially collected revenue reserves only its unsent legs.
+fn activation_reserve(id: &Hash, at: u64) -> Result<u128> {
+    let quote = store::quote(id).ok_or(Error::NotFound)?;
+    if let Some(order) = store::order(id) {
+        if matches!(
+            order.status,
+            ActivationStatus::Failed(_) | ActivationStatus::Refunded { .. }
+        ) {
+            return Ok(0);
+        }
+        if let Some(payout) = store::payout(id).filter(|p| !p.refund) {
+            let fee = payout.fee.unwrap_or(u128::from(quote.ledger_fee_e8s));
+            return Ok(payout
+                .transfers
+                .iter()
+                .filter(|t| t.block.is_none())
+                .map(|t| t.amount.saturating_add(fee))
+                .sum());
+        }
+        return Ok(if order.collected {
+            0
+        } else {
+            u128::from(quote.price_e8s)
+        });
+    }
+    Ok(if at < quote.expires_at_ms {
+        u128::from(quote.price_e8s)
+    } else {
+        0
+    })
+}
+
+/// Reserved activation funds; clients subtract this from the deposit balance
+/// when displaying surplus and late-payment refunds.
+#[ic_cdk::query]
+fn get_activation_reserve(id: Hash) -> Result<u128> {
+    activation_reserve(&id, now())
+}
+
+/// Claim only unreserved funds. The quote caller chooses the destination;
+/// an unfinished refund keeps its exact arguments and destination on retry.
+/// A later deposit creates a separate refund after the previous one completed.
 #[ic_cdk::update]
 async fn claim_activation_refund(id: Hash, to: Account) -> Result<u64> {
     let caller = ic_cdk::api::msg_caller();
@@ -598,44 +673,64 @@ async fn claim_activation_refund(id: Hash, to: Account) -> Result<u64> {
         authenticated(to.owner).is_ok() && to.owner != me,
         "refund account",
     )?;
-    let refundable = |at: u64| match store::order(&id) {
-        Some(o) => matches!(o.status, ActivationStatus::Failed(_)),
-        None => at >= quote.expires_at_ms,
-    };
-    if store::payout(&id).is_none() {
-        ensure(refundable(now()), Error::Forbidden)?;
+    let _busy = Busy::take(id)?;
+    let previous = store::refund(&id);
+    let unfinished = previous
+        .as_ref()
+        .is_some_and(|p| p.transfers.iter().any(|t| t.block.is_none()));
+    if !unfinished {
         let ledger = store::with(|h| h.init.icp_ledger);
-        let paid = balance(ledger, quote.deposit).await?;
-        let fee = u128::from(quote.ledger_fee_e8s);
-        ensure(paid > fee, Error::NotFound)?;
-        // An order may have started during the balance read.
-        if store::payout(&id).is_none() {
-            let at = ic_cdk::api::time();
-            ensure(refundable(nanos_to_millis(at)), Error::Forbidden)?;
-            store::save_payout(
-                &id,
-                &Payout {
-                    refund: true,
-                    created_at_time: at,
-                    transfers: vec![PayoutTransfer {
-                        to,
-                        amount: paid - fee,
-                        memo: None,
-                        block: None,
-                    }],
-                    cycles: None,
+        let (paid, fee) =
+            futures_util::future::try_join(balance(ledger, quote.deposit), fee(ledger)).await?;
+        let at = ic_cdk::api::time();
+        let reserved = activation_reserve(&id, nanos_to_millis(at))?;
+        let available = paid.saturating_sub(reserved);
+        if available <= fee {
+            if let Some(block) = previous.as_ref().and_then(|p| p.transfers[0].block) {
+                return Ok(block);
+            }
+            return Err(
+                if reserved > 0
+                    || store::order(&id).is_some_and(|o| o.status == ActivationStatus::Ready)
+                {
+                    Error::Forbidden
+                } else {
+                    Error::NotFound
                 },
             );
         }
+        // Even two refunds in one IC timestamp have distinct deduplication keys.
+        let created_at_time = previous
+            .as_ref()
+            .map_or(at, |p| at.max(p.created_at_time + 1));
+        store::save_refund(
+            &id,
+            &Payout {
+                refund: true,
+                created_at_time,
+                fee: Some(fee),
+                transfers: vec![PayoutTransfer {
+                    to,
+                    amount: available - fee,
+                    memo: Some(
+                        digest("dmsg-wallet/refund/v1", &(id, created_at_time))
+                            .to_vec()
+                            .into(),
+                    ),
+                    block: None,
+                }],
+                cycles: None,
+            },
+        );
     }
-    // The revenue of a ready activation is never refunded.
-    ensure(
-        store::payout(&id).is_some_and(|p| p.refund),
-        Error::Forbidden,
-    )?;
-    let payout = pay_out(id, me).await?;
+    let payout = pay_out(id, me, true).await?;
     let block = payout.transfers[0].block.expect("sent");
-    if let Some(mut order) = store::order(&id) {
+    if let Some(mut order) = store::order(&id)
+        && matches!(
+            order.status,
+            ActivationStatus::Failed(_) | ActivationStatus::Refunded { .. }
+        )
+    {
         order.status = ActivationStatus::Refunded { block };
         order.updated_at_ms = now();
         store::save_order(&order);
@@ -643,12 +738,46 @@ async fn claim_activation_refund(id: Hash, to: Account) -> Result<u64> {
     Ok(block)
 }
 
-/// Move a ready activation's payment: the cycles share to the CMC for the
-/// hub's cycles, the rest to the revenue account. Anyone may call it;
-/// `collectable_activations` lists the activations waiting for it.
+/// Stop an activation that has not installed any code. An installed wallet
+/// cannot be refunded through this path, including after a lost install reply.
+#[ic_cdk::update]
+async fn abort_activation(id: Hash) -> Result<ActivationOrder> {
+    let caller = ic_cdk::api::msg_caller();
+    let _busy = Busy::take(id)?;
+    let mut order = store::order(&id).ok_or(Error::NotFound)?;
+    ensure(order.quote.payer == caller, Error::Forbidden)?;
+    ensure(
+        matches!(
+            order.status,
+            ActivationStatus::Paid | ActivationStatus::Created
+        ),
+        Error::VersionConflict,
+    )?;
+    if let Some(wallet) = order.wallet {
+        let canister = CanisterIdRecord {
+            canister_id: wallet,
+        };
+        let status = canister_status(&canister).await.map_err(unavailable)?;
+        ensure(status.module_hash.is_none(), Error::Forbidden)?;
+        stop_canister(&canister).await.map_err(unavailable)?;
+        if let Err(error) = delete_canister(&canister).await {
+            let _ = start_canister(&canister).await;
+            return Err(unavailable(error));
+        }
+    }
+    order.status = ActivationStatus::Failed("activation aborted before installation".into());
+    order.updated_at_ms = now();
+    store::release_quota(&order.quote.account_id, &id);
+    store::save_order(&order);
+    Ok(order)
+}
+
+/// Collect exactly the quoted activation price. Extra and late deposits stay
+/// claimable by the quote caller and never increase the DAO's revenue.
 #[ic_cdk::update]
 async fn collect_revenue(id: Hash) -> Result<ActivationOrder> {
     let me = ic_cdk::api::canister_self();
+    let _busy = Busy::take(id)?;
     let order = store::order(&id).ok_or(Error::NotFound)?;
     ensure(order.status == ActivationStatus::Ready, Error::Forbidden)?;
     if order.collected {
@@ -656,40 +785,40 @@ async fn collect_revenue(id: Hash) -> Result<ActivationOrder> {
     }
     if store::payout(&id).is_none() {
         let ledger = store::with(|h| h.init.icp_ledger);
-        let paid = balance(ledger, order.quote.deposit).await?;
-        // The split and the revenue account are read after the call.
-        if store::payout(&id).is_none() {
-            let payout = store::with(|h| {
-                let fee = u128::from(order.quote.ledger_fee_e8s);
-                let share = u128::from(h.init.pricing.cycles_share_e8s);
-                ensure(paid > share + 2 * fee, Error::FeeBlocked)?;
-                Ok::<_, Error>(Payout {
-                    refund: false,
-                    created_at_time: ic_cdk::api::time(),
-                    transfers: vec![
-                        PayoutTransfer {
-                            to: Account {
-                                owner: h.init.cmc,
-                                subaccount: Some(cmc_subaccount(me)),
-                            },
-                            amount: share,
-                            memo: Some(MEMO_TOP_UP.to_le_bytes().to_vec().into()),
-                            block: None,
+        let (paid, fee) =
+            futures_util::future::try_join(balance(ledger, order.quote.deposit), fee(ledger))
+                .await?;
+        let payout = store::with(|h| {
+            let price = u128::from(order.quote.price_e8s);
+            let share = u128::from(h.init.pricing.cycles_share_e8s);
+            ensure(paid >= price && price > share + 2 * fee, Error::FeeBlocked)?;
+            Ok::<_, Error>(Payout {
+                refund: false,
+                created_at_time: ic_cdk::api::time(),
+                fee: Some(fee),
+                transfers: vec![
+                    PayoutTransfer {
+                        to: Account {
+                            owner: h.init.cmc,
+                            subaccount: Some(cmc_subaccount(me)),
                         },
-                        PayoutTransfer {
-                            to: h.init.revenue,
-                            amount: paid - share - 2 * fee,
-                            memo: None,
-                            block: None,
-                        },
-                    ],
-                    cycles: None,
-                })
-            })?;
-            store::save_payout(&id, &payout);
-        }
+                        amount: share,
+                        memo: Some(MEMO_TOP_UP.to_le_bytes().to_vec().into()),
+                        block: None,
+                    },
+                    PayoutTransfer {
+                        to: h.init.revenue,
+                        amount: price - share - 2 * fee,
+                        memo: None,
+                        block: None,
+                    },
+                ],
+                cycles: None,
+            })
+        })?;
+        store::save_payout(&id, &payout);
     }
-    pay_out(id, me).await?;
+    pay_out(id, me, false).await?;
     let mut order = store::order(&id).ok_or(Error::NotFound)?;
     order.collected = true;
     order.updated_at_ms = now();
@@ -699,6 +828,10 @@ async fn collect_revenue(id: Hash) -> Result<ActivationOrder> {
 
 fn wallet_busy(wallet: Principal) -> Hash {
     sha256(wallet.as_slice())
+}
+
+async fn release_code(wallet: Principal) {
+    let _: Result<Result<()>> = dmsg_runtime::call(wallet, "release_code", ()).await;
 }
 
 /// Install the version a wallet accepted. Anyone may call it.
@@ -739,12 +872,24 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
         Error::IdempotencyConflict,
     )?;
     let module = store::module(version).ok_or(Error::NotFound)?;
+    let claimed: Result<()> = dmsg_runtime::call(
+        wallet,
+        "claim_code",
+        (CodeAcceptance::Upgrade {
+            version,
+            module_hash,
+        },),
+    )
+    .await?;
+    claimed?;
     // The wallet has no calls to the hub in flight, so stopping it ends. A
     // stop that fails, such as one timing out on a call still in flight,
     // leaves it stopping: it runs again, since this method could not reach
     // a stopped wallet to start it later.
     if let Err(e) = stop_canister(&id).await {
-        let _ = start_canister(&id).await;
+        if start_canister(&id).await.is_ok() {
+            release_code(wallet).await;
+        }
         return Err(unavailable(e));
     }
     let arg = candid::encode_one(Some(version)).map_err(unavailable)?;
@@ -757,6 +902,7 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
         store::save_wallet(Some(&old), &record);
     }
     start_canister(&id).await.map_err(unavailable)?;
+    release_code(wallet).await;
     installed?;
     store::wallet(wallet).ok_or(Error::NotFound)
 }
@@ -764,21 +910,36 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
 /// Remove every controller of a wallet that accepted locking its code.
 #[ic_cdk::update]
 async fn lock_wallet(wallet: Principal) -> Result<WalletRecord> {
+    let _busy = Busy::take(wallet_busy(wallet))?;
     let record = store::wallet(wallet).ok_or(Error::NotFound)?;
     if record.locked {
         return Ok(record);
     }
     let accepted: CodeAcceptance = dmsg_runtime::call(wallet, "accepted_upgrade", ()).await?;
     ensure(accepted == CodeAcceptance::Lock, Error::Forbidden)?;
-    update_settings(&UpdateSettingsArgs {
-        canister_id: wallet,
-        settings: CanisterSettings {
-            controllers: Some(vec![]),
-            ..Default::default()
-        },
-    })
-    .await
-    .map_err(unavailable)?;
+    let claimed: Result<()> =
+        dmsg_runtime::call(wallet, "claim_code", (CodeAcceptance::Lock,)).await?;
+    claimed?;
+    let locked = async {
+        let status = canister_status(&CanisterIdRecord {
+            canister_id: wallet,
+        })
+        .await
+        .map_err(unavailable)?;
+        ensure(status.status == CanisterStatusType::Running, Error::Pending)?;
+        update_settings(&UpdateSettingsArgs {
+            canister_id: wallet,
+            settings: CanisterSettings {
+                controllers: Some(vec![]),
+                ..Default::default()
+            },
+        })
+        .await
+        .map_err(unavailable)
+    }
+    .await;
+    release_code(wallet).await;
+    locked?;
     let mut record = store::wallet(wallet).ok_or(Error::NotFound)?;
     let old = record.clone();
     record.locked = true;
@@ -957,13 +1118,17 @@ fn validate_admin_retire_version(version: u32) -> Validation {
     }))
 }
 
-fn check_remove(h: &Hub, version: u32) -> Result<&WalletVersion> {
+fn check_remove(h: &Hub, version: u32, at: u64) -> Result<&WalletVersion> {
     let v = h
         .versions
         .iter()
         .find(|v| v.version == version)
         .ok_or(Error::NotFound)?;
     ensure_valid(v.retired, "version in use by new wallets")?;
+    ensure_valid(
+        !store::version_in_use(version, at),
+        "version retained by a quote or activation",
+    )?;
     Ok(v)
 }
 
@@ -972,8 +1137,9 @@ fn check_remove(h: &Hub, version: u32) -> Result<&WalletVersion> {
 #[ic_cdk::update]
 fn admin_remove_version(version: u32) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
+    let at = now();
     let mut h = store::hub();
-    check_remove(&h, version)?;
+    check_remove(&h, version, at)?;
     h.versions.retain(|v| v.version != version);
     store::remove_module(version);
     store::save(h);
@@ -982,8 +1148,9 @@ fn admin_remove_version(version: u32) -> Result<()> {
 
 #[ic_cdk::query]
 fn validate_admin_remove_version(version: u32) -> Validation {
+    let at = now();
     validation(store::with(|h| {
-        check_remove(h, version).map(|v| {
+        check_remove(h, version, at).map(|v| {
             format!(
                 "Remove retired wallet version {version} ({}, {} bytes); wallets can no longer install it.",
                 hex(&v.module_hash[..]),

@@ -410,7 +410,7 @@
     error = ''
     try {
       const result: any = await call(method, {
-        ...(id && !['wallet/refund', 'wallet/activation_continue'].includes(method) ? { wallet: id } : {}),
+        ...(id && !['wallet/refund', 'wallet/activation_continue', 'wallet/activation_abort'].includes(method) ? { wallet: id } : {}),
         ...params
       })
       if (!active || !unlocked || owner !== account) return
@@ -431,6 +431,8 @@
       } else if (method === 'wallet/receive' && id === selected) receive = result
       else if (method === 'wallet/refund') {
         toast(() => t('twRefunded', { to: result.to, block: result.block }))
+        await loadDeposits()
+      } else if (method === 'wallet/activation_abort') {
         await loadDeposits()
       } else if (method === 'wallet/freeze') {
         freezeOpen = false
@@ -652,7 +654,7 @@
                       class={buttonClass('secondary', 'xs')}
                       disabled={!usable || !a.verified}
                       onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
-                    >{#if mayPropose && a.control !== 'taproot_2of2'}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
+                    >{#if mayPropose && a.chain === 'Solana' && !a.sol_nonce}<button class={buttonClass('secondary', 'xs')} disabled={!usable || wallet.frozen} onclick={() => showManage('sol_nonce', a)}>{w('init_sol_nonce')}</button>{/if}{#if mayPropose && a.control !== 'taproot_2of2'}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
                         >{w('bindCosign')}</button
                       >{/if}</div
                   ><p class="font-mono text-[12px] break-all select-all" dir="ltr">{a.text}</p>
@@ -804,13 +806,13 @@
                 data-testid="wallet-deposit"
                 ><div class="min-w-0 flex-1"
                   ><Id id={d.quote_id} /><p>{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</p><p class="text-faint text-[12px]"
-                    >{d.state === 'failed'
+                    >{['surplus', 'creating', 'installing'].includes(d.state) ? w(`deposit_${d.state}`) : d.state === 'failed'
                       ? t('twDepositFailed')
                       : d.state === 'expired'
                         ? t('twDepositExpired')
                         : t('twDepositUnused', { time: when(d.expires_at) })}</p
                   >{#if d.reason}<p class="text-danger text-[12px] break-all">{d.reason}</p>{/if}</div
-                >{#if d.refundable}<button
+                >{#if d.abortable}<button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => { if (window.confirm(w('abortActivationHint'))) void run('wallet/activation_abort', { quote: d.quote_id }) }}>{w('abortActivation')}</button>{/if}{#if d.refundable}<button
                     class={buttonClass('primary', 'sm')}
                     disabled={busy}
                     onclick={() => run('wallet/refund', { quote: d.quote_id })}

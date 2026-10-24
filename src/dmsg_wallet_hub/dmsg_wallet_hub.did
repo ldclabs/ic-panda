@@ -392,16 +392,17 @@ type RefuelRule = record {
   // Top up when the cycle balance is below this.
   min_cycles : nat;
 };
-type Result = variant { Ok; Err : Error };
-type Result_1 = variant { Ok : WalletVersion; Err : Error };
-type Result_2 = variant { Ok : nat64; Err : Error };
-type Result_3 = variant { Ok : ActivationOrder; Err : Error };
-type Result_4 = variant { Ok : WalletRecord; Err : Error };
-type Result_5 = variant { Ok : ActivationQuote; Err : Error };
-type Result_6 = variant { Ok : ActivationPreview; Err : Error };
-type Result_7 = variant { Ok : StagedModule; Err : Error };
-type Result_8 = variant { Ok : text; Err : text };
-type Result_9 = variant { Ok : WalletHealth; Err : Error };
+type Result = variant { Ok : ActivationOrder; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+type Result_10 = variant { Ok : WalletHealth; Err : Error };
+type Result_2 = variant { Ok : WalletVersion; Err : Error };
+type Result_3 = variant { Ok : nat64; Err : Error };
+type Result_4 = variant { Ok : nat; Err : Error };
+type Result_5 = variant { Ok : WalletRecord; Err : Error };
+type Result_6 = variant { Ok : ActivationQuote; Err : Error };
+type Result_7 = variant { Ok : ActivationPreview; Err : Error };
+type Result_8 = variant { Ok : StagedModule; Err : Error };
+type Result_9 = variant { Ok : text; Err : text };
 // What a member may do. Roles are ordered: each includes the ones after it
 // except Recovery, which only proposes membership changes.
 type Role = variant {
@@ -491,37 +492,40 @@ type WalletVersion = record {
   retired : bool;
 };
 service : (HubInit) -> {
-  admin_add_user_home : (principal) -> (Result);
+  // Stop an activation that has not installed any code. An installed wallet
+  // cannot be refunded through this path, including after a lost install reply.
+  abort_activation : (blob) -> (Result);
+  admin_add_user_home : (principal) -> (Result_1);
   // Register the staged module as the next version new wallets get. The
   // staging must stay untouched until the proposal executes.
-  admin_register_version : (blob, text) -> (Result_1);
+  admin_register_version : (blob, text) -> (Result_2);
   // Delete a retired version and its module, freeing a registration slot;
   // wallets can no longer install it.
-  admin_remove_version : (nat32) -> (Result);
+  admin_remove_version : (nat32) -> (Result_1);
   // Stop giving a version to new wallets; installed wallets keep it and may
   // still accept it.
-  admin_retire_version : (nat32) -> (Result);
-  admin_set_pricing : (HubPricing) -> (Result);
-  admin_set_revenue : (Account) -> (Result);
-  admin_set_uploader : (opt principal) -> (Result);
-  // Return the deposit of a failed activation, or of a quote that expired
-  // without one, less the ledger fee, to `to`: an account outside the hub
-  // that the quote's caller names, such as the payer's. The first claim
-  // fixes the account and later ones finish that refund; returns the ledger
-  // block.
-  claim_activation_refund : (blob, Account) -> (Result_2);
-  clear_wasm_staging : () -> (Result);
-  // Move a ready activation's payment: the cycles share to the CMC for the
-  // hub's cycles, the rest to the revenue account. Anyone may call it;
-  // `collectable_activations` lists the activations waiting for it.
-  collect_revenue : (blob) -> (Result_3);
+  admin_retire_version : (nat32) -> (Result_1);
+  admin_set_pricing : (HubPricing) -> (Result_1);
+  admin_set_revenue : (Account) -> (Result_1);
+  admin_set_uploader : (opt principal) -> (Result_1);
+  // Claim only unreserved funds. The quote caller chooses the destination;
+  // an unfinished refund keeps its exact arguments and destination on retry.
+  // A later deposit creates a separate refund after the previous one completed.
+  claim_activation_refund : (blob, Account) -> (Result_3);
+  clear_wasm_staging : () -> (Result_1);
+  // Collect exactly the quoted activation price. Extra and late deposits stay
+  // claimable by the quote caller and never increase the DAO's revenue.
+  collect_revenue : (blob) -> (Result);
   // Quote IDs of ready activations whose payment is not yet revenue, after
   // `after`, at most 100. Maintenance collects each with `collect_revenue`.
   collectable_activations : (opt blob, nat16) -> (vec blob) query;
   // Create the wallet of a paid quote, or continue its interrupted
   // activation. The creator's device approval names the quote and the exact
   // wallet; the payment must be in the deposit.
-  create_wallet : (CreateWallet) -> (Result_3);
+  create_wallet : (CreateWallet) -> (Result);
+  // Reserved activation funds; clients subtract this from the deposit balance
+  // when displaying surplus and late-payment refunds.
+  get_activation_reserve : (blob) -> (Result_4) query;
   get_hub_config : () -> (HubInit) query;
   get_order : (blob) -> (opt ActivationOrder) query;
   get_quote : (blob) -> (opt ActivationQuote) query;
@@ -534,30 +538,30 @@ service : (HubInit) -> {
   list_wallets : (opt principal, nat16) -> (vec WalletRecord) query;
   list_wallets_of : (MemberId) -> (vec WalletRecord) query;
   // Remove every controller of a wallet that accepted locking its code.
-  lock_wallet : (principal) -> (Result_4);
+  lock_wallet : (principal) -> (Result_5);
   // Price and deposit account for the calling payer to create a wallet for
   // `account_id`; `remaining` shows what the account's plan still allows.
-  quote_activation : (blob) -> (Result_5);
+  quote_activation : (blob) -> (Result_6);
   // Activation terms this account would get now, without storing a quote: the
   // price, version and remaining wallets by plan. The client reads its plan and
   // the ledger fee itself, so this is a local query and a person sees a plan's
   // limit before asking for a quote.
-  quote_activation_preview : (blob) -> (Result_6) query;
+  quote_activation_preview : (blob) -> (Result_7) query;
   // Continue an activation after an interrupted creation or install.
-  reconcile_activation : (blob) -> (Result_3);
+  reconcile_activation : (blob) -> (Result);
   staged_wasm : () -> (StagedModule) query;
   // Refresh the member index from the wallet. Anyone may call it.
-  sync_wallet : (principal) -> (Result_4);
+  sync_wallet : (principal) -> (Result_5);
   // Install the version a wallet accepted. Anyone may call it.
-  upgrade_wallet : (principal) -> (Result_4);
+  upgrade_wallet : (principal) -> (Result_5);
   // Append bytes to the module staged for registration.
-  upload_wasm_chunk : (blob) -> (Result_7);
-  validate_admin_add_user_home : (principal) -> (Result_8) query;
-  validate_admin_register_version : (blob, text) -> (Result_8) query;
-  validate_admin_remove_version : (nat32) -> (Result_8) query;
-  validate_admin_retire_version : (nat32) -> (Result_8) query;
-  validate_admin_set_pricing : (HubPricing) -> (Result_8) query;
-  validate_admin_set_revenue : (Account) -> (Result_8) query;
-  validate_admin_set_uploader : (opt principal) -> (Result_8) query;
-  wallet_health : (principal) -> (Result_9);
+  upload_wasm_chunk : (blob) -> (Result_8);
+  validate_admin_add_user_home : (principal) -> (Result_9) query;
+  validate_admin_register_version : (blob, text) -> (Result_9) query;
+  validate_admin_remove_version : (nat32) -> (Result_9) query;
+  validate_admin_retire_version : (nat32) -> (Result_9) query;
+  validate_admin_set_pricing : (HubPricing) -> (Result_9) query;
+  validate_admin_set_revenue : (Account) -> (Result_9) query;
+  validate_admin_set_uploader : (opt principal) -> (Result_9) query;
+  wallet_health : (principal) -> (Result_10);
 }

@@ -5327,10 +5327,13 @@ fn desktop_wallet() {
         subaccount: None,
     };
     assert_eq!(ledger_balance(d, ledger, key), 0);
-    // The refunded quote is spent: the device forgets it.
+    // The quote remains tracked for late deposits; an empty deposit stays hidden.
     let deposits = a.rpc(&http, "wallet/deposits", json!({})).unwrap();
     assert_eq!(deposits, json!([]));
-    assert_eq!(a.fail(&["wallet", "refund", quote_id]), "NOT_FOUND");
+    assert_eq!(
+        a.run(&["wallet", "refund", quote_id])["block"],
+        refund["block"]
+    );
     env.finish();
 }
 

@@ -15,7 +15,7 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 55] = [
+pub(crate) const METHODS: [&str; 57] = [
     "wallet/activation_continue",
     "wallet/activation",
     "wallet/assets",
@@ -64,6 +64,8 @@ pub(crate) const METHODS: [&str; 55] = [
     "wallet/settle",
     "wallet/report",
     "wallet/reconcile",
+    "wallet/reconcile_transfer",
+    "wallet/activation_abort",
     "wallet/balances",
     "wallet/audit",
     "wallet/refuel",
@@ -98,6 +100,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "wallet/settle"
         | "wallet/report"
         | "wallet/reconcile"
+        | "wallet/reconcile_transfer"
+        | "wallet/activation_abort"
         | "wallet/prepare"
         | "wallet/refuel"
         | "wallet/cosigner_new" => &["wallet/changed"],
@@ -343,6 +347,21 @@ impl Daemon {
             "wallet/notify" => wallets::desktop::notify(&h, wallet()?, params["proposal"].as_u64())
                 .await
                 .map(|sent| json!({"sent":sent})),
+            "wallet/activation_abort" => {
+                wallets::ops::abort_activation(&h, &text(params, "quote")?).await
+            }
+            "wallet/reconcile_transfer" => {
+                wallets::ops::reconcile_transfer(
+                    &h,
+                    wallet()?,
+                    id()?,
+                    number(params, "item")?,
+                    text(params, "block")?
+                        .parse()
+                        .map_err(|_| dmsg_types::invalid("ledger block"))?,
+                )
+                .await
+            }
             "wallet/refund" => wallets::ops::refund(&h, &text(params, "quote")?).await,
             "wallet/join" => wallets::ops::join_request(&h, source(params)?, wallet()?).await,
             "wallet/propose" => {

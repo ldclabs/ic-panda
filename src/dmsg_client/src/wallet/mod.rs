@@ -351,12 +351,19 @@ pub fn intent_view(intent: &Intent) -> Json {
         Intent::CancelEvmNonce {
             address,
             chain_id,
+            proposal,
+            nonce,
             max_fee,
         } => {
-            json!({"kind": "cancel_evm_nonce", "address": address, "chain_id": chain_id, "max_fee": max_fee.to_string()})
+            json!({"kind": "cancel_evm_nonce", "address": address, "chain_id": chain_id, "proposal": proposal, "nonce": nonce.to_string(), "max_fee": max_fee.to_string()})
         }
-        Intent::ReleaseEvmNonce { address, chain_id } => {
-            json!({"kind": "release_evm_nonce", "address": address, "chain_id": chain_id})
+        Intent::ReleaseEvmNonce {
+            address,
+            chain_id,
+            proposal,
+            nonce,
+        } => {
+            json!({"kind": "release_evm_nonce", "address": address, "chain_id": chain_id, "proposal": proposal, "nonce": nonce.to_string()})
         }
         Intent::InitSolNonce { address, max_fee } => {
             json!({"kind": "init_sol_nonce", "address": address, "max_fee": max_fee.to_string()})
@@ -681,7 +688,7 @@ impl Client {
     /// identity that paid it, once the hub failed to create its wallet or
     /// the quote expired unused. The hub takes the claim from this device's
     /// wallet key, which requested the quote, and pays the account it names.
-    /// The refunded quote is spent, so this device forgets it.
+    /// The quote stays tracked so later deposits can also be refunded.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for a quote this device did not request or
@@ -1083,8 +1090,12 @@ pub async fn proposals<H: Hold>(
 /// cosignature commits to exactly that, whichever replica answered.
 async fn proposal_raw<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Proposal> {
     let (_, ic) = identity(h).await?;
-    let p: Result<Proposal> = ic.query(wallet, "get_proposal", (id,)).await?;
-    let p = p?;
+    let batch: Result<CertifiedBatch> = ic.query(wallet, "get_proposal_certified", (id,)).await?;
+    let key = [b"proposal/".as_slice(), &id.to_be_bytes()].concat();
+    let value =
+        certified_leaf(&batch?, &key, wallet, &ic.root_key(), now_ms())?.ok_or(Error::NotFound)?;
+    let mut p: Proposal = crate::codec::decode(&value, 4 << 20)?;
+    let view = state(h, wallet).await?;
     let environment = h.with(|c| Ok(c.config.environment.clone())).await?;
     let digest = proposal_digest(
         &environment,
@@ -1096,6 +1107,18 @@ async fn proposal_raw<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Prop
         &p.via_agent,
     );
     ensure(p.id == id && p.digest == digest, Error::IntegrityFailed)?;
+    let at = now_ms();
+    if is_waiting(p.status) {
+        if at >= p.expires_at_ms {
+            p.status = ProposalStatus::Expired;
+        } else if p.policy_version != view.policy.version {
+            p.status = ProposalStatus::Stale;
+        } else if p.status == ProposalStatus::Delayed
+            && p.ready_at_ms.is_some_and(|ready| at >= ready)
+        {
+            p.status = ProposalStatus::Ready;
+        }
+    }
     Ok(p)
 }
 
@@ -1120,10 +1143,8 @@ pub async fn proposal<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Json
     Ok(out)
 }
 
-/// The activation deposits this device paid that created no wallet, newest
-/// first. A failed creation's and an expired quote's are refundable now
-/// with [`Client::wallet_refund`]; an unused quote's once it expires,
-/// unless it creates its wallet first.
+/// Paid quotes with refundable, reserved or interrupted activation funds.
+/// Completed quotes stay tracked so surplus and late deposits remain visible.
 ///
 /// # Errors
 /// Query failures return `Error::Unavailable`.
@@ -1135,49 +1156,47 @@ pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
     }
     let reader = h.anonymous().await?;
     let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
-    // Preserve the journal's order, with at most four deposits in flight.
+    let fee = ledger_fee(&reader, config.icp_ledger).await?;
     let read = stream::iter(paid.into_iter().map(|quote| {
         let reader = &reader;
         async move {
-            let order: Option<ActivationOrder> =
-                reader.query(hub, "get_order", (quote.quote_id,)).await?;
-            let reason = match order.map(|o| o.status) {
-                Some(ActivationStatus::Failed(reason)) => Some(reason),
-                Some(_) => return Ok(None),
-                None => None,
-            };
-            let held: candid::Nat = reader
-                .query(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
-                .await?;
-            let held = u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?;
-            Ok::<_, Error>(Some((quote, reason, held)))
+            let (order, reserved, held) = futures_util::try_join!(
+                reader.query::<_, Option<ActivationOrder>>(hub, "get_order", (quote.quote_id,)),
+                reader.query::<_, Result<u128>>(hub, "get_activation_reserve", (quote.quote_id,)),
+                reader.query::<_, Nat>(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
+            )?;
+            Ok::<_, Error>((
+                quote,
+                order,
+                reserved?,
+                u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?,
+            ))
         }
     }))
     .buffered(4)
     .try_collect::<Vec<_>>()
     .await?;
-    // The state each quote shows is judged after these reads answered.
-    let now = now_ms();
+    let at = now_ms();
     let rows = read
         .into_iter()
-        .flatten()
-        .filter_map(|(quote, reason, held)| {
-            let fee = u128::from(quote.ledger_fee_e8s);
-            if held <= fee {
+        .filter_map(|(quote, order, reserved, held)| {
+            let refund = held.saturating_sub(reserved).saturating_sub(fee);
+            let (state, reason, abortable) = match order.as_ref().map(|o| &o.status) {
+                Some(ActivationStatus::Ready) => ("surplus", None, false),
+                Some(ActivationStatus::Created) => ("installing", None, true),
+                Some(ActivationStatus::Paid) => ("creating", None, true),
+                Some(ActivationStatus::Failed(reason)) => ("failed", Some(reason.clone()), false),
+                Some(ActivationStatus::Refunded { .. }) => ("surplus", None, false),
+                None if at >= quote.expires_at_ms => ("expired", None, false),
+                None => ("unused", None, false),
+            };
+            if (held <= fee || state == "surplus" && refund == 0) && !abortable {
                 return None;
             }
-            let state = if reason.is_some() {
-                "failed"
-            } else if now >= quote.expires_at_ms {
-                "expired"
-            } else {
-                "unused"
-            };
             Some(json!({
-                "quote_id": hex::encode(*quote.quote_id), "state": state,
-                "refundable": state != "unused", "refund_e8s": (held - fee).to_string(),
-                "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
-                "expires_at": quote.expires_at_ms, "reason": reason,
+                "quote_id":hex::encode(*quote.quote_id),"state":state,"refundable":refund>0,
+                "refund_e8s":refund.to_string(),"ledger_fee_e8s":fee.to_string(),
+                "expires_at":quote.expires_at_ms,"reason":reason,"abortable":abortable
             }))
         })
         .collect::<Vec<_>>();

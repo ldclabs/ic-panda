@@ -279,6 +279,8 @@ fn cases(w: &Wallet) -> Vec<Case> {
         Case {
             name: "evm nonce cancellation",
             intent: Intent::CancelEvmNonce {
+                proposal: 1,
+                nonce: 7,
                 address: 4,
                 chain_id: 8453,
                 max_fee: 10u128.pow(16),

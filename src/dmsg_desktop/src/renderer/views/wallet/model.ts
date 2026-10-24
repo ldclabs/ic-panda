@@ -131,6 +131,8 @@ export function actions(p: Proposal, w: Wallet, now: number, plan = p.plans) {
   const eligible = decider && (!p.requirement.admin || me?.role === 'Admin')
   const voted = p.votes.some((v) => v.member === me?.id)
   const permitted = !w.frozen || freezeAllows(p.intent.kind)
+  const replacementAllowed = p.intent.kind !== 'init_sol_nonce' &&
+    (!['SOL', 'SPL'].includes(p.intent.asset?.asset) || !!w.addresses.find((a) => a.id === p.intent.from)?.sol_nonce)
   return {
     state,
     approve: state === 'Open' && eligible && !voted && permitted,
@@ -143,7 +145,7 @@ export function actions(p: Proposal, w: Wallet, now: number, plan = p.plans) {
       permitted &&
       (state === 'Ready' || (['Signed', 'Broadcast'].includes(state) && plan > 0 && !p.signed.some((s) => s.plan === plan))),
     rebroadcast: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state),
-    resign: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state) && permitted,
+    resign: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state) && permitted && replacementAllowed,
     cancel: active && p.proposer === me?.id && ['Open', 'Delayed', 'Ready'].includes(state),
     voted
   }
@@ -181,8 +183,8 @@ const fields: Record<string, string[]> = {
   refuel: ['from', 'icp_e8s'],
   accept_upgrade: ['version', 'module_hash'],
   lock_code: [],
-  cancel_evm_nonce: ['address', 'chain_id', 'max_fee'],
-  release_evm_nonce: ['address', 'chain_id'],
+  cancel_evm_nonce: ['address', 'chain_id', 'proposal', 'nonce', 'max_fee'],
+  release_evm_nonce: ['address', 'chain_id', 'proposal', 'nonce'],
   init_sol_nonce: ['address', 'max_fee']
 }
 export const knownIntent = (intent: any): boolean => {

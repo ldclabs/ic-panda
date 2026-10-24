@@ -234,7 +234,7 @@ user 新增 `canister_inspect_message`：服务回调只接受对应的配置 ca
 
 ## 2026-10-17 团队钱包
 
-新增 `dmsg_wallet_hub`（接管保留 ID `ghcje-dyaaa-aaaas-qg7va-cai`）与 `dmsg_wallet`（每个团队一个实例，由 hub 安装，不在 icp.yaml 中单独部署）。合同见 [wallet_zh.md](protocol/wallet_zh.md)，设计见 `misc/dMsg_wallet_*_2026-10-16_zh.md`。
+新增 `dmsg_wallet_hub`（接管保留 ID `ghcje-dyaaa-aaaas-qg7va-cai`）与 `dmsg_wallet`（每个团队一个实例，由 hub 安装，不在 icp.yaml 中单独部署）。合同见 [wallet_zh.md](protocol/wallet_zh.md)，产品与技术方案见 [产品方案](dMsg_wallet_product_2026-10-16_zh.md) 和 [技术方案](dMsg_wallet_implementation_2026-10-16_zh.md)。
 
 - **批准**：`ApprovalPurpose` 新增 `WalletCreate`、`WalletProposal`、`WalletJoin`，设备能力新增 `WalletApprove`。user home 对这些用途要求 `subject_bytes == service`；`WalletCreate` 的 service 固定为产品登记的 `adapter`（hub），其余为钱包自身。commerce 与示例产品对这些用途的结算请求返回 `Forbidden`。
 - **钱包**：成员（账户或 Principal，Admin/Approver/Proposer/Viewer/Recovery）、版本化策略（按资产分档、24 小时滚动窗口、日限额、地址簿冷却）、提案状态机、哈希链审计与认证叶。ICP/ICRC 以确切参数转账并可 `reconcile`；BTC（P2TR、P2WPKH、链上双控 Taproot）、EVM（EIP-1559、ERC-20、nonce 取消）、SOL（转账、SPL、durable nonce）由钱包从意图构造并以 `key_1` 签名，成员客户端广播。协签支持 Raw、FIDO2、WebAuthn 三种封装。

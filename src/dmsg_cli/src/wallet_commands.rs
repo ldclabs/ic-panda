@@ -50,6 +50,15 @@ pub enum WalletCommand {
         /// The quote ID from `dmsg wallet quote`.
         quote: String,
     },
+    /// Abort an activation before any wallet code was installed; then claim its refund.
+    AbortActivation { quote: String },
+    /// Reconcile an unknown ICRC transfer using a real ledger block.
+    ReconcileTransfer {
+        wallet: String,
+        id: u64,
+        item: u16,
+        block: u64,
+    },
     /// Join a wallet this account was added to; goes through the approval center.
     Join {
         /// Wallet canister ID.
@@ -370,6 +379,26 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                 }
             }
             request(remote, json, "wallet/create", params).await?;
+        }
+        WalletCommand::AbortActivation { quote } => {
+            let r = remote
+                .call("wallet/activation_abort", json!({"quote":quote}))
+                .await?;
+            print(json, &r, pretty);
+        }
+        WalletCommand::ReconcileTransfer {
+            wallet,
+            id,
+            item,
+            block,
+        } => {
+            let r = remote
+                .call(
+                    "wallet/reconcile_transfer",
+                    json!({"wallet":wallet,"proposal":id,"item":item,"block":block.to_string()}),
+                )
+                .await?;
+            print(json, &r, pretty);
         }
         WalletCommand::Refund { quote } => {
             let r = remote

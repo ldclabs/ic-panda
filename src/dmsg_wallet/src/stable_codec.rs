@@ -55,6 +55,9 @@ pub(crate) struct WalletRepr {
     #[cbor(key = 20)]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     spends: Vec<Spend>,
+    #[cbor(key = 21)]
+    #[serde(default, skip_serializing_if = "is_zero")]
+    code_busy: bool,
 }
 
 impl StableCodec for Wallet {
@@ -74,6 +77,7 @@ impl StableCodec for Wallet {
             next_proposal: self.next_proposal,
             frozen: self.frozen,
             code: self.code.clone(),
+            code_busy: self.code_busy,
             key_roots: self.key_roots.clone(),
             audit_head: self.audit_head,
             day: self.day,
@@ -99,6 +103,7 @@ impl StableCodec for Wallet {
             next_proposal: repr.next_proposal,
             frozen: repr.frozen,
             code: repr.code,
+            code_busy: repr.code_busy,
             key_roots: repr.key_roots,
             audit_head: repr.audit_head,
             day: repr.day,
@@ -215,6 +220,7 @@ mod tests {
             next_proposal: 1_000,
             frozen: false,
             code: CodeAcceptance::None,
+            code_busy: false,
             key_roots: KeyRoots::default(),
             audit_head: Hash::new([5; 32]),
             day: 20_000,
@@ -233,6 +239,7 @@ mod tests {
                     amount: 1_000_000,
                     at_ms: 1_790_000_000_000,
                     proposal: i,
+                    executed_at_ms: None,
                 })
                 .collect(),
         }

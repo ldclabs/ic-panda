@@ -638,6 +638,10 @@ type Intent = variant {
     chain_id : nat64;
     // EVM address.
     address : nat32;
+    // Nonce of that proposal's signed transaction.
+    nonce : nat64;
+    // Exact pending proposal to replace.
+    proposal : nat64;
     // Highest network fee in wei.
     max_fee : nat;
   };
@@ -647,6 +651,10 @@ type Intent = variant {
     chain_id : nat64;
     // EVM address.
     address : nat32;
+    // Nonce of that proposal's signed transaction.
+    nonce : nat64;
+    // Exact pending proposal to release.
+    proposal : nat64;
   };
   // Send one amount.
   Transfer : record {
@@ -970,8 +978,8 @@ type Result_12 = variant { Ok : Requirement; Err : Error };
 type Result_13 = variant { Ok : opt nat; Err : Error };
 type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
 type Result_3 = variant { Ok : KeyRoots; Err : Error };
-type Result_4 = variant { Ok : ExecuteResult; Err : Error };
-type Result_5 = variant { Ok; Err : Error };
+type Result_4 = variant { Ok; Err : Error };
+type Result_5 = variant { Ok : ExecuteResult; Err : Error };
 type Result_6 = variant { Ok : ExecutionPlan; Err : Error };
 type Result_7 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_8 = variant { Ok : WalletView; Err : Error };
@@ -1154,10 +1162,13 @@ service : (WalletInit) -> {
   bootstrap : () -> (Result_3);
   // The proposer withdraws a proposal not yet executing.
   cancel_proposal : (nat64) -> (Result_1);
-  execute : (ExecuteArgs) -> (Result_4);
+  // The hub claims the exact accepted action before changing canister state.
+  // Retrying the same claim is safe after an interrupted hub operation.
+  claim_code : (CodeAcceptance) -> (Result_4);
+  execute : (ExecuteArgs) -> (Result_5);
   // Stop executions at once. Any Admin or Approver may freeze; unfreezing
   // is an Admin proposal with a delay.
-  freeze : () -> (Result_5);
+  freeze : () -> (Result_4);
   get_plan : (nat64, nat32) -> (Result_6) query;
   get_proposal : (nat64) -> (Result_1) query;
   // The stored proposal record; deadlines that passed since are not applied.
@@ -1178,10 +1189,15 @@ service : (WalletInit) -> {
   // Remove up to 100 of the oldest finished proposals beyond the retained count.
   prune : () -> (nat32);
   // Resend the exact arguments of an interrupted transfer or top-up.
-  reconcile : (nat64) -> (Result_4);
+  reconcile : (nat64) -> (Result_5);
+  // Recover an unknown transfer from an authenticated ledger block. The caller
+  // supplies only its index, never an assertion that money moved.
+  reconcile_transfer : (nat64, nat16, nat64) -> (Result_5);
   // Top up cycles under the policy's refuel rule; anyone may call it.
   refuel : () -> (Result_13);
   reject_proposal : (nat64, MemberApproval) -> (Result_1);
+  // Release an interrupted claim only after the hub has restarted the wallet.
+  release_code : () -> (Result_4);
   // Record a member's report of a signed transaction.
   report : (ChainReport) -> (Result_1);
   veto_proposal : (nat64, MemberApproval) -> (Result_1);

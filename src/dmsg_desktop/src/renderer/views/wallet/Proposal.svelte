@@ -11,7 +11,7 @@
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import Intent from './Intent.svelte'
-  import { explorerUrl, actions, approvalCount, knownIntent, leaves, cosignAddresses, type Asset, type Wallet, type Proposal } from './model'
+  import { explorerUrl, walletRoute, toAtomic, actions, approvalCount, knownIntent, leaves, cosignAddresses, type Asset, type Wallet, type Proposal } from './model'
   import { w } from './text'
   let {
     open = $bindable(false),
@@ -28,6 +28,8 @@
     packet = $state(''),
     collection = $state<any>(null),
     replace = $state(false)
+  let nonceAction = $state(''), nonceFee = $state('0.001'), ledgerItem = $state(0), ledgerBlock = $state('')
+  const signedNonce = $derived(p?.plan_details?.find((v) => v.seq === p?.signed[0]?.plan)?.nonce)
   let alive = true,
     sequence = 0
   let selectedPlan = $state<number | null>(null), collectionError = $state('')
@@ -76,6 +78,7 @@
       const result: any = await call(method, { wallet: wallet.wallet, proposal: id, ...extra })
       if (!alive) return
       if (result.kind === 'wallet' && result.digest) await bridge(() => window.dmsg.openApproval(result.id))
+      if (method === 'wallet/change') { location.hash = walletRoute(wallet.wallet, result.id); onUpdated(); return }
       if (method === 'wallet/prepare') selectedPlan = result.plans
       if (result.pending) notice = w('pending')
       if (result.cosign_required) notice = w('cosignNoLocalKey')
@@ -90,6 +93,15 @@
       busy = false
       replace = false
     }
+  }
+  async function proposeNonce() {
+    if (!p) return
+    try {
+      await run('wallet/change', { change: {
+        kind: nonceAction, address: p.intent.from, chain_id: p.intent.asset.chain_id, proposal: p.id, nonce: String(signedNonce),
+        ...(nonceAction === 'cancel_nonce' ? { max_fee: toAtomic(nonceFee, 18) } : {})
+      } })
+    } catch (e) { error = errorText(e) }
   }
   onMount(() => {
     return () => {
@@ -127,6 +139,26 @@
           >{:else}<p class="text-faint text-[12px]">{w('none')}</p>{/each}</section
       >
       {#if p.failure}<Notice tone="danger">{p.failure}</Notice>{/if}
+      {#if p.status === 'Executing' && ['ICP', 'ICRC'].includes(p.intent.asset?.asset)}
+        <section class="border-line grid gap-3 rounded-lg border p-3" data-testid="wallet-ledger-reconcile">
+          <Notice>{w('ledgerUnknown')}</Notice>
+          <Field label={w('ledgerItem')}><input type="number" min="0" max="31" bind:value={ledgerItem} /></Field>
+          <Field label={w('ledgerBlock')}><input bind:value={ledgerBlock} inputmode="numeric" dir="ltr" /></Field>
+          <button class={buttonClass('secondary','sm')} disabled={busy || !/^\d+$/.test(ledgerBlock) || !available.execute}
+            onclick={() => run('wallet/reconcile_transfer', { item: ledgerItem, block: ledgerBlock })}>{w('reconcile')}</button>
+        </section>
+      {/if}
+      {#if available.rebroadcast && p.intent.kind === 'transfer' && ['ETH','ERC20'].includes(p.intent.asset?.asset) && signedNonce != null}
+        <div class="flex flex-wrap gap-2">
+          <button class={buttonClass('secondary','sm')} disabled={busy || wallet.frozen} onclick={() => nonceAction = 'cancel_nonce'}>{w('cancel_evm_nonce')}</button>
+          <button class={buttonClass('ghost','sm')} disabled={busy || wallet.frozen} onclick={() => nonceAction = 'release_nonce'}>{w('release_evm_nonce')}</button>
+        </div>
+        {#if nonceAction}<section class="border-line grid gap-3 rounded-lg border p-3">
+          <Notice tone="warn">{w('nonceReleaseHint')} · #{p.id} · nonce {signedNonce}</Notice>
+          {#if nonceAction === 'cancel_nonce'}<Field label={`${w('fee')} · ETH`}><input bind:value={nonceFee} inputmode="decimal" dir="ltr" /></Field>{/if}
+          <button class={buttonClass('secondary','sm')} disabled={busy} onclick={proposeNonce}>{w('submit')}</button>
+        </section>{/if}
+      {/if}
       {#if p.outcome}<section class="border-line rounded-lg border p-3"
           ><h3 class="text-[13px] font-semibold">{w('details')}</h3>{#each leaves(p.outcome) as row, i (i)}<p class="text-[12px] break-all"
               >{row.path.map(w).join(' · ')}: {row.value}</p

@@ -84,8 +84,7 @@ pub async fn refund<H: Hold>(h: &H, quote_id: &str) -> Result<Json> {
         .update(hub, "claim_activation_refund", (quote.quote_id, to))
         .await?;
     let block = block?;
-    h.with(|c| c.workspace.delete_private(&format!("{QUOTE}{quote_id}")))
-        .await?;
+    // Keep the quote: extra or late deposits remain claimable after a refund.
     Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block}))
 }
 
@@ -257,6 +256,32 @@ pub async fn reconcile<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Jso
     let (_, ic) = identity(h).await?;
     let r: Result<ExecuteResult> = ic.update(wallet, "reconcile", (id,)).await?;
     Ok(proposal_view(&r?.proposal))
+}
+
+/// Match an unknown ICRC transfer to a real ledger block before resuming it.
+pub async fn reconcile_transfer<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    id: u64,
+    item: u16,
+    block: u64,
+) -> Result<Json> {
+    let (_, ic) = identity(h).await?;
+    let r: Result<ExecuteResult> = ic
+        .update(wallet, "reconcile_transfer", (id, item, block))
+        .await?;
+    Ok(proposal_view(&r?.proposal))
+}
+
+/// Abandon an activation only while its canister still has no installed code.
+pub async fn abort_activation<H: Hold>(h: &H, quote: &str) -> Result<Json> {
+    let saved = h.with(|c| c.wallet_saved_quote(quote)).await?;
+    let hub = h.with(|c| c.wallet_hub()).await?;
+    let (_, ic) = identity(h).await?;
+    let r: Result<ActivationOrder> = ic
+        .update(hub, "abort_activation", (saved.quote_id,))
+        .await?;
+    Ok(json!({"status":format!("{:?}",r?.status),"quote_id":quote}))
 }
 
 /// Reuse the live unsigned plan so repeated requests and other devices sign
@@ -626,18 +651,7 @@ pub async fn params<H: Hold>(
                         _ => return Err(Error::IntegrityFailed),
                     }
                 }
-                // A cancellation takes the oldest nonce not yet mined.
-                (Intent::CancelEvmNonce { .. }, None) => {
-                    let v = chains
-                        .evm(
-                            chain_id,
-                            "eth_getTransactionCount",
-                            json!([a.text, "latest"]),
-                        )
-                        .await?;
-                    u64::from_str_radix(v.as_str().unwrap_or_default().trim_start_matches("0x"), 16)
-                        .map_err(|_| Error::Unavailable("nonce".into()))?
-                }
+                (Intent::CancelEvmNonce { nonce, .. }, None) => *nonce,
                 _ => chains.evm_nonce(chain_id, &a.text).await?,
             };
             let (mut max_fee, mut tip) = chains.evm_fees(chain_id).await?;
@@ -666,31 +680,8 @@ pub async fn params<H: Hold>(
                 max_fee = max_fee.saturating_add(max_fee / 5);
                 tip = tip.saturating_add(tip / 5);
             }
-            let gas_limit = match &p.intent {
-                Intent::Transfer {
-                    asset:
-                        AssetKey::Evm {
-                            token: Some(token), ..
-                        },
-                    to: Destination::Evm(to),
-                    amount,
-                    ..
-                } => {
-                    let data = [
-                        &[0xa9, 0x05, 0x9c, 0xbb][..],
-                        &[0; 12],
-                        &to[..],
-                        &[0; 16],
-                        &amount.to_be_bytes(),
-                    ]
-                    .concat();
-                    chains
-                        .evm_gas(chain_id, &a.text, &eip55(&token.into_array()), &data, 0)
-                        .await
-                        .unwrap_or(100_000)
-                }
-                _ => 21_000,
-            };
+            let (_, to, data, value) = evm_call(&p.intent, a)?;
+            let gas_limit = chains.evm_gas(chain_id, &a.text, &to, &data, value).await?;
             ExecutionParams::Evm {
                 nonce,
                 max_fee_per_gas: max_fee,
@@ -760,6 +751,37 @@ pub async fn params<H: Hold>(
         }
         Chain::Icp => return Err(Error::InvalidInput("ICP needs no plan".into())),
     })
+}
+
+/// Exact call used by both preview and execution gas estimation.
+pub(super) fn evm_call(intent: &Intent, address: &Address) -> Result<(u64, String, Vec<u8>, u128)> {
+    match intent {
+        Intent::Transfer {
+            asset: AssetKey::Evm { chain_id, token },
+            to: Destination::Evm(to),
+            amount,
+            ..
+        } => {
+            let (to, data, value) = match token {
+                Some(token) => (
+                    eip55(&token.into_array()),
+                    [
+                        &[0xa9, 0x05, 0x9c, 0xbb][..],
+                        &[0; 12],
+                        &to[..],
+                        &[0; 16],
+                        &amount.to_be_bytes(),
+                    ]
+                    .concat(),
+                    0,
+                ),
+                None => (eip55(&to.into_array()), vec![], *amount),
+            };
+            Ok((*chain_id, to, data, value))
+        }
+        Intent::CancelEvmNonce { chain_id, .. } => Ok((*chain_id, address.text.clone(), vec![], 0)),
+        _ => Err(dmsg_types::invalid("EVM transfer")),
+    }
 }
 
 pub(crate) async fn registrations<H: Hold>(
@@ -895,14 +917,7 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 )
                 .await?;
             let order = order?;
-            // A quote that created its wallet is spent.
-            if order.status == ActivationStatus::Ready {
-                h.with(|c| {
-                    c.workspace
-                        .delete_private(&format!("{QUOTE}{}", hex::encode(*quote.quote_id)))
-                })
-                .await?;
-            }
+            // Keep the paid quote so surplus and later deposits can be found.
             json!({
                 "status": format!("{:?}", order.status),
                 "wallet": order.wallet.map(|w| w.to_text()),

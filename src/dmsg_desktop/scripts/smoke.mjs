@@ -2377,6 +2377,26 @@ smoke: try {
   await main.waitForSelector('[data-testid="wallet-manage"] >> text=The hardware keys cannot meet')
   assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'),true)
   await main.keyboard.press('Escape')
+  // Durable nonce creation and exact ledger-block recovery use typed forms.
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await main.locator('[data-testid="wallet-address-3"]').getByRole('button',{name:'Initialize durable nonce',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-manage"]')
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await waitFor(() => wallets.state.changed?.change.kind === 'sol_nonce')
+  assert.equal(wallets.state.changed.change.address,3)
+  assert.equal(wallets.state.changed.change.max_fee,'20000')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  await main.keyboard.press('Escape')
+  const unknownTransfer={...structuredClone(originalProposal),id:801,status:'Executing',failure:'outcome unknown'}
+  wallets.proposals.unshift(unknownTransfer)
+  await main.evaluate(([wallet,id])=>location.hash=`/wallet/${wallet}/${id}`,[wallets.a,801])
+  await main.waitForSelector('[data-testid="wallet-ledger-reconcile"]')
+  await main.locator('[data-testid="wallet-ledger-reconcile"]').getByLabel('Ledger block',{exact:true}).fill('9007199254740993')
+  await main.locator('[data-testid="wallet-ledger-reconcile"]').getByRole('button',{name:'Check interrupted execution',exact:true}).click()
+  await waitFor(() => wallets.state.reconciled)
+  assert.equal(wallets.state.reconciled.block,'9007199254740993')
+  assert.equal(wallets.state.reconciled.item,0)
+  await main.keyboard.press('Escape')
   wallets.state.enabled=false
   for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
 

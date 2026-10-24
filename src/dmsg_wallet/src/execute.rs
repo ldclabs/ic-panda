@@ -1,6 +1,6 @@
 //! Executions: internal changes, ICRC transfers, canister calls, cycles
 //! top-ups, new addresses and external-chain signing.
-use crate::api::{check_state, now, refresh, unlocked};
+use crate::api::{check_state, execution_authorized, now, refresh, unlocked};
 use crate::chains::{self, Assembly, btc::BtcSpend};
 use crate::ledger::{self, LedgerItem, LedgerJob, Notified, Sent, TopUp};
 use crate::store::{self, EvmPending, Job, PlanRecord, REFUEL_JOB, SignSpec, SolLast, Wallet};
@@ -105,6 +105,7 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
                 principals: vec![],
                 added_at_ms: at,
             });
+            w.policy.version += 1;
         }
         Intent::RemoveMember(id) => {
             w.members.retain(|m| m.id != *id);
@@ -117,6 +118,7 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
                 .map(|c| c.id)
                 .collect();
             strip_cosigners(w, &owned);
+            w.policy.version += 1;
         }
         Intent::UpdateMember(input) => {
             let m = w
@@ -127,6 +129,7 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
             m.role = input.role;
             m.label = input.label.clone();
             m.agent_ids = input.agent_ids.clone();
+            w.policy.version += 1;
         }
         Intent::SetPolicy(policy) => w.policy = policy.clone(),
         Intent::AddressBook(change) => store::set_book(change, at),
@@ -141,9 +144,18 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
             };
         }
         Intent::LockCode => w.code = CodeAcceptance::Lock,
-        Intent::ReleaseEvmNonce { address, chain_id } => {
-            w.evm_pending
-                .retain(|e| !(e.address == *address && e.chain_id == *chain_id));
+        Intent::ReleaseEvmNonce {
+            address,
+            chain_id,
+            proposal,
+            nonce,
+        } => {
+            w.evm_pending.retain(|e| {
+                !(e.address == *address
+                    && e.chain_id == *chain_id
+                    && e.proposal == *proposal
+                    && e.nonce == *nonce)
+            });
         }
         _ => return Err(invalid("not an internal intent")),
     }
@@ -248,6 +260,9 @@ async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
     ensure(member.role != Role::Viewer, Error::Forbidden)?;
     refresh(&mut w, &mut p, at)?;
     unlocked(&w, &p.intent)?;
+    if p.status == ProposalStatus::Ready {
+        execution_authorized(&w, &p, at)?;
+    }
     if chains::chain_source(&p.intent).is_some() {
         let seq = args.plan.ok_or_else(|| invalid("plan"))?;
         return sign_plan(w, p, seq, &args.cosigs, member.id, me, at).await;
@@ -289,6 +304,7 @@ async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
                 created_at_time: at * NANOS_PER_MILLISECOND,
                 block: None,
             };
+            w.commit_spend(p.id, at);
             begin(&mut w, &mut p, Job::TopUp(job), at);
             top_up(p.id, me).await
         }
@@ -311,6 +327,13 @@ fn begin(w: &mut Wallet, p: &mut Proposal, job: Job, at: u64) {
 fn abandon(p: &mut Proposal, status: ProposalStatus, at: u64) {
     p.status = status;
     p.updated_at_ms = at;
+    if p.signed.is_empty() {
+        let mut w = store::wallet();
+        if let Some(spend) = w.spends.iter_mut().find(|s| s.proposal == p.id) {
+            spend.executed_at_ms = None;
+            store::save(w);
+        }
+    }
     store::save_proposal(p);
     store::remove_job(p.id);
 }
@@ -401,6 +424,22 @@ async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<Execute
     }
     job.fee = Some(fee);
     job.created_at_time = Some(at * NANOS_PER_MILLISECOND);
+    // No transfer has been sent yet; changed authority cannot authorize one.
+    if let Err(error) = execution_authorized(&w, &p, at) {
+        if error == Error::Locked {
+            abandon(&mut p, ProposalStatus::Ready, at);
+            return Err(error);
+        }
+        fail(
+            &mut w,
+            &mut p,
+            "authorization changed before transfer".into(),
+            true,
+            at,
+        );
+        finish(w, &p);
+        return Err(error);
+    }
     store::save_job(p.id, &Job::Ledger(job));
     process_ledger(p.id, at).await
 }
@@ -422,6 +461,9 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
         };
         // A freeze stops the batch before its next transfer.
         ensure(!store::with(|w| w.frozen), Error::Locked)?;
+        let mut w = store::wallet();
+        w.commit_spend(id, at);
+        store::save(w);
         let sent = ledger::send(job.ledger, job.arg(&job.items[i])).await;
         at = now();
         let Some(Job::Ledger(mut job)) = store::job(id) else {
@@ -438,14 +480,16 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
                 let blocks: Vec<u64> = job.items.iter().filter_map(|x| x.block).collect();
                 // A resend past the ledger's deduplication window proves nothing.
                 let unknown = reason.starts_with("TooOld");
-                let reason = if unknown {
-                    format!(
+                if unknown {
+                    p.failure = Some(format!(
                         "item {i}: outcome unknown after the deduplication window; check the ledger"
-                    )
-                } else {
-                    format!("item {i}: {reason}")
-                };
-                let release = blocks.is_empty() && !unknown;
+                    ));
+                    p.updated_at_ms = at;
+                    store::save_proposal(&p);
+                    return Err(Error::ExecutionUnknown);
+                }
+                let reason = format!("item {i}: {reason}");
+                let release = blocks.is_empty();
                 p.outcome = Some(Outcome::Ledger { blocks });
                 fail(&mut w, &mut p, reason.clone(), release, at);
                 finish(w, &p);
@@ -613,10 +657,16 @@ async fn add_address(
         }
     };
     // A cosigner removed while the key was read fails the proposal.
-    let text = match &kind {
+    let text = ensure(
+        p.policy_version == w.policy.version && at < p.expires_at_ms,
+        Error::VersionConflict,
+    )
+    .and_then(|()| unlocked(&w, &p.intent))
+    .and_then(|()| check_state(&w, &p.intent))
+    .and_then(|()| match &kind {
         AddressKind::Taproot(control) => chains::btc::native_cosigner(&w, control).map(Some),
         _ => Ok(None),
-    }
+    })
     .and_then(|cosigner| {
         address_text(
             me,
@@ -676,6 +726,61 @@ async fn reconcile(id: u64) -> Result<ExecuteResult> {
     resume(id, me, at).await
 }
 
+/// Recover an unknown transfer from an authenticated ledger block. The caller
+/// supplies only its index, never an assertion that money moved.
+#[ic_cdk::update]
+async fn reconcile_transfer(id: u64, item: u16, block: u64) -> Result<ExecuteResult> {
+    let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
+    store::with(|w| ensure(w.acting(caller)?.role != Role::Viewer, Error::Forbidden))?;
+    let Some(Job::Ledger(job)) = store::job(id) else {
+        return Err(Error::NotFound);
+    };
+    ensure(job.created_at_time.is_some(), Error::Pending)?;
+    let index = usize::from(item);
+    let expected = job.arg(job.items.get(index).ok_or(Error::NotFound)?);
+    let transfer = dmsg_runtime::ledger::read_transfer(job.ledger, block).await?;
+    let at = now();
+    store::with(|w| ensure(w.acting(caller)?.role != Role::Viewer, Error::Forbidden))?;
+    ensure(
+        transfer.from
+            == icrc_ledger_types::icrc1::account::Account {
+                owner: me,
+                subaccount: expected.from_subaccount,
+            }
+            && transfer.to == expected.to
+            && expected.amount == transfer.amount
+            && transfer.fee == job.fee
+            && transfer.created_at_time == expected.created_at_time
+            && transfer.memo == expected.memo.as_ref().map(|m| m.0.to_vec())
+            && transfer.spender.is_none(),
+        Error::IntegrityFailed,
+    )?;
+    let Some(Job::Ledger(mut current)) = store::job(id) else {
+        let p = store::proposal(id)?;
+        ensure(
+            matches!(&p.outcome, Some(Outcome::Ledger { blocks }) if blocks.get(index) == Some(&block)),
+            Error::VersionConflict,
+        )?;
+        return Ok(result(p, None));
+    };
+    let stored = current.items.get(index).ok_or(Error::NotFound)?;
+    ensure(
+        current.ledger == job.ledger && current.arg(stored) == expected,
+        Error::VersionConflict,
+    )?;
+    ensure(
+        stored.block.is_none_or(|b| b == block),
+        Error::IntegrityFailed,
+    )?;
+    current.items[index].block = Some(block);
+    store::save_job(id, &Job::Ledger(current));
+    let mut p = store::proposal(id)?;
+    p.failure = None;
+    store::save_proposal(&p);
+    process_ledger(id, at).await
+}
+
 fn waiting_status(p: &Proposal) -> ProposalStatus {
     if p.signed.is_empty() {
         ProposalStatus::Ready
@@ -696,12 +801,12 @@ fn check_versions(
     p: &Proposal,
     address: u32,
     params: &ExecutionParams,
-    at: u64,
 ) -> Result<Option<u64>> {
-    let first = match p.signed.first() {
-        Some(s) => Some(store::plan(p.id, s.plan)?.plan.params),
+    let first_record = match p.signed.first() {
+        Some(s) => Some(store::plan(p.id, s.plan)?),
         None => None,
     };
+    let first = first_record.as_ref().map(|r| &r.plan.params);
     match params {
         ExecutionParams::Evm { nonce, .. } => {
             // A re-sign keeps the nonce, so only one version can be mined.
@@ -724,7 +829,20 @@ fn check_versions(
                 .iter()
                 .find(|e| e.address == address && e.chain_id == chain_id);
             if cancel {
-                return Ok(pending.filter(|e| e.proposal != p.id).map(|e| e.nonce));
+                let Intent::CancelEvmNonce {
+                    proposal,
+                    nonce: expected,
+                    ..
+                } = &p.intent
+                else {
+                    unreachable!()
+                };
+                ensure(
+                    *nonce == *expected
+                        && pending.is_some_and(|e| e.proposal == *proposal && e.nonce == *expected),
+                    Error::VersionConflict,
+                )?;
+                return Ok(Some(*expected));
             }
             // One unsettled transaction per address and chain.
             if let Some(e) = pending {
@@ -748,7 +866,16 @@ fn check_versions(
             }
         }
         ExecutionParams::Solana { blockhash, .. } => {
-            if w.address(address)?.sol_nonce.is_some() {
+            let nonce = w.address(address)?.sol_nonce;
+            if let Some(record) = &first_record {
+                // A recent blockhash expiring does not undo an already mined
+                // payment. Only the same durable nonce can authorize a replacement.
+                ensure(
+                    record.sol_nonce.is_some() && record.sol_nonce == nonce,
+                    Error::Forbidden,
+                )?;
+            }
+            if nonce.is_some() {
                 match &first {
                     // A nonce value lands once, so every version shares it.
                     Some(ExecutionParams::Solana { blockhash: b, .. }) => {
@@ -763,9 +890,6 @@ fn check_versions(
                         Error::Forbidden,
                     )?,
                 }
-            } else if let Some(last) = p.signed.last() {
-                // A blockhash dies after 150 blocks; sign again only after that.
-                ensure(at >= last.signed_at_ms + 150 * SECOND, Error::Forbidden)?;
             }
         }
     }
@@ -799,7 +923,7 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
         }
     }
     ensure(p.plans < MAX_PLANS, Error::QuotaExceeded)?;
-    let pending_nonce = check_versions(&w, &p, address, &params, at)?;
+    let pending_nonce = check_versions(&w, &p, address, &params)?;
     let built = chains::build(&w, &p.intent, &params, pending_nonce)?;
     let seq = p.plans + 1;
     let plan = ExecutionPlan {
@@ -816,6 +940,7 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
         plan: plan.clone(),
         sign: built.sign,
         assembly: built.assembly,
+        sol_nonce: w.address(address)?.sol_nonce,
     });
     p.plans = seq;
     p.updated_at_ms = at;
@@ -851,8 +976,14 @@ async fn sign_plan(
     ensure(at < record.plan.expires_at_ms, Error::Expired)?;
     let (address, _) = chains::chain_source(&p.intent).expect("chain intent");
     // Another plan may have been signed since this one was built.
-    check_versions(&w, &p, address, &record.plan.params, at)?;
+    check_versions(&w, &p, address, &record.plan.params)?;
     let address = w.address(address)?.clone();
+    if address.chain == Chain::Solana {
+        ensure(
+            record.sol_nonce == address.sol_nonce,
+            Error::VersionConflict,
+        )?;
+    }
     let digests = &record.plan.digests;
     let count = digests.len() as u32;
     w.roll_day(at);
@@ -868,6 +999,7 @@ async fn sign_plan(
     // the daily limit and a stopped signing still counts.
     w.signatures_today += count;
     let key_name = w.settings.key_name.clone();
+    w.commit_spend(p.id, at);
     begin(&mut w, &mut p, Job::Signing, at);
     let mut signatures = vec![];
     for digest in digests {
@@ -895,7 +1027,7 @@ async fn sign_plan(
     let mut w = store::wallet();
     let mut p = store::proposal(p.id)?;
     // Another proposal may have signed for the address meanwhile.
-    let assembled = check_versions(&w, &p, address.id, &record.plan.params, at).and_then(|_| {
+    let assembled = check_versions(&w, &p, address.id, &record.plan.params).and_then(|_| {
         chains::assemble(
             &record.assembly,
             &record.plan.unsigned,
@@ -1027,26 +1159,26 @@ fn report(args: ChainReport) -> Result<Proposal> {
                     }
                 }
                 Intent::CancelEvmNonce {
-                    address, chain_id, ..
+                    address,
+                    chain_id,
+                    proposal,
+                    nonce,
+                    ..
                 } => {
-                    // The replaced transaction can no longer land.
+                    // A report is not chain evidence. It may unblock this
+                    // exact nonce but never releases the original spend.
                     if let Some(e) = w
                         .evm_pending
                         .iter()
-                        .find(|e| e.address == *address && e.chain_id == *chain_id)
+                        .find(|e| {
+                            e.address == *address
+                                && e.chain_id == *chain_id
+                                && e.proposal == *proposal
+                                && e.nonce == *nonce
+                        })
                         .cloned()
                     {
                         w.evm_pending.retain(|x| *x != e);
-                        if let Ok(mut replaced) = store::proposal(e.proposal) {
-                            fail(
-                                &mut w,
-                                &mut replaced,
-                                format!("nonce replaced by proposal {}", p.id),
-                                true,
-                                at,
-                            );
-                            store::save_proposal(&replaced);
-                        }
                     }
                 }
                 _ => {}

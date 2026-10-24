@@ -102,6 +102,7 @@ fn init(args: WalletInit) {
         next_proposal: 1,
         frozen: false,
         code: CodeAcceptance::None,
+        code_busy: false,
         key_roots: KeyRoots::default(),
         audit_head: Hash::new([0; 32]),
         day: at / DAY,
@@ -138,6 +139,20 @@ fn post_upgrade(version: Option<u32>) {
     );
     if matches!(w.code, CodeAcceptance::Upgrade { version: v, .. } if Some(v) == version) {
         w.code = CodeAcceptance::None;
+    }
+    w.code_busy = false;
+    for spend in &mut w.spends {
+        if spend.executed_at_ms.is_none()
+            && let Ok(p) = store::proposal(spend.proposal)
+            && !is_waiting(p.status)
+        {
+            spend.executed_at_ms = Some(
+                p.signed
+                    .first()
+                    .map_or(p.updated_at_ms, |s| s.signed_at_ms)
+                    .max(spend.at_ms),
+            );
+        }
     }
     // The view's encoding may change with the code, so its leaf is certified
     // again; saving also republishes the root.
@@ -359,6 +374,33 @@ fn accepted_upgrade() -> CodeAcceptance {
     store::with(|w| w.code.clone())
 }
 
+/// The hub claims the exact accepted action before changing canister state.
+/// Retrying the same claim is safe after an interrupted hub operation.
+#[ic_cdk::update]
+fn claim_code(expected: CodeAcceptance) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    let mut w = store::wallet();
+    ensure(caller == w.settings.hub, Error::Forbidden)?;
+    ensure(
+        expected != CodeAcceptance::None && w.code == expected,
+        Error::VersionConflict,
+    )?;
+    w.code_busy = true;
+    store::save(w);
+    Ok(())
+}
+
+/// Release an interrupted claim only after the hub has restarted the wallet.
+#[ic_cdk::update]
+fn release_code() -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    let mut w = store::wallet();
+    ensure(caller == w.settings.hub, Error::Forbidden)?;
+    w.code_busy = false;
+    store::save(w);
+    Ok(())
+}
+
 /// Members for the hub's index.
 #[ic_cdk::query]
 fn member_ids() -> Result<Vec<MemberId>> {
@@ -498,8 +540,12 @@ async fn join(evidence: MemberApproval) -> Result<Member> {
         )?;
         member.principals.push(caller);
     }
+    let activating = member.status != MemberStatus::Active;
     member.status = MemberStatus::Active;
     let member = member.clone();
+    if activating {
+        w.policy.version += 1;
+    }
     store::audit(&mut w, at, Some(id), None, AuditKind::Joined);
     store::save(w);
     Ok(member)
@@ -560,6 +606,39 @@ pub(crate) fn unlocked(w: &Wallet, intent: &Intent) -> Result<()> {
         !w.frozen || matches!(intent, Intent::Unfreeze) || is_membership(intent),
         Error::Locked,
     )
+}
+
+/// Validate the authority for a first execution, including recovery's current
+/// role. An already signed transaction cannot be revoked by changing members.
+pub(crate) fn execution_authorized(w: &Wallet, p: &Proposal, at: u64) -> Result<()> {
+    ensure(
+        p.policy_version == w.policy.version && at < p.expires_at_ms,
+        Error::VersionConflict,
+    )?;
+    unlocked(w, &p.intent)?;
+    if p.requirement.approvals == 0 {
+        ensure(
+            is_membership(&p.intent)
+                && w.member(&p.proposer)
+                    .is_some_and(|m| m.status == MemberStatus::Active && m.role == Role::Recovery),
+            Error::Forbidden,
+        )
+    } else {
+        let approvals = p
+            .votes
+            .iter()
+            .filter(|v| {
+                v.decision == Decision::Approve
+                    && w.member(&v.member).is_some_and(|m| {
+                        m.status == MemberStatus::Active && counts(m.role, &p.requirement)
+                    })
+            })
+            .count();
+        ensure(
+            approvals >= usize::from(p.requirement.approvals),
+            Error::Forbidden,
+        )
+    }
 }
 
 /// Persist a closed proposal, release its window spend and audit the end.
@@ -727,23 +806,34 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
             address(*from, Chain::Icp)?;
         }
         Intent::AcceptUpgrade { version, .. } => {
+            ensure(!w.code_busy, Error::Pending)?;
             ensure_valid(*version > 0 && w.code != CodeAcceptance::Lock, "upgrade")?;
         }
-        Intent::LockCode => ensure_valid(w.code != CodeAcceptance::Lock, "locked")?,
+        Intent::LockCode => {
+            ensure(!w.code_busy, Error::Pending)?;
+            ensure_valid(w.code != CodeAcceptance::Lock, "locked")?;
+        }
         Intent::CancelEvmNonce {
             address: id,
             chain_id,
+            proposal,
+            nonce,
             ..
         }
         | Intent::ReleaseEvmNonce {
             address: id,
             chain_id,
+            proposal,
+            nonce,
         } => {
             address(*id, Chain::Evm)?;
             ensure(
-                w.evm_pending
-                    .iter()
-                    .any(|e| e.address == *id && e.chain_id == *chain_id),
+                w.evm_pending.iter().any(|e| {
+                    e.address == *id
+                        && e.chain_id == *chain_id
+                        && e.proposal == *proposal
+                        && e.nonce == *nonce
+                }),
                 Error::NotFound,
             )?;
         }
@@ -993,12 +1083,18 @@ fn same_intent(stored: &Intent, asked: &Intent) -> bool {
 /// spend in the rolling window.
 fn approve(w: &mut Wallet, p: &mut Proposal, at: u64) {
     if let IntentClass::Spend { asset, amount } = classify(&p.intent, &w.policy) {
-        w.spends.retain(|s| s.at_ms + DAY > at);
+        w.spends = w
+            .spends
+            .iter()
+            .filter(|s| w.retains_spend(s, at))
+            .cloned()
+            .collect();
         w.spends.push(Spend {
             asset,
             amount,
             at_ms: at,
             proposal: p.id,
+            executed_at_ms: None,
         });
     }
     if p.requirement.delay_ms > 0 {

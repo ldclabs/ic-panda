@@ -62,9 +62,9 @@
 
 `preview_intent(intent)` 为已加入成员提供当前策略的只读预检，检查成员、意图、冻结、地址簿与滚动窗口后返回 `Requirement`；不写提案、不占用预算。该结果只是提示，提交、批准和执行仍按当时状态校验。
 
-提案时按当前策略算出 `Requirement { approvals, admin, delay_ms, window_amount }`。支出类在每次批准时按当时的 24 小时窗口再算一次，更严时提高 `approvals` 与 `delay_ms`，`expires_at_ms` 随延时延长：一笔支出拆成多个同时挂起的提案，后批准的仍落入合计金额的档。策略版本变化使未执行提案变为 `Stale`。
+提案时按当前策略算出 `Requirement { approvals, admin, delay_ms, window_amount }`。支出类在每次批准时按当时的 24 小时窗口再算一次，更严时提高 `approvals` 与 `delay_ms`，`expires_at_ms` 随延时延长：一笔支出拆成多个同时挂起的提案，后批准的仍落入合计金额的档。策略版本、成员增删、角色/Agent 授权变化及邀请首次激活都会推进授权版本，使未执行提案变为 `Stale`；绑定同一成员的另一设备不重复推进版本。首次执行重验当前有效票数，零批准恢复提案须由仍有效的 Recovery 发起。
 
-- **支出类**（`Transfer`、`Batch`、`Refuel`）：资产须在 `spendable_assets`。`window_amount` = 该资产过去 24 小时已批准或执行的金额 + 本提案金额；取第一个 `up_to ≥ window_amount` 的档（`approvals`、`delay_ms`、`book_only`）；超出最高档为最高档 + 1 人（不超过活跃批准人数）；超过 `daily_limits` 时需要全部活跃批准人。`book_only` 档要求每个收款方是冷却期已过的地址簿条目。没有该资产的档时用 `approver_threshold`、无延时。
+- **支出类**（`Transfer`、`Batch`、`Refuel`）：资产须在 `spendable_assets`。`window_amount` = 该资产所有尚有效的未执行预留 + 过去 24 小时开始执行/签名的金额 + 本提案金额；取第一个 `up_to ≥ window_amount` 的档（`approvals`、`delay_ms`、`book_only`）；超出最高档为最高档 + 1 人（不超过活跃批准人数）；超过 `daily_limits` 时需要全部活跃批准人。`book_only` 档要求每个收款方是冷却期已过的地址簿条目。没有该资产的档时用 `approver_threshold`、无延时。
 - **操作类**（`CanisterCall`、`CancelEvmNonce`、`InitSolNonce`、`AddressBook`）：`approver_threshold`，无延时。
 - **管理类**：`admin_threshold`，只计 Admin。`SetPolicy`、`RemoveMember`、`SetCosign`、`RemoveCosigner`、`AcceptUpgrade`、`LockCode`、`ReleaseEvmNonce` 延时 24 小时；`Unfreeze` 延时 `unfreeze_delay_ms`；其余无延时。
 - 达到要求后进入 `Delayed`（有延时，期间可否决）或 `Ready`。只改钱包记录的意图在 `Ready` 时即生效；其余由成员调用 `execute`。
@@ -104,8 +104,8 @@
 | 链 | `prepare_execution` 规则 |
 | --- | --- |
 | Bitcoin | 版本 2；输入全部属于来源地址、不重复、最多 32 个；输出不低于 546 sat；剩余额须够付无找零交易的 `fee_rate × vsize`，扣除含找零的手续费后仍不低于 546 sat 时才加找零，否则全部并入手续费；`fee ≤ max_fee`；输入序号 `0xFFFFFFFD`（RBF），走 L2 时为 `chain_key_after`。同一提案的后续计划必须以相同金额花费与首个已签计划完全相同的输入 |
-| EVM | `chain_id ∈ evm_chains`；原生转账 `to = 收款方, data = 空`；ERC-20 为 `transfer(address,uint256)`；`gas_limit × max_fee_per_gas ≤ max_fee`，`max_priority ≤ max_fee_per_gas`。同一地址同一链同时只能有一笔未结算已签交易，重签必须同 nonce；`CancelEvmNonce` 以同 nonce 零值自转替换它，结算后被替换的提案标记失败 |
-| Solana | 指令只来自意图：ComputeBudget、System `Transfer`、SPL `TransferChecked`（可选 ATA `CreateIdempotent`）、`CreateAccountWithSeed` + `InitializeNonceAccount`（`InitSolNonce`，seed `dmsg-wallet-nonce`，租金 1,447,680 lamports）；地址有 nonce 账户时第一条为 `AdvanceNonceAccount`，`blockhash` 为 nonce 值，重签必须与首个已签计划同值；无 nonce 账户时重签距本提案上次签名至少 150 秒；`5000 + ⌈price × limit / 10⁶⌉ ≤ max_fee` |
+| EVM | `chain_id ∈ evm_chains`；原生转账 `to = 收款方, data = 空`；ERC-20 为 `transfer(address,uint256)`；`gas_limit × max_fee_per_gas ≤ max_fee`，`max_priority ≤ max_fee_per_gas`。同一地址同一链同时只能有一笔未结算已签交易，重签必须同 nonce；`CancelEvmNonce` 与 `ReleaseEvmNonce` 必须明确绑定原 `proposal` 和 `nonce`；取消以同 nonce 零值自转。成员回报只解开匹配对象的 nonce 锁，不改变原提案的签名事实、不释放其支出额度 |
+| Solana | 指令只来自意图：ComputeBudget、System `Transfer`、SPL `TransferChecked`（可选 ATA `CreateIdempotent`）、`CreateAccountWithSeed` + `InitializeNonceAccount`（`InitSolNonce`，seed `dmsg-wallet-nonce`，租金 1,447,680 lamports）；地址有 nonce 账户时第一条为 `AdvanceNonceAccount`，`blockhash` 为 nonce 值，重签必须与首个已签计划同值；无 nonce 账户时已签提案不能换 blockhash 重签，只能重广播原字节；首签计划同时固定是否使用 nonce 账户，后续初始化 nonce 不能让旧提案再次付款；`5000 + ⌈price × limit / 10⁶⌉ ≤ max_fee` |
 
 每计划有效 10 分钟，每提案最多 8 个计划。每日阈值签名数受 `daily_signatures` 限制，签名开始时即按计划的摘要数计入，中途停止也计入。重签规则在构建计划时、签名前和签完后各核对一次：任何计划签名前构建的多个计划，以先签名者为准；两个提案同时为同一地址签名时，后签完者被拒绝，不返回已签交易。
 
@@ -125,12 +125,13 @@
 2. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。按当前账本手续费，收入的两笔转账付不出时不出报价。额度已用完时仍返回报价（`remaining = 0`），由 `create_wallet` 拒绝，用户能看到套餐限制。
 3. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
 4. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限、退款、暂停与配额，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装报价中的版本，状态 `Created → Ready`；创建 canister 失败为 `Failed`。安装中断时，付款人以同一请求再调 `create_wallet`，或任何人调 `reconcile_activation`，都会继续这次激活。配额在此时再次核对，`remaining = 0` 的报价不能创建钱包。
-5. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`；已就绪订单的收款不退。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
-6. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户；`collectable_activations(after, take)` 列出待归集的订单，任何人可归集。
+5. `claim_activation_refund(quote_id, to)`：报价调用者领取未预留余额，扣当前账本手续费后转到 hub 之外的账户；失败/过期款、成功钱包的超额款及迟到款都适用。尚未归集的报价金额与未发送的收入腿仍被预留。每次退款固定目的地、费用、memo 和时间，未知结果复用原参数；已完成退款后再收到的款项形成新的一笔退款。客户端保留已付款报价以继续发现迟到款，不能因创建或退款完成而删除记录。
+6. `collect_revenue` 只归集 `quote.price_e8s`，不归集子账户全部余额。`get_activation_reserve` 返回尚需预留的金额。`abort_activation` 仅供报价调用者终止 Paid/Created 且尚未安装代码的激活；空实例删除后释放配额并允许退款，已经安装的实例不能通过此路径退款。
+7. `collectable_activations(after, take)` 列出待归集订单，任何人可执行归集；固定报价内的 `cycles_share_e8s` 以 memo `TPUP` 转入 CMC，扣除手续费后的报价余款转入 `revenue`。
 
 ## 升级与锁定
 
-钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例；读不到 `accepted_upgrade()` 时先启动实例再报错。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。已退役的版本可由 `admin_remove_version` 删除，之后不能再安装，版本号不复用。
+钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例；读不到 `accepted_upgrade()` 时先启动实例再报错。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。已退役的版本只有在未过期报价与未完成激活均不再引用时才能由 `admin_remove_version` 删除，版本号不复用。hub 持久维护版本引用，安装前重查模块；安装成功但回复丢失时按该激活唯一控制的实例状态继续。
 
 ## cycles
 
@@ -143,3 +144,15 @@
 ## 桌面与本地协议
 
 桌面结构化方法、多设备协签包、增量审计和加密频道提示的实现及边界见 [团队钱包桌面实现](../dmsg_wallet_desktop_zh.md)。客户端在创建付款前完成 `WalletCreate` 的 user home 核验；协签包导入只收集签名，不自动执行。
+
+
+## 2026-10-24 安全修订
+
+- hub 的升级和锁定共用每钱包互斥锁。执行前调用仅 hub 可用的 `claim_code(expected)` 原子领取已接受记录，领取期间实例不能接受另一次升级或锁定；成功升级清除领取，失败并重启后经 `release_code()` 释放。清空 controllers 前确认实例 Running。
+- `AddAddress` 取公钥返回后重新验证授权版本、期限、冻结、地址容量和全部协签引用，普通 ChainKey 协签与原生 Taproot 都覆盖。
+- 未执行额度预留不按批准时间自动过期；只有取消、失效、确定无出金等明确结果才释放。签名中断且没有已签交易时恢复预留，不能借失败执行跨日绕过额度。
+- ICRC `TooOld` 保留 Executing 作业与原转账参数，返回 ExecutionUnknown。`reconcile_transfer(proposal, item, block)` 读取指定账本的 ICRC-3 记录，逐字段验证付款账户、收款账户、金额、手续费、memo、created_at_time 和 spender，再补记区块；未经证明的“不存在”不能被当作再次付款许可。
+- 客户端批准与协签通过 `get_proposal_certified` 认证完整提案，再按新认证钱包版本与当前时间计算过期/延时展示；仅重算自带 digest 不再作为权威提案读取。
+- 原生 EVM 与 ERC-20 预览、执行复用最终调用参数估算 gas，仍由实例强制执行费用上限。
+
+部署顺序：先通过现有 hub 登记并升级钱包实例，再更新使用 `claim_code` 的 hub，最后更新客户端。旧版未绑定目标的取消/释放提案须重新创建。此处描述源码合同，不表示已部署生产。

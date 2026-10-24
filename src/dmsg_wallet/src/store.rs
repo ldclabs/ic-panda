@@ -82,6 +82,10 @@ pub(crate) struct Spend {
     pub(crate) at_ms: u64,
     #[cbor(key = 4)]
     pub(crate) proposal: u64,
+    /// None reserves an approved payment until its first execution.
+    #[cbor(key = 5)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) executed_at_ms: Option<u64>,
 }
 
 /// The wallet record.
@@ -99,6 +103,7 @@ pub(crate) struct Wallet {
     pub(crate) next_proposal: u64,
     pub(crate) frozen: bool,
     pub(crate) code: CodeAcceptance,
+    pub(crate) code_busy: bool,
     pub(crate) key_roots: KeyRoots,
     pub(crate) audit_head: Hash,
     pub(crate) day: u64,
@@ -162,12 +167,40 @@ impl Wallet {
         }
     }
 
-    /// The asset's spend in the 24 hours before `now`.
+    /// Unexecuted reservations plus spends begun in the 24 hours before `now`.
     pub(crate) fn window(&self, asset: &AssetKey, now: u64) -> u128 {
         self.spends
             .iter()
-            .filter(|s| s.asset == *asset && s.at_ms + DAY > now)
+            .filter(|s| s.asset == *asset && self.retains_spend(s, now))
             .fold(0, |sum, s| sum.saturating_add(s.amount))
+    }
+
+    pub(crate) fn retains_spend(&self, spend: &Spend, now: u64) -> bool {
+        if let Some(at) = spend.executed_at_ms {
+            return at.saturating_add(DAY) > now;
+        }
+        // Deadlines and authorization changes release unexecuted reservations
+        // even if nobody has refreshed the proposal yet.
+        proposal(spend.proposal).is_ok_and(|p| {
+            if is_waiting(p.status) {
+                p.policy_version == self.policy.version && now < p.expires_at_ms
+            } else {
+                !matches!(
+                    p.status,
+                    ProposalStatus::Cancelled
+                        | ProposalStatus::Rejected
+                        | ProposalStatus::Vetoed
+                        | ProposalStatus::Expired
+                        | ProposalStatus::Stale
+                )
+            }
+        })
+    }
+
+    pub(crate) fn commit_spend(&mut self, proposal: u64, at: u64) {
+        if let Some(s) = self.spends.iter_mut().find(|s| s.proposal == proposal) {
+            s.executed_at_ms.get_or_insert(at);
+        }
     }
 
     pub(crate) fn view(&self) -> WalletView {
@@ -229,6 +262,11 @@ pub(crate) struct PlanRecord {
     pub(crate) sign: SignSpec,
     #[cbor(key = 3)]
     pub(crate) assembly: crate::chains::Assembly,
+    /// Snapshot of the nonce account used to build a Solana message. A plan
+    /// cannot change from a recent blockhash to a durable nonce after signing.
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) sol_nonce: Option<Hash>,
 }
 
 /// Work of a proposal in flight. Ledger work keeps its exact arguments so a

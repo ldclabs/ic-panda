@@ -877,6 +877,8 @@ fn wallet_signs_bitcoin_evm_and_solana() {
         t.propose(
             P,
             Intent::CancelEvmNonce {
+                proposal: p1.id,
+                nonce: 0,
                 address: evm.id,
                 chain_id: 1,
                 max_fee: 10u128.pow(16),
@@ -901,7 +903,7 @@ fn wallet_signs_bitcoin_evm_and_solana() {
     );
     settled.unwrap();
     let replaced: Result<Proposal> = query(&t.f.ic, t.wallet, person(A), "get_proposal", (p1.id,));
-    assert_eq!(replaced.unwrap().status, ProposalStatus::Failed);
+    assert_eq!(replaced.unwrap().status, ProposalStatus::Signed);
     let plan = t.prepare(p2.id, evm_params(1)).unwrap();
     t.execute(p2.id, Some(plan.seq), vec![]).unwrap();
 
@@ -2183,3 +2185,6 @@ fn wallet_general_calls_obey_every_icp_cosign_policy() {
             .is_some_and(|p| p.threshold == 1 && p.cosigners == [2])
     }));
 }
+
+#[path = "wallet_review.rs"]
+mod review;

@@ -247,6 +247,7 @@ mod tests {
     fn payouts_round_trip_with_integer_keys() {
         let payout = Payout {
             refund: false,
+            fee: None,
             created_at_time: 1_790_000_000_000_000_000,
             transfers: vec![
                 PayoutTransfer {

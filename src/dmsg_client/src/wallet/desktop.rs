@@ -506,10 +506,17 @@ pub enum Change {
     CancelNonce {
         address: u32,
         chain_id: u64,
+        proposal: u64,
+        nonce: String,
         max_fee: String,
     },
     /// Release a pending nonce after independent reconciliation.
-    ReleaseNonce { address: u32, chain_id: u64 },
+    ReleaseNonce {
+        address: u32,
+        chain_id: u64,
+        proposal: u64,
+        nonce: String,
+    },
     /// Initialize a Solana durable nonce.
     SolNonce { address: u32, max_fee: String },
 }
@@ -612,13 +619,27 @@ pub async fn change<H: Hold>(h: &H, wallet: Principal, input: Change) -> Result<
         Change::CancelNonce {
             address,
             chain_id,
+            proposal,
+            nonce,
             max_fee,
         } => Intent::CancelEvmNonce {
             address,
             chain_id,
+            proposal,
+            nonce: integer(&nonce)?,
             max_fee: integer(&max_fee)?,
         },
-        Change::ReleaseNonce { address, chain_id } => Intent::ReleaseEvmNonce { address, chain_id },
+        Change::ReleaseNonce {
+            address,
+            chain_id,
+            proposal,
+            nonce,
+        } => Intent::ReleaseEvmNonce {
+            address,
+            chain_id,
+            proposal,
+            nonce: integer(&nonce)?,
+        },
         Change::SolNonce { address, max_fee } => Intent::InitSolNonce {
             address,
             max_fee: integer(&max_fee)?,
@@ -838,7 +859,7 @@ pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) ->
     let h = &bound;
     let view = state(h, wallet).await?;
     let asset = parse_asset(&input.asset)?;
-    let _provisional = transfer_intent(&input, &view, u128::MAX)?;
+    let provisional = transfer_intent(&input, &view, u128::MAX)?;
     let address = view
         .addresses
         .iter()
@@ -901,24 +922,8 @@ pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) ->
                     0,
                 )
             }
-            AssetKey::Evm { chain_id, token } => {
-                let amount: u128 = integer(&input.outputs[0].amount)?;
-                let destination = eip55(&parse_evm_address(&input.outputs[0].to)?);
-                let (to, data, value) = match token {
-                    Some(token) => (
-                        eip55(&token.into_array()),
-                        [
-                            &[0xa9, 0x05, 0x9c, 0xbb][..],
-                            &[0; 12],
-                            &parse_evm_address(&destination)?,
-                            &[0; 16],
-                            &amount.to_be_bytes(),
-                        ]
-                        .concat(),
-                        0,
-                    ),
-                    None => (destination, vec![], amount),
-                };
+            AssetKey::Evm { chain_id, .. } => {
+                let (_, to, data, value) = ops::evm_call(&provisional, address)?;
                 let (gas, (fee, _), balance) = futures_util::try_join!(
                     chains.evm_gas(*chain_id, &address.text, &to, &data, value),
                     chains.evm_fees(*chain_id),

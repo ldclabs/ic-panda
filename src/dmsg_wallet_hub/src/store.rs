@@ -20,7 +20,8 @@ use std::{
 };
 
 // Stable layout: hub=0, quotes=1, orders=2, payouts=3, wallet records=4,
-// member index=5, quota holds=6, modules=7, staging=8, uncollected orders=9.
+// member index=5, quota holds=6, modules=7, staging=8, uncollected orders=9,
+// module references=10, refunds=11.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub(crate) const STABLE_SCHEMA: u16 = 1;
@@ -114,6 +115,18 @@ pub(crate) struct Payout {
     #[cbor(key = 4)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) cycles: Option<u128>,
+    /// Fixed ledger fee, shared by the payout's transfers.
+    #[cbor(key = 5)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) fee: Option<u128>,
+}
+
+#[derive(Clone, Default, Cbor)]
+struct VersionUse {
+    #[cbor(key = 1)]
+    quote_expires_at: u64,
+    #[cbor(key = 2)]
+    activations: u64,
 }
 
 pub(crate) fn memory(id: u8) -> Memory {
@@ -149,6 +162,10 @@ thread_local! {
     /// Quote IDs of ready activations whose payment is not yet revenue.
     static UNCOLLECTED: RefCell<StableBTreeMap<[u8; 32], (), Memory>> =
         RefCell::new(StableBTreeMap::init(memory(9)));
+    static VERSION_USES: RefCell<StableBTreeMap<u32, Stored<VersionUse>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(10)));
+    static REFUNDS: RefCell<StableBTreeMap<[u8; 32], Stored<Payout>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(11)));
 }
 
 pub(crate) fn with<R>(f: impl FnOnce(&Hub) -> R) -> R {
@@ -171,6 +188,11 @@ pub(crate) fn quote(id: &Hash) -> Option<ActivationQuote> {
 }
 
 pub(crate) fn save_quote(q: &ActivationQuote) {
+    VERSION_USES.with_borrow_mut(|t| {
+        let mut used = t.get(&q.version).map(|v| v.0).unwrap_or_default();
+        used.quote_expires_at = used.quote_expires_at.max(q.expires_at_ms);
+        t.insert(q.version, Stored(used));
+    });
     QUOTES.with_borrow_mut(|t| t.insert(q.quote_id.into_array(), CompactStored::new(q)));
 }
 
@@ -187,6 +209,21 @@ pub(crate) fn order(id: &Hash) -> Option<ActivationOrder> {
 /// Save an order and keep the uncollected index in step with it.
 pub(crate) fn save_order(o: &ActivationOrder) {
     let id = o.quote.quote_id.into_array();
+    let pending =
+        |s: &ActivationStatus| matches!(s, ActivationStatus::Paid | ActivationStatus::Created);
+    let before = ORDERS.with_borrow(|t| t.get(&id).is_some_and(|v| pending(&v.0.status)));
+    let after = pending(&o.status);
+    if before != after {
+        VERSION_USES.with_borrow_mut(|t| {
+            let mut used = t.get(&o.quote.version).map(|v| v.0).unwrap_or_default();
+            if after {
+                used.activations += 1;
+            } else {
+                used.activations = used.activations.saturating_sub(1);
+            }
+            t.insert(o.quote.version, Stored(used));
+        });
+    }
     UNCOLLECTED.with_borrow_mut(|t| {
         if o.status == ActivationStatus::Ready && !o.collected {
             t.insert(id, ());
@@ -224,6 +261,61 @@ pub(crate) fn payout(id: &Hash) -> Option<Payout> {
 
 pub(crate) fn save_payout(id: &Hash, p: &Payout) {
     PAYOUTS.with_borrow_mut(|t| t.insert(id.into_array(), Stored(p.clone())));
+}
+
+pub(crate) fn refund(id: &Hash) -> Option<Payout> {
+    REFUNDS
+        .with_borrow(|t| t.get(&id.into_array()))
+        .map(|p| p.0)
+        .or_else(|| payout(id).filter(|p| p.refund))
+}
+
+pub(crate) fn save_refund(id: &Hash, p: &Payout) {
+    REFUNDS.with_borrow_mut(|t| t.insert(id.into_array(), Stored(p.clone())));
+}
+
+pub(crate) fn version_in_use(version: u32, now: u64) -> bool {
+    VERSION_USES.with_borrow(|t| {
+        t.get(&version)
+            .is_some_and(|v| v.0.quote_expires_at > now || v.0.activations > 0)
+    })
+}
+
+/// Backfill this added index once when upgrading an older hub; subsequent
+/// upgrades do not rescan the quote history.
+pub(crate) fn initialize_version_uses() {
+    if VERSION_USES.with_borrow(|t| !t.is_empty()) {
+        return;
+    }
+    let mut uses = std::collections::BTreeMap::<u32, VersionUse>::new();
+    with(|h| {
+        for v in &h.versions {
+            uses.entry(v.version).or_default();
+        }
+    });
+    QUOTES.with_borrow(|t| {
+        for entry in t.iter() {
+            let q = entry.value().into_inner();
+            let used = uses.entry(q.version).or_default();
+            used.quote_expires_at = used.quote_expires_at.max(q.expires_at_ms);
+        }
+    });
+    ORDERS.with_borrow(|t| {
+        for entry in t.iter() {
+            if matches!(
+                entry.value().0.status,
+                ActivationStatus::Paid | ActivationStatus::Created
+            ) && let Some(q) = quote(&Hash::new(*entry.key()))
+            {
+                uses.entry(q.version).or_default().activations += 1;
+            }
+        }
+    });
+    VERSION_USES.with_borrow_mut(|t| {
+        for (version, used) in uses {
+            t.insert(version, Stored(used));
+        }
+    });
 }
 
 pub(crate) fn wallet(id: Principal) -> Option<WalletRecord> {
@@ -314,6 +406,11 @@ pub(crate) fn module(version: u32) -> Option<Vec<u8>> {
 
 pub(crate) fn save_module(version: u32, bytes: Vec<u8>) {
     MODULES.with_borrow_mut(|t| t.insert(version, bytes));
+    VERSION_USES.with_borrow_mut(|t| {
+        if !t.contains_key(&version) {
+            t.insert(version, Stored(VersionUse::default()));
+        }
+    });
 }
 
 pub(crate) fn remove_module(version: u32) {
