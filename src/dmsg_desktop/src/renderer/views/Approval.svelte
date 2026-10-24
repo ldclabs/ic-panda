@@ -17,7 +17,7 @@
     trailOf
   } from '../approval'
   import WalletIntent from './wallet/Intent.svelte'
-  import { knownIntent } from './wallet/model'
+  import { knownIntent, durationText, amountText, assetInfo, intentFeeAsset } from './wallet/model'
   import { w } from './wallet/text'
   import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
@@ -789,13 +789,13 @@
                 {@render row(t('twMember'), d.proposal.proposer, { mono: true })}
                 {#if d.proposal.via_agent}{@render row('Agent ID', d.proposal.via_agent, { mono: true })}{/if}
                 {@render row(t('twApprovals'), `${d.proposal.requirement.approvals} · ${w(d.proposal.requirement.admin ? 'Admin' : 'Approver')}`)}
-                {@render row(w('delay_ms'), String(d.proposal.requirement.delay_ms))}
+                {@render row(w('delay_ms'), durationText(d.proposal.requirement.delay_ms, locale()))}
                 {@render row(t('expires'), when(d.proposal.expires_at))}
                 {#if d.plan}
                   {@render row(w('plan'), `#${d.plan.seq} · ${d.plan.chain} · ${d.plan.from}`, { mono: true })}
-                  {@render row(w('fee'), `${d.plan.fee} ${w('atomic')}`, { mono: true })}
-                  {#each d.plan.outputs ?? [] as o,i (i)}{@render row(w('recipient'), `${o.amount} ${w('atomic')} → ${o.to}`, { mono: true })}{/each}
-                  {#if d.plan.change}{@render row(t('twChange'), `${d.plan.change.amount} → ${d.plan.change.to}`, { mono: true })}{/if}
+                  {@render row(w('fee'), amountText(d.plan.fee, intentFeeAsset(d.proposal.intent, walletAssets), w('atomic')), { mono: true })}
+                  {#each d.plan.outputs ?? [] as o,i (i)}{@render row(w('recipient'), `${amountText(o.amount, assetInfo(d.proposal.intent.asset ?? intentFeeAsset(d.proposal.intent, walletAssets), walletAssets), w('atomic'))} → ${o.to}`, { mono: true })}{/each}
+                  {#if d.plan.change}{@render row(t('twChange'), `${amountText(d.plan.change.amount, intentFeeAsset(d.proposal.intent, walletAssets), w('atomic'))} → ${d.plan.change.to}`, { mono: true })}{/if}
                   {@render row(t('expires'), when(d.plan.expires_at))}
                 {/if}
                 {#if d.collect_only}{@render row(w('cosigners'), w('collectHint'))}{/if}

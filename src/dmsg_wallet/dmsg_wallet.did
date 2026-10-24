@@ -974,8 +974,9 @@ type Result = variant { Ok : vec BookEntry; Err : Error };
 type Result_1 = variant { Ok : Proposal; Err : Error };
 type Result_10 = variant { Ok : ProposalPage; Err : Error };
 type Result_11 = variant { Ok : vec MemberId; Err : Error };
-type Result_12 = variant { Ok : Requirement; Err : Error };
-type Result_13 = variant { Ok : opt nat; Err : Error };
+type Result_12 = variant { Ok : vec SpendUsage; Err : Error };
+type Result_13 = variant { Ok : Requirement; Err : Error };
+type Result_14 = variant { Ok : opt nat; Err : Error };
 type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
 type Result_3 = variant { Ok : KeyRoots; Err : Error };
 type Result_4 = variant { Ok; Err : Error };
@@ -1008,6 +1009,15 @@ type SignedTx = record {
   txid : text;
   // Signing time.
   signed_at_ms : nat64;
+};
+// Current policy accounting, not an on-chain asset balance.
+type SpendUsage = record {
+  // Asset whose policy window is measured.
+  asset : AssetKey;
+  // Approved amounts which have not started execution.
+  "reserved" : nat;
+  // Amounts which started execution within the rolling 24 hours.
+  executed : nat;
 };
 // One output of a decoded transaction.
 type SummaryOutput = record {
@@ -1181,10 +1191,12 @@ service : (WalletInit) -> {
   list_proposals : (opt nat64, nat16) -> (Result_10) query;
   // Members for the hub's index.
   member_ids : () -> (Result_11) query;
+  // Explain the same reservations and rolling window used for approvals.
+  policy_usage : () -> (Result_12) query;
   // Build a plan from the executor's chain parameters. Nothing is signed.
   prepare_execution : (nat64, ExecutionParams) -> (Result_6);
   // Preview the current policy without creating a proposal or reserving funds.
-  preview_intent : (Intent) -> (Result_12) query;
+  preview_intent : (Intent) -> (Result_13) query;
   propose : (ProposeArgs) -> (Result_1);
   // Remove up to 100 of the oldest finished proposals beyond the retained count.
   prune : () -> (nat32);
@@ -1194,7 +1206,7 @@ service : (WalletInit) -> {
   // supplies only its index, never an assertion that money moved.
   reconcile_transfer : (nat64, nat16, nat64) -> (Result_5);
   // Top up cycles under the policy's refuel rule; anyone may call it.
-  refuel : () -> (Result_13);
+  refuel : () -> (Result_14);
   reject_proposal : (nat64, MemberApproval) -> (Result_1);
   // Release an interrupted claim only after the hub has restarted the wallet.
   release_code : () -> (Result_4);

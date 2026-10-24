@@ -30,6 +30,7 @@ import { isAppearance, type Appearance } from '../shared/appearance'
 import type { DaemonEvent } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { single } from '../shared/single'
+import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
@@ -611,6 +612,13 @@ handle('dmsg:verify-entry', 'main', async (_event, execution: string) => {
 })
 /** Save a verification report where the person picks; null when cancelled. */
 handle('dmsg:save-report', 'main', async (_event, report: unknown) => {
+  if ((report as { format?: string })?.format === 'dmsg-wallet-history/1') {
+    const csv = walletHistoryCsv(report)
+    const path = await pickSave({ defaultPath: 'dmsg-wallet-history.csv', filters: [{ name: 'CSV', extensions: ['csv'] }] })
+    if (!path) return null
+    await writeFile(path, csv)
+    return { path }
+  }
   const path = await pickSave({ defaultPath: 'dmsg-verification.json', filters: [{ name: text.reportFile, extensions: ['json'] }] })
   if (!path) return null
   await writeFile(path, JSON.stringify(report, null, 2))

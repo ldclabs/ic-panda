@@ -1,6 +1,36 @@
 use super::decode::*;
 use super::*;
 
+#[test]
+fn bookkeeping_notes_are_local_wallet_scoped_and_bounded() {
+    use crate::testing::{TempDir, unlocked};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let wallet = Principal::from_slice(&[1; 10]);
+    let other = Principal::from_slice(&[2; 10]);
+    let saved = desktop::notes(&mut client, wallet, Some((7, " invoice 42 ".into()))).unwrap();
+    assert_eq!(saved["7"], "invoice 42");
+    assert!(
+        desktop::notes(&mut client, other, None)
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(desktop::notes(&mut client, wallet, Some((7, "a".repeat(2001)))).is_err());
+    assert_eq!(
+        desktop::notes(&mut client, wallet, None).unwrap()["7"],
+        "invoice 42"
+    );
+    assert!(
+        desktop::notes(&mut client, wallet, Some((7, String::new())))
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .is_empty()
+    );
+}
+
 #[tokio::test]
 async fn an_activation_already_sent_can_be_reviewed_without_funding_it_again() {
     use crate::payer::{Call, Payment};

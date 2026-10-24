@@ -2012,14 +2012,14 @@ smoke: try {
   // An activation payment that created no wallet goes back to the payer at
   // once, without an approval; an unused quote's waits for its expiry.
   const finishWalletDeposits = hold('wallet/deposits')
-  const finishFirstProposals = WALLET_CREATION_PAUSED ? hold('wallet/proposals') : null
+  const finishFirstProposals = WALLET_CREATION_PAUSED ? hold('wallet/queue') : null
   if (WALLET_CREATION_PAUSED) wallets.state.enabled = true
   await main.click('nav >> text=Team wallets')
   await waitFor(() => held.get('wallet/deposits'))
   if (WALLET_CREATION_PAUSED) {
     // Main wallet details are independent of deposits and the proposal list.
     await main.waitForSelector('[data-testid="wallet-cycles"]')
-    await waitFor(() => held.get('wallet/proposals'))
+    await waitFor(() => held.get('wallet/queue'))
     assert.equal(await main.locator('[data-testid="wallet-loading"]').count(), 0)
     await finishFirstProposals()
   }
@@ -2122,7 +2122,7 @@ smoke: try {
     await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
   }
   await main.waitForSelector('[data-testid="wallet-tab-overview"]')
-  assert.equal((await main.textContent('[data-testid="wallet-cycles"]')).trim(), '1.99 T')
+  assert.match((await main.textContent('[data-testid="wallet-cycles"]')).trim(), /1\.99 T/)
 
   // An automatic refresh keeps the overview in place while its response is pending.
   const cyclesPosition = await main.locator('[data-testid="wallet-cycles"]').boundingBox()
@@ -2137,11 +2137,12 @@ smoke: try {
   assert.deepEqual(await main.locator('[data-testid="wallet-cycles"]').boundingBox(), cyclesPosition)
   await finishRefresh()
   const finishVersions = hold('wallet/versions')
+  await main.click('[data-testid="wallet-tab-team"]')
   await main.click('[data-testid="wallet-tab-settings"]')
   await waitFor(() => held.get('wallet/versions'))
   await main.waitForFunction(() => [...document.querySelectorAll('input[type="url"]')].some((input) => input.value === 'https://example.test/btc'))
   await finishVersions()
-  assert.equal((await main.textContent('[data-testid="wallet-health-cycles"]')).trim(), '1.99 T')
+  await main.waitForSelector('[data-testid="wallet-health-cycles"] >> text=2.00 T')
   await main.getByRole('button', { name: 'Read canister health', exact: true }).click()
   await main.waitForSelector('[data-testid="wallet-health-cycles"] >> text=2.00 T')
   await main.click('[data-testid="wallet-tab-overview"]')
@@ -2166,11 +2167,12 @@ smoke: try {
 
   // A populated wallet: exact amounts, full approvals, permissions and older pages.
   await main.click('[data-testid="wallet-tab-proposals"]')
-  await main.waitForSelector('[data-testid="wallet-more"]')
+  await main.waitForFunction(()=>document.querySelectorAll('[data-testid="wallet-proposal"]').length===3)
   assert.equal(await main.locator('[data-testid="wallet-pending"]').count(), 0)
-  assert.equal(await main.locator('[data-testid="wallet-proposal"]').count(),50)
-  await main.click('[data-testid="wallet-more"]')
-  await main.waitForFunction(()=>document.querySelectorAll('[data-testid="wallet-proposal"]').length===55)
+  await main.getByRole('button',{name:'History',exact:true}).click()
+  await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-history"]')?.textContent.includes('#1'))
+  assert.equal(await main.locator('[data-testid="wallet-history"] button').filter({hasText:'#'}).count(),55)
+  await main.getByRole('button',{name:'Team tasks',exact:true}).click()
   await main.locator('[data-testid="wallet-proposal"]').first().getByRole('button',{name:'Details',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
   assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Publicly readable/)
@@ -2246,6 +2248,7 @@ smoke: try {
   assert.equal(wallets.state.changed.change.id,peer)
   await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
   await main.keyboard.press('Escape')
+  await main.click('[data-testid="wallet-tab-proposals"]')
   await main.click('[data-testid="wallet-tab-activity"]')
   await main.getByRole('button',{name:'Verify audit',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-audit"]')
@@ -2286,6 +2289,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="wallet-transfer-preview"]')
   await main.screenshot({path:join(shots,'wallet-transfer-dialog.png')})
   assert.equal(latest('wallet/preview').params.draft.outputs[0].amount,'100000001')
+  await main.getByRole('button',{name:'Edit payment',exact:true}).click()
   await main.fill('[data-testid="wallet-amount"]','2')
   assert.equal(await main.locator('[data-testid="wallet-send"]').count(),0,'editing invalidates review')
   await main.click('[data-testid="wallet-estimate"]')
@@ -2306,15 +2310,15 @@ smoke: try {
   await main.keyboard.press('Escape')
   wallets.state.frozen=false
   // Late B replies cannot replace A, even when navigation changes before they arrive.
-  held.set('wallet/show',null); held.set('wallet/proposals',null)
+  held.set('wallet/show',null)
   await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.b)
-  await waitFor(()=>typeof held.get('wallet/show')==='function'&&typeof held.get('wallet/proposals')==='function')
+  await waitFor(()=>typeof held.get('wallet/show')==='function')
   await main.waitForSelector('[data-testid="wallet-loading"]')
-  const lateWallet=held.get('wallet/show'),lateProposals=held.get('wallet/proposals')
-  held.delete('wallet/show');held.delete('wallet/proposals')
+  const lateWallet=held.get('wallet/show')
+  held.delete('wallet/show')
   await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.a)
   await main.waitForFunction((id)=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes(id),wallets.a)
-  lateWallet();lateProposals()
+  lateWallet()
   await main.waitForTimeout(150)
   assert.match(await main.textContent('[data-testid="wallet-identity"]'),new RegExp(wallets.a))
   // Send is also available outside Overview/Assets. A newly selected wallet
@@ -2336,7 +2340,8 @@ smoke: try {
   await main.click('[data-testid="wallet-estimate"]')
   await main.waitForSelector('[data-testid="wallet-transfer-preview"]')
   assert.equal(latest('wallet/preview').params.draft.outputs[0].amount, '1000001')
-  assert.equal(await main.inputValue('[data-testid="wallet-fee"]'), '0.012')
+  assert.match(await main.textContent('[data-testid="wallet-transfer-preview"]'), /0\.012 TST/)
+  await main.getByRole('button',{name:'Edit payment',exact:true}).click()
   await main.click('[data-testid="wallet-estimate"]')
   await main.waitForSelector('[data-testid="wallet-transfer-preview"]')
   assert.equal(latest('wallet/preview').params.draft.max_fee, '12000')
@@ -2367,7 +2372,7 @@ smoke: try {
       const suffix = `${locale}-${appearance}-${width}`
       assert.ok(await main.locator('[data-testid="wallet-view"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `wallet fits ${suffix}`)
       assert.ok((await main.locator('[data-testid="wallet-list"]').boundingBox()).width >= 200, `wallet identity remains readable ${suffix}`)
-      assert.ok(await main.locator('[data-testid="wallet-metrics"]').evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight), `wallet overview remains visible ${suffix}`)
+      assert.ok(await main.locator('[data-testid="wallet-balances"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `wallet overview remains visible ${suffix}`)
       await main.screenshot({path:join(shots,`ui-wallet-${suffix}.png`)})
       await main.click('[data-testid="wallet-transfer-open"]')
       await main.waitForSelector('[data-testid="wallet-transfer-dialog"]')
@@ -2448,20 +2453,22 @@ smoke: try {
   assert.doesNotMatch(await approval.textContent('body'), /The wallet signs this transaction and this device broadcasts it/)
   await main.keyboard.press('Escape')
   // Bound keys cannot be removed, and a hardware-only policy cannot strand an address.
+  await main.click('[data-testid="wallet-tab-team"]')
   await main.click('[data-testid="wallet-tab-settings"]')
-  await main.getByRole('button', {name:'Remove',exact:true}).first().click()
+  await main.getByRole('button',{name:/Wallet cosigners.*Technical details/}).click()
+  await main.getByRole('button', {name:'Remove Alice key',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-manage"] >> text=Update these address policies')
   assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'),true)
   await main.keyboard.press('Escape')
   await main.click('[data-testid="wallet-tab-team"]')
   await main.getByRole('button',{name:'Change policy',exact:true}).click()
-  await main.getByRole('checkbox',{name:'Require hardware cosigners',exact:true}).check()
+  await main.getByRole('checkbox',{name:'Require declared hardware cosigners',exact:true}).check()
   await main.waitForSelector('[data-testid="wallet-manage"] >> text=The hardware keys cannot meet')
   assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'),true)
   await main.keyboard.press('Escape')
   // Durable nonce creation and exact ledger-block recovery use typed forms.
   await main.click('[data-testid="wallet-tab-assets"]')
-  await main.locator('[data-testid="wallet-address-3"]').getByRole('button',{name:'Initialize durable nonce',exact:true}).click()
+  await main.locator('[data-testid="wallet-address-3"]').getByRole('button',{name:'Prepare Solana replacement',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-manage"]')
   await main.click('[data-testid="wallet-manage-submit"]')
   await waitFor(() => wallets.state.changed?.change.kind === 'sol_nonce')
@@ -2479,6 +2486,83 @@ smoke: try {
   assert.equal(wallets.state.reconciled.block,'9007199254740993')
   assert.equal(wallets.state.reconciled.item,0)
   await main.keyboard.press('Escape')
+  // A task older than the history's first page still appears in the complete queue.
+  const oldestTask = wallets.proposals.find((p)=>p.id===1)
+  oldestTask.status='Open'; oldestTask.expires_at=Date.now()+600000
+  emit('wallet/changed')
+  await main.click('[data-testid="wallet-tab-proposals"]')
+  await main.locator('[data-testid="wallet-proposals"]').getByText('#1',{exact:true}).waitFor()
+  // A completed call with an unknown outcome is never displayed as a successful payment.
+  const uncertain={...structuredClone(originalProposal),id:802,status:'Settled',intent:{kind:'canister_call',canister:wallets.a,method:'test_call',arg:'4449444c0000',arg_text:'()',cycles:'0',consent:null},outcome:{kind:'call_unknown'}}
+  wallets.proposals.unshift(uncertain)
+  await main.evaluate(([wallet,id])=>location.hash=`/wallet/${wallet}/${id}`,[wallets.a,802])
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"] >> text=Outcome unknown')
+  assert.doesNotMatch(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Confirmed by ledger/)
+  await main.locator('[data-testid="wallet-proposal-detail"]').getByLabel('Bookkeeping note',{exact:true}).fill('=1+1 Invoice 42')
+  await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Save',exact:true}).click()
+  await waitFor(()=>latest('wallet/notes')?.params.note==='=1+1 Invoice 42')
+  await main.keyboard.press('Escape')
+  await main.getByRole('button',{name:'History',exact:true}).click()
+  await main.locator('[data-testid="wallet-history"]').getByLabel('Recipient, asset, proposal or note').fill('Invoice 42')
+  await main.waitForSelector('[data-testid="wallet-history"] >> text=#802')
+  const walletCsv = join(picks,'wallet-history.csv')
+  await app.evaluate((_electron,path)=>globalThis.__save.push(path),walletCsv)
+  await main.getByRole('button',{name:'Export filtered history (CSV)',exact:true}).click()
+  await waitFor(()=>{try{return readFileSync(walletCsv,'utf8').includes("'=1+1 Invoice 42")}catch{return false}})
+  await main.screenshot({path:join(shots,'wallet-history.png')})
+  // Receiving an EVM asset identifies its network, not just the shared address.
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await main.locator('[data-testid="wallet-address-2"]').getByRole('button',{name:'Receive',exact:true}).click()
+  await main.waitForSelector('text=Use this network at the sender')
+  await main.getByRole('button',{name:'Network',exact:true}).click()
+  await main.getByRole('menuitemradio',{name:'Base (8453)',exact:true}).click()
+  await main.waitForSelector('text=Base (8453)')
+  await main.keyboard.press('Escape')
+  // Units are human readable, and a key self-test never submits a proposal.
+  await main.click('[data-testid="wallet-tab-team"]')
+  await main.getByRole('button',{name:'Change policy',exact:true}).click()
+  assert.equal(await main.getByLabel('Recipient cooldown',{exact:true}).inputValue(),'1')
+  assert.equal(await main.getByLabel('Proposal lifetime',{exact:true}).inputValue(),'7')
+  assert.match(await main.textContent('[data-testid="wallet-manage"]'),/not hard spending caps/)
+  await settled(main,'[data-testid="wallet-manage"]')
+  await main.screenshot({path:join(shots,'wallet-policy-human-units.png')})
+  await main.keyboard.press('Escape')
+  await main.click('[data-testid="wallet-tab-settings"]')
+  await main.getByRole('button',{name:'4. Test this device’s key',exact:true}).click()
+  const beforeKeyTest=calls.filter((c)=>c.method==='wallet/change').length
+  await main.getByRole('button',{name:'Test key Alice key',exact:true}).click()
+  await main.waitForSelector('text=Key signature verified')
+  assert.equal(calls.filter((c)=>c.method==='wallet/change').length,beforeKeyTest)
+  const beforeRollback=calls.filter((c)=>c.method==='wallet/change').length
+  await main.getByRole('button',{name:'Propose rollback',exact:true}).click()
+  await main.waitForSelector('text=may remove security fixes')
+  assert.equal(calls.filter((c)=>c.method==='wallet/change').length,beforeRollback)
+  await main.screenshot({path:join(shots,'wallet-rollback-review.png')})
+  // Keyboard focus and horizontal reflow remain usable at 200% zoom.
+  const zoomWindow=await app.browserWindow(main)
+  const beforeZoomWidth=await main.evaluate(()=>innerWidth)
+  await zoomWindow.evaluate((window)=>window.webContents.setZoomFactor(2))
+  await main.waitForFunction((width)=>innerWidth<=width/2+2,beforeZoomWidth)
+  await main.click('[data-testid="wallet-tab-overview"]')
+  assert.ok(await main.locator('[data-testid="wallet-view"]').evaluate((el)=>el.scrollWidth<=el.clientWidth+1))
+  await main.focus('[data-testid="wallet-transfer-open"]')
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="wallet-transfer-dialog"]')
+  assert.ok(await main.locator('[data-testid="wallet-transfer-dialog"]').evaluate((el)=>el.scrollWidth<=el.clientWidth+1))
+  assert.ok(await main.locator('[data-testid="wallet-transfer"] input').evaluateAll((inputs)=>inputs.every((el)=>el.labels?.length||el.getAttribute('aria-label'))))
+  await settled(main,'[data-testid="wallet-transfer-dialog"]')
+  assert.ok(await main.locator('[data-testid="wallet-transfer-dialog"]').evaluate((el)=>{const r=el.getBoundingClientRect();return r.left>=-1&&r.right<=innerWidth+1&&r.top>=-1&&r.bottom<=innerHeight+1}))
+  assert.ok(await main.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'the whole window reflows at 200%')
+  const zoomCapture=await zoomWindow.evaluate(async(window)=>(await window.webContents.capturePage()).toPNG().toString('base64'))
+  await writeFile(join(shots,'wallet-transfer-zoom-200.png'),Buffer.from(zoomCapture,'base64'))
+  await main.keyboard.press('Escape')
+  await main.waitForFunction(()=>document.activeElement?.getAttribute('data-testid')==='wallet-transfer-open')
+  await zoomWindow.evaluate((window)=>window.webContents.setZoomFactor(1))
+  if(process.env.DMSG_DESKTOP_SMOKE==='wallet') {
+    assert.deepEqual(pageErrors,[])
+    console.log(`Wallet experience smoke passed. Screenshots: ${shots}`)
+    await app.close(); server.close(); process.exit(0)
+  }
   wallets.state.enabled=false
   for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
 
@@ -3703,6 +3787,10 @@ smoke: try {
   await main.locator(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new"]').screenshot({ path: join(shots, `wallet-${WALLET_CREATION_PAUSED ? 'creation-paused' : 'new'}-dark.png`) })
 
   // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.
+  // Re-select a fresh high-risk request: the intervening lock/unlock and queue
+  // navigation can select a different request. Test the hold, not that selection.
+  await main.evaluate(async () => { const r = await window.dmsg.call('device/revoke',{device:'12'.repeat(32),source:'gui'}); await window.dmsg.openApproval(r.id) })
+  await approval.waitForSelector('[data-testid="approve"] span.absolute', {state:'attached'})
   // The hold uses animation frames, which macOS may suspend in an occluded window.
   await app.evaluate(({ app }) => app.focus({ steal: true }))
   await (await app.browserWindow(approval)).evaluate((window) => { window.show(); window.focus() })

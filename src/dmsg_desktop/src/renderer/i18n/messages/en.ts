@@ -1226,7 +1226,7 @@ const messages = {
   withdrawHint: 'Its MCP clients stop working from their next call; a new credential connects them again.',
   withdrawTitle: 'Withdraw the credential of {label}?',
   twNav: "Team wallets",
-  twDetail: "Team funds on ICP, Bitcoin, EVM and Solana, moved only by approved proposals",
+  twDetail: 'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy',
   twNone: "No team wallets yet",
   twWallet: "Wallet",
   twPolicy: "Policy",

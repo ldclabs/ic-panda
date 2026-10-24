@@ -15,7 +15,12 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 57] = [
+pub(crate) const METHODS: [&str; 62] = [
+    "wallet/cosigner_test",
+    "wallet/queue",
+    "wallet/history",
+    "wallet/policy_usage",
+    "wallet/notes",
     "wallet/activation_continue",
     "wallet/activation",
     "wallet/assets",
@@ -193,6 +198,13 @@ impl Daemon {
         // Pin the account before any queue or network wait.
         h.with(|_| Ok(())).await?;
         match method {
+            "wallet/queue" | "wallet/history" => {
+                return wallets::desktop::history(&h, wallet()?, method == "wallet/queue").await;
+            }
+            "wallet/policy_usage" => return wallets::desktop::policy_usage(&h, wallet()?).await,
+            "wallet/cosigner_test" => {
+                return wallets::cosign::test_key(&h, &text(params, "label")?).await;
+            }
             "wallet/activation" => {
                 return wallets::desktop::activation(&h, &text(params, "quote")?).await;
             }
@@ -253,6 +265,14 @@ impl Daemon {
                     "wallet/rpc_set" => Some(wallets::desktop::rpc_settings(
                         client,
                         Some(parse(params, "settings")?),
+                    )),
+                    "wallet/notes" => Some(wallets::desktop::notes(
+                        client,
+                        wallet()?,
+                        params["note"]
+                            .as_str()
+                            .map(|note| Ok((id()?, note.to_string())))
+                            .transpose()?,
                     )),
                     "wallet/channel" => Some(wallets::desktop::channel_binding(
                         client,

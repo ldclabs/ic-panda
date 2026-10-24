@@ -4,15 +4,49 @@
 //! sealed under this device's local key and declared weak, so a wallet that
 //! requires hardware cosigners refuses it.
 use crate::client::Client;
+use crate::hold::Hold;
 use crate::now_ms;
 use dmsg_types::{Error, Hash, Result, ensure, wallet::*};
 use p256::ecdsa::{Signature, SigningKey, signature::Signer};
+use p256::ecdsa::{VerifyingKey, signature::Verifier};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
 use std::{future::Future, pin::Pin, sync::Arc};
 use zeroize::Zeroizing;
 
 const COSIGNERS: &str = "wallet-cosigners";
+
+/// Test only a fresh, domain-separated local challenge. No signature is
+/// exported and no wallet or chain authorization is produced.
+pub async fn test_key<H: Hold>(h: &H, label: &str) -> Result<Json> {
+    let bound = crate::hold::Unlocked::new(h).await?;
+    let h = &bound;
+    let (public, signer) = h
+        .with(|c| {
+            let key = c
+                .wallet_cosigner_keys()?
+                .into_iter()
+                .find(|k| k.label == label)
+                .ok_or(Error::NotFound)?;
+            Ok((key.public_key.clone(), c.prepare_cosign(&key.public_key)?))
+        })
+        .await?;
+    let challenge = dmsg_protocol::digest(
+        "dmsg-wallet/local-key-test/v1",
+        &(public.clone(), crate::crypto::random_id()),
+    );
+    let signatures = signer.sign(vec![challenge]).await?;
+    let signature = signatures.first().ok_or(Error::IntegrityFailed)?;
+    VerifyingKey::from_sec1_bytes(&public)
+        .map_err(|_| Error::IntegrityFailed)?
+        .verify(
+            &challenge[..],
+            &Signature::from_slice(signature).map_err(|_| Error::IntegrityFailed)?,
+        )
+        .map_err(|_| Error::IntegrityFailed)?;
+    h.with(|_| Ok(())).await?;
+    Ok(json!({"label":label,"public_key":hex::encode(&public),"verified":true,"read_at":now_ms()}))
+}
 
 /// A batch signature operation that may wait for user presence.
 pub type CosignFuture = Pin<Box<dyn Future<Output = Result<Vec<Vec<u8>>>> + Send>>;
@@ -301,6 +335,24 @@ mod tests {
         ) -> Result<T> {
             step(&mut *self.0.lock().await)
         }
+    }
+
+    #[tokio::test]
+    async fn local_key_test_verifies_a_challenge_without_exporting_a_signature() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        client.wallet_cosigner_create("local test", false).unwrap();
+        let h = Shared(Mutex::new(client));
+        let result = test_key(&h, "local test").await.unwrap();
+        assert_eq!(result["verified"], true);
+        assert!(result.get("signature").is_none());
+        assert_eq!(
+            h.with(|c| Ok(c.wallet_cosigner_keys()?.len()))
+                .await
+                .unwrap(),
+            1
+        );
+        assert!(test_key(&h, "missing").await.is_err());
     }
 
     #[tokio::test]

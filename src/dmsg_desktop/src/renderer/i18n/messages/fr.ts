@@ -1224,7 +1224,7 @@ export default {
     withdrawHint: 'Ses clients MCP cessent de fonctionner dès leur prochain appel ; un nouvel identifiant les reconnecte.',
     withdrawTitle: 'Retirer l’identifiant de {label} ?',
     twNav: "Portefeuilles d’équipe",
-    twDetail: "Les fonds de l’équipe sur ICP, Bitcoin, EVM et Solana, déplacés uniquement par des propositions approuvées",
+    twDetail: 'Gérez ensemble les fonds ICP, Bitcoin, EVM et Solana selon les règles du portefeuille',
     twNone: "Aucun portefeuille d’équipe",
     twWallet: "Portefeuille",
     twPolicy: "Politique",

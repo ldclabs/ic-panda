@@ -368,6 +368,37 @@ fn wallet_stats() -> WalletStats {
     })
 }
 
+/// Explain the same reservations and rolling window used for approvals.
+#[ic_cdk::query]
+fn policy_usage() -> Result<Vec<SpendUsage>> {
+    let caller = ic_cdk::api::msg_caller();
+    let at = now();
+    store::with(|w| {
+        check_reader(w, caller)?;
+        let mut usage: Vec<SpendUsage> = vec![];
+        for spend in w.spends.iter().filter(|s| w.retains_spend(s, at)) {
+            let index = usage.iter().position(|u| u.asset == spend.asset);
+            let row = match index {
+                Some(index) => &mut usage[index],
+                None => {
+                    usage.push(SpendUsage {
+                        asset: spend.asset.clone(),
+                        reserved: 0,
+                        executed: 0,
+                    });
+                    usage.last_mut().expect("inserted")
+                }
+            };
+            if spend.executed_at_ms.is_some() {
+                row.executed = row.executed.saturating_add(spend.amount);
+            } else {
+                row.reserved = row.reserved.saturating_add(spend.amount);
+            }
+        }
+        Ok(usage)
+    })
+}
+
 /// What the hub may install, read by the hub before an upgrade or lock.
 #[ic_cdk::query]
 fn accepted_upgrade() -> CodeAcceptance {

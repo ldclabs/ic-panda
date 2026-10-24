@@ -57,6 +57,103 @@ pub struct RpcSettings {
     pub solana_rpc: String,
 }
 
+/// Account-local encrypted bookkeeping notes. They are not approved intents
+/// and are never sent to other wallet members or to a canister.
+pub fn notes(c: &mut Client, wallet: Principal, change: Option<(u64, String)>) -> Result<Json> {
+    let key = format!("wallet-notes:{wallet}");
+    let mut notes = c
+        .workspace
+        .private::<std::collections::BTreeMap<u64, String>>(c.keys()?, &key)?
+        .unwrap_or_default();
+    if let Some((id, note)) = change {
+        ensure_valid(note.len() <= 2_000, "note length")?;
+        if note.trim().is_empty() {
+            notes.remove(&id);
+        } else {
+            notes.insert(id, note.trim().to_string());
+        }
+        c.workspace.put_private(c.keys()?, &key, &notes)?;
+    }
+    Ok(json!(notes))
+}
+
+/// Read all retained proposals for complete queues and explicitly requested
+/// history searches. The certified audit head invalidates the encrypted cache.
+/// List rows remain navigation hints; approving still certifies the proposal.
+pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
+    let view = state(h, wallet).await?;
+    let cache = format!("wallet-history:{wallet}");
+    let head = hex::encode(*view.audit_head);
+    let saved = h
+        .with(|c| c.workspace.private::<Json>(c.keys()?, &cache))
+        .await?;
+    let mut result = if let Some(saved) = saved.filter(|s| {
+        s["head"] == head
+            && s["read_at"]
+                .as_u64()
+                .is_some_and(|at| now_ms().saturating_sub(at) < 60_000)
+    }) {
+        saved
+    } else {
+        let (_, ic) = identity(h).await?;
+        let mut before = None;
+        let mut rows = vec![];
+        loop {
+            let page: Result<ProposalPage> =
+                ic.query(wallet, "list_proposals", (before, 100u16)).await?;
+            let page = page?;
+            rows.extend(page.proposals.iter().map(proposal_view));
+            h.with(|_| Ok(())).await?;
+            let Some(next) = page.next else { break };
+            ensure(before.is_none_or(|old| next < old), Error::IntegrityFailed)?;
+            before = Some(next);
+        }
+        // Do not combine pages from different authorization/history snapshots.
+        ensure(
+            state(h, wallet).await?.audit_head == view.audit_head,
+            Error::VersionConflict,
+        )?;
+        let result = json!({"proposals": rows, "head":head, "complete":true, "read_at":now_ms()});
+        h.with(|c| c.workspace.put_private(c.keys()?, &cache, &result))
+            .await?;
+        result
+    };
+    if pending && let Some(rows) = result["proposals"].as_array_mut() {
+        rows.retain(|p| {
+            !matches!(
+                p["status"].as_str(),
+                Some(
+                    "Settled"
+                        | "Failed"
+                        | "Rejected"
+                        | "Vetoed"
+                        | "Cancelled"
+                        | "Expired"
+                        | "Stale"
+                )
+            ) || p["outcome"]["kind"] == "call_unknown"
+                || p["status"] == "Failed"
+                    && p["outcome"]["blocks"]
+                        .as_array()
+                        .is_some_and(|b| !b.is_empty())
+        });
+    }
+    Ok(result)
+}
+
+/// Policy accounting is informational; the wallet re-evaluates execution.
+pub async fn policy_usage<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
+    let (_, ic) = identity(h).await?;
+    let rows: Result<Vec<SpendUsage>> = ic.query(wallet, "policy_usage", ()).await?;
+    Ok(
+        json!({"read_at":now_ms(), "assets":rows?.iter().map(|r| json!({
+        "asset":asset_view(&r.asset), "reserved":r.reserved.to_string(), "executed":r.executed.to_string()
+    })).collect::<Vec<_>>()}),
+    )
+}
+
 pub(super) fn settings(c: &Client) -> Result<WalletSettings> {
     let mut s = c.config.wallet.clone();
     if let Some(saved) = c
@@ -148,7 +245,11 @@ pub async fn metadata<H: Hold>(h: &H, asset: &AssetKey, refresh: bool) -> Result
             chain_id,
             token: None,
         } => Ok((
-            format!("Native · {chain_id}"),
+            if [1, 8453, 10, 42161, 11155111, 84532].contains(chain_id) {
+                "ETH".into()
+            } else {
+                format!("Native · {chain_id}")
+            },
             18,
             s.evm_rpc
                 .iter()
@@ -738,6 +839,7 @@ pub async fn receive<H: Hold>(h: &H, wallet: Principal, id: u32) -> Result<Json>
     img.write_to(&mut png, image::ImageFormat::Png)
         .map_err(|_| Error::IntegrityFailed)?;
     let mut out = json!({"wallet":wallet.to_text(),"address":id,"text":a.text,"chain":format!("{:?}",a.chain),"network":if a.chain==Chain::Bitcoin {format!("{:?}",view.btc_network)}else{String::new()},"verified":true,"qr":format!("data:image/png;base64,{}",STANDARD.encode(png.into_inner()))});
+    out["networks"] = json!(view.policy.evm_chains);
     if a.chain == Chain::Icp {
         let account = icp_account(wallet, id);
         let subaccount = account.subaccount.unwrap_or([0; 32]);
@@ -816,7 +918,10 @@ fn transfer_intent(input: &TransferInput, view: &WalletView, fee: u128) -> Resul
             })
         })
         .collect::<Result<Vec<_>>>()?;
-    ensure_valid(!items.is_empty() && items.len() <= 64, "recipients")?;
+    ensure_valid(
+        !items.is_empty() && items.len() <= MAX_BATCH_ITEMS,
+        "recipients",
+    )?;
     let intent = if items.len() == 1 {
         let memo = input
             .memo
@@ -1036,7 +1141,8 @@ pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) ->
         "intent":intent_view(&intent), "estimated_fee":estimate.to_string(),
         "recommended_fee":recommended.to_string(), "max_fee":ceiling.to_string(),
         "fee_asset":native, "fee_decimals":decimals, "additional_reserve":extra.to_string(),
-        "native_balance":balance.to_string(), "requirement":requirement,
+        "native_balance":balance.to_string(), "asset_balance":token_balance.unwrap_or(balance).to_string(),
+        "native_asset":native_asset, "total_amount":total.to_string(), "requirement":requirement,
         "blockers":blockers, "read_at":now_ms()
     }))
 }

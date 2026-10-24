@@ -1224,7 +1224,7 @@ export default {
     withdrawHint: 'Sus clientes MCP dejan de funcionar desde su próxima llamada; una credencial nueva los vuelve a conectar.',
     withdrawTitle: '¿Retirar la credencial de {label}?',
     twNav: "Monederos de equipo",
-    twDetail: "Los fondos del equipo en ICP, Bitcoin, EVM y Solana, que solo se mueven con propuestas aprobadas",
+    twDetail: 'Gestión conjunta de fondos ICP, Bitcoin, EVM y Solana según las reglas de la cartera',
     twNone: "Aún no hay monederos de equipo",
     twWallet: "Monedero",
     twPolicy: "Política",

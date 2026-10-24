@@ -183,14 +183,38 @@ fn reservations_survive_a_day_and_execution_starts_the_spend_window() {
         (account(t.wallet), 2_000_000_000u128),
     );
     let first = t.approve_p(t.propose(P, transfer(AssetKey::Icp, 0, 600_000_000)).id);
+    let read_usage = || {
+        let rows: Result<Vec<SpendUsage>> = query(&t.f.ic, t.wallet, person(P), "policy_usage", ());
+        rows.unwrap()
+    };
+    assert_eq!(
+        read_usage(),
+        vec![SpendUsage {
+            asset: AssetKey::Icp,
+            reserved: 600_000_000,
+            executed: 0
+        }]
+    );
+    let denied: Result<Vec<SpendUsage>> = query(&t.f.ic, t.wallet, person(98), "policy_usage", ());
+    assert_eq!(denied, Err(Error::Forbidden));
     advance(&t, DAY + MINUTE);
+    assert_eq!(read_usage()[0].reserved, 600_000_000);
     let second = t.propose(P, transfer(AssetKey::Icp, 0, 600_000_001));
     assert_eq!(second.requirement.approvals, 2);
     assert_eq!(t.approve_p(second.id).status, ProposalStatus::Open);
     t.execute(first.id, None, vec![]).unwrap();
+    assert_eq!(
+        read_usage(),
+        vec![SpendUsage {
+            asset: AssetKey::Icp,
+            reserved: 0,
+            executed: 600_000_000
+        }]
+    );
     let third = t.propose(P, transfer(AssetKey::Icp, 0, 600_000_002));
     assert_eq!(third.requirement.approvals, 2);
     advance(&t, DAY + MINUTE);
+    assert!(read_usage().is_empty());
     let fourth = t.propose(P, transfer(AssetKey::Icp, 0, 600_000_003));
     assert_eq!(fourth.requirement.approvals, 1);
 }

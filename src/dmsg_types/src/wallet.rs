@@ -355,6 +355,17 @@ pub struct AssetLimit {
     pub amount: u128,
 }
 
+/// Current policy accounting, not an on-chain asset balance.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SpendUsage {
+    /// Asset whose policy window is measured.
+    pub asset: AssetKey,
+    /// Approved amounts which have not started execution.
+    pub reserved: u128,
+    /// Amounts which started execution within the rolling 24 hours.
+    pub executed: u128,
+}
+
 /// Cycles top-up from the wallet's own ICP.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RefuelRule {

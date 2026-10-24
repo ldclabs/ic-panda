@@ -22,6 +22,12 @@
   import ProposalDetail from './wallet/Proposal.svelte'
   import Operations from './wallet/Operations.svelte'
   import Intent from './wallet/Intent.svelte'
+  import Balances from './wallet/Balances.svelte'
+  import PolicySummary from './wallet/PolicySummary.svelte'
+  import PolicyUsage from './wallet/PolicyUsage.svelte'
+  import Readiness from './wallet/Readiness.svelte'
+  import Collapsible from '../components/Collapsible.svelte'
+  import History from './wallet/History.svelte'
   import { w } from './wallet/text'
   import { WALLET_CREATION_PAUSED } from '../../shared/wallet-availability'
   import { walletError as errorText } from './wallet/errors'
@@ -34,6 +40,10 @@
     cyclesText,
     finalStates,
     stateAt,
+    resultState,
+    queueKind,
+    intentHeadline,
+    networkName,
     validPrincipal,
     ViewScope,
     walletRoute,
@@ -48,22 +58,31 @@
   }: { status: any; route?: string; go?: (path: string) => void } = $props()
   let wallets = $state<any[]>([]),
     wallet = $state<Wallet | null>(null),
-    selected = $state(''),
-    proposals = $state<Proposal[]>([]),
-    next = $state<number | null>(null)
+    selected = $state('')
   let metadata = $state<Asset[]>([]),
     balances = $state<any>(null),
     audit = $state<any>(null),
     book = $state<any[]>([]),
     bookNext = $state<string | null>(null)
-  let proposalsLoading = $state(false), proposalError = $state(''), assetError = $state('')
-  let balanceBusy = $state(false), bookBusy = $state(false), auditBusy = $state(false)
-  let balanceRevision = 0, bookRevision = 0, proposalRevision = 0
+  let tasks = $state<Proposal[]>([]),
+    queueBusy = $state(false),
+    queueError = $state(''),
+    queueKey = '',
+    balanceAttemptKey = '',
+    queueRevision = 0
+  let receiveNetwork = $state(''),
+    historyOpen = $state(false)
+  let assetError = $state('')
+  let balanceBusy = $state(false),
+    bookBusy = $state(false),
+    auditBusy = $state(false)
+  let balanceRevision = 0,
+    bookRevision = 0
   let readCore: () => Promise<void> = async () => {}
-  let readProposals: () => Promise<void> = async () => {}
   let readAssets: () => Promise<void> = async () => {}
   let reloadBook: () => Promise<void> = async () => {}
-  let assetsKey = '', bookKey = ''
+  let assetsKey = '',
+    bookKey = ''
   const extrasKey = $derived(wallet ? `${wallet.wallet}:${wallet.policy.version}:${wallet.audit_head}` : '')
   let loading = $state(false),
     busy = $state(false),
@@ -107,13 +126,16 @@
   const decider = $derived(member?.status === 'Active' && ['Admin', 'Approver'].includes(member?.role ?? ''))
   const usable = $derived(!!wallet && !loading && !busy && wallet.wallet === selected && unlocked)
   const needsExtras = $derived(transferOpen || ['overview', 'assets'].includes(tab))
-  const tabs = $derived(['overview', 'proposals', 'assets', 'team', 'activity', 'settings'].map((value) => ({ value, label: w(value) })))
-  const shown = $derived(
-    proposals.filter(
-      (p) => filter === 'all' || (filter === 'waiting' ? actions(p, wallet!, now).approve : actions(p, wallet!, now).execute)
-    )
+  const tabs = $derived(
+    ['overview', 'assets', 'proposals', 'team'].map((value) => ({
+      value,
+      label: w(value === 'proposals' ? 'transactions' : value === 'team' ? 'security' : value)
+    }))
   )
-  const waiting = $derived(wallet ? proposals.filter((p) => actions(p, wallet!, now).approve).length : 0)
+  const shown = $derived(
+    tasks.filter((p) => queueKind(p, wallet!, now) !== 'history' && (filter === 'all' || queueKind(p, wallet!, now) === filter))
+  )
+  const waiting = $derived(wallet ? tasks.filter((p) => actions(p, wallet!, now).approve).length : 0)
   const fresh = (generation: number) => active && scope.current(generation) && unlocked && status?.account === account
 
   $effect(() => {
@@ -127,7 +149,6 @@
         wallets = []
         wallet = null
         selected = ''
-        proposals = []
         metadata = []
         balances = null
         audit = null
@@ -143,13 +164,22 @@
         newOpen = false
         transferOpen = false
         loading = false
-        proposalsLoading = balanceBusy = bookBusy = auditBusy = false
-        proposalError = assetError = ''
-        loadList = single(readList); loadPrincipal = single(readPrincipal); loadDeposits = single(readDeposits)
+        queueBusy = balanceBusy = bookBusy = auditBusy = false
+        queueError = assetError = ''
+        tasks = []
+        queueKey = balanceAttemptKey = ''
+        queueRevision++
+        loadList = single(readList)
+        loadPrincipal = single(readPrincipal)
+        loadDeposits = single(readDeposits)
         busy = false
         listLoading = false
         receive = null
-        if (current) { void loadList(); void loadPrincipal(); void loadDeposits() }
+        if (current) {
+          void loadList()
+          void loadPrincipal()
+          void loadDeposits()
+        }
       })
   })
   $effect(() => {
@@ -169,7 +199,8 @@
 
   async function readList() {
     if (!active || !unlocked) return
-    const run = listEpoch, owner = account
+    const run = listEpoch,
+      owner = account
     listLoading = true
     try {
       const list = await call<any[]>('wallet/list')
@@ -179,8 +210,11 @@
         const wanted = route.split('/')[2]
         select(validPrincipal(wanted ?? '') ? wanted : wallets[0].wallet)
       }
-    } catch (e) { if (active && run === listEpoch) error = errorText(e) }
-    finally { if (active && run === listEpoch) listLoading = false }
+    } catch (e) {
+      if (active && run === listEpoch) error = errorText(e)
+    } finally {
+      if (active && run === listEpoch) listLoading = false
+    }
   }
   async function readPrincipal() {
     if (!active || !unlocked) return
@@ -193,90 +227,154 @@
     const run = listEpoch
     try {
       const paid = await call<any[]>('wallet/deposits')
-      if (active && run === listEpoch && unlocked) { deposits = paid; depositError = '' }
-    } catch (e) { if (active && run === listEpoch) depositError = errorText(e) }
+      if (active && run === listEpoch && unlocked) {
+        deposits = paid
+        depositError = ''
+      }
+    } catch (e) {
+      if (active && run === listEpoch) depositError = errorText(e)
+    }
   }
-  let loadList = single(readList), loadPrincipal = single(readPrincipal), loadDeposits = single(readDeposits)
+  let loadList = single(readList),
+    loadPrincipal = single(readPrincipal),
+    loadDeposits = single(readDeposits)
 
   function select(id: string) {
     if (busy) return
     go(walletRoute(id))
     void open(id)
   }
-  async function pages(id: string, count: number, run: number) {
-    const rows: Proposal[] = []
-    let before: number | null = null
-    do {
-      const page: any = await call('wallet/proposals', { wallet: id, before, limit: Math.min(100, count - rows.length) })
-      if (!fresh(run)) return null
-      rows.push(...page.proposals)
-      before = page.next ?? null
-    } while (before !== null && rows.length < count)
-    return { proposals: rows, next: before }
-  }
   function open(id: string) {
     if (id !== selected) {
       const run = scope.next()
       epoch = run
       selected = id
-      wallet = null; proposals = []; next = null; metadata = []
-      balances = null; audit = null; book = []; bookNext = null
-      balanceError = bookError = proposalError = assetError = error = ''
-      loading = true; proposalsLoading = true
+      wallet = null
+      metadata = []
+      balances = null
+      audit = null
+      book = []
+      bookNext = null
+      tasks = []
+      queueRevision++
+      queueBusy = false
+      queueError = ''
+      queueKey = balanceAttemptKey = ''
+      balanceError = bookError = assetError = error = ''
+      loading = true
       balanceBusy = bookBusy = auditBusy = false
-      balanceRevision++; bookRevision++; proposalRevision++
+      balanceRevision++
+      bookRevision++
       assetsKey = bookKey = ''
-      manageOpen = false; transferOpen = false; receive = null; access = false
+      manageOpen = false
+      transferOpen = false
+      receive = null
+      access = false
       readCore = single(async () => {
         if (!fresh(run)) return
         try {
           const shown = await call<Wallet>('wallet/show', { wallet: id })
           if (!fresh(run)) return
-          if (wallet?.audit_head !== shown.audit_head) { balances = null; audit = null; balanceRevision++ }
+          if (wallet?.audit_head !== shown.audit_head) {
+            audit = null
+          }
           wallet = shown
-          metadata = shown.policy.spendable_assets.map((asset: Asset) => metadata.find((known) => assetKey(known) === assetKey(asset)) ?? asset)
+          metadata = shown.policy.spendable_assets.map(
+            (asset: Asset) => metadata.find((known) => assetKey(known) === assetKey(asset)) ?? asset
+          )
           drafts[id] ??= { from: String(shown.addresses[0]?.id ?? 0), asset: '', outputs: [{ to: '', amount: '' }], maxFee: '', memo: '' }
           error = ''
-        } catch (e) { if (fresh(run)) error = errorText(e) }
-        finally { if (fresh(run)) loading = false }
-      })
-      readProposals = single(async () => {
-        if (!fresh(run)) return
-        const revision = ++proposalRevision
-        proposalsLoading = true
-        try {
-          const page = await pages(id, Math.max(50, proposals.length), run)
-          if (fresh(run) && revision === proposalRevision && page) { proposals = page.proposals; next = page.next; proposalError = '' }
-        } catch (e) { if (fresh(run) && revision === proposalRevision) proposalError = errorText(e) }
-        finally { if (fresh(run) && revision === proposalRevision) proposalsLoading = false }
+        } catch (e) {
+          if (fresh(run)) error = errorText(e)
+        } finally {
+          if (fresh(run)) loading = false
+        }
       })
       readAssets = single(async () => {
         if (!fresh(run) || !needsExtras) return
         const version = wallet?.policy.version
         try {
           const result = await call<any>('wallet/assets', { wallet: id })
-          if (fresh(run) && version === wallet?.policy.version) { metadata = result.assets; assetError = '' }
-        } catch (e) { if (fresh(run)) assetError = errorText(e) }
+          if (fresh(run) && version === wallet?.policy.version) {
+            metadata = result.assets
+            assetError = ''
+          }
+        } catch (e) {
+          if (fresh(run)) assetError = errorText(e)
+        }
       })
       reloadBook = single(async () => {
         if (fresh(run) && needsExtras) await readBook()
       })
     }
-    void readProposals()
     return readCore()
   }
   $effect(() => {
     const key = extrasKey
     const visible = needsExtras
-    if (key && visible) untrack(() => {
-      const assets = `${selected}:${wallet?.policy.version}`
-      if (assetsKey !== assets) { assetsKey = assets; void readAssets() }
-      if (bookKey !== key) { bookKey = key; void reloadBook() }
-    })
+    if (key && visible)
+      untrack(() => {
+        const assets = `${selected}:${wallet?.policy.version}`
+        if (assetsKey !== assets) {
+          assetsKey = assets
+          void readAssets()
+        }
+        if (bookKey !== key) {
+          bookKey = key
+          void reloadBook()
+        }
+      })
   })
+  async function readQueue() {
+    const run = epoch,
+      id = selected,
+      head = wallet?.audit_head,
+      revision = ++queueRevision
+    queueBusy = true
+    queueError = ''
+    try {
+      const result: any = await call('wallet/queue', { wallet: id })
+      if (fresh(run) && revision === queueRevision && wallet?.audit_head === head) tasks = result.proposals
+    } catch (e) {
+      if (fresh(run) && revision === queueRevision) queueError = errorText(e)
+    } finally {
+      if (fresh(run) && revision === queueRevision) queueBusy = false
+    }
+  }
+  $effect(() => {
+    const key = extrasKey,
+      visible = needsExtras,
+      idle = !balanceBusy
+    if (key)
+      untrack(() => {
+        if (queueKey !== key) {
+          queueKey = key
+          void readQueue()
+        }
+        if (visible && idle && balanceAttemptKey !== key) {
+          balanceAttemptKey = key
+          void readBalances()
+        }
+      })
+  })
+  function startTransfer(address?: number, asset?: Asset) {
+    if (!wallet) return
+    if (address != null && asset) {
+      drafts[wallet.wallet].from = String(address)
+      drafts[wallet.wallet].asset = assetKey(asset)
+    }
+    transferOpen = true
+  }
   function refresh() {
-    void loadList(); void loadDeposits()
-    if (selected) { void open(selected); void readAssets(); void reloadBook() }
+    void loadList()
+    void loadDeposits()
+    if (selected) {
+      queueKey = ''
+      balanceAttemptKey = ''
+      void open(selected)
+      void readAssets()
+      void reloadBook()
+    }
   }
   async function readBalances() {
     if (balanceBusy) return
@@ -328,23 +426,6 @@
       if (fresh(run)) auditBusy = false
     }
   }
-  async function more() {
-    if (next === null || !usable || proposalsLoading) return
-    const revision = ++proposalRevision
-    const run = epoch
-    proposalsLoading = true
-    try {
-      const page: any = await call('wallet/proposals', { wallet: selected, before: next, limit: 50 })
-      if (fresh(run) && revision === proposalRevision) {
-        proposals = [...proposals, ...page.proposals.filter((p: Proposal) => !proposals.some((old) => old.id === p.id))]
-        next = page.next ?? null
-      }
-    } catch (e) {
-      if (fresh(run) && revision === proposalRevision) proposalError = errorText(e)
-    } finally {
-      if (fresh(run) && revision === proposalRevision) proposalsLoading = false
-    }
-  }
   function showProposal(id: number) {
     detailId = id
     detailOpen = true
@@ -357,6 +438,7 @@
   }
   function proposed(p: any) {
     if (p.wallet && p.wallet !== selected) return
+    if (p.note_error) toast(() => w('noteSaveFailed'))
     if (p.notification_error) toast(() => w('notificationFailed'))
     void refresh()
     if (p.id != null) showProposal(p.id)
@@ -389,9 +471,10 @@
         if (!active || !unlocked || owner !== account || pending?.id !== requestId) return
         activation = phase
       } else activation = null
-      const completed = r.detail?.action === 'create'
-        ? activation?.stage === 'ready' || (r.state === 'done' && r.detail?.result?.status === 'Ready')
-        : r.state === 'done'
+      const completed =
+        r.detail?.action === 'create'
+          ? activation?.stage === 'ready' || (r.state === 'done' && r.detail?.result?.status === 'Ready')
+          : r.state === 'done'
       if (completed) {
         const id = activation?.wallet ?? r.detail?.result?.wallet ?? r.detail?.wallet
         dismissPending()
@@ -435,8 +518,10 @@
           void open(result.wallet)
           void loadList()
         } else void readPending()
-      } else if (method === 'wallet/receive' && id === selected) receive = result
-      else if (method === 'wallet/refund') {
+      } else if (method === 'wallet/receive' && id === selected) {
+        receive = result
+        receiveNetwork = String(params.chain_id ?? result.networks?.[0] ?? '')
+      } else if (method === 'wallet/refund') {
         toast(() => t('twRefunded', { to: result.to, block: result.block }))
         await loadDeposits()
       } else if (method === 'wallet/activation_abort') {
@@ -456,7 +541,10 @@
       if (!unlocked || !['resync', 'wallet/changed', 'approval/changed', 'channel/changed'].includes(event.type)) return
       void readPending()
       if (busy) return
-      if (event.type === 'wallet/changed' || event.type === 'resync') { void loadList(); void loadDeposits() }
+      if (event.type === 'wallet/changed' || event.type === 'resync') {
+        void loadList()
+        void loadDeposits()
+      }
       if (selected) void open(selected)
     })
     const focused = () => {
@@ -469,7 +557,9 @@
         unlocked &&
         pending &&
         (['executing', 'unknown'].includes(pending.state) ||
-          (pending.state === 'done' && pending.detail?.action === 'create' && !['ready', 'failed', 'refunded'].includes(activation?.stage)) ||
+          (pending.state === 'done' &&
+            pending.detail?.action === 'create' &&
+            !['ready', 'failed', 'refunded'].includes(activation?.stage)) ||
           (pending.state === 'awaiting_user' && now >= pending.expires_at))
       )
         void readPending()
@@ -503,17 +593,42 @@
           testid="wallet-select"
         /><p data-testid="wallet-identity" class="text-faint mt-1 text-[11px]">{w(member?.role ?? 'unknown')} · {wallet.wallet}</p></div
       >
-      <button class={iconButtonClass()} disabled={busy || listLoading || loading} onclick={refresh} aria-label={t('refresh')} title={t('refresh')}
-        ><Icon name="sync-now" /></button
+      <button
+        class={iconButtonClass()}
+        disabled={busy || listLoading || loading}
+        onclick={refresh}
+        aria-label={t('refresh')}
+        title={t('refresh')}><Icon name="sync-now" /></button
       >
       <div class="grid gap-0.5">
-        <button class={buttonClass('ghost', 'sm')} disabled={busy || WALLET_CREATION_PAUSED} aria-describedby={WALLET_CREATION_PAUSED ? 'wallet-creation-status' : undefined} onclick={() => (newOpen = true)} data-testid="wallet-new-button"><Icon name="add" />{w('newWallet')}</button>
-        {#if WALLET_CREATION_PAUSED}<span id="wallet-creation-status" class="max-w-56 text-[11px] text-faint" data-testid="wallet-creation-paused">{w('creationPausedHint')}</span>{/if}
+        <button
+          class={buttonClass('ghost', 'sm')}
+          disabled={busy || WALLET_CREATION_PAUSED}
+          aria-describedby={WALLET_CREATION_PAUSED ? 'wallet-creation-status' : undefined}
+          onclick={() => (newOpen = true)}
+          data-testid="wallet-new-button"><Icon name="add" />{w('newWallet')}</button
+        >
       </div>
       <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (joinOpen = true)}>{w('joinWallet')}</button>
-      {#if mayPropose && !wallet.frozen}<button class={buttonClass('primary')} disabled={!usable} onclick={() => (transferOpen = true)} data-testid="wallet-transfer-open"><Icon name="send" />{w('send')}</button>{/if}
+      {#if decider && !wallet.frozen}<button class={buttonClass('ghost', 'sm')} disabled={!usable} onclick={() => (freezeOpen = true)}
+          >{w('freeze')}</button
+        >{/if}
+      {#if mayPropose && !wallet.frozen}<button
+          class={buttonClass('primary')}
+          disabled={!usable}
+          onclick={() => startTransfer()}
+          data-testid="wallet-transfer-open"><Icon name="send" />{w('send')}</button
+        >{/if}
     </div>
-    <TabBar bind:value={tab} items={tabs} label={t('twNav')} testid="wallet-tab" />
+    {#if WALLET_CREATION_PAUSED}<p id="wallet-creation-status" class="px-8 pb-2 text-[12px] text-muted" data-testid="wallet-creation-paused"
+        >{w('creationPausedHint')}</p
+      >{/if}
+    <TabBar
+      bind:value={() => (tab === 'settings' ? 'team' : tab === 'activity' ? 'proposals' : tab), (value) => (tab = value)}
+      items={tabs}
+      label={t('twNav')}
+      testid="wallet-tab"
+    />
   {/if}
   <div class="min-h-0 flex-1">
     <Page wide>
@@ -525,12 +640,15 @@
         {#if loading && !wallet}<p class="text-faint text-[12px]" role="status" data-testid="wallet-loading">{w('loading')}</p>{/if}
         {#if pending}<Notice testid="wallet-pending"
             ><span
-              >{activation && (['executing', 'unknown', 'done'].includes(pending.state) || ['paid', 'creating', 'installing', 'ready', 'failed', 'refunded'].includes(activation.stage))
+              >{activation &&
+              (['executing', 'unknown', 'done'].includes(pending.state) ||
+                ['paid', 'creating', 'installing', 'ready', 'failed', 'refunded'].includes(activation.stage))
                 ? w(`activation_${activation.stage}`)
                 : stateLabel(pending.state)}</span
-            >{#if pending.state === 'awaiting_user'}<button class={buttonClass('secondary', 'xs', 'ms-3')} onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}
-              >{w('openApproval')}</button
-            >{/if}{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
+            >{#if pending.state === 'awaiting_user'}<button
+                class={buttonClass('secondary', 'xs', 'ms-3')}
+                onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}>{w('openApproval')}</button
+              >{/if}{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
                 class={buttonClass('secondary', 'xs', 'ms-2')}
                 disabled={busy}
                 onclick={() => run('wallet/activation_continue', { request: pending.id })}>{w('continue')}</button
@@ -540,109 +658,136 @@
               >{/snippet}</Notice
           >{/if}
         {#if wallet}
+          {#if ['team', 'settings'].includes(tab)}<div class="flex flex-wrap gap-2"
+              ><button class={buttonClass('secondary', 'sm')} onclick={() => (tab = 'team')}>{w('security')}</button><button
+                class={buttonClass('ghost', 'sm')}
+                onclick={() => (tab = 'settings')}
+                data-testid="wallet-tab-settings">{w('settings')}</button
+              ></div
+            >{/if}
+          {#if ['proposals', 'activity'].includes(tab)}<div class="flex flex-wrap gap-2"
+              ><button
+                class={buttonClass('secondary', 'sm')}
+                onclick={() => {
+                  tab = 'proposals'
+                  historyOpen = false
+                }}>{w('queue')}</button
+              ><button
+                class={buttonClass('ghost', 'sm')}
+                onclick={() => {
+                  tab = 'proposals'
+                  historyOpen = true
+                }}>{w('history')}</button
+              ><button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'activity')} data-testid="wallet-tab-activity"
+                >{w('activity')}</button
+              ></div
+            >{/if}
           {#if wallet.frozen}<Notice tone="warn"
-              ><b>{w('frozen')}</b> · {w('freezeHint')}{#if mayPropose}<button
+              ><b>{w('frozen')}</b> · {w('freezeBoundary')}{#if mayPropose}<button
                   class={buttonClass('secondary', 'sm', 'mt-2')}
                   disabled={!usable}
                   onclick={() => showManage('unfreeze')}>{w('unfreeze')}</button
                 >{/if}</Notice
             >{/if}
           {#if tab === 'overview'}
-            <section class="grid grid-cols-3 gap-4 px-5" data-testid="wallet-metrics">
-              <div class="min-w-0 py-2"
-                ><p class="text-faint text-[12px]">{w('waiting')}</p><b class="text-[30px] font-semibold tabular-nums">{proposalsLoading && !proposals.length ? '—' : waiting}</b><button
-                  class={buttonClass('ghost', 'xs', 'mt-2 block')}
+            <Balances
+              {wallet}
+              {metadata}
+              {balances}
+              busy={balanceBusy}
+              error={balanceError}
+              onRefresh={readBalances}
+              onReceive={(address, chain_id) => run('wallet/receive', { address, chain_id })}
+              onSend={startTransfer}
+            />
+            <Section title={w('queue')} icon="approvals" flush>
+              {#snippet actions()}<button
+                  class={buttonClass('ghost', 'sm')}
                   onclick={() => {
                     tab = 'proposals'
                     filter = 'waiting'
-                  }}>{w('details')}</button
-                ></div
-              >
-              <div class="min-w-0 py-2"
-                ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[30px] font-semibold whitespace-nowrap tabular-nums" data-testid="wallet-cycles"
-                  >{cyclesText(wallet.stats?.cycles ?? '0')} <small class="text-[13px]">T</small></b
-                ><button class={buttonClass('ghost', 'xs', 'mt-2 block')} onclick={() => (tab = 'settings')}>{w('settings')}</button></div
-              >
-              <div class="min-w-0 py-2"
-                ><p class="text-faint text-[12px]">{w('policy')}</p><b class="text-[30px] font-semibold tabular-nums"
-                  >{wallet.policy.approver_threshold}</b
-                ><span class="text-muted ms-2 text-[12px]">{w('approvals')}</span><button
-                  class={buttonClass('ghost', 'xs', 'mt-2 block')}
-                  onclick={() => (tab = 'team')}>{w('editPolicy')}</button
-                ></div
-              >
-            </section>
-            <p class="text-faint -mt-5 px-5 text-[11px]">{w('activeHint')}</p>
-            {#if proposalError}<Notice tone="danger">{proposalError}</Notice>{/if}
-            <Section title={w('proposals')} icon="approvals" flush>
-              {#each proposals.filter((p) => !finalStates.has(stateAt(p, now))).slice(0, 5) as p (p.id)}<button
-                  class="border-line hover:bg-wash flex w-full items-center gap-3 border-t px-5 py-3 text-start"
-                  disabled={!usable}
+                  }}>{w('waiting')} · {queueBusy || queueError ? '—' : waiting}</button
+                >{/snippet}
+              {#if queueError}<Notice tone="danger"
+                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
+                >{/if}
+              {#if queueBusy}<p class="px-5 py-3 text-muted text-[12px]" role="status">{w('queueLoading')}</p>{/if}
+              {#each tasks.filter((p) => queueKind(p, wallet!, now) !== 'history').slice(0, 5) as p (p.id)}
+                {@const summary = intentHeadline(p.intent, metadata)}
+                <button
+                  class="border-line flex w-full flex-wrap items-center gap-3 border-t px-5 py-3 text-start hover:bg-wash"
                   onclick={() => showProposal(p.id)}
-                  ><Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-[13px]">{w(p.intent.kind)}</span><Pill>{w(stateAt(p, now))}</Pill
-                  ></button
-                >{:else}<p class="text-faint px-5 py-4 text-[13px]">{proposalsLoading ? w('loading') : t('twNoProposals')}</p>{/each}
+                >
+                  <Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-[13px] break-all">{w(summary.kind)} · {summary.text}</span><Pill
+                    >{w(resultState(p, now))}</Pill
+                  >
+                </button>
+              {:else}{#if !queueBusy && !queueError}<p class="px-5 py-4 text-muted text-[13px]">{w('noPending')}</p>{/if}{/each}
             </Section>
-            <Section title={w('assets')} icon="coins" testid="wallet-assets-summary">
-              {#snippet actions()}<button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'assets')}>{w('details')}</button>{/snippet}
-              <div class="flex flex-wrap gap-2">
-                {#each wallet.addresses as address (address.id)}
-                  <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'assets')}><Icon name="wallet" />{address.label || address.chain}<span class="text-faint">{address.chain}</span>{#if !address.verified}<Pill tone="danger">{t('twUnverified')}</Pill>{/if}</button>
-                {/each}
-              </div>
-              <p class="mt-2 text-[12px] text-muted">{metadata.map(assetIdentity).join(' · ') || w('noAssets')}</p>
-              {#if assetError}<Notice tone="danger">{assetError}</Notice>{/if}
-            </Section>
+            <div class="flex flex-wrap items-center gap-3 text-[13px]">
+              <span data-testid="wallet-cycles">{w('runningHealth')}: {cyclesText(wallet.stats?.cycles ?? '0')} T</span>
+              <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'settings')}>{w('settings')}</button>
+              <span>{w('approvals')}: {wallet.policy.approver_threshold}</span>
+              <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'team')}>{w('teamReadiness')}</button>
+            </div>
           {:else if tab === 'proposals'}
-            <div class="flex flex-wrap items-center gap-2"
-              ><Select
-                bind:value={filter}
-                options={['all', 'waiting', 'executable'].map((f) => ({ value: f, label: w(f) }))}
-                label={w('proposals')}
-              /><input
-                class="min-w-0 flex-1"
-                bind:value={find}
-                inputmode="numeric"
-                placeholder={w('findProposal')}
-                aria-label={w('findProposal')}
-              /><button
-                class={buttonClass('secondary', 'sm')}
-                disabled={!usable || !/^\d+$/.test(find) || !Number.isSafeInteger(Number(find))}
-                onclick={() => showProposal(Number(find))}>{w('details')}</button
-              >{#if decider && !wallet.frozen}<button
-                  class={buttonClass('danger', 'sm')}
-                  disabled={!usable}
-                  onclick={() => (freezeOpen = true)}>{w('freeze')}</button
-                >{/if}</div
-            >
-            {#if proposalError}<Notice tone="danger">{proposalError}</Notice>{/if}
-            <Section title={w('proposals')} icon="approvals" flush testid="wallet-proposals">
-              {#each shown as p (p.id)}<div
-                  class="border-line flex flex-wrap items-start gap-3 border-t px-5 py-4"
-                  data-testid="wallet-proposal"
-                  ><Pill>#{p.id}</Pill><div class="min-w-0 flex-1"
-                    ><div class="mb-2 flex flex-wrap gap-2"
-                      ><Pill>{w(stateAt(p, now))}</Pill><span class="text-[12px]"
-                        >{approvalCount(p, wallet.members)} / {p.requirement.approvals} · {w(
-                          p.requirement.admin ? 'Admin' : 'Approver'
-                        )}</span
-                      >{#if actions(p, wallet, now).voted}<Pill>{w('voted')}</Pill>{/if}</div
-                    ><Intent intent={p.intent} {metadata} compact /><p class="text-faint mt-2 text-[11px]"
-                      >{when(p.created_at)} · {p.via_agent ?? p.proposer}</p
+            {#if historyOpen}<History {wallet} {metadata} {now} onOpen={showProposal} />{:else}
+              <div class="flex flex-wrap items-center gap-2"
+                ><Select
+                  bind:value={filter}
+                  options={['all', 'waiting', 'executable', 'cosigning', 'confirmation', 'delay', 'attention'].map((f) => ({
+                    value: f,
+                    label: w(f)
+                  }))}
+                  label={w('proposals')}
+                /><input
+                  class="min-w-0 flex-1"
+                  bind:value={find}
+                  inputmode="numeric"
+                  placeholder={w('findProposal')}
+                  aria-label={w('findProposal')}
+                /><button
+                  class={buttonClass('secondary', 'sm')}
+                  disabled={!usable || !/^\d+$/.test(find) || !Number.isSafeInteger(Number(find))}
+                  onclick={() => showProposal(Number(find))}>{w('details')}</button
+                ></div
+              >
+              {#if queueError}<Notice tone="danger"
+                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
+                >{/if}
+              <Section title={w('proposals')} icon="approvals" flush testid="wallet-proposals">
+                {#each shown as p (p.id)}<div
+                    class="border-line flex flex-wrap items-start gap-3 border-t px-5 py-4"
+                    data-testid="wallet-proposal"
+                    ><Pill>#{p.id}</Pill><div class="min-w-0 flex-1"
+                      ><div class="mb-2 flex flex-wrap gap-2"
+                        ><Pill>{w(resultState(p, now))}</Pill><span class="text-[12px]"
+                          >{approvalCount(p, wallet.members)} / {p.requirement.approvals} · {w(
+                            p.requirement.admin ? 'Admin' : 'Approver'
+                          )}</span
+                        >{#if actions(p, wallet, now).voted}<Pill>{w('voted')}</Pill>{/if}</div
+                      ><Intent intent={p.intent} {metadata} compact /><p class="text-faint mt-2 text-[11px]"
+                        >{when(p.created_at)} · {p.via_agent ?? p.proposer}</p
+                      ></div
+                    ><button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showProposal(p.id)}
+                      >{w('details')}</button
                     ></div
-                  ><button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showProposal(p.id)}
-                    >{w('details')}</button
-                  ></div
-                >{:else}<p class="text-faint px-5 py-4">{proposalsLoading ? w('loading') : t('twNoProposals')}</p>{/each}
-            </Section>
-            {#if next !== null}<button
-                class={buttonClass('secondary', 'sm', 'justify-self-center')}
-                disabled={!usable || proposalsLoading}
-                onclick={more}
-                data-testid="wallet-more">{w('more')}</button
-              >{/if}
+                  >{:else}<p class="text-faint px-5 py-4">{queueBusy ? w('queueLoading') : queueError ? w('attention') : w('noPending')}</p
+                  >{/each}
+              </Section>
+            {/if}
           {:else if tab === 'assets'}
-            <Section title={w('assets')} icon="coins" flush testid="wallet-addresses">
+            <Balances
+              {wallet}
+              {metadata}
+              {balances}
+              busy={balanceBusy}
+              error={balanceError}
+              onRefresh={readBalances}
+              onReceive={(address, chain_id) => run('wallet/receive', { address, chain_id })}
+              onSend={startTransfer}
+            />
+            <Section title={w('addressManagement')} icon="wallet" flush testid="wallet-addresses">
               {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable || balanceBusy} onclick={readBalances}
                   >{t('twBalances')}</button
                 >{#if mayPropose}<button
@@ -658,9 +803,9 @@
                   ><div class="flex flex-wrap items-center gap-2"
                     ><b class="text-[14px]">{a.label || a.chain}</b><Pill
                       >{a.chain === 'Icp' ? 'ICP' : a.chain === 'Evm' ? 'EVM' : a.chain}</Pill
-                    ><Pill tone={a.verified ? 'ok' : 'danger'}>{t(a.verified ? 'verified' : 'twUnverified')}</Pill>{#if a.cosign}<Pill
-                        >{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill
-                      >{/if}<span class="flex-1"></span><button
+                    ><Pill tone={a.verified ? 'ok' : 'danger'}>{a.verified ? w('addressVerified') : t('twUnverified')}</Pill
+                    >{#if a.cosign}<Pill>{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill>{/if}<span class="flex-1"
+                    ></span><button
                       class={buttonClass('ghost', 'xs')}
                       aria-label={`${t('copy')} ${a.label || a.chain}`}
                       onclick={() => copyText(a.text)}><Icon name="copy" /></button
@@ -668,18 +813,17 @@
                       class={buttonClass('secondary', 'xs')}
                       disabled={!usable || !a.verified}
                       onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
-                    >{#if mayPropose && a.chain === 'Solana' && !a.sol_nonce}<button class={buttonClass('secondary', 'xs')} disabled={!usable || wallet.frozen} onclick={() => showManage('sol_nonce', a)}>{w('init_sol_nonce')}</button>{/if}{#if mayPropose && a.control !== 'taproot_2of2'}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
-                        >{w('bindCosign')}</button
+                    >{#if mayPropose && a.chain === 'Solana' && !a.sol_nonce}<button
+                        class={buttonClass('secondary', 'xs')}
+                        disabled={!usable || wallet.frozen}
+                        onclick={() => showManage('sol_nonce', a)}>{w('init_sol_nonce')}</button
+                      >{/if}{#if mayPropose && a.control !== 'taproot_2of2'}<button
+                        class={buttonClass('ghost', 'xs')}
+                        disabled={!usable}
+                        onclick={() => showManage('cosign', a)}>{w('bindCosign')}</button
                       >{/if}</div
                   ><p class="font-mono text-[12px] break-all select-all" dir="ltr">{a.text}</p>
-                  {#each balances?.addresses.find((b: any) => b.address === a.id)?.balances ?? [] as b, i (i)}<div
-                      class="bg-surface-2 rounded-lg p-3 text-[12px]"
-                      ><p class="text-faint mb-1 break-all">{assetIdentity(b.metadata ?? b)}</p>{#if b.balance.Err}<p class="text-danger"
-                          >{b.balance.Err}</p
-                        >{:else}<b class="text-[16px] tabular-nums"
-                          >{amountText(String(b.balance.Ok ?? b.balance), b.metadata ?? b, w('atomic'))}</b
-                        >{/if}<p class="text-faint mt-1 text-[11px] break-all">{w('source')}: {b.source ?? '—'}</p></div
-                    >{/each}</div
+                  <p class="text-muted text-[12px]">{w('addressVerifyHint')}</p></div
                 >
               {/each}
             </Section>
@@ -702,11 +846,14 @@
                       onclick={() => showManage('book_remove', b)}>{w('remove')}</button
                     >{/if}</div
                 >{:else}<p class="text-faint px-5 py-4 text-[12px]">{w('none')}</p>{/each}
-              {#if bookNext}<button class={buttonClass('secondary', 'sm', 'm-4')} disabled={!usable || bookBusy} onclick={() => readBook(true)}
-                  >{w('more')}</button
+              {#if bookNext}<button
+                  class={buttonClass('secondary', 'sm', 'm-4')}
+                  disabled={!usable || bookBusy}
+                  onclick={() => readBook(true)}>{w('more')}</button
                 >{/if}
             </Section>
           {:else if tab === 'team'}
+            <Readiness {wallet} />
             <Section title={t('members')} icon="user" flush testid="wallet-members">
               {#snippet actions()}<button class={buttonClass('secondary', 'sm')} onclick={() => (access = true)}
                   >{t('agentAccessButton')}</button
@@ -717,9 +864,8 @@
               {#each wallet.members as m (m.id)}<div class="border-line flex flex-wrap items-start gap-3 border-t px-5 py-4"
                   ><div class="min-w-0 flex-1"
                     ><div class="flex flex-wrap items-center gap-2"
-                      ><b>{m.label}</b><Pill>{w(m.role)}</Pill><Pill>{m.kind === 'principal' ? 'Principal' : t('account')}</Pill><Pill
-                        tone={m.status === 'Active' ? 'ok' : 'warn'}>{w(m.status)}</Pill
-                      ></div
+                      ><b>{m.id === member?.id ? t('you') : m.label || m.id}</b><Pill>{w(m.role)}</Pill><Pill>{m.kind === 'principal' ? 'Principal' : t('account')}</Pill
+                      ><Pill tone={m.status === 'Active' ? 'ok' : 'warn'}>{w(m.status)}</Pill></div
                     ><Id id={m.id} full />{#if m.principals?.length}<p class="text-faint mt-2 font-mono text-[11px] break-all"
                         >{w('principals')}: {m.principals.join(', ')}</p
                       >{/if}{#if m.agent_ids?.length}<p class="mt-1 text-[12px] break-all">{w('agent_ids')}: {m.agent_ids.join(', ')}</p
@@ -731,8 +877,11 @@
                       class={buttonClass('secondary', 'xs')}
                       disabled={!usable}
                       onclick={() => showManage('member', m)}>{w('editMember')}</button
-                    ><button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('remove_member', m)}
-                      >{w('remove')}</button
+                    ><button
+                      class={buttonClass('ghost', 'xs')}
+                      disabled={!usable}
+                      aria-label={`${w('remove')} ${m.label || m.id}`}
+                      onclick={() => showManage('remove_member', m)}>{w('remove')}</button
                     >{/if}</div
                 >{/each}
             </Section>
@@ -741,7 +890,7 @@
                     class={buttonClass('secondary', 'sm')}
                     disabled={!usable || wallet?.frozen}
                     onclick={() => showManage('policy')}>{w('editPolicy')}</button
-                  >{/if}{/snippet}<Intent intent={{ kind: 'set_policy', policy: wallet.policy }} /></Section
+                  >{/if}{/snippet}<PolicySummary policy={wallet.policy} {metadata} /><PolicyUsage {wallet} {metadata} /></Section
             >
             <AgentAccess
               bind:open={access}
@@ -755,7 +904,7 @@
               ]}
             />
           {:else if tab === 'activity'}
-            <Section title={w('activity')} description={w('verifiedHint')} icon="approvals" flush>
+            <Section title={w('activity')} description={w('auditVerifyHint')} icon="approvals" flush>
               {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable || auditBusy} onclick={() => readAudit()}
                   >{t('twAudit')}</button
                 >{#if audit}<button class={buttonClass('secondary', 'sm')} onclick={() => bridge(() => window.dmsg.saveReport(audit))}
@@ -766,7 +915,17 @@
                 ><p class="text-faint px-5 pb-3 font-mono text-[11px] break-all">{audit.head}</p>{#each audit.recent as e (e.seq)}<div
                     class="border-line flex flex-wrap gap-3 border-t px-5 py-3 text-[12px]"
                     ><span>#{e.seq}</span><div class="min-w-0 flex-1"
-                      ><b>{e.kind}</b><p class="text-faint break-all">{e.actor} · {when(e.at)}</p></div
+                      ><b
+                        >{w(
+                          e.kind.startsWith('Decided')
+                            ? 'auditDecided'
+                            : e.kind.startsWith('Closed')
+                              ? 'auditClosed'
+                              : ['Created', 'Proposed', 'Approved', 'Settled'].includes(e.kind)
+                                ? `audit${e.kind}`
+                                : 'auditOther'
+                        )}</b
+                      ><p class="text-faint break-all">{e.actor} · {when(e.at)}</p></div
                     >{#if e.proposal != null}<button class={buttonClass('ghost', 'xs')} onclick={() => showProposal(e.proposal)}
                         >#{e.proposal}</button
                       >{/if}</div
@@ -820,13 +979,21 @@
                 data-testid="wallet-deposit"
                 ><div class="min-w-0 flex-1"
                   ><Id id={d.quote_id} /><p>{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</p><p class="text-faint text-[12px]"
-                    >{['surplus', 'creating', 'installing'].includes(d.state) ? w(`deposit_${d.state}`) : d.state === 'failed'
-                      ? t('twDepositFailed')
-                      : d.state === 'expired'
-                        ? t('twDepositExpired')
-                        : t('twDepositUnused', { time: when(d.expires_at) })}</p
+                    >{['surplus', 'creating', 'installing'].includes(d.state)
+                      ? w(`deposit_${d.state}`)
+                      : d.state === 'failed'
+                        ? t('twDepositFailed')
+                        : d.state === 'expired'
+                          ? t('twDepositExpired')
+                          : t('twDepositUnused', { time: when(d.expires_at) })}</p
                   >{#if d.reason}<p class="text-danger text-[12px] break-all">{d.reason}</p>{/if}</div
-                >{#if d.abortable}<button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => { if (window.confirm(w('abortActivationHint'))) void run('wallet/activation_abort', { quote: d.quote_id }) }}>{w('abortActivation')}</button>{/if}{#if d.refundable}<button
+                >{#if d.abortable}<button
+                    class={buttonClass('danger', 'sm')}
+                    disabled={busy}
+                    onclick={() => {
+                      if (window.confirm(w('abortActivationHint'))) void run('wallet/activation_abort', { quote: d.quote_id })
+                    }}>{w('abortActivation')}</button
+                  >{/if}{#if d.refundable}<button
                     class={buttonClass('primary', 'sm')}
                     disabled={busy}
                     onclick={() => run('wallet/refund', { quote: d.quote_id })}
@@ -853,12 +1020,35 @@
       >{/snippet}</Dialog
   >
   {#if wallet}
-    <Dialog bind:open={transferOpen} dismissible={!transferBusy} title={w('send')} description={t('twSendHint')} icon="send" wide testid="wallet-transfer-dialog">
+    <Dialog
+      bind:open={transferOpen}
+      dismissible={!transferBusy}
+      title={w('send')}
+      description={t('twSendHint')}
+      icon="send"
+      wide
+      testid="wallet-transfer-dialog"
+    >
       {#if transferOpen && mayPropose && !wallet.frozen}
-        {#key wallet.wallet}<Transfer {wallet} {metadata} {book} bind:busy={transferBusy} bind:draft={drafts[wallet.wallet]} onDone={(proposal) => { transferOpen = false; proposed(proposal) }} />{/key}
+        {#key wallet.wallet}<Transfer
+            {wallet}
+            {metadata}
+            {book}
+            {balances}
+            onPrepareNonce={(target) => {
+              transferOpen = false
+              showManage('sol_nonce', target)
+            }}
+            bind:busy={transferBusy}
+            bind:draft={drafts[wallet.wallet]}
+            onDone={(proposal) => {
+              transferOpen = false
+              proposed(proposal)
+            }}
+          />{/key}
       {/if}
     </Dialog>
-    <Dialog bind:open={freezeOpen} title={w('freeze')} description={w('freezeHint')} icon="lock" tone="danger"
+    <Dialog bind:open={freezeOpen} title={w('freeze')} description={w('freezeBoundary')} icon="lock" tone="danger"
       >{#snippet footer()}<button class={buttonClass('ghost')} onclick={() => (freezeOpen = false)}>{t('cancel')}</button><button
           class={buttonClass('danger')}
           disabled={!usable}
@@ -872,7 +1062,10 @@
           kind={manage.kind}
           target={manage.target}
           onDone={proposed}
-          onSetup={() => { manageOpen = false; tab = 'settings' }}
+          onSetup={() => {
+            manageOpen = false
+            tab = 'settings'
+          }}
         />{/key}{/if}
     {#if detailId !== null && detailOpen}{#key `${wallet.wallet}:${detailId}`}<ProposalDetail
           bind:open={detailOpen}
@@ -895,9 +1088,19 @@
           ><img src={receive.qr} alt={`${w('receive')} ${receive.text}`} class="size-48" /><p
             class="font-mono text-[12px] break-all"
             dir="ltr">{receive.text}</p
-          ><p class="text-[12px]">{receive.chain} {receive.network}</p><button
-            class={buttonClass('primary', 'sm')}
-            onclick={() => copyText(receive.text)}>{t('copy')}</button
+          >{#if receive.chain === 'Evm'}<Field label={w('network')}
+              ><Select
+                bind:value={receiveNetwork}
+                label={w('network')}
+                testid="wallet-receive-network"
+                options={(receive.networks ?? wallet.policy.evm_chains).map((chain_id: number) => ({
+                  value: String(chain_id),
+                  label: networkName({ asset: 'ETH', chain_id })
+                }))}
+              /></Field
+            ><p class="text-muted text-[13px]">{w('networkHint')}</p>{:else}<p class="text-[13px]"
+              >{receive.chain === 'Icp' ? 'Internet Computer' : receive.chain} {receive.network}</p
+            >{/if}<button class={buttonClass('primary', 'sm')} onclick={() => copyText(receive.text)}>{t('copy')}</button
           >{#if receive.owner}<dl class="grid w-full gap-2 text-[12px] break-all"
               ><dt>Owner</dt><dd class="font-mono">{receive.owner}</dd><dt>Subaccount</dt><dd class="font-mono">{receive.subaccount}</dd><dt
                 >AccountIdentifier</dt

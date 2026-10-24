@@ -1140,6 +1140,25 @@ pub async fn proposal<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Json
     .await?;
     let mut out = proposal_view(&p);
     out["plan_details"] = Json::Array(plans);
+    if let Intent::Transfer { from, asset, .. } | Intent::Batch { from, asset, .. } = &p.intent {
+        let ledger = match asset {
+            AssetKey::Icrc(ledger) => Some(*ledger),
+            AssetKey::Icp => {
+                let hub = h.with(|c| c.wallet_hub()).await?;
+                let config: HubInit = h
+                    .anonymous()
+                    .await?
+                    .query(hub, "get_hub_config", ())
+                    .await?;
+                Some(config.icp_ledger)
+            }
+            _ => None,
+        };
+        if let Some(ledger) = ledger {
+            out["ledger"] = json!(ledger.to_text());
+            out["source_account"] = json!(icp_account(wallet, *from).to_string());
+        }
+    }
     Ok(out)
 }
 

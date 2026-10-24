@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 /** Populated wallet fixture for the real Electron renderer, not a substitute for chain tests. */
 export function walletFixture(account, created) {
   const a = 'rrkah-fqaaa-aaaaa-aaaaq-cai',
@@ -29,10 +30,11 @@ export function walletFixture(account, created) {
   const view = (id) => ({
     wallet: id,
     name: id === a ? 'Engineering' : 'Operations',
-    audit_head: 'aa'.repeat(32),
+    audit_head: createHash('sha256').update(JSON.stringify({state,policy,proposals})).digest('hex'),
     me: { id: account, role: state.role, status: 'Active' },
     members: [
-      { id: account, role: state.role, status: 'Active', label: 'You', agent_ids: [], principals: ['xkbqi-2qaaa-aaaah-qbpqq-cai'] }
+      { id: account, role: state.role, status: 'Active', label: 'You', agent_ids: [], principals: ['xkbqi-2qaaa-aaaah-qbpqq-cai'] },
+      { id: '0123456789abcdefghi0', role: 'Admin', status: 'Active', label: 'Other admin', agent_ids:[], principals:[] }
     ],
     policy: id === b ? { ...policy, spendable_assets: [token] } : policy,
     addresses: [
@@ -81,7 +83,14 @@ export function walletFixture(account, created) {
   const proposals = Array.from({ length: 55 }, (_, i) => proposal(55 - i))
   proposals[0].intent = { kind: 'set_policy', policy: { ...policy, approver_threshold: 1, public: true } }
   proposals[0].requirement.admin = true
+  const localNotes = {}
   const methods = {
+    'wallet/queue': () => ({proposals:proposals.filter((p) => !['Settled','Failed','Rejected','Vetoed','Cancelled','Expired','Stale'].includes(p.status) || p.outcome?.kind === 'call_unknown' || p.status === 'Failed' && p.outcome?.blocks?.length),complete:true,read_at:Date.now()}),
+    'wallet/history': () => ({proposals,complete:true,read_at:Date.now()}),
+    'wallet/notes': (p) => { const notes=localNotes[p.wallet] ??= {}; if(typeof p.note === 'string') notes[p.proposal]=p.note; return notes },
+    'wallet/policy_usage': () => ({assets:[{asset:policy.spendable_assets[0],reserved:'100000000',executed:'200000000'}],read_at:Date.now()}),
+    'wallet/cosigner_test': (p) => ({label:p.label,verified:true,read_at:Date.now()}),
+    'wallet/receive': (p) => ({text:view(p.wallet).addresses.find((a)=>a.id===p.address).text,chain:view(p.wallet).addresses.find((a)=>a.id===p.address).chain,network:'',networks:[1,8453],qr:''}),
     'wallet/create': (p) => {
       state.activation = 'unpaid'
       state.creation = created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
@@ -156,6 +165,7 @@ export function walletFixture(account, created) {
       fee_decimals: p.wallet === b ? 6 : 8,
       additional_reserve: '0',
       native_balance: '12345678900',
+      asset_balance: '12345678900', native_asset:true,total_amount:p.draft.outputs.reduce((n,o)=>n+BigInt(o.amount),0n).toString(),
       requirement: { approvals: 2, delay_ms: 0 },
       blockers: [],
       read_at: Date.now()
@@ -193,8 +203,8 @@ export function walletFixture(account, created) {
       recent: [{ seq: 0, at: Date.now(), actor: account, kind: 'Created', proposal: null }]
     }),
     'wallet/versions': () => ({
-      record: { version: 1, locked: false },
-      versions: [{ version: 1, module_hash: 'ee'.repeat(32), notes: 'Initial', retired: false }]
+      record: { version: 2, locked: false },
+      versions: [{ version: 1, module_hash: 'ee'.repeat(32), notes: 'Initial test version', retired: false },{version:2,module_hash:'ef'.repeat(32),notes:'Current test version',retired:false}]
     }),
     'wallet/channel': () => ({ channel: '' }),
     'wallet/rpc': () => ({

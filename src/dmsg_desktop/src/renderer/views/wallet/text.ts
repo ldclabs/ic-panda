@@ -1,4 +1,5 @@
 import { locale } from '../../i18n/index.svelte'
+import { experienceRows } from './copy'
 
 /** Wallet vocabulary kept together so forms and approval tickets use identical names. */
 const rows = `
@@ -81,7 +82,7 @@ findProposal|Find proposal ID|查找提案编号|Номер предложени
 details|Details|详情|Подробности|التفاصيل|Détails|Detalles
 review|Review proposal|核对提案|Проверить|مراجعة المقترح|Vérifier|Revisar
 submit|Submit proposal|提交提案|Предложить|إرسال المقترح|Proposer|Proponer
-send|Transfer|转账|Перевод|تحويل|Transfert|Transferencia
+send|Propose payment|发起付款|Предложить платёж|اقتراح دفع|Proposer un paiement|Proponer pago
 receive|Receive|收款|Получить|استلام|Recevoir|Recibir
 source|Data source|数据来源|Источник|مصدر البيانات|Source|Fuente
 readAt|Read at|读取时间|Прочитано|وقت القراءة|Lu le|Lectura
@@ -220,7 +221,7 @@ accept_upgrade|Accept code version|接受代码版本|Принять верси�
 lock_code|Lock code permanently|永久锁定代码|Блокировка кода|قفل دائم للشيفرة|Verrouiller définitivement|Bloquear código permanentemente
 cancel_evm_nonce|Cancel pending EVM transaction|取消待确认 EVM 交易|Отменить EVM-транзакцию|إلغاء معاملة EVM معلقة|Annuler la transaction EVM|Cancelar transacción EVM
 release_evm_nonce|Release EVM nonce|释放 EVM nonce|Освободить nonce|تحرير nonce|Libérer le nonce|Liberar nonce
-init_sol_nonce|Initialize durable nonce|初始化持久 nonce|Создать durable nonce|تهيئة nonce دائم|Initialiser le nonce durable|Inicializar nonce duradero
+init_sol_nonce|Prepare Solana replacement|准备 Solana 交易替换|Подготовить замену Solana|تهيئة استبدال Solana|Préparer le remplacement Solana|Preparar reemplazo Solana
 from|Source address|来源地址|Исходный адрес|عنوان المصدر|Adresse source|Dirección de origen
 to|Recipient|收款地址|Получатель|المستلم|Destinataire|Destinatario
 asset|Asset|资产|Актив|الأصل|Actif|Activo
@@ -230,25 +231,25 @@ member|Member|成员|Участник|العضو|Membre|Miembro
 address|Address ID|地址编号|Номер адреса|رقم العنوان|N° d’adresse|ID de dirección
 cosign|Cosigning|协签|Совместная подпись|توقيع مشترك|Cosignature|Cofirma
 public_key|Public key|公钥|Публичный ключ|المفتاح العام|Clé publique|Clave pública
-hardware|Hardware key|硬件密钥|Аппаратный ключ|مفتاح عتادي|Clé matérielle|Clave física
+hardware|Declared hardware key|登记为硬件密钥|Заявлен аппаратным|مسجل كمفتاح عتادي|Clé déclarée matérielle|Clave declarada física
 version|Version|版本|Версия|الإصدار|Version|Versión
 module_hash|Module SHA-256|模块 SHA-256|SHA-256 модуля|SHA-256 للوحدة|SHA-256 du module|SHA-256 del módulo
 approver_threshold|Spending approvals|支出批准数|Подписи расходов|موافقات الإنفاق|Approbations des dépenses|Aprobaciones de gastos
 admin_threshold|Admin approvals|管理批准数|Подписи админов|موافقات المسؤولين|Approbations des administrateurs|Aprobaciones administrativas
 tiers|Spending tiers|支出分档|Уровни расходов|شرائح الإنفاق|Paliers de dépenses|Tramos de gasto
-up_to|Upper amount (atomic)|金额上限（最小单位）|Верхняя сумма|الحد الأعلى|Montant maximal|Importe máximo
+up_to|Cumulative amount up to|累计金额不超过|Накопленная сумма до|المبلغ التراكمي حتى|Montant cumulé maximal|Importe acumulado hasta
 approvals|Required approvals|所需批准数|Нужно одобрений|الموافقات المطلوبة|Approbations requises|Aprobaciones requeridas
-delay_ms|Delay (ms)|延时（毫秒）|Задержка (мс)|تأخير (مللي ثانية)|Délai (ms)|Espera (ms)
+delay_ms|Delay|延时|Задержка|التأخير|Délai|Espera
 book_only|Address book only|仅限地址簿|Только адресная книга|دفتر العناوين فقط|Carnet uniquement|Solo libreta
-address_book_cooldown_ms|Address cooldown (ms)|地址簿冷却（毫秒）|Задержка адреса (мс)|انتظار العنوان|Délai des adresses (ms)|Espera de direcciones (ms)
-daily_limits|24-hour limits|24 小时限额|Суточные лимиты|حدود 24 ساعة|Limites sur 24 h|Límites de 24 h
+address_book_cooldown_ms|Recipient cooldown|收款方冷却期|Ожидание получателя|انتظار المستلم|Délai des destinataires|Espera de destinatarios
+daily_limits|All-approver thresholds|全员批准门槛|Пороги всех согласующих|حدود موافقة الجميع|Seuils de tous les approbateurs|Umbrales de todos los aprobadores
 spendable_assets|Spendable assets|可支出资产|Разрешённые активы|الأصول المسموحة|Actifs autorisés|Activos permitidos
 call_targets|Allowed canisters|允许调用的 canister|Разрешённые канистры|الحاويات المسموحة|Canisters autorisés|Canisters permitidos
 evm_chains|EVM chain IDs|EVM 链 ID|ID сетей EVM|معرّفات سلاسل EVM|ID des chaînes EVM|ID de redes EVM
-proposal_ttl_ms|Proposal lifetime (ms)|提案有效期（毫秒）|Срок предложения (мс)|مدة المقترح|Durée du vote (ms)|Vigencia de propuesta (ms)
-unfreeze_delay_ms|Unfreeze delay (ms)|解冻延时（毫秒）|Задержка разморозки|انتظار إلغاء التجميد|Délai de dégel (ms)|Espera de descongelación (ms)
+proposal_ttl_ms|Proposal lifetime|提案有效期|Срок предложения|مدة المقترح|Durée de la proposition|Vigencia de propuesta
+unfreeze_delay_ms|Unfreeze delay|解冻延时|Задержка разморозки|تأخير الإلغاء|Délai de dégel|Espera de descongelación
 daily_signatures|Daily signature budget|每日签名预算|Подписей в день|ميزانية التوقيعات اليومية|Signatures par jour|Firmas diarias
-hardware_cosigners|Require hardware cosigners|协签必须使用硬件|Только аппаратные подписи|موقّعون عتاديون فقط|Cosignataires matériels requis|Exigir cofirmantes físicos
+hardware_cosigners|Require declared hardware cosigners|仅接受登记为硬件的协签人|Только заявленные аппаратные ключи|موقّعون مسجلون كعتاديين فقط|Cosignataires déclarés matériels requis|Exigir cofirmantes declarados físicos
 public|Publicly readable|允许公开读取|Публичное чтение|قراءة عامة|Lecture publique|Lectura pública
 min_cycles|Low-water mark (cycles)|低水位（cycles）|Минимум cycles|حد Cycles الأدنى|Seuil de cycles|Umbral de cycles
 icp_e8s|ICP amount (e8s)|ICP 金额（e8s）|ICP (e8s)|مبلغ ICP (e8s)|Montant ICP (e8s)|Importe ICP (e8s)
@@ -257,7 +258,7 @@ chain_id|Chain ID|链 ID|ID сети|معرّف السلسلة|ID de chaîne|ID 
 consent|Canister consent text|Canister 同意文本|Текст согласия|نص الموافقة|Texte de consentement|Texto de consentimiento
 `
 const vocabulary = Object.fromEntries(
-  rows
+  (rows + experienceRows)
     .trim()
     .split('\n')
     .map((row) => {

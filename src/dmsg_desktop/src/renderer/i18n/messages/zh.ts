@@ -1224,7 +1224,7 @@ export default {
     withdrawHint: '它的 MCP 客户端从下一次调用起停止工作；签发新凭证即可重新连接。',
     withdrawTitle: '撤回 {label} 的凭证？',
     twNav: "团队钱包",
-    twDetail: "团队在 ICP、比特币、EVM 与 Solana 上的资金，只按已批准的提案动用",
+    twDetail: '团队共同管理 ICP、比特币、EVM 与 Solana 资金，按钱包策略执行',
     twNone: "还没有团队钱包",
     twWallet: "钱包",
     twPolicy: "策略",

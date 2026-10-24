@@ -1,9 +1,12 @@
 <script lang="ts">
+  import AmountField from './AmountField.svelte'
+  import DurationField from './DurationField.svelte'
+  import Notice from '../../components/page/Notice.svelte'
   import Field from '../../components/page/Field.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Select from '../../components/Select.svelte'
   import { buttonClass } from '../../components/ui'
-  import { assetIdentity, assetKey, type Asset } from './model'
+  import { assetIdentity, assetKey, assetFromKey, decimal, type Asset } from './model'
   import { w } from './text'
   let { value = $bindable(), metadata }: { value: any; metadata: Asset[] } = $props()
   let type = $state('ICP'),
@@ -41,7 +44,7 @@
       <Field label={w(field)}><input type="number" min="1" bind:value={value[field]} /></Field>
     {/each}
     {#each ['address_book_cooldown_ms', 'proposal_ttl_ms', 'unfreeze_delay_ms'] as field}
-      <Field label={w(field)}><input type="number" min="0" step="1000" bind:value={value[field]} /></Field>
+      <DurationField label={w(field)} bind:value={value[field]} />
     {/each}
   </div>
   <div class="flex flex-wrap gap-4"
@@ -54,6 +57,7 @@
     {#each options as a (a.value)}<div class="flex items-center gap-2 text-[12px]"
         ><span class="min-w-0 flex-1 break-all">{a.label}</span><button
           class={buttonClass('ghost', 'xs')}
+          aria-label={`${w('remove')} ${a.label}`}
           onclick={() => (value.spendable_assets = value.spendable_assets.filter((k: string) => k !== a.value))}>{w('remove')}</button
         ></div
       >{/each}
@@ -71,7 +75,8 @@
       <button
         class={buttonClass('secondary', 'sm')}
         disabled={['ICRC', 'ERC20', 'SPL'].includes(type) && !contract.trim()}
-        onclick={addAsset} aria-label={w('addAsset')}>+ {w('asset')}</button
+        onclick={addAsset}
+        aria-label={w('addAsset')}>+ {w('asset')}</button
       >
     </div>
   </section>
@@ -99,12 +104,13 @@
     {#each value.tiers as row, i (i)}
       <div class="border-line grid gap-2 rounded-xl border p-3 sm:grid-cols-2">
         <Field label={w('asset')}><Select bind:value={row.asset} {options} /></Field>
-        <Field label={w('up_to')}><input bind:value={row.up_to} inputmode="numeric" dir="ltr" /></Field>
+        <AmountField label={w('up_to')} bind:value={row.up_to} asset={assetFromKey(row.asset, metadata)} />
         <Field label={w('approvals')}><input type="number" min="1" bind:value={row.approvals} /></Field>
-        <Field label={w('delay_ms')}><input type="number" min="0" bind:value={row.delay_ms} /></Field>
+        <DurationField label={w('delay_ms')} bind:value={row.delay_ms} />
         <Checkbox bind:checked={row.book_only}>{w('book_only')}</Checkbox>
         <button
           class={buttonClass('ghost', 'xs', 'justify-self-end')}
+          aria-label={`${w('remove')} ${w('tiers')} ${i + 1}`}
           onclick={() => (value.tiers = value.tiers.filter((_: any, n: number) => n !== i))}>{w('remove')}</button
         >
       </div>
@@ -121,12 +127,14 @@
   </section>
   <section class="grid gap-2">
     <h4 class="text-[13px] font-semibold">{w('daily_limits')}</h4>
+    <p class="text-[12px] text-muted">{w('policyLimitsHint')}</p>
     {#each value.daily_limits as row, i (i)}
       <div class="flex flex-wrap items-end gap-2">
         <Field label={w('asset')}><Select bind:value={row.asset} {options} /></Field>
-        <Field label={`${w('amount')} (${w('atomic')})`}><input bind:value={row.amount} inputmode="numeric" dir="ltr" /></Field>
+        <AmountField label={w('amount')} bind:value={row.amount} asset={assetFromKey(row.asset, metadata)} />
         <button
           class={buttonClass('ghost', 'xs')}
+          aria-label={`${w('remove')} ${w('daily_limits')} ${i + 1}`}
           onclick={() => (value.daily_limits = value.daily_limits.filter((_: any, n: number) => n !== i))}>{w('remove')}</button
         >
       </div>
@@ -143,16 +151,20 @@
       onCheckedChange={(on) => (value.refuel = on ? { from: 0, min_cycles: '1000000000000', icp_e8s: '100000000', max_per_day: 1 } : null)}
       >{w('autoRefuel')}</Checkbox
     >
-    {#if value.refuel}<div class="grid gap-3 sm:grid-cols-2"
-        >{#each ['from', 'min_cycles', 'icp_e8s', 'max_per_day'] as field}<Field label={w(field)}
-            ><input
-              type={['from', 'max_per_day'].includes(field) ? 'number' : 'text'}
-              min="0"
-              bind:value={value.refuel[field]}
-              inputmode="numeric"
-              dir="ltr"
-            /></Field
-          >{/each}</div
-      >{/if}
+    {#if value.refuel}<div class="grid gap-3 sm:grid-cols-2">
+        <Field label={w('from')}><input type="number" min="0" bind:value={value.refuel.from} /></Field>
+        <AmountField label={w('min_cycles')} bind:value={value.refuel.min_cycles} asset={{ asset: 'T cycles', decimals: 12 }} />
+        <AmountField label={w('amount')} bind:value={value.refuel.icp_e8s} asset={{ asset: 'ICP', decimals: 8 }} />
+        <Field label={w('max_per_day')}><input type="number" min="1" max="24" bind:value={value.refuel.max_per_day} /></Field>
+      </div>
+      {#if /^\d+$/.test(value.refuel.icp_e8s) && Number.isSafeInteger(value.refuel.max_per_day)}
+        <p class="text-[12px]"
+          >{w('dailyTopupMax')}: {decimal(
+            Number(value.refuel.max_per_day) > 0 ? (BigInt(value.refuel.icp_e8s) * BigInt(value.refuel.max_per_day)).toString() : '0',
+            8
+          )} ICP</p
+        >
+      {/if}
+      <Notice>{w('topupRuleHint')}</Notice>{/if}
   </section>
 </div>

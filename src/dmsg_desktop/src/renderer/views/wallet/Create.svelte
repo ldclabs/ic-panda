@@ -1,6 +1,8 @@
 <script lang="ts">
   import { walletError as errorText } from './errors'
   import { onMount } from 'svelte'
+  import MemberLookup from './MemberLookup.svelte'
+  import Readiness from './Readiness.svelte'
   import Avatar from '../../components/Avatar.svelte'
   import Icon from '../../components/Icon.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -270,18 +272,9 @@
                 class="border-line grid gap-2 border-b p-2.5 last:border-0 @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem] @min-[560px]:items-start"
                 data-testid="wallet-member"
               >
-                <input
-                  bind:value={row.id}
-                  class="min-w-0 font-mono text-[12.5px] placeholder:font-sans"
-                  placeholder={t('twMemberId')}
-                  spellcheck="false"
-                  autocomplete="off"
-                  aria-label={t('twMemberId')}
-                  aria-invalid={problem ? 'true' : undefined}
-                  onblur={() => (row.touched = true)}
-                  data-testid="wallet-member-id"
-                />
+                <MemberLookup bind:id={row.id} bind:label={row.label} testid="wallet-member-id" />
                 <Select bind:value={row.role} options={roleOptions} label={t('role')} testid="wallet-member-role" class="w-full" />
+                <p class="text-muted text-[12px] @min-[560px]:col-span-4">{w(`role${row.role[0].toUpperCase()+row.role.slice(1)}Hint`)}</p>
                 <input
                   bind:value={row.label}
                   class="min-w-0"
@@ -307,6 +300,7 @@
           <p class="text-faint text-[11.5px] leading-normal">{t('twMembersHint')}</p>
         </div>
 
+        <Readiness wallet={{wallet:'',name,frozen:false,addresses:[],cosigners:[],policy:{approver_threshold:approvals,admin_threshold:adminApprovals},members:[{id:creator,role:'Admin',status:'Active',agent_ids:[]},...drafts.filter((d) => d.id.trim()).map((d) => ({id:d.id,role:d.role[0].toUpperCase()+d.role.slice(1),status:'Invited',agent_ids:[]}))]}} />
         <div class="@container grid gap-2">
           <span class="text-faint text-[12px]">{t('twPolicySection')}</span>
           <div class="grid gap-2 @min-[560px]:grid-cols-2">

@@ -4,6 +4,8 @@
 
 产品范围见 [产品方案](dMsg_wallet_product_2026-10-16_zh.md)，精确接口见 [公开合同](protocol/wallet_zh.md)、[钱包 Candid](../src/dmsg_wallet/dmsg_wallet.did)、[hub Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did)。私有设计按 [AGENTS.md](../AGENTS.md) 核对：本地 `dmsg-cloud` 为 `801940d4`（2026-10-23），工作区干净，未核对远端；本文只描述公开实现，不复制私有正文。
 
+2026-10-24 的产品流程修订另见 [桌面实现与验收](dmsg_wallet_desktop_zh.md)：新增预算用量 query，队列/历史、记账备注与本机密钥测试由客户端/daemon 承载。此前验证记录仍注明其对应源码基线，不代表新改动已部署。
+
 ## 1. 组件与代码入口
 
 | 组件 | 当前职责 / 入口 |
@@ -334,7 +336,7 @@ hub memory 0–11 依次为配置、报价、订单、收入 payout、钱包记�
 
 CLI 对应能力位于 `dmsg wallet`，付款身份在 `dmsg payer`；CLI 保留通用 `wallet propose` 输入，但链上权限仍完整检查。创建/加入/决定/本机协签转为审批中心任务，`approval/respond` 只接受人工响应。
 
-桌面按概览、提案、资产与地址、成员与策略、审计、运行管理组织。统一 `WALLET_CREATION_PAUSED = true` 同时阻止 UI 和主进程的报价/预览/创建入口；已有钱包和历史激活仍可用，CLI/daemon/hub 不受此桌面开关限制。
+桌面按概览、资产与地址、交易与提案、团队与安全组织，历史/审计及运行管理作为对应任务的次级入口。统一 `WALLET_CREATION_PAUSED = true` 同时阻止 UI 和主进程的报价/预览/创建入口；已有钱包和历史激活仍可用，CLI/daemon/hub 不受此桌面开关限制。
 
 资产金额及大区块编号跨 UI 使用字符串，余额附来源与时间。RPC 仅接受 HTTPS，Local 额外接受回环 HTTP，拒绝 URL 用户名/密码；EVM 诊断核对 chain ID。原生币及 ERC-20 的预览与执行共享最终调用参数估 gas。
 

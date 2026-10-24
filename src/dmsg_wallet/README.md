@@ -8,7 +8,7 @@ dMsg 团队钱包：每个团队一个 canister，由 [dmsg_wallet_hub](../dmsg_
 
 | 类别 | 方法 | 调用者 |
 | --- | --- | --- |
-| 读取 | `preview_intent`（只读预检）、`get_wallet`、`get_wallet_certified`、`get_proposal`、`get_proposal_certified`、`list_proposals`、`get_plan`、`address_book`、`audit`、`member_ids` | 已绑定的成员 Principal、hub、controller；`policy.public` 时任何人 |
+| 读取 | `preview_intent`（只读预检）、`policy_usage`（有效预留与 24 小时执行金额）、`get_wallet`、`get_wallet_certified`、`get_proposal`、`get_proposal_certified`、`list_proposals`、`get_plan`、`address_book`、`audit`、`member_ids` | 已绑定的成员 Principal、hub、controller；`policy.public` 时任何人 |
 | 运行 | `wallet_stats`、`accepted_upgrade` | 任何人 |
 | 代码执行领取 | `claim_code`、`release_code` | 仅 hub |
 | 引导 | `bootstrap`（读取三个链密钥根并建默认地址 1–3；安装与升级后由定时器执行，失败每分钟重试） | 任何人 |

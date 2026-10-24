@@ -2,6 +2,8 @@
 
 初版：2026-10-16；修订：2026-10-24。本文按公开仓库 `b8b8b799` 的实现整理，合并此前的实施与安全修订，描述当前产品行为；后续能力单独列出。文件名保留初版日期，现归入 `docs/`。源码实现不等于生产部署或桌面发布。
 
+当前桌面流程另纳入 2026-10-24 的 UX01–UX20 修订，详见 [桌面实现与验收](dmsg_wallet_desktop_zh.md)。
+
 配套文档：[技术方案](dMsg_wallet_implementation_2026-10-16_zh.md)、[公开合同](protocol/wallet_zh.md)、[桌面实现与验收](dmsg_wallet_desktop_zh.md)。
 
 ## 0. 基线与范围
@@ -35,7 +37,7 @@
 | EVM | EIP-1559 原生币和 ERC-20 转账、同 nonce 替换、取消与释放待处理 nonce | 不支持通用 EVM calldata、EVM 批量或 Safe 双控 |
 | Solana | SOL、SPL、可选 ATA 创建、批量、显式初始化持久 nonce | 默认地址没有持久 nonce；普通已签交易只能重广播原字节 |
 | 设备协签 | canister 的 Raw/FIDO2/WebAuthn 验签；客户端的 macOS Secure Enclave 与软件 P-256；同计划多设备收集 | TPM、CTAP2、桥接页 WebAuthn 和链硬件钱包适配尚未实现 |
-| 桌面与协作 | 六分区工作台、独立审批、认证读取、收款核对、审计页、加密频道提示、RPC 配置 | 频道只通知与导航；公开透明页和链上 `attest_*` 尚未实现 |
+| 桌面与协作 | 四主区工作台、独立审批、认证读取、收款核对、审计页、加密频道提示、RPC 配置 | 频道只通知与导航；公开透明页和链上 `attest_*` 尚未实现 |
 
 ## 3. 产品原则
 
@@ -133,7 +135,7 @@
 
 ## 7. 桌面、智能体与通知
 
-桌面分为概览、提案、资产与地址、成员与策略、审计、运行管理。支持分页、按编号定位、精确金额、收款二维码、协签包交换、周期刷新、资源状态与 RPC 诊断。切换账户或钱包后丢弃旧请求结果；网络与硬件等待不占住 daemon 的全局客户端锁。
+桌面分为概览、资产与地址、交易与提案、团队与安全四个主区；历史和审计从交易区进入，运行管理从团队与安全进入。支持分页、按编号定位、精确金额、收款二维码、协签包交换、周期刷新、资源状态与 RPC 诊断。切换账户或钱包后丢弃旧请求结果；网络与硬件等待不占住 daemon 的全局客户端锁。
 
 MCP 工具为 `dmsg_wallet_list`、`dmsg_wallet_balances`、`dmsg_wallet_propose_transfer`、`dmsg_wallet_proposal_status`、`dmsg_wallet_execute`、`dmsg_wallet_report_broadcast`。能力分别由 `wallet.read`、`wallet.propose:<wallet>`、`wallet.execute:<wallet>` 控制；代提案还要求成员登记该 Agent ID。没有批准工具，协签需要人工时转入审批中心。
 

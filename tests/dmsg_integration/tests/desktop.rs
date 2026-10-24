@@ -5056,6 +5056,58 @@ fn desktop_wallet() {
     // Chain reads fail on the closed port without failing the whole call.
     assert!(balances["addresses"][1]["balances"][0]["balance"]["Err"].is_string());
 
+    // Complete navigation data and local bookkeeping do not require another
+    // approval or leak this account's notes to the other wallet member.
+    let history = a
+        .rpc(&http, "wallet/history", json!({"wallet":wallet}))
+        .unwrap();
+    assert_eq!(history["complete"], true);
+    assert!(
+        history["proposals"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["id"] == proposed["id"])
+    );
+    let queue = a
+        .rpc(&http, "wallet/queue", json!({"wallet":wallet}))
+        .unwrap();
+    assert!(
+        !queue["proposals"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["id"] == proposed["id"])
+    );
+    let usage = a
+        .rpc(&http, "wallet/policy_usage", json!({"wallet":wallet}))
+        .unwrap();
+    assert!(
+        usage["assets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|u| u["executed"] == "100000000" && u["reserved"] == "0")
+    );
+    a.rpc(
+        &http,
+        "wallet/notes",
+        json!({"wallet":wallet,"proposal":proposed["id"],"note":"Invoice 42"}),
+    )
+    .unwrap();
+    assert_eq!(
+        a.rpc(&http, "wallet/notes", json!({"wallet":wallet}))
+            .unwrap()[&id],
+        "Invoice 42"
+    );
+    assert!(
+        b.rpc(&http, "wallet/notes", json!({"wallet":wallet}))
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .is_empty()
+    );
+
     // Both devices verify the whole audit chain against the wallet's head.
     for desktop in [a, b] {
         let audit = desktop.run(&["wallet", "audit", &wallet]);
