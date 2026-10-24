@@ -1159,7 +1159,7 @@ impl Daemon {
                     ..Changes::default()
                 };
                 let kind = input["type"].as_str().unwrap_or("note");
-                let mut item = match id {
+                let old = match id {
                     Some(id) => {
                         let entry = client.vault_show(id)?;
                         ensure(!entry.deleted, Error::NotFound)?;
@@ -1171,13 +1171,22 @@ impl Daemon {
                         };
                         ensure(!entry.item.reserved(), Error::Forbidden)?;
                         tagged(&client, did, "vault.write", &entry.item)?;
-                        entry.item
+                        Some(entry.item)
                     }
-                    None => Item::new(kind, "", dmsg_client::now_ms()),
+                    None => None,
                 };
+                let mut item = old
+                    .clone()
+                    .unwrap_or_else(|| Item::new(kind, "", dmsg_client::now_ms()));
                 changes.apply(&mut item);
                 item.normalize();
                 ensure(!item.reserved(), Error::Forbidden)?;
+                // An agent may replace or remove a hidden value, never show
+                // it by changing the field's type.
+                ensure(
+                    old.is_none_or(|old| item.keeps_hidden(&old)),
+                    Error::Forbidden,
+                )?;
                 tagged(&client, did, "vault.write", &item)?;
                 let entry = match id {
                     Some(id) => client.vault_edit(id, input["base"].as_str(), &changes)?,
@@ -1551,6 +1560,104 @@ mod tests {
             waiting.await,
             Err(Error::Unavailable("the account changed".into()))
         );
+    }
+
+    #[tokio::test]
+    async fn agent_vault_write_never_shows_a_hidden_value() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.0.join("home"),
+        };
+        let mut client = dmsg_client::testing::unlocked(
+            &dir.0.join("workspace"),
+            false,
+            Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
+        );
+        let agent = client.agent_create("vault-test").unwrap();
+        client
+            .capability_grant(
+                "cli",
+                &agent.agent_id,
+                vec!["vault.read:work".into(), "vault.write:work".into()],
+                None,
+            )
+            .unwrap();
+        let changes: Changes = serde_json::from_value(json!({
+            "title": "CI token",
+            "tags": ["work"],
+            "set": [
+                {"id": "password", "value": "s3cret"},
+                {"label": "Recovery", "type": "otp", "value": "JBSWY3DPEHPK3PXP"}
+            ]
+        }))
+        .unwrap();
+        let created = client.vault_create("login", &changes).unwrap();
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        let write = async |input: Value| {
+            let params = json!({"tool": "dmsg_vault_write", "input": input});
+            daemon
+                .call_agent(&agent, "mcp/call", &params)
+                .await
+                .unwrap()
+        };
+        let field = |reply: &Value, id: &str| {
+            reply["result"]["item"]["fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|f| f["id"] == id)
+                .map(|f| f["value"].clone())
+        };
+
+        // A type shown in the clear, named by ID or by label, is refused
+        // and nothing is written.
+        for set in [
+            json!([{"id": "password", "type": "text"}]),
+            json!([{"label": "Recovery", "type": "url"}]),
+        ] {
+            let reply = write(json!({"id": created.id, "set": set})).await;
+            assert_eq!(reply["error"]["code"], "FORBIDDEN", "{reply}");
+        }
+        let kept = daemon
+            .client()
+            .lock()
+            .await
+            .vault_show(&created.id)
+            .unwrap();
+        assert_eq!(kept.revision, created.revision);
+
+        // A new value or removing the field stays possible.
+        let rotated =
+            write(json!({"id": created.id, "set": [{"id": "password", "value": "rotated"}]})).await;
+        assert_eq!(field(&rotated, "password"), Some(json!("********")));
+        let removed = write(json!({"id": created.id, "remove": ["Recovery"]})).await;
+        assert!(removed["error"].is_null(), "{removed}");
+        let owned = daemon
+            .client()
+            .lock()
+            .await
+            .vault_show(&created.id)
+            .unwrap();
+        assert_eq!(owned.item.value("password"), "rotated");
+        assert!(owned.item.field("password").unwrap().hidden());
+        assert!(!owned.item.fields.iter().any(|f| f.kind == "otp"));
+
+        // A new item has no hidden value to show yet.
+        let added = write(json!({
+            "type": "login",
+            "title": "Staging",
+            "tags": ["work"],
+            "set": [{"id": "password", "type": "text", "value": "plain"}]
+        }))
+        .await;
+        assert_eq!(field(&added, "password"), Some(json!("plain")));
     }
 
     #[test]

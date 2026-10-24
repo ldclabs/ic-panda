@@ -84,7 +84,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     ),
     (
         "dmsg_vault_write",
-        "Add a vault item (type: login, api, key, ssh, wallet, card, identity, server, database, license or note; a new item starts with its type's fields), or edit item id. set changes fields by id or label, or adds them (type text, concealed, url, email, phone, date YYYY-MM-DD, month YYYY-MM or otp); remove takes fields off by id or label; what is left out stays. The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
+        "Add a vault item (type: login, api, key, ssh, wallet, card, identity, server, database, license or note; a new item starts with its type's fields), or edit item id. set changes fields by id or label, or adds them (type text, concealed, url, email, phone, date YYYY-MM-DD, month YYYY-MM or otp), but a concealed or otp field keeps a hidden type: give it a new value or remove it instead; remove takes fields off by id or label; what is left out stays. The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
         false,
         concat!(
             r#"{"type":"object","properties":{"id":{"type":"string"},"base":{"type":"string"},"type":{"enum":["login","api","key","ssh","wallet","card","identity","server","database","license","note"]},"title":{"type":"string"},"notes":{"type":"string"},"#,

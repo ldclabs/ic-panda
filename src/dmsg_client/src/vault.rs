@@ -350,6 +350,16 @@ impl Item {
         self.tags.iter().any(|t| t.starts_with(RESERVED_TAG))
     }
 
+    /// Whether this edit of `old` keeps each of its hidden fields hidden: a
+    /// field kept by ID under a type shown in the clear would read its
+    /// value back.
+    pub fn keeps_hidden(&self, old: &Item) -> bool {
+        old.fields
+            .iter()
+            .filter(|f| f.hidden())
+            .all(|f| self.field(&f.id).is_none_or(Field::hidden))
+    }
+
     /// Trim the title, labels and sections; drop empty and repeated tags
     /// (ignoring case) and repeated files; give new fields an ID.
     pub fn normalize(&mut self) {

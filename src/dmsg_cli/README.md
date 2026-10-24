@@ -823,8 +823,9 @@ More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
 `secret: true` returns the secret field (`vault.secret:<item>`);
 `dmsg_vault_write` adds or edits an item that keeps a granted tag, against a
 `base` like the CLI (`vault.write:<tag>`), and returns the item only with
-`vault.read` on it; `dmsg_files_list` lists a library folder and
-`dmsg_files_search` finds files by name, tag or note (`files.read:<folder>`
+`vault.read` on it; it can give a concealed or one-time-password field a new
+value or remove it, but refuses a type that would show its value;
+`dmsg_files_list` lists a library folder and `dmsg_files_search` finds files by name, tag or note (`files.read:<folder>`
 for the folder or one above); `dmsg_files_read` returns up to 1 MiB of a
 version from `offset`, base64url, opening only the chunks it lies in, each
 authenticated with its place in the version as the mounted disk reads them
