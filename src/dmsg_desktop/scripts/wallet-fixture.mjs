@@ -2,6 +2,8 @@
 export function walletFixture(account, created) {
   const a = 'rrkah-fqaaa-aaaaa-aaaaq-cai',
     b = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
+  // Token precision comes from wallet/assets, not the policy in wallet/show.
+  const token = { asset: 'ICRC', key: `icrc:${a}`, ledger: a }
   const policy = {
     version: 1,
     approver_threshold: 2,
@@ -32,7 +34,7 @@ export function walletFixture(account, created) {
     members: [
       { id: account, role: state.role, status: 'Active', label: 'You', agent_ids: [], principals: ['xkbqi-2qaaa-aaaah-qbpqq-cai'] }
     ],
-    policy,
+    policy: id === b ? { ...policy, spendable_assets: [token] } : policy,
     addresses: [
       { id: 0, chain: 'Icp', control: 'chain_key', text: id, label: 'Operating account', verified: true, cosign: null },
       { id: 3, chain: 'Solana', control: 'chain_key', text: 'So11111111111111111111111111111111111111112', label: 'Solana', verified: true, cosign: null, sol_nonce: null },
@@ -91,8 +93,8 @@ export function walletFixture(account, created) {
     'wallet/activation': () => ({ stage: state.activation, wallet: state.activation === 'ready' ? a : null }),
     'wallet/show': (p) => view(p.wallet),
     'wallet/health': () => ({ cycles: '1995000000000', idle_days: 100, read_at: Date.now() }),
-    'wallet/assets': (p) => ({ wallet: p.wallet, assets: policy.spendable_assets }),
-    'wallet/book': () => ({ entries: [], next: null }),
+    'wallet/assets': (p) => ({ wallet: p.wallet, assets: p.wallet === b ? [{ ...token, symbol: 'TST', decimals: 6 }] : policy.spendable_assets }),
+    'wallet/book': (p) => ({ entries: p.wallet === b ? [{ chain: 'Icp', destination: a, label: 'Test recipient' }] : [], next: null }),
     'wallet/proposals': (p) => {
       const rows = proposals.filter((v) => p.before == null || v.id < p.before).slice(0, p.limit ?? 50)
       return { proposals: rows, next: rows.length === (p.limit ?? 50) ? rows.at(-1).id : null }
@@ -142,7 +144,7 @@ export function walletFixture(account, created) {
       intent: {
         kind: 'transfer',
         from: p.draft.from,
-        asset: policy.spendable_assets.find((a) => a.key === p.draft.asset),
+        asset: p.wallet === b ? token : policy.spendable_assets.find((a) => a.key === p.draft.asset),
         outputs: p.draft.outputs,
         max_fee: p.draft.max_fee ?? '12000',
         memo: p.draft.memo
@@ -150,8 +152,8 @@ export function walletFixture(account, created) {
       estimated_fee: '10000',
       recommended_fee: '12000',
       max_fee: p.draft.max_fee ?? '12000',
-      fee_asset: 'ICP',
-      fee_decimals: 8,
+      fee_asset: p.wallet === b ? 'TST' : 'ICP',
+      fee_decimals: p.wallet === b ? 6 : 8,
       additional_reserve: '0',
       native_balance: '12345678900',
       requirement: { approvals: 2, delay_ms: 0 },

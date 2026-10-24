@@ -106,6 +106,7 @@
   const mayMembers = $derived(member?.status === 'Active' && member?.role !== 'Viewer')
   const decider = $derived(member?.status === 'Active' && ['Admin', 'Approver'].includes(member?.role ?? ''))
   const usable = $derived(!!wallet && !loading && !busy && wallet.wallet === selected && unlocked)
+  const needsExtras = $derived(transferOpen || ['overview', 'assets'].includes(tab))
   const tabs = $derived(['overview', 'proposals', 'assets', 'team', 'activity', 'settings'].map((value) => ({ value, label: w(value) })))
   const shown = $derived(
     proposals.filter(
@@ -250,7 +251,7 @@
         finally { if (fresh(run) && revision === proposalRevision) proposalsLoading = false }
       })
       readAssets = single(async () => {
-        if (!fresh(run) || !['overview', 'assets'].includes(tab)) return
+        if (!fresh(run) || !needsExtras) return
         const version = wallet?.policy.version
         try {
           const result = await call<any>('wallet/assets', { wallet: id })
@@ -258,7 +259,7 @@
         } catch (e) { if (fresh(run)) assetError = errorText(e) }
       })
       reloadBook = single(async () => {
-        if (fresh(run) && ['overview', 'assets'].includes(tab)) await readBook()
+        if (fresh(run) && needsExtras) await readBook()
       })
     }
     void readProposals()
@@ -266,7 +267,7 @@
   }
   $effect(() => {
     const key = extrasKey
-    const visible = ['overview', 'assets'].includes(tab)
+    const visible = needsExtras
     if (key && visible) untrack(() => {
       const assets = `${selected}:${wallet?.policy.version}`
       if (assetsKey !== assets) { assetsKey = assets; void readAssets() }
@@ -492,7 +493,7 @@
 <div class="flex h-full min-h-0 flex-col" data-testid="wallet-view">
   {#if unlocked && wallet}
     <div class="flex flex-wrap items-center gap-3 px-8 py-3">
-      <div class="min-w-0 flex-1" data-testid="wallet-list"
+      <div class="min-w-[min(100%,15rem)] flex-1" data-testid="wallet-list"
         ><Select
           value={selected}
           disabled={busy}
