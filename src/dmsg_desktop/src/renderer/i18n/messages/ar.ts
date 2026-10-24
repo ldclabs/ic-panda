@@ -2,6 +2,7 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    loadFailed: 'تعذّر التحميل',
     storageExhausted: "تم بلوغ حد التنزيل",
     storageTitle: "التخزين السحابي",
     storageSubtitle: "إدارة النسخ الاحتياطية والمشاركات ومرفقات القنوات. تُستعاد المساحة بعد التنظيف.",

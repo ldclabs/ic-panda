@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import Collapsible from '../../components/Collapsible.svelte'
   import { walletError as errorText } from './errors'
   import Field from '../../components/page/Field.svelte'
   import Notice from '../../components/page/Notice.svelte'
@@ -15,14 +16,15 @@
     metadata,
     book = [],
     draft = $bindable(),
+    busy = $bindable(false),
     onDone
-  }: { wallet: Wallet; metadata: Asset[]; book?: any[]; draft: any; onDone: (p: any) => void } = $props()
+  }: { wallet: Wallet; metadata: Asset[]; book?: any[]; draft: any; busy?: boolean; onDone: (p: any) => void } = $props()
   let alive = true
   onMount(() => () => {
     alive = false
+    busy = false
   })
-  let busy = $state(false),
-    error = $state(''),
+  let error = $state(''),
     preview = $state<any>(null),
     lastAsset = ''
   const address = $derived(wallet.addresses.find((a) => String(a.id) === draft.from))
@@ -71,9 +73,9 @@
       if (!draft.maxFee) draft.maxFee = decimal(result.max_fee, result.fee_decimals)
       preview = { ...result, fingerprint: JSON.stringify([draft, asset?.decimals, fee?.decimals, wallet.policy.version]) }
     } catch (e) {
-      error = e instanceof Error && ['amount', 'precision', 'overflow'].includes(e.message) ? w('invalidAmount') : errorText(e)
+      if (alive) error = e instanceof Error && ['amount', 'precision', 'overflow'].includes(e.message) ? w('invalidAmount') : errorText(e)
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
   async function submit() {
@@ -87,9 +89,9 @@
       preview = null
       onDone(p)
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
 </script>
@@ -117,7 +119,7 @@
   </div>
   {#if !available.length}<Notice>{w('noAssets')}</Notice>{/if}
   {#each draft.outputs as output, i (i)}
-    <div class="border-line bg-surface-2 grid items-end gap-3 rounded-xl border p-3 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
+    <div class="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
       <Field label={`${w('recipient')} ${i + 1}`}>
         <input bind:value={output.to} autocomplete="off" spellcheck="false" dir="ltr" data-testid="wallet-to" />
         {#if recipients.length}<Select
@@ -144,13 +146,16 @@
       disabled={busy || draft.outputs.length >= 64}
       onclick={() => (draft.outputs = [...draft.outputs, { to: '', amount: '' }])}>{w('addRecipient')}</button
     >{/if}
-  <div class="grid gap-3 sm:grid-cols-2">
+  <div class="grid gap-3">
     <Field label={`${w('fee')} · ${fee?.symbol || fee?.asset || w('atomic')}`}
       ><input bind:value={draft.maxFee} inputmode="decimal" placeholder={w('estimated')} dir="ltr" data-testid="wallet-fee" /></Field
     >
-    {#if address?.chain === 'Icp' && draft.outputs.length === 1}<Field label={w('memo')}
-        ><input bind:value={draft.memo} pattern="[a-fA-F0-9]*" maxlength="64" dir="ltr" /></Field
-      >{/if}
+    {#if address?.chain === 'Icp' && draft.outputs.length === 1}
+      <Collapsible open={!!draft.memo}>
+        {#snippet title()}<span class="text-[12.5px]">{t('advanced')}</span>{/snippet}
+        <Field label={w('memo')}><input bind:value={draft.memo} pattern="[a-fA-F0-9]*" maxlength="64" dir="ltr" /></Field>
+      </Collapsible>
+    {/if}
   </div>
   {#if error}<Notice tone="danger" testid="wallet-transfer-error">{error}</Notice>{/if}
   <button

@@ -109,7 +109,7 @@
     {#snippet actions()}
       <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="bind-login" onclick={bindLogin}><Icon name="add" />{t('bindLogin')}</button>
     {/snippet}
-    <ul class="divide-y divide-line border-t border-line" data-testid="logins">
+    <ul class="divide-y divide-line" data-testid="logins">
       {#each security.logins as login (login.principal)}
         <li class="flex items-center gap-2 px-5 py-3">
           <Id id={login.principal} full class="max-w-[70%]" />

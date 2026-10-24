@@ -193,7 +193,7 @@
                         onSelect={() => run(entry)}
                         class="flex h-9 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] outline-none select-none data-selected:bg-pale"
                       >
-                        <span class="grid size-6 shrink-0 place-items-center rounded-md border border-line bg-surface text-faint">
+                        <span class="grid size-6 shrink-0 place-items-center text-faint [&_svg]:size-4.5">
                           <Icon name={entry.icon} class="size-3.5" />
                         </span>
                         <span class="min-w-0 flex-1 truncate">{entry.label}</span>

@@ -228,7 +228,7 @@
     {#if mine && !mine.length}
       <p class="text-[12.5px] text-faint" data-testid="no-names">{t('noNames')}</p>
     {:else if mine}
-      <ul class="divide-y divide-line rounded-xl border border-line">
+      <ul class="divide-y divide-line">
         {#each mine as owned (owned.name)}
           <li class="flex items-center gap-3 px-4 py-2.5" data-testid="my-name">
             <b class="min-w-0 flex-1 truncate text-[14px] font-semibold">@{owned.display_handle ?? owned.name}</b>
@@ -264,7 +264,7 @@
       {/if}
       <Collapsible testid="name-prices">
         {#snippet title()}<span class="text-[12px] text-muted">{t('namePrices')}</span>{/snippet}
-        <dl class="divide-y divide-line">
+        <dl>
           {#each PRICE_TIERS as tier (tier.lengths)}
             <Fact label={t('nameLength', { lengths: tier.lengths })}>{panda(tier.panda)} PANDA</Fact>
           {/each}
@@ -272,7 +272,7 @@
       </Collapsible>
 
       {#if found}
-        <div class="grid gap-3 rounded-xl border border-line px-4 py-3" data-testid="handle-state">
+        <div class="grid gap-3 rounded-lg bg-surface-2 px-4 py-3" data-testid="handle-state">
           <div class="flex flex-wrap items-center gap-2">
             <b class="text-[15px] font-semibold">@{found.display_handle ?? found.name}</b>
             {#if found.owner && found.owner === status?.account}
@@ -298,7 +298,7 @@
             {/if}
           </div>
           {#if !found.owner && !found.reserved}
-            <dl class="divide-y divide-line">
+            <dl>
               <Fact label={t('price')} testid="handle-price">{units(found.price, 8)} PANDA</Fact>
               <Fact label={t('networkFee')}>{units(found.fee, 8)} PANDA</Fact>
               <Fact label={t('atMost')}>{units(found.most, 8)} PANDA</Fact>
@@ -339,7 +339,7 @@
     {#if operations && !operations.length}
       <p class="px-5 pb-4 text-[12.5px] text-faint">{t('noNameOperations')}</p>
     {:else if operations}
-      <ul class="divide-y divide-line border-t border-line" data-testid="name-operations">
+      <ul class="divide-y divide-line" data-testid="name-operations">
         {#each operations as op (op.id)}
           {@const state = nameState(op, now)}
           <li class="grid gap-1.5 px-5 py-3" data-testid="name-operation">

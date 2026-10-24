@@ -69,7 +69,7 @@
   {/if}
   {#if orders}
     {@render heading(t('orders'))}
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each orders.orders as o (o.order_id)}
         <li class="grid gap-1 px-5 py-2.5">
           <div class="flex flex-wrap items-center gap-2">
@@ -91,7 +91,7 @@
   {/if}
   {#if transfers}
     {@render heading(t('transfers'))}
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each transfers.transfers as x (x.transfer_id)}
         <li class="grid gap-1 px-5 py-2.5">
           <div class="flex flex-wrap items-center gap-2">
@@ -116,7 +116,7 @@
   {/if}
   {#if claims}
     {@render heading(t('claims'))}
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each claims.claims as c (c.claim_id)}
         <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-[13px]">
           <span class="min-w-0 flex-1">{c.product_id} · {c.sku} · {c.eligibility} · {t('validUntil')} {when(c.valid_until_ms)}</span>

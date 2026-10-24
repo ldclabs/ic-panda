@@ -129,7 +129,7 @@
     {#if readiness}<Pill tone={readiness.ready ? 'ok' : 'warn'} testid="readiness-state">{readiness.ready ? t('readyToSign') : t('notReadyToSign')}</Pill>{/if}
   {/snippet}
   {#if readiness}
-    <dl class="divide-y divide-line">
+    <dl>
       <Fact label={t('login')}>
         {#if readiness.login}<Pill tone="ok">{t('loggedIn')}</Pill>{:else}<Pill tone="warn">{t('reasonAuthRequired')}</Pill>
           <button class={buttonClass('secondary', 'xs')} onclick={() => startLogin()}>{t('login')}</button>{/if}

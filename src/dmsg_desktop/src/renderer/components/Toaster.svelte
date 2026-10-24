@@ -2,7 +2,7 @@
   import { t } from '../i18n/index.svelte'
   import Icon from './Icon.svelte'
   import { dismiss, toasts } from './toast.svelte'
-  import { buttonClass } from './ui'
+  import { buttonClass, iconButtonClass } from './ui'
 
   /** The main window's notices, newest last, at the bottom of the reading end. */
   let now = $state(Date.now())
@@ -42,7 +42,7 @@
         >
       {/if}
       <button
-        class={buttonClass('ghost', 'xs', 'text-paper/75 hover:not-disabled:bg-paper/15 hover:not-disabled:text-paper')}
+        class={iconButtonClass('ghost', 'lg', 'text-paper/75 hover:not-disabled:bg-paper/15 hover:not-disabled:text-paper')}
         aria-label={t('dismiss')}
         onclick={() => dismiss(item.id)}><Icon name="close" /></button>
     </div>

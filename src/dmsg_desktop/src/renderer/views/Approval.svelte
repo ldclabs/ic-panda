@@ -822,7 +822,7 @@
         </section>
       {/if}
 
-      <Collapsible class="mt-4 rounded-lg border border-line px-2.5 py-1">
+      <Collapsible class="mt-4 py-1">
         {#snippet title()}<span class="text-[12.5px] text-muted">{t('technical')}</span>{/snippet}
         <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 pb-2 text-xs" data-testid="approval-technical">
           {@render row(t('requestId'), request.id, { mono: true })}
@@ -863,11 +863,8 @@
       {#if error}<p class="mt-3 text-[13px] text-danger" data-testid="approval-error">{error}</p>{/if}
     </div>
 
-    <!-- The ticket's perforation: above it what you review, below it the decision. -->
-    <div class="relative mx-4 h-0 shrink-0 border-t-[1.5px] border-dashed border-line" aria-hidden="true">
-      <span class="absolute -top-2 -start-6 size-4 rounded-full border border-line bg-paper"></span>
-      <span class="absolute -top-2 -end-6 size-4 rounded-full border border-line bg-paper"></span>
-    </div>
+    <!-- The review and its fixed decision controls keep one clear boundary. -->
+    <div class="h-px shrink-0 bg-line" aria-hidden="true"></div>
     <div class="shrink-0 px-5 pt-3.5 pb-4">
       {#if waiting && !approving}
         {#if left !== null}

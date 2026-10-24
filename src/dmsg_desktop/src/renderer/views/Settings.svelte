@@ -248,7 +248,7 @@
           <FilesSettings />
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
-            <dl class="divide-y divide-line">
+            <dl>
               <Fact label={t('language')}>
                 <Select
                   value={locale()}
@@ -279,7 +279,7 @@
                 <Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}
               </button>
             {/snippet}
-            <dl class="divide-y divide-line">
+            <dl>
               <Fact label={t('status')} testid="session-state">
                 <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
               </Fact>
@@ -327,7 +327,7 @@
           </Section>
           {#if accounts.length}
             <Section title={t('localAccounts')} description={t('localAccountsHint')} icon="members" flush>
-              <ul class="divide-y divide-line border-t border-line" data-testid="local-accounts">
+              <ul class="divide-y divide-line" data-testid="local-accounts">
                 {#each accounts as a (a.account)}
                   <li class="flex flex-wrap items-center gap-2 px-5 py-3">
                     <Id id={a.account} full class="max-w-[60%]" />
@@ -364,7 +364,7 @@
                   {/each}
                 </div>
               {/if}
-              <ul class="divide-y divide-line border-t border-line" data-testid="pairings">
+              <ul class="divide-y divide-line" data-testid="pairings">
                 {#each pairings as p (p.pairing_id)}
                   <li class="flex flex-wrap items-center gap-2 px-5 py-3">
                     <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state}</Pill>

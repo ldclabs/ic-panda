@@ -2,7 +2,7 @@
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
   import { call, errorText, when } from '../../rpc'
   import SecretField from './SecretField.svelte'
@@ -177,11 +177,11 @@
     {#snippet footer()}
       {#if conflicts.length > 1}
         <span class="flex items-center gap-0.5">
-          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('previousOne')} disabled={at === 0} onclick={() => (index = at - 1)}>
+          <button class={iconButtonClass('ghost', 'md')} aria-label={t('previousOne')} disabled={at === 0} onclick={() => (index = at - 1)}>
             <Icon name="chevron-end" class="rotate-180" />
           </button>
           <span class="text-[12px] text-faint tabular-nums">{t('conflictOf', { index: at + 1, n: conflicts.length })}</span>
-          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('nextOne')} disabled={at >= conflicts.length - 1} onclick={() => (index = at + 1)}>
+          <button class={iconButtonClass('ghost', 'md')} aria-label={t('nextOne')} disabled={at >= conflicts.length - 1} onclick={() => (index = at + 1)}>
             <Icon name="chevron-end" />
           </button>
         </span>

@@ -31,7 +31,7 @@
   )}
 >
   {#if collapsed}{@render windowNav()}{/if}
-  <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-forest"><Icon name={view.icon} /></span>
+  <Icon name={view.icon} class="size-5 text-forest" />
   <div class="min-w-0 flex-1">
     <div class="flex min-w-0 items-center gap-1.5 text-[14.5px] leading-tight font-semibold">
       {#if parent}
@@ -43,11 +43,11 @@
     <p class="mt-0.5 truncate text-xs text-faint">{t(view.detail)}</p>
   </div>
   <button
-    class="flex h-8 w-64 max-w-[40%] shrink items-center gap-2 rounded-lg border border-line bg-surface-2 ps-2.5 pe-1.5 text-[13px] text-faint outline-none transition-colors duration-150 hover:border-edge-soft hover:bg-surface focus-visible:ring-3 focus-visible:ring-focus/35 [-webkit-app-region:no-drag]"
+    class="flex h-8 w-64 max-w-[40%] shrink items-center gap-2 rounded-lg bg-wash ps-2.5 pe-1.5 text-[13px] text-muted outline-none transition-colors duration-150 hover:bg-pale focus-visible:ring-3 focus-visible:ring-focus/35 [-webkit-app-region:no-drag]"
     onclick={onPalette}
     data-testid="palette-open"
   >
-    <Icon name="search" />
+    <Icon name="search" class="size-4.5" />
     <span class="min-w-0 flex-1 truncate text-start">{t('searchOrCommand')}</span>
     <kbd class="rounded border border-line bg-surface px-1.5 font-mono text-[10.5px] leading-[18px] text-faint">{mod}K</kbd>
   </button>

@@ -10,7 +10,7 @@
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, units } from '../../rpc'
   import { activationTotal, MAX_DRAFT_MEMBERS, memberInputs, memberProblem, thresholdLimits, type MemberDraft } from './new-wallet'
@@ -191,7 +191,7 @@
             {#snippet children(props)}
               <button
                 {...props}
-                class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                class={iconButtonClass('ghost', 'md')}
                 aria-label={t('refresh')}
                 disabled={busy || quoteLoading}
                 onclick={getQuote}
@@ -292,7 +292,7 @@
                 />
                 <button
                   type="button"
-                  class={buttonClass('ghost', 'sm', 'size-7 justify-self-start px-0')}
+                  class={iconButtonClass('ghost', 'md', 'justify-self-start')}
                   aria-label={t('twRemoveMember')}
                   disabled={busy}
                   onclick={() => removeMember(row.key)}
@@ -318,7 +318,7 @@
               <div class="border-edge-soft bg-surface flex shrink-0 items-center rounded-lg border p-0.5">
                 <button
                   type="button"
-                  class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                  class={iconButtonClass('ghost', 'md')}
                   aria-label={`${t('twDecrease')} ${t('twApprovals')}`}
                   disabled={busy || approvals <= 1}
                   onclick={() => (approvals -= 1)}
@@ -327,7 +327,7 @@
                 <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-approvals">{approvals}</span>
                 <button
                   type="button"
-                  class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                  class={iconButtonClass('ghost', 'md')}
                   aria-label={`${t('twIncrease')} ${t('twApprovals')}`}
                   disabled={busy || approvals >= limits.approvers}
                   onclick={() => (approvals += 1)}
@@ -343,7 +343,7 @@
               <div class="border-edge-soft bg-surface flex shrink-0 items-center rounded-lg border p-0.5">
                 <button
                   type="button"
-                  class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                  class={iconButtonClass('ghost', 'md')}
                   aria-label={`${t('twDecrease')} ${t('twAdminApprovals')}`}
                   disabled={busy || adminApprovals <= 1}
                   onclick={() => (adminApprovals -= 1)}
@@ -354,7 +354,7 @@
                 >
                 <button
                   type="button"
-                  class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                  class={iconButtonClass('ghost', 'md')}
                   aria-label={`${t('twIncrease')} ${t('twAdminApprovals')}`}
                   disabled={busy || adminApprovals >= limits.admins}
                   onclick={() => (adminApprovals += 1)}

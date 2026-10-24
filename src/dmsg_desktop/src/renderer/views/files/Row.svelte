@@ -117,7 +117,7 @@
           aria-current={selected ? 'true' : undefined}
           tabindex={selected ? 0 : -1}
         >
-          <span class={cn('grid size-8 place-items-center rounded-lg border bg-surface', selected ? 'border-forest/25 text-forest' : 'border-line text-faint')}>
+          <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected ? 'text-forest' : 'text-faint')}>
             <Icon name={folder ? 'folder' : fileIcon(entry.mime)} />
           </span>
           <span class="min-w-0">

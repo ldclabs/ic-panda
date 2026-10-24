@@ -26,7 +26,7 @@
 
 <div class="grid flex-1 place-items-center p-8" data-testid={testid}>
   <div class="grid max-w-sm justify-items-center gap-3 text-center">
-    <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
+    <span class="grid size-12 place-items-center text-faint [&_svg]:size-6"><Icon name="lock" /></span>
     <p class="text-[13.5px] text-muted" role="status">{$unlocking ? t('unlocking') : t(hint)}</p>
     {#if step}
       <button class={buttonClass('primary')} onclick={step.run} disabled={$unlocking} aria-busy={$unlocking} data-testid="locked-step"><Icon name={$unlocking ? 'sync' : step.icon} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : t(step.label)}</button>

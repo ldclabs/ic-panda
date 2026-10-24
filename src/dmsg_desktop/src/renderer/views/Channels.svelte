@@ -8,7 +8,7 @@
   import Locked from '../components/page/Locked.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { bridge, call, closed, code, errorText, onChange, planAction, single } from '../rpc'
   import Access from './channels/Access.svelte'
@@ -545,7 +545,7 @@
           <DropdownMenu.Root dir={localeDir(locale())}>
             <Tooltip content={t('newChannel')}>
               {#snippet children(props)}
-                <DropdownMenu.Trigger {...props} class={buttonClass('primary', 'md', 'size-8 px-0')} aria-label={t('newChannel')} data-testid="channel-new">
+                <DropdownMenu.Trigger {...props} class={iconButtonClass('primary', 'md')} aria-label={t('newChannel')} data-testid="channel-new">
                   <Icon name="add" />
                 </DropdownMenu.Trigger>
               {/snippet}
@@ -574,7 +574,7 @@
         {:else}
           {#if !listed.other.length && !oldChannels.length}
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
-              <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="channels" /></span>
+              <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
               <p class="text-[13px] text-muted">{query ? t('noMatch', { query }) : t('noChannels')}</p>
               {#if unlocked && !query}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
@@ -648,7 +648,7 @@
             {#snippet children(props)}
               <button
                 {...props}
-                class={buttonClass('ghost', 'md', cn('size-8 px-0', search.open && 'bg-wash text-ink'))}
+                class={iconButtonClass('ghost', 'md', cn(search.open && 'bg-wash text-ink'))}
                 aria-label={t('searchMessages')}
                 aria-pressed={search.open}
                 onclick={() => (search = { ...search, open: !search.open })}
@@ -660,7 +660,7 @@
           </Tooltip>
           <Tooltip content={t('read')}>
             {#snippet children(props)}
-              <button {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('read')} disabled={busy} onclick={read} data-testid="channel-read">
+              <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('read')} disabled={busy} onclick={read} data-testid="channel-read">
                 <Icon name="sync-now" />
               </button>
             {/snippet}
@@ -670,7 +670,7 @@
               {#snippet children(props)}
                 <button
                   {...props}
-                  class={buttonClass('ghost', 'md', cn('size-8 px-0', membersOpen && 'bg-wash text-ink'))}
+                  class={iconButtonClass('ghost', 'md', cn(membersOpen && 'bg-wash text-ink'))}
                   aria-label={t('members')}
                   aria-pressed={membersOpen}
                   onclick={() => (membersOpen = !membersOpen)}
@@ -685,7 +685,7 @@
             <DropdownMenu.Root dir={localeDir(locale())}>
               <Tooltip content={t('manageChannel')}>
                 {#snippet children(props)}
-                  <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('manageChannel')} data-testid="channel-manage">
+                  <DropdownMenu.Trigger {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('manageChannel')} data-testid="channel-manage">
                     <Icon name="more" />
                   </DropdownMenu.Trigger>
                 {/snippet}

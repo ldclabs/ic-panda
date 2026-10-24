@@ -8,7 +8,7 @@
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
-  import { buttonClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, onChange, single, when } from '../../rpc'
 
@@ -129,7 +129,7 @@
       {#if error}<Notice tone="danger">{error}</Notice>{/if}
     </div>
   {/if}
-  <ul class="divide-y divide-line border-t border-line" data-testid="event-endpoints">
+  <ul class="divide-y divide-line" data-testid="event-endpoints">
     {#each endpoints as endpoint (endpoint.endpoint_id)}
       <li class="grid gap-1.5 px-5 py-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -144,7 +144,7 @@
         </div>
         <div class="flex items-center gap-1.5">
           <bdi dir="ltr" class="min-w-0 truncate font-mono text-[11.5px] text-muted">{endpoint.url}</bdi>
-          <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('copy')} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
+          <button class={iconButtonClass('ghost', 'md')} aria-label={t('copy')} onclick={() => copyText(endpoint.url)}><Icon name="copy" /></button>
         </div>
         {#if endpoint.binding?.server}
           <p class="text-[12px] text-faint">{endpoint.binding.server}{endpoint.binding.refresh_before ? ` · ${t('refreshBefore')} ${when(endpoint.binding.refresh_before)}` : ''}</p>

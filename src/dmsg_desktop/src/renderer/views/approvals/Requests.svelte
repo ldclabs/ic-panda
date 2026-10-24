@@ -64,8 +64,9 @@
   ])
 </script>
 
+{#if waiting.length}
 <Section title={t('waiting')} icon="pending" flush>
-  <ul class="divide-y divide-line border-t border-line" data-testid="waiting-list">
+  <ul class="divide-y divide-line" data-testid="waiting-list">
     {#each waiting as request (request.id)}
       {@const k = kindOf(request)}
       {@const from = source(request)}
@@ -89,18 +90,19 @@
         {/if}
         <button class={buttonClass('primary', 'sm')} onclick={() => open(request.id)} data-testid="request-open">{t('open')}</button>
       </li>
-    {:else}
-      <li class="flex items-center gap-2 px-5 py-4 text-[13px] text-faint"><Icon name="check" class="text-ok" />{loaded ? t('noRequests') : t('loading')}</li>
     {/each}
   </ul>
 </Section>
+{:else}
+  <p class="flex items-center gap-2 px-5 text-[13px] text-faint" data-testid="waiting-list"><Icon name="check" class="text-ok" />{loaded ? t('noRequests') : t('loading')}</p>
+{/if}
 
 {#if running.length}
   <Section title={t('inProgress')} description={t('inProgressHint')} icon="sync" flush testid="running-list">
     {#snippet actions()}
       <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={reconcile} data-testid="reconcile"><Icon name="sync-now" />{t('reconcileNow')}</button>
     {/snippet}
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each running as request (request.id)}
         <li class="flex items-center gap-3 px-5 py-2.5">
           <Pill tone="warn">{stateLabel(request.state)}</Pill>
@@ -116,13 +118,14 @@
   {#snippet actions()}
     <Select bind:value={kind} options={kinds} testid="history-kind" />
   {/snippet}
-  <ul class="divide-y divide-line border-t border-line" data-testid="history-list">
+  <ul class="divide-y divide-line" data-testid="history-list">
     {#each decided as request (request.id)}
       <li>
         <button class="flex w-full items-center gap-3 px-5 py-2.5 text-start hover:bg-wash" onclick={() => open(request.id)} data-testid="history-open">
           <Pill tone={stateTone(request.state)}>{stateLabel(request.state)}</Pill>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[12.5px]">{title(request)} · {request.detail === null ? t('approvalDetailUnavailable') : summaryOf(request)}</span>
+            <span class="block truncate text-[13px] font-medium">{title(request)}</span>
+            <span class="block truncate text-[12px] text-muted">{request.detail === null ? t('approvalDetailUnavailable') : summaryOf(request)}</span>
             {#if ['failed', 'lost'].includes(request.state) && request.error}<span class="block text-[11.5px] text-faint">{reason(request.error)}</span>{/if}
           </span>
           <span class="shrink-0 text-[11.5px] text-faint" title={when(request.decided_at ?? request.updated_at)}>{ago(request.decided_at ?? request.updated_at)}</span>

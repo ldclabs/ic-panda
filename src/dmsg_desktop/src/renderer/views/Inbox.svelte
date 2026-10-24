@@ -180,7 +180,7 @@
   })
 
   const tabClass =
-    'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink data-[state=active]:shadow-xs'
+    'flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
 </script>
 
 {#snippet sender(account: string)}
@@ -215,7 +215,7 @@
           </Tooltip>
         </div>
         <Tabs.Root bind:value={() => box, (next) => (box = next as Box)}>
-          <Tabs.List class="flex gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5">
+          <Tabs.List class="flex gap-0.5 rounded-[10px] bg-wash p-0.5">
             <Tabs.Trigger value="inbox" class={tabClass} data-testid="inbox-received">
               {t('inbox')}{#if unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest">{unread}</span>{/if}
             </Tabs.Trigger>
@@ -262,7 +262,7 @@
           </li>
         {:else}
           <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
-            <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="inbox" /></span>
+            <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="inbox" /></span>
             <p class="text-[13px] text-muted">{!loaded || (refreshing && box !== 'sent') ? t('loading') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
           </li>
         {/each}
@@ -296,7 +296,7 @@
               </div>
             {/if}
           </header>
-          <div class="mt-5 rounded-xl border border-line bg-surface px-5 py-4 shadow-xs">
+          <div class="mt-5 py-4">
             {#if letter.state === 'visible'}
               <p class="text-[14px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{letter.text}</p>
             {:else}
@@ -316,7 +316,7 @@
               {order.paid ? t('paidLetter') : t('freeLetter')}
             </span>
           </header>
-          <dl class="divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs">
+          <dl class="grid gap-1">
             <div class="grid grid-cols-[120px_1fr] items-center gap-4 py-2.5">
               <dt class="text-[12px] text-faint">{t('order')}</dt>
               <dd class="truncate font-mono text-[12px]" title={order.order_id}>{order.order_id}</dd>
@@ -330,7 +330,7 @@
             </div>
           </dl>
           {#if order.paid}
-            <div class="rounded-xl border border-line bg-surface px-4 py-3 shadow-xs">
+            <div class="py-3">
               <div class="flex items-center justify-between gap-2">
                 <b class="text-[13px] font-semibold">{t('funds')}</b>
                 <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => funds(order)}>{t('checkFunds')}</button>

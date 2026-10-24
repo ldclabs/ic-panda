@@ -111,8 +111,8 @@ spacing:
   control-inline: 8px–12px
   panel: 16px–24px
   between-groups: 20px–32px
-  control-height-xs: 24px
-  control-height-sm: 28px
+  control-height-xs: 28px
+  control-height-sm: 32px
   control-height-md: 32px
   control-height-lg: 40px
   sidebar: 236px
@@ -226,7 +226,7 @@ monospace face: Arabic loses its letter joining there, so only the value
 
 - **Main window**: sidebar (236px, 64px collapsed) and a title bar (60px)
   over the view. The sidebar's top is the title bar's line, with the
-  window's buttons: the sidebar toggle, back and forward, 28px each. On
+  window's buttons: the sidebar toggle, back and forward, 32px each. On
   macOS the window has no title bar of its own: the traffic lights sit over
   the sidebar's vibrancy, centred on that line, and the buttons follow them
   (82px from the edge; 18px in full screen, which hides the lights). On the
@@ -246,7 +246,7 @@ monospace face: Arabic loses its letter joining there, so only the value
   sections, 860px wide (1040px for the capability matrix), with tab bars or
   a section list for their parts.
 - Spacing has a 4px base: 8–12px inside controls, 16–24px inside panels,
-  20px between sections. Control heights are 24, 28, 32 and 40px.
+  32px between page sections. Text-button heights are 28, 32 and 40px. Icon tools are 32px squares; panel close buttons are 36px squares.
 
 ## Elevation & Shapes
 
@@ -261,8 +261,7 @@ squares, profile pictures are circles.
 One family, Remix Icon 4.6.0 (Apache-2.0, `public/licenses`), line style,
 inlined in `components/glyphs.ts` so they take the text color. Names say what
 an icon is for (`vault`, `conflict`, `epoch`), with the Remix name beside
-each path. 16px in navigation and controls, 20–24px for empty states and
-tiles. Icons that point along the reading direction (`chevron-end`, `enter`,
+each path. 18px in navigation and toolbars, 16–18px beside button text, and 20px in large buttons and section titles. Status marks remain 12–14px; empty states use 24px without a decorative frame. Panel close buttons use a 20px SVG with a tighter viewBox, giving the existing Remix cross about 14px of visible width inside a 36px hit area. Icons that point along the reading direction (`chevron-end`, `enter`,
 the sidebar toggles) mirror right to left; the send icon is flipped where it
 is used. Every icon-only button has an accessible name and a tooltip.
 
@@ -283,7 +282,7 @@ drain bars hide.
 The kit lives in `src/renderer/components`; views compose it and do not
 restyle a control by hand.
 
-- **Buttons** — `buttonClass(variant, size)` in `ui.ts`: `primary` (one per
+- **Buttons** — `buttonClass(variant, size)` and `iconButtonClass` in `ui.ts`: `primary` (one per
   area), `secondary`, `ghost` (toolbars, icon buttons), `danger` (a
   destructive step, outlined with Danger text). A button its click disabled
   turns a ring over its label while the bridge calls that click started run
@@ -298,7 +297,7 @@ restyle a control by hand.
 - **Dialogs** — `Dialog`: icon tile, title, a line of description, scrolling
   body, footer with the decision on the end side. Escape cancels. The
   new-item, edit and letter forms submit with ⌘↵.
-- **Pages** — `components/page`: `Page`, `Section` (title, description,
+- **Pages** — `components/page`: `Page`, `Section` (unframed title, description,
   actions, flush lists), `Notice` (info, warn, danger, ok), `Pill` (states),
   `Id` (the neutral ID chip), `Field`, `Fact` (label and value rows),
   `TabBar`.
@@ -335,7 +334,7 @@ restyle a control by hand.
   the owner completes within ten minutes.
 - **Approval ticket** — kind chip with the gem diamond, the requester, the
   trail (relayed hops dashed), the content, "when you approve", folded
-  technical fields, then the stub: expiry line, Reject, Approve or Hold to
+  technical fields, then the fixed decision area: expiry line, Reject, Approve or Hold to
   approve, and after a decision the steps the daemon reports.
 - **Empty and locked states** — an icon tile, one sentence, and the next
   action (log in, unlock, continue setup, new item, import).
@@ -380,3 +379,38 @@ restyle a control by hand.
 plan, policy, languages) and `pnpm test:e2e`, which runs the built app against a
 mock daemon and saves screenshots in `test-results/` (light, dark, French
 and Arabic). Look at the screenshots of the views a change touches.
+
+
+## 2026-10-24 UI simplification
+
+Page sections use headings, aligned content and 32px spacing, without a
+background card, enclosing border or static shadow. File and vault detail
+fields are continuous groups. Lists keep useful row separators; panes keep
+one boundary between independent scrolling areas. Inputs, choices, focus
+rings, risk notices and floating layers retain their visible boundaries.
+Decorative icon frames and empty-state dashed boxes are removed. The gate
+rail remains fixed, with sync, connection and lock state always visible.
+
+Icon-only tools use 32px square targets with 18px glyphs. Dialog, drawer and
+history closes use 36px targets with 20px glyphs; the close path uses a tighter
+18-unit viewBox. Hover and keyboard focus remain visible. A dialog doing a
+wallet estimate/submission cannot be dismissed until that call settles;
+locking or changing accounts still closes it and clears the sensitive view.
+
+The wallet overview shows compact metrics, current proposals and an asset /
+address summary. Transfer opens a separate dialog; closing it keeps the draft
+for that wallet while the view remains mounted, and reopening requires a new
+estimate. Memo is in Advanced; fees and the committed preview stay visible.
+Agent ID rows keep pause, profile, delegation and credential withdrawal
+available; maintenance and removal live in More actions. Membership combines
+a compact term summary with usage instead of repeating a tall limits table.
+
+Vault list summaries use the item type for notes and sensitive item kinds.
+Login-like items may show a visible username or a web host, never arbitrary
+field content, notes, URL passwords, query strings or fragments. Full notes
+remain available in the selected item's detail.
+
+`DMSG_DESKTOP_VISUAL_MATRIX=1 node scripts/smoke.mjs` additionally captures the
+wallet and transfer dialog at 760, 1180 and 1600px, across all six languages
+and both themes in representative combinations. It checks horizontal fit;
+visual inspection is still needed for typography, focus and grouping.

@@ -219,7 +219,7 @@
       {:else}<p class="text-[12px] text-muted">{t('knowledgeAgentScope', { agent: labelOf(agent) })}</p>{/if}
       {#if error}<Notice tone="danger" testid="knowledge-error">{error}</Notice>{/if}
       {#if items?.length || found}
-        <div class="grid min-h-96 overflow-hidden rounded-xl border border-line lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
+        <div class="grid min-h-96 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
           <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">
             <ul class="max-h-[640px] divide-y divide-line overflow-y-auto" data-testid="knowledge-items">
               {#each items ?? [] as item (item.id)}
@@ -341,7 +341,7 @@
           </div>
         </div>
       {:else}
-        <div class="grid min-h-60 place-content-center justify-items-center gap-3 rounded-xl border border-dashed border-line px-8 text-center" data-testid="knowledge-empty">
+        <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="knowledge-empty">
           <Icon name="knowledge" class="size-8 text-faint" />
           <h3 class="text-[14px] font-medium">
             {busy ? t('loading') : error ? t('agentLoadFailed') : !service ? t('knowledgeNoService') : mode === 'search' && !items ? t('knowledgeSearchText') : t('knowledgeEmpty')}

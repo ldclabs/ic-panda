@@ -17,7 +17,7 @@
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { size, when } from '../../rpc'
   import { validPrincipal, walletRoute } from '../wallet/model'
@@ -266,7 +266,7 @@
       <a class="mt-2 inline-flex text-[12px] font-medium text-forest underline" href={`#${walletRoute(message.packet.wallet,Number.isSafeInteger(message.packet.proposal)?message.packet.proposal:undefined)}`}>{w('details')}</a>
     </div>
   {:else if packet}
-    <div class="mt-1.5 flex max-w-md items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-xs" data-testid="message-packet">
+    <div class="mt-1.5 flex max-w-md items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5" data-testid="message-packet">
       <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-pale text-forest"><Icon name={packet.kind === 'owner' ? 'owner' : 'coins'} /></span>
       <span class="min-w-0 flex-1">
         <span class="block text-[13px] font-medium">{packet.kind === 'owner' ? t('transferOwner') : t('transferSponsor')}</span>
@@ -358,7 +358,7 @@
                 {/if}
                 <div
                   {@attach isImage(message) && preview(message)}
-                  class="mt-1.5 flex max-w-sm items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2 shadow-xs"
+                  class="mt-1.5 flex max-w-sm items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2"
                 >
                   <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={isImage(message) ? 'image' : 'file'} /></span>
                   <span class="min-w-0 flex-1">
@@ -367,14 +367,14 @@
                   </span>
                   <Tooltip content={t('saveToLibrary')}>
                     {#snippet children(props)}
-                      <button {...props} class={buttonClass('ghost', 'sm', 'size-8 px-0')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
+                      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
                         <Icon name="folder-add" />
                       </button>
                     {/snippet}
                   </Tooltip>
                   <Tooltip content={t('download')}>
                     {#snippet children(props)}
-                      <button {...props} class={buttonClass('ghost', 'sm', 'size-8 px-0')} aria-label={t('download')} onclick={() => onDownload(message)} data-testid="message-download">
+                      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('download')} onclick={() => onDownload(message)} data-testid="message-download">
                         <Icon name="download" />
                       </button>
                     {/snippet}
@@ -385,23 +385,23 @@
             {/if}
           </div>
           {#if !message.unreadable}
-            <div class="absolute end-4 -top-3 hidden items-center gap-0.5 rounded-lg border border-line bg-paper p-0.5 shadow-xs group-focus-within:flex group-hover:flex" data-testid="message-actions">
+            <div class="absolute end-4 -top-3 hidden items-center gap-0.5 rounded-lg border border-line bg-paper p-0.5 group-focus-within:flex group-hover:flex" data-testid="message-actions">
               {#if writes && !message.retracted}
                 <Tooltip content={t('replyAction')}>
                   {#snippet children(props)}
-                    <button {...props} class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('replyAction')} onclick={() => answer(message)} data-testid="message-reply"><Icon name="reply" /></button>
+                    <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('replyAction')} onclick={() => answer(message)} data-testid="message-reply"><Icon name="reply" /></button>
                   {/snippet}
                 </Tooltip>
               {/if}
               {#if message.text && !message.retracted}
                 <Tooltip content={t('copy')}>
                   {#snippet children(props)}
-                    <button {...props} class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('copy')} onclick={() => copyText(message.text)}><Icon name="copy" /></button>
+                    <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copy')} onclick={() => copyText(message.text)}><Icon name="copy" /></button>
                   {/snippet}
                 </Tooltip>
               {/if}
               <DropdownMenu.Root dir={localeDir(locale())}>
-                <DropdownMenu.Trigger class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('moreActions')} data-testid="message-more"><Icon name="more" /></DropdownMenu.Trigger>
+                <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="message-more"><Icon name="more" /></DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content align="end" sideOffset={4} class={cn(menuContentClass, 'min-w-44')}>
                     {#if writes && mine(message) && editable(message)}
@@ -429,7 +429,7 @@
     {#if !outbox.length}
       <div class="grid h-full place-items-center px-8 text-center">
         <div class="grid justify-items-center gap-2">
-          <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="channels" /></span>
+          <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
           <p class="text-[13px] text-muted">{t('noMessages')}</p>
         </div>
       </div>
@@ -467,7 +467,7 @@
         <Icon name={editing ? 'edit' : 'reply'} class="size-3.5 shrink-0" />
         <span class="shrink-0 font-medium">{editing ? t('editing') : `${t('replyingTo')} ${reply.account === me ? t('you') : label(reply.account)}`}</span>
         <span class="min-w-0 flex-1 truncate">{snippet(editing ?? reply)}</span>
-        <button class={buttonClass('ghost', 'xs', 'size-5 px-0')} aria-label={t('cancel')} onclick={leave}><Icon name="close" /></button>
+        <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('cancel')} onclick={leave}><Icon name="close" /></button>
       </div>
     {/if}
     {#if attachments.length && !editing}
@@ -476,7 +476,7 @@
           <div class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-line bg-surface ps-2 pe-0.5 py-0.5 text-[12px]" data-testid="channel-attached">
             <Icon name="attach" class="size-3.5 shrink-0 text-faint" />
             <span class="truncate">{file.name}</span>
-            <button class={buttonClass('ghost', 'xs', 'size-5 px-0')} aria-label={t('remove')} onclick={() => (attachments = attachments.filter((f) => f.id !== file.id))}><Icon name="close" /></button>
+            <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('remove')} onclick={() => (attachments = attachments.filter((f) => f.id !== file.id))}><Icon name="close" /></button>
           </div>
         {/each}
       </div>
@@ -486,7 +486,7 @@
         <DropdownMenu.Root dir={localeDir(locale())} onOpenChange={(open) => open && onAttach()}>
           <Tooltip content={t('attachFile')}>
             {#snippet children(props)}
-              <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('attachFile')} data-testid="channel-attachment">
+              <DropdownMenu.Trigger {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('attachFile')} data-testid="channel-attachment">
                 <Icon name="attach" />
               </DropdownMenu.Trigger>
             {/snippet}

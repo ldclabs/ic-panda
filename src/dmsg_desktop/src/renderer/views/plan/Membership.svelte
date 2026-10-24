@@ -154,9 +154,8 @@
 {/snippet}
 
 <Page>
-  <section class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs" data-testid="plan-hero">
-    <div class="flex flex-wrap items-start gap-4 bg-gradient-to-br from-pale to-surface px-6 py-5">
-      <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-forest text-on-forest [&_svg]:size-6"><Icon name="plan" /></span>
+  <section class="px-5" data-testid="plan-hero">
+    <div class="flex flex-wrap items-start gap-3">
       <div class="min-w-0 flex-1">
         <p class="text-[12px] font-medium text-faint">{t('plan')}</p>
         <p class="text-[26px] leading-tight font-semibold" data-testid="plan-name">{plan?.plan ?? '—'}</p>
@@ -175,11 +174,8 @@
     </div>
     {#if errors.plan}<div class="px-6 pb-4"><Notice tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}
     {#if plan}
-      <dl class="divide-y divide-line border-t border-line px-6">
+      <dl class="mt-3">
         {#if current}<Fact label={t('term')} testid="plan-term">{when(current.term_starts_at_ms ?? current.starts_at_ms)} – {when(current.ends_at_ms)}</Fact>{/if}
-        <Fact label={t('storage')}>{size(plan.limits?.storage_bytes ?? 0)}</Fact>
-        <Fact label={t('activeChannels')}>{plan.limits?.active_channels ?? '-'}</Fact>
-        <Fact label={t('signaturesMonthly')}>{plan.limits?.monthly_execution_units ?? '-'}</Fact>
         {#each plan.addons ?? [] as addon (addon.order)}
           <Fact label={t('storagePack')}>+{size(addon.storage_bytes)} · {t('until', { time: when(addon.expires_at_ms) })}</Fact>
         {/each}
@@ -208,20 +204,24 @@
     <Notice tone="warn" icon="warning" testid="plan-over-limit">{t('overLimit')}</Notice>
   {/if}
 
-  <Section title={t('usageOverview')} description={t('usageOverviewHint')} icon="health" testid="plan-usage">
+  <Section title={t('usageOverview')} icon="health" testid="plan-usage">
     <div class="grid gap-4 sm:grid-cols-3">
       {#if cloud}
         {@render meter(t('storage'), size(cloud.reserved + cloud.committed), cloud.storage_limit ? size(cloud.storage_limit) : '-', share(cloud.reserved + cloud.committed, cloud.storage_limit), 'usage-storage')}
         {@render meter(t('activeChannels'), String(cloud.active_channels ?? '-'), String(cloud.channel_limit ?? '-'), share(cloud.active_channels, cloud.channel_limit), 'usage-channels')}
-      {:else if errors.cloud}
-        <p class="text-[12.5px] text-faint sm:col-span-2">{errors.cloud}</p>
+      {:else}
+        {@render meter(t('storage'), '—', plan?.limits ? size(plan.limits.storage_bytes) : '—', 0, 'usage-storage')}
+        {@render meter(t('activeChannels'), '—', String(plan?.limits?.active_channels ?? '—'), 0, 'usage-channels')}
       {/if}
       {#if execution}
         {@render meter(t('signaturesThisMonth'), String(execution.charged), String(execution.allowed), share(execution.charged, execution.allowed), 'usage-signatures')}
-      {:else if errors.execution}
-        <p class="text-[12.5px] text-faint">{errors.execution}</p>
+      {:else}
+        {@render meter(t('signaturesThisMonth'), '—', '—', 0, 'usage-signatures')}
       {/if}
     </div>
+    {#if plan?.limits}<p class="mt-3 text-[12px] text-muted">{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</p>{/if}
+    {#if errors.cloud}<Notice tone="danger" class="mt-3">{errors.cloud}</Notice>{/if}
+    {#if errors.execution}<Notice tone="danger" class="mt-3">{errors.execution}</Notice>{/if}
   </Section>
 
   {#if errors.catalog}<Notice tone="danger">{errors.catalog}</Notice>{/if}
@@ -300,7 +300,7 @@
 >
   {#snippet body()}
     {#if refund}
-      <dl class="divide-y divide-line">
+      <dl>
         <Fact label={t('refundAmount')} testid="refund-amount">{units(refund.refund, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('networkFee')}>{units(refund.fee, refund.decimals)} {refund.asset}</Fact>
         <Fact label={t('refundReceived')}>{units(refund.received, refund.decimals)} {refund.asset}</Fact>

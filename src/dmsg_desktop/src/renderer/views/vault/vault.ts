@@ -158,11 +158,20 @@ export const isManaged = (item: any) => (item.tags ?? []).some((tag: string) => 
 /** The one-time-password field an item shows a code for. */
 export const otpField = (item: any): Field | undefined => (item.fields ?? []).find((f: Field) => f.type === 'otp' && f.value)
 
-/** A line on what the item is: the user name, the address, another shown value, the notes' first line, or its type. */
+/** List summaries never preview free-form notes, hidden fields or URL credentials/tokens. */
 export function line(item: any, t: (label: Label) => string): string {
-  const shown = (item.fields ?? []).filter((f: Field) => !isHidden(f) && f.value.trim())
-  const pick = valueOf(item, 'username') || valueOf(item, 'url').replace(/^https?:\/\//, '') || shown[0]?.value.split('\n')[0]
-  return pick || (item.notes ?? '').split('\n')[0] || t(typeLabel[typeOf(item)])
+  const type = typeOf(item)
+  if (['login', 'api', 'server', 'database'].includes(type)) {
+    const fields: Field[] = item.fields ?? []
+    const shown = (id: string) => fields.find((f) => f.id === id && !isHidden(f))?.value.trim() ?? ''
+    const username = shown('username')
+    if (username) return username.split('\n')[0]
+    try {
+      const url = new URL(shown('url'))
+      if (['https:', 'http:'].includes(url.protocol)) return url.host
+    } catch { /* An incomplete URL is not a safe list preview. */ }
+  }
+  return t(typeLabel[type])
 }
 
 /** The text a search looks in, as the daemon's own search: the title, tags, notes, field labels and shown values. */

@@ -4,6 +4,7 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    loadFailed: 'Could not load',
     storageExhausted: "Download limit reached",
     storageTitle: "Cloud storage",
     storageSubtitle: "Manage backups, shared copies and channel attachments. Space returns after cleanup.",

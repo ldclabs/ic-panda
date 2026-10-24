@@ -10,7 +10,7 @@
   import TagInput from '../../components/TagInput.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, onChange, size, when } from '../../rpc'
   import { fileIcon, originLabel, previewable, statusIcon, statusLabel, statusOf, statusTone, type Status } from './files'
@@ -191,7 +191,7 @@
 <section class="@container flex h-full min-w-0 flex-col" aria-label={file.name} data-testid="files-detail">
   <header class="flex flex-wrap items-start gap-x-3 gap-y-2 px-6 pt-5 pb-4">
     <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
-      <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5">
+      <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
         <Icon name={fileIcon(file.mime)} />
       </span>
       <div class="min-w-0 flex-1">
@@ -217,7 +217,7 @@
         {:else}
           <Tooltip content={file.starred ? t('unstar') : t('star')}>
             {#snippet children(props)}
-              <button {...props} class={buttonClass('ghost', 'md', cn('size-8 px-0', file.starred && 'text-gem hover:not-disabled:text-gem'))} aria-label={file.starred ? t('unstar') : t('star')} aria-pressed={file.starred} disabled={busy} onclick={star} data-testid="files-star">
+              <button {...props} class={iconButtonClass('ghost', 'md', cn(file.starred && 'text-gem hover:not-disabled:text-gem'))} aria-label={file.starred ? t('unstar') : t('star')} aria-pressed={file.starred} disabled={busy} onclick={star} data-testid="files-star">
                 <Icon name={file.starred ? 'starred' : 'star'} />
               </button>
             {/snippet}
@@ -235,7 +235,7 @@
           <DropdownMenu.Root dir={localeDir(locale())}>
             <Tooltip content={t('moreActions')}>
               {#snippet children(props)}
-                <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('moreActions')} data-testid="files-more">
+                <DropdownMenu.Trigger {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="files-more">
                   <Icon name="more" />
                 </DropdownMenu.Trigger>
               {/snippet}
@@ -280,18 +280,18 @@
   </header>
 
   {#if trash}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
       <Icon name="trash" class="shrink-0" /><span>{t('inTrash')}</span>
     </div>
   {:else if status === 'cloud_only'}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted" data-testid="files-cloud-only">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted" data-testid="files-cloud-only">
       <Icon name="cloud-down" class="shrink-0 text-forest" /><span>{t('statusCloudOnly')} · {t('releaseLocalHint')}</span>
     </div>
   {/if}
 
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
     {#if preview}
-      <div class="mb-3 overflow-hidden rounded-xl border border-line bg-surface-2 shadow-xs" data-testid="files-preview">
+      <div class="mb-3 overflow-hidden rounded-lg bg-surface-2" data-testid="files-preview">
         {#if previewing}
           <div class="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[11.5px] text-muted" data-testid="files-preview-version">
             <span class="min-w-0 flex-1 truncate">{t('previewOf', { time: dateFormat.format(previewing.created_at) })}</span>
@@ -307,7 +307,7 @@
       </div>
     {/if}
 
-    <dl class="divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs" data-testid="files-facts">
+    <dl class="grid gap-1" data-testid="files-facts">
       <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
         {@render row(t('fileType'))}
         <dd class="min-w-0 truncate select-text">{file.mime}</dd>
@@ -320,7 +320,7 @@
         {@render row('SHA-256')}
         <dd class="flex min-w-0 items-center gap-1">
           <span class="min-w-0 flex-1 truncate font-mono text-[12px] select-text" dir="ltr">{file.sha256}</span>
-          <button class={buttonClass('ghost', 'xs', 'size-6 shrink-0 px-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
+          <button class={iconButtonClass('ghost', 'md', 'shrink-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
         </dd>
       </div>
       <div class="grid gap-x-4 py-2 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
@@ -372,7 +372,7 @@
       </div>
       <ul class="grid gap-1.5" data-testid="files-links">
         {#each links as link (link.share_id)}
-          <li class="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px]">
+          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px]">
             <Icon name="link" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}</span>
@@ -394,7 +394,7 @@
       <ul class="grid gap-1.5" data-testid="files-statements">
         {#each mine as entry (entry.execution)}
           {@const version = versions.find((v) => v.sha256 === entry.statement.content.sha256)}
-          <li class="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px]">
+          <li class="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px]">
             <Icon name="signature" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate">{entry.statement.content.text ?? entry.statement.profile}</span>
@@ -410,11 +410,11 @@
     {/if}
 
     <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('versions')} · {versions.length}</h3>
-    <ol class="divide-y divide-line rounded-xl border border-line bg-surface shadow-xs" data-testid="files-versions">
+    <ol class="divide-y divide-line" data-testid="files-versions">
       {#each [...versions].reverse() as version (version.id)}
         {@const vs = statusOf(version.status)}
         <li class="flex items-center gap-3 px-4 py-2.5">
-          <span class={cn('grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface-2', tones[statusTone[vs]])}>
+          <span class={cn('grid size-8 shrink-0 place-items-center [&_svg]:size-5', tones[statusTone[vs]])}>
             <Icon name={statusIcon[vs]} />
           </span>
           <div class="min-w-0 flex-1">
@@ -432,7 +432,7 @@
           </div>
           {#if unlocked && !trash}
             <DropdownMenu.Root dir={localeDir(locale())}>
-              <DropdownMenu.Trigger class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('moreActions')} data-testid="files-version-more">
+              <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="files-version-more">
                 <Icon name="more" />
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>

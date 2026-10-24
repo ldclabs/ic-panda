@@ -96,7 +96,7 @@
   }
 
   const tabClass =
-    'h-7 flex-1 rounded-lg px-3 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink data-[state=active]:shadow-xs'
+    'h-7 flex-1 rounded-lg px-3 text-[12.5px] text-muted outline-none transition-colors duration-150 hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=active]:bg-surface data-[state=active]:font-medium data-[state=active]:text-ink'
 </script>
 
 <Dialog bind:open title={tab === 'create' ? t('newChannel') : t('joinChannel')} icon="channels" testid="channel-new-dialog">

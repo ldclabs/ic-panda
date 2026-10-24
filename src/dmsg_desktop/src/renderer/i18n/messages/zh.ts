@@ -2,6 +2,7 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    loadFailed: '读取失败',
     storageExhausted: "下载次数已用尽",
     storageTitle: "云端空间",
     storageSubtitle: "管理备份、分享副本和频道附件；删除完成后释放空间。",

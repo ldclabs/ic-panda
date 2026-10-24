@@ -67,7 +67,7 @@
       </button>
     {/if}
   {/snippet}
-  <dl class="divide-y divide-line">
+  <dl>
     <Fact label={t('appVersion')} testid="app-version">{info?.version ?? '-'}</Fact>
     <Fact label={t('updates')} testid="update-state">
       {#if !update}

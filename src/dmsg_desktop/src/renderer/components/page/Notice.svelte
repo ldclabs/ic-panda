@@ -22,15 +22,15 @@
   } = $props()
 
   const tones = {
-    info: 'border-line bg-surface-2 text-ink-2 [&>svg]:text-faint',
-    warn: 'border-warn/35 bg-warn-pale text-ink-2 [&>svg]:text-warn',
-    danger: 'border-danger/30 bg-danger-pale text-danger [&>svg]:text-danger',
-    ok: 'border-ok/30 bg-ok-pale text-ink-2 [&>svg]:text-ok'
+    info: 'text-muted [&>svg]:text-faint',
+    warn: 'border border-warn/35 bg-warn-pale text-ink-2 [&>svg]:text-warn',
+    danger: 'border border-danger/30 bg-danger-pale text-danger [&>svg]:text-danger',
+    ok: 'bg-ok-pale text-ink-2 [&>svg]:text-ok'
   }
   const icons: Record<string, Glyph> = { info: 'info', warn: 'warning', danger: 'warning', ok: 'check' }
 </script>
 
-<div class={cn('flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-[12.5px] leading-normal', tones[tone], className)} data-testid={testid} role={tone === 'danger' ? 'alert' : undefined}>
+<div class={cn('flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[12.5px] leading-normal', tones[tone], className)} data-testid={testid} role={tone === 'danger' ? 'alert' : undefined}>
   <Icon name={icon ?? icons[tone]} class="mt-px shrink-0" />
   <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">{@render children()}</div>
   {#if action}<div class="-my-0.5 shrink-0">{@render action()}</div>{/if}

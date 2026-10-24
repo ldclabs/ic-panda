@@ -188,7 +188,7 @@
             <p class="mt-1"><Id id={panda.payer} full wrap testid="checkout-payer" /></p>
             {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={() => copyText(panda.payer)}><Icon name="copy" />{t('copy')}</button>{/snippet}
           </Notice>
-          <dl class="divide-y divide-line">
+          <dl>
             <Fact label={t('stake')} testid="checkout-stake">{required != null ? `${units(required, 8)} PANDA` : t('pandaNoRate')}</Fact>
             {#if lockUntil != null}
               <Fact label={t('lockRequirement')} testid="checkout-lock">{t('lockNotBefore', { time: when(lockUntil) })}</Fact>
@@ -201,7 +201,7 @@
             <p class="text-[12.5px] text-faint" data-testid="checkout-no-neurons">{t('noNeurons')}</p>
           {:else}
             <RadioGroup.Root bind:value={neuron} aria-label={t('neuron')}>
-              <ul class="divide-y divide-line rounded-xl border border-line">
+              <ul class="divide-y divide-line">
                 {#each panda.neurons as n (n.id)}
                   <li class={cn('px-3.5 py-2.5', neuron === n.id && 'bg-pale/60')}>
                     <Radio value={n.id} disabled={!enough(n) || !covered(n)} testid="checkout-neuron">

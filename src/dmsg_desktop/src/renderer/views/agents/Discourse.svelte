@@ -114,7 +114,7 @@
             {#each rooms ?? [] as r (`${r.host} ${r.room_id}`)}
               <li>
                 <button
-                  class={cn('grid w-full gap-0.5 rounded-lg border px-3 py-2 text-start', room === r.room_id ? 'border-forest bg-pale' : 'border-line hover:bg-surface-2')}
+                  class={cn('grid w-full gap-0.5 rounded-lg px-3 py-2 text-start', room === r.room_id ? 'bg-pale font-medium' : 'hover:bg-surface-2')}
                   onclick={() => choose(r.room_id)}
                 >
                   <span class="flex items-center gap-1.5">
@@ -147,7 +147,7 @@
           <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('pendingInbox')}</h3>
           <ul class="grid gap-1" data-testid="discourse-inbox">
             {#each inbox as item (item.id)}
-              <li class="rounded-lg border border-line px-3 py-2 text-[12px]">
+              <li class="border-b border-line px-3 py-2 text-[12px] last:border-b-0">
                 <p class="flex items-center gap-1.5"><Pill>{item.kind}</Pill>{#if item.requires_response}<Pill tone="warn">{t('needsResponse')}</Pill>{/if}</p>
                 <p class="mt-0.5 text-muted">{item.reason}</p>
                 <p class="mt-0.5 text-[11px] text-faint">{labelOf(item.actor)} · {ago(item.created_at)}</p>
@@ -161,7 +161,7 @@
       <div class="min-w-0">
         {#if state_}
           <div class="grid gap-3" data-testid="discourse-room">
-            <div class="rounded-xl border border-line p-3">
+            <div class="rounded-lg bg-surface-2 p-3">
               <div class="flex flex-wrap items-center gap-1.5">
                 <b class="text-[14px] font-semibold">{state_.topic ?? state_.room_id}</b>
                 <Pill>{state_.status}</Pill>
@@ -174,7 +174,7 @@
               <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('members')} · {members.length}</h3>
               <ul class="flex flex-wrap gap-1.5" data-testid="discourse-members">
                 {#each members as m (m.agent_id)}
-                  <li class="inline-flex items-center gap-1.5 rounded-lg border border-line px-2 py-1 text-[12px]">
+                  <li class="inline-flex items-center gap-1.5 rounded-lg bg-wash px-2 py-1 text-[12px]">
                     <span class={cn(m.status === 'active' ? 'text-ink' : 'text-faint')}>{m.profile?.name ?? labelOf(m.agent_id)}</span>
                     <span class="text-[11px] text-faint">{m.role}{m.is_creator ? ' · ★' : ''}</span>
                   </li>
@@ -183,7 +183,7 @@
             </div>
             <div>
               <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('latestRecords')}</h3>
-              <ol class="divide-y divide-line rounded-xl border border-line" data-testid="discourse-timeline">
+              <ol class="divide-y divide-line" data-testid="discourse-timeline">
                 {#each timeline as item (item.seq)}
                   <li class="grid gap-0.5 px-3 py-2">
                     <div class="flex flex-wrap items-center gap-1.5 text-[11.5px]">

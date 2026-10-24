@@ -7,7 +7,7 @@
 </script>
 
 <div class="h-full overflow-y-auto" data-testid={testid}>
-  <div class={cn('mx-auto grid gap-5 px-8 pt-6 pb-10', wide ? 'max-w-[1040px]' : 'max-w-[860px]')}>
+  <div class={cn('mx-auto grid gap-8 px-3 pt-6 pb-10 sm:px-6', wide ? 'max-w-[1040px]' : 'max-w-[860px]')}>
     {@render children()}
   </div>
 </div>

@@ -4,7 +4,7 @@
   import { t } from '../i18n/index.svelte'
   import type { Glyph } from './glyphs'
   import Icon from './Icon.svelte'
-  import { buttonClass, cn } from './ui'
+  import { iconButtonClass, cn } from './ui'
 
   /**
    * A modal step on the bits-ui dialog: a flow that should not share the
@@ -18,6 +18,7 @@
     icon,
     tone = 'forest',
     wide = false,
+    dismissible = true,
     testid,
     onOpenAutoFocus,
     children,
@@ -29,6 +30,7 @@
     icon?: Glyph
     tone?: 'forest' | 'warn' | 'danger'
     wide?: boolean
+    dismissible?: boolean
     testid?: string
     onOpenAutoFocus?: (event: Event) => void
     children: Snippet
@@ -45,21 +47,23 @@
     />
     <Dialog.Content
       {onOpenAutoFocus}
+      escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
+      interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
       class={cn(
         'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-48px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-pop outline-none duration-200 ease-spring-soft data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-98 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98',
         wide ? 'w-[min(760px,calc(100vw-32px))]' : 'w-[min(520px,calc(100vw-32px))]'
       )}
       data-testid={testid}
     >
-      <header class="flex items-start gap-3 border-b border-line px-5 py-4">
+      <header class="flex items-start gap-3 px-5 pt-4 pb-2">
         {#if icon}
-          <span class={cn('grid size-9 shrink-0 place-items-center rounded-[10px] border border-line bg-surface-2', tones[tone])}><Icon name={icon} /></span>
+          <span class={cn('grid h-9 w-5 shrink-0 place-items-center [&_svg]:size-5', tones[tone])}><Icon name={icon} /></span>
         {/if}
         <div class="min-w-0 flex-1">
-          <Dialog.Title class="text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]">{title}</Dialog.Title>
+          <Dialog.Title class="pt-2 text-[15px] leading-5 font-semibold [overflow-wrap:anywhere]">{title}</Dialog.Title>
           {#if description}<Dialog.Description class="mt-0.5 text-[12.5px] leading-normal text-muted">{description}</Dialog.Description>{/if}
         </div>
-        <Dialog.Close class={buttonClass('ghost', 'sm', '-me-1.5 size-7 px-0')} aria-label={t('close')}>
+        <Dialog.Close class={iconButtonClass('ghost', 'lg')} disabled={!dismissible} aria-label={t('close')} data-testid="dialog-close">
           <Icon name="close" />
         </Dialog.Close>
       </header>
@@ -67,7 +71,7 @@
         {@render children()}
       </div>
       {#if footer}
-        <footer class="flex flex-wrap items-center gap-2 border-t border-line bg-surface-2 px-5 py-3">
+        <footer class="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
           {@render footer()}
         </footer>
       {/if}

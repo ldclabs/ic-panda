@@ -228,7 +228,7 @@
     {:else if checkouts && !checkouts.length}
       <p class="px-5 pb-4 text-[12.5px] text-faint" data-testid="no-orders">{t('noOrders')}</p>
     {:else if checkouts}
-      <ul class="divide-y divide-line border-t border-line" data-testid="checkouts">
+      <ul class="divide-y divide-line" data-testid="checkouts">
         {#each checkouts as job (job.id)}
           {@const order = orders[job.id]}
           {@const state = orderState(job, order)}
@@ -272,7 +272,7 @@
     {#if errors.payer}
       <Notice tone="danger">{errors.payer}</Notice>
     {:else if payer}
-      <dl class="divide-y divide-line">
+      <dl>
         <Fact label={t('payer')}>
           <span class="flex flex-wrap items-center gap-1.5">
             <Id id={payer.principal} full testid="payer-principal" />
@@ -316,7 +316,7 @@
   {#snippet body()}
     {#if cancelling?.quote}
       {@const quote = cancelling.quote}
-      <dl class="divide-y divide-line">
+      <dl>
         <Fact label={t('refundAmount')} testid="refund-amount">{units(quote.refund, quote.decimals)} {quote.asset}</Fact>
         <Fact label={t('networkFee')}>{units(quote.fee, quote.decimals)} {quote.asset}</Fact>
         <Fact label={t('refundReceived')}>{units(quote.received, quote.decimals)} {quote.asset}</Fact>

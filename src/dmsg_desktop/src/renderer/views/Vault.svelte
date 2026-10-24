@@ -8,7 +8,7 @@
   import TagInput from '../components/TagInput.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass } from '../components/ui'
+  import { iconButtonClass, buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import Conflict from './vault/Conflict.svelte'
@@ -438,7 +438,7 @@
           {#if unlocked && !trash}
             <Tooltip content={`${t('add')} · ${mod}N`}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('primary', 'md', 'size-8 px-0')} aria-label={t('add')} onclick={() => (creating = true)} data-testid="vault-new">
+                <button {...props} class={iconButtonClass('primary', 'md')} aria-label={t('add')} onclick={() => (creating = true)} data-testid="vault-new">
                   <Icon name="add" />
                 </button>
               {/snippet}
@@ -461,7 +461,7 @@
               {#snippet children(props)}
                 <button
                   {...props}
-                  class={buttonClass(choosing ? 'secondary' : 'ghost', 'md', 'size-8 px-0')}
+                  class={iconButtonClass(choosing ? 'secondary' : 'ghost')}
                   aria-label={t('selectItems')}
                   aria-pressed={choosing}
                   onclick={() => ((choosing = !choosing), (chosen = new Set()))}
@@ -473,7 +473,7 @@
             </Tooltip>
             <Tooltip content={t('importTitle')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('importTitle')} onclick={() => (importing = true)} data-testid="vault-import-open">
+                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('importTitle')} onclick={() => (importing = true)} data-testid="vault-import-open">
                   <Icon name="import" />
                 </button>
               {/snippet}
@@ -518,7 +518,7 @@
               {:else if scope === 'health'}
                 <p class="text-[13px] text-muted">{t(healthStatus === 'ready' ? 'healthClear' : healthStatus === 'error' ? 'error' : 'loading')}</p>
               {:else if scope === 'all'}
-                <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="vault" /></span>
+                <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="vault" /></span>
                 <b class="text-[13.5px] font-semibold">{t('emptyVault')}</b>
                 <p class="text-[12.5px] text-muted">{t('emptyVaultHint')}</p>
                 {#if unlocked}

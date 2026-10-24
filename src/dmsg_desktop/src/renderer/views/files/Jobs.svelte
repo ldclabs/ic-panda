@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from '../../components/Icon.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { dismiss, jobs, type Job } from './adding.svelte'
 
@@ -21,7 +21,7 @@
 {#if jobs.length}
   <div class="pointer-events-none absolute inset-x-2 bottom-2 z-10 grid gap-1.5">
     {#if jobs.length > SHOWN}
-      <p class="pointer-events-auto justify-self-center rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11px] text-faint shadow-xs" data-testid="files-jobs-more">
+      <p class="pointer-events-auto justify-self-center rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11px] text-faint" data-testid="files-jobs-more">
         {t('moreJobs', { n: jobs.length - SHOWN })}
       </p>
     {/if}
@@ -45,7 +45,7 @@
           {:else if job.kind === 'add' && job.stage === 'running' && job.cancellable}
             <button class={buttonClass('ghost', 'xs', '-me-1 h-6 px-1.5')} disabled={job.cancelling} onclick={onCancelImport} data-testid="files-job-cancel-import">{t('cancel')}</button>
           {:else if job.stage !== 'running'}
-            <button class={buttonClass('ghost', 'xs', '-me-1 size-6 px-0')} aria-label={t('dismiss')} onclick={() => dismiss(job.key)}>
+            <button class={iconButtonClass('ghost', 'lg')} aria-label={t('dismiss')} onclick={() => dismiss(job.key)}>
               <Icon name="close" />
             </button>
           {/if}

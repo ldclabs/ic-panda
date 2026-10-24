@@ -2,6 +2,7 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    loadFailed: 'Chargement impossible',
     storageExhausted: "Limite de téléchargements atteinte",
     storageTitle: "Stockage cloud",
     storageSubtitle: "Gérez sauvegardes, copies partagées et pièces jointes. L’espace est libéré après nettoyage.",

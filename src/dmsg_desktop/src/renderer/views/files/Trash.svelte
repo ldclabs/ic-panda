@@ -66,7 +66,7 @@
         <p class="py-14 text-center text-[13px] text-muted">{t('emptyTrash')}</p>
       {/if}
     {:else}
-      <ul class="divide-y divide-line rounded-xl border border-line bg-surface shadow-xs">
+      <ul class="divide-y divide-line">
         {#each rows as row (row.id)}
           <li class={cn('flex items-center gap-3 px-3 py-2.5', opened === row.id && 'bg-pale')} data-id={row.id}>
             {#if unlocked}
@@ -78,7 +78,7 @@
               onclick={() => onOpen(opened === row.id ? null : row.id)}
               data-testid="files-trash-open"
             >
-              <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface-2 text-faint"><Icon name={row.kind === 'folder' ? 'folder' : fileIcon(row.mime)} /></span>
+              <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={row.kind === 'folder' ? 'folder' : fileIcon(row.mime)} /></span>
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-[13.5px] font-medium">{row.name}</span>
                 <span class="block truncate text-[11.5px] text-faint">

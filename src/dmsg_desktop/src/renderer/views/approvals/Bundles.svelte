@@ -102,7 +102,7 @@
 
 {#if unlocked}
   <Section title={t('signed')} description={t('signedHint')} icon="signature" flush>
-    <ul class="divide-y divide-line border-t border-line" data-testid="signed-list">
+    <ul class="divide-y divide-line" data-testid="signed-list">
       {#each history as entry (entry.execution)}
         <li class="flex items-start gap-3 px-5 py-3">
           <div class="min-w-0 flex-1">

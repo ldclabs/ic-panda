@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass } from '../components/ui'
+  import { iconButtonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
 
   /**
@@ -29,7 +29,7 @@
 
   const toggle = $derived(collapsed ? t('expandSidebar') : t('collapseSidebar'))
   // Plain icons in a row, as in anda-bot; an expanded sidebar is no open menu.
-  const button = buttonClass('ghost', 'sm', 'size-7 px-0 aria-expanded:bg-transparent [&_svg]:size-4')
+  const button = iconButtonClass('ghost', 'md', 'aria-expanded:bg-transparent')
 </script>
 
 {#snippet travel(step: -1 | 1, enabled: boolean)}

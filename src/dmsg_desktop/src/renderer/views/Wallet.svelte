@@ -10,7 +10,7 @@
   import Id from '../components/page/Id.svelte'
   import Select from '../components/Select.svelte'
   import TabBar from '../components/page/TabBar.svelte'
-  import { buttonClass } from '../components/ui'
+  import { buttonClass, iconButtonClass } from '../components/ui'
   import { copyText } from '../components/clipboard'
   import { toast } from '../components/toast.svelte'
   import { call, bridge, single, when, units } from '../rpc'
@@ -79,6 +79,8 @@
     filter = $state('all'),
     find = $state('')
   let newOpen = $state(false),
+    transferOpen = $state(false),
+    transferBusy = $state(false),
     joinOpen = $state(false),
     joining = $state(''),
     freezeOpen = $state(false),
@@ -138,6 +140,7 @@
         detailOpen = false
         manageOpen = false
         newOpen = false
+        transferOpen = false
         loading = false
         proposalsLoading = balanceBusy = bookBusy = auditBusy = false
         proposalError = assetError = ''
@@ -147,6 +150,9 @@
         receive = null
         if (current) { void loadList(); void loadPrincipal(); void loadDeposits() }
       })
+  })
+  $effect(() => {
+    if (!unlocked || !wallet || !mayPropose || wallet.frozen) transferOpen = false
   })
   $effect(() => {
     const parts = route.split('?')[0].split('/')
@@ -219,7 +225,7 @@
       balanceBusy = bookBusy = auditBusy = false
       balanceRevision++; bookRevision++; proposalRevision++
       assetsKey = bookKey = ''
-      manageOpen = false; receive = null; access = false
+      manageOpen = false; transferOpen = false; receive = null; access = false
       readCore = single(async () => {
         if (!fresh(run)) return
         try {
@@ -485,8 +491,7 @@
 
 <div class="flex h-full min-h-0 flex-col" data-testid="wallet-view">
   {#if unlocked && wallet}
-    <div class="border-line bg-surface flex flex-wrap items-center gap-3 border-b px-8 py-4">
-      <span class="bg-pale text-forest grid size-10 place-items-center rounded-xl"><Icon name="coins" /></span>
+    <div class="flex flex-wrap items-center gap-3 px-8 py-3">
       <div class="min-w-0 flex-1" data-testid="wallet-list"
         ><Select
           value={selected}
@@ -497,11 +502,15 @@
           testid="wallet-select"
         /><p data-testid="wallet-identity" class="text-faint mt-1 text-[11px]">{w(member?.role ?? 'unknown')} · {wallet.wallet}</p></div
       >
-      <button class={buttonClass('secondary', 'sm')} disabled={busy || listLoading || loading} onclick={refresh} aria-label={t('refresh')}
+      <button class={iconButtonClass()} disabled={busy || listLoading || loading} onclick={refresh} aria-label={t('refresh')} title={t('refresh')}
         ><Icon name="sync-now" /></button
       >
-      <button class={buttonClass('secondary', 'sm')} disabled={busy || WALLET_CREATION_PAUSED} title={WALLET_CREATION_PAUSED ? w('creationPausedHint') : undefined} onclick={() => (newOpen = true)} data-testid="wallet-new-button">+ {w('newWallet')}</button>
+      <div class="grid gap-0.5">
+        <button class={buttonClass('ghost', 'sm')} disabled={busy || WALLET_CREATION_PAUSED} aria-describedby={WALLET_CREATION_PAUSED ? 'wallet-creation-status' : undefined} onclick={() => (newOpen = true)} data-testid="wallet-new-button"><Icon name="add" />{w('newWallet')}</button>
+        {#if WALLET_CREATION_PAUSED}<span id="wallet-creation-status" class="max-w-56 text-[11px] text-faint" data-testid="wallet-creation-paused">{w('creationPausedHint')}</span>{/if}
+      </div>
       <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (joinOpen = true)}>{w('joinWallet')}</button>
+      {#if mayPropose && !wallet.frozen}<button class={buttonClass('primary')} disabled={!usable} onclick={() => (transferOpen = true)} data-testid="wallet-transfer-open"><Icon name="send" />{w('send')}</button>{/if}
     </div>
     <TabBar bind:value={tab} items={tabs} label={t('twNav')} testid="wallet-tab" />
   {/if}
@@ -509,7 +518,6 @@
     <Page wide>
       {#if !unlocked}<Notice>{t('locked')}</Notice>
       {:else}
-        {#if wallet && WALLET_CREATION_PAUSED}<Notice testid="wallet-creation-paused"><b>{w('creationPaused')}</b> · {w('creationPausedHint')}</Notice>{/if}
         {#if error}<Notice tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}
@@ -539,8 +547,8 @@
                 >{/if}</Notice
             >{/if}
           {#if tab === 'overview'}
-            <section class="grid gap-4 sm:grid-cols-3">
-              <div class="border-line bg-surface rounded-2xl border p-5"
+            <section class="grid grid-cols-3 gap-4 px-5" data-testid="wallet-metrics">
+              <div class="min-w-0 py-2"
                 ><p class="text-faint text-[12px]">{w('waiting')}</p><b class="text-[30px] font-semibold tabular-nums">{proposalsLoading && !proposals.length ? '—' : waiting}</b><button
                   class={buttonClass('ghost', 'xs', 'mt-2 block')}
                   onclick={() => {
@@ -549,12 +557,12 @@
                   }}>{w('details')}</button
                 ></div
               >
-              <div class="border-line bg-surface rounded-2xl border p-5"
+              <div class="min-w-0 py-2"
                 ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[30px] font-semibold whitespace-nowrap tabular-nums" data-testid="wallet-cycles"
                   >{cyclesText(wallet.stats?.cycles ?? '0')} <small class="text-[13px]">T</small></b
                 ><button class={buttonClass('ghost', 'xs', 'mt-2 block')} onclick={() => (tab = 'settings')}>{w('settings')}</button></div
               >
-              <div class="border-line bg-surface rounded-2xl border p-5"
+              <div class="min-w-0 py-2"
                 ><p class="text-faint text-[12px]">{w('policy')}</p><b class="text-[30px] font-semibold tabular-nums"
                   >{wallet.policy.approver_threshold}</b
                 ><span class="text-muted ms-2 text-[12px]">{w('approvals')}</span><button
@@ -563,12 +571,7 @@
                 ></div
               >
             </section>
-            <p class="text-faint text-[11px]">{w('activeHint')}</p>
-            {#if mayPropose && !wallet.frozen}
-              <Section title={w('send')} description={t('twSendHint')} icon="send">
-                {#key wallet.wallet}<Transfer {wallet} {metadata} {book} bind:draft={drafts[wallet.wallet]} onDone={proposed} />{/key}
-              </Section>
-            {/if}
+            <p class="text-faint -mt-5 px-5 text-[11px]">{w('activeHint')}</p>
             {#if proposalError}<Notice tone="danger">{proposalError}</Notice>{/if}
             <Section title={w('proposals')} icon="approvals" flush>
               {#each proposals.filter((p) => !finalStates.has(stateAt(p, now))).slice(0, 5) as p (p.id)}<button
@@ -578,6 +581,16 @@
                   ><Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-[13px]">{w(p.intent.kind)}</span><Pill>{w(stateAt(p, now))}</Pill
                   ></button
                 >{:else}<p class="text-faint px-5 py-4 text-[13px]">{proposalsLoading ? w('loading') : t('twNoProposals')}</p>{/each}
+            </Section>
+            <Section title={w('assets')} icon="coins" testid="wallet-assets-summary">
+              {#snippet actions()}<button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'assets')}>{w('details')}</button>{/snippet}
+              <div class="flex flex-wrap gap-2">
+                {#each wallet.addresses as address (address.id)}
+                  <button class={buttonClass('ghost', 'sm')} onclick={() => (tab = 'assets')}><Icon name="wallet" />{address.label || address.chain}<span class="text-faint">{address.chain}</span>{#if !address.verified}<Pill tone="danger">{t('twUnverified')}</Pill>{/if}</button>
+                {/each}
+              </div>
+              <p class="mt-2 text-[12px] text-muted">{metadata.map(assetIdentity).join(' · ') || w('noAssets')}</p>
+              {#if assetError}<Notice tone="danger">{assetError}</Notice>{/if}
             </Section>
           {:else if tab === 'proposals'}
             <div class="flex flex-wrap items-center gap-2"
@@ -839,6 +852,11 @@
       >{/snippet}</Dialog
   >
   {#if wallet}
+    <Dialog bind:open={transferOpen} dismissible={!transferBusy} title={w('send')} description={t('twSendHint')} icon="send" wide testid="wallet-transfer-dialog">
+      {#if transferOpen && mayPropose && !wallet.frozen}
+        {#key wallet.wallet}<Transfer {wallet} {metadata} {book} bind:busy={transferBusy} bind:draft={drafts[wallet.wallet]} onDone={(proposal) => { transferOpen = false; proposed(proposal) }} />{/key}
+      {/if}
+    </Dialog>
     <Dialog bind:open={freezeOpen} title={w('freeze')} description={w('freezeHint')} icon="lock" tone="danger"
       >{#snippet footer()}<button class={buttonClass('ghost')} onclick={() => (freezeOpen = false)}>{t('cancel')}</button><button
           class={buttonClass('danger')}

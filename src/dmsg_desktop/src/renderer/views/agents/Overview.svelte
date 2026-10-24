@@ -1,5 +1,6 @@
 <script lang="ts">
   import Checkbox from '../../components/Checkbox.svelte'
+  import Collapsible from '../../components/Collapsible.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -11,7 +12,7 @@
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
   import Suggest from '../../components/Suggest.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { when } from '../../rpc'
   import { bySubject, covers, list, profileHint, statusTone } from './agents'
@@ -36,6 +37,7 @@
     busy,
     request,
     run,
+    onRetry,
     delegate = $bindable('')
   }: {
     principal: any
@@ -50,6 +52,7 @@
     /** Whether the approval request was made. */
     request: (method: string, params?: Record<string, unknown>) => Promise<boolean>
     run: (method: string, params?: Record<string, unknown>) => Promise<void>
+    onRetry: () => void
     delegate?: string
   } = $props()
 
@@ -76,6 +79,11 @@
   let revoking = $state<{ credential: any; reason: string } | null>(null)
 
   const current = $derived((principal?.controllers ?? []).filter((c: any) => !c.retired_at))
+  const failures = $derived([
+    { label: t('principal'), message: principalError },
+    { label: t('credentials'), message: errors.credentials },
+    { label: t('delegationJournal'), message: errors.delegations }
+  ].filter((failure) => failure.message))
   const defaultController = $derived(current.find((c: any) => c.delegation === '*'))
   const registrationErrors = $derived(controllerErrors(controllerName, ceilingScopes, ceilingAudiences))
   const rotationErrors = $derived(rotating ? controllerErrors(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted) : {})
@@ -174,10 +182,20 @@
   const copyHint = (credential: any) => copyText(JSON.stringify(profileHint(principal, credential), null, 2))
 </script>
 
+{#if failures.length}
+  <Notice tone="danger" testid={principalError ? 'principal-error' : 'agent-overview-error'}>
+    <p>{t('loadFailed')}: {failures.map((failure) => failure.label).join(' · ')}</p>
+    <Collapsible class="mt-1">
+      {#snippet title()}<span class="text-[12px]">{t('technical')}</span>{/snippet}
+      {#each [...new Set(failures.map((failure) => failure.message))] as message}<p class="mt-1 text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">{message}</p>{/each}
+    </Collapsible>
+    {#snippet action()}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={onRetry}>{t('retry')}</button>{/snippet}
+  </Notice>
+{/if}
+
 <Section title={t('principal')} description={t('principalHint')} icon="plan">
-  {#if principalError}<Notice tone="danger" class="mb-3" testid="principal-error">{principalError}</Notice>{/if}
   {#if principal}
-    <dl class="divide-y divide-line">
+    <dl>
       <Fact label="ID"><Id id={principal.principal_id} full testid="principal-id" /></Fact>
       <Fact label={t('type')}>{String(principal.type).toLowerCase()}</Fact>
       <Fact label={t('status')} testid="principal-published">
@@ -236,7 +254,7 @@
         </Notice>
       </div>
     {/if}
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each principal.controllers as c (c.generation)}
         <li class="flex items-start gap-3 px-5 py-3">
           <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 font-mono text-[12px] text-muted">#{c.generation}</span>
@@ -303,7 +321,7 @@
 {/if}
 
   <Section title={t('credentials')} description={t('credentialsHint')} icon="epoch" flush>
-    {#if errors.credentials}<Notice tone="danger">{errors.credentials}</Notice>{/if}
+    {#if errors.credentials}<p class="px-5 text-[12px] text-danger">{t('loadFailed')}</p>{/if}
     <div class="border-t border-line" data-testid="credentials">
       {#each bySubject(credentials) as [subject, group] (subject)}
         <div class="border-b border-line last:border-b-0">
@@ -336,7 +354,7 @@
                   </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('copyHint')} title={t('copyHint')} disabled={!principal} onclick={() => copyHint(c)} data-testid="credential-hint"
+                  <button class={iconButtonClass('ghost', 'md')} aria-label={t('copyHint')} title={t('copyHint')} disabled={!principal} onclick={() => copyHint(c)} data-testid="credential-hint"
                     ><Icon name="copy" /></button
                   >
                   {#if c.status !== 'revoked' && unlocked}
@@ -385,10 +403,9 @@
     {/if}
   </Section>
 
-  {#if errors.delegations}<Notice tone="danger">{errors.delegations}</Notice>{/if}
   {#if delegations.length}
     <Section title={t('delegationJournal')} description={t('delegationJournalHint')} icon="history" flush testid="delegation-journal">
-      <ul class="divide-y divide-line border-t border-line">
+      <ul class="divide-y divide-line">
         {#each delegations.slice(0, 20) as job (job.id)}
           <li class="flex flex-wrap items-center gap-2 px-5 py-2.5 text-[12.5px]">
             <Pill tone={job.stage === 'accepted' ? 'ok' : job.stage === 'failed' ? 'danger' : 'warn'}>{stageLabel(job.stage)}</Pill>

@@ -243,7 +243,7 @@
       </div>
       {#if synced}<p class="text-[12px] text-muted" role="status">{synced}</p>{/if}
       {#if messages?.length}
-        <div class="grid min-h-80 overflow-hidden rounded-xl border border-line lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
+        <div class="grid min-h-80 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
           <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">
             <ul class="max-h-[520px] divide-y divide-line overflow-y-auto" data-testid="mail-messages">
               {#each messages as message (keyOf(message))}
@@ -312,7 +312,7 @@
           </div>
         </div>
       {:else}
-        <div class="grid min-h-60 place-content-center justify-items-center gap-3 rounded-xl border border-dashed border-line px-8 text-center" data-testid="mail-empty">
+        <div class="grid min-h-60 place-content-center justify-items-center gap-3 px-8 text-center" data-testid="mail-empty">
           <Icon name="mail" class="size-8 text-faint" />
           <h3 class="text-[14px] font-medium">{busy ? t('loading') : error ? t('agentLoadFailed') : t('noLetters')}</h3>
           <p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('mailEmptyHint')}</p>

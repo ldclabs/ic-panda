@@ -4,7 +4,7 @@
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, size, when } from '../../rpc'
   import { fileIcon } from './files'
@@ -90,7 +90,7 @@
     {#if !entries.length}
       {#if loaded}
         <div class="grid justify-items-center gap-2 px-4 py-14 text-center" data-testid="files-cloud-empty">
-          <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="cloud-down" /></span>
+          <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="cloud-down" /></span>
           <b class="text-[13.5px] font-semibold">{t('cloudEmpty')}</b>
           <p class="max-w-sm text-[12.5px] text-muted">{t('cloudEmptyHint')}</p>
         </div>
@@ -100,11 +100,11 @@
         {#each groups as [path, list] (path)}
           <div>
             <h3 class="mb-1.5 flex items-center gap-1.5 px-1 text-[12px] font-medium text-faint"><Icon name="folder" class="size-3.5" />{path === '/' ? t('library') : path}</h3>
-            <ul class="divide-y divide-line rounded-xl border border-line bg-surface shadow-xs">
+            <ul class="divide-y divide-line">
               {#each list as entry (entry.upload_id)}
                 <li class="flex items-center gap-3 px-3 py-2.5" data-upload={entry.upload_id}>
                   <Checkbox checked={picked.includes(entry.upload_id)} onCheckedChange={(on) => toggle(entry.upload_id, on)} disabled={!unlocked} testid="files-cloud-pick" />
-                  <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface-2 text-faint"><Icon name={entry.needs_root ? 'cloud-off' : fileIcon(entry.mime)} /></span>
+                  <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={entry.needs_root ? 'cloud-off' : fileIcon(entry.mime)} /></span>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-1.5">
                       <span class="truncate text-[13.5px] font-medium">{entry.name ?? entry.upload_id.slice(0, 12) + '…'}</span>
@@ -126,14 +126,14 @@
                     </Tooltip>
                     <Tooltip content={t('fetchTo')}>
                       {#snippet children(props)}
-                        <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('fetchTo')} disabled={busy || entry.needs_root || entry.local} onclick={() => onFetchTo(entry.upload_id)} data-testid="files-cloud-fetch-to">
+                        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('fetchTo')} disabled={busy || entry.needs_root || entry.local} onclick={() => onFetchTo(entry.upload_id)} data-testid="files-cloud-fetch-to">
                           <Icon name="folder" />
                         </button>
                       {/snippet}
                     </Tooltip>
                     <Tooltip content={t('verifyFile')}>
                       {#snippet children(props)}
-                        <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('verifyFile')} disabled={busy || entry.needs_root} onclick={() => onVerify(entry.upload_id)}>
+                        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('verifyFile')} disabled={busy || entry.needs_root} onclick={() => onVerify(entry.upload_id)}>
                           <Icon name="verified" />
                         </button>
                       {/snippet}

@@ -74,7 +74,7 @@
       <span>{t('securityEpoch')} {view.security_epoch}</span>
       <span>{t('rootGeneration')} {view.root_generation}</span>
     </p>
-    <ul class="divide-y divide-line border-t border-line">
+    <ul class="divide-y divide-line">
       {#each view.devices as device (device.device_id)}
         <li class={cn('px-5 py-3.5', device.revoked_at && 'opacity-60')}>
           <div class="flex items-start gap-3">
@@ -109,7 +109,7 @@
             {/if}
           </div>
           {#if editing === device.device_id}
-            <div class="ms-12 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface-2/60 p-3">
+            <div class="ms-12 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-surface-2/60 p-3">
               {#each CAPABILITIES as capability (capability)}
                 <Checkbox checked={chosen.includes(capability)} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter((c) => c !== capability))}>
                   {capability}

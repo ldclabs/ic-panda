@@ -68,7 +68,7 @@
       <button class={buttonClass('primary', 'lg', 'justify-self-start')} disabled={busy} data-testid="create-account" onclick={create}>
         <Icon name="add" />{t('createAccount')}
       </button>
-      <div class="grid gap-2 rounded-xl border border-line bg-surface-2/60 p-3.5">
+      <div class="grid gap-2 rounded-lg bg-surface-2/60 p-3.5">
         <b class="text-[13px] font-semibold">{t('joinAccount')}</b>
         <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
         <div class="flex gap-2">

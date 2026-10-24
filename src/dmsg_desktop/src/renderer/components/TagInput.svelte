@@ -57,14 +57,14 @@
       <span class="truncate">{tag}</span>
       <button
         type="button"
-        class="grid size-5 shrink-0 place-items-center rounded text-faint outline-none hover:bg-paper-dim hover:text-ink focus-visible:ring-2 focus-visible:ring-focus/35"
+        class="grid size-6 shrink-0 place-items-center rounded text-faint outline-none hover:bg-paper-dim hover:text-ink focus-visible:ring-2 focus-visible:ring-focus/35"
         aria-label={`${t('remove')} ${tag}`}
         onclick={(event) => {
           event.stopPropagation()
           tags = tags.filter((_, j) => j !== i)
         }}
       >
-        <Icon name="close" class="size-3" />
+        <Icon name="close" class="size-3.5" />
       </button>
     </span>
   {/each}

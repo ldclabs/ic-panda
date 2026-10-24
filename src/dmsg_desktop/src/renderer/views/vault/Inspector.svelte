@@ -5,7 +5,7 @@
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, size, when } from '../../rpc'
   import { focus as fileFocus } from '../files/focus.svelte'
@@ -141,7 +141,7 @@
 {#snippet copyButton(text: string, label: string)}
   <Tooltip content={label}>
     {#snippet children(props)}
-      <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={label} onclick={() => copyText(text)}>
+      <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={label} onclick={() => copyText(text)}>
         <Icon name="copy" />
       </button>
     {/snippet}
@@ -174,7 +174,7 @@
         {#if /^https?:\/\//i.test(field.value)}
           <Tooltip content={t('openWebsite')}>
             {#snippet children(props)}
-              <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('openWebsite')} onclick={() => open(field.value)} data-testid="vault-open-url">
+              <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('openWebsite')} onclick={() => open(field.value)} data-testid="vault-open-url">
                 <Icon name="external" />
               </button>
             {/snippet}
@@ -200,7 +200,7 @@
 
 <section class="@container flex h-full min-w-0 flex-col" aria-label={item.title} data-testid="vault-inspector">
   <header class="flex items-start gap-3 px-6 pt-5 pb-4">
-    <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5">
+    <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
       <Icon name={typeIcon[type]} />
     </span>
     <div class="min-w-0 flex-1">
@@ -224,7 +224,7 @@
             {#snippet children(props)}
               <button
                 {...props}
-                class={buttonClass('ghost', 'md', cn('size-8 px-0', item.favorite && 'text-gem hover:not-disabled:text-gem'))}
+                class={iconButtonClass('ghost', 'md', cn(item.favorite && 'text-gem hover:not-disabled:text-gem'))}
                 aria-label={item.favorite ? t('unstar') : t('star')}
                 aria-pressed={item.favorite}
                 disabled={busy}
@@ -243,7 +243,7 @@
           <DropdownMenu.Root dir={localeDir(locale())}>
             <Tooltip content={t('moreActions')}>
               {#snippet children(props)}
-                <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('moreActions')} data-testid="vault-more">
+                <DropdownMenu.Trigger {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="vault-more">
                   <Icon name="more" />
                 </DropdownMenu.Trigger>
               {/snippet}
@@ -278,13 +278,13 @@
     </div>
   {/if}
   {#if trash}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
       <Icon name="trash" class="shrink-0" />
       <span>{t('inTrashSince', { time: when(entry.at) })}</span>
     </div>
   {/if}
   {#if managed}
-    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
       <Icon name="lock" class="shrink-0" />
       <span>{t('managedHint')}</span>
     </div>
@@ -305,14 +305,14 @@
     {:else}
       {#each sections(shownFields) as section (section.title)}
         {#if section.title}<h3 class="mt-3 mb-1 text-[11.5px] font-semibold tracking-wide text-faint uppercase">{section.title}</h3>{/if}
-        <dl class={cn('divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs', !section.title && 'mb-3')} data-testid="vault-detail">
+        <dl class={cn('grid gap-1', !section.title && 'mb-3')} data-testid="vault-detail">
           {#each section.fields as field (field.id)}
             {@render fieldRow(field)}
           {/each}
         </dl>
       {/each}
       {#if item.notes}
-        <div class="mt-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-xs">
+        <div class="mt-3 py-3">
           <div class="mb-1 text-[12px] text-faint">{t('notes')}</div>
           <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-notes-text">{item.notes}</p>
         </div>
@@ -323,7 +323,7 @@
         <div class="mt-3 grid gap-1.5" data-testid="vault-attachments">
           <div class="text-[12px] text-faint">{t('attachments')}</div>
           {#each item.files as id (id)}
-            <div class="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12.5px]">
+            <div class="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-[12.5px]">
               <Icon name="attach" class="shrink-0 text-faint" />
               {#if names[id]}
                 <span class="min-w-0 flex-1 truncate">{names[id].name}</span>

@@ -122,7 +122,7 @@
   {#if pairs.length}
     <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyOffers')}</h3>
     <RadioGroup.Root bind:value={selected} onValueChange={() => (confirmed = false)} aria-label={t('legacyOffers')}>
-      <ul class="divide-y divide-line rounded-xl border border-line">
+      <ul class="divide-y divide-line">
         {#each pairs as p (p.nonce)}
           <li class={cn('flex flex-wrap items-center gap-2 px-3.5 py-2.5', selected === p.nonce && 'bg-pale/60')}>
             <Radio value={p.nonce} testid="legacy-pick-{p.nonce}" class="min-w-0 flex-1">
@@ -157,7 +157,7 @@
 </Section>
 
 <Section title={t('legacyArchives')} icon="archive" flush>
-  <ul class="divide-y divide-line border-t border-line" data-testid="legacy-archives">
+  <ul class="divide-y divide-line" data-testid="legacy-archives">
     {#each archives as a (a.id)}
       <li class="flex flex-wrap items-center gap-2 px-5 py-3">
         <Pill>{a.mode}</Pill>
@@ -181,7 +181,7 @@
     {/snippet}
     <Notice tone="ok">{t('legacyPartialHint')}</Notice>
     <div class="grid gap-4">
-      <dl class="divide-y divide-line">
+      <dl>
         <Fact label={t('legacyPrincipal')}><Id id={report.principal} full /></Fact>
         <Fact label={t('displayName')}>{report.profile.name || '-'}</Fact>
         {#if report.profile.username}
@@ -205,7 +205,7 @@
       {#if report.files.length}
         <div>
           <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyFiles')}</h3>
-          <ul class="divide-y divide-line rounded-xl border border-line">
+          <ul class="divide-y divide-line">
             {#each report.files as file (file.source)}
               <li class="flex items-center gap-2 px-3.5 py-2">
                 <Icon name="file" class="shrink-0 text-faint" />
@@ -242,7 +242,7 @@
       </div>
       <div>
         <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyMessages')} · {report.total_messages}</h3>
-        <ul class="divide-y divide-line rounded-xl border border-line" data-testid="legacy-messages">
+        <ul class="divide-y divide-line" data-testid="legacy-messages">
           {#each report.messages as m (m.source)}
             <li class="px-3.5 py-2.5">
               <p class="font-mono text-[11px] text-faint">{m.author} · {m.time}{m.system ? ` · ${t('legacySystem')}` : ''}</p>

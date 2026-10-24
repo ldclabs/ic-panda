@@ -8,7 +8,7 @@
   import Icon from '../../components/Icon.svelte'
   import Segmented from '../../components/Segmented.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { when } from '../../rpc'
   import { shortId } from '../../shell/session'
@@ -94,7 +94,7 @@
   <header class="flex h-12 shrink-0 items-center gap-2 border-b border-line ps-4 pe-2">
     <Icon name="members" class="text-faint" />
     <b class="flex-1 text-[13px] font-semibold">{t('members')} <span class="font-normal text-faint">{members.length}</span></b>
-    <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
+    <button class={iconButtonClass('ghost', 'lg')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
   </header>
   <ul class="min-h-0 flex-1 overflow-y-auto p-2">
     {#each members as member (member.account)}
@@ -131,7 +131,7 @@
         </div>
         {#if editable}
           <DropdownMenu.Root dir={localeDir(locale())}>
-            <DropdownMenu.Trigger class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('moreActions')} disabled={busy} data-testid="member-actions">
+            <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} disabled={busy} data-testid="member-actions">
               <Icon name="more" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -193,7 +193,7 @@
           {#if item.packet}
             <Tooltip content={t('copyLink')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('copyLink')} onclick={() => copyText(invitationLink(item.packet))}><Icon name="link" /></button>
+                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copyLink')} onclick={() => copyText(invitationLink(item.packet))}><Icon name="link" /></button>
               {/snippet}
             </Tooltip>
           {/if}
@@ -202,7 +202,7 @@
               {#snippet children(props)}
                 <button
                   {...props}
-                  class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                  class={iconButtonClass('ghost', 'md')}
                   aria-label={t('withdrawInvitation')}
                   disabled={busy}
                   onclick={() => onControl({ type: 'revoke_invite', invitation_id: item.id })}

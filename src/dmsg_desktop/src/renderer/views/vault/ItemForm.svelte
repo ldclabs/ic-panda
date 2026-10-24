@@ -7,7 +7,7 @@
   import TagInput from '../../components/TagInput.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { bridge, call, code, errorText, size } from '../../rpc'
   import FilePicker from './FilePicker.svelte'
@@ -237,7 +237,7 @@
           />
           <span class="shrink-0 rounded bg-wash px-1.5 py-px text-[11px] text-faint">{t(fieldTypeLabel[field.type])}</span>
           <DropdownMenu.Root dir={localeDir(locale())}>
-            <DropdownMenu.Trigger class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('moreActions')} data-testid="field-menu">
+            <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="field-menu">
               <Icon name="more" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -289,7 +289,7 @@
         <span class="min-w-0 flex-1 truncate">{names[id] ?? '…'}</span>
         <Tooltip content={t('remove')}>
           {#snippet children(props)}
-            <button {...props} type="button" class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('remove')} onclick={() => (files = files.filter((f) => f !== id))}>
+            <button {...props} type="button" class={iconButtonClass('ghost', 'md')} aria-label={t('remove')} onclick={() => (files = files.filter((f) => f !== id))}>
               <Icon name="close" />
             </button>
           {/snippet}

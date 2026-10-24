@@ -58,7 +58,7 @@
 <section class="flex h-full min-w-0 flex-col" aria-label={folder.name} data-testid="files-folder-detail">
   <header class="flex flex-wrap items-start gap-x-3 gap-y-2 px-6 pt-5 pb-4">
     <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
-      <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5"><Icon name="folder" /></span>
+      <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5"><Icon name="folder" /></span>
       <div class="min-w-0 flex-1">
         <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{folder.name}</h2>
         <p class="mt-1 truncate text-[12px] text-faint" dir="ltr">/{[...(folder.path ?? []), folder.name].join('/')}</p>
@@ -72,7 +72,7 @@
     </div>
   </header>
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-    <dl class="divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs" data-testid="files-folder-facts">
+    <dl class="grid gap-1" data-testid="files-folder-facts">
       <div class="grid grid-cols-[112px_1fr] items-center gap-x-4 py-1.5">
         <dt class="text-[12px] text-faint">{t('folderContents')}</dt>
         <dd>{files ? t('folderCounts', { files: files.length, folders: subfolders, bytes: size(bytes) }) : '…'}</dd>

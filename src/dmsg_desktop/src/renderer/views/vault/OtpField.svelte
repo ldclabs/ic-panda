@@ -2,7 +2,7 @@
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass } from '../../components/ui'
+  import { iconButtonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, code, errorText } from '../../rpc'
   import { spaced } from './vault'
@@ -74,7 +74,7 @@
     <span class="min-w-0 flex-1"></span>
     <Tooltip content={t('copyCode')}>
       {#snippet children(props)}
-        <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('copyCode')} onclick={copy} data-testid="copy-otp">
+        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('copyCode')} onclick={copy} data-testid="copy-otp">
           <Icon name="copy" />
         </button>
       {/snippet}

@@ -4,7 +4,7 @@
   import Checkbox from '../../components/Checkbox.svelte'
   import Icon from '../../components/Icon.svelte'
   import Segmented from '../../components/Segmented.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { defaultOptions, entropy, generate, type GeneratorMode, type GeneratorOptions, type Random } from './vault'
 
@@ -113,7 +113,7 @@
       {/if}
       <div class="flex items-center gap-2">
         <span class={cn('min-w-0 flex-1 text-[11.5px]', bits < 60 ? 'text-warn' : 'text-faint')}>{t('genBits', { bits })}</span>
-        <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('genAgain')} onclick={() => void refresh()}>
+        <button class={iconButtonClass('ghost', 'md')} aria-label={t('genAgain')} onclick={() => void refresh()}>
           <Icon name="sync-now" />
         </button>
         <button class={buttonClass('primary', 'sm')} disabled={!secret} onclick={use} data-testid="generator-use">{t('genUse')}</button>

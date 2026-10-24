@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
+  import { DropdownMenu } from 'bits-ui'
+  import { localeDir } from '../../../shared/locales'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
@@ -9,8 +11,8 @@
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
-  import { buttonClass } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { buttonClass, iconButtonClass, menuContentClass, menuItemClass } from '../../components/ui'
+  import { locale, t } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, when } from '../../rpc'
   import { mcpSetup } from './agents'
 
@@ -77,13 +79,13 @@
 </script>
 
 <Section title={t('agentIds')} description={t('agentIdsHint')} icon="agents" flush>
-  <ul class="divide-y divide-line border-t border-line" data-testid="agent-ids">
+  <ul class="divide-y divide-line" data-testid="agent-ids">
     {#each hosted.agents as a (a.agent_id)}
       {@const shown = profiles[a.agent_id]}
       <li class="px-5 py-3.5" data-testid="agent-id">
-        <div class="flex items-start gap-3">
+        <div class="flex flex-wrap items-start gap-3">
           <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-pale text-forest"><Icon name="agents" /></span>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-40 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
               <b class="text-[13.5px] font-semibold">{a.label}</b>
               {#if hosted.active === a.agent_id}<Pill tone="forest">{t('active')}</Pill>{/if}
@@ -97,25 +99,30 @@
             </p>
           </div>
           <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
-            {#if hosted.active !== a.agent_id}
-              <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
-            {/if}
-            <button class={buttonClass('secondary', 'sm')} disabled={busy || !unlocked} onclick={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>
-              {a.resident ? t('residentOff') : t('residentOn')}
-            </button>
             <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('agent/pause', { agent: a.agent_id, on: !a.paused })} data-testid="agent-pause">
               {a.paused ? t('resume') : t('pause')}
             </button>
-            <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => issue(a)} data-testid="agent-connect">
-              <Icon name="plug" />{a.credential ? t('reissueCredential') : t('connectAgent')}
-            </button>
+            {#if !a.credential}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => issue(a)} data-testid="agent-connect"><Icon name="plug" />{t('connectAgent')}</button>{/if}
+            <DropdownMenu.Root dir={localeDir(locale())}>
+              <DropdownMenu.Trigger class={iconButtonClass()} disabled={busy} aria-label={t('moreActions')} title={t('moreActions')} data-testid="agent-actions"><Icon name="more" /></DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content class={menuContentClass} align="end">
+                  {#if hosted.active !== a.agent_id}<DropdownMenu.Item class={menuItemClass} onSelect={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</DropdownMenu.Item>{/if}
+                  <DropdownMenu.Item class={menuItemClass} disabled={!unlocked} onSelect={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>{a.resident ? t('residentOff') : t('residentOn')}</DropdownMenu.Item>
+                  {#if a.credential}<DropdownMenu.Item class={menuItemClass} onSelect={() => issue(a)} data-testid="agent-connect"><span class="flex items-center gap-2"><Icon name="plug" />{t('reissueCredential')}</span></DropdownMenu.Item>{/if}
+                  {#if unlocked}
+                    <DropdownMenu.Separator class="my-1 h-px bg-line" />
+                    <DropdownMenu.Item class={menuItemClass + ' text-danger'} onSelect={() => (removing = a)} data-testid="agent-remove">{t('removeAgent')}</DropdownMenu.Item>
+                  {/if}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
           </div>
         </div>
         <div class="mt-2 flex flex-wrap gap-1.5 ps-12">
           <button class={buttonClass('ghost', 'xs')} onclick={() => profile(a.agent_id)} data-testid="agent-profile"><Icon name="profile" />{t('agentProfile')}</button>
           {#if unlocked}<button class={buttonClass('ghost', 'xs')} onclick={() => delegateTo(a.label)}><Icon name="epoch" />{t('delegateTo')}</button>{/if}
           {#if a.credential}<button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (withdrawing = a)} data-testid="agent-withdraw">{t('withdrawCredential')}</button>{/if}
-          {#if unlocked}<button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy} onclick={() => (removing = a)} data-testid="agent-remove">{t('removeAgent')}</button>{/if}
         </div>
         {#if shown}
           <div class="mt-3 ms-12 grid gap-2" data-testid="agent-profile-view">
@@ -127,7 +134,7 @@
               <p class="text-[12px] text-faint">{t('noProfileServices')}</p>
             {:else}
               {#each shown.profiles as entry (entry.service)}
-                <div class="rounded-xl border border-line p-3 text-[12.5px]">
+                <div class="rounded-lg bg-surface-2 p-3 text-[12.5px]">
                   <p class="font-mono text-[11.5px] text-faint">{entry.service}</p>
                   {#if entry.error}
                     <p class="mt-1 text-danger">{t('error')}: {entry.error.code}</p>
@@ -172,7 +179,7 @@
 <Section title={t('hosts')} description={t('hostsHint')} icon="website">
   <ul class="flex flex-wrap gap-1.5">
     {#each hosted.hosts as h (h.host)}
-      <li class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2 py-1 text-[12px]">
+      <li class="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1 text-[12px]">
         <Icon name="lock" class="size-3 text-faint" />
         <bdi dir="ltr" class="font-mono">{h.host}</bdi>
         {#if h.label}<span class="text-faint">· {h.label}</span>{/if}

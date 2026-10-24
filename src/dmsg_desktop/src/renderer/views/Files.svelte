@@ -14,7 +14,7 @@
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
@@ -819,7 +819,7 @@
               <DropdownMenu.Root dir={localeDir(locale())}>
                 <Tooltip content={t('addMenu')}>
                   {#snippet children(props)}
-                    <DropdownMenu.Trigger {...props} class={buttonClass('primary', 'md', 'size-8 px-0')} aria-label={t('addMenu')} data-testid="files-add-menu">
+                    <DropdownMenu.Trigger {...props} class={iconButtonClass('primary', 'md')} aria-label={t('addMenu')} data-testid="files-add-menu">
                       <Icon name="add" />
                     </DropdownMenu.Trigger>
                   {/snippet}
@@ -867,32 +867,32 @@
             <span class="min-w-0 flex-1">{t('selectedCount', { n: selected.length })}</span>
             <Tooltip content={t('backUp')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('backUp')} onclick={() => askBackup(selected, false)}><Icon name="cloud-up" /></button>
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('backUp')} onclick={() => askBackup(selected, false)}><Icon name="cloud-up" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={t('moveTo')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('moveTo')} onclick={() => (moving = selected)}><Icon name="folder" /></button>
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('moveTo')} onclick={() => (moving = selected)}><Icon name="folder" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={t('exportFile')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('exportFile')} disabled={!exportable.length} onclick={() => exportMany(exportable)} data-testid="files-export-many"><Icon name="download" /></button>
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('exportFile')} disabled={!exportable.length} onclick={() => exportMany(exportable)} data-testid="files-export-many"><Icon name="download" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={chosenFiles.every((f) => f.starred) ? t('unstar') : t('star')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('star')} disabled={!chosenFiles.length} onclick={() => starMany(chosenFiles)}><Icon name="star" /></button>
+                <button {...props} class={iconButtonClass('secondary', 'md')} aria-label={t('star')} disabled={!chosenFiles.length} onclick={() => starMany(chosenFiles)}><Icon name="star" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={t('moveToTrash')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('ghost', 'xs', 'size-6 px-0 text-danger')} aria-label={t('moveToTrash')} onclick={() => trash(selected)}><Icon name="trash" /></button>
+                <button {...props} class={iconButtonClass('ghost', 'md', 'text-danger')} aria-label={t('moveToTrash')} onclick={() => trash(selected)}><Icon name="trash" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={t('clearSelection')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('clearSelection')} onclick={() => (selected = [])} data-testid="files-selection-clear"><Icon name="close" /></button>
+                <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('clearSelection')} onclick={() => (selected = [])} data-testid="files-selection-clear"><Icon name="close" /></button>
               {/snippet}
             </Tooltip>
           </div>
@@ -931,7 +931,7 @@
                 {:else if !folderScope}
                   <p class="text-[13px] text-muted">{t('noItems')}</p>
                 {:else}
-                  <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="folder-open" /></span>
+                  <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="folder-open" /></span>
                   <b class="text-[13.5px] font-semibold">{scope === ROOT && !folders.length ? t('emptyLibrary') : t('emptyFolder')}</b>
                   <p class="text-[12.5px] text-muted">{t('emptyFolderHint')}</p>
                 {/if}

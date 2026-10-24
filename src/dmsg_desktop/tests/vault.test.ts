@@ -91,6 +91,17 @@ test('fields are named by their label, else their template name, and grouped by 
   assert.equal(isManaged({ tags: ['dmsg-agent'] }), true)
 })
 
+test('list summaries do not expose notes, secret fields or credentials in URLs', () => {
+  for (const type of ['key', 'ssh', 'wallet', 'card', 'identity', 'note', 'license']) {
+    const item = { type, notes: 'private recovery material', fields: [field('custom', 'text', 'sensitive value')] }
+    assert.ok(line(item, t).startsWith('<type'))
+  }
+  assert.equal(line({ type: 'login', notes: 'private note', fields: [field('username', 'concealed', 'secret')] }, t), '<typeLogin>')
+  assert.equal(line({ type: 'login', fields: [field('url', 'url', 'https://name:secret@example.com/auth?token=private#key')] }, t), 'example.com')
+  assert.equal(line({ type: 'api', fields: [field('url', 'url', 'not a URL containing a secret')] }, t), '<typeApi>')
+  assert.equal(line({ type: 'login', fields: [field('username', 'text', 'mira')] }, t), 'mira')
+})
+
 test('an edit keeps hidden values it never loaded, and changes or clears them on request', () => {
   const saved = [field('username', 'text', 'mira'), field('password', 'concealed', '********'), field('pin', 'concealed', '')]
   const form = drafts(saved)

@@ -73,7 +73,7 @@
               <Icon name="check" />
             </span>
           {:else}
-            <span class={cn('grid size-8 place-items-center rounded-lg border bg-surface', selected ? 'border-forest/25 text-forest' : 'border-line text-faint')}>
+            <span class={cn('grid size-8 place-items-center [&_svg]:size-5', selected ? 'text-forest' : 'text-faint')}>
               <Icon name={typeIcon[type]} />
             </span>
           {/if}

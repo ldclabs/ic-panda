@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass, cn } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import AccountSwitcher from './AccountSwitcher.svelte'
   import GateRail from './GateRail.svelte'
@@ -53,13 +53,13 @@
         class={cn(
           'flex items-center gap-2.5 rounded-lg text-start text-[13.5px] leading-snug text-ink-2 outline-none transition-colors duration-150 hover:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35',
           collapsed ? 'relative size-9 justify-center' : 'min-h-8 px-2.5 py-1.5',
-          active && 'bg-surface font-medium text-ink shadow-xs ring-1 ring-line hover:bg-surface'
+          active && 'bg-pale font-semibold text-ink hover:bg-pale'
         )}
         aria-current={active ? 'page' : undefined}
         aria-label={collapsed ? t(view.label) : undefined}
         onclick={() => go(view.path)}
       >
-        <Icon name={view.icon} class={active ? 'text-forest' : 'text-faint'} />
+        <Icon name={view.icon} class={cn('size-4.5', active ? 'text-forest' : 'text-faint')} />
         {#if !collapsed}<span class="min-w-0 flex-1">{t(view.label)}</span>{/if}
         {#if view === views.channels && status?.channels_unread}
           <span
@@ -121,7 +121,7 @@
       <div class="flex items-start gap-2">
         <Icon name="legacy" class="mt-0.5" />
         <span class="min-w-0 flex-1">{t('legacyNotice')}</span>
-        <button class={buttonClass('ghost', 'xs', '-me-1 -mt-0.5 size-6 px-0 text-warn')} aria-label={t('dismiss')} onclick={onDismissLegacy}>
+        <button class={iconButtonClass('ghost', 'md', '-mt-0.5   text-warn')} aria-label={t('dismiss')} onclick={onDismissLegacy}>
           <Icon name="close" />
         </button>
       </div>

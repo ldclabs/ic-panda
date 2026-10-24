@@ -247,7 +247,7 @@
       <Field label={t('bio')}><textarea bind:value={bio} rows="3"></textarea></Field>
       <div class="grid gap-2">
         {#each links as link, index (index)}
-          <div class="grid gap-2 rounded-xl border border-line p-3">
+          <div class="grid gap-2 rounded-lg bg-surface-2 p-3">
             <Field label={t('principalLinkName')}><input bind:value={link.name} /></Field>
             <Field label={t('link')}><input value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" /></Field>
             <Field label={t('principalLinkImage')}><input value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" /></Field>
@@ -275,7 +275,7 @@
     </div>
     {#if lookupError}<Notice tone="danger">{lookupError}</Notice>{/if}
     {#if found}
-      <div class="flex items-start gap-3 rounded-xl border border-line p-3.5" data-testid="profile-found">
+      <div class="flex items-start gap-3 rounded-lg bg-surface-2 p-3.5" data-testid="profile-found">
         {@render picture(found, 'size-12')}
         <dl class="min-w-0 flex-1 divide-y divide-line">
           <Fact label={t('displayName')}>{found.name || '-'}</Fact>

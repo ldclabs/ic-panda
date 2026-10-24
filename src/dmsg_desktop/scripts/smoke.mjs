@@ -1519,14 +1519,14 @@ smoke: try {
   // buttons; on macOS the toggle stays where it was, after the traffic lights.
   const toggleAt = async () => {
     await settled(main, '[data-testid="sidebar"]')
-    const { x, y } = await main.locator('[data-testid="sidebar-toggle"]').boundingBox()
-    return { x, y }
+    const { x, y, height } = await main.locator('[data-testid="sidebar-toggle"]').boundingBox()
+    return { x, centerY: y + height / 2 }
   }
   const mac = process.platform === 'darwin'
-  if (mac) assert.deepEqual(await toggleAt(), { x: 82, y: 15.5 })
+  if (mac) assert.deepEqual(await toggleAt(), { x: 82, centerY: 29.5 })
   await main.click('[data-testid="sidebar-toggle"]')
   await main.waitForSelector('header [data-testid="sidebar-toggle"]')
-  assert.deepEqual(await toggleAt(), { x: mac ? 82 : 18, y: 15.5 })
+  assert.deepEqual(await toggleAt(), { x: mac ? 82 : 18, centerY: 29.5 })
   await main.screenshot({ path: join(shots, 'sidebar-collapsed.png') })
   await main.click('[data-testid="sidebar-toggle"]')
   await main.waitForSelector('[data-testid="sidebar"] [data-testid="sidebar-toggle"]')
@@ -2151,7 +2151,7 @@ smoke: try {
     await main.waitForSelector('[data-testid="wallet-creation-paused"]')
   } else {
     // Dismissing a notice does not cancel the request or let a late activation reply restore it.
-    await main.getByRole('button', { name: '+ New wallet', exact: true }).click()
+    await main.getByRole('button', { name: 'New wallet', exact: true }).click()
     await main.fill('[data-testid="wallet-name"]', 'Another team')
     const finishActivation = hold('wallet/activation')
     await main.click('[data-testid="wallet-create"]')
@@ -2261,10 +2261,30 @@ smoke: try {
   await main.waitForSelector('text=123.456789 ICP')
   await main.screenshot({path:join(shots,'wallet-assets.png')})
   await main.click('[data-testid="wallet-tab-overview"]')
+  assert.equal(await main.locator('[data-testid="wallet-transfer"]').count(), 0, 'overview leaves room for proposals and assets')
+  await main.click('[data-testid="wallet-transfer-open"]')
   await main.fill('[data-testid="wallet-to"]',wallets.b)
   await main.fill('[data-testid="wallet-amount"]','1.00000001')
+  // Closing a draft neither sends it nor loses the fields; both close paths return to its trigger.
+  await main.locator('[data-testid="wallet-transfer-dialog"] [data-testid="dialog-close"]').click()
+  await main.waitForSelector('[data-testid="wallet-transfer-dialog"]', {state:'detached'})
+  assert.equal(latest('wallet/transfer'), undefined)
+  await main.click('[data-testid="wallet-transfer-open"]')
+  assert.equal(await main.inputValue('[data-testid="wallet-to"]'),wallets.b)
+  assert.equal(await main.inputValue('[data-testid="wallet-amount"]'),'1.00000001')
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="wallet-transfer-dialog"]', {state:'detached'})
+  await main.waitForFunction(() => document.activeElement?.getAttribute('data-testid') === 'wallet-transfer-open')
+  await main.click('[data-testid="wallet-transfer-open"]')
+  const finishTransferPreview = hold('wallet/preview')
   await main.click('[data-testid="wallet-estimate"]')
+  await waitFor(() => held.get('wallet/preview'))
+  assert.equal(await main.isDisabled('[data-testid="wallet-transfer-dialog"] [data-testid="dialog-close"]'),true)
+  await main.keyboard.press('Escape')
+  assert.equal(await main.locator('[data-testid="wallet-transfer-dialog"]').count(),1)
+  await finishTransferPreview()
   await main.waitForSelector('[data-testid="wallet-transfer-preview"]')
+  await main.screenshot({path:join(shots,'wallet-transfer-dialog.png')})
   assert.equal(latest('wallet/preview').params.draft.outputs[0].amount,'100000001')
   await main.fill('[data-testid="wallet-amount"]','2')
   assert.equal(await main.locator('[data-testid="wallet-send"]').count(),0,'editing invalidates review')
@@ -2299,6 +2319,38 @@ smoke: try {
   assert.match(await main.textContent('[data-testid="wallet-identity"]'),new RegExp(wallets.a))
   await main.click('[data-testid="wallet-tab-overview"]')
   await main.screenshot({path:join(shots,'wallet-overview.png')})
+  // Optional visual coverage for shared layout changes, in the isolated test profile.
+  if (process.env.DMSG_DESKTOP_VISUAL_MATRIX === '1') {
+    const window = await app.browserWindow(main)
+    const cases = [
+      ['zh', 'light', 1180, 760], ['zh', 'dark', 1180, 760],
+      ['en', 'light', 760, 540], ['ar', 'light', 760, 540],
+      ['fr', 'dark', 1180, 760], ['ru', 'dark', 760, 540],
+      ['es', 'light', 1600, 960], ['zh', 'dark', 760, 540]
+    ]
+    for (const [locale, appearance, width, height] of cases) {
+      await window.evaluate((window, [width, height]) => window.setContentSize(width, height), [width, height])
+      await main.evaluate(async ({ locale, appearance }) => {
+        await window.dmsg.setLocale(locale)
+        await window.dmsg.setAppearance(appearance)
+      }, { locale, appearance })
+      await main.waitForSelector(`html[lang|="${locale}"]`)
+      await main.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, appearance === 'dark')
+      const suffix = `${locale}-${appearance}-${width}`
+      assert.ok(await main.locator('[data-testid="wallet-view"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `wallet fits ${suffix}`)
+      await main.screenshot({path:join(shots,`ui-wallet-${suffix}.png`)})
+      await main.click('[data-testid="wallet-transfer-open"]')
+      await main.waitForSelector('[data-testid="wallet-transfer-dialog"]')
+      await settled(main, '[data-testid="wallet-transfer-dialog"]')
+      assert.ok(await main.locator('[data-testid="wallet-transfer-dialog"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `transfer fits ${suffix}`)
+      await main.screenshot({path:join(shots,`ui-transfer-${suffix}.png`)})
+      await main.locator('[data-testid="wallet-transfer-dialog"] [data-testid="dialog-close"]').click()
+      await main.waitForSelector('[data-testid="wallet-transfer-dialog"]', {state:'detached'})
+    }
+    await window.evaluate((window) => window.setContentSize(1180, 760))
+    await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+    await main.waitForSelector('html[lang="en"]')
+  }
   // Cosigning setup separates empty selection, registration, binding and explicit removal.
   await main.click('[data-testid="wallet-tab-assets"]')
   const openCosign = () => main.locator('[data-testid="wallet-address-1"]').getByRole('button', {name:'Set address cosigners', exact:true}).click()
@@ -2569,6 +2621,7 @@ smoke: try {
   await main.click('[data-testid="agents-tab-ids"]')
   await main.click('[data-testid="agent-profile"]')
   await main.waitForSelector('[data-testid="agent-profile-view"] >> text=Research agent')
+  if (!(await main.locator('[data-testid="agent-connect"]').count())) await main.click('[data-testid="agent-actions"]')
   await main.click('[data-testid="agent-connect"]')
   await main.waitForSelector('[data-testid="agent-connect-command"]')
   const command = await main.textContent('[data-testid="agent-connect-command"]')
@@ -2585,6 +2638,8 @@ smoke: try {
   await main.click('[data-testid="agent-pause"]')
   await main.waitForSelector('[data-testid="agent-paused"]')
   assert.deepEqual(latest('agent/pause').params, { agent: claude, on: true, source: 'gui' })
+  await main.click('[data-testid="agent-actions"]')
+  await main.screenshot({path:join(shots,'agent-actions.png')})
   await main.click('[data-testid="agent-remove"]')
   await main.click('[data-testid="agent-remove-dialog-confirm"]')
   await waitFor(() => calls.some((c) => c.method === 'agent/remove'))

@@ -101,7 +101,7 @@
         <span class="flex-1 text-faint">{rows.length} · {report.refreshed_at ? when(report.refreshed_at) : ''}</span>
         {#if picked.length}<button class={buttonClass('danger','sm')} onclick={() => confirmation = picked} disabled={busy} data-testid="storage-bulk-delete">{t('storageClean', { n: picked.length, bytes: size(releaseBytes(picked)) })}</button>{/if}
       </div>
-      <ul class="divide-y divide-line rounded-xl border border-line bg-surface" data-testid="storage-list">
+      <ul class="divide-y divide-line" data-testid="storage-list">
         {#each shown as entry (entry.id)}
           <li class="flex min-w-0 flex-wrap items-center gap-3 px-3 py-3" data-upload={entry.upload_id}>
             <Checkbox checked={selected.includes(entry.id)} disabled={busy || !(entry.can_delete || entry.can_cancel || entry.can_revoke)} onCheckedChange={(on) => selected = on ? [...selected, entry.id] : selected.filter(id => id !== entry.id)} />

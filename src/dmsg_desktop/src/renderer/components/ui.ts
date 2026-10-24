@@ -22,14 +22,19 @@ const buttonVariants: Record<ButtonVariant, string> = {
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
-  xs: 'h-6 px-2 text-xs [&_svg]:size-3.5',
-  sm: 'h-7 px-2.5 text-[12.5px] [&_svg]:size-3.5',
-  md: 'h-8 px-3 text-[13px] [&_svg]:size-4',
-  lg: 'h-10 px-4 text-sm [&_svg]:size-4'
+  xs: 'h-7 px-2 text-xs [&_svg]:size-4',
+  sm: 'h-8 px-2.5 text-[12.5px] [&_svg]:size-4',
+  md: 'h-8 px-3 text-[13px] [&_svg]:size-4.5',
+  lg: 'h-10 px-4 text-sm [&_svg]:size-5'
 }
 
 export function buttonClass(variant: ButtonVariant = 'secondary', size: ButtonSize = 'md', className?: ClassValue) {
   return cn(buttonBase, buttonVariants[variant], buttonSizes[size], className)
+}
+
+/** Square tools keep their hit area and glyph size together; large closes a panel. */
+export function iconButtonClass(variant: ButtonVariant = 'ghost', size: 'md' | 'lg' = 'md', className?: ClassValue) {
+  return buttonClass(variant, 'md', cn(size === 'lg' ? 'size-9 [&_svg]:size-5' : 'size-8 [&_svg]:size-4.5', 'p-0', className))
 }
 
 /** A floating panel of choices: the dropdowns, the suggestions and the language menu. */

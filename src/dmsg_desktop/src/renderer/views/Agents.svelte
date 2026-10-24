@@ -183,7 +183,7 @@
     {#if errors.hosted}<Notice tone="danger">{errors.hosted}</Notice>{/if}
     {#if tab === 'capabilities' && errors.grants}<Notice tone="danger">{errors.grants}</Notice>{/if}
     {#if tab === 'overview'}
-      <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} bind:delegate /></Page>
+      <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} onRetry={loadTab} bind:delegate /></Page>
     {:else if tab === 'ids'}
       <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} /></Page>
     {:else if tab === 'capabilities'}

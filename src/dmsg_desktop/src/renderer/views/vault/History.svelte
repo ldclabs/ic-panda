@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, when } from '../../rpc'
   import SecretField from './SecretField.svelte'
@@ -57,11 +57,11 @@
   }
 </script>
 
-<section class="mt-4 rounded-xl border border-line bg-surface shadow-xs" data-testid="vault-history">
+<section class="mt-4 rounded-xl border border-line bg-surface" data-testid="vault-history">
   <header class="flex items-center gap-2 border-b border-line px-4 py-2">
     <Icon name="history" class="text-faint" />
     <b class="min-w-0 flex-1 text-[12.5px] font-semibold">{t('history')}</b>
-    <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
+    <button class={iconButtonClass('ghost', 'lg')} aria-label={t('close')} onclick={onClose}><Icon name="close" /></button>
   </header>
   <ol class="max-h-72 divide-y divide-line overflow-y-auto">
     {#each versions as version (version.revision)}

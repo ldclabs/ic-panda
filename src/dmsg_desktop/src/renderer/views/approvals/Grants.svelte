@@ -77,7 +77,7 @@
 <Section title={t('formalDevices')} description={t('formalDevicesHint')} icon="device" flush testid="grants-devices">
   {#snippet actions()}{@render manage('#/settings/devices')}{/snippet}
   {#if errors.devices}<Notice tone="danger">{errors.devices}</Notice>{/if}
-  <ul class="divide-y divide-line border-t border-line">
+  <ul class="divide-y divide-line">
     {#each devices as d (d.device_id)}
       <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
         <Id id={d.device_id} />
@@ -93,7 +93,7 @@
 <Section title={t('pairedBrowsers')} description={t('pairedBrowsersHint')} icon="browser" flush testid="grants-browsers">
   {#snippet actions()}{@render manage('#/settings/browsers')}{/snippet}
   {#if errors.browsers}<Notice tone="danger">{errors.browsers}</Notice>{/if}
-  <ul class="divide-y divide-line border-t border-line">
+  <ul class="divide-y divide-line">
     {#each pairings as p (p.pairing_id)}
       <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
         <b class="font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
@@ -106,7 +106,7 @@
 </Section>
 
 <Section title={t('webSessions')} description={t('webSessionsHint')} icon="website" flush testid="grants-sessions">
-  <ul class="divide-y divide-line border-t border-line">
+  <ul class="divide-y divide-line">
     {#each sessions as r (r.id)}
       <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
         <b class="font-medium">{r.detail.app_id}</b>
@@ -122,7 +122,7 @@
 <Section title={t('agentGrants')} description={t('agentGrantsHint')} icon="agents" flush testid="grants-agents">
   {#snippet actions()}{@render manage('#/agents')}{/snippet}
   {#each ['grants', 'credentials', 'agents'] as key}{#if errors[key]}<Notice tone="danger">{errors[key]}</Notice>{/if}{/each}
-  <ul class="divide-y divide-line border-t border-line">
+  <ul class="divide-y divide-line">
     {#each grants as g (g.id)}
       <li class="px-5 py-2.5">
         <div class="flex flex-wrap items-center gap-1.5 text-[13px]">

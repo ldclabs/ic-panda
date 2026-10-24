@@ -2,6 +2,7 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    loadFailed: 'Не удалось загрузить',
     storageExhausted: "Лимит загрузок достигнут",
     storageTitle: "Облачное хранилище",
     storageSubtitle: "Управляйте резервными копиями, ссылками и вложениями. Место освобождается после очистки.",

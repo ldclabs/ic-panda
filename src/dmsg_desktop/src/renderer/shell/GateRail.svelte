@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass, cn } from '../components/ui'
+  import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
   import { when } from '../rpc'
   import { lock, nextStep, sync, unlocking } from './session'
@@ -49,7 +49,7 @@
       {#snippet children(props)}
         <button
           {...props}
-          class={buttonClass('ghost', 'sm', 'relative size-8 px-0')}
+          class={iconButtonClass('ghost', 'md', 'relative')}
           aria-label={sessionLabel(session)}
           disabled={$unlocking}
           aria-busy={$unlocking}
@@ -63,7 +63,7 @@
     {#if status?.account}
       <Tooltip content={`${syncText} · ${syncHint}`} side="right">
         {#snippet children(props)}
-          <button {...props} class={buttonClass('ghost', 'sm', 'relative size-8 px-0')} aria-label={syncText} disabled={syncing || $unlocking} onclick={syncNow}>
+          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking} onclick={syncNow}>
             <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && 'text-danger')} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
@@ -84,7 +84,7 @@
     </Tooltip>
   </div>
 {:else}
-  <div class="grid grid-cols-1 gap-2 rounded-xl border border-line bg-surface py-2.5 ps-3 pe-2 text-[12.5px] shadow-xs" data-testid="gate-rail">
+  <div class="grid grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
     {#if step}
       <div class="flex min-h-6 items-center gap-2">
         <Icon name="lock" class="text-faint" />
@@ -116,13 +116,13 @@
         <span>{t('backgroundOnline')} · {t('on')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}</span>
       </div>
     {/if}
-    <div class="flex items-center gap-1 border-t border-line pt-2">
+    <div class="flex items-center gap-1">
       <span class={cn('size-[7px] shrink-0 rounded-full', connected ? 'bg-ok' : 'bg-danger')}></span>
       <span class={cn('ms-1 min-w-0 flex-1 truncate text-[11.5px]', connected ? 'text-faint' : 'text-danger')}>{connected ? t('connected') : t('disconnected')}</span>
       {#if unlocked}
         <Tooltip content={`${t('lock')} · ${mod}L`}>
           {#snippet children(props)}
-            <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('lock')} onclick={lock} data-testid="gate-lock">
+            <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('lock')} onclick={lock} data-testid="gate-lock">
               <Icon name="lock" />
             </button>
           {/snippet}

@@ -161,7 +161,7 @@
           />
         </Field>
       </div>
-      <div class="grid gap-1.5 rounded-xl border border-line bg-surface-2/60 p-3" data-testid="service-grants">
+      <div class="grid gap-1.5 rounded-lg bg-surface-2/60 p-3" data-testid="service-grants">
         {#each services as service (service.read)}
           <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="text-[13px]">{service.name}</span>
@@ -213,7 +213,7 @@
 {/if}
 
 <Section title={t('grantsList')} icon="audit" flush>
-  <ul class="divide-y divide-line border-t border-line" data-testid="capability-grants">
+  <ul class="divide-y divide-line" data-testid="capability-grants">
     {#each grants as g (g.id)}
       {@const state = grantState(g)}
       <li class="flex items-start gap-3 px-5 py-3">
