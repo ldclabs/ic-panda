@@ -209,7 +209,7 @@
         options={agents.map((a) => ({ value: a.agent_id, label: a.label }))}
       />
     {/snippet}
-    <div class="grid gap-4">
+    <div class="grid grid-cols-1 gap-4">
       <div class="flex items-start gap-3 rounded-xl bg-surface-2 px-4 py-3">
         <Icon name="lock" class="mt-0.5 shrink-0 text-forest" />
         <div class="text-[12.5px] leading-relaxed text-muted">
@@ -321,10 +321,10 @@
       <p class="text-[11.5px] text-faint">{t('mailReadHint')}</p>
       <details class="rounded-xl border border-line" data-testid="mailbox-settings">
         <summary class="cursor-pointer px-4 py-3 text-[12.5px] font-medium">{t('mailboxManagement')} · {mailboxes.length}</summary>
-        <div class="grid gap-3 border-t border-line p-4">
-          <ul class="grid gap-2" data-testid="mailboxes">
+        <div class="grid grid-cols-1 gap-3 border-t border-line p-4">
+          <ul class="grid grid-cols-1 gap-2" data-testid="mailboxes">
             {#each mailboxes as box (box.mailbox_id)}
-              <li class="grid gap-2 rounded-lg bg-surface-2 p-3 text-[12px]">
+              <li class="grid grid-cols-1 gap-2 rounded-lg bg-surface-2 p-3 text-[12px]">
                 <div class="flex items-center gap-2">
                   <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi><button
                     class={buttonClass('ghost', 'xs')}
