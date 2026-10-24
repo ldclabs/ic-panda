@@ -20,6 +20,13 @@ pub(crate) const READ: Policy = Policy {
     total: Duration::from_secs(12),
     backoff: Duration::from_millis(250),
 };
+/// Chunk bodies of up to 1 MiB, which a slow link needs longer to carry.
+pub(crate) const BULK: Policy = Policy {
+    attempts: 3,
+    attempt: Duration::from_secs(30),
+    total: Duration::from_secs(60),
+    backoff: Duration::from_millis(250),
+};
 pub(crate) const WRITE: Policy = Policy {
     attempts: 1,
     attempt: Duration::from_secs(30),

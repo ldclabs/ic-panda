@@ -34,7 +34,7 @@ fn unavailable(error: AgentError) -> Error {
         || matches!(&error, AgentError::HttpError(e) if crate::transport::transient_status(e.status))
         || matches!(&error, AgentError::TimeoutWaitingForResponse())
     {
-        return crate::transport::unavailable("ic", diagnostic(&error).reason);
+        return crate::transport::unavailable("ic", cause.reason);
     }
     Error::Unavailable(format!("ic: {error}"))
 }

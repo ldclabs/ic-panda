@@ -77,7 +77,8 @@ export class ReadRecovery {
     } finally {
       this.running = false
       if (generation === this.generation) {
-        this.rounds++
+        // Backoff counts consecutive failed rounds; a drained queue starts over.
+        this.rounds = this.failed.size ? this.rounds + 1 : 0
         this.set(this.failed.size ? 'offline' : 'idle')
         if (recovered) this.recovered()
       }

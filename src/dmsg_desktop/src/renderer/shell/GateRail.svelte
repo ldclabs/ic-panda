@@ -78,7 +78,7 @@
         {/snippet}
       </Tooltip>
     {/if}
-    <Tooltip content={connected ? t('connected') : connectionError || t('disconnected')} side="right">
+    <Tooltip content={connected ? t('connected') : connectionError ? t('networkReconnecting') : t('disconnected')} side="right">
       {#snippet children(props)}
         <span {...props} class="grid size-8 place-items-center"><span class={cn('size-2 rounded-full', connected ? 'bg-ok' : 'bg-danger')}></span></span>
       {/snippet}

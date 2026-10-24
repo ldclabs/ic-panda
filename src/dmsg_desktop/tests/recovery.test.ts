@@ -38,6 +38,10 @@ test('simultaneous read failures share recovery and continue after transient err
   await until(() => recovery.state === 'idle')
   assert.equal(calls, 2)
   assert.equal(refreshes, 1)
+  // A later outage starts again from the first delay, not as still offline.
+  recovery.add('agent/principal', {}, 0)
+  assert.equal(recovery.state, 'recovering')
+  await until(() => recovery.state === 'idle')
   recovery.reset()
 })
 
@@ -54,7 +58,7 @@ test('desktop RPC recovers reads but never replays timed-out, uncertain or disco
     if (method === 'session/login_result' || method === 'profile/show') {
       socket.send(JSON.stringify({ method: 'event', params: { type: 'session/changed', data: { state: 'unlocked' } } }))
     }
-    const code = method === 'approval/respond' ? 'EXECUTION_UNKNOWN' : method === 'agent/principal' && counts[method] === 1 ? 'NETWORK_UNAVAILABLE' : null
+    const code = method === 'approval/respond' ? 'EXECUTION_UNKNOWN' : method === 'agent/grant' || (method === 'agent/principal' && counts[method] === 1) ? 'NETWORK_UNAVAILABLE' : null
     socket.send(JSON.stringify(code ? { id, error: { message: 'private URL', data: { code } } } : { id, result: {} }))
   }))
   const daemon = new Daemon({ binary: '', home: '', fixed: { url: `http://127.0.0.1:${address.port}`, token: 'test' }, timing: { read: 100, write: 20, recovery: 1 } })
@@ -70,8 +74,13 @@ test('desktop RPC recovers reads but never replays timed-out, uncertain or disco
   assert.equal(first, second)
   await assert.rejects(first, { code: 'EXECUTION_UNKNOWN' })
   await assert.rejects(daemon.call('approval/respond', { id: 'approved' }), { code: 'EXECUTION_UNKNOWN' })
+  // A write whose own reads failed is not retried, so it does not say it will be.
+  await assert.rejects(daemon.call('agent/grant', { id: 'grant' }), { code: 'UNAVAILABLE' })
+  assert.equal(daemon.recovery.state, 'idle')
   await assert.rejects(daemon.call('channel/send', { id: 'channel' }), { code: 'EXECUTION_UNKNOWN' })
+  await assert.rejects(daemon.call('agent/grant', { id: 'offline' }), { code: 'UNAVAILABLE' })
   await wait(50)
+  assert.equal(counts['agent/grant'], 1)
   assert.equal(counts['wallet/execute'], 1)
   assert.equal(counts['approval/respond'], 1)
   assert.equal(counts['channel/send'], 1)

@@ -58,10 +58,8 @@ fn write_diagnostic(event: &str, fields: &[(&str, &dyn Display)], diagnostic: Di
     ]);
     if let Some(status) = &diagnostic.http_status {
         fields.push(("http_status", status));
-        write(event, &fields);
-    } else {
-        write(event, &fields);
     }
+    write(event, &fields);
 }
 
 /// Log an application failure using categories, never its Display/Debug text.

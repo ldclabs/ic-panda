@@ -556,6 +556,8 @@ impl Cloud {
         let limit = if binary { MAX_CHUNK } else { MAX_JSON };
         let policy = if mutation {
             crate::transport::WRITE
+        } else if binary {
+            crate::transport::BULK
         } else {
             crate::transport::READ
         };
@@ -1128,7 +1130,7 @@ impl Cloud {
             &self.http,
             request,
             "download",
-            crate::transport::READ,
+            crate::transport::BULK,
             slot.size as usize,
         )
         .await

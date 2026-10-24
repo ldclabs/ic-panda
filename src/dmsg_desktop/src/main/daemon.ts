@@ -22,6 +22,17 @@ export function reasonOf(error: unknown): string {
   return (typeof stderr === 'string' && stderr.trim()) || (error instanceof Error ? error.message : String(error))
 }
 
+/**
+ * The code a window shows for a failed call. A reviewed read may publish
+ * idempotent security evidence before fetching data, but cannot create a
+ * business operation to duplicate. Only reads recover in the background, so
+ * a write whose own reads failed asks to be tried again, not to be waited for.
+ */
+function settled(method: string, code: string): string {
+  if (isRead(method)) return code === 'EXECUTION_UNKNOWN' ? 'NETWORK_UNAVAILABLE' : code
+  return code === 'NETWORK_UNAVAILABLE' ? 'UNAVAILABLE' : code
+}
+
 type Waiting = { method: string; resolve(value: unknown): void; reject(error: Error): void; timer?: NodeJS.Timeout }
 
 /**
@@ -154,12 +165,7 @@ export class Daemon extends EventEmitter {
     if (!waiting) return
     this.waiting.delete(message.id!)
     clearTimeout(waiting.timer)
-    if (message.error) {
-      const code = message.error.data?.code ?? 'UNAVAILABLE'
-      // A reviewed read may publish idempotent security evidence before
-      // fetching data, but cannot create a business operation to duplicate.
-      waiting.reject(new DaemonError(isRead(waiting.method) && code === 'EXECUTION_UNKNOWN' ? 'NETWORK_UNAVAILABLE' : code, message.error.message))
-    }
+    if (message.error) waiting.reject(new DaemonError(settled(waiting.method, message.error.data?.code ?? 'UNAVAILABLE'), message.error.message))
     else waiting.resolve(message.result)
   }
 
@@ -184,7 +190,7 @@ export class Daemon extends EventEmitter {
    * its daemon journal remains responsible for reconciliation. */
   private requestOnce(method: string, params: unknown = null): Promise<unknown> {
     const socket = this.socket
-    if (!socket || !this.connected) return Promise.reject(new DaemonError('NETWORK_UNAVAILABLE', 'daemon disconnected'))
+    if (!socket || !this.connected) return Promise.reject(new DaemonError(settled(method, 'NETWORK_UNAVAILABLE'), 'daemon disconnected'))
     const id = ++this.next
     return new Promise((resolve, reject) => {
       const timer = UNTIMED.has(method)

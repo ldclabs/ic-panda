@@ -233,7 +233,10 @@ desktop is one of its clients, like the CLI.
   Desktop read RPCs time out after 45 seconds; writes after 180 seconds, while
   existing long file jobs remain untimed. A lost or timed-out submitted write
   reports `EXECUTION_UNKNOWN`, never a definite failure, and is never replayed
-  by the desktop. Concurrent identical calls share one in-flight request.
+  by the desktop. A write whose own reads were unavailable, or one called while
+  disconnected, reports `UNAVAILABLE`: nothing retries it, so it asks to be
+  tried again rather than showing the recovering reads' notice. Concurrent
+  identical calls share one in-flight request.
   The daemon's existing journals reconcile original approval, payment and
   signing operations. Transient failures and unconfirmed outcomes use localized
   warning text; raw service messages, URLs and tokens are not shown in notices.
