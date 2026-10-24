@@ -62,6 +62,8 @@ pub struct AttachmentPlan {
 pub struct Plan {
     /// Explicit owner selection.
     pub input: ShareInput,
+    /// Fixed channel destination; absent for a public share link.
+    pub channel: Option<crate::channel::snapshot::Target>,
     /// Owning account.
     pub account_id: String,
     /// Owning device; grants never synchronize.
@@ -98,6 +100,22 @@ pub struct Plan {
     pub estimated_ciphertext_bytes: u64,
 }
 impl Plan {
+    fn view(&self) -> Value {
+        let mut view = json!(self);
+        if self.channel.is_some() {
+            view["expires_at"] = Value::Null;
+            view["max_download_sessions"] = Value::Null;
+            view["delivery"] = json!("channel_attachment");
+            view["recipient_scope"] = json!(
+                "members with access to this epoch, including later joins and history grants"
+            );
+            view["warning"] = json!(
+                "Recipients can retain plaintext. Channel copies have no link expiry, session limit or recall."
+            );
+        }
+        view
+    }
+
     fn digest(&self) -> String {
         hex::encode(Sha256::digest(canonical(&(
             "dmsg/secret-share-plan/1",
@@ -118,6 +136,8 @@ struct Job {
     session: u64,
     upload: Option<UploadPlan>,
     manifest: Option<String>,
+    channel_reference: Option<crate::channel::FileRef>,
+    receipt: Option<Value>,
     publish_attempted: bool,
     uploaded_chunks: usize,
     cancel_requested: bool,
@@ -126,6 +146,9 @@ struct Job {
 impl Drop for Job {
     fn drop(&mut self) {
         self.key.zeroize();
+        if let Some(reference) = &mut self.channel_reference {
+            reference.key.zeroize();
+        }
     }
 }
 
@@ -137,6 +160,7 @@ impl Preparation {
     /// Password derivation runs outside the client lock; the password is not retained.
     pub fn wrap_password(mut self, password: Option<&str>) -> Result<Self> {
         if let Some(password) = password {
+            ensure(self.job.plan.channel.is_none(), Error::Forbidden)?;
             let key = Zeroizing::new(crate::codec::unb64(&self.job.key)?);
             let key: &[u8; 32] = key
                 .as_slice()
@@ -307,6 +331,7 @@ impl Client {
         }
         let mut plan = Plan {
             input,
+            channel: None,
             account_id: self.account()?.id.to_string(),
             device_id: self.secret_device(),
             title,
@@ -350,12 +375,79 @@ impl Client {
                 session: self.session_generation,
                 upload: None,
                 manifest: None,
+                channel_reference: None,
+                receipt: None,
                 publish_attempted: false,
                 uploaded_chunks: 0,
                 cancel_requested: false,
                 error: None,
             },
         })
+    }
+
+    pub(crate) fn secret_channel_preparation(
+        &mut self,
+        input: ShareInput,
+        target: crate::channel::snapshot::Target,
+    ) -> Result<Preparation> {
+        ensure(
+            input.expires_in_ms.is_none() && input.max_download_sessions.is_none(),
+            Error::InvalidInput("channel delivery has no link lifetime or session limit".into()),
+        )?;
+        self.snapshot_channel_check(&target)?;
+        let mut prepared = self.secret_share_prepare(input)?;
+        prepared.job.plan.channel = Some(target);
+        Ok(prepared)
+    }
+
+    /// Device-local source associations for dependency inspection, without any package keys.
+    pub(crate) fn secret_snapshot_dependencies(
+        &self,
+        reference: &SecretRef,
+        now: u64,
+    ) -> Result<Vec<references::Dependency>> {
+        let links = self.link_records()?;
+        let mut entries = Vec::new();
+        for key in self.workspace.store.sealed_keys(PREFIX)? {
+            if let Some(job) = self.workspace.private::<Job>(self.keys()?, &key)?
+                && job.plan.input.item_id == reference.item_id
+                && job.plan.input.field_ids.contains(&reference.field_id)
+            {
+                let state = if job.plan.channel.is_none() {
+                    links
+                        .iter()
+                        .find(|r| r.share_id == job.plan.share_id)
+                        .map(|r| self.link_view(r, now).state.to_owned())
+                        .unwrap_or_else(|| job.phase.clone())
+                } else {
+                    job.phase.clone()
+                };
+                entries.push(references::Dependency {
+                    kind: if job.plan.channel.is_some() {
+                        "snapshot_channel"
+                    } else {
+                        "snapshot_link"
+                    }
+                    .into(),
+                    id: job.id.clone(),
+                    label: job
+                        .plan
+                        .channel
+                        .as_ref()
+                        .map(|t| t.name.clone())
+                        .unwrap_or_else(|| job.plan.title.clone()),
+                    revision: job.plan.input.revision.clone(),
+                    state,
+                    action: if job.plan.channel.is_some() {
+                        "recipients_may_retain_snapshot_rotate_upstream"
+                    } else {
+                        "review_old_snapshot_and_revoke_link"
+                    }
+                    .into(),
+                });
+            }
+        }
+        Ok(entries)
     }
 
     /// Seal the prepared key/wrap and metadata after the worker returns to the same session.
@@ -404,6 +496,9 @@ impl Client {
             !job.cancel_requested && now < job.plan.publish_before && now < job.plan.expires_at,
             Error::Expired,
         )?;
+        if let Some(target) = &job.plan.channel {
+            self.snapshot_channel_check(target)?;
+        }
         let _ = self.snapshot(&job.plan)?;
         for attachment in &job.plan.attachments {
             self.secret_source_check(&attachment.source)?;
@@ -412,7 +507,7 @@ impl Client {
     }
 
     fn share_job_view(&self, job: &Job, include_link: bool) -> Result<Value> {
-        let mut value = json!({"id":job.id,"state":job.phase,"plan":job.plan,"request_id":job.request,"error":job.error,"cancel_requested":job.cancel_requested,"device_local":true});
+        let mut value = json!({"id":job.id,"state":job.phase,"plan":job.plan.view(),"request_id":job.request,"error":job.error,"cancel_requested":job.cancel_requested,"device_local":true,"receipt":job.receipt});
         let total = job.upload.as_ref().map_or(0, |p| p.chunks.len());
         value["uploaded_chunks"] =
             json!(if matches!(job.phase.as_str(), "published" | "revoked") {
@@ -421,7 +516,11 @@ impl Client {
                 job.uploaded_chunks
             });
         value["total_chunks"] = json!(total);
-        if include_link && job.phase == "published" && !job.cancel_requested {
+        if include_link
+            && job.plan.channel.is_none()
+            && job.phase == "published"
+            && !job.cancel_requested
+        {
             let record = self
                 .link_records()?
                 .into_iter()
@@ -446,7 +545,7 @@ impl Client {
         for key in self.workspace.store.sealed_keys(PREFIX)? {
             if let Some(job) = self.workspace.private::<Job>(self.keys()?, &key)? {
                 let mut view = self.share_job_view(&job, false)?;
-                view["plan"] = json!({"title":job.plan.title,"share_id":job.plan.share_id,"expires_at":job.plan.expires_at,"plain_bytes":job.plan.plain_bytes});
+                view["plan"] = json!({"title":job.plan.title,"share_id":job.plan.share_id,"expires_at":if job.plan.channel.is_none(){Some(job.plan.expires_at)}else{None},"plain_bytes":job.plan.plain_bytes,"channel":job.plan.channel});
                 jobs.push(view);
             }
         }
@@ -491,7 +590,7 @@ impl Client {
     pub(crate) fn secret_share_detail(&self, id: &str, digest: &str) -> Result<Value> {
         let job = self.share_job(id)?;
         ensure(job.plan.digest() == digest, Error::IntegrityFailed)?;
-        Ok(json!(job.plan))
+        Ok(job.plan.view())
     }
 
     pub(crate) fn secret_share_run(&mut self, r: &mut Request, now: u64) -> Result<ShareRun> {
@@ -566,6 +665,10 @@ impl Client {
     /// Stop unpublished work. After publication is attempted, cancellation remains pending until revoke is confirmed.
     pub fn secret_share_cancel(&mut self, id: &str) -> Result<Value> {
         let mut job = self.share_job(id)?;
+        ensure(
+            job.plan.channel.is_none() || !job.publish_attempted,
+            Error::Forbidden,
+        )?;
         job.cancel_requested = true;
         self.save_share_job(&job)?;
         if !job.publish_attempted {
@@ -764,16 +867,30 @@ impl ShareRun {
             .await?;
             h.with(|c|{
                 c.share_check(&job,true,now_ms())?;
-                let edition=staged.manifest.clone();let prepared=c.share_edition_upload(edition.public(),edition,job.key_wrap.clone(),Some(job.plan.upload_id.clone()))?;
-                let mut plan=prepared.plan;plan.expires_at=job.plan.publish_before;
-                plan.management=Some(c.seal_management(&plan,&json!({"name":job.plan.title,"plain_bytes":job.plan.plain_bytes,"source_type":"vault_snapshot","intent":{"kind":"secret_link","record":share_record(&job),"key_wrap":job.key_wrap}}))?);
-                job.upload=Some(plan);job.manifest=Some(crate::codec::b64(&prepared.manifest_bytes));job.phase="uploading".into();
+                let edition=staged.manifest.clone();
+                let (mut plan, bytes) = if let Some(target) = &job.plan.channel {
+                    let (reference, plan, bytes) = c.snapshot_channel_upload(target, &edition, &job.plan.upload_id)?;
+                    job.channel_reference = Some(reference);
+                    (plan, bytes)
+                } else {
+                    let prepared=c.share_edition_upload(edition.public(),edition,job.key_wrap.clone(),Some(job.plan.upload_id.clone()))?;
+                    (prepared.plan, prepared.manifest_bytes)
+                };
+                plan.expires_at=job.plan.publish_before;
+                let intent = if job.plan.channel.is_some() {json!({"kind":"secret_channel","job_id":job.id})} else {json!({"kind":"secret_link","record":share_record(&job),"key_wrap":job.key_wrap})};
+                plan.management=Some(c.seal_management(&plan,&json!({"name":job.plan.title,"plain_bytes":job.plan.plain_bytes,"source_type":"vault_snapshot","intent":intent}))?);
+                job.upload=Some(plan);job.manifest=Some(crate::codec::b64(&bytes));job.phase="uploading".into();
                 c.workspace.store.atomic(|_|{c.save_share_job(&job)?;c.hold_chunks([(job.plan.share_id.clone(),job.plan.publish_before,job.upload.as_ref().ok_or(Error::IntegrityFailed)?.chunks.iter().map(|c|c.digest.clone()).collect())])})
             }).await?;
         }
         let plan = job.upload.as_ref().ok_or(Error::IntegrityFailed)?;
         let manifest = crate::codec::unb64(job.manifest.as_ref().ok_or(Error::IntegrityFailed)?)?;
-        let base = h.with(|c| c.base()).await?;
+        let base = h
+            .with(|c| match &job.plan.channel {
+                Some(t) => Ok(format!("/v1/channels/{}", t.channel_id)),
+                None => c.base(),
+            })
+            .await?;
         crate::upload::upload(
             h,
             &base,
@@ -789,10 +906,21 @@ impl ShareRun {
             },
         )
         .await?;
-        let payload = json!({"share_id":job.plan.share_id,"upload_id":job.plan.upload_id,"expires_at":job.plan.expires_at,"max_downloads":job.plan.max_download_sessions,"key_wrap":job.key_wrap});
-        let request_id = Hash::new(random_id());
-        let (relay, prepared) = h
-            .signed(|c| {
+        let (relay, prepared) = if let Some(target) = &job.plan.channel {
+            let prepared = crate::channel::snapshot::publication(
+                h,
+                target,
+                job.channel_reference
+                    .as_ref()
+                    .ok_or(Error::IntegrityFailed)?,
+                &job.plan.snapshot_id,
+            )
+            .await?;
+            (h.with(|c| Ok(c.relay())).await?, prepared)
+        } else {
+            let payload = json!({"share_id":job.plan.share_id,"upload_id":job.plan.upload_id,"expires_at":job.plan.expires_at,"max_downloads":job.plan.max_download_sessions,"key_wrap":job.key_wrap});
+            let request_id = Hash::new(random_id());
+            h.signed(|c| {
                 c.signed_post(
                     &format!("{base}/shares"),
                     "dmsg/share/create/v1",
@@ -800,7 +928,8 @@ impl ShareRun {
                     &request_id,
                 )
             })
-            .await?;
+            .await?
+        };
         h.with(|c| {
             let now = now_ms();
             c.share_check(&job, true, now)?;
@@ -815,6 +944,19 @@ impl ShareRun {
         })
         .await?;
         // From this point any failure is uncertain. There is no publication retry path.
+        if let Some(target) = &job.plan.channel {
+            let reply = relay.send(prepared).await;
+            let receipt =
+                crate::channel::snapshot::settle(h, target, &job.plan.snapshot_id, reply).await?;
+            return h
+                .with(|c| {
+                    let mut current = c.share_job(&job.id)?;
+                    current.receipt = Some(receipt);
+                    c.save_share_job(&current)?;
+                    c.release_chunks(&current.plan.share_id)
+                })
+                .await;
+        }
         let result = relay.send(prepared).await?;
         ensure(
             result["share_id"] == job.plan.share_id,
@@ -839,6 +981,25 @@ impl ShareRun {
 pub async fn reconcile<H: Hold>(h: &H, id: &str) -> Result<Value> {
     let bound = Unlocked::new(h).await?;
     let job = bound.with(|c| c.share_job(id)).await?;
+    if let Some(target) = &job.plan.channel {
+        ensure(job.publish_attempted, Error::Forbidden)?;
+        if let Some(receipt) =
+            crate::channel::snapshot::reconcile(&bound, target, &job.plan.snapshot_id).await?
+        {
+            return bound
+                .with(|c| {
+                    let mut current = c.share_job(id)?;
+                    current.receipt = Some(receipt);
+                    c.save_share_job(&current)?;
+                    c.release_chunks(&current.plan.share_id)?;
+                    c.share_settle(id, "published", None, State::Done)
+                })
+                .await;
+        }
+        return bound
+            .with(|c| c.share_job_view(&c.share_job(id)?, false))
+            .await;
+    }
     if job.cancel_requested {
         return revoke(&bound, id).await;
     }
@@ -895,3 +1056,15 @@ pub async fn revoke<H: Hold>(h: &H, id: &str) -> Result<Value> {
 #[cfg(test)]
 #[path = "share_tests.rs"]
 mod tests;
+
+/// Prepare a one-time delivery to a freshly verified channel, without uploading bytes.
+pub async fn prepare_channel<H: Hold>(h: &H, channel: &str, input: ShareInput) -> Result<Value> {
+    let bound = Unlocked::new(h).await?;
+    let target = crate::channel::snapshot::prepare(&bound, channel).await?;
+    bound
+        .with(|c| {
+            let prepared = c.secret_channel_preparation(input, target)?;
+            c.secret_share_save_preparation(prepared)
+        })
+        .await
+}

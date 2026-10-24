@@ -123,8 +123,22 @@ impl Hold for Shared {
 
 #[tokio::test]
 async fn lost_publication_response_queries_original_id_without_create_replay() {
+    lost_publication(false).await;
+    lost_publication(true).await;
+}
+
+async fn lost_publication(channel: bool) {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let (_dir, mut c, id) = fixture();
+    let ledger = if channel {
+        let (channel_id, ledger) = crate::channel::tests::active_channel(&mut c);
+        let mut job = c.share_job(&id).unwrap();
+        job.plan.channel = Some(c.snapshot_channel_target(&channel_id).unwrap());
+        c.save_share_job(&job).unwrap();
+        Some(ledger)
+    } else {
+        None
+    };
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     crate::testing::relay_to(
         &mut c,
@@ -152,6 +166,8 @@ async fn lost_publication_response_queries_original_id_without_create_replay() {
     let job_id = id.clone();
     let creates = Arc::new(AtomicUsize::new(0));
     let count = creates.clone();
+    let receipt = Arc::new(Mutex::new(None::<Value>));
+    let received_receipt = receipt.clone();
     let server = tokio::spawn(async move {
         loop {
             let (mut socket, _) = listener.accept().await.unwrap();
@@ -192,6 +208,35 @@ async fn lost_publication_response_queries_original_id_without_create_replay() {
             let path = header.lines().next().unwrap();
             let (status, data) = if path.starts_with("GET ") && path.contains("/uploads/") {
                 (200, json!({"status":"committed","plan":job.upload}))
+            } else if path.starts_with("GET ") && path.contains("/operations/") {
+                (
+                    200,
+                    json!({"found":true,"result":received_receipt.lock().unwrap().clone().unwrap()}),
+                )
+            } else if path.starts_with("GET ") && path.contains("/sync?") {
+                (
+                    200,
+                    json!({"head":ledger.as_ref().unwrap().head,"entries":[],"skipped":[],"next_seq":0,"latest_seq":0}),
+                )
+            } else if path.starts_with("GET ")
+                && ledger
+                    .as_ref()
+                    .is_some_and(|l| path.contains(&format!("/channels/{} ", l.channel_id)))
+            {
+                (200, json!(ledger))
+            } else if path.starts_with("POST ") && path.contains("/messages ") {
+                count.fetch_add(1, Ordering::SeqCst);
+                let body: Value =
+                    crate::codec::decode(&bytes[head..head + length], 1024 * 1024).unwrap();
+                let cose = body["signed"]["cose_sign1"]
+                    .as_str()
+                    .or_else(|| body["cose_sign1"].as_str())
+                    .expect("signed request");
+                *received_receipt.lock().unwrap() = Some(
+                    json!({"seq":1,"stored_at":now_ms(),"digest":crate::codec::hex_sha256(&crate::codec::unb64(cose).unwrap())}),
+                );
+                drop(socket);
+                continue;
             } else if path.starts_with("POST ") && path.contains("/shares ") {
                 count.fetch_add(1, Ordering::SeqCst);
                 drop(socket);
@@ -228,6 +273,16 @@ async fn lost_publication_response_queries_original_id_without_create_replay() {
     assert!(!text.contains("SECRET_SNAPSHOT_ONLY"));
     assert!(!text.contains("#"));
     h.with(|c| {
+        if channel {
+            assert!(c.secret_share_cancel(&id).is_err());
+            assert!(
+                c.channel_outbox(&ledger_for_job(c, &id))
+                    .unwrap()
+                    .is_empty()
+            );
+            assert!(c.secret_share_get(&id, true)?["link"].is_null());
+            return Ok(());
+        }
         c.secret_share_cancel(&id)?;
         assert!(c.secret_share_get(&id, true)?["link"].is_null());
         c.share_settle(&id, "revoked", None, State::Done)?;
@@ -240,4 +295,53 @@ async fn lost_publication_response_queries_original_id_without_create_replay() {
     .await
     .unwrap();
     server.abort();
+}
+
+fn ledger_for_job(c: &Client, id: &str) -> String {
+    c.share_job(id)
+        .unwrap()
+        .plan
+        .channel
+        .as_ref()
+        .unwrap()
+        .channel_id
+        .clone()
+}
+
+#[tokio::test]
+async fn channel_snapshot_approval_is_fixed_to_membership_and_never_wraps_a_link() {
+    let (_dir, mut c, id) = fixture();
+    let (channel, _) = crate::channel::tests::active_channel(&mut c);
+    let target = c.snapshot_channel_target(&channel).unwrap();
+    let mut job = c.share_job(&id).unwrap();
+    job.plan.channel = Some(target.clone());
+    c.save_share_job(&job).unwrap();
+    let request = c.secret_share_request("gui", &id).unwrap();
+    assert!(request["detail"]["expires_at"].is_null());
+    assert!(request["detail"]["max_download_sessions"].is_null());
+    assert!(
+        request["detail"]
+            .to_string()
+            .contains("including later joins")
+    );
+    let mut stale = target;
+    stale.control_head = "ff".repeat(32);
+    assert_eq!(
+        c.snapshot_channel_check(&stale).unwrap_err(),
+        Error::PolicyStale
+    );
+    job.plan.channel = Some(stale);
+    c.save_share_job(&job).unwrap();
+    assert!(c.secret_share_request("gui", &id).is_err());
+    let result = c
+        .approval_decide(
+            request["id"].as_str().unwrap(),
+            request["digest"].as_str().unwrap(),
+            true,
+            "gui",
+            false,
+        )
+        .await;
+    assert!(!matches!(result, Ok(Decision::SecretShare(_))));
+    assert!(c.channel_outbox(&channel).unwrap().is_empty());
 }

@@ -1134,8 +1134,11 @@ fn rotation_is_an_ordered_owner_report_not_an_upstream_revocation_proof() {
     let (_dir, mut c, _, p) = setup();
     let r = c.secret_rotation_create(p.credential.clone()).unwrap();
     let id = r["id"].as_str().unwrap();
-    assert!(c.secret_rotation_update(id, "created").is_err());
-    assert!(c.secret_rotation_update(id, "upstream_revoked").is_err());
+    assert!(c.secret_rotation_update(id, "created", None).is_err());
+    assert!(
+        c.secret_rotation_update(id, "upstream_revoked", None)
+            .is_err()
+    );
     c.vault_edit(
         &p.credential.item_id,
         None,
@@ -1155,7 +1158,9 @@ fn rotation_is_an_ordered_owner_report_not_an_upstream_revocation_proof() {
         "references_checked",
         "upstream_revoked",
     ] {
-        c.secret_rotation_update(id, step).unwrap();
+        let index = c.secret_rotation_dependencies(id).unwrap();
+        c.secret_rotation_update(id, step, Some(&index.digest))
+            .unwrap();
     }
     let report = c.secret_rotations().unwrap();
     assert_eq!(report[0].evidence, "owner_statement");
@@ -1265,4 +1270,67 @@ async fn ignored_stale_ssh_binding_is_reevaluated_after_a_new_source_revision() 
     let next = find(c.secret_health().unwrap());
     assert_ne!(first["id"], next["id"]);
     assert_eq!(next["dismissed"], false);
+}
+
+#[tokio::test]
+async fn dependency_inventory_is_value_free_and_rotation_rejects_stale_acknowledgement() {
+    let (dir, mut c, actor, p) = setup();
+    let reference = p.credential.clone();
+    let policy = configure(&mut c, &actor, p).await;
+    let index = c.secret_references(&reference).unwrap();
+    assert!(
+        index
+            .dependencies
+            .iter()
+            .any(|d| d.kind == "policy" && d.id == policy)
+    );
+    assert!(index.dependencies.iter().any(|d| d.kind == "policy_grant"));
+    assert!(!serde_json::to_string(&index).unwrap().contains(TOKEN));
+    let mut wrong = reference.clone();
+    wrong.account_id = "00000000000000000000".into();
+    assert!(c.secret_references(&wrong).is_err());
+    let rotation = c.secret_rotation_create(reference.clone()).unwrap();
+    let id = rotation["id"].as_str().unwrap();
+    c.vault_edit(
+        &reference.item_id,
+        None,
+        &Changes {
+            set: Some(vec![FieldChange {
+                id: Some(reference.field_id.clone()),
+                value: Some("ROTATED_SYNTHETIC_ONLY".into()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    for step in ["created", "tested"] {
+        c.secret_rotation_update(id, step, None).unwrap();
+    }
+    assert!(
+        c.secret_rotation_update(id, "references_checked", Some(&index.digest))
+            .is_err()
+    );
+    let current = c.secret_rotation_dependencies(id).unwrap();
+    assert!(
+        c.secret_rotation_update(id, "references_checked", None)
+            .is_err()
+    );
+    c.secret_rotation_update(id, "references_checked", Some(&current.digest))
+        .unwrap();
+    c.secret_policy_disable(&policy).unwrap();
+    assert!(
+        c.secret_rotation_update(id, "upstream_revoked", None)
+            .is_err()
+    );
+    let next = c.secret_rotation_dependencies(id).unwrap();
+    assert_ne!(current.digest, next.digest);
+    c.secret_rotation_update(id, "references_checked", Some(&next.digest))
+        .unwrap();
+    c.secret_rotation_update(id, "upstream_revoked", None)
+        .unwrap();
+    assert_eq!(c.secret_references(&reference).unwrap().digest, next.digest);
+    c.lock();
+    assert!(c.secret_references(&reference).is_err());
+    drop(dir);
 }

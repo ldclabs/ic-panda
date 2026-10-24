@@ -1,5 +1,14 @@
 import { locale } from '../../i18n/index.svelte'
 const rows = `
+alreadyImported|Already imported; the original receipt was returned.|已经导入，已返回原收据。|Уже импортировано; возвращена квитанция.|تم الاستيراد؛ أُعيد الإيصال الأصلي.|Déjà importé ; reçu original retourné.|Ya importado; se devolvió el recibo original.
+references|Credential references|凭据引用|Ссылки на ключ|مراجع الاعتماد|Références d’identifiant|Referencias de credenciales
+dependencies|Inspect dependencies|查看依赖清单|Показать зависимости|عرض التبعيات|Voir les dépendances|Ver dependencias
+referenceBoundary|Local configurations and retained uses only. Other devices and unobserved project files are not included.|仅包括本机配置与保留的使用记录；不包括其他设备或未观察到的项目文件。|Только локальные настройки и сохранённые действия; другие устройства и проекты не включены.|الإعدادات والسجل المحلي فقط؛ لا يشمل الأجهزة والمشاريع الأخرى.|Configurations et usages locaux conservés uniquement ; autres appareils et projets exclus.|Solo configuraciones y usos locales conservados; no incluye otros dispositivos o proyectos.
+channelDelivery|Send to channel|发送到频道|Отправить в канал|إرسال إلى القناة|Envoyer au canal|Enviar al canal
+channelWarning|Members with access to this epoch, including later joins or history grants, may retain this snapshot. No link expiry, session limit or recall applies.|可读取该纪元的成员（包括后续加入或获得历史授权者）可保存快照；不适用链接到期、次数限制，也无法收回副本。|Участники с доступом к эпохе, включая будущие приглашения, могут сохранить снимок. Нет срока ссылки, лимита или отзыва копий.|يمكن لأعضاء الحقبة، بمن فيهم المنضمون لاحقاً، حفظ اللقطة؛ لا انتهاء للرابط أو حد للجلسات أو استرداد للنسخ.|Les membres ayant accès à cette époque, y compris ultérieurement, peuvent conserver l’instantané. Pas d’expiration, de limite ou de rappel.|Los miembros con acceso a esta época, incluso posteriormente, pueden conservar la instantánea. Sin caducidad, límite ni recuperación.
+channelSnapshot|Import secret snapshot|导入秘密快照|Импортировать снимок|استيراد لقطة الأسرار|Importer l’instantané secret|Importar instantánea secreta
+noDependencies|No retained local references found.|未发现保留的本机引用。|Локальные ссылки не найдены.|لا مراجع محلية محفوظة.|Aucune référence locale conservée.|No se encontraron referencias locales conservadas.
+
 workflows|Developer workflows|开发工作流|Рабочие процессы|مسارات المطوّر|Flux de développement|Flujos de desarrollo
 mounts|Secret files|机密文件|Секретные файлы|ملفات سرية|Fichiers secrets|Archivos secretos
 ssh|SSH and Git|SSH 与 Git|SSH и Git|SSH و Git|SSH et Git|SSH y Git

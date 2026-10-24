@@ -213,8 +213,8 @@
   {/if}
 {/snippet}
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
-{#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}<button class={buttonClass('secondary','sm')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+{#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}<button class={buttonClass('secondary','sm')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
 <Section title={t('publicProfile')} description={t('avatarHint')} icon="profile" testid="profile">
   {#if status?.state === 'unlocked'}
     <div class="grid gap-4">
@@ -273,7 +273,7 @@
       <input placeholder={t('accountId')} bind:value={other} class="font-mono text-[12.5px] placeholder:font-sans" />
       <button class={buttonClass('secondary')} disabled={lookupBusy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
     </div>
-    {#if lookupError}<Notice tone="danger">{lookupError}</Notice>{/if}
+    {#if lookupError}<Notice failure={lookupError} tone="danger">{lookupError}</Notice>{/if}
     {#if found}
       <div class="flex items-start gap-3 rounded-lg bg-surface-2 p-3.5" data-testid="profile-found">
         {@render picture(found, 'size-12')}

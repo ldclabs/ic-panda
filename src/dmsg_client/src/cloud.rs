@@ -3,7 +3,7 @@
 //! (COSE_Sign1), and ciphertext chunks.
 //!
 //! Requests carry no `Origin` and no cookies, follow no redirects and bound
-//! every response. Nothing is retried here: callers reconcile mutations by
+//! every response. Safe reads retry within a bounded budget; callers reconcile mutations by
 //! their request ID. A [`Presigned`] command carries its own proofs, so it
 //! can be submitted, and its outcome read, without the device key until its
 //! deadline.
@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::{ByteBuf, Bytes};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
-use std::time::Duration;
 use url::Url;
 
 /// Protocol identifier inside every signed payload.
@@ -504,12 +503,8 @@ impl Cloud {
                 && (url.scheme() == "https" || (local && loopback && url.scheme() == "http")),
             dmsg_types::invalid("relay"),
         )?;
-        let http = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
+        let http =
+            crate::transport::client().map_err(|e| Error::Unavailable(format!("http: {e}")))?;
         Ok(Self {
             http,
             origin: url,
@@ -555,26 +550,39 @@ impl Cloud {
         if let Some(pop) = pop {
             request = request.header("x-dmsg-pop", pop);
         }
-        let failed = |e: reqwest::Error| {
-            if mutation {
-                Error::ExecutionUnknown
-            } else {
-                Error::Unavailable(format!("relay: {e}"))
-            }
+        let request = request
+            .build()
+            .map_err(|_| dmsg_types::invalid("request"))?;
+        let limit = if binary { MAX_CHUNK } else { MAX_JSON };
+        let policy = if mutation {
+            crate::transport::WRITE
+        } else if binary {
+            crate::transport::BULK
+        } else {
+            crate::transport::READ
         };
-        let mut response = request.send().await.map_err(failed)?;
+        let response = crate::transport::send(&self.http, request, "relay", policy, limit)
+            .await
+            .map_err(|e| match e {
+                crate::transport::Failure::TooLarge => Error::QuotaExceeded,
+                crate::transport::Failure::Request(_) if mutation => Error::ExecutionUnknown,
+                crate::transport::Failure::Request(e) if crate::transport::transient(&e) => {
+                    crate::transport::unavailable(
+                        "relay",
+                        crate::diagnostic::Diagnostic::request("relay", &e).reason,
+                    )
+                }
+                crate::transport::Failure::Request(_) => {
+                    Error::Unavailable("relay: transport rejected".into())
+                }
+            })?;
         let status = response.status();
         let octets = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
             .is_some_and(|v| v.starts_with("application/octet-stream") || v.starts_with("image/"));
-        let limit = if binary { MAX_CHUNK } else { MAX_JSON };
-        let mut data = Vec::new();
-        while let Some(chunk) = response.chunk().await.map_err(failed)? {
-            ensure(data.len() + chunk.len() <= limit, Error::QuotaExceeded)?;
-            data.extend_from_slice(&chunk);
-        }
+        let data = response.into_body().to_vec();
         if binary && status.is_success() && octets {
             return Ok(Reply::Bytes(data));
         }
@@ -584,10 +592,16 @@ impl Cloud {
             Err(_) if !status.is_success() => {
                 return Err(match mutation {
                     true => Error::ExecutionUnknown,
+                    false if crate::transport::transient_status(status.as_u16()) => {
+                        crate::transport::unavailable("relay", "http")
+                    }
                     false => Error::Unavailable(format!("relay: HTTP {status}")),
                 });
             }
-            Err(_) => return Err(Error::IntegrityFailed),
+            Err(_) => {
+                crate::diagnostic::Diagnostic::new("relay", "decode").emit();
+                return Err(Error::IntegrityFailed);
+            }
         };
         match envelope.get("ok").and_then(Json::as_bool) {
             Some(true) if status.is_success() => envelope
@@ -596,10 +610,20 @@ impl Cloud {
                 .map(Reply::Json)
                 .ok_or(Error::IntegrityFailed),
             Some(false) => {
+                if status.is_success() {
+                    crate::diagnostic::Diagnostic::new("relay", "remote_error").emit();
+                }
                 let error = &envelope["error"];
                 let code = error["code"].as_str().ok_or(Error::IntegrityFailed)?;
                 let message = error["message"].as_str().unwrap_or_default();
-                Err(relay_error(code, message))
+                let error = relay_error(code, message);
+                if !mutation
+                    && matches!(error, Error::Unavailable(_))
+                    && crate::transport::transient_status(status.as_u16())
+                {
+                    return Err(crate::transport::unavailable("relay", "http"));
+                }
+                Err(error)
             }
             _ => Err(Error::IntegrityFailed),
         }
@@ -1130,34 +1154,39 @@ impl Cloud {
             slot.digest == digest && slot.size <= MAX_CHUNK as u64,
             Error::IntegrityFailed,
         )?;
-        let mut response = self
+        let request = self
             .http
             .get(url)
-            .send()
-            .await
-            .map_err(|_| Error::Unavailable("file download".into()))?;
+            .build()
+            .map_err(|_| Error::IntegrityFailed)?;
+        let response = crate::transport::send(
+            &self.http,
+            request,
+            "download",
+            crate::transport::BULK,
+            slot.size as usize,
+        )
+        .await
+        .map_err(|error| match error {
+            crate::transport::Failure::TooLarge => Error::IntegrityFailed,
+            crate::transport::Failure::Request(error) if crate::transport::transient(&error) => {
+                crate::transport::unavailable(
+                    "download",
+                    crate::diagnostic::Diagnostic::request("download", &error).reason,
+                )
+            }
+            _ => Error::Unavailable("file download".into()),
+        })?;
         match response.status().as_u16() {
             200 => {}
             403 => return Err(Error::Expired),
             404 => return Err(Error::NotFound),
-            n if n >= 500 || n == 429 => return Err(Error::Unavailable("file download".into())),
+            n if crate::transport::transient_status(n) => {
+                return Err(crate::transport::unavailable("download", "http"));
+            }
             _ => return Err(Error::IntegrityFailed),
         }
-        if let Some(length) = response.content_length() {
-            ensure(length == slot.size, Error::IntegrityFailed)?;
-        }
-        let mut bytes = Vec::new();
-        while let Some(part) = response
-            .chunk()
-            .await
-            .map_err(|_| Error::Unavailable("file download".into()))?
-        {
-            ensure(
-                bytes.len() + part.len() <= slot.size as usize,
-                Error::IntegrityFailed,
-            )?;
-            bytes.extend_from_slice(&part);
-        }
+        let bytes = response.into_body().to_vec();
         ensure(
             bytes.len() as u64 == slot.size && hex::encode(*sha256(&bytes)) == digest,
             Error::IntegrityFailed,

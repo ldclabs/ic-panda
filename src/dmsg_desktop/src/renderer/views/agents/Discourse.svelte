@@ -105,7 +105,7 @@
       />
       <button class={buttonClass('secondary', 'md')} disabled={busy || !agent} onclick={load} data-testid="discourse-reload"><Icon name="sync-now" />{t('reload')}</button>
     {/snippet}
-    {#if error}<Notice tone="danger" class="mb-3" testid="discourse-error">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger" class="mb-3" testid="discourse-error">{error}</Notice>{/if}
     <div class="grid gap-4 lg:grid-cols-[minmax(220px,300px)_1fr]">
       <div class="grid content-start gap-3">
         <div>

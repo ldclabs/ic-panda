@@ -239,7 +239,7 @@
         <Field label={w('memo')}><input bind:value={draft.memo} pattern="[a-fA-F0-9]*" maxlength="64" dir="ltr" /></Field>
       {/if}
     </Collapsible>
-    {#if error}<Notice tone="danger" testid="wallet-transfer-error">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger" testid="wallet-transfer-error">{error}</Notice>{/if}
     <button
       class={buttonClass('secondary', 'sm', 'justify-self-start')}
       disabled={busy || !asset}

@@ -29,7 +29,8 @@
   const step = $derived(nextStep(status))
   const pending = $derived<number>(status?.pending_sync ?? 0)
   const failed = $derived(!syncing && !!status?.last_sync?.error)
-  const syncText = $derived(syncing ? t('syncing') : failed ? t('syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('accountSynced') : t('sync'))
+  const transient = $derived(['UNAVAILABLE', 'NETWORK_UNAVAILABLE', 'EXECUTION_UNKNOWN'].includes(status?.last_sync?.error))
+  const syncText = $derived(syncing ? t('syncing') : failed ? t(transient ? 'networkUnavailable' : 'syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('accountSynced') : t('sync'))
   const syncHint = $derived(status?.last_sync?.at ? `${t('sync')} · ${when(status.last_sync.at)}${failed ? ` · ${status.last_sync.error}` : ''}` : t('sync'))
 
   async function syncNow() {
@@ -64,7 +65,7 @@
       <Tooltip content={`${syncText} · ${syncHint}`} side="right">
         {#snippet children(props)}
           <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking} onclick={syncNow}>
-            <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && 'text-danger')} />
+            <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
         {/snippet}
@@ -77,7 +78,7 @@
         {/snippet}
       </Tooltip>
     {/if}
-    <Tooltip content={connected ? t('connected') : connectionError || t('disconnected')} side="right">
+    <Tooltip content={connected ? t('connected') : connectionError ? t('networkReconnecting') : t('disconnected')} side="right">
       {#snippet children(props)}
         <span {...props} class="grid size-8 place-items-center"><span class={cn('size-2 rounded-full', connected ? 'bg-ok' : 'bg-danger')}></span></span>
       {/snippet}
@@ -104,8 +105,8 @@
             disabled={syncing || $unlocking}
             data-testid="gate-sync"
           >
-            <Icon name="sync" class={cn('text-faint', syncing && 'motion-safe:animate-spin', failed && 'text-danger')} />
-            <span role="status" class={cn(syncing && 'shimmer', failed && 'text-danger')}>{syncText}</span>
+            <Icon name="sync" class={cn('text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
+            <span role="status" class={cn(syncing && 'shimmer', failed && (transient ? 'text-warn' : 'text-danger'))}>{syncText}</span>
           </button>
         {/snippet}
       </Tooltip>
@@ -130,7 +131,7 @@
       {/if}
     </div>
     {#if !connected && connectionError}
-      <p class="text-[11.5px] break-words whitespace-pre-wrap text-muted" data-testid="connection-error">{connectionError}</p>
+      <p class="text-[11.5px] break-words whitespace-pre-wrap text-muted" data-testid="connection-error">{t('networkReconnecting')}</p>
     {/if}
   </div>
 {/if}

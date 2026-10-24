@@ -23,6 +23,8 @@ pub enum SecretCommand {
     Packages(PackageCommand),
     /// Explicit local checks; observations never imply upstream revocation.
     Health,
+    /// List local consumers; never scans arbitrary projects or returns values.
+    References { reference: String },
     /// Ignore one current finding only.
     Dismiss { id: String },
     /// Owner-reported, ordered credential rotation.
@@ -102,6 +104,11 @@ pub enum DiscoveryCommand {
 
 #[derive(Subcommand)]
 pub enum ShareCommand {
+    /// Prepare a snapshot for a fixed channel; path contains the explicit selection.
+    ChannelPrepare {
+        channel_id: String,
+        path: PathBuf,
+    },
     /// JSON selection contains IDs, revisions and limits; never values or a password.
     Prepare {
         path: PathBuf,
@@ -129,6 +136,8 @@ pub enum ShareCommand {
 
 #[derive(Subcommand)]
 pub enum PackageCommand {
+    /// Receive a snapshot from a verified channel message, without a plaintext file.
+    ChannelPreview { channel_id: String, seq: u64 },
     /// Read the link from stdin; when --password-stdin, use line 1 for the link and line 2 for its password.
     Preview {
         #[arg(long)]
@@ -198,6 +207,10 @@ fn mount_input(path: &std::path::Path) -> Result<Value, Failure> {
 #[derive(Subcommand)]
 pub enum RotationCommand {
     List,
+    /// Inspect the current dependency inventory before acknowledging it.
+    Dependencies {
+        id: String,
+    },
     Create {
         item_id: String,
         field_id: String,
@@ -206,6 +219,9 @@ pub enum RotationCommand {
         id: String,
         #[arg(value_parser=["created","tested","references_checked","upstream_revoked"])]
         step: String,
+        /// Exact digest returned by rotation dependencies; required for references_checked.
+        #[arg(long)]
+        dependencies_digest: Option<String>,
     },
 }
 
@@ -318,6 +334,10 @@ pub async fn secrets(
             ),
         },
         SecretCommand::Shares(command) => match command {
+            ShareCommand::ChannelPrepare { channel_id, path } => (
+                "secrets/shares/channel_prepare",
+                json!({"channel_id":channel_id,"input":read_json(&path)?}),
+            ),
             ShareCommand::Prepare {
                 path,
                 password_stdin,
@@ -355,6 +375,10 @@ pub async fn secrets(
             ShareCommand::Revoke { id } => ("secrets/shares/revoke", json!({"id":id})),
         },
         SecretCommand::Packages(command) => match command {
+            PackageCommand::ChannelPreview { channel_id, seq } => (
+                "secrets/packages/channel_preview",
+                json!({"channel_id":channel_id,"seq":seq}),
+            ),
             PackageCommand::Preview { password_stdin } => {
                 let input = stdin_lines()?;
                 let mut lines = input.lines();
@@ -382,13 +406,25 @@ pub async fn secrets(
                 json!({"source":"cli","selection":read_json(&path)?}),
             ),
         },
+        SecretCommand::References { reference } => (
+            "secrets/references",
+            json!({"reference":dmsg_client::secrets::SecretRef::parse(&reference).map_err(|_|Failure::new("INVALID_INPUT","reference"))?}),
+        ),
         SecretCommand::Health => ("secrets/health", json!({})),
         SecretCommand::Dismiss { id } => ("secrets/health/dismiss", json!({"id":id})),
         SecretCommand::Rotation(command) => match command {
             RotationCommand::List => ("secrets/rotation/list", json!({})),
-            RotationCommand::Update { id, step } => {
-                ("secrets/rotation/update", json!({"id":id,"step":step}))
+            RotationCommand::Dependencies { id } => {
+                ("secrets/rotation/dependencies", json!({"id":id}))
             }
+            RotationCommand::Update {
+                id,
+                step,
+                dependencies_digest,
+            } => (
+                "secrets/rotation/update",
+                json!({"id":id,"step":step,"dependencies_digest":dependencies_digest}),
+            ),
             RotationCommand::Create { item_id, field_id } => {
                 let r = remote
                     .call(

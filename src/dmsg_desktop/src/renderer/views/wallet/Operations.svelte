@@ -130,10 +130,10 @@
 </script>
 
 <div class="grid gap-5">
-  {#each Object.values(errors).filter(Boolean) as failure}<Notice tone="danger"
+  {#each Object.values(errors).filter(Boolean) as failure}<Notice failure={failure} tone="danger"
       >{failure}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice
     >{/each}
-  {#if error}<Notice tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
   {#if notice}<Notice>{notice}</Notice>{/if}
   <Section title={w('runningHealth')} icon="coins">
     <div class="grid gap-3 sm:grid-cols-3">

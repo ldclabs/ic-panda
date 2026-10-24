@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { onDestroy, untrack } from 'svelte'
   import { RadioGroup } from 'bits-ui'
   import Dialog from '../../components/Dialog.svelte'
@@ -84,7 +85,7 @@
       <input bind:value={price} inputmode="numeric" class={cn('font-mono text-ink tabular-nums', price && !valid && 'border-danger')} data-testid="rules-price" />
     </label>
   {/if}
-  {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>

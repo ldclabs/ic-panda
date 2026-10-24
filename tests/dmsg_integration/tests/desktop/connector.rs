@@ -1,4 +1,4 @@
-//! MCP 0.12.3 through the real daemon, Profile service and Mail Worker.
+//! MCP 0.12.6 through the real daemon, Profile service and Mail Worker.
 use super::*;
 
 #[test]
@@ -26,7 +26,17 @@ fn desktop_connector_profile_and_mail() {
         let request = a.run(&command);
         assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     }
-    let request = a.run(&["agent", "controller", "register", "--name", "MCP test"]);
+    let request = a.run(&[
+        "agent",
+        "controller",
+        "register",
+        "--name",
+        "MCP test",
+        "--scope",
+        "message.draft",
+        "--audience",
+        "https://dmsg.net",
+    ]);
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     let alice = a.run(&["agent", "id", "create", "alice"])["agent_id"]
         .as_str()
@@ -228,6 +238,19 @@ fn desktop_connector_profile_and_mail() {
         .unwrap()["mailbox"]
         .clone();
     let bob_box = ap(a, "bob", "mail_mailbox_publish", json!({"routes":[mail]}))["mailbox"].clone();
+    assert_eq!(alice_box["key_available"], true);
+    let inventory = mcp
+        .tool(
+            "agent_protocols_mail_mailboxes_list",
+            json!({"host":mail,"limit":1}),
+        )
+        .unwrap();
+    assert_eq!(
+        inventory["mailboxes"][0]["mailbox_id"],
+        alice_box["mailbox_id"]
+    );
+    assert_eq!(inventory["mailboxes"][0]["key_available"], true);
+
     let resolved = mcp
         .tool(
             "agent_protocols_mail_resolve",
@@ -340,4 +363,44 @@ fn desktop_connector_profile_and_mail() {
         )["profiles"][0]["name"],
         "Alice after"
     );
+    // Lose only connector metadata on this temporary device; retain its independently
+    // sealed Mail keys. Relay inventory restores records, not historical plaintext.
+    let account = a.run(&["status"])["account"].as_str().unwrap().to_owned();
+    let connector_state = a
+        .home
+        .join("local")
+        .join("accounts")
+        .join(account)
+        .join("agents.sqlite");
+    let index = env.daemons[0];
+    let _ = env.children.0[index].kill();
+    let _ = env.children.0[index].wait();
+    std::fs::remove_file(&connector_state).unwrap();
+    env.restart(0);
+    let a = &env.a;
+    assert_eq!(a.login(&http, 81).unwrap()["state"], "unlocked");
+    assert_eq!(
+        ap(a, "alice", "mail_mailboxes_list", json!({}))["mailboxes"],
+        json!([])
+    );
+    let recovered = ap(
+        a,
+        "alice",
+        "mail_mailboxes_list",
+        json!({"host":mail,"limit":1}),
+    );
+    assert_eq!(
+        recovered["mailboxes"][0]["mailbox_id"],
+        alice_box["mailbox_id"]
+    );
+    assert_eq!(recovered["mailboxes"][0]["key_available"], true);
+    env.restart(0);
+    let a = &env.a;
+    assert_eq!(a.login(&http, 81).unwrap()["state"], "unlocked");
+    let persisted = ap(a, "alice", "mail_mailboxes_list", json!({}));
+    assert_eq!(
+        persisted["mailboxes"][0]["mailbox_id"],
+        alice_box["mailbox_id"]
+    );
+    assert_eq!(persisted["mailboxes"][0]["key_available"], true);
 }

@@ -494,8 +494,6 @@ export default {
     'Подсказка будит компьютер — без содержимого',
   'A release is not an audit.': 'Выпуск — не аудит.',
   'API key': 'API-ключ',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'API-ключи, логины, ключи подписи и заметки шифруются на вашем устройстве до синхронизации.',
   'Account and device changes': 'Изменения аккаунта и устройств',
   'Account and sync status': 'Статус аккаунта и синхронизации',
   'Account, devices and logins': 'Аккаунт, устройства и способы входа',
@@ -944,9 +942,6 @@ export default {
   'Files stay on your computer.': 'Файлы остаются на компьютере.',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     'Содержимое, имена и версии файлов шифруются локально. Вы выбираете, что сохранить в облаке; для передачи создаётся отдельно зашифрованная копия.',
-  'Your workspace, two ways in.': 'Одно пространство, два способа работы.',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    'Для повседневной работы — приложение, для скриптов — командная строка. Они используют одно локальное пространство и общую очередь подтверждений.',
   'Explore files and backups': 'Посмотреть файлы и резервные копии',
   'Try the desktop and command line': 'Попробовать приложение и терминал',
   'Collaboration': 'Совместная работа',
@@ -1125,12 +1120,117 @@ export default {
   'Vault item found': 'Запись хранилища найдена',
   'Release notes saved': 'Описание выпуска сохранено',
   'Message posted to the channel': 'Сообщение опубликовано в канале',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    'Вы, коллега и ваш агент взаимодействуете с личным пространством. Агент также подключается к Discourse, Mail и Knowledge.',
-  'A private space. A connected world.': 'Личное пространство. Связанный мир.',
   'Pause animation': 'Приостановить анимацию',
   'Play animation': 'Включить анимацию',
   'Teammate': 'Коллега',
   'Your agent': 'Ваш агент',
-  'Owner': 'Владелец'
+  'Desktop app': 'Приложение',
+  'People and agents': 'Люди и агенты',
+  'Desktop and terminal': 'Приложение и терминал',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    'Вы, коллега, ваш агент и сайт попадают в ваше личное пространство через ворота dMsg. Ваш агент также публикует в сети агентов. Запросы, требующие решения, ждут вас в окне одобрения.',
+  'Encrypted end to end': 'Сквозное шифрование',
+  'Sealed before it syncs': 'Шифруется до синхронизации',
+  'Only the folder it was granted': 'Только выданная ему папка',
+  'Signed with its own Agent ID': 'Подписано собственным Agent ID',
+  'Sign-in': 'Вход',
+  'Payment': 'Платёж',
+  'Sign the release statement': 'Подписать заявление о выпуске',
+  'Sign in to {site}': 'Вход на {site}',
+  'Pay {amount} from the team wallet':
+    'Оплатить {amount} из командного кошелька',
+  'Approving signs this statement with your account key.':
+    'Одобрение подпишет это заявление ключом вашего аккаунта.',
+  'Approving proves to the site that it is you.':
+    'Одобрение подтвердит сайту, что это вы.',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    'Одобрение добавит ваш голос. Остальное решают правила кошелька.',
+  'Your vote is recorded.': 'Ваш голос учтён.',
+  'Rejected. Nothing was paid.': 'Отклонено. Ничего не оплачено.',
+  'Expired. Nothing was approved.': 'Срок истёк. Ничего не одобрено.',
+  'Nothing is waiting for you.': 'Ничего не ждёт вашего решения.',
+  'Approved without you: {count}': 'Одобрено без вас: {count}',
+  'Requests from agents, websites and the terminal open here.':
+    'Здесь открываются запросы от агентов, сайтов и терминала.',
+  'Hold to approve': 'Удерживайте, чтобы одобрить',
+  'The desktop app': 'Настольное приложение',
+  'Everything in one window.': 'Всё в одном окне.',
+  'Every decision in its own.': 'Каждое решение — в своём.',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    'Каналы, файлы, хранилище, письма, агенты и командные кошельки — рядом друг с другом. Запросы от сайтов, агентов и терминала открываются в отдельном окне одобрения, и решаете там только вы.',
+  'The dMsg desktop app': 'Настольное приложение dMsg',
+  'Views': 'Разделы',
+  'Work': 'Работа',
+  'Authorization': 'Разрешения',
+  'Signatures & approvals': 'Подписи и одобрения',
+  'End-to-end encrypted conversations and files with people you choose':
+    'Сквозное шифрование переписки и файлов с выбранными людьми',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    'Зашифрованные файлы на этом устройстве; ничто не уходит без резервной копии или отправки',
+  'Notes, logins and keys, encrypted on this device':
+    'Заметки, логины и ключи, зашифрованные на этом устройстве',
+  'Letters, and who may write to you': 'Письма и правила, кто может вам писать',
+  'Requests waiting for you, signatures and their records':
+    'Запросы, ждущие вашего решения, подписи и их записи',
+  'Agent IDs, what they may do and what they did':
+    'Agent ID: что им разрешено и что они сделали',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    'Совместное управление средствами ICP, Bitcoin, EVM и Solana по правилам кошелька',
+  'Account synced': 'Аккаунт синхронизирован',
+  'Unlock with Touch ID': 'Разблокировать с Touch ID',
+  'Lock': 'Заблокировать',
+  'Search or run a command': 'Поиск или команда',
+  'Nothing in your workspace shows until you unlock this device.':
+    'Пока устройство не разблокировано, содержимое рабочего пространства не показывается.',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    'Блокируется после 15 минут бездействия или когда вы захотите.',
+  'The notes read well. One fix in section 2.':
+    'Заметки хорошие. Одна правка в разделе 2.',
+  'Fixed. The release notes are ready.':
+    'Исправлено. Заметки к выпуску готовы.',
+  'Thanks. We ship on Friday.': 'Спасибо. Выпускаем в пятницу.',
+  'Password': 'Пароль',
+  'One-time password': 'Одноразовый пароль',
+  'Who may write to me': 'Кто может мне писать',
+  'Nobody': 'Никто',
+  'Contacts only': 'Только контакты',
+  'Everyone': 'Все',
+  'Paid letters': 'Платные письма',
+  'A question about the audit': 'Вопрос об аудите',
+  'Draft for the community post': 'Черновик поста для сообщества',
+  'Statement for {file}': 'Заявление о {file}',
+  'Paused': 'Приостановлен',
+  'Command palette': 'Палитра команд',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    'Нажмите ⌘K или Ctrl+K в Windows, чтобы открыть любой раздел, элемент или команду.',
+  'Fast unlock': 'Быстрая разблокировка',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    'На Mac ключ хранится в Secure Enclave, а открывает его Touch ID.',
+  'Locks on its own': 'Блокируется сам',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    'По умолчанию через 15 минут бездействия — и для приложения, и для командной строки.',
+  'Light or dark': 'Светлая или тёмная',
+  'Follows your system, or keeps the look you pick.':
+    'Следует за системой или сохраняет выбранный вами вид.',
+  'Six languages': 'Шесть языков',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    'На арабском окна идут справа налево, а ID и код сохраняют свой порядок.',
+  'Stays in the tray': 'Остаётся в трее',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    'Закройте окно — dMsg продолжит работать, и новые запросы всё равно дойдут до вас.',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    'Логины с одноразовыми паролями, API-ключи, ключи подписи и заметки шифруются на вашем устройстве до синхронизации.',
+  'Locked when you step away.': 'Блокируется, когда вы отходите.',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    'Секрет показывается или копируется только по второму щелчку, а буфер обмена вскоре после копирования очищается. Простаивающее рабочее пространство блокируется само.',
+  'Letters, on your rules.': 'Письма — по вашим правилам.',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    'Публичный профиль помогает людям найти вас. Выберите, кто может писать: никто, контакты, все или те, кто платит за письмо. Оплата покрывает доставку, а не ответ.',
+  'Check a signature yourself.': 'Проверьте подпись сами.',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'dMsg экспортирует подпись вместе с доказательствами. Проверьте пакет в браузере — исходный файл не покидает ваш компьютер.',
+  'Open the verifier': 'Открыть проверку',
+  'Can strangers write to me?': 'Могут ли мне писать незнакомцы?',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    'Только если это разрешают ваши правила: никто, ваши контакты, все или те, кто платит назначенную вами цену. Оплата покрывает доставку, а не ответ.',
 } satisfies Messages

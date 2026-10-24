@@ -217,7 +217,7 @@
         </form>
         <p class="text-[11.5px] text-faint">{t('rankingNote')}</p>
       {:else}<p class="text-[12px] text-muted">{t('knowledgeAgentScope', { agent: labelOf(agent) })}</p>{/if}
-      {#if error}<Notice tone="danger" testid="knowledge-error">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="knowledge-error">{error}</Notice>{/if}
       {#if items?.length || found}
         <div class="grid min-h-96 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
           <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">

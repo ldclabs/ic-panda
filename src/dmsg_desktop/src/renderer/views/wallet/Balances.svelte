@@ -40,7 +40,7 @@
       ? ` · ${w('cachedBalance')}`
       : ''}</p
   >
-  {#if error}<Notice tone="danger">{error}</Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   <div class="divide-line divide-y">
     {#each wallet.addresses as address (address.id)}
       {@const amounts =

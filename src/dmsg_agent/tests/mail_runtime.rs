@@ -10,7 +10,7 @@ use agent_protocols::{
     mail::MailRelayStore,
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
-use dmsg_agent::{Host, Options, Runtime, Scope};
+use dmsg_agent::{DurableMail, Host, Options, Runtime, Scope};
 use rustls::{
     ServerConfig, ServerConnection, StreamOwned,
     pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
@@ -31,6 +31,12 @@ static DISCOVERIES: AtomicUsize = AtomicUsize::new(0);
 
 /// A relay at `https://localhost:<port>`, one request per connection.
 fn relay() -> (String, Arc<Mutex<MailRelayStore>>) {
+    relay_checked(|_, _, _| {})
+}
+
+fn relay_checked(
+    check: impl Fn(&str, &str, &str) + Send + Sync + 'static,
+) -> (String, Arc<Mutex<MailRelayStore>>) {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let origin = format!(
@@ -56,6 +62,7 @@ fn relay() -> (String, Arc<Mutex<MailRelayStore>>) {
             let Some((method, path, jwt, body)) = read(&mut stream) else {
                 continue;
             };
+            check(&method, &path, &body);
             let (status, text, headers) = handle(&served, &method, &path, &jwt, &body);
             let response = format!(
                 "HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n{headers}\r\n{text}",
@@ -130,6 +137,14 @@ fn handle(
     let body = || serde_json::from_str::<Value>(body).unwrap_or(Value::Null);
     let mut relay = store.lock().unwrap();
     let result: Result<(u16, Value), SdkError> = match (method, &segments[..]) {
+        ("GET", ["v1", "me", "mailboxes"]) => relay
+            .mailboxes(
+                jwt,
+                now,
+                query("limit").map_or(100, |v| v.parse().unwrap()),
+                query("cursor").as_deref(),
+            )
+            .map(|r| (200, json!(r))),
         ("POST", ["v1", "mailboxes"]) => relay.publish(&body(), now).map(|r| (200, json!(r))),
         ("GET", ["v1", "mailboxes", id, "card"]) => relay.card(id).map(|r| (200, json!(r))),
         ("POST", ["v1", "mailboxes", id, "packets"]) => relay
@@ -236,6 +251,13 @@ fn no_keys(seed: u8) -> Value {
     json!({"version": 1, "agent_id": agent_id, "keys": {}})
 }
 
+fn mail(keys: &Value) -> DurableMail<'_> {
+    DurableMail {
+        keys,
+        seal: Box::new(|_| Ok("test-only-encrypted-checkpoint".into())),
+    }
+}
+
 /// A call as `seed`'s Agent ID with a key store of one value.
 async fn call(
     Hosted(runtime, path): &Hosted,
@@ -255,7 +277,7 @@ async fn call(
                 reach: None,
             },
             signer,
-            keys,
+            mail(keys),
             tool,
             input,
         )
@@ -403,7 +425,7 @@ fn calls_share_one_discovery_read_per_host() {
                         &turn,
                         scope,
                         AgentSigner::from_seed([1; 32]),
-                        &keys,
+                        mail(&keys),
                         "agent_protocols_rooms_list",
                         input,
                     )
@@ -415,4 +437,204 @@ fn calls_share_one_discovery_read_per_host() {
         });
     // It answered that it has no document, which holds for later calls.
     assert_eq!(DISCOVERIES.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn durable_mail_recovers_after_acceptance_when_final_checkpoint_fails() {
+    let dir = temp("durable-mail");
+    let path = dir.0.join("agents.sqlite");
+    let checked = path.clone();
+    let posts = Arc::new(AtomicUsize::new(0));
+    let observed = posts.clone();
+    let (origin, _) = relay_checked(move |method, path, body| {
+        if method == "POST" && path == "/v1/mailboxes" {
+            let posted: Value = serde_json::from_str(body).unwrap();
+            let conn = rusqlite::Connection::open(&checked).unwrap();
+            let (snapshot,sealed):(String,String)=conn.query_row("SELECT c.snapshot,m.sealed FROM connectors c JOIN mail_checkpoints m USING(agent_id)",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+            let saved: Value = serde_json::from_str(&snapshot).unwrap();
+            let mailbox = posted["event"]["payload"]["mailbox_id"].as_str().unwrap();
+            assert_eq!(
+                saved["mail"]["pending_publications"][mailbox]["card_hash"],
+                posted["hash"]
+            );
+            assert_eq!(sealed, "test-only-encrypted-checkpoint");
+            observed.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+    let Hosted(host, _) = runtime(&dir, &origin, &[]);
+    let actor = AgentSigner::from_seed([41; 32]).agent_id();
+    let turn = host.turn(actor.as_str()).await;
+    let scope = Scope {
+        path: &path,
+        session: "durable",
+        reach: None,
+    };
+    let captured = Arc::new(Mutex::new(Value::Null));
+    let out = captured.clone();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let count = calls.clone();
+    let result = host
+        .call(
+            &turn,
+            scope,
+            AgentSigner::from_seed([41; 32]),
+            DurableMail {
+                keys: &no_keys(41),
+                seal: Box::new(move |keys| {
+                    if count.fetch_add(1, Ordering::SeqCst) > 0 {
+                        return Err(dmsg_types::Error::Unavailable(
+                            "injected checkpoint failure".into(),
+                        ));
+                    }
+                    *out.lock().unwrap() = keys.clone();
+                    Ok("test-only-encrypted-checkpoint".into())
+                }),
+            },
+            "agent_protocols_mail_mailbox_publish",
+            json!({"routes":[origin]}),
+        )
+        .await;
+    assert!(result.is_err());
+    assert_eq!(posts.load(Ordering::SeqCst), 1);
+    assert!(
+        host.mail_checkpoint(&path, actor.as_str())
+            .unwrap()
+            .is_some()
+    );
+    let keys = captured.lock().unwrap().clone();
+    let disk = std::fs::read(&path).unwrap();
+    for secret in keys["keys"].as_object().unwrap().values() {
+        assert!(
+            !disk
+                .windows(secret.as_str().unwrap().len())
+                .any(|w| w == secret.as_str().unwrap().as_bytes())
+        );
+    }
+    drop(turn);
+    drop(host);
+    let Hosted(restored, _) = runtime(&dir, &origin, &[]);
+    let turn = restored.turn(actor.as_str()).await;
+    let recovered = restored
+        .call(
+            &turn,
+            scope,
+            AgentSigner::from_seed([41; 32]),
+            mail(&keys),
+            "agent_protocols_mail_sync",
+            json!({}),
+        )
+        .await
+        .unwrap();
+    assert!(recovered.outcome.is_ok());
+    let boxes = restored
+        .inspect_mail(
+            scope,
+            AgentSigner::from_seed([41; 32]),
+            "agent_protocols_mail_mailboxes_list",
+            json!({}),
+            Some(&recovered.mail_keys),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(boxes["mailboxes"][0]["key_available"], true);
+    assert_eq!(boxes["mailboxes"][0]["pending_routes"], json!([]));
+    // The caller commits its real key store before acknowledging the checkpoint.
+    restored.clear_mail_checkpoint(&turn, &path).unwrap();
+    assert!(
+        restored
+            .mail_checkpoint(&path, actor.as_str())
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn checkpoint_failure_before_publication_sends_nothing() {
+    let dir = temp("durable-refused");
+    let posts = Arc::new(AtomicUsize::new(0));
+    let count = posts.clone();
+    let (origin, _) = relay_checked(move |method, path, _| {
+        if method == "POST" && path == "/v1/mailboxes" {
+            count.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+    let Hosted(runtime, path) = runtime(&dir, &origin, &[]);
+    let actor = AgentSigner::from_seed([42; 32]).agent_id();
+    let turn = runtime.turn(actor.as_str()).await;
+    assert!(
+        runtime
+            .call(
+                &turn,
+                Scope {
+                    path: &path,
+                    session: "failure",
+                    reach: None
+                },
+                AgentSigner::from_seed([42; 32]),
+                DurableMail {
+                    keys: &no_keys(42),
+                    seal: Box::new(|_| Err(dmsg_types::Error::Unavailable("injected".into())))
+                },
+                "agent_protocols_mail_mailbox_publish",
+                json!({"routes":[origin]})
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(posts.load(Ordering::SeqCst), 0);
+    assert!(
+        runtime
+            .mail_checkpoint(&path, actor.as_str())
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_removed_workspace_is_not_recreated_by_a_checkpoint() {
+    let dir = temp("checkpoint-reset");
+    let posts = Arc::new(AtomicUsize::new(0));
+    let count = posts.clone();
+    let (origin, _) = relay_checked(move |method, path, _| {
+        if method == "POST" && path == "/v1/mailboxes" {
+            count.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+    let Hosted(runtime, path) = runtime(&dir, &origin, &[]);
+    let removed = path.clone();
+    let actor = AgentSigner::from_seed([43; 32]).agent_id();
+    let turn = runtime.turn(actor.as_str()).await;
+    let result = runtime
+        .call(
+            &turn,
+            Scope {
+                path: &path,
+                session: "reset",
+                reach: None,
+            },
+            AgentSigner::from_seed([43; 32]),
+            DurableMail {
+                keys: &no_keys(43),
+                seal: Box::new(move |_| {
+                    std::fs::remove_file(&removed).unwrap();
+                    Ok("test-only-encrypted-checkpoint".into())
+                }),
+            },
+            "agent_protocols_mail_mailbox_publish",
+            json!({"routes":[origin]}),
+        )
+        .await;
+    assert!(result.is_err());
+    assert_eq!(posts.load(Ordering::SeqCst), 0);
+    assert!(!path.exists());
+    assert!(
+        runtime
+            .mail_checkpoint(&path, actor.as_str())
+            .unwrap()
+            .is_none()
+    );
+    runtime.clear_mail_checkpoint(&turn, &path).unwrap();
+    assert!(!path.exists());
 }

@@ -14,6 +14,12 @@ export default {
     secretPolicy: "变更凭据使用策略",
     secretUse: "创建 GitHub issue",
 
+    localStorageUnavailable: "无法读取或保存本机数据，请检查磁盘空间与访问权限。",
+    networkReconnecting: "正在重新连接，已有内容仍可查看。",
+    networkUnavailable: "暂时无法更新，正在自动重试。",
+    operationUnknown: "操作结果尚未确认，请先查看操作或审批记录，避免重复提交。",
+    serviceUnavailable: "服务暂时不可用，请稍后重试。",
+
     loadFailed: '读取失败',
     storageExhausted: "下载次数已用尽",
     storageTitle: "云端空间",
@@ -793,6 +799,10 @@ export default {
     knowledgeKindNegative: '负面结果',
     knowledgeKindSynthesis: '综合研究',
     knowledgeKindCollection: '合集',
+    recoverMailboxes: "恢复邮箱记录",
+    mailboxesRecovered: "邮箱记录已更新；这不会恢复解密密钥。",
+    mailboxKeyMissing: "解密密钥不可用。请恢复本地密钥，或轮换密钥以接收新邮件。",
+    mailboxPublicationPending: "等待发布",
     mailboxCreated: '邮箱已创建',
     mailboxOpen: '可收信',
     mailboxInactive: '已关闭',

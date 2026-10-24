@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../components/page/Notice.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
   import { localeDir } from '../../shared/locales'
@@ -21,6 +22,8 @@
   import Packet from './channels/Packet.svelte'
   import Thread, { type Outgoing } from './channels/Thread.svelte'
   import Transfer from './channels/Transfer.svelte'
+  import PackageImport from './secrets/PackageImport.svelte'
+  import { workflowText } from './secrets/workflow-text'
 
   /**
    * Channels: the list, latest activity first with what is unread, the open
@@ -77,6 +80,15 @@
   let renaming = $state<{ open: boolean; name: string }>({ open: false, name: '' })
   let access = $state(false)
   let picking = $state(false)
+  let snapshotOpen=$state(false), snapshot=$state<any>(null), snapshotError=$state('')
+  let snapshotGeneration=0
+  async function receiveSnapshot(message:any){
+    const generation=++snapshotGeneration
+    const destination=selected
+    snapshot=null;snapshotError='';snapshotOpen=true
+    try{const result=await call('secrets/packages/channel_preview',{channel_id:destination,seq:message.seq});if(generation===snapshotGeneration&&snapshotOpen&&selected===destination)snapshot=result}catch(e){if(generation===snapshotGeneration&&snapshotOpen)snapshotError=errorText(e)}
+  }
+  onMount(()=>()=>{snapshotGeneration++;snapshot=null})
 
   /** How many messages a channel opens with, and each page of earlier ones. */
   const PAGE = 200
@@ -567,7 +579,7 @@
           </DropdownMenu.Root>
         {/if}
       </div>
-      {#if error}<p class="px-4 text-[12.5px] text-danger" data-testid="channel-error">{error}</p>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="channel-error">{error}</Notice>{/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
         {#each listed.live as entry (entry.id)}
           {@render item(entry)}
@@ -838,6 +850,7 @@
           onDrop={(dropped) => addFiles(dropped)}
           onDownload={download}
           onSave={save}
+          onSnapshot={receiveSnapshot}
           onEarlier={earlier}
           onRetract={(message) => (retracting = message)}
           onHide={hide}
@@ -967,3 +980,8 @@
     {/snippet}
   </Dialog>
 {/if}
+
+<Dialog bind:open={snapshotOpen} title={workflowText('channelSnapshot')} description={workflowText('channelWarning')}>
+  {#if snapshotError}<p class="text-danger">{snapshotError}</p>{/if}
+  {#if snapshot}{#key snapshot.package_id}<PackageImport received={snapshot} open={id=>{snapshotOpen=false;go(`/approval/${id}`)}} />{/key}{/if}
+</Dialog>

@@ -305,8 +305,35 @@ async fn real_fuse_waits_for_approval_and_revokes_an_open_handle() {
             .unwrap()
             .to_owned()
     };
+    let binary: Vec<u8> = (0..1_048_593).map(|i| (i % 256) as u8).collect();
+    let files = [
+        ("secret.bin", binary.clone()),
+        ("service.json", br#"{"token":"SYNTHETIC_JSON"}"#.to_vec()),
+        (
+            "service.pem",
+            b"-----BEGIN PRIVATE KEY-----\nSYNTHETIC_PEM\n-----END PRIVATE KEY-----\n".to_vec(),
+        ),
+    ];
+    let mut file_entries = Vec::new();
+    for (name, bytes) in &files {
+        let source = dir.0.join(name);
+        std::fs::write(&source, bytes).unwrap();
+        let imported = d
+            .client()
+            .lock()
+            .await
+            .files_import(&source, "root", false, &mut |_, _| {})
+            .unwrap();
+        file_entries.push(json!({"relative_path":name,"source":{"type":"library_file","file_id":imported.file.id,"version_id":imported.version}}));
+        std::fs::remove_file(&source).unwrap();
+    }
     let environment_reference = SecretRef::parse(&reference).unwrap();
     let prepared=d.call_secret_mounts("secrets/mounts/prepare",&json!({"input":{"project_label":"fixture","project_directory":project,"mount_point":project.join(".dmsg-secrets"),"entries":[{"relative_path":"secret.txt","source":{"type":"field_utf8","reference":reference}},{"relative_path":".env","source":{"type":"refs_dotenv","variables":[{"name":"TOKEN","reference":environment_reference}]}}],"aliases":[{"name":"secret.txt","entry":"secret.txt"},{"name":".env","entry":".env"}]}})).await.unwrap();
+    let mut prepared = prepared;
+    prepared["input"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .extend(file_entries);
     let r = d
         .call_secret_mounts(
             "secrets/mounts/save_request",
@@ -363,14 +390,31 @@ async fn real_fuse_waits_for_approval_and_revokes_an_open_handle() {
     );
     command(&project,"python3",&["-c",r#"from pathlib import Path; assert Path('.env').read_bytes()==b"TOKEN='SYNTHETIC_FUSE_VALUE'\n""#],None).await;
     command(&project,"node",&["-e",r#"if(require('fs').readFileSync('.env','utf8')!=="TOKEN='SYNTHETIC_FUSE_VALUE'\n")process.exit(2)"#],None).await;
-    let denied = tokio::process::Command::new("runuser")
-        .args(["-u", "nobody", "--", "cat"])
-        .arg(project.join("secret.txt"))
-        .output()
-        .await
-        .unwrap();
-    assert!(!denied.status.success());
-    assert!(denied.stdout.is_empty());
+    for (name, expected) in files {
+        let path = project.join(".dmsg-secrets").join(name);
+        let actual = tokio::task::spawn_blocking(move || std::fs::read(path))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(actual, expected);
+    }
+    command(&project,"node",&["-e",r#"if(JSON.parse(require('fs').readFileSync('.dmsg-secrets/service.json','utf8')).token!=='SYNTHETIC_JSON')process.exit(2)"#],None).await;
+    // Real worker and framework env loaders, when the isolated fixture installs them.
+    command(&project,"node",&["-e",r#"const {Worker}=require('node:worker_threads'); const w=new Worker(String.raw`const fs=require('fs');if(fs.readFileSync('.env','utf8')!=="TOKEN='SYNTHETIC_FUSE_VALUE'\n")process.exit(2)`,{eval:true});w.on('exit',n=>{if(n)process.exit(n)})"#],None).await;
+    if let Ok(loaders) = std::env::var("DMSG_ENV_LOADERS") {
+        command(&project,"node",&["--input-type=module","-e",r#"const {loadEnv}=await import(process.argv[1]+'/node_modules/vite/dist/node/index.js');if(loadEnv('development',process.cwd(),'').TOKEN!=='SYNTHETIC_FUSE_VALUE')process.exit(2)"#,&loaders],None).await;
+        command(&project,"node",&["-e",r#"const {loadEnvConfig}=require(process.argv[1]+'/node_modules/@next/env');if(loadEnvConfig(process.cwd(),true,console,true).combinedEnv.TOKEN!=='SYNTHETIC_FUSE_VALUE')process.exit(2)"#,&loaders],None).await;
+    }
+    if unsafe { libc::geteuid() } == 0 {
+        let denied = tokio::process::Command::new("runuser")
+            .args(["-u", "nobody", "--", "cat"])
+            .arg(project.join("secret.txt"))
+            .output()
+            .await
+            .unwrap();
+        assert!(!denied.status.success());
+        assert!(denied.stdout.is_empty());
+    }
     drop(approver);
     let mut cancelled = tokio::process::Command::new("python3")
         .args([

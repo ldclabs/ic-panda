@@ -320,7 +320,7 @@ impl Daemon {
             .mcp_refresh_due(now_ms())
             .unwrap_or_default();
         let stored = report.as_ref().map_or(0, |r| r.stored);
-        self.note("mcp-events", &crate::daemon::outcome(&report));
+        self.note_result("mcp-events", &report);
         {
             let mut state = self.mcp().state.lock().expect("events state");
             if let Ok(report) = &report {

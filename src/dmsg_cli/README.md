@@ -118,6 +118,17 @@ kept sealed under the local data key and comes back with it. Elsewhere the
 key sits in the credential store, nothing asks for the person and no login is
 kept. Team-wallet cosigner keys use the Secure Enclave the same way.
 
+The hardware creation test runs without a prompt:
+`cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`.
+Run it in an active macOS login session with the device unlocked. Hardware and
+biometric capability checks do not guarantee that the security service will
+permit key creation at that instant. A native failure now keeps its negative
+`OSStatus` in the error; for example, Apple's
+[`errSecInteractionNotAllowed`](https://developer.apple.com/documentation/security/errsecinteractionnotallowed)
+is `-25308`. Inspect the matching test process's CryptoTokenKit logs for the
+underlying rejection. A system refusal must not remove `.userPresence`, change
+the key's `WhenUnlockedThisDeviceOnly` protection, or fall back to a software key.
+
 ## Install, start and update
 
 ```sh
@@ -186,8 +197,22 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   owner or agent, outcome code, milliseconds; steady polls only when they
   fail) and one per change of a background task's outcome (sync, flush,
   web requests, MCP Events, hint channel), so a task failing every round
-  while offline logs once. Lines hold names, codes and numbers only: never
-  parameters, content, paths, tokens or error messages.
+  while offline logs its unchanged outcome once. Separate `failure` lines
+  record the originating subsystem, allowlisted cause and HTTP status when
+  available: timeout, DNS/TLS/connect/closed connection, response decoding,
+  IC rejection/certificate, or storage permission/full/busy/corruption errors.
+  These are emitted before a lost mutation reply becomes `EXECUTION_UNKNOWN`;
+  that code still requires reconciliation, never blind resubmission.
+  `sync/pass` adds the failed sync stage. For example:
+  `failure source=relay reason=http http_status=503` followed by
+  `sync/pass stage=export_page ms=8037 outcome=UNAVAILABLE source=relay reason=unavailable`.
+  Lines hold fixed names, codes and numbers only: never parameters, content,
+  account/device IDs, URLs (including signed URLs), headers, paths, tokens,
+  raw server messages or panic payloads. Unknown tools are omitted; unknown
+  methods use `unknown`. Library diagnostics pass a second strict allowlist
+  at the file writer; other library targets and `RUST_LOG` verbosity are
+  ignored. Panic records contain only a source filename and line. On Unix
+  the log directory is owner-only and newly created log files use mode 0600.
 - **At login.** `dmsg autostart install` registers this binary with this home:
   a LaunchAgent `net.dmsg.daemon` on macOS, a systemd user unit `dmsg.service`
   (XDG autostart without a user systemd) on Linux, the user's `Run` value
@@ -349,7 +374,13 @@ A matching stored root uses the security already checked on unlock without
 contacting the relay. Content sync and flush passes serialize submissions,
 but release the client during network waits so local reads, edits and locking
 remain available. Status includes `syncing` and the last sync error; the log's
-`sync/pass` records each pass's duration without content or identifiers.
+`sync/pass` records each pass's duration and failed stage without content or
+identifiers; `last_sync.stage` also identifies that step. An unlocked account
+automatically retries `NETWORK_UNAVAILABLE`, `UNAVAILABLE` and `EXECUTION_UNKNOWN` failures after
+60 seconds, even with periodic sync disabled. The background loop checks
+every ten seconds when idle; other background work can delay the retry.
+Success clears the failure. Locking pauses these retries; integrity,
+permission and other permanent failures require attention rather than retrying.
 Every write waits for the next sync pass (`dmsg sync`, the scheduled sync, or
 the one after unlock); `status` shows pending versions and conflict copies.
 An edit that lost a race is kept as a conflict copy on every
@@ -800,7 +831,7 @@ does not end the session. Only a refused connection is retried, so a call is
 never sent twice.
 
 Tools: the 41 standard `agent_protocols_*` tools of the Agent Protocols
-local connector (`agent-protocols` 0.12.3: identity, delegation, rooms, inbox
+local connector (`agent-protocols` 0.12.6: identity, delegation, rooms, inbox
 and drafts, profile, Agent Mail mailboxes and letters, Agent Knowledge
 submissions and reads), as this Agent ID, against the configured hosts, each
 Discourse, Mail and Knowledge tool behind its protocol's read or write
@@ -1227,8 +1258,7 @@ manage it. `dmsg secrets uses list/show/cancel/reviewed` inspects uses.
 See [the exact contract](../../docs/protocol/secrets_zh.md) for input shapes.
 
 Only the fixed GitHub.com issue-create adapter is implemented. No wildcard
-`secret.use`, remote execution service, credential resolve or P1 injection/
-SSH/mount/sharing is provided. Each use needs desktop approval or an
+`secret.use`, remote execution service or credential resolve is provided. P1 owner workflows are described below. Each use needs desktop approval or an
 interactive terminal with a successful system presence check. Policy changes
 also require approval; disabling is immediate. A `lost` outcome may already
 have created the issue and is never replayed. Tests do not use real GitHub
@@ -1240,3 +1270,22 @@ credentials; see [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
 CLI 入口：`dmsg run --help`、`dmsg secrets mount --help`、`dmsg secrets ssh --help`、`dmsg secrets shares --help`、`dmsg secrets packages --help`、`dmsg secrets discovery --help`、`dmsg secrets rotation --help`。密码和分享链接通过 stdin 输入，避免写进 shell 历史；普通 JSON 输出不提供已发布链接的密钥，需显式 `secrets shares link`。
+
+## Agent Protocols 0.12.6 recovery
+
+To recover retained mailbox records at an allowed relay, call
+`agent_protocols_mail_mailboxes_list` with `host`, optionally `limit` and `cursor`,
+through `dmsg ap` or MCP. Follow `next_cursor` until it is absent. This path needs
+the normal `mail.read:<origin>` grant for an Agent; local inspection without
+`host` remains nonblocking. Recovery persists every verified page and does not
+restore missing decryption keys or historical plaintext. Inspect `key_available`
+and `pending_routes`; restore existing local keys or rotate a key before receiving
+new correspondence. Push subscriptions are not created for keyless records.
+
+Mailbox publication persists encrypted key checkpoints before any signed attempt.
+Restart uses the last durable checkpoint before later tool calls; successful
+completion transfers the keys to their regular sealed/resident store before
+clearing it. This also covers lost replies and partial publication across relays.
+The owner Profile display keeps durable verified pins and does not follow
+cross-origin discovery endpoints. See the [connector host](../dmsg_agent/README.md)
+for persistence and verification tests.

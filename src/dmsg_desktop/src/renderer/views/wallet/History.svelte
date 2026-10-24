@@ -98,7 +98,7 @@
     <Field label={w('fromDate')}><input type="date" bind:value={from} /></Field>
     <Field label={w('toDate')}><input type="date" bind:value={to} /></Field>
   </div>
-  {#if error}<Notice tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button></Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button></Notice>{/if}
   <div class="flex flex-wrap items-center justify-between gap-3"
     ><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : `${shown.length}`}</p><button
       class={buttonClass('secondary', 'sm')}

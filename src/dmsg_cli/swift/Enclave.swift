@@ -5,7 +5,7 @@
 // person: Touch ID, or the login password.
 //
 // Results: 0 done, 1 unavailable, 2 the person declined, 3 the key is
-// unusable here.
+// unusable here; a negative result preserves an OSStatus failure.
 
 import CryptoKit
 import Foundation
@@ -16,6 +16,16 @@ private let done: Int32 = 0
 private let unavailable: Int32 = 1
 private let declined: Int32 = 2
 private let unusable: Int32 = 3
+
+/// Preserve native status codes without exposing error descriptions or userInfo.
+/// Other error domains cannot use the reserved bridge results (0 through 3).
+private func systemFailure(_ error: Error) -> Int32 {
+    let error = error as NSError
+    guard error.domain == NSOSStatusErrorDomain,
+        let status = Int32(exactly: error.code), status < 0
+    else { return unavailable }
+    return status
+}
 
 /// The answer of an evaluation, set on another queue.
 private final class Outcome: @unchecked Sendable {
@@ -109,7 +119,7 @@ public func dmsgSeAgreementCreate(
         else { return unavailable }
         return done
     } catch {
-        return unavailable
+        return systemFailure(error)
     }
 }
 
@@ -134,7 +144,7 @@ public func dmsgSeAgreementOpen(
         let shared = try key.sharedSecretFromKeyAgreement(with: other)
         return copy(shared.withUnsafeBytes { Data($0) }, secret, 32) ? done : unavailable
     } catch {
-        return unavailable
+        return systemFailure(error)
     }
 }
 
@@ -152,7 +162,7 @@ public func dmsgSeSigningCreate(
         else { return unavailable }
         return done
     } catch {
-        return unavailable
+        return systemFailure(error)
     }
 }
 
@@ -180,7 +190,7 @@ public func dmsgSeSignBatch(
         }
         return done
     } catch {
-        return unavailable
+        return systemFailure(error)
     }
 }
 

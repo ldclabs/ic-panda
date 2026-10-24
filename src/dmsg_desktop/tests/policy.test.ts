@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { isRead } from '../src/shared/requests.ts'
 import { test } from 'node:test'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { APPROVAL_MAIN_ROUTES, DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
@@ -216,4 +217,15 @@ test('P1 windows cannot claim CLI values, scan arbitrary paths, or save unreview
     assert.equal(windowParams(method,{source:'cli',human:true}).source,'gui')
     assert.equal(windowParams(method,{human:true}).human,undefined)
   }
+})
+
+test('snapshot channels and dependency inspection remain owner metadata controls', () => {
+  for (const method of ['secrets/references','secrets/rotation/dependencies','secrets/shares/channel_prepare','secrets/packages/channel_preview']) assert.equal(WINDOW_METHODS.has(method),true)
+  assert.deepEqual(windowParams('secrets/packages/import_request',{source:'cli',human:true,selection:{package_id:'fixture'}}),{source:'gui',selection:{package_id:'fixture'}})
+  assert.equal(WINDOW_METHODS.has('secrets/run/claim'),false)
+})
+
+test('snapshot preparation and delivery are never transparently retried', () => {
+  for (const method of ['secrets/shares/channel_prepare','secrets/shares/request','secrets/packages/channel_preview','secrets/packages/import_request','secrets/rotation/update']) assert.equal(isRead(method),false)
+  for (const method of ['secrets/references','secrets/rotation/dependencies']) assert.equal(isRead(method),true)
 })

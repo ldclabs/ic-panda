@@ -118,7 +118,7 @@
       </Pill>
     {/if}
   {/snippet}
-  {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}</Notice>{/each}
+  {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
   {#if relay?.last_fetch || relay?.rejected || error}
     <div class="grid gap-2 px-5 pb-3">
       {#if relay?.last_fetch}
@@ -126,7 +126,7 @@
           {t('lastFetch')} {when(relay.last_fetch.at)}{relay.last_fetch.error ? ` · ${t('error')} ${relay.last_fetch.error}` : ''}{relay.rejected ? ` · ${t('eventsRejected')} ${relay.rejected}` : ''}
         </p>
       {/if}
-      {#if error}<Notice tone="danger">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     </div>
   {/if}
   <ul class="divide-y divide-line" data-testid="event-endpoints">

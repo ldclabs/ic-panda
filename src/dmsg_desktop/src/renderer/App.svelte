@@ -17,6 +17,7 @@
   import LoginDialog from './shell/LoginDialog.svelte'
   import Sidebar from './shell/Sidebar.svelte'
   import WindowNav from './shell/WindowNav.svelte'
+  import RecoveryBanner from './shell/RecoveryBanner.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
   import { lock, offerUnlock, settleOffer } from './shell/session'
   import { startLogin } from './shell/login.svelte'
@@ -177,6 +178,7 @@
 
 {#if !isMain}
   <main class="h-screen">
+    <RecoveryBanner />
     {#if route.startsWith('/approval/')}
       {#key route}
         <Approval id={route.slice('/approval/'.length)} />
@@ -201,6 +203,7 @@
       />
       <div class="flex min-w-0 flex-1 flex-col bg-paper">
         <Header {view} {mod} {collapsed} {windowNav} {go} onPalette={() => (palette = true)} />
+        <RecoveryBanner />
         <main class="min-h-0 flex-1 overflow-hidden">
           {#if view === views.files}
             <Files {status} {mod} {route} {go} />

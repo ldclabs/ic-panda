@@ -1,15 +1,18 @@
 # Agent Protocols vectors
 
 Normative vectors and schemas of [agent-protocols](https://github.com/ldclabs/agent-protocols)
-(MIT), copied unchanged from tag `v0.12.0` (`85abd0b`); SDK 0.12.3, which the
-workspace uses, leaves these eight protocol schema/vector files byte-identical
-to the current upstream originals; its changes concern the local connector. `src/dmsg_agent/tests/` runs the SDK's own conformance tests
-for Identity, Delegation, Profile, Agent Mail and Agent Knowledge against
-them, and `discourse_vectors.rs` checks the Discourse record chain, so an SDK
-upgrade that changes a byte rule fails here first. The Mail vectors come from
-the protocol's cross-language generator, so passing them is the Rust half of
-DT08; the desktop test `desktop_mail_knowledge` adds packets this SDK seals
-and the TypeScript relay accepts.
+(MIT), adopted from SDK **0.12.6**, source commit `13257c1`.
+The eight normative JSON files are byte-for-byte copies; `source.json` records
+the adopted version, commit and SHA-256 digests, and `LICENSE` retains the MIT
+notice. The Rust and TypeScript dependency declarations and Rust lockfile must
+agree with that version.
+
+`src/dmsg_agent/tests/` runs the upstream Identity, Delegation, Profile, Mail
+and Knowledge suites, the Discourse record-chain check and the new shared
+protocol-boundary suite. These cover strict HTTP JSON, the inclusive replay
+window, bounded nonce recovery, current delegation status, durable Profile
+pins, portable whitespace/patterns and atomic type imports. Host tests add
+actual HTTP/TLS persistence and restart behavior.
 
 | File | Source |
 | --- | --- |
@@ -20,8 +23,18 @@ and the TypeScript relay accepts.
 | `agent-mail-1.0.vectors.json`, `agent-mail-1.0.schema.json` | `docs/protocols/agent-mail/1.0.{vectors,schema}.json` |
 | `agent-knowledge-1.0.vectors.json`, `agent-knowledge-1.0.schema.json` | `docs/protocols/agent-knowledge/1.0.{vectors,schema}.json` |
 
-Upgrading the SDK: copy these files and the five test files
-(`crates/agent-protocols/tests/{identity_vectors,delegation_conformance,profile_vectors,mail_vectors,knowledge_vectors}.rs`,
-with the vector and schema paths pointed here; the Mail and Knowledge ones
-also allow `clippy::result_large_err`, which this workspace denies) from the
-new tag, then run `cargo test -p dmsg_agent`.
+Updating the baseline (Python 3.9+, from the repository root):
+
+```sh
+python3 scripts/sync-agent-protocols.py --update --source /path/to/agent-protocols
+python3 scripts/sync-agent-protocols.py --check --source /path/to/agent-protocols
+cargo test --locked -p dmsg_agent
+```
+
+The source checkout must be committed and match the declared SDK version.
+Normal CI and `make test-dmsg` run `--check` offline. An SDK update must also
+review the upstream test changes: the adapted Rust suites keep the same tests,
+with paths redirected here and the host's clippy allowances for SDK error types.
+The desktop `connector::desktop_connector_profile_and_mail` case additionally
+checks authenticated inventory recovery, persistent decryption keys, grants,
+profile reads and Mail delivery through the real daemon and local services.

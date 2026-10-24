@@ -57,6 +57,8 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       # The desktop client crates are rustfmt-clean; their vector tests run with the workspace.
       # The two-device daemon test (tests/dmsg_integration/tests/desktop.rs) needs the private relay.
+      - name: Check adopted Agent Protocols fixtures
+        run: python3 scripts/sync-agent-protocols.py --check
       - name: Check client formatting
         run: cargo fmt --check -p dmsg_client -p dmsg_agent -p dmsg_cli
       - name: Run clippy

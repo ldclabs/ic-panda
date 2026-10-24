@@ -46,6 +46,13 @@ fn keys() -> Value {
     json!({"version": 1, "agent_id": signer(1).agent_id(), "keys": {}})
 }
 
+fn mail(keys: &Value) -> crate::DurableMail<'_> {
+    crate::DurableMail {
+        keys,
+        seal: Box::new(|_| Ok("test-only-encrypted-checkpoint".into())),
+    }
+}
+
 /// The snapshot the state file keeps for agent 1.
 fn stored(path: &Path) -> Value {
     let conn = rusqlite::Connection::open(path).unwrap();
@@ -214,7 +221,7 @@ async fn call_within(
         reach,
     };
     runtime
-        .call(&turn, scope, signer(1), &keys(), tool, input)
+        .call(&turn, scope, signer(1), mail(&keys()), tool, input)
         .await
         .unwrap()
         .outcome
@@ -235,7 +242,7 @@ async fn read_within(
         session,
         reach,
     };
-    runtime.read(scope, signer(1), uri).await
+    runtime.read(scope, signer(1), uri, None).await
 }
 
 #[test]
@@ -285,7 +292,7 @@ fn only_configured_hosts_are_allowed() {
                         reach: None,
                     },
                     signer(1),
-                    &keys(),
+                    mail(&keys()),
                     "agent_protocols_host_add",
                     json!({"host": "https://evil.example"})
                 )
@@ -750,7 +757,7 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
     block_on(async {
         let turn = runtime.turn(signer(1).agent_id().as_str()).await;
         let run = |tool: &'static str, input: Value| {
-            runtime.call(&turn, scope, signer(1), &no_keys, tool, input)
+            runtime.call(&turn, scope, signer(1), mail(&no_keys), tool, input)
         };
         // The seeded snapshot names a host, which the first save drops.
         let identity = "agent_protocols_identity_current";
@@ -773,7 +780,14 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
         .expect("turns of different Agent IDs do not wait");
         assert!(
             runtime
-                .call(&other, scope, signer(1), &no_keys, identity, json!({}))
+                .call(
+                    &other,
+                    scope,
+                    signer(1),
+                    mail(&no_keys),
+                    identity,
+                    json!({})
+                )
                 .await
                 .is_err()
         );
@@ -1005,7 +1019,7 @@ fn mail_inspection_never_rewrites_the_snapshot_or_marks_messages() {
             "agent_protocols_mail_mailboxes_list",
         ] {
             runtime
-                .inspect_mail(scope, signer(1), tool, json!({}))
+                .inspect_mail(scope, signer(1), tool, json!({}), None)
                 .await
                 .unwrap()
                 .unwrap();
@@ -1014,9 +1028,12 @@ fn mail_inspection_never_rewrites_the_snapshot_or_marks_messages() {
             ("agent_protocols_mail_list", json!({"mark_read":true})),
             ("agent_protocols_mail_list", json!({"mark_read":"false"})),
             ("agent_protocols_mail_sync", json!({})),
+            ("agent_protocols_mail_mailboxes_list", json!({"host":HOST})),
         ] {
             assert_eq!(
-                runtime.inspect_mail(scope, signer(1), tool, input).await,
+                runtime
+                    .inspect_mail(scope, signer(1), tool, input, None)
+                    .await,
                 Err(dmsg_types::Error::Forbidden)
             );
         }

@@ -64,7 +64,7 @@
   {/snippet}
   {#if error || notice}
     <div class="px-5 pb-3">
-      {#if error}<Notice tone="danger">{error}</Notice>{:else}<Notice tone="ok">{notice}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger">{error}</Notice>{:else}<Notice tone="ok">{notice}</Notice>{/if}
     </div>
   {/if}
   {#if orders}

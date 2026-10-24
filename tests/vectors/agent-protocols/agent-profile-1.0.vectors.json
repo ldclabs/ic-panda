@@ -562,5 +562,86 @@
       "updated_at": 1779753600000,
       "event_id": "AVdiyx6Ol9Iw-esR_kd0n36DrhCCJrUt0FHNQV-vixc"
     }
+  },
+  "latest_pins": {
+    "owner": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+    "updates": {
+      "old": {
+        "hash": "nHr9ue9ZV4KeBaFOJmh0e6fM87wy7wRZu_9Aa3MGyDU",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1800000000000,
+          "nonce": 100,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "Old",
+            "extra": {
+              "marker": "valid"
+            }
+          }
+        },
+        "signature": "8v0WNUW8afbAh0EoOGefMAPlOLenGVI9t2U55XK2urbPsnf5t6nf_2Qb_2ah6yYVwb5i4bUZBnggymYtKfLQBQ"
+      },
+      "new": {
+        "hash": "KSkk19IC2qV10NBvS02KpoV_ksyG-C7IzbeUyzjQRv8",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1799999999999,
+          "nonce": 101,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "New",
+            "extra": {
+              "marker": "valid"
+            }
+          }
+        },
+        "signature": "-8k2o-fjNF_56GgNtrkGulxdbTIbQV33Hv7T-j-4bn7Vih37t5yBKoxAWwa_vHBAxIbXl4NlaedHFDpby7hHBg"
+      },
+      "conflict": {
+        "hash": "2FWc94pCVfBUR2YaCRyxYx95fx91ZxNBMX5RwzpBn8A",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1800000000000,
+          "nonce": 101,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "Conflict",
+            "extra": {
+              "marker": "valid"
+            }
+          }
+        },
+        "signature": "1gd8GVaITZJCkqoonoW4-1dRqPgy4tVdpXoWGhymXrBpd82MThh24cI0P-OJiuSZK7cF30RsOI9KqG_si1kyCQ"
+      }
+    },
+    "steps": [
+      {
+        "update": "old",
+        "error": null
+      },
+      {
+        "update": "new",
+        "error": null
+      },
+      {
+        "update": "new",
+        "error": null
+      },
+      {
+        "update": "old",
+        "error": "stale_profile"
+      },
+      {
+        "update": "conflict",
+        "error": "stale_profile"
+      }
+    ]
   }
 }

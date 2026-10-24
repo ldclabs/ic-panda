@@ -772,7 +772,7 @@ fn a_keyring_sealed_before_muting_existed_still_opens() {
     );
 }
 
-fn active_channel(client: &mut Client) -> (String, Ledger) {
+pub(crate) fn active_channel(client: &mut Client) -> (String, Ledger) {
     crate::testing::warm(client);
     let channel = "c1".repeat(32);
     let head = "a1".repeat(32);

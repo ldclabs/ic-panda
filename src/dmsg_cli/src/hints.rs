@@ -5,7 +5,7 @@
 //! device key is available and renewed a week before it expires.
 
 use crate::daemon::Daemon;
-use dmsg_client::now_ms;
+use dmsg_client::{diagnostic::Diagnostic, now_ms};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -24,10 +24,11 @@ pub async fn run(daemon: Arc<Daemon>) {
         match connect(&daemon).await {
             Ok(()) => backoff = 1,
             Err(error) => {
+                error.emit();
                 daemon.note("hints", "disconnected");
                 daemon.set_hints(|h| {
                     h.connected = false;
-                    h.last_error = error;
+                    h.last_error = Some(format!("{}: {}", error.source, error.reason));
                 });
                 backoff = (backoff * 2).min(60);
             }
@@ -43,14 +44,14 @@ pub async fn run(daemon: Arc<Daemon>) {
 /// The account of the hint channel, its relay URL and the token,
 /// registering one when the device key is available; `None` before the
 /// device has an account.
-async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Option<String>> {
+async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Diagnostic> {
     let (session, stored) = {
         let client = daemon.client().lock().await;
         (
             client.session_state(),
             client
                 .stored_hint_token()
-                .map_err(|e| Some(e.to_string()))?,
+                .map_err(|e| Diagnostic::error(&e))?,
         )
     };
     let Some(account) = session.account else {
@@ -66,7 +67,7 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, O
             {
                 Ok(token) => token,
                 Err(_) if stored.is_some() => stored.expect("stored token"),
-                Err(error) => return Err(Some(error.to_string())),
+                Err(error) => return Err(Diagnostic::error(&error)),
             }
         }
         Some(token) => token,
@@ -84,7 +85,7 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, O
 }
 
 /// One connection, until it drops.
-async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
+async fn connect(daemon: &Arc<Daemon>) -> Result<(), Diagnostic> {
     let Some((url, token, account)) = endpoint(daemon).await? else {
         // Login/unlock must not wait out the idle polling interval.
         tokio::select! {
@@ -93,16 +94,16 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
         }
         return Ok(());
     };
-    let mut request = url.into_client_request().map_err(|e| Some(e.to_string()))?;
+    let mut request = url.into_client_request().map_err(socket_failure)?;
     request.headers_mut().insert(
         "authorization",
         format!("Bearer {token}")
             .parse()
-            .map_err(|_| Some("token".to_string()))?,
+            .map_err(|_| Diagnostic::new("hints", "invalid_endpoint"))?,
     );
     let (socket, _) = tokio_tungstenite::connect_async(request)
         .await
-        .map_err(|e| Some(e.to_string()))?;
+        .map_err(socket_failure)?;
     daemon.set_hints(|h| {
         h.connected = true;
         h.last_error = None;
@@ -125,18 +126,18 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
             }
             _ = ping.tick() => {
                 if heard.elapsed() > SILENCE {
-                    return Err(Some("hint channel silent".into()));
+                    return Err(Diagnostic::new("hints", "heartbeat_timeout"));
                 }
                 // Another account selected: its own channel replaces this one.
                 let selected = daemon.client().lock().await.session_state().account;
                 if selected.as_deref() != Some(account.as_str()) {
                     return Ok(());
                 }
-                sink.send(Message::Text("ping".into())).await.map_err(|e| Some(e.to_string()))?;
+                sink.send(Message::Text("ping".into())).await.map_err(socket_failure)?;
             }
             message = stream.next() => {
                 let Some(message) = message else { return Ok(()) };
-                let message = message.map_err(|e| Some(e.to_string()))?;
+                let message = message.map_err(socket_failure)?;
                 heard = tokio::time::Instant::now();
                 let Message::Text(text) = message else { continue };
                 let Ok(hint) = serde_json::from_str::<Value>(&text) else { continue };
@@ -146,6 +147,21 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
                 }
             }
         }
+    }
+}
+
+/// WebSocket errors may contain a handshake body, URL or close-frame text.
+fn socket_failure(error: tokio_tungstenite::tungstenite::Error) -> Diagnostic {
+    use tokio_tungstenite::tungstenite::Error;
+    match error {
+        Error::Io(error) => Diagnostic::io("hints", &error),
+        Error::Tls(_) => Diagnostic::new("hints", "tls"),
+        Error::Http(response) => Diagnostic::http("hints", response.status().as_u16()),
+        Error::ConnectionClosed | Error::AlreadyClosed => {
+            Diagnostic::new("hints", "connection_closed")
+        }
+        Error::Url(_) => Diagnostic::new("hints", "invalid_endpoint"),
+        _ => Diagnostic::new("hints", "protocol"),
     }
 }
 

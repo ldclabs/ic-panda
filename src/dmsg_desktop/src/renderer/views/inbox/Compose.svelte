@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { onDestroy } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
@@ -80,7 +81,7 @@
       <textarea disabled={busy} bind:value={text} rows="7" class="text-[13.5px] text-ink" data-testid="letter-text"></textarea>
     </label>
     <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
-    {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </div>
   {#snippet footer()}
     <span class="flex-1"></span>

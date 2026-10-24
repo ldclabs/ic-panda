@@ -13,6 +13,7 @@ export interface DaemonEvent {
 export interface Connection {
   connected: boolean
   error?: string
+  recovery?: 'idle' | 'recovering' | 'offline'
 }
 
 /**

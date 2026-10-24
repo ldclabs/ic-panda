@@ -282,6 +282,44 @@ fn credential_digest(credential: &str) -> String {
     hex::encode(Sha256::digest(credential.as_bytes()))
 }
 
+/// Encrypts only one workspace's Mail key checkpoints for one hosted Agent ID.
+/// The key is purpose-separated from its signing seed and erased when dropped.
+pub struct AgentMailCodec {
+    key: Zeroizing<Key>,
+    context: (String, String, String),
+}
+
+impl AgentMailCodec {
+    fn validate(&self, keys: &Json) -> Result<()> {
+        ensure(
+            keys["version"] == 1 && keys["agent_id"] == self.context.2 && keys["keys"].is_object(),
+            Error::IntegrityFailed,
+        )
+    }
+
+    /// Seal a key snapshot; ciphertext may be kept with connector metadata.
+    /// # Errors
+    /// Rejects another Agent's keys or an invalid snapshot.
+    pub fn seal(&self, keys: &Json) -> Result<String> {
+        self.validate(keys)?;
+        Ok(crate::crypto::seal(
+            &self.key,
+            &Zeroizing::new(canonical(keys)),
+            &self.context,
+        ))
+    }
+
+    /// Open a committed checkpoint without requiring the account content root.
+    /// # Errors
+    /// Rejects corrupt data, another workspace or another Agent ID.
+    pub fn open(&self, sealed: &str) -> Result<Json> {
+        let bytes = crate::crypto::open(&self.key, sealed, &self.context)?;
+        let keys = crate::codec::decode(&bytes, crate::codec::MAX_RECORD)?;
+        self.validate(&keys)?;
+        Ok(keys)
+    }
+}
+
 impl Client {
     pub(crate) fn agents(&self) -> Result<Agents> {
         Ok(self.workspace.store.meta(AGENTS)?.unwrap_or_default())
@@ -635,7 +673,7 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
-    pub fn agent_signer(&mut self, agent: &str) -> Result<AgentSigner> {
+    fn agent_seed(&mut self, agent: &str) -> Result<Zeroizing<Key>> {
         let entry = self.agent_find(agent)?;
         let seed = match (self.keys.is_some(), entry.resident) {
             (true, _) => self.agent_vault_seed(&entry)?,
@@ -652,12 +690,35 @@ impl Client {
             }
             (false, false) => return Err(Error::Locked),
         };
-        let signer = AgentSigner::from_seed(*seed);
         ensure(
-            signer.agent_id().as_str() == entry.agent_id,
+            agent_id(&signing_public(&seed)) == entry.agent_id,
             Error::IntegrityFailed,
         )?;
-        Ok(signer)
+        Ok(seed)
+    }
+
+    /// The hosted Agent's signer, available while locked only for resident Agents.
+    /// # Errors
+    /// Returns key-store, identity or lock errors.
+    pub fn agent_signer(&mut self, agent: &str) -> Result<AgentSigner> {
+        Ok(AgentSigner::from_seed(*self.agent_seed(agent)?))
+    }
+
+    /// A detached codec for durable Mail checkpoints; it cannot open account content.
+    /// # Errors
+    /// Returns identity, lock or key-store errors.
+    pub fn agent_mail_codec(&mut self, agent: &str) -> Result<AgentMailCodec> {
+        let agent = self.agent_find(agent)?.agent_id;
+        let context = (
+            "dmsg/agent-mail-checkpoint/1".to_owned(),
+            self.workspace.name()?,
+            agent,
+        );
+        let seed = self.agent_seed(&context.2)?;
+        Ok(AgentMailCodec {
+            key: crate::crypto::derive(seed.as_slice(), &context),
+            context,
+        })
     }
 
     /// The mail decryption keys of a hosted Agent ID's mailboxes, as its

@@ -316,6 +316,7 @@ flowchart TB
 - 全部服务处于开发阶段，使用开发期稳定布局，不迁移旧实验实例。
 - 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
 - 团队钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
+- Rust 与 TypeScript 客户端使用 Agent Protocols SDK 0.12.6 及已提交的共享向量：daemon 在每次发布前将加密 Mail 密钥与连接器状态一同提交，后续调用先恢复中断的尝试，并保存已认证的邮箱清单分页和已验证的 owner Profile pin；controller 提交遇到有界 nonce 冲突时可重签一次，不改变原批准内容。canister 接口与稳定布局不变。
 - 尚未验收：主网部署与生产 `key_1`、真实资金与钱包路径、签名发布的桌面客户端与真实网页应用的端到端流程、私有云端生产端到端、子网吞吐、除 handle 外超过 100 万的规模，以及外部安全审计。
 
 ## 12. 参考
@@ -327,3 +328,4 @@ flowchart TB
 - [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
 - [protocol/wallet_zh.md](protocol/wallet_zh.md)：团队钱包合同。
 - 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。
+- [dmsg_protocol_alignment_2026-10-24_zh.md](dmsg_protocol_alignment_2026-10-24_zh.md)：Agent Protocols 0.12.6 对齐审查、修复与尚未覆盖的测试。

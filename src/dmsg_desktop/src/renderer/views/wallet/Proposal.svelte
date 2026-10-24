@@ -194,7 +194,7 @@
 </script>
 
 <Dialog bind:open title={`${w('proposals')} #${id}`} description={wallet.name} wide icon="approvals" testid="wallet-proposal-detail">
-  {#if error}<Notice tone="danger">{error}</Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#if notice}<Notice>{notice}</Notice>{/if}
   {#if p && available}
     <div class="grid gap-4">
@@ -244,7 +244,7 @@
                 : t('twVeto')} · {when(v.at)}</p
           >{:else}<p class="text-faint text-[12px]">{w('none')}</p>{/each}</section
       >
-      {#if p.failure}<Notice tone="danger">{p.failure}</Notice>{/if}
+      {#if p.failure}<Notice failure={p.failure} tone="danger">{p.failure}</Notice>{/if}
       {#if p.status === 'Executing' && ['ICP', 'ICRC'].includes(p.intent.asset?.asset)}
         <section class="border-line grid gap-3 rounded-lg border p-3" data-testid="wallet-ledger-reconcile">
           <Notice>{w('ledgerUnknown')}</Notice>
@@ -350,7 +350,7 @@
 
             {#if collection.can_cosign === false}<p class="text-muted text-[12px]">{w('cosignNoLocalKey')}</p>{/if}
           {/if}
-          {#if collectionError}<Notice tone="danger"
+          {#if collectionError}<Notice failure={collectionError} tone="danger"
               >{collectionError}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice
             >{/if}
           <Collapsible
@@ -388,7 +388,7 @@
         </section>
       {/if}
       <section class="border-line grid gap-2 border-t pt-4">
-        {#if noteError}<Notice tone="danger"
+        {#if noteError}<Notice failure={noteError} tone="danger"
             >{noteError}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button></Notice
           >{/if}
         <Field label={w('privateNote')} hint={w('privateNoteHint')} hintId={noteHintId}><textarea aria-label={w('privateNote')} aria-describedby={noteHintId} bind:value={note} maxlength="500" rows="2"></textarea></Field>

@@ -14,6 +14,12 @@ export default {
     secretPolicy: "Modifier la politique d’utilisation",
     secretUse: "Créer une issue GitHub",
 
+    localStorageUnavailable: "Impossible de lire ou d’enregistrer les données locales. Vérifiez l’espace disque et les droits d’accès.",
+    networkReconnecting: "Reconnexion… Votre contenu existant reste disponible.",
+    networkUnavailable: "Mise à jour temporairement indisponible. Nouvelle tentative automatique.",
+    operationUnknown: "Le résultat n’est pas encore confirmé. Vérifiez l’historique des opérations ou des approbations avant de renvoyer.",
+    serviceUnavailable: "Ce service est temporairement indisponible. Réessayez plus tard.",
+
     loadFailed: 'Chargement impossible',
     storageExhausted: "Limite de téléchargements atteinte",
     storageTitle: "Stockage cloud",
@@ -793,6 +799,10 @@ export default {
     knowledgeKindNegative: 'Résultat négatif',
     knowledgeKindSynthesis: 'Synthèse',
     knowledgeKindCollection: 'Collection',
+    recoverMailboxes: "Retrouver les boîtes",
+    mailboxesRecovered: "Les boîtes ont été actualisées. Les clés de déchiffrement ne sont pas restaurées.",
+    mailboxKeyMissing: "Clé de déchiffrement indisponible. Restaurez vos clés locales ou changez la clé pour recevoir de nouveaux messages.",
+    mailboxPublicationPending: "Publication en attente",
     mailboxCreated: 'Boîte créée',
     mailboxOpen: 'Réception active',
     mailboxInactive: 'Fermée',

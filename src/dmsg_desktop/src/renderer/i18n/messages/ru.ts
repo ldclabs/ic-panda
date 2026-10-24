@@ -14,6 +14,12 @@ export default {
     secretPolicy: "Изменение политики",
     secretUse: "Создать задачу GitHub",
 
+    localStorageUnavailable: "Не удалось прочитать или сохранить локальные данные. Проверьте место на диске и права доступа.",
+    networkReconnecting: "Повторное подключение… Сохранённые данные доступны.",
+    networkUnavailable: "Обновление временно недоступно. Повторим автоматически.",
+    operationUnknown: "Результат ещё не подтверждён. Перед повторной отправкой проверьте историю операций или разрешений.",
+    serviceUnavailable: "Сервис временно недоступен. Повторите позже.",
+
     loadFailed: 'Не удалось загрузить',
     storageExhausted: "Лимит загрузок достигнут",
     storageTitle: "Облачное хранилище",
@@ -793,6 +799,10 @@ export default {
     knowledgeKindNegative: 'Отрицательный результат',
     knowledgeKindSynthesis: 'Синтез',
     knowledgeKindCollection: 'Подборка',
+    recoverMailboxes: "Восстановить записи ящиков",
+    mailboxesRecovered: "Записи ящиков обновлены. Ключи расшифровки не восстановлены.",
+    mailboxKeyMissing: "Ключ расшифровки недоступен. Восстановите локальные ключи или смените ключ для получения новых писем.",
+    mailboxPublicationPending: "Ожидает публикации",
     mailboxCreated: 'Ящик создан',
     mailboxOpen: 'Приём включён',
     mailboxInactive: 'Закрыт',

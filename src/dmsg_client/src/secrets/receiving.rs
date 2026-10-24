@@ -56,7 +56,8 @@ struct Received {
     link_digest: String,
     session_id: String,
     started: bool,
-    descriptor: Descriptor,
+    descriptor: Option<Descriptor>,
+    channel_source: Option<Value>,
     key: String,
     file: Option<FileManifest>,
     digest: Option<String>,
@@ -191,7 +192,7 @@ impl Client {
             Error::VersionConflict,
         )?;
         Ok(
-            json!({"selection":selection,"preview":r.preview,"files_local_only":true,"files_inherit_folder_grants":true}),
+            json!({"selection":selection,"preview":r.preview,"channel_source":r.channel_source,"files_local_only":true,"files_inherit_folder_grants":true}),
         )
     }
 
@@ -239,26 +240,23 @@ fn validate_descriptor(d: &Descriptor, id: &str) -> Result<()> {
 }
 
 async fn authorize<H: Hold>(h: &H, cloud: &Cloud, received: &mut Received) -> Result<Grant> {
+    let descriptor = received.descriptor.as_ref().ok_or(Error::Forbidden)?;
     let value = cloud
-        .public_share_session(
-            &received.descriptor.share_id,
-            &received.session_id,
-            received.started,
-        )
+        .public_share_session(&descriptor.share_id, &received.session_id, received.started)
         .await?;
     let grant: Grant = serde_json::from_value(value).map_err(|_| Error::IntegrityFailed)?;
     let now = crate::now_ms();
     ensure(
-        grant.upload_id == received.descriptor.upload_id
+        grant.upload_id == descriptor.upload_id
             && now < grant.expires_at
             && grant.expires_at <= grant.session_expires_at
-            && grant.session_expires_at <= received.descriptor.expires_at
-            && grant.chunks.len() == received.descriptor.chunks.len(),
+            && grant.session_expires_at <= descriptor.expires_at
+            && grant.chunks.len() == descriptor.chunks.len(),
         Error::IntegrityFailed,
     )?;
     for (slot, expected) in std::iter::once(&grant.manifest)
         .chain(&grant.chunks)
-        .zip(std::iter::once(&received.descriptor.manifest).chain(&received.descriptor.chunks))
+        .zip(std::iter::once(&descriptor.manifest).chain(&descriptor.chunks))
     {
         ensure(
             slot.size == expected.size && slot.digest == expected.digest,
@@ -380,7 +378,10 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
     let mut record = match found {
         Some(record) => {
             ensure(
-                record.descriptor.upload_id == descriptor.upload_id
+                record
+                    .descriptor
+                    .as_ref()
+                    .is_some_and(|d| d.upload_id == descriptor.upload_id)
                     && record.key == crate::codec::b64(&key[..]),
                 Error::VersionConflict,
             )?;
@@ -400,7 +401,8 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
                 link_digest: digest,
                 session_id: hex::encode(random_id()),
                 started: false,
-                descriptor,
+                descriptor: Some(descriptor),
+                channel_source: None,
                 key: crate::codec::b64(&key[..]),
                 file: None,
                 digest: None,
@@ -420,7 +422,7 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
     bound.with(|c| c.save_received(&record)).await?;
     let mut grant = authorize(&bound, &cloud, &mut record).await?;
     let bytes = ciphertext(&bound, &cloud, &mut record, &mut grant, None).await?;
-    let d = &record.descriptor;
+    let d = record.descriptor.as_ref().ok_or(Error::Forbidden)?;
     let plain = crate::crypto::open_bytes(
         &key,
         &bytes,
@@ -603,6 +605,107 @@ impl ImportRun {
     }
 }
 
+/// Receive a verified channel attachment without exporting a plaintext package to Files or disk.
+pub async fn channel_preview<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<Value> {
+    let bound = Unlocked::new(h).await?;
+    crate::channel::read(&bound, &mut crate::channel::Reading::new(channel)).await?;
+    let message = bound
+        .with(|c| c.snapshot_channel_message(channel, seq))
+        .await?;
+    let source = json!({"channel_id":channel,"seq":seq,"message_digest":message.digest,"sender_account":message.account});
+    let identity = hex::encode(Sha256::digest(canonical(&(
+        "dmsg/channel-secret-import/1",
+        &source,
+    ))));
+    if let Some(view) = bound.with(|c| {
+        for key in c.workspace.store.sealed_keys(PREFIX)? {
+            if let Some(record) = c.workspace.private::<Received>(c.keys()?, &key)?
+                && record.link_digest == identity && (record.imported.is_some() || now_ms() < record.expires_at)
+            { return Ok(Some(json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"channel_source":source,"already_imported":record.imported,"files_local_only":true,"files_inherit_folder_grants":true}))); }
+        }
+        ensure(c.workspace.store.sealed_keys(PREFIX)?.len() < 128, Error::QuotaExceeded)?;
+        Ok(None)
+    }).await? {return Ok(view);}
+    let reference = message.file.as_ref().ok_or(Error::NotFound)?;
+    let file = SensitiveManifest(
+        crate::channel::fetch_file(&bound, channel, reference, &message.account).await?,
+    );
+    channel_received(&bound, channel, seq, &message, &file, source, identity).await
+}
+
+async fn channel_received<H: Hold>(
+    bound: &H,
+    channel: &str,
+    seq: u64,
+    message: &crate::channel::Message,
+    file: &SensitiveManifest,
+    source: Value,
+    identity: String,
+) -> Result<Value> {
+    let mut whole = Zeroizing::new(Vec::with_capacity(file.size as usize));
+    let id = hex::encode(random_id());
+    let now = now_ms();
+    let expires_at = now + 30 * MINUTE;
+    for (i, chunk) in file.chunks.iter().enumerate() {
+        let bytes = bound
+            .with(|c| {
+                ensure(
+                    c.snapshot_channel_message(channel, seq)?.digest == message.digest,
+                    Error::VersionConflict,
+                )?;
+                let encrypted = c
+                    .workspace
+                    .store
+                    .chunk(&chunk.digest)?
+                    .ok_or(Error::RecoveryIncomplete)?;
+                c.blobs()?.put_chunk(&chunk.digest, &encrypted)?;
+                c.hold_chunks([(
+                    id.clone(),
+                    expires_at,
+                    file.chunks[..=i].iter().map(|p| p.digest.clone()).collect(),
+                )])?;
+                crate::files::read_chunk(c.blobs()?, file, i as u64)
+            })
+            .await?;
+        whole.extend_from_slice(&bytes);
+    }
+    ensure(
+        whole.len() as u64 == file.size && hex::encode(Sha256::digest(&whole)) == file.sha256,
+        Error::IntegrityFailed,
+    )?;
+    let parsed = package::parse(&whole)?;
+    let record = Received {
+        id,
+        link_digest: identity,
+        session_id: String::new(),
+        started: false,
+        descriptor: None,
+        channel_source: Some(source),
+        key: String::new(),
+        file: Some(file.0.clone()),
+        digest: Some(file.sha256.clone()),
+        preview: Some(parsed.manifest.preview()),
+        created_at: now_ms(),
+        expires_at,
+        imported: None,
+        request: None,
+        selection: None,
+        request_boot: None,
+        request_session: None,
+    };
+    bound.with(|c| {
+        ensure(c.snapshot_channel_message(channel, seq)?.digest == message.digest, Error::VersionConflict)?;
+        // Concurrent previews converge on one receipt identity instead of creating duplicate imports.
+        for key in c.workspace.store.sealed_keys(PREFIX)? {
+            if let Some(prior) = c.workspace.private::<Received>(c.keys()?, &key)?
+                && prior.link_digest == record.link_digest && (prior.imported.is_some() || now_ms() < prior.expires_at)
+            {return Ok(json!({"package_id":prior.id,"digest":prior.digest,"preview":prior.preview,"channel_source":prior.channel_source,"already_imported":prior.imported,"files_local_only":true,"files_inherit_folder_grants":true}));}
+        }
+        c.save_received(&record)?;
+        Ok(json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"channel_source":record.channel_source,"files_local_only":true,"files_inherit_folder_grants":true}))
+    }).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -649,7 +752,7 @@ mod tests {
             link_digest: "a0".repeat(32),
             session_id: "a1".repeat(32),
             started: true,
-            descriptor: Descriptor {
+            descriptor: Some(Descriptor {
                 status: "available".into(),
                 share_id: "a2".repeat(32),
                 upload_id: "a3".repeat(32),
@@ -663,7 +766,8 @@ mod tests {
                 expires_at: now + MINUTE,
                 password: false,
                 key_wrap: None,
-            },
+            }),
+            channel_source: None,
             key: file.manifest.key.clone(),
             file: Some(file.manifest.clone()),
             digest: Some(digest.clone()),
@@ -793,5 +897,122 @@ mod tests {
                 .is_empty()
         );
         c.lock();
+    }
+    #[tokio::test]
+    async fn channel_ciphertext_is_verified_before_preview_and_reuses_the_import_receipt() {
+        let (_dir, mut c, mut selection) = fixture();
+        let file = SensitiveManifest(
+            c.received(&selection.package_id)
+                .unwrap()
+                .file
+                .clone()
+                .unwrap(),
+        );
+        let (channel, _) = crate::channel::tests::active_channel(&mut c);
+        let target = c.snapshot_channel_target(&channel).unwrap();
+        let (reference, _, _) = c
+            .snapshot_channel_upload(&target, &file, &"aa".repeat(32))
+            .unwrap();
+        for chunk in &file.chunks {
+            c.workspace
+                .store
+                .put_chunk(
+                    &chunk.digest,
+                    &c.blobs().unwrap().chunk(&chunk.digest).unwrap().unwrap(),
+                )
+                .unwrap();
+        }
+        let message = crate::channel::Message {
+            seq: 1,
+            account: c.account().unwrap().id.to_string(),
+            file: Some(reference),
+            digest: "dd".repeat(32),
+            ..Default::default()
+        };
+        c.workspace
+            .put_private(
+                c.keys().unwrap(),
+                &format!("channel-msg:{channel}:{:020}", 1),
+                &message,
+            )
+            .unwrap();
+        let source = json!({"channel_id":channel,"seq":1,"message_digest":message.digest});
+        let identity = hex::encode(Sha256::digest(canonical(&source)));
+        let preview = channel_received(
+            &c.hold(),
+            &channel,
+            1,
+            &message,
+            &file,
+            source.clone(),
+            identity.clone(),
+        )
+        .await
+        .unwrap();
+        assert!(!preview.to_string().contains("SECRET_RECEIVER_FIXTURE"));
+        let duplicate = channel_received(
+            &c.hold(),
+            &channel,
+            1,
+            &message,
+            &file,
+            source.clone(),
+            identity.clone(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(preview["package_id"], duplicate["package_id"]);
+        selection.package_id = preview["package_id"].as_str().unwrap().into();
+        let request = c.secret_package_request("gui", selection.clone()).unwrap();
+        assert_eq!(request["detail"]["channel_source"], source);
+        c.approval_respond(
+            request["id"].as_str().unwrap(),
+            request["digest"].as_str().unwrap(),
+            true,
+            "gui",
+            false,
+        )
+        .await
+        .unwrap();
+        let receipt = c.secret_package_request("gui", selection.clone()).unwrap();
+        assert_eq!(
+            c.vault_show(receipt["ids"][0].as_str().unwrap())
+                .unwrap()
+                .item
+                .value("credential"),
+            "SECRET_RECEIVER_FIXTURE"
+        );
+        assert_eq!(c.secret_package_request("gui", selection).unwrap(), receipt);
+        let mut broken = SensitiveManifest(file.0.clone());
+        broken.sha256 = "00".repeat(32);
+        assert!(
+            channel_received(
+                &c.hold(),
+                &channel,
+                1,
+                &message,
+                &broken,
+                source.clone(),
+                "ff".repeat(32)
+            )
+            .await
+            .is_err()
+        );
+        let withdrawn = crate::channel::Message {
+            retracted: true,
+            ..message.clone()
+        };
+        c.workspace
+            .put_private(
+                c.keys().unwrap(),
+                &format!("channel-msg:{channel}:{:020}", 1),
+                &withdrawn,
+            )
+            .unwrap();
+        assert!(
+            channel_received(&c.hold(), &channel, 1, &message, &file, source, identity)
+                .await
+                .is_err()
+        );
     }
 }

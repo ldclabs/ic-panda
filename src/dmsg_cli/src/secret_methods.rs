@@ -6,7 +6,7 @@ use crate::{
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
 
-pub(crate) const METHODS: [&str; 41] = [
+pub(crate) const METHODS: [&str; 45] = [
     "secrets/discovery/start",
     "secrets/discovery/cancel",
     "secrets/discovery/status",
@@ -34,6 +34,10 @@ pub(crate) const METHODS: [&str; 41] = [
     "secrets/ssh/status",
     "secrets/ssh/binding_request",
     "secrets/ssh/disable",
+    "secrets/references",
+    "secrets/rotation/dependencies",
+    "secrets/shares/channel_prepare",
+    "secrets/packages/channel_preview",
     "secrets/health",
     "secrets/health/dismiss",
     "secrets/rotation/list",
@@ -54,6 +58,27 @@ impl Daemon {
     pub(crate) async fn call_secrets(&self, method: &str, p: &Value) -> Result<Value> {
         if method.starts_with("secrets/discovery/") {
             return self.call_secret_discovery(method, p).await;
+        }
+        if method == "secrets/shares/channel_prepare" {
+            dmsg_types::ensure(
+                p.get("password").is_none_or(Value::is_null),
+                Error::InvalidInput("channel delivery does not use a link password".into()),
+            )?;
+            return dmsg_client::secrets::shares::prepare_channel(
+                &self.hold(),
+                &text(p, "channel_id")?,
+                serde_json::from_value(p["input"].clone())
+                    .map_err(|_| Error::InvalidInput("snapshot input".into()))?,
+            )
+            .await;
+        }
+        if method == "secrets/packages/channel_preview" {
+            return dmsg_client::secrets::receiving::channel_preview(
+                &self.hold(),
+                &text(p, "channel_id")?,
+                number(p, "seq")?,
+            )
+            .await;
         }
         if method == "secrets/packages/import_preview" {
             let link = zeroize::Zeroizing::new(text(p, "link")?);
@@ -142,6 +167,15 @@ impl Daemon {
                     .map_err(|_| Error::InvalidInput("purposes".into()))?,
             ),
             "secrets/ssh/disable" => c.secret_ssh_disable(&text(p, "id")?),
+            "secrets/references" => Ok(json!(
+                c.secret_references(
+                    &serde_json::from_value(p["reference"].clone())
+                        .map_err(|_| Error::InvalidInput("reference".into()))?
+                )?
+            )),
+            "secrets/rotation/dependencies" => {
+                Ok(json!(c.secret_rotation_dependencies(&text(p, "id")?)?))
+            }
             "secrets/health" => c.secret_health(),
             "secrets/health/dismiss" => c.secret_health_dismiss(&text(p, "id")?),
             "secrets/rotation/list" => Ok(json!({"rotations":c.secret_rotations()?})),
@@ -149,9 +183,11 @@ impl Daemon {
                 serde_json::from_value(p["reference"].clone())
                     .map_err(|_| Error::InvalidInput("reference".into()))?,
             ),
-            "secrets/rotation/update" => {
-                c.secret_rotation_update(&text(p, "id")?, &text(p, "step")?)
-            }
+            "secrets/rotation/update" => c.secret_rotation_update(
+                &text(p, "id")?,
+                &text(p, "step")?,
+                p["dependencies_digest"].as_str(),
+            ),
             "secrets/ref" => c.secret_ref(text(p, "item_id")?, text(p, "field_id")?),
             "secrets/policies/list" => {
                 let policies = c.secret_policies()?;

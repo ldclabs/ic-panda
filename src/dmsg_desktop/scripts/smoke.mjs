@@ -1712,7 +1712,7 @@ smoke: try {
   await main.fill('[data-testid="letter-recipient"]', peer)
   await main.fill('[data-testid="letter-text"]', 'Retry this letter')
   await main.click('[data-testid="letter-send"]')
-  await main.waitForSelector('[data-testid="letter-dialog"] >> text=EXECUTION_UNKNOWN')
+  await main.waitForSelector('[data-testid="letter-dialog"] >> text=The result is not confirmed yet')
   const firstLetter = latest('inbox/send').params
   assert.match(firstLetter.order, /^[0-9a-f]{64}$/)
   await main.click('[data-testid="letter-send"]')
@@ -2445,7 +2445,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="wallet-cosign-collection"]')
   assert.equal(await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Execute',exact:true}).count(),0)
   await main.getByRole('button', {name:'Prepare signing plan',exact:true}).click()
-  await main.waitForSelector('[data-testid="wallet-cosign-collection"] >> text=cosign collection unavailable')
+  await main.waitForSelector('[data-testid="wallet-cosign-collection"] >> text=This service is temporarily unavailable')
   wallets.state.collectionError = false
   await main.locator('[data-testid="wallet-cosign-collection"]').getByRole('button',{name:'Retry',exact:true}).click()
   await main.locator('[data-testid="wallet-cosign-collection"]').getByRole('button',{name:'Cosigning',exact:true}).click()
@@ -2577,6 +2577,27 @@ smoke: try {
   assert.equal(await main.locator('[data-testid="enable-principal"]').count(), 0)
   await finishAgentPrincipal()
   await main.waitForSelector('[data-testid="principal-id"]')
+  // Shared weak-network recovery retains good data, shows one warning,
+  // removes technical URLs, and refreshes without replaying any writes.
+  const goodPrincipal = methods['agent/principal']
+  const goodCredentials = methods['agent/credentials']
+  const writesBeforeOutage = calls.filter((c) => ['agent/register', 'agent/grant', 'approval/respond', 'wallet/execute'].includes(c.method)).length
+  const offline = () => { throw { code: 'NETWORK_UNAVAILABLE', message: 'https://icp-api.io/private-account?token=PRIVATE_NETWORK_TEST' } }
+  methods['agent/principal'] = offline
+  methods['agent/credentials'] = offline
+  emit('agent/changed')
+  await main.waitForSelector('[data-testid="network-recovery"]')
+  assert.equal(await main.locator('[data-testid="network-recovery"]').count(), 1)
+  assert.equal(await main.locator('[data-testid="principal-id"]').count(), 1)
+  assert.equal(await main.locator('[data-testid="credentials"] [data-testid="credential"]').count() > 0, true)
+  assert.equal((await main.textContent('body')).includes('PRIVATE_NETWORK_TEST'), false)
+  assert.equal(await main.locator('[data-testid="principal-error"][role="alert"]').count(), 0)
+  await main.screenshot({ path: join(shots, 'network-recovering.png') })
+  methods['agent/principal'] = goodPrincipal
+  methods['agent/credentials'] = goodCredentials
+  await main.waitForSelector('[data-testid="network-recovery"]', { state: 'detached', timeout: 20_000 })
+  await main.waitForSelector('[data-testid="principal-error"]', { state: 'detached' })
+  assert.equal(calls.filter((c) => ['agent/register', 'agent/grant', 'approval/respond', 'wallet/execute'].includes(c.method)).length, writesBeforeOutage)
   // A default key is opt-in; malformed custom ceilings never create approvals.
   const registrations = () => calls.filter((c) => c.method === 'agent/register').length
   assert.equal(await main.isDisabled('[data-testid="default-controller-register"]'), true)
@@ -2694,6 +2715,18 @@ smoke: try {
     await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
   }
   await assert.rejects(main.evaluate(() => window.dmsg.call('ap/call', { tool: 'agent_protocols_mail_list', input: { mark_read: true } })), /FORBIDDEN/)
+  await main.click('[data-testid="mailbox-settings"] summary')
+  await main.fill('[data-testid="mail-routes"]', 'https://relay.example')
+  await main.click('[data-testid="mailbox-recover"]')
+  await main.waitForSelector('[data-testid="mailbox-key-missing"]')
+  assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_mailboxes_list' && c.params.input.host === 'https://relay.example' && c.params.input.cursor === 'recovery-page-2'))
+  assert.equal(await main.locator('[data-testid="mailbox-renew"]').nth(1).isEnabled(), false)
+  await main.locator('[data-testid="mailbox-key-missing"]').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'mailbox-recovery.png') })
+  await main.locator('[data-testid="mailbox-close"]').nth(1).click()
+  await main.click('[data-testid="mailbox-close-dialog-confirm"]')
+  await waitFor(() => latest('ap/call').params.tool === 'agent_protocols_mail_mailboxes_list')
+  assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_mailbox_publish' && c.params.input.rotate_key === true && c.params.input.routes.length === 0))
   const finishOldKnowledge = hold('ap/call', (p) => p.tool === 'agent_protocols_knowledge_query' && p.input.type === 'knowledge.publish')
   await main.click('[data-testid="agents-tab-knowledge"]')
   await waitFor(() => held.get('ap/call'))
@@ -3104,7 +3137,16 @@ smoke: try {
   // and consumes a preview before awaiting the daemon's reply.
   await answer('__open', join(picks, 'export.csv'))
   const oldPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())
+  // WebSocket delivery is asynchronous. Observe the public event after the main
+  // process invalidates its preview before asserting that the old token is refused.
+  await main.evaluate(() => {
+    window.__importSessionChanged = false
+    const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'session/changed') { window.__importSessionChanged = true; off() }
+    })
+  })
   emit('session/changed')
+  await main.waitForFunction(() => window.__importSessionChanged === true)
   await assert.rejects(main.evaluate((session) => window.dmsg.vaultImport(session, [0]), oldPreview.session), /VERSION_CONFLICT/)
   await answer('__open', join(picks, 'export.csv'))
   const freshPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())
@@ -3666,7 +3708,7 @@ smoke: try {
   syncing = false
   lastSync = { at: Date.now(), error: 'UNAVAILABLE' }
   emit('sync/changed')
-  await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Sync failed'))
+  await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Temporarily unable to update'))
   assert.equal(await main.locator('[data-testid="gate-sync"]').isDisabled(), false)
   lastSync = { at: Date.now(), error: null }
   emit('sync/changed')
@@ -3715,7 +3757,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="vault-locked"] >> text=Log in to use dMsg on this device.')
   failLogin = true
   await main.click('[data-testid="vault-locked"] [data-testid="locked-step"]')
-  await main.waitForSelector('[data-testid="login-error"] >> text=no usable answer from the Internet Computer')
+  await main.waitForSelector('[data-testid="login-error"] >> text=This service is temporarily unavailable')
   await settled(main, '[data-testid="login-dialog"]')
   await main.screenshot({ path: join(shots, 'login-failed.png') })
   await main.click('[data-testid="login-retry"]')

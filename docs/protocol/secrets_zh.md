@@ -170,3 +170,23 @@ SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.co
 平台与实测边界见 [P1 验证记录](../dmsg_secrets_P1_validation_zh.md)。生产/私有云端完整联调、正式 macOS 扩展内核联调及分发公证不以 mock 或开发签名替代。
 
 附件进入 Files 后遵循目标文件夹现有的 `files.read:<folder>` 授权（含祖先文件夹授权）。本地/云端存储状态不是 Agent 访问控制；导入 UI 提供文件夹选择并明确告知继承权限，不能把“未备份”理解为 Agent 不可读。Vault 隐藏字段仍遵循单独的 Vault/secret.use 边界。
+
+
+## 凭据引用与轮换依赖
+
+`secrets/references {reference}` 返回 `reference/revision/dependencies/digest/device_local`。每项依赖只有类型、对象 ID、显示名称、配置或来源版本、状态和建议动作，不返回字段值、命令参数、领取 token、文件 key 或分享 URL。范围是本设备已保存的策略及对应 Agent grants、挂载配置、SSH 绑定、选中该字段的链接/频道快照任务，以及保留的进程审批记录。未观察到的 `.env.refs`、已清除的历史和其他设备不在清单内，不自动扫描项目。
+
+`secrets/rotation/dependencies {id}` 刷新轮换任务的同一清单。`rotation/update {id,step,dependencies_digest?}` 在 `references_checked` 时要求提交刚查看的完整清单摘要；摘要绑定字段身份、当前 Vault head 和排序后的依赖元数据。`upstream_revoked` 再次计算，配置、grant、快照状态或条目版本变化时拒绝旧确认。新凭据变更后须重新报告 `created/tested/references_checked`；最终上游撤销仍是 owner statement，dMsg 不据此声称独立验证上游。
+
+CLI：`dmsg secrets references <dmsg-secret://…>`、`dmsg secrets rotation dependencies <id>`；核对后执行 `rotation update <id> references_checked --dependencies-digest <digest>`。
+
+## 频道秘密快照
+
+- `secrets/shares/channel_prepare {channel_id,input}`：`input` 沿用明确字段、备注与固定附件选择，不能带链接期限或会话次数。先读取并验证频道控制状态，计划固定 channel ID、名称、epoch、control head、ACL version 和原 snapshot/upload/file-version IDs。准备不上传。
+- `secrets/shares/request/get/list/reconcile` 复用高风险 owner 审批和任务状态。批准前、每段加密/上传及提交前重新验证账户会话、来源和频道范围；控制版本变化时重新准备并审批，不自动向新成员范围发送。
+- 快照采用独立 key 的普通频道文件，加密块和 manifest 上传后，key 仅随该纪元的加密消息交付。专用操作日志不进入普通频道 outbox，存储恢复器拒绝 `secret_channel`；发布提交点后只查询原 operation ID，不能重签/重发或生成第二条消息。回执的 digest 必须匹配原签名，之后才标为 published。
+- 频道交付没有分享链接、下载会话次数或内容到期时间；`publish_before` 仅限制开始交付。可读取该纪元的成员（包括以后加入或获得历史授权者）及其明确授权的内容读取者可能保留副本。任务撤销只适用于发布提交点之前；提交后不能以“撤销任务”声称收回内容。既有频道撤回/附件回收仍遵循原合同，也不能抹除副本。
+- `secrets/packages/channel_preview {channel_id,seq}`：只从本机验证过的频道消息取附件，不接受调用方注入 file key、URL 或 manifest。读取并验证频道消息、上传声明、密文摘要、AEAD、完整文件摘要及内层包后返回无值预览。不会导出整份明文包到磁盘或 Files。
+- `secrets/packages/import_request` 使用原包摘要、明确选择和可信审批，生成新 Vault/Files IDs。相同频道消息的重复领取收敛到同一包记录；重复导入返回原事务收据，改变选择不能复用旧收据。附件仍继承目的 Files 文件夹授权。
+
+CLI：`dmsg secrets shares channel-prepare <channel_id> <selection.json>`；`dmsg secrets packages channel-preview <channel_id> <seq>`。桌面使用中心提供目的频道选择；频道快照消息提供“导入秘密快照”，所有字段/备注/附件默认不选。上述方法均为 owner 控制面，无新增 MCP 取密或发起秘密交付工具。

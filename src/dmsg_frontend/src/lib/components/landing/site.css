@@ -111,6 +111,10 @@ html:has(.dmsg-site) {
   display: inline-block;
   flex-shrink: 0;
 }
+/* Arrows point along the reading direction. */
+html[dir='rtl'] .dmsg-site :is(.glyph-arrow-right, .glyph-arrow-up-right) {
+  scale: -1 1;
+}
 .dmsg-site .brand {
   display: inline-flex;
   align-items: center;

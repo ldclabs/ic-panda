@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { recoverMailboxes } from '../../../shared/mail-recovery'
   import { onDestroy, onMount, untrack } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
@@ -166,9 +167,17 @@
   }
 
   async function publishBox(input: Record<string, unknown>, done: string) {
-    const result = await tool('mail_mailbox_publish', input)
-    if (!alive) return
-    await refreshBoxes()
+    const target = agent
+    let result: any
+    try {
+      result = await tool('mail_mailbox_publish', input, target)
+    } catch (failure) {
+      // An unknown reply may already have a durable pending publication.
+      if (alive && agent === target) await refreshBoxes(target).catch(() => {})
+      throw failure
+    }
+    if (!alive || agent !== target) return
+    await refreshBoxes(target)
     if (result.failed?.length) error = result.failed.map((failure: any) => `${failure.route}: ${failure.code}`).join('\n')
     else notice = done
   }
@@ -186,7 +195,19 @@
       )
       routes = DEFAULT_RELAY
     })
-  const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({ mailbox_id: box.mailbox_id, routes: box.routes, ...change }, done))
+  const recover = () => attempt(async () => {
+    const target = agent
+    const complete = await recoverMailboxes(routes.split(','), (input) => tool('mail_mailboxes_list', input, target), () => alive && agent === target)
+    if (!complete) return
+    await refreshBoxes(target)
+    if (alive && agent === target) notice = t('mailboxesRecovered')
+  })
+  const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({
+    mailbox_id: box.mailbox_id,
+    routes: box.routes,
+    ...(box.key_available === false && Array.isArray(change.routes) && change.routes.length === 0 ? { rotate_key: true } : {}),
+    ...change
+  }, done))
   const textOf = (message: any) =>
     message.parts
       .filter((part: any) => part.text)
@@ -217,7 +238,7 @@
           <p class="mt-1">{t('mailOwnerRole')}</p>
         </div>
       </div>
-      {#if error}<Notice tone="danger" testid="mail-error">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
       <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3" data-testid="mail-push">
         <div class="min-w-0 flex-1"><p class="text-[13px] font-medium">{t('mailPushTitle')}</p><p class="text-[12px] text-muted">{t('mailPushHint')}</p>
@@ -335,9 +356,11 @@
                   >
                 </div>
                 <span class="text-faint">{t('expires')} {when(box.expires_at)}</span>
+                {#if box.key_available === false}<Notice tone="warn" testid="mailbox-key-missing">{t('mailboxKeyMissing')}</Notice>{/if}
+                {#if box.pending_routes?.length}<p class="text-muted">{t('mailboxPublicationPending')}: {box.pending_routes.join(', ')}</p>{/if}
                 <div class="flex flex-wrap gap-2">
                   {#if box.status !== 'closed'}
-                    <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => replace(box, {}, t('mailboxRenewed'))} data-testid="mailbox-renew"
+                    <button class={buttonClass('secondary', 'xs')} disabled={busy || box.key_available === false} onclick={() => replace(box, {}, t('mailboxRenewed'))} data-testid="mailbox-renew"
                       >{t('renew')}</button
                     >
                     <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => replace(box, { rotate_key: true }, t('mailboxRotated'))} data-testid="mailbox-rotate"
@@ -357,6 +380,7 @@
               disabled={busy || !routes.trim()}
               onclick={publish}>{t('openMailbox')}</button
             >
+            <button class={buttonClass('secondary')} disabled={busy || !routes.trim()} onclick={recover} data-testid="mailbox-recover">{t('recoverMailboxes')}</button>
           </div>
           <details class="text-[12px] text-muted" data-testid="mail-blocked">
             <summary class="cursor-pointer">{t('blockedSenders', { n: blocked.length })}</summary>

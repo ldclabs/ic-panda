@@ -22,6 +22,7 @@
   import { size, when } from '../../rpc'
   import { validPrincipal, walletRoute } from '../wallet/model'
   import { w } from '../wallet/text'
+  import { workflowText } from '../secrets/workflow-text'
   import { bytes, days, MAX_TEXT, packetStep, receiptOf } from './channels'
   import { label } from './names.svelte'
 
@@ -59,6 +60,7 @@
     onDrop,
     onDownload,
     onSave,
+    onSnapshot,
     onEarlier,
     onRetract,
     onHide,
@@ -89,6 +91,7 @@
     onDrop: (files: File[]) => void
     onDownload: (message: any) => void
     onSave: (message: any) => void
+    onSnapshot: (message: any) => void
     onEarlier: () => Promise<void>
     onRetract: (message: any) => void
     onHide: (message: any, hidden: boolean) => void
@@ -365,6 +368,9 @@
                     <span class="block truncate text-[13px] font-medium">{message.file.name}</span>
                     <span class="block text-[11.5px] text-faint">{size(message.file.size)}</span>
                   </span>
+                  {#if message.file.mime==='application/vnd.dmsg.secret-package'}
+                    <button class={buttonClass('secondary','sm')} onclick={()=>onSnapshot(message)} data-testid="message-snapshot">{workflowText('channelSnapshot')}</button>
+                  {:else}
                   <Tooltip content={t('saveToLibrary')}>
                     {#snippet children(props)}
                       <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
@@ -379,6 +385,7 @@
                       </button>
                     {/snippet}
                   </Tooltip>
+                  {/if}
                 </div>
               {/if}
               {#if message.packet}{@render packetCard(message)}{/if}

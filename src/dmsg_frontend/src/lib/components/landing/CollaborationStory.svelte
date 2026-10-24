@@ -87,31 +87,39 @@
       <li
         ><button
           class:current={step === i}
+          class:playing
           aria-pressed={step === i}
           aria-controls="{id}-scene"
           onclick={() => go(i)}
-          ><span>{String(i + 1).padStart(2, '0')}</span>{$t(item.title)}</button
+          ><span>{String(i + 1).padStart(2, '0')}</span>{$t(
+            item.title
+          )}{#if playing && step === i}<i
+              class="story-progress"
+              aria-hidden="true"
+            ></i>{/if}</button
         ></li
       >
     {/each}
   </ol>
   <div class="story-scene" id="{id}-scene">
-    <div class="story-context">
-      <span class="story-symbol"
-        ><Glyph name={STEPS[step]!.icon} size={26} /></span
-      >
-      <h3>{$t(STEPS[step]!.title)}</h3>
-      <p>{$t(DESCRIPTIONS[step]!)}</p>
-      <div class="story-participants"
-        ><span
-          ><Glyph name="members" size={16} />{$t('You')}{step > 0
-            ? ' + ' + TEAMMATE
-            : ''}</span
-        >{#if step > 1}<span class="agent"
-            ><Glyph name="robot" size={16} />{AGENT}</span
-          >{/if}</div
-      >
-    </div>
+    {#key step}
+      <div class="story-context">
+        <span class="story-symbol"
+          ><Glyph name={STEPS[step]!.icon} size={26} /></span
+        >
+        <h3>{$t(STEPS[step]!.title)}</h3>
+        <p>{$t(DESCRIPTIONS[step]!)}</p>
+        <div class="story-participants"
+          ><span
+            ><Glyph name="members" size={16} />{$t('You')}{step > 0
+              ? ' + ' + TEAMMATE
+              : ''}</span
+          >{#if step > 1}<span class="agent"
+              ><Glyph name="robot" size={16} />{AGENT}</span
+            >{/if}</div
+        >
+      </div>
+    {/key}
     <div class="story-work">
       <div class="work-bar"
         ><span
@@ -132,104 +140,117 @@
           )}</span
         ></div
       >
-      {#if step === 0}
-        <div class="story-document"
-          ><span class="document-name"
-            ><Glyph name="file" size={18} />{FILE}</span
-          ><h4>{$t('A release worth sharing.')}</h4><p
-            >{$t(
-              'Finish the review. Prepare the notes. Agree on the release.'
-            )}</p
-          ><ul class="document-checks"
-            ><li
-              ><Glyph name="check" size={16} />{$t('Plan saved privately')}</li
-            ><li
-              ><Glyph name="lock" size={16} />{$t(
-                'No teammates or agents have access yet'
-              )}</li
-            ></ul
-          ></div
-        >
-      {:else if step === 1}
-        <div class="story-conversation"
-          ><p class="message-from"
-            >{$t('You')}<small>{$t('Encrypted channel')}</small></p
-          ><p class="message-text"
-            >{$t('Here is the plan. Can you review it before Friday?')}</p
-          ><span class="file-pill"><Glyph name="file" size={16} />{FILE}</span
-          ><p class="message-from"
-            >{TEAMMATE}<small>{$t('Invitation accepted')}</small></p
-          ><p class="message-text"
-            >{$t('I’m in. Let’s prepare the release notes together.')}</p
-          ></div
-        >
-      {:else if step === 2}
-        <div class="story-conversation"
-          ><p class="message-from"
-            ><Glyph name="robot" size={17} />{AGENT}<small
-              >{$t('Own Agent ID')}</small
-            ></p
-          ><div class="grant-chips"
-            ><span><Glyph name="folder" size={14} />{$t('Release folder')}</span
-            ><span><Glyph name="chat" size={14} />{$t('Release channel')}</span
-            ></div
-          ><p class="message-text"
-            >{$t(
-              'I prepared a draft from the project files. Your other folders and vault are outside my access.'
-            )}</p
-          ><span class="file-pill"
-            ><Glyph name="file" size={16} />{NOTES}<b>{$t('Draft ready')}</b
-            ></span
-          ></div
-        >
-      {:else if step === 3}
-        <div class="story-conversation"
-          ><p class="message-from"
-            ><Glyph name="robot" size={17} />{AGENT}<Glyph
-              name="arrow-right"
-              size={16}
-            />{OTHER}</p
-          ><p class="message-text"
-            >{$t('The release notes are ready for review. Anything to add?')}</p
-          ><p class="message-from"
-            ><Glyph name="robot" size={17} />{OTHER}<small>{TEAMMATE}</small></p
-          ><p class="message-text"
-            >{$t('Review complete. The release notes match the plan.')}</p
-          ><p class="work-foot"
-            ><Glyph name="lock" size={16} />{$t(
-              'Agent Mail · encrypted for the receiving agent'
-            )}</p
-          ></div
-        >
-      {:else}
-        <div class="story-document"
-          ><span class="document-name"
-            ><Glyph name="pen" size={18} />{$t('Release statement')}</span
-          ><h4>{$t('Ready for Friday’s release.')}</h4><p
-            >{$t(
-              'Requested by your release agent. Only you can approve this formal signature.'
-            )}</p
-          ><div class="story-decision" role="status">
-            {#if decision}<p class:refused={decision === 'rejected'}
-                ><Glyph
-                  name={decision === 'approved' ? 'check' : 'close'}
-                  size={20}
-                />{$t(
-                  decision === 'approved'
-                    ? 'Approved in this example. The signed statement joins the project record.'
-                    : 'Rejected in this example. Nothing is signed; the draft stays available.'
+      {#key step}
+        <div class="story-body">
+          {#if step === 0}
+            <div class="story-document"
+              ><span class="document-name"
+                ><Glyph name="file" size={18} />{FILE}</span
+              ><h4>{$t('A release worth sharing.')}</h4><p
+                >{$t(
+                  'Finish the review. Prepare the notes. Agree on the release.'
                 )}</p
-              >{:else}<button
-                class="button secondary"
-                onclick={() => (decision = 'rejected')}>{$t('Reject')}</button
-              ><button
-                class="button primary"
-                onclick={() => (decision = 'approved')}
-                >{$t('Approve this example')}</button
-              >{/if}
-          </div></div
-        >
-      {/if}
+              ><ul class="document-checks"
+                ><li
+                  ><Glyph name="check" size={16} />{$t(
+                    'Plan saved privately'
+                  )}</li
+                ><li
+                  ><Glyph name="lock" size={16} />{$t(
+                    'No teammates or agents have access yet'
+                  )}</li
+                ></ul
+              ></div
+            >
+          {:else if step === 1}
+            <div class="story-conversation"
+              ><p class="message-from"
+                >{$t('You')}<small>{$t('Encrypted channel')}</small></p
+              ><p class="message-text"
+                >{$t('Here is the plan. Can you review it before Friday?')}</p
+              ><span class="file-pill"
+                ><Glyph name="file" size={16} />{FILE}</span
+              ><p class="message-from"
+                >{TEAMMATE}<small>{$t('Invitation accepted')}</small></p
+              ><p class="message-text"
+                >{$t('I’m in. Let’s prepare the release notes together.')}</p
+              ></div
+            >
+          {:else if step === 2}
+            <div class="story-conversation"
+              ><p class="message-from"
+                ><Glyph name="robot" size={17} />{AGENT}<small
+                  >{$t('Own Agent ID')}</small
+                ></p
+              ><div class="grant-chips"
+                ><span
+                  ><Glyph name="folder" size={14} />{$t('Release folder')}</span
+                ><span
+                  ><Glyph name="chat" size={14} />{$t('Release channel')}</span
+                ></div
+              ><p class="message-text"
+                >{$t(
+                  'I prepared a draft from the project files. Your other folders and vault are outside my access.'
+                )}</p
+              ><span class="file-pill"
+                ><Glyph name="file" size={16} />{NOTES}<b>{$t('Draft ready')}</b
+                ></span
+              ></div
+            >
+          {:else if step === 3}
+            <div class="story-conversation"
+              ><p class="message-from"
+                ><Glyph name="robot" size={17} />{AGENT}<Glyph
+                  name="arrow-right"
+                  size={16}
+                />{OTHER}</p
+              ><p class="message-text"
+                >{$t(
+                  'The release notes are ready for review. Anything to add?'
+                )}</p
+              ><p class="message-from"
+                ><Glyph name="robot" size={17} />{OTHER}<small>{TEAMMATE}</small
+                ></p
+              ><p class="message-text"
+                >{$t('Review complete. The release notes match the plan.')}</p
+              ><p class="work-foot"
+                ><Glyph name="lock" size={16} />{$t(
+                  'Agent Mail · encrypted for the receiving agent'
+                )}</p
+              ></div
+            >
+          {:else}
+            <div class="story-document"
+              ><span class="document-name"
+                ><Glyph name="pen" size={18} />{$t('Release statement')}</span
+              ><h4>{$t('Ready for Friday’s release.')}</h4><p
+                >{$t(
+                  'Requested by your release agent. Only you can approve this formal signature.'
+                )}</p
+              ><div class="story-decision" role="status">
+                {#if decision}<p class:refused={decision === 'rejected'}
+                    ><Glyph
+                      name={decision === 'approved' ? 'check' : 'close'}
+                      size={20}
+                    />{$t(
+                      decision === 'approved'
+                        ? 'Approved in this example. The signed statement joins the project record.'
+                        : 'Rejected in this example. Nothing is signed; the draft stays available.'
+                    )}</p
+                  >{:else}<button
+                    class="button secondary"
+                    onclick={() => (decision = 'rejected')}
+                    >{$t('Reject')}</button
+                  ><button
+                    class="button primary"
+                    onclick={() => (decision = 'approved')}
+                    >{$t('Approve this example')}</button
+                  >{/if}
+              </div></div
+            >
+          {/if}
+        </div>
+      {/key}
     </div>
   </div>
   <footer class="story-footer"

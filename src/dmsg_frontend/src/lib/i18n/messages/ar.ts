@@ -478,8 +478,6 @@ export default {
   'A hint wakes your desktop, no content': 'تنبيه يوقظ حاسوبك، بلا أي محتوى',
   'A release is not an audit.': 'الإصدار ليس تدقيقًا.',
   'API key': 'مفتاح API',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'مفاتيح API وبيانات الدخول ومفاتيح التوقيع والملاحظات، تُشفَّر على جهازك قبل مزامنتها.',
   'Account and device changes': 'تغييرات الحساب والأجهزة',
   'Account and sync status': 'حالة الحساب والمزامنة',
   'Account, devices and logins': 'الحساب والأجهزة وهويات الدخول',
@@ -589,7 +587,7 @@ export default {
     'في المهملات هنا، يُحفظ {days} يومًا.',
   'In the trash here. Its cloud copy stays as it was.':
     'في المهملات هنا. تبقى نسخته السحابية كما هي.',
-  'Inbox': 'البريد الوارد',
+  'Inbox': 'صندوق الوارد',
   'Install method': 'طريقة التثبيت',
   'Is there a phone app?': 'هل يوجد تطبيق للهاتف؟',
   'It keeps names and outcomes on your device, never content.':
@@ -917,9 +915,6 @@ export default {
   'Files stay on your computer.': 'ملفاتك تبقى على جهازك.',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     'تُشفّر محتويات الملفات وأسماؤها وإصداراتها محليًا. اختر ما تريد نسخه احتياطيًا؛ والمشاركة تنشئ نسخة مشفّرة مستقلة.',
-  'Your workspace, two ways in.': 'مساحة واحدة، بطريقتين.',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    'استخدم تطبيق سطح المكتب يوميًا أو سطر الأوامر للبرامج النصية. كلاهما يستخدم مساحة العمل المحلية والموافقات نفسها.',
   'Explore files and backups': 'استكشف الملفات والنسخ الاحتياطية',
   'Try the desktop and command line': 'جرّب التطبيق وسطر الأوامر',
   'Collaboration': 'التعاون',
@@ -1094,12 +1089,115 @@ export default {
   'Vault item found': 'عُثر على عنصر الخزنة',
   'Release notes saved': 'حُفظت ملاحظات الإصدار',
   'Message posted to the channel': 'نُشرت الرسالة في القناة',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    'تتعاون أنت وزميلك ووكيلك ضمن مساحة خاصة. ويتصل الوكيل أيضًا بخدمات Discourse وMail وKnowledge.',
-  'A private space. A connected world.': 'مساحة خاصة. عالم متصل.',
   'Pause animation': 'إيقاف الحركة مؤقتًا',
   'Play animation': 'تشغيل الحركة',
   'Teammate': 'زميلك',
   'Your agent': 'وكيلك',
-  'Owner': 'المالك'
+  'Desktop app': 'تطبيق سطح المكتب',
+  'People and agents': 'الأشخاص والوكلاء',
+  'Desktop and terminal': 'سطح المكتب والطرفية',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    'تصل أنت وزميلك ووكيلك وموقع ما إلى مساحتك الخاصة عبر بوابة dMsg. ينشر وكيلك أيضًا في شبكة الوكلاء. والطلبات التي تحتاج إلى قرار تنتظرك في نافذة الموافقة.',
+  'Encrypted end to end': 'مشفّر من طرف إلى طرف',
+  'Sealed before it syncs': 'يُشفَّر قبل المزامنة',
+  'Only the folder it was granted': 'المجلد الممنوح له فقط',
+  'Signed with its own Agent ID': 'موقّع بهوية Agent ID الخاصة به',
+  'Sign-in': 'تسجيل الدخول',
+  'Payment': 'دفعة',
+  'Sign the release statement': 'وقّع بيان الإصدار',
+  'Sign in to {site}': 'تسجيل الدخول إلى {site}',
+  'Pay {amount} from the team wallet': 'ادفع {amount} من محفظة الفريق',
+  'Approving signs this statement with your account key.':
+    'الموافقة توقّع هذا البيان بمفتاح حسابك.',
+  'Approving proves to the site that it is you.':
+    'الموافقة تُثبت للموقع أنك أنت.',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    'الموافقة تضيف صوتك. وسياسة المحفظة تقرر الباقي.',
+  'Your vote is recorded.': 'سُجّل صوتك.',
+  'Rejected. Nothing was paid.': 'رُفض. لم يُدفع شيء.',
+  'Expired. Nothing was approved.': 'انتهت المهلة. لم تتم الموافقة على شيء.',
+  'Nothing is waiting for you.': 'لا شيء ينتظرك.',
+  'Approved without you: {count}': 'ما تمت الموافقة عليه دونك: {count}',
+  'Requests from agents, websites and the terminal open here.':
+    'تُفتح هنا طلبات الوكلاء والمواقع والطرفية.',
+  'Hold to approve': 'اضغط مطوّلًا للموافقة',
+  'The desktop app': 'تطبيق سطح المكتب',
+  'Everything in one window.': 'كل شيء في نافذة واحدة.',
+  'Every decision in its own.': 'ولكل قرار نافذته.',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    'القنوات والملفات وخزنتك والرسائل والوكلاء ومحافظ الفريق جنبًا إلى جنب. وتُفتح طلبات المواقع والوكلاء والطرفية في نافذة موافقة منفصلة، وأنت وحدك من يقرر فيها.',
+  'The dMsg desktop app': 'تطبيق dMsg لسطح المكتب',
+  'Views': 'الأقسام',
+  'Work': 'العمل',
+  'Authorization': 'التفويض',
+  'Signatures & approvals': 'التواقيع والموافقات',
+  'End-to-end encrypted conversations and files with people you choose':
+    'محادثات وملفات مشفّرة من طرف إلى طرف مع أشخاص تختارهم',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    'ملفات مشفّرة على هذا الجهاز؛ لا يخرج منها شيء إلا بنسخة احتياطية أو مشاركة منك',
+  'Notes, logins and keys, encrypted on this device':
+    'ملاحظات وبيانات دخول ومفاتيح مشفّرة على هذا الجهاز',
+  'Letters, and who may write to you': 'الرسائل، ومن يمكنه مراسلتك',
+  'Requests waiting for you, signatures and their records':
+    'الطلبات التي تنتظر قرارك، والتواقيع وسجلاتها',
+  'Agent IDs, what they may do and what they did':
+    'معرّفات الوكلاء، وما يُسمح لها به وما فعلته',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    'إدارة مشتركة لأموال ICP وبيتكوين وEVM وسولانا وفق سياسة المحفظة',
+  'Account synced': 'تمت مزامنة الحساب',
+  'Unlock with Touch ID': 'الفتح باستخدام Touch ID',
+  'Lock': 'قفل',
+  'Search or run a command': 'ابحث أو نفّذ أمرًا',
+  'Nothing in your workspace shows until you unlock this device.':
+    'لا يظهر شيء من مساحة عملك حتى تفتح قفل هذا الجهاز.',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    'يُقفل بعد 15 دقيقة من الخمول، أو متى شئت.',
+  'The notes read well. One fix in section 2.':
+    'الملاحظات جيدة. تعديل واحد في القسم 2.',
+  'Fixed. The release notes are ready.': 'تم الإصلاح. ملاحظات الإصدار جاهزة.',
+  'Thanks. We ship on Friday.': 'شكرًا. نُصدر يوم الجمعة.',
+  'Password': 'كلمة المرور',
+  'One-time password': 'كلمة مرور لمرة واحدة',
+  'Who may write to me': 'من يمكنه مراسلتي',
+  'Nobody': 'لا أحد',
+  'Contacts only': 'جهات الاتصال فقط',
+  'Everyone': 'الجميع',
+  'Paid letters': 'الرسائل المدفوعة',
+  'A question about the audit': 'سؤال عن التدقيق',
+  'Draft for the community post': 'مسودة منشور المجتمع',
+  'Statement for {file}': 'بيان عن {file}',
+  'Paused': 'متوقف مؤقتًا',
+  'Command palette': 'لوحة الأوامر',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    'اضغط ⌘K، أو Ctrl+K على ويندوز، للوصول إلى أي قسم أو عنصر أو أمر.',
+  'Fast unlock': 'فتح سريع',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    'على جهاز Mac، يحفظ Secure Enclave المفتاح ويفتحه Touch ID.',
+  'Locks on its own': 'يُقفل تلقائيًا',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    'بعد 15 دقيقة من الخمول افتراضيًا، للتطبيق وسطر الأوامر معًا.',
+  'Light or dark': 'فاتح أو داكن',
+  'Follows your system, or keeps the look you pick.':
+    'يتبع نظامك، أو يحتفظ بالمظهر الذي تختاره.',
+  'Six languages': 'ست لغات',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    'بالعربية تُعرض النوافذ من اليمين إلى اليسار، وتحتفظ المعرّفات والشيفرة بترتيبها.',
+  'Stays in the tray': 'يبقى في شريط النظام',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    'أغلق النافذة ويستمر dMsg في العمل؛ وتظل الطلبات الجديدة تصلك.',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    'بيانات دخول بكلمات مرور لمرة واحدة، ومفاتيح API، ومفاتيح توقيع، وملاحظات، تُشفَّر على جهازك قبل مزامنتها.',
+  'Locked when you step away.': 'يُقفل حين تبتعد.',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    'لا يظهر السر ولا يُنسخ إلا بنقرة ثانية، وتُمسح الحافظة بعد النسخ بقليل. وتُقفل مساحة العمل نفسها عند الخمول.',
+  'Letters, on your rules.': 'الرسائل، وفق قواعدك.',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    'يتيح ملفك العام للناس أن يجدوك. اختر من يمكنه مراسلتك: لا أحد، أو جهات الاتصال، أو الجميع، أو من يدفع عن كل رسالة. الدفع يغطي التسليم لا الرد.',
+  'Check a signature yourself.': 'تحقّق من التوقيع بنفسك.',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'يصدّر dMsg التوقيع مع أدلته. تحقّق من الحزمة في متصفحك؛ ولا يغادر الملف الأصلي حاسوبك.',
+  'Open the verifier': 'افتح أداة التحقق',
+  'Can strangers write to me?': 'هل يمكن للغرباء مراسلتي؟',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    'فقط إن سمحت قواعدك بذلك: لا أحد، أو جهات اتصالك، أو الجميع، أو المرسلون الذين يدفعون السعر الذي تحدده. الدفع يغطي التسليم لا الرد.',
 } satisfies Messages

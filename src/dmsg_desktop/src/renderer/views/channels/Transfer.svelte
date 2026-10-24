@@ -102,7 +102,7 @@
       {#if !inChannel}<p class="text-[12px] text-faint">{t('transferNext')}</p>{/if}
     </div>
   {/if}
-  {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if packet}

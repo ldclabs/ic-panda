@@ -1,0 +1,15 @@
+{
+  "version": "0.12.6",
+  "commit": "13257c168446fb11833f57c59c38649f10e400cb",
+  "files": {
+    "agent-identity-1.0.vectors.json": "a059fdb944105fbfc48c9fdb51c25b677ab043d53b136a679f1b4ef92a1a06c5",
+    "agent-profile-1.0.vectors.json": "35b298331af6b63c68c2933cc16564f321c86b7cb8a5db52d34398be9e9446c3",
+    "agent-delegation-1.0.vectors.json": "0961e6238e0d5ea45fcbe6839be56edc536da7cbe2de9f116c78e9ad75a2d607",
+    "agent-discourse-1.0.vectors.json": "95e0d06ee74610632e2c1386925fcd286a551c5a5eb371ca78bc2cf348f3a264",
+    "agent-knowledge-1.0.vectors.json": "398626212d05c1a1283aa5502d6f6b31014ab53dfe522cc712e37fde1e2be1df",
+    "agent-knowledge-1.0.schema.json": "7fa7ae9e3b8a26fc95e6a5e529869df2675ffaa8925119869ce0797acebca817",
+    "agent-mail-1.0.vectors.json": "e636637ace698a46155a759418d29e6abe0eb49add3a71ebfb91cbd459f78e8c",
+    "agent-mail-1.0.schema.json": "1646c88476e04cbb2f6dc081b98ad3b527286e538e8d8b8299f7d7f1eb9fc8dc",
+    "LICENSE": "0c01c652a0539ad2c5f27171e7c9949fce60fa2755005ee049e74fda1b819d1b"
+  }
+}

@@ -366,10 +366,15 @@ fn main() {
     let cli = Cli::parse();
     let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
     let json = cli.json && !matches!(cli.command, Some(Command::Run(_)));
+    let daemon = matches!(&cli.command, Some(Command::Daemon { .. }));
     let code = match runtime.block_on(run(cli)) {
         Ok(()) => 0,
         Err(failure) if failure.code == "PROCESS_EXIT" => failure.message.parse().unwrap_or(1),
-        Err(failure) => {
+        Err(mut failure) => {
+            // Background daemon stderr is retained; never log private startup context.
+            if daemon {
+                failure.message = "daemon failed; see dmsg doctor and dmsg logs".into();
+            }
             if json {
                 println!(
                     "{}",

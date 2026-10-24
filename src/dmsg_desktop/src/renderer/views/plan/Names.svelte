@@ -223,7 +223,7 @@
       <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => (incoming = '')} data-testid="name-accept"><Icon name="transfer" />{t('acceptName')}</button>
     {/snippet}
     {#if errors.mine}
-      <Notice tone="danger">{errors.mine}</Notice>
+      <Notice failure={errors.mine} tone="danger">{errors.mine}</Notice>
     {/if}
     {#if mine && !mine.length}
       <p class="text-[12.5px] text-faint" data-testid="no-names">{t('noNames')}</p>
@@ -325,8 +325,8 @@
               {/if}
             </Notice>
           {/if}
-          {#if errors.security}<Notice tone="danger">{errors.security}</Notice>{/if}
-          {#if errors.lookup}<Notice tone="danger">{errors.lookup}</Notice>{/if}
+          {#if errors.security}<Notice failure={errors.security} tone="danger">{errors.security}</Notice>{/if}
+          {#if errors.lookup}<Notice failure={errors.lookup} tone="danger">{errors.lookup}</Notice>{/if}
         </div>
       {/if}
     </div>
@@ -334,7 +334,7 @@
 
   <Section title={t('nameOperations')} icon="history" flush testid="name-operations-section">
     {#if errors.operations}
-      <div class="px-5 pb-4"><Notice tone="danger">{errors.operations}</Notice></div>
+      <div class="px-5 pb-4"><Notice failure={errors.operations} tone="danger">{errors.operations}</Notice></div>
     {/if}
     {#if operations && !operations.length}
       <p class="px-5 pb-4 text-[12.5px] text-faint">{t('noNameOperations')}</p>

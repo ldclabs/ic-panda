@@ -60,7 +60,7 @@
     })
 </script>
 
-{#if error}<Notice tone="danger" testid="onboarding-error">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger" testid="onboarding-error">{error}</Notice>{/if}
 {#if status?.state === 'no_account'}
   <Section title={t('noAccount')} icon="add" testid="onboarding">
     <div class="grid gap-4">

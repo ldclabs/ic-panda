@@ -14,7 +14,7 @@
       {#if d.scope?.type==='linux_handle'}<p class="text-warn">{w('linuxHandleWarning')}</p>{/if}
       {#if d.grant_lifetime_ms}<p>{w('window')}: {d.grant_lifetime_ms/1000}</p>{/if}
       <p class="text-xs text-muted">{w(request.type==='secret_mount_config'?'exclude':'mountReadWarning')}</p>
-    {:else if request.type==='secret_share'}<p class="text-warn">{w('shareWarning')}</p>
+    {:else if request.type==='secret_share'}<p class="text-warn">{w(d.channel?'channelWarning':'shareWarning')}</p>
       {#if d.fields?.some((f:any)=>f.type==='otp')}<p class="text-warn">{w('otpSeedWarning')}</p>{/if}
       {#if d.item_type==='ssh' && d.fields?.some((f:any)=>f.type==='concealed')}<p class="text-warn">{w('privateKeyWarning')}</p>{/if}
       {#if d.item_type==='wallet' && (d.input?.include_notes || d.fields?.some((f:any)=>f.type==='concealed'))}<p class="text-warn">{w('walletSeedWarning')}</p>{/if}

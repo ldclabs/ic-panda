@@ -1,0 +1,644 @@
+/* The hero: the headline beside the gatehouse figure, then the value strip. */
+.home .hero {
+  padding: 28px 0 64px;
+}
+.home .hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  margin-bottom: 36px;
+}
+.home .hero-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding-block: 24px;
+}
+.home .hero-kicker {
+  margin-bottom: 24px;
+  font-size: 11px;
+  gap: 8px;
+}
+.home .hero-kicker::after {
+  display: none;
+}
+.home .hero h1 {
+  font-size: clamp(40px, 4.15vw, 59px);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+}
+.home .hero h1 > span {
+  display: block;
+  text-wrap: balance;
+}
+.home .hero h1 > span + span {
+  color: var(--forest);
+}
+.home .hero-lead {
+  max-width: 470px;
+  margin: 25px 0 22px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+.home .hero-actions {
+  flex-wrap: wrap;
+  gap: 14px 22px;
+}
+.home .hero-actions .text-link .glyph {
+  width: 20px;
+  height: 20px;
+}
+.home .hero-note {
+  margin: 16px 0 0;
+  font-size: 13px;
+}
+
+/* The copy rises once on load, line by line; the figure follows. */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+.home .hero-copy > *,
+.home .hero h1 > span {
+  animation: hero-rise 0.9s var(--ease) both;
+}
+.home .hero h1 {
+  animation: none;
+}
+.home .hero h1 > span:first-child {
+  animation-delay: 0.1s;
+}
+.home .hero h1 > span + span {
+  animation-delay: 0.2s;
+}
+.home .hero-lead {
+  animation-delay: 0.32s;
+}
+.home .hero-actions {
+  animation-delay: 0.42s;
+}
+.home .hero-note {
+  animation-delay: 0.5s;
+}
+.home .hero-art {
+  animation: hero-in 1.1s var(--ease) 0.25s both;
+}
+
+/* ——— The value strip ——— */
+.home .value-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line-2);
+  margin-bottom: 34px;
+}
+.home .value-strip a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+}
+.home .value-strip a:first-child {
+  padding-inline-start: 0;
+}
+.home .value-strip a + a {
+  border-inline-start: 1px solid var(--line-2);
+}
+/* A rule draws along the top edge of the item under the pointer. */
+.home .value-strip a::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: -1px;
+  height: 2px;
+  background: var(--forest);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ease);
+}
+html[dir='rtl'] .home .value-strip a::before {
+  transform-origin: right;
+}
+.home .value-strip a:is(:hover, :focus-visible)::before {
+  transform: scaleX(1);
+}
+.home .value-strip a > .glyph:first-child {
+  color: var(--forest);
+}
+.home .value-strip a > .glyph:last-child {
+  margin-inline-start: auto;
+  transition: translate 0.3s var(--ease);
+}
+.home .value-strip a:hover > .glyph:last-child {
+  translate: 4px 0;
+}
+html[dir='rtl'] .home .value-strip a:hover > .glyph:last-child {
+  translate: -4px 0;
+}
+.home .value-strip strong,
+.home .value-strip small {
+  display: block;
+}
+.home .value-strip strong {
+  font-size: 16px;
+}
+.home .value-strip small {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ——— Fig. the gatehouse ——— */
+.home .hero-art {
+  margin: 0;
+  min-width: 0;
+}
+.home .hero-stage .gate-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.home .gate-art :is(.art-card, .art-check, .art-room rect, .art-room path) {
+  transition:
+    fill 0.3s,
+    stroke 0.3s,
+    opacity 0.3s;
+}
+.home .gate-art :is(.art-packet, .art-request) {
+  transition: opacity 0.2s;
+}
+.home .gate-art .art-trail {
+  transition: opacity 0.7s ease;
+}
+.home .gate-art :is(.art-halo, .art-timer) {
+  transition: opacity 0.35s;
+}
+.home .gate-art .art-asker.on .art-card,
+.home .gate-art .art-host.on .art-card {
+  stroke: var(--forest);
+  stroke-width: 1.6px;
+}
+.home .gate-art .art-asker-agent.on .art-card {
+  stroke: var(--mint);
+}
+.home .gate-art .art-host.on .art-card {
+  fill: #f2f7f1;
+}
+.home .gate-art :is(.art-asker.done, .art-host.on) .art-check {
+  opacity: 1;
+}
+.home .gate-art .art-room.on rect {
+  fill: var(--mint);
+  stroke: #e3f1e8;
+}
+.home .gate-art .art-room.on path {
+  fill: var(--forest-2);
+}
+.home .hero-art.waiting .gate-art :is(.art-halo, .art-timer) {
+  opacity: 1;
+}
+
+/* What passed the gate, and the approval window. */
+.home .hero-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 14px;
+  margin-top: 10px;
+}
+.home .hero-log {
+  display: grid;
+  align-content: start;
+  margin: 0;
+  padding: 6px 14px;
+  list-style: none;
+  border: 1px dashed var(--line-2);
+  border-radius: 12px;
+}
+.home .hero-log li {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.home .hero-log li + li {
+  border-top: 1px solid var(--line);
+}
+.home .hero-log time {
+  font: 11px/1.6 var(--mono);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.home .hero-log li > .glyph {
+  color: var(--forest);
+}
+.home .hero-log li.no > .glyph {
+  color: var(--muted);
+}
+.home .hero-log span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1px 6px;
+  min-width: 0;
+}
+.home .hero-log span .glyph {
+  color: var(--muted);
+}
+.home .hero-log b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.home .hero-log small {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--muted);
+}
+.home .hero-log li:is(.ok, .no) small {
+  color: var(--ink);
+}
+
+.home .hero-window {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow-product);
+}
+.home .hero-window header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+}
+/* As on macOS, the lights stay at the top left in right-to-left text. */
+html[dir='rtl'] .home .hero-window header {
+  direction: ltr;
+}
+html[dir='rtl'] .home .hero-window header p {
+  direction: rtl;
+}
+.home .hero-window header::after {
+  content: '';
+  width: 34px;
+}
+.home .hero-window .lights i {
+  width: 8px;
+  height: 8px;
+}
+.home .hero-window header p {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.home .window-body {
+  flex: 1;
+  display: grid;
+  padding: 12px 14px;
+}
+.home .window-body > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.25s,
+    transform 0.3s var(--ease),
+    visibility 0s 0.3s;
+}
+.home .window-body > .shown {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.25s,
+    transform 0.3s var(--ease);
+}
+.home .window-idle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.home .window-idle svg path {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1.6;
+}
+.home .window-idle p {
+  margin: 0;
+}
+.home .window-idle strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.home .window-idle span {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.home .window-idle small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.home .ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 11.5px;
+}
+.home .ticket-kind {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 7px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--amber-pale);
+  color: #92400e;
+  font-weight: 600;
+}
+.home .ticket-kind i {
+  width: 7px;
+  height: 7px;
+  background: var(--amber);
+  transform: rotate(45deg);
+}
+.home .ticket-head code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px/1.5 var(--mono);
+  color: var(--muted);
+}
+.home .ticket-head time {
+  margin-inline-start: auto;
+  font: 11px/1.5 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: #92400e;
+}
+.home .ticket-title {
+  margin: 0 0 3px;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.home .ticket-effect {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.home .ticket-expiry {
+  display: block;
+  height: 2px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--line);
+}
+.home .ticket-expiry i {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+  transform-origin: left;
+}
+html[dir='rtl'] .home .ticket-expiry i {
+  transform-origin: right;
+}
+.home .ticket-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.home .ticket-actions button {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.home .ticket-reject {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.home .ticket-reject:hover {
+  background: var(--paper-2);
+}
+/* Approve fills while it waits after a request appears; for a payment it
+   fills again while held. It never moves. */
+.home .ticket-approve {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: var(--forest);
+}
+.home .ticket-approve:hover {
+  background: var(--forest-2);
+}
+.home .ticket-approve[aria-disabled='true'] {
+  cursor: default;
+  background: #6f9584;
+}
+.home .ticket-approve span {
+  position: relative;
+}
+.home .ticket-approve i {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.24);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+html[dir='rtl'] .home .ticket-approve i {
+  transform-origin: right;
+}
+.home .window-ticket.shown .ticket-approve:not(.ready) i {
+  animation: approve-fill 1.2s linear forwards;
+}
+.home .ticket-approve.holding i {
+  animation: approve-fill 1s linear forwards;
+}
+@keyframes approve-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+.home .window-outcome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 550;
+  color: #166534;
+}
+.home .window-outcome.no {
+  color: var(--muted);
+}
+
+.home .hero-art figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  margin-top: 8px;
+}
+.home .art-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.home .art-caption i {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--amber);
+  transform: rotate(45deg);
+}
+.home .art-motion {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd9c8;
+  border-radius: 50%;
+  color: var(--muted);
+  background: #f9faf5;
+}
+.home .art-motion:hover {
+  color: var(--forest);
+  border-color: #8da98e;
+  background: var(--pale);
+}
+
+/* ——— Languages ——— */
+html[lang='zh'] .home .hero h1 {
+  font-size: clamp(36px, 4.1vw, 58px);
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+html[lang='zh'] .home .hero h1 > span {
+  white-space: nowrap;
+}
+html:is([lang='fr'], [lang='es'], [lang='ru']) .home .hero h1 {
+  font-size: clamp(36px, 3.9vw, 56px);
+}
+html[lang='ar'] .home .hero h1 {
+  font-size: clamp(36px, 4.2vw, 58px);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1000px) {
+  .home .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .home .hero-copy {
+    max-width: 680px;
+    padding-bottom: 8px;
+  }
+  .home .hero h1 {
+    font-size: clamp(40px, 6vw, 60px);
+  }
+  .home .hero-art {
+    width: 100%;
+    max-width: 760px;
+    justify-self: center;
+  }
+}
+@media (max-width: 760px) {
+  .home .hero {
+    padding: 32px 0 44px;
+  }
+  .home .hero h1 {
+    font-size: clamp(35px, 8.5vw, 56px);
+  }
+  html[lang='zh'] .home .hero h1 {
+    font-size: clamp(26px, 7.2vw, 48px);
+  }
+  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar']) .home .hero h1 {
+    font-size: clamp(30px, 7.4vw, 48px);
+  }
+  .home .hero-kicker {
+    gap: 6px;
+    letter-spacing: 0.02em;
+  }
+  .home .hero-actions {
+    gap: 12px 18px;
+  }
+  .home .hero-actions .text-link {
+    font-size: 14px;
+  }
+  .home .value-strip {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 28px;
+  }
+  .home .value-strip a {
+    padding: 12px 0;
+  }
+  .home .value-strip a + a {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+  .home .value-strip strong {
+    font-size: 15px;
+  }
+  .home .value-strip small {
+    display: inline;
+    font-size: 12px;
+  }
+}
+/* On a phone the approval window comes first and its controls grow to a
+   full touch target. */
+@media (max-width: 560px) {
+  .home .hero-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home .hero-window {
+    order: -1;
+  }
+  .home .ticket-actions button {
+    min-height: 44px;
+    flex: 1;
+  }
+}

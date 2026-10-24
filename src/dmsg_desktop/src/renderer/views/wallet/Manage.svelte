@@ -292,7 +292,7 @@
         >{w('cosignHardwareUnreachable')}
         {#each unreachable as a (a.id)}<p>#{a.id} · {a.label} · {a.cosign.threshold} / {a.cosign.cosigners.length}</p>{/each}</Notice
       >{/if}
-    {#if error}<Notice tone="danger">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </div>
   {#snippet footer()}<span class="flex-1"></span><button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button
     ><button class={buttonClass('primary')} disabled={busy || invalid} onclick={submit} data-testid="wallet-manage-submit"

@@ -61,6 +61,9 @@ fn checked(code: i32) -> Result<()> {
         0 => Ok(()),
         2 => Err(Error::Forbidden),
         3 => Err(Error::IntegrityFailed),
+        status if status < 0 => Err(Error::Unavailable(format!(
+            "secure enclave: OSStatus {status}"
+        ))),
         _ => Err(Error::Unavailable("secure enclave".into())),
     }
 }
@@ -204,6 +207,22 @@ impl CosignProvider for SecureEnclave {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_status_failures_remain_unavailable_with_their_diagnostic_code() {
+        // Interaction disallowed, authentication failure and invalid parameters
+        // are system errors, distinct from an explicit user cancellation (2).
+        for status in [-25308, -25293, -50] {
+            assert_eq!(
+                checked(status),
+                Err(Error::Unavailable(format!(
+                    "secure enclave: OSStatus {status}"
+                )))
+            );
+        }
+        assert_eq!(checked(2), Err(Error::Forbidden));
+        assert_eq!(checked(3), Err(Error::IntegrityFailed));
+    }
 
     /// Creating keys asks nothing; using them asks for the person, which a
     /// test cannot answer.

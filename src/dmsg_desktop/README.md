@@ -197,8 +197,8 @@ desktop is one of its clients, like the CLI.
   in the browser (with the page's expiry, Open the page again and Copy
   link), and the daemon's check, read from `session/login_result` on its
   `login/changed` and `session/changed` events. A failure says why (no
-  network, cancelled in the browser, expired, refused) with the daemon's
-  message and Retry; closing the dialog leaves a login finished later to
+  network, cancelled in the browser, expired, refused) with localized text,
+  a stable error code and Retry; closing the dialog leaves a login finished later to
   open the device. A first login without an account goes on to Settings.
 
   A locked device with fast unlock opens without a login
@@ -220,6 +220,28 @@ desktop is one of its clients, like the CLI.
   events. Its reads run one at a time (`shared/single.ts`), so a burst of
   events reads twice at most, and an action does not read again itself
   unless it opens what it made. Independent reads go out together.
+
+  Network recovery is shared by all views. The daemon's IC/relay transports
+  make bounded read retries; the desktop shows one reconnecting/offline banner
+  after exhausted transient reads, keeps already loaded content, and retries
+  only reviewed reads from `shared/requests.ts` in the background (5/10/20/40/60
+  seconds). Recovery emits `resync`, removing stale error notices as views
+  refresh. Locks, account changes and daemon disconnects discard retry queues
+  and late read replies. No retry changes a read into an approval or mutation.
+  New/unknown methods default to mutations until their semantics are reviewed.
+
+  Desktop read RPCs time out after 45 seconds; writes after 180 seconds, while
+  existing long file jobs remain untimed. A lost or timed-out submitted write
+  reports `EXECUTION_UNKNOWN`, never a definite failure, and is never replayed
+  by the desktop. A write whose own reads were unavailable, or one called while
+  disconnected, reports `UNAVAILABLE`: nothing retries it, so it asks to be
+  tried again rather than showing the recovering reads' notice. Concurrent
+  identical calls share one in-flight request.
+  The daemon's existing journals reconcile original approval, payment and
+  signing operations. Transient failures and unconfirmed outcomes use localized
+  warning text; raw service messages, URLs and tokens are not shown in notices.
+  Known data-integrity and permission failures retain error treatment. Detailed
+  causes are available through the allowlisted daemon diagnostics (`dmsg logs`).
 
 Rules (`src/main/policy.ts`):
 
@@ -534,7 +556,7 @@ issue-create policies using masked field selectors. Changes and optional
 Agent grants open the existing approval window. Uses show the exact target,
 credential revision and full literal title/body, with high-risk confirmation.
 History distinguishes `lost` from success and supports manual-review markers
-and immediate policy disabling. No P1 file mount or injection is implemented.
+and immediate policy disabling. P1 owner workflows are described below.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
 See [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
@@ -545,3 +567,15 @@ See [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
 桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。
+
+## Mail recovery in SDK 0.12.6
+
+Mailbox management can recover records from the entered relay origins, following
+all inventory pages through the daemon. It shows missing decryption keys and
+pending publication routes. Recovery restores metadata, not keys or message text;
+a keyless mailbox cannot be renewed until its key is restored or rotated. Closing
+a keyless mailbox rotates its publication key as required by the connector.
+Local inspection continues during background receiving and reports actual key
+availability. The recovery messages are present in all six interface languages.
+The pure pagination tests and Electron smoke flow exercise recovery and the
+keyless mailbox controls.

@@ -75,7 +75,7 @@
     <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={refresh} data-testid="storage-refresh"><Icon name="sync" />{t('storageRefresh')}</button>
   </header>
   <div class="min-h-0 flex-1 overflow-y-auto p-5">
-    {#if error}<Notice tone="danger">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#if report?.loaded}
       <dl class="mb-4 grid grid-cols-2 gap-3 border-b border-line pb-4 @min-[700px]:grid-cols-4">
         {#each [['storageUsed', report.usage.committed], ['storageReserved', report.usage.reserved], ['storagePending', report.pending_release], ['storageLimit', report.usage.lifecycle?.storage_limit]] as [key, bytes]}

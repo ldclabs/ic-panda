@@ -18,6 +18,7 @@ pub mod config;
 pub mod connect;
 pub mod content;
 pub mod crypto;
+pub mod diagnostic;
 mod downloads;
 pub mod evidence;
 pub mod files;
@@ -42,6 +43,7 @@ pub mod secure;
 pub mod security;
 pub mod store;
 pub mod sync;
+mod transport;
 pub mod upload;
 pub mod vault;
 pub mod wallet;
@@ -59,6 +61,7 @@ pub fn now_ms() -> u64 {
 
 /// A file system failure of the device's storage.
 pub(crate) fn storage(error: std::io::Error) -> Error {
+    diagnostic::Diagnostic::io("storage", &error).emit();
     Error::Unavailable(format!("storage: {error}"))
 }
 
@@ -77,6 +80,16 @@ pub(crate) fn insufficient_funds() -> Error {
 /// An error's variant name in `SCREAMING_SNAKE_CASE`, as the daemon and the
 /// status report it; a tagged client failure keeps its own code.
 pub fn error_code(error: &Error) -> String {
+    if let Error::Unavailable(message) = error
+        && (message.starts_with("storage: ") || message == "corrupt record")
+    {
+        return "LOCAL_STORAGE_UNAVAILABLE".into();
+    }
+    if let Error::Unavailable(message) = error
+        && message.starts_with("network: ")
+    {
+        return "NETWORK_UNAVAILABLE".into();
+    }
     if let Error::InvalidInput(message) = error
         && message
             .strip_prefix(INSUFFICIENT_FUNDS)

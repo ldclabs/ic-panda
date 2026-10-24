@@ -7,6 +7,7 @@ pub mod mounts;
 pub mod package;
 pub mod process;
 pub mod receiving;
+pub mod references;
 pub(crate) mod run;
 pub mod shares;
 pub mod ssh;

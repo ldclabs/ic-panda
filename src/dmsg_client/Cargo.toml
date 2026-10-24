@@ -10,6 +10,10 @@ publish = false
 
 [dependencies]
 aes-gcm.workspace = true
+async-trait = "0.1"
+bytes.workspace = true
+http.workspace = true
+futures-timer = "3"
 argon2.workspace = true
 agent-protocols = { workspace = true, features = ["http-client"] }
 base64.workspace = true
@@ -31,6 +35,7 @@ ic-ed25519.workspace = true
 ic-secp256k1.workspace = true
 image = { workspace = true, features = ["gif", "jpeg", "png", "webp"] }
 infer.workspace = true
+log.workspace = true
 ic-agent.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true

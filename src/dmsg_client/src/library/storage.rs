@@ -542,7 +542,10 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
         .await?;
     // Secret snapshots are resumed only through their owner approval and original publication journal.
     ensure(
-        metadata["intent"]["kind"] != "secret_link",
+        !matches!(
+            metadata["intent"]["kind"].as_str(),
+            Some("secret_link" | "secret_channel")
+        ),
         Error::Forbidden,
     )?;
     let links = metadata["intent"]["kind"] == "link";

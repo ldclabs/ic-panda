@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { onMount } from 'svelte'
   import { accountOf, nameOf } from '../channels/names.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -56,5 +57,5 @@
   {#if isMemberId(id)}<p class="text-[12px] break-all">{id.length === 20 ? (nameOf(id) ?? '') : ''} · {id}</p><p
       class="text-muted text-[12px]">{w('identityReview')}</p
     >{/if}
-  {#if error}<p class="text-danger text-[12px]" role="alert">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 </div>

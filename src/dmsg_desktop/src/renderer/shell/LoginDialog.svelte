@@ -8,6 +8,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { locale, t, type Label } from '../i18n/index.svelte'
   import { onChange } from '../rpc'
+  import { temporaryFailure } from '../failure'
   import { checkLogin, closeLogin, login, reopenLogin, startLogin } from './login.svelte'
 
   /**
@@ -34,11 +35,11 @@
   bind:open={() => login.phase !== 'idle', (next) => !next && closeLogin()}
   {title}
   {icon}
-  tone={login.phase === 'failed' ? 'danger' : 'forest'}
+  tone={login.phase === 'failed' && !temporaryFailure(t(login.reason)) ? 'danger' : 'forest'}
   testid="login-dialog"
 >
   {#if login.phase === 'failed'}
-    <Notice tone="danger" testid="login-error">
+    <Notice failure={t(login.reason)} tone="danger" testid="login-error">
       {t(login.reason)}
       {#if login.detail}<span class="mt-1 block font-mono text-[11.5px] break-words text-muted">{login.detail}</span>{/if}
     </Notice>

@@ -49,6 +49,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use zeroize::Zeroizing;
 
+#[path = "channel_snapshot.rs"]
+pub mod snapshot;
+
 /// Content kind of a channel's synced record.
 pub const CHANNEL: &str = "formal_channel";
 /// Largest message text in bytes.
@@ -3747,6 +3750,17 @@ impl Client {
         file: &FileManifest,
         blobs: &dyn BlobStore,
     ) -> Result<(FileRef, Upload)> {
+        self.prepare_upload_id(channel, ledger, file, blobs, random_hex())
+    }
+
+    fn prepare_upload_id(
+        &self,
+        channel: &str,
+        ledger: &Ledger,
+        file: &FileManifest,
+        blobs: &dyn BlobStore,
+        upload_id: String,
+    ) -> Result<(FileRef, Upload)> {
         let mut chunks = vec![];
         for chunk in &file.chunks {
             let bytes = blobs
@@ -3766,7 +3780,6 @@ impl Client {
                 size: empty.len() as u64,
             });
         }
-        let upload_id = random_hex();
         let key = key32(&unb64(&file.key)?)?;
         let manifest = seal_bytes(
             &key,
@@ -5288,13 +5301,19 @@ fn shared_manifest(
             && file.name == reference.name
             && file.size == reference.size
             && file.mime == reference.mime
+            && file.size <= MAX_FILE
+            && file.chunks.len() as u64 == chunk_count(file.size)
+            && file.chunks.iter().enumerate().all(|(i, chunk)| {
+                chunk.id == format!("{}:{}:{i}", file.id, file.version)
+                    && chunk.size
+                        == (file.size - i as u64 * crate::files::CHUNK as u64)
+                            .min(crate::files::CHUNK as u64)
+            })
             && plan.chunks.len() == file.chunks.len().max(1)
             && (file.chunks.is_empty()
-                || plan
-                    .chunks
-                    .iter()
-                    .zip(&file.chunks)
-                    .all(|(p, f)| p.digest == f.digest)),
+                || plan.chunks.iter().zip(&file.chunks).all(|(p, f)| {
+                    p.digest == f.digest && (f.size + 16..=f.size + 64).contains(&p.size)
+                })),
         Error::IntegrityFailed,
     )?;
     Ok(file)
@@ -5334,4 +5353,4 @@ pub fn role_name(role: Role) -> &'static str {
 
 #[cfg(test)]
 #[path = "channel_tests.rs"]
-mod tests;
+pub(crate) mod tests;

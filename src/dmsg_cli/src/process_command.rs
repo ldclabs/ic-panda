@@ -375,4 +375,87 @@ mod tests {
             19
         );
     }
+    // Run signal handling in a separate test process: signal dispositions are process-global.
+    #[test]
+    #[ignore = "subprocess helper for terminal_group_interrupt_reaches_child_and_descendant"]
+    fn signal_child_helper() {
+        let root = std::env::var("DMSG_SIGNAL_FIXTURE").expect("isolated helper only");
+        let mut child = std::process::Command::new("python3");
+        child.args(["-c", r#"
+import os,signal,subprocess,sys,time
+from pathlib import Path
+root=Path(sys.argv[1])
+def interrupted(sig,frame):
+    root.joinpath('parent-interrupted').write_text('yes')
+    sys.exit(130)
+signal.signal(signal.SIGINT,interrupted)
+p=subprocess.Popen([sys.executable,'-c',"import signal,sys,time; from pathlib import Path; root=Path(sys.argv[1]); signal.signal(signal.SIGINT,lambda s,f:(root.joinpath('descendant-interrupted').write_text('yes'),sys.exit(130))); root.joinpath('ready').write_text('yes'); time.sleep(30)",str(root)])
+p.wait()
+"#, &root]);
+        let code = spawn(child, vec![]).unwrap();
+        assert_eq!(code, 130);
+    }
+
+    #[test]
+    fn terminal_group_interrupt_reaches_child_and_descendant() {
+        use std::os::unix::process::CommandExt;
+        let dir = dmsg_client::testing::TempDir::new();
+        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+        command
+            .args([
+                "--exact",
+                "process_command::tests::signal_child_helper",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("DMSG_SIGNAL_FIXTURE", &dir.0)
+            .process_group(0);
+        let mut child = command.spawn().unwrap();
+        struct Cleanup(u32);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                unsafe {
+                    libc::kill(-(self.0 as i32), libc::SIGKILL);
+                }
+            }
+        }
+        let _cleanup = Cleanup(child.id());
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !dir.0.join("ready").exists() {
+            assert!(std::time::Instant::now() < until, "reader not ready");
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        assert_eq!(unsafe { libc::kill(-(child.id() as i32), libc::SIGINT) }, 0);
+        loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                assert!(status.success());
+                break;
+            }
+            assert!(std::time::Instant::now() < until, "wrapper did not finish");
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        for file in ["parent-interrupted", "descendant-interrupted"] {
+            assert!(dir.0.join(file).exists(), "{file}");
+        }
+    }
+
+    #[test]
+    fn unread_pipe_does_not_hold_up_child_exit_or_spawn_failure() {
+        let (r, w) = pipe().unwrap();
+        let mut command = std::process::Command::new("python3");
+        command.args(["-c", "raise SystemExit(23)"]);
+        let before = std::time::Instant::now();
+        assert_eq!(
+            spawn(command, vec![(r, w, Zeroizing::new(vec![1; 1024 * 1024]))]).unwrap(),
+            23
+        );
+        assert!(before.elapsed() < std::time::Duration::from_secs(5));
+        assert!(
+            spawn(
+                std::process::Command::new("/nonexistent/dmsg-synthetic"),
+                vec![]
+            )
+            .is_err()
+        );
+    }
 }

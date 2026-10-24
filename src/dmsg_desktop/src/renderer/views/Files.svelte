@@ -1072,7 +1072,7 @@
 </Dialog>
 
 {#snippet costQuote()}
-  {#if quoteError}<Notice tone="danger">{quoteError}</Notice>{/if}
+  {#if quoteError}<Notice failure={quoteError} tone="danger">{quoteError}</Notice>{/if}
   {#if quoting}<p class="text-[12px] text-faint">{t('loading')}</p>{:else if quote}
     <Notice tone="info">{t('storageQuote',{bytes:size(quote.estimated_bytes),payer:quote.payer === status?.account ? t('storageMe') : quote.payer})}</Notice>
     {#if quote.existing?.length}<p class="mt-2 text-[12px] text-muted">{t('storageExisting',{n:quote.existing.length})} <button class="text-forest underline" onclick={() => { sharing=null; linking=null; pick('storage') }}>{t('storageManage')}</button></p>{/if}

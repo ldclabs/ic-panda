@@ -224,7 +224,7 @@
       <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(reload)} data-testid="orders-refresh"><Icon name="sync-now" />{t('refresh')}</button>
     {/snippet}
     {#if errors.orders}
-      <div class="px-5 pb-4"><Notice tone="danger">{errors.orders}</Notice></div>
+      <div class="px-5 pb-4"><Notice failure={errors.orders} tone="danger">{errors.orders}</Notice></div>
     {:else if checkouts && !checkouts.length}
       <p class="px-5 pb-4 text-[12.5px] text-faint" data-testid="no-orders">{t('noOrders')}</p>
     {:else if checkouts}
@@ -270,7 +270,7 @@
       {/if}
     {/snippet}
     {#if errors.payer}
-      <Notice tone="danger">{errors.payer}</Notice>
+      <Notice failure={errors.payer} tone="danger">{errors.payer}</Notice>
     {:else if payer}
       <dl>
         <Fact label={t('payer')}>

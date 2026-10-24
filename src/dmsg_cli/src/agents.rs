@@ -16,9 +16,9 @@
 
 use crate::daemon::Daemon;
 use crate::params::{number, optional, parse, source, text, to_json};
-use dmsg_agent::Scope;
 use dmsg_agent::resources::{Resource, resource_list, resource_templates};
 use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
+use dmsg_agent::{DurableMail, Scope};
 use dmsg_client::{
     Client,
     agent::PrincipalChange,
@@ -68,7 +68,7 @@ pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
             if let Ok(Err(error)) = result
                 && !matches!(error, Error::Locked | Error::Forbidden | Error::NotFound)
             {
-                daemon.note("agent-mail", &error_code(&error));
+                daemon.note_result::<()>("agent-mail", &Err(error));
             }
         }
         // Coalesce bursts of hints without allowing a busy webhook source
@@ -258,12 +258,17 @@ impl Daemon {
             return Ok(json!({"uri": uri, "value": value}));
         }
         if method == "agent/profile" {
-            let agent = self
-                .client()
-                .lock()
-                .await
-                .agent_find(&text(params, "agent")?)?;
-            let profiles = self.agents().profiles(&agent.agent_id).await?;
+            let h = self.hold();
+            let (agent, path) = h
+                .with(|client| {
+                    Ok((
+                        client.agent_find(&text(params, "agent")?)?,
+                        client.agent_runtime()?,
+                    ))
+                })
+                .await?;
+            let profiles = self.agents().profiles(&path, &agent.agent_id).await?;
+            h.with(|_| Ok(())).await?;
             return Ok(json!({"agent_id": agent.agent_id, "profiles": profiles}));
         }
         if method == "agent/remove" {
@@ -629,6 +634,19 @@ impl Daemon {
         }
     }
 
+    /// Read the latest committed keys, including a pending crash-recovery checkpoint.
+    fn mail_keys_for_read(
+        &self,
+        client: &mut Client,
+        path: &std::path::Path,
+        agent: &str,
+    ) -> Result<Value> {
+        match self.agents().mail_checkpoint(path, agent)? {
+            Some(sealed) => client.agent_mail_codec(agent)?.open(&sealed),
+            None => client.agent_mail_keys(agent),
+        }
+    }
+
     /// One resource of `agent`'s connector as `session` sees it: for an
     /// agent `caller`, within the grant the tool behind it needs; for the
     /// owner, from every host.
@@ -640,15 +658,22 @@ impl Daemon {
         caller: Option<&AgentEntry>,
     ) -> Result<Value> {
         let tool = Resource::parse(uri).map(|r| r.tool());
-        let (path, signer, reach) = {
+        let (path, signer, reach, keys) = {
             let mut client = self.client().lock().await;
+            let path = client.agent_runtime()?;
+            let keys = if matches!(Resource::parse(uri), Some(Resource::Mailboxes)) {
+                Some(self.mail_keys_for_read(&mut client, &path, &agent.agent_id)?)
+            } else {
+                None
+            };
             (
-                client.agent_runtime()?,
+                path,
                 client.agent_signer(&agent.agent_id)?,
                 match (tool, caller) {
                     (Some(tool), Some(caller)) => self.reach(&client, caller, tool, None)?,
                     _ => None,
                 },
+                keys,
             )
         };
         let scope = Scope {
@@ -656,7 +681,7 @@ impl Daemon {
             session,
             reach: reach.as_deref(),
         };
-        self.agents().read(scope, signer, uri).await
+        self.agents().read(scope, signer, uri, keys.as_ref()).await
     }
 
     /// The origins `agent` may reach with standard tool `tool`, those its
@@ -740,7 +765,7 @@ impl Daemon {
     ) -> Result<Value> {
         if dmsg_agent::tools::is_mail_inspection(tool, &input) {
             let h = self.hold();
-            let (reach, path, signer) = h
+            let (reach, path, signer, keys) = h
                 .with(|client| {
                     let reach = match caller.actor {
                         "owner" => None,
@@ -752,11 +777,13 @@ impl Daemon {
                             self.reach(client, agent, tool, Some(&input))?
                         }
                     };
-                    Ok((
-                        reach,
-                        client.agent_runtime()?,
-                        client.agent_signer(&agent.agent_id)?,
-                    ))
+                    let path = client.agent_runtime()?;
+                    let keys = if tool == "agent_protocols_mail_mailboxes_list" {
+                        Some(self.mail_keys_for_read(client, &path, &agent.agent_id)?)
+                    } else {
+                        None
+                    };
+                    Ok((reach, path, client.agent_signer(&agent.agent_id)?, keys))
                 })
                 .await?;
             let scope = Scope {
@@ -766,7 +793,7 @@ impl Daemon {
             };
             let outcome = self
                 .agents()
-                .inspect_mail(scope, signer, tool, input)
+                .inspect_mail(scope, signer, tool, input, keys.as_ref())
                 .await?;
             h.with(|_| Ok(())).await?;
             return Ok(match outcome {
@@ -782,7 +809,7 @@ impl Daemon {
             let h = self.hold();
             h.with(|_| Ok(())).await?;
             let turn = runtime.turn(&agent.agent_id).await;
-            let (reach, path, signer, mail_keys) = h
+            let (reach, path, signer, mail_keys, codec) = h
                 .with(|client| {
                     // An agent reaches what its grant names; the owner acting as
                     // one reaches every configured host.
@@ -796,11 +823,18 @@ impl Daemon {
                             self.reach(client, agent, tool, Some(&input))?
                         }
                     };
+                    let path = client.agent_runtime()?;
+                    let codec = client.agent_mail_codec(&agent.agent_id)?;
+                    let keys = match runtime.mail_checkpoint(&path, &agent.agent_id)? {
+                        Some(sealed) => codec.open(&sealed)?,
+                        None => client.agent_mail_keys(&agent.agent_id)?,
+                    };
                     Ok((
                         reach,
-                        client.agent_runtime()?,
+                        path,
                         client.agent_signer(&agent.agent_id)?,
-                        client.agent_mail_keys(&agent.agent_id)?,
+                        keys,
+                        codec,
                     ))
                 })
                 .await?;
@@ -811,18 +845,40 @@ impl Daemon {
             };
             let marks_mail = tool == "agent_protocols_mail_list" && input["mark_read"] == true;
             let called = runtime
-                .call(&turn, scope, signer, &mail_keys, tool, input)
+                .call(
+                    &turn,
+                    scope,
+                    signer,
+                    DurableMail {
+                        keys: &mail_keys,
+                        seal: Box::new(move |keys| codec.seal(keys)),
+                    },
+                    tool,
+                    input,
+                )
                 .await?;
+            let checkpoint = runtime.mail_checkpoint(&path, &agent.agent_id)?.is_some();
             h.with(|client| {
                 client.agent_find(&agent.agent_id)?;
-                if called.mail_keys != mail_keys {
+                if checkpoint || called.mail_keys != mail_keys {
                     client.agent_mail_keys_save(&agent.agent_id, &called.mail_keys)?;
                 }
                 Ok(())
             })
             .await?;
+            if checkpoint {
+                runtime.clear_mail_checkpoint(&turn, &path)?;
+            }
             if called.changed {
                 self.connectors().send_modify(|revision| *revision += 1);
+            }
+            if called.changed
+                && matches!(
+                    tool,
+                    "agent_protocols_mail_mailbox_publish" | "agent_protocols_mail_mailboxes_list"
+                )
+            {
+                self.mail_push().maintain.notify_one();
             }
             if let Ok(result) = &called.outcome {
                 let received = result["received"].as_array().map_or(0, Vec::len);
@@ -835,6 +891,7 @@ impl Daemon {
                                 tool,
                                 "agent_protocols_mail_send"
                                     | "agent_protocols_mail_mailbox_publish"
+                                    | "agent_protocols_mail_mailboxes_list"
                             )))
                 {
                     // Notifications carry counts, never correspondence or keys.

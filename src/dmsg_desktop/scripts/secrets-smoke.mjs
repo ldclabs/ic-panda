@@ -11,7 +11,7 @@ import { WebSocketServer } from 'ws'
 
 const account = '040g2081040g2081040g', token = 'secrets-ui-fixture', actor = `did:agent:${'A'.repeat(43)}`
 const item = '11'.repeat(32), policyId = '22'.repeat(16), requests = new Map(), calls = [], sockets = new Set()
-let policies = [], uses = [], sequence = 1
+let policies = [], uses = [], sequence = 1, channelPrepared=false
 const status = () => ({ state: 'unlocked', account, device_id: '33'.repeat(32), approvals_waiting: [...requests.values()].filter(r => r.state === 'awaiting_user').length, pending_sync: 0, background_online: false, fast_unlock: false, fast_presence: null, idle_lock_ms: 900000, lock_at: Date.now() + 900000 })
 const emit = () => { for (const s of sockets) s.send(JSON.stringify({jsonrpc:'2.0',method:'event',params:{seq:sequence++,type:'approval/changed',data:null}})) }
 const makeRequest = (type, detail) => {
@@ -22,7 +22,7 @@ const methods = {
   'app/initialize': () => ({protocol:'dmsg-app/1',status:status()}),
   'app/activity': () => null, 'daemon/status':status, 'session/status':status,
   'profile/show': () => null, 'profile/pending': () => null,
-  'channel/list': () => [], 'attest/history': () => [], 'grants/list': () => [],
+  'channel/list': () => [{id:'c1'.repeat(32),name:'Snapshot destination'}], 'attest/history': () => [], 'grants/list': () => [],
   'vault/templates': () => ({types:[],templates:{}}),
   'vault/list': () => [{id:item,revision:'44'.repeat(32),deleted:false,item:{type:'api',title:'GitHub credential',tags:[],fields:[{id:'credential',type:'concealed',label:'Token',value:'********'}]}}],
   'agent/ids': () => ({agents:[{agent_id:actor,label:'Builder',paused:false,credential:true}]}),
@@ -47,13 +47,20 @@ Object.assign(methods,{
   'secrets/ssh/keys':()=>({keys:[],bindings:[]}),
   'secrets/ssh/status':()=>({supported:true,socket:'/synthetic/agent.sock',identities:0}),
   'secrets/health':()=>({findings:[]}),
-  'secrets/rotation/list':()=>({rotations:[]}),
+  'secrets/references':p=>({reference:p.reference,digest:'b1'.repeat(32),dependencies:[{kind:'policy',id:policyId,label:'Repository policy',state:'current',action:'review_policy_and_grants'}],device_local:true}),
+  'secrets/rotation/list':()=>({rotations:[{id:'b2'.repeat(32),reference:{item_id:item,field_id:'credential'},created:true,tested:true,references_checked:false}]}),
+  'secrets/rotation/dependencies':()=>({digest:'b3'.repeat(32),dependencies:[{kind:'snapshot_channel',id:'b4'.repeat(32),label:'Snapshot destination',state:'published',action:'recipients_may_retain_snapshot_rotate_upstream'}],device_local:true}),
+  'secrets/rotation/update':p=>{if(p.step==='references_checked')assert.equal(p.dependencies_digest,'b3'.repeat(32));return {}},
   'secrets/shares/list':()=>({shares:[]}),
   'secrets/shares/prepare':p=>({id:'a1'.repeat(32),state:'prepared',plan:{...p.input,title:'GitHub credential',plain_bytes:300,estimated_ciphertext_bytes:67000,expires_at:Date.now()+86400000,fields:p.input.field_ids.map(id=>({id,type:'concealed',label:'Token'}))}}),
-  'secrets/shares/request':p=>makeRequest('secret_share',{title:'GitHub credential',share_id:'a2'.repeat(32),fields:[{id:'credential',type:'concealed',label:'Token'}],input:{include_notes:false,attachments:[]},expires_at:Date.now()+86400000,max_download_sessions:1}),
+  'secrets/shares/channel_prepare':p=>{channelPrepared=true;assert.equal(p.channel_id,'c1'.repeat(32));assert.equal(p.input.expires_in_ms,undefined);assert.equal(p.password,undefined);return {id:'b5'.repeat(32),plan:{channel:{name:'Snapshot destination'},plain_bytes:300,estimated_ciphertext_bytes:67000}}},
+  'secrets/shares/request':p=>makeRequest('secret_share',{...(channelPrepared?{channel:{channel_id:'c1'.repeat(32),name:'Snapshot destination'},expires_at:null,max_download_sessions:null}:{}),title:'GitHub credential',share_id:'a2'.repeat(32),fields:[{id:'credential',type:'concealed',label:'Token'}],input:{include_notes:false,attachments:[]},expires_at:Date.now()+86400000,max_download_sessions:1}),
   'secrets/packages/import_preview':()=>({package_id:'a3'.repeat(32),digest:'a4'.repeat(32),preview:{title:'Incoming snapshot',fields:[{id:'f0_credential',type:'concealed',label:'Imported token'}],notes:false,attachments:[]}}),
+  'secrets/packages/channel_preview':p=>{assert.equal(p.channel_id,'c1'.repeat(32));assert.equal(p.seq,1);return {...methods['secrets/packages/import_preview'](),channel_source:{channel_id:p.channel_id,seq:p.seq}}},
   'secrets/packages/import_request':p=>makeRequest('secret_package_import',{selection:p.selection,preview:{title:'Incoming snapshot',fields:[{id:'f0_credential',type:'concealed',label:'Imported token'}]}})
 })
+const channelView=()=>({id:'c1'.repeat(32),name:'Snapshot destination',message_cursor:1,read:0,unread:1,readable_epochs:[1],draft:'',invites:{},ledger:{status:'active',kind:'collaboration',owner:account,epoch:1,members:{[account]:{role:'owner'}},head:'d1'.repeat(32)}})
+Object.assign(methods,{'channel/list':()=>[channelView()],'channel/show':channelView,'channel/outbox':()=>[],'channel/sync':()=>({}),'channel/receipts':()=>({}),'channel/cursor':()=>({}),'channel/messages':()=>[{seq:1,account,device:'33'.repeat(32),stored_at:Date.now(),text:'',digest:'d2'.repeat(32),file:{name:'secret.dmsg-package',mime:'application/vnd.dmsg.secret-package',size:300}}]})
 const server=createServer((_,res)=>res.writeHead(404).end()), wss=new WebSocketServer({noServer:true})
 server.on('upgrade',(req,socket,head)=>{
   if(req.headers.authorization!==`Bearer ${token}`)return socket.destroy()
@@ -120,6 +127,18 @@ try {
   const prepared=calls.filter(c=>c.method==='secrets/shares/prepare').at(-1).params.input
   assert.deepEqual(prepared.field_ids,['credential']);assert.equal(prepared.include_notes,false);assert.deepEqual(prepared.attachments,[])
   await approve(approval)
+  await workflows.getByLabel('Send to channel',{exact:true}).check()
+  await workflows.getByTestId('snapshot-channel').selectOption('c1'.repeat(32))
+  await workflows.getByRole('button',{name:'Preview snapshot',exact:true}).click()
+  await workflows.getByRole('button',{name:'Review request',exact:true}).click()
+  await approval.waitForFunction(()=>document.querySelector('[data-testid="secret-review"]')?.textContent.includes('Snapshot destination'))
+  assert.match(await approval.getByTestId('secret-review').innerText(),/No link expiry/)
+  await approve(approval)
+  await workflows.getByRole('button',{name:'Health and discovery',exact:true}).click()
+  await workflows.getByRole('button',{name:'Inspect dependencies',exact:true}).click()
+  await workflows.getByTestId('secret-dependencies').getByText('snapshot_channel',{exact:false}).waitFor()
+  await workflows.getByRole('button',{name:'Report references reviewed',exact:false}).click()
+  assert.equal(calls.filter(c=>c.method==='secrets/rotation/update').at(-1).params.dependencies_digest,'b3'.repeat(32))
   await workflows.getByRole('button',{name:'Import a snapshot',exact:true}).click()
   await workflows.getByLabel('Paste the full share link').fill('https://dmsg.test/s/'+ 'a2'.repeat(32)+'#synthetic-test-key')
   await workflows.getByRole('button',{name:'Receive and verify'}).click()
@@ -137,6 +156,16 @@ try {
   await workflows.getByRole('button',{name:'Device activity',exact:true}).click()
   await workflows.getByText('secret_package_import ·',{exact:false}).waitFor()
   await main.screenshot({path:join(shots,'p1-workflows.png')})
+  await main.evaluate(()=>{location.hash='/channels'})
+  await main.getByText('Snapshot destination',{exact:true}).first().click()
+  await main.getByTestId('message-snapshot').click()
+  const receiving=main.getByTestId('channel-snapshot-import')
+  await receiving.waitFor()
+  assert.equal(await receiving.getByLabel('Imported token · concealed').isChecked(),false)
+  await receiving.getByLabel('Imported token · concealed').check()
+  await receiving.getByRole('button',{name:'Request import',exact:true}).click()
+  assert.equal(calls.filter(c=>c.method==='secrets/packages/channel_preview').length,1)
+  assert.equal(calls.filter(c=>c.method==='secrets/packages/import_request').length,2)
   console.log('secrets Electron smoke passed: policy review, full literal body, explicit approval, lost result, manual review, disable, P1 selected share/import, same-user mount warning and renderer boundary')
 } catch(error) {
   for(const [index,page] of app.windows().entries()) {await page.screenshot({path:join(shots,`failure-${index}.png`)}).catch(()=>{});await writeFile(join(shots,`failure-${index}.txt`),await page.locator('body').innerText().catch(()=>''));console.error('Window',index,page.url(),await page.getByTestId('approve').count())}

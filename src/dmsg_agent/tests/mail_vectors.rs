@@ -1,6 +1,5 @@
-// Copied from agent-protocols v0.12.0; its SdkError is large by design.
 #![allow(clippy::result_large_err)]
-
+// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
 use agent_protocols::{
     identity::{self, AgentSigner, Envelope, NonceStore, RequestBinding, RequestJwtClaims},
     mail::*,
@@ -794,4 +793,122 @@ fn packets_are_not_live_writes_and_logical_message_conflicts() {
         inbox.accept(&other, None, now).unwrap(),
         InboxAcceptance::Accepted(_)
     ));
+}
+
+#[test]
+fn shorter_card_preserves_packets_and_tombstones() {
+    let v = vectors();
+    let now = v["now"].as_i64().unwrap();
+    let c = &v["lifecycle"]["relay_retention"];
+    let mailbox = card(&v, "card").event.payload.mailbox_id;
+    let owner = owner_signer(&v);
+    for delete_first in [false, true] {
+        let mut relay = MailRelayStore::new(ORIGIN).unwrap();
+        relay
+            .publish(&v["envelopes"][c["initial_card"].as_str().unwrap()], now)
+            .unwrap();
+        let p = packet(&v, c["packet"].as_str().unwrap());
+        let delivery = relay.deliver(&mailbox, &p, now).unwrap();
+        if delete_first {
+            relay
+                .delete(
+                    &mailbox,
+                    &delivery.packet_id,
+                    &token(&owner, ORIGIN, now),
+                    now,
+                )
+                .unwrap();
+        }
+        relay
+            .publish(
+                &v["envelopes"][c["replacement_card"].as_str().unwrap()],
+                now,
+            )
+            .unwrap();
+        relay =
+            MailRelayStore::from_snapshot(&relay.snapshot().unwrap(), 10000, 64 * MAX_PACKET_BYTES)
+                .unwrap();
+        let later = c["prune_at"].as_i64().unwrap();
+        relay.prune(later).unwrap();
+        assert!(relay.card(&mailbox).is_ok());
+        assert_eq!(relay.deliver(&mailbox, &p, later).unwrap(), delivery);
+        assert_eq!(
+            relay
+                .list(&mailbox, &token(&owner, ORIGIN, later), later, 100, None)
+                .unwrap()
+                .result
+                .len(),
+            if delete_first { 0 } else { 1 }
+        );
+        relay.prune(c["expires_at"].as_i64().unwrap()).unwrap();
+        assert_eq!(
+            code(relay.card(&mailbox)).as_deref(),
+            Some("mailbox_unavailable")
+        );
+    }
+}
+
+#[test]
+fn owner_inventory_is_private_paginated_and_includes_closed_cards() {
+    let v = vectors();
+    let now = v["now"].as_i64().unwrap();
+    let case = &v["lifecycle"]["mailbox_inventory"];
+    let owner = owner_signer(&v);
+    let jwt = token(&owner, ORIGIN, now);
+    let mut relay = MailRelayStore::new(ORIGIN).unwrap();
+    for name in case["cards"].as_array().unwrap() {
+        relay
+            .publish(&v["envelopes"][name.as_str().unwrap()], now)
+            .unwrap();
+    }
+    let closed = card(&v, case["closed_card"].as_str().unwrap());
+    let closed = sign_card(&owner, closed.event.payload, now, 122).unwrap();
+    relay
+        .publish(&serde_json::to_value(closed).unwrap(), now)
+        .unwrap();
+    let first = relay.mailboxes(&jwt, now, 1, None).unwrap();
+    relay = MailRelayStore::from_snapshot(&relay.snapshot().unwrap(), 10000, 64 * MAX_PACKET_BYTES)
+        .unwrap();
+    let second = relay
+        .mailboxes(&jwt, now, 1, first.next_cursor.as_deref())
+        .unwrap();
+    let ids: Vec<_> = first
+        .result
+        .iter()
+        .chain(&second.result)
+        .map(|r| r.envelope.event.payload.mailbox_id.clone())
+        .collect();
+    assert_eq!(
+        serde_json::to_value(ids).unwrap(),
+        case["owner_mailbox_ids"]
+    );
+    assert!(second.next_cursor.is_none());
+    assert_eq!(
+        relay
+            .mailboxes(&token(&sender_signer(&v), ORIGIN, now), now, 100, None)
+            .unwrap()
+            .result
+            .len(),
+        1
+    );
+    assert_eq!(
+        code(relay.mailboxes("bad", now, 0, None)).as_deref(),
+        Some("invalid_token")
+    );
+    assert_eq!(
+        code(relay.mailboxes(&jwt, now, 100, Some("bad"))).as_deref(),
+        Some("invalid_request")
+    );
+    assert_eq!(
+        code(relay.mailboxes(&jwt, now, 0, None)).as_deref(),
+        Some("invalid_request")
+    );
+    assert_eq!(
+        relay
+            .mailboxes(&token(&owner, ORIGIN, now + 60000), now + 60000, 100, None)
+            .unwrap()
+            .result
+            .len(),
+        2
+    );
 }

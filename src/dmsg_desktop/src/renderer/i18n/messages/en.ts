@@ -16,6 +16,12 @@ const messages = {
     secretPolicy: "Change credential-use policy",
     secretUse: "Create a GitHub issue",
 
+    localStorageUnavailable: "Local data could not be read or saved. Check disk space and access permissions.",
+    networkReconnecting: "Reconnecting… Your existing content is still available.",
+    networkUnavailable: "Temporarily unable to update. We will retry automatically.",
+    operationUnknown: "The result is not confirmed yet. Check the operation or approval history before submitting again.",
+    serviceUnavailable: "This service is temporarily unavailable. Please try again later.",
+
     loadFailed: 'Could not load',
     storageExhausted: "Download limit reached",
     storageTitle: "Cloud storage",
@@ -795,6 +801,10 @@ const messages = {
   knowledgeKindNegative: 'Negative result',
   knowledgeKindSynthesis: 'Synthesis',
   knowledgeKindCollection: 'Collection',
+  recoverMailboxes: "Recover mailbox records",
+  mailboxesRecovered: "Mailbox records refreshed. Decryption keys are not restored.",
+  mailboxKeyMissing: "Decryption key unavailable. Restore your local keys or rotate the key to receive new mail.",
+  mailboxPublicationPending: "Publication pending",
   mailboxCreated: 'Mailbox created',
   mailboxOpen: 'Receiving',
   mailboxInactive: 'Closed',

@@ -163,6 +163,47 @@ pub struct LastSync {
     pub at: u64,
     /// Its error code, if it failed.
     pub error: Option<String>,
+    /// The failed step, without resource IDs, URLs or server messages.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<SyncStage>,
+}
+
+/// Fixed diagnostic names for the steps of an account sync.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SyncStage {
+    /// Check device authority, root keys and fresh security evidence.
+    Security,
+    /// Reconcile earlier submissions whose replies were lost.
+    Reconcile,
+    /// Start an immutable export snapshot.
+    ExportStart,
+    /// Read and verify the snapshot's inventory pages.
+    ExportPage,
+    /// Fetch and verify missing manifests and chunks.
+    Download,
+    /// Open verified versions and advance local heads.
+    Apply,
+    /// Send pending versions and settle their jobs.
+    Upload,
+    /// Read final counts and collect unused local chunks.
+    Finish,
+}
+
+impl SyncStage {
+    /// A content-free name suitable for the daemon's run log.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Security => "security",
+            Self::Reconcile => "reconcile",
+            Self::ExportStart => "export_start",
+            Self::ExportPage => "export_page",
+            Self::Download => "download",
+            Self::Apply => "apply",
+            Self::Upload => "upload",
+            Self::Finish => "finish",
+        }
+    }
 }
 
 fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u64) -> UploadPlan {
@@ -725,7 +766,8 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     // same account while a request is in flight.
     let generation = h.with(|c| Ok(c.session_generation)).await?;
     let session = SyncSession { h, generation };
-    let mut result = sync_once(&session).await;
+    let mut stage = SyncStage::Security;
+    let mut result = sync_once(&session, &mut stage).await;
     if matches!(result, Err(Error::PolicyStale)) {
         session
             .with(|c| {
@@ -733,7 +775,7 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
                 Ok(())
             })
             .await?;
-        result = sync_once(&session).await;
+        result = sync_once(&session, &mut stage).await;
     }
     if matches!(result, Err(Error::DeviceNotApproved)) {
         let security = crate::account::refreshed_security(&session).await?;
@@ -746,6 +788,7 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
                 &LastSync {
                     at: now_ms(),
                     error: result.as_ref().err().map(crate::error_code),
+                    stage: result.is_err().then_some(stage),
                 },
             )
         })
@@ -769,7 +812,8 @@ impl<H: Hold> Hold for SyncSession<'_, H> {
     }
 }
 
-async fn sync_once<H: Hold>(h: &H) -> Result<SyncReport> {
+async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> {
+    *stage = SyncStage::Security;
     h.with(|c| c.signing().map(|_| ())).await?;
     h.signed(Client::fresh).await?;
     let unlocked = h
@@ -782,10 +826,11 @@ async fn sync_once<H: Hold>(h: &H) -> Result<SyncReport> {
             Ok(c.keys.is_some())
         })
         .await?;
+    *stage = SyncStage::Reconcile;
     reconcile(h).await?;
     let mut report = SyncReport::default();
     let mut snapshot = if unlocked {
-        fetch(h).await?
+        fetch(h, stage).await?
     } else {
         // A resident device may send its already sealed jobs while locked,
         // but must not start an export or download new content.
@@ -799,15 +844,19 @@ async fn sync_once<H: Hold>(h: &H) -> Result<SyncReport> {
         .await?
     };
     if unlocked {
+        *stage = SyncStage::Apply;
         report.revisions = h.with(|c| c.apply(&snapshot)).await?;
     }
     report.through = snapshot.through;
+    *stage = SyncStage::Upload;
     let (sent, blocked) = push(h).await?;
     if unlocked && sent + blocked > 0 {
-        snapshot = fetch(h).await?;
+        snapshot = fetch(h, stage).await?;
+        *stage = SyncStage::Apply;
         report.revisions = h.with(|c| c.apply(&snapshot)).await?;
         report.through = snapshot.through;
     }
+    *stage = SyncStage::Finish;
     h.with(|c| {
         report.sent = sent;
         report.blocked = blocked;
@@ -1112,7 +1161,8 @@ async fn send_upload<H: Hold>(
 
 /// Read and verify the relay's export snapshot, caching every vault and
 /// file chunk it lacks; nothing is opened yet.
-async fn fetch<H: Hold>(h: &H) -> Result<Snapshot> {
+async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
+    *stage = SyncStage::ExportStart;
     let id = h.with(|c| Ok(c.account()?.id)).await?;
     let account = id.to_string();
     let trust = h.trust().await?;
@@ -1142,6 +1192,7 @@ async fn fetch<H: Hold>(h: &H) -> Result<Snapshot> {
     };
     let mut epochs: BTreeMap<u64, Security> = BTreeMap::new();
     loop {
+        *stage = SyncStage::ExportPage;
         let page = h
             .get(&format!(
                 "{base}/exports/{export_id}?after={cursor}&limit=100"
@@ -1218,7 +1269,9 @@ async fn fetch<H: Hold>(h: &H) -> Result<Snapshot> {
                 _ => {}
             }
         }
+        *stage = SyncStage::Download;
         cache(h, &fetched).await?;
+        *stage = SyncStage::ExportPage;
         snapshot.plans.extend(fetched);
         let end = page["inventory_end"]
             .as_bool()

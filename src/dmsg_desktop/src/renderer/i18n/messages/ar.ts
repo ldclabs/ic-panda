@@ -14,6 +14,12 @@ export default {
     secretPolicy: "تغيير سياسة الاعتماد",
     secretUse: "إنشاء مسألة GitHub",
 
+    localStorageUnavailable: "تعذرت قراءة البيانات المحلية أو حفظها. تحقق من مساحة القرص وأذونات الوصول.",
+    networkReconnecting: "جارٍ إعادة الاتصال… لا يزال المحتوى الحالي متاحًا.",
+    networkUnavailable: "يتعذر التحديث مؤقتًا. سنعيد المحاولة تلقائيًا.",
+    operationUnknown: "لم تتأكد النتيجة بعد. راجع سجل العمليات أو الموافقات قبل الإرسال مجددًا.",
+    serviceUnavailable: "الخدمة غير متاحة مؤقتًا. حاول لاحقًا.",
+
     loadFailed: 'تعذّر التحميل',
     storageExhausted: "تم بلوغ حد التنزيل",
     storageTitle: "التخزين السحابي",
@@ -793,6 +799,10 @@ export default {
     knowledgeKindNegative: 'نتيجة سلبية',
     knowledgeKindSynthesis: 'دراسة تركيبية',
     knowledgeKindCollection: 'مجموعة',
+    recoverMailboxes: "استعادة سجلات صناديق البريد",
+    mailboxesRecovered: "تم تحديث السجلات. لم تتم استعادة مفاتيح فك التشفير.",
+    mailboxKeyMissing: "مفتاح فك التشفير غير متاح. استعد مفاتيحك المحلية أو غيّر المفتاح لاستقبال رسائل جديدة.",
+    mailboxPublicationPending: "النشر قيد الانتظار",
     mailboxCreated: 'تم إنشاء صندوق البريد',
     mailboxOpen: 'يستقبل الرسائل',
     mailboxInactive: 'مغلق',

@@ -413,10 +413,7 @@ impl Daemon {
                     self.unmount_current().await?;
                     return Err(Error::Locked);
                 }
-                crate::logs::write(
-                    "files/mount",
-                    &[("point", &point.as_deref().unwrap_or_default())],
-                );
+                crate::logs::write("files/mount", &[("outcome", &"ok")]);
                 Ok(self.mount_status())
             }
             _ => Err(Error::NotFound),
@@ -514,7 +511,7 @@ impl Daemon {
             if self.mount.lock().expect("mount state").is_none() {
                 return Ok(());
             }
-            crate::logs::write("files/unmount", &[("error", &error.to_string())]);
+            crate::logs::failure("files/unmount", &[], &error);
             return Err(error);
         }
         crate::logs::write("files/unmount", &[]);
@@ -529,7 +526,7 @@ impl Daemon {
     pub(crate) async fn check_mount(&self) {
         let _turn = self.turn("mount").await;
         if let Err(error) = self.refresh_mount() {
-            self.note("files/mount_status", &error.to_string());
+            self.note_result::<()>("files/mount_status", &Err(error));
         }
         let account = self
             .mount

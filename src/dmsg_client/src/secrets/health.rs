@@ -75,6 +75,8 @@ pub struct Rotation {
     pub tested: bool,
     /// Owner checked listed references and shares.
     pub references_checked: bool,
+    /// Exact inventory acknowledged by the owner; invalidated by dependency changes.
+    pub references_digest: Option<String>,
     /// Owner reports upstream revocation; dMsg did not verify upstream state.
     pub upstream_revoked: bool,
     /// All step reports are owner_statement; revisions are local_record.
@@ -362,6 +364,7 @@ impl Client {
             created: false,
             tested: false,
             references_checked: false,
+            references_digest: None,
             upstream_revoked: false,
             evidence: "owner_statement".into(),
             created_at: now,
@@ -375,7 +378,13 @@ impl Client {
     }
 
     /// Record ordered human steps. Changing roots/grants cannot complete any step.
-    pub fn secret_rotation_update(&mut self, id: &str, step: &str) -> Result<Value> {
+    pub fn secret_rotation_update(
+        &mut self,
+        id: &str,
+        step: &str,
+        dependencies_digest: Option<&str>,
+    ) -> Result<Value> {
+        let now = now_ms();
         let mut rotations = self.secret_rotations()?;
         let r = rotations
             .iter_mut()
@@ -402,6 +411,7 @@ impl Client {
                 r.created = true;
                 r.tested = false;
                 r.references_checked = false;
+                r.references_digest = None;
                 r.upstream_revoked = false;
             }
             "tested" => {
@@ -416,18 +426,26 @@ impl Client {
                     r.tested && r.new_revision.as_ref() == Some(&current.item_revision),
                     Error::VersionConflict,
                 )?;
+                let index = self.secret_references_at(&r.reference, now)?;
+                ensure(
+                    dependencies_digest == Some(index.digest.as_str()),
+                    Error::VersionConflict,
+                )?;
+                r.references_digest = Some(index.digest);
                 r.references_checked = true;
             }
             "upstream_revoked" => {
                 ensure(
-                    r.references_checked && r.new_revision.as_ref() == Some(&current.item_revision),
+                    r.references_checked
+                        && r.new_revision.as_ref() == Some(&current.item_revision)
+                        && r.references_digest.as_ref()
+                            == Some(&self.secret_references_at(&r.reference, now)?.digest),
                     Error::VersionConflict,
                 )?;
                 r.upstream_revoked = true;
             }
             _ => return Err(Error::InvalidInput("rotation step".into())),
         }
-        let now = now_ms();
         r.updated_at = now;
         if r.upstream_revoked {
             r.completed_at = Some(now);

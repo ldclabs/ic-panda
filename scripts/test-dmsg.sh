@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+python3 scripts/sync-agent-protocols.py --check
+
 packages=(-p dmsg_protocol -p dmsg_runtime -p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_wallet -p dmsg_wallet_hub -p ic_cose_chain_key -p dmsg_account_product)
 cargo test --locked "${packages[@]}"
 cargo clippy --locked "${packages[@]}" -p dmsg_integration -p dmsg_test_ledger -p dmsg_test_sns -p dmsg_test_cmc --all-targets --features dmsg_integration/pocketic-tests -- -D warnings

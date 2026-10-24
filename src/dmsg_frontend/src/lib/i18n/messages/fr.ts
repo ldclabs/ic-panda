@@ -500,8 +500,6 @@ export default {
     'Un signal réveille votre ordinateur, sans contenu',
   'A release is not an audit.': 'Une version n’est pas un audit.',
   'API key': 'Clé d’API',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'Clés d’API, identifiants, clés de signature et notes, chiffrés sur votre appareil avant toute synchronisation.',
   'Account and device changes': 'Modifier le compte ou les appareils',
   'Account and sync status': 'État du compte et de la synchronisation',
   'Account, devices and logins':
@@ -958,9 +956,6 @@ export default {
   'Files stay on your computer.': 'Vos fichiers restent chez vous.',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     'Contenu, noms et versions sont chiffrés localement. Choisissez quoi sauvegarder ; le partage crée une copie chiffrée séparément.',
-  'Your workspace, two ways in.': 'Un espace, deux façons d’y accéder.',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    'Utilisez l’application au quotidien ou la ligne de commande pour vos scripts. Les deux partagent le même espace local et les mêmes approbations.',
   'Explore files and backups': 'Explorer les fichiers et sauvegardes',
   'Try the desktop and command line': 'Essayer l’application et le terminal',
   'Collaboration': 'Collaboration',
@@ -1138,12 +1133,117 @@ export default {
   'Vault item found': 'Élément du coffre trouvé',
   'Release notes saved': 'Notes de version enregistrées',
   'Message posted to the channel': 'Message publié dans le canal',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    'Vous, votre collègue et votre agent accédez à un espace privé. L’agent se connecte aussi à Discourse, Mail et Knowledge.',
-  'A private space. A connected world.': 'Un espace privé. Un monde connecté.',
   'Pause animation': 'Mettre l’animation en pause',
   'Play animation': 'Lancer l’animation',
   'Teammate': 'Votre collègue',
   'Your agent': 'Votre agent',
-  'Owner': 'Propriétaire'
+  'Desktop app': 'Application',
+  'People and agents': 'Personnes et agents',
+  'Desktop and terminal': 'Bureau et terminal',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    'Vous, un collègue, votre agent et un site web accédez à votre espace privé par la porte de dMsg. Votre agent publie aussi sur le réseau d’agents. Les demandes qui exigent une décision vous attendent dans la fenêtre d’approbation.',
+  'Encrypted end to end': 'Chiffré de bout en bout',
+  'Sealed before it syncs': 'Scellé avant la synchronisation',
+  'Only the folder it was granted': 'Seulement le dossier accordé',
+  'Signed with its own Agent ID': 'Signé avec son propre Agent ID',
+  'Sign-in': 'Connexion',
+  'Payment': 'Paiement',
+  'Sign the release statement': 'Signer la déclaration de publication',
+  'Sign in to {site}': 'Se connecter à {site}',
+  'Pay {amount} from the team wallet':
+    'Payer {amount} depuis le portefeuille d’équipe',
+  'Approving signs this statement with your account key.':
+    'Approuver signe cette déclaration avec la clé de votre compte.',
+  'Approving proves to the site that it is you.':
+    'Approuver prouve au site que c’est bien vous.',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    'Approuver ajoute votre voix. Les règles du portefeuille décident du reste.',
+  'Your vote is recorded.': 'Votre voix est enregistrée.',
+  'Rejected. Nothing was paid.': 'Refusé. Rien n’a été payé.',
+  'Expired. Nothing was approved.': 'Expiré. Rien n’a été approuvé.',
+  'Nothing is waiting for you.': 'Rien ne vous attend.',
+  'Approved without you: {count}': 'Approuvé sans vous : {count}',
+  'Requests from agents, websites and the terminal open here.':
+    'Les demandes des agents, des sites web et du terminal s’ouvrent ici.',
+  'Hold to approve': 'Maintenir pour approuver',
+  'The desktop app': 'L’application de bureau',
+  'Everything in one window.': 'Tout dans une seule fenêtre.',
+  'Every decision in its own.': 'Chaque décision dans la sienne.',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    'Canaux, fichiers, coffre, lettres, agents et portefeuilles d’équipe se côtoient. Les demandes des sites web, des agents et du terminal s’ouvrent dans une fenêtre d’approbation à part, où vous seul décidez.',
+  'The dMsg desktop app': 'L’application de bureau dMsg',
+  'Views': 'Vues',
+  'Work': 'Travail',
+  'Authorization': 'Autorisations',
+  'Signatures & approvals': 'Signatures et approbations',
+  'End-to-end encrypted conversations and files with people you choose':
+    'Échanges et fichiers chiffrés de bout en bout avec les personnes choisies',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    'Fichiers chiffrés sur cet appareil ; rien ne le quitte sans sauvegarde ou partage de votre part',
+  'Notes, logins and keys, encrypted on this device':
+    'Notes, identifiants et clés, chiffrés sur cet appareil',
+  'Letters, and who may write to you': 'Les lettres, et qui peut vous écrire',
+  'Requests waiting for you, signatures and their records':
+    'Les demandes qui attendent votre décision, les signatures et leur historique',
+  'Agent IDs, what they may do and what they did':
+    'Les Agent ID, ce qu’ils peuvent faire et ce qu’ils ont fait',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    'Gérez ensemble les fonds ICP, Bitcoin, EVM et Solana selon les règles du portefeuille',
+  'Account synced': 'Compte synchronisé',
+  'Unlock with Touch ID': 'Déverrouiller avec Touch ID',
+  'Lock': 'Verrouiller',
+  'Search or run a command': 'Rechercher ou lancer une commande',
+  'Nothing in your workspace shows until you unlock this device.':
+    'Rien de votre espace de travail ne s’affiche avant le déverrouillage de cet appareil.',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    'Se verrouille après 15 minutes d’inactivité, ou quand vous le décidez.',
+  'The notes read well. One fix in section 2.':
+    'Les notes sont claires. Une correction dans la section 2.',
+  'Fixed. The release notes are ready.':
+    'Corrigé. Les notes de version sont prêtes.',
+  'Thanks. We ship on Friday.': 'Merci. On publie vendredi.',
+  'Password': 'Mot de passe',
+  'One-time password': 'Mot de passe à usage unique',
+  'Who may write to me': 'Qui peut m’écrire',
+  'Nobody': 'Personne',
+  'Contacts only': 'Contacts uniquement',
+  'Everyone': 'Tout le monde',
+  'Paid letters': 'Lettres payantes',
+  'A question about the audit': 'Une question sur l’audit',
+  'Draft for the community post': 'Brouillon du billet pour la communauté',
+  'Statement for {file}': 'Déclaration pour {file}',
+  'Paused': 'En pause',
+  'Command palette': 'Palette de commandes',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    'Appuyez sur ⌘K, ou Ctrl+K sous Windows, pour atteindre une vue, un élément ou une commande.',
+  'Fast unlock': 'Déverrouillage rapide',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    'Sur Mac, la Secure Enclave garde la clé et Touch ID l’ouvre.',
+  'Locks on its own': 'Se verrouille seul',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    'Après 15 minutes d’inactivité par défaut, pour l’application comme pour la ligne de commande.',
+  'Light or dark': 'Clair ou sombre',
+  'Follows your system, or keeps the look you pick.':
+    'Suit votre système, ou garde l’apparence choisie.',
+  'Six languages': 'Six langues',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    'En arabe, les fenêtres se lisent de droite à gauche ; les ID et le code gardent leur ordre.',
+  'Stays in the tray': 'Reste dans la barre système',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    'Fermez la fenêtre, dMsg continue de tourner ; les nouvelles demandes vous parviennent toujours.',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    'Identifiants avec mots de passe à usage unique, clés d’API, clés de signature et notes, chiffrés sur votre appareil avant leur synchronisation.',
+  'Locked when you step away.': 'Verrouillé dès que vous vous absentez.',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    'Un secret ne s’affiche ou ne se copie qu’au second clic, et le presse-papiers est vidé peu après une copie. L’espace de travail se verrouille seul en cas d’inactivité.',
+  'Letters, on your rules.': 'Des lettres, selon vos règles.',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    'Votre profil public permet de vous trouver. Choisissez qui peut écrire : personne, vos contacts, tout le monde, ou les expéditeurs qui paient par lettre. Le paiement couvre la remise, pas une réponse.',
+  'Check a signature yourself.': 'Vérifiez une signature vous-même.',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'dMsg exporte une signature avec ses preuves. Vérifiez le paquet dans votre navigateur ; le fichier d’origine ne quitte jamais votre ordinateur.',
+  'Open the verifier': 'Ouvrir le vérificateur',
+  'Can strangers write to me?': 'Des inconnus peuvent-ils m’écrire ?',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    'Seulement si vos règles le permettent : personne, vos contacts, tout le monde, ou les expéditeurs qui paient le prix que vous fixez. Payer couvre la remise, pas une réponse.',
 } satisfies Messages

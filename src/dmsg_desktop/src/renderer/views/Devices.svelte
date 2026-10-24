@@ -65,7 +65,7 @@
   })
 </script>
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if view}
   <Section title={t('devices')} icon="device" flush testid="devices">
     <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-[12px] text-faint" data-testid="security-snapshot">

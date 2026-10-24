@@ -487,8 +487,6 @@ const en = {
     'A hint wakes your desktop, no content',
   'A release is not an audit.': 'A release is not an audit.',
   'API key': 'API key',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'API keys, logins, signing keys and notes, encrypted on your device before they sync.',
   'Account and device changes': 'Account and device changes',
   'Account and sync status': 'Account and sync status',
   'Account, devices and logins': 'Account, devices and logins',
@@ -936,9 +934,6 @@ const en = {
   'Files stay on your computer.': 'Files stay on your computer.',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.',
-  'Your workspace, two ways in.': 'Your workspace, two ways in.',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.',
   'Explore files and backups': 'Explore files and backups',
   'Try the desktop and command line': 'Try the desktop and command line',
   'Collaboration': 'Collaboration',
@@ -1115,14 +1110,117 @@ const en = {
   'Vault item found': 'Vault item found',
   'Release notes saved': 'Release notes saved',
   'Message posted to the channel': 'Message posted to the channel',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.',
-  'A private space. A connected world.': 'A private space. A connected world.',
   'Pause animation': 'Pause animation',
   'Play animation': 'Play animation',
   'Teammate': 'Teammate',
   'Your agent': 'Your agent',
-  'Owner': 'Owner'
+  'Desktop app': 'Desktop app',
+  'People and agents': 'People and agents',
+  'Desktop and terminal': 'Desktop and terminal',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.',
+  'Encrypted end to end': 'Encrypted end to end',
+  'Sealed before it syncs': 'Sealed before it syncs',
+  'Only the folder it was granted': 'Only the folder it was granted',
+  'Signed with its own Agent ID': 'Signed with its own Agent ID',
+  'Sign-in': 'Sign-in',
+  'Payment': 'Payment',
+  'Sign the release statement': 'Sign the release statement',
+  'Sign in to {site}': 'Sign in to {site}',
+  'Pay {amount} from the team wallet': 'Pay {amount} from the team wallet',
+  'Approving signs this statement with your account key.':
+    'Approving signs this statement with your account key.',
+  'Approving proves to the site that it is you.':
+    'Approving proves to the site that it is you.',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    'Approving adds your vote. The wallet’s policy decides the rest.',
+  'Your vote is recorded.': 'Your vote is recorded.',
+  'Rejected. Nothing was paid.': 'Rejected. Nothing was paid.',
+  'Expired. Nothing was approved.': 'Expired. Nothing was approved.',
+  'Nothing is waiting for you.': 'Nothing is waiting for you.',
+  'Approved without you: {count}': 'Approved without you: {count}',
+  'Requests from agents, websites and the terminal open here.':
+    'Requests from agents, websites and the terminal open here.',
+  'Hold to approve': 'Hold to approve',
+  'The desktop app': 'The desktop app',
+  'Everything in one window.': 'Everything in one window.',
+  'Every decision in its own.': 'Every decision in its own.',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.',
+  'The dMsg desktop app': 'The dMsg desktop app',
+  'Views': 'Views',
+  'Work': 'Work',
+  'Authorization': 'Authorization',
+  'Signatures & approvals': 'Signatures & approvals',
+  'End-to-end encrypted conversations and files with people you choose':
+    'End-to-end encrypted conversations and files with people you choose',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    'Encrypted files on this device; nothing leaves unless you back it up or share it',
+  'Notes, logins and keys, encrypted on this device':
+    'Notes, logins and keys, encrypted on this device',
+  'Letters, and who may write to you': 'Letters, and who may write to you',
+  'Requests waiting for you, signatures and their records':
+    'Requests waiting for you, signatures and their records',
+  'Agent IDs, what they may do and what they did':
+    'Agent IDs, what they may do and what they did',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy',
+  'Account synced': 'Account synced',
+  'Unlock with Touch ID': 'Unlock with Touch ID',
+  'Lock': 'Lock',
+  'Search or run a command': 'Search or run a command',
+  'Nothing in your workspace shows until you unlock this device.':
+    'Nothing in your workspace shows until you unlock this device.',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    'Locks after 15 idle minutes, or whenever you choose.',
+  'The notes read well. One fix in section 2.':
+    'The notes read well. One fix in section 2.',
+  'Fixed. The release notes are ready.': 'Fixed. The release notes are ready.',
+  'Thanks. We ship on Friday.': 'Thanks. We ship on Friday.',
+  'Password': 'Password',
+  'One-time password': 'One-time password',
+  'Who may write to me': 'Who may write to me',
+  'Nobody': 'Nobody',
+  'Contacts only': 'Contacts only',
+  'Everyone': 'Everyone',
+  'Paid letters': 'Paid letters',
+  'A question about the audit': 'A question about the audit',
+  'Draft for the community post': 'Draft for the community post',
+  'Statement for {file}': 'Statement for {file}',
+  'Paused': 'Paused',
+  'Command palette': 'Command palette',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.',
+  'Fast unlock': 'Fast unlock',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.',
+  'Locks on its own': 'Locks on its own',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    'After 15 idle minutes by default, for the app and the command line alike.',
+  'Light or dark': 'Light or dark',
+  'Follows your system, or keeps the look you pick.':
+    'Follows your system, or keeps the look you pick.',
+  'Six languages': 'Six languages',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    'Arabic lays the windows out right to left; IDs and code keep their order.',
+  'Stays in the tray': 'Stays in the tray',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    'Close the window and dMsg keeps running; new requests still reach you.',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.',
+  'Locked when you step away.': 'Locked when you step away.',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.',
+  'Letters, on your rules.': 'Letters, on your rules.',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.',
+  'Check a signature yourself.': 'Check a signature yourself.',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.',
+  'Open the verifier': 'Open the verifier',
+  'Can strangers write to me?': 'Can strangers write to me?',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.',
 }
 
 export type MessageKey = keyof typeof en
