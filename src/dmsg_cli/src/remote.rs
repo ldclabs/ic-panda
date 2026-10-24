@@ -72,6 +72,8 @@ impl Remote {
             token,
             http: reqwest::Client::builder()
                 .no_proxy()
+                .redirect(reqwest::redirect::Policy::none())
+                .retry(reqwest::retry::never())
                 .build()
                 .map_err(|e| Failure::new("UNAVAILABLE", e.to_string()))?,
         })

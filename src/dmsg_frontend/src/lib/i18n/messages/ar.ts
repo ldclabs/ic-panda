@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "الاستلام هنا والاستيراد في dMsg يستخدمان جلستين منفصلتين.",
+  "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "الصق الرابط في dMsg لاستيراد نسخة مستقلة. الإلغاء لا يحذف النسخ المحفوظة.",
+  "Save attachment": "حفظ المرفق",
+  "Notes": "ملاحظات",
+  "Reveal": "إظهار",
+  "Secret snapshot fully verified.": "تم التحقق من اللقطة بالكامل.",
   'Certified principal document': 'وثيقة هوية موثّقة',
   'These details come from the same certified identity document read by agents. The account publishes its own claims.':
     'تأتي هذه التفاصيل من وثيقة الهوية الموثّقة نفسها التي تقرؤها الوكلاء. ينشر الحساب بياناته بنفسه.',

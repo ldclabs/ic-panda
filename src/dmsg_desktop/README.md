@@ -538,3 +538,10 @@ and immediate policy disabling. No P1 file mount or injection is implemented.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
 See [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
+
+
+## Secrets P1 开发工作流
+
+实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
+
+桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。

@@ -36,11 +36,20 @@ mod mount;
 #[cfg(target_os = "macos")]
 mod mount_netfs;
 mod params;
+mod process_command;
 mod release;
 mod remote;
 mod secret_commands;
+mod secret_discovery;
 mod secret_methods;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+mod secret_mounts;
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[path = "secret_mounts_unavailable.rs"]
+mod secret_mounts;
 mod secure;
+#[cfg(unix)]
+mod ssh_agent;
 mod vault_commands;
 mod vault_methods;
 mod wallet_commands;
@@ -203,6 +212,8 @@ enum Command {
     /// Credential references, device-local policies and approved use history.
     #[command(subcommand)]
     Secrets(secret_commands::SecretCommand),
+    /// Approve one-time credential delivery to a program and its descendants.
+    Run(process_command::RunCommand),
     /// The encrypted file library on this device.
     #[command(subcommand)]
     Files(files_commands::FilesCommand),
@@ -354,9 +365,10 @@ fn ask(prompt: &str) -> String {
 fn main() {
     let cli = Cli::parse();
     let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
-    let json = cli.json;
+    let json = cli.json && !matches!(cli.command, Some(Command::Run(_)));
     let code = match runtime.block_on(run(cli)) {
         Ok(()) => 0,
+        Err(failure) if failure.code == "PROCESS_EXIT" => failure.message.parse().unwrap_or(1),
         Err(failure) => {
             if json {
                 println!(
@@ -605,6 +617,7 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
         Command::Legacy(command) => legacy_commands::legacy(remote, json, command).await,
         Command::Device(command) => account_commands::device(remote, json, command).await,
         Command::Vault(command) => vault_commands::vault(remote, json, command).await,
+        Command::Run(command) => process_command::run(remote, command).await,
         Command::Secrets(command) => secret_commands::secrets(remote, json, command).await,
         Command::Files(command) => files_commands::files(remote, json, command).await,
         Command::Sync { command: None } => {
@@ -795,3 +808,6 @@ mod tests {
         assert_eq!(short("名称名称", 4), "名称名称");
     }
 }
+
+#[cfg(all(test, unix))]
+mod secret_integration_tests;

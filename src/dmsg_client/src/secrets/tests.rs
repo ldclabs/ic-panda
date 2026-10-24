@@ -760,12 +760,15 @@ async fn presence_and_full_plan_digest_are_required_before_execution() {
         fn presence(&self) -> Option<Presence> {
             Some(Presence::Password)
         }
+
         fn create(&self) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<[u8; 32]>)> {
             Err(Error::Forbidden)
         }
+
         fn open(&self, _: &[u8], _: &[u8]) -> Result<Zeroizing<[u8; 32]>> {
             Err(Error::Forbidden)
         }
+
         fn confirm(&self, _: &str) -> Result<()> {
             Err(Error::Forbidden)
         }
@@ -797,4 +800,469 @@ async fn presence_and_full_plan_digest_are_required_before_execution() {
         Err(Error::IntegrityFailed)
     );
     assert!(!c.approval_record(id).unwrap().started);
+}
+
+fn process_input(reference: &SecretRef) -> process::RunInput {
+    let refs = format!("TOKEN={}\n", reference.uri());
+    process::RunInput {
+        executable: process::FileIdentity {
+            path: "/usr/bin/env".into(),
+            identity: "1:2".into(),
+            sha256: "ab".repeat(32),
+        },
+        argv: vec![],
+        cwd: "/tmp".into(),
+        refs_file: Some(process::FileIdentity {
+            path: "/tmp/.env.refs".into(),
+            identity: "1:3".into(),
+            sha256: hex::encode(Sha256::digest(refs.as_bytes())),
+        }),
+        refs,
+        files: vec![],
+    }
+}
+
+#[tokio::test]
+async fn process_claim_is_once_bound_to_approval_revision_and_session() {
+    let (_dir, mut c, _, p) = setup();
+    let r = c
+        .secret_process_request(process_input(&p.credential))
+        .unwrap();
+    let id = r["request_id"].as_str().unwrap();
+    let ticket = r["claim"].as_str().unwrap();
+    assert!(!r.to_string().contains(TOKEN));
+    assert!(process::claim(&c.hold(), id, ticket).await.is_err());
+    let digest = c.approval(id).unwrap()["digest"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    c.approval_respond(id, &digest, true, "gui", false)
+        .await
+        .unwrap();
+    assert!(
+        process::claim(&c.hold(), id, &crate::codec::b64(&[1; 32]))
+            .await
+            .is_err()
+    );
+    let values = process::claim(&c.hold(), id, ticket).await.unwrap();
+    assert_eq!(values["env"][0]["value"], TOKEN);
+    assert!(process::claim(&c.hold(), id, ticket).await.is_err());
+    assert_eq!(c.approval(id).unwrap()["state"], "done");
+    assert!(!c.approval(id).unwrap().to_string().contains(TOKEN));
+    c.secret_process_report(id, ticket, true, Some(19)).unwrap();
+    assert!(c.secret_process_report(id, ticket, true, Some(0)).is_err());
+    assert_eq!(c.approvals_reconcile_others().await.unwrap(), 0);
+    let r = c
+        .secret_process_request(process_input(&p.credential))
+        .unwrap();
+    let id = r["request_id"].as_str().unwrap();
+    c.vault_edit(
+        &p.credential.item_id,
+        None,
+        &Changes {
+            set: Some(vec![FieldChange {
+                id: Some("credential".into()),
+                value: Some("changed".into()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(c.approval(id).unwrap()["state"], "failed");
+}
+
+#[test]
+fn process_refs_reject_shell_duplicates_limits_and_unknown_fields() {
+    let (_dir, mut c, _, p) = setup();
+    let uri = p.credential.uri();
+    assert_eq!(
+        process::parse_refs(format!("# comment\nTOKEN={uri}\n").as_bytes())
+            .unwrap()
+            .len(),
+        1
+    );
+    for text in [
+        format!("TOKEN={uri}\nTOKEN={uri}"),
+        format!("export TOKEN={uri}"),
+        "TOKEN=$(cat secret)".into(),
+        format!("TOKEN='{uri}'"),
+        format!("A= {uri}"),
+        format!("1A={uri}"),
+    ] {
+        assert!(process::parse_refs(text.as_bytes()).is_err(), "{text}");
+    }
+    assert!(process::parse_refs(&vec![b' '; 65537]).is_err());
+    let mut input = process_input(&p.credential);
+    input.refs.push(' ');
+    assert!(c.secret_process_request(input).is_err());
+}
+
+#[tokio::test]
+async fn process_abandoned_claim_and_changed_session_never_deliver_twice() {
+    for started in [false, true] {
+        let (_dir, mut c, _, p) = setup();
+        let r = c
+            .secret_process_request(process_input(&p.credential))
+            .unwrap();
+        let id = r["request_id"].as_str().unwrap();
+        let digest = c.approval(id).unwrap()["digest"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        c.approval_respond(id, &digest, true, "gui", false)
+            .await
+            .unwrap();
+        let mut record = c.approval_record(id).unwrap();
+        record.started = started;
+        c.save_approval(&record).unwrap();
+        c.running.clear();
+        c.secret_boot = "another-process".into();
+        c.approvals_reconcile_others().await.unwrap();
+        assert_eq!(
+            c.approval_record(id).unwrap().state,
+            if started { State::Lost } else { State::Failed }
+        );
+        assert!(
+            process::claim(&c.hold(), id, r["claim"].as_str().unwrap())
+                .await
+                .is_err()
+        );
+    }
+}
+
+fn git_sign_bytes(namespace: &[u8]) -> Vec<u8> {
+    let mut b = b"SSHSIG".to_vec();
+    ssh::put(&mut b, namespace);
+    ssh::put(&mut b, b"");
+    ssh::put(&mut b, b"sha512");
+    ssh::put(&mut b, &[42; 64]);
+    b
+}
+
+#[tokio::test]
+async fn ssh_sign_requires_binding_current_revision_original_connection_and_one_approval() {
+    use signature::Verifier;
+    let (_dir, mut c, _, _) = setup();
+    let key = crate::vault::ssh::generate("synthetic");
+    let entry = c
+        .vault_create(
+            "ssh",
+            &Changes {
+                title: Some("Synthetic SSH".into()),
+                set: Some(vec![FieldChange {
+                    id: Some("private_key".into()),
+                    value: Some(key.private_key.clone()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let r = SecretRef {
+        schema_version: 1,
+        account_id: c.account().unwrap().id.to_string(),
+        item_id: entry.id,
+        field_id: "private_key".into(),
+    };
+    let public = ssh_key::PublicKey::from_openssh(&key.public_key).unwrap();
+    let bytes = git_sign_bytes(b"git");
+    let conn = c
+        .secret_ssh_open(ssh::Peer {
+            uid: 501,
+            pid: None,
+        })
+        .unwrap();
+    assert!(
+        c.secret_ssh_request(&conn, &public.to_bytes().unwrap(), &bytes)
+            .is_err()
+    );
+    let enable = c
+        .secret_ssh_binding_request("gui", r.clone(), vec!["git_sign".into()])
+        .unwrap();
+    c.approval_respond(
+        enable["id"].as_str().unwrap(),
+        enable["digest"].as_str().unwrap(),
+        true,
+        "gui",
+        false,
+    )
+    .await
+    .unwrap();
+    let pending = c
+        .secret_ssh_request(&conn, &public.to_bytes().unwrap(), &bytes)
+        .unwrap();
+    let id = pending["id"].as_str().unwrap();
+    assert!(!pending.to_string().contains("PRIVATE KEY"));
+    assert!(c.secret_ssh_sign(id, &conn, &bytes).is_err());
+    c.approval_respond(id, pending["digest"].as_str().unwrap(), true, "gui", false)
+        .await
+        .unwrap();
+    assert!(c.secret_ssh_sign(id, "another", &bytes).is_err());
+    assert!(
+        c.secret_ssh_sign(id, &conn, &git_sign_bytes(b"wrong"))
+            .is_err()
+    );
+    let sig = c.secret_ssh_sign(id, &conn, &bytes).unwrap();
+    public
+        .key_data()
+        .verify(
+            &bytes,
+            &ssh_key::Signature::try_from(sig.as_slice()).unwrap(),
+        )
+        .unwrap();
+    assert!(c.secret_ssh_sign(id, &conn, &bytes).is_err());
+    let pending = c
+        .secret_ssh_request(&conn, &public.to_bytes().unwrap(), &bytes)
+        .unwrap();
+    c.secret_ssh_close(&conn);
+    assert_eq!(
+        c.approval(pending["id"].as_str().unwrap()).unwrap()["state"],
+        "failed"
+    );
+    let conn = c
+        .secret_ssh_open(ssh::Peer {
+            uid: 501,
+            pid: None,
+        })
+        .unwrap();
+    let pending = c
+        .secret_ssh_request(&conn, &public.to_bytes().unwrap(), &bytes)
+        .unwrap();
+    c.secret_ssh_disable(&c.secret_ssh_bindings().unwrap()[0].id)
+        .unwrap();
+    assert_eq!(
+        c.approval(pending["id"].as_str().unwrap()).unwrap()["state"],
+        "failed"
+    );
+    assert!(c.secret_ssh_identities().unwrap().is_empty());
+    c.lock();
+    assert!(c.secret_ssh_identities().unwrap().is_empty());
+}
+
+#[test]
+fn ssh_protocol_verifies_host_session_and_refuses_forwarding_arbitrary_data() {
+    use signature::{SignatureEncoding, Signer};
+    let host = crate::vault::ssh::generate("host");
+    let key = ssh_key::PrivateKey::from_openssh(&host.private_key).unwrap();
+    let public = key.public_key().to_bytes().unwrap();
+    let session = [7; 32];
+    let signature: ssh_key::Signature = key.try_sign(&session).unwrap();
+    let mut extension = Vec::new();
+    ssh::put(&mut extension, b"session-bind@openssh.com");
+    ssh::put(&mut extension, &public);
+    ssh::put(&mut extension, &session);
+    ssh::put(&mut extension, &signature.to_vec());
+    extension.push(0);
+    let bound = ssh::session_bind(&extension).unwrap();
+    let mut auth = Vec::new();
+    ssh::put(&mut auth, &session);
+    auth.push(50);
+    ssh::put(&mut auth, b"test");
+    ssh::put(&mut auth, b"ssh-connection");
+    ssh::put(&mut auth, b"publickey");
+    auth.push(1);
+    ssh::put(&mut auth, b"ssh-ed25519");
+    ssh::put(&mut auth, &public);
+    assert_eq!(
+        ssh::purpose(&auth, &public, Some(&bound)).unwrap().kind,
+        "ssh_auth"
+    );
+    assert!(ssh::purpose(&auth, &public, None).is_err());
+    let mut tampered = auth.clone();
+    tampered[4] ^= 1;
+    assert!(ssh::purpose(&tampered, &public, Some(&bound)).is_err());
+    *extension.last_mut().unwrap() = 1;
+    assert!(ssh::session_bind(&extension).is_err());
+    assert!(ssh::purpose(b"arbitrary message", &public, Some(&bound)).is_err());
+    assert!(ssh::purpose(&git_sign_bytes(b"file"), &public, None).is_err());
+    assert!(ssh::purpose(&vec![0; ssh::MAX_FRAME + 1], &public, None).is_err());
+    for n in 0..auth.len() {
+        assert!(ssh::purpose(&auth[..n], &public, Some(&bound)).is_err());
+    }
+}
+
+#[test]
+fn staged_attachment_and_vault_outbox_commit_together_or_not_at_all() {
+    for inject in [false, true] {
+        let (dir, mut c, _, _) = setup();
+        let before = c
+            .vault_list(&crate::vault::Filter::default())
+            .unwrap()
+            .len();
+        let mut staged = c
+            .secret_stage_start("fixture.txt", "text/plain", 4)
+            .unwrap();
+        let file = staged.id().to_owned();
+        c.secret_stage_part(&mut staged, b"test").unwrap();
+        c.secret_stage_finish(&mut staged, Some(&hex::encode(Sha256::digest(b"test"))))
+            .unwrap();
+        let mut item = crate::vault::Item::new("note", "Atomic import", now_ms());
+        item.files.push(file.clone());
+        let db = database(&dir.0);
+        if inject {
+            db.execute_batch("CREATE TRIGGER fail_import BEFORE INSERT ON objects BEGIN SELECT RAISE(FAIL, 'injected'); END").unwrap();
+        }
+        let added = c.secret_import_commit(vec![item], vec![staged], "root");
+        if inject {
+            assert!(added.is_err());
+            assert_eq!(
+                c.vault_list(&crate::vault::Filter::default())
+                    .unwrap()
+                    .len(),
+                before
+            );
+            assert!(c.files_list("root", false).unwrap().files.is_empty());
+            c.held_chunks(now_ms() + 11 * dmsg_types::MINUTE).unwrap();
+            assert!(c.collect_blobs().unwrap().0 > 0);
+        } else {
+            let ids = added.unwrap();
+            assert_eq!(
+                c.vault_show(&ids[0]).unwrap().item.files.as_slice(),
+                std::slice::from_ref(&file)
+            );
+            assert!(c.files_show(&file).unwrap().versions[0].backup.is_none());
+            let output = dir.0.join("checked.txt");
+            c.files_export(&file, None, &output).unwrap();
+            assert_eq!(std::fs::read(output).unwrap(), b"test");
+        }
+    }
+}
+
+#[test]
+fn rotation_is_an_ordered_owner_report_not_an_upstream_revocation_proof() {
+    let (_dir, mut c, _, p) = setup();
+    let r = c.secret_rotation_create(p.credential.clone()).unwrap();
+    let id = r["id"].as_str().unwrap();
+    assert!(c.secret_rotation_update(id, "created").is_err());
+    assert!(c.secret_rotation_update(id, "upstream_revoked").is_err());
+    c.vault_edit(
+        &p.credential.item_id,
+        None,
+        &Changes {
+            set: Some(vec![FieldChange {
+                id: Some("credential".into()),
+                value: Some("replacement-fixture".into()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    for step in [
+        "created",
+        "tested",
+        "references_checked",
+        "upstream_revoked",
+    ] {
+        c.secret_rotation_update(id, step).unwrap();
+    }
+    let report = c.secret_rotations().unwrap();
+    assert_eq!(report[0].evidence, "owner_statement");
+    assert!(report[0].completed_at.is_some());
+    assert_eq!(c.secret_health().unwrap()["upstream_revocation"], "unknown");
+}
+
+#[test]
+fn external_import_receipts_do_not_expose_guessable_source_digests() {
+    let (_dir, mut c, _, _) = setup();
+    let digest = "ab".repeat(32);
+    let before = c
+        .vault_list(&crate::vault::Filter::default())
+        .unwrap()
+        .len();
+    let item = crate::vault::Item::new("note", "Receipt fixture", now_ms());
+    let first = c
+        .secret_import_commit_once(&digest, vec![item.clone()], vec![], "root")
+        .unwrap();
+    assert_eq!(
+        c.secret_import_commit_once(&digest, vec![item], vec![], "root")
+            .unwrap(),
+        first
+    );
+    let keys = c
+        .workspace
+        .store
+        .sealed_keys("secret-external-import:")
+        .unwrap();
+    assert_eq!(keys.len(), 1);
+    assert!(!keys[0].contains(&digest));
+    assert_eq!(
+        c.vault_list(&crate::vault::Filter::default())
+            .unwrap()
+            .len(),
+        before + 1
+    );
+}
+
+#[tokio::test]
+async fn ignored_stale_ssh_binding_is_reevaluated_after_a_new_source_revision() {
+    let (_dir, mut c, _, _) = setup();
+    let key = crate::vault::ssh::generate("health-fixture");
+    let item = c
+        .vault_create(
+            "ssh",
+            &Changes {
+                title: Some("Health key".into()),
+                set: Some(vec![FieldChange {
+                    id: Some("private_key".into()),
+                    value: Some(key.private_key),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let reference = SecretRef {
+        schema_version: 1,
+        account_id: c.account().unwrap().id.to_string(),
+        item_id: item.id.clone(),
+        field_id: "private_key".into(),
+    };
+    let r = c
+        .secret_ssh_binding_request("gui", reference, vec!["git_sign".into()])
+        .unwrap();
+    c.approval_respond(
+        r["id"].as_str().unwrap(),
+        r["digest"].as_str().unwrap(),
+        true,
+        "gui",
+        false,
+    )
+    .await
+    .unwrap();
+    c.vault_edit(
+        &item.id,
+        None,
+        &Changes {
+            title: Some("First revision".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let find = |health: Value| {
+        health["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["rule"] == "invalid_ssh_reference")
+            .unwrap()
+            .clone()
+    };
+    let first = find(c.secret_health().unwrap());
+    c.secret_health_dismiss(first["id"].as_str().unwrap())
+        .unwrap();
+    assert_eq!(find(c.secret_health().unwrap())["dismissed"], true);
+    c.vault_edit(
+        &item.id,
+        None,
+        &Changes {
+            title: Some("Second revision".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let next = find(c.secret_health().unwrap());
+    assert_ne!(first["id"], next["id"]);
+    assert_eq!(next["dismissed"], false);
 }

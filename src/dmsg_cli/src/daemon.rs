@@ -225,6 +225,9 @@ pub(crate) struct Daemon {
     token: String,
     instance: String,
     port: u16,
+    pub(crate) secret_mounts: crate::secret_mounts::Manager,
+    pub(crate) ssh_path: std::sync::Mutex<Option<std::path::PathBuf>>,
+    pub(crate) ssh_error: std::sync::Mutex<Option<String>>,
     settings: Settings,
     client: Arc<Mutex<Client>>,
     login: std::sync::Mutex<LoginState>,
@@ -336,6 +339,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?
         .port();
     let daemon = Arc::new(Daemon::new(token, port, settings, client, agents, mcp));
+    daemon.secret_mounts.bind(Arc::downgrade(&daemon));
     daemon.read_preferences().await?;
     home.publish(&Discovery {
         port,
@@ -348,6 +352,17 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
     tokio::spawn(crate::mail_push::run(daemon.clone()));
+    #[cfg(unix)]
+    let _ssh = match crate::ssh_agent::start(daemon.clone(), &home.dir) {
+        Ok(socket) => Some(socket),
+        Err(error) => {
+            *daemon.ssh_error.lock().expect("SSH status") = Some(match error {
+                Error::Unavailable(reason) => reason,
+                _ => "SSH_SOCKET_DIRECTORY_UNSAFE".into(),
+            });
+            None
+        }
+    };
     let app = app(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
     crate::logs::write(
@@ -367,6 +382,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
                 _ = stopping.stop.notified() => {}
             }
             // The system unmounts while the share still answers.
+            stopping.stop_secret_mounts().await;
             let _ = stopping.unmount_library().await;
         })
         .await;
@@ -429,6 +445,7 @@ async fn background(daemon: Arc<Daemon>) {
             )
         };
         daemon.check_mount().await;
+        daemon.check_secret_mounts().await;
         let interval = daemon.settings.sync_interval_ms;
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
@@ -554,14 +571,20 @@ async fn terminated() {
 }
 
 impl Daemon {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    pub(crate) fn subscribe_mount_events(&self) -> broadcast::Receiver<Value> {
+        self.events.subscribe()
+    }
+
     pub(crate) fn new(
         token: String,
         port: u16,
         settings: Settings,
-        client: Client,
+        mut client: Client,
         agents: dmsg_agent::Runtime,
         mcp: crate::mcp_events::McpEvents,
     ) -> Self {
+        crate::secret_mounts::configure_clock(&mut client);
         let settings_mount = settings.files_mount;
         let (channel_hints, channel_hinted) = tokio::sync::mpsc::unbounded_channel();
         Self {
@@ -569,6 +592,9 @@ impl Daemon {
             instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
             port,
             settings,
+            ssh_path: std::sync::Mutex::new(None),
+            ssh_error: std::sync::Mutex::new(None),
+            secret_mounts: Default::default(),
             client: Arc::new(Mutex::new(client)),
             login: std::sync::Mutex::new(LoginState::default()),
             activity: AtomicU64::new(now_ms()),
@@ -798,6 +824,24 @@ impl Daemon {
             .await?;
         match decision {
             Decision::Done(view) => Ok(view),
+            Decision::SecretDiscoveryImport(work) => {
+                self.emit("approval/changed", Value::Null);
+                let result = self.import_discovered(*work).await;
+                self.emit("vault/changed", Value::Null);
+                result
+            }
+            Decision::SecretPackageImport(run) => {
+                self.emit("approval/changed", Value::Null);
+                let result = run.run(&self.hold()).await;
+                self.emit("vault/changed", Value::Null);
+                self.emit("files/changed", Value::Null);
+                result
+            }
+            Decision::SecretShare(run) => {
+                let _turn = self.turn("secret-share-upload").await;
+                self.emit("approval/changed", Value::Null);
+                run.run(&self.hold()).await
+            }
             Decision::SecretUse(run) => {
                 self.emit("approval/changed", Value::Null);
                 run.run(&self.hold()).await
@@ -1039,6 +1083,7 @@ impl Daemon {
                 self.sync_requested.store(false, Ordering::Relaxed);
                 // Versions already signed for submission still go out.
                 self.wake();
+                self.stop_secret_mounts().await;
                 let _ = self.unmount_library().await;
                 self.status().await
             }
@@ -1055,6 +1100,7 @@ impl Daemon {
                     client.logout()?;
                 }
                 *self.last_connect.lock().expect("connect report") = None;
+                self.stop_secret_mounts().await;
                 let _ = self.unmount_library().await;
                 self.status().await
             }
@@ -1205,6 +1251,7 @@ impl Daemon {
                 }))
             }
             "workspace/reset" => {
+                self.stop_secret_mounts().await;
                 self.unmount_library().await?;
                 let mut client = self.client.lock().await;
                 // The caller names this device, as shown in the status.
@@ -1469,7 +1516,22 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Wallet => crate::wallet_methods::events_of(method),
         Module::Vault => crate::vault_methods::events_of(method),
         Module::Secrets => match method {
-            "secrets/policies/save_request"
+            "secrets/discovery/import_request"
+            | "secrets/packages/import_request"
+            | "secrets/shares/request"
+            | "secrets/shares/revoke"
+            | "secrets/shares/reconcile"
+            | "secrets/mounts/save_request"
+            | "secrets/mounts/start"
+            | "secrets/mounts/stop"
+            | "secrets/mounts/remove"
+            | "secrets/mounts/revoke_reads"
+            | "secrets/ssh/binding_request"
+            | "secrets/ssh/disable"
+            | "secrets/run/request"
+            | "secrets/run/claim"
+            | "secrets/run/report"
+            | "secrets/policies/save_request"
             | "secrets/policies/delete_request"
             | "secrets/policies/disable"
             | "secrets/uses/cancel"

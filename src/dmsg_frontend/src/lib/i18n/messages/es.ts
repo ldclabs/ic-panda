@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Recibir aquí e importar en dMsg utiliza sesiones distintas.",
+  "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Pegue el enlace en dMsg para importar una copia independiente. Revocar no elimina copias guardadas.",
+  "Save attachment": "Guardar adjunto",
+  "Notes": "Notas",
+  "Reveal": "Mostrar",
+  "Secret snapshot fully verified.": "Instantánea secreta verificada completamente.",
   'Certified principal document': 'Documento de identidad certificado',
   'These details come from the same certified identity document read by agents. The account publishes its own claims.':
     'Estos datos proceden del mismo documento de identidad certificado que leen los agentes. La cuenta publica sus propias declaraciones.',

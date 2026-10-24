@@ -409,7 +409,7 @@
   /** A web page asks this device to vouch that the account approved the page's session. */
   const authenticating = $derived(request?.type === 'connect' && d.method === 'authenticate')
 
-  const section = $derived<Label>(request?.type === 'secret_use' ? 'secretUses' : s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
+  const section = $derived<Label>(String(request?.type).startsWith('secret_') ? 'secretUses' : s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
 
   /** What approving does, in plain words; the last lines say what cannot be undone. */
   const after = $derived.by((): [string, boolean][] => {
@@ -626,7 +626,7 @@
         <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t(section)}</h2>
         {#if request.detail === null}
           <p class="rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px] text-muted" data-testid="approval-detail-unavailable">{t('approvalDetailUnavailable')}</p>
-        {:else if request.type === 'secret_use' || request.type === 'secret_policy'}
+        {:else if request.type.startsWith('secret_')}
           <SecretReview {request} />
         {:else if s}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">

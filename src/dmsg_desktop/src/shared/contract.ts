@@ -94,9 +94,12 @@ export interface DesktopBridge {
    */
   copySecret(id: string, field?: string | null, revision?: string | null): Promise<{ clear_after_ms: number }>
   /** Read a password manager's export the person picks, without hidden values; null when cancelled. */
+  secretScanDirectory(): Promise<any>
+  secretMountPrepare(input: any, windowMs: number): Promise<any>
+  secretMountSave(session: number): Promise<any>
   vaultImportPreview(): Promise<unknown>
   /** Add the selected items of this preview session, once: `{ids}`. */
-  vaultImport(session: number, picks: number[]): Promise<{ ids: string[] }>
+  vaultImport(session: number, picks: number[], attachments?: string[], folder?: string): Promise<{ ids: string[] }>
   /** Discard the current preview and any file read still in progress. */
   vaultImportCancel(): Promise<void>
   /** The text of a QR code in an image the person picks, or on the clipboard: `{uri}`; null when cancelled. */

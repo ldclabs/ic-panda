@@ -159,6 +159,12 @@ pub enum VaultCommand {
         /// With --yes, add items that look already here too.
         #[arg(long, requires = "yes")]
         all: bool,
+        /// Exact attachment entry IDs from the preview; none selected by default.
+        #[arg(long = "attachment", requires = "yes")]
+        attachments: Vec<String>,
+        /// Destination Files folder; attachments are not automatically backed up.
+        #[arg(long, default_value = "root")]
+        folder: String,
     },
     /// Weak or reused passwords, addresses without TLS and expiry dates
     /// passed or close.
@@ -504,7 +510,13 @@ pub async fn vault(remote: &Remote, json: bool, command: VaultCommand) -> Result
                 tr!("resolved; head {revision}", "已解决；当前版本 {revision}")
             });
         }
-        VaultCommand::Import { path, yes, all } => {
+        VaultCommand::Import {
+            path,
+            yes,
+            all,
+            attachments,
+            folder,
+        } => {
             let path = absolute(&path)?;
             let preview = remote
                 .call("vault/import_preview", json!({"path": path}))
@@ -548,6 +560,8 @@ pub async fn vault(remote: &Remote, json: bool, command: VaultCommand) -> Result
                             "{incomplete} 个条目含未导入的附件、通行密钥、密码历史或不支持的字段，请与原始条目核对。"
                         ));
                     }
+                    lines.push(format!("{}", p["omissions"]));
+                    lines.push(format!("{}", p["attachments"]));
                     lines.join("\n")
                 });
                 return Ok(());
@@ -564,7 +578,7 @@ pub async fn vault(remote: &Remote, json: bool, command: VaultCommand) -> Result
             let added = remote
                 .call(
                     "vault/import",
-                    json!({"path": path, "digest": preview["digest"], "picks": picks}),
+                    json!({"path": path, "digest": preview["digest"], "picks": picks,"attachments":attachments,"folder":folder}),
                 )
                 .await?;
             print(json, &added, |v| {

@@ -1,12 +1,46 @@
 <script lang="ts">
   import { secretText as s } from './text'
+  import { workflowText as w } from './workflow-text'
   let { request }: { request: any } = $props()
   const d = $derived(request.detail ?? {})
   const policy = $derived(d.policy)
 </script>
 
 <div class="space-y-3 rounded-xl border border-line bg-paper p-4 text-sm" data-testid="secret-review">
-  {#if request.type === 'secret_use'}
+  {#if ['secret_mount_config','secret_mount_read','secret_share','secret_package_import','secret_discovery_import'].includes(request.type)}
+    <p class="font-semibold">{w(request.type)}</p>
+    {#if request.type.startsWith('secret_mount')}
+      {#if d.scope?.type==='macos_file_window' || d.mode?.type==='macos_file_window'}<p class="rounded-lg bg-warn-pale p-3 text-warn">{w('sharedWindow')}</p>{/if}
+      {#if d.scope?.type==='linux_handle'}<p class="text-warn">{w('linuxHandleWarning')}</p>{/if}
+      {#if d.grant_lifetime_ms}<p>{w('window')}: {d.grant_lifetime_ms/1000}</p>{/if}
+      <p class="text-xs text-muted">{w(request.type==='secret_mount_config'?'exclude':'mountReadWarning')}</p>
+    {:else if request.type==='secret_share'}<p class="text-warn">{w('shareWarning')}</p>
+      {#if d.fields?.some((f:any)=>f.type==='otp')}<p class="text-warn">{w('otpSeedWarning')}</p>{/if}
+      {#if d.item_type==='ssh' && d.fields?.some((f:any)=>f.type==='concealed')}<p class="text-warn">{w('privateKeyWarning')}</p>{/if}
+      {#if d.item_type==='wallet' && (d.input?.include_notes || d.fields?.some((f:any)=>f.type==='concealed'))}<p class="text-warn">{w('walletSeedWarning')}</p>{/if}
+    {:else if request.type==='secret_package_import'}<p class="text-warn">{w('localFiles')}</p><p class="text-warn">{w('filesPermissions')}</p>
+    {:else}<p class="text-warn">{w('scanHint')}</p>{/if}
+    <pre class="max-h-96 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(d,null,2)}</pre>
+    {#if request.delivery_report}<pre class="max-h-64 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(request.delivery_report,null,2)}</pre>{/if}
+  {:else if request.type === 'secret_ssh' || request.type === 'secret_ssh_binding'}
+    <p class="text-warn">{w(request.type === 'secret_ssh_binding'?'sshEnableWarning':'sshSignWarning')}</p>
+    {#if d.purpose?.kind === 'git_sign'}<p class="text-warn">{w('gitWarning')}</p>{/if}
+    {#if d.purpose?.kind === 'ssh_auth'}<p>Host fingerprint: {d.purpose.host_fingerprint} · {w('hostWarning')}</p>{/if}
+    <pre class="max-h-96 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(d, null, 2)}</pre>
+  {:else if request.type === 'secret_process'}
+    <p class="rounded-lg bg-warn-pale p-3 text-warn">{w('processWarning')}</p>
+    <dl class="space-y-2 break-all">
+      <div><dt>Account / Device</dt><dd>{d.account_id} / {d.device_id}</dd></div>
+      <div><dt>Executable</dt><dd>{d.executable?.path}</dd><dd class="font-mono text-xs">{d.executable?.sha256}</dd></div>
+      <div><dt>Working directory</dt><dd>{d.cwd}</dd></div>
+    </dl>
+    <pre class="whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(d.argv, null, 2)}</pre>
+    <p>环境变量 / Environment</p>
+    {#each d.env ?? [] as [name, ref]}<p>{name}: {ref.item_title} / {ref.field_label} · {ref.item_revision}</p>{/each}
+    <p>顺序管道文件 / Sequential files</p>
+    {#each d.files ?? [] as [name, source, size]}<p>{name} · {size} bytes</p><pre class="whitespace-pre-wrap [overflow-wrap:anywhere]">{JSON.stringify(source, null, 2)}</pre>{/each}
+    <p class="text-xs text-muted">{w('processReceipt')}</p>
+  {:else if request.type === 'secret_use'}
     <p class="rounded-lg bg-warn-pale p-3 text-warn">{s('effect')}</p>
     <dl class="space-y-2 break-all">
       <div><dt class="text-xs text-faint">Account / Device</dt><dd>{d.account_id} / {d.device_id}</dd></div>

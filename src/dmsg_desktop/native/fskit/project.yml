@@ -1,0 +1,72 @@
+name: DmsgSecretsProbe
+options:
+  deploymentTarget:
+    macOS: '27.0'
+settings:
+  SWIFT_VERSION: '5.0'
+  CODE_SIGN_STYLE: Manual
+  MARKETING_VERSION: '1.0'
+  CURRENT_PROJECT_VERSION: '4'
+targets:
+  ProbeHost:
+    type: application
+    platform: macOS
+    sources:
+      - ProbeHost.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.SecretsProbe
+      PRODUCT_NAME: dMsg FSKit Probe
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_KEY_NSPrincipalClass: NSApplication
+    dependencies:
+      - target: SecretsProbe
+        embed: true
+  SecretsProbe:
+    type: extensionkit-extension
+    platform: macOS
+    sources:
+      - Probe.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.SecretsProbe.Extension
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: Info.plist
+      CODE_SIGN_ENTITLEMENTS: SecretsProbe.entitlements
+      APPLICATION_EXTENSION_API_ONLY: YES
+      SKIP_INSTALL: YES
+    dependencies:
+      - sdk: FSKit.framework
+
+  DevelopmentHost:
+    type: application
+    platform: macOS
+    sources:
+      - DevelopmentHost.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg
+      PRODUCT_NAME: dMsg FSKit Development Host
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_KEY_NSPrincipalClass: NSApplication
+    dependencies:
+      - target: SecretsFS
+        embed: true
+  SecretsFS:
+    type: extensionkit-extension
+    platform: macOS
+    sources:
+      - SecretsFS.swift
+      - IPC.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.desktop.SecretsFS
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: SecretsInfo.plist
+      CODE_SIGN_ENTITLEMENTS: SecretsFS.entitlements
+      APPLICATION_EXTENSION_API_ONLY: YES
+      SKIP_INSTALL: YES
+    dependencies:
+      - sdk: FSKit.framework
+
+schemes:
+  SecretsFS:
+    build:
+      targets:
+        SecretsFS: all

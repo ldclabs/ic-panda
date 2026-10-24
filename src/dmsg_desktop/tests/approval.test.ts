@@ -141,3 +141,12 @@ test('credential uses identify their exact operation and keep unknown outcomes u
   assert.equal(stepsOf(r).at(-1)?.state, 'lost')
   assert.equal(titleOf(request('secret_policy')).label, 'secretPolicy')
 })
+
+
+test('all P1 secret approvals remain high risk and are classified in the secret center',()=>{
+  for(const type of ['secret_process','secret_ssh','secret_ssh_binding','secret_mount_config','secret_mount_read','secret_share','secret_package_import','secret_discovery_import']){
+    const r=request(type,{},'gui',{risk:'high'})
+    assert.equal(kindOf(r),'secretUses',type)
+    assert.equal(holdToApprove(r),true,type)
+  }
+})

@@ -4,6 +4,14 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    secretProcess: "Deliver credentials to a program",
+    secretSsh: "Authorize one SSH/Git signature",
+    secretSshBinding: "Enable an SSH key on this device",
+    secretMountConfig: "Save secret-file mappings",
+    secretMountRead: "Authorize a file read",
+    secretShare: "Publish a secret snapshot",
+    secretPackageImport: "Import selected snapshot content",
+    secretDiscoveryImport: "Import selected local files",
     secretUses: "Credential use",
     secretPolicy: "Change credential-use policy",
     secretUse: "Create a GitHub issue",

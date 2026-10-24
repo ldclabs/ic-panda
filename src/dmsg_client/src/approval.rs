@@ -170,6 +170,48 @@ pub fn file_name(path: &std::path::Path) -> String {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
+    /// Import exact explicitly scanned files, without deleting or editing them.
+    SecretDiscoveryImport {
+        /// Selected source identities and full-file digests.
+        plan: Box<crate::secrets::discovery::ImportPlan>,
+    },
+    /// Import a validated received snapshot as new Vault/Files objects.
+    SecretPackageImport {
+        /// Exact package digest and explicit selected fields/attachments.
+        selection: Box<crate::secrets::receiving::Selection>,
+    },
+    /// Publish one explicitly selected secret snapshot.
+    SecretShare {
+        /// Device-local immutable preparation.
+        id: String,
+        /// Commitment to every selected source and publication limit.
+        digest: String,
+    },
+    /// Configure a read-only, device-local virtual mapping.
+    SecretMountConfig {
+        /// OS-validated paths and fixed authorization mode.
+        config: Box<crate::secrets::mounts::Config>,
+    },
+    /// Authorize one handle or one fixed file window.
+    SecretMountRead {
+        /// No source values or decryption keys.
+        plan: Box<crate::secrets::mounts::ReadPlan>,
+    },
+    /// Enable an owner-selected SSH key.
+    SecretSshBinding {
+        /// Local key and allowed purposes.
+        binding: Box<crate::secrets::ssh::KeyBinding>,
+    },
+    /// Sign once for the original socket connection.
+    SecretSsh {
+        /// Exact validated wire message commitment.
+        plan: Box<crate::secrets::ssh::SignPlan>,
+    },
+    /// One-time delivery to an initiating owner CLI.
+    SecretProcess {
+        /// Pinned program, sources, and claim commitment.
+        plan: Box<crate::secrets::process::RunPlan>,
+    },
     /// A device-local policy configuration, approved independently of its uses.
     SecretPolicy {
         /// Configuration the owner reviews.
@@ -294,7 +336,16 @@ pub enum Action {
 impl Action {
     fn class(&self) -> &'static str {
         match self {
-            Action::SecretPolicy { .. } | Action::SecretUse { .. } => "secret",
+            Action::SecretDiscoveryImport { .. }
+            | Action::SecretPackageImport { .. }
+            | Action::SecretShare { .. }
+            | Action::SecretMountConfig { .. }
+            | Action::SecretMountRead { .. }
+            | Action::SecretSsh { .. }
+            | Action::SecretSshBinding { .. }
+            | Action::SecretProcess { .. }
+            | Action::SecretPolicy { .. }
+            | Action::SecretUse { .. } => "secret",
             Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
             | Action::DeviceRevoke { .. }
@@ -344,6 +395,9 @@ pub struct Request {
     /// Manual review of a lost result, without changing its outcome.
     #[serde(default)]
     pub reviewed_at: Option<u64>,
+    /// Optional CLI observation; never changes delivery into a replayable action.
+    #[serde(default)]
+    pub delivery_report: Option<Json>,
 }
 
 impl Request {
@@ -363,6 +417,12 @@ pub enum Decision {
     Wallet(Box<WalletRun>),
     /// One non-idempotent use, executed outside the client lock.
     SecretUse(Box<crate::secrets::SecretRun>),
+    /// Snapshot encryption/upload/publication, executed outside the client lock.
+    SecretShare(Box<crate::secrets::shares::ShareRun>),
+    /// Received content is staged outside the client lock, then committed once.
+    SecretPackageImport(Box<crate::secrets::receiving::ImportRun>),
+    /// Source filesystem work delegated to the host, not performed under Client.
+    SecretDiscoveryImport(Box<crate::secrets::discovery::ImportWork>),
 }
 
 /// How long an attestation running in steps keeps the reconciler away;
@@ -376,7 +436,16 @@ const RUN_MS: u64 = 5 * MINUTE;
 /// confirmed with the person present where the device can ask.
 pub fn high_risk(request: &Request, detail: &Json) -> bool {
     match &request.action {
-        Action::SecretPolicy { .. } | Action::SecretUse { .. } => true,
+        Action::SecretDiscoveryImport { .. }
+        | Action::SecretPackageImport { .. }
+        | Action::SecretShare { .. }
+        | Action::SecretMountConfig { .. }
+        | Action::SecretMountRead { .. }
+        | Action::SecretSsh { .. }
+        | Action::SecretSshBinding { .. }
+        | Action::SecretProcess { .. }
+        | Action::SecretPolicy { .. }
+        | Action::SecretUse { .. } => true,
         Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
         Action::Principal { .. } => true,
         Action::Grant { capabilities, .. } => {
@@ -418,6 +487,7 @@ pub fn validate_source(source: &str) -> Result<()> {
                     .bytes()
                     .all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))
         }
+        Some(("mount", id)) => crate::secrets::hex_id(id, 64),
         Some(("connect", origin)) => origin.starts_with("http"),
         _ => false,
     };
@@ -501,6 +571,12 @@ impl Client {
         // keeps room for them.
         ensure(
             waiting.len() < MAX_PENDING
+                && (!matches!(action, Action::SecretMountRead { .. })
+                    || waiting
+                        .iter()
+                        .filter(|r| matches!(r.action, Action::SecretMountRead { .. }))
+                        .count()
+                        < MAX_PER_SOURCE)
                 && (matches!(source, "gui" | "cli")
                     || waiting.iter().filter(|r| r.source == source).count() < MAX_PER_SOURCE),
             Error::QuotaExceeded,
@@ -521,6 +597,7 @@ impl Client {
             file_check: None,
             secret_result: None,
             reviewed_at: None,
+            delivery_report: None,
         };
         self.save_approval(&request)?;
         Ok(request)
@@ -543,6 +620,30 @@ impl Client {
         {
             if row.expires_at > now && row.class == "secret" {
                 let mut request = self.approval_record(&row.id)?;
+                if let Action::SecretMountRead { plan } = &request.action
+                    && let Err(error) = self.secret_mount_check(plan)
+                {
+                    request.state = State::Failed;
+                    request.error = Some(crate::error_code(&error));
+                    request.updated_at = now;
+                    self.save_approval(&request)?;
+                }
+                if let Action::SecretSsh { plan } = &request.action
+                    && let Err(error) = self.secret_ssh_check(plan)
+                {
+                    request.state = State::Failed;
+                    request.error = Some(crate::error_code(&error));
+                    request.updated_at = now;
+                    self.save_approval(&request)?;
+                }
+                if let Action::SecretProcess { plan } = &request.action
+                    && let Err(error) = self.secret_process_check(plan)
+                {
+                    request.state = State::Failed;
+                    request.error = Some(crate::error_code(&error));
+                    request.updated_at = now;
+                    self.save_approval(&request)?;
+                }
                 if let Action::SecretUse { plan } = &request.action
                     && let Err(error) = self.secret_plan_check(plan, now)
                 {
@@ -757,6 +858,9 @@ impl Client {
             Decision::Attest(run) => run.run(&self.hold()).await,
             Decision::Wallet(run) => run.run(&self.hold()).await,
             Decision::SecretUse(run) => run.run(&self.hold()).await,
+            Decision::SecretShare(run) => run.run(&self.hold()).await,
+            Decision::SecretPackageImport(run) => run.run(&self.hold()).await,
+            Decision::SecretDiscoveryImport(_) => Err(Error::UnsupportedProtocol),
         }
     }
 
@@ -791,7 +895,18 @@ impl Client {
             self.save_approval(&request)?;
             return Err(Error::Forbidden);
         }
-        if approve && matches!(request.action, Action::SecretUse { .. }) {
+        if approve
+            && matches!(
+                request.action,
+                Action::SecretDiscoveryImport { .. }
+                    | Action::SecretPackageImport { .. }
+                    | Action::SecretShare { .. }
+                    | Action::SecretUse { .. }
+                    | Action::SecretProcess { .. }
+                    | Action::SecretSsh { .. }
+                    | Action::SecretMountRead { .. }
+            )
+        {
             ensure(
                 via == "gui"
                     || (via == "cli"
@@ -840,6 +955,54 @@ impl Client {
                     .map(Decision::Done),
             };
         }
+        if matches!(request.action, Action::SecretDiscoveryImport { .. }) {
+            return match self.secret_discovery_work(&request) {
+                Ok(work) => Ok(Decision::SecretDiscoveryImport(Box::new(work))),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
+        if matches!(request.action, Action::SecretPackageImport { .. }) {
+            return match self.secret_package_run(&mut request, now) {
+                Ok(run) => Ok(Decision::SecretPackageImport(Box::new(run))),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
+        if matches!(request.action, Action::SecretShare { .. }) {
+            return match self.secret_share_run(&mut request, now) {
+                Ok(run) => Ok(Decision::SecretShare(Box::new(run))),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
+        if matches!(request.action, Action::SecretMountRead { .. }) {
+            return match self.secret_mount_approve(&mut request, now) {
+                Ok(view) => Ok(Decision::Done(view)),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
+        if matches!(request.action, Action::SecretSsh { .. }) {
+            return match self.secret_ssh_approve(&request) {
+                Ok(view) => Ok(Decision::Done(view)),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
+        if matches!(request.action, Action::SecretProcess { .. }) {
+            return match self.secret_process_approve(&request) {
+                Ok(view) => Ok(Decision::Done(view)),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
         if matches!(request.action, Action::SecretUse { .. }) {
             return match self.secret_run(&mut request, now) {
                 Ok(run) => Ok(Decision::SecretUse(Box::new(run))),
@@ -867,8 +1030,16 @@ impl Client {
     /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
+            Action::SecretShare { .. }
+            | Action::SecretPackageImport { .. }
+            | Action::SecretDiscoveryImport { .. } => Err(Error::Forbidden),
+            Action::SecretMountConfig { config } => self.secret_mount_apply(&config, &request.id),
+            Action::SecretSshBinding { binding } => self.secret_ssh_apply(&binding, &request.id),
             Action::SecretPolicy { change } => self.secret_policy_apply(&change, &request.id),
-            Action::SecretUse { .. } => Err(Error::Forbidden),
+            Action::SecretUse { .. }
+            | Action::SecretProcess { .. }
+            | Action::SecretSsh { .. }
+            | Action::SecretMountRead { .. } => Err(Error::Forbidden),
             Action::Attest { .. } | Action::AttestAction { .. } => {
                 Err(Error::InvalidInput("an attestation runs in steps".into()))
             }
@@ -1094,7 +1265,21 @@ impl Client {
         let count = requests.len();
         for mut request in requests {
             let outcome = match request.action.clone() {
-                Action::SecretUse { .. } | Action::SecretPolicy { .. } => {
+                Action::SecretPackageImport { .. } | Action::SecretDiscoveryImport { .. } => {
+                    self.secret_reconcile(&mut request)?;
+                    continue;
+                }
+                Action::SecretShare { .. } => {
+                    self.secret_share_interrupted(&mut request)?;
+                    continue;
+                }
+                Action::SecretMountConfig { .. }
+                | Action::SecretMountRead { .. }
+                | Action::SecretSsh { .. }
+                | Action::SecretSshBinding { .. }
+                | Action::SecretProcess { .. }
+                | Action::SecretUse { .. }
+                | Action::SecretPolicy { .. } => {
                     self.secret_reconcile(&mut request)?;
                     continue;
                 }
@@ -1204,6 +1389,14 @@ impl Client {
     /// Read the operation behind a request for display.
     fn approval_detail(&self, action: &Action, check_files: bool) -> Result<Json> {
         Ok(match action {
+            Action::SecretDiscoveryImport { plan } => json!(plan),
+            Action::SecretPackageImport { selection } => self.secret_package_detail(selection)?,
+            Action::SecretShare { id, digest } => self.secret_share_detail(id, digest)?,
+            Action::SecretMountConfig { config } => json!(config),
+            Action::SecretMountRead { plan } => json!(plan),
+            Action::SecretSsh { plan } => json!(plan),
+            Action::SecretSshBinding { binding } => json!(binding),
+            Action::SecretProcess { plan } => plan.view(),
             Action::SecretPolicy { change } => json!(change),
             Action::SecretUse { plan } => plan.view(),
             Action::Attest {
@@ -1312,6 +1505,14 @@ impl Client {
             "source": request.source,
             "kind": request.action.class(),
             "type": match &request.action {
+                Action::SecretDiscoveryImport { .. } => "secret_discovery_import",
+                Action::SecretPackageImport { .. } => "secret_package_import",
+                Action::SecretShare { .. } => "secret_share",
+                Action::SecretMountConfig { .. } => "secret_mount_config",
+                Action::SecretMountRead { .. } => "secret_mount_read",
+                Action::SecretSsh { .. } => "secret_ssh",
+                Action::SecretSshBinding { .. } => "secret_ssh_binding",
+                Action::SecretProcess { .. } => "secret_process",
                 Action::SecretPolicy { .. } => "secret_policy",
                 Action::SecretUse { .. } => "secret_use",
                 Action::Attest { .. } | Action::AttestAction { .. } => "attest",
@@ -1339,6 +1540,7 @@ impl Client {
             "error": request.error,
             "file_check": request.file_check,
             "result": request.secret_result,
+            "delivery_report": request.delivery_report,
             "reviewed_at": request.reviewed_at,
             "detail": detail,
         }))

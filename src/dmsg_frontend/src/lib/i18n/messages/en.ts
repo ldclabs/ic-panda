@@ -1,4 +1,10 @@
 const en = {
+  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Receiving here uses a download session. Importing in dMsg uses a separate session.",
+  "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.",
+  "Save attachment": "Save attachment",
+  "Notes": "Notes",
+  "Reveal": "Reveal",
+  "Secret snapshot fully verified.": "Secret snapshot fully verified.",
   'Certified principal document': 'Certified principal document',
   'These details come from the same certified identity document read by agents. The account publishes its own claims.':
     'These details come from the same certified identity document read by agents. The account publishes its own claims.',

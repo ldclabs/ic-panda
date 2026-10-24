@@ -24,6 +24,14 @@ export function kindOf(request: any): Label {
     case 'principal':
     case 'grant':
       return 'kindAgent'
+    case 'secret_mount_config':
+    case 'secret_mount_read':
+    case 'secret_share':
+    case 'secret_package_import':
+    case 'secret_discovery_import':
+    case 'secret_ssh':
+    case 'secret_ssh_binding':
+    case 'secret_process':
     case 'secret_use':
     case 'secret_policy':
       return 'secretUses'
@@ -100,6 +108,14 @@ export function titleOf(request: any): Title {
       if (s?.profile === 'app_action') return { label: 'appAction' }
       return { label: s?.content?.sha256 ? 'signFile' : 'newStatement' }
     }
+    case 'secret_mount_config': return { label: 'secretMountConfig' }
+    case 'secret_mount_read': return { label: 'secretMountRead' }
+    case 'secret_share': return { label: 'secretShare' }
+    case 'secret_package_import': return { label: 'secretPackageImport' }
+    case 'secret_discovery_import': return { label: 'secretDiscoveryImport' }
+    case 'secret_ssh': return { label: 'secretSsh' }
+    case 'secret_ssh_binding': return { label: 'secretSshBinding' }
+    case 'secret_process': return { label: 'secretProcess' }
     case 'secret_use':
       return { label: 'secretUse' }
     case 'secret_policy':
@@ -145,6 +161,14 @@ export function summaryOf(request: any): string {
   switch (request?.type) {
     case 'connect':
       return `${d.app_id ?? ''} · ${d.origin ?? ''}`
+    case 'secret_mount_config': return String(d.input?.project_label ?? '')
+    case 'secret_mount_read': return String(d.entry?.relative_path ?? '')
+    case 'secret_share': return String(d.title ?? '')
+    case 'secret_package_import': return String(d.preview?.title ?? '')
+    case 'secret_discovery_import': return String(d.scan?.root ?? '')
+    case 'secret_ssh': return String(d.binding?.fingerprint ?? '')
+    case 'secret_ssh_binding': return String(d.fingerprint ?? '')
+    case 'secret_process': return String(d.executable?.path ?? '')
     case 'secret_use':
       return `${d.target?.owner ?? ''}/${d.target?.repo ?? ''} · ${d.arguments?.title ?? ''}`
     case 'secret_policy':

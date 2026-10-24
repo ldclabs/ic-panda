@@ -6,7 +6,9 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, errorText } from '../../rpc'
+  import { bridge, call, errorText } from '../../rpc'
+  import FolderPicker from '../files/FolderPicker.svelte'
+  import {workflowText as w} from '../secrets/workflow-text'
   import { typeIcon, typeOf } from './vault'
 
   /**
@@ -19,6 +21,8 @@
 
   let preview = $state<any>(null)
   let ticked = $state<Set<number>>(new Set())
+  let attachments = $state<Set<string>>(new Set())
+  let folder=$state('root'), folders=$state<any[]>([]), folderPicker=$state(false)
   let busy = $state(false)
   let error = $state('')
   let generation = 0
@@ -28,8 +32,9 @@
   $effect(() => {
     if (!open) {
       generation += 1
+      folderPicker=false;folder='root';folders=[]
       preview = null
-      ticked = new Set()
+      ticked = new Set(); attachments = new Set()
       error = ''
       void window.dmsg.vaultImportCancel().catch(() => {})
     }
@@ -45,7 +50,7 @@
     const current = ++generation
     busy = true
     preview = null
-    ticked = new Set()
+    ticked = new Set(); attachments = new Set()
     error = ''
     try {
       const read = await bridge<any>(() => window.dmsg.vaultImportPreview())
@@ -73,13 +78,13 @@
     busy = true
     error = ''
     try {
-      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(session, [...ticked]))
+      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(session, [...ticked], [...attachments].filter((id) => preview.attachments.some((a: any) => a.entry_id === id && ticked.has(a.item_index))), folder))
       if (current === generation) open = false
       toast(() => t('imported', { n: added.ids.length }), { ms: 8000 })
     } catch (e) {
       if (current === generation && open) {
         preview = null
-        ticked = new Set()
+        ticked = new Set(); attachments = new Set()
         error = errorText(e)
       }
     } finally {
@@ -102,7 +107,7 @@
         <span class="min-w-0 flex-1"></span>
         <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={choose} data-testid="vault-import-rechoose">{t('chooseExport')}</button>
         <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (ticked = new Set(preview.items.map((i: any) => i.index)))}>{t('selectAll')}</button>
-        <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (ticked = new Set())}>{t('selectNone')}</button>
+        <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => {ticked = new Set(); attachments = new Set()}}>{t('selectNone')}</button>
       </div>
       <ul class="grid max-h-[50vh] gap-0.5 overflow-y-auto rounded-xl border border-line p-1" data-testid="vault-import-items">
         {#each preview.items as entry (entry.index)}
@@ -117,6 +122,13 @@
           </li>
         {/each}
       </ul>
+      {#each preview.omissions ?? [] as omission}
+        <p class="text-xs text-warn">#{omission.source_item_index}: {omission.category} · {omission.reason}</p>
+      {/each}
+      {#each preview.attachments ?? [] as a}
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!a.supported || !ticked.has(a.item_index) || busy} checked={attachments.has(a.entry_id)} onchange={(event) => { const next=new Set(attachments); if(event.currentTarget.checked) next.add(a.entry_id); else next.delete(a.entry_id); attachments=next }} />{a.name} · {a.size} bytes {a.reason ?? ''}</label>
+      {/each}
+      {#if preview.attachments?.length}<p class="text-xs text-warn">{w('localFiles')}</p><p class="text-xs text-warn">{w('filesPermissions')}</p><p class="text-xs">{w('destination')}: {folder==='root'?t('library'):folders.find((f)=>f.id===folder)?.name??folder}</p><button class={buttonClass('secondary','sm')} disabled={busy} onclick={async()=>{const current=generation;try{const tree:any[]=await call('files/tree');if(current===generation && open){folders=tree;folderPicker=true}}catch(e){if(current===generation && open)error=errorText(e)}}}>{w('choose')}</button>{/if}
       {#if preview.incomplete}<p class="text-[12px] text-warn" data-testid="vault-import-incomplete">{t('importIncomplete', { n: preview.incomplete })}</p>{/if}
       <p class="flex items-start gap-1.5 text-[12px] text-warn"><Icon name="warning" class="mt-0.5 shrink-0" />{t('deleteExport')}</p>
     </div>
@@ -130,3 +142,5 @@
     {/if}
   {/snippet}
 </Dialog>
+
+<FolderPicker bind:open={folderPicker} {folders} title={w('destination')} description={w('filesPermissions')} action={w('choose')} onPick={(selected)=>folder=selected} />

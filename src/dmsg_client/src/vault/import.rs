@@ -30,6 +30,11 @@ pub struct Imported {
     pub skipped: usize,
     /// Imported entries that also contain unsupported data.
     pub incomplete: usize,
+    /// Per-source item data omitted or requiring explicit attachment selection.
+    pub omissions: Vec<Omission>,
+    /// Indexed, explicitly selectable archive members.
+    pub attachments: Vec<Attachment>,
+    archive: Option<Zeroizing<Vec<u8>>>,
 }
 
 /// What an import would add, without hidden values.
@@ -43,8 +48,61 @@ pub struct Preview {
     pub skipped: usize,
     /// Entries whose attachments, history, passkeys or other fields were omitted.
     pub incomplete: usize,
+    /// Per-source item data omitted or requiring explicit attachment selection.
+    pub omissions: Vec<Omission>,
+    /// Indexed, explicitly selectable archive members.
+    pub attachments: Vec<Attachment>,
     /// The items, in the export's order.
     pub items: Vec<PreviewItem>,
+}
+
+/// One source item's unsupported or unselected data, never values.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct Omission {
+    /// Original source position, including invalid/archived entries.
+    pub source_item_index: usize,
+    /// attachment, passkey, history, unknown_field or invalid_item.
+    pub category: String,
+    /// Stable explanation, never copied secret text.
+    pub reason: String,
+}
+
+/// A ZIP member identified by the export's own document metadata.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct Attachment {
+    /// Original source position.
+    pub source_item_index: usize,
+    /// Eligible destination item index, absent for a skipped item.
+    pub item_index: Option<usize>,
+    /// Exact safe archive member name; never used as a destination path.
+    pub entry_id: String,
+    #[serde(skip)]
+    member: String,
+    /// Suggested display name.
+    pub name: String,
+    /// Exact declared size.
+    pub size: u64,
+    /// Can be selected for import.
+    pub supported: bool,
+    /// Stable explanation when unavailable.
+    pub reason: Option<String>,
+}
+
+/// Worker-to-core streaming events. Only Chunk contains plaintext, and is zeroized.
+pub enum AttachmentEvent {
+    /// Start a member for the selected destination item index.
+    Start {
+        /// Index in the selected destination item list.
+        item_index: usize,
+        /// Display name, never a source filesystem path.
+        name: String,
+        /// Exact declared member size.
+        size: u64,
+    },
+    /// At most one file chunk, not logged or serialized.
+    Chunk(Zeroizing<Vec<u8>>),
+    /// Exact length and CRC/EOF were checked.
+    End,
 }
 
 /// One item of a [`Preview`].
@@ -102,6 +160,9 @@ pub fn read(path: &Path) -> Result<Imported> {
         }
     };
     imported.digest = hex::encode(*sha256(&bytes));
+    if imported.format == "1pux" {
+        imported.archive = Some(bytes);
+    }
     Ok(imported)
 }
 
@@ -203,48 +264,143 @@ fn text(value: &Value) -> String {
 
 fn onepux(file: impl Read + Seek) -> Result<Imported> {
     let mut archive = zip::ZipArchive::new(file).map_err(|_| invalid("format"))?;
+    ensure(archive.len() <= 10_000, Error::QuotaExceeded)?;
+    let mut members = std::collections::BTreeMap::new();
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i).map_err(|_| invalid("archive member"))?;
+        let member = entry.name().map_err(|_| invalid("archive name"))?;
+        let name = member.trim_end_matches('/');
+        ensure(
+            !name.is_empty()
+                && !name.contains('\\')
+                && name
+                    .split('/')
+                    .all(|p| !p.is_empty() && p != "." && p != ".." && !p.contains(':'))
+                && entry.enclosed_name().is_some()
+                && entry.unix_mode().is_none_or(|m| m & 0o170000 != 0o120000),
+            invalid("unsafe archive member"),
+        )?;
+        ensure(
+            members.insert(name.to_owned(), entry.size()).is_none(),
+            invalid("duplicate archive member"),
+        )?;
+    }
     let entry = archive
         .by_name("export.data")
         .map_err(|_| invalid("format"))?;
-    ensure(entry.size() <= MAX_EXPORT, Error::QuotaExceeded)?;
+    let declared = entry.size();
+    ensure(declared <= MAX_EXPORT, Error::QuotaExceeded)?;
     let mut data = Zeroizing::new(Vec::new());
     entry
-        .take(MAX_EXPORT + 1)
+        .take(declared + 1)
         .read_to_end(&mut data)
         .map_err(|_| invalid("format"))?;
-    ensure(data.len() as u64 <= MAX_EXPORT, Error::QuotaExceeded)?;
+    ensure(data.len() as u64 == declared, Error::IntegrityFailed)?;
     let json: Value = serde_json::from_slice(&data).map_err(|_| invalid("format"))?;
     let (mut items, mut skipped, mut incomplete) = (Vec::new(), 0, 0);
-    let mut vaults = Vec::new();
+    let mut omissions = Vec::new();
+    let mut attachments = Vec::new();
+    let mut source = 0;
     for account in json["accounts"]
         .as_array()
         .ok_or_else(|| invalid("format"))?
     {
-        vaults.extend(
-            account["vaults"]
-                .as_array()
-                .ok_or_else(|| invalid("format"))?,
-        );
-    }
-    for vault in vaults {
-        for entry in vault["items"].as_array().ok_or_else(|| invalid("format"))? {
-            if entry["state"] == "archived" {
-                skipped += 1;
-                continue;
+        for vault in account["vaults"]
+            .as_array()
+            .ok_or_else(|| invalid("format"))?
+        {
+            for entry in vault["items"].as_array().ok_or_else(|| invalid("format"))? {
+                let source_item_index = source;
+                source += 1;
+                let mut omit = |category: &str, reason: &str| {
+                    omissions.push(Omission {
+                        source_item_index,
+                        category: category.into(),
+                        reason: reason.into(),
+                    })
+                };
+                if entry["state"] == "archived"
+                    || !entry["overview"].is_object()
+                    || !entry["details"].is_object()
+                {
+                    skipped += 1;
+                    omit("invalid_item", "archived_or_invalid");
+                    continue;
+                }
+                let details = &entry["details"];
+                for (key, category) in [("passwordHistory", "history"), ("passkeys", "passkey")] {
+                    if populated(&details[key]) {
+                        omit(category, "not_imported");
+                    }
+                }
+                let before = items.len();
+                let mut omitted = false;
+                let item = onepux_item(entry, &mut omitted);
+                // Document-only items remain eligible when their attachment can be selected.
+                keep(item, &mut items, &mut skipped);
+                if items.len() == before {
+                    omit("invalid_item", "invalid_item");
+                    continue;
+                }
+                let mut documents = Vec::new();
+                if details["documentAttributes"].is_object() {
+                    documents.push(&details["documentAttributes"]);
+                }
+                for section in details["sections"].as_array().into_iter().flatten() {
+                    for field in section["fields"].as_array().into_iter().flatten() {
+                        if field["value"]["file"].is_object() {
+                            documents.push(&field["value"]["file"]);
+                        }
+                    }
+                }
+                for doc in documents {
+                    let name = doc["fileName"].as_str().unwrap_or("");
+                    let id = doc["documentId"].as_str().unwrap_or("");
+                    let path = format!("files/{id}___{name}");
+                    let size = doc["decryptedSize"].as_u64().unwrap_or(u64::MAX);
+                    let supported = !id.is_empty()
+                        && id.len() <= 128
+                        && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+                        && super::super::library::catalog::validate_name(name).is_ok()
+                        && members.get(&path) == Some(&size)
+                        && size <= crate::files::MAX_FILE
+                        && attachments
+                            .iter()
+                            .filter(|a: &&Attachment| a.item_index == Some(before))
+                            .count()
+                            < 20;
+                    attachments.push(Attachment {
+                        source_item_index,
+                        item_index: Some(before),
+                        entry_id: format!("a{}", attachments.len()),
+                        member: path,
+                        name: name.into(),
+                        size,
+                        supported,
+                        reason: (!supported)
+                            .then(|| "missing_invalid_or_oversized_attachment".into()),
+                    });
+                    omit(
+                        "attachment",
+                        if supported {
+                            "requires_explicit_selection"
+                        } else {
+                            "missing_invalid_or_oversized_attachment"
+                        },
+                    );
+                }
+                if populated(&entry["file"]) && !details["documentAttributes"].is_object() {
+                    omit("attachment", "unrecognized_attachment_metadata");
+                }
+                if omitted {
+                    omit("unknown_field", "some_source_features_are_not_imported");
+                }
+                incomplete += usize::from(
+                    omissions
+                        .iter()
+                        .any(|o| o.source_item_index == source_item_index),
+                );
             }
-            if !entry["overview"].is_object() || !entry["details"].is_object() {
-                skipped += 1;
-                continue;
-            }
-            let mut omitted = false;
-            let item = onepux_item(entry, &mut omitted);
-            if omitted && item.notes.is_empty() && item.fields.iter().all(|f| f.value.is_empty()) {
-                skipped += 1;
-                continue;
-            }
-            let before = items.len();
-            keep(item, &mut items, &mut skipped);
-            incomplete += usize::from(omitted && items.len() > before);
         }
     }
     Ok(Imported {
@@ -253,6 +409,9 @@ fn onepux(file: impl Read + Seek) -> Result<Imported> {
         items,
         skipped,
         incomplete,
+        omissions,
+        attachments,
+        archive: None,
     })
 }
 
@@ -307,10 +466,6 @@ fn onepux_field(kind: &str, id: &str) -> &'static str {
 fn onepux_item(entry: &Value, omitted: &mut bool) -> Item {
     let overview = &entry["overview"];
     let details = &entry["details"];
-    *omitted |= ["documentAttributes", "passwordHistory", "passkeys"]
-        .iter()
-        .any(|key| populated(&details[*key]))
-        || populated(&entry["file"]);
     let kind = onepux_kind(entry["categoryUuid"].as_str().unwrap_or_default());
     let seconds = |v: &Value| v.as_u64().and_then(|s| s.checked_mul(1000)).unwrap_or(0);
     let mut item = Item::new(
@@ -470,6 +625,7 @@ fn onepux_item(entry: &Value, omitted: &mut bool) -> Item {
                     );
                     ("concealed", text(&value["privateKey"]))
                 }
+                "file" => continue,
                 "string" | "menu" | "gender" | "creditCardType" => ("text", text(value)),
                 _ => {
                     *omitted |= populated(value);
@@ -515,9 +671,18 @@ fn bitwarden(json: &Value) -> Result<Imported> {
         .map(|f| (text(&f["id"]), text(&f["name"])))
         .collect();
     let (mut items, mut skipped, mut incomplete) = (Vec::new(), 0, 0);
-    for entry in items_json {
+    let mut omissions = Vec::new();
+    for (source_item_index, entry) in items_json.iter().enumerate() {
+        let mut omit = |category: &str, reason: &str| {
+            omissions.push(Omission {
+                source_item_index,
+                category: category.into(),
+                reason: reason.into(),
+            })
+        };
         if populated(&entry["deletedDate"]) {
             skipped += 1;
+            omit("invalid_item", "deleted_source_item");
             continue;
         }
         let kind = match entry["type"].as_u64() {
@@ -528,12 +693,19 @@ fn bitwarden(json: &Value) -> Result<Imported> {
             Some(5) => "ssh",
             _ => {
                 skipped += 1;
+                omit("invalid_item", "unsupported_item_type");
                 continue;
             }
         };
-        let mut omitted = populated(&entry["attachments"])
-            || populated(&entry["passwordHistory"])
-            || populated(&entry["login"]["fido2Credentials"]);
+        for (value, category) in [
+            (&entry["attachments"], "attachment"),
+            (&entry["passwordHistory"], "history"),
+            (&entry["login"]["fido2Credentials"], "passkey"),
+        ] {
+            if populated(value) {
+                omit(category, "not_in_imported_copy");
+            }
+        }
         let mut item = Item::new(kind, &text(&entry["name"]), 0);
         item.notes = text(&entry["notes"]);
         item.favorite = entry["favorite"] == true;
@@ -682,7 +854,9 @@ fn bitwarden(json: &Value) -> Result<Imported> {
                 Some(1) => "concealed",
                 Some(0 | 2) => "text",
                 _ => {
-                    omitted |= populated(&field["value"]) || populated(&field["linkedId"]);
+                    if populated(&field["value"]) || populated(&field["linkedId"]) {
+                        omit("unknown_field", "unsupported_custom_field_type");
+                    }
                     continue;
                 }
             };
@@ -697,7 +871,15 @@ fn bitwarden(json: &Value) -> Result<Imported> {
         }
         let before = items.len();
         keep(item, &mut items, &mut skipped);
-        incomplete += usize::from(omitted && items.len() > before);
+        if items.len() == before {
+            omit("invalid_item", "invalid_item");
+        }
+        incomplete += usize::from(
+            items.len() > before
+                && omissions
+                    .iter()
+                    .any(|o| o.source_item_index == source_item_index),
+        );
     }
     Ok(Imported {
         digest: String::new(),
@@ -705,6 +887,9 @@ fn bitwarden(json: &Value) -> Result<Imported> {
         items,
         skipped,
         incomplete,
+        omissions,
+        attachments: vec![],
+        archive: None,
     })
 }
 
@@ -779,15 +964,32 @@ fn csv(text: &str) -> Result<Imported> {
         invalid("format"),
     )?;
     let (mut items, mut skipped) = (Vec::new(), 0);
-    for row in rows {
+    let mut omissions = Vec::new();
+    let mut incomplete = 0;
+    let mapped: std::collections::BTreeSet<_> = [
+        title, url, username, password, otp, notes, tags, favorite, archived, kind, extra,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    for (source_item_index, row) in rows.iter().enumerate() {
+        let mut omit = |category: &str, reason: &str| {
+            omissions.push(Omission {
+                source_item_index,
+                category: category.into(),
+                reason: reason.into(),
+            })
+        };
         if row.len() != header.len() {
             skipped += 1;
+            omit("invalid_item", "row_length_or_archived");
             continue;
         }
         let get = |at: Option<usize>| at.and_then(|i| row.get(i)).map_or("", |s| s.as_str());
         let yes = |at| matches!(get(at).trim().to_lowercase().as_str(), "1" | "true" | "yes");
         if yes(archived) {
             skipped += 1;
+            omit("invalid_item", "row_length_or_archived");
             continue;
         }
         let login = !get(username).is_empty() || !get(password).is_empty() || !get(url).is_empty();
@@ -812,14 +1014,37 @@ fn csv(text: &str) -> Result<Imported> {
         // values. Keep the complete cell concealed; splitting it into
         // lines loses data and can expose a field that was hidden.
         put(&mut item, "", "concealed", "Custom fields", "", get(extra));
+        if row
+            .iter()
+            .enumerate()
+            .any(|(i, v)| !mapped.contains(&i) && !v.is_empty())
+        {
+            omit("unknown_field", "unmapped_csv_columns");
+        }
+        if !get(extra).is_empty() {
+            omit("field_metadata", "custom_field_types_not_in_csv");
+        }
+        let before = items.len();
         keep(item, &mut items, &mut skipped);
+        if items.len() == before {
+            omit("invalid_item", "invalid_item");
+        }
+        incomplete += usize::from(
+            items.len() > before
+                && omissions
+                    .iter()
+                    .any(|o| o.source_item_index == source_item_index),
+        );
     }
     Ok(Imported {
         digest: String::new(),
         format: "csv",
         items,
         skipped,
-        incomplete: 0,
+        incomplete,
+        omissions,
+        attachments: vec![],
+        archive: None,
     })
 }
 
@@ -853,6 +1078,8 @@ impl Imported {
             digest: self.digest.clone(),
             skipped: self.skipped,
             incomplete: self.incomplete,
+            omissions: self.omissions.clone(),
+            attachments: self.attachments.clone(),
             items: self
                 .items
                 .iter()
@@ -869,6 +1096,87 @@ impl Imported {
                 })
                 .collect(),
         }
+    }
+
+    /// Stream explicitly selected attachments from the already hashed source snapshot.
+    /// Run on a blocking worker; `emit` provides bounded backpressure and cancellation.
+    pub fn stream_selected(
+        self,
+        digest_seen: &str,
+        picks: &[usize],
+        attachments: &[String],
+        mut emit: impl FnMut(AttachmentEvent) -> Result<()>,
+    ) -> Result<Vec<Item>> {
+        ensure(self.digest == digest_seen, Error::VersionConflict)?;
+        let chosen: BTreeSet<_> = picks.iter().copied().collect();
+        ensure(
+            chosen.len() == picks.len() && chosen.iter().all(|i| *i < self.items.len()),
+            invalid("picks"),
+        )?;
+        let selected: BTreeSet<_> = attachments.iter().collect();
+        ensure(selected.len() == attachments.len(), invalid("attachments"))?;
+        let candidates = selected
+            .iter()
+            .map(|id| {
+                self.attachments
+                    .iter()
+                    .find(|a| {
+                        &a.entry_id == *id
+                            && a.supported
+                            && a.item_index.is_some_and(|i| chosen.contains(&i))
+                    })
+                    .ok_or_else(|| invalid("attachment selection"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        ensure(
+            candidates.iter().try_fold(0u64, |n, a| {
+                n.checked_add(a.size).ok_or(Error::QuotaExceeded)
+            })? <= 256 * 1024 * 1024,
+            Error::QuotaExceeded,
+        )?;
+        if !candidates.is_empty() {
+            let archive = self
+                .archive
+                .as_ref()
+                .ok_or_else(|| invalid("attachments"))?;
+            let mut zip =
+                zip::ZipArchive::new(Cursor::new(&archive[..])).map_err(|_| invalid("archive"))?;
+            for a in candidates {
+                let item_index = chosen
+                    .iter()
+                    .position(|i| Some(*i) == a.item_index)
+                    .ok_or_else(|| invalid("attachment item"))?;
+                emit(AttachmentEvent::Start {
+                    item_index,
+                    name: a.name.clone(),
+                    size: a.size,
+                })?;
+                let mut file = zip
+                    .by_name(&a.member)
+                    .map_err(|_| invalid("attachment member"))?;
+                let mut remaining = a.size;
+                while remaining > 0 {
+                    let length = remaining.min(crate::files::CHUNK as u64) as usize;
+                    let mut buffer = Zeroizing::new(vec![0; length]);
+                    file.read_exact(&mut buffer)
+                        .map_err(|_| Error::IntegrityFailed)?;
+                    remaining -= length as u64;
+                    emit(AttachmentEvent::Chunk(buffer))?;
+                }
+                let mut extra = [0];
+                ensure(
+                    file.read(&mut extra).map_err(|_| Error::IntegrityFailed)? == 0,
+                    Error::IntegrityFailed,
+                )?;
+                emit(AttachmentEvent::End)?;
+            }
+        }
+        Ok(self
+            .items
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i, item)| chosen.contains(&i).then_some(item))
+            .collect())
     }
 
     /// Select the preview's items after checking the source file's digest.

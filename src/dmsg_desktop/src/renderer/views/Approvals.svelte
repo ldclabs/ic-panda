@@ -11,7 +11,7 @@
   import Grants from './approvals/Grants.svelte'
   import Requests from './approvals/Requests.svelte'
   import Sign from './approvals/Sign.svelte'
-  import Secrets from './secrets/Policies.svelte'
+  import Workflows from './secrets/Workflows.svelte'
 
   /**
    * Signatures and approvals in parts: the requests waiting, running and
@@ -141,7 +141,7 @@
         {:else if tab === 'bundles'}
           <Bundles {history} {known} {unlocked} {open} />
         {:else if tab === 'secrets'}
-          <Secrets {open} />
+          <Workflows {open} />
         {:else}
           <Grants {requests} />
         {/if}

@@ -1,0 +1,85 @@
+import { locale } from '../../i18n/index.svelte'
+const rows = `
+workflows|Developer workflows|开发工作流|Рабочие процессы|مسارات المطوّر|Flux de développement|Flujos de desarrollo
+mounts|Secret files|机密文件|Секретные файлы|ملفات سرية|Fichiers secrets|Archivos secretos
+ssh|SSH and Git|SSH 与 Git|SSH и Git|SSH و Git|SSH et Git|SSH y Git
+health|Health and discovery|健康与发现|Проверка и поиск|الفحص والاكتشاف|État et détection|Estado y detección
+sharing|Secret snapshots|秘密快照|Снимки секретов|لقطات الأسرار|Instantanés secrets|Instantáneas secretas
+receive|Import a snapshot|导入快照|Импорт снимка|استيراد لقطة|Importer un instantané|Importar instantánea
+refresh|Refresh|刷新|Обновить|تحديث|Actualiser|Actualizar
+start|Start|启动|Запустить|بدء|Démarrer|Iniciar
+stop|Stop|停止|Остановить|إيقاف|Arrêter|Detener
+revoke|Revoke reads|撤销读取|Отозвать чтение|إلغاء القراءة|Révoquer la lecture|Revocar lectura
+review|Review request|审查请求|Проверить запрос|مراجعة الطلب|Examiner la demande|Revisar solicitud
+project|Project name|项目名称|Имя проекта|اسم المشروع|Nom du projet|Nombre del proyecto
+path|Virtual file path|虚拟文件路径|Путь виртуального файла|مسار الملف الافتراضي|Chemin virtuel|Ruta virtual
+source|Content source|内容来源|Источник|مصدر المحتوى|Source du contenu|Origen del contenido
+field|Vault field|秘密库字段|Поле хранилища|حقل الخزنة|Champ du coffre|Campo de bóveda
+library|Files version|Files 文件版本|Версия файла|نسخة ملف|Version du fichier|Versión del archivo
+refs|Reference-only environment|仅含引用的环境|Среда со ссылками|بيئة مراجع فقط|Environnement de références|Entorno de referencias
+add|Add mapping|添加映射|Добавить|إضافة ربط|Ajouter un fichier|Añadir asignación
+prepare|Choose project and preview|选择项目并预览|Выбрать проект|اختيار مشروع ومعاينة|Choisir le projet|Elegir proyecto y vista previa
+window|File window (seconds)|文件窗口（秒）|Окно файла (сек.)|نافذة الملف بالثواني|Fenêtre du fichier (s)|Ventana del archivo (s)
+sharedWindow|During this window, other programs of the same user can also read this file. The reader cannot be identified.|在此窗口内，同一用户下的其他程序也可能读取这个文件；无法识别具体读取程序。|В этом окне файл доступен другим программам того же пользователя. Программа не определяется.|قد تقرأ برامج المستخدم نفسه هذا الملف خلال النافذة؛ لا يمكن تحديد البرنامج القارئ.|Durant cette fenêtre, les autres programmes du même utilisateur peuvent aussi lire ce fichier. Le lecteur est inconnu.|Durante esta ventana, otros programas del mismo usuario pueden leer el archivo. No se identifica el lector.
+exclude|Exclude the mount and its project aliases from Git, indexing and backups. Copied bytes cannot be recalled.|请将挂载目录及项目别名排除于 Git、索引和备份；已经复制的字节无法收回。|Исключите путь из Git, индексации и резервирования. Копии нельзя отозвать.|استبعد الربط وروابطه من Git والفهرسة والنسخ الاحتياطي؛ لا يمكن استرداد النسخ.|Excluez le montage de Git, de l’indexation et des sauvegardes. Les copies ne sont pas récupérables.|Excluya el montaje de Git, índices y copias de seguridad. Las copias no se pueden recuperar.
+local|This device only. Every operation still requires its own approval.|仅本设备有效；每次操作仍需单独批准。|Только это устройство. Каждая операция требует одобрения.|على هذا الجهاز فقط؛ كل عملية تحتاج موافقة.|Sur cet appareil uniquement. Chaque opération exige une approbation.|Solo en este dispositivo. Cada operación requiere aprobación.
+enable|Request activation|申请启用|Запросить включение|طلب التفعيل|Demander l’activation|Solicitar activación
+disable|Disable|禁用|Отключить|تعطيل|Désactiver|Desactivar
+scan|Choose directory to scan|选择扫描目录|Выбрать папку|اختيار مجلد للفحص|Choisir le dossier|Elegir carpeta para analizar
+partial|The scan is incomplete. Unlisted files have not been declared safe.|扫描未完成；未列出的文件不代表安全。|Проверка неполная. Остальные файлы не признаны безопасными.|الفحص غير مكتمل؛ عدم ظهور ملف لا يعني سلامته.|Analyse incomplète ; les fichiers absents ne sont pas déclarés sûrs.|Análisis incompleto; los archivos no listados no se consideran seguros.
+scanHint|Only recognized .env and SSH private-key files are reported. Source files are never deleted or rewritten.|仅报告可识别的 .env 与 SSH 私钥文件；不删除或改写源文件。|Ищет распознаваемые .env и SSH-ключи. Исходники не изменяются.|يعرض ملفات .env ومفاتيح SSH المعروفة فقط؛ لا يحذف المصادر أو يعدّلها.|Seuls les .env et clés SSH reconnus sont signalés. Les sources restent intactes.|Solo detecta archivos .env y claves SSH reconocibles. Las fuentes no se modifican.
+import|Request import|申请导入|Запросить импорт|طلب الاستيراد|Demander l’import|Solicitar importación
+dismiss|Dismiss this revision|忽略此版本|Скрыть эту версию|تجاهل هذه النسخة|Ignorer cette version|Ignorar esta versión
+notes|Include notes|包含备注|Включить заметки|تضمين الملاحظات|Inclure les notes|Incluir notas
+hours|Expires in hours|有效小时数|Срок в часах|الصلاحية بالساعات|Durée en heures|Duración en horas
+sessions|Download sessions|下载会话数|Сеансы скачивания|جلسات التنزيل|Sessions de téléchargement|Sesiones de descarga
+password|Optional password|可选密码|Пароль (необязательно)|كلمة مرور اختيارية|Mot de passe facultatif|Contraseña opcional
+copy|Copy link|复制链接|Копировать ссылку|نسخ الرابط|Copier le lien|Copiar enlace
+reconcile|Check original result|核对原结果|Проверить результат|التحقق من النتيجة|Vérifier le résultat|Comprobar resultado
+revokeShare|Revoke share|撤销分享|Отозвать ссылку|إلغاء المشاركة|Révoquer le partage|Revocar enlace
+shareWarning|Recipients can retain plaintext. Session limits are not read counts; revocation cannot recall copies.|接收者可以保存明文。会话次数不是阅读次数；撤销不能收回副本。|Получатели могут сохранить данные. Лимит сеансов не ограничивает чтение копий.|يمكن للمستلمين حفظ النص؛ حد الجلسات ليس عدد القراءات ولا يسترد النسخ.|Le destinataire peut conserver le contenu. Les limites ne comptent pas les lectures et la révocation ne rappelle pas les copies.|Los destinatarios pueden conservar el contenido. Los límites cuentan sesiones, no lecturas; revocar no elimina copias.
+link|Paste the full share link|粘贴完整分享链接|Вставить полную ссылку|لصق رابط المشاركة الكامل|Coller le lien complet|Pegar el enlace completo
+preview|Receive and verify|领取并校验|Получить и проверить|استلام وتحقق|Recevoir et vérifier|Recibir y verificar
+localFiles|Attachments remain local until explicitly backed up. The new copy does not follow the sender’s changes.|附件仅保存在本机，需另行备份；新副本不跟随发送者更新。|Вложения локальны до резервирования. Копия не обновляется отправителем.|تبقى المرفقات محلية حتى نسخها احتياطياً؛ النسخة لا تتبع تحديثات المرسل.|Les pièces jointes restent locales sans sauvegarde explicite. La copie ne suit pas les modifications de l’expéditeur.|Los adjuntos permanecen locales hasta guardarlos en copia de seguridad. La copia no sigue cambios del remitente.
+rotation|Credential rotation|凭据轮换|Ротация ключа|تدوير بيانات الاعتماد|Rotation d’identifiant|Rotación de credenciales
+reported|Upstream revocation is owner-reported, not independently verified.|上游撤销由用户报告，未被独立验证。|Отзыв на сервере заявлен владельцем, не проверен.|إلغاء المصدر أبلغ عنه المالك ولم يُتحقق منه مستقلاً.|La révocation amont est déclarée par le propriétaire, pas vérifiée indépendamment.|La revocación en origen es declarada por el propietario, sin verificación independiente.
+activity|Device activity|本设备活动|Действия устройства|نشاط الجهاز|Activité de l’appareil|Actividad del dispositivo
+
+item|Vault item|秘密条目|Запись хранилища|عنصر الخزنة|Élément du coffre|Elemento de bóveda
+choose|Choose…|请选择…|Выбрать…|اختر…|Choisir…|Elegir…
+unavailable|Unavailable on this device|此设备不可用|Недоступно на устройстве|غير متاح على هذا الجهاز|Indisponible sur cet appareil|No disponible en este dispositivo
+invalidRefs|Use one NAME=dmsg-secret:// reference per line.|每行应为 NAME=dmsg-secret:// 引用。|Одна ссылка NAME=dmsg-secret:// на строку.|مرجع NAME=dmsg-secret:// واحد لكل سطر.|Une référence NAME=dmsg-secret:// par ligne.|Una referencia NAME=dmsg-secret:// por línea.
+prepareSnapshot|Preview snapshot|预览快照|Просмотр снимка|معاينة اللقطة|Aperçu de l’instantané|Vista previa de instantánea
+sessionNotice|Receiving here uses a download session. Receiving in the browser first uses a separate session.|在此领取会使用下载会话；先在浏览器领取会另占一次会话。|Получение здесь и в браузере использует отдельные сеансы.|الاستلام هنا وفي المتصفح يستخدم جلستين منفصلتين.|La réception ici et dans le navigateur utilise des sessions distinctes.|Recibir aquí y en el navegador utiliza sesiones distintas.
+activityHint|Records describe this device’s delivery, signatures and publication. They do not prove login success, complete file reads or deletion of copies.|记录描述本设备的交付、签名和发布，不证明登录成功、文件完整读取或副本已删除。|Записи показывают выдачу, подпись и публикацию, не успех входа или удаление копий.|تصف السجلات التسليم والتوقيع والنشر، ولا تثبت نجاح الدخول أو حذف النسخ.|Les traces décrivent la remise, la signature et la publication, sans prouver une connexion ou la suppression des copies.|Los registros describen entrega, firmas y publicación; no prueban acceso exitoso ni eliminación de copias.
+created|Report new credential stored|报告已保存新凭据|Новый ключ сохранён|الإبلاغ عن حفظ اعتماد جديد|Déclarer le nouvel identifiant enregistré|Confirmar credencial nueva guardada
+tested|Report new credential tested|报告已测试新凭据|Новый ключ проверен|الإبلاغ عن اختبار الاعتماد|Déclarer le nouvel identifiant testé|Confirmar credencial probada
+references_checked|Report references reviewed|报告已核查引用|Ссылки проверены|الإبلاغ عن مراجعة المراجع|Déclarer les références vérifiées|Confirmar referencias revisadas
+upstream_revoked|Report old credential revoked upstream|报告旧凭据已在上游撤销|Старый ключ отозван|الإبلاغ عن إلغاء الاعتماد القديم|Déclarer l’ancien identifiant révoqué|Confirmar credencial anterior revocada
+secret_mount_config|Save device-local file mappings|保存本机文件映射|Сохранить локальные файлы|حفظ ربط الملفات المحلي|Enregistrer les fichiers locaux|Guardar asignaciones locales
+secret_mount_read|Authorize a file read|授权文件读取|Разрешить чтение|السماح بقراءة ملف|Autoriser la lecture|Autorizar lectura
+secret_share|Publish selected snapshot|发布所选快照|Опубликовать снимок|نشر اللقطة المحددة|Publier l’instantané sélectionné|Publicar instantánea seleccionada
+secret_package_import|Import selected snapshot content|导入所选快照内容|Импортировать выбранное|استيراد المحتوى المحدد|Importer le contenu sélectionné|Importar contenido seleccionado
+secret_discovery_import|Import selected local files|导入所选本地文件|Импортировать локальные файлы|استيراد الملفات المحلية المحددة|Importer les fichiers sélectionnés|Importar archivos seleccionados
+mountReadWarning|The exact versions below are authorized for a fixed interval. Later reads may fail after revocation; already returned bytes cannot be recalled.|仅授权下面列出的固定版本和时限。撤销后后续读取可能失败，已返回的字节无法收回。|Разрешены указанные версии и срок. Полученные байты не отзываются.|يُسمح بالنسخ والمدة المحددة؛ لا يمكن استرداد البايتات المسلمة.|Seules ces versions et cette durée sont autorisées. Les octets reçus ne peuvent être repris.|Solo se autorizan estas versiones y plazo. Los bytes entregados no pueden recuperarse.
+alias|Optional project-root alias (never overwrites a file)|可选项目根目录别名（不覆盖文件）|Псевдоним в корне проекта (без замены)|اسم رابط في جذر المشروع (دون استبدال)|Alias à la racine (sans écrasement)|Alias en raíz del proyecto (sin sobrescribir)
+policies|Agent use policies|Agent 使用策略|Политики агента|سياسات الوكيل|Politiques de l’agent|Políticas del agente
+
+sshEnableWarning|Enable the selected public key. Each signature still requires separate approval.|启用所选公钥；每次签名仍需单独批准。|Включить выбранный ключ; каждую подпись нужно одобрить.|تفعيل المفتاح المحدد؛ كل توقيع يحتاج موافقة منفصلة.|Activer la clé sélectionnée ; chaque signature exige une approbation.|Activar la clave seleccionada; cada firma requiere aprobación.
+sshSignWarning|Return this signature only to the original socket. Disconnecting or changing the key invalidates the request.|仅向原 socket 返回本次签名；断连或密钥变更使请求失效。|Подпись выдаётся исходному соединению; разрыв или смена ключа отменяет запрос.|يُعاد التوقيع للاتصال الأصلي فقط؛ الانقطاع أو تغيير المفتاح يبطل الطلب.|La signature revient au socket initial ; déconnexion ou changement de clé invalide la demande.|La firma se devuelve al socket original; desconexión o cambio de clave invalida la solicitud.
+gitWarning|Git signing checks the protocol, git namespace and digest. It does not independently verify the commit contents.|Git 签名核对协议、git namespace 和摘要，未独立核对提交原文。|Проверяются протокол, область git и хеш, а не содержимое коммита.|يفحص البروتوكول ونطاق git والملخص، لا محتوى الالتزام مستقلاً.|Vérifie le protocole, l’espace git et le condensat, pas le contenu du commit indépendamment.|Verifica protocolo, espacio git y resumen, no el contenido del commit de forma independiente.
+hostWarning|Host key verified; this does not verify the DNS hostname.|已验证主机密钥，不证明 DNS 主机名。|Ключ хоста проверен; имя DNS не проверено.|تم التحقق من مفتاح المضيف، لا اسم DNS.|Clé hôte vérifiée, pas le nom DNS.|Clave de host verificada, no el nombre DNS.
+processWarning|This program and its descendants receive credentials. Locking cannot recall them. The executable digest does not verify scripts, libraries or project code.|此程序及其后代将获得凭据；锁定无法收回。可执行文件摘要不验证脚本、依赖库或项目代码。|Программа и её потомки получают данные. Блокировка не отзывает их; хеш не проверяет скрипты и библиотеки.|يحصل البرنامج وتوابعه على الاعتماد؛ القفل لا يسترده والملخص لا يفحص النصوص والمكتبات.|Le programme et ses descendants reçoivent les identifiants. Le verrouillage ne les reprend pas ; le condensat ne vérifie pas les scripts et bibliothèques.|El programa y sus descendientes reciben credenciales. Bloquear no las recupera; el resumen no verifica scripts ni bibliotecas.
+processReceipt|This device records delivery. Exit status is reported by the CLI and does not prove credentials were not copied.|本设备记录只证明交付；退出状态由 CLI 报告，不证明凭据未被复制。|Запись подтверждает выдачу; код выхода сообщает CLI и не доказывает отсутствие копий.|يثبت السجل التسليم؛ حالة الخروج يبلّغها CLI ولا تثبت عدم النسخ.|La trace confirme la remise. Le statut CLI ne prouve pas l’absence de copie.|El registro confirma la entrega. El estado CLI no prueba que no haya copias.
+linuxHandleWarning|This open handle may be inherited or passed to another process. A different open needs a new approval.|该打开句柄可被继承或传递给其他进程；另一次打开需要新的批准。|Этот дескриптор можно унаследовать или передать; новое открытие требует одобрения.|يمكن وراثة هذا المقبض أو تمريره؛ الفتح الجديد يحتاج موافقة.|Ce descripteur peut être hérité ou transmis ; une autre ouverture exige une approbation.|Este descriptor puede heredarse o pasarse; otra apertura requiere aprobación.
+linkUnavailable|This link is no longer available. Check the original result.|链接当前不可用，请核对原结果。|Ссылка недоступна. Проверьте результат.|الرابط غير متاح؛ تحقق من النتيجة.|Lien indisponible. Vérifiez le résultat.|Enlace no disponible. Compruebe el resultado.
+
+destination|Destination Files folder|目标 Files 文件夹|Папка назначения Files|مجلد Files الوجهة|Dossier Files de destination|Carpeta Files de destino
+filesPermissions|Files keep the target folder’s existing Agent permissions. Local-only means not backed up; it does not hide files from authorized Agents.|Files 沿用目标文件夹现有的 Agent 权限。“仅本地”表示未备份，不表示已授权的 Agent 无法读取。|Файлы сохраняют права агентов папки. Локальное хранение не скрывает их от разрешённых агентов.|ترث الملفات صلاحيات الوكلاء للمجلد؛ الحفظ المحلي لا يخفيها عن الوكلاء المخوّلين.|Les fichiers conservent les droits des agents du dossier. Le stockage local ne les masque pas aux agents autorisés.|Los archivos conservan los permisos de agentes de la carpeta. Guardarlos localmente no los oculta a agentes autorizados.
+
+otpSeedWarning|An OTP field shares its seed, allowing future codes to be generated.|OTP 字段分享的是种子，接收者可持续生成验证码。|Поле OTP содержит секрет для генерации будущих кодов.|يشارك حقل OTP البذرة التي تسمح بتوليد رموز لاحقة.|Le champ OTP partage sa graine, permettant de générer les codes futurs.|El campo OTP comparte su semilla, que permite generar códigos futuros.
+privateKeyWarning|A shared SSH private key can authenticate anywhere that key is accepted.|分享 SSH 私钥后，接收者可在接受该密钥的系统上进行身份认证。|Получатель SSH-ключа может входить в системы, принимающие его.|يمكن استخدام مفتاح SSH الخاص للدخول إلى أي نظام يقبله.|La clé SSH privée partagée permet l’authentification partout où elle est acceptée.|La clave SSH privada compartida permite autenticarse donde sea aceptada.
+walletSeedWarning|Wallet seeds and private keys can give recipients control of funds. Revoking this link cannot revoke that control.|钱包种子和私钥可能使接收者控制资金；撤销链接无法撤销这种控制。|Секрет кошелька может дать контроль над средствами; отзыв ссылки не отменяет его.|قد تمنح بذور المحفظة ومفاتيحها التحكم بالأموال؛ إلغاء الرابط لا يلغي ذلك.|Les graines et clés privées peuvent donner le contrôle des fonds ; révoquer le lien ne retire pas ce contrôle.|Las semillas y claves privadas pueden dar control de fondos; revocar el enlace no elimina ese control.
+`.trim().split('\n').map((line) => line.split('|'))
+const dictionary = Object.fromEntries(rows.map(([key, ...values]) => [key, values]))
+export function workflowText(key: string): string { return dictionary[key]?.[Math.max(0, ['en','zh','ru','ar','fr','es'].indexOf(locale()))] ?? key }

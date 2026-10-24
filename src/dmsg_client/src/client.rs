@@ -207,6 +207,10 @@ pub struct Client {
     /// Changes whenever keys are dropped, invalidating in-flight sync work.
     pub(crate) session_generation: u64,
     pub(crate) secret_boot: String,
+    pub(crate) secret_scans: BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>,
+    pub(crate) secret_mount_clock: Option<Arc<dyn crate::secrets::mounts::Clock>>,
+    pub(crate) secret_mount_runtime: BTreeMap<String, crate::secrets::mounts::Runtime>,
+    pub(crate) ssh_connections: BTreeMap<String, crate::secrets::ssh::Connection>,
     pub(crate) secret_active: BTreeMap<String, crate::secrets::run::ActiveUse>,
     pub(crate) config: Config,
     /// The environment's directory.
@@ -524,6 +528,10 @@ impl Client {
             session_generation: 0,
             secret_boot: hex::encode(crate::crypto::random_id()),
             secret_active: BTreeMap::new(),
+            ssh_connections: BTreeMap::new(),
+            secret_mount_runtime: BTreeMap::new(),
+            secret_mount_clock: None,
+            secret_scans: BTreeMap::new(),
             config,
             dir: dir.to_path_buf(),
             secure,
@@ -1081,6 +1089,12 @@ impl Client {
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
         self.secret_abort(None, None);
+        self.ssh_connections.clear();
+        self.secret_mount_runtime.clear();
+        for cancel in self.secret_scans.values() {
+            cancel.store(true, std::sync::atomic::Ordering::Release);
+        }
+        self.secret_scans.clear();
         if self.keys.is_some() || self.login.is_some() {
             self.session_generation = self.session_generation.wrapping_add(1);
         }

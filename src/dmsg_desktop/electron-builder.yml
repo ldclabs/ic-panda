@@ -3,6 +3,8 @@
 # electron-builder.local.cjs, which signs with the keychain's Developer ID and
 # adds the feed when it can; releases use electron-builder.release.cjs, which
 # adds signing, notarization and the feed.
+afterPack: scripts/fskit-after-pack.cjs
+afterSign: scripts/fskit-after-sign.cjs
 appId: net.dmsg.desktop
 productName: dMsg
 directories:
@@ -25,6 +27,7 @@ mac:
   # The bundled dmsg keeps the signature of the release binary, byte for byte.
   signIgnore:
     - /Contents/Resources/runtime/dmsg$
+    - /Contents/Extensions/SecretsFS.appex(/|$)
   category: public.app-category.productivity
   target: [dmg, zip]
   hardenedRuntime: true

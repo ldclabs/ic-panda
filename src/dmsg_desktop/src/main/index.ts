@@ -487,6 +487,34 @@ function cancelImport() {
   importSession += 1
   importing = null
 }
+let secretMountSerial = 0
+let preparedSecretMount: { session: number; epoch: number; params: any } | null = null
+handle('dmsg:secret-scan', 'main', async () => {
+  const session = importSession
+  const selected = await dialog.showOpenDialog(main!, { title: 'Scan selected directory / 扫描所选目录', properties: ['openDirectory'] })
+  if (selected.canceled || !selected.filePaths[0] || session !== importSession) return null
+  return daemon.call('secrets/discovery/start', { path: selected.filePaths[0] })
+})
+handle('dmsg:secret-mount-prepare', 'main', async (_event, input: any, windowMs: number) => {
+  preparedSecretMount = null
+  const session = ++secretMountSerial
+  const epoch = importSession
+  if (!input || typeof input.project_label !== 'string' || !Array.isArray(input.entries)) throw new DaemonError('INVALID_INPUT', 'Mapping')
+  const selected = await dialog.showOpenDialog(main!, { title: 'Choose project directory / 选择项目目录', properties: ['openDirectory'] })
+  if (selected.canceled || !selected.filePaths[0] || epoch !== importSession || session !== secretMountSerial) return null
+  const project = selected.filePaths[0]
+  const params = { input: { project_label: input.project_label, project_directory: project, mount_point: join(project, '.dmsg-secrets'), entries: input.entries, aliases: input.aliases ?? [] }, ...(process.platform === 'darwin' ? { window_ms: windowMs } : {}) }
+  const prepared: any = await daemon.call('secrets/mounts/prepare', params)
+  if (epoch !== importSession || session !== secretMountSerial) return null
+  preparedSecretMount = { session, epoch, params: { ...params, input: prepared.input, source: 'gui' } }
+  return { ...prepared, session }
+})
+handle('dmsg:secret-mount-save', 'main', async (_event, session: number) => {
+  const prepared = preparedSecretMount
+  if (!prepared || prepared.session !== session || prepared.epoch !== importSession || session !== secretMountSerial) throw new DaemonError('VERSION_CONFLICT', 'Mapping preview expired')
+  preparedSecretMount = null
+  return daemon.call('secrets/mounts/save_request', prepared.params)
+})
 handle('dmsg:vault-import-cancel', 'main', cancelImport)
 handle('dmsg:vault-import-preview', 'main', async () => {
   cancelImport()
@@ -504,13 +532,14 @@ handle('dmsg:vault-import-preview', 'main', async () => {
   importing = { path, digest: preview.digest }
   return { ...preview, session }
 })
-handle('dmsg:vault-import', 'main', async (_event, session: number, picks: number[]) => {
+handle('dmsg:vault-import', 'main', async (_event, session: number, picks: number[], attachments: string[] = [], folder = 'root') => {
   if (!importing || session !== importSession) throw new DaemonError('VERSION_CONFLICT', 'Preview expired')
-  const chosen = Array.isArray(picks) ? picks.filter((n) => Number.isInteger(n) && n >= 0) : []
+  if (!Array.isArray(picks) || picks.some((n) => !Number.isInteger(n) || n < 0) || !Array.isArray(attachments) || attachments.some((v) => typeof v !== 'string') || typeof folder !== 'string') throw new DaemonError('INVALID_INPUT', 'Import selection')
+  const chosen = picks
   const source = importing
   // Consume before awaiting: two clicks must never submit the same batch twice.
   importing = null
-  return daemon.call('vault/import', { ...source, picks: chosen })
+  return daemon.call('vault/import', { ...source, picks: chosen, attachments, folder })
 })
 /** The text of a QR code, from an image the person picks or the one on the clipboard. */
 handle('dmsg:vault-otp-scan', 'main', async (_event, source: string) => {

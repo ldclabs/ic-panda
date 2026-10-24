@@ -459,3 +459,81 @@ fn omitted_data_is_reported_and_invalid_json_entries_are_not_empty_notes() {
     assert_eq!(imported.incomplete, 3);
     assert_eq!(imported.items.len(), 3);
 }
+
+#[test]
+fn selected_1pux_attachments_are_streamed_and_omissions_are_explicit() {
+    let dir = TempDir::new();
+    let path = dir.0.join("with-files.1pux");
+    let data = serde_json::json!({"accounts":[{"vaults":[{"items":[{"overview":{"title":"Selected"},"details":{"passwordHistory":[{"value":"old-fixture"}],"passkeys":[{"key":"not-imported"}],"documentAttributes":{"documentId":"abc123","fileName":"a.txt","decryptedSize":4}},"categoryUuid":"003"}]}]}]});
+    let mut zip = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
+    let options = zip::write::SimpleFileOptions::default();
+    zip.start_file("export.data", options).unwrap();
+    zip.write_all(data.to_string().as_bytes()).unwrap();
+    zip.start_file("files/abc123___a.txt", options).unwrap();
+    zip.write_all(b"data").unwrap();
+    zip.finish().unwrap();
+    let imported = read(&path).unwrap();
+    let preview = imported.preview(&[]);
+    assert_eq!(preview.attachments.len(), 1);
+    assert!(preview.attachments[0].supported);
+    assert!(preview.omissions.iter().any(|o| o.category == "history"));
+    assert!(preview.omissions.iter().any(|o| o.category == "passkey"));
+    let shown = serde_json::to_string(&preview).unwrap();
+    assert!(!shown.contains("old-fixture"));
+    assert!(!shown.contains("not-imported"));
+    let mut received = Vec::new();
+    let items = imported
+        .stream_selected(
+            &preview.digest,
+            &[0],
+            &[preview.attachments[0].entry_id.clone()],
+            |e| {
+                if let AttachmentEvent::Chunk(b) = e {
+                    received.extend_from_slice(&b);
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert_eq!(received, b"data");
+    assert_eq!(items.len(), 1);
+    assert!(
+        read(&path)
+            .unwrap()
+            .stream_selected("wrong", &[0], &[], |_| Ok(()))
+            .is_err()
+    );
+    assert!(
+        read(&path)
+            .unwrap()
+            .stream_selected(
+                &preview.digest,
+                &[],
+                &[preview.attachments[0].entry_id.clone()],
+                |_| Ok(())
+            )
+            .is_err()
+    );
+    read(&path)
+        .unwrap()
+        .stream_selected(&preview.digest, &[0], &[], |_| {
+            panic!("unselected attachment must not be emitted")
+        })
+        .unwrap();
+}
+
+#[test]
+fn onepux_rejects_archive_paths_and_symbolic_members() {
+    for name in ["../escape", "/absolute", "files/../escape", "files\\escape"] {
+        let dir = TempDir::new();
+        let path = dir.0.join("bad.1pux");
+        let mut zip = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
+        let options = zip::write::SimpleFileOptions::default();
+        zip.start_file("export.data", options).unwrap();
+        zip.write_all(br#"{"accounts":[]}"#).unwrap();
+        zip.start_file(name, options).unwrap();
+        zip.write_all(b"bad").unwrap();
+        zip.finish().unwrap();
+        assert!(read(&path).is_err(), "{name}");
+    }
+}

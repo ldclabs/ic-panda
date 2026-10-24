@@ -156,7 +156,10 @@ fn decorate(c: &mut Client, item: &mut Value, kind: &str, resource: &str) -> Res
             for key in ["name", "source_file", "source_version", "plain_bytes"] {
                 item[key] = metadata[key].clone();
             }
-            if metadata["intent"]["kind"] == "link" {
+            if matches!(
+                metadata["intent"]["kind"].as_str(),
+                Some("link" | "secret_link")
+            ) {
                 let mut record: super::link::LinkRecord =
                     serde_json::from_value(metadata["intent"]["record"].clone())
                         .map_err(|_| Error::IntegrityFailed)?;
@@ -537,6 +540,11 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
                 .ok_or(Error::RecoveryIncomplete)
         })
         .await?;
+    // Secret snapshots are resumed only through their owner approval and original publication journal.
+    ensure(
+        metadata["intent"]["kind"] != "secret_link",
+        Error::Forbidden,
+    )?;
     let links = metadata["intent"]["kind"] == "link";
     let pending: Option<Value> = if links && target.owner_kind == "account" {
         h.with(|c| {

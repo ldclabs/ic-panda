@@ -17,6 +17,7 @@ fn output(command: &mut Command) -> String {
 
 fn main() {
     println!("cargo:rerun-if-changed=swift/Enclave.swift");
+    println!("cargo:rerun-if-changed=swift/FSKitPeer.swift");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }
@@ -34,6 +35,7 @@ fn main() {
             .args(["-swift-version", "5", "-module-name", "DmsgEnclave"])
             .args(["-emit-library", "-static", "-target", &target, "-sdk", sdk])
             .arg("swift/Enclave.swift")
+            .arg("swift/FSKitPeer.swift")
             .arg("-o")
             .arg(out.join("libdmsg_enclave.a")),
     );

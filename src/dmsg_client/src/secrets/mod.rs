@@ -1,7 +1,16 @@
 //! Device-local policies and single-use approvals. No API resolves secret values.
 
+pub mod discovery;
 pub mod github;
+pub mod health;
+pub mod mounts;
+pub mod package;
+pub mod process;
+pub mod receiving;
 pub(crate) mod run;
+pub mod shares;
+pub mod ssh;
+pub mod staging;
 #[cfg(test)]
 mod tests;
 
@@ -23,6 +32,9 @@ const POLICIES: &str = "secret-policies";
 const MAX_POLICIES: usize = 64;
 /// Stable failures, never containing values or upstream response text.
 pub const ERROR_CODES: &[&str] = &[
+    "SSH_KEY_INVALID",
+    "SSH_KEY_PASSPHRASE_REQUIRED",
+    "SSH_ALGORITHM_UNSUPPORTED",
     "SECRET_REFERENCE_INVALID",
     "SECRET_VERSION_STALE",
     "SECRET_POLICY_STALE",

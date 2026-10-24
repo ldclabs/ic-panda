@@ -1,6 +1,12 @@
 import type { Messages } from './en'
 
 export default {
+  "Receiving here uses a download session. Importing in dMsg uses a separate session.": "在此领取会占用下载会话；导入 dMsg 会另占一次会话。",
+  "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "在 dMsg 粘贴链接以导入独立副本；撤销无法删除已保存的副本。",
+  "Save attachment": "保存附件",
+  "Notes": "备注",
+  "Reveal": "查看",
+  "Secret snapshot fully verified.": "秘密快照已完整校验。",
   'Certified principal document': '经认证的身份资料',
   'These details come from the same certified identity document read by agents. The account publishes its own claims.':
     '这些资料来自智能体读取的同一份认证身份文档，内容由账户本人发布。',

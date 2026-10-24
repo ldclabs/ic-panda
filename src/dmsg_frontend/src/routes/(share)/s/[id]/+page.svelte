@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { PACKAGE_MIME, isSecretPackage, parseSecretPackage, attachmentName, type SecretPackage } from '$lib/share/package'
   import { ShareDownload } from '$lib/share/download'
   let downloader: ShareDownload | undefined
+  let alive = true
   import { page } from '$app/state'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
@@ -17,7 +19,7 @@
     type Descriptor,
     type ShareFile
   } from '$lib/share/decrypt'
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
 
   // The share page: the link's fragment (or the password) holds the key,
   // the relay holds ciphertext, and the browser does the opening. The
@@ -34,6 +36,9 @@
   /** The verified manifest reused when a download resumes. */
   let opened: ShareFile | null = null
   let blob = $state<Blob | null>(null)
+  let secretPackage = $state<SecretPackage | null>(null)
+  let visible = $state<Set<string>>(new Set())
+  let showNotes = $state(false)
   let progress = $state({ done: 0, total: 0 })
   let reason = $state('')
   let error = $state('')
@@ -55,6 +60,7 @@
   }
 
   function gone(status: string) {
+    if (!alive) return
     phase = 'gone'
     reason =
       status === 'expired'
@@ -69,6 +75,7 @@
   }
 
   function fail(e: unknown) {
+    if (!alive) return
     if (e instanceof ShareError && e.code === 'WRONG_PASSWORD') {
       phase = 'password'
       error = $t('Wrong password')
@@ -95,7 +102,7 @@
   }
 
   async function fetchBytes(path: string): Promise<Uint8Array> {
-    if (!descriptor) throw new Error('Missing descriptor')
+    if (!alive || !descriptor) throw new ShareError('INTEGRITY_FAILED','page closed')
     downloader ??= new ShareDownload(API_ORIGIN, descriptor)
     return downloader.bytes(path)
   }
@@ -104,6 +111,7 @@
     try {
       if (!/^[0-9a-f]{64}$/.test(shareId)) return gone('missing')
       const found = await fetchDescriptor()
+      if (!alive) return
       if (!found) return gone('missing')
       descriptor = found
       if (found.status !== 'available') return gone(found.status)
@@ -131,7 +139,9 @@
     phase = 'working'
     error = ''
     try {
-      key = await unwrapKey(descriptor.key_wrap, password, shareId)
+      const unlocked = await unwrapKey(descriptor.key_wrap, password, shareId)
+      if(!alive){unlocked.fill(0);return}
+      key = unlocked
       password = ''
       phase = 'ready'
     } catch (e) {
@@ -140,7 +150,7 @@
   }
 
   function save() {
-    if (!blob || !file) return
+    if (!alive || !blob || !file || secretPackage) return
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -149,11 +159,21 @@
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
+  function saveAttachment(index: number) {
+    const attachment = secretPackage?.attachments[index]
+    if (!alive || !attachment) return
+    const url = URL.createObjectURL(new Blob([attachment.bytes as BlobPart], { type: 'application/octet-stream' }))
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = attachmentName(attachment.name); anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
   async function download() {
-    if (!descriptor || !key) return
+    if (!alive || !descriptor || !key || phase==='working') return
     phase = 'working'
     error = ''
     progress = { done: 0, total: descriptor.chunks.length }
+    const chunks: Uint8Array[] = []
+    let whole: Uint8Array | undefined
     try {
       // A retry reuses the verified manifest and the same counted download session.
       const manifest = (opened ??= await openManifest(
@@ -162,9 +182,10 @@
         descriptor.upload_id,
         await fetchBytes('manifest')
       ))
-      const chunks: Uint8Array[] = []
+      if (!alive) return
       for (let i = 0; i < manifest.chunks.length; i++) {
         const bytes = await fetchBytes(`chunks/${i}`)
+        if(!alive || !key)return
         chunks.push(await openChunk(key, manifest, i, bytes))
         progress = { done: i + 1, total: manifest.chunks.length }
       }
@@ -173,18 +194,30 @@
         if (!isEmptyPlaceholder(placeholder))
           throw new ShareError('INTEGRITY_FAILED', 'empty')
       }
-      const whole = await assemble(manifest, chunks)
+      whole = await assemble(manifest, chunks)
+      if (!alive) return
       file = manifest
+      if (manifest.mime === PACKAGE_MIME || isSecretPackage(whole)) {
+        const parsed = await parseSecretPackage(whole)
+        if(!alive){for(const a of parsed.attachments)a.bytes.fill(0);return}
+        secretPackage = parsed
+        whole.fill(0); for (const chunk of chunks) chunk.fill(0)
+        blob = null; phase = 'done'; return
+      }
       blob = new Blob([whole as BlobPart], {
         type: manifest.mime || 'application/octet-stream'
       })
       phase = 'done'
       save()
     } catch (e) {
+      if(!alive)return
       if (e && typeof e === 'object' && 'gone' in e) return gone(String(e.gone))
       fail(e)
+    } finally {
+      whole?.fill(0);for(const chunk of chunks)chunk.fill(0)
     }
   }
+  onDestroy(()=>{alive=false;key?.fill(0);key=null;password='';blob=null;opened=null;file=null;visible=new Set();for(const a of secretPackage?.attachments??[])a.bytes.fill(0);secretPackage=null})
 </script>
 
 <svelte:head>
@@ -254,6 +287,7 @@
           >
         </form>
       {:else if phase === 'ready'}
+        <p class="utility-status">{$t('Receiving here uses a download session. Importing in dMsg uses a separate session.')}</p>
         {#if error}<p class="utility-status error" role="alert">{error}</p>{/if}
         <button class="button primary utility-action" onclick={download}
           >{$t('Download')}</button
@@ -267,6 +301,21 @@
               })
             : $t('Working…')}
         </p>
+      {:else if phase === 'done' && secretPackage}
+        <h2>{secretPackage.item.title}</h2>
+        <p>{$t('Secret snapshot fully verified.')}</p>
+        {#each secretPackage.item.fields as field (field.id)}
+          <div class="facts">
+            <strong>{field.section} · {field.label || field.id}</strong>
+            <button class="button secondary" onclick={() => { const next = new Set(visible); next.has(field.id) ? next.delete(field.id) : next.add(field.id); visible = next }}>{visible.has(field.id) ? $t('Hide') : $t('Reveal')}</button>
+            {#if visible.has(field.id)}<pre style="white-space: pre-wrap; overflow-wrap: anywhere">{field.value}</pre><button class="button secondary" onclick={() => navigator.clipboard.writeText(field.value)}>{$t('Copy')}</button>{/if}
+          </div>
+        {/each}
+        {#if secretPackage.item.notes !== undefined}<button class="button secondary" onclick={() => showNotes = !showNotes}>{$t('Notes')}</button>{#if showNotes}<pre style="white-space: pre-wrap; overflow-wrap: anywhere">{secretPackage.item.notes}</pre>{/if}{/if}
+        {#each secretPackage.attachments as attachment, index}
+          <p>{attachment.name} · {size(attachment.size)} <button class="button secondary" onclick={() => saveAttachment(index)}>{$t('Save attachment')}</button></p>
+        {/each}
+        <p>{$t('Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.')}</p>
       {:else if phase === 'done'}
         <p class="utility-status"
           >{$t('The file checked out and was handed to your browser.')}</p

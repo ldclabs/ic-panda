@@ -153,19 +153,96 @@ impl Daemon {
                     h.with(|c| session.check(c)).await?;
                     return Ok(to_json(&preview));
                 }
-                let items = imported.select(
-                    &text(params, "digest")?,
-                    &parse::<Vec<usize>>(params, "picks")?,
-                )?;
+                let digest = text(params, "digest")?;
+                let picks = parse::<Vec<usize>>(params, "picks")?;
+                let attachments =
+                    optional(params, "attachments", parse::<Vec<String>>)?.unwrap_or_default();
+                let folder = optional(params, "folder", text)?.unwrap_or_else(|| "root".into());
+                use sha2::{Digest, Sha256};
+                let receipt = hex::encode(Sha256::digest(dmsg_client::codec::canonical(&(
+                    "dmsg/external-import/1",
+                    &digest,
+                    &picks,
+                    &attachments,
+                    &folder,
+                ))));
+                if let Some(ids) = h
+                    .with(|c| {
+                        session.check(c)?;
+                        c.secret_import_receipt(&receipt)
+                    })
+                    .await?
+                {
+                    return Ok(
+                        json!({"ids":ids,"attachments":attachments.len(),"files_local_only":true,"duplicate":true}),
+                    );
+                }
+                let (send, mut receive) = tokio::sync::mpsc::channel(1);
+                let worker = tokio::task::spawn_blocking(move || {
+                    imported.stream_selected(&digest, &picks, &attachments, |event| {
+                        send.blocking_send(event).map_err(|_| Error::Expired)
+                    })
+                });
+                let mut staged = Vec::new();
+                let mut links = Vec::new();
+                let mut current = None;
+                while let Some(event) = receive.recv().await {
+                    use import::AttachmentEvent;
+                    match event {
+                        AttachmentEvent::Start {
+                            item_index,
+                            name,
+                            size,
+                        } => {
+                            if current.is_some() {
+                                return Err(Error::IntegrityFailed);
+                            }
+                            let file = h
+                                .with(|c| {
+                                    session.check(c)?;
+                                    c.secret_stage_start(&name, "application/octet-stream", size)
+                                })
+                                .await?;
+                            links.push((item_index, file.id().to_owned()));
+                            current = Some(file);
+                        }
+                        AttachmentEvent::Chunk(bytes) => {
+                            let file = current.as_mut().ok_or(Error::IntegrityFailed)?;
+                            h.with(|c| {
+                                session.check(c)?;
+                                c.secret_stage_part(file, &bytes)
+                            })
+                            .await?;
+                        }
+                        AttachmentEvent::End => {
+                            let mut file = current.take().ok_or(Error::IntegrityFailed)?;
+                            h.with(|c| {
+                                session.check(c)?;
+                                c.secret_stage_finish(&mut file, None)
+                            })
+                            .await?;
+                            staged.push(file);
+                        }
+                    }
+                }
+                let mut items = worker
+                    .await
+                    .map_err(|_| Error::Unavailable("import worker".into()))??;
+                dmsg_types::ensure(current.is_none(), Error::IntegrityFailed)?;
+                for (index, id) in &links {
+                    items
+                        .get_mut(*index)
+                        .ok_or(Error::IntegrityFailed)?
+                        .files
+                        .push(id.clone());
+                }
                 let ids = h
                     .with(|c| {
                         session.check(c)?;
-                        // Keep the atomic insertion: a failed import must not
-                        // leave half of the selected items or their sync jobs.
-                        c.vault_add_all(items)
+                        c.secret_import_commit_once(&receipt, items, staged, &folder)
                     })
                     .await?;
-                return Ok(json!({"ids": ids}));
+                return Ok(json!({"ids":ids,"attachments":links.len(),"files_local_only":true}));
             }
             _ => {}
         }

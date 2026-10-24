@@ -9,6 +9,28 @@ use std::path::PathBuf;
 
 #[derive(Subcommand)]
 pub enum SecretCommand {
+    /// Read-only virtual secret files.
+    #[command(subcommand)]
+    Mount(MountCommand),
+    /// Explicit local discovery.
+    #[command(subcommand)]
+    Discovery(DiscoveryCommand),
+    /// Approved immutable snapshots.
+    #[command(subcommand)]
+    Shares(ShareCommand),
+    /// Receive and import a snapshot.
+    #[command(subcommand)]
+    Packages(PackageCommand),
+    /// Explicit local checks; observations never imply upstream revocation.
+    Health,
+    /// Ignore one current finding only.
+    Dismiss { id: String },
+    /// Owner-reported, ordered credential rotation.
+    #[command(subcommand)]
+    Rotation(RotationCommand),
+    /// Per-use SSH authentication and Git SSH signatures.
+    #[command(subcommand)]
+    Ssh(SshCommand),
     /// Print a current field's canonical reference, without its value.
     Ref { item_id: String, field_id: String },
     /// Device-local policies; saving or deleting requires a separate approval.
@@ -17,6 +39,192 @@ pub enum SecretCommand {
     /// Device-local uses and their known or unknown outcomes.
     #[command(subcommand)]
     Uses(UseCommand),
+}
+
+#[derive(Subcommand)]
+pub enum MountCommand {
+    /// Stop and remove the device configuration, leaving project files untouched.
+    Remove {
+        id: String,
+    },
+    List,
+    /// Inspect a reference-only JSON mapping; no files are created yet.
+    Prepare {
+        path: PathBuf,
+        #[arg(long)]
+        window_ms: Option<u64>,
+    },
+    /// Request approval of the exact mapping and paths.
+    Save {
+        path: PathBuf,
+        #[arg(long)]
+        id: Option<String>,
+        #[arg(long)]
+        base_version: Option<u64>,
+        #[arg(long)]
+        window_ms: Option<u64>,
+    },
+    Start {
+        id: String,
+    },
+    Status {
+        id: String,
+    },
+    Revoke {
+        id: String,
+        #[arg(long)]
+        entry_id: Option<String>,
+    },
+    Stop {
+        id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DiscoveryCommand {
+    /// Cancel an active scan without changing source files.
+    Cancel {
+        scan_id: String,
+    },
+    /// Explicit root only. Never follows links or edits source files.
+    Scan {
+        path: PathBuf,
+    },
+    Status {
+        scan_id: String,
+    },
+    Import {
+        scan_id: String,
+        #[arg(long = "candidate", required = true)]
+        candidates: Vec<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ShareCommand {
+    /// JSON selection contains IDs, revisions and limits; never values or a password.
+    Prepare {
+        path: PathBuf,
+        #[arg(long)]
+        password_stdin: bool,
+    },
+    Request {
+        id: String,
+    },
+    List,
+    Show {
+        id: String,
+    },
+    /// Print access material only after confirmed publication.
+    Link {
+        id: String,
+    },
+    Reconcile {
+        id: String,
+    },
+    Revoke {
+        id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum PackageCommand {
+    /// Read the link from stdin; when --password-stdin, use line 1 for the link and line 2 for its password.
+    Preview {
+        #[arg(long)]
+        password_stdin: bool,
+    },
+    /// JSON contains the package ID/digest and explicit field/attachment selection.
+    Import { path: PathBuf },
+}
+
+fn read_json(path: &std::path::Path) -> Result<Value, Failure> {
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)
+        .map_err(|_| Failure::new("INVALID_INPUT", "selection file"))?
+        .take(262145)
+        .read_to_end(&mut bytes)
+        .map_err(|_| Failure::new("INVALID_INPUT", "selection file"))?;
+    if bytes.len() > 262144 {
+        return Err(Failure::new(
+            "INVALID_INPUT",
+            "selection file exceeds 256 KiB",
+        ));
+    }
+    serde_json::from_slice(&bytes).map_err(|_| Failure::new("INVALID_INPUT", "selection JSON"))
+}
+
+fn stdin_lines() -> Result<zeroize::Zeroizing<String>, Failure> {
+    use std::io::Read;
+    let mut bytes = zeroize::Zeroizing::new(Vec::new());
+    std::io::stdin()
+        .take(16385)
+        .read_to_end(&mut bytes)
+        .map_err(|_| Failure::new("INVALID_INPUT", "standard input"))?;
+    if bytes.len() > 16384 {
+        return Err(Failure::new(
+            "INVALID_INPUT",
+            "standard input exceeds 16 KiB",
+        ));
+    }
+    String::from_utf8(bytes.to_vec())
+        .map(zeroize::Zeroizing::new)
+        .map_err(|_| Failure::new("INVALID_INPUT", "UTF-8 input"))
+}
+
+fn mount_input(path: &std::path::Path) -> Result<Value, Failure> {
+    let mut input = read_json(path)?;
+    let cwd =
+        std::env::current_dir().map_err(|_| Failure::new("UNAVAILABLE", "current directory"))?;
+    for field in ["project_directory", "mount_point"] {
+        let value = input[field]
+            .as_str()
+            .ok_or_else(|| Failure::new("INVALID_INPUT", field))?;
+        let path = std::path::Path::new(value);
+        let path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            cwd.join(path)
+        };
+        input[field] = json!(
+            path.to_str()
+                .ok_or_else(|| Failure::new("INVALID_INPUT", "UTF-8 path"))?
+        );
+    }
+    Ok(input)
+}
+
+#[derive(Subcommand)]
+pub enum RotationCommand {
+    List,
+    Create {
+        item_id: String,
+        field_id: String,
+    },
+    Update {
+        id: String,
+        #[arg(value_parser=["created","tested","references_checked","upstream_revoked"])]
+        step: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SshCommand {
+    Keys,
+    Status,
+    /// Print the socket for SSH_AUTH_SOCK; never changes global SSH/Git config.
+    Socket,
+    Enable {
+        item_id: String,
+        #[arg(long, default_value = "private_key")]
+        field_id: String,
+        #[arg(long = "purpose", required = true)]
+        purposes: Vec<String>,
+    },
+    Disable {
+        id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -65,6 +273,164 @@ pub async fn secrets(
     command: SecretCommand,
 ) -> Result<(), Failure> {
     let (method, params) = match command {
+        SecretCommand::Mount(command) => match command {
+            MountCommand::Remove { id } => ("secrets/mounts/remove", json!({"id":id})),
+            MountCommand::List => ("secrets/mounts/list", json!({})),
+            MountCommand::Prepare { path, window_ms } => (
+                "secrets/mounts/prepare",
+                json!({"input":mount_input(&path)?,"window_ms":window_ms}),
+            ),
+            MountCommand::Save {
+                path,
+                id,
+                base_version,
+                window_ms,
+            } => (
+                "secrets/mounts/save_request",
+                json!({"source":"cli","input":mount_input(&path)?,"id":id,"base_version":base_version,"window_ms":window_ms}),
+            ),
+            MountCommand::Start { id } => ("secrets/mounts/start", json!({"id":id})),
+            MountCommand::Status { id } => ("secrets/mounts/status", json!({"id":id})),
+            MountCommand::Revoke { id, entry_id } => (
+                "secrets/mounts/revoke_reads",
+                json!({"id":id,"entry_id":entry_id}),
+            ),
+            MountCommand::Stop { id } => ("secrets/mounts/stop", json!({"id":id})),
+        },
+        SecretCommand::Discovery(command) => match command {
+            DiscoveryCommand::Cancel { scan_id } => {
+                ("secrets/discovery/cancel", json!({"scan_id":scan_id}))
+            }
+            DiscoveryCommand::Scan { path } => {
+                let path = std::fs::canonicalize(path)
+                    .map_err(|_| Failure::new("INVALID_INPUT", "directory"))?;
+                ("secrets/discovery/start", json!({"path":path}))
+            }
+            DiscoveryCommand::Status { scan_id } => {
+                ("secrets/discovery/status", json!({"scan_id":scan_id}))
+            }
+            DiscoveryCommand::Import {
+                scan_id,
+                candidates,
+            } => (
+                "secrets/discovery/import_request",
+                json!({"source":"cli","scan_id":scan_id,"candidate_ids":candidates}),
+            ),
+        },
+        SecretCommand::Shares(command) => match command {
+            ShareCommand::Prepare {
+                path,
+                password_stdin,
+            } => {
+                let password = if password_stdin {
+                    Some(stdin_lines()?)
+                } else {
+                    None
+                };
+                (
+                    "secrets/shares/prepare",
+                    json!({"input":read_json(&path)?,"password":password.as_ref().map(|s|s.trim_end_matches(['\r','\n']))}),
+                )
+            }
+            ShareCommand::Request { id } => {
+                ("secrets/shares/request", json!({"source":"cli","id":id}))
+            }
+            ShareCommand::List => ("secrets/shares/list", json!({})),
+            ShareCommand::Show { id } => ("secrets/shares/get", json!({"id":id})),
+            ShareCommand::Link { id } => {
+                let result = remote
+                    .call("secrets/shares/get", json!({"id":id,"include_link":true}))
+                    .await?;
+                let link = result["link"]["url"]
+                    .as_str()
+                    .ok_or_else(|| Failure::new("PENDING", "publication is not confirmed"))?;
+                if json_output {
+                    println!("{}", json!({"url":link}));
+                } else {
+                    println!("{link}");
+                }
+                return Ok(());
+            }
+            ShareCommand::Reconcile { id } => ("secrets/shares/reconcile", json!({"id":id})),
+            ShareCommand::Revoke { id } => ("secrets/shares/revoke", json!({"id":id})),
+        },
+        SecretCommand::Packages(command) => match command {
+            PackageCommand::Preview { password_stdin } => {
+                let input = stdin_lines()?;
+                let mut lines = input.lines();
+                let link = lines
+                    .next()
+                    .ok_or_else(|| Failure::new("INVALID_INPUT", "share link on stdin"))?;
+                let password =
+                    if password_stdin {
+                        Some(lines.next().ok_or_else(|| {
+                            Failure::new("INVALID_INPUT", "password on second line")
+                        })?)
+                    } else {
+                        None
+                    };
+                if lines.next().is_some() {
+                    return Err(Failure::new("INVALID_INPUT", "unexpected input lines"));
+                }
+                (
+                    "secrets/packages/import_preview",
+                    json!({"link":link,"password":password}),
+                )
+            }
+            PackageCommand::Import { path } => (
+                "secrets/packages/import_request",
+                json!({"source":"cli","selection":read_json(&path)?}),
+            ),
+        },
+        SecretCommand::Health => ("secrets/health", json!({})),
+        SecretCommand::Dismiss { id } => ("secrets/health/dismiss", json!({"id":id})),
+        SecretCommand::Rotation(command) => match command {
+            RotationCommand::List => ("secrets/rotation/list", json!({})),
+            RotationCommand::Update { id, step } => {
+                ("secrets/rotation/update", json!({"id":id,"step":step}))
+            }
+            RotationCommand::Create { item_id, field_id } => {
+                let r = remote
+                    .call(
+                        "secrets/ref",
+                        json!({"item_id":item_id,"field_id":field_id}),
+                    )
+                    .await?;
+                (
+                    "secrets/rotation/create",
+                    json!({"reference":r["reference"]}),
+                )
+            }
+        },
+        SecretCommand::Ssh(command) => match command {
+            SshCommand::Keys => ("secrets/ssh/keys", json!({})),
+            SshCommand::Status => ("secrets/ssh/status", json!({})),
+            SshCommand::Socket => {
+                let status = remote.call("secrets/ssh/status", json!({})).await?;
+                let socket = status["socket"]
+                    .as_str()
+                    .ok_or_else(|| Failure::new("UNAVAILABLE", "SSH socket unavailable"))?;
+                println!("{socket}");
+                return Ok(());
+            }
+            SshCommand::Disable { id } => ("secrets/ssh/disable", json!({"id":id})),
+            SshCommand::Enable {
+                item_id,
+                field_id,
+                purposes,
+            } => {
+                let r = remote
+                    .call(
+                        "secrets/ref",
+                        json!({"item_id":item_id,"field_id":field_id}),
+                    )
+                    .await?;
+                (
+                    "secrets/ssh/binding_request",
+                    json!({"source":"cli","reference":r["reference"],"purposes":purposes}),
+                )
+            }
+        },
         SecretCommand::Ref { item_id, field_id } => (
             "secrets/ref",
             json!({"item_id":item_id,"field_id":field_id}),

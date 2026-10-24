@@ -16,6 +16,8 @@ axum = { workspace = true, features = ["http1", "json", "tokio", "ws"] }
 base64.workspace = true
 bytes.workspace = true
 candid.workspace = true
+cap-std = "4.0.3"
+cap-fs-ext = "4.0.3"
 chrono.workspace = true
 clap.workspace = true
 dav-server.workspace = true
@@ -41,10 +43,16 @@ tokio-tungstenite = { workspace = true, features = [
 toml.workspace = true
 zeroize.workspace = true
 
+[target.'cfg(target_os = "linux")'.dependencies]
+fuse3 = { version = "0.9.0", default-features = false, features = ["tokio-runtime", "unprivileged"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 # The macOS mount goes through NetFS, whose API takes Core Foundation values.
 core-foundation = "0.10"
-libc = "0.2"
+
 
 # `build.rs` reads the Swift toolchain's library paths on macOS.
 [build-dependencies]

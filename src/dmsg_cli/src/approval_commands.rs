@@ -300,6 +300,14 @@ fn render(request: &Value) -> String {
         ));
     }
     match request["type"].as_str() {
+        Some("secret_ssh" | "secret_ssh_binding") => {
+            lines.push(row("SSH", "SSH", "Original connection only; Git verifies namespace and digest, not commit contents. 主机指纹不证明 DNS 主机名。"));
+            lines.push(row("request", "请求", pretty(d)));
+        }
+        Some("secret_process") => {
+            lines.push(row("delivery", "交付", "Program and descendants; executable digest does not verify scripts/dependencies. 已交付的值无法收回。"));
+            lines.push(row("program", "程序与引用", pretty(d)));
+        }
         Some("secret_use") => {
             // Escape terminal controls while preserving the full business text.
             let field = |value: &Value| {

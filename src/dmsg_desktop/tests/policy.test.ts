@@ -205,3 +205,15 @@ test('wallet invitations navigate only, and structured actions cannot forge huma
   assert.equal(params.source,'gui')
   assert.throws(()=>windowParams('wallet/propose',{intent:{Unfreeze:null}}),(e:any)=>e.code==='FORBIDDEN')
 })
+
+
+test('P1 windows cannot claim CLI values, scan arbitrary paths, or save unreviewed mount paths',()=>{
+  for(const method of ['secrets/run/request','secrets/run/claim','secrets/run/report','secrets/discovery/start','secrets/mounts/prepare','secrets/mounts/save_request']){
+    assert.equal(WINDOW_METHODS.has(method),false,method)
+    assert.throws(()=>windowParams(method,{path:'/private',claim:'fake',human:true}),{code:'FORBIDDEN'})
+  }
+  for(const method of ['secrets/ssh/binding_request','secrets/discovery/import_request','secrets/shares/request','secrets/packages/import_request']){
+    assert.equal(windowParams(method,{source:'cli',human:true}).source,'gui')
+    assert.equal(windowParams(method,{human:true}).human,undefined)
+  }
+})

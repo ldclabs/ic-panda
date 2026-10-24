@@ -506,6 +506,7 @@ impl Cloud {
         )?;
         let http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            .retry(reqwest::retry::never())
             .timeout(Duration::from_secs(30))
             .build()
             .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
@@ -662,6 +663,39 @@ impl Cloud {
             Err(Error::NotFound) => Ok(None),
             Err(error) => Err(error),
         }
+    }
+
+    /// A counted public-share session. POST is idempotent for the same share/session IDs.
+    pub(crate) async fn public_share_session(
+        &self,
+        share: &str,
+        session: &str,
+        renew: bool,
+    ) -> Result<Json> {
+        crate::upload::hex_id(share)?;
+        crate::upload::hex_id(session)?;
+        let path = format!("/public/shares/{share}/downloads/{session}");
+        let url = self
+            .origin
+            .join(&path)
+            .map_err(|_| Error::IntegrityFailed)?;
+        self.exchange(
+            if renew {
+                reqwest::Method::GET
+            } else {
+                reqwest::Method::POST
+            },
+            url,
+            None,
+            None,
+            false,
+        )
+        .await
+        .and_then(Reply::json)
+        .map_err(|e| match e {
+            Error::Unavailable(_) => Error::Unavailable("share session unavailable".into()),
+            e => e,
+        })
     }
 
     /// Hand the relay certified account evidence.

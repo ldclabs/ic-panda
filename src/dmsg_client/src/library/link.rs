@@ -135,11 +135,32 @@ pub fn share_url(login_url: &str, share_id: &str, key: Option<&str>) -> String {
     }
 }
 
+/// Encrypted management relationship; a snapshot never pretends to be a library file.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum LinkSource {
+    /// An explicitly selected library version.
+    FileVersion {
+        /// Original library file.
+        file: String,
+        /// Exact immutable version.
+        version: String,
+    },
+    /// A separately encrypted, immutable Vault snapshot.
+    VaultSnapshot {
+        /// Original Vault item, retained only in sealed owner management.
+        item_id: String,
+        /// Source revision fixed by the share approval.
+        item_revision: String,
+        /// Random independent snapshot identity.
+        snapshot_id: String,
+    },
+}
+
 /// A link this device made.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct LinkRecord {
-    pub(crate) file: String,
-    pub(crate) version: String,
+    pub(crate) source: LinkSource,
     pub(crate) name: String,
     pub(crate) size: u64,
     pub(crate) share_id: String,
@@ -150,6 +171,7 @@ pub(crate) struct LinkRecord {
     pub(crate) max_downloads: u64,
     pub(crate) password: bool,
     pub(crate) created_at: u64,
+    pub(crate) last_checked_at: Option<u64>,
     pub(crate) revoked_at: Option<u64>,
     /// As the relay last reported.
     pub(crate) downloads: u64,
@@ -159,6 +181,8 @@ pub(crate) struct LinkRecord {
 /// `size` are known only on the device that made it.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct LinkView {
+    /// Source relationship when this device can decrypt its management record.
+    pub source: Option<LinkSource>,
     /// Share ID.
     pub share_id: String,
     /// The library file.
@@ -179,6 +203,8 @@ pub struct LinkView {
     pub password: bool,
     /// Unix milliseconds.
     pub created_at: u64,
+    /// Time this device last received cloud state; absent means never observed.
+    pub last_checked_at: Option<u64>,
     /// When it was revoked.
     pub revoked_at: Option<u64>,
     /// `active`, `revoked` or `expired`.
@@ -216,7 +242,7 @@ struct RemotePage {
 }
 
 impl Client {
-    fn link_records(&self) -> Result<Vec<LinkRecord>> {
+    pub(crate) fn link_records(&self) -> Result<Vec<LinkRecord>> {
         let mut records = Vec::new();
         for key in self.workspace.store.sealed_keys(LINK)? {
             if let Some(record) = self.workspace.private::<LinkRecord>(self.keys()?, &key)? {
@@ -231,11 +257,18 @@ impl Client {
             .put_private(self.keys()?, &format!("{LINK}{}", record.share_id), record)
     }
 
-    fn link_view(&self, record: &LinkRecord, now: u64) -> LinkView {
+    pub(crate) fn link_view(&self, record: &LinkRecord, now: u64) -> LinkView {
         LinkView {
             share_id: record.share_id.clone(),
-            file: Some(record.file.clone()),
-            version: Some(record.version.clone()),
+            source: Some(record.source.clone()),
+            file: match &record.source {
+                LinkSource::FileVersion { file, .. } => Some(file.clone()),
+                _ => None,
+            },
+            version: match &record.source {
+                LinkSource::FileVersion { version, .. } => Some(version.clone()),
+                _ => None,
+            },
             name: Some(record.name.clone()),
             size: Some(record.size),
             url: Some(share_url(
@@ -247,6 +280,7 @@ impl Client {
             max_downloads: record.max_downloads,
             password: record.password,
             created_at: record.created_at,
+            last_checked_at: record.last_checked_at,
             revoked_at: record.revoked_at,
             state: if record.revoked_at.is_none()
                 && record.expires_at > now
@@ -263,11 +297,12 @@ impl Client {
 
     /// The shared edition a link hands out, under a new upload of the
     /// account; nothing goes to the relay yet.
-    fn share_edition_upload(
+    pub(crate) fn share_edition_upload(
         &self,
         manifest: FileManifest,
         edition: FileManifest,
         key_wrap: Option<String>,
+        upload_id: Option<String>,
     ) -> Result<Sharing> {
         let key = edition.file_key()?;
         let share_id = edition.id.clone();
@@ -292,7 +327,7 @@ impl Client {
             });
         }
         let now = crate::now_ms();
-        let upload_id = random_hex();
+        let upload_id = upload_id.unwrap_or_else(random_hex);
         let manifest_bytes = seal_bytes(
             &key,
             &canonical(&ShareFile {
@@ -344,16 +379,16 @@ impl Client {
 }
 
 /// A shared edition on its way to a link.
-struct Sharing {
-    base: String,
+pub(crate) struct Sharing {
+    pub(crate) base: String,
     /// The library version shared.
-    manifest: FileManifest,
-    share_id: String,
-    key_wrap: Option<String>,
+    pub(crate) manifest: FileManifest,
+    pub(crate) share_id: String,
+    pub(crate) key_wrap: Option<String>,
     /// The edition's key, base64url.
-    key: String,
-    plan: UploadPlan,
-    manifest_bytes: Vec<u8>,
+    pub(crate) key: String,
+    pub(crate) plan: UploadPlan,
+    pub(crate) manifest_bytes: Vec<u8>,
 }
 
 /// Share a version by link: upload a fresh edition of it as a `share`
@@ -407,14 +442,16 @@ pub async fn share_link<H: Hold>(
         mut plan,
         manifest_bytes,
     } = h
-        .with(|c| c.share_edition_upload(manifest, edition, key_wrap))
+        .with(|c| c.share_edition_upload(manifest, edition, key_wrap, None))
         .await?;
     let upload_id = plan.upload_id.clone();
     let now = crate::now_ms();
     let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
     let link = LinkRecord {
-        file: id.into(),
-        version: manifest.version.clone(),
+        source: LinkSource::FileVersion {
+            file: id.into(),
+            version: manifest.version.clone(),
+        },
         name: manifest.name.clone(),
         size: manifest.size,
         share_id: share_id.clone(),
@@ -424,6 +461,7 @@ pub async fn share_link<H: Hold>(
         max_downloads,
         password: password.is_some(),
         created_at: now,
+        last_checked_at: None,
         revoked_at: None,
         downloads: 0,
     };
@@ -524,12 +562,14 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
             match records.iter_mut().find(|r| r.share_id == entry.share_id) {
                 Some(record) => {
                     record.downloads = entry.downloads;
+                    record.last_checked_at = Some(now);
                     record.revoked_at = entry.revoked_at;
                     c.save_link(record)?;
                     views.push(c.link_view(record, now));
                 }
                 None => views.push(LinkView {
                     share_id: entry.share_id,
+                    source: None,
                     file: None,
                     version: None,
                     name: None,
@@ -539,6 +579,7 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
                     max_downloads: entry.max_downloads,
                     password: entry.password,
                     created_at: entry.created_at,
+                    last_checked_at: Some(now),
                     revoked_at: entry.revoked_at,
                     state: if entry.revoked_at.is_none()
                         && entry.expires_at > now
@@ -586,11 +627,13 @@ pub async fn share_revoke<H: Hold>(h: &H, share_id: &str) -> Result<LinkView> {
             // The relay's answer counts no downloads; the record keeps the
             // last count it reported.
             record.revoked_at = revoked_at;
+            record.last_checked_at = Some(now);
             c.save_link(&record)?;
             return Ok(c.link_view(&record, now));
         }
         Ok(LinkView {
             share_id: share_id.into(),
+            source: None,
             file: None,
             version: None,
             name: None,
@@ -600,6 +643,7 @@ pub async fn share_revoke<H: Hold>(h: &H, share_id: &str) -> Result<LinkView> {
             max_downloads: revoked["max_downloads"].as_u64().unwrap_or(0),
             password: revoked["password"].as_bool().unwrap_or(false),
             created_at: revoked["created_at"].as_u64().unwrap_or(0),
+            last_checked_at: Some(now),
             revoked_at,
             state: "revoked",
             downloads: revoked["downloads"].as_u64().unwrap_or(0),

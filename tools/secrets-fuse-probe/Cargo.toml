@@ -1,0 +1,9 @@
+[package]
+name = "dmsg-secrets-fuse-probe"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[workspace]
+[target.'cfg(target_os = "linux")'.dependencies]
+fuser = { version = "0.16", default-features = false, features = ["abi-7-31"] }
+libc = "0.2"

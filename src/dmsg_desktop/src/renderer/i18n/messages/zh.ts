@@ -2,6 +2,14 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    secretProcess: "向程序交付凭据",
+    secretSsh: "授权一次 SSH/Git 签名",
+    secretSshBinding: "在本设备启用 SSH 密钥",
+    secretMountConfig: "保存机密文件映射",
+    secretMountRead: "授权文件读取",
+    secretShare: "发布秘密快照",
+    secretPackageImport: "导入所选快照内容",
+    secretDiscoveryImport: "导入所选本地文件",
     secretUses: "凭据使用",
     secretPolicy: "变更凭据使用策略",
     secretUse: "创建 GitHub issue",

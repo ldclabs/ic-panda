@@ -16,7 +16,7 @@ const status = () => ({ state: 'unlocked', account, device_id: '33'.repeat(32), 
 const emit = () => { for (const s of sockets) s.send(JSON.stringify({jsonrpc:'2.0',method:'event',params:{seq:sequence++,type:'approval/changed',data:null}})) }
 const makeRequest = (type, detail) => {
   const r = {id:(sequence++).toString(16).padStart(64,'0'),source:type==='secret_use'?`agent:${actor}`:'gui',type,kind:'secret',risk:'high',state:'awaiting_user',created_at:Date.now(),expires_at:Date.now()+300000,updated_at:Date.now(),digest:'dd'.repeat(32),detail}
-  requests.set(r.id,r);return r
+  r.digest=r.id;requests.set(r.id,r);return r
 }
 const methods = {
   'app/initialize': () => ({protocol:'dmsg-app/1',status:status()}),
@@ -24,7 +24,7 @@ const methods = {
   'profile/show': () => null, 'profile/pending': () => null,
   'channel/list': () => [], 'attest/history': () => [], 'grants/list': () => [],
   'vault/templates': () => ({types:[],templates:{}}),
-  'vault/list': () => [{id:item,deleted:false,item:{type:'api',title:'GitHub credential',tags:[],fields:[{id:'credential',type:'concealed',label:'Token',value:'********'}]}}],
+  'vault/list': () => [{id:item,revision:'44'.repeat(32),deleted:false,item:{type:'api',title:'GitHub credential',tags:[],fields:[{id:'credential',type:'concealed',label:'Token',value:'********'}]}}],
   'agent/ids': () => ({agents:[{agent_id:actor,label:'Builder',paused:false,credential:true}]}),
   'secrets/policies/list': () => ({policies}),
   'secrets/uses/list': () => ({uses,device_local:true}),
@@ -42,6 +42,18 @@ const methods = {
     emit();return r
   }
 }
+Object.assign(methods,{
+  'secrets/mounts/list':()=>({mounts:[],supported:true,platform:'macos'}),
+  'secrets/ssh/keys':()=>({keys:[],bindings:[]}),
+  'secrets/ssh/status':()=>({supported:true,socket:'/synthetic/agent.sock',identities:0}),
+  'secrets/health':()=>({findings:[]}),
+  'secrets/rotation/list':()=>({rotations:[]}),
+  'secrets/shares/list':()=>({shares:[]}),
+  'secrets/shares/prepare':p=>({id:'a1'.repeat(32),state:'prepared',plan:{...p.input,title:'GitHub credential',plain_bytes:300,estimated_ciphertext_bytes:67000,expires_at:Date.now()+86400000,fields:p.input.field_ids.map(id=>({id,type:'concealed',label:'Token'}))}}),
+  'secrets/shares/request':p=>makeRequest('secret_share',{title:'GitHub credential',share_id:'a2'.repeat(32),fields:[{id:'credential',type:'concealed',label:'Token'}],input:{include_notes:false,attachments:[]},expires_at:Date.now()+86400000,max_download_sessions:1}),
+  'secrets/packages/import_preview':()=>({package_id:'a3'.repeat(32),digest:'a4'.repeat(32),preview:{title:'Incoming snapshot',fields:[{id:'f0_credential',type:'concealed',label:'Imported token'}],notes:false,attachments:[]}}),
+  'secrets/packages/import_request':p=>makeRequest('secret_package_import',{selection:p.selection,preview:{title:'Incoming snapshot',fields:[{id:'f0_credential',type:'concealed',label:'Imported token'}]}})
+})
 const server=createServer((_,res)=>res.writeHead(404).end()), wss=new WebSocketServer({noServer:true})
 server.on('upgrade',(req,socket,head)=>{
   if(req.headers.authorization!==`Bearer ${token}`)return socket.destroy()
@@ -61,10 +73,11 @@ const profile=await mkdtemp(join(tmpdir(),'dmsg-secrets-ui-')), shots=resolve('t
 await mkdir(shots,{recursive:true});await writeFile(join(profile,'locale'),'en');await writeFile(join(profile,'appearance'),'light')
 const app=await electron.launch({executablePath:electronPath,args:[resolve('out/main/index.js')],env:{...process.env,DMSG_DESKTOP_TEST:'1',DMSG_DESKTOP_USER_DATA:profile,DMSG_DESKTOP_DAEMON:`http://127.0.0.1:${server.address().port}`,DMSG_DESKTOP_TOKEN:token,DMSG_HOME:join(profile,'home')}})
 async function approve(page) {
+  await app.evaluate(({BrowserWindow})=>{for(const w of BrowserWindow.getAllWindows())w.webContents.setBackgroundThrottling(false)})
   const button=page.getByTestId('approve')
   await button.waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="approve"]')?.disabled)
-  await button.hover();await page.mouse.down();await page.waitForTimeout(1300);await page.mouse.up()
-  await page.waitForSelector('[data-testid="approval-outcome"]')
+  await button.focus();await page.keyboard.down('Space')
+  try {await page.waitForSelector('[data-testid="approval-outcome"]',{timeout:10000})} finally {await page.keyboard.up('Space')}
 }
 try {
   const main=await app.firstWindow();await main.waitForSelector('[data-testid="sidebar-toggle"]',{timeout:20000})
@@ -94,5 +107,39 @@ try {
   assert.equal(calls.filter(c=>c.method==='secrets/policies/save_request').length,1)
   assert.equal(calls.filter(c=>c.method==='vault/reveal').length,0)
   await main.screenshot({path:join(shots,'history.png')})
-  console.log('secrets Electron smoke passed: policy review, full literal body, explicit approval, lost result, manual review, disable and renderer boundary')
+  const workflows=main.getByTestId('secret-workflows')
+  for(const method of ['secrets/run/request','secrets/run/claim','secrets/discovery/start','secrets/mounts/save_request'])await assert.rejects(main.evaluate(method=>window.dmsg.call(method,{}),method),/FORBIDDEN/)
+  await workflows.getByRole('button',{name:'Secret snapshots',exact:true}).click()
+  await workflows.getByLabel('Vault item').selectOption(item)
+  assert.equal(await workflows.getByLabel('Token · concealed').isChecked(),false)
+  await workflows.getByLabel('Token · concealed').check()
+  await workflows.getByRole('button',{name:'Preview snapshot',exact:true}).click()
+  await workflows.getByRole('button',{name:'Review request',exact:true}).click()
+  await approval.waitForFunction(()=>document.querySelector('[data-testid="secret-review"]')?.textContent.includes('Publish selected snapshot'))
+  assert.match(await approval.getByTestId('secret-review').innerText(),/Recipients can retain plaintext/)
+  const prepared=calls.filter(c=>c.method==='secrets/shares/prepare').at(-1).params.input
+  assert.deepEqual(prepared.field_ids,['credential']);assert.equal(prepared.include_notes,false);assert.deepEqual(prepared.attachments,[])
+  await approve(approval)
+  await workflows.getByRole('button',{name:'Import a snapshot',exact:true}).click()
+  await workflows.getByLabel('Paste the full share link').fill('https://dmsg.test/s/'+ 'a2'.repeat(32)+'#synthetic-test-key')
+  await workflows.getByRole('button',{name:'Receive and verify'}).click()
+  assert.equal(await workflows.getByLabel('Imported token · concealed').isChecked(),false)
+  await workflows.getByLabel('Imported token · concealed').check()
+  await workflows.getByRole('button',{name:'Request import'}).click()
+  await approval.waitForFunction(()=>document.querySelector('[data-testid="secret-review"]')?.textContent.includes('Incoming snapshot'))
+  assert.match(await approval.getByTestId('secret-review').innerText(),/Attachments remain local/)
+  await approve(approval)
+  const mount=makeRequest('secret_mount_read',{scope:{type:'macos_file_window',uid:501,window_ms:30000},entry:{relative_path:'.env',size:48,generation:1},versions:['44'.repeat(32)]});emit()
+  await main.evaluate(id=>window.dmsg.openApproval(id),mount.id)
+  await approval.waitForFunction(()=>document.querySelector('[data-testid="secret-review"]')?.textContent.includes('other programs of the same user'))
+  await approval.screenshot({path:join(shots,'mount-window.png')})
+  assert.equal(calls.filter(c=>c.method==='vault/reveal').length,0)
+  await workflows.getByRole('button',{name:'Device activity',exact:true}).click()
+  await workflows.getByText('secret_package_import ·',{exact:false}).waitFor()
+  await main.screenshot({path:join(shots,'p1-workflows.png')})
+  console.log('secrets Electron smoke passed: policy review, full literal body, explicit approval, lost result, manual review, disable, P1 selected share/import, same-user mount warning and renderer boundary')
+} catch(error) {
+  for(const [index,page] of app.windows().entries()) {await page.screenshot({path:join(shots,`failure-${index}.png`)}).catch(()=>{});await writeFile(join(shots,`failure-${index}.txt`),await page.locator('body').innerText().catch(()=>''));console.error('Window',index,page.url(),await page.getByTestId('approve').count())}
+  console.error('Last fixture calls',calls.slice(-12).map(c=>({method:c.method,request:c.params?.id})))
+  throw error
 } finally {await app.close();wss.close();server.close()}

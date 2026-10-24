@@ -2,6 +2,14 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    secretProcess: "Передать данные программе",
+    secretSsh: "Разрешить подпись SSH/Git",
+    secretSshBinding: "Включить SSH-ключ на устройстве",
+    secretMountConfig: "Сохранить секретные файлы",
+    secretMountRead: "Разрешить чтение файла",
+    secretShare: "Опубликовать снимок секрета",
+    secretPackageImport: "Импортировать выбранное",
+    secretDiscoveryImport: "Импортировать локальные файлы",
     secretUses: "Использование учётных данных",
     secretPolicy: "Изменение политики",
     secretUse: "Создать задачу GitHub",

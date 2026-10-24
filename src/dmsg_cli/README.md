@@ -1233,3 +1233,10 @@ interactive terminal with a successful system presence check. Policy changes
 also require approval; disabling is immediate. A `lost` outcome may already
 have created the issue and is never replayed. Tests do not use real GitHub
 credentials; see [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
+
+
+## Secrets P1 开发工作流
+
+实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
+
+CLI 入口：`dmsg run --help`、`dmsg secrets mount --help`、`dmsg secrets ssh --help`、`dmsg secrets shares --help`、`dmsg secrets packages --help`、`dmsg secrets discovery --help`、`dmsg secrets rotation --help`。密码和分享链接通过 stdin 输入，避免写进 shell 历史；普通 JSON 输出不提供已发布链接的密钥，需显式 `secrets shares link`。
