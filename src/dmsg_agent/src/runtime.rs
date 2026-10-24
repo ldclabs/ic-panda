@@ -163,10 +163,6 @@ pub struct DurableMail<'a> {
 
 /// Host-only encryption of a Mail key snapshot.
 pub type MailSealer = Box<dyn Fn(&Value) -> Result<String> + Send + Sync>;
-struct MailCall<'a> {
-    keys: &'a Value,
-    seal: Option<MailSealer>,
-}
 
 /// The connectors of the hosted Agent IDs; each call names the state file
 /// of the workspace it runs for.
@@ -373,10 +369,13 @@ impl Runtime {
     /// configured hosts name: `[{service, profile}]`, or `{service, error}`
     /// where reading failed. A profile is the latest accepted update, its
     /// signature checked here (Agent Profile §8); a service without one
-    /// answers `profile: null`.
+    /// answers `profile: null`. The greatest verified update is pinned in
+    /// the state file at `path`, so no service can roll the display back.
     ///
     /// # Errors
-    /// Returns `Error::InvalidInput` for an invalid Agent ID.
+    /// Returns `Error::InvalidInput` for an invalid Agent ID,
+    /// `Error::IntegrityFailed` for a corrupt pin and `Error::Unavailable`
+    /// when storage fails.
     pub async fn profiles(&self, path: &Path, agent_id: &str) -> Result<Vec<Value>> {
         let id: AgentId = agent_id.parse().map_err(|_| dmsg_types::invalid("agent"))?;
         let _turn = self.turn(agent_id).await;
@@ -550,72 +549,26 @@ impl Runtime {
     }
 
     /// Run one standard tool as `signer`'s Agent ID in `scope`, with the
-    /// mail decryption keys its mailboxes retain (`mail_keys`, as
-    /// [`Called::mail_keys`] returned them).
+    /// mail decryption keys its mailboxes retain (`mail.keys`, as
+    /// [`Called::mail_keys`] returned them). Before each Mail publication
+    /// attempt, the keys sealed by `mail.seal` and the connector state are
+    /// committed together.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for a tool that is not one of the standard
     /// ones, `Error::InvalidInput` for a turn of another Agent ID,
     /// `Error::IntegrityFailed` for keys of another Agent ID or that do not
-    /// match their public keys, and `Error::Unavailable` when storage fails;
-    /// the tool's own refusal is [`Called::outcome`].
+    /// match their public keys, and `Error::Unavailable` when storage or a
+    /// checkpoint fails, which prevents publication; the tool's own refusal
+    /// is [`Called::outcome`].
+    // The upstream persistence hook requires its unboxed SDK error type.
+    #[allow(clippy::result_large_err)]
     pub async fn call(
         &self,
         turn: &Turn,
         scope: Scope<'_>,
         signer: AgentSigner,
-        mail_keys: &Value,
-        tool: &str,
-        input: Value,
-    ) -> Result<Called> {
-        self.call_inner(
-            turn,
-            scope,
-            signer,
-            MailCall {
-                keys: mail_keys,
-                seal: None,
-            },
-            tool,
-            input,
-        )
-        .await
-    }
-
-    /// Run a production call, committing encrypted keys and connector state before Mail publication.
-    /// # Errors
-    /// Returns the errors of `call`; a checkpoint failure prevents network publication.
-    pub async fn call_durable(
-        &self,
-        turn: &Turn,
-        scope: Scope<'_>,
-        signer: AgentSigner,
         mail: DurableMail<'_>,
-        tool: &str,
-        input: Value,
-    ) -> Result<Called> {
-        self.call_inner(
-            turn,
-            scope,
-            signer,
-            MailCall {
-                keys: mail.keys,
-                seal: Some(mail.seal),
-            },
-            tool,
-            input,
-        )
-        .await
-    }
-
-    // The upstream persistence hook requires its unboxed SDK error type.
-    #[allow(clippy::result_large_err)]
-    async fn call_inner(
-        &self,
-        turn: &Turn,
-        scope: Scope<'_>,
-        signer: AgentSigner,
-        mail: MailCall<'_>,
         tool: &str,
         input: Value,
     ) -> Result<Called> {
@@ -639,36 +592,35 @@ impl Runtime {
             .map_err(|_| Error::IntegrityFailed)?;
         let failed = Arc::new(AtomicBool::new(false));
         let checkpoint_changed = Arc::new(AtomicBool::new(false));
-        if let Some(seal) = mail.seal {
-            let checkpoint_conn = conn.clone();
-            let session = scope.session.to_owned();
-            let actor = agent_id.clone();
-            let failure = failed.clone();
-            let changed = checkpoint_changed.clone();
-            connector = connector.with_mail_persistence(move |snapshot, keys| {
-                let commit = || -> Result<()> {
-                    let sealed = seal(keys)?;
-                    let conn = checkpoint_conn.lock().map_err(|_| {
-                        Error::Unavailable("connector checkpoint lock poisoned".into())
-                    })?;
-                    let old = load(&conn, actor.as_str())?;
-                    let written = save_snapshot(
-                        &conn,
-                        &session,
-                        &actor,
-                        snapshot.clone(),
-                        old.as_deref(),
-                        Some(&sealed),
-                    )?;
-                    changed.fetch_or(written, Ordering::SeqCst);
-                    Ok(())
-                };
-                commit().map_err(|_| {
-                    failure.store(true, Ordering::SeqCst);
-                    SdkError::protocol("persistence_failed", "Could not commit the Mail checkpoint")
-                })
-            });
-        }
+        let checkpoint_conn = conn.clone();
+        let session = scope.session.to_owned();
+        let actor = agent_id.clone();
+        let failure = failed.clone();
+        let changed = checkpoint_changed.clone();
+        let seal = mail.seal;
+        connector = connector.with_mail_persistence(move |snapshot, keys| {
+            let commit = || -> Result<()> {
+                let sealed = seal(keys)?;
+                let conn = checkpoint_conn
+                    .lock()
+                    .map_err(|_| Error::Unavailable("connector checkpoint lock poisoned".into()))?;
+                let old = load(&conn, actor.as_str())?;
+                let written = save_snapshot(
+                    &conn,
+                    &session,
+                    &actor,
+                    snapshot.clone(),
+                    old.as_deref(),
+                    Some(&sealed),
+                )?;
+                changed.fetch_or(written, Ordering::SeqCst);
+                Ok(())
+            };
+            commit().map_err(|_| {
+                failure.store(true, Ordering::SeqCst);
+                SdkError::protocol("persistence_failed", "Could not commit the Mail checkpoint")
+            })
+        });
         let outcome = match out_of_reach(scope.reach, &saved, &input) {
             true => Err(SdkError::PermissionDenied),
             false => connector

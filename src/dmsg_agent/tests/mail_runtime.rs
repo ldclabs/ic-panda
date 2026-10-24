@@ -251,6 +251,13 @@ fn no_keys(seed: u8) -> Value {
     json!({"version": 1, "agent_id": agent_id, "keys": {}})
 }
 
+fn mail(keys: &Value) -> DurableMail<'_> {
+    DurableMail {
+        keys,
+        seal: Box::new(|_| Ok("test-only-encrypted-checkpoint".into())),
+    }
+}
+
 /// A call as `seed`'s Agent ID with a key store of one value.
 async fn call(
     Hosted(runtime, path): &Hosted,
@@ -270,7 +277,7 @@ async fn call(
                 reach: None,
             },
             signer,
-            keys,
+            mail(keys),
             tool,
             input,
         )
@@ -418,7 +425,7 @@ fn calls_share_one_discovery_read_per_host() {
                         &turn,
                         scope,
                         AgentSigner::from_seed([1; 32]),
-                        &keys,
+                        mail(&keys),
                         "agent_protocols_rooms_list",
                         input,
                     )
@@ -467,7 +474,7 @@ async fn durable_mail_recovers_after_acceptance_when_final_checkpoint_fails() {
     let calls = Arc::new(AtomicUsize::new(0));
     let count = calls.clone();
     let result = host
-        .call_durable(
+        .call(
             &turn,
             scope,
             AgentSigner::from_seed([41; 32]),
@@ -508,14 +515,11 @@ async fn durable_mail_recovers_after_acceptance_when_final_checkpoint_fails() {
     let Hosted(restored, _) = runtime(&dir, &origin, &[]);
     let turn = restored.turn(actor.as_str()).await;
     let recovered = restored
-        .call_durable(
+        .call(
             &turn,
             scope,
             AgentSigner::from_seed([41; 32]),
-            DurableMail {
-                keys: &keys,
-                seal: Box::new(|_| Ok("test-only-encrypted-checkpoint".into())),
-            },
+            mail(&keys),
             "agent_protocols_mail_sync",
             json!({}),
         )
@@ -560,7 +564,7 @@ async fn checkpoint_failure_before_publication_sends_nothing() {
     let turn = runtime.turn(actor.as_str()).await;
     assert!(
         runtime
-            .call_durable(
+            .call(
                 &turn,
                 Scope {
                     path: &path,
@@ -603,7 +607,7 @@ async fn a_removed_workspace_is_not_recreated_by_a_checkpoint() {
     let actor = AgentSigner::from_seed([43; 32]).agent_id();
     let turn = runtime.turn(actor.as_str()).await;
     let result = runtime
-        .call_durable(
+        .call(
             &turn,
             Scope {
                 path: &path,

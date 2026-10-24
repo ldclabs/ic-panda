@@ -312,6 +312,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 - Every service is in development with development stable layouts, and old experimental instances are not migrated.
 - Local PocketIC regressions, protocol vectors and client unit tests cover the routing, limits and upgrade behaviour described here; there are PocketIC regressions for the registration entry of a second user home and for a second commerce instance.
 - Team wallets are covered by PocketIC (real threshold signatures, hub activation, upgrades and locks, a CMC test double) and by encoders cross-checked against independent libraries; Safe/Squads two-key control and audit-mode attestations are not implemented.
+- The Rust and TypeScript clients use Agent Protocols SDK 0.12.6 and its committed shared vectors: the daemon commits encrypted Mail keys with connector state before each publication and restores interrupted attempts first, persists authenticated mailbox inventory pages, and pins verified owner Profiles; a controller submission may re-sign once after a bounded nonce conflict without changing the approved intent. Canister interfaces and stable layouts are unchanged.
 - Not yet accepted: mainnet deployment with production `key_1`, real funds and wallet paths, end-to-end flows of a signed desktop release with real web applications, private cloud production end-to-end, subnet throughput, scale beyond one million records except for handle, and an external security audit.
 
 ## 12. References
@@ -323,15 +324,4 @@ Each administrative call below accepts the controller or the SNS governance and 
 - [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent_zh.md) (Chinese): the commerce and Agent Delegation contracts.
 - [protocol/wallet_zh.md](protocol/wallet_zh.md) (Chinese): the team wallet contract.
 - The capacity, deployment and operations sections of each canister README (Chinese): measurement methods, reproduction commands and deployment arguments behind the figures above.
-
-## Agent Protocols 0.12.6 integration
-
-The Rust and TypeScript consumers use SDK 0.12.6 and the committed shared fixtures.
-The daemon checkpoints encrypted Mail keys with connector state before publication,
-restores interrupted attempts before later calls, and persists authenticated mailbox
-inventory pages. The owner Profile display retains verified greatest-nonce pins.
-Controller submissions permit one journaled, bounded nonce resynchronization without
-changing the approved intent. The desktop exposes mailbox metadata recovery and
-missing-key/pending-publication state. Canister interfaces and stable layouts are unchanged.
-
-The [review and validation record](dmsg_protocol_alignment_2026-10-24_zh.md) lists the fixed workflows and remaining test limits (Chinese).
+- [dmsg_protocol_alignment_2026-10-24_zh.md](dmsg_protocol_alignment_2026-10-24_zh.md) (Chinese): the Agent Protocols 0.12.6 alignment review, its fixes and remaining test limits.

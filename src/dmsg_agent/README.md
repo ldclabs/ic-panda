@@ -146,14 +146,12 @@ read state or inbox work. The daemon exposes this log as `dmsg.mail.received`.
 
 ## Publication checkpoints and verified profiles
 
-Production daemon calls use `Runtime::call_durable` with a host-only key sealer.
+Every `Runtime::call` takes the host-only key sealer of `DurableMail`.
 Before each Mail publication attempt, the SDK callback encrypts the key snapshot
 and commits it with the connector snapshot in one SQLite transaction. It keeps
 the original database handle, so a concurrent workspace reset cannot recreate
 the removed state file. A failed checkpoint stops publication and leaves the
-last successfully committed checkpoint intact. `Runtime::call` remains for
-callers whose lifetime and key persistence are managed externally; persistent
-daemon hosts must use the durable entry point.
+last successfully committed checkpoint intact.
 
 On restart, the daemon restores the encrypted checkpoint before using the
 connector. It clears the checkpoint only after the returned keys have reached

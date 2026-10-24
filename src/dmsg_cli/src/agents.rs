@@ -845,7 +845,7 @@ impl Daemon {
             };
             let marks_mail = tool == "agent_protocols_mail_list" && input["mark_read"] == true;
             let called = runtime
-                .call_durable(
+                .call(
                     &turn,
                     scope,
                     signer,

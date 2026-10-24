@@ -46,6 +46,13 @@ fn keys() -> Value {
     json!({"version": 1, "agent_id": signer(1).agent_id(), "keys": {}})
 }
 
+fn mail(keys: &Value) -> crate::DurableMail<'_> {
+    crate::DurableMail {
+        keys,
+        seal: Box::new(|_| Ok("test-only-encrypted-checkpoint".into())),
+    }
+}
+
 /// The snapshot the state file keeps for agent 1.
 fn stored(path: &Path) -> Value {
     let conn = rusqlite::Connection::open(path).unwrap();
@@ -214,7 +221,7 @@ async fn call_within(
         reach,
     };
     runtime
-        .call(&turn, scope, signer(1), &keys(), tool, input)
+        .call(&turn, scope, signer(1), mail(&keys()), tool, input)
         .await
         .unwrap()
         .outcome
@@ -285,7 +292,7 @@ fn only_configured_hosts_are_allowed() {
                         reach: None,
                     },
                     signer(1),
-                    &keys(),
+                    mail(&keys()),
                     "agent_protocols_host_add",
                     json!({"host": "https://evil.example"})
                 )
@@ -750,7 +757,7 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
     block_on(async {
         let turn = runtime.turn(signer(1).agent_id().as_str()).await;
         let run = |tool: &'static str, input: Value| {
-            runtime.call(&turn, scope, signer(1), &no_keys, tool, input)
+            runtime.call(&turn, scope, signer(1), mail(&no_keys), tool, input)
         };
         // The seeded snapshot names a host, which the first save drops.
         let identity = "agent_protocols_identity_current";
@@ -773,7 +780,14 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
         .expect("turns of different Agent IDs do not wait");
         assert!(
             runtime
-                .call(&other, scope, signer(1), &no_keys, identity, json!({}))
+                .call(
+                    &other,
+                    scope,
+                    signer(1),
+                    mail(&no_keys),
+                    identity,
+                    json!({})
+                )
                 .await
                 .is_err()
         );
