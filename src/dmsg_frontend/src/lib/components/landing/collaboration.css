@@ -2,92 +2,7 @@
 .home {
   --soft: #557260;
 }
-.home .hero {
-  padding: 30px 0 64px;
-}
-.home .hero-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
-  gap: 14px;
-  align-items: center;
-  margin-bottom: 24px;
-}
-.home .hero h1 {
-  font-size: clamp(40px, 4.15vw, 59px);
-  line-height: 1.08;
-  letter-spacing: -0.05em;
-}
-.home .hero h1 > span {
-  display: block;
-  text-wrap: balance;
-}
-.home .hero h1 > span + span {
-  color: var(--forest);
-}
-.home .hero-copy {
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-  padding-block: 30px;
-}
-.home .hero-kicker {
-  margin-bottom: 24px;
-  font-size: 11px;
-  gap: 8px;
-}
-.home .hero-kicker::after {
-  display: none;
-}
-.home .hero-lead {
-  font-size: 16px;
-  line-height: 1.75;
-  max-width: 470px;
-  margin-top: 25px;
-}
-.home .hero-actions {
-  flex-wrap: wrap;
-  gap: 14px 22px;
-}
-.home .hero-note {
-  font-size: 13px;
-  margin-top: 15px;
-}
-.home .value-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-block: 1px solid var(--line-2);
-  margin-bottom: 34px;
-}
-.home .value-strip a {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px;
-  min-width: 0;
-}
-.home .value-strip a:first-child {
-  padding-inline-start: 0;
-}
-.home .value-strip a + a {
-  border-inline-start: 1px solid var(--line-2);
-}
-.home .value-strip a > .glyph:first-child {
-  color: var(--forest);
-}
-.home .value-strip a > .glyph:last-child {
-  margin-inline-start: auto;
-}
-.home .value-strip strong,
-.home .value-strip small {
-  display: block;
-}
-.home .value-strip strong {
-  font-size: 16px;
-}
-.home .value-strip small {
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 3px;
-}
+
 .home .section {
   padding: 76px 0;
 }
@@ -637,87 +552,20 @@
 .home .closing p {
   font-size: 17px;
 }
-html[lang='zh'] .home .hero h1 {
-  font-size: clamp(36px, 4.1vw, 58px);
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-html[lang='zh'] .home .hero h1 > span {
-  white-space: nowrap;
-}
+
 html[lang='zh'] .home :is(h2, h3, h4) {
   letter-spacing: 0;
 }
 html[lang='zh'] .home .sec-head h2 {
   line-height: 1.35;
 }
-html:is([lang='fr'], [lang='es'], [lang='ru']) .home .hero h1 {
-  font-size: clamp(36px, 3.9vw, 56px);
-}
-html[lang='ar'] .home .hero h1 {
-  letter-spacing: 0;
-  line-height: 1.4;
-  font-size: clamp(36px, 4.2vw, 58px);
-}
+
 @media (max-width: 1050px) {
-  .home .hero-copy {
-    max-width: 760px;
-  }
-  .home .hero h1 {
-    font-size: clamp(42px, 6vw, 64px);
-  }
   .home .network-layout {
     gap: 20px;
   }
 }
 @media (max-width: 760px) {
-  .home .hero {
-    padding: 32px 0 44px;
-  }
-  .home .hero-grid {
-    margin-bottom: 28px;
-  }
-  .home .hero-kicker {
-    font-size: 11px;
-    gap: 6px;
-    letter-spacing: 0.02em;
-  }
-  .home .hero-kicker::after {
-    display: none;
-  }
-  .home .hero h1 {
-    font-size: clamp(35px, 8.5vw, 56px);
-  }
-  html[lang='zh'] .home .hero h1 {
-    font-size: clamp(26px, 7.2vw, 48px);
-  }
-  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar']) .home .hero h1 {
-    font-size: clamp(30px, 7.4vw, 48px);
-  }
-  .home .hero-actions {
-    gap: 12px 18px;
-  }
-  .home .hero-actions .text-link {
-    font-size: 14px;
-  }
-  .home .value-strip {
-    grid-template-columns: minmax(0, 1fr);
-    margin-bottom: 28px;
-  }
-  .home .value-strip a {
-    padding: 12px 0;
-  }
-  .home .value-strip a + a {
-    border-inline-start: 0;
-    border-top: 1px solid var(--line);
-  }
-  .home .value-strip strong {
-    font-size: 15px;
-  }
-  .home .value-strip small {
-    display: inline;
-    font-size: 12px;
-  }
   .home .section {
     padding: 52px 0;
   }
@@ -883,144 +731,119 @@ html[lang='ar'] .home .hero h1 {
 }
 
 /* A living paper illustration of the same gate used by the dMsg brand. */
-.home .hero-art {
-  margin: 0 -20px 0 0;
-  min-width: 0;
-  position: relative;
+
+/* ——— Motion and details ——— */
+/* Sections rise once as they arrive; items in a row follow one another. */
+.home .reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.8s var(--ease),
+    transform 1s var(--ease);
+  transition-delay: calc(var(--i, 0) * 90ms);
 }
-.home .hero-art-scene {
-  position: relative;
+.home .reveal.revealed {
+  opacity: 1;
+  transform: none;
 }
-.home .living-art {
+.home .sec-head.reveal .kicker::after {
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1s var(--ease) 0.25s;
+}
+html[dir='rtl'] .home .sec-head.reveal .kicker::after {
+  transform-origin: right;
+}
+.home .sec-head.revealed .kicker::after {
+  transform: scaleX(1);
+}
+.home .sec-head.reveal h2 .soft {
+  opacity: 0;
+  transition: opacity 1.1s ease 0.35s;
+}
+.home .sec-head.revealed h2 .soft {
+  opacity: 1;
+}
+/* The header marks the section being read. */
+.home .site-header nav a[aria-current='true'] {
+  color: var(--forest);
+}
+.home .site-header nav a[aria-current='true']::after {
+  transform: scaleX(1);
+}
+.home .deep-dive > summary > .glyph {
+  transition: transform 0.3s var(--ease);
+}
+.home .deep-dive > summary:hover > .glyph:first-child {
+  transform: scale(1.15);
+}
+.home .deep-body {
+  animation: fade-up 0.5s var(--ease) both;
+}
+.home .trust-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* The closing mark: its key turns a quarter as the visitor reaches for the
+   download, the mark's only motion. */
+.home .closing-mark {
   display: block;
-  width: 100%;
-  height: auto;
+  width: 38px;
+  height: 44px;
+  margin: 0 auto 28px;
   overflow: visible;
+  fill: var(--forest);
 }
-.home .art-packet {
-  animation: art-travel var(--duration) linear var(--delay) infinite;
-  animation-play-state: paused;
+.home .closing-gem {
+  fill: var(--amber);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.5s cubic-bezier(0.3, 1.45, 0.5, 1);
 }
-.home .art-float {
-  animation: art-hover 7s ease-in-out infinite;
-  animation-play-state: paused;
+.home .closing:has(.button:is(:hover, :focus-visible)) .closing-gem {
+  transform: rotate(90deg);
 }
-.home .art-float-two {
-  animation-delay: -2.7s;
-  animation-duration: 8.2s;
-}
-.home .art-float-three {
-  animation-delay: -5s;
-  animation-duration: 9s;
-}
-.home .hero-art.playing :is(.art-packet, .art-float) {
-  animation-play-state: running;
-}
-.home .hero-art figcaption {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 0 20px 14px;
-  min-height: 44px;
-}
-.home .art-caption {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #53705a;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.home .art-caption i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #b78136;
-}
-.home .art-motion {
-  width: 36px;
-  height: 36px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid #cbd9c8;
-  border-radius: 50%;
-  color: #53705a;
-  background: #f9faf5;
-}
-.home .art-motion:hover {
-  color: #145c45;
-  border-color: #8da98e;
-  background: #eaf1e6;
-}
-.home .hero-art:hover .art-packet {
-  stroke-width: 4.5px;
-}
-@keyframes art-travel {
-  from {
-    stroke-dashoffset: 100;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes art-hover {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-html[dir='rtl'] .home .hero-art {
-  margin: 0 0 0 -20px;
-}
-@media (max-width: 1050px) and (min-width: 801px) {
-  .home .hero-grid {
-    gap: 8px;
-  }
-  .home .hero h1 {
-    font-size: 40px;
-  }
-  html[lang='zh'] .home .hero h1 {
-    font-size: 36px;
-  }
-  html:is([lang='fr'], [lang='es'], [lang='ru']) .home .hero h1 {
-    font-size: 34px;
-  }
-  .home .hero-lead {
-    font-size: 15px;
-  }
-  .home .hero-actions .text-link {
-    font-size: 13px;
-  }
-}
-@media (max-width: 800px) {
-  .home .hero-grid {
+@media (max-width: 1000px) {
+  .home .trust-grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0;
   }
-  .home .hero-copy {
-    padding: 10px 0 0;
-    max-width: 620px;
-  }
-  .home .hero-art,
-  html[dir='rtl'] .home .hero-art {
-    width: min(100% + 24px, 620px);
-    margin: -4px -12px 12px;
-    justify-self: center;
-  }
-  .home .hero-lead {
-    margin-top: 20px;
-    max-width: 600px;
-  }
-  .home .hero-art figcaption {
-    padding-bottom: 0;
+  .home .dark .trust-grid article + article {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+    border-top: 1px solid #426052;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .home .hero-art :is(.art-packet, .art-float) {
-    animation: none !important;
+/* The story: each step eases in; while it plays, the current step fills. */
+.home .story-context,
+.home .story-body {
+  animation: story-in 0.45s var(--ease) both;
+}
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.home .story-steps button {
+  position: relative;
+}
+.home .story-steps button.current.playing {
+  border-color: #b9d3c3;
+}
+.home .story-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -3px;
+  height: 3px;
+  background: var(--forest);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: story-progress 4.5s linear forwards;
+}
+html[dir='rtl'] .home .story-progress {
+  transform-origin: right;
+}
+@keyframes story-progress {
+  to {
+    transform: scaleX(1);
   }
 }

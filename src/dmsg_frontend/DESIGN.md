@@ -208,8 +208,9 @@ intentional implementation refinements: stronger focus and control boundaries,
 44px touch targets, a consistent radius/spacing scale, and explicit feedback
 colors. They are not claims that every existing component already uses them.
 The landing page adds a technical-drawing register on top of this editorial
-base: numbered monospace kickers, figures framed with crop marks and captioned
-“Fig. n”, a faint paper grain, and a blueprint grid on the Ink band.
+base: numbered monospace kickers, figures framed with crop marks and labelled
+as interactive examples with sample data, a faint paper grain, and a
+blueprint grid on the Ink band.
 
 The existing green theme in `src/app.css`, panda assets, and legacy routes are
 compatibility implementation, not the new visual baseline. Scope style migration
@@ -278,15 +279,14 @@ and diagram labels. Amounts use tabular numerals and retain their relevant
 precision. A short address preview must have a way to inspect and copy the full
 value; matching abbreviations are not proof that two addresses are identical.
 
-The landing hero is intentionally oversized: desktop
-`clamp(56px, 6vw, 92px)`, 650 weight, 0.98 line height, and tight tracking,
-with the closing full stops in Forest Green. The cap leaves room for the whole
-hero, Fig. 1 and its caption included, in a 16-inch MacBook's first screen
-(1728 × 960 under the header) in every language. Use the two-line “Your space. /
-Your say.” composition. At the mobile breakpoint, use `clamp(54px, 15vw, 80px)`
-and check the complete heading at 320px. French, Spanish, Russian and Chinese
-have their own smaller scales; this exception belongs to short marketing
-headlines, not dialogs, app navigation, or safety explanations.
+The landing hero is a two-line statement, “Private collaboration. / For people
+and agents.”, the second line in Forest Green: desktop `clamp(40px, 4.15vw,
+59px)`, 650 weight, 1.08 line height and tight tracking, sized so the heading
+and the gatehouse figure share the first screen. At 760px and below use
+`clamp(35px, 8.5vw, 56px)` and check the complete heading at 320px. French,
+Spanish, Russian, Arabic and Chinese have their own scales (`hero.css`); this
+exception belongs to short marketing headlines, not dialogs, app navigation, or
+safety explanations.
 
 Landing section headings scale from 38px to 66px as a two-line statement whose
 second line is softer (`#6B8A78` on Paper, Jade-mint on Ink); policy pages keep
@@ -316,54 +316,42 @@ border to every object.
 
 The landing rhythm is:
 
-1. Editorial hero: kicker and headline on the left, explanation and CTA on the
-   right, then Fig. 1 — the gatehouse, labelled with the headline's own words:
-   who's asking, your space, your say. An AI agent, a website, a teammate and
-   the terminal ask on the left; the mark, drawn large, holds the vault,
-   wallets, the agent's Agent ID (beside the gem), messages and files in its
-   dome; granted work, encrypted messages
-   and the visitor's own commands pass through the gap into a room, and a
-   delegation, a payment, a sign-in or a signature waits there as the amber gem
-   until the visitor decides in the approval window on the right. The gate
-   works both ways: under it, “Out in the open · Agent Protocols” shows four
-   hosts — Agent Discourse, Mail, Knowledge and Delegation — and the agent's
-   replies, letters and notes, signed with its own Agent ID (the room lights
-   as they pass), leave through the gap's lower end on a dashed wire to them,
-   as does a delegation once approved. Below 1061px of figure width the
-   approval window comes before the band, so the visitor decides before
-   anything goes out, and the wire runs past it on a rail. Cards and the
-   approval window keep one height whatever they show: every text a card or
-   window can show shares one cell, all but the current one hidden.
-2. 01 Desktop & command line: Fig. 2 links a desktop window and a terminal
-   through one simulated daemon, followed by three practical notes.
-3. 02 Files: Fig. 3 puts the library on this device beside what the cloud
-   holds; the visitor backs up, trashes, fetches and deletes cloud copies and
-   sees that only Back up uploads and no deletion crosses sides. Four notes:
-   versions, shares under their own key, open and mount, agents' folders.
-4. 03 Team wallets: Fig. 4, a transfer an agent proposed, decided by members
-   under the wallet's policy, then signed by the wallet and broadcast by a
-   member's device. Four notes and the statement that wallets are not yet
-   audited.
-5. 04 AI agents: three verifiable figures, the MCP connect command, Fig. 5 (grant
-   capabilities, run an agent, read the audit record) and the six protocols.
-6. 05 Websites: Fig. 6, the dmsg-connect/1 sequence ending in the approval
-   window, followed by four trust notes.
-7. 06 Privacy (Ink band): Fig. 7 shows what the device, the cloud and ICP each
-   hold for a message the visitor types, then the three boundaries.
-8. 07 Trust evidence: public code, the audit record, recovery, and limitations.
-9. 08 Available now: platforms, download buttons and install commands that
-   follow the latest release, then 09 FAQ, the closing action, and a
-   restrained footer.
+1. Editorial hero: kicker, headline, explanation and CTA on the left; the
+   gatehouse figure on the right (`HeroArt.svelte`, scene in `hero-art.js`).
+   You (desktop and terminal), Mei (a teammate), `release-assistant` (your
+   agent) and a website reaching through `connect.dmsg.net` ask on the left;
+   their traces rise over the post and drop down the gap. The mark, drawn
+   large and flat on its own grid, holds five rooms in its dome: vault, files,
+   channels, team wallets and the agent's Agent ID. The agent network (Agent
+   Mail, Discourse and Knowledge with their hosts) sits on the right; signed
+   messages leave through the gap's lower end on a dashed wire. Under the
+   scene, a log of what passed the gate and the approval window. Then the
+   value strip (the three pillars) and the five-step project story.
+2. 01 The desktop app: the main window with sample data — the sidebar's groups
+   and views in the app's order, the gate rail with a working Lock, and a
+   glance at each view — then six everyday details (command palette, fast
+   unlock, idle lock, light or dark, six languages, the tray) and the desktop
+   and terminal demo.
+3. 02 Private space: vault, files and the lock, with the file library demo.
+4. 03 Collaboration: channels, shared copies, letters and contact rules, and
+   explicit decisions, with the team wallet and website demos.
+5. 04 Agent network: the three protocols, three notes, and the agent demo.
+6. 05 Privacy & trust (Ink band): boundaries, the privacy demo, public code,
+   recovery, the signature verifier, and the statement that no audit exists.
+7. 06 Start with your own space: platforms, downloads and install commands
+   that follow the latest release; then 07 FAQ, the closing action with the
+   mark, and a restrained footer.
 
 Do not compress all capabilities into the first fold. The page should establish
 what dMsg does before asking the reader to interpret its infrastructure.
 
 At approximately 1180px, the agent and wallet figures move their audit record
-below. At 1000px, collapse navigation and two-column headers, and stack the
-file figure's device and cloud panes. Below 900px the desktop
-window and terminal stack. The gate figure follows its own width: below about
-1060px the approval window moves under the gate, and below 720px the askers
-stack above it and share one path into the gap. At 760px and 440px stack the remaining grids. These
+below. At 1000px, collapse navigation and two-column headers, stack the hero,
+and stack the file figure's device and cloud panes. Below 900px the desktop
+window and terminal stack, and the tour's sidebar collapses to icons as the
+app's does. At 560px the gatehouse switches to its narrow scene (the agent
+network moves under the gate, so its text stays readable) and the approval
+window comes before the log. At 760px and 440px stack the remaining grids. These
 are content-driven breakpoints, not device detection. Check 320px, 390px,
 tablet widths, and a 1440px desktop; no horizontal overflow may hide controls.
 
@@ -402,7 +390,7 @@ master. On a 42 × 48 grid, a post 10 units wide and a dome with a 24-unit radiu
 stand 4 units apart. The gap is the gate: nothing reaches the dome except
 through it. The diamond in the gap is the request that waits for you, the same
 amber diamond the figures use for a request that needs approval. It is cut out
-of the post and the dome with a 2.5-unit clearance. Fig. 1 draws the mark at
+of the post and the dome with a 2.5-unit clearance. The hero figure draws the mark at
 figure scale on the master's geometry, with the workspace's rooms in the dome
 and a waiting request lit in the gap; it is a diagram of what the mark means
 and never stands beside the wordmark as a logo.
@@ -421,7 +409,8 @@ Spell the name **dMsg**. Do not use “DMSG” as the marketing wordmark or comb
 it with the historical “ICPanda Message” title in the hero. The wordmark uses
 Inter 800 at 24px with −0.045em tracking, 9px after a 26px-tall mark (22px and
 24px on mobile). Hovering or focusing the header brand gives the diamond one
-quarter turn, like a key; that is the mark's only motion.
+quarter turn, like a key, and so does the closing mark's while the visitor
+points at the download beside it; that is the mark's only motion.
 
 Use one icon family, **Remix Icon**. The landing page inlines its paths
 (`glyphs.ts`) so icons take the text colour; arrow icons mirror in RTL. Use
@@ -448,15 +437,21 @@ success state must follow the corresponding real result. Simulation must be
 clearly identified as simulation.
 
 On the landing page, rich motion is allowed inside working figures, which are
-captioned as simulations: requests drop through the gate's gap into its rooms
-or leave through it to Agent Protocols hosts,
-typed text turns to ciphertext, a terminal types, a sealed envelope rides a
-sequence diagram.
-Nothing in a figure approves on its own: a request waits for the visitor and
-expires if ignored, and buttons never move or pulse. Headlines rise once on
-load; sections fade up once as they enter. Loops run only while their figure is
-on screen and the tab is visible. Elsewhere, motion stays at hover-level
-details.
+captioned as simulations: a packet runs a trace into the gap and across the
+dome to a room, the agent's letter leaves down the gap to a host, a request
+stops at the gem while a ring around it drains, typed text turns to
+ciphertext, a terminal types, a sealed envelope rides a sequence diagram, the
+desktop tour steps through its views. Nothing in a figure approves on its
+own: a request waits for the visitor and expires if ignored; as in the
+approval window, Approve fills for 1.2 seconds before it can be pressed and a
+payment is approved only by holding it for a second; buttons never move or
+pulse. The hero's figure runs on a clock that advances only while it plays,
+so pausing, scrolling away or hiding the tab stops it where it is.
+Headlines rise once on load; sections, notes and figures fade up once as
+they enter; a section's kicker rule draws in and its softer second line
+follows. Loops run only while their figure is on screen and the tab is
+visible. Elsewhere, motion stays at hover-level details: the value strip's
+rule, the header marking the section being read.
 
 Honor `prefers-reduced-motion: reduce`: remove smooth scrolling and decorative
 transitions, keep content visible, and preserve the actual current state. The
@@ -488,10 +483,11 @@ its expanded state, closes on selection/Escape, and returns focus predictably.
 ### Working Figures
 
 A figure is one framed, working example: crop marks at the corners, a white or
-Ink surface, and a monospace caption (“Fig. n”, what it shows, and that it is a
-simulation with sample data). Text inside figures is HTML, never baked into a
-canvas, except decorative ciphertext; a canvas is `aria-hidden` and a
-visually hidden sentence states what it shows.
+Ink surface, and a label saying it is an interactive example with sample data
+and that nothing is sent. Text inside figures is HTML, never baked into a
+canvas, except decorative ciphertext and the labels of the hero's vector
+scene, which the social cards share; a canvas or vector scene is
+`aria-hidden` and the figure's label states what it shows.
 
 Figures follow the product's real rules and names: the approval sources `gui`,
 `cli`, `agent:` and `connect:`; `dmsg` commands and their outputs; `dmsg mcp`
@@ -601,7 +597,8 @@ multi-column footer.
 
 ## Copy & Interaction Integrity
 
-Use task language: **Click it or type it.**, **Your files stay home.
+Use task language: **Everything in one window. Every decision in its own.**,
+**Click it or type it.**, **Your files stay home.
 Backups when you say.**, **No seed phrase. No single signer.**, **Let agents
 work. Keep the keys.**, **No extension. Still your call.**, **Everything asks.
 Only you approve.**, and **Trust you can examine.**
@@ -642,18 +639,18 @@ protocol-heavy presentation from 1Pay.ing.
 ### Component Prompts
 
 > An English dMsg landing page, 1440px wide. Paper canvas with faint grain, Ink
-> text, Inter with monospace kickers and captions. An oversized two-line “Your
-> space. Your say.” headline sits beside a short explanation and CTA. Below it a
-> framed diagram: an AI agent, a website, a teammate and a terminal ask on the
-> left; the dMsg mark, drawn large, holds the vault, wallets, the agent's Agent
-> ID, messages and files in its dome; granted work passes through the gap, and
-> a delegation waits there as the amber gem until the approval window on the
-> right is answered. Under it, the agent's signed messages leave on a dashed
-> wire to four Agent Protocols hosts. Continue into a desktop window beside a terminal, a file library
-> beside what the cloud holds, a team wallet proposal with its policy, an agent
-> capability panel with an audit record, a website request sequence ending in
-> an approval window, a dark privacy band, trust evidence, release status, FAQ
-> and a closing CTA. Aligned rules and crop marks, not a card grid. No invented
+> text, Inter with monospace kickers and captions. A two-line “Private
+> collaboration. / For people and agents.” headline and CTA sit beside a
+> framed diagram: you, a teammate, an agent and a website ask on the left;
+> their traces rise over the dMsg mark, drawn large, and drop into its gap;
+> the dome holds the vault, files, channels, team wallets and the agent's
+> Agent ID; Agent Mail, Discourse and Knowledge wait on the right on a dashed
+> wire. Under it, a log of what passed and an approval window with Reject and
+> Approve. Continue into the desktop app's main window with its sidebar and
+> gate rail, a file library beside what the cloud holds, a team wallet
+> proposal with its policy, an agent capability panel with an audit record, a
+> website request sequence ending in an approval window, a dark privacy band,
+> trust evidence, release status, FAQ and a closing CTA. Aligned rules and crop marks, not a card grid. No invented
 > social proof.
 
 > A dMsg signature review window at 390px wide. White surface, 16px corners,

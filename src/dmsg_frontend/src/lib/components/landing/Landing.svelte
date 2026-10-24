@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
@@ -7,6 +8,7 @@
   import CollaborationStory from './CollaborationStory.svelte'
   import ConnectFlow from './ConnectFlow.svelte'
   import Demo from './Demo.svelte'
+  import DesktopTour from './DesktopTour.svelte'
   import DeviceDuo from './DeviceDuo.svelte'
   import FileLibrary from './FileLibrary.svelte'
   import Glyph from './Glyph.svelte'
@@ -14,9 +16,13 @@
   import AgentNetwork from './AgentNetwork.svelte'
   import TeamWallet from './TeamWallet.svelte'
   import type { GlyphName } from './glyphs'
+  import { MARK } from './hero-art.js'
+  import { reveal } from './motion'
   import './site.css'
   import './home.css'
   import './collaboration.css'
+  import './hero.css'
+  import './tour.css'
 
   const REPO = 'https://github.com/ldclabs/ic-panda'
   // The repository's latest release is always a dmsg-v* release, so these
@@ -69,10 +75,70 @@
   let copyTimer: ReturnType<typeof setTimeout>
 
   const navigation = [
-    { id: 'space', label: 'Private space', glyph: 'lock' },
-    { id: 'collaboration', label: 'Collaboration', glyph: 'members' },
-    { id: 'agents', label: 'Agent network', glyph: 'globe' }
+    { id: 'desktop', label: 'Desktop app' },
+    { id: 'space', label: 'Private space' },
+    { id: 'collaboration', label: 'Collaboration' },
+    { id: 'agents', label: 'Agent network' },
+    { id: 'trust', label: 'Trust' }
   ] as const
+  const pillars = [
+    {
+      id: 'space',
+      label: 'Private space',
+      glyph: 'lock',
+      line: 'Keep what is yours private.'
+    },
+    {
+      id: 'collaboration',
+      label: 'Collaboration',
+      glyph: 'members',
+      line: 'Share the work, on your terms.'
+    },
+    {
+      id: 'agents',
+      label: 'Agent network',
+      glyph: 'globe',
+      line: 'Independent identities. Open connections.'
+    }
+  ] as const
+  const EVERYDAY: {
+    glyph?: GlyphName
+    keys?: string[]
+    title: string
+    text: string
+  }[] = [
+    {
+      keys: ['⌘', 'K'],
+      title: 'Command palette',
+      text: 'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.'
+    },
+    {
+      glyph: 'fingerprint',
+      title: 'Fast unlock',
+      text: 'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.'
+    },
+    {
+      glyph: 'lock',
+      title: 'Locks on its own',
+      text: 'After 15 idle minutes by default, for the app and the command line alike.'
+    },
+    {
+      glyph: 'dark',
+      title: 'Light or dark',
+      text: 'Follows your system, or keeps the look you pick.'
+    },
+    {
+      glyph: 'language',
+      title: 'Six languages',
+      text: 'Arabic lays the windows out right to left; IDs and code keep their order.'
+    },
+    {
+      glyph: 'bell',
+      title: 'Stays in the tray',
+      text: 'Close the window and dMsg keeps running; new requests still reach you.'
+    }
+  ]
+  let section = $state('')
   const questions = $derived([
     [
       $t('Can I use dMsg on my own?'),
@@ -96,6 +162,12 @@
       $t('What stays private, and what goes out?'),
       $t(
         'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.'
+      )
+    ],
+    [
+      $t('Can strangers write to me?'),
+      $t(
+        'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.'
       )
     ],
     [
@@ -137,6 +209,23 @@
   }
 
   $effect(() => () => clearTimeout(copyTimer))
+
+  // The header marks the section in the middle of the screen.
+  onMount(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries)
+          if (entry.isIntersecting) section = entry.target.id
+          else if (section === entry.target.id) section = ''
+      },
+      { rootMargin: '-45% 0px -50% 0px' }
+    )
+    for (const item of navigation) {
+      const target = document.getElementById(item.id)
+      if (target) observer.observe(target)
+    }
+    return () => observer.disconnect()
+  })
 </script>
 
 <svelte:head><meta name="color-scheme" content="light" /></svelte:head>
@@ -154,11 +243,12 @@
         aria-label={$t('Main navigation')}
       >
         {#each navigation as item}
-          <a href="#{item.id}" onclick={() => (menuOpen = false)}
-            >{$t(item.label)}</a
+          <a
+            href="#{item.id}"
+            aria-current={section === item.id ? 'true' : undefined}
+            onclick={() => (menuOpen = false)}>{$t(item.label)}</a
           >
         {/each}
-        <a href="#trust" onclick={() => (menuOpen = false)}>{$t('Trust')}</a>
         <a
           class="mobile-download"
           href="#release"
@@ -218,17 +308,10 @@
           <HeroArt />
         </div>
         <div class="value-strip">
-          {#each navigation as item, i}
+          {#each pillars as item}
             <a href="#{item.id}"
               ><Glyph name={item.glyph} size={20} /><span
-                ><strong>{$t(item.label)}</strong><small
-                  >{$t(
-                    [
-                      'Keep what is yours private.',
-                      'Share the work, on your terms.',
-                      'Independent identities. Open connections.'
-                    ][i]!
-                  )}</small
+                ><strong>{$t(item.label)}</strong><small>{$t(item.line)}</small
                 ></span
               ><Glyph name="arrow-right" size={16} /></a
             >
@@ -238,10 +321,48 @@
       </div>
     </section>
 
+    <section
+      class="section desktop"
+      id="desktop"
+      aria-labelledby="desktop-title"
+    >
+      <div class="wrap">
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>01</b>{$t('The desktop app')}</p>
+          <h2 id="desktop-title"
+            >{$t('Everything in one window.')}<br /><span class="soft"
+              >{$t('Every decision in its own.')}</span
+            ></h2
+          >
+          <p class="sec-lead"
+            >{$t(
+              'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.'
+            )}</p
+          >
+        </header>
+        <div use:reveal><DesktopTour /></div>
+        <ul class="everyday">
+          {#each EVERYDAY as item, i}
+            <li use:reveal style:--i={i}
+              >{#if item.keys}<span class="keys" dir="ltr"
+                  >{#each item.keys as key}<kbd>{key}</kbd>{/each}</span
+                >{:else if item.glyph}<Glyph
+                  name={item.glyph}
+                  size={22}
+                />{/if}<h3>{$t(item.title)}</h3><p>{$t(item.text)}</p></li
+            >
+          {/each}
+        </ul>
+        <Demo id="terminal" title={$t('Try the desktop and command line')}
+          ><DeviceDuo /></Demo
+        >
+      </div>
+    </section>
+
     <section class="section band" id="space" aria-labelledby="space-title">
       <div class="wrap">
-        <header class="sec-head">
-          <p class="kicker"><b>01</b>{$t('Private space')}</p>
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>02</b>{$t('Private space')}</p>
           <h2 id="space-title"
             >{$t('A space of your own.')}<br /><span class="soft"
               >{$t('Useful from day one.')}</span
@@ -254,16 +375,16 @@
           >
         </header>
         <div class="notes">
-          <article
+          <article use:reveal style:--i={0}
             ><Glyph name="vault" size={24} /><h3
               >{$t('Secrets, kept close.')}</h3
             ><p
               >{$t(
-                'API keys, logins, signing keys and notes, encrypted on your device before they sync.'
+                'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.'
               )}</p
             ></article
           >
-          <article
+          <article use:reveal style:--i={1}
             ><Glyph name="folder" size={24} /><h3
               >{$t('Files stay on your computer.')}</h3
             ><p
@@ -272,21 +393,18 @@
               )}</p
             ></article
           >
-          <article
-            ><Glyph name="laptop" size={24} /><h3
-              >{$t('Your workspace, two ways in.')}</h3
+          <article use:reveal style:--i={2}
+            ><Glyph name="lock" size={24} /><h3
+              >{$t('Locked when you step away.')}</h3
             ><p
               >{$t(
-                'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.'
+                'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.'
               )}</p
             ></article
           >
         </div>
         <Demo id="files" title={$t('Explore files and backups')}
           ><FileLibrary /></Demo
-        >
-        <Demo id="desktop" title={$t('Try the desktop and command line')}
-          ><DeviceDuo /></Demo
         >
       </div>
     </section>
@@ -297,8 +415,8 @@
       aria-labelledby="collaboration-title"
     >
       <div class="wrap">
-        <header class="sec-head">
-          <p class="kicker"><b>02</b>{$t('Collaboration')}</p>
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>03</b>{$t('Collaboration')}</p>
           <h2 id="collaboration-title"
             >{$t('Bring your people.')}<br /><span class="soft"
               >{$t('Move the work forward.')}</span
@@ -310,8 +428,8 @@
             )}</p
           >
         </header>
-        <div class="notes">
-          <article
+        <div class="notes four">
+          <article use:reveal style:--i={0}
             ><Glyph name="chat" size={24} /><h3
               >{$t('A conversation with boundaries.')}</h3
             ><p
@@ -320,7 +438,7 @@
               )}</p
             ></article
           >
-          <article
+          <article use:reveal style:--i={1}
             ><Glyph name="link" size={24} /><h3
               >{$t('Share just what is needed.')}</h3
             ><p
@@ -329,7 +447,16 @@
               )}</p
             ></article
           >
-          <article
+          <article use:reveal style:--i={2}
+            ><Glyph name="inbox" size={24} /><h3
+              >{$t('Letters, on your rules.')}</h3
+            ><p
+              >{$t(
+                'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.'
+              )}</p
+            ></article
+          >
+          <article use:reveal style:--i={3}
             ><Glyph name="pen" size={24} /><h3
               >{$t('Important decisions stay explicit.')}</h3
             ><p
@@ -371,8 +498,8 @@
 
     <section class="section band" id="agents" aria-labelledby="agents-title">
       <div class="wrap">
-        <header class="sec-head">
-          <p class="kicker"><b>03</b>{$t('Agent network')}</p>
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>04</b>{$t('Agent network')}</p>
           <h2 id="agents-title"
             >{$t('Your agents, in good company.')}<br /><span class="soft"
               >{$t('Their own identities. Your permissions.')}</span
@@ -384,9 +511,9 @@
             )}</p
           >
         </header>
-        <AgentNetwork />
+        <div use:reveal><AgentNetwork /></div>
         <div class="notes">
-          <article
+          <article use:reveal style:--i={0}
             ><Glyph name="fingerprint" size={24} /><h3
               >{$t('An identity others can verify.')}</h3
             ><p
@@ -395,7 +522,7 @@
               )}</p
             ></article
           >
-          <article
+          <article use:reveal style:--i={1}
             ><Glyph name="shield" size={24} /><h3
               >{$t('Access you can define and revoke.')}</h3
             ><p
@@ -404,7 +531,7 @@
               )}</p
             ></article
           >
-          <article
+          <article use:reveal style:--i={2}
             ><Glyph name="history" size={24} /><h3
               >{$t('Work you can follow.')}</h3
             ><p
@@ -429,8 +556,8 @@
 
     <section class="section dark" id="trust" aria-labelledby="trust-title">
       <div class="wrap">
-        <header class="sec-head">
-          <p class="kicker"><b>04</b>{$t('Privacy & trust')}</p>
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>05</b>{$t('Privacy & trust')}</p>
           <h2 id="trust-title"
             >{$t('Trust, with evidence.')}<br /><span class="soft"
               >{$t('And clear boundaries.')}</span
@@ -442,7 +569,7 @@
             )}</p
           >
         </header>
-        <div class="boundary-grid">
+        <div class="boundary-grid" use:reveal>
           <div
             ><h3>{$t('What encryption protects.')}</h3><p
               >{$t(
@@ -471,7 +598,7 @@
           ><CipherLanes /></Demo
         >
         <div class="trust-grid">
-          <article
+          <article use:reveal style:--i={0}
             ><Glyph name="github" size={22} /><h3
               >{$t('Inspect the public code.')}</h3
             ><p
@@ -486,7 +613,7 @@
               >{$t('Explore the repository')}<Glyph name="arrow-up-right" /></a
             ></article
           >
-          <article
+          <article use:reveal style:--i={1}
             ><Glyph name="refresh" size={22} /><h3
               >{$t('Prepare for a lost device.')}</h3
             ><p
@@ -495,6 +622,17 @@
               )}</p
             ><a class="text-link" href="#faq"
               >{$t('Read the recovery details')}<Glyph name="arrow-right" /></a
+            ></article
+          >
+          <article use:reveal style:--i={2}
+            ><Glyph name="badge" size={22} /><h3
+              >{$t('Check a signature yourself.')}</h3
+            ><p
+              >{$t(
+                'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.'
+              )}</p
+            ><a class="text-link" href="/_/verify"
+              >{$t('Open the verifier')}<Glyph name="arrow-right" /></a
             ></article
           >
         </div>
@@ -513,8 +651,8 @@
       aria-labelledby="release-title"
     >
       <div class="wrap release-grid">
-        <div class="sec-head">
-          <p class="kicker"><b>05</b>{$t('Start with your own space')}</p>
+        <div class="sec-head" use:reveal>
+          <p class="kicker"><b>06</b>{$t('Start with your own space')}</p>
           <h2 id="release-title">{$t('Make your first private note.')}</h2>
           <p class="sec-lead"
             >{$t(
@@ -547,7 +685,7 @@
             /></a
           >
         </div>
-        <div class="install">
+        <div class="install" use:reveal>
           <p class="install-heading">{$t('Prefer the command line?')}</p>
           <div class="install-bar"
             ><div
@@ -590,12 +728,12 @@
 
     <section class="section band" id="faq" aria-labelledby="faq-title">
       <div class="wrap two-col">
-        <header class="sec-head"
-          ><p class="kicker"><b>06</b>{$t('A few useful answers')}</p><h2
+        <header class="sec-head" use:reveal
+          ><p class="kicker"><b>07</b>{$t('A few useful answers')}</p><h2
             id="faq-title">{$t('Before you begin.')}</h2
           ></header
         >
-        <div class="faq">
+        <div class="faq" use:reveal>
           {#each questions as [question, answer]}<details
               ><summary>{question}<span aria-hidden="true"></span></summary><p
                 >{answer}</p
@@ -617,7 +755,24 @@
     </section>
 
     <section class="closing" aria-labelledby="closing-title">
-      <div class="wrap"
+      <div class="wrap" use:reveal
+        ><svg class="closing-mark" viewBox="0 0 42 48" aria-hidden="true"
+          ><mask
+            id="closing-cut"
+            maskUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width="42"
+            height="48"
+            ><rect width="42" height="48" fill="#fff" /><path
+              d={MARK.gem}
+              stroke="#000"
+              stroke-width="5"
+              stroke-linejoin="round"
+            /></mask
+          ><g mask="url(#closing-cut)"
+            ><path d={MARK.post} /><path d={MARK.dome} /></g
+          ><path class="closing-gem" d={MARK.gem} /></svg
         ><p class="kicker"
           >{$t('Private space · Collaboration · Agent network')}</p
         ><h2 id="closing-title">{$t('Start your private collaboration.')}</h2><p

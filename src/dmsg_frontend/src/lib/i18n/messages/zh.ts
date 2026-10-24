@@ -468,8 +468,6 @@ export default {
   'A hint wakes your desktop, no content': '仅发送提示唤醒桌面端，不含内容',
   'A release is not an audit.': '发布不等于审计。',
   'API key': 'API 密钥',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'API 密钥、登录凭据、签名密钥与笔记，都在你的设备上加密后才会同步。',
   'Account and device changes': '账户与设备变更',
   'Account and sync status': '账户与同步状态',
   'Account, devices and logins': '账户、设备与登录身份',
@@ -657,7 +655,7 @@ export default {
   'Ship v1.4 on Friday. The brief is in the release channel.':
     '周五发布 v1.4。说明文档在发布频道里。',
   'Ship v1.4 on Friday. The deploy key is in the vault.':
-    '周五发布 v1.4。部署密钥在保险库里。',
+    '周五发布 v1.4。部署密钥在秘密库里。',
   'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
     '发布 v1.4：检查部署密钥，保存更新说明并发出去，再让这次发布获得签署。',
   'Show': '显示',
@@ -706,8 +704,8 @@ export default {
   'Uploaded without you': '未经你上传',
   'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
     '用过旧版 dMsg？在桌面应用的“设置 › 旧版迁移”中开始迁移，完成之前请保留旧浏览器的数据。',
-  'Vault': '保险库',
-  'Vault locked': '保险库已锁定',
+  'Vault': '秘密库',
+  'Vault locked': '秘密库已锁定',
   'Veto': '否决',
   'Vetoed': '已否决',
   'Vetoed. Nothing was signed.': '已否决，未签署任何内容。',
@@ -735,7 +733,7 @@ export default {
   'account': '账户',
   'approval window': '审批窗口',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
-    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
+    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的秘密库，审批窗口也会标明来源由谁转述。',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg 尚未经过独立审计。公开仓库既不代表已有审计覆盖，也无法证明实际部署的是哪份代码。',
   'dMsg relay': 'dMsg 中继',
@@ -896,9 +894,6 @@ export default {
   'Files stay on your computer.': '文件留在本机。',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     '文件内容、名称与版本在本机加密。备份哪些由你选择；分享时另建一份独立加密的副本。',
-  'Your workspace, two ways in.': '同一个空间，两种入口。',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    '日常使用桌面应用，脚本使用命令行。它们共享同一个本机工作区与审批队列。',
   'Explore files and backups': '体验文件与备份',
   'Try the desktop and command line': '体验桌面与命令行',
   'Collaboration': '协作',
@@ -908,7 +903,7 @@ export default {
     '讨论计划、分享文件、共同决定。加密频道承载项目协作，每位参与者的访问范围清晰可见。',
   'A conversation with boundaries.': '沟通，有明确边界。',
   'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.':
-    '邀请伙伴进入加密频道，回复消息，在本机搜索讨论。加入频道不会打开你的保险库。',
+    '邀请伙伴进入加密频道，回复消息，在本机搜索讨论。加入频道不会打开你的秘密库。',
   'Share just what is needed.': '只分享需要的部分。',
   'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.':
     '向频道发送独立加密的文件，或通过链接分享。文件库与备份保留各自的密钥和副本。',
@@ -965,12 +960,12 @@ export default {
     '可以。从私密笔记、登录凭据或文件开始，需要时再邀请伙伴、连接智能体。',
   'How do I work with someone else?': '如何与伙伴协作？',
   'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.':
-    '邀请对方加入加密频道。接受邀请后，即可交换消息、分享文件。加入频道不会授予对方保险库访问权。',
+    '邀请对方加入加密频道。接受邀请后，即可交换消息、分享文件。加入频道不会授予对方秘密库访问权。',
   'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.':
     '你为具体资源与操作授予权限。智能体可以在范围内工作、请求正式签署，但不能批准请求，也不能更改你的账户与设备。',
   'What stays private, and what goes out?': '哪些内容私密，哪些会发出去？',
   'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.':
-    '保险库条目与频道消息以密文同步。文件库内容留在本机，直到你备份或分享独立副本。Agent Mail 为加密私信，主动发布的知识贡献属于公开内容。交给外部 AI 客户端的内容，也受它的数据处理方式约束。',
+    '秘密库条目与频道消息以密文同步。文件库内容留在本机，直到你备份或分享独立副本。Agent Mail 为加密私信，主动发布的知识贡献属于公开内容。交给外部 AI 客户端的内容，也受它的数据处理方式约束。',
   'Interactive example · sample data · nothing is sent':
     '交互示例 · 示例数据 · 不会发送任何内容',
   'One project. People and agents, together.': '一个项目，人与智能体一起完成。',
@@ -993,7 +988,7 @@ export default {
   'Release folder': '发布文件夹',
   'Release channel': '发布频道',
   'I prepared a draft from the project files. Your other folders and vault are outside my access.':
-    '我已根据项目文件整理好草稿。其他文件夹和保险库不在我的访问范围内。',
+    '我已根据项目文件整理好草稿。其他文件夹和秘密库不在我的访问范围内。',
   'Draft ready': '草稿已就绪',
   'The release notes are ready for review. Anything to add?':
     '发布说明已就绪，请帮忙审阅，有什么要补充的？',
@@ -1018,7 +1013,7 @@ export default {
   'Send an encrypted letter': '发送一封加密私信',
   'Request a signature': '请求正式签署',
   'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.':
-    '先保存只有你能读的发布计划。伙伴加入前，保险库与文件库都保持私密。',
+    '先保存只有你能读的发布计划。伙伴加入前，秘密库与文件库都保持私密。',
   'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.':
     'Mei 接受了邀请。在加密频道讨论计划，分享团队需要的文件。',
   'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.':
@@ -1066,15 +1061,118 @@ export default {
   'Waiting for your approval': '等待你批准',
   'Permission denied': '权限不足',
   'Account status checked': '已检查账户状态',
-  'Vault item found': '已找到保险库条目',
+  'Vault item found': '已找到秘密库条目',
   'Release notes saved': '发布说明已保存',
   'Message posted to the channel': '已在频道发布消息',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    '你、伙伴和你的智能体在私密空间中协作；智能体另行连接 Discourse、Mail 和 Knowledge。',
-  'A private space. A connected world.': '私密空间，连接更广阔的世界。',
   'Pause animation': '暂停动效',
   'Play animation': '播放动效',
   'Teammate': '伙伴',
   'Your agent': '你的智能体',
-  'Owner': '所有者'
+  'Desktop app': '桌面应用',
+  'People and agents': '人与智能体',
+  'Desktop and terminal': '桌面应用与终端',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    '你、伙伴、你的智能体和网站都经由 dMsg 之门进入你的私密空间。你的智能体还会向智能体网络发布内容。需要决定的请求会在审批窗口里等你。',
+  'Encrypted end to end': '端到端加密',
+  'Sealed before it syncs': '同步前即已加密',
+  'Only the folder it was granted': '只限授予它的文件夹',
+  'Signed with its own Agent ID': '用它自己的 Agent ID 签名',
+  'Sign-in': '登录',
+  'Payment': '付款',
+  'Sign the release statement': '签署发布声明',
+  'Sign in to {site}': '登录 {site}',
+  'Pay {amount} from the team wallet': '从团队钱包支付 {amount}',
+  'Approving signs this statement with your account key.':
+    '批准后，将用你的账户密钥签署这份声明。',
+  'Approving proves to the site that it is you.':
+    '批准后，网站即可确认是你本人。',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    '批准只算你的一票，其余由钱包策略决定。',
+  'Your vote is recorded.': '你的这一票已记录。',
+  'Rejected. Nothing was paid.': '已拒绝，没有付款。',
+  'Expired. Nothing was approved.': '已过期，没有批准任何事。',
+  'Nothing is waiting for you.': '没有等你决定的请求。',
+  'Approved without you: {count}': '未经你批准而通过：{count}',
+  'Requests from agents, websites and the terminal open here.':
+    '来自智能体、网站和终端的请求会在这里打开。',
+  'Hold to approve': '按住批准',
+  'The desktop app': '桌面应用',
+  'Everything in one window.': '所有工作，一个窗口。',
+  'Every decision in its own.': '每项决定，另开一窗。',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    '频道、文件、秘密库、来信、智能体和团队钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。',
+  'The dMsg desktop app': 'dMsg 桌面应用',
+  'Views': '视图',
+  'Work': '工作',
+  'Authorization': '授权',
+  'Signatures & approvals': '签名与授权',
+  'End-to-end encrypted conversations and files with people you choose':
+    '与选定的人端到端加密交流和共享文件',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    '加密保存在本机的文件；不备份、不分享就不会离开这台设备',
+  'Notes, logins and keys, encrypted on this device':
+    '备注、登录凭据与密钥，在本机加密',
+  'Letters, and who may write to you': '来信，以及谁可以给你写信',
+  'Requests waiting for you, signatures and their records':
+    '等你决定的请求、签名及其记录',
+  'Agent IDs, what they may do and what they did':
+    '智能体 ID、它们能做什么、做过什么',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    '团队共同管理 ICP、比特币、EVM 与 Solana 资金，按钱包策略执行',
+  'Account synced': '账户已同步',
+  'Unlock with Touch ID': '用 Touch ID 解锁',
+  'Lock': '锁定',
+  'Search or run a command': '搜索或运行命令',
+  'Nothing in your workspace shows until you unlock this device.':
+    '解锁这台设备之前，工作区里的内容都不会显示。',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    '空闲 15 分钟后自动锁定，也可随时手动锁定。',
+  'The notes read well. One fix in section 2.':
+    '说明写得不错，第 2 节还有一处要改。',
+  'Fixed. The release notes are ready.': '已修改，发布说明准备好了。',
+  'Thanks. We ship on Friday.': '谢谢，我们周五发布。',
+  'Password': '密码',
+  'One-time password': '一次性验证码',
+  'Who may write to me': '谁可以给我写信',
+  'Nobody': '不接收',
+  'Contacts only': '仅联系人',
+  'Everyone': '所有人',
+  'Paid letters': '付费来信',
+  'A question about the audit': '关于审计的一个问题',
+  'Draft for the community post': '社区公告的草稿',
+  'Statement for {file}': '{file} 的声明',
+  'Paused': '已暂停',
+  'Command palette': '命令面板',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    '按 ⌘K（Windows 上为 Ctrl+K），即可直达任意视图、条目或命令。',
+  'Fast unlock': '快速解锁',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    '在 Mac 上，密钥保存在安全隔区中，用 Touch ID 打开。',
+  'Locks on its own': '自动锁定',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    '默认空闲 15 分钟后锁定，桌面应用和命令行一并锁上。',
+  'Light or dark': '浅色或深色',
+  'Follows your system, or keeps the look you pick.':
+    '跟随系统，或保持你选定的外观。',
+  'Six languages': '六种语言',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    '阿拉伯语界面从右向左排布，ID 和代码保持原有顺序。',
+  'Stays in the tray': '常驻托盘',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    '关掉窗口，dMsg 仍在运行，新的请求照样能找到你。',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    '带一次性验证码的登录凭据、API 密钥、签名密钥和备注，同步前就在你的设备上加密。',
+  'Locked when you step away.': '你一离开，它就锁上。',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    '秘密要点第二下才会显示或复制，复制后不久剪贴板会被清空。工作区空闲时会自动锁定。',
+  'Letters, on your rules.': '来信，按你的规则。',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    '公开资料让别人找到你。你来决定谁可以写信：不接收、仅联系人、所有人，或按封付费的发信人。付费只买到送达，不保证回复。',
+  'Check a signature yourself.': '亲自核验签名。',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'dMsg 会把签名连同证据一起导出。在浏览器中验证证据包，原文件不会离开你的电脑。',
+  'Open the verifier': '打开验证页',
+  'Can strangers write to me?': '陌生人能给我写信吗？',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    '只有你的规则允许时才行：不接收、仅联系人、所有人，或支付你所设价格的发信人。付费只买到送达，不保证回复。',
 } satisfies Messages

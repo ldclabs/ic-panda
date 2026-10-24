@@ -497,8 +497,6 @@ export default {
     'Un aviso despierta tu escritorio, sin contenido',
   'A release is not an audit.': 'Una versión no es una auditoría.',
   'API key': 'Clave de API',
-  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
-    'Claves de API, credenciales, claves de firma y notas, cifradas en tu dispositivo antes de sincronizarse.',
   'Account and device changes': 'Cambios de cuenta y dispositivos',
   'Account and sync status': 'Estado de la cuenta y la sincronización',
   'Account, devices and logins': 'Cuenta, dispositivos e inicios de sesión',
@@ -951,9 +949,6 @@ export default {
   'Files stay on your computer.': 'Tus archivos se quedan contigo.',
   'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
     'El contenido, los nombres y las versiones se cifran localmente. Tú eliges qué respaldar; al compartir se crea una copia cifrada por separado.',
-  'Your workspace, two ways in.': 'Un espacio, dos formas de entrar.',
-  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
-    'Usa la aplicación a diario o la línea de comandos para tus scripts. Ambas comparten el mismo espacio local y las aprobaciones.',
   'Explore files and backups': 'Explorar archivos y copias de seguridad',
   'Try the desktop and command line': 'Probar la aplicación y la terminal',
   'Collaboration': 'Colaboración',
@@ -1130,13 +1125,118 @@ export default {
   'Vault item found': 'Elemento de la bóveda encontrado',
   'Release notes saved': 'Notas del lanzamiento guardadas',
   'Message posted to the channel': 'Mensaje publicado en el canal',
-  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
-    'Tú, tu compañero y tu agente accedéis a un espacio privado. El agente también se conecta a Discourse, Mail y Knowledge.',
-  'A private space. A connected world.':
-    'Un espacio privado. Un mundo conectado.',
   'Pause animation': 'Pausar animación',
   'Play animation': 'Reproducir animación',
   'Teammate': 'Tu compañero',
   'Your agent': 'Tu agente',
-  'Owner': 'Propietario'
+  'Desktop app': 'Aplicación',
+  'People and agents': 'Personas y agentes',
+  'Desktop and terminal': 'Escritorio y terminal',
+  'You, a teammate, your agent and a website reach your private space through the dMsg gate. Your agent also posts to the agent network. Requests that need a decision wait for you in the approval window.':
+    'Tú, un compañero, tu agente y un sitio web llegan a tu espacio privado a través de la puerta de dMsg. Tu agente también publica en la red de agentes. Las solicitudes que necesitan una decisión te esperan en la ventana de aprobación.',
+  'Encrypted end to end': 'Cifrado de extremo a extremo',
+  'Sealed before it syncs': 'Sellado antes de sincronizarse',
+  'Only the folder it was granted': 'Solo la carpeta concedida',
+  'Signed with its own Agent ID': 'Firmado con su propio Agent ID',
+  'Sign-in': 'Inicio de sesión',
+  'Payment': 'Pago',
+  'Sign the release statement': 'Firmar la declaración de lanzamiento',
+  'Sign in to {site}': 'Iniciar sesión en {site}',
+  'Pay {amount} from the team wallet':
+    'Pagar {amount} desde el monedero del equipo',
+  'Approving signs this statement with your account key.':
+    'Aprobar firma esta declaración con la clave de tu cuenta.',
+  'Approving proves to the site that it is you.':
+    'Aprobar demuestra al sitio que eres tú.',
+  'Approving adds your vote. The wallet’s policy decides the rest.':
+    'Aprobar suma tu voto. Las reglas del monedero deciden el resto.',
+  'Your vote is recorded.': 'Tu voto quedó registrado.',
+  'Rejected. Nothing was paid.': 'Rechazado. No se pagó nada.',
+  'Expired. Nothing was approved.': 'Caducado. No se aprobó nada.',
+  'Nothing is waiting for you.': 'Nada te espera.',
+  'Approved without you: {count}': 'Aprobado sin ti: {count}',
+  'Requests from agents, websites and the terminal open here.':
+    'Aquí se abren las solicitudes de agentes, sitios web y la terminal.',
+  'Hold to approve': 'Mantén pulsado para aprobar',
+  'The desktop app': 'La aplicación de escritorio',
+  'Everything in one window.': 'Todo en una ventana.',
+  'Every decision in its own.': 'Cada decisión, en la suya.',
+  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
+    'Canales, archivos, tu bóveda, cartas, agentes y monederos de equipo, uno junto a otro. Las solicitudes de sitios web, agentes y la terminal se abren en una ventana de aprobación aparte, y solo tú decides allí.',
+  'The dMsg desktop app': 'La aplicación de escritorio de dMsg',
+  'Views': 'Vistas',
+  'Work': 'Trabajo',
+  'Authorization': 'Autorizaciones',
+  'Signatures & approvals': 'Firmas y aprobaciones',
+  'End-to-end encrypted conversations and files with people you choose':
+    'Conversaciones y archivos cifrados de extremo a extremo con quien elijas',
+  'Encrypted files on this device; nothing leaves unless you back it up or share it':
+    'Archivos cifrados en este dispositivo; nada sale sin que hagas una copia o lo compartas',
+  'Notes, logins and keys, encrypted on this device':
+    'Notas, inicios de sesión y claves, cifrados en este dispositivo',
+  'Letters, and who may write to you': 'Las cartas, y quién puede escribirte',
+  'Requests waiting for you, signatures and their records':
+    'Solicitudes que esperan tu decisión, firmas y su registro',
+  'Agent IDs, what they may do and what they did':
+    'Los Agent ID, qué pueden hacer y qué hicieron',
+  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
+    'Gestión conjunta de fondos ICP, Bitcoin, EVM y Solana según las reglas de la cartera',
+  'Account synced': 'Cuenta sincronizada',
+  'Unlock with Touch ID': 'Desbloquear con Touch ID',
+  'Lock': 'Bloquear',
+  'Search or run a command': 'Busca o ejecuta un comando',
+  'Nothing in your workspace shows until you unlock this device.':
+    'Nada de tu espacio de trabajo se muestra hasta que desbloqueas este dispositivo.',
+  'Locks after 15 idle minutes, or whenever you choose.':
+    'Se bloquea tras 15 minutos de inactividad, o cuando tú quieras.',
+  'The notes read well. One fix in section 2.':
+    'Las notas se leen bien. Un arreglo en la sección 2.',
+  'Fixed. The release notes are ready.':
+    'Corregido. Las notas de la versión están listas.',
+  'Thanks. We ship on Friday.': 'Gracias. Publicamos el viernes.',
+  'Password': 'Contraseña',
+  'One-time password': 'Contraseña de un solo uso',
+  'Who may write to me': 'Quién puede escribirme',
+  'Nobody': 'Nadie',
+  'Contacts only': 'Solo contactos',
+  'Everyone': 'Todos',
+  'Paid letters': 'Cartas de pago',
+  'A question about the audit': 'Una pregunta sobre la auditoría',
+  'Draft for the community post':
+    'Borrador de la publicación para la comunidad',
+  'Statement for {file}': 'Declaración sobre {file}',
+  'Paused': 'En pausa',
+  'Command palette': 'Paleta de comandos',
+  'Press ⌘K, or Ctrl+K on Windows, to reach any view, item or command.':
+    'Pulsa ⌘K, o Ctrl+K en Windows, para llegar a cualquier vista, elemento o comando.',
+  'Fast unlock': 'Desbloqueo rápido',
+  'On a Mac, the Secure Enclave keeps the key and Touch ID opens it.':
+    'En un Mac, el Secure Enclave guarda la clave y Touch ID la abre.',
+  'Locks on its own': 'Se bloquea solo',
+  'After 15 idle minutes by default, for the app and the command line alike.':
+    'Tras 15 minutos de inactividad por defecto, para la aplicación y la línea de comandos por igual.',
+  'Light or dark': 'Claro u oscuro',
+  'Follows your system, or keeps the look you pick.':
+    'Sigue a tu sistema o mantiene el aspecto que elijas.',
+  'Six languages': 'Seis idiomas',
+  'Arabic lays the windows out right to left; IDs and code keep their order.':
+    'En árabe, las ventanas van de derecha a izquierda; los ID y el código mantienen su orden.',
+  'Stays in the tray': 'Sigue en la bandeja',
+  'Close the window and dMsg keeps running; new requests still reach you.':
+    'Cierra la ventana y dMsg sigue funcionando; las nuevas solicitudes te siguen llegando.',
+  'Logins with one-time passwords, API keys, signing keys and notes, encrypted on your device before they sync.':
+    'Inicios de sesión con contraseñas de un solo uso, claves de API, claves de firma y notas, cifrados en tu dispositivo antes de sincronizarse.',
+  'Locked when you step away.': 'Se bloquea cuando te alejas.',
+  'A secret shows or copies only on a second click, and the clipboard is cleared soon after a copy. The workspace locks itself when idle.':
+    'Un secreto solo se muestra o se copia con un segundo clic, y el portapapeles se vacía poco después de copiar. El espacio de trabajo se bloquea solo cuando está inactivo.',
+  'Letters, on your rules.': 'Cartas, con tus reglas.',
+  'Your public profile lets people find you. Choose who may write: nobody, contacts, everyone, or senders who pay per letter. Payment covers delivery, not a reply.':
+    'Tu perfil público permite que te encuentren. Elige quién puede escribir: nadie, tus contactos, todos o quienes paguen por carta. El pago cubre la entrega, no una respuesta.',
+  'Check a signature yourself.': 'Comprueba una firma tú mismo.',
+  'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.':
+    'dMsg exporta una firma con sus pruebas. Verifica el paquete en tu navegador; el archivo original nunca sale de tu ordenador.',
+  'Open the verifier': 'Abrir el verificador',
+  'Can strangers write to me?': '¿Pueden escribirme desconocidos?',
+  'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
+    'Solo si tus reglas lo permiten: nadie, tus contactos, todos o quienes paguen el precio que fijes. Pagar cubre la entrega, no una respuesta.',
 } satisfies Messages

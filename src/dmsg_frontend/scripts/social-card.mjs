@@ -67,17 +67,37 @@ for (const locale of ['en', 'zh', 'fr', 'es', 'ru', 'ar']) {
   const art = renderHeroArt({
     prefix: `social-${locale}`,
     labels: {
+      people: copy['People and agents'],
       space: copy['Private space'],
       network: copy['Agent network'],
+      you: copy.You,
+      desktop: copy['Desktop and terminal'],
       teammate: copy.Teammate,
       agent: copy['Your agent'],
-      owner: copy.Owner,
-      you: copy.You,
-      scope: copy['Scoped access']
+      website: copy.Website
     },
     icons: glyphs,
-    rtl
+    rtl,
+    waiting: true
   }).replace('<svg ', '<svg x="0" y="0" ')
+  // The request waiting at the gem, as the approval window shows it.
+  const ticketX = rtl ? 96 : 724
+  const ticketText = (content, dx, y, size, color, weight = 500) =>
+    `<text x="${ticketX + (rtl ? 380 - dx : dx)}" y="${y}" direction="${direction}" text-anchor="start" font-size="${size}" font-weight="${weight}" fill="${color}">${escape(content)}</text>`
+  const ticket = `<g font-family="Inter, -apple-system, Helvetica Neue, Arial, PingFang SC, sans-serif">
+  <rect x="${ticketX}" y="438" width="380" height="128" rx="12" fill="#fff" stroke="#c8d5ca"/>
+  <path d="M${ticketX} 450a12 12 0 0 1 12-12h356a12 12 0 0 1 12 12v18H${ticketX}Z" fill="#f0f4ee"/>
+  <path d="M${ticketX} 468h380" stroke="#dae3d9"/>
+  <g fill="#cfd9cf"><circle cx="${ticketX + 16}" cy="453" r="4"/><circle cx="${ticketX + 29}" cy="453" r="4"/><circle cx="${ticketX + 42}" cy="453" r="4"/></g>
+  <text x="${ticketX + 190}" y="457" text-anchor="middle" font-size="12" font-weight="600" fill="#4e6257">${escape(copy['dMsg · Approval'])}</text>
+  <path d="M${ticketX + (rtl ? 362 : 18)} 485l4.5 4.5-4.5 4.5-4.5-4.5Z" fill="#b45309"/>
+  ${ticketText(copy.Signature, 30, 494, 13, '#92400e', 600)}
+  ${ticketText(copy['Sign the release statement'], 16, 519, 17, '#10251f', 650)}
+  <rect x="${rtl ? ticketX + 16 : ticketX + 176}" y="530" width="88" height="26" rx="7" fill="#fff" stroke="#c8d5ca"/>
+  <rect x="${rtl ? ticketX + 112 : ticketX + 272}" y="530" width="92" height="26" rx="7" fill="#145c45"/>
+  <text x="${rtl ? ticketX + 60 : ticketX + 220}" y="547" text-anchor="middle" font-size="12" font-weight="550" fill="#10251f">${escape(copy.Reject)}</text>
+  <text x="${rtl ? ticketX + 158 : ticketX + 318}" y="547" text-anchor="middle" font-size="12" font-weight="550" fill="#fff">${escape(copy.Approve)}</text>
+  </g>`
   const title = [
     ...first.map((line, i) =>
       text(line, firstY + i * (titleSize + 7), titleSize, '#123a2b', 700)
@@ -98,7 +118,8 @@ for (const locale of ['en', 'zh', 'fr', 'es', 'ru', 'ar']) {
   <rect width="1200" height="630" fill="url(#paper)"/>
   <rect x="${rtl ? 0 : 620}" width="580" height="630" fill="url(#paper-dots)" opacity=".42"/>
   <path d="M${rtl ? 580 : 620} 34V596" stroke="#d4dfcd" stroke-dasharray="2 7"/>
-  <g transform="translate(${rtl ? 14 : 572} 63) scale(.98)">${art}</g>
+  <g transform="translate(${rtl ? 2 : 584} 66) scale(.96)">${art}</g>
+  ${ticket}
   <image href="data:image/svg+xml;base64,${mark}" x="${rtl ? 1102 : 64}" y="48" width="31" height="36"/>
   <g font-family="Helvetica Neue, Arial, PingFang SC, sans-serif">
   <text x="${rtl ? 1086 : 110}" y="78" text-anchor="${rtl ? 'end' : 'start'}" font-size="31" font-weight="700" fill="#123a2b">dMsg</text>
