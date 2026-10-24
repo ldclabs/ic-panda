@@ -79,6 +79,8 @@ pub struct FileBinding {
 pub struct RunInput {
     /// Exact executable.
     pub executable: FileIdentity,
+    /// argv[0] as invoked; multi-call programs choose their behavior from it.
+    pub arg0: String,
     /// Explicit argv excluding argv[0].
     pub argv: Vec<String>,
     /// Canonical working directory.
@@ -136,7 +138,7 @@ pub struct RunPlan {
 
 impl RunPlan {
     pub(crate) fn view(&self) -> Value {
-        json!({"account_id":self.account_id,"device_id":self.device_id,"executable":self.input.executable,"argv":self.input.argv,"cwd":self.input.cwd,"refs_file":self.input.refs_file,"env":self.env,"files":self.files,"delivery":"process_and_descendants","boundary":"executable_hash_does_not_verify_dependencies","report":"delivery_only"})
+        json!({"account_id":self.account_id,"device_id":self.device_id,"executable":self.input.executable,"arg0":self.input.arg0,"argv":self.input.argv,"cwd":self.input.cwd,"refs_file":self.input.refs_file,"env":self.env,"files":self.files,"delivery":"process_and_descendants","boundary":"executable_hash_does_not_verify_dependencies","report":"delivery_only"})
     }
 }
 
@@ -236,6 +238,8 @@ impl Client {
         ensure_valid(
             valid_identity(&input.executable)
                 && input.refs_file.as_ref().is_none_or(valid_identity)
+                && (1..=4096).contains(&input.arg0.len())
+                && !input.arg0.contains('\0')
                 && std::path::Path::new(&input.cwd).is_absolute()
                 && input.cwd.len() <= 4096
                 && !input.cwd.contains('\0')

@@ -574,7 +574,7 @@ async fn read_ticket(
     range: (u64, u32),
 ) -> Result<(zeroize::Zeroizing<Vec<u8>>, Value)> {
     let (offset, length) = range;
-    let mut events = d.subscribe_mount_events();
+    let mut events = d.subscribe_events();
     if ticket.request_id.is_some() {
         d.emit("approval/changed", Value::Null);
     }
@@ -699,14 +699,22 @@ async fn native_connection(host: Weak<Daemon>, id: String, mut stream: tokio::ne
     })
     .await;
     let answer = match request {
-        Ok(Ok(NativeRequest::Metadata)) => {
-            let mut c = d.client().lock().await;
-            let invalid = c.secret_mount_invalid_sources(&id);
-            invalid.and_then(|invalid|c.secret_mount_status(&id).map(|v|{
-                let entries:Vec<_>=v["entries"].as_array().into_iter().flatten().map(|e|json!({"id":e["id"],"path":e["relative_path"],"generation":e["generation"],"size":e["size"]})).collect();
-                json!({"owner_uid":uid(),"authorization":v["config"]["mode"],"entries":entries,"invalid":invalid})
-            }))
-        }
+        // The module polls this often. Every read rechecks its sources, and the
+        // daemon's periodic check stops a volume whose sources changed.
+        Ok(Ok(NativeRequest::Metadata)) => d
+            .client()
+            .lock()
+            .await
+            .secret_mount_status(&id)
+            .map(|v| {
+                let entries: Vec<_> = v["entries"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|e| json!({"id":e["id"],"path":e["relative_path"],"generation":e["generation"],"size":e["size"]}))
+                    .collect();
+                json!({"owner_uid":uid(),"authorization":v["config"]["mode"],"entries":entries})
+            }),
         Ok(Ok(NativeRequest::Acknowledge {
             entry,
             generation,

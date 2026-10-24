@@ -506,6 +506,16 @@ impl Client {
         Ok(())
     }
 
+    /// Recheck a running step and keep its live approval away from the abandoned-run
+    /// reconciler; an upload may take longer than the reconciler's idle window.
+    fn share_step(&mut self, job: &Job, now: u64) -> Result<()> {
+        self.share_check(job, true, now)?;
+        if let Some(request) = &job.request {
+            self.running.insert(request.clone(), now);
+        }
+        Ok(())
+    }
+
     fn share_job_view(&self, job: &Job, include_link: bool) -> Result<Value> {
         let mut value = json!({"id":job.id,"state":job.phase,"plan":job.plan.view(),"request_id":job.request,"error":job.error,"cancel_requested":job.cancel_requested,"device_local":true,"receipt":job.receipt});
         let total = job.upload.as_ref().map_or(0, |p| p.chunks.len());
@@ -743,7 +753,7 @@ async fn append<H: Hold>(
     pending.extend_from_slice(bytes);
     while pending.len() >= CHUNK {
         h.with(|c| {
-            c.share_check(job, true, now_ms())?;
+            c.share_step(job, now_ms())?;
             c.secret_stage_part(staged, &pending[..CHUNK])
         })
         .await?;
@@ -801,7 +811,7 @@ impl ShareRun {
         let mut job = h
             .with(|c| {
                 let job = c.share_job(&self.id)?;
-                c.share_check(&job, true, now_ms())?;
+                c.share_step(&job, now_ms())?;
                 ensure(
                     job.request.as_deref() == Some(&self.request) && !job.publish_attempted,
                     Error::Forbidden,
@@ -812,7 +822,7 @@ impl ShareRun {
         if job.upload.is_none() {
             let (header, mut staged) = h
                 .with(|c| {
-                    c.share_check(&job, true, now_ms())?;
+                    c.share_step(&job, now_ms())?;
                     let header = c.snapshot(&job.plan)?.header()?;
                     let mut staged = c.secret_stage_start(
                         "secret.dmsg-package",
@@ -841,7 +851,7 @@ impl ShareRun {
                 for index in 0..crate::files::chunk_count(attachment.size) {
                     let bytes = h
                         .with(|c| {
-                            c.share_check(&job, true, now_ms())?;
+                            c.share_step(&job, now_ms())?;
                             let (_, _, mut source) =
                                 c.library_manifest(file_id, Some(version_id))?;
                             let bytes = crate::files::read_chunk(c.blobs()?, &source, index);
@@ -858,7 +868,7 @@ impl ShareRun {
                 )?;
             }
             h.with(|c| {
-                c.share_check(&job, true, now_ms())?;
+                c.share_step(&job, now_ms())?;
                 if !pending.is_empty() {
                     c.secret_stage_part(&mut staged, &pending)?;
                 }
@@ -866,7 +876,7 @@ impl ShareRun {
             })
             .await?;
             h.with(|c|{
-                c.share_check(&job,true,now_ms())?;
+                c.share_step(&job, now_ms())?;
                 let edition=staged.manifest.clone();
                 let (mut plan, bytes) = if let Some(target) = &job.plan.channel {
                     let (reference, plan, bytes) = c.snapshot_channel_upload(target, &edition, &job.plan.upload_id)?;
@@ -899,7 +909,7 @@ impl ShareRun {
             0,
             BlobSource::Library,
             |c, count| {
-                c.share_check(&job, true, now_ms())?;
+                c.share_step(&job, now_ms())?;
                 let mut current = c.share_job(&job.id)?;
                 current.uploaded_chunks = count;
                 c.save_share_job(&current)
@@ -932,7 +942,7 @@ impl ShareRun {
         };
         h.with(|c| {
             let now = now_ms();
-            c.share_check(&job, true, now)?;
+            c.share_step(&job, now)?;
             let mut current = c.share_job(&job.id)?;
             ensure(
                 !current.publish_attempted && current.request.as_deref() == Some(&self.request),

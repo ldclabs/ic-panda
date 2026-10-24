@@ -125,7 +125,6 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
     // State queue only, except the initial construction before publication.
     func install(_ metadata: [String: Any]) throws {
         guard let entries = metadata["entries"] as? [[String: Any]], entries.count <= 64 else { throw POSIXError(.EIO) }
-        let invalid = Set(metadata["invalid"] as? [String] ?? [])
         var seen = Set<String>()
         for (index, entry) in entries.enumerated() {
             guard let id = entry["id"] as? String, let path = entry["path"] as? String,
@@ -142,12 +141,12 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
                 if nodes[directory] == nil { nodes[directory] = SecretNode(number: nextDirectory, path: directory, parent: parentNumber, entry: nil, generation: 0, size: 0); nextDirectory += 1 }
                 parentNumber = nodes[directory]!.number
             }
-            if let old = nodes[path], old.generation != generation || invalid.contains(id) {
+            if let old = nodes[path], old.generation != generation {
                 if !old.invalid { old.invalid = true; revoke(old, acknowledge: generation) }
             }
             if nodes[path]?.generation != generation {
                 let node = SecretNode(number: (UInt64(1) << 62) | (generation << 7) | UInt64(index), path: path, parent: parentNumber, entry: id, generation: generation, size: size)
-                node.invalid = invalid.contains(id); nodes[path] = node
+                nodes[path] = node
             }
         }
     }

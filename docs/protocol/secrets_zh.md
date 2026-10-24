@@ -116,7 +116,7 @@ HTTP 固定 origin/path、正常 TLS、无环境代理、无跳转、关闭 reqw
 
 ### 进程交付
 
-`secrets/run/request` 接收 `executable {path, identity, sha256}`、`argv`、`cwd`、`refs_file`、完整引用文档 `refs` 和 `files [{name, source}]`；返回 `request_id`、仅发给发起 CLI 的随机 `claim` 和不含值的审批。`secrets/run/claim {request_id, claim}` 只允许一次领取。`secrets/run/report` 记录 CLI 报告的启动/退出状态，不能改变交付事实。
+`secrets/run/request` 接收 `executable {path, identity, sha256}`、调用时的程序名 `arg0`、`argv`、`cwd`、`refs_file`、完整引用文档 `refs` 和 `files [{name, source}]`；返回 `request_id`、仅发给发起 CLI 的随机 `claim` 和不含值的审批。`secrets/run/claim {request_id, claim}` 只允许一次领取。`secrets/run/report` 记录 CLI 报告的启动/退出状态，不能改变交付事实。CLI 按固定的规范路径启动程序，argv[0] 保持为审批中的 `arg0`，多调用程序（如 busybox 或经符号链接调用的编译器）因此与直接运行行为一致。
 
 `.env.refs` 只接受 `NAME=dmsg-secret://account/item/field`、空行和整行注释，不解释 shell。源文件上限 64 KiB、64 个变量；argv 上限 256 项/64 KiB；环境值总量上限 64 KiB。`--file` 最多 8 个、每个 8 MiB，来源为字段 URI 或 `dmsg-file://file_id/version_id`，交付为继承的顺序管道 `/dev/fd/N`。输出不会进入 MCP；读取结束为 EOF，没有重新解密或再次领取。
 
@@ -124,7 +124,7 @@ HTTP 固定 origin/path、正常 TLS、无环境代理、无跳转、关闭 reqw
 
 `secrets/ssh/keys` 只返回公钥、指纹、支持原因和本机 bindings；`binding_request {reference, purposes}` 中用途仅为 `ssh_auth`、`git_sign`；`disable {id}` 立即停止新签名。`status` 返回实际 socket 路径。socket 为当前 OS 用户所有，父目录 0700，socket 0600；最多 32 个连接，帧上限 256 KiB。
 
-SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.com`，并匹配 session、publickey、`ssh-connection` 和原连接。Git 仅允许 SSHSIG 的 `git` namespace、空 reserved 与 SHA-256/SHA-512 摘要。审批清楚区分核对协议摘要与核对提交原文；不把 host key 指纹解释成已验证 DNS 主机名。拒绝口令加密私钥和非 Ed25519 身份，不退化为返回私钥。
+SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.com`，并匹配 session、publickey、`ssh-connection` 和原连接。Git 仅允许 SSHSIG 的 `git` namespace、空 reserved 与 SHA-256/SHA-512 摘要。审批清楚区分核对协议摘要与核对提交原文；不把 host key 指纹解释成已验证 DNS 主机名。拒绝口令加密私钥和非 Ed25519 身份，不退化为返回私钥。无效、转发或重复的 session-bind 关闭连接；其他扩展请求只回复失败、保留连接。签名等待审批期间若对端断开或继续发送数据，连接直接关闭，迟到的批准不再签名。
 
 ### 虚拟文件
 
@@ -147,7 +147,7 @@ SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.co
 
 平台模式由 daemon 选择，不能由读取者声称身份。Linux 使用 OS uid 与实际打开句柄，PID 只作来源提示，不声称进程隔离。macOS 使用 uid 和 `window_ms`（1–60,000 毫秒），显示“窗口内同一用户的其他程序也可能读取”。未决 IO 最长 30 秒，回调取消后迟到批准无效；每次范围读取最多 1 MiB。统计的 `released_bytes` 是交给文件系统后端的字节，不证明应用完整消费。mmap 和写回不属于支持合同。
 
-扩展通过专用 0700 目录中的 Unix socket 连接 daemon，目录不存密钥或明文 backing file。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。
+扩展通过专用 0700 目录中的 Unix socket 连接 daemon，目录不存密钥或明文 backing file。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。锁定、退出登录与切换账户会停止并卸载全部机密挂载，项目别名在此期间悬空；解锁后不会自动重新挂载，需要 owner 再次启动，之后每次读取仍须重新批准。来源变更时每次读取立即拒绝，daemon 的周期检查随后停止该卷。
 
 ### 快照发送与接收
 

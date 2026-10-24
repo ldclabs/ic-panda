@@ -590,8 +590,9 @@ async fn terminated() {
 }
 
 impl Daemon {
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    pub(crate) fn subscribe_mount_events(&self) -> broadcast::Receiver<Value> {
+    /// Announcements for local transports waiting on a person's decision.
+    #[cfg(unix)]
+    pub(crate) fn subscribe_events(&self) -> broadcast::Receiver<Value> {
         self.events.subscribe()
     }
 

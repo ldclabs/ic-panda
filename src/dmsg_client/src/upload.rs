@@ -122,11 +122,13 @@ impl Client {
         manifest: &[u8],
         sent: usize,
         source: Source,
-        progress: impl FnMut(&Self, usize) -> Result<()> + Send,
+        mut progress: impl FnMut(&Self, usize) -> Result<()> + Send,
     ) -> Result<()> {
-        upload(&self.hold(), base, plan, manifest, sent, source, progress)
-            .await
-            .map(|_| ())
+        upload(&self.hold(), base, plan, manifest, sent, source, |c, n| {
+            progress(c, n)
+        })
+        .await
+        .map(|_| ())
     }
 
     /// [`download`] by a caller that holds the client throughout.
@@ -159,7 +161,7 @@ pub(crate) async fn upload<H: Hold>(
     manifest: &[u8],
     mut sent: usize,
     source: Source,
-    mut progress: impl FnMut(&Client, usize) -> Result<()> + Send,
+    mut progress: impl FnMut(&mut Client, usize) -> Result<()> + Send,
 ) -> Result<Option<String>> {
     let path = format!("{base}/uploads/{}", plan.upload_id);
     // A pooled connection can close while a large edition is prepared.

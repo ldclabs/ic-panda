@@ -531,7 +531,7 @@ async fn send_backup<H: Hold>(
     let base = h.with(|c| c.base()).await?;
     let chunks = job.plan.chunks.len() as u64;
     let file = job.file.clone();
-    let mut step = |client: &Client, sent: usize| {
+    let mut step = |client: &mut Client, sent: usize| {
         progress(&file, sent as u64, chunks);
         let mut stored: BackupJob = client
             .workspace

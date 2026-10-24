@@ -492,3 +492,70 @@ async fn real_fuse_waits_for_approval_and_revokes_an_open_handle() {
         .unwrap();
     assert!(std::fs::read(project.join("secret.txt")).is_err());
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn agent_socket_keeps_unknown_extensions_and_closes_a_broken_wait() {
+    use dmsg_client::secrets::ssh::{put, take};
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::UnixStream,
+    };
+    async fn write(stream: &mut UnixStream, frame: &[u8]) {
+        stream.write_u32(frame.len() as u32).await.unwrap();
+        stream.write_all(frame).await.unwrap();
+    }
+    async fn call(stream: &mut UnixStream, frame: &[u8]) -> Vec<u8> {
+        write(stream, frame).await;
+        let mut reply = vec![0; stream.read_u32().await.unwrap() as usize];
+        stream.read_exact(&mut reply).await.unwrap();
+        reply
+    }
+    let (dir, d) = fixture();
+    enable_key(&d).await;
+    let _socket = crate::ssh_agent::start(d.clone(), &dir.0.join("home")).unwrap();
+    let path = d.ssh_path.lock().unwrap().clone().unwrap();
+    let mut stream = UnixStream::connect(&path).await.unwrap();
+    let mut query = vec![27];
+    put(&mut query, b"query");
+    assert_eq!(call(&mut stream, &query).await, [5]);
+    // Still framed: identities follow on the same connection.
+    let identities = call(&mut stream, &[11]).await;
+    assert_eq!(identities[..5], [12, 0, 0, 0, 1]);
+    let mut rest = &identities[5..];
+    let public = take(&mut rest).unwrap().to_vec();
+    let mut data = b"SSHSIG".to_vec();
+    for field in [&b"git"[..], b"", b"sha256", &[7; 32]] {
+        put(&mut data, field);
+    }
+    let mut sign = vec![13];
+    put(&mut sign, &public);
+    put(&mut sign, &data);
+    sign.extend_from_slice(&[0; 4]);
+    write(&mut stream, &sign).await;
+    let waiting = async {
+        loop {
+            let pending = d.client().lock().await.approvals(false).unwrap();
+            if pending.iter().any(|r| r["type"] == "secret_ssh") {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(5), waiting)
+        .await
+        .unwrap();
+    // Input while waiting ends the connection: no reply on misaligned framing.
+    stream.write_all(&[0]).await.unwrap();
+    let mut rest = Vec::new();
+    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut rest))
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(rest.is_empty(), "{rest:?}");
+    let records = d.client().lock().await.approvals(true).unwrap();
+    assert!(
+        records
+            .iter()
+            .any(|r| r["type"] == "secret_ssh" && r["state"] == "failed")
+    );
+}

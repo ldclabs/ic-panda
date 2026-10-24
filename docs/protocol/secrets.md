@@ -116,7 +116,7 @@ These are owner control-plane interfaces, absent from the MCP catalog. Actions `
 
 ### Process delivery
 
-`secrets/run/request` receives `executable {path, identity, sha256}`, argv, cwd, refs_file, complete refs and `files [{name, source}]`, returning request_id, a random claim only to the initiating CLI and a value-free approval. `secrets/run/claim {request_id, claim}` is single-use. `secrets/run/report` records CLI-reported start/exit without changing delivery facts.
+`secrets/run/request` receives `executable {path, identity, sha256}`, the invoked program name `arg0`, argv, cwd, refs_file, complete refs and `files [{name, source}]`, returning request_id, a random claim only to the initiating CLI and a value-free approval. `secrets/run/claim {request_id, claim}` is single-use. `secrets/run/report` records CLI-reported start/exit without changing delivery facts. The CLI starts the pinned canonical path with argv[0] set to the approved `arg0`, so multi-call programs (such as busybox or a compiler invoked through a symlink) behave as when run directly.
 
 `.env.refs` accepts only `NAME=dmsg-secret://account/item/field`, blank lines and full-line comments, with no shell interpretation. Source: ≤64 KiB/64 variables; argv: ≤256 items/64 KiB; environment values: ≤64 KiB total. `--file` allows 8 files of 8 MiB each from field URIs or `dmsg-file://file_id/version_id`, delivered as inherited sequential `/dev/fd/N` pipes. Output never enters MCP; EOF ends reads without another decryption/claim.
 
@@ -124,7 +124,7 @@ These are owner control-plane interfaces, absent from the MCP catalog. Actions `
 
 `secrets/ssh/keys` returns public keys/fingerprints/support reasons/local bindings only. `binding_request {reference, purposes}` allows only ssh_auth/git_sign; `disable {id}` stops new signing immediately. status returns the real socket path. Socket ownership is the current OS user, directory mode 0700 and socket 0600; at most 32 connections with 256 KiB frames.
 
-SSH authentication requires a valid signed, non-forwarding `session-bind@openssh.com`, matching session, publickey, ssh-connection and original connection. Git allows only SSHSIG's git namespace, empty reserved and SHA-256/SHA-512 digests. Approval distinguishes protocol-digest review from original commit text and does not interpret a host-key fingerprint as verified DNS identity. Password-encrypted private keys and non-Ed25519 identities fail, without fallback to returning private keys.
+SSH authentication requires a valid signed, non-forwarding `session-bind@openssh.com`, matching session, publickey, ssh-connection and original connection. Git allows only SSHSIG's git namespace, empty reserved and SHA-256/SHA-512 digests. Approval distinguishes protocol-digest review from original commit text and does not interpret a host-key fingerprint as verified DNS identity. Password-encrypted private keys and non-Ed25519 identities fail, without fallback to returning private keys. An invalid, forwarded or repeated session-bind closes the connection; other extension requests only receive a failure and keep it. If the peer disconnects or sends more data while a signature awaits approval, the connection closes and a late approval signs nothing.
 
 ### Virtual files
 
@@ -147,7 +147,7 @@ Other sources are `field_utf8 {reference: URI}` and `refs_dotenv {variables: [{n
 
 The daemon chooses platform mode, not reader-supplied identity. Linux uses OS uid and the actual open handle; PID is a provenance hint, not process isolation. macOS uses uid with window_ms of 1–60,000 milliseconds and warns that other programs of the same user can read during that window. Pending IO expires in 30 seconds; cancelled callbacks reject late approval. Range reads are ≤1 MiB. released_bytes measures bytes handed to the backend, not complete application consumption. mmap/writeback are outside the supported contract.
 
-The extension connects through a Unix socket in a dedicated 0700 directory without keys/plaintext backing files. The daemon verifies matching UID, fixed extension ID, FSKit entitlement and signing team. Ordinary owner RPC cannot read mount plaintext. Disconnection, source changes, lock/restart invalidate grants without reopening windows; native cache-revocation/unmount failures remain visible.
+The extension connects through a Unix socket in a dedicated 0700 directory without keys/plaintext backing files. The daemon verifies matching UID, fixed extension ID, FSKit entitlement and signing team. Ordinary owner RPC cannot read mount plaintext. Disconnection, source changes, lock/restart invalidate grants without reopening windows; native cache-revocation/unmount failures remain visible. Lock, logout and account switching stop and unmount every secret mount, leaving project aliases dangling meanwhile; unlock does not remount, so the owner starts it again and every read still needs a new approval. After a source change each read is refused at once and the daemon's periodic check then stops the volume.
 
 ### Sending and receiving snapshots
 

@@ -293,11 +293,12 @@ impl Client {
                     Err(_) => true,
                 };
                 if unavailable {
+                    // One finding per attachment, each with its own identity.
                     findings.push(finding(
                         "attachment_backup_unconfirmed",
                         &entry.id,
                         &entry.revision,
-                        None,
+                        Some(attachment.clone()),
                         now,
                         "back_up_selected_file_version",
                     ));

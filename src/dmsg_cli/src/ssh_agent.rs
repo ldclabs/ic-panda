@@ -134,17 +134,27 @@ async fn serve(d: Arc<Daemon>, mut socket: UnixStream) {
             }
         }
         let id = connection.as_deref().expect("connection");
-        let outcome = match input[0] {
-            27 => d
-                .client()
-                .lock()
-                .await
-                .secret_ssh_bind(id, &input[1..])
-                .map(|_| vec![6]),
-            13 => sign(&d, &mut socket, id, &input[1..]).await,
-            _ => Err(Error::Forbidden),
+        let (outcome, close) = match input[0] {
+            27 => {
+                let mut name = &input[1..];
+                if ssh::take(&mut name).is_ok_and(|n| n == b"session-bind@openssh.com") {
+                    // An invalid, forwarded or repeated binding ends the connection.
+                    let bound = d.client().lock().await.secret_ssh_bind(id, &input[1..]);
+                    let close = bound.is_err();
+                    (bound.map(|_| vec![6]), close)
+                } else {
+                    // Other extensions are unsupported, which is no reason to disconnect.
+                    (Err(Error::UnsupportedProtocol), false)
+                }
+            }
+            13 => match sign(&d, &mut socket, id, &input[1..]).await {
+                Ok(Some(response)) => (Ok(response), false),
+                // The peer left or sent more while waiting; its framing is gone.
+                Ok(None) => break,
+                Err(error) => (Err(error), false),
+            },
+            _ => (Err(Error::Forbidden), false),
         };
-        let close = input[0] == 27 && outcome.is_err();
         if send(&mut socket, &outcome.unwrap_or_else(|_| vec![5]))
             .await
             .is_err()
@@ -161,16 +171,19 @@ async fn serve(d: Arc<Daemon>, mut socket: UnixStream) {
     }
 }
 
+/// A signature response, or `None` once the peer has gone or broken framing.
 async fn sign(
     d: &Daemon,
     socket: &mut UnixStream,
     connection: &str,
     frame: &[u8],
-) -> Result<Vec<u8>> {
+) -> Result<Option<Vec<u8>>> {
     let mut input = frame;
     let public = ssh::take(&mut input)?;
     let bytes = ssh::take(&mut input)?;
     ensure(input == [0, 0, 0, 0], Error::Forbidden)?; // Ed25519 has no flags.
+    // Subscribed before the request exists, so its decision cannot be missed.
+    let mut events = d.subscribe_events();
     let request = d
         .client()
         .lock()
@@ -190,17 +203,21 @@ async fn sign(
                 let mut response = vec![14];
                 ssh::put(&mut response, &signature);
                 d.emit("approval/changed", Value::Null);
-                return Ok(response);
+                return Ok(Some(response));
             }
             Some("awaiting_user") => {}
             _ => return Err(Error::Forbidden),
         }
+        // A decision is announced; expiry is not, so recheck now and then.
         // EOF or pipelined input invalidates the connection before a late approval.
         let mut byte = [0];
         tokio::select! {
-            _=tokio::time::sleep(Duration::from_millis(100))=>{},
-            _=socket.read(&mut byte)=>{
-                d.client().lock().await.secret_ssh_close(connection);d.emit("approval/changed",Value::Null);return Err(Error::Forbidden);
+            _ = events.recv() => {}
+            _ = tokio::time::sleep(Duration::from_secs(1)) => {}
+            _ = socket.read(&mut byte) => {
+                d.client().lock().await.secret_ssh_close(connection);
+                d.emit("approval/changed", Value::Null);
+                return Ok(None);
             }
         }
     }

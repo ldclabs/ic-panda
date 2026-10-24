@@ -114,6 +114,29 @@ async fn snapshot_scope_and_interruption_keep_ids_and_require_fresh_approval() {
     );
 }
 
+#[tokio::test]
+async fn a_live_upload_step_keeps_the_reconciler_away_past_its_idle_window() {
+    let (_dir, mut c, id) = fixture();
+    let r = c.secret_share_request("gui", &id).unwrap();
+    let request = r["id"].as_str().unwrap().to_owned();
+    let run = c
+        .approval_decide(&request, r["digest"].as_str().unwrap(), true, "gui", false)
+        .await
+        .unwrap();
+    assert!(matches!(run, Decision::SecretShare(_)));
+    // Approved six minutes ago; a step of the same run just made progress.
+    c.running
+        .insert(request.clone(), now_ms() - 6 * dmsg_types::MINUTE);
+    let job = c.share_job(&id).unwrap();
+    c.share_step(&job, now_ms()).unwrap();
+    assert_eq!(c.approvals_reconcile_others().await.unwrap(), 0);
+    assert_eq!(
+        c.secret_share_get(&id, false).unwrap()["state"],
+        "encrypting"
+    );
+    assert_eq!(c.approval(&request).unwrap()["state"], "executing");
+}
+
 struct Shared(Arc<Mutex<Client>>);
 impl Hold for Shared {
     async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {

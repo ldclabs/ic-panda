@@ -127,6 +127,7 @@ pub async fn run(remote: &Remote, command: RunCommand) -> Result<(), Failure> {
         .collect::<Result<Vec<_>, _>>()?;
     let input = RunInput {
         executable,
+        arg0: command.program[0].clone(),
         argv: command.program[1..].to_vec(),
         cwd: std::fs::canonicalize(".")
             .map_err(|_| invalid("cwd"))?
@@ -175,8 +176,13 @@ pub async fn run(remote: &Remote, command: RunCommand) -> Result<(), Failure> {
         .await?;
     let result = (|| {
         verify(&input)?;
+        use std::os::unix::process::CommandExt;
+        // The pinned canonical path runs under the name the person invoked.
         let mut process = std::process::Command::new(&input.executable.path);
-        process.args(&input.argv).current_dir(&input.cwd);
+        process
+            .arg0(&input.arg0)
+            .args(&input.argv)
+            .current_dir(&input.cwd);
         for entry in delivered["env"]
             .as_array_mut()
             .ok_or_else(|| invalid("delivery"))?
@@ -348,6 +354,7 @@ mod tests {
         std::fs::write(&refs, b"# references only\n").unwrap();
         let input = RunInput {
             executable: identity(&program, 65536, false).unwrap().0,
+            arg0: "program".into(),
             refs_file: Some(identity(&refs, 65536, false).unwrap().0),
             argv: vec![],
             cwd: dir.0.display().to_string(),

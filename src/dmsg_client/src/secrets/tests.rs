@@ -810,6 +810,7 @@ fn process_input(reference: &SecretRef) -> process::RunInput {
             identity: "1:2".into(),
             sha256: "ab".repeat(32),
         },
+        arg0: "env".into(),
         argv: vec![],
         cwd: "/tmp".into(),
         refs_file: Some(process::FileIdentity {
@@ -896,6 +897,15 @@ fn process_refs_reject_shell_duplicates_limits_and_unknown_fields() {
     let mut input = process_input(&p.credential);
     input.refs.push(' ');
     assert!(c.secret_process_request(input).is_err());
+    for arg0 in ["", "env\0x"] {
+        let mut input = process_input(&p.credential);
+        input.arg0 = arg0.into();
+        assert!(c.secret_process_request(input).is_err(), "{arg0:?}");
+    }
+    let view = c
+        .secret_process_request(process_input(&p.credential))
+        .unwrap();
+    assert_eq!(view["approval"]["detail"]["arg0"], "env");
 }
 
 #[tokio::test]
@@ -1333,4 +1343,31 @@ async fn dependency_inventory_is_value_free_and_rotation_rejects_stale_acknowled
     c.lock();
     assert!(c.secret_references(&reference).is_err());
     drop(dir);
+}
+
+#[test]
+fn each_unbacked_attachment_has_its_own_finding() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let mut item = crate::vault::Item::new("note", "Two attachments", 0);
+    let mut files = Vec::new();
+    for name in ["a.txt", "b.txt"] {
+        let mut file = c.secret_stage_start(name, "text/plain", 1).unwrap();
+        c.secret_stage_part(&mut file, b"x").unwrap();
+        c.secret_stage_finish(&mut file, None).unwrap();
+        item.files.push(file.id().into());
+        files.push(file);
+    }
+    c.secret_import_commit_with(vec![item], files, "root", |_, _| Ok(()))
+        .unwrap();
+    let health = c.secret_health().unwrap();
+    let ids: Vec<_> = health["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["rule"] == "attachment_backup_unconfirmed")
+        .map(|f| f["id"].clone())
+        .collect();
+    assert_eq!(ids.len(), 2);
+    assert_ne!(ids[0], ids[1]);
 }
