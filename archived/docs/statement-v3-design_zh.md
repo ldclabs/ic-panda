@@ -1,8 +1,10 @@
 # Statement v3 设计
 
+> 2026-10-24 归档：本文保留当时的设计、测量和验证边界，不作为当前接口或待办清单。现行说明见[文档入口](../../docs/README.md)；下文日期、状态和未运行项均属于原记录。
+
 [English](statement-v3-design.md) | 简体中文
 
-状态：2026-09-23，已按本设计实现公开类型、三个文档 profile、Xid 账户、认证执行回执及 SDK；实际合同以 [协议说明](README_zh.md) 和 [CDDL](statements.cddl) 为准。最初评估基于 `4fc3ca2`。完整生产 UI、TSA 信任验证与多分配器登记不在本轮实现范围。“v3”是本次设计迭代名称，线上协议版本由具体 profile 明确定义。
+状态：2026-09-23，已按本设计实现公开类型、三个文档 profile、Xid 账户、认证执行回执及 SDK；实际合同以 [协议说明](../../docs/protocol/README_zh.md) 和 [CDDL](../../docs/protocol/statements.cddl) 为准。最初评估基于 `4fc3ca2`。完整生产 UI、TSA 信任验证与多分配器登记不在本轮实现范围。“v3”是本次设计迭代名称，线上协议版本由具体 profile 明确定义。
 
 ## 1. 设计决定
 
@@ -142,7 +144,7 @@ Xid 是公开的结构化标识，会反映分配时间及同一分配器内的�
 
 ### 5.3 针对文件的声明
 
-`StatementContent::FileStatement` 联合包含非空原样文本与一个确定文件的 SHA-256，并可携带文件媒体类型和位置。它属于内嵌结构化声明，使用独立 `application/vnd.dmsg.file-statement+cose;v=1` profile，content type 为 `application/cbor`。封闭 payload schema 采用整数键：1=文本、2=SHA-256、可选 3=媒体类型、4=位置，以确定性 CBOR 编码；准确边界与字节规则由[协议说明](README_zh.md)和 [CDDL](statements.cddl) 冻结。此 payload 是含文件摘要的声明，不能套用描述整个 payload 摘要的 Hash Envelope 头 258/259/260。
+`StatementContent::FileStatement` 联合包含非空原样文本与一个确定文件的 SHA-256，并可携带文件媒体类型和位置。它属于内嵌结构化声明，使用独立 `application/vnd.dmsg.file-statement+cose;v=1` profile，content type 为 `application/cbor`。封闭 payload schema 采用整数键：1=文本、2=SHA-256、可选 3=媒体类型、4=位置，以确定性 CBOR 编码；准确边界与字节规则由[协议说明](../../docs/protocol/README_zh.md)和 [CDDL](../../docs/protocol/statements.cddl) 冻结。此 payload 是含文件摘要的声明，不能套用描述整个 payload 摘要的 Hash Envelope 头 258/259/260。
 
 文本与摘要共同受同一个签名保护。密钥用途为 `Statement`，纯摘要继续使用 `FileAttestation`；原执行批准已绑定完整待签对象，无需额外签署一次。缺少原文件时，验证可报告签名有效，但 `content=NotProvided`；文件字节匹配为 `Verified`，不匹配返回错误。确认界面同时展示文本和摘要，未核对原文件时不能声称已经审阅。该 profile 表达签名人的声明，不自动授予发布/验收权限；可执行的业务语义仍需独立明确的 schema 与政策。
 

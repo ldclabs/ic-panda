@@ -1,9 +1,11 @@
 # dMsg commerce 2
 
+English | [简体中文](commerce_zh.md)
+
 Status: implemented development contracts. Production configuration and real-fund
 acceptance must be recorded separately; local fixtures do not establish either.
 See [integration](integration.md), [app actions](app-action.md) and
-[dmsg-connect/1](connect-v1_zh.md) for their independent authentication boundaries.
+[dmsg-connect/1](connect-v1.md) for their independent authentication boundaries.
 
 ## Authorities and identities
 
@@ -287,10 +289,12 @@ current time and certifies the catalog in that call. All prices, terms, executio
 weights and storage products must stay unchanged, no limit may decrease, and no
 future catalog may already be scheduled. Other updates require seven days' notice.
 
-Resource leases follow what can still be withdrawn. A started cash term has no
-refund and an unstarted renewal lies beyond the next boundary, so cash, expired
-and Free leases last at most 30 days and end at the next known limit change. A
-PANDA qualification can be lost, so a PANDA-backed lease stays within one hour.
+Resource leases follow what can still be withdrawn. During the first cash
+purchase refund window, leases last at most one hour. Outside that window,
+started cash terms are not refundable and unstarted renewals lie beyond the
+next boundary, so cash, expired and Free leases last at most 30 days and end
+at the next known limit change. PANDA qualification can be lost, so a
+PANDA-backed lease stays within one hour.
 Commerce reuses a lease until 10 minutes remain and then issues a new one, and
 membership requalifies an eligible claim within the same window, so a consumer
 renewing a few minutes before expiry receives a later lease. A membership
@@ -370,9 +374,9 @@ operations.
 
 `make test-dmsg` exercises native rules, actual Wasm, codec vectors and the SDK.
 The independent [account product](../../examples/dmsg-account-product/README.md)
-exercises a second subject type without core changes. TokenList's
-`scripts/acceptance-dmsg.sh` adds actual registry/project callbacks and a protected
-session/action/signature/commit path. Real browser probes use disposable profiles;
+exercises a second subject type without core changes. External products own
+their callback, authority and release acceptance. The [integration guide](../../tests/dmsg_integration/README.md)
+describes local checks; real browser probes use disposable profiles;
 production wallet origins, neuron control, approved R/budgets and bounded real
 fund transfers require their own deployment evidence.
 

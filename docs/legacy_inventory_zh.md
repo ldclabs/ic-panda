@@ -1,5 +1,7 @@
 # 旧部署只读盘点工具
 
+[English](legacy_inventory.md) | 简体中文
+
 `src/dmsg_legacy/scripts/legacy-inventory.mjs` 读取现有 canister ID 配置，沿消息、频道、资料和 OSS cluster 的公开引用发现部署实例。工具固定使用匿名身份、主网证书根与 query 签名校验，只发 `read_state` 和白名单 query，不读取本机身份密钥，不发送 update。
 
 从公开仓库根目录执行（依赖现有工作区 Node 模块）：

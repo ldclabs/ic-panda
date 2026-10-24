@@ -1,13 +1,15 @@
 # 账户控制与根封装合同
 
-日期：2026-10-08，2026-10-12 按桌面客户端（`src/dmsg_client`）更新，2026-10-13 补认证绑定、按账户分开的工作区与全设备丢失恢复。生产发布门禁保持关闭。
+[English](account_root.md) | 简体中文
+
+核对日期：2026-10-24，公开源码 `9fd70dca`。本文描述桌面客户端的认证绑定、按账户分开的工作区和全设备丢失恢复；发布工件与具体部署验收分别核对。
 此文描述公开客户端实现，不代表生产 key 或生产部署已验收。
 
 ## 账户控制
 
 `dmsg_client::account` 直接使用 `dmsg_types` 的命令类型，签名消息与 canister 用同一个 `dmsg_protocol` 编码为确定性 CBOR：Principal、AccountId 和固定字节字段为 byte string，unit variant 为文本。账户创建使用 `dmsg/create-account/v1`，home 配置了准入公钥时另附云端对 `dmsg/account-admission/v1`（home、caller、期限）签发的票据；账户变更使用 `dmsg/device-approval/v2`、`dmsg/account/v2` 和 `dmsg/account-operation/v2`；文档认证使用 `dmsg/attest/v1`，根派生使用 `dmsg/derive-root/v1`，恢复设备 PoP 使用 `dmsg/recovery-device/v1`，controller 注册 PoP 使用 `dmsg/controller-pop/v1`。签名覆盖实际 home/caller、账户、命令、版本、设备序号、请求 ID 和期限。
 
-user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_handle_config()` 的 `user_homes`（权威列表；`config.toml` 的 `user_homes` 只作钉定，必须都在列表中）和 `registration_homes`（当前接收新账户的子集，随机选择一个注册）。登录后依次对列表中的每个 home 调用 `my_account`，命中即连接该 home；任一查询失败视为未知，不落到注册。账户的 `home_user` 随账户固定。
+user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_handle_config()` 的 `user_homes`（权威列表；`config.toml` 的 `user_homes` 只作钉定，必须都在列表中）和 `registration_homes`（当前接收新账户的子集，随机选择一个注册）。登录后并行对列表中的每个 home 调用 `my_account`，全部成功后选取列表中首个命中的账户；任一查询失败视为未知，不落到注册。账户的 `home_user` 随账户固定。
 
 客户端在联网前把完整请求写入工作区的加密日志。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
@@ -26,7 +28,7 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 ## 本机解锁
 
-没有口令、恢复码和离线导出。本机数据密钥 LDK 只在以下两种钥匙下封装：
+没有本地解锁口令、恢复码或服务外离线恢复包；文件导出不属于账户恢复。本机数据密钥 LDK 只在以下两种钥匙下封装：
 
 ```text
 name        = "dmsg:" + environment + ":" + account + ":" + deviceId
@@ -35,7 +37,7 @@ wrappedKey  = E(LUK, LDK, ["dmsg/local-key/2", name])
 fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 ```
 
-- `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `HKDF(master_secret, account_id, device_id)`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
+- `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，其中 `digest(domain, value) = SHA256(CBOR([1, domain, value]))`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
 - 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
 - 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，30 天 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
 - 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；其他平台是存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。距上次登录解锁超过 30 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。

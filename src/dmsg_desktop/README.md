@@ -28,7 +28,7 @@ desktop is one of its clients, like the CLI.
   never reaches a renderer.
 - **Renderer** (`src/renderer`, Svelte 5, Tailwind CSS 4): the main window
   and the approval window, designed in [DESIGN.md](DESIGN.md) (the plan and
-  its record: [docs/dmsg_desktop_design_zh.md](../../docs/dmsg_desktop_design_zh.md)).
+  its record: [archived desktop design record](../../archived/docs/dmsg_desktop_design_zh.md)).
   `app.css` holds the dMsg tokens of `src/dmsg_frontend/DESIGN.md` with a
   dark theme; `components/` is the kit the views compose: `ui.ts` (button
   and menu classes), Remix icons (`glyphs.ts`), and bits-ui checkboxes,
@@ -139,7 +139,7 @@ desktop is one of its clients, like the CLI.
     from separate devices can be checked, collected and explicitly executed
     for one plan. RPC preferences belong to this account on this device;
     audit pages verify against a fresh certified head, and optional channel
-    cards are encrypted hints. See [the implementation and validation record](../../docs/dmsg_wallet_desktop_zh.md).
+    cards are encrypted hints. See [the team-wallet guide](../../docs/dMsg_wallet.md).
   - Agents, in tabs: the principal with its controllers and credentials,
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
@@ -559,12 +559,12 @@ History distinguishes `lost` from success and supports manual-review markers
 and immediate policy disabling. P1 owner workflows are described below.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
-See [validation](../../docs/dmsg_secrets_P0_validation_zh.md).
+See [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
 
 
 ## Secrets P1 开发工作流
 
-实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
+实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
 桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。
 

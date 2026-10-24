@@ -157,7 +157,7 @@ Protocols connector. See [contract](../../docs/protocol/secrets_zh.md).
 
 ## Secrets P1 开发工作流
 
-实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
+实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
 ## Publication checkpoints and verified profiles
 

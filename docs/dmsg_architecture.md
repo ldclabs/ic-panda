@@ -1,12 +1,8 @@
 # dMsg Technical Architecture
 
-> 2026-10-23: Ordinary encrypted file downloads obtain short-lived S3 GET URLs through the authenticated API, then fetch and verify ciphertext directly. Root/vault/epoch envelopes retain device-authenticated reads. Share-session start, renewal and revocation windows are specified in the [public cloud contract](protocol/cloud_zh.md). This adds no file copy, custom domain or transfer quota; production validation remains separate.
-
-> 2026-10-22: User profiles now use PrincipalDocument, updated on dmsg_user (schema 15) and published by dmsg_directory (schema 7). Display edits write on chain; avatar bytes remain in cloud storage. The separate user Profile pipeline is removed; Agent Profile is unchanged. In-place upgrades preserve data from user schema 14 and directory schema 6; reinstalling would erase it. Historical capacity samples do not include the new metadata. See [the public contract](protocol/agent_zh.md).
-
 English | [简体中文](dmsg_architecture_zh.md)
 
-> Baseline: public repository `main` at commit `c707ade` (2026-10-08), with the user home's capacity, admission and binding parts updated for the 21-million-account change later that day. This document gives an overview of the public implementation: its architecture, capacity, scaling and multi-instance deployment. Figures come from the measurements and code constants recorded in each canister README. Each README and `.did` file remains authoritative for interfaces, state machines and validation details; where either disagrees with this document, the code wins. The companion cloud service is not public and is described here only through its public contracts. This document does not certify a production deployment, mainnet capacity or a security audit.
+Reviewed against public source `9fd70dca` on 2026-10-24. This document describes the desktop/CLI/MCP clients, public contracts, canister roles and scaling model. Interfaces and measured capacity follow each component README and Candid file. Historical capacity samples retain their original measurement scope; they do not include later profile metadata or prove production throughput. Private services appear only through public contracts. A source review is not a deployment verification or security audit.
 
 ## 1. Design Principles
 
@@ -14,18 +10,18 @@ English | [简体中文](dmsg_architecture_zh.md)
 2. **Everyday work writes nothing on chain.** Messages, files, vault edits and channel control make no ICP update, vetKD derivation or threshold signature; the cloud only queries certified account security snapshots when it needs them.
 3. **Upgrades are independent of scale.** Records and certification trees live in stable memory and the heap holds no business state. A routine upgrade only republishes the root hash, so `post_upgrade` instructions do not grow with the number of records. The initial directory schema 6-to-7 migration is an exception: it reads each existing document to build the additional certification tree.
 4. **Scale out by user home.** Every account ID embeds the fingerprint of the user home that allocated it, and every service routes by that fingerprint, so adding a home never remaps existing accounts. Services that need global uniqueness (handles, PANDA neuron occupancy, the principal document domain) stay single-instance.
-5. **Uniform governance, external maintenance.** Every administrative method accepts the controller and an SNS governance canister fixed at installation, and has a `validate_*` dry run taking the same arguments. Canisters do not rely on timers; external jobs drive cleanup, payouts and price publication through bounded entry points.
+5. **Explicit governance and maintenance.** Control-service administrative methods accept their configured controller/governance authority and expose validation queries. Team wallets use member proposals and must accept upgrades before the hub applies them. Commerce automatically settles and dispatches due payments; other cleanup and reconciliation tasks use bounded maintenance entry points.
 
 ## 2. Trust Domains
 
 | Trust domain | Responsibilities | Not decided here |
 | --- | --- | --- |
 | dMsg client (the daemon and CLI of [dmsg_cli](../src/dmsg_cli/README.md), the [desktop app](../src/dmsg_desktop/README.md), with [dmsg_client](../src/dmsg_client/README.md) at the core) | Generates and uses content roots, object and file keys; encrypts and decrypts; signs and approves with device keys (the approval centre, including requests from web pages and agents); keeps the local SQLite workspace, sync jobs and reconciliation journals | Self-reported device, membership or payment state never replaces certified evidence |
-| Bridge page ([dmsg_connect](../src/dmsg_connect/README.md), connect.dmsg.net, an asset canister) | [dmsg-connect/1](protocol/connect-v1_zh.md) between web applications and devices: checks the application registration, relays the browser-reported origin, keeps a local operation index and result-unsealing keys | Holds no account or device key and cannot approve; the origin it relays is not a cryptographic proof |
+| Bridge page ([dmsg_connect](../src/dmsg_connect/README.md), connect.dmsg.net, an asset canister) | [dmsg-connect/1](protocol/connect-v1.md) between web applications and devices: checks the application registration, relays the browser-reported origin, keeps a local operation index and result-unsealing keys | Holds no account or device key and cannot approve; the origin it relays is not a cryptographic proof |
 | Private cloud | Stores and delivers ciphertext; runs channel control, contact rules, the inbox and resource quotas; verifies ICP certified evidence; signs paid-delivery quotes and admission receipts; runs the connect mailbox for web requests (ciphertext only), the hint channel to locked devices and the MCP Events relay | Account root authorization, handle ownership, formal attestation, settled funds |
-| ICP canisters (this repository) | The seven services of section 3 | Holds no channel membership, messages or file bodies; user PrincipalDocument display fields are stored with account principal state |
+| ICP canisters (this repository) | The control services and team-wallet services in section 3 | Holds no channel membership, messages or file bodies; user PrincipalDocument display fields are stored with account principal state |
 
-Content encryption does not hide operational metadata: the cloud and the canisters see routing, account and device identifiers, sizes, timing, and the membership and contact relations needed to enforce rules. The cloud can deny service, delay, or show different devices different views; clients detect the tampering and rollback they can through signatures, IC certificates and locally known versions. The controller (the SNS once handed over) can upgrade canisters, change their rules, and read a user home's `master_secret`. See the [encryption design](dmsg_encryption_zh.md) (Chinese) and the [cloud wire contract](protocol/cloud_zh.md) (Chinese).
+Content encryption does not hide operational metadata: the cloud and the canisters see routing, account and device identifiers, sizes, timing, and the membership and contact relations needed to enforce rules. The cloud can deny service, delay, or show different devices different views; clients detect the tampering and rollback they can through signatures, IC certificates and locally known versions. The controller (the SNS once handed over) can upgrade canisters, change their rules, and read a user home's `master_secret`. See the [encryption design](dmsg_encryption.md) and the [cloud wire contract](protocol/cloud.md).
 
 ## 3. Components
 
@@ -86,15 +82,17 @@ flowchart LR
 | [dmsg_commerce](../src/dmsg_commerce/README.md) | App and product registrations, catalog, cash orders, paying subjects and resource entitlements | 1 or more; each home belongs to one | 10 million paying subjects and 10 million lifetime orders |
 | [membership](../src/membership/README.md) | Cross-product PANDA neuron occupancy and product decisions | 1 per SNS | 1 million complete records, 10 million lifetime operations |
 | [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | Activation orders, wallet module versions, wallet records and the member index | 1 globally | 256 wallets indexed per member, 16 module versions |
-| [dmsg_wallet](../src/dmsg_wallet/README.md) | One team's members, policy, addresses, cosigners, proposals, plans and audit | 1 per team, created by the hub | 64 members, 256 addresses, 64 cosigners, 10,000 finished proposals kept |
+| [dmsg_wallet](../src/dmsg_wallet/README.md) | One team's members, policy, addresses, cosigners, proposals, plans and audit | 1 per team, created by the hub | 64 members, 256 addresses, 64 cosigners, bounded pruning above 10,000 total proposals |
 
-Shared libraries: [dmsg_types](../src/dmsg_types/README.md) defines the public data contracts, [dmsg_protocol](../src/dmsg_protocol/README.md) provides deterministic encoding, approval digests and signature verification, and [dmsg_runtime](../src/dmsg_runtime/README.md) (Chinese) provides stable storage, certification trees, budgets, ledger adapters and bounded calls.
+Shared libraries: [dmsg_types](../src/dmsg_types/README.md) defines the public data contracts, [dmsg_protocol](../src/dmsg_protocol/README.md) provides deterministic encoding, approval digests and signature verification, and [dmsg_runtime](../src/dmsg_runtime/README.md) provides stable storage, certification trees, budgets, ledger adapters and bounded calls.
 
 ## 4. Main Flows
 
+User profiles are official PrincipalDocuments: edits update the user home and directory, while public avatars use immutable cloud URLs. Ordinary encrypted file downloads use short-lived S3 GET URLs obtained through authenticated APIs; clients verify size, digest and encrypted content. Root/vault/epoch envelopes keep authenticated reads. See the [cloud contract](protocol/cloud.md).
+
 ### 4.1 Registration and Account Lookup
 
-1. At startup the client reads `dmsg_handle.get_handle_config()`: `user_homes` is the deployment's authoritative home list and `registration_homes` the subset currently accepting new accounts. The build configuration's `canisters.userHomes` lists homes trusted at build time (a production build needs at least one), and handle's list must contain them; any other home is taken from handle.
+1. At startup the client reads `dmsg_handle.get_handle_config()`: `user_homes` is the deployment's authoritative home list and `registration_homes` the subset currently accepting new accounts. The daemon uses the deployment configuration in `config.toml`, or its bundled `production.toml` when no file is present. Optional `user_homes` pins must all occur in the registry; additional homes come from that registry.
 2. Registration calls `create_account` on a randomly chosen registration home; when that home has an admission key, the client first gets an admission ticket from the cloud bound to the home and the login Principal. The account, login route, daily quota and ID allocator commit in one message, and a retry returns the original account.
 3. Login queries `my_account` on every home in parallel and connects to the home that answers. Any failed query makes the result unknown; the client never falls back to registration.
 
@@ -125,13 +123,13 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 
 ### 4.6 Agent Principals
 
-Principal activation, controller registration and retirement commit in the account's home, which then pushes the state to `dmsg_directory`; if that fails, anyone can retry with `publish_principal`. Documents are served under a fixed custom domain as certified responses through the ICP HTTP gateway; see the [protocol](protocol/agent_zh.md) (Chinese).
+Principal activation, controller registration and retirement commit in the account's home, which then pushes the state to `dmsg_directory`; if that fails, anyone can retry with `publish_principal`. Documents are served under a fixed custom domain as certified responses through the ICP HTTP gateway; see the [protocol](protocol/agent.md).
 
 ### 4.7 Team Wallets
 
-The hub quotes within the commerce plan quota, then creates and installs a wallet after checking the creator's `WalletCreate` device approval and the payment; a wallet's only controller is the hub. Members bind their client's wallet-key Principal with a `WalletJoin` approval; each decision on a proposal is a `WalletProposal` device approval that the wallet verifies at the member's home. The wallet transfers ICP/ICRC itself; for Bitcoin, EVM and Solana it builds the transaction from the intent and signs it with `key_1`, and the client decodes it independently before broadcasting and reporting it. Upgrades and locks need the wallet to accept them first by an admin proposal. Contract: [wallet_zh.md](protocol/wallet_zh.md) (Chinese).
+The hub quotes within the commerce plan quota, then creates and installs a wallet after checking the creator's `WalletCreate` device approval and the payment; a wallet's only controller is the hub. Members bind their client's wallet-key Principal with a `WalletJoin` approval; each decision on a proposal is a `WalletProposal` device approval that the wallet verifies at the member's home. The wallet transfers ICP/ICRC itself; for Bitcoin, EVM and Solana it builds the transaction from the intent and signs it with its configured ICP chain keys, and the client decodes it independently before broadcasting and reporting it. Upgrades and locks need the wallet to accept them first by an admin proposal. Contract: [wallet.md](protocol/wallet.md).
 
-The desktop manages membership, policy, addresses and operations through structured proposals. Transfers query `preview_intent`; device cosignatures bind the same plan. Wallet network steps release the shared daemon client through Hold. Audit pages verify against a certified head; channel messages are encrypted hints. See the [desktop wallet implementation and validation record](dmsg_wallet_desktop_zh.md) (Chinese).
+The desktop manages membership, policy, addresses and operations through structured proposals. Transfers query `preview_intent`; device cosignatures bind the same plan. Wallet network steps release the shared daemon client through Hold. Audit pages verify against a certified head; channel messages are encrypted hints. See the [desktop wallet implementation and validation record](dMsg_wallet.md).
 
 ### 4.8 Device-Local Credential Use
 
@@ -140,9 +138,12 @@ requests one fixed GitHub issue creation, then a person reviews the complete
 plan. Existing approval records hold the execution boundary and filtered
 result. Network waits release the client lock; uncertain outcomes are terminal
 `lost` and are never resent. Policies, grants and records do not synchronize;
-no canister, content kind or on-chain hot path is added. MCP no longer exposes
-`vault.secret`. P1 mounts and other delivery paths are not implemented. See
-[the credential-use contract](protocol/secrets_zh.md).
+no canister or on-chain hot path is added. MCP no longer exposes `vault.secret`.
+Owner-approved process delivery, SSH/Git signing, secret-file mounts, snapshot
+sharing/import, discovery and rotation dependency review are also implemented.
+They do not expose a general plaintext-secret tool to MCP. Mount availability
+depends on the OS, packaged native module and platform validation. See
+[the credential-use contract](protocol/secrets.md).
 
 ## 5. On-Chain Load Profile
 
@@ -165,7 +166,7 @@ no canister, content kind or on-chain hot path is added. MCP no longer exposes
 - **Compact representation**: each canister's private `stable_codec.rs` stores records as CBOR maps with integer keys, without changing public Candid, signature digests or certified leaf encodings.
 - **Certification trees**: user, payment, commerce, membership and directory use `dmsg_runtime::cert_map`, a crit-bit Merkle prefix tree in stable memory that stores only keys, certified value hashes and fixed 201-byte internal-node slots. Certified values are regenerated from records at query time and checked against the certified hashes, and a write recomputes a single path. With one million keys, one write takes 167 stable reads instead of the 4,394 of the earlier B-tree node layout. handle uses `name_tree`, which splits names by hash into 2^20 buckets and stores node hashes in a fixed array, so a write recomputes one bucket and one path.
 - **Bounded collections**: each account holds at most 16 devices (5 active), 8 logins, 4 pending bindings, 16 operation receipts and 64 retained executions; a certified batch response is at most 256 KiB. Ordinary account operations do not read past execution payloads.
-- **Upgrades**: the heap holds no business state; only payment's and commerce's `pre_upgrade` flush call counters (payment also flushes the day's order count). `post_upgrade` checks the schema and only publishes the root, and fails on any other schema. Development layouts are not migrated; once in production, any layout change needs an explicit migration.
+- **Upgrades**: stable records remain authoritative; supported schema transitions are explicit in each canister. `dmsg_user` and `dmsg_directory` already hold production data: user 14 → 15 and directory 6 → 7 preserve it in place, with old-Wasm upgrade coverage. Directory's first conversion builds an additional certification tree. Unsupported layouts fail closed. See [upgrade boundaries](dmsg_canisters.md#persistence-and-upgrades); reinstalling is not a migration.
 
 Measured `post_upgrade` cost (PocketIC 16.0.0, release Wasm; large samples were built on the host with each canister's own storage code and uploaded as stable-memory images):
 
@@ -297,7 +298,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 ## 10. Governance and Operations
 
-- **Governance**: administrative methods of all seven services accept the controller and the `governance` fixed at installation (the PANDA SNS governance in production). Each has a `validate_*` query with the same arguments that can be registered as the validator of an SNS generic function. Identity- and derivation-related fields such as `environment`, `issuer_namespace` and `governance` cannot change after installation, and upgrades do not read initialization arguments.
+- **Governance**: control-service administrative methods accept the controller and the `governance` fixed at installation (the PANDA SNS governance in production). Each has a `validate_*` query with the same arguments that can be registered as the validator of an SNS generic function. Identity- and derivation-related fields such as `environment`, `issuer_namespace` and `governance` cannot change after installation, and upgrades do not read initialization arguments.
 - **Recurring jobs**: commerce automatically collects revenue and dispatches allocated transfers; operators or anyone run the other tasks below:
 
 | Job | Entry point | Cadence |
@@ -314,25 +315,25 @@ Each administrative call below accepts the controller or the SNS governance and 
 | wallet activation revenue | `collectable_activations(after, take)`, then `collect_revenue(quote_id)` for each | After an order is ready; `hub_stats.uncollected` counts what is waiting |
 | wallet member index | `sync_wallet(wallet)` | After membership changes |
 
-- **Upgrades**: the schema must not change. Stop the canister and let in-flight inter-canister calls finish, snapshot canisters that hold funds or unrecoverable data, then upgrade with the empty Candid argument `()`, start, and read the logs. COSE derivations are unbounded waits, so COSE must be stopped before an upgrade; if it is not, executions whose callbacks are lost become `Unknown` and are never derived again.
-- **Irreversible operations**: never reinstall payment, commerce or directory; a reinstall wipes escrows, accounting or documents that cannot be rebuilt. Never delete the COSE canister; deleting it makes every recovery envelope unopenable.
+- **Upgrades**: use a supported schema transition; layout changes require an explicit data-preserving migration and old-Wasm upgrade verification. Stop the canister and let in-flight inter-canister calls finish, snapshot canisters that hold funds or unrecoverable data, then use the component's documented upgrade arguments, start it and read the logs. Control services generally use `()`; wallet instances are upgraded through the hub with their accepted version number. COSE derivations are unbounded waits, so COSE must be stopped before an upgrade; if it is not, executions whose callbacks are lost become `Unknown` and are never derived again.
+- **Irreversible operations**: never reinstall a user home, directory or an instance holding funds or accounting; doing so erases accounts, documents or financial records. Never delete the COSE canister; deleting it makes every recovery envelope unopenable.
 - **Cycles**: the user home pays for account creation and device approvals, COSE pays vetKD fees, and directory pays for publication and document storage. The deployment steps of user, cose, payment and directory set a 90-day freezing threshold; monitor balances through the `*_stats` queries.
 
 ## 11. Current Status
 
-- Every service is in development with development stable layouts, and old experimental instances are not migrated.
+- Desktop and CLI releases are available. Source changes, release artifacts and deployed canister/cloud versions have separate lifecycles. Existing user and directory data must survive upgrades; unrelated disposable development fixtures do not establish a production migration policy.
 - Local PocketIC regressions, protocol vectors and client unit tests cover the routing, limits and upgrade behaviour described here; there are PocketIC regressions for the registration entry of a second user home and for a second commerce instance.
 - Team wallets are covered by PocketIC (real threshold signatures, hub activation, upgrades and locks, a CMC test double) and by encoders cross-checked against independent libraries; Safe/Squads two-key control and audit-mode attestations are not implemented.
 - The Rust and TypeScript clients use Agent Protocols SDK 0.12.6 and its committed shared vectors: the daemon commits encrypted Mail keys with connector state before each publication and restores interrupted attempts first, persists authenticated mailbox inventory pages, and pins verified owner Profiles; a controller submission may re-sign once after a bounded nonce conflict without changing the approved intent. Canister interfaces and stable layouts are unchanged.
-- Not yet accepted: mainnet deployment with production `key_1`, real funds and wallet paths, end-to-end flows of a signed desktop release with real web applications, private cloud production end-to-end, subnet throughput, scale beyond one million records except for handle, and an external security audit.
+- This review does not verify deployed modules, production `key_1`, real-fund and external-chain paths, signed desktop/website/cloud end-to-end behavior, native secret mounts or subnet throughput. dMsg has no independent security audit. The workload-specific capacity measurements remain those in the component READMEs.
 
 ## 12. References
 
-- [dmsg_canisters.md](dmsg_canisters.md): per-canister implementation increments and validation boundaries.
+- [dmsg_canisters.md](dmsg_canisters.md): current canister responsibilities, upgrade requirements and verification entry points.
 - [protocol/README.md](protocol/README.md): statements, signatures, execution approvals and Xid allocation.
-- [protocol/account_root_zh.md](protocol/account_root_zh.md) and [dmsg_encryption_zh.md](dmsg_encryption_zh.md) (Chinese): account control, root wrapping and the encryption design.
-- [protocol/cloud_zh.md](protocol/cloud_zh.md) (Chinese): the wire contract between the client and the cloud; [protocol/connect-v1_zh.md](protocol/connect-v1_zh.md) (Chinese): how web applications connect through the bridge page.
-- [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent_zh.md) (Chinese): the commerce and Agent Delegation contracts.
-- [protocol/wallet_zh.md](protocol/wallet_zh.md) (Chinese): the team wallet contract.
+- [protocol/account_root_zh.md](protocol/account_root.md) and [dmsg_encryption.md](dmsg_encryption.md): account control, root wrapping and the encryption design.
+- [protocol/cloud_zh.md](protocol/cloud.md): the wire contract between the client and the cloud; [protocol/connect-v1_zh.md](protocol/connect-v1.md): how web applications connect through the bridge page.
+- [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent.md): the commerce and Agent Delegation contracts.
+- [protocol/wallet_zh.md](protocol/wallet.md): the team wallet contract.
 - The capacity, deployment and operations sections of each canister README (Chinese): measurement methods, reproduction commands and deployment arguments behind the figures above.
-- [dmsg_protocol_alignment_2026-10-24_zh.md](dmsg_protocol_alignment_2026-10-24_zh.md) (Chinese): the Agent Protocols 0.12.6 alignment review, its fixes and remaining test limits.
+- [dmsg_agent](../src/dmsg_agent/README.md) and [Agent Protocols vectors](../tests/vectors/agent-protocols/README.md): connector persistence, SDK alignment and executable verification fixtures.

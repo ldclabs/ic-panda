@@ -386,7 +386,7 @@ The end-to-end checks against real canisters and the relay are in
 
 ### Wallet execution and desktop forms
 
-`wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [implementation record](../../docs/dmsg_wallet_desktop_zh.md) distinguishes these paths from future hardware and chain extensions.
+`wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [team-wallet guide](../../docs/dMsg_wallet.md) distinguishes these paths from future hardware and chain extensions.
 
 Wallet display reads certified state and statistics together. Transfer previews
 run independent fee, balance and token-metadata reads concurrently; explicit
@@ -432,12 +432,12 @@ is terminal `lost`, never reconciled by resending. No extra execution ledger
 or synchronized content kind is introduced. The whole Vault item must be
 decrypted internally to read metadata; no value leaves that boundary before
 the approved execution. See [contract](../../docs/protocol/secrets_zh.md) and
-[validation](../../docs/dmsg_secrets_P0_validation_zh.md).
+[validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
 
 
 ## Secrets P1 开发工作流
 
-实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [P1 验证记录](../../docs/dmsg_secrets_P1_validation_zh.md)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
+实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
 ## Agent Protocols 0.12.6
 

@@ -151,7 +151,7 @@ Three ideas decide the layout:
    approving does, then the technical fields.
 
 The plan, its diagnosis and its record are in
-[docs/dmsg_desktop_design_zh.md](../../docs/dmsg_desktop_design_zh.md).
+[archived desktop design record](../../archived/docs/dmsg_desktop_design_zh.md).
 
 ### Scope and Source of Truth
 

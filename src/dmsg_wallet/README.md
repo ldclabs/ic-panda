@@ -2,7 +2,7 @@
 
 dMsg 团队钱包：每个团队一个 canister，由 [dmsg_wallet_hub](../dmsg_wallet_hub/README.md) 创建并作为唯一 controller。成员提案、按策略批准，钱包直接用自己的 ICRC 账户转出 ICP 与 ICRC 代币，并用链密钥（threshold ECDSA、BIP-340、Ed25519）为 Bitcoin、EVM、Solana 交易签名，由成员客户端广播。钱包不做 HTTPS outcall。
 
-公开合同见 [wallet_zh.md](../../docs/protocol/wallet_zh.md)，类型见 [dmsg_types::wallet](../dmsg_types/src/wallet.rs)，摘要、策略、地址与协签验证见 [dmsg_protocol::wallet](../dmsg_protocol/src/wallet/mod.rs)，接口见 [dmsg_wallet.did](dmsg_wallet.did)。产品与技术方案见 [产品方案](../../docs/dMsg_wallet_product_2026-10-16_zh.md) 与 [技术方案](../../docs/dMsg_wallet_implementation_2026-10-16_zh.md)。
+公开合同见 [wallet_zh.md](../../docs/protocol/wallet_zh.md)，类型见 [dmsg_types::wallet](../dmsg_types/src/wallet.rs)，摘要、策略、地址与协签验证见 [dmsg_protocol::wallet](../dmsg_protocol/src/wallet/mod.rs)，接口见 [dmsg_wallet.did](dmsg_wallet.did)。产品范围见[团队钱包说明](../../docs/dMsg_wallet_zh.md)。
 
 ## 接口
 
@@ -69,7 +69,7 @@ POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
 
 ## 2026-10-21 桌面接线
 
-新增 `preview_intent` query：按当前成员、冻结、地址簿、滚动窗口和策略返回提案要求，不写状态。桌面、Hold 执行、多设备协签和验收记录见 [dmsg_wallet_desktop_zh.md](../../docs/dmsg_wallet_desktop_zh.md)。ICP AccountIdentifier 在客户端收款视图计算，不新增链上账户。
+新增 `preview_intent` query：按当前成员、冻结、地址簿、滚动窗口和策略返回提案要求，不写状态。桌面、Hold 执行、多设备协签和验收记录见 [dMsg_wallet_zh.md](../../docs/dMsg_wallet_zh.md)。ICP AccountIdentifier 在客户端收款视图计算，不新增链上账户。
 
 
 ## 2026-10-24 执行与恢复修订

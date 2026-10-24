@@ -1,6 +1,8 @@
 # dmsg-connect/1：网页应用接入协议
 
-2026-10-12 起草，同日按实现修订。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；`connect.dmsg.net` 的部署（自定义域名与中继生产 `API_ORIGIN`）尚未完成。本协议取代已退役的扩展桥 `dmsg-extension/4`（差异见第 9 节）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
+[English](connect-v1.md) | 简体中文
+
+2026-10-12 起草，2026-10-24 核对公开源码。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；生产域名、资产工件和中继配置须按 [桥接页发布说明](../../src/dmsg_connect/README.md#release)单独核对；本文不判定现网版本。本协议取代已退役的扩展桥 `dmsg-extension/4`（差异见第 9 节）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
 
 不变的部分：三种文档 profile 与应用动作的签名字节、设备执行批准与认证回执（见 [公开协议](README_zh.md)）、`AuthenticationRequest`、`AppAction`、`CheckoutRequest` 与商业合同，以及应用在 `dmsg_commerce` 的登记（`AppRegistration`）。改变的只有三件事：页面与 dMsg 之间的传输、来源的核实方式、操作的恢复方式。
 

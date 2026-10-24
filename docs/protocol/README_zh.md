@@ -2,8 +2,21 @@
 
 [English](README.md) | 简体中文
 
-> 应用动作：[app-action v1](app-action.md) 定义签名 profile、封闭的值模型、各应用为自身命令登记的 schema，以及专用授权签署、按 schema 渲染的浏览器确认和独立执行回执。通用文档接口拒绝该类型。
-当前实现采用 [Statement v3 设计](statement-v3-design_zh.md)：三个文档 profile v1、12 字节 Xid 账户、执行批准域 v3。具体字节格式见 [statements.cddl](statements.cddl)，ICP 接口以各 canister 的 `.did` 为准。profile 媒体类型为本项目实验名称，尚未注册或被标准组织采纳。
+当前合同包含三个文档 profile v1、12 字节 Xid 账户及 `dmsg/attest/v1` 设备签名认证。[应用动作](app-action_zh.md)有独立的封闭 schema 和准入规则，通用文档接口拒绝该类型。声明字节见 [statements.cddl](statements.cddl)，ICP 接口以各 canister 的 `.did` 为准。媒体类型为本项目实验名称，尚未注册为标准。“Statement v3”是[已归档的设计迭代](../../archived/docs/statement-v3-design_zh.md)，不是所有接口共用的线上版本号。
+
+## 协议导航
+
+| 领域 | 合同 |
+| --- | --- |
+| 账户、设备与恢复 | [账户与根](account_root_zh.md) · [浏览器登录](login-v1_zh.md) |
+| 网页应用接入 | [dmsg-connect/1](connect-v1_zh.md) |
+| 认证与类型化动作 | [集成](integration_zh.md) · [应用动作](app-action_zh.md) · [生成的 CDDL](integration.cddl) |
+| 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) |
+| 加密内容与文件 | [云端](cloud_zh.md) · [频道](channel_migration_zh.md) |
+| Agent 身份与事件 | [Agent Delegation](agent_zh.md) · [Mail 事件](mail_events_zh.md) |
+| 凭据受控使用 | [Secrets](secrets_zh.md) |
+| 团队钱包 | [dmsg-wallet/1](wallet_zh.md) |
+| 旧版数据 | [只读档案](legacy_archive_zh.md) · [冻结证据](legacy_freeze_zh.md) |
 
 `dmsg_types` 只定义公开数据；`dmsg_protocol` 实现标准编码、profile 验证和身份适配；`dmsg_runtime` 与各 canister 保存内部状态。第三方独立验签无需实现账户数据库、名称或付费投递业务。
 
@@ -115,6 +128,6 @@ dMsg 账户可作为 Agent Delegation 1.0 principal：controller 是客户端 va
 
 ## 商业服务
 
-产品中立的 `membership/1` 与 `dmsg-commerce/1` 合同、投递 profile 2 和执行授权 v3 详见 [commerce_zh.md](commerce_zh.md)，配套有 [commerce.cddl](commerce.cddl) 结构定义和独立的商业测试向量。它们不改变正式 Statement 或设备执行批准字节。
+产品中立的 `membership/2` 与 `dmsg-commerce/2` 合同详见 [commerce_zh.md](commerce_zh.md)，配套有生成的 [integration.cddl](integration.cddl) 与独立向量。[commerce.cddl](commerce.cddl) 仅保留仍使用 v1 域的资源/权益结构，付费投递继续使用独立 profile 2。这些版本不改变正式声明或设备认证字节。
 
 团队钱包 `dmsg-wallet/1`：成员、策略、提案、地址派生、外链计划与协签的公开合同见 [wallet_zh.md](wallet_zh.md)。设备批准沿用 `ApplicationApproval`，新增用途 `WalletCreate`、`WalletProposal`、`WalletJoin` 与设备能力 `WalletApprove`。

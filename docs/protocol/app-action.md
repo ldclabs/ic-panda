@@ -1,10 +1,12 @@
 # Application action profile v1
 
-Status (2026-10-07): implemented. Browser `signAction`, product-authority admission,
-account linkage, device signature and approval, the existing execution quota/journal,
-schema-rendered confirmation UI and the certified receipt are connected. TokenList is
-the first integration; it still consumes the earlier TokenList-specific command
-variants and must adopt the registered schema below before its next release.
+English | [简体中文](app-action_zh.md)
+
+Status: implemented in the public source. `signAction` through dmsg-connect/1,
+product-authority admission, account linkage, device signature and approval,
+schema-rendered desktop confirmation and certified receipts are connected.
+External applications must register and consume the same schema; their release
+status is maintained by those applications, not inferred from this contract.
 
 ## Division of responsibility
 
@@ -12,7 +14,7 @@ dMsg is the platform and does not define any application's commands. It owns:
 
 - the closed value model (`ActionValue`) and schema format (`ActionSchema`);
 - the canonical encoding and the digests below;
-- generic validation, and a confirmation page that renders any registered schema.
+- generic validation, and a desktop approval window that renders any registered schema.
 
 Each application owns its command vocabulary. It writes an `ActionSchema`, registers
 it through governance as `AppRegistration.action_schema`, and keeps the projection
@@ -92,7 +94,7 @@ DecideReview  "Record review decision"
   and values nest at most three levels. `Optional` cannot wrap `Optional`. The
   labels that tell apart the commands, the fields of one command or record, the
   options of a `Choice` or the two values of a `Bool` share no text in any locale,
-  so the confirmation page never renders two of them alike.
+  so the desktop approval window never renders two of them alike.
 - Action body: at most 48 KiB; total Sig_structure remains at most 64 KiB.
 - Intent: positive validity interval of at most 300,000 milliseconds; historical
   signature parsing validates the interval shape without expiring the signature.
@@ -119,7 +121,7 @@ the product intent, fetch files, authenticate account linkage or verify current
 authority. A verifier that holds a schema whose digest equals `schema_hash` can
 render and check the command offline.
 
-The confirmation page reads the certified registration, checks `schema_hash`, and
+The desktop approval window reads the certified registration, checks `schema_hash`, and
 renders the title and labels only from the schema; the request carries no display
 text. The page states that the application defined the wording and governance
 registered it. Only a new approval requires the current registration: after a

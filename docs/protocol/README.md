@@ -2,8 +2,21 @@
 
 English | [简体中文](README_zh.md)
 
-> Application actions: [app-action v1](app-action.md) defines the profile, the closed value model and the schema each application registers for its own commands, and the current implementation boundary. It has a dedicated authorized signer, schema-rendered browser confirmation and independently verified execution receipt; the generic document signer rejects it.
-The current implementation adopts the [Statement v3 design](statement-v3-design.md): three document profiles v1, 12-byte Xid accounts, and execution approval domain v3. Specific byte formats are defined in [statements.cddl](statements.cddl); ICP interfaces are governed by each canister's `.did` declaration. Profile media types are experimental project names and have not yet been registered or adopted by standards bodies.
+The current contract has three document profiles v1, 12-byte Xid accounts and device-signed attestations under `dmsg/attest/v1`. [Application actions](app-action.md) have their own closed schema and admission rules; the generic document signer rejects them. Exact statement bytes are in [statements.cddl](statements.cddl), and ICP interfaces in each canister's `.did`. Media types are experimental project names, not registered standards. “Statement v3” names an [archived design iteration](../../archived/docs/statement-v3-design.md), not a shared wire version.
+
+## Protocol map
+
+| Area | Contract |
+| --- | --- |
+| Accounts, devices and recovery | [Account/root](account_root.md) · [Browser login](login-v1.md) |
+| Web application connection | [dmsg-connect/1](connect-v1.md) |
+| Authentication and typed actions | [Integration](integration.md) · [App actions](app-action.md) · [Generated CDDL](integration.cddl) |
+| Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) |
+| Encrypted content and files | [Cloud](cloud.md) · [Channels](channel_migration.md) |
+| Agent identity and events | [Agent Delegation](agent.md) · [Mail events](mail_events.md) |
+| Approved credential use | [Secrets](secrets.md) |
+| Team wallets | [dmsg-wallet/1](wallet.md) |
+| Legacy data | [Read-only archive](legacy_archive.md) · [Freeze evidence](legacy_freeze.md) |
 
 `dmsg_types` defines public data contracts only; `dmsg_protocol` implements canonical encoding, profile verification, and identity adaptation; `dmsg_runtime` and each canister persist internal state. Independent third-party signature verification does not require implementing account databases, handle management, or paid delivery services.
 
@@ -42,7 +55,7 @@ New messages use RFC 8949 §4.2.1 core deterministic CBOR: shortest encoding, ke
 
 ICP business time and approval durations are u64 Unix **milliseconds**, evaluated using `now < expires_at`. Certificates and ICRC `created_at_time` are in nanoseconds; ledger retries retain original values. CBOR u128 values exceeding u64 use tag 2 shortest big-endian bstr; they must not be converted via JS Number. ICRC Account is `{owner: bstr, subaccount: bstr .size 32 / null}`.
 
-Web applications reach dMsg through [dmsg-connect/1](connect-v1_zh.md): its page frames use Xid text for `accountId`, lowercase hex for IDs, nonces and digests, standard base64 for keys, payloads and signatures, and decimal strings for large integers; statement `issuedAt` is in seconds, while outer `expiresAt` is in milliseconds. Standard Rust serde JSON output is not equivalent to these frames. The page's origin is reported by the browser and relayed by the bridge page; the dMsg client checks it against the application's registration.
+Web applications reach dMsg through [dmsg-connect/1](connect-v1.md): its page frames use Xid text for `accountId`, lowercase hex for IDs, nonces and digests, standard base64 for keys, payloads and signatures, and decimal strings for large integers; statement `issuedAt` is in seconds, while outer `expiresAt` is in milliseconds. Standard Rust serde JSON output is not equivalent to these frames. The page's origin is reported by the browser and relayed by the bridge page; the dMsg client checks it against the application's registration.
 
 ## Signatures and Keys
 
@@ -111,10 +124,10 @@ Standards references for signatures, identity headers, and profiles: [RFC 9052](
 
 ## Agent Delegation
 
-A dMsg account can act as an Agent Delegation 1.0 principal: controllers are self-held Ed25519 keys kept in the client vault, registered with a proof of possession at the user home and used to sign events locally, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces and verification scope: [agent_zh.md](agent_zh.md) (Chinese).
+A dMsg account can act as an Agent Delegation 1.0 principal: controllers are self-held Ed25519 keys kept in the client vault, registered with a proof of possession at the user home and used to sign events locally, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces and verification scope: [agent.md](agent.md) (Chinese).
 
 ## Commercial Services
 
-The product-neutral `membership/1` and `dmsg-commerce/1` contracts, delivery profile 2 and execution grant v3 are documented in [commerce.md](commerce.md), with [commerce.cddl](commerce.cddl) framing and independent commerce vectors. They do not change formal Statement or device execution approval bytes.
+The product-neutral `membership/2` and `dmsg-commerce/2` contracts are documented in [commerce.md](commerce.md), with generated [integration.cddl](integration.cddl) records and independent vectors. [commerce.cddl](commerce.cddl) retains only the resource/entitlement framing that still uses v1 domains. Paid delivery keeps its separate profile 2. These versions do not change formal statement or device attestation bytes.
 
-Team wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet_zh.md](wallet_zh.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.
+Team wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet.md](wallet.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.

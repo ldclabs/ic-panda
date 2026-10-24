@@ -20,7 +20,7 @@ We build open protocols and infrastructure in three complementary directions:
 
 * **Anda — Sovereign Minds** — persistent machine cognition, agent identity, memory, experience, and skill.
 * **TokenList — Sovereign Markets** — verifiable crypto capital formation, from asset creation and issuance to markets and governance.
-* **dMsg — Personal Control** — a private workspace for secrets, encrypted collaboration, and explicit signing across applications.
+* **dMsg — Private Collaboration** — a private workspace for people and agents, with encrypted collaboration and explicit permissions.
 
 **PANDA** is the governance and coordination asset connecting the community, treasury, and the infrastructure we build.
 
@@ -88,26 +88,23 @@ It is to make the rules and execution of capital formation increasingly **transp
 
 ---
 
-### 🔐 dMsg — Personal Control
+### 🔐 dMsg — Private Collaboration
 
-**A Chrome extension for private work and cross-application signing.**
+**Private collaboration. For people and agents.**
 
-dMsg is evolving from encrypted messaging into a private workspace. Its planned scope includes:
+dMsg brings a private space, encrypted teamwork and an open agent network into one workspace:
 
-* **Personal vault** — encrypted notes, credentials, key material, and files, with local search and encrypted export.
-* **Encrypted collaboration** — messages and files with explicit membership, publishing roles, and access to history.
-* **Contact rules** — contacts, invitations, blocking, and optional payments for unsolicited requests.
-* **Identity and signing** — a stable identity and explicit approval of signatures for files, statements, and authorizations.
+* **Private space** — logins, API keys, signing keys and notes encrypted before sync; a local encrypted file library with explicit backup and separately encrypted sharing.
+* **Collaboration** — encrypted channels, files and letters with contact rules; formal signatures and team-wallet actions follow explicit approval policies.
+* **Agent network** — connect an MCP client, give each agent a verifiable identity and scoped permissions, and use open Agent Protocols for private mail, discussions and knowledge sharing. Agents can request actions; people retain approval authority.
 
-The design assigns plaintext and cryptographic operations to the dMsg client (the desktop app, CLI and daemon), ciphertext storage and everyday delivery to Cloudflare, and identity roots, device control, formal signing authority, name ownership, and payment settlement to ICP. Ordinary messages and channel updates do not require a separate blockchain update or threshold signature.
+The desktop app and CLI share a Rust daemon. macOS Apple Silicon and Windows x64 have desktop releases; the CLI also runs on Linux. Web applications connect through the connect.dmsg.net bridge. Windows is less tested, and desktop creation of new team wallets is currently paused.
 
-The publication model makes the client, protocols, canisters, and recovery tools open source; the production cloud implementation remains private. Content encryption does not hide all operational metadata or guarantee the latest cloud state. Availability, client updates, and canister upgrades remain trust dependencies.
+Private content is encrypted on devices; Cloudflare stores ciphertext and handles everyday delivery, while ICP holds account/device authority, recovery and settlement. The clients, protocols and canisters are open source; the production cloud implementation remains private. Metadata, cloud availability, client updates and canister upgrades remain trust boundaries. dMsg has not been independently audited.
 
-**Status: In development.** The design is defined, but the complete product is not released. The desktop client runs against local deployments in end-to-end tests; production deployment, audits, and release validation remain to be completed. Web applications reach it through the connect.dmsg.net bridge page.
-
-* [The dmsg CLI and daemon](./src/dmsg_cli/README.md) and [the desktop app](./src/dmsg_desktop/README.md)
-* [Public protocol and verification rules](./docs/protocol/README.md)
-* [Canister implementation and validation boundaries](./docs/dmsg_canisters.md)
+* [Downloads and checksums](https://github.com/ldclabs/ic-panda/releases/latest)
+* [CLI and daemon](./src/dmsg_cli/README.md) · [Desktop app](./src/dmsg_desktop/README.md)
+* [Documentation](./docs/README.md) · [Public protocols](./docs/protocol/README.md)
 
 **[Explore dMsg →](https://dmsg.net/)**
 

@@ -32,6 +32,6 @@ The module receives metadata and approved bytes through a private Unix socket. T
 
 Native configuration does not contain an owner API token, decryption key or plaintext backing file. Source bytes are delivered only after the daemon's approval. A source change stops the volume and requires an explicit start; this is not a promise of automatic IDE reload.
 
-See [P1 validation](../../../../docs/dmsg_secrets_P1_validation_zh.md) for actual evidence. In this implementation session the user authorized **production signing only**. The production extension was not enabled or mounted, and its kernel integration, cross-UID checks, distribution notarization and upgrade/uninstall tests remain unrun.
+See [validation scope](../../../../docs/protocol/secrets_zh.md#验证入口与边界) for actual evidence. The recorded implementation verification covered production signing only. Enabling or mounting the production module, kernel integration, cross-UID checks, distribution notarization and upgrade/uninstall acceptance require separate evidence.
 
 FSKit supplies UID/GID in access/open contexts; its read callback does not identify an individual reader. Cross-UID transfer of an already open descriptor has not been validated and must not be inferred safe from ordinary pathname-permission tests. This is part of the pending production-module gate.

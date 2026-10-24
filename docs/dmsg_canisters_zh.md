@@ -1,20 +1,12 @@
-# dMsg canisters：公开接口与参考实现
-
-> 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。已有数据支持 user 14 → 15、directory 6 → 7 原地升级，不能重装；旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
+# dMsg canisters：实现与验证
 
 [English](dmsg_canisters.md) | 简体中文
 
-本目录记录实际实现。整体架构、容量、扩容与多实例部署见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)。公开协议及语言无关的字节规则见 [protocol/README_zh.md](protocol/README_zh.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。
+核对日期：2026-10-24，公开源码基线 `9fd70dca`。本文导航当前实现，不是部署清单或审计报告。整体架构与实测容量见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)；精确接口与字节以各 canister 的 Candid 和[公开协议](protocol/README_zh.md)为准。
 
-## 商业化接口增量
+## 组件
 
-新增共享 `membership`（PANDA 资格、独占、持久产品决定）及 `dmsg_commerce`（现金订单、合同、退款、资源租约）。实际协议、权限、生命周期和验证边界见 [commerce_zh.md](protocol/commerce_zh.md)。user 新增精确商业批准、真实账户创建时间及独立 UTC 月执行账；COSE 隔离正式签名与安全操作预算；delivery 使用版本化费率和 v2 报价/收据域。旧名称价格不受影响。
-
-当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。桌面客户端的套餐与结账已完成本地接线，TokenList 项目与独立账号 adapter 已实现；生产钱包/SNS 验收单独执行，不将本地测试视为上线证明。
-
-COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保留原请求与商业占用，但不再阻止后续终态清理。明确未发出的管理调用返回失败及成本 0，并撤回预算预留；结果清理不解码旧正文，固定签名派生前缀在初始化和升级时缓存。入口统一验证固定 user home，公开 Candid、派生路径与密钥身份保持不变。执行结果的 `cycles_cost_upper_bound` 是管理调用的保守成本上界，不是实际账单。详见 [COSE 实现与实测](../src/dmsg_cose/README.md)。
-
-## 子库
+控制面有七类服务，另有团队钱包工厂与每个团队的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
 
 | 包 | 职责 | 文档 |
 | --- | --- | --- |
@@ -31,253 +23,37 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 | dmsg_wallet_hub | 团队钱包的激活、创建、版本登记、升级与锁定、成员索引 | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
 | dmsg_wallet | 团队钱包实例：成员、策略、提案、ICP/ICRC 转账、链密钥签名、审计 | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
 
-客户端与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)，账户、设备与根见 [账户与根合同](protocol/account_root_zh.md)。客户端是桌面端（`src/dmsg_client`、`src/dmsg_cli`、`src/dmsg_desktop`），其端到端测试在 PocketIC 与本地 workerd 中继上运行（[集成测试说明](../tests/dmsg_integration/README.md)）；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。其它配套文档保留的早期描述应按明确的版本修订核对。
-
 ## 当前合同
 
-- Statement v3 设计已实现三个文档 profile v1（纯文本、纯摘要、针对文件的文本声明），认证批准域为 `dmsg/attest/v1`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
-- `attest` / `attest_app_action` 接收设备签名的请求，返回 `SignedArtifact { cose_sign1, cose_key }`：RFC 9052 COSE_Sign1 和 public-only 设备 COSE_Key。设备是否属于账户、签名是否经授权由认证回执证明，不能把公钥本身当作身份/授权证明。
-- 内部账户的 `AccountId` 直接复用 `ic_auth_types::Xid`（12 字节），用户服务使用共享 `XidGenerator` 同步原子发号；初始化增加固定 issuer_namespace，密码派生版本为 2，使用新开发实例。
-- `get_execution_receipt` 提供认证执行叶（schema 2），绑定请求 ID、待签字节、设备公钥指纹和签名；请求元数据不再进入可移植 Statement。
-- `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
-- `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。
-- 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
-- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。网页接入合同为 [dmsg-connect/1](protocol/connect-v1_zh.md)；`validate_origin` 只接受精确的 HTTPS origin，Local 部署另接受环回 HTTP origin。
-- 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
-- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新：管理配置修改时即写入 StableCell，`pre_upgrade` 补写当分钟的调用计数和当日开单数，跳过该 hook 的升级只丢失这两项；资金记录仍直接保存到稳定表。容量上限、多实例与部署流程见 [payment README](../src/dmsg_payment/README.md)。
+- **账户与设备**：`dmsg_user` 发放 12 字节 Xid 账户，管理登录绑定、设备能力、内容根承诺与延迟恢复。客户端通过 `dmsg_handle` 发现 user homes，并行查询账户。按既定设计，不强制跨 home 的登录 Principal 唯一性。
+- **内容与恢复**：设备生成内容根并为授权设备和恢复封装。`dmsg_cose` 只在全设备丢失恢复时执行 vetKD，不签署普通文档或 Agent Delegation 事件。
+- **签名**：设备在本机签署 COSE 声明和应用动作；`attest` / `attest_app_action` 核验签名与设备批准、扣减执行额度、发布认证回执。公钥本身不证明账户授权，见[声明与回执](protocol/README_zh.md)。
+- **公开身份**：user home 保存官方 PrincipalDocument 展示字段及 controller 记录，`dmsg_directory` 发布认证 JSON。展示资料更新写链，公开头像二进制留在云端。Agent controller 是客户端 vault 中自持的 Ed25519 key，见 [Agent Delegation](protocol/agent_zh.md)。
+- **名称**：注册表保存规范名称及可选展示大小写，处理注册、旧名称认领和账户批准的转移；注册费直接进入配置的收入账户。
+- **支付与订阅**：`dmsg_payment` 结算付费来信托管；`dmsg_commerce` 实现 commerce 2 现金结账、资源权益与自动归集；共享 `membership` 实现 membership 2 的 PANDA 资格与跨产品占用。见[商业合同](protocol/commerce_zh.md)。这些职责独立于日常加密投递。
+- **团队钱包**：hub 激活实例并管理已登记的代码版本；各钱包管理自己的提案、批准、资金、链上密钥签名与审计。升级先由钱包接受。桌面端当前暂停新建，已有钱包操作继续提供，见[钱包合同](protocol/wallet_zh.md)与[桌面范围](dMsg_wallet_zh.md)。
+
+普通消息、文件、秘密库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
+
+## 持久化与升级
+
+公开 Candid/CBOR 与私有稳定编码分开。`dmsg_runtime::stable_types` 和各 canister 的 `stable_codec.rs` 使用整数键紧凑表示，不改变签名字节或认证值。当前 schema 常量与可接受的旧布局以存储及升级代码为准；版本号相同或递增本身不能证明兼容。
+
+**`dmsg_user` 和 `dmsg_directory` 已有线上用户数据。** 布局变化必须提供保留数据的原地升级，并验证旧版 Wasm 到新版 Wasm。现有 user 14 → 15、directory 6 → 7 升级保留原数据；directory 首次转换会构建新增的文档认证树。不得以重装代替迁移。[Principal 升级检查](../scripts/test-dmsg-principal-upgrade.sh)覆盖这些转换及相关 handle 变化。
+
+其他 canister 遵循各自支持的布局与恢复流程。含账户、托管资金、账务或不可重建记录的实例，不得通过重装修复。跨 canister 结果未知时保留原请求与账本参数对账。目标部署的配置、模块哈希、controllers 和运行就绪状态须另外核验。
 
 ## 构建与验证
 
-需要 Rust stable、wasm32-unknown-unknown target、candid-extractor 0.1.6 和 Node.js；PocketIC server 与测试 crate 固定为 16.0.0。依赖以 Cargo.lock 为准。
+使用仓库锁定的依赖及[集成测试指南](../tests/dmsg_integration/README.md)中的 PocketIC 环境：
 
 ```sh
 rustup target add wasm32-unknown-unknown
 make build-dmsg
 POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
+python3 scripts/generate-integration-sdk.py --check
 ```
 
-`test-dmsg` 检查 Rust 测试、Clippy、Wasm、Candid 一致性、独立 Rust/JavaScript 协议向量与 PocketIC 调用。测试账本支持故障注入和公开 mint，仅用于测试，不在 icp.yaml 中。详见 [集成测试说明](../tests/dmsg_integration/README.md)。
+测试目标包含 Rust 测试、Clippy、Wasm 构建、Candid 一致性、独立协议向量与 PocketIC 调用。客户端、桌面、平台凭据库、原生挂载与真实应用接入各有独立测试路径。本次文档更新未重跑这些完整套件。
 
-## 状态与保证
-
-六类 canister 分别维护账户批准、名称权属、固定密钥执行、投递资金终态、共享会员资格和产品商业权益。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
-
-稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证值继续使用公共协议编码，查询时由稳定记录重新生成，因此 compact stable representation 不改变认证响应。
-
-生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。所有 user home 与 handle/cose/payment/directory 的 environment、issuer_namespace 必须一致且固定；各服务按账户 ID 内嵌的分配器指纹把账户路由到分配它的 home，新 home 须经各服务的 `admin_add_user_home` 登记，指纹不得碰撞。COSE 由 controller 或 governance 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、客户端完整批准流程、私有服务协议、容量和审计仍需单独验收。
-
-签名产物可在非保护头 270 携带不透明的 RFC 9921 CTT token，验证只限制其大小，不检查其可信性。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
-
-## 2026-09-22 客户端接线增量
-
-账户新增 `SetDeviceCapabilities`，由现有管理员的精确批准更新能力，保留设备公钥/角色，防止移除最后的根管理员，并推进安全版本及必要换根。支付新增配置、报价签署钥和费用政策的认证读取；旧托管的条款与原资金决策保持固定。
-
-共享认证模块在生成查询证明时读取一次 batch time，避免 replica 缓存返回长期不变的旧证书；新鲜度与防回退窗口未放宽。新增真实扩展集成验证覆盖正式签名、现金/SNS 客户端、付费来信、频道换代/历史/文件/设备撤销、旧快照与共享继承。使用合成账户、账本和旧密文样本，仍不替代正式 origin、真实旧用户或真实资金验收。
-
-共享 runtime 的紧凑适配器直接保存 representation，避免表写入前的领域对象克隆；商业预留与费用政策也使用整数键。该次开发布局为 user schema 6、payment schema 5；后续版本见各服务实现及下文增量。认证批量响应检查完整 Candid 成功响应的 256 KiB 上限，包含证书与封装。
-
-2026-09-23 payment 使用 schema 6：授权尝试与成功开单额度分开；默认认证查询按时间选择当前费率；controller 在固定上限内维护预期网络费，旧报价和已准备出金保持冻结。预算更新不重算配置认证叶，历史费率表使用紧凑表示，稳定内存改为 1 MiB 分配桶。转账增加有界 `last_failure` 诊断；容量和 cycles 结果见 payment README。
-
-2026-09-25 payment 使用 schema 7：出金腿的并发锁改为内存占用键，升级或回调 trap 丢失账本回复后仍为 `InFlight` 的腿可用冻结参数重发，由账本去重；`Superseded` 腿返回 `VersionConflict`。开单只约束 user 观察时间与本地时间的差值，入金块时间不再与本地时间比较。付款方索引只保存键，出金块索引保存 `(escrow_id, leg_id)`，升级重建认证树只发布一次根哈希。
-
-2026-09-25 membership 使用新的开发布局（配置单元合并服务配置与每小时申请计数，申请表改为 memory 1–4），不读取旧实例。移除 USD 补贴预算：`PandaRatePolicy`、`ProductRegistration` 与 `PandaQuote` 不再含补贴字段，`set_panda_subsidy_budget`/`panda_budgets` 删除；`max_claims` 只计仍占用神经元的申请。会员到期 E 取报价固定的 offer 终点，神经元最早解锁不得早于 E。同一申请一分钟内复用资格观察；固定 governance 模块时经 `canister_info` 同时核对模块 hash 与唯一 controller 为 SNS root。每分钟调用计数只在 heap 中，不再有 `pre_upgrade`；申请只在索引、占用或公开视图变化时更新对应表和认证叶。
-
-2026-09-25 commerce 使用 schema 4：配置单元只保存服务配置与调用预算，初始目录只在目录表中；暂停状态立即持久化，不读取旧实例。升级沿用原年度起点，升级差价和存储包按完整年度折算；过期存储包不占 64 个上限。适配器在账本或账户调用之外的交付失败都写入确定拒绝回执，结算方无需等到激活截止即可退款；预留时适配器依赖暂不可用则订单保持 `Reserving` 以便对账重试。共享调用预算在确认存在需要外部调用的记录后才扣减，`verify_settlement_asset` 仅限治理调用。已知拒绝的出金腿可由接收者以原 fee 或账本给出的 fee 重发，恢复超过 24 小时才派发的腿。SNS 调用失败与 membership 返回不可核验同样暂停付费执行时间，已知失格视图带修复截止时间。只影响内部状态的订单保存不再重算认证叶，重建认证树只发布一次根哈希。
-
-`max_claims` 包含尚未对账完成的 `Applying` 申请，不使用到期索引长度代替占用数量。占用计数随申请状态更新，升级时在重建认证树的同一次遍历中恢复；Apply 回执丢失不会腾出新申请容量。PocketIC 回归覆盖回执丢失后的准入拒绝、升级恢复、成功对账继续占用及承诺到期后的容量释放。
-
-2026-10-02 membership 修复产品预留暂时失败被永久拒绝、费率发布重试和旧版本复用问题；激活必须使用冷却结束后的资格观察。恢复调用按全局/actor 限流，并阻止同一申请的并发产品调用；SNS 配置核验合并在途请求。费率逻辑独立到 `rate.rs`，申请表、索引与认证维护集中到 `store.rs`，完整记录未变化时不写稳定表。
-
-新的开发布局在 memory 5 保留最高政策版本，在 memory 6–8 增加终态保留、幂等摘要和读者索引；不迁移旧实验布局。终态在申请截止及终态时间两者较晚值之后保留 30 天，再有界压缩；未知 Apply 和未到 E 的占用不清理。完整记录和历史操作分别设置 10 万/100 万防护上限。实际返回语义、原生 1,000/10,000 条样本、索引的存储开销及未验证的生产容量边界见 [membership README](../src/membership/README.md)。
-
-公开实现仍采用固定 offer E、无提前退出、终止不可恢复的 commerce 2 合同。私有目标设计与此不一致的部分待单独修订设计基线；本次不据旧提案恢复已移除的生命周期分支。私有设计定位继续由 AGENTS.md 维护。
-
-## 2026-09-29 Agent Delegation 增量
-
-新增 `dmsg_directory`，按 [agent_zh.md](protocol/agent_zh.md) 发布 principal 文档。user schema 8 新增 principal 稳定表（memory 8）与 `principal_updated_at`，`SecuritySnapshot` 升为 schema 3；账户命令新增 principal 启用、托管 controller 登记/退役/泄露/改名，新增 `register_controller`、`sign_agent_event`、`publish_principal`、`get_principal`。默认 `SensitivePolicy` 与 `SetPolicy` 允许 `AgentController`（上限 4 个用途）。COSE 新增 `KeyPurpose::AgentController`、`ExecutionKind::AgentEvent` 与 `ExecutionOutput::AgentSignature`；Agent 事件计入正式签名的商业额度与预算，不产生执行回执认证叶。
-
-`dmsg_protocol` 依赖 crates.io 的 `agent-protocols =0.10.0`（`default-features = false`）做严格 I-JSON、JCS 与 Agent Delegation 校验。本地 release 构建中 user Wasm 由 3,771,117 增至 4,244,709 字节，cose 由 2,165,748 增至 2,412,506 字节，directory 为 1,496,953 字节（未经 ic-wasm shrink）。2026-10-08 升至 `=0.11.2`：新版只增加 Agent Mail 与 Identity 的 Agent URL 解析，Delegation 与 Profile 的规范、向量和 SDK 代码不变；同一提交下 user、cose、directory 的 release Wasm 分别缩小 4,076、9,468、2,446 字节。2026-10-09 升至 `=0.11.3`：新版删除 controller 的 `supersedes` 与凭证的 `owner_controller`，受限 controller 只能管理其上限内的凭证，`delegation_query_url` 改为 delegation 服务源 `delegation_service`。dMsg 随之从托管 controller 与注册证明中去掉 `supersedes`，directory 改配 `delegation_service` 并升至稳定布局 schema 6，开发实例须重装；相对上一提交，user、directory 的 release Wasm 分别缩小 21,176、18,495 字节，cose 不变。directory 容量与升级重建开销尚未实测，home 迁移尚未实现。
-
-
-## 2026-10-02 user 审查修复
-
-`dmsg_user` 开发布局升级到 schema 9，安全快照保持 schema 3。恢复完成绑定请求 ID 并保留最近完成回执；绑定容量不足时回收过期项；固定服务 caller、外部批准配额与 Agent 本地授权在 await 前检查，回调后复查。新增公开 `prune_executions(account_id)`，按最多 64 项索引清理过期终态并返回数量，保留未终结执行、防重放状态与历史结算；执行回执查询可返回认证的不存在证明，原样重放已清理的执行请求返回 `ResultExpired`。
-
-执行路径拆分只读预检与同步提交，复用不可变解析结果；controller 注册不再预先复制整个账户。认证树保留实测占用更低的整批重建方式，只发布一次根；逐项流式候选未保留。具体边界、回归及同配置 cycles 比较见 [user README](../src/dmsg_user/README.md)。开发接口与扩展绑定一起更新，不读取旧实验布局；生产部署与大规模容量仍未验收。
-
-## 2026-10-02 handle 审查修复
-
-schema 7 用内存调用 guard 区分执行中的扣款和升级遗留的 `Charging`，后者使用原 ledger 参数恢复；对账与重试共用 guard，保留此前扣款的不确定性。认领和转移保存精确请求回执，原认领重放不受后来名称转移影响。配置只读路径借用已解码值，变更仍同步持久化；操作索引改用固定 32 字节键。公开 Candid 和认证叶不变。恢复、对账证据、并发回归及活跃名称容量测量见 [handle README](../src/dmsg_handle/README.md)。
-
-## 2026-10-02 payment 审查修复
-
-payment 使用 schema 8：授权、查账、出金预算分别按调用方和全局限流；预留覆盖结算最高网络费，退款支持最多 32 笔同源入金与已释放预留合并，并提供入金分页/退款预览。总订单容量限制只阻止新开单；去重索引保留，归零开放计数删除。实现、测量和真实资产验证边界见 [payment README](../src/dmsg_payment/README.md)。
-
-## 2026-10-02 directory 审查修复
-
-directory schema 2 持久化文档 SHA-256 摘要，发布摘要与 HTTP 查询复用摘要并转移正文缓冲区；升级逐条读取稳定记录构建认证树。home 与目录共享保守的 64 KiB 文档预算，预留后续退役、泄露标记和最大名称空间，超预算注册在 home 提交前被拒绝。公开配置 URL 增加长度边界；HTTP 路由与认证库采用相同的路径规范化规则，principal 权威解析仍要求精确的规范 URL。公开 Candid 不变；开发期拒绝 schema 1。
-
-定向单测、PocketIC 回归及可复现的 [directory profile](../src/dmsg_directory/README.md) 覆盖这些改动。35,360 字节文档的本地样本中，HTTP 复制查询 cycles 降低 31.87%；130 条记录升级后的 Wasm 内存由 6,356,992 降至 1,966,080 字节，升级 cycles 降低 15.14%。这些样本不代表最大容量或网关吞吐。本次未运行 dMsg 全套验证脚本。
-
-
-## 2026-10-03 commerce 审查修复
-
-commerce 开发布局升级为 schema 5：出金、对账与修订共用在途 guard，升级遗留的 `InFlight` 仍以冻结参数恢复；开单精确匹配价格权威的历史快照，支持仍有效的旧报价。目录生效边界终止旧资源租约，Free 月额度按实际政策时间线分段；当前资源公开字段保留，账户内部移除重复调用状态并裁剪已结束的历史月份。
-
-新增商户读权限、订单/出金读者索引、完整入金游标分页，以及每 caller 的恢复预算。稳定存储和认证维护集中到 `checkout_store.rs`，账本回复分类在纯模型中，配置采用 1 MiB 分配桶及紧凑订单/出金记录。已结清终态保留后有界归档，保留原输入摘要、报价、账务、回执、读者索引和入金去重；迟到款恢复原订单原路退款，未知结果与未清资金不归档。验证命令、存储和性能样本的实际边界见 [commerce README](../src/dmsg_commerce/README.md)。
-
-## 2026-10-06 handle 治理与收入提取
-
-handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `governance`，快照导入/封存、`update_ledger_fee` 和新增的 `admin_collect_token` 接受 controller 或 governance 调用。每个管理方法都有同参数的 `validate_*` query，按当前状态预演并返回提案说明，可登记为 SNS 通用函数的验证方法。`import_legacy_handles` 增加快照位置 `offset`，乱序执行的批次被拒绝，不会留下缺口；注册收入可用 `admin_collect_token` 从 handle 默认账户提取。7–20 字节名称价格改为 100 PANDA，整张价格表与旧 `ic_message` 现行价格一致。认证树只保留名称叶，移除没有调用方的 `snapshot_certified`；按升级指令实测，单实例活跃名称上限从 100,000 提高到 150,000（升级约用 300B 上限的 55%）。部署、治理和迁移流程见 [handle README](../src/dmsg_handle/README.md)。
-
-## 2026-10-06 handle 千万级名称与多 user home
-
-handle 开发布局升级为 schema 9，作为全局唯一的名称注册表承载千万级名称：认证树改存在 stable memory，名称按 `handle_bucket` 分进 2^20 个桶，桶号位组成二叉标签树，写入只重算一个桶和一条路径，升级只重新发布根哈希；名称的证明路径变为 20 个桶号位标签加名称。`HandleInit` 以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代单个 `home_user`，按账户 ID 的分配器指纹把授权核对发给账户所在的 user home，跨 home 转移分别核对；新增 `admin_add_user_home` 及其预演。分配桶改为 8 MiB，stable 可寻址 256 GiB。实测 1,000 至 1,000 万名称的升级约 115 万指令，64 名称证书响应不超过 81 KB，活跃名称上限提高到 1,000 万。数据与步骤见 [handle README](../src/dmsg_handle/README.md)。
-
-## 2026-10-06 多 user home 与 SNS 治理
-
-cose、directory、payment 与 handle 一样按账户 ID 的分配器指纹路由 user home：`CoseInit` 以只增不减的 `user_homes` 取代 `initial_home_user`，`execute`/`get_execution` 只接受账户所属 home 的调用；`PaymentInit` 以 `environment`、`issuer_namespace`、`user_homes` 取代 `home_user`，开单时把 `verify_payment_offer` 发给收款账户的 home，认证配置叶升为 schema 2 并改列 `user_homes`。commerce 的 `user_homes` 上限提高到 64；当时 membership 的 user home 来自 commerce 应用登记，应用登记最多可列 64 个 home。二者已于 2026-10-07 被取代：membership 改用 `PandaServiceConfig.commerce_homes` 把每个 home 映射到它的 commerce，应用登记不再列 home。新增 dmsg_user 分片时，在 handle、cose、directory、payment 及其所属 commerce 实例上调用 `admin_add_user_home`，追加到 dMsg 产品登记的 `beneficiary_authorities` 和 membership 的 `commerce_homes`；若要接收新账户，再加入 handle 的 `registration_homes`。不需要新的应用登记（见 [commerce README](../src/dmsg_commerce/README.md)）。
-
-user、cose、directory 新增固定的 `governance`。七个 canister（user、handle、cose、directory、payment、commerce、membership）的管理方法统一接受 controller 和 governance，每个都有同参数的 `validate_*` query，按当前状态执行与方法相同的检查并渲染提案说明，可登记为 SNS 通用函数的验证方法。新增管理方法：各服务的 `admin_add_user_home`，user 的 `admin_set_account_limits`（账户上限与每日新建配额），cose 的 `admin_set_daily_budget`，directory 的 `admin_set_custom_domains`；这两个 canister 的升级不再读取参数，配置只经管理方法修改。cose 的 `prune_executions` 改为公开维护，与 user 的同名入口一致。稳定布局：user schema 10、cose schema 9、directory schema 3、payment schema 9。
-
-前端仍只连接一个 `dmsg_user`；按账户指纹选择 home 的客户端路由、跨 home 的认证身份唯一性和已有账户迁移尚未实现。验证范围见各 canister README。
-
-## 2026-10-06 认证树移入 stable memory
-
-参照 handle 的做法，user、payment、commerce、membership 和 directory 的认证树改存在 stable memory，升级不再整批重建。新的 `dmsg_runtime::cert_map` 是一棵按位分叉的 crit-bit Merkle 前缀树：只存 key、认证值哈希和内部节点，认证值在查询时从各自记录重新生成并与已认证哈希核对。每个 key 仍以 `labeled(key, leaf)` 按字节序认证，客户端、SDK 和私有云端的验证路径不变；树形只由 key 集合决定，写入只重算一条路径，key 分布均匀时 witness 嵌套约 log₂(n)+2 层。directory 以 `http_expr` 下的第一段路径为 key，404 证明同时披露请求路径和各级更具体通配路径的第一段，满足 HTTP 网关的 v2 校验。
-
-移除了没有使用方的认证信息：commerce 的出金腿认证叶及 `checkout_transfer_certificate`；不再使用的堆上 `Certification` 一并删除。membership 的占用计数改存 stable memory，升级不再扫描 claim。payment、commerce、membership 的分配桶从 1 MiB 改为 8 MiB，可寻址 256 GiB。稳定布局：user schema 11、payment schema 10、commerce schema 6、membership schema 1、directory schema 4，开发实例须重装。按要求未做大数据量的成本实测。
-
-
-## 2026-10-07 commerce 规模与审查修复
-
-从未购买的账户在 commerce 中没有记录：认证权益是不存在证明，配合认证目录即为 Free；`get_execution_entitlement` 按目录和 home 提供的账户创建时间直接计算 Free 月额度，租约版本为 0，不写状态。主体及其认证叶只随付费账户增长。现金、已到期和 Free 资源租约最长 30 天，并在下一个已知额度变化点截止；由 PANDA 支撑的租约不超过一小时。租约剩余不足 10 分钟才重新签发，membership 在同一窗口内重新核验合格的认领，提前几分钟续期的消费者能拿到更晚的租约。user home 仍至少每小时重新核对执行额度，版本 0 不做同版本摘要比对；私有云端接受更长的租约，并至少每小时用 query 重读已保存的投影。
-
-`ProductRegistration` 的 `beneficiary_authority` 改为只能追加的 `beneficiary_authorities`。checkout 与 membership 向主体自己的权威请求授权，新增 user home 的账户可以购买。报价的条款摘要只取产品注册。membership 返回 `Pending` 或 `QuotaExceeded` 时保留原资格租约，不再开启付费时间暂停。治理更新已登记的结算资产时只替换非价格条款并取下一个政策版本，价格发布不会使等待中的提案过期。最后一次收入归集带走无法单独退回的准备金余额，更大的余额任何人都可以退回付款人，结清订单的余额因此归零。订单与结算资产证书移除，客户端改用带权限检查的普通查询。`CommerceInit.limits` 与 `admin_set_limits` 在固定上界内治理主体、热订单、累计订单、每日订单和每分钟调用上限。
-
-`dmsg_runtime::cert_map` 把内部节点放在按 id 定址的 201 字节定长槽位中，删除的节点进入空闲链表；key 最长 64 字节。100 万个认证 key 时，一次写入的 stable 读从 4,394 次降到 167 次。主机构建的 commerce 容量 profile 测得：10 万与 100 万主体时升级约 184 万条指令；100 万主体时续期一次 10.67M cycles（B 树节点为 14.23M）。稳定布局：user schema 12、payment schema 11、commerce schema 7、membership schema 2、directory schema 5，开发实例须重装。
-
-## 2026-10-07 commerce 多实例与运维接口
-
-一次部署可以运行多个 `dmsg_commerce`，按 user home 分区：一个 `dmsg_user` 只列在一个实例的 `user_homes` 中并以它为 `commerce_canister`，每个实例独立持有注册、结算资产、价格、目录、订单和认证叶。共享的 membership 现在用 `PandaServiceConfig.commerce_homes`（只能追加，最多 64 项，`validate_configure_panda_service` 预演）把每个 user home 映射到它的 commerce，按申请所在 home 读取注册并回调该实例的产品 adapter；SNS 读取额度改由新增的 `qualifications_per_minute` 决定（未配置前 200，每个活跃认领每小时约一次读取）。私有云端的 `COMMERCE_CANISTER` 可填按 user home 的 JSON 映射。客户端仍只连接一个 user home，因而只连接该 home 的 commerce。
-
-commerce 在 membership 调用没有完成时（`Unavailable`、`ExecutionUnknown` 或 membership 已停止）保留 PANDA 租约，与原先对 `Pending`、`QuotaExceeded` 的处理一致；只有明确答案才把合同标为不可核验。每分钟调用预算改为累计计数，不再对每个 caller 的计数求和；`CommerceLimits.calls_per_caller` 让单个 caller 的资金/出金份额可治理。新增 `collectable_checkouts` query，以稳定索引（memory 30）按服务终点分页商户未归集完的 `Applied` 订单；新增 `commerce_stats`，报告主体、热/冷订单与出金腿、待归集订单、认证叶、稳定内存页和 cycles。commerce README 记录了单实例容量结论（注册用户数不受限，付费主体与累计订单各以常量 1,000 万封顶）和价格发布、派发、归集、快照与 cycles 的运维节奏。稳定布局：commerce schema 8、membership schema 3；开发实例需重装。
-
-PocketIC 覆盖第二个 commerce 实例服务自己的 user home（PANDA 期限加现金存储包）、membership 停止时保留租约、归集分页与 `commerce_stats`、membership 配置的验证方法。私有云端的 commerce、配额与路由测试通过。主网部署、真实资金、超过 100 万主体和私有云端端到端仍未验收。
-
-## 2026-10-07 COSE 生产准备
-
-COSE 与 user 的每日预算在管理调用返回后结算为实际扣费：`ExecutionResult` 新增 `cycles_charged`（请求附带 cycles 减退款），在途期间仍按成本上界预留；未发出或被明确拒绝（如签名队列满）的调用同时退回次数，结果未知时保留完整预留。PocketIC 中签名与 vetKD 派生的上界约 68.26B、实际扣费 26.15B，单账户每天可做的正式签名从约 12 次增至约 32 次（COSE 侧），user 侧默认次数上限先到。
-
-升级若未先停止 COSE，丢失回调的在途执行此前会永久停在 `Executing` 并卡住账户窗口；现在内存中的在途集合区分仍在等待的调用，`get_execution` 把遗留记录按 `Unknown` 返回，下一次执行或清理页写为 `Unknown` 并推进高水位，不重签。新增 `cose_stats`（账户数与上限、结果数、在途与 Unknown 计数、当日全局预算用量、stable 页数、cycles），`canister_inspect_message` 拒绝非 home 的 `execute` 与非管理员的管理 ingress，`prune_executions` 每页增至最多 64 个账户，用掉 20B 指令后在账户之间提前结束，因为删除一条结果要重写同一 B 树节点中的其余结果（一页 4,096 条过期结果约 0.62B cycles，64 个账户各 32 条 4 KiB 签名约 0.75B），`validate_admin_add_user_home` 显示共享账户容量。`dmsg_protocol` 新增 `content_root_context` 与可选 feature `cose-pins`，`cose_pins` 示例按 canister ID 离线计算生产 pin；`scripts/cose-prune.mjs` 匿名执行一轮清理。仓库以 `rust-toolchain.toml` 固定 Rust 1.98.1，CI 与 release 同步。
-
-稳定布局保持 COSE schema 9：结果新增 key 4、全局单元新增 key 3，均带默认值，旧数据照常解码；README 记录了生产后的布局迁移约定。PocketIC 覆盖离线 pin 的生产初始化、不停机升级丢失的回调、扣费结算与 `cose_stats`、ingress 拒绝和 64 账户清理页。主网 `key_1` 验收、签名队列满的真实行为和外部审计仍未完成。
-
-## 2026-10-07 内容根去 vetKD、设备签名认证与登录恢复
-
-按 [加密设计](dmsg_encryption_zh.md) 的新基线：内容根不再经 vetKD 封装，RootBundle v2 把每代根 HPKE 封装给每台活跃设备，并用 COSE 的内容根 vetKD 公钥做一份 IBE 恢复信封；`CommitRoot` 重算 `recipients_digest`（活跃设备 ID 升序 + 代次）与 `bundle_digest`，已撤销设备收不到新根。注册、新设备、换根全程 0 次链上密钥调用；只有全设备丢失恢复做一次 `derive_root` 派生。
-
-客户端取消口令、恢复码与离线导出：本机数据密钥由 user home 的认证 query `unlock_secret(account, device)` 发放的秘密（`HKDF(master_secret, account, device)`，`master_secret` 在初始化 timer 中 `raw_rand` 生成）派生的 LUK 封装，可选快速解锁（30 天内；macOS 由 Secure Enclave 要求 Touch ID）。恢复改为登录授权的延迟接管：`request_recovery(account, request, device_proof)` 要求 caller 已绑定，默认等待 3 天（`SetRecoveryDelay` 1–7 天），任一有效设备 `DisputeRecovery` 即取消，解除发起申请的登录绑定也会作废申请，`complete_recovery` 后只有登记的设备可以派生当前根，直到它换根。`SetRecovery`、`ConfirmRecovery`、`reconfirm_recovery`、`RecoveryDisputed` 状态与恢复公钥全部删除；`SecuritySnapshot` 为 schema 4。
-
-正式文档改为设备签名 + 认证回执：`attest` / `attest_app_action` 验证设备对 Sig_structure 的 Ed25519 签名（kid 为 RFC 9679 指纹）与 `dmsg/attest/v1` 批准，在同一消息内计费、保存产物并写入 schema 2 回执；`get_attestation` 重放。`sign`、`sign_app_action`、`sign_agent_event`、ES256K 与 COSE 的签名 master 全部删除，`dmsg_cose` 只保留 `execute`（派生）、`get_execution` 与 `root_public_key`，grant 摘要为 `dmsg/cose-execution/v4`。Agent controller 改为客户端自持：`RegisterController` 附 `dmsg/controller-pop/v1` 证明，事件在本机签名并直接提交到 delegation 服务，`register_controller` 与 `last_nonces` 删除。
-
-多实例：`dmsg_handle` 新增 `registration_homes`（`admin_set_registration_homes` 与 `validate_*`），客户端启动时从 handle 读取权威 home 列表与注册入口，对各 home 并行 `my_account` 定位账户；`AppRegistration` 不再列 `user_homes`/`cose_homes`，commerce 在 checkout 时核对账户 home；user 新增 `user_stats`。稳定布局：user schema 13、COSE schema 10、handle 与 commerce 各自推进；开发实例需重装。
-
-PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wasm 上通过，覆盖根 CAS 接收者绑定、认证按月计费与重放、受保留窗口与升级、登录恢复可见/争议/完成、恢复派生与 IBE 往返、自持 controller 注册与本机签名、第二个 home 的注册入口治理。客户端 `check` 0 错误、166 项单元测试通过；真实扩展 E2E、私有云端和生产 II origin 本轮未验收。
-
-## 2026-10-07 handle 名称上限改为 19 字节
-
-`normalize_handle` 与客户端 `canonicalHandle` 只接受 1–19 字节的名称，使名称不会与 `AccountId` 的 20 字符 Xid 文本重合，`/<handle>` 与 `/<account_id>` 不会产生歧义。公开资料路径按 2026-10-21 实现对齐，永久链接使用 `/<account_id>`，见[公开资料网页](protocol/cloud_zh.md#公开资料网页)。7–19 字节价格仍为 100 PANDA。2026-10-07 查询主网旧 `ic_message` 的名称区块：203 个不同名称，最长 17 字节，旧名导入不受影响。
-
-## 2026-10-08 directory 上线准备
-
-directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publish` 与 controller 或 governance 的 ingress，其他 ingress 在执行前被拒绝，不再由 directory 支付接收费。`custom_domains` 在安装和 `admin_set_custom_domains`（含预演）时都必须包含 `principal_origin` 的主机名。新增 `directory_stats`（已发布账户数、stable 页数、cycles 余额），并用单元测试固定文档响应的认证哈希：升级不重新认证文档，响应头或认证库的改动必须同时重新认证全部文档。user 新增 `user_config` query 返回安装配置与当前账户上限，供各服务在 `admin_add_user_home` 前核对新 home。稳定布局不变。部署、自定义域与交给 SNS 的流程见 [directory README](../src/dmsg_directory/README.md)。
-
-## 2026-10-08 payment 上线准备
-
-`PaymentInit` 以 `limits: PaymentLimits` 取代 `max_escrows`、`daily_orders` 与 `max_open_per_payer`，并加入授权、账本读取、账本出金的每分钟额度和每个调用方的账本份额；governance 用 `admin_set_limits`（含预演）整体替换。`MAX_PAYMENT_ESCROWS` 从 1 万提高到 1,000 万：认证树已在 stable memory，升级不扫描订单，主机构建镜像实测 10 万与 100 万单的升级分别为 154 万与 162 万条指令，每单约 3.2 KB stable memory，见 [payment README](../src/dmsg_payment/README.md)。新增 `payment_config`、`payment_stats` 与 `list_pending_transfers`：最后一个按 `created_at_time` 从旧到新列出所有未完成的出金腿，供出金派发任务在账本 24 小时去重窗口内派发；客户端在 `finalize_receipt` 后立即派发收件人和平台出金。管理方法修改配置后立即持久化，不再依赖 `pre_upgrade`。开单时付款方已过 `accept_by` 仍未决定的订单先写入退款决定，放弃付款的订单不再占用名额。`claim_refund` 只接受付款 Principal 或被退款账户的 owner。新增 `canister_inspect_message`，拒绝非管理员的管理 ingress 和匿名的开单、退款领取与出金修订。稳定布局为 payment schema 12，开发实例须重装。
-
-## 2026-10-08 membership 上线准备
-
-`MembershipInit` 删除 `expected_governance_module_hash`，`set_sns_governance_module_hash` 及其预演一并删除。主网 PANDA SNS 开启了自动升级，固定的 governance 模块哈希会在每次升级后失配，中断全部 PANDA 资格。SNS 配置核验改为只核对固定的 root、governance、ledger 与八位精度，不再调用 `canister_info`；信任锚是安装时审阅的这三个 ID。资格判定不再要求 actor 是唯一的经济控制人：actor 只需列在神经元的 principal 中（例如 NNS dapp 添加的热键），其他 principal 的权限不限，跨产品的唯一占用照旧防止一个神经元支撑两份权益。主网抽样的 100 个 PANDA 神经元中，97 个所有者持有 SNS 授予的 `Unspecified`（0）权限，原规则会把它们全部判为不可核验。客户端结账面板提示用户先把经济身份添加为神经元热键。
-
-完整记录上限从 10 万提高到 100 万，累计操作上限从 100 万提高到 1,000 万。`PandaServiceConfig` 新增 `authorizations_per_minute` 与 `product_calls_per_minute`，取代代码中固定的每分钟 200 次；激活另有与授权同样大小的预算，报价不会挤占已接受申请的激活。新增 `membership_stats`（占用数、完整记录、tombstone、稳定内存页、cycles）。`sweep_panda_commitments` 返回释放与压缩之和，维护任务调用到返回 0。`cancel_panda_application` 写入取消后总是返回视图；仍在进行的预留返回后自行释放已取消的申请，其他未完成的释放由 `reconcile_panda_claim` 重试。客户端承诺面板对 `Active`、`Terminated` 以外的申请都调用对账，可以重试这类释放。
-
-新增主机构建镜像的容量 profile：10 万与 100 万条 `Active` 申请分别占 520 MB 与 4.7 GB 稳定内存，升级约 130 万条指令且与规模无关；一次刷新从 2,195 万增加到 2,337 万 cycles，一次 sweep（释放 32、压缩 32）从 2.4 亿增加到 3.0 亿 cycles，见 [membership README](../src/membership/README.md)。稳定布局：membership schema 4，保存的 `PandaServiceConfig` 新增两个必填字段；开发实例须重装。
-
-## 2026-10-08 user 上线准备
-
-内容根只封装给持有 `VaultUnlock` 的活跃设备：`CommitRoot` 按这一集合重算 `recipients_digest`，并要求批准设备本身是接收者；账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。换根只在接收者变化时需要，也就是持有 `VaultUnlock` 的设备增减，以及登录恢复；认证绑定和其他能力的变化只递增 security epoch，不再让已提交的根进入 `RekeyRequired`。客户端按同一规则选择接收者，没有该能力的设备不再尝试打开根。
-
-user 新增 `canister_inspect_message`：服务回调只接受对应的配置 canister，`verify_product_account` 拒绝全部 ingress，`admin_set_account_limits` 只接受 controller 与 governance，其余账户方法拒绝匿名 Principal，`prune_*` 与 `publish_principal` 保持开放。月账不再进入认证树，`get_execution_usage_certified` 删除，客户端以 `refresh_execution_entitlement` 的 update 回复为准。每日执行次数上限从 100 改为与保留窗口相同的 64；每日新账户的硬上限从 1 万提高到 10 万，实际值仍由 `admin_set_account_limits` 设置。单元测试固定了 `SecuritySnapshot` 与 `ExecutionReceipt` 的编码摘要，认证值的编码变化会在 CI 中暴露。实测 0、1,000、20,000 个账户的升级约 138 万条指令，与规模无关；数据见 [user README](../src/dmsg_user/README.md)。稳定布局仍为 schema 13，开发实例升级后旧的月账叶留在认证树中，不影响查询。
-
-## 2026-10-08 user 容量 2,100 万与防滥用
-
-单个 home 的 `max_accounts` 硬上限从 100 万提高到 2,100 万（`MAX_HOME_ACCOUNTS`），一个部署最多 64 × 2,100 万个账户。依据是存储与对数增长：新账户约 0.8 KB、活跃账户约 2.7 KB，主机构建镜像加载到 PocketIC 后，100 万账户（五分之一活跃）占 1.77 GiB，写入 cycles 只比 1 万账户多 4%–16%，升级约 140 万条指令；推算 2,100 万账户 40–86 GB，在 256 GiB 地址空间内。2,100 万规模本身没有实测，见 [user README](../src/dmsg_user/README.md) 的“容量与成本”。
-
-- **注册准入**：`UserInit` 新增 `admission_key`，`CreateAccount` 新增 `admission: Option<AdmissionTicket>`。配置公钥后，新账户须附该密钥对 `dmsg/account-admission/v1`（home、caller、期限，期限 ≤ 10 分钟）的签名；云端按来源限流签发，合同见 [cloud_zh.md](protocol/cloud_zh.md)。`admin_set_admission_key` 与预演可轮换或清除公钥。`dmsg_protocol` 新增 `account_admission_message` 并公开 `validate_ed25519_key`，协议向量新增 `account_admission_v1`。
-- **登录绑定**：删除 `begin_auth_binding`、`prune_auth_bindings` 和全局 1,024 条待绑定表。管理员设备批准的 `BindAuth { principal, nonce }` 只在账户内登记待接受项（每账户 4 条、10 分钟），新登录调用 `accept_auth_binding(account_id, nonce)` 后才绑定；任何 security epoch 变化都会撤回未接受的批准。
-- **清理**：`prune_executions(after)` 改为按执行表游标跨账户分页（每页 64 条记录，20B 指令后在账户边界停止），停用账户留下的认证产物也能回收。月账改以 `AccountId ‖ YYYYMM` 为键，只保留当月与上月；认证在提交时直接扣费，`ExecutionUsage.held_units` 删除，`dmsg_protocol::billing::usage_key` 随之删除。
-- **有界成本**：操作回执窗口从 64 条降到 16 条（`MAX_OPERATION_RECEIPTS`），活跃账户记录从约 6.2 KB 降到约 2.2 KB。账户登录发起的跨 canister 调用每 UTC 小时最多 120 次（`MAX_HOURLY_ACCOUNT_CALLS`）。
-- **回滚**：升级前创建 canister 快照，问题时载入；PocketIC 回归验证载入后证书与记录一致。
-
-稳定布局升至 schema 14：memory 3 改为每账户的调用计数，开发实例须重装。客户端改为“生成绑定请求 → 管理员批准 → 新登录接受”，home 配置公钥时向云端取准入票据。
-
-## 2026-10-08 执行月账归档与 home 月度汇总
-
-链上逐账户月账仍只保留当月与上月，更早的记录分两路保存：
-
-- **home 汇总**：`UserStats` 新增 `execution_months: vec ExecutionMonthStats`，每项为一个 UTC 月份内扣过费的账户数、认证次数与加权单位。user 在扣费的同一消息内累加，保存在配置中，保留最近 12 个有扣费的月份（`EXECUTION_STATS_MONTHS`）。只有汇总，不公开逐账户用量。
-- **逐账户历史**：桌面客户端每次刷新执行额度前读取上月和上上月的月账，以 `usage:<YYYYMM>` 封存在账户的本机工作区（LDK 加密，不同步）。新月份第一次刷新才删除旧月账，先读后刷新即可在删除前取到；从未刷新的月份不会归档。归档值来自本人 query，只供本人查看。
-
-客户端同时修正了退款或降档后已扣单位超过允许单位时，额度读取报 `INTEGRITY_FAILED` 的问题，剩余额度按 0 显示。配置新增的字段有默认值，稳定布局仍为 schema 14。
-
-## 2026-10-17 团队钱包
-
-新增 `dmsg_wallet_hub`（接管保留 ID `ghcje-dyaaa-aaaas-qg7va-cai`）与 `dmsg_wallet`（每个团队一个实例，由 hub 安装，不在 icp.yaml 中单独部署）。合同见 [wallet_zh.md](protocol/wallet_zh.md)，产品与技术方案见 [产品方案](dMsg_wallet_product_2026-10-16_zh.md) 和 [技术方案](dMsg_wallet_implementation_2026-10-16_zh.md)。
-
-- **批准**：`ApprovalPurpose` 新增 `WalletCreate`、`WalletProposal`、`WalletJoin`，设备能力新增 `WalletApprove`。user home 对这些用途要求 `subject_bytes == service`；`WalletCreate` 的 service 固定为产品登记的 `adapter`（hub），其余为钱包自身。commerce 与示例产品对这些用途的结算请求返回 `Forbidden`。
-- **钱包**：成员（账户或 Principal，Admin/Approver/Proposer/Viewer/Recovery）、版本化策略（按资产分档、24 小时滚动窗口、日限额、地址簿冷却）、提案状态机、哈希链审计与认证叶。ICP/ICRC 以确切参数转账并可 `reconcile`；BTC（P2TR、P2WPKH、链上双控 Taproot）、EVM（EIP-1559、ERC-20、nonce 取消）、SOL（转账、SPL、durable nonce）由钱包从意图构造并以 `key_1` 签名，成员客户端广播。协签支持 Raw、FIDO2、WebAuthn 三种封装。
-- **hub**：按 commerce `refresh_entitlement` 的套餐配额报价，核对设备批准与收款后创建 canister（冻结阈值 365 天）并分块安装；只安装治理登记的模块哈希；按实例接受的版本 stop/install/start；`LockCode` 后清空 controllers；就绪订单列入 `collectable_activations`，由维护任务 `collect_revenue` 经 CMC 为 hub 充 cycles，余额归收入账户；创建失败或过期未用的报价由报价调用者退款到其指定的 hub 以外账户（客户端指定付款身份）。
-- **验证**：`dmsg_protocol`、`dmsg_wallet` 单测（编码器以 `bitcoin`、`alloy`、`solana-message` 交叉核对）与 PocketIC 控制面 `wallet::*`（真实阈值签名，客户端解码器复核计划，CMC 替身 `dmsg_test_cmc`）。主网部署、真实链上广播、Safe/Squads 双控与审计模式核对尚未实现或验收。
-- **审查修复**：支出类提案在每次批准时按当时的 24 小时窗口重算要求，拆单不能落入低档；延时过后的首次 `prepare_execution` 不再误报过期；签名在开始时计入日签名数，签完后重查 EVM nonce 与 Solana nonce 约束；跨 canister 返回后的错误不再让提案卡在 `Executing`；冻结时不接受内部变更的批准；`prune` 先套用期限、跳过在途提案，新提案也顺带清理；广播回报每计划一次；重复 `join` 不写审计；`bootstrap` 失败自动重试；缺失的 user home 按需向 hub 补取，删去 `refresh_homes`。stable 记录改为整数键的紧凑编码，满载钱包记录约 38.6 KB。钱包由团队成员管理，SNS governance 不作为成员，钱包没有 admin 方法。
-- **hub 审查修复**：就绪未归集的订单有了索引与 `collectable_activations`（此前维护任务无从找到，hub cycles 只出不进）；`create_wallet` 对已有订单继续中断的激活；已就绪订单的退款领取不再推进收入转账；定价要求 cycles 份额大于 0、套餐不重复，按账本手续费付不出两笔收入转账时不出报价；CMC 退回充值时记为铸得 0 cycles 并结束；读不到 `accepted_upgrade()` 时先启动实例，安装成功即记下版本；上传者不能是匿名，收入账户不能是 hub 自己；新增 `list_wallets`、`admin_remove_version`（只删已退役版本，号码不复用），删去转调的 `refuel_wallet`；各 `validate_*` 显示当前值并注明无变化。账本与 CMC 调用与钱包共用 `dmsg_runtime::ledger`。stable 记录改为整数键编码，订单不再内嵌报价，一次激活由 1,250 B 降为 669 B；报价不再改写 hub 记录，`sync_wallet` 只改动增删的索引项。
-
-## 2026-10-17 handle 注册费直接入收入账户
-
-handle 开发布局升级为 schema 10：`HandleInit` 增加收入账户 `revenue`，注册扣款以 `icrc2_transfer_from` 直接转入该账户，handle 只作为 spender，不再托管资金；删去 `admin_collect_token` 及其预演。每笔 `HandleOperation` 记录建立时的收款账户 `payee`，重试与 `reconcile_handle_charge` 都按它核对。新增 `admin_set_revenue` 与 `validate_admin_set_revenue`，由 controller 或 governance 更换收入账户，只影响新操作；收入账户不能是匿名、管理 canister 或 handle 自己。schema 9 没有迁移，开发实例与尚未导入旧名的主网实例须重装。见 [handle README](../src/dmsg_handle/README.md)。
-
-## 2026-10-20 账户名称、转移窗口与首购退款
-
-桌面端“会员与名称”复查所需的 canister 改动：
-
-- **handle**：schema 11 新增 `OWNERS` 索引与 query `account_handles(account_id, after, take)`，按名称字节序分页列出账户名下的活跃名称（每页 1–64 条，不带证书，客户端逐个用 `resolve_handle_certified` 核验）。注册、认领、转移写名称记录时同步更新索引；从 schema 10 升级时 `post_upgrade` 遍历一次活跃名称建立索引。主网已导入的旧名预留在认领前没有 owner 账户，不进入索引，迁移成本只随已注册或已认领的名称数增长，未做规模实测。
-- **user**：转移任一方的 `AuthorizeHandle` 授权自提交起保留十分钟（`TRANSFER_AUTHORIZATION_MS`，原为随设备批准的 60 秒），同一意图再次授权即续期；注册与旧名认领不变。新增 query `get_handle_authorization(account_id, op_id)`，返回仍有效的授权截止时间，转移双方据此查看对方是否已授权。账户状态的布局不变。
-- **commerce**：新增 query `get_membership_terms(beneficiary)`，返回基础合同、未过期的存储包与首购退款窗口，供客户端显示到期日、来源和已排队的续期；权益仍只以认证的 `EntitlementView` 为准，所以没有改 `EntitlementView` 及中继的解码。主体的第一份基础合同若是现金购买，开始后 7 天内（`CASH_REFUND_WINDOW_MS`）付款方可经 `cancel_checkout` 提前退款：权利停止时间不早于已签发的资源租约，此前的部分计为收入，其余退回；窗口内资源租约与 PANDA 一样不超过一小时，退款很快生效。续期或升级会新增合同，窗口随之关闭。`CashCancellationReceipt.cancelled_at_ms` 改为权利停止的时间，`collectable_checkouts` 按服务实际结束时间排序。续期窗口命名为 `RENEWAL_WINDOW_MS`（到期前 30 天）。稳定布局不变。
-- **membership**：新增 query `panda_service()`，返回 PANDA SNS governance、账本、是否暂停新申请与公布的费率，客户端报价前据此显示所需质押；测试 SNS 增加 `list_neurons`，客户端用它列出付款身份可用的神经元。
-
-## 2026-10-20 团队钱包报价预览
-
-hub 新增不写状态的 `quote_activation_preview(account_id)` query，只读自己的定价、当前版本与该账户已占用的创建数，按套餐返回剩余额度；客户端另行读取认证的套餐与账本手续费，所以桌面“获取报价”是快速查询。额度用完时 `quote_activation` 返回 `remaining = 0` 而不是 `QuotaExceeded`，客户端与 `create_wallet` 都拒绝该报价，Free 账户看到的是套餐限制和“会员方案”入口，而不是一个裸错误码。`quote_activation` 的 commerce 与账本读取改为并发，缩短付费套餐真正报价的等待。
-
-## 2026-10-21 团队钱包桌面闭环
-
-`dmsg_wallet` 新增 `preview_intent` query，按当前可变状态返回策略要求，不创建提案或预留资金。客户端在激活付款前完成 user home 批准核验；新增多设备协签包、结构化管理与转账预检、收款 QR/AccountIdentifier、增量审计与加密频道提示。实际接线、测试及未完成的发布门禁见 [团队钱包桌面实现](dmsg_wallet_desktop_zh.md)。新增 query 随钱包 Wasm 版本安装，源码提交不代表生产已升级。
-
-## 2026-10-22 handle 展示大小写与公开资料
-
-`Registration` 新增可选 `display_handle`。提供它时，账户批准的注册条款改用 `digest("dmsg/handle-charge/v2", (ledger, payer, amount, fee, display_handle))`；不提供时仍是 v1。注册成功后写法写入认证 `HandleRecord.display_handle`，转移保留；查询、唯一性、锁和权属索引仍用小写规范名，旧记录省略该字段并按规范名读取。stable schema 11 与 Candid 通过可选/缺省字段原地兼容，未决扣款按原编码重试；`scripts/test-dmsg-principal-upgrade.sh` 用旧 Wasm 验证名称、扣款和转移在升级后保留。
-
-`dmsg_directory` 在 schema 7 上新增认证 `/favicon.ico` 固定响应（`image/x-icon`，缓存 24 小时），升级只重新认证 404、域名列表与图标，不访问文档。公开资料页与 SDK 显示认证的 `display_handle`（旧记录保留访问 URL 的写法），只把简介中的显式 HTTP/HTTPS 地址转成链接；SDK 新增 `verifyHandleRecord`。名称价格查询只对仍可注册的名称保留请求的大小写。handle 与 directory 的 stable schema 均不变。
-
-## 2026-10-22 commerce 自动归集
-
-删除 `collect_checkout_revenue` update。commerce 定时器每分钟最多处理 32 项到期结算工作，在服务实际结束（含提前退款后的停止点）后一次分配剩余已赚收入，并自动退回剩余费用准备、派发已分配出金。收款方仍取订单冻结的 `merchant` 与付款账户，不要求商户发起调用，因此可直接向团队钱包收款。`collectable_checkouts` 保留为监控查询；手动派发、对账和明确拒绝后的修订入口保留。
-
-任务与时间索引使用 memory 31–32，memory 33 保存订单和转账各自的补建游标，每分钟各最多补建 16 条；memory 34 保存出金到期子索引，每批先为转账保留最多 16 个名额，其余按到期顺序补满到 32 项，避免旧订单积压阻塞出金。旧格式游标会安全地重新补建，原 schema 8 的订单和转账表示不变。升级恢复定时器及队列，不重装。未知出金在 24 小时窗口内只重试原参数，超窗未知结果和明确费用拒绝保留人工对账 / 修订，不生成第二笔付款。定时器从当前时间重新安排下一次，停机恢复不逐分钟补跑。
-
-PocketIC 覆盖 canister 商户自动到账、准备金退回、提前退款、重复定时执行、临时失败、丢失回复、旧 Wasm 升级后补建与原未决转账恢复。新增队列尚未做生产规模容量、积压吞吐或 cycles 压测；源码变更不代表主网已升级。
-
-## 2026-10-22 payment 平台收款账户管理
-
-新增 `admin_set_revenue(Account)` 与 `validate_admin_set_revenue(Account)`，由 controller / governance 更新现有 `PaymentInit.platform`，立即持久化并重新认证；validator 显示新旧账户。匿名、管理 canister 和 payment 自身不能作收款 owner。新订单按当前平台账户校验，旧订单、幂等重放及已准备的出金保留原报价账户。稳定布局保持 schema 12，无需重装；中继须同步更新报价使用的平台账户。源码变更不代表主网已升级。
+各组件 README 保存具体测量与测试边界。历史测试数量和 Wasm 大小不是当前验收标准；容量上限属于防护值，只有注明的实测负载支持容量结论。模拟账本、CMC 替身、本地中继和浏览器 fixture 不代表真实资金、主网、签名分发或独立审计验收。

@@ -1,6 +1,8 @@
 # dmsg-cloud/1 客户端互操作合同
 
-本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect`、`evidence`、`channel_log`、`channel`、`inbox`、`payment` 模块）。账户和执行证明继续使用现有公开 Rust 类型。
+[English](cloud.md) | 简体中文
+
+本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`library`、`connect`、`evidence`、`channel_log`、`channel`、`inbox`、`payment` 模块）。账户和执行证明继续使用现有公开 Rust 类型。
 
 ## 标识和编码
 
@@ -16,7 +18,7 @@
 
 请求 body 使用确定性 CBOR。浮点、重复键、尾随字节、过深结构和不支持的版本拒绝。HTTP PoP 与内容命令是不同 COSE profile，不是正式文档签名，也不能授权账户根变更或付款。
 
-客户端在签名前检查 payload 能按相同 bytes 往返；拒绝孤立 UTF-16 代理项。当前 CBOR 依赖会处理字符串开头的 U+FEFF，因此该输入也在签名前明确拒绝，不能删掉字符后代替用户签名。普通中文、emoji 等合法 Unicode 保持原文。
+文本使用原始合法 UTF-8，不做 Unicode 归一化，也不剥离开头的 U+FEFF。Rust 字符串和 TypeScript 编码器都保留签名文本；TypeScript 入口拒绝没有合法 UTF-8 表示的孤立 UTF-16 代理项，见 SDK 的编码与往返测试。
 
 ## 设备命令和 HTTP PoP
 
@@ -33,11 +35,11 @@
 - 提交期限满足 `now < deadline <= now+60000`，同时不能超过所使用安全证据的有效期。设备签名回调之后再次检查期限。
 - 业务与 HTTP request_id 必须一致。重新签署 HTTP PoP 不改变业务命令和操作 ID；未知结果先查询原操作，不自动换 ID 重发。
 
-dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，这是命令管线第一次按 action 要求设备能力。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，因此这是唯一允许在 `cose_sign1` 之外附带字段的命令 body。
+dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，设备能力按具体 action 校验。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，因此这是唯一允许在 `cose_sign1` 之外附带字段的命令 body。
 
-允许的 action 由公开 SDK 的 `cloudActions` 固定。`signCloudCommand` 构造通用信封；用户公开资料不再使用此命令通道。其它 action 仍必须使用对应资源合同，通用信封不是任意字段都能被服务器接受的保证。
+`dmsg_client::cloud::sign_command` 构造设备命令信封，`sign_http` 构造 HTTP PoP。用户公开资料不使用此命令通道；action 的载荷、权限和状态转换由对应资源合同限定，通用编码器不授予额外能力。
 
-`CloudClient` 提供证据提交、签名 GET/POST、密文块 PUT/GET、readiness 和设备内容命令。它限制响应大小、禁止重定向/携带 cookies，保留错误 code/retryable/request_id，不自动重试。资金和会员刷新等非命令 POST 的专用适配由后续客户端工作包接入，不能用 profile 方法替代。
+Rust `Cloud` 提供证据提交、签名请求与密文块传输，限制响应大小，禁止重定向与 cookies。安全读取使用有界重试；非 GET 请求不由通用 transport 自动重发。上传和内容同步只在核对原操作后按各自幂等合同恢复。网络在 `Hold` 的同步 Client 步骤之外等待；具体预算见[客户端传输说明](../../src/dmsg_client/README.md#sync)。支付与订阅由对应客户端模块实现。
 
 ## 注册准入票据
 
@@ -55,7 +57,7 @@ body: { home: bstr(user home Principal), principal: bstr(创建账户的登录 P
 
 ## 账户证据
 
-`readCloudSecurity` 查询真实 `security_snapshot_batch` 与 `get_device_bundle`。必须验证固定 user canister、ICP BLS 根、certificate、时间、单段 AccountId 路径和 witness，再检查 issuer/home/account 及完整设备根。
+客户端账户模块查询 `security_snapshot_batch` 与 `get_device_bundle`。必须验证固定 user canister、ICP BLS 根、certificate、时间、单段 AccountId 路径和 witness，再检查 issuer/home/account 及完整设备根。
 
 设备根是 `digest("dmsg/devices/v1", BTreeMap<Hash,Device>)`。保留所有公开字段、撤销记录和 next_sequence；key 是原始 bytes，不是 hex 字符串。两次查询之间发生设备变化时，根不匹配则拒绝，不拼接权限快照。
 
@@ -70,38 +72,40 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 
 用户公开资料改为由 `dmsg_user` 管理、`dmsg_directory` 发布的官方 `PrincipalDocument`，读取和认证见 [agent_zh.md](agent_zh.md#统一公开身份文档2026-10-22)。云端不再保存另一份用户 Profile，也不接受 `dmsg/profile/v1` 命令。头像上传仍经设备 PoP 与对象提交验证。
 
-## R0 本地内容到云端的映射
+## 本地内容与云端映射
 
-这张表冻结 A1/A2/C1 的转换边界。A1 的账户、根封装与本地副本转换见 [账户与根合同](account_root_zh.md)；普通内容同步仍归 A2，本地 outbox 尚不自动作为云端命令发送。
+账户、设备与根见[账户与根合同](account_root_zh.md)。`content` 为每个本地版本建立持久任务，`sync` 上传密文并提交已签 revision；没有账户或设备授权的工作区不能写内容。以下是当前字段与校验关系。
 
 | 本地来源 | 云端目标 | 转换与校验 |
 | --- | --- | --- |
-| `WorkspaceMeta.subjectId` | 真实 `account_id` | 本地随机标识不能截短成 Xid；先取得账户与设备批准，显式转换到新工作区 |
+| `workspace::Meta.account` / `EncryptedObject.subjectId` | 真实 `account_id` | 使用已绑定账户的规范 Xid，不以本地随机标识冒充账户 |
 | `EncryptedObject.id/revision/parent` | `item_id/revision_id/base_revision` | 保留对象/版本来源映射；父 revision 必须属于同一 item；本地复合 `key` 不作为 wire ID |
 | `generation/deviceId` | 根 generation / 签名设备 | 使用已认证账户的已提交根与设备，不能按本机值伪造在线状态 |
-| 本地内容 AAD | `['dmsg/content/1', environment, accountIdText, generation, id, revision, deviceId, kind, parent, tombstone]` | 复用版本化内容算法，但正式工作区 subject 值为真实 Xid；转换时重新加密并验证，不能改 metadata 后复用旧密文 |
-| 本地 item-key 包装 | `['dmsg/wrap/1', accountIdText, id, generation, revision, 'item-version']` | 用目标根保护每版本内容钥；旧工作区和旧备份保持原 AAD，不覆盖原副本 |
+| 本地内容 AAD | `['dmsg/content/1', environment, accountIdText, generation, id, revision, deviceId, kind, parent, tombstone]` | subject 值为真实 Xid；身份、版本等上下文参与认证，不能改 metadata 后复用旧密文 |
+| 本地 item-key 包装 | `['dmsg/wrap/1', accountIdText, id, generation, revision, 'item-version']` | 使用对应代次的根保护每版本内容钥；旧版本按原 AAD 和历史根验证 |
 | 加密对象 | `kind=vault` 上传，再签署 vault revision | 序列化记录为规范 CBOR 密文容器；上传块的摘要按实际 bytes 计算，不能拿本地 `record.digest` 冒充上传摘要 |
 | vault revision | `{item_id,revision_id,base_revision,upload_id,tombstone,restore}` | 先完成密文上传再引用 upload_id；删除引用 null，恢复必须明确指定当前墓碑；冲突以服务器返回为准 |
 | 文件 manifest 中的 `chunks[].size` | upload plan `chunks[].size` | 本地值是明文长度，wire 值是解码 base64url 后实际密文字节长度；保留两个独立口径 |
 | 本地文件块 ID `file:version:index` | `upload_id + index` | object_id/version_id 对应文件来源；上传 ID 独立且幂等；原文件块 AAD 仍需保留并验证 |
 | 文件 key/name/MIME/明文摘要 | 加密 manifest / vault 内容 | 不放公开 upload plan。manifest_digest/size 指加密 manifest 的实际 bytes；不明文上传 FileKey |
-| 空文件 | 加密 manifest + 满足非空块计划的格式容器 | 当前云端要求至少一个非空块；A2 显式表示零长度文件，不能伪造一个明文数据块 |
+| 空文件 | 加密 manifest + 满足非空块计划的格式容器 | 云端要求至少一个非空块；空文件使用下文的占位容器，不伪造明文数据块 |
 | 用户公开资料 | 官方 `PrincipalDocument`，经 user/directory 上链发布 | 云端仅保存公开头像二进制，不保存用户资料投影；inbox policy 独立 |
-| 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 先创建正式频道、接受成员并取得新 epoch；不把本地 `active`、签名或序号直接当在线授权 |
-| 本地 outbox receipt | 资源操作查询和实际服务回执 | 使用资源级回执，按原 request ID 对账；没有单独的通用发送队列实现 |
+| 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 按当前成员资格、控制 head 和 epoch 校验，不把本地状态或序号当成在线授权 |
+| 本地任务与 journal | 资源操作查询和实际服务回执 | 按原 request ID 对账；本地已排队或已发送不等于服务已接受 |
 
-这里的“本地文件”指新版客户端的 R0 文件格式（`dmsg_client::files`）：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-10-16 起秘密库条目不再携带文件：账户的 `kind=file` 上传只来自旧版归档部件（`migration_part`），频道附件是分享版（见频道合同）；本机文件库（`dmsg_client::library`）的文件留在本机，只在用户显式备份时作为 `kind=backup` 上传（见下文“备份”）。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
+本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。当前云端备份和分享入口限 100 MiB；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。秘密库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
 
-2026-09-23：若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
+明文文件块为 1 MiB，密文块预算为 `1 MiB + 64 bytes`，manifest 最多 64 KiB；上传大小按真实密文字节计算并受资源配额约束。超限明确失败，不静默截断。
 
-同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。2026-10-13：每次解锁后的同步完成时，客户端删除不再需要的本机块：保留刚应用的快照列出的全部块与 manifest（下一次拉取会核对它们，删掉会被重新下载）、尚未发送版本的任务、未完成导入，以及密封任务中仍未过期的上传计划（频道信封与附件、换根）所用的块；被替换的版本、过期或放弃的上传、频道附件下载留下的缓存因此被回收。已解决的冲突副本与历史版本仍在中继快照中，所以保留。
+若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
 
-导出快照的签名依据（2026-10-16）：每个 `object` 与 `revision` 条目带签名命令的 `security_epoch`，每页带 `security: {"<epoch>": {evidence, stored_at}}`，即中继在该纪元下首次接受上传预留或 vault revision 时核对的认证证据。客户端每次拉取对每个纪元用 `stored_at` 核对一次证据（证书、账户叶与设备表，叶中的纪元须等于该纪元），再逐条在该纪元的设备表中找签名设备（当时未吊销、有 `content_sign`）验签，命令体的 `security_epoch` 须等于该纪元。不按当前设备集合验签：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备会移除最早吊销的一台，它们签过的版本仍须可以拉取。缺少所属纪元证据的条目被拒绝。
+普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。每次解锁后的同步完成时，客户端删除不再需要的本机块：保留刚应用的快照列出的全部块与 manifest（下一次拉取会核对它们，删掉会被重新下载）、尚未发送版本的任务、未完成导入，以及密封任务中仍未过期的上传计划（频道信封与附件、换根）所用的块；被替换的版本、过期或放弃的上传、频道附件下载留下的缓存因此被回收。已解决的冲突副本与历史版本仍在中继快照中，所以保留。
 
-本地普通对象载荷上限为 200,000 bytes，`formal_*` 载荷上限为 512 KiB；读写共用边界。频道索引从认证后的解密内容建立，仅保存在本地 head 元数据中，不改变内容 AAD 或上传记录字段。冲突解决关系放在加密 Item 的 `resolvedConflicts` 中，随后编辑保留该关系，备份与同步一起传递。
+导出快照的签名依据：每个 `object` 与 `revision` 条目带签名命令的 `security_epoch`，每页带 `security: {"<epoch>": {evidence, stored_at}}`，即中继在该纪元下首次接受上传预留或 vault revision 时核对的认证证据。客户端每次拉取对每个纪元用 `stored_at` 核对一次证据（证书、账户叶与设备表，叶中的纪元须等于该纪元），再逐条在该纪元的设备表中找签名设备（当时未吊销、有 `content_sign`）验签，命令体的 `security_epoch` 须等于该纪元。不按当前设备集合验签：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备会移除最早吊销的一台，它们签过的版本仍须可以拉取。缺少所属纪元证据的条目被拒绝。
 
-旧 dMsg 则先在 `ChannelMessages.svelte` 对完整文件执行一次 COSE_Encrypt0，再调用 IC OSS 的 `toFixedChunkSizeReadable` / `upload_chunks`，按 **256 KiB 密文传输片**上传；下载后由 `ChannelFileCard.svelte` 对完整 bytes 解密。IC OSS 的 Rust `file.rs` 与 TS `stream.ts` 均定义 `CHUNK_SIZE=256*1024`。这不是每个 256 KiB 分片独立 AEAD 的文件格式。旧文件迁移保留分片索引/长度与原始 bytes，按原顺序恢复完整 COSE 后验证；不能套用新版 R0 的 1 MiB 明文规则，或将 OSS 分片当作独立认证的新版加密块。此判断基于本地旧客户端与 IC OSS 源码，线上版本仍需 I0 核对。
+本地对象载荷上限为 200,000 bytes（`content::MAX_OBJECT`），读写共用边界。频道索引从认证后的解密内容建立，仅保存在本地 head 元数据中，不改变内容 AAD 或上传记录字段。冲突解决关系放在加密 Item 的 `resolvedConflicts` 中，随后编辑保留该关系，备份与同步一起传递。
+
+旧 dMsg 则先在 `ChannelMessages.svelte` 对完整文件执行一次 COSE_Encrypt0，再调用 IC OSS 的 `toFixedChunkSizeReadable` / `upload_chunks`，按 **256 KiB 密文传输片**上传；下载后由 `ChannelFileCard.svelte` 对完整 bytes 解密。IC OSS 的 Rust `file.rs` 与 TS `stream.ts` 均定义 `CHUNK_SIZE=256*1024`。这不是每个 256 KiB 分片独立 AEAD 的文件格式。旧文件迁移保留分片索引/长度与原始 bytes，按原顺序恢复完整 COSE 后验证；不能套用新版的 1 MiB 明文规则，或将 OSS 分片当作独立认证的新版加密块。此判断基于本地旧客户端与 IC OSS 源码，线上版本仍须按[只读盘点](../legacy_inventory_zh.md)核对。
 
 本表约定了字段、AAD、权限和大小口径。对象块容器固定为规范 CBOR `{format:"dmsg-cloud-object/1", record:EncryptedObject}`；`record` 使用上表正式工作区的字段与既有内容加密规则，保留必要的原始加密字段，不包含明文 Item 或 FileKey。
 
@@ -113,9 +117,9 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 
-备份（`kind=backup`，2026-10-16）：本机文件库的一个版本由用户显式备份时上传。块就是本机 `blobs/` 中该版本的密文块（不重新加密），空文件同样用占位块；`object_id`、`version_id` 是随机 ID，文件与版本身份只在 manifest 内；`root_generation` 为当前根代次，`epoch=0`、`control_head=null`。manifest 仍是 `dmsg-cloud-manifest/1`，`content` 为规范 CBOR `{format:"dmsg-backup/1", file:FileManifest（含 key）, path:[文件夹名…], tags, note, created_at, modified_at, device}`，由当前根封装，中继不读取。中继按账户分页列出已提交的 backup 上传与其回收 tombstone（`GET /v1/accounts/:account/backups?after=&limit=`，每条含签名的 upload plan、中继预留时核对的认证证据与接收时间 `evidence`、`stored_at`、上传设备与提交时间），客户端像核对频道上传的 descriptor 一样，在该证据里找到当时未吊销、有 `content_sign` 的签名设备并验签 `dmsg/upload/reserve/v1`，再下载 manifest、用对应代次的根打开，得到云端备份目录。验签不依赖当前设备集合：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备也会移除最早吊销的一台，它们上传的备份仍能核对；backup 对象不进入 vault 的导出快照。删除云端副本走显式回收 `dmsg/object/collect/v1`；没有墓碑同步：云端删除不动本机文件，本机删除不动云端对象。
+备份（`kind=backup`）：本机文件库的一个版本由用户显式备份时上传。块就是本机 `blobs/` 中该版本的密文块（不重新加密），空文件同样用占位块；`object_id`、`version_id` 是随机 ID，文件与版本身份只在 manifest 内；`root_generation` 为当前根代次，`epoch=0`、`control_head=null`。manifest 仍是 `dmsg-cloud-manifest/1`，`content` 为规范 CBOR `{format:"dmsg-backup/1", file:FileManifest（含 key）, path:[文件夹名…], tags, note, created_at, modified_at, device}`，由当前根封装，中继不读取。中继按账户分页列出已提交的 backup 上传与其回收 tombstone（`GET /v1/accounts/:account/backups?after=&limit=`，每条含签名的 upload plan、中继预留时核对的认证证据与接收时间 `evidence`、`stored_at`、上传设备与提交时间），客户端像核对频道上传的 descriptor 一样，在该证据里找到当时未吊销、有 `content_sign` 的签名设备并验签 `dmsg/upload/reserve/v1`，再下载 manifest、用对应代次的根打开，得到云端备份目录。验签不依赖当前设备集合：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备也会移除最早吊销的一台，它们上传的备份仍能核对；backup 对象不进入 vault 的导出快照。删除云端副本走显式回收 `dmsg/object/collect/v1`；没有墓碑同步：云端删除不动本机文件，本机删除不动云端对象。
 
-A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器和 manifest 的往返向量。P0 的测试范围是签名/证据/HTTP/profile 链路，不声称已支持端到端文件同步。legacy 历史归档有独立格式，不能伪装成上述新版内容。
+writer/reader、任务恢复与加密容器往返已在公开客户端实现；测试入口见下节。legacy 历史归档有独立格式，不能伪装成上述新版内容。
 
 ## 验证和发布边界
 
@@ -123,9 +127,9 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 - 单元测试：`cargo test -p dmsg_client`（含上述向量）。
 - 端到端测试：桌面客户端在 PocketIC 与本地 workerd 中继上运行（[`tests/dmsg_integration`](../../tests/dmsg_integration/README.md) 的 `desktop.rs`）。测试创建全新账户，使用局部测试根，不联系生产 canister。
 - 错误 canister/账户、过期证据、错误设备 map、伪证书、篡改签名/HTTP body、错误资源和旧协议版本均有负例。
-- `/ready=false` 和生产禁止写入继续有效。真实账户初始化 UI、内容同步 UI、商业 UI 和生产验收分别交付。
+- 设备、签名、资源与运行状态的拒绝必须显式处理，readiness 不能替代业务权限检查。客户端 UI 已接入；生产配置、部署版本、真实账户与端到端验收仍需独立证据，本次文档更新未重跑这些测试。
 
-## 后台密文与认证新鲜度增量
+## 后台密文与认证新鲜度
 
 锁定的 daemon 只完成解锁时已经签好的提交：固定 vault revision 及查询同一操作的 GET，HTTP PoP 绑定 origin、路径、方法、body digest、账户、设备和最多 45 秒期限，不持有可续期会话。未知响应查原编号，签名期限过后暂停。开启“后台在线”时，daemon 锁定后仍持有设备签名私钥，可以发送不需要重新封装的版本并缓存密文，但不能读取内容。重新封装、重新授权和本机加密状态确认在解锁后完成。
 
@@ -134,7 +138,7 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 支付配置新增 `get_configuration_certified`：`configuration`、`signer/<u64be>` 和 `fee/<u64be>` 认证叶用于核对收款路由、报价/回执签署钥和费用政策。它不改变已有托管的固定条款或资金状态机。
 
 
-## 2026-09-23 收件终态管理
+## 收件终态管理
 
 收件分页的 `entries[].value` 按 `state` 区分。`visible` 保留原签名、证据和密文；`aborted` 仅返回 `order_id/sender/recipient/state/created_at/read/archived/resolved/abort_reason` 管理字段，不含密文、签名包或证据。两类条目共用原 `next_cursor`，客户端按 order_id 投影最新值。未受理/在途条目仍不作为收件内容返回。
 

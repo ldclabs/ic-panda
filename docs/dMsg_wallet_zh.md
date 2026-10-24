@@ -1,10 +1,12 @@
 # dMsg Wallet 产品方案 v0.2 · 团队钱包
 
-初版：2026-10-16；修订：2026-10-24。本文按公开仓库 `b8b8b799` 的实现整理，合并此前的实施与安全修订，描述当前产品行为；后续能力单独列出。文件名保留初版日期，现归入 `docs/`。源码实现不等于生产部署或桌面发布。
+[English](dMsg_wallet.md) | 简体中文
 
-当前桌面流程另纳入 2026-10-24 的 UX01–UX20 修订，详见 [桌面实现与验收](dmsg_wallet_desktop_zh.md)。
+初版：2026-10-16；修订：2026-10-24。本文按公开仓库 `b8b8b799` 的实现整理，合并此前的实施与安全修订，描述当前产品行为；后续能力单独列出。产品说明现统一为本文；精确接口与实施边界分别由协议和组件 README 维护。源码实现不等于生产部署或桌面发布。
 
-配套文档：[技术方案](dMsg_wallet_implementation_2026-10-16_zh.md)、[公开合同](protocol/wallet_zh.md)、[桌面实现与验收](dmsg_wallet_desktop_zh.md)。
+当前桌面流程另纳入 2026-10-24 的 UX01–UX20 修订；组件、测试入口和平台边界见[桌面 README](../src/dmsg_desktop/README.md)。
+
+配套文档：[公开合同](protocol/wallet_zh.md)、[钱包实现](../src/dmsg_wallet/README.md)、[工厂实现](../src/dmsg_wallet_hub/README.md)、[桌面 README](../src/dmsg_desktop/README.md)。
 
 ## 0. 基线与范围
 
@@ -16,7 +18,7 @@
 | 客户端 | Rust 核心、daemon、CLI、MCP 与 Electron 团队钱包模块已有实现；桌面新建入口当前暂停，已有钱包及历史激活任务仍可处理 |
 | 验证与上线 | 已有单测、PocketIC、双 daemon、Electron 及部分本地外链验证；未据此宣称生产已部署、真实硬件已验收或全部外链已测完 |
 
-本文侧重使用流程、权限和产品边界；精确字段与方法以公开 Candid、类型和技术方案为准。早期调研中的事件损失、竞品能力、网络吞吐与美元成本不再作为本实现基线，商业建议也不等同于已配置的权益。
+本文侧重使用流程、权限和产品边界；精确字段与方法以公开 Candid、类型和协议为准。早期调研中的事件损失、竞品能力、网络吞吐与美元成本不再作为本实现基线，商业建议也不等同于已配置的权益。
 
 ## 1. 产品定义
 
@@ -176,7 +178,7 @@ ICPanda DAO 团队钱包仍可作为种子用户，持有团队运营资金，�
 
 ## 11. 验证与待交付项
 
-截至 `b8b8b799` 的开发验证记录包括：钱包协议与各 Rust 模块单测、PocketIC 钱包回归、真实本地 Solana validator 与 Anvil 广播用例、双 daemon 钱包流程、92 项桌面 Node 测试、类型检查和构建、Electron 冒烟、Wasm/Candid 一致性与 Clippy。Electron 本次跳过原生 macOS 全屏切换，CMC 使用替身；详情及复跑入口见技术方案。
+截至 `b8b8b799` 的开发验证记录包括：钱包协议与各 Rust 模块单测、PocketIC 钱包回归、真实本地 Solana validator 与 Anvil 广播用例、双 daemon 钱包流程、92 项桌面 Node 测试、类型检查和构建、Electron 冒烟、Wasm/Candid 一致性与 Clippy。Electron 本次跳过原生 macOS 全屏切换，CMC 使用替身；详情及复跑入口见[集成测试指南](../tests/dmsg_integration/README.md)和[桌面 README](../src/dmsg_desktop/README.md)。
 
 仍需独立完成的交付：
 
@@ -203,8 +205,8 @@ ICPanda DAO 团队钱包仍可作为种子用户，持有团队运营资金，�
 
 ## 13. 文档职责
 
-- [技术方案](dMsg_wallet_implementation_2026-10-16_zh.md)：身份与摘要、执行、资金恢复、存储、发布顺序及验证边界。
-- [公开合同](protocol/wallet_zh.md)、[钱包 README](../src/dmsg_wallet/README.md)、[工厂 README](../src/dmsg_wallet_hub/README.md)：公开接口与服务行为。
-- [桌面实现与验收](dmsg_wallet_desktop_zh.md)：客户端流程、实现入口和扩展门禁。
+- [公开合同](protocol/wallet_zh.md)：身份、摘要、执行与资金恢复规则。
+- [钱包 README](../src/dmsg_wallet/README.md)、[工厂 README](../src/dmsg_wallet_hub/README.md)：公开接口与服务行为。
+- [桌面 README](../src/dmsg_desktop/README.md)：客户端流程、实现入口与平台边界。
 - [canister 实现说明](dmsg_canisters_zh.md)、[整体架构](dmsg_architecture_zh.md)：组件关系与部署结构。
 - 私有产品设计继续按 [AGENTS.md](../AGENTS.md) 定位和核对；本文不替代私有设计的版本管理，也不将未来商业规划写成已实现接口。

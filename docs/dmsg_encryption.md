@@ -1,0 +1,266 @@
+# dMsg encryption design and implementation boundaries
+
+English | [简体中文](dmsg_encryption_zh.md)
+
+> Reviewed 2026-10-24 against public source `9fd70dca`. This follows actual call paths through the public canister, desktop and cloud contracts; it is not deployment evidence or a complete security audit. Locate internal designs through [AGENTS.md](../AGENTS.md). Only encryption mechanisms explained by public source and necessary cloud interface boundaries are documented here.
+
+## 1. How to read this document
+
+Three states are distinguished: **implemented in the client** means callable local workspace flows; **implemented in service/SDK** means service/library code exists but may not be wired into the client; **awaiting acceptance** means local tests passed but real-environment validation remains.
+
+Key conclusions:
+
+1. Login authentication, device authorization, content decryption and formal attestation are separate. Neither names nor login Principals are content keys.
+2. Local content uses a random content root and a random key per immutable version. The account-issued login unlock secret or platform fast-unlock key protects the local data key; macOS uses Secure Enclave, other supported platforms a random credential-store key.
+3. Roots are HPKE-wrapped per device and vetKD-IBE-wrapped per generation for recovery. Registration, adding devices and rotation make no chain-key service call; recovery after losing all devices performs one vetKD derivation.
+4. There is no local unlock password, recovery code or service-independent offline recovery package. File export/sharing is not account recovery. Login identity plus an on-chain waiting period is the final recovery authority; losing that identity and every device makes content unrecoverable.
+5. Devices sign formal documents and the user home records certified receipts and charges usage. Agent controller keys remain in the vault and sign locally. Neither path uses threshold signing anymore.
+
+## 2. Trust boundaries and data location
+
+| Component | Responsibilities | Encryption and authority boundary |
+| ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Daemon (`dmsg daemon`) | Login, unlock, encryption/decryption, root wrapping, approval/execution and sync | Holds unlocked keys in memory; CLI/desktop obtain display plaintext through loopback and owner credentials. Binary/runtime are trusted endpoints |
+| Workspace (SQLite) | Key envelopes, encrypted objects/chunks, sealed records, sync jobs and runtime metadata | Private payload encryption does not hide every index or state |
+| OS credential store | Owner credential and fast-unlock key or Secure Enclave handle | Stores workspace-opening material; `secure_storage = "file"` uses owner-readable files and has no fast unlock |
+| Bridge (connect.dmsg.net) | Relays web requests, keeps local operation index and result-unsealing keys | No account/device keys; requests/results are sealed from the relay |
+| `dmsg_user` (account home) | AccountId, bindings, devices, root commitments, recovery, receipts and unlock secrets | Stores public keys, commitments and `master_secret`, not plaintext content roots or RootBundle bodies |
+| `dmsg_cose` | Content-root vetKD public key and recovery derivation | Derives the current generation only for the completed-recovery device until rotation, returning transport-encrypted results; not ordinary content decryption |
+| `dmsg_handle` / `dmsg_payment` | Name ownership / minimal fund contract | Hold no content keys; name ownership or payment does not grant decryption |
+| Public cloud service | Authenticated access, ciphertext storage/delivery, online channel/object control | Client checks identity, authority and integrity; encryption alone does not prove latest or complete history |
+
+On ordinary private-content paths, plaintext and content keys stay on clients. Services see routing, account/device IDs, sizes, timing and the membership, recipient, contact and authorization relationships needed to operate. Formal attestation is separate: the text profile submits text to the canister, while digest profiles submit digests. Formal signing is not confidential computation.
+
+AEAD prevents keyless ciphertext tampering, not refusal to deliver, hidden records or replayed valid copies. Key-holding endpoints, login identities, client updates, and control-service code/governance are separate trust boundaries. MLS, Double Ratchet and complete forward-secrecy/post-compromise recovery guarantees are not provided.
+
+## 3. Identities and key roles
+
+### 3.1 Distinct identifiers
+
+| Identifier | Meaning |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| ICP Principal | Authenticated caller; accounts may bind independent login identities |
+| On-chain `AccountId` | 12-byte Xid, canonical 20-character text, allocated by `dmsg_user`; bytes 4..9 identify its allocating home |
+| Content `subjectId` | Account Xid in content AAD; there is no content before device binding |
+| `deviceId` | 32-byte device identifier, a separate field from the device public key |
+| Handle | Transferable name, never a key-derivation root |
+| `account.issuer` | Account URI under an explicit namespace; formal statement signer identity |
+
+### 3.2 Key inventory
+
+| Key | Source and holder | Use |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `unlock_secret` | User home: `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`, issued only by login Principal for nonrevoked devices | Derives local unlock key |
+| Local unlock key `LUK` | `HKDF(unlock_secret, ["dmsg/local-unlock/2", name])`, daemon memory only | Wraps LDK |
+| Fast-unlock key `K_fast` | macOS: `HKDF(ECDH(Secure Enclave key, software peer), ["dmsg/fast-unlock/1", name])`, storing only the SE handle and peer public key; other platforms: random 32 bytes in OS credentials | Second LDK wrap, enabled by default after login unlock |
+| Provisional key | Random 32 bytes before binding, stored in plaintext in workspace | Protects new device keys before content exists |
+| `LocalDataKey` / `LDK` | Client-generated random 32 bytes | Seals device private keys, roots, file jobs and operation journals |
+| Content root `VRK_g` | Administrator-device-generated random 32 bytes | Wraps each object-version key |
+| Object-version key | Random 32 bytes per `write()` | Encrypts vault items, channel-key records and other payloads |
+| File-version key | Random 32 bytes per new import | Encrypts chunks of one version; stored in encrypted manifest |
+| Device signing seed | Random 32 bytes, LDK-sealed | Ed25519 account approvals, documents, root bundles and cloud commands |
+| Device HPKE seed | Random 32 bytes, LDK-sealed | X25519 root envelopes, channel epochs and web requests |
+| II session key | Generated each login; presence-protected fast unlock may LDK-seal the restricted login | II delegation session key, usable before unlock |
+| Controller key | Random 32 bytes in a vault entry | Local Agent Delegation signing, synced under the root |
+| vetKD derived public key | COSE fixed-context public key; client checks name/fingerprint | IBE recovery-envelope encryption |
+
+Local protection chain:
+
+```mermaid
+flowchart LR
+  II[II login] --> S[unlock_secret]
+  S --> L[HKDF → LUK]
+  OS[OS credential store] --> KP[K_fast]
+  L --> D[Unwrap LDK]
+  KP --> D
+  D --> B[Open sealed records]
+  B --> R[Content root VRK]
+  B --> K[Device signing / HPKE private keys]
+  R --> V[Unwrap object-version key]
+  V --> C[Decrypt private payload]
+  C --> F[FileKey in file manifest]
+  F --> X[Decrypt and verify file chunks]
+```
+
+Like legacy `myIV`, `unlock_secret` is a canister-held secret: subnet node operators can read it, controller/SNS upgrades can expose `master_secret`, and API boundary nodes relay it as an ordinary query response in plaintext. These parties also need a device workspace copy for it to be useful. `master_secret` has no rotation mechanism. Issuance depends on login Principal, not a device signature, which would let someone with a stolen workspace use its device key to fetch the secret.
+
+## 4. Primitives, encoding and context
+
+Implementation starts in `dmsg_client`'s [crypto.rs](../src/dmsg_client/src/crypto.rs) and [codec.rs](../src/dmsg_client/src/codec.rs); [`tests/vectors/client/`](../tests/vectors/client/README.md) defines the bytes.
+
+| Purpose | Parameters |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| Randomness | OS randomness (`getrandom`); keys/local object IDs default to 32 bytes |
+| Symmetric encryption | AES-256-GCM, 96-bit nonce, 128-bit tag; untagged COSE_Encrypt0 |
+| Local derivation `D(K,C)` | HKDF-SHA-256, 32 zero-byte salt, info=`CBOR(C)`, 32-byte output |
+| HPKE | X25519 / HKDF-SHA-256 / AES-256-GCM Base mode; context is both info and AAD |
+| IBE | `ic-vetkeys` BLS12-381 IBE; COSE-derived public key and identity `CBOR([AccountId, generation])` |
+| Device signature | Ed25519, with purpose-specific signing structure |
+| Digest | SHA-256; Agent events use SHA3-256 |
+| Serialization | Canonical CBOR; JSON fields specify hex, unpadded base64url or Xid text |
+
+Let `E(K,P,C)` denote the current `seal()`:
+
+```text
+protected = CBOR({1: 3})                          // alg = A256GCM
+Enc_structure = CBOR(["Encrypt0", protected, CBOR(C)])
+result = base64url(CBOR([
+  protected, {5: nonce_12_bytes}, AES-GCM(K, nonce, P, Enc_structure)
+]))
+```
+
+`open()` checks header structure, algorithm, IV length and authentication tag. Ordinary envelopes use random nonces; file chunks use section 7's deterministic nonce. Business context enters Enc_structure as external AAD. Local `codec::decode` rejects duplicate keys, indefinite lengths, noncanonical encoding, floats and trailing bytes, with limits of 24 levels and 50,000 nodes.
+
+## 5. Local initialization, unlock and storage
+
+### 5.1 Initialization and binding
+
+A new workspace (`dmsg_client::workspace`) generates the device ID, signing/HPKE seeds, LDK and provisional key:
+
+```text
+provisional = random32                                    // plaintext in workspace; deleted after binding
+wrappedKey  = E(provisional, LDK, ["dmsg/local-key/2", "provisional:" + hex(deviceId)])
+device      = E(LDK, CBOR({signing, hpke}), ["dmsg/local-private/1", hex(deviceId), "device"])
+name        = "dmsg:" + environment + ":" + account + ":" + deviceId   // after account binding
+```
+
+Other records, including current/historical roots, import plans, rotation jobs, account/approval journals and MCP events, are LDK-sealed under `["dmsg/local-private/1", hex(deviceId), record_name]`. Writes before binding are rejected, so the provisional key protects only device keys not yet recognized by an account. First use requires II through dmsg.net ([dmsg-login/1](protocol/login-v1.md)): create a new account at a registration home with its initial device, or have an administrator approve pairing to an existing account. The client then queries `unlock_secret(account, device)`, rewraps the same LDK with `LUK` under `["dmsg/local-key/2", name]`, and deletes the provisional key.
+
+### 5.2 Everyday unlock
+
+- General path: II login with a daemon-generated/held session key independent of unlock → `unlock_secret` → LUK → LDK → sealed records, all in memory; repeat after lock. `login_unlocked_at` records the time.
+- Fast path: defaults on after login unlock, remaining off if disabled, and wraps a second LDK copy with `["dmsg/local-key/2", "fast:" + name]`. On macOS, Secure Enclave P-256 agreement recovers `K_fast`. The SE key uses `.userPresence`: Touch ID, or the Mac password when unavailable, is required each time. Its CryptoKit `dataRepresentation` handle opens only on the same SE, without a keychain entry or entitlement. No answer within 60 seconds withdraws the prompt and counts as refusal. Other platforms store a random 32-byte K_fast without presence checks; reading it permits unlock. More than 30 days after login unlock, the general path is required. Online fast unlock verifies the certified device table and clears local data if revoked.
+- Login retention: with presence-required fast unlock, login unlock seals the target-restricted login key and 30-day delegation chain as `login` under LDK. Lock clears memory only; fast unlock restores it until expiry. Devices without presence checks do not save login. Disabling fast unlock or resetting deletes it.
+
+### 5.3 Plaintext storage boundary
+
+Each account workspace is `<environment>/accounts/<account>/` under home; unbound logins use `logins/<principal>/`, renamed once an account is obtained. `workspace.sqlite` stores sealed records, objects, sync chunks and jobs. Library ciphertext chunks live separately in `blobs/`, with independent reference tracking/collection. Accounts share neither workspace, device keys nor LDK; different logins of one account share its workspace.
+
+| Data | At-rest protection |
+| ---------------------------------------------------------------------------- | ------------------------------------------------ |
+| Device signing/HPKE seeds, current/historical roots | LDK-sealed |
+| Vault titles, tags, item types, bodies, hidden fields and controller private keys | Object-version encryption in `objects` / `chunks` |
+| Library folders, names and version manifests including file keys | LDK-sealed; indexed in memory while unlocked |
+| Library chunks | Per-version FileKey encryption, stored in `blobs/` by ciphertext SHA-256 |
+| Import plans, FileKey, rotation jobs, account/approval journals, web operations and MCP events | LDK-sealed in `sealed` |
+| Received web requests | Original envelopes encrypted to local device HPKE key; opened after unlock |
+| Sync jobs | Ciphertext, signatures and progress only in `jobs` |
+| Provisional key before binding; workspace metadata including environment, device ID/public keys, account/time; object envelopes, approval state/deadlines and job indexes | Plaintext |
+
+Hosted Agent ID connector state lives in `agents.sqlite` beside the account workspace and contains no private keys; see [`dmsg_agent`](../src/dmsg_agent/README.md).
+
+### 5.4 Locking
+
+Unlocked keys reside only in daemon memory (`Zeroizing`); a file lock permits one daemon per home. Default idle lock is 15 minutes (`idle_lock_minutes`) and discards login/account-content keys. Explicit background-online mode retains the device signing key to submit already-sealed versions and receive hints, not read content. Resident Agents may separately retain authorized-service keys; Mail watch subscription keys contain no account content root, as described in [Mail events](protocol/mail_events.md). CLI/desktop use loopback and owner credentials; renderers obtain necessary display plaintext through the daemon. This is process isolation, not a hardware enclave.
+
+Sources: [workspace.rs](../src/dmsg_client/src/workspace.rs), [store.rs](../src/dmsg_client/src/store.rs), [client.rs](../src/dmsg_client/src/client.rs), [secure.rs](../src/dmsg_client/src/secure.rs), [daemon.rs](../src/dmsg_cli/src/daemon.rs).
+
+## 6. Object versions, AAD and local messages
+
+Each `write()` creates a random `revision` and fresh `K_v`. Edits/deletions make new versions while preserving old ones; concurrent branches become visible conflicts, and resolving one is another write.
+
+```text
+ContentAAD = ["dmsg/content/1", environment, subjectId, generation,
+              objectId, revision, deviceId, kind, parent, tombstone]
+WrapAAD = ["dmsg/wrap/1", subjectId, objectId, generation, revision,
+           "item-version"]
+
+ciphertext  = E(K_v, CBOR(payload), ContentAAD)
+keyEnvelope = E(VRK_generation, K_v, WrapAAD)
+digest      = hex(SHA256(CBOR([ContentAAD, ciphertext, keyEnvelope])))
+```
+
+Reads check the digest, unwrap the version key and decrypt. After rotation, historical roots open older generations; new writes use the current root. Public recomputable digests check consistency but do not establish authorship independently. Cloud channel/message/file rules are in [cloud](protocol/cloud.md) and [channel contract](protocol/channel_migration.md).
+
+## 7. File encryption and integrity
+
+Plaintext chunks are 1 MiB; every new file version has a fresh random FileKey, file ID and version. Whole-file `files.rs` entry points allow 100 MiB. The desktop library imports in chunks with a configurable `files_max_bytes` default of 4 GiB. Cloud backups, sharing and secret snapshot packages still allow 100 MiB; local import limits do not imply equal upload limits.
+
+```text
+nonce_i = 0x644d7367 || uint64_be(i)
+ChunkAAD_i = ["dmsg/file-chunk/1", fileId, version, i, chunkCount, plaintextLength_i]
+chunk_i = E(FileKey, plaintext_i, ChunkAAD_i, nonce_i)
+chunkDigest_i = SHA256(decoded COSE_Encrypt0 bytes)
+```
+
+Resumption requires matching name/size, verifies persisted plaintext chunk digests and reuses ciphertext. The manifest holds name, MIME, total size, whole-file SHA-256, ordered chunk IDs/ciphertext digests/plaintext sizes and FileKey. The library LDK-seals it locally; explicit backup encrypts it under the account root. Channel/link sharing creates copies with independent keys/identities. Attachment manifests inside ordinary objects use the object-version key. Download verifies chunk ID/order, ciphertext digest, AEAD, individual/total lengths and whole-file plaintext digest.
+
+Library files stay local by default; backup and cloud-copy deletion are explicit. Downloads obtain short-lived S3 GET URLs via authenticated APIs and verify ciphertext/decrypted content; root/vault/epoch envelopes retain authenticated reads. Share-session expiry, revocation and password wrapping are in the [cloud contract](protocol/cloud.md). Revoking a link cannot recall already obtained plaintext or keys.
+
+## 8. Content roots, rotation and recovery
+
+### 8.1 RootBundle v2
+
+Each generation wraps for active `VaultUnlock` devices and that generation's vetKD recovery identity. Exact bytes are in the [account/root contract](protocol/account_root.md):
+
+```text
+device_envelope = HPKE.Seal(device.hpke_pub, VRK_g, ["dmsg/device-root/1", environment, account, g, device_id])
+recovery_envelope = IBE.Encrypt(dpk, CBOR([AccountId, g]), VRK_g)
+previous  = E(VRK_g, VRK_{g-1}, ["dmsg/previous-root/1", account, g, g-1, previous.digest])
+commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
+```
+
+On-chain `ContentRootRef` binds `recipients_digest` (sorted recipient IDs plus generation), `body_digest` and `bundle_digest`. `CommitRoot` recomputes the current recipient set and requires the approver to be included. Revoked/non-VaultUnlock devices receive no new root; unapproved devices cannot be inserted. Rotation reserves, wraps, uploads and CAS-commits without chain-key derivation.
+
+### 8.2 Recovery scope
+
+| Situation | Recoverable scope |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Local data remains and a bound II login is accessible | `unlock_secret` opens local content and device keys |
+| Local data remains with fast unlock enabled | Unlock without login for 30 days; macOS requires Touch ID/password and restores login. Afterwards login is required |
+| New device with an administrator device available | Administrator approves pairing and rotates; the new device downloads and opens its envelope |
+| All devices lost, II retained | Request recovery → waiting period (default 3 days, cancellable by any old device) → replace devices/bindings → one vetKD derivation opens recovery envelope → rotate |
+| II and all devices lost | Unrecoverable |
+| dMsg service unavailable | No service-independent recovery path |
+
+Only the device registered by `complete_recovery` may derive the current generation. Before rotation, a new approval may derive again, consuming daily execution count; rotation removes that authority. The waiting period is the mitigation for stolen II: no device response during the delay exposes content.
+
+Sources: [root.rs](../src/dmsg_client/src/root.rs), [client account.rs](../src/dmsg_client/src/account.rs), [account.rs](../src/dmsg_user/src/account.rs), [recovery.rs](../src/dmsg_user/src/recovery.rs), [COSE](../src/dmsg_cose/README.md).
+
+## 9. On-chain permissions
+
+`dmsg_user` verifies actual caller login binding, device signature/state/sequence, security epoch, expiry, role and entry-point capability such as `RootManage`, `FormalApprove`, `PaymentOffer` or `WalletApprove`. Cloud `ContentSign` and `VaultUnlock` govern ciphertext writes/reads respectively; root envelopes likewise include only active VaultUnlock devices, enforcing revocation cryptographically for new roots. Device/binding changes advance security_epoch and clear candidate roots. Only recipient changes or login recovery mark the committed root `RekeyRequired`; other bindings/capabilities do not require rotation. On-chain changes do not themselves re-encrypt client history.
+
+Security evidence uses certified values: `SecuritySnapshot` schema 4 at the single raw AccountId path; `devices_root = digest("dmsg/devices/v1", devices)` for the full device map; plus `recovery_delay_ms`, `pending_recovery_digest`, root generation/digests, `vault_write_state` and `principal_updated_at`. Match device records to the commitment before using public keys. Certificate time may lead the local clock by at most 10 seconds, and now must be before certificate time +60 seconds.
+
+## 10. Device signatures, formal attestation and external requests
+
+The device Ed25519 key signs COSE Sig_structure with kid equal to its RFC 9679 thumbprint, then approves `(statement, origin, signature)` under `dmsg/attest/v1`. User-home `attest` / `attest_app_action` verifies, charges monthly allowance and stores a schema 2 certified receipt. Artifacts are standard tagged COSE_Sign1 and public-only COSE_Key. Without a receipt, a signature proves mathematical validity, not dMsg authorization.
+
+Web requests use [dmsg-connect/1](protocol/connect-v1.md), sections 6.2 and 6.4. The bridge encrypts `COSE_Sign1(ConnectRequest)` with a random cek, HPKE-Base-wrapped for every unrevoked account device with `FormalApprove`:
+
+```text
+aad        = ["dmsg/connect-request/v1", account_id, pairing_id, request_id]
+ciphertext = AES-256-GCM(cek, nonce, COSE_Sign1(ConnectRequest), aad)
+wrapped    = HPKE.Seal(device.hpke_pub, cek, info = aad = ["dmsg/connect-wrap/v1", account_id, pairing_id, request_id, device_id])
+sealed     = HPKE-Auth.Seal(skS = responding_device_hpke_private_key, pkR = result_key, ConnectResponse,
+                            info = aad = ["dmsg/connect-response/v1", account_id, pairing_id, request_id, version, device_id])
+```
+
+Locked devices retain original envelopes, opening and checking pairing grants/page signatures only after unlock before approval. Replies use HPKE Auth to the bridge's per-operation non-exportable result key: relays cannot read them and parties without the responding device HPKE key cannot forge them. Page origin is a pairing-key-signed bridge claim displayed after registration checks, not cryptographic origin proof. MCP Events are likewise relay-sealed to device HPKE keys and signature-checked before LDK storage. Login requests a 30-day target-restricted delegation including ledgers; the session key is discarded, while the restricted key remains in memory and is persisted under LDK only for presence-required fast unlock. Signatures prove device approval of fixed data, not that a human read it.
+
+## 11. Verification boundaries
+
+| Area | Source and test entry points | Separate evidence still needed |
+| --- | --- | --- |
+| Login/fast unlock | `workspace`, `client`, `secure`, unit tests and desktop login/lock flows | Real II origin, Touch ID, platform credentials and distribution builds |
+| Root bundles/recovery | `root` / `recovery`, PocketIC; desktop request/cancel/complete/rotate flows | Real-user loss-of-all-devices drills and production vetKD configuration/cost |
+| Multiple homes | `account::find_account` queries all homes in parallel; any failure means unknown | Production failures/throughput; cross-home Principal uniqueness is intentionally not guaranteed |
+| Files/credential use | `library` / `secrets` chunk integrity, independent sharing, approval/revocation tests | Production native mounts, real external services and already obtained copies |
+| Agent Mail | Atomic connector state/encrypted Mail-key persistence and interrupted publication recovery | Production relay and specific MCP host scheduling |
+
+This was documentation/source review; cryptography, PocketIC, desktop and platform suites were not rerun. Existing tests do not mean this review ran them successfully or replace independent auditing.
+
+## 12. Source and verification entry points
+
+Full commands and platform limits are in the [integration guide](../tests/dmsg_integration/README.md), [client README](../src/dmsg_client/README.md) and [credential-use contract](protocol/secrets.md). Historical test counts are not current acceptance criteria.
+
+| Topic | Evidence |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primitives/encoding | [crypto.rs](../src/dmsg_client/src/crypto.rs), [codec.rs](../src/dmsg_client/src/codec.rs), [client vectors](../tests/vectors/client/README.md) |
+| Local keys/content/files/roots | [workspace.rs](../src/dmsg_client/src/workspace.rs), [content.rs](../src/dmsg_client/src/content.rs), [files.rs](../src/dmsg_client/src/files.rs), [library](../src/dmsg_client/src/library), [root.rs](../src/dmsg_client/src/root.rs) |
+| Storage/locking | [store.rs](../src/dmsg_client/src/store.rs), [client.rs](../src/dmsg_client/src/client.rs), [daemon.rs](../src/dmsg_cli/src/daemon.rs) |
+| Accounts/devices/recovery/root commit | [User types](../src/dmsg_types/src/user.rs), [account.rs](../src/dmsg_user/src/account.rs), [recovery.rs](../src/dmsg_user/src/recovery.rs), [client account.rs](../src/dmsg_client/src/account.rs) |
+| Recovery derivation/attestation | [COSE types](../src/dmsg_types/src/cose.rs), [COSE API](../src/dmsg_cose/src/api.rs), [attest.rs](../src/dmsg_client/src/attest.rs), [protocol](protocol/README.md) |
+| Web requests | [connect.rs](../src/dmsg_client/src/connect.rs), [dmsg-connect/1](protocol/connect-v1.md) |
+| Tests | `dmsg_client`'s `*_tests.rs` and `vectors.rs`, [desktop.rs](../tests/dmsg_integration/tests/desktop.rs) |

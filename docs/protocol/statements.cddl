@@ -1,4 +1,4 @@
-; Document profiles v1 (Statement v3 design), not a general COSE grammar.
+; Document profiles v1; see README.md. Not a general COSE grammar.
 ; The media types are experimental, not registered standards.
 signed-statement = text-statement / digest-statement / file-statement / app-action-statement
 text-statement = #6.18([
@@ -64,7 +64,7 @@ evidence-headers = {
 }
 uri = tstr .size (1..8192) ; canonical absolute ASCII URI, no credentials/control characters
 sha256 = bstr .size 32
-signature-bytes = bstr .size 64 ; both enabled algorithms use 64 bytes; not a generic COSE limit
+signature-bytes = bstr .size 64 ; Ed25519 only; not a generic COSE limit
 
 ; Optional packaging DTO. The portable statement itself is signed-statement.
 signed-artifact = {

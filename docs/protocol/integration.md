@@ -1,10 +1,13 @@
 # Third-party integration contract
 
-Status (2026-09-24): operational development implementation. Dedicated authentication,
-closed application signing, browser v4 checkout, two-asset settlement, irreversible
-PANDA commitments and both account/project adapters are connected. TokenList and
-an independent account product exercise the public contract. Production identities,
-R, deployment and real-fund acceptance remain explicit release steps.
+English | [简体中文](integration_zh.md)
+
+Source contract reviewed on 2026-10-24. Dedicated authentication, typed application
+signing and checkout use the desktop approval flow through [dmsg-connect/1](connect-v1.md).
+Cash settlement and PANDA commitments use commerce 2 / membership 2. The
+[account adapter](../../examples/dmsg-account-product/README.md) and protocol
+fixtures illustrate integration; each external product's deployment and real-fund
+acceptance must be checked separately.
 The old commercial endpoints and membership change/buyout paths have been removed;
 there is no v2-to-v1 conversion. See [commerce 2](commerce.md) for runtime methods.
 
@@ -137,9 +140,11 @@ expiry is a lock coverage and commitment boundary, not another proration factor.
 A waived bill is never cash revenue or merchant cash.
 Only full waiver is supported: no discount, partial payment or buyout.
 
-After product Apply succeeds, the original contract expiry is immutable. Benefit
-termination does not release occupancy. No user, product, pause, unlink or
-ordinary governance action may shorten it. Pre-Apply applications can cancel;
+After product Apply succeeds, the original contract expiry is immutable. No user, product, pause, unlink or
+ordinary governance action may shorten that recorded commitment. Known
+disqualification terminates benefits and releases neuron occupancy after the
+already-issued qualification lease expires; the original contract end alone
+does not retain occupancy. Pre-Apply applications can cancel;
 unknown decisions retain their identity/reservations until receipt reconciliation.
 Renewals create a separately approved consecutive term. SNS owners retain their
 native control; this contract does not claim physical custody or prohibit SNS
@@ -181,4 +186,4 @@ authentication, exact approval, cash/PANDA quotes, a durable decision, and u128
 overflow boundaries. There are no real external identities, real transfers or
 production rate defaults in these tests.
 
-The browser transport and recovery contract is specified in [dmsg-connect/1](connect-v1_zh.md).
+The browser transport and recovery contract is specified in [dmsg-connect/1](connect-v1.md).

@@ -1,5 +1,7 @@
 # dmsg-login/1：本机客户端的 Internet Identity 登录中转
 
+[English](login-v1.md) | 简体中文
+
 2026-10-12 起草，同日在桌面方案 W1 中实现：登录页为 `src/dmsg_frontend` 的 `/_/login`，客户端一侧为 `dmsg daemon`（`src/dmsg_client` 的 `login` 模块与 `src/dmsg_cli` 的回调）。2026-10-14 按真实 Internet Identity 的行为修订：II 的 `icrc34_delegation` 不支持 `targets`，签出的 delegation 不限 canister，请求因此去掉 `targets`，改由 daemon 用会话私钥追加一级限定 targets 的 delegation（第 4 节）。dMsg 桌面端（`dmsg daemon`）与以后的移动端不内嵌 Internet Identity 登录；它们用系统浏览器打开 `https://dmsg.net/_/login`，由这个页面请 II 直接为客户端的会话公钥签发 delegation，再把结果交回客户端。页面本身没有登录态：不读取、不保存 dmsg.net 站点的会话，也不持有任何可用的私钥。
 
 ## 1. 为什么放在 dmsg.net

@@ -1,5 +1,7 @@
 # dMsg 桌面解锁与首屏性能调查
 
+> 2026-10-24 归档：本文保留当时的设计、测量和验证边界，不作为当前接口或待办清单。现行说明见[文档入口](../../docs/README.md)；下文日期、状态和未运行项均属于原记录。
+
 日期：2026-10-22。调查起点为 `53a03b31`，验证期间保留并跟随了独立提交的头像修复 `7bad118d`。已读取本地私有仓库的 PRD v1.1 和实施设计 v1.1，检查时私有仓库提交为 `75b9403f`、工作区无修改；未核对远端。本文只记录公开实现与实测边界。
 
 ## 1. 证据与根因
@@ -28,7 +30,7 @@
 - 状态增加 `syncing`，侧栏显示后台同步与失败重试；开始同步只刷新状态，完成或失败才刷新内容。锁定不再等待密文 flush 返回才通知界面。
 - 日志新增 `sync/pass` 耗时，区分解锁完成与完整同步完成；不记录内容、账户 ID 或凭据。
 
-实现入口：[`client.rs`](../src/dmsg_client/src/client.rs)、[`root.rs`](../src/dmsg_client/src/root.rs)、[`sync.rs`](../src/dmsg_client/src/sync.rs)、[`daemon.rs`](../src/dmsg_cli/src/daemon.rs)、[`session.ts`](../src/dmsg_desktop/src/renderer/shell/session.ts)、[`GateRail.svelte`](../src/dmsg_desktop/src/renderer/shell/GateRail.svelte)。
+实现入口：[`client.rs`](../../src/dmsg_client/src/client.rs)、[`root.rs`](../../src/dmsg_client/src/root.rs)、[`sync.rs`](../../src/dmsg_client/src/sync.rs)、[`daemon.rs`](../../src/dmsg_cli/src/daemon.rs)、[`session.ts`](../../src/dmsg_desktop/src/renderer/shell/session.ts)、[`GateRail.svelte`](../../src/dmsg_desktop/src/renderer/shell/GateRail.svelte)。
 
 ## 3. 后续优化顺序
 

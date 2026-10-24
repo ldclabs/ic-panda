@@ -1,9 +1,11 @@
 # dMsg 桌面端界面设计：门房（Gatehouse）
 
+> 2026-10-24 归档：本文保留当时的设计、测量和验证边界，不作为当前接口或待办清单。现行说明见[文档入口](../../docs/README.md)；下文日期、状态和未运行项均属于原记录。
+
 - 范围：`src/dmsg_desktop` 的主窗口与审批窗口，以及网站 `/legacy` 的迁移面板。
 - 日期：2026-10-16 提出并获批；同日按 P0–P6 实施完毕。
 - 实现：`98edf38a`（P0–P2）、`c95b6ab2`（P3）、`9aac7b7a`（P4）、`b1a14a22`（P5）、`6c90b43e`（P6）；网站 Remix Icon 许可修正 `ac477f9b`。
-- 设计系统细则（令牌、字号、组件约定）见 [src/dmsg_desktop/DESIGN.md](../src/dmsg_desktop/DESIGN.md)；令牌源自网站的 [src/dmsg_frontend/DESIGN.md](../src/dmsg_frontend/DESIGN.md)。
+- 设计系统细则（令牌、字号、组件约定）见 [src/dmsg_desktop/DESIGN.md](../../src/dmsg_desktop/DESIGN.md)；令牌源自网站的 [src/dmsg_frontend/DESIGN.md](../../src/dmsg_frontend/DESIGN.md)。
 - 本文记录方案及其实施状态。设计与实现不一致时以代码为准，并同步修改本文。
 
 ## 1. 概念
@@ -200,7 +202,7 @@ renderer 里不再出现原生 select、checkbox、radio、details 和 `confirm(
 
 ## 2026-10-21 团队钱包补全
 
-团队钱包按概览、提案、资产与地址、成员与策略、审计、运行管理分区，管理动作采用结构化表单并经完整意图审批。新接口、协签包、状态刷新、测试与长期扩展边界见 [团队钱包桌面实现](dmsg_wallet_desktop_zh.md)。
+团队钱包按概览、提案、资产与地址、成员与策略、审计、运行管理分区，管理动作采用结构化表单并经完整意图审批。新接口、协签包、状态刷新、测试与长期扩展边界见 [团队钱包说明](../../docs/dMsg_wallet_zh.md)。
 
 
 ## 2026-10-24 界面简化与图标尺寸

@@ -1,8 +1,10 @@
 # Statement v3 Design
 
+> Archived on 2026-10-24. This is a historical design/measurement record, not the current contract. Use the [documentation index](../../docs/README.md) for maintained specifications. Original dates, observations and unrun checks below retain their original scope.
+
 English | [简体中文](statement-v3-design_zh.md)
 
-Status: As of 2026-09-23, public types, three document profiles, Xid accounts, certified execution receipts, and SDK bindings have been implemented according to this design; the actual contracts are governed by the [protocol specification](README.md) and [CDDL](statements.cddl). Initial evaluation was based on `4fc3ca2`. Full production UI, TSA trust verification, and multi-allocator registry are out of scope for this round. "v3" is the design iteration name; wire protocol versions are explicitly defined by specific profiles.
+Status: As of 2026-09-23, public types, three document profiles, Xid accounts, certified execution receipts, and SDK bindings have been implemented according to this design; the actual contracts are governed by the [protocol specification](../../docs/protocol/README.md) and [CDDL](../../docs/protocol/statements.cddl). Initial evaluation was based on `4fc3ca2`. Full production UI, TSA trust verification, and multi-allocator registry are out of scope for this round. "v3" is the design iteration name; wire protocol versions are explicitly defined by specific profiles.
 
 ## 1. Design Decisions
 
@@ -142,7 +144,7 @@ Version 1 enables SHA-256 (header 258 value -16), with a 32-byte payload. This l
 
 ### 5.3 Statements About Files
 
-`StatementContent::FileStatement` combines nonempty verbatim text and the SHA-256 of one exact file, with optional file media type and location. This is an inline structured statement, using the independent `application/vnd.dmsg.file-statement+cose;v=1` profile and content type `application/cbor`. Its closed payload schema uses integer keys 1=text, 2=SHA-256, optional 3=media type and 4=location, encoded as deterministic CBOR; the exact limits and byte rules are frozen in [the protocol](README.md) and [CDDL](statements.cddl). Hash Envelope headers 258/259/260 do not apply because this payload is a statement containing a digest, not a digest of the entire preimage.
+`StatementContent::FileStatement` combines nonempty verbatim text and the SHA-256 of one exact file, with optional file media type and location. This is an inline structured statement, using the independent `application/vnd.dmsg.file-statement+cose;v=1` profile and content type `application/cbor`. Its closed payload schema uses integer keys 1=text, 2=SHA-256, optional 3=media type and 4=location, encoded as deterministic CBOR; the exact limits and byte rules are frozen in [the protocol](../../docs/protocol/README.md) and [CDDL](../../docs/protocol/statements.cddl). Hash Envelope headers 258/259/260 do not apply because this payload is a statement containing a digest, not a digest of the entire preimage.
 
 Text and digest are inseparable under the signature. The key purpose is `Statement`; pure digests retain `FileAttestation`. Existing execution approvals bind the entire prepared object without another signing operation. With no original file, verification reports a valid signature but `content=NotProvided`; matching file bytes yield `Verified`, and a mismatch is an error. Confirmation displays both text and digest without claiming file review when no original bytes were checked. The profile expresses the signer's statement, not automatic publishing/acceptance authority; executable business semantics still require their own explicit schema and policy.
 

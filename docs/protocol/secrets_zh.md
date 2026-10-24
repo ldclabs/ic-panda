@@ -1,10 +1,12 @@
-# 本设备凭据受控使用（P0 / P1）
+# 本设备凭据受控使用
+
+[English](secrets.md) | 简体中文
 
 日期：2026-10-24。本文描述公开客户端实现；不是部署或真实 GitHub 验收声明。
 
 ## 范围与权限
 
-owner 在本设备创建策略，Agent 以 `secret.use:<policy_id>` 申请一次操作，人批准完整计划后由 daemon 执行。P0 只支持 GitHub.com 指定仓库的 `issue.create`；配置策略不批准执行。没有通用取密、HTTP 代理、命令执行或自动重试接口。
+owner 在本设备创建策略，Agent 以 `secret.use:<policy_id>` 申请一次操作，人批准完整计划后由 daemon 执行。MCP 凭据适配器只支持 GitHub.com 指定仓库的 `issue.create`；配置策略不批准执行。MCP 没有通用取密、HTTP 代理、命令执行或自动重试接口。owner 的进程交付、SSH/Git、挂载与快照工作流见下文。
 
 `secret.use:*` 不合法。Agent Delegation、`vault.read/write`、`files.read` 不隐含此权限。策略和 grants 用本设备 LDK 封存，不跨设备同步，不复制到 resident Agent 的锁定权限中。每设备最多 64 个策略；沿用 64 个 capability grants 的上限。
 
@@ -20,7 +22,7 @@ MCP 的 `dmsg_vault_read` 始终遮罩 concealed/otp；移除 `secret` 参数（
 
 拒绝非规范账户 ID、非 64 位小写 hex 条目 ID、无效字段 ID、query/fragment/userinfo/转义/额外路径。执行引用只能取当前未删除、无冲突的安全条目；API 凭据字段必须 concealed，不接受 OTP、wallet 或保留条目。字段同 ID 重建仍是同一引用；审批固定条目 revision，任何后续改动使其失效。
 
-Vault 现有加密粒度为整个条目。元数据校验会在可信核心内解开条目并清理字段缓冲；不会在审批前向扩展、MCP 或网络交付凭据。执行用的凭据缓冲仅在提交点取得，使用 Zeroizing，不实现返回值的 resolve RPC。
+Vault 现有加密粒度为整个条目。元数据校验会在可信核心内解开条目并清理字段缓冲；不会在审批前向桌面渲染进程、MCP 或网络交付凭据。执行用的凭据缓冲仅在提交点取得，使用 Zeroizing，不实现返回值的 resolve RPC。
 
 `UsePolicy` 返回 `{id, account_id, device_id, version, policy, created_at, updated_at}`，其中 `policy` 为：
 
@@ -106,9 +108,9 @@ HTTP 固定 origin/path、正常 TLS、无环境代理、无跳转、关闭 reqw
 
 没有 canister 或稳定布局变更，没有新的同步种类。政策限制 dMsg 此入口，不证明 GitHub token 的实际权限，也不隔离同用户恶意代码。建议用户在上游限制仓库及 Issues 写权限。
 
-P1 的 CLI 注入、SSH、文件挂载、快照分享和团队库不在本实现中。单元/本地 HTTP mock 与 Electron fixture 不代替真实 GitHub、真实系统在场验证或平台文件系统实测。具体验收命令与未运行项见 [P0 验证记录](../dmsg_secrets_P0_validation_zh.md)。
+下文的 owner 工作流已实现；团队共享秘密库仍未提供。单元/本地 HTTP mock 与 Electron fixture 不代替真实 GitHub、真实系统在场验证或平台文件系统实测，见[验证入口与边界](#验证入口与边界)。
 
-## P1：本机开发工作流
+## 本机开发工作流
 
 以下接口为 owner 控制面，未加入 MCP 工具目录。审批动作新增 `secret_process`、`secret_ssh_binding`、`secret_ssh`、`secret_mount_config`、`secret_mount_read`、`secret_share`、`secret_package_import`、`secret_discovery_import`，全部使用高风险在场审批。
 
@@ -167,7 +169,7 @@ SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.co
 
 外部导入沿用 `vault/import_preview` / `vault/import`，增加明确的 attachment ID 选择和逐源条目遗漏报告。1pux 成员路径、重复名、符号链接和大小受限；仅选定附件解包为加密暂存，所有可见写入和重试收据同事务提交。相同完整源摘要、字段/附件选择和目标文件夹重复提交返回原收据。
 
-平台与实测边界见 [P1 验证记录](../dmsg_secrets_P1_validation_zh.md)。生产/私有云端完整联调、正式 macOS 扩展内核联调及分发公证不以 mock 或开发签名替代。
+平台与实测边界见[验证入口与边界](#验证入口与边界)。生产/私有云端完整联调、正式 macOS 扩展内核联调及分发公证不以 mock 或开发签名替代。
 
 附件进入 Files 后遵循目标文件夹现有的 `files.read:<folder>` 授权（含祖先文件夹授权）。本地/云端存储状态不是 Agent 访问控制；导入 UI 提供文件夹选择并明确告知继承权限，不能把“未备份”理解为 Agent 不可读。Vault 隐藏字段仍遵循单独的 Vault/secret.use 边界。
 
@@ -190,3 +192,15 @@ CLI：`dmsg secrets references <dmsg-secret://…>`、`dmsg secrets rotation dep
 - `secrets/packages/import_request` 使用原包摘要、明确选择和可信审批，生成新 Vault/Files IDs。相同频道消息的重复领取收敛到同一包记录；重复导入返回原事务收据，改变选择不能复用旧收据。附件仍继承目的 Files 文件夹授权。
 
 CLI：`dmsg secrets shares channel-prepare <channel_id> <selection.json>`；`dmsg secrets packages channel-preview <channel_id> <seq>`。桌面使用中心提供目的频道选择；频道快照消息提供“导入秘密快照”，所有字段/备注/附件默认不选。上述方法均为 owner 控制面，无新增 MCP 取密或发起秘密交付工具。
+
+## 验证入口与边界
+
+| 范围 | 可执行证据 |
+| --- | --- |
+| 引用、策略、审批、GitHub 适配器、撤权与结果状态 | [核心测试](../../src/dmsg_client/src/secrets/tests.rs) |
+| 快照包、链接/频道发送、导入与完整性 | [分享测试](../../src/dmsg_client/src/secrets/share_tests.rs) · [包向量](../../tests/vectors/client/secret-package-v1.json) |
+| CLI、SSH/Git 与 Linux FUSE | [本地系统集成测试](../../src/dmsg_cli/src/secret_integration_tests.rs)；各 `#[ignore]` 注明所需工具、隔离容器或 `/dev/fuse` 权限 |
+| 桌面审批与界面 | [Secrets smoke](../../src/dmsg_desktop/scripts/secrets-smoke.mjs) |
+| macOS FSKit | [原生模块说明](../../src/dmsg_desktop/native/fskit/README.md)：构建、签名、启用、内核行为与分发是独立验证步骤 |
+
+本次文档核对未执行上述测试。真实 GitHub、真实在场确认、生产中继、跨 UID/已打开文件句柄、正式 macOS 模块的挂载/撤销和分发公证不能由合成 fixture 或编译成功替代。原生模块未打包或不可用时，挂载明确返回不可用；不能回退为明文 backing file。历史验证记录不能作为当前发布通过的证明。
