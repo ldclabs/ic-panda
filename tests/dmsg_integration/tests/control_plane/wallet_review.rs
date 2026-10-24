@@ -409,6 +409,78 @@ fn unknown_icrc_transfer_survives_deduplication_expiry_and_verifies_a_block() {
 }
 
 #[test]
+fn expired_unsent_batch_items_fail_after_recovering_the_paid_item() {
+    let t = Team::new(1);
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(t.wallet), 100_000u128),
+    );
+    let p = t.approve_p(
+        t.propose(
+            P,
+            Intent::Batch {
+                from: 0,
+                asset: AssetKey::Icp,
+                items: vec![
+                    BatchItem {
+                        to: Destination::Icrc(account(person(80))),
+                        amount: 1_000,
+                    },
+                    BatchItem {
+                        to: Destination::Icrc(account(person(81))),
+                        amount: 2_000,
+                    },
+                ],
+                max_fee: 100,
+            },
+        )
+        .id,
+    );
+    void(&t.f.ic, t.f.ledger, person(1), "lose_next_response", ());
+    assert_eq!(t.execute(p.id, None, vec![]), Err(Error::ExecutionUnknown));
+    assert_eq!(t.balance(account(person(80))), 1_000);
+    assert_eq!(t.balance(account(person(81))), 0);
+    let blocks: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
+        &t.f.ic,
+        t.f.ledger,
+        person(P),
+        "icrc3_get_blocks",
+        (vec![icrc_ledger_types::icrc3::blocks::GetBlocksRequest {
+            start: 0u8.into(),
+            length: 100u8.into(),
+        }],),
+    );
+    let block =
+        dmsg_runtime::ledger::block_index(blocks.blocks.last().unwrap().id.clone()).unwrap();
+    advance(&t, DAY + 2 * MINUTE);
+    let recovered: Result<ExecuteResult> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "reconcile_transfer",
+        (p.id, 0u16, block),
+    );
+    assert!(
+        matches!(recovered, Err(Error::InvalidInput(_))),
+        "{recovered:?}"
+    );
+    let state: Result<Proposal> = query(&t.f.ic, t.wallet, person(P), "get_proposal", (p.id,));
+    let state = state.unwrap();
+    assert_eq!(state.status, ProposalStatus::Failed);
+    assert_eq!(
+        state.outcome,
+        Some(Outcome::Ledger {
+            blocks: vec![block]
+        })
+    );
+    assert_eq!(t.balance(account(person(80))), 1_000);
+    assert_eq!(t.balance(account(person(81))), 0);
+}
+
+#[test]
 fn activation_surplus_and_late_deposits_are_refundable_without_touching_revenue() {
     let t = Team::new(1);
     let q: Option<ActivationQuote> = query(&t.f.ic, t.hub, person(A), "get_quote", (t.quote,));

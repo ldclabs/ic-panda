@@ -414,3 +414,33 @@ async fn native_evm_execution_estimates_the_exact_call_instead_of_assuming_21000
     };
     assert_eq!(gas_limit, 48_000);
 }
+
+#[test]
+fn cancellation_plan_must_use_the_nonce_approved_in_the_intent() {
+    let vectors: Json = serde_json::from_str(include_str!(
+        "../../../../tests/vectors/wallet/plans-v1.json"
+    ))
+    .unwrap();
+    let decode = |value: &Json| hex::decode(value.as_str().unwrap()).unwrap();
+    let view: WalletView =
+        dmsg_protocol::decode_canonical(&decode(&vectors["view_cbor_hex"])).unwrap();
+    let case = vectors["plans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["name"] == "evm nonce cancellation")
+        .unwrap();
+    let mut intent: Intent =
+        dmsg_protocol::decode_canonical(&decode(&case["intent_cbor_hex"])).unwrap();
+    let plan: ExecutionPlan =
+        dmsg_protocol::decode_canonical(&decode(&case["plan_cbor_hex"])).unwrap();
+    verify_plan(&view, &intent, &plan).unwrap();
+    let Intent::CancelEvmNonce { nonce, .. } = &mut intent else {
+        panic!("cancellation vector");
+    };
+    *nonce += 1;
+    assert_eq!(
+        verify_plan(&view, &intent, &plan),
+        Err(Error::IntegrityFailed)
+    );
+}

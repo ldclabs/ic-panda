@@ -151,7 +151,7 @@
 - hub 的升级和锁定共用每钱包互斥锁。执行前调用仅 hub 可用的 `claim_code(expected)` 原子领取已接受记录，领取期间实例不能接受另一次升级或锁定；成功升级清除领取，失败并重启后经 `release_code()` 释放。清空 controllers 前确认实例 Running。
 - `AddAddress` 取公钥返回后重新验证授权版本、期限、冻结、地址容量和全部协签引用，普通 ChainKey 协签与原生 Taproot 都覆盖。
 - 未执行额度预留不按批准时间自动过期；只有取消、失效、确定无出金等明确结果才释放。签名中断且没有已签交易时恢复预留，不能借失败执行跨日绕过额度。
-- ICRC `TooOld` 保留 Executing 作业与原转账参数，返回 ExecutionUnknown。`reconcile_transfer(proposal, item, block)` 读取指定账本的 ICRC-3 记录，逐字段验证付款账户、收款账户、金额、手续费、memo、created_at_time 和 spender，再补记区块；未经证明的“不存在”不能被当作再次付款许可。
+- ICRC 已尝试发送的项在重试收到 `TooOld` 时保留 Executing 作业与原转账参数，返回 ExecutionUnknown；从未发送的项首次即被 `TooOld` 拒绝时明确失败，保留批量已付款区块。`reconcile_transfer(proposal, item, block)` 读取指定账本的 ICRC-3 记录，逐字段验证付款账户、收款账户、金额、手续费、memo、created_at_time 和 spender，再补记区块；未经证明的“不存在”不能被当作再次付款许可。
 - 客户端批准与协签通过 `get_proposal_certified` 认证完整提案，再按新认证钱包版本与当前时间计算过期/延时展示；仅重算自带 digest 不再作为权威提案读取。
 - 原生 EVM 与 ERC-20 预览、执行复用最终调用参数估算 gas，仍由实例强制执行费用上限。
 

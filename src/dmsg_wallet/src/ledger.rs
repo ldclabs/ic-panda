@@ -25,6 +25,10 @@ pub(crate) struct LedgerItem {
     #[cbor(key = 4)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) block: Option<u64>,
+    /// Cleared before the first send. Older jobs conservatively count as sent.
+    #[cbor(key = 5)]
+    #[serde(default, skip_serializing_if = "dmsg_runtime::stable_types::is_zero")]
+    pub(crate) unsent: bool,
 }
 
 /// Transfers of one proposal, sent in order from one subaccount.

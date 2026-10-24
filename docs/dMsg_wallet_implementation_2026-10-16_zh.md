@@ -187,7 +187,7 @@ stateDiagram-v2
 
 批量逐笔调用 ICRC-1，不原子回滚；每项有独立 block，memo 由提案摘要和序号区分，避免相同金额/收款方被合并去重。已经确认的项不会重发。确定拒绝记录失败；结果未知保留作业，`reconcile(id)` 仅复用完全相同的参数，Duplicate 作为原区块成功处理。
 
-`TooOld` 也保留作业并返回 `ExecutionUnknown`。不能据此断定原付款没有发生，不能换时间或 memo 新付一次。账本去重窗口由实际账本决定，不在钱包里统一承诺为固定 24 小时。
+每项在第一次发送前持久记录已尝试发送。重试收到 `TooOld` 时保留作业并返回 `ExecutionUnknown`，不能据此断定原付款没有发生，也不能换时间或 memo 新付一次。从未发送的项若在首次发送时收到 `TooOld`，则明确失败并保留批量已付款区块，不要求提供不存在的付款证明。账本去重窗口由实际账本决定，不在钱包里统一承诺为固定 24 小时。
 
 ### 6.2 区块对账
 
@@ -232,7 +232,7 @@ stateDiagram-v2
 
 构造计划时、签名前和签完后均核对重签约束；预先构造多个计划不能绕过首签约束，并发冲突的后完成者不返回已签交易。InitSolNonce 本身不提供换 blockhash 重签入口。
 
-`CancelEvmNonce` 明确包含 address、chain_id、原 proposal、nonce、max_fee；创建、准备及执行检查当前待处理对象。取消签同 nonce 的零值自转。`ReleaseEvmNonce` 同样绑定精确对象，走 Admin 阈值 + 24 小时，仅解除实例内锁，不使原链交易失效。
+`CancelEvmNonce` 明确包含 address、chain_id、原 proposal、nonce、max_fee；创建、准备及执行检查当前待处理对象。取消签同 nonce 的零值自转，客户端独立解码时也核对交易 nonce 与批准意图一致。`ReleaseEvmNonce` 同样绑定精确对象，走 Admin 阈值 + 24 小时，仅解除实例内锁，不使原链交易失效。
 
 外链回报由成员提交，钱包没有独立链证明。取消提案的 Settled 回报只处理仍匹配的 pending 对象，不把原付款改成 Failed，也不释放原付款已执行支出计数；旧回报不能影响新 nonce。已经签名的付款不能因回报失败就当作从未可能出金。
 

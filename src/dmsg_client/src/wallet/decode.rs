@@ -483,9 +483,16 @@ fn verify_evm(intent: &Intent, pay: &Paying, plan: &ExecutionPlan) -> Result<Dec
     let data = rlp_bytes(&f[7])?;
     let own = evm_address(&pay.from.public_key)?;
     let (expected_chain, asset, recipient, amount) = match (intent, &pay.asset) {
-        (Intent::CancelEvmNonce { chain_id, .. }, None) => {
+        (
+            Intent::CancelEvmNonce {
+                chain_id,
+                nonce: expected_nonce,
+                ..
+            },
+            None,
+        ) => {
             ensure(
-                to == own && value == 0 && data.is_empty(),
+                to == own && value == 0 && data.is_empty() && nonce == u128::from(*expected_nonce),
                 Error::IntegrityFailed,
             )?;
             (*chain_id, "ETH".to_string(), own, 0)

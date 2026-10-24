@@ -78,6 +78,6 @@ POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
 
 EVM 取消和释放须指明原提案与 nonce。成员报告取消已结算不会释放原付款额度，也不会把原付款强行标为失败；旧回报不能影响后续 nonce。
 
-新增 `reconcile_transfer(id, item, block)`：在原作业仍 Executing 时，核对指定账本的真实 ICRC-3 区块，找回未知转账结果。TooOld 不再删除作业或显示为可重做的普通失败。
+新增 `reconcile_transfer(id, item, block)`：在原作业仍 Executing 时，核对指定账本的真实 ICRC-3 区块，找回未知转账结果。重试的 TooOld 不再删除作业或显示为可重做的普通失败；从未发送的批量项首次即被 TooOld 拒绝时明确失败，并保留已付款区块。
 
 `claim_code`/`release_code` 仅 hub 可用，领取期间拒绝变更接受记录。新增地址在公钥返回后重新检查所有协签引用与当前授权。详见 [公开合同](../../docs/protocol/wallet_zh.md)。回归入口为 `wallet::review::*`，实际外链用例需显式运行 ignored 测试并提供回环 RPC。

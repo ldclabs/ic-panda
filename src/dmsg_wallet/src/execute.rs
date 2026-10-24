@@ -391,6 +391,7 @@ async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<Execute
                 amount,
                 memo: Some(memo),
                 block: None,
+                unsent: true,
             }
         })
         .collect::<Vec<_>>();
@@ -447,7 +448,7 @@ async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<Execute
 /// Send the remaining transfers of a ledger job in order.
 async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
     loop {
-        let Some(Job::Ledger(job)) = store::job(id) else {
+        let Some(Job::Ledger(mut job)) = store::job(id) else {
             return Err(Error::NotFound);
         };
         ensure(job.created_at_time.is_some(), Error::Pending)?;
@@ -464,6 +465,11 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
         let mut w = store::wallet();
         w.commit_spend(id, at);
         store::save(w);
+        let first_attempt = job.items[i].unsent;
+        if first_attempt {
+            job.items[i].unsent = false;
+            store::save_job(id, &Job::Ledger(job.clone()));
+        }
         let sent = ledger::send(job.ledger, job.arg(&job.items[i])).await;
         at = now();
         let Some(Job::Ledger(mut job)) = store::job(id) else {
@@ -478,8 +484,9 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
                 let mut w = store::wallet();
                 let mut p = store::proposal(id)?;
                 let blocks: Vec<u64> = job.items.iter().filter_map(|x| x.block).collect();
-                // A resend past the ledger's deduplication window proves nothing.
-                let unknown = reason.starts_with("TooOld");
+                // A first attempt rejected as TooOld never moved funds. Only
+                // retries can hide a payment outside the deduplication window.
+                let unknown = !first_attempt && reason.starts_with("TooOld");
                 if unknown {
                     p.failure = Some(format!(
                         "item {i}: outcome unknown after the deduplication window; check the ledger"
