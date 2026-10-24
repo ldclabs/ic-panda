@@ -323,3 +323,15 @@ Each administrative call below accepts the controller or the SNS governance and 
 - [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent_zh.md) (Chinese): the commerce and Agent Delegation contracts.
 - [protocol/wallet_zh.md](protocol/wallet_zh.md) (Chinese): the team wallet contract.
 - The capacity, deployment and operations sections of each canister README (Chinese): measurement methods, reproduction commands and deployment arguments behind the figures above.
+
+## Agent Protocols 0.12.6 integration
+
+The Rust and TypeScript consumers use SDK 0.12.6 and the committed shared fixtures.
+The daemon checkpoints encrypted Mail keys with connector state before publication,
+restores interrupted attempts before later calls, and persists authenticated mailbox
+inventory pages. The owner Profile display retains verified greatest-nonce pins.
+Controller submissions permit one journaled, bounded nonce resynchronization without
+changing the approved intent. The desktop exposes mailbox metadata recovery and
+missing-key/pending-publication state. Canister interfaces and stable layouts are unchanged.
+
+The [review and validation record](dmsg_protocol_alignment_2026-10-24_zh.md) lists the fixed workflows and remaining test limits (Chinese).

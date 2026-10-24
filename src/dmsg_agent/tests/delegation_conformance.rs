@@ -1,3 +1,4 @@
+// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
 use agent_protocols::delegation::*;
 use agent_protocols::identity::{
     AgentId, AgentSigner, Envelope, is_controller_challenge, verify_controller_challenge,

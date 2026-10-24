@@ -1,7 +1,7 @@
 # dmsg_agent
 
 dMsg as an [Agent Protocols](https://github.com/ldclabs/agent-protocols)
-local connector host (`agent-protocols` 0.12.3). The daemon (`dmsg_cli`)
+local connector host (`agent-protocols` 0.12.6). The daemon (`dmsg_cli`)
 runs one connector per Agent ID it hosts; `dmsg mcp` and `dmsg ap` reach
 them through the daemon. Agent ID keys, their mail keys, their residency
 and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
@@ -71,9 +71,10 @@ runs the read-only tool that shows the resource, then drops the connector:
 nothing is fetched, saved, presented, claimed or marked read. A room the
 connector has not synced is `NotFound`.
 
-Mail inspection (`mail_list` without `mark_read`, and `mail_mailboxes_list`)
-reads the last committed connector snapshot without taking its network turn,
-loading mailbox keys or saving state. Reads that mark messages continue through
+Mail inspection (`mail_list` without `mark_read`, and `mail_mailboxes_list`
+without a remote `host`) reads the last committed snapshot without taking the
+network turn or saving state. Mailbox views receive the currently available
+keys so `key_available` is accurate; no key is returned in the view. Reads that mark messages continue through
 the normal serialized call, as do mailbox changes and receiving. Capability,
 pause and residency checks still apply in the daemon.
 
@@ -86,8 +87,8 @@ A local deployment may name its own CA (`agent_ca`), which then replaces the
 system roots: the platform verifier refuses long-lived test certificates.
 
 The file is not encrypted: a resident Agent ID works while the device is
-locked. It holds the room records and the letters the agent read, never a
-private key.
+locked. It holds room records and letters the agent read, plus encrypted Mail
+key checkpoints; it never stores an unencrypted private key.
 
 Tests (`cargo test -p dmsg_agent`) cover the allowlist (DT02), a restart
 that restores drafts, inbox leases, read positions and the nonce (DT09),
@@ -101,7 +102,7 @@ and unblocks senders. The other files under `tests/` run the protocols'
 normative vectors, Mail and Knowledge included (DT08), against the SDK this
 crate uses; see [`tests/vectors/agent-protocols`](../../tests/vectors/agent-protocols/README.md).
 
-## Connector 0.12.3 workflows
+## Connector 0.12.6 workflows
 
 All 41 standard tools are classified explicitly; together with 34 dMsg tools,
 `tools/list` exposes 75 tools. New tool permissions are:
@@ -142,3 +143,35 @@ the connector snapshot. It stores IDs and relay scope only, with stable event
 IDs, per-Agent retention and independent cursors bound to the mailbox filter.
 Queries check live relay grants, report retention gaps and do not alter Mail
 read state or inbox work. The daemon exposes this log as `dmsg.mail.received`.
+
+## Publication checkpoints and verified profiles
+
+Production daemon calls use `Runtime::call_durable` with a host-only key sealer.
+Before each Mail publication attempt, the SDK callback encrypts the key snapshot
+and commits it with the connector snapshot in one SQLite transaction. It keeps
+the original database handle, so a concurrent workspace reset cannot recreate
+the removed state file. A failed checkpoint stops publication and leaves the
+last successfully committed checkpoint intact. `Runtime::call` remains for
+callers whose lifetime and key persistence are managed externally; persistent
+daemon hosts must use the durable entry point.
+
+On restart, the daemon restores the encrypted checkpoint before using the
+connector. It clears the checkpoint only after the returned keys have reached
+the normal sealed/resident key stores. The checkpoint uses a workspace- and
+Agent-specific key derived under `dmsg/agent-mail-checkpoint/1`; it does not retain
+the account's content root during network calls. The key codec and the encrypted
+blob are host-only, never MCP results. Existing connector snapshots remain version 2.
+
+`mail_mailboxes_list` with `host` is authenticated network recovery and runs under
+the normal per-Agent turn, saves verified cards and honors relay grants. It may
+recover records without their decryption keys. Local inspection and resources
+report `key_available` and pending routes; inventory is not key or plaintext
+recovery. The TLS regression tests cover pre-publication failures, acceptance
+followed by persistence failure, restart recovery and a concurrent reset.
+
+The owner's public Profile display also keeps signed greatest-nonce pins in
+SQLite, independently of its in-memory clients. It checks the latest envelope,
+rejects rollback and same-nonce conflicts across configured services and process
+restarts, and refuses discovery endpoints on another origin. A lower candidate
+read earlier in a multi-service round is reported stale if a newer one is found.
+The SDK's per-Agent connector Profile cache is retained in its normal snapshot.

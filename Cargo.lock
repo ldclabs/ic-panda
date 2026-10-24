@@ -80,9 +80,9 @@ dependencies = [
 
 [[package]]
 name = "agent-protocols"
-version = "0.12.5"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3535a00ad05b4e5552609574bec6d7c7ce9ddf9cee54273b7200549d58f4103"
+checksum = "34c1fd031444dff732b03da540ff3f678dbf8b3e89bf825b9f0106a1a5b73267"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 3.0.0",

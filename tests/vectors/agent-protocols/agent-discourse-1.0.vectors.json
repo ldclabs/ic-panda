@@ -532,5 +532,357 @@
         }
       }
     ]
+  },
+  "payload_validation": [
+    {
+      "name": "absolute end 'a'",
+      "schema": {
+        "type": "string",
+        "pattern": "^a$"
+      },
+      "value": "a",
+      "valid": true
+    },
+    {
+      "name": "absolute end 'a\\n'",
+      "schema": {
+        "type": "string",
+        "pattern": "^a$"
+      },
+      "value": "a\n",
+      "valid": false
+    },
+    {
+      "name": "absolute end 'a\\r'",
+      "schema": {
+        "type": "string",
+        "pattern": "^a$"
+      },
+      "value": "a\r",
+      "valid": false
+    },
+    {
+      "name": "absolute end 'a\\u2028'",
+      "schema": {
+        "type": "string",
+        "pattern": "^a$"
+      },
+      "value": "a ",
+      "valid": false
+    },
+    {
+      "name": "unanchored search",
+      "schema": {
+        "pattern": "a"
+      },
+      "value": "a\n",
+      "valid": true
+    },
+    {
+      "name": "patternProperties {'a': 1}",
+      "schema": {
+        "type": "object",
+        "patternProperties": {
+          "^a$": {
+            "type": "integer"
+          }
+        },
+        "properties": {
+          "copy": {
+            "$ref": "#/patternProperties/%5Ea%24"
+          }
+        },
+        "additionalProperties": false
+      },
+      "value": {
+        "a": 1
+      },
+      "valid": true
+    },
+    {
+      "name": "patternProperties {'a\\n': 1}",
+      "schema": {
+        "type": "object",
+        "patternProperties": {
+          "^a$": {
+            "type": "integer"
+          }
+        },
+        "properties": {
+          "copy": {
+            "$ref": "#/patternProperties/%5Ea%24"
+          }
+        },
+        "additionalProperties": false
+      },
+      "value": {
+        "a\n": 1
+      },
+      "valid": false
+    },
+    {
+      "name": "patternProperties {'copy': 1}",
+      "schema": {
+        "type": "object",
+        "patternProperties": {
+          "^a$": {
+            "type": "integer"
+          }
+        },
+        "properties": {
+          "copy": {
+            "$ref": "#/patternProperties/%5Ea%24"
+          }
+        },
+        "additionalProperties": false
+      },
+      "value": {
+        "copy": 1
+      },
+      "valid": true
+    },
+    {
+      "name": "patternProperties {'copy': 'bad'}",
+      "schema": {
+        "type": "object",
+        "patternProperties": {
+          "^a$": {
+            "type": "integer"
+          }
+        },
+        "properties": {
+          "copy": {
+            "$ref": "#/patternProperties/%5Ea%24"
+          }
+        },
+        "additionalProperties": false
+      },
+      "value": {
+        "copy": "bad"
+      },
+      "valid": false
+    },
+    {
+      "name": "local ref in embedded resource",
+      "schema": {
+        "$defs": {
+          "inner": {
+            "type": "object",
+            "patternProperties": {
+              "^a$": {
+                "type": "integer"
+              }
+            },
+            "properties": {
+              "copy": {
+                "$ref": "#/patternProperties/%5Ea%24"
+              }
+            },
+            "additionalProperties": false,
+            "$id": "https://schemas.example/inner"
+          }
+        },
+        "properties": {
+          "box": {
+            "$ref": "#/$defs/inner"
+          }
+        }
+      },
+      "value": {
+        "box": {
+          "copy": 1
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "parent pointer into embedded resource",
+      "schema": {
+        "$defs": {
+          "inner": {
+            "type": "object",
+            "patternProperties": {
+              "^a$": {
+                "type": "integer"
+              }
+            },
+            "properties": {
+              "copy": {
+                "$ref": "#/patternProperties/%5Ea%24"
+              }
+            },
+            "additionalProperties": false,
+            "$id": "https://schemas.example/inner"
+          }
+        },
+        "properties": {
+          "copy": {
+            "$ref": "#/$defs/inner/patternProperties/%5Ea%24"
+          }
+        }
+      },
+      "value": {
+        "copy": 1
+      },
+      "valid": true
+    }
+  ],
+  "blank_strings": [
+    {
+      "value": "\t",
+      "valid": false
+    },
+    {
+      "value": "\n",
+      "valid": false
+    },
+    {
+      "value": "\u000b",
+      "valid": false
+    },
+    {
+      "value": "\f",
+      "valid": false
+    },
+    {
+      "value": "\r",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": "",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": " ",
+      "valid": false
+    },
+    {
+      "value": "　",
+      "valid": false
+    },
+    {
+      "value": "﻿",
+      "valid": false
+    },
+    {
+      "value": "",
+      "valid": false
+    },
+    {
+      "value": "\u001c",
+      "valid": true
+    },
+    {
+      "value": "​",
+      "valid": true
+    },
+    {
+      "value": "﻿ topic ",
+      "valid": true
+    }
+  ],
+  "atomic_import": {
+    "initial": {
+      "type": "review.old",
+      "kind": "message",
+      "title": "Old",
+      "schema": {
+        "type": "object"
+      }
+    },
+    "declaration": {
+      "use": "adp:review/1.0"
+    },
+    "pack": {
+      "id": "adp:review/1.0",
+      "title": "Review",
+      "types": [
+        {
+          "type": "review.new",
+          "kind": "message",
+          "title": "New",
+          "schema": {
+            "type": "object"
+          }
+        },
+        {
+          "type": "review.old",
+          "kind": "control",
+          "title": "Old",
+          "schema": {
+            "type": "object"
+          }
+        }
+      ]
+    },
+    "error": "type_conflict"
   }
 }

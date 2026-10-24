@@ -555,6 +555,8 @@ struct Proxy {
     origin: String,
     /// `(method, path fragment)` of requests whose next reply is lost.
     rules: std::sync::Arc<std::sync::Mutex<Vec<(String, String)>>>,
+    /// One-shot definitive nonce refusals, before forwarding a delegation write.
+    nonces: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
 }
 
 impl Proxy {
@@ -566,16 +568,23 @@ impl Proxy {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let origin = format!("http://{}", listener.local_addr().unwrap());
         let rules = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let nonces = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let nonce_rules = nonces.clone();
         let shared = rules.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let (upstream, rules) = (upstream.clone(), shared.clone());
+                let nonces = nonce_rules.clone();
                 std::thread::spawn(move || {
-                    let _ = Self::serve(stream, &upstream, &rules);
+                    let _ = Self::serve(stream, &upstream, &rules, &nonces);
                 });
             }
         });
-        Self { origin, rules }
+        Self {
+            origin,
+            rules,
+            nonces,
+        }
     }
 
     /// Lose the reply to the next `method` request whose path contains `path`.
@@ -589,6 +598,10 @@ impl Proxy {
     /// Rules not used yet.
     fn pending(&self) -> usize {
         self.rules.lock().unwrap().len()
+    }
+
+    fn nonce_conflict_next(&self, max: u64) {
+        self.nonces.lock().unwrap().push(max.to_string());
     }
 
     /// One request head and body, or `None` at the end of the stream.
@@ -648,11 +661,23 @@ impl Proxy {
         client: std::net::TcpStream,
         upstream: &str,
         rules: &std::sync::Mutex<Vec<(String, String)>>,
+        nonces: &std::sync::Mutex<Vec<String>>,
     ) -> std::io::Result<()> {
         let mut reader = BufReader::new(client.try_clone()?);
         let Some((head, body)) = Self::read_message(&mut reader)? else {
             return Ok(());
         };
+        if head.starts_with("POST /v1/delegations HTTP/")
+            && let Some(max) = nonces.lock().unwrap().pop()
+        {
+            let body = r#"{"error":{"code":"nonce_not_greater","message":"test conflict"}}"#;
+            let mut client = client;
+            return write!(
+                client,
+                "HTTP/1.1 409 Conflict\r\nContent-Type: application/json\r\nMax-Seen-Nonce: {max}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+        }
         let mut server = std::net::TcpStream::connect(upstream)?;
         if head.to_ascii_lowercase().contains("upgrade: websocket") {
             server.write_all(head.as_bytes())?;
@@ -5727,7 +5752,24 @@ fn desktop_agents() {
     ]);
     assert_eq!(renew["detail"]["generation"], 1);
     assert_eq!(renew["detail"]["kind"]["id"], id.as_str());
+    // The same approved replacement survives one bounded, definitive nonce conflict.
+    let seen = now_ms() + 5_000;
+    proxy.nonce_conflict_next(seen);
     assert_eq!(a.decide(&http, &renew, true).unwrap()["state"], "done");
+    assert!(proxy.nonces.lock().unwrap().is_empty());
+    let records: Value = http
+        .get(format!("{}/v1/delegations/{id}/events", env.relay))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(
+        records["result"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|record| record["envelope"]["event"]["nonce"] == seen + 1)
+    );
     let credentials = a.run(&["agent", "credentials"]);
     assert_eq!(credentials.as_array().unwrap().len(), 1);
     assert!(credentials[0]["expires_at"].as_i64().unwrap() > before);

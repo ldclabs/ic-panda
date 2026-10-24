@@ -246,6 +246,69 @@
       },
       "signature": "ADU4uuE7SS_uxxEYAuYlFdyN0fmFddl6NAcoX3Kk3Rb4kjlZ-pr7DIN1tgFJzOt5KtL3eIP4V2zD4ej7JRAcBQ"
     },
+    "early_closed_card": {
+      "hash": "jKDEYSy910MWZgoxBczAWbxq_UKoQwLxxa7TeYbvZ9g",
+      "event": {
+        "protocol": "agent-mail/1.0",
+        "type": "mailbox.publish",
+        "actor": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+        "created_at": 1790726400000,
+        "nonce": 120,
+        "payload": {
+          "mailbox_id": "AAECAwQFBgcICQoLDA0ODw",
+          "expires_at": 1790726430000,
+          "receive_until": 1790726460000,
+          "public_key": "V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE",
+          "routes": [],
+          "max_packet_bytes": 65536
+        }
+      },
+      "signature": "lvpD1gWhcymiKa2BjkPkyR1ZVpxTXRLsIYZt4RMGe3QaDtxYEyYVX8ZYr-joSPkao3RnrnBX6MzPlcMImfUnDw"
+    },
+    "inventory_card": {
+      "hash": "ACcahzh7D2_pGeSWWMums5mw1rtkB3nkwTD1KTXtkdY",
+      "event": {
+        "protocol": "agent-mail/1.0",
+        "type": "mailbox.publish",
+        "actor": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+        "created_at": 1790726400000,
+        "nonce": 121,
+        "payload": {
+          "mailbox_id": "8PDw8PDw8PDw8PDw8PDw8A",
+          "expires_at": 1790812800000,
+          "receive_until": 1790899200000,
+          "public_key": "V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE",
+          "routes": [
+            "https://relay.example",
+            "https://mirror.example"
+          ],
+          "max_packet_bytes": 65536
+        }
+      },
+      "signature": "--lI52sspyj4MX3LSKHEd2wqYGRVEK1K3uzblWrOxi7c8SYpKB1I7F9GrV7kjQPYC-EiqKaKtmsqkw8eGSwDCQ"
+    },
+    "inventory_foreign_card": {
+      "hash": "iAgokX5-txACxvJ3AeQ9LioEVUvErsKM501oHMfSoGo",
+      "event": {
+        "protocol": "agent-mail/1.0",
+        "type": "mailbox.publish",
+        "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+        "created_at": 1790726400000,
+        "nonce": 301,
+        "payload": {
+          "mailbox_id": "8fHx8fHx8fHx8fHx8fHx8Q",
+          "expires_at": 1790812800000,
+          "receive_until": 1790899200000,
+          "public_key": "V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE",
+          "routes": [
+            "https://relay.example",
+            "https://mirror.example"
+          ],
+          "max_packet_bytes": 65536
+        }
+      },
+      "signature": "T5Hj_kTg_jxXCt_RD0WdRcglfvWIwQFR8pLdrNNOghXm80Qc717RYhnCefGDnZrNlKUrfV4Wpuz1zM91-7EGCQ"
+    },
     "original_packet": {
       "hash": "i-lFARD3I1yHuypXGTJxrjgr2O8ruHizAj2EzcTmBp4",
       "event": {
@@ -514,6 +577,21 @@
       "seed_hex": "0707070707070707070707070707070707070707070707070707070707070707",
       "event_jcs": "{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"created_at\":1790726400000,\"nonce\":300,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"AAECAwQFBgcICQoLDA0ODw\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"}",
       "envelope_jcs": "{\"event\":{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"created_at\":1790726400000,\"nonce\":300,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"AAECAwQFBgcICQoLDA0ODw\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"},\"hash\":\"s_kneK-52s6QyHGklMGlWlII4uHLrIQnAkdWGknldTI\",\"signature\":\"ADU4uuE7SS_uxxEYAuYlFdyN0fmFddl6NAcoX3Kk3Rb4kjlZ-pr7DIN1tgFJzOt5KtL3eIP4V2zD4ej7JRAcBQ\"}"
+    },
+    "early_closed_card": {
+      "seed_hex": "0808080808080808080808080808080808080808080808080808080808080808",
+      "event_jcs": "{\"actor\":\"did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o\",\"created_at\":1790726400000,\"nonce\":120,\"payload\":{\"expires_at\":1790726430000,\"mailbox_id\":\"AAECAwQFBgcICQoLDA0ODw\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790726460000,\"routes\":[]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"}",
+      "envelope_jcs": "{\"event\":{\"actor\":\"did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o\",\"created_at\":1790726400000,\"nonce\":120,\"payload\":{\"expires_at\":1790726430000,\"mailbox_id\":\"AAECAwQFBgcICQoLDA0ODw\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790726460000,\"routes\":[]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"},\"hash\":\"jKDEYSy910MWZgoxBczAWbxq_UKoQwLxxa7TeYbvZ9g\",\"signature\":\"lvpD1gWhcymiKa2BjkPkyR1ZVpxTXRLsIYZt4RMGe3QaDtxYEyYVX8ZYr-joSPkao3RnrnBX6MzPlcMImfUnDw\"}"
+    },
+    "inventory_card": {
+      "seed_hex": "0808080808080808080808080808080808080808080808080808080808080808",
+      "event_jcs": "{\"actor\":\"did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o\",\"created_at\":1790726400000,\"nonce\":121,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"8PDw8PDw8PDw8PDw8PDw8A\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"}",
+      "envelope_jcs": "{\"event\":{\"actor\":\"did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o\",\"created_at\":1790726400000,\"nonce\":121,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"8PDw8PDw8PDw8PDw8PDw8A\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"},\"hash\":\"ACcahzh7D2_pGeSWWMums5mw1rtkB3nkwTD1KTXtkdY\",\"signature\":\"--lI52sspyj4MX3LSKHEd2wqYGRVEK1K3uzblWrOxi7c8SYpKB1I7F9GrV7kjQPYC-EiqKaKtmsqkw8eGSwDCQ\"}"
+    },
+    "inventory_foreign_card": {
+      "seed_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+      "event_jcs": "{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"created_at\":1790726400000,\"nonce\":301,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"8fHx8fHx8fHx8fHx8fHx8Q\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"}",
+      "envelope_jcs": "{\"event\":{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"created_at\":1790726400000,\"nonce\":301,\"payload\":{\"expires_at\":1790812800000,\"mailbox_id\":\"8fHx8fHx8fHx8fHx8fHx8Q\",\"max_packet_bytes\":65536,\"public_key\":\"V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE\",\"receive_until\":1790899200000,\"routes\":[\"https://relay.example\",\"https://mirror.example\"]},\"protocol\":\"agent-mail/1.0\",\"type\":\"mailbox.publish\"},\"hash\":\"iAgokX5-txACxvJ3AeQ9LioEVUvErsKM501oHMfSoGo\",\"signature\":\"T5Hj_kTg_jxXCt_RD0WdRcglfvWIwQFR8pLdrNNOghXm80Qc717RYhnCefGDnZrNlKUrfV4Wpuz1zM91-7EGCQ\"}"
     },
     "original_packet": {
       "seed_hex": "0707070707070707070707070707070707070707070707070707070707070707",
@@ -866,6 +944,89 @@
         "signature": "bjbsK1vpJ-zwzZ3Ud6Z5R_HdPRCLvUv2EdJtZ-X9oggEXGloudlprt7BhlKuFMPKDFkqsfEhoENOs6HtKtFMAg"
       },
       "valid": true
+    },
+    {
+      "name": "owner mailbox list",
+      "definition": "mailboxList",
+      "value": {
+        "result": [
+          {
+            "envelope": {
+              "hash": "H9EPk6UOIlqCS3AR719rJ8d0dEx7NXwR98cac_hqP0I",
+              "event": {
+                "protocol": "agent-mail/1.0",
+                "type": "mailbox.publish",
+                "actor": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                "created_at": 1790726400000,
+                "nonce": 100,
+                "payload": {
+                  "mailbox_id": "AAECAwQFBgcICQoLDA0ODw",
+                  "expires_at": 1790812800000,
+                  "receive_until": 1790899200000,
+                  "public_key": "V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE",
+                  "routes": [
+                    "https://relay.example",
+                    "https://mirror.example"
+                  ],
+                  "max_packet_bytes": 65536
+                }
+              },
+              "signature": "F8VX3YVPtU3A_QMfSOEiPfE88svuzOrYJjR1_GWEU8dKqyouYkMr2KjQ2LhNvto0BG2soWxEqdjWtSt6DMOoAA"
+            },
+            "accepted_at": 1790726400000
+          }
+        ],
+        "extension": true
+      },
+      "valid": true
+    },
+    {
+      "name": "empty mailbox inventory",
+      "definition": "mailboxList",
+      "value": {
+        "result": []
+      },
+      "valid": true
+    },
+    {
+      "name": "invalid inventory cursor",
+      "definition": "mailboxList",
+      "value": {
+        "result": [],
+        "next_cursor": ""
+      },
+      "valid": false
+    },
+    {
+      "name": "invalid inventory record",
+      "definition": "mailboxList",
+      "value": {
+        "result": [
+          {
+            "hash": "H9EPk6UOIlqCS3AR719rJ8d0dEx7NXwR98cac_hqP0I",
+            "event": {
+              "protocol": "agent-mail/1.0",
+              "type": "mailbox.publish",
+              "actor": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+              "created_at": 1790726400000,
+              "nonce": 100,
+              "payload": {
+                "mailbox_id": "AAECAwQFBgcICQoLDA0ODw",
+                "expires_at": 1790812800000,
+                "receive_until": 1790899200000,
+                "public_key": "V9tLNZ8jrl4Ubk4lEgVnBHIlBjSMFQwUdT0Mkz0E1CE",
+                "routes": [
+                  "https://relay.example",
+                  "https://mirror.example"
+                ],
+                "max_packet_bytes": 65536
+              }
+            },
+            "signature": "F8VX3YVPtU3A_QMfSOEiPfE88svuzOrYJjR1_GWEU8dKqyouYkMr2KjQ2LhNvto0BG2soWxEqdjWtSt6DMOoAA"
+          }
+        ]
+      },
+      "valid": false
     },
     {
       "name": "message",
@@ -2759,6 +2920,25 @@
     }
   ],
   "lifecycle": {
+    "relay_retention": {
+      "initial_card": "card",
+      "packet": "original",
+      "replacement_card": "early_closed_card",
+      "prune_at": 1790726460000,
+      "expires_at": 1790812801000
+    },
+    "mailbox_inventory": {
+      "cards": [
+        "card",
+        "inventory_card",
+        "inventory_foreign_card"
+      ],
+      "closed_card": "early_closed_card",
+      "owner_mailbox_ids": [
+        "8PDw8PDw8PDw8PDw8PDw8A",
+        "AAECAwQFBgcICQoLDA0ODw"
+      ]
+    },
     "card_cache": [
       {
         "card": "card",

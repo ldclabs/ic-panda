@@ -131,7 +131,7 @@ impl Daemon {
                     .into_iter()
                     .flatten()
                 {
-                    if mailbox["status"] != "open" {
+                    if mailbox["status"] != "open" || mailbox["key_available"] == false {
                         continue;
                     }
                     let id = mailbox["mailbox_id"]

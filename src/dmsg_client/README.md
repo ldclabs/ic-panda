@@ -265,9 +265,9 @@ service would refuse; a grant may replace a credential under its ID, for
 the same subject and no more than its scopes and relying parties. It is
 approved in the center, then signed on a device with `FormalApprove` with the nonce
 `max(last + 1, created_at)`, journaled with that nonce, and submitted. A lost
-reply or a 5xx/408/429 answer resubmits the same envelope; any other refusal
-is final, and a `Max-Seen-Nonce` within the protocol's bound moves the next
-nonce past it.
+reply or a 5xx/408/429 answer resubmits the same envelope. A definitive
+`409 nonce_not_greater` permits one journaled re-sign using a `Max-Seen-Nonce`
+within the protocol's bound, under the unchanged approval; other refusals are final.
 
 Agent IDs this device hosts are vault items too, named by a label: the same
 label on another device of the account brings the same Agent ID. Unlocked,
@@ -390,3 +390,18 @@ and run `cargo test -p dmsg_client --lib print_storage_management_vector -- --ig
 ### Private file downloads (2026-10-23)
 
 Backups, channel files and their previews, and file objects in account synchronization use short-lived GET URLs from the authenticated `/objects/:upload/download` endpoint. The client authorizes an object once per fetch phase, batches up to eight direct reads, renews expiring grants, and retries failed blocks once after a fresh authority check. It bounds response sizes and verifies expected ciphertext digests before storing anything. URLs remain in operation memory; no device credentials or URL-bearing errors go to the data host. Root/vault/epoch-envelope reads retain device authentication. See the public [wire contract](../../docs/protocol/cloud_zh.md#私有文件直读2026-10-23) for expiry, deletion and bearer semantics. The independent download PoP fixture producer is an explicitly ignored test.
+
+## Agent Protocols 0.12.6
+
+The shared SDK and protocol fixtures are aligned with 0.12.6. Mail publication
+uses a detached, domain-separated per-Agent checkpoint codec: the daemon can
+commit encrypted Mail keys before networking without holding the client lock or
+retaining the account content root. Existing sealed Mail keys and resident copies
+remain the ordinary key store; checkpoint restoration precedes subsequent calls.
+
+A definitive `409 nonce_not_greater` may cause one bounded re-sign under the
+original approval. The journal persists the retry decision and next nonce first;
+the credential ID, controller generation, scopes, audiences and expiry remain
+unchanged, and signing rechecks current device/controller authority. A restart
+cannot reset the retry budget. Network failures and 5xx/408/429 responses still
+replay the exact signed envelope; other refusals require a new approval.

@@ -795,3 +795,109 @@ fn profile_read_grants_are_scoped_and_independent_of_write() {
         Err(Error::Forbidden)
     );
 }
+
+#[test]
+fn mail_checkpoints_are_agent_and_workspace_bound_and_work_for_resident_agents() {
+    let dir = TempDir::new();
+    let secure = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(secure));
+    let agent = client.agent_create("checkpoint").unwrap();
+    let keys =
+        json!({"version":1,"agent_id":agent.agent_id,"keys":{"public":"secret-test-material"}});
+    let codec = client.agent_mail_codec(&agent.agent_id).unwrap();
+    let sealed = codec.seal(&keys).unwrap();
+    assert!(!sealed.contains("secret-test-material"));
+    assert_eq!(codec.open(&sealed).unwrap(), keys);
+    let other = client.agent_create("other-checkpoint").unwrap();
+    assert!(
+        client
+            .agent_mail_codec(&other.agent_id)
+            .unwrap()
+            .open(&sealed)
+            .is_err()
+    );
+    assert!(
+        codec
+            .seal(&json!({"version":1,"agent_id":other.agent_id,"keys":{}}))
+            .is_err()
+    );
+    client.agent_resident(&agent.agent_id, true).unwrap();
+    client.lock();
+    assert_eq!(
+        client
+            .agent_mail_codec(&agent.agent_id)
+            .unwrap()
+            .open(&sealed)
+            .unwrap(),
+        keys
+    );
+    assert!(client.agent_mail_codec(&other.agent_id).is_err());
+    assert!(codec.open(&(sealed + "x")).is_err());
+}
+
+#[test]
+fn delegation_nonce_recovery_is_bounded_durable_and_keeps_the_approved_intent() {
+    use crate::agent::{DelegationJob, Stage};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let make = || DelegationJob {
+        id: "nonce-recovery".into(),
+        generation: 1,
+        kind: DelegationKind::Grant {
+            id: "same-credential".into(),
+            subject: agent_id(&signing_public(&SEED)),
+            scopes: vec!["read".into()],
+            audiences: vec!["https://app.example".into()],
+            expires_at: NOW + DAY,
+            relationship: None,
+        },
+        stage: Stage::Signed,
+        envelope: None,
+        credential: None,
+        error: None,
+        nonce_retries: 0,
+        created_at: NOW,
+    };
+    let mut legacy = serde_json::to_value(make()).unwrap();
+    legacy.as_object_mut().unwrap().remove("nonce_retries");
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), "delegation:legacy", &legacy)
+        .unwrap();
+    let restored: DelegationJob = client
+        .workspace
+        .private(client.keys().unwrap(), "delegation:legacy")
+        .unwrap()
+        .unwrap();
+    assert_eq!(restored.nonce_retries, 0);
+    let mut job = make();
+    let approved = job.digest();
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), "delegation-nonce:1", &101u64)
+        .unwrap();
+    // Header equal to the rejected envelope is valid even when next_nonce already exceeds it.
+    assert!(client.delegation_resync(&mut job, "100").unwrap());
+    assert_eq!(job.digest(), approved);
+    assert_eq!(job.stage, Stage::Prepared);
+    assert_eq!(job.nonce_retries, 1);
+    let mut restored: DelegationJob = client
+        .workspace
+        .private(client.keys().unwrap(), "delegation:nonce-recovery")
+        .unwrap()
+        .unwrap();
+    assert!(!client.delegation_resync(&mut restored, "102").unwrap());
+    let mut hostile = make();
+    assert!(
+        !client
+            .delegation_resync(&mut hostile, "9007199254740990")
+            .unwrap()
+    );
+    assert_eq!(hostile, make());
+    let next: u64 = client
+        .workspace
+        .private(client.keys().unwrap(), "delegation-nonce:1")
+        .unwrap()
+        .unwrap();
+    assert_eq!(next, 101);
+}

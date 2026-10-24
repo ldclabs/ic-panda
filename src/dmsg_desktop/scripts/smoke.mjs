@@ -2694,6 +2694,18 @@ smoke: try {
     await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
   }
   await assert.rejects(main.evaluate(() => window.dmsg.call('ap/call', { tool: 'agent_protocols_mail_list', input: { mark_read: true } })), /FORBIDDEN/)
+  await main.click('[data-testid="mailbox-settings"] summary')
+  await main.fill('[data-testid="mail-routes"]', 'https://relay.example')
+  await main.click('[data-testid="mailbox-recover"]')
+  await main.waitForSelector('[data-testid="mailbox-key-missing"]')
+  assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_mailboxes_list' && c.params.input.host === 'https://relay.example' && c.params.input.cursor === 'recovery-page-2'))
+  assert.equal(await main.locator('[data-testid="mailbox-renew"]').nth(1).isEnabled(), false)
+  await main.locator('[data-testid="mailbox-key-missing"]').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'mailbox-recovery.png') })
+  await main.locator('[data-testid="mailbox-close"]').nth(1).click()
+  await main.click('[data-testid="mailbox-close-dialog-confirm"]')
+  await waitFor(() => latest('ap/call').params.tool === 'agent_protocols_mail_mailboxes_list')
+  assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_mailbox_publish' && c.params.input.rotate_key === true && c.params.input.routes.length === 0))
   const finishOldKnowledge = hold('ap/call', (p) => p.tool === 'agent_protocols_knowledge_query' && p.input.type === 'knowledge.publish')
   await main.click('[data-testid="agents-tab-knowledge"]')
   await waitFor(() => held.get('ap/call'))
@@ -3104,7 +3116,16 @@ smoke: try {
   // and consumes a preview before awaiting the daemon's reply.
   await answer('__open', join(picks, 'export.csv'))
   const oldPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())
+  // WebSocket delivery is asynchronous. Observe the public event after the main
+  // process invalidates its preview before asserting that the old token is refused.
+  await main.evaluate(() => {
+    window.__importSessionChanged = false
+    const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'session/changed') { window.__importSessionChanged = true; off() }
+    })
+  })
   emit('session/changed')
+  await main.waitForFunction(() => window.__importSessionChanged === true)
   await assert.rejects(main.evaluate((session) => window.dmsg.vaultImport(session, [0]), oldPreview.session), /VERSION_CONFLICT/)
   await answer('__open', join(picks, 'export.csv'))
   const freshPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())

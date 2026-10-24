@@ -13,7 +13,7 @@
       ".",
       "..",
       "has space",
-      "caf\u00e9",
+      "café",
       "slash/id",
       "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "percent%20"
@@ -1843,6 +1843,545 @@
           "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
           "signature": "ZuR4e4PgO_bDU-BvOq7gWsd8E-bZ5pkAToKRZpOpIDPrUTeK5SRgRWyi9Gntz68JCPuifJsFlyv0Uo2Y55xICQ"
         }
+      }
+    ]
+  },
+  "status_checks": {
+    "document": {
+      "protocol": "agent-delegation/1.0",
+      "id": "https://principal.example/review",
+      "controllers": [
+        {
+          "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "source": "local",
+          "valid_from": 1799999999999,
+          "delegation": "*"
+        }
+      ],
+      "delegation_service": "https://principal.example",
+      "updated_at": 1800000000000
+    },
+    "audience": "https://app.example",
+    "cases": [
+      {
+        "name": "fresh",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000000000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000000000,
+        "verified": true,
+        "usable": true
+      },
+      {
+        "name": "last fresh millisecond",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000000000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000300000,
+        "verified": true,
+        "usable": true
+      },
+      {
+        "name": "stale status",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000000000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000300001,
+        "verified": true,
+        "usable": false
+      },
+      {
+        "name": "future status at skew bound",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000060000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000000000,
+        "verified": true,
+        "usable": true
+      },
+      {
+        "name": "future status beyond skew",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000060001
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000000000,
+        "verified": true,
+        "usable": false
+      },
+      {
+        "name": "status before acceptance",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1799999999999
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000000000,
+        "verified": true,
+        "usable": false
+      },
+      {
+        "name": "known later revocation",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000001000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          },
+          {
+            "envelope": {
+              "hash": "qofaw2TI59Y3GVHAn5Sj75IHriOKRgCuZqjq2nx6GpM",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.revoke",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 2,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review"
+                }
+              },
+              "signature": "srgovPfzy8u3T7O8LTp-Fmmprjthq3BW4j2wsjzmdYALoof-8R8Xt3b7Z6ph-4xK1IPvSlI5Cz0h7G6e45z-Cw"
+            },
+            "accepted_at": 1800000000001
+          }
+        ],
+        "now": 1800000001000,
+        "verified": true,
+        "usable": false
+      },
+      {
+        "name": "same-millisecond revocation preserves acceptance order",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000000000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          },
+          {
+            "envelope": {
+              "hash": "qofaw2TI59Y3GVHAn5Sj75IHriOKRgCuZqjq2nx6GpM",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.revoke",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 2,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review"
+                }
+              },
+              "signature": "srgovPfzy8u3T7O8LTp-Fmmprjthq3BW4j2wsjzmdYALoof-8R8Xt3b7Z6ph-4xK1IPvSlI5Cz0h7G6e45z-Cw"
+            },
+            "accepted_at": 1800000000000
+          }
+        ],
+        "now": 1800000000000,
+        "verified": true,
+        "usable": false
+      },
+      {
+        "name": "known later replacement",
+        "credential": {
+          "id": "review",
+          "principal_id": "https://principal.example/review",
+          "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+          "scopes": [
+            "read"
+          ],
+          "audiences": [
+            "https://app.example"
+          ],
+          "protocol": "agent-delegation/1.0",
+          "controller": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "status": "active",
+          "event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "grant_event_id": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+          "accepted_at": 1800000000000,
+          "checked_at": 1800000001000
+        },
+        "records": [
+          {
+            "envelope": {
+              "hash": "IuBhrjprpjMZGUmLXsSn317SVhLjgN6dilEQpCVb_-g",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 1,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "read"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "n8WNwTeNAWwxraaukgbF5SrDsHBaA05lDvyXd1z5VdJqMqMY3y4pEOVdcs6GbOmlBWIqYYzuUECyVpYhik5ZBQ"
+            },
+            "accepted_at": 1800000000000
+          },
+          {
+            "envelope": {
+              "hash": "K-vWTt0-8Jgt9SrsbLu7MI20ndQSzllfpHces5bxwr0",
+              "event": {
+                "protocol": "agent-delegation/1.0",
+                "type": "delegation.grant",
+                "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "created_at": 1800000000000,
+                "nonce": 3,
+                "payload": {
+                  "id": "review",
+                  "principal_id": "https://principal.example/review",
+                  "subject": "did:agent:E5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8o",
+                  "scopes": [
+                    "write"
+                  ],
+                  "audiences": [
+                    "https://app.example"
+                  ]
+                }
+              },
+              "signature": "26iW1qEy80GYkz246yiuhDeZIXAxAlypAwPSCELIKYQg4Vb-NCXFk0HQYD6hJaF909g9biWvDKNKE8kKIOL6CA"
+            },
+            "accepted_at": 1800000000001
+          }
+        ],
+        "now": 1800000001000,
+        "verified": true,
+        "usable": false
       }
     ]
   }

@@ -321,7 +321,10 @@ pub fn is_read_only(name: &str) -> bool {
 /// Local Mail inspection does not change read marks or connector state.
 /// Only these two tools can bypass a connector's network turn.
 pub fn is_mail_inspection(name: &str, input: &Value) -> bool {
-    name == "agent_protocols_mail_mailboxes_list"
+    (name == "agent_protocols_mail_mailboxes_list"
+        && input.get("host").is_none_or(|host| {
+            host.is_null() || host.as_str().is_some_and(|s| s.trim().is_empty())
+        }))
         || (name == "agent_protocols_mail_list"
             && matches!(input.get("mark_read"), None | Some(Value::Bool(false))))
 }

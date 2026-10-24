@@ -8,8 +8,8 @@
 //! mutations the user home applies and publishes to the directory; a grant
 //! or revocation is signed here, journaled, then submitted to the
 //! delegation service. A signed envelope is resubmitted unchanged after a
-//! lost reply or a 5xx/408/429 answer; any other refusal is final and needs
-//! a new approval.
+//! lost reply or a 5xx/408/429 answer. One bounded nonce conflict may be
+//! re-signed under the same approved intent; other refusals need a new approval.
 
 use crate::client::Client;
 use crate::codec::{b64, canonical, unb64};
@@ -150,8 +150,15 @@ pub struct DelegationJob {
     pub credential: Option<DelegationCredential>,
     /// The service's refusal code.
     pub error: Option<String>,
+    /// Persisted count of bounded nonce resynchronizations under this approval.
+    #[serde(default, skip_serializing_if = "no_nonce_retries")]
+    pub nonce_retries: u8,
     /// Unix milliseconds.
     pub created_at: u64,
+}
+
+fn no_nonce_retries(value: &u8) -> bool {
+    *value == 0
 }
 
 impl DelegationJob {
@@ -615,6 +622,7 @@ impl Client {
         now: u64,
     ) -> Result<Json> {
         let job = DelegationJob {
+            nonce_retries: 0,
             id: hex::encode(random_id()),
             generation,
             kind,
@@ -661,8 +669,8 @@ impl Client {
         Ok(jobs.iter().map(DelegationJob::view).collect())
     }
 
-    /// Sign an approved event, journal it and submit it; a signed event is
-    /// only resubmitted.
+    /// Sign an approved event, journal it and submit it; uncertain outcomes
+    /// reuse the envelope, while a definitive nonce conflict permits one re-sign.
     ///
     /// # Errors
     /// Returns `Error::ExecutionUnknown` while the service's answer is not
@@ -732,58 +740,80 @@ impl Client {
         })
     }
 
+    /// Persist the bounded next nonce and retry decision before signing anything new.
+    pub(crate) fn delegation_resync(&mut self, job: &mut DelegationJob, max: &str) -> Result<bool> {
+        if job.nonce_retries != 0 {
+            return Ok(false);
+        }
+        let key = format!("{NONCE}{}", job.generation);
+        let next: u64 = self.workspace.private(self.keys()?, &key)?.unwrap_or(1);
+        let mut nonces = ClientNonceManager::with_next(next).map_err(sdk)?;
+        if nonces
+            .observe_max_nonce_header(max, now_ms() as i64)
+            .is_err()
+        {
+            return Ok(false);
+        }
+        job.nonce_retries = 1;
+        job.stage = Stage::Prepared;
+        job.envelope = None;
+        job.error = None;
+        let keys = self.keys()?;
+        self.workspace.store.atomic(|_| {
+            self.workspace.put_private(keys, &key, &nonces.peek())?;
+            self.workspace
+                .put_private(keys, &format!("{JOURNAL}{}", job.id), &*job)
+        })?;
+        Ok(true)
+    }
+
     async fn delegation_submit(&mut self, mut job: DelegationJob) -> Result<DelegationJob> {
-        let envelope = job.envelope.clone().ok_or(Error::IntegrityFailed)?;
         let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http());
-        match service.submit_delegation_event(&envelope).await {
-            Ok(credential) => {
-                ensure(
-                    credential.id == job.kind.id() && credential.event_id == envelope.hash,
-                    Error::IntegrityFailed,
-                )?;
-                job.credential = Some(credential);
-                job.stage = Stage::Accepted;
-                job.error = None;
-                self.save_delegation_job(&job)?;
-                Ok(job)
-            }
-            Err(SdkError::HttpStatus {
-                status,
-                code,
-                max_seen_nonce,
+        loop {
+            let envelope = job.envelope.clone().ok_or(Error::IntegrityFailed)?;
+            let response = service.submit_delegation_event(&envelope).await;
+            if let Err(SdkError::HttpStatus {
+                status: 409,
+                code: Some(code),
+                max_seen_nonce: Some(max),
                 ..
-            }) if status < 500 && !matches!(status, 408 | 429) => {
-                let code = code.unwrap_or_else(|| format!("http_{status}"));
-                // Every device holding the key signs as the same actor:
-                // continue above the service's nonce, within the bound.
-                if let Some(max) = max_seen_nonce {
-                    let nonce_key = format!("{NONCE}{}", job.generation);
-                    let next: u64 = self
-                        .workspace
-                        .private(self.keys()?, &nonce_key)?
-                        .unwrap_or(1);
-                    let mut nonces = ClientNonceManager::with_next(next).map_err(sdk)?;
-                    if nonces
-                        .observe_max_nonce_header(&max, now_ms() as i64)
-                        .is_ok()
-                    {
-                        self.workspace
-                            .put_private(self.keys()?, &nonce_key, &nonces.peek())?;
-                    }
+            }) = &response
+                && code == "nonce_not_greater"
+                && self.delegation_resync(&mut job, max)?
+            {
+                // The approved ID, generation, scopes, audiences and expiry do not change.
+                // Signing rechecks current controller/device authority and journals exact bytes.
+                self.delegation_sign(&mut job).await?;
+                continue;
+            }
+            return match response {
+                Ok(credential) => {
+                    ensure(
+                        credential.id == job.kind.id() && credential.event_id == envelope.hash,
+                        Error::IntegrityFailed,
+                    )?;
+                    job.credential = Some(credential);
+                    job.stage = Stage::Accepted;
+                    job.error = None;
+                    self.save_delegation_job(&job)?;
+                    Ok(job)
                 }
-                job.stage = Stage::Failed;
-                job.error = Some(code.clone());
-                self.save_delegation_job(&job)?;
-                Err(refusal(&code))
-            }
-            // A transient answer or a lost reply says nothing about an
-            // earlier acceptance; the same bytes go again later.
-            Err(SdkError::HttpStatus { status, code, .. }) => {
-                job.error = Some(code.unwrap_or_else(|| format!("http_{status}")));
-                self.save_delegation_job(&job)?;
-                Err(Error::ExecutionUnknown)
-            }
-            Err(_) => Err(Error::ExecutionUnknown),
+                Err(SdkError::HttpStatus { status, code, .. })
+                    if status < 500 && !matches!(status, 408 | 429) =>
+                {
+                    let code = code.unwrap_or_else(|| format!("http_{status}"));
+                    job.stage = Stage::Failed;
+                    job.error = Some(code.clone());
+                    self.save_delegation_job(&job)?;
+                    Err(refusal(&code))
+                }
+                Err(SdkError::HttpStatus { status, code, .. }) => {
+                    job.error = Some(code.unwrap_or_else(|| format!("http_{status}")));
+                    self.save_delegation_job(&job)?;
+                    Err(Error::ExecutionUnknown)
+                }
+                Err(_) => Err(Error::ExecutionUnknown),
+            };
         }
     }
 

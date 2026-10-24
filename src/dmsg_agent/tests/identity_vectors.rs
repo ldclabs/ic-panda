@@ -1,3 +1,4 @@
+// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
 //! Agent Identity conformance vectors shared by every SDK.
 
 use agent_protocols::identity::*;

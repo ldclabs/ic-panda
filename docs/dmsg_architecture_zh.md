@@ -323,3 +323,9 @@ flowchart TB
 - [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
 - [protocol/wallet_zh.md](protocol/wallet_zh.md)：团队钱包合同。
 - 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。
+
+## Agent Protocols 0.12.6 集成
+
+Rust 与 TypeScript 消费端使用 SDK 0.12.6 及已提交的共享向量。daemon 在发布前将加密 Mail 密钥与连接器状态一同持久保存，后续调用先恢复中断的尝试，并保存已认证的邮箱清单分页。owner Profile 展示保留已验证的最大 nonce。controller 提交允许一次已记入 journal 的有界 nonce 重同步，不改变原批准内容。桌面提供邮箱元数据恢复及缺失密钥、待发布状态。canister 接口与稳定布局不变。
+
+具体问题、修复与未通过检查见[本轮审查记录](dmsg_protocol_alignment_2026-10-24_zh.md)。

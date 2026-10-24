@@ -25,12 +25,24 @@ export function agentFixture(agent) {
     { direction: 'sent', message_id: 'm2', thread_id: 't1', from: agent, to: peer, mailbox_id: 'mb2', subject: 'Experiment notes received', created_at: now, expires_at: now + 86_400_000, parts: [{ media_type: 'text/plain', size: 20, text: 'The Agent wrote this reply.' }], delivery: { status: 'queued' } }
   ]
   let mailSynced = false
+  let recovered = false
+  const mailbox = { mailbox_id: 'mb1', address: 'mail:claude@relay.example', routes: ['https://relay.example'], status: 'open', unread_count: 1, expires_at: now + 86_400_000, key_available: true, pending_routes: [] }
+  const lost = { ...mailbox, mailbox_id: 'recovered', address: 'mail:recovered@relay.example', key_available: false }
+
   return (p) => {
     const scope = { service: p.input.service, checkpoint: 4, as_of: now }
     switch (p.tool) {
       case 'agent_protocols_mail_mailboxes_list':
         if (p.agent !== agent) return { result: { mailboxes: [] } }
-        return { result: { mailboxes: [{ mailbox_id: 'mb1', address: 'mail:claude@relay.example', routes: ['https://relay.example'], status: 'open', unread_count: 1, expires_at: now + 86_400_000 }] } }
+        if (p.input.host && !p.input.cursor) return { result: { mailboxes: [mailbox], next_cursor: 'recovery-page-2' } }
+        if (p.input.host) { assert.equal(p.input.cursor, 'recovery-page-2'); recovered = true; return { result: { mailboxes: [lost] } } }
+        return { result: { mailboxes: recovered ? [mailbox, lost] : [mailbox] } }
+      case 'agent_protocols_mail_mailbox_publish':
+        assert.equal(p.input.mailbox_id, lost.mailbox_id)
+        assert.equal(p.input.rotate_key, true)
+        assert.deepEqual(p.input.routes, [])
+        Object.assign(lost, { status: 'closed', routes: [], key_available: true })
+        return { result: { mailbox: lost, published: ['https://relay.example'], failed: [] } }
       case 'agent_protocols_mail_list':
         assert.notEqual(p.input.mark_read, true)
         return { result: { unread_count: p.agent === agent && mailSynced ? 1 : 0, messages: p.agent === agent ? messages.filter((m) => (mailSynced || m.direction === 'sent') && (!p.input.direction || m.direction === p.input.direction) && (!p.input.unread_only || m.read === false)) : [] } }

@@ -235,7 +235,7 @@ async fn read_within(
         session,
         reach,
     };
-    runtime.read(scope, signer(1), uri).await
+    runtime.read(scope, signer(1), uri, None).await
 }
 
 #[test]
@@ -1005,7 +1005,7 @@ fn mail_inspection_never_rewrites_the_snapshot_or_marks_messages() {
             "agent_protocols_mail_mailboxes_list",
         ] {
             runtime
-                .inspect_mail(scope, signer(1), tool, json!({}))
+                .inspect_mail(scope, signer(1), tool, json!({}), None)
                 .await
                 .unwrap()
                 .unwrap();
@@ -1014,9 +1014,12 @@ fn mail_inspection_never_rewrites_the_snapshot_or_marks_messages() {
             ("agent_protocols_mail_list", json!({"mark_read":true})),
             ("agent_protocols_mail_list", json!({"mark_read":"false"})),
             ("agent_protocols_mail_sync", json!({})),
+            ("agent_protocols_mail_mailboxes_list", json!({"host":HOST})),
         ] {
             assert_eq!(
-                runtime.inspect_mail(scope, signer(1), tool, input).await,
+                runtime
+                    .inspect_mail(scope, signer(1), tool, input, None)
+                    .await,
                 Err(dmsg_types::Error::Forbidden)
             );
         }

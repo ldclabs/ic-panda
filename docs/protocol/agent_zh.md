@@ -1,6 +1,6 @@
 # dMsg 与 Agent Delegation：自持 controller 与 principal 发布
 
-简体中文 | 本文只描述公开 canister 接口与字节规则。协议正文以 [agent-protocols](https://github.com/ldclabs/agent-protocols) 固定版本为准：本次采用 `v0.12.3`（本地 SDK 提交 `08e90ee`），Rust 与 TypeScript SDK `agent-protocols 0.12.3`。
+简体中文 | 本文只描述公开 canister 接口与字节规则。协议正文以 [agent-protocols](https://github.com/ldclabs/agent-protocols) 固定版本为准：本次采用 `v0.12.6`（规范来源提交 `13257c1`），Rust 与 TypeScript SDK `agent-protocols 0.12.6`。
 
 ## 角色
 
@@ -94,3 +94,10 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - `desktop_principal_documents`、`desktop_content_and_sync` 和 `desktop_channels`：真实 daemon、canister 与本地中继贯通资料、头像、锁定权限、内容同步和频道名称读取。
 - Electron smoke：旧资料名称、具名链接和图片导入，头像操作保留草稿，目录发布待定与重试。最终 smoke 关闭了 macOS 原生全屏检查，其余检查通过。
 - 网页：真实 Wasm 证明在浏览器展示文档；篡改证明后拒绝显示。live share 与独立认证 fixture 检查不属于本次资料验证，未运行。
+
+## 0.12.6 客户端对齐
+
+- 规范向量、schema 和共享边界用例随 SDK 同步，来源与离线校验命令见 [vectors README](../../tests/vectors/agent-protocols/README.md)。本轮没有改变 canister 的 Candid 接口或稳定存储布局。
+- Mail 发布前由宿主原子保存连接器状态与加密密钥快照；重启先恢复，正常密钥存储确认后再清除快照。密钥不进入 MCP 输出。远程 owner inventory 与本地只读清单分开，前者按 relay grant 鉴权、分页并保存恢复的记录；恢复元数据不等于恢复密钥或旧明文。
+- 桌面读取公开 Agent Profile 时持久保存已验证的最大 nonce，拒绝旧版与同 nonce 冲突；discovery 不能改变配置的服务 origin。SDK 的 Profile pin 也随连接器快照持久保存。
+- controller 提交收到明确的 nonce 冲突后，最多按合法且有界的 `Max-Seen-Nonce` 重签一次。原审批承诺的 ID、generation、授权范围、依赖方和期限不变；重签前重查当前权限。重试次数先记入加密 journal，重启不重置。未知结果继续重投原字节，其余拒绝仍需新审批。

@@ -1,6 +1,5 @@
-// Copied from agent-protocols v0.12.0; its SdkError is large by design.
 #![allow(clippy::result_large_err)]
-
+// Adapted from agent-protocols v0.12.6 (MIT, LDC Labs); vectors are vendored unchanged.
 use agent_protocols::{
     Result,
     identity::{self, AgentSigner, Envelope},

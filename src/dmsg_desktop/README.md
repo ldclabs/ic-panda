@@ -526,3 +526,15 @@ previously downloaded copies. Accepted deletion, physical cleanup and quota rele
 have distinct states; failures can retry. Locking clears decrypted inventory and link
 information. The page only polls while visible with pending cleanup. Electron smoke
 covers the global inventory, links, bulk confirmation and delayed quota release.
+
+## Mail recovery in SDK 0.12.6
+
+Mailbox management can recover records from the entered relay origins, following
+all inventory pages through the daemon. It shows missing decryption keys and
+pending publication routes. Recovery restores metadata, not keys or message text;
+a keyless mailbox cannot be renewed until its key is restored or rotated. Closing
+a keyless mailbox rotates its publication key as required by the connector.
+Local inspection continues during background receiving and reports actual key
+availability. The recovery messages are present in all six interface languages.
+The pure pagination tests and Electron smoke flow exercise recovery and the
+keyless mailbox controls.

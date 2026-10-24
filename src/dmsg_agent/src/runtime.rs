@@ -35,7 +35,7 @@ use agent_protocols::{
         AgentProtocolsHost, DiscoveryCache, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES,
         TOOL_ROOMS_LIST,
     },
-    profile::materialize_profile,
+    profile::{ProfileCache, materialize_profile},
 };
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -43,7 +43,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 /// Sessions not used for this long are forgotten.
 const SESSION_MS: i64 = 30 * 24 * 60 * 60 * 1000;
@@ -148,6 +151,21 @@ pub struct Called {
     /// Whether the call changed the Agent ID's shared connector state, which
     /// every session's resources show.
     pub changed: bool,
+}
+
+/// Key material and its host-provided encryption for crash-safe Mail calls.
+pub struct DurableMail<'a> {
+    /// The latest committed plaintext key snapshot, kept only in memory.
+    pub keys: &'a Value,
+    /// Encrypts a key snapshot for this workspace and Agent; never returns plaintext.
+    pub seal: MailSealer,
+}
+
+/// Host-only encryption of a Mail key snapshot.
+pub type MailSealer = Box<dyn Fn(&Value) -> Result<String> + Send + Sync>;
+struct MailCall<'a> {
+    keys: &'a Value,
+    seal: Option<MailSealer>,
 }
 
 /// The connectors of the hosted Agent IDs; each call names the state file
@@ -288,6 +306,16 @@ impl Runtime {
         let conn = open(path)?;
         let tx = conn.unchecked_transaction().map_err(storage)?;
         tx.execute(
+            "DELETE FROM mail_checkpoints WHERE agent_id=?1",
+            [&turn.agent_id],
+        )
+        .map_err(storage)?;
+        tx.execute(
+            "DELETE FROM profile_pins WHERE agent_id=?1",
+            [&turn.agent_id],
+        )
+        .map_err(storage)?;
+        tx.execute(
             "DELETE FROM connectors WHERE agent_id = ?1",
             params![turn.agent_id],
         )
@@ -310,6 +338,37 @@ impl Runtime {
         tx.commit().map_err(storage)
     }
 
+    /// Read an encrypted key checkpoint. Mutation and clearing still require the Agent turn.
+    /// # Errors
+    /// Returns storage errors.
+    pub fn mail_checkpoint(&self, path: &Path, agent_id: &str) -> Result<Option<String>> {
+        let Some(conn) = open_existing(path)? else {
+            return Ok(None);
+        };
+        conn.query_row(
+            "SELECT sealed FROM mail_checkpoints WHERE agent_id=?1",
+            [agent_id],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(storage)
+    }
+
+    /// Clear a checkpoint only after the caller has durably saved its current keys.
+    /// # Errors
+    /// Returns storage errors.
+    pub fn clear_mail_checkpoint(&self, turn: &Turn, path: &Path) -> Result<()> {
+        let Some(conn) = open_existing(path)? else {
+            return Ok(());
+        };
+        conn.execute(
+            "DELETE FROM mail_checkpoints WHERE agent_id=?1",
+            [&turn.agent_id],
+        )
+        .map_err(storage)?;
+        Ok(())
+    }
+
     /// The Agent Profile `agent_id` published, at each profile service the
     /// configured hosts name: `[{service, profile}]`, or `{service, error}`
     /// where reading failed. A profile is the latest accepted update, its
@@ -318,8 +377,25 @@ impl Runtime {
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for an invalid Agent ID.
-    pub async fn profiles(&self, agent_id: &str) -> Result<Vec<Value>> {
+    pub async fn profiles(&self, path: &Path, agent_id: &str) -> Result<Vec<Value>> {
         let id: AgentId = agent_id.parse().map_err(|_| dmsg_types::invalid("agent"))?;
+        let _turn = self.turn(agent_id).await;
+        let conn = open(path)?;
+        let stored: Option<String> = conn
+            .query_row(
+                "SELECT envelope FROM profile_pins WHERE agent_id=?1",
+                [agent_id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(storage)?;
+        let mut pins = ProfileCache::new();
+        if let Some(stored) = stored {
+            let envelope = serde_json::from_str(&stored).map_err(|_| Error::IntegrityFailed)?;
+            pins.observe(&envelope, &id)
+                .map_err(|_| Error::IntegrityFailed)?;
+        }
+        let mut durable_hash = pins.get(&id).map(|envelope| envelope.hash.clone());
         let mut services: Vec<String> = Vec::new();
         for service in self.hosts.iter().filter_map(|h| h.profile_service.clone()) {
             if !services.contains(&service) {
@@ -329,26 +405,57 @@ impl Runtime {
         let mut found = Vec::new();
         for service in services {
             let client = ProfileClient::discover_with_client(&service, self.http.clone()).await;
-            let read = match client.profile_events(&id, Some(1)).await {
-                Ok(page) => match page.result.first() {
-                    None => Ok(Value::Null),
-                    Some(envelope) => materialize_profile(envelope)
-                        .map_err(ToolError::from)
-                        .and_then(|profile| match profile.id == id {
-                            true => Ok(json!(profile)),
-                            false => {
-                                Err(SdkError::InvalidActor("another Agent ID's profile".into())
-                                    .into())
-                            }
-                        }),
-                },
+            if service_origin(client.profiles_url()).ok().as_deref() != Some(service.as_str()) {
+                found.push(
+                    json!({"service":service,"error":ToolError::from(SdkError::PermissionDenied)}),
+                );
+                continue;
+            }
+            let read = match client.latest_profile_update(&id).await {
+                Ok(envelope) => pins
+                    .observe(&envelope, &id)
+                    .map_err(ToolError::from)
+                    .and_then(|envelope| {
+                        if durable_hash.as_deref() != Some(envelope.hash.as_str()) {
+                            let text = serde_json::to_string(&envelope)
+                                .expect("profile envelope is serializable");
+                            conn.execute(
+                                "INSERT INTO profile_pins VALUES(?1,?2)
+                                 ON CONFLICT(agent_id) DO UPDATE SET envelope=excluded.envelope",
+                                params![agent_id, text],
+                            )
+                            .map_err(|_| {
+                                ToolError::from(SdkError::protocol(
+                                    "persistence_failed",
+                                    "Could not retain the verified profile",
+                                ))
+                            })?;
+                            durable_hash = Some(envelope.hash.clone());
+                        }
+                        materialize_profile(&envelope)
+                            .map(|profile| json!(profile))
+                            .map_err(ToolError::from)
+                    }),
                 Err(SdkError::HttpStatus { status: 404, .. }) => Ok(Value::Null),
+                Err(error) if error.code() == Some("not_found") => Ok(Value::Null),
                 Err(error) => Err(ToolError::from(error)),
             };
             found.push(match read {
                 Ok(profile) => json!({"service": service, "profile": profile}),
                 Err(error) => json!({"service": service, "error": error}),
             });
+        }
+        if let Some(latest) = pins.get(&id) {
+            for item in &mut found {
+                if item["profile"].is_object() && item["profile"]["event_id"] != latest.hash {
+                    let service = item["service"].clone();
+                    let error = ToolError::from(SdkError::protocol(
+                        "stale_profile",
+                        "A newer verified profile was observed",
+                    ));
+                    *item = json!({"service": service, "error": error});
+                }
+            }
         }
         Ok(found)
     }
@@ -461,16 +568,107 @@ impl Runtime {
         tool: &str,
         input: Value,
     ) -> Result<Called> {
+        self.call_inner(
+            turn,
+            scope,
+            signer,
+            MailCall {
+                keys: mail_keys,
+                seal: None,
+            },
+            tool,
+            input,
+        )
+        .await
+    }
+
+    /// Run a production call, committing encrypted keys and connector state before Mail publication.
+    /// # Errors
+    /// Returns the errors of `call`; a checkpoint failure prevents network publication.
+    pub async fn call_durable(
+        &self,
+        turn: &Turn,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+        mail: DurableMail<'_>,
+        tool: &str,
+        input: Value,
+    ) -> Result<Called> {
+        self.call_inner(
+            turn,
+            scope,
+            signer,
+            MailCall {
+                keys: mail.keys,
+                seal: Some(mail.seal),
+            },
+            tool,
+            input,
+        )
+        .await
+    }
+
+    // The upstream persistence hook requires its unboxed SDK error type.
+    #[allow(clippy::result_large_err)]
+    async fn call_inner(
+        &self,
+        turn: &Turn,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+        mail: MailCall<'_>,
+        tool: &str,
+        input: Value,
+    ) -> Result<Called> {
         ensure(TOOL_NAMES.contains(&tool), Error::NotFound)?;
         let agent_id = signer.agent_id();
         ensure_valid(turn.agent_id == agent_id.as_str(), "turn")?;
-        let conn = open(scope.path)?;
-        let stored = load(&conn, agent_id.as_str())?;
-        let mut saved = parse(stored.as_deref())?;
-        let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
+        // Keep the original database handle: a reset must not let an in-flight
+        // checkpoint recreate agents.sqlite at the removed path.
+        let conn = Arc::new(std::sync::Mutex::new(open(scope.path)?));
+        let (saved, mut connector) = {
+            let connection = conn
+                .lock()
+                .map_err(|_| Error::Unavailable("connector checkpoint lock poisoned".into()))?;
+            let stored = load(&connection, agent_id.as_str())?;
+            let mut saved = parse(stored.as_deref())?;
+            let connector = self.restore(&connection, scope, signer, &mut saved)?;
+            (saved, connector)
+        };
         connector
-            .restore_mail_keys(mail_keys)
+            .restore_mail_keys(mail.keys)
             .map_err(|_| Error::IntegrityFailed)?;
+        let failed = Arc::new(AtomicBool::new(false));
+        let checkpoint_changed = Arc::new(AtomicBool::new(false));
+        if let Some(seal) = mail.seal {
+            let checkpoint_conn = conn.clone();
+            let session = scope.session.to_owned();
+            let actor = agent_id.clone();
+            let failure = failed.clone();
+            let changed = checkpoint_changed.clone();
+            connector = connector.with_mail_persistence(move |snapshot, keys| {
+                let commit = || -> Result<()> {
+                    let sealed = seal(keys)?;
+                    let conn = checkpoint_conn.lock().map_err(|_| {
+                        Error::Unavailable("connector checkpoint lock poisoned".into())
+                    })?;
+                    let old = load(&conn, actor.as_str())?;
+                    let written = save_snapshot(
+                        &conn,
+                        &session,
+                        &actor,
+                        snapshot.clone(),
+                        old.as_deref(),
+                        Some(&sealed),
+                    )?;
+                    changed.fetch_or(written, Ordering::SeqCst);
+                    Ok(())
+                };
+                commit().map_err(|_| {
+                    failure.store(true, Ordering::SeqCst);
+                    SdkError::protocol("persistence_failed", "Could not commit the Mail checkpoint")
+                })
+            });
+        }
         let outcome = match out_of_reach(scope.reach, &saved, &input) {
             true => Err(SdkError::PermissionDenied),
             false => connector
@@ -478,7 +676,18 @@ impl Runtime {
                 .await
                 .map(|value| in_reach(scope.reach, tool, value)),
         };
-        let changed = save(&conn, scope.session, &mut connector, stored.as_deref())?;
+        // Never save an uncheckpointed card after its durable hook failed. The last
+        // successful checkpoint remains the recovery point, including unknown replies.
+        ensure(
+            !failed.load(Ordering::SeqCst),
+            Error::Unavailable("Mail checkpoint could not be committed".into()),
+        )?;
+        let conn = conn
+            .lock()
+            .map_err(|_| Error::Unavailable("connector checkpoint lock poisoned".into()))?;
+        let current = load(&conn, agent_id.as_str())?;
+        let changed = save(&conn, scope.session, &mut connector, current.as_deref())?
+            || checkpoint_changed.load(Ordering::SeqCst);
         Ok(Called {
             outcome: outcome.map_err(ToolError::from),
             mail_keys: connector.mail_keys_snapshot(),
@@ -487,7 +696,7 @@ impl Runtime {
     }
 
     /// Inspect committed mail without waiting for an in-flight connector
-    /// call, restoring mail keys, or rewriting its snapshot. Marking mail
+    /// call or rewriting its snapshot. Supply keys for accurate mailbox availability. Marking mail
     /// read still needs the normal serialized call.
     /// # Errors
     /// Returns `Error::Forbidden` for other tools or a marking read, and
@@ -498,6 +707,7 @@ impl Runtime {
         signer: AgentSigner,
         tool: &str,
         input: Value,
+        mail_keys: Option<&Value>,
     ) -> Result<std::result::Result<Value, ToolError>> {
         ensure(
             crate::tools::is_mail_inspection(tool, &input),
@@ -506,6 +716,11 @@ impl Runtime {
         let conn = open(scope.path)?;
         let mut saved = parse(load(&conn, signer.agent_id().as_str())?.as_deref())?;
         let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
+        if let Some(keys) = mail_keys {
+            connector
+                .restore_mail_keys(keys)
+                .map_err(|_| Error::IntegrityFailed)?;
+        }
         Ok(connector
             .call_tool(tool, input)
             .await
@@ -522,11 +737,22 @@ impl Runtime {
     /// Returns `Error::NotFound` for an unknown resource or room,
     /// `Error::Forbidden` for a room on a host out of reach and
     /// `Error::Unavailable` when storage fails.
-    pub async fn read(&self, scope: Scope<'_>, signer: AgentSigner, uri: &str) -> Result<Value> {
+    pub async fn read(
+        &self,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+        uri: &str,
+        mail_keys: Option<&Value>,
+    ) -> Result<Value> {
         let resource = Resource::parse(uri).ok_or(Error::NotFound)?;
         let conn = open(scope.path)?;
         let mut saved = parse(load(&conn, signer.agent_id().as_str())?.as_deref())?;
         let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
+        if let Some(keys) = mail_keys {
+            connector
+                .restore_mail_keys(keys)
+                .map_err(|_| Error::IntegrityFailed)?;
+        }
         let room = match &resource {
             Resource::Room(id, _) => {
                 let known = saved["rooms"].as_array().into_iter().flatten().find(|r| {
@@ -631,13 +857,32 @@ pub(crate) fn open(path: &Path) -> Result<Connection> {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
     }
+    init(&conn)?;
+    Ok(conn)
+}
+
+/// Recovery reads and acknowledgements must never recreate a reset workspace.
+fn open_existing(path: &Path) -> Result<Option<Connection>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE)
+        .map_err(storage)?;
+    init(&conn)?;
+    Ok(Some(conn))
+}
+
+fn init(conn: &Connection) -> Result<()> {
+    conn.pragma_update(None, "synchronous", "FULL")
+        .map_err(storage)?;
     conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);
+        "CREATE TABLE IF NOT EXISTS mail_checkpoints (agent_id TEXT PRIMARY KEY, sealed TEXT NOT NULL);
+         CREATE TABLE IF NOT EXISTS profile_pins (agent_id TEXT PRIMARY KEY, envelope TEXT NOT NULL);
+         CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);
          CREATE TABLE IF NOT EXISTS sessions (agent_id TEXT NOT NULL, session TEXT NOT NULL, presented TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (agent_id, session));",
     )
     .map_err(storage)?;
-    crate::mail_events::init(&conn)?;
-    Ok(conn)
+    crate::mail_events::init(conn)
 }
 
 /// The stored snapshot of an Agent ID's connector.
@@ -667,17 +912,39 @@ fn save(
     connector: &mut LocalConnector,
     stored: Option<&str>,
 ) -> Result<bool> {
-    connector.state_mut().hosts.clear();
-    let mut snapshot = connector
+    let snapshot = connector
         .snapshot()
         .map_err(|e| Error::Unavailable(format!("snapshot: {e}")))?;
+    save_snapshot(conn, session, &connector.agent_id(), snapshot, stored, None)
+}
+
+fn save_snapshot(
+    conn: &Connection,
+    session: &str,
+    agent_id: &AgentId,
+    mut snapshot: Value,
+    stored: Option<&str>,
+    checkpoint: Option<&str>,
+) -> Result<bool> {
+    ensure(
+        snapshot["agent_id"] == agent_id.as_str(),
+        Error::IntegrityFailed,
+    )?;
+    snapshot["hosts"] = json!({});
     let presented = presented(&snapshot);
     present(&mut snapshot, &[]);
     let snapshot_text = snapshot.to_string();
     let changed = stored != Some(snapshot_text.as_str());
-    let agent_id = connector.agent_id();
     let now = agent_protocols::identity::unix_ms();
     let tx = conn.unchecked_transaction().map_err(storage)?;
+    if let Some(sealed) = checkpoint {
+        tx.execute(
+            "INSERT INTO mail_checkpoints(agent_id,sealed) VALUES(?1,?2)
+             ON CONFLICT(agent_id) DO UPDATE SET sealed=excluded.sealed",
+            params![agent_id.as_str(), sealed],
+        )
+        .map_err(storage)?;
+    }
     if changed {
         crate::mail_events::record(&tx, agent_id.as_str(), &parse(stored)?, &snapshot, now)?;
         tx.execute(

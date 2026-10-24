@@ -118,6 +118,17 @@ kept sealed under the local data key and comes back with it. Elsewhere the
 key sits in the credential store, nothing asks for the person and no login is
 kept. Team-wallet cosigner keys use the Secure Enclave the same way.
 
+The hardware creation test runs without a prompt:
+`cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`.
+Run it in an active macOS login session with the device unlocked. Hardware and
+biometric capability checks do not guarantee that the security service will
+permit key creation at that instant. A native failure now keeps its negative
+`OSStatus` in the error; for example, Apple's
+[`errSecInteractionNotAllowed`](https://developer.apple.com/documentation/security/errsecinteractionnotallowed)
+is `-25308`. Inspect the matching test process's CryptoTokenKit logs for the
+underlying rejection. A system refusal must not remove `.userPresence`, change
+the key's `WhenUnlockedThisDeviceOnly` protection, or fall back to a software key.
+
 ## Install, start and update
 
 ```sh
@@ -800,7 +811,7 @@ does not end the session. Only a refused connection is retried, so a call is
 never sent twice.
 
 Tools: the 41 standard `agent_protocols_*` tools of the Agent Protocols
-local connector (`agent-protocols` 0.12.3: identity, delegation, rooms, inbox
+local connector (`agent-protocols` 0.12.6: identity, delegation, rooms, inbox
 and drafts, profile, Agent Mail mailboxes and letters, Agent Knowledge
 submissions and reads), as this Agent ID, against the configured hosts, each
 Discourse, Mail and Knowledge tool behind its protocol's read or write
@@ -1211,3 +1222,22 @@ independent of `dmsg.relay.delivery` and scoped to the Agent and mailbox filter.
 Read new mail with `mark_read=true`, then acknowledge completed inbox handling;
 preview/history readers leave read state unchanged. The full contract is in
 [Mail events](../../docs/protocol/mail_events.md).
+
+## Agent Protocols 0.12.6 recovery
+
+To recover retained mailbox records at an allowed relay, call
+`agent_protocols_mail_mailboxes_list` with `host`, optionally `limit` and `cursor`,
+through `dmsg ap` or MCP. Follow `next_cursor` until it is absent. This path needs
+the normal `mail.read:<origin>` grant for an Agent; local inspection without
+`host` remains nonblocking. Recovery persists every verified page and does not
+restore missing decryption keys or historical plaintext. Inspect `key_available`
+and `pending_routes`; restore existing local keys or rotate a key before receiving
+new correspondence. Push subscriptions are not created for keyless records.
+
+Mailbox publication persists encrypted key checkpoints before any signed attempt.
+Restart uses the last durable checkpoint before later tool calls; successful
+completion transfers the keys to their regular sealed/resident store before
+clearing it. This also covers lost replies and partial publication across relays.
+The owner Profile display keeps durable verified pins and does not follow
+cross-origin discovery endpoints. See the [connector host](../dmsg_agent/README.md)
+for persistence and verification tests.
