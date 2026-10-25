@@ -1105,7 +1105,7 @@ impl Daemon {
                         self.emit("cache/changed", json!({"kind":"plan"}));
                     } else if !crate::snapshots::invalidates(method).is_empty() {
                         c.cache_invalidate(crate::snapshots::invalidates(method))?;
-                        self.display.clear();
+                        // Profile and name refreshes have no invalidated kind.
                         self.snapshots.clear();
                         for kind in crate::snapshots::invalidates(method) {
                             self.emit("cache/changed", json!({"kind":kind.name()}));

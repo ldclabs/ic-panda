@@ -261,7 +261,9 @@ async fn worker(d: &Daemon) {
             }
             q.running.remove(&r);
             match result {
-                Ok(()) => {
+                // A newer observation or invalidation of this kind won; the
+                // invalidated snapshot is stale, so the next read refreshes it.
+                Ok(()) | Err(Error::VersionConflict) => {
                     q.failed.remove(&r);
                 }
                 Err(error) => {

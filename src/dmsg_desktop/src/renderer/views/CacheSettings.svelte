@@ -9,11 +9,12 @@
   let error = $state('')
   let busy = $state(false)
   async function load() {
-    try { const status: any = await call('cache/status'); bytes = status.domains.reduce((n: number, d: any) => n + d.sealed_bytes, 0) }
+    try { const status: any = await call('cache/status'); bytes = status.domains.reduce((n: number, d: any) => n + d.sealed_bytes, 0); error = '' }
     catch (e) { error = errorText(e) }
   }
   async function clear() {
     busy = true
+    error = ''
     try { await call('cache/clear'); await load() }
     catch (e) { error = errorText(e) }
     finally { busy = false }

@@ -205,8 +205,8 @@ async fn a_failed_unlock_after_locking_still_clears_owner_views() {
 }
 
 #[tokio::test]
-async fn a_native_policy_read_cannot_write_after_clear_or_a_policy_change() {
-    for clear in [true, false] {
+async fn a_native_policy_read_is_fenced_by_clear_or_its_own_invalidation_only() {
+    for case in ["clear", "policy", "wallet"] {
         let dir = testing::TempDir::new();
         let (d, _) = fixture(&dir);
         let entered = Arc::new(Notify::new());
@@ -243,26 +243,29 @@ async fn a_native_policy_read_cannot_write_after_clear_or_a_policy_change() {
             .unwrap();
         {
             let mut c = d.client.lock().await;
-            if clear {
-                c.cache_clear().unwrap();
-            } else {
-                c.cache_invalidate(&[Kind::Inbox]).unwrap();
-                c.cache_save(
-                    Kind::Inbox,
-                    "",
-                    &json!({"mode":"free","version":2}),
-                    now_ms(),
-                )
-                .unwrap();
+            match case {
+                "clear" => c.cache_clear().unwrap(),
+                "policy" => {
+                    c.cache_invalidate(&[Kind::Inbox]).unwrap();
+                    c.cache_save(
+                        Kind::Inbox,
+                        "",
+                        &json!({"mode":"free","version":2}),
+                        now_ms(),
+                    )
+                    .unwrap();
+                }
+                // Another kind's invalidation neither fails nor fences this read.
+                _ => c.cache_invalidate(&[Kind::Wallet, Kind::History]).unwrap(),
             }
         }
         finish.notify_one();
-        assert!(read.await.unwrap().is_err());
+        assert_eq!(read.await.unwrap().is_err(), case != "wallet");
         let saved = d.client.lock().await.cache_read(Kind::Inbox, "").unwrap();
-        if clear {
-            assert!(saved.is_none());
-        } else {
-            assert_eq!(saved.unwrap().data["version"], 2);
+        match case {
+            "clear" => assert!(saved.is_none()),
+            "policy" => assert_eq!(saved.unwrap().data["version"], 2),
+            _ => assert_eq!(saved.unwrap().data["version"], 1),
         }
         server.abort();
     }

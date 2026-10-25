@@ -234,7 +234,10 @@ impl InFlight {
 pub struct Client {
     /// Changes whenever keys are dropped, invalidating in-flight sync work.
     pub(crate) session_generation: u64,
+    /// Changes when display caches are cleared, fencing all pending display work.
     pub(crate) display_generation: u64,
+    /// Each count fences only the earlier reads of its own display kind.
+    pub(crate) cache_invalidations: BTreeMap<crate::cache::Kind, u64>,
     pub(crate) secret_boot: String,
     pub(crate) secret_scans: BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>,
     pub(crate) secret_mount_clock: Option<Arc<dyn crate::secrets::mounts::Clock>>,
@@ -563,6 +566,7 @@ impl Client {
         let mut client = Self {
             session_generation: 0,
             display_generation: 0,
+            cache_invalidations: BTreeMap::new(),
             secret_boot: hex::encode(crate::crypto::random_id()),
             secret_active: BTreeMap::new(),
             ssh_connections: BTreeMap::new(),

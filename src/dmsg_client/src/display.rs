@@ -7,7 +7,8 @@ use dmsg_types::{AccountId, Error, Result, agent::PrincipalInfo, ensure};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::collections::BTreeMap;
 
-/// Every local step of a snapshot refresh also checks explicit cache invalidation.
+/// Every local step of a snapshot refresh also checks explicit cache clearing;
+/// a same-kind invalidation rejects the snapshot when it commits.
 pub struct Scoped<'a, H> {
     /// Existing session-bound client access.
     pub inner: &'a H,
@@ -190,10 +191,10 @@ impl Client {
     }
 
     pub(crate) fn put_display<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
-        let bytes = canonical(value);
+        let bytes = zeroize::Zeroizing::new(canonical(value));
         // Check both encoded size and the decoder's item/depth bounds before writing.
         crate::codec::decode_value(&bytes, MAX_RECORD)?;
-        self.workspace.put_private(self.keys()?, key, value)
+        self.workspace.put_sealed(self.keys()?, key, &bytes)
     }
 
     /// Current published projection, without any network work.

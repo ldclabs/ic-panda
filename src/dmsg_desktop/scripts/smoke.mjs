@@ -3378,12 +3378,12 @@ smoke: try {
   await main.click('nav >> text=/^(Files|文件)$/')
   await main.waitForSelector('[data-testid="files-loading"]')
   assert.equal(await main.locator('[data-testid="files-empty"]').count(), 0)
-  const finishStorageRefresh = hold('files/storage_refresh')
+  // The view reads the daemon's inventory snapshot; the daemon refreshes it
+  // in the background (covered by the daemon's display tests).
   await main.click('[data-testid="files-scope-storage"]')
   await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
   assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),3)
-  // Cached copies appear before the slow remote inventory returns.
-  await finishStorageRefresh()
+  assert.equal(calls.some((c) => c.method === 'files/storage_refresh'), false)
   await settled(main,'[data-testid="files-storage"]')
   while (await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').count()) await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').first().click()
   await main.screenshot({path:join(shots,'cloud-storage.png')})
@@ -3821,17 +3821,13 @@ smoke: try {
   await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Old Panda') && !!document.querySelector('[data-testid="account-switcher"] img'))
   assert.equal(published.avatar_url, legacyAvatarUrl)
   assert.deepEqual(latest('profile/avatar_image').params, { avatar_url: legacyAvatarUrl })
-  // A slow older image cannot restore an avatar removed by a newer publication.
-  const releaseOldAvatar = hold('profile/avatar_image')
-  emit('profile/changed')
-  await waitFor(() => typeof held.get('profile/avatar_image') === 'function')
+  // Removing the avatar clears the shell's image. A late image for an older
+  // publication is rejected by the daemon, which binds it to the published
+  // URL and version (daemon display tests); identical reads are coalesced.
   await main.click('[data-testid="avatar-remove"]')
   await main.fill('[data-testid="profile-name"]', 'Avatar removed')
   await publishProfile()
   await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Avatar removed') && !document.querySelector('[data-testid="account-switcher"] img'))
-  await releaseOldAvatar()
-  await main.waitForTimeout(100)
-  assert.equal(await main.locator('[data-testid="account-switcher"] img').count(), 0)
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
   // A locked daemon's hints notify that something arrived, never from
   // whom, and each kind at most once a minute.

@@ -60,7 +60,9 @@ async fn clearing_and_invalidation_fence_inflight_work_and_preserve_protocol_sta
     c.cache_save(Kind::Plan, "", &json!({"plan":"Pro"}), 42)
         .unwrap();
     let session = c.display_session().unwrap();
-    c.cache_invalidate(KINDS).unwrap();
+    let plan = c.cache_scope(Kind::Plan).unwrap();
+    let inbox = c.cache_scope(Kind::Inbox).unwrap();
+    c.cache_invalidate(&[Kind::Plan]).unwrap();
     assert_eq!(
         c.cache_read(Kind::Plan, "")
             .unwrap()
@@ -68,8 +70,22 @@ async fn clearing_and_invalidation_fence_inflight_work_and_preserve_protocol_sta
             .observed_at_ms,
         0
     );
-    assert!(c.check_display_session(session).is_err());
-    let session = c.display_session().unwrap();
+    // Only reads of the invalidated kind are fenced; other work goes on.
+    assert!(
+        c.cache_save_checked(&plan, Kind::Plan, "", &json!("late"), 43)
+            .is_err()
+    );
+    c.cache_save_checked(&inbox, Kind::Inbox, "", &json!({"mode":"paid"}), 43)
+        .unwrap();
+    c.check_display_session(session).unwrap();
+    c.cache_invalidate(KINDS).unwrap();
+    assert_eq!(
+        c.cache_read(Kind::Inbox, "")
+            .unwrap()
+            .unwrap()
+            .observed_at_ms,
+        0
+    );
     c.cache_clear().unwrap();
     assert!(c.cache_read(Kind::Plan, "").unwrap().is_none());
     let h = c.hold();

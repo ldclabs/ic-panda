@@ -64,7 +64,8 @@
     const stop = watchDisplays(['storage'], refresh, 300_000)
     void refresh()
     // Only an open view with accepted cleanup work refreshes; no background permanent poll.
-    const timer = setInterval(() => { if (pending && !document.hidden) void refresh() }, 10000)
+    // The snapshot stays fresh for minutes, so cleanup progress reads the relay.
+    const timer = setInterval(() => { if (pending && !document.hidden) void refresh('fresh') }, 10000)
     return () => { stop(); clearInterval(timer) }
   })
 </script>

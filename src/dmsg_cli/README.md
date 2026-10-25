@@ -1373,10 +1373,10 @@ stand for a changed avatar URL.
 
 `cache/status` reports encrypted record sizes by category; these are not SQLite
 file sizes or a promise that clearing shrinks WAL/files. `cache/clear` removes
-only reconstructible display records, including the prior wallet metadata and
-history, Inbox-policy and cloud-inventory formats. Content, unsent work, notes,
-recovery material, audit checkpoints and protocol pins are excluded. Pending
-refreshes are fenced by both unlock generation and cache invalidation generation.
+only reconstructible display records. Content, unsent work, notes, recovery
+material, audit checkpoints and protocol pins are excluded. Pending refreshes
+are fenced by the unlock and clear generations, and a snapshot also by an
+invalidation of its own kind; another kind's invalidation does not fence it.
 None of these methods is available to an Agent credential.
 
 `daemon/status.session` is an opaque string combining the daemon instance and

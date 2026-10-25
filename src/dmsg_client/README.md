@@ -536,7 +536,7 @@ resetting a workspace. Missing/corrupt pages are a miss rather than a partial
 success. A failed replacement keeps the prior complete snapshot.
 
 These types are display data, never authorization evidence. `Scoped` checks the
-captured account, unlock generation and invalidation generation at each local
+captured account, unlock generation and cache-clear generation at each local
 step. A cache clear cannot erase journals, outbox, roots, device credentials,
 wallet audit verification checkpoints, protocol pins or user content. Offline
 access still depends on existing unlock eligibility; no offline write queue or
@@ -544,7 +544,7 @@ new recovery capability is introduced.
 
 Native snapshot producers use `cache_scope`/`cache_save_checked` across network
 waits as well as the daemon's `Scoped` wrapper. Invalidation fences pending
-writes even when disk cleanup fails. Capacity uses exact SQLite counts and byte
+writes of the same kind even when disk cleanup fails; other kinds go on. Capacity uses exact SQLite counts and byte
 sums rather than the first inventory page. Avatar downloads bind both URL and
 publication version, so changing away from a URL and back cannot accept an older
 in-flight image as the new publication.
