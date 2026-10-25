@@ -865,6 +865,7 @@ pub(crate) async fn authorize<H: Hold>(
             request_id: Hash::new(random_id()),
             expires_at: application.expires_at_ms,
             signature: Ed25519Signature::new([0; 64]),
+            hardware: None,
         };
         let message = approval_message(
             account.home,

@@ -29,3 +29,4 @@ lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 [dev-dependencies]
 agent-protocols.workspace = true
 ed25519-dalek.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }

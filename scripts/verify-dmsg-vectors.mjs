@@ -49,6 +49,7 @@ for (const vector of vectors) {
 }
 console.log(`Verified ${vectors.length} Rust/JavaScript CBOR, SHA-256 and Ed25519 vectors.`)
 
+
 // Assemble the profile from registered headers independently of the Rust encoder.
 const B = bytes => ({bytes}), T = text => ({text}), U = n => n < 0 ? {int:String(n)} : {uint:String(n)}
 const M = pairs => ({map:pairs.map(([k,v]) => [U(k),v])})
@@ -98,3 +99,23 @@ assert.equal(preimage.array[2].array[2].bytes.length,64)
 assert.deepEqual(approval.array[2].array[6],B(hash(encode(preimage)).toString('hex')))
 assert.equal(approval.array[2].array[7].uint,'1800000000000') // approval milliseconds; CWT seconds above
 console.log('Verified independent COSE text/digest/file-statement profiles, key thumbprint, timestamp imprint and Xid allocation.')
+
+// Approval keys sign the 32-byte digest itself, which ECDSA hashes again
+// with SHA-256 as CryptoKit's signature(for:) does; raw r || s, low s.
+const order = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551')
+const p256 = vectors.filter((v) => v.p256_public_hex)
+assert.deepEqual(p256.map((v) => v.name), ['hardware_key_id_v1', 'approval_key_v1', 'hardware_approval_v1'])
+for (const vector of p256) {
+  const publicKey = createPublicKey({
+    key: Buffer.from(`3039301306072a8648ce3d020106082a8648ce3d030107032200${vector.p256_public_hex}`, 'hex'),
+    format: 'der', type: 'spki'
+  })
+  const signature = Buffer.from(vector.p256_signature_over_sha256_hex, 'hex')
+  assert(BigInt(`0x${signature.subarray(32).toString('hex')}`) <= order / 2n, `${vector.name}: low s`)
+  assert(verify('sha256', Buffer.from(vector.sha256_hex, 'hex'), { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature), `${vector.name}: P-256 signature`)
+}
+const keyId = fixture('hardware_key_id_v1').array[2]
+assert.deepEqual(keyId, B(p256[0].p256_public_hex))
+assert.deepEqual(fixture('hardware_approval_v1').array[2].array[1], B(p256[0].sha256_hex))
+assert.deepEqual(fixture('hardware_approval_v1').array[2].array[0], B(vectors.find((v) => v.name === 'attest_approval_v1').sha256_hex))
+console.log('Verified the approval-key P-256 vectors.')

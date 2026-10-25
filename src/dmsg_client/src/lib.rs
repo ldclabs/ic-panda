@@ -5,6 +5,7 @@ pub mod account;
 pub mod agent;
 pub mod agents;
 pub mod approval;
+pub mod approval_key;
 pub mod attest;
 pub mod audit;
 pub mod certified;
@@ -98,7 +99,8 @@ pub fn error_code(error: &Error) -> String {
         return INSUFFICIENT_FUNDS.into();
     }
     if let Error::InvalidInput(message) = error
-        && crate::secrets::ERROR_CODES.contains(&message.as_str())
+        && (crate::secrets::ERROR_CODES.contains(&message.as_str())
+            || message == crate::approval_key::APPROVAL_KEY_REQUIRED)
     {
         return message.clone();
     }

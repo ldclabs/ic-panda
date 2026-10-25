@@ -311,6 +311,7 @@ impl Client {
                 ),
                 expires_at: now_ms() + crate::account::APPROVAL_MS,
                 signature: Ed25519Signature::new([0; 64]),
+                hardware: None,
             },
         };
         let message = approval_message(

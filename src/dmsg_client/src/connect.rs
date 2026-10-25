@@ -2103,12 +2103,18 @@ impl Client {
             request_id: request.operation_id,
             expires_at: request.expires_at_ms,
             signature: Ed25519Signature::new([0; 64]),
+            hardware: None,
         };
         let message = approval_message(account.home, &account.id, AUTH_DOMAIN, &request, &approval);
         approval.signature = Ed25519Signature::new(crate::crypto::sign(
             &self.keys()?.signing,
             message.as_slice(),
         ));
+        approval.hardware = self.hardware_proof(
+            &state.info,
+            Some(dmsg_types::user::HardwarePurpose::Attestation),
+            message,
+        )?;
         let job = AuthJob { request, approval };
         op.auth = Some(job.clone());
         self.save_operation(op)?;

@@ -350,6 +350,7 @@ fn register_controller_approval_digest_vector() {
         request_id: Hash::new([6; 32]),
         expires_at: 1_790_000_000_000,
         signature: Default::default(),
+        hardware: None,
     };
     let home = candid::Principal::from_slice(&[9, 1]);
     let message = approval_message(

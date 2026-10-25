@@ -21,6 +21,7 @@ fn document_pending_reads_the_journal_and_excludes_other_account_operations() {
             request_id: Hash::new([1; 32]),
             expires_at: 1,
             signature: Ed25519Signature::new([0; 64]),
+            hardware: None,
         },
     };
     let mut journal = Journal {

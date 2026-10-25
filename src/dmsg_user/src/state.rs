@@ -61,6 +61,10 @@ pub struct AccountState {
     pub execution_expirations: BTreeMap<OpId, Option<u64>>,
     // Mirror of the principal record's `updated_at`, certified in the snapshot.
     pub principal_updated_at: Option<u64>,
+    // Each device's approval key, by device ID; outside the certified device map.
+    pub approval_keys: BTreeMap<Hash, ApprovalKey>,
+    // Purposes that need an approval-key proof; empty when off.
+    pub hardware_policy: Vec<HardwarePurpose>,
 }
 
 impl AccountState {
@@ -107,6 +111,8 @@ impl AccountState {
             root_slot: self.root_slot.clone(),
             vault_write_state: self.vault_write_state.clone(),
             sensitive_policy: self.sensitive_policy.clone(),
+            approval_keys: self.approval_keys.clone(),
+            hardware_policy: self.hardware_policy.clone(),
         }
     }
 

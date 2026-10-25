@@ -44,6 +44,7 @@ Publication settings do not prove a version is already on crates.io. In this che
 | Configure a COSE executor | `content_root_context`, `cose_pins::master_key_pin` (feature `cose-pins`) | Create the canister first: the pin depends on its ID; initialize and compare the fetched fingerprint |
 | Check execution evidence | `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
 | Bind roots and keys | `root_recipients_digest`, `root_bundle_digest`, `recovery_device_message`, `controller_pop_message` | Build bundles and proofs in the client; the services recompute and compare |
+| Approval keys | `approval_key_id`, `approval_key_message`, `hardware_message`, `verify_p256`, `verify_hardware`, `command_purpose`, `application_purpose`, `validate_hardware_policy` | A device's hardware key signs `hardware_message(approval_message, key_id)`; only the user home decides which purposes need it ([contract](../../docs/protocol/account_root.md)) |
 | Handle names | `normalize_handle`, `price`, `charge_terms_digest` | Execute name/ledger operations in their services |
 | Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
 | Team wallets | `wallet::{proposal_digest, decision_digest, check_wallet_approval, requirement, validate_policy, address_text, taproot_tree, verify_cosign}` | The wallet canister and clients share digests, policy evaluation, address encodings and cosigner verification ([contract](../../docs/protocol/wallet_zh.md), [vectors](../../tests/vectors/wallet/README.md)) |
@@ -133,6 +134,7 @@ let mut request = AttestRequest {
         request_id: execution_request_id(&account_id, security_epoch, device_id, sequence),
         expires_at: 1_800_000_060_000, // Unix milliseconds; use a valid live deadline.
         signature: Default::default(), // Excluded from the approval digest.
+        hardware: None, // An approval-key proof, where the account requires one.
     },
 };
 let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
@@ -224,3 +226,5 @@ preparation/verification supports it; `dmsg_user.attest` and the document browse
 flow explicitly reject it, and `attest_app_action` is its only entry.
 
 0.4.0 adds `connect`, the dmsg-connect/1 rules shared by devices, the bridge page and the relay: command validation, `proof_message`, `operation_digest`, `pairing_id`, `pairing_mac`, the sealing contexts `request_aad`, `wrap_info` and `response_info`, and the structural checks `validate_request` and `validate_grant`; their vectors are `tests/vectors/client/connect-v1.json`. `validate_origin` no longer accepts `chrome-extension://` origins: dMsg has no browser extension, and the client vouches for web origins through dmsg-connect/1. `authentication::verify_recorded_leaf` verifies a certified leaf kept as evidence, at any certificate time, and `verify_attestation` checks an artifact with its certified execution receipt end to end. The matching dmsg_types change adds `connect` with the request, envelope, reply, invitation, grant, proof and device-command payload types.
+
+Unreleased: approval keys. `dmsg_types::Approval` gains the optional `hardware: Option<HardwareProof>` (absent from CBOR when `None`, so existing digests are unchanged); `AccountCommand` gains `SetApprovalKey` and `SetHardwarePolicy`; `AccountInfo` gains `approval_keys` and `hardware_policy`; `user::{HardwarePurpose, ApprovalKey, ApprovalKeyInput, CONTROL_PURPOSES}` and `P256Signature` are new. This crate adds `approval_key_id` (`dmsg/hardware-key/v1`), `approval_key_message` (`dmsg/approval-key/v1`), `hardware_message` (`dmsg/hardware-approval/v1`), `verify_p256` (ECDSA-SHA256, high `s` refused), `verify_hardware`, `command_purpose`, `application_purpose` and `validate_hardware_policy`; their vectors are in `dmsg_types/tests/protocol_vectors.json`. A client with these types reads `get_account` only from a user home that has the new fields.

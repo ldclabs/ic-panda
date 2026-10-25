@@ -39,12 +39,24 @@ export function kindOf(request: any): Label {
     case 'device_capabilities':
     case 'device_pair':
     case 'device_revoke':
+    case 'approval_key':
+    case 'approval_key_retire':
+    case 'hardware_policy':
       return 'kindSecurity'
     case 'wallet':
       return 'kindWallet'
     default:
       return 'kindOther'
   }
+}
+
+/** The label of each purpose an account may require approval keys for. */
+export const hardwarePurposeLabels: Record<string, Label> = {
+  account_control: 'hwAccountControl',
+  device_control: 'hwDeviceControl',
+  principal_control: 'hwPrincipalControl',
+  payment: 'hwPayment',
+  attestation: 'hwAttestation'
 }
 
 /** The icon of each kind of decision. */
@@ -142,6 +154,12 @@ export function titleOf(request: any): Title {
       return { label: 'approveDevice' }
     case 'device_revoke':
       return { label: 'revokeDevice' }
+    case 'approval_key':
+      return { label: 'registerApprovalKey' }
+    case 'approval_key_retire':
+      return { label: 'retireApprovalKey' }
+    case 'hardware_policy':
+      return { label: d.purposes?.length ? 'requireApprovalKeys' : 'stopRequiringApprovalKeys' }
     case 'wallet':
       if (d.action === 'create') return { label: 'twCreateTitle' }
       if (d.action === 'join') return { label: 'twJoinTitle' }
@@ -195,7 +213,11 @@ export function summaryOf(request: any): string {
     case 'device_capabilities':
     case 'device_pair':
     case 'device_revoke':
+    case 'approval_key':
+    case 'approval_key_retire':
       return String(d.device_id ?? '').slice(0, 16)
+    case 'hardware_policy':
+      return (d.purposes ?? []).join(' ')
     case 'wallet':
       return `${d.name ?? ''}${d.proposal ? ` · #${d.proposal.id} ${d.proposal.intent?.kind ?? ''}` : ''}`
     default:

@@ -426,6 +426,7 @@ fn app_action_attestations_require_the_signing_account_and_a_bounded_approval() 
             request_id: Hash::new([2; 32]),
             expires_at: action.expires_at_ms,
             signature: Default::default(),
+            hardware: None,
         },
     };
     let statement = app_action_statement(&request).unwrap();

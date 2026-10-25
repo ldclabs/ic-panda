@@ -10,6 +10,8 @@ pub type Hash = serde_bytes::ByteArray<32>;
 pub type OpId = Hash;
 /// Raw 64-byte Ed25519 signature; Candid `blob`, CBOR byte string of fixed length.
 pub type Ed25519Signature = serde_bytes::ByteArray<64>;
+/// Raw 64-byte P-256 ECDSA signature `r || s` with a low `s`.
+pub type P256Signature = serde_bytes::ByteArray<64>;
 /// Result with a dMsg application error; does not represent transport errors.
 pub type Result<T> = std::result::Result<T, Error>;
 /// One second expressed in milliseconds; business timestamps use Unix milliseconds.
@@ -167,6 +169,22 @@ pub struct Approval {
     pub expires_at: u64,
     /// Device Ed25519 signature over the operation-specific approval digest.
     pub signature: Ed25519Signature,
+    /// The device's approval-key proof over the same digest. The account's
+    /// hardware policy decides where it is required; a proof sent anyway
+    /// is checked. Not part of the signed digest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hardware: Option<HardwareProof>,
+}
+
+/// An approval key's signature over the hardware commitment of an
+/// [`Approval`]: `dmsg_protocol::hardware_message` of its approval digest
+/// and the key.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct HardwareProof {
+    /// `dmsg/hardware-key/v1` identifier of the approving device's key.
+    pub key_id: Hash,
+    /// P-256 ECDSA over SHA-256 of the 32-byte commitment, with a low `s`.
+    pub signature: P256Signature,
 }
 
 /// One requested leaf and its IC hash-tree witness.

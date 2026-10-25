@@ -194,6 +194,7 @@ fn approve_app(f: &Fixture, n: u8, account: &AccountId, application: &Applicatio
         ),
         expires_at: time(&f.ic) + 4 * MINUTE,
         signature: Default::default(),
+        hardware: None,
     };
     approval.signature = key(n)
         .sign(

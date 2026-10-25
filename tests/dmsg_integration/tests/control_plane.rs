@@ -48,6 +48,9 @@ mod agent;
 #[path = "control_plane/principal_upgrade.rs"]
 mod principal_upgrade;
 
+#[path = "control_plane/hardware.rs"]
+mod hardware;
+
 #[path = "control_plane/user_homes.rs"]
 mod user_homes;
 
@@ -56,6 +59,55 @@ mod governance;
 
 #[path = "control_plane/wallet.rs"]
 mod wallet;
+
+/// `get_account` of the current module, or of one before approval keys,
+/// which answers without them.
+#[derive(CandidType, Deserialize)]
+struct AnyAccountInfo {
+    created_at_ms: u64,
+    issuer: String,
+    account_id: AccountId,
+    home_user: Principal,
+    home_cose: Principal,
+    auth_bindings: Vec<Principal>,
+    account_version: u64,
+    security_epoch: u64,
+    devices: std::collections::BTreeMap<Hash, Device>,
+    recovery_delay_ms: u64,
+    pending_recovery: Option<PendingRecovery>,
+    recovered_device: Option<(Hash, u64)>,
+    current_root: Option<ContentRootRef>,
+    root_slot: Option<RootReservation>,
+    vault_write_state: VaultWriteState,
+    sensitive_policy: SensitivePolicy,
+    approval_keys: Option<std::collections::BTreeMap<Hash, ApprovalKey>>,
+    hardware_policy: Option<Vec<HardwarePurpose>>,
+}
+
+impl From<AnyAccountInfo> for AccountInfo {
+    fn from(a: AnyAccountInfo) -> Self {
+        AccountInfo {
+            created_at_ms: a.created_at_ms,
+            issuer: a.issuer,
+            account_id: a.account_id,
+            home_user: a.home_user,
+            home_cose: a.home_cose,
+            auth_bindings: a.auth_bindings,
+            account_version: a.account_version,
+            security_epoch: a.security_epoch,
+            devices: a.devices,
+            recovery_delay_ms: a.recovery_delay_ms,
+            pending_recovery: a.pending_recovery,
+            recovered_device: a.recovered_device,
+            current_root: a.current_root,
+            root_slot: a.root_slot,
+            vault_write_state: a.vault_write_state,
+            sensitive_policy: a.sensitive_policy,
+            approval_keys: a.approval_keys.unwrap_or_default(),
+            hardware_policy: a.hardware_policy.unwrap_or_default(),
+        }
+    }
+}
 
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -673,6 +725,7 @@ impl Fixture {
                 ),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         request.approval.signature = key(n)
@@ -727,8 +780,8 @@ impl Fixture {
         r.unwrap()
     }
     fn account_id(&self, n: u8, id: &AccountId) -> AccountInfo {
-        let r: Result<AccountInfo> = query(&self.ic, self.user, person(n), "get_account", (id,));
-        r.unwrap()
+        let r: Result<AnyAccountInfo> = query(&self.ic, self.user, person(n), "get_account", (id,));
+        r.unwrap().into()
     }
     fn mutate(&self, n: u8, id: &AccountId, command: AccountCommand) -> Result<OperationReceipt> {
         self.mutate_by(n, n, id, command)
@@ -753,6 +806,7 @@ impl Fixture {
                 request_id: digest("test-operation", &(id, s.account_version)),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         m.approval.signature = key(n)
@@ -1056,6 +1110,7 @@ impl Fixture {
                 ),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         request.approval.signature = key(m)

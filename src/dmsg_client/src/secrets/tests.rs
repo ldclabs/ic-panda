@@ -761,12 +761,16 @@ async fn presence_and_full_plan_digest_are_required_before_execution() {
             Some(Presence::Password)
         }
 
-        fn create(&self) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<[u8; 32]>)> {
+        fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<[u8; 32]>)> {
             Err(Error::Forbidden)
         }
 
-        fn open(&self, _: &[u8], _: &[u8]) -> Result<Zeroizing<[u8; 32]>> {
+        fn open(&self, _: &[u8], _: &[u8], _: bool) -> Result<Zeroizing<[u8; 32]>> {
             Err(Error::Forbidden)
+        }
+
+        fn biometry_state(&self) -> Option<dmsg_types::Hash> {
+            None
         }
 
         fn confirm(&self, _: &str) -> Result<()> {
@@ -784,7 +788,11 @@ async fn presence_and_full_plan_digest_are_required_before_execution() {
             .await,
         Err(Error::Forbidden)
     );
-    let (hardware, what) = c.approval_presence(id).unwrap().unwrap();
+    let (crate::approval::Ask::Presence(hardware), what) =
+        c.approval_presence(id).unwrap().unwrap()
+    else {
+        panic!("a presence check")
+    };
     assert_eq!(hardware.confirm(&what), Err(Error::Forbidden));
     let mut record = c.approval_record(id).unwrap();
     let old = record.digest();

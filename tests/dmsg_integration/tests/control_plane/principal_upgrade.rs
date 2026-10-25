@@ -84,6 +84,7 @@ fn old_mutate(
             request_id: digest("test-operation", &(id, s.account_version)),
             expires_at: time(&f.ic) + MINUTE,
             signature: Default::default(),
+            hardware: None,
         },
     };
     mutation.approval.signature = key(n)

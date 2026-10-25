@@ -447,6 +447,56 @@ fn render(request: &Value) -> String {
             ));
             lines.push(row("to", "改为", field(&d["capabilities"])));
         }
+        Some("approval_key") => {
+            let (device, mark) = (field(&d["device_id"]), this_device(d));
+            lines.push(row(
+                "register",
+                "登记",
+                tr!(
+                    "approval key {} for device {device}{mark}; it replaces any key the device had",
+                    "设备 {device}{mark} 的批准钥匙 {}，替换它原有的钥匙",
+                    field(&d["key_id"])
+                ),
+            ));
+        }
+        Some("approval_key_retire") => {
+            let (device, mark) = (field(&d["device_id"]), this_device(d));
+            lines.push(row(
+                "retire",
+                "退役",
+                tr!(
+                    "the approval key of device {device}{mark}",
+                    "设备 {device}{mark} 的批准钥匙"
+                ),
+            ));
+        }
+        Some("hardware_policy") => {
+            let list = |value: &Value| {
+                let names = value
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .collect::<Vec<_>>();
+                match names.is_empty() {
+                    true => tr!("nothing", "无"),
+                    false => names.join(", "),
+                }
+            };
+            lines.push(row("require", "需要钥匙", list(&d["purposes"])));
+            lines.push(row("before", "原为", list(&d["previous"])));
+            if d["without_keys"].as_array().is_some_and(|a| !a.is_empty()) {
+                lines.push(row(
+                    "shut out",
+                    "受限设备",
+                    tr!(
+                        "{}: without a key they can no longer make these approvals",
+                        "{}：没有钥匙，将不能再做这些批准",
+                        list(&d["without_keys"])
+                    ),
+                ));
+            }
+        }
         Some("principal") => {
             let change = field(&d["change"]);
             lines.push(row(

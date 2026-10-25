@@ -49,7 +49,7 @@ use base64::Engine;
 use dmsg_client::{
     Client,
     account::login_targets,
-    approval::Decision,
+    approval::{Ask, Decision},
     attest::{Bundle, FileSource, StatementInput},
     client::Warm,
     error_code,
@@ -90,7 +90,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 52] = [
+const METHODS: [&str; 53] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -100,6 +100,7 @@ const METHODS: [&str; 52] = [
     "session/lock",
     "session/logout",
     "session/fast_unlock",
+    "session/device_bound",
     "account/create",
     "account/show",
     "device/pair_request",
@@ -312,12 +313,14 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
-    // With the system keystore, the Secure Enclave keeps cosigner keys and
-    // the fast-unlock key, and asks for Touch ID or the login password.
+    // With the system keystore, the Secure Enclave keeps cosigner keys,
+    // approval keys and the fast-unlock and device-bound keys, and asks for
+    // Touch ID or the login password.
     #[cfg(target_os = "macos")]
     if settings.storage == crate::home::Storage::System {
         let enclave = std::sync::Arc::new(crate::enclave::SecureEnclave);
         client.set_cosign_provider(enclave.clone());
+        client.set_approval_keys(enclave.clone());
         client.set_presence_key(enclave);
     }
     let local_roots = match &settings.agent_ca {
@@ -840,23 +843,33 @@ impl Daemon {
     }
 
     /// A person's decision, from the approval window or an interactive
-    /// terminal (`via`). The presence check of a high-risk approval and an
-    /// approved attestation's network steps wait outside the client, so
-    /// the other windows' reads go on meanwhile; any other approved request
-    /// carries itself out under the client.
+    /// terminal (`via`). The presence check of a high-risk approval, or the
+    /// answer through this device's approval key, and an approved
+    /// attestation's network steps wait outside the client, so the other
+    /// windows' reads go on meanwhile; any other approved request carries
+    /// itself out under the client, the key's answer signing it there.
     async fn respond(&self, id: &str, digest: &str, approve: bool, via: &str) -> Result<Value> {
         let mut confirmed = false;
+        let mut authorized = None;
         if approve {
             let ask = self.client.lock().await.approval_presence(id)?;
-            if let Some((key, what)) = ask {
+            if let Some((ask, what)) = ask {
                 // The system's prompt waits for the person, off the
                 // runtime's threads.
-                let answer = tokio::task::spawn_blocking(move || key.confirm(&what))
-                    .await
-                    .map_err(|e| Error::Unavailable(format!("presence: {e}")))?;
-                if let Err(error) = answer {
-                    self.client.lock().await.approval_unconfirmed(id, &error)?;
-                    return Err(error);
+                let answer = tokio::task::spawn_blocking(move || match ask {
+                    Ask::Presence(key) => key.confirm(&what).map(|()| None),
+                    Ask::Hardware(keys, biometry_only) => {
+                        keys.authorize(&what, biometry_only).map(Some)
+                    }
+                })
+                .await
+                .map_err(|e| Error::Unavailable(format!("presence: {e}")))?;
+                match answer {
+                    Ok(answer) => authorized = answer,
+                    Err(error) => {
+                        self.client.lock().await.approval_unconfirmed(id, &error)?;
+                        return Err(error);
+                    }
                 }
                 confirmed = true;
             }
@@ -864,7 +877,7 @@ impl Daemon {
         let decision = self
             .under_lock(async |client| {
                 client
-                    .approval_decide(id, digest, approve, via, confirmed)
+                    .approval_decide_with(id, digest, approve, via, confirmed, authorized)
                     .await
             })
             .await?;
@@ -1159,6 +1172,22 @@ impl Daemon {
                 };
                 Ok(to_json(&status))
             }
+            // Binding rewraps the local data key under the client: it reads
+            // the unlock secret and asks for the person once, so nothing
+            // else unlocks or locks meanwhile.
+            "session/device_bound" => match params["enable"].as_bool() {
+                Some(true) => {
+                    let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
+                    self.under_lock(async |client| client.bind_device(biometry_only).await)
+                        .await
+                }
+                Some(false) => Ok(to_json(
+                    &self
+                        .under_lock(async |client| client.unbind_device().await)
+                        .await?,
+                )),
+                None => Err(Error::InvalidInput("missing enable".into())),
+            },
             // Account and device changes still wait
             // on the IC and the relay under the client.
             "account/create" => {
@@ -1544,7 +1573,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             | "device/revoke"
             | "connect/sync" => &["approval/changed"],
             "connect/grant" | "connect/revoke" => &["connect/changed"],
-            "session/fast_unlock" => &["session/changed"],
+            "session/fast_unlock" | "session/device_bound" => &["session/changed"],
             _ => &[],
         },
         Module::More => crate::methods::events_of(method),

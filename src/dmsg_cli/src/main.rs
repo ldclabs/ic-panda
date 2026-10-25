@@ -187,6 +187,9 @@ enum Command {
     /// Fast unlock on this device, kept in the system credential store.
     #[command(subcommand)]
     FastUnlock(FastUnlockCommand),
+    /// Bind this workspace to this device's hardware (macOS).
+    #[command(subcommand)]
+    DeviceBound(DeviceBoundCommand),
     /// The account.
     #[command(subcommand)]
     Account(account_commands::AccountCommand),
@@ -322,6 +325,20 @@ enum FastUnlockCommand {
 }
 
 #[derive(Subcommand)]
+enum DeviceBoundCommand {
+    /// Bind this workspace to this Mac's Secure Enclave: from now on every
+    /// unlock needs it, as well as a login or fast unlock. Copies made
+    /// before keep opening with a login. Asks for Touch ID once.
+    Enable {
+        /// Take only the fingerprints enrolled now, never the login password.
+        #[arg(long)]
+        biometry_only: bool,
+    },
+    /// Let a login alone open this workspace again.
+    Disable,
+}
+
+#[derive(Subcommand)]
 enum SyncCommand {
     /// Pending versions, conflicts and the latest sync.
     Status,
@@ -419,6 +436,28 @@ fn verified(manifest: &Value) -> String {
 
 fn pretty(value: &Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_default()
+}
+
+/// What binding the workspace to the hardware leaves outside it, from
+/// `session/device_bound`'s `unprotected`.
+fn unprotected(v: &Value) -> String {
+    let mut parts = Vec::new();
+    if v["background_online"] == true {
+        parts.push(tr!(
+            "the device key kept while locked (background online)",
+            "锁定后保留的设备签名钥匙（后台在线）"
+        ));
+    }
+    if let Some(n) = v["resident_agents"].as_u64().filter(|n| *n > 0) {
+        parts.push(tr!(
+            "{n} resident Agent IDs in the credential store",
+            "凭据库中的 {n} 个常驻 Agent ID"
+        ));
+    }
+    match parts.is_empty() {
+        true => tr!("nothing", "无"),
+        false => parts.join(tr!(", ", "，").as_str()),
+    }
 }
 
 fn summary(status: &Value) -> String {
@@ -603,6 +642,24 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
                 json!({"enable": enable}),
             )
             .await
+        }
+        Command::DeviceBound(command) => {
+            let params = match command {
+                DeviceBoundCommand::Enable { biometry_only } => {
+                    json!({"enable": true, "biometry_only": biometry_only})
+                }
+                DeviceBoundCommand::Disable => json!({"enable": false}),
+            };
+            let answer = remote.call("session/device_bound", params).await?;
+            print(json, &answer, |v| match v["unprotected"].is_object() {
+                true => tr!(
+                    "This workspace now unlocks only with this device's hardware.\nNot covered: {}",
+                    "此工作区现在只能借助本设备硬件解锁。\n不受保护：{}",
+                    unprotected(&v["unprotected"])
+                ),
+                false => summary(v),
+            });
+            Ok(())
         }
         Command::Reset { yes } => {
             if !yes {

@@ -54,6 +54,7 @@ fn signed(account: &AccountState, request: &AuthenticationRequest) -> Approval {
         request_id: request.operation_id,
         expires_at: request.expires_at_ms,
         signature: Default::default(),
+        hardware: None,
     };
     approval.signature = SigningKey::from_bytes(&[7; 32])
         .sign(
@@ -84,7 +85,7 @@ fn result(account: &AccountState, request: AuthenticationRequest) -> ExternalBod
     })
 }
 
-const FORMAL: Capability = Capability::FormalApprove;
+const FORMAL: (Capability, Option<HardwarePurpose>) = AUTHENTICATION_NEEDS;
 
 #[test]
 fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
@@ -126,6 +127,30 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
             approval.expires_at
         )
         .is_err()
+    );
+    // An account that protects attestations needs the device's key here;
+    // payments and team wallets fall under their own purposes.
+    account.hardware_policy = vec![HardwarePurpose::Attestation];
+    assert_eq!(
+        precheck(
+            &account,
+            caller,
+            &approval,
+            AUTH_DOMAIN,
+            &request,
+            FORMAL,
+            at
+        ),
+        Err(Error::Forbidden)
+    );
+    account.hardware_policy.clear();
+    assert_eq!(
+        application_needs(&ApprovalPurpose::CashCheckout),
+        (Capability::FormalApprove, Some(HardwarePurpose::Payment))
+    );
+    assert_eq!(
+        application_needs(&ApprovalPurpose::WalletJoin),
+        (Capability::WalletApprove, None)
     );
     account.sensitive_policy.frozen = true;
     assert_eq!(
@@ -305,7 +330,7 @@ fn authentication_is_independent_of_formal_execution_and_vault_state() {
             &changed,
             approval.device_id,
             approval.security_epoch,
-            &FORMAL
+            &FORMAL.0
         ),
         Err(Error::Locked)
     );

@@ -486,6 +486,7 @@ impl Client {
             request_id: Hash::new(crate::crypto::random_id()),
             expires_at: application.expires_at_ms,
             signature: Ed25519Signature::new([0; 64]),
+            hardware: None,
         };
         let message = approval_message(
             account.home,
@@ -495,6 +496,11 @@ impl Client {
             &approval,
         );
         approval.signature = Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
+        approval.hardware = self.hardware_proof(
+            &state.info,
+            dmsg_protocol::application_purpose(&application.purpose),
+            message,
+        )?;
         job.approval = Some((application, approval));
         // A renewed approval advances an order the service may already hold;
         // only the first signature moves the journal out of review.

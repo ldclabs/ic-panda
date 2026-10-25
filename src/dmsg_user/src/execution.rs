@@ -97,7 +97,11 @@ pub(crate) fn check_attestation(
         approval,
         ATTEST_APPROVAL_DOMAIN,
         &attest_approval_command(statement, origin, signature),
-        (Some(Capability::FormalApprove), false),
+        (
+            Some(Capability::FormalApprove),
+            false,
+            Some(HardwarePurpose::Attestation),
+        ),
         now,
     )?;
     let prepared = prepare_attestation(statement, &device.input.signing_pub)?;
@@ -191,7 +195,8 @@ pub(crate) fn check_derivation(
         &input.approval,
         DERIVE_APPROVAL_DOMAIN,
         &derive_approval_command(input),
-        (Some(Capability::RootManage), true),
+        // Recovery needs no approval key: the lost devices took theirs.
+        (Some(Capability::RootManage), true, None),
         now,
     )?;
     ensure(

@@ -53,6 +53,8 @@ AEAD 防止密文被无钥篡改，不能防止服务拒绝投递、隐藏记录
 | `unlock_secret`        | user home：`digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥                                        |
 | 本地解锁钥 `LUK`       | `HKDF(unlock_secret, ["dmsg/local-unlock/2", name])`；只在 daemon 内存                                                    | 包装 LDK                                              |
 | 快速解锁钥 `K_fast`    | macOS：`HKDF(ECDH(Secure Enclave 密钥, 软件对端), ["dmsg/fast-unlock/1", name])`，凭据库只存 SE 句柄与对端公钥；其他平台：随机 32 字节，存于操作系统凭据库 | 包装 LDK 的第二份封装（登录解锁后默认开启） |
+| 设备绑定秘密 `S`       | 可选，macOS：Secure Enclave 密钥协商秘密，凭据库独立槽位只存句柄与对端公钥；`K_login = HKDF(LUK‖S, …)`、`K_fast = HKDF(S, …)` | 开启后替换只靠 LUK 的封装，每次解锁都需本机硬件       |
+| 批准钥匙               | 可选，macOS：Secure Enclave P-256 签名钥匙，句柄由 LDK 封存，公钥登记在 user home                                          | 账户要求时签署批准的硬件承诺 `dmsg/hardware-approval/v1` |
 | 临时键                 | 绑定账户前的随机 32 字节，明文保存在工作区                                                                                | 保护尚无内容的新设备密钥                              |
 | `LocalDataKey` / `LDK` | 客户端随机 32 字节                                                                                                        | 加密设备私钥、根、文件任务、操作日志等封存记录        |
 | 内容根 `VRK_g`         | 管理员设备随机 32 字节                                                                                                    | 包装每个对象版本的内容密钥                            |
@@ -130,6 +132,7 @@ name        = "dmsg:" + environment + ":" + account + ":" + deviceId   // 绑定
 
 - 通用路径：II 登录（会话私钥由 daemon 生成并持有，不依赖解锁）→ `unlock_secret` → LUK → LDK → 封存记录，全部只在内存；锁定后重复。`login_unlocked_at` 记录时间。
 - 快速路径：登录解锁后默认开启（人关闭后保持关闭），以 `["dmsg/local-key/2", "fast:" + name]` 封装 LDK 的第二份副本。macOS 上 `K_fast` 由 Secure Enclave 的 P-256 密钥协商恢复：SE 密钥带 `.userPresence` 访问控制，每次解锁先要 Touch ID（无 Touch ID 时为 Mac 登录密码），句柄是 CryptoKit 的 `dataRepresentation`，只有本机 SE 能打开，不需要钥匙串条目或 entitlement；无人应答 60 秒后撤回并视为拒绝。其他平台的 `K_fast` 是存于凭据库的随机 32 字节，没有用户在场验证，凭据库中的密钥被读出即可解锁。距上次登录解锁超过 30 天时拒绝，必须走通用路径；快速解锁后一旦联网就核对认证设备表，本机已撤销则清空数据。
+- 设备绑定（可选，macOS）：保留同一 LDK，另用凭据库独立槽位中的 Secure Enclave 密钥协商秘密 `S` 与 LUK 共同派生登录封装钥，`S` 单独派生快速解锁封装钥，并删除只靠 LUK 的封装；此后每条正常解锁路径都需要本机硬件。退出登录、关闭快速解锁或任何错误都不删除槽位，也不回退旧封装；只防开启后复制的工作区。后台在线时内存中的设备签名钥匙与常驻 Agent ID 的凭据库副本不受其保护。精确编码见[账户合同](protocol/account_root_zh.md)。
 - 登录保留：需要人在场的快速解锁开启时，登录解锁后把限定 targets 的登录钥匙与 delegation 链（30 天）用 LDK 封存为 `login` 记录；锁定只清内存，之后的快速解锁从中恢复登录直到过期。没有人在场验证的设备不保存登录；关闭快速解锁或重置工作区时删除。
 
 ### 5.3 存储的明文边界
@@ -237,13 +240,14 @@ sealed     = HPKE-Auth.Seal(skS = 应答设备的 HPKE 私钥, pkR = result_key,
                             info = aad = ["dmsg/connect-response/v1", account_id, pairing_id, request_id, version, device_id])
 ```
 
-锁定的设备只取回并原样保存信封，解锁后才解封、核对配对 grant 与页面签名，再进入审批中心。回复以 Auth 模式密封给桥接页为每个操作生成的不可导出结果密钥：中继读不到，不持有应答设备 HPKE 私钥的一方也伪造不了。页面 origin 是桥接页用配对密钥签名的陈述，设备核对应用登记后显示，不是密码学证明。MCP Events 的投递同样由中继密封给设备的 HPKE 公钥，设备核对签名后在 LDK 下封存。登录 delegation 限制目标 canisters（含 ledger）、申请 30 天；会话私钥用后即弃，限定后的登录钥匙在内存中，只在快速解锁需要人在场时以 LDK 封存落盘。签名只能证明某设备批准了确定数据，不能密码学证明真人阅读了内容。
+锁定的设备只取回并原样保存信封，解锁后才解封、核对配对 grant 与页面签名，再进入审批中心。回复以 Auth 模式密封给桥接页为每个操作生成的不可导出结果密钥：中继读不到，不持有应答设备 HPKE 私钥的一方也伪造不了。页面 origin 是桥接页用配对密钥签名的陈述，设备核对应用登记后显示，不是密码学证明。MCP Events 的投递同样由中继密封给设备的 HPKE 公钥，设备核对签名后在 LDK 下封存。登录 delegation 限制目标 canisters（含 ledger）、申请 30 天；会话私钥用后即弃，限定后的登录钥匙在内存中，只在快速解锁需要人在场时以 LDK 封存落盘。签名只能证明某设备批准了确定数据，不能密码学证明真人阅读了内容。账户开启硬件批准后，账户、设备与 Agent 主体变更（可选付款与正式认证）另需该设备登记的批准钥匙签名，由 user home 核验：设备软件钥匙与登录同时失窃时不能立即执行这些操作，但登录恢复仍可在等待期后接管；它证明登记的钥匙参与了批准，不证明钥匙所在的硬件或人的意图。
 
 ## 11. 验证边界
 
 | 事项 | 当前源码与验证入口 | 仍需独立证据 |
 | --- | --- | --- |
 | 登录与快速解锁 | `workspace`、`client`、`secure` 及其单元测试，桌面登录/锁定流程 | 真实 II origin、Touch ID、各平台凭据库及分发构建 |
+| 批准钥匙与设备绑定 | `dmsg_user` 单元测试与 PocketIC（强制、旧 Candid、恢复、schema 15 升级），`approval_key`、`workspace`、`client` 单元测试，JS 独立核对 P-256 向量 | 真机 Touch ID、仅当前指纹的失效判定、Secure Enclave 错误码 |
 | 根包与登录恢复 | `root` / `recovery` 和 PocketIC；桌面已接入申请、取消、完成与恢复后换根 | 真实用户全设备丢失演练、生产 vetKD 配置与费用 |
 | 多 home 路由 | `account::find_account` 并行查询注册表中的全部 homes；任一失败即返回未知 | 生产多实例故障与吞吐；跨 home Principal 唯一性按设计不保证 |
 | 文件与凭据使用 | `library`、`secrets` 的分块完整性、独立分享、审批与撤销测试 | 正式原生挂载模块、真实外部服务、用户已取得副本的处理 |

@@ -1,7 +1,7 @@
 //! Exact third-party approvals, separate from document billing and vault access.
 use crate::{account, state::AccountState, store};
 use candid::Principal;
-use dmsg_protocol::{canonical, digest, integration::*};
+use dmsg_protocol::{application_purpose, canonical, digest, integration::*};
 use dmsg_runtime::cert_map::leaf_hash;
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, user::*, *};
@@ -59,6 +59,18 @@ fn purpose_capability(purpose: &ApprovalPurpose) -> Capability {
     }
 }
 
+/// What an approval of an application `purpose` needs: the device's
+/// capability and the hardware purpose it falls under.
+fn application_needs(purpose: &ApprovalPurpose) -> (Capability, Option<HardwarePurpose>) {
+    (purpose_capability(purpose), application_purpose(purpose))
+}
+
+/// What a third-party authentication needs.
+const AUTHENTICATION_NEEDS: (Capability, Option<HardwarePurpose>) = (
+    Capability::FormalApprove,
+    Some(HardwarePurpose::Attestation),
+);
+
 fn capability(body: &ExternalBody) -> Capability {
     match body {
         ExternalBody::Application(a) => purpose_capability(&a.purpose),
@@ -90,9 +102,10 @@ fn precheck<T: Serialize>(
     approval: &Approval,
     domain: &str,
     command: &T,
-    capability: Capability,
+    needs: (Capability, Option<HardwarePurpose>),
     at: u64,
 ) -> Result<()> {
+    let (capability, purpose) = needs;
     current_device(
         account,
         approval.device_id,
@@ -105,7 +118,7 @@ fn precheck<T: Serialize>(
         approval,
         domain,
         command,
-        (Some(capability), false),
+        (Some(capability), false, purpose),
         at,
     )?;
     Ok(())
@@ -271,7 +284,7 @@ async fn approve_authentication(
         &approval,
         AUTH_DOMAIN,
         &request,
-        Capability::FormalApprove,
+        AUTHENTICATION_NEEDS,
         at,
     )?;
     check_quota(&state, at)?;
@@ -294,7 +307,7 @@ async fn approve_authentication(
         &approval,
         AUTH_DOMAIN,
         &request,
-        Capability::FormalApprove,
+        AUTHENTICATION_NEEDS,
         at,
     )?;
     validate_authentication(&request, &app, at)?;
@@ -407,7 +420,7 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &approval,
         APPLICATION_DOMAIN,
         &application,
-        purpose_capability(&application.purpose),
+        application_needs(&application.purpose),
         at,
     )?;
     check_quota(&state, at)?;
@@ -430,7 +443,7 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &approval,
         APPLICATION_DOMAIN,
         &application,
-        purpose_capability(&application.purpose),
+        application_needs(&application.purpose),
         at,
     )?;
     let product = product.ok_or(Error::NotFound)?;

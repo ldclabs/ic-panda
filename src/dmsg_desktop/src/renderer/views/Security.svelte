@@ -12,9 +12,13 @@
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
-  import { purposeLabels } from '../approval'
+  import { hardwarePurposeLabels, purposeLabels } from '../approval'
 
-  /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
+  /**
+   * Bound logins, approvals of other devices and logins, the signing
+   * policy, approval keys, device-bound unlock and recovery. Every account
+   * change is an approval request.
+   */
   let alive = true
   onDestroy(() => { alive = false })
   let security = $state<any>(null)
@@ -27,6 +31,18 @@
   let busy = $state(false)
   /** Unlocked without a login, as a fast unlock without Touch ID is; the login opens the page. */
   let needsLogin = $state(false)
+  /** This device's approval key, every device's and the purposes they are required for. */
+  let keys = $state<any>(null)
+  let biometryOnly = $state(false)
+  let extra = $state<string[]>([])
+  /** A key request this device made for another device to approve. */
+  let made = $state<any>(null)
+  let keyRequest = $state('')
+  let keyDevice = $state('')
+  /** What binding to the hardware left uncovered. */
+  let unprotected = $state<any>(null)
+  const OPTIONAL = ['payment', 'attestation']
+  const CONTROL = ['account_control', 'device_control', 'principal_control']
 
   // A field follows the account only when the account's value changed, so an edit under way stays.
   const reload = single(async () => {
@@ -40,6 +56,10 @@
       if (next.recovery_delay_ms !== security?.recovery_delay_ms) days = String(Math.round(next.recovery_delay_ms / 86_400_000))
       security = next
       needsLogin = false
+      const key: any = await call('device/key').catch(() => null)
+      if (!alive) return
+      if (String(key?.policy) !== String(keys?.policy)) extra = (key?.policy ?? []).filter((p: string) => OPTIONAL.includes(p))
+      keys = key
     } catch (e) {
       if (!alive) return
       security = null
@@ -80,6 +100,26 @@
       request = ''
       shown = ''
     })
+
+  /** A key made here for a device that has one to register; this device asks for Touch ID now. */
+  const requestKey = () =>
+    guard(async () => {
+      made = await call('device/key_request', { biometry_only: biometryOnly })
+    })
+
+  /** Binding to the hardware rewraps the local data key; Touch ID is asked once. */
+  const bind = (enable: boolean) =>
+    guard(async () => {
+      const answer: any = await call('session/device_bound', { enable, biometry_only: biometryOnly })
+      if (!alive) return
+      unprotected = enable ? answer.unprotected : null
+      await reload()
+    })
+
+  const purposeText = (list: string[]) => list.map((p) => (hardwarePurposeLabels[p] ? t(hardwarePurposeLabels[p]) : p)).join(', ')
+  const required = $derived((keys?.policy ?? []).length > 0)
+  const own = $derived(keys?.key ?? null)
+  const missing = $derived((keys?.devices ?? []).filter((d: any) => !d.key_id))
 
   /** The second login happens in the browser, followed by the login dialog; its approval request opens when it arrives. */
   const bindLogin = () => startLogin(true)
@@ -162,6 +202,103 @@
       </div>
     </div>
   </Section>
+
+  {#if keys}
+    <Section title={t('approvalKeys')} description={t('approvalKeysHint')} icon="key" testid="approval-keys">
+      {#snippet actions()}
+        <Pill tone={required ? 'forest' : 'neutral'}>{required ? t('keysRequired') : t('keysNotRequired')}</Pill>
+      {/snippet}
+      <div class="grid gap-4">
+        {#if !keys.available}
+          <Notice testid="approval-keys-unavailable">{t('approvalKeysUnavailable')}</Notice>
+        {/if}
+        <div class="flex flex-wrap items-center gap-2" data-testid="approval-key-own">
+          <span class="text-[12.5px] text-faint">{t('thisDevice')}</span>
+          {#if own?.fingerprints_changed}
+            <Pill tone="danger">{t('fingerprintsChanged')}</Pill>
+          {:else if own?.here}
+            <Pill tone="ok">{t('keyRegistered')}</Pill>
+            {#if own.biometry_only}<Pill tone="neutral">{t('touchIdOnly')}</Pill>{/if}
+          {:else if own}
+            <Pill tone="warn">{t('keyElsewhere')}</Pill>
+          {:else}
+            <Pill tone="neutral">{t('keyNotRegistered')}</Pill>
+          {/if}
+          <span class="flex-1"></span>
+          {#if keys.available}
+            {#if keys.biometry}<Checkbox checked={biometryOnly} onCheckedChange={(on) => (biometryOnly = on)}>{t('biometryOnly')}</Checkbox>{/if}
+            <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="approval-key-register" onclick={() => ask('device/key_register', { biometry_only: biometryOnly })}>
+              <Icon name="key" />{own ? t('replaceKey') : t('registerKey')}
+            </button>
+          {/if}
+          {#if own}
+            <button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => ask('device/key_retire', {})}>{t('retireKey')}</button>
+          {/if}
+        </div>
+        <div class="grid gap-2">
+          <span class="text-[12px] text-faint">{t('keysRequiredFor')}: {purposeText(CONTROL)}</span>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {#each OPTIONAL as p (p)}
+              <Checkbox checked={extra.includes(p)} onCheckedChange={(on) => (extra = on ? [...extra, p] : extra.filter((x) => x !== p))}>{t(hardwarePurposeLabels[p])}</Checkbox>
+            {/each}
+            <span class="flex-1"></span>
+            {#if required}
+              <button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => ask('account/hardware_policy', { purposes: [] })}>{t('stopRequiring')}</button>
+            {/if}
+            <button class={buttonClass('primary', 'sm')} disabled={busy || !own?.here} data-testid="approval-keys-require" onclick={() => ask('account/hardware_policy', { purposes: [...CONTROL, ...extra] })}>
+              {required ? t('save') : t('requireKeys')}
+            </button>
+          </div>
+          {#if missing.length}
+            <p class="text-[12px] text-faint" data-testid="approval-keys-missing">{t('devicesWithoutKeysHint', { n: missing.length })}</p>
+          {/if}
+        </div>
+        {#if keys.available}
+          <div class="grid gap-2 border-t border-line pt-3">
+            <span class="text-[12px] text-faint">{t('keyRequestHint')}</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={requestKey}>{t('keyRequest')}</button>
+            </div>
+            {#if made}
+              <Field label={t('deviceShown')}><input readonly value={made.device_id} class="font-mono text-[12.5px]" /></Field>
+              <Field label={t('pasteRequest')}><textarea readonly rows="2" value={made.token} class="font-mono text-[11.5px]" data-testid="approval-key-token"></textarea></Field>
+            {/if}
+          </div>
+        {/if}
+        <div class="grid gap-2 border-t border-line pt-3">
+          <Field label={t('pasteRequest')}><textarea bind:value={keyRequest} rows="2" class="font-mono text-[11.5px]" data-testid="approval-key-request"></textarea></Field>
+          <div class="flex flex-wrap items-end gap-2">
+            <Field label={t('deviceShown')} class="min-w-60 flex-1"><input bind:value={keyDevice} class="font-mono text-[12.5px]" /></Field>
+            <button class={buttonClass('secondary')} disabled={busy || !keyRequest.trim() || !keyDevice.trim()} onclick={() => ask('device/key_approve', { token: keyRequest.trim(), device: keyDevice.trim() })}>
+              {t('approveKeyRequest')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Section>
+
+    {#if keys.available}
+      <Section title={t('deviceBound')} description={t('deviceBoundHint')} icon="lock" testid="device-bound">
+        {#snippet actions()}
+          <Pill tone={keys.device_bound ? 'forest' : 'neutral'}>{keys.device_bound ? t('on') : t('off')}</Pill>
+        {/snippet}
+        <div class="flex flex-wrap items-center gap-2">
+          {#if !keys.device_bound && keys.biometry}<Checkbox checked={biometryOnly} onCheckedChange={(on) => (biometryOnly = on)}>{t('biometryOnly')}</Checkbox>{/if}
+          <span class="flex-1"></span>
+          <button class={buttonClass(keys.device_bound ? 'secondary' : 'primary', 'sm')} disabled={busy} data-testid="device-bound-toggle" onclick={() => bind(!keys.device_bound)}>
+            {keys.device_bound ? t('deviceBoundOff') : t('deviceBoundOn')}
+          </button>
+        </div>
+        {#if unprotected && (unprotected.background_online || unprotected.resident_agents)}
+          <Notice tone="warn" testid="device-bound-unprotected">
+            {t('deviceBoundUncovered')}
+            {#if unprotected.background_online}{t('uncoveredResident')}{/if}
+            {#if unprotected.resident_agents}{t('uncoveredAgents', { n: unprotected.resident_agents })}{/if}
+          </Notice>
+        {/if}
+      </Section>
+    {/if}
+  {/if}
 
   <Section title={t('recovery')} description={t('recoveryDelayHint')} icon="recovery">
     <div class="grid gap-3">

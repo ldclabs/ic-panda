@@ -67,6 +67,8 @@ pub(crate) fn create(
         handle_authorizations: BTreeMap::new(),
         execution_expirations: BTreeMap::new(),
         principal_updated_at: None,
+        approval_keys: BTreeMap::new(),
+        hardware_policy: vec![],
     })
 }
 
@@ -91,16 +93,20 @@ pub(crate) fn check_admission(
     )
 }
 
+/// The single check of a device approval: the caller's binding, the
+/// device's state and rights, the epoch, sequence and deadline, its Ed25519
+/// signature, and the approval-key proof the account requires for
+/// `required.2` or that comes with it anyway.
 pub(crate) fn check_device<'a, T: serde::Serialize>(
     s: &'a AccountState,
     caller: Principal,
     approval: &Approval,
     domain: &str,
     payload: &T,
-    required: (Option<Capability>, bool),
+    required: (Option<Capability>, bool, Option<HardwarePurpose>),
     now: u64,
 ) -> Result<&'a Device> {
-    let (capability, admin) = required;
+    let (capability, admin, purpose) = required;
     authenticated(caller)?;
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
     let device = s
@@ -122,11 +128,26 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
     check_sequence(device.next_sequence, approval.sequence)?;
     expiry(now, approval.expires_at, 5 * MINUTE)?;
     nonzero(approval.request_id.as_slice())?;
+    let message = approval_message(s.home_user, &s.account_id, domain, payload, approval);
     verify(
         &device.input.signing_pub,
-        approval_message(s.home_user, &s.account_id, domain, payload, approval).as_slice(),
+        message.as_slice(),
         approval.signature.as_slice(),
     )?;
+    match &approval.hardware {
+        Some(proof) => verify_hardware(
+            s.approval_keys
+                .get(&approval.device_id)
+                .ok_or(Error::Forbidden)?,
+            message,
+            proof,
+        )?,
+        // Only the account's policy decides; a request cannot opt out.
+        None => ensure(
+            purpose.is_none_or(|p| !s.hardware_policy.contains(&p)),
+            Error::Forbidden,
+        )?,
+    }
     Ok(device)
 }
 
@@ -226,17 +247,23 @@ pub(crate) fn authorize_mutation(
         return Ok(Authorized::Replay(r.clone()));
     }
     let payload = (&m.expected_version, &m.command);
+    // Any active device disputes a recovery and sets its own approval key.
+    let anyone = match &m.command {
+        AccountCommand::DisputeRecovery { .. } => true,
+        AccountCommand::SetApprovalKey { device_id, .. } => *device_id == m.approval.device_id,
+        _ => false,
+    };
+    let (capability, admin) = match anyone {
+        true => (None, false),
+        false => (Some(Capability::RootManage), true),
+    };
     check_device(
         s,
         caller,
         &m.approval,
         "dmsg/account/v2",
         &payload,
-        if matches!(m.command, AccountCommand::DisputeRecovery { .. }) {
-            (None, false)
-        } else {
-            (Some(Capability::RootManage), true)
-        },
+        (capability, admin, command_purpose(&m.command)),
         now,
     )?;
     ensure(
@@ -327,6 +354,7 @@ pub(crate) fn apply(
             let d = next.devices.get_mut(device_id).ok_or(Error::NotFound)?;
             ensure(d.revoked_at.is_none(), Error::DeviceNotApproved)?;
             d.revoked_at = Some(now);
+            next.approval_keys.remove(device_id);
             ensure_valid(has_administrator(&next), "last administrator")?;
             changed(&mut next, &s.root_recipients());
         }
@@ -497,6 +525,58 @@ pub(crate) fn apply(
             let r = next.pending_recovery.as_ref().ok_or(Error::NotFound)?;
             ensure(r.request.op_id == *op_id, Error::IdempotencyConflict)?;
             next.pending_recovery = None;
+        }
+        AccountCommand::SetApprovalKey { device_id, key } => {
+            let device = next.devices.get(device_id).ok_or(Error::NotFound)?;
+            ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+            match key {
+                Some(key) => {
+                    let key_id = approval_key_id(&key.public_key)?;
+                    verify_p256(
+                        &key.public_key,
+                        approval_key_message(
+                            s.home_user,
+                            &s.account_id,
+                            *device_id,
+                            &key.public_key,
+                        )
+                        .as_slice(),
+                        &key.proof,
+                    )?;
+                    ensure(
+                        next.approval_keys
+                            .iter()
+                            .all(|(id, k)| id == device_id || k.key_id != key_id),
+                        Error::IdempotencyConflict,
+                    )?;
+                    next.approval_keys.insert(
+                        *device_id,
+                        ApprovalKey {
+                            key_id,
+                            public_key: key.public_key.clone(),
+                            registered_at: now,
+                            registered_by: m.approval.device_id,
+                        },
+                    );
+                }
+                None => {
+                    next.approval_keys
+                        .remove(device_id)
+                        .ok_or(Error::NotFound)?;
+                }
+            }
+            // Approvals in flight were made under the old keys.
+            invalidate_approvals(&mut next);
+        }
+        AccountCommand::SetHardwarePolicy { purposes } => {
+            validate_hardware_policy(purposes)?;
+            // Turning it on shows one key that works: the approver's own.
+            ensure(
+                purposes.is_empty() || m.approval.hardware.is_some(),
+                Error::Forbidden,
+            )?;
+            next.hardware_policy = purposes.clone();
+            invalidate_approvals(&mut next);
         }
         AccountCommand::EnablePrincipal { .. }
         | AccountCommand::UpdatePrincipal { .. }

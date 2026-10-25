@@ -136,6 +136,7 @@ fn finished(device: Hash, text: &str, created_at: u64) -> Attestation {
                 request_id: Hash::new([created_at as u8; 32]),
                 expires_at: created_at + 60_000,
                 signature: Ed25519Signature::new([4; 64]),
+                hardware: None,
             },
         }),
         stage: Stage::Complete,
@@ -361,12 +362,24 @@ async fn a_high_risk_approval_waits_for_the_person() {
             Some(Presence::Biometrics)
         }
 
-        fn create(&self) -> Result<(Vec<u8>, Vec<u8>, zeroize::Zeroizing<crate::crypto::Key>)> {
+        fn create(
+            &self,
+            _: bool,
+        ) -> Result<(Vec<u8>, Vec<u8>, zeroize::Zeroizing<crate::crypto::Key>)> {
             Err(Error::Unavailable("test".into()))
         }
 
-        fn open(&self, _: &[u8], _: &[u8]) -> Result<zeroize::Zeroizing<crate::crypto::Key>> {
+        fn open(
+            &self,
+            _: &[u8],
+            _: &[u8],
+            _: bool,
+        ) -> Result<zeroize::Zeroizing<crate::crypto::Key>> {
             Err(Error::Unavailable("test".into()))
+        }
+
+        fn biometry_state(&self) -> Option<Hash> {
+            None
         }
 
         fn confirm(&self, what: &str) -> Result<()> {
@@ -395,7 +408,11 @@ async fn a_high_risk_approval_waits_for_the_person() {
     assert!(client.approval_presence(&request.id).unwrap().is_none());
     let hardware = std::sync::Arc::new(Asking(AtomicBool::new(false)));
     client.set_presence_key(hardware.clone());
-    let (key, what) = client.approval_presence(&request.id).unwrap().unwrap();
+    let (crate::approval::Ask::Presence(key), what) =
+        client.approval_presence(&request.id).unwrap().unwrap()
+    else {
+        panic!("a presence check")
+    };
     // Declined: the request keeps waiting and says why.
     let error = key.confirm(&what).unwrap_err();
     client.approval_unconfirmed(&request.id, &error).unwrap();
@@ -966,6 +983,8 @@ fn a_sequence_another_attestation_holds_is_not_signed_again() {
             root_slot: None,
             vault_write_state: VaultWriteState::Ready,
             sensitive_policy: SensitivePolicy::default(),
+            approval_keys: Default::default(),
+            hardware_policy: vec![],
         },
         security: crate::testing::security(1, devices),
     };

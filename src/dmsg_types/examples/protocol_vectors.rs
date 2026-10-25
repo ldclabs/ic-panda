@@ -154,6 +154,7 @@ fn main() {
         request_id,
         expires_at: 1_800_000_000_000,
         signature: Default::default(),
+        hardware: None,
     };
     let origin = "https://example.com";
     let attest = |statement: &Statement, tbs: &[u8]| AttestRequest {
@@ -199,6 +200,9 @@ fn main() {
                 a,
             )
         );
+        if name == "attest_approval_v1" {
+            values.extend(hardware_vectors(home_user, &account, sha256(&preimage)));
+        }
         values.push(vector(name, preimage));
     }
     let derive = DeriveRootRequest {
@@ -286,4 +290,53 @@ fn main() {
     );
     values.push(vector("account_admission_v1", admission));
     println!("{}", serde_json::to_string_pretty(&values).unwrap());
+}
+
+/// An approval key's identifier, its proof of possession and its proof for
+/// the approval whose `approval_message` is `message`, each with the P-256
+/// signature over its SHA-256 the Secure Enclave makes (`r || s`, low `s`).
+fn hardware_vectors(home: Principal, account: &AccountId, message: Hash) -> Vec<serde_json::Value> {
+    use p256::ecdsa::{Signature, SigningKey, signature::Signer};
+    let key = SigningKey::from_slice(&[7; 32]).unwrap();
+    let public = key.verifying_key().to_sec1_point(true).as_bytes().to_vec();
+    let key_id = approval_key_id(&public).unwrap();
+    let device = Hash::new([2; 32]);
+    let preimages = [
+        (
+            "hardware_key_id_v1",
+            canonical(&(
+                1u8,
+                "dmsg/hardware-key/v1",
+                serde_bytes::Bytes::new(&public),
+            )),
+            key_id,
+        ),
+        (
+            "approval_key_v1",
+            canonical(&(
+                1u8,
+                "dmsg/approval-key/v1",
+                (home, account, device, serde_bytes::Bytes::new(&public)),
+            )),
+            approval_key_message(home, account, device, &public),
+        ),
+        (
+            "hardware_approval_v1",
+            canonical(&(1u8, "dmsg/hardware-approval/v1", (message, key_id))),
+            hardware_message(message, key_id),
+        ),
+    ];
+    preimages
+        .into_iter()
+        .map(|(name, preimage, expected)| {
+            assert_eq!(sha256(&preimage), expected);
+            let signature: Signature = key.sign(expected.as_slice());
+            let signature: [u8; 64] = signature.normalize_s().to_bytes().into();
+            verify_p256(&public, expected.as_slice(), &signature).unwrap();
+            let mut value = vector(name, preimage);
+            value["p256_public_hex"] = hex::encode(&public).into();
+            value["p256_signature_over_sha256_hex"] = hex::encode(signature).into();
+            value
+        })
+        .collect()
 }

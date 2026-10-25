@@ -346,6 +346,20 @@ Rules (`src/main/policy.ts`):
   delegation and is discarded on removal, lock or account switch.
   Approving another device's pairing takes the device ID shown on that device
   and opens a high-risk approval request with its role and capabilities.
+- Security → Approval keys shows this Mac's Secure Enclave approval key,
+  every device's and the purposes keys are required for. Registering a key
+  (optionally Touch ID only), retiring one, requiring keys for account,
+  device and Agent principal changes (and optionally payments and formal
+  signatures) and approving another device's key request are approval
+  requests; requiring keys is offered only once this device has one, and the
+  approval window lists the devices it shuts out. "Ask another device" makes
+  a key here, asks Touch ID once and shows the request to approve on a
+  device with a key. On a device with a registered key a high-risk or
+  protected approval asks Touch ID through the key instead of the presence
+  check.
+- Security → Device-bound unlock binds the account's local data to this
+  Mac's Secure Enclave (asking Touch ID once) and lists what it leaves out;
+  unbinding needs a login.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer. A web
   application's checkout is quoted in the approval window (an asset, or a
@@ -467,7 +481,8 @@ and notifications instead of the system's. It covers:
   its report saved; the authorizations in force; and the approval window
   hiding its request while locked and showing it again once unlocked;
 - settings: an edit of the signing policy kept while events reload the
-  page, a login binding approved in the approval window, a device
+  page, a login binding approved in the approval window, a device pairing
+  and an approval key's registration as approval requests, a device
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
   `inbox` and `channel` hints notified once each, fast unlock turned on

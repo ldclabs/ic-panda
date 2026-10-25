@@ -6,6 +6,7 @@
   import {
     actionValue,
     changeLabels,
+    hardwarePurposeLabels,
     holdToApprove,
     kindOf,
     pickLabel,
@@ -331,6 +332,9 @@
 
   const locked = $derived(!!status && status.state !== 'unlocked')
   const d = $derived(request?.detail ?? {})
+  /** The purposes a hardware policy names, as read. */
+  const purposeNames = (list?: string[]) =>
+    list?.length ? list.map((p) => (hardwarePurposeLabels[p] ? t(hardwarePurposeLabels[p]) : p)).join(', ') : t('nothingRequired')
   const s = $derived(statementOf(request))
   const rendered = $derived(renderedAction(request))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
@@ -468,6 +472,18 @@
           [t('afterRotate'), false],
           [t('afterCopies'), true]
         ]
+      case 'approval_key':
+        return [[t('afterApprovalKey'), false]]
+      case 'approval_key_retire':
+        return [[t('afterRetireApprovalKey'), true]]
+      case 'hardware_policy':
+        return d.purposes?.length
+          ? [
+              [t('afterRequireKeys'), false],
+              ...(d.without_keys?.length ? [[t('afterWithoutKeys', { n: d.without_keys.length }), true] as [string, boolean]] : []),
+              [t('afterRecoveryStill'), true]
+            ]
+          : [[t('afterStopRequiring'), true]]
       case 'wallet':
         if (d.action === 'create') return [[t('twAfterCreate'), false], final]
         if (d.action === 'join') return [[t('twAfterJoin'), false]]
@@ -785,6 +801,15 @@
               {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
             {:else if request.type === 'device_revoke'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
+            {:else if request.type === 'approval_key' || request.type === 'approval_key_retire'}
+              {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true, testid: 'approval-device' })}
+              {#if d.key_id}{@render row(t('approvalKey'), d.key_id, { mono: true, testid: 'approval-key-id' })}{/if}
+            {:else if request.type === 'hardware_policy'}
+              {@render row(t('approvalKeysRequiredFor'), purposeNames(d.purposes), { testid: 'approval-hardware-purposes' })}
+              {@render row(t('previously'), purposeNames(d.previous))}
+              {#if d.without_keys?.length}
+                {@render row(t('devicesWithoutKeys'), d.without_keys.join('\n'), { mono: true, multiline: true, testid: 'approval-without-keys' })}
+              {/if}
             {:else if request.type === 'handle'}
               {@render nameRows()}
             {:else if request.type === 'wallet'}

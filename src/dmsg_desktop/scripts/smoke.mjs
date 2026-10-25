@@ -367,7 +367,7 @@ let deferPrincipal = true
 function created(id, type, detail) {
   // The daemon rates the risk: payments, adding, changing or revoking devices, control of the account and moving a name are held.
   const named = type === 'handle' && (detail.total != null || detail.action === 'Transfer')
-  const risk = named || ['checkout', 'letter', 'device_pair', 'device_capabilities', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
+  const risk = named || ['checkout', 'letter', 'device_pair', 'device_capabilities', 'device_revoke', 'account', 'principal', 'approval_key', 'approval_key_retire', 'hardware_policy'].includes(type) ? 'high' : 'normal'
   const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, risk, digest: 'f0'.repeat(32), detail }
   requests.set(id, r)
   return r
@@ -763,6 +763,19 @@ const methods = {
       }
     })
   },
+  'device/key': () => ({
+    available: true,
+    device_bound: false,
+    biometry: true,
+    key: null,
+    waiting: [],
+    policy: [],
+    devices: [
+      { device_id: '11'.repeat(32), this_device: true, key_id: null },
+      { device_id: '12'.repeat(32), this_device: false, key_id: null }
+    ]
+  }),
+  'device/key_register': (p) => created('5b'.repeat(32), 'approval_key', { device_id: '11'.repeat(32), this_device: true, key_id: '5a'.repeat(32) }),
   'device/approve': (p) => {
     assert.equal(p.source, 'gui')
     assert.equal(p.token, 'pairing-token')
@@ -1348,6 +1361,7 @@ const announced = {
   'approval/check_file': ['approval/changed'],
   'device/capabilities': ['approval/changed'],
   'device/approve': ['approval/changed'],
+  'device/key_register': ['approval/changed'],
   'device/revoke': ['approval/changed'],
   'account/bind_approve': ['approval/changed'],
   'approval/quote': ['approval/changed'],
@@ -3638,6 +3652,15 @@ smoke: try {
   assert.equal(await approval.textContent('[data-testid="approval-device"]'), '34'.repeat(32))
   assert.deepEqual(latest('device/approve').params, { token: 'pairing-token', device: '34'.repeat(32), source: 'gui' })
   await approval.screenshot({ path: join(shots, 'approval-pair.png') })
+  // An approval key is registered through the approval center too; keys
+  // can be required only once this device has one.
+  await main.waitForSelector('[data-testid="approval-keys"]')
+  assert.equal(await main.locator('[data-testid="approval-keys-require"]').isDisabled(), true)
+  await main.click('[data-testid="approval-key-register"]')
+  await approval.waitForSelector('[data-testid="approval-key-id"]', { timeout: 20_000 })
+  assert.equal(await approval.textContent('[data-testid="approval-key-id"]'), '5a'.repeat(32))
+  assert.deepEqual(latest('device/key_register').params, { biometry_only: false, source: 'gui' })
+  await approval.screenshot({ path: join(shots, 'approval-key.png') })
   // Another device is revoked only as an approval request.
   await main.click('[data-testid="settings-devices"]')
   await main.waitForSelector('[data-testid="security-snapshot"]')

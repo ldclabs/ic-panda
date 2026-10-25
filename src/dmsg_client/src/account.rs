@@ -16,7 +16,9 @@ use crate::ic::Ic;
 use crate::now_ms;
 use crate::workspace::AccountRef;
 use candid::{CandidType, Principal};
-use dmsg_protocol::{approval_message, authentication::verify_certified_leaf, verify};
+use dmsg_protocol::{
+    approval_message, authentication::verify_certified_leaf, command_purpose, verify,
+};
 use dmsg_types::{
     AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
     user::{
@@ -489,6 +491,7 @@ impl Client {
         let ic = self.session()?.ic.clone();
         let state = read_account(&ic, home, account).await?;
         self.observe(account, &state.security)?;
+        self.observe_hardware(&state.info);
         Ok(state)
     }
 
@@ -821,6 +824,7 @@ impl Client {
                 request_id,
                 expires_at: now_ms() + ttl,
                 signature: Ed25519Signature::new([0; 64]),
+                hardware: None,
             },
         };
         let message = approval_message(
@@ -832,6 +836,8 @@ impl Client {
         );
         mutation.approval.signature =
             Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
+        mutation.approval.hardware =
+            self.hardware_proof(&state.info, command_purpose(&mutation.command), message)?;
         let journal = Journal {
             home: account.home,
             caller: self.session()?.principal,
@@ -881,6 +887,7 @@ impl Client {
                 request_id,
                 expires_at: now_ms() + APPROVAL_MS,
                 signature: Ed25519Signature::new([0; 64]),
+                hardware: None,
             },
         };
         self.located = Some((home, account));
@@ -993,7 +1000,12 @@ pub(crate) async fn refreshed<H: Hold>(h: &H) -> Result<AccountState> {
         .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
         .await?;
     let state = read_account(&ic, account.home, &account.id).await?;
-    h.with(|c| c.observe(&account.id, &state.security)).await?;
+    h.with(|c| {
+        c.observe(&account.id, &state.security)?;
+        c.observe_hardware(&state.info);
+        Ok(())
+    })
+    .await?;
     Ok(state)
 }
 

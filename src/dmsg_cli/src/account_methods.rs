@@ -7,6 +7,7 @@
 use crate::daemon::Daemon;
 use crate::params::{account, hash, number, optional, source, text, to_json};
 use dmsg_client::{
+    approval_key,
     commerce::{self, Records},
     handle,
     hold::{Hold, Unlocked},
@@ -16,8 +17,14 @@ use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 30] = [
+pub(crate) const METHODS: [&str; 36] = [
     "account/security",
+    "account/hardware_policy",
+    "device/key",
+    "device/key_register",
+    "device/key_request",
+    "device/key_approve",
+    "device/key_retire",
     "account/bind_request",
     "account/bind_accept",
     "account/bind_approve",
@@ -57,6 +64,10 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         }
         "account/bind_approve"
         | "account/unbind"
+        | "account/hardware_policy"
+        | "device/key_register"
+        | "device/key_approve"
+        | "device/key_retire"
         | "account/policy"
         | "account/recovery_delay"
         | "recovery/dispute"
@@ -125,6 +136,48 @@ impl Daemon {
             // The user home answers without the client.
             "account/security" => {
                 return dmsg_client::security::account_security(&self.hold()).await;
+            }
+            "device/key" => return approval_key::status(&self.hold()).await,
+            "device/key_register" => {
+                let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
+                return approval_key::register_request(
+                    &self.hold(),
+                    source(params)?,
+                    biometry_only,
+                )
+                .await;
+            }
+            // The new key proves itself here, so the person is asked on
+            // this device, without the client.
+            "device/key_request" => {
+                let biometry_only = params["biometry_only"].as_bool().unwrap_or(false);
+                let h = self.hold();
+                let token = approval_key::key_request(&h, biometry_only).await?;
+                let device = h.with(|c| Ok(c.status()?.device_id)).await?;
+                return Ok(json!({"token": token, "device_id": device}));
+            }
+            "device/key_approve" => {
+                let (token, device) = (text(params, "token")?, text(params, "device")?);
+                return approval_key::approve_request(
+                    &self.hold(),
+                    source(params)?,
+                    &token,
+                    &device,
+                )
+                .await;
+            }
+            "device/key_retire" => {
+                let device = optional(params, "device", hash)?;
+                return approval_key::retire_request(&self.hold(), source(params)?, device).await;
+            }
+            "account/hardware_policy" => {
+                let purposes = params["purposes"]
+                    .as_array()
+                    .ok_or_else(|| Error::InvalidInput("purposes".into()))?
+                    .iter()
+                    .map(|p| approval_key::purpose_named(p.as_str().unwrap_or_default()))
+                    .collect::<Result<Vec<_>>>()?;
+                return approval_key::policy_request(&self.hold(), source(params)?, purposes).await;
             }
             "handle/transfer_commit" => {
                 let id = text(params, "id")?;

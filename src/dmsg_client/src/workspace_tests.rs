@@ -108,3 +108,55 @@ fn fast_unlock_opens_a_second_copy() {
     assert_eq!(ws.unlock_fast(&[4; 32]).err(), Some(Error::NotFound));
     assert!(ws.store.sealed(FAST_LDK).unwrap().is_none());
 }
+
+#[test]
+fn a_device_bound_workspace_needs_the_hardware_secret_on_every_unlock() {
+    let mut ws = Workspace::load(Store::memory().unwrap(), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    let secret = [9u8; 32];
+    ws.bind(&keys, account(), &secret).unwrap();
+    let keys = ws.unlock(&secret).unwrap();
+    ws.put_private(&keys, "note", &"kept").unwrap();
+    ws.enable_fast(&keys, &[3; 32], 2, true).unwrap();
+    let (device, slot) = ([4u8; 32], Hash::new([6; 32]));
+    ws.bind_device(&keys, &secret, &device, slot, 3).unwrap();
+    assert!(ws.bound().unwrap());
+    // No copy opens without the hardware secret, the old fast key's neither.
+    assert!(ws.store.sealed(LDK).unwrap().is_none());
+    assert!(matches!(ws.unlock(&secret), Err(Error::IntegrityFailed)));
+    assert!(ws.unlock_fast(&[3; 32]).is_err());
+    assert!(ws.unlock_bound(&secret, &[5; 32], slot).is_err());
+    assert!(
+        ws.unlock_bound(&secret, &device, Hash::new([7; 32]))
+            .is_err()
+    );
+    assert!(ws.unlock_bound(&[8; 32], &device, slot).is_err());
+    // The same LDK: what it sealed before still opens.
+    let again = ws.unlock_bound(&secret, &device, slot).unwrap();
+    assert_eq!(
+        ws.private::<String>(&again, "note").unwrap().as_deref(),
+        Some("kept")
+    );
+    let fast = ws.unlock_fast_bound(&device, slot).unwrap();
+    assert_eq!(*fast.signing, *keys.signing);
+    assert_eq!(
+        ws.bind_device(&keys, &secret, &device, slot, 4).err(),
+        Some(Error::Forbidden)
+    );
+    // Turning fast unlock off deletes its copy alone.
+    ws.disable_fast().unwrap();
+    assert!(ws.unlock_fast_bound(&device, slot).is_err());
+    ws.unlock_bound(&secret, &device, slot).unwrap();
+    ws.enable_fast_bound(&keys, &device, slot, 5).unwrap();
+    ws.unlock_fast_bound(&device, slot).unwrap();
+    // Unbinding seals it under the LUK alone again.
+    ws.unbind_device(&keys, &secret).unwrap();
+    assert!(!ws.bound().unwrap());
+    assert!(ws.unlock_bound(&secret, &device, slot).is_err());
+    assert!(ws.meta.fast_unlock.is_none());
+    let unbound = ws.unlock(&secret).unwrap();
+    assert_eq!(
+        ws.private::<String>(&unbound, "note").unwrap().as_deref(),
+        Some("kept")
+    );
+}

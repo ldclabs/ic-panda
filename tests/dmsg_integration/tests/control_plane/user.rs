@@ -633,6 +633,7 @@ fn user_capacity_profile() {
                 request_id: digest("capacity mutation", &i),
                 expires_at: at + 2 * MINUTE,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         m.approval.signature = device_key(i, 0)
@@ -678,6 +679,7 @@ fn user_capacity_profile() {
                 request_id: execution_request_id(&id, s.security_epoch, admin, sequence),
                 expires_at: at + 2 * MINUTE,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         request.approval.signature = key

@@ -151,6 +151,7 @@ fn approve<T: Serialize>(
         request_id: id,
         expires_at: time(&f.ic) + AUTH_TTL_MS,
         signature: Default::default(),
+        hardware: None,
     };
     approval.signature = key(1)
         .sign(approval_message(f.user, account, domain, command, &approval).as_slice())
@@ -448,6 +449,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
                 ),
                 expires_at: at + AUTH_TTL_MS,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         let statement = app_action_statement(&request).unwrap();
@@ -683,6 +685,7 @@ fn user_mixed_upgrade_profile() {
                 request_id: request.operation_id,
                 expires_at: request.expires_at_ms,
                 signature: Default::default(),
+                hardware: None,
             };
             approval.signature = key(*owner)
                 .sign(

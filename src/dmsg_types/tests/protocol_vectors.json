@@ -556,6 +556,92 @@
     "signature_over_sha256_hex": "e82c32e4d16b7786901ee5344ee7a70774ccdf23939a95fec7af2770952b727df2f9d9fe2841a03051e221bc523cf03e26266d3dbdd5f7464df677ba46bb0801"
   },
   {
+    "name": "hardware_key_id_v1",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/hardware-key/v1"
+        },
+        {
+          "bytes": "031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e"
+        }
+      ]
+    },
+    "cbor_hex": "830174646d73672f68617264776172652d6b65792f76315821031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e",
+    "sha256_hex": "50d55925bbec6b06d81ddbbfd06c3990b384781a4dbdbc724b2d453e7e0e271c",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "889a5e70f51b548619fb3d1ebf80dcd68ddcdcf476d6b88e3d1228a4a7031d6f8fd6b4f6bcac92627af1beb40eb4f2b12d0cadb0a2429f5a6f76393aaadf720f",
+    "p256_public_hex": "031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e",
+    "p256_signature_over_sha256_hex": "e568e4f7a9448f8954092e2cdafdfd71eba8b167d7722805b15c226729dfedc37855a5ae276749ababd530ebb2e9b8dc13569e226ecdc9114ef937796f4fd1cc"
+  },
+  {
+    "name": "approval_key_v1",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/approval-key/v1"
+        },
+        {
+          "array": [
+            {
+              "bytes": "000101"
+            },
+            {
+              "bytes": "010101010101010101010101"
+            },
+            {
+              "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+            },
+            {
+              "bytes": "031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e"
+            }
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "830174646d73672f617070726f76616c2d6b65792f763184430001014c010101010101010101010101582002020202020202020202020202020202020202020202020202020202020202025821031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e",
+    "sha256_hex": "a24ce5e73d5463c94dbc7f46c8ad97408ced5844027bdc7e1ef0143171fdb8d5",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "d2dd410a58fcf7ed1ff373050188c4e21fe8e512741745256cf7db3dc4923b80c258db5a37037c766e2e1eef7f0043be1bcf9796a4e081a5225460f959ce9007",
+    "p256_public_hex": "031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e",
+    "p256_signature_over_sha256_hex": "d4bd67e866ea4c0acc0db071e8996d9df3a01248e9a45b81714d2b699d8929b722e7dc5373c1bbebcdd7d5b8c360733c7010f046b9e2e2514549c1a039dfd545"
+  },
+  {
+    "name": "hardware_approval_v1",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/hardware-approval/v1"
+        },
+        {
+          "array": [
+            {
+              "bytes": "db09dd91e6e358b3df28d1c553a8a5f85d9b54ecb9ee3759f1d970078593fac4"
+            },
+            {
+              "bytes": "50d55925bbec6b06d81ddbbfd06c3990b384781a4dbdbc724b2d453e7e0e271c"
+            }
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83017819646d73672f68617264776172652d617070726f76616c2f7631825820db09dd91e6e358b3df28d1c553a8a5f85d9b54ecb9ee3759f1d970078593fac4582050d55925bbec6b06d81ddbbfd06c3990b384781a4dbdbc724b2d453e7e0e271c",
+    "sha256_hex": "a2ceaee8255ea6ead471273dd2b883172308882f827aae72dd4629c29cc8db4b",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "923de6b56bb451b866748b97a44d4a4e140fe6388bc21db35e2ee645b1aefb35e043be68be77f3af5ec4fba3af158435c1ade3b620470b4e1c0a7ea5092e3c04",
+    "p256_public_hex": "031e18532fd4754c02f3041d9c75ceb33b83ffd81ac7ce4fe882ccb1c98bc5896e",
+    "p256_signature_over_sha256_hex": "909aff70d5ca984ac7f2f43c3005c6e53d561f40a50c4ee95e32d7bbceeb942c14b54c2d72396b8a1629c3dbafa3a303e3325322afa09ae3423eadfd9ce5e08b"
+  },
+  {
     "name": "attest_approval_v1",
     "value": {
       "array": [

@@ -154,6 +154,7 @@ fn signature_domains_and_canonical_encoding_are_bound() {
         request_id: Hash::new([3; 32]),
         expires_at: 100,
         signature: Default::default(),
+        hardware: None,
     };
     let msg = approval_message(p, &AccountId([4; 12]), "root", &42u64, &a);
     a.signature = sk.sign(msg.as_slice()).to_bytes().into();

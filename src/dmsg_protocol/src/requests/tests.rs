@@ -22,6 +22,7 @@ fn approval() -> Approval {
         request_id: Hash::new([4; 32]),
         expires_at: 100,
         signature: [5; 64].into(),
+        hardware: None,
     }
 }
 

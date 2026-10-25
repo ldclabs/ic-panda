@@ -13,6 +13,8 @@ pub use signing::*;
 
 mod identity;
 pub use identity::*;
+mod hardware;
+pub use hardware::*;
 mod receipt;
 pub use receipt::*;
 

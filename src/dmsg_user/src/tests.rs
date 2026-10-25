@@ -108,6 +108,7 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
             request_id: digest("test", &(s.account_version, n)),
             expires_at: time + MINUTE,
             signature: Default::default(),
+            hardware: None,
         },
     };
     m.approval.signature = sk(n)
@@ -208,6 +209,7 @@ fn attest_request(s: &AccountState, n: u8, statement: Statement, time: u64) -> A
             ),
             expires_at: time + MINUTE,
             signature: Default::default(),
+            hardware: None,
         },
     };
     r.approval.signature = sk(n)
@@ -319,6 +321,7 @@ fn derive_request(s: &AccountState, n: u8, generation: u64, time: u64) -> Derive
             ),
             expires_at: time + MINUTE,
             signature: Default::default(),
+            hardware: None,
         },
     };
     r.approval.signature = sk(n)
@@ -2080,4 +2083,288 @@ fn principal_details_initialize_cas_and_preserve_controller_authority() {
     let before = principal.clone();
     assert!(principal_apply(&mut s, &mut principal, command(&document), 14).is_err());
     assert_eq!(principal, before);
+}
+
+/// Approval key `k`: a P-256 key, apart from every device's Ed25519 key.
+fn hw(k: u8) -> p256::ecdsa::SigningKey {
+    p256::ecdsa::SigningKey::from_slice(&[k; 32]).unwrap()
+}
+
+fn hw_public(k: u8) -> serde_bytes::ByteBuf {
+    hw(k)
+        .verifying_key()
+        .to_sec1_point(true)
+        .as_bytes()
+        .to_vec()
+        .into()
+}
+
+fn hw_sign(k: u8, message: Hash) -> P256Signature {
+    use p256::ecdsa::signature::Signer;
+    let signature: p256::ecdsa::Signature = hw(k).sign(message.as_slice());
+    P256Signature::new(signature.normalize_s().to_bytes().into())
+}
+
+/// Key `k` as registered for the fixture's device `n`, with its proof of
+/// possession.
+fn key_input(n: u8, k: u8) -> ApprovalKeyInput {
+    let public_key = hw_public(k);
+    ApprovalKeyInput {
+        proof: hw_sign(
+            k,
+            dmsg_protocol::approval_key_message(
+                p(5),
+                &AccountId([8; 12]),
+                Hash::new([n; 32]),
+                &public_key,
+            ),
+        ),
+        public_key,
+    }
+}
+
+/// Key `k`'s proof for an approval of `payload` under `domain`.
+fn prove<T: serde::Serialize>(
+    s: &AccountState,
+    approval: &mut Approval,
+    domain: &str,
+    payload: &T,
+    k: u8,
+) {
+    let message = approval_message(s.home_user, &s.account_id, domain, payload, approval);
+    let key_id = dmsg_protocol::approval_key_id(&hw_public(k)).unwrap();
+    approval.hardware = Some(HardwareProof {
+        key_id,
+        signature: hw_sign(k, dmsg_protocol::hardware_message(message, key_id)),
+    });
+}
+
+/// Apply `command` approved by device `n`, with key `k`'s proof if any.
+fn apply_as(
+    s: &mut AccountState,
+    command: AccountCommand,
+    n: u8,
+    k: Option<u8>,
+    time: u64,
+) -> Result<OperationReceipt> {
+    let mut m = mutation(s, command, n, time);
+    if let Some(k) = k {
+        let payload = (&m.expected_version, &m.command);
+        let mut approval = m.approval.clone();
+        prove(s, &mut approval, "dmsg/account/v2", &payload, k);
+        m.approval = approval;
+    }
+    account::apply(s, p(1), &m, time, p(7))
+}
+
+fn set_key(n: u8, key: Option<ApprovalKeyInput>) -> AccountCommand {
+    AccountCommand::SetApprovalKey {
+        device_id: Hash::new([n; 32]),
+        key,
+    }
+}
+
+fn hardware_policy(purposes: &[HardwarePurpose]) -> AccountCommand {
+    AccountCommand::SetHardwarePolicy {
+        purposes: purposes.to_vec(),
+    }
+}
+
+#[test]
+fn approval_keys_guard_account_control_once_the_account_requires_them() {
+    let mut s = fixture();
+    add_device(&mut s, device(2, true), 2).unwrap();
+    add_device(&mut s, device(3, false), 3).unwrap();
+    // Possession is proven for this device by this key.
+    let mut stolen = key_input(2, 31);
+    assert_eq!(
+        apply_as(&mut s, set_key(1, Some(stolen.clone())), 1, None, 4),
+        Err(Error::IntegrityFailed)
+    );
+    stolen.public_key = hw_public(32);
+    assert_eq!(
+        apply_as(&mut s, set_key(2, Some(stolen)), 1, None, 4),
+        Err(Error::IntegrityFailed)
+    );
+    // While the policy is off, the device's Ed25519 approval registers it.
+    let epoch = s.security_epoch;
+    apply_as(&mut s, set_key(1, Some(key_input(1, 31))), 1, None, 4).unwrap();
+    assert_eq!(s.security_epoch, epoch + 1);
+    let registered = &s.approval_keys[&Hash::new([1; 32])];
+    assert_eq!(
+        (registered.key_id, registered.registered_by),
+        (
+            dmsg_protocol::approval_key_id(&hw_public(31)).unwrap(),
+            Hash::new([1; 32])
+        )
+    );
+    // One key, one device.
+    assert_eq!(
+        apply_as(&mut s, set_key(2, Some(key_input(2, 31))), 1, None, 5),
+        Err(Error::IdempotencyConflict)
+    );
+    // A member sets its own key, never another device's.
+    apply_as(&mut s, set_key(3, Some(key_input(3, 33))), 3, None, 5).unwrap();
+    assert_eq!(
+        apply_as(&mut s, set_key(2, Some(key_input(2, 32))), 3, None, 6),
+        Err(Error::Forbidden)
+    );
+    // Turning it on takes the approver's proof and the control purposes.
+    assert_eq!(
+        apply_as(&mut s, hardware_policy(&CONTROL_PURPOSES), 1, None, 6),
+        Err(Error::Forbidden)
+    );
+    assert!(
+        apply_as(
+            &mut s,
+            hardware_policy(&[HardwarePurpose::Payment]),
+            1,
+            Some(31),
+            6
+        )
+        .is_err()
+    );
+    let epoch = s.security_epoch;
+    apply_as(&mut s, hardware_policy(&CONTROL_PURPOSES), 1, Some(31), 6).unwrap();
+    assert_eq!(
+        (s.security_epoch, s.info(NAMESPACE).hardware_policy),
+        (epoch + 1, CONTROL_PURPOSES.to_vec())
+    );
+    // Every control change now needs the approving device's own key.
+    let delay = AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY };
+    for (n, k) in [(1, None), (2, None), (1, Some(33)), (2, Some(31))] {
+        assert_eq!(
+            apply_as(&mut s, delay.clone(), n, k, 7),
+            Err(Error::Forbidden)
+        );
+    }
+    apply_as(&mut s, delay, 1, Some(31), 7).unwrap();
+    // A proof for one change does not carry over to another.
+    let mut m = mutation(&s, set_key(3, None), 1, 8);
+    let mut approval = m.approval.clone();
+    prove(
+        &s,
+        &mut approval,
+        "dmsg/account/v2",
+        &(&m.expected_version, &set_key(1, None)),
+        31,
+    );
+    m.approval.hardware = approval.hardware;
+    assert_eq!(
+        account::apply(&mut s, p(1), &m, 8, p(7)),
+        Err(Error::IntegrityFailed)
+    );
+    // Root rotation is not protected.
+    apply_as(
+        &mut s,
+        AccountCommand::ReserveRoot {
+            expected_generation: 0,
+            op_id: Hash::new([77; 32]),
+        },
+        1,
+        None,
+        8,
+    )
+    .unwrap();
+    // A device without a key cannot give itself one; a device with one can.
+    assert_eq!(
+        apply_as(&mut s, set_key(2, Some(key_input(2, 32))), 2, None, 9),
+        Err(Error::Forbidden)
+    );
+    apply_as(&mut s, set_key(2, Some(key_input(2, 32))), 1, Some(31), 9).unwrap();
+    apply_as(
+        &mut s,
+        AccountCommand::SetRecoveryDelay { delay_ms: 3 * DAY },
+        2,
+        Some(32),
+        10,
+    )
+    .unwrap();
+    // Revoking a device retires its key.
+    apply_as(
+        &mut s,
+        AccountCommand::RevokeDevice {
+            device_id: Hash::new([3; 32]),
+        },
+        2,
+        Some(32),
+        11,
+    )
+    .unwrap();
+    assert!(!s.approval_keys.contains_key(&Hash::new([3; 32])));
+    // Turning it off is a control change too; afterwards none is needed,
+    // but one sent is still checked.
+    assert_eq!(
+        apply_as(&mut s, hardware_policy(&[]), 1, None, 12),
+        Err(Error::Forbidden)
+    );
+    apply_as(&mut s, hardware_policy(&[]), 1, Some(31), 12).unwrap();
+    apply_as(
+        &mut s,
+        AccountCommand::SetRecoveryDelay { delay_ms: DAY },
+        2,
+        None,
+        13,
+    )
+    .unwrap();
+    assert_eq!(
+        apply_as(
+            &mut s,
+            AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY },
+            2,
+            Some(31),
+            14
+        ),
+        Err(Error::Forbidden)
+    );
+    // Retiring a key that is not there.
+    apply_as(&mut s, set_key(2, None), 2, None, 15).unwrap();
+    assert_eq!(
+        apply_as(&mut s, set_key(2, None), 2, None, 16),
+        Err(Error::NotFound)
+    );
+}
+
+#[test]
+fn optional_purposes_protect_attestations_and_recovery_resets_the_policy() {
+    let mut s = fixture();
+    apply_as(&mut s, set_key(1, Some(key_input(1, 31))), 1, None, 2).unwrap();
+    let mut purposes = CONTROL_PURPOSES.to_vec();
+    purposes.push(HardwarePurpose::Attestation);
+    apply_as(&mut s, hardware_policy(&purposes), 1, Some(31), 3).unwrap();
+    let r = attest_request(&s, 1, statement(&s), 4);
+    assert_eq!(attest(&mut s, p(1), &r, 4), Err(Error::Forbidden));
+    let mut r = attest_request(&s, 1, statement(&s), 4);
+    let command = attest_approval_command(&r.statement, &r.origin, &r.signature);
+    let mut approval = r.approval.clone();
+    prove(&s, &mut approval, ATTEST_APPROVAL_DOMAIN, &command, 31);
+    r.approval = approval;
+    attest(&mut s, p(1), &r, 4).unwrap();
+    // Recovery replaces the devices and their keys, and the policy goes.
+    let epoch = s.security_epoch;
+    recovered(&mut s, 4, 5);
+    assert!(s.security_epoch > epoch);
+    assert!(s.approval_keys.is_empty() && s.hardware_policy.is_empty());
+    let now = s.completed_recovery.as_ref().map(|_| 4 * DAY).unwrap();
+    let mut m = mutation(
+        &s,
+        AccountCommand::SetRecoveryDelay { delay_ms: DAY },
+        4,
+        now,
+    );
+    m.approval.request_id = Hash::new([78; 32]);
+    m.approval.signature = sk(4)
+        .sign(
+            approval_message(
+                s.home_user,
+                &s.account_id,
+                "dmsg/account/v2",
+                &(&m.expected_version, &m.command),
+                &m.approval,
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    account::apply(&mut s, p(4), &m, now, p(7)).unwrap();
 }

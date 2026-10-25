@@ -22,6 +22,28 @@ Client authentication binding (`dmsg_client::security`) has two routes, both req
 
 `RemoveAuth` (which cannot remove the current login), `SetPolicy` (freeze, daily executions and allowed purposes), `SetRecoveryDelay` and `DisputeRecovery` also go through the approval center. Approval records store login Principals as text, converted to commands only before signing.
 
+### Approval keys
+
+An account may require some device approvals to carry the signature of an "approval key" as well: a P-256 key the device's hardware keeps (on macOS the Secure Enclave, `.userPresence`, or optionally `.biometryCurrentSet` for the fingerprints enrolled now). Each device has at most one, registered in the user home's account state; keys are not in `Device`, `devices_root` or the security leaf, so `dmsg_directory` and the cloud's security evidence are unchanged.
+
+```text
+key_id     = digest("dmsg/hardware-key/v1", public_key)            // SEC1 compressed, 33 bytes
+possession = P256(key, digest("dmsg/approval-key/v1", (home, account_id, device_id, public_key)))
+M          = approval_message(home, account_id, domain, command, approval)   // what the device signs with Ed25519
+H          = digest("dmsg/hardware-approval/v1", (M, key_id))
+Approval.hardware = { key_id, signature = P256(key, H) }          // r || s, low s; not part of M
+```
+
+The P-256 signature is ECDSA-SHA256 over the 32 bytes of `H` (CryptoKit's `signature(for: Data(H))`); the user home refuses a high `s`. `AccountInfo` returns every device's `approval_keys` and the account's `hardware_policy`.
+
+- `SetApprovalKey { device_id, key }` registers, replaces (`key` with the new public key and its proof of possession) or retires (`None`) a key. Any active device sets its own; another device's needs an administrator; one key cannot be registered for two devices. Revoking a device retires its key.
+- `SetHardwarePolicy { purposes }`: empty turns it off; otherwise it must include the three control purposes. Turning it on needs the approving device's own valid proof.
+- Purposes: `AccountControl` (approval keys, both policies, the recovery delay, login bindings), `DeviceControl` (`AddDevice`, `RevokeDevice`, `SetDeviceCapabilities`) and `PrincipalControl` (`EnablePrincipal`, `RegisterController`, `RetireController`) are always included; `Payment` (`approve_application` for `CashCheckout` and `PandaSubscription`, `AuthorizeHandle`) and `Attestation` (`attest`, `attest_app_action`, `approve_authentication`) are optional. Root rotation, recovery disputes, the principal's display document, controller labels and compromise marks, team-wallet approvals and recovery derivation are not covered.
+- Only the user home's device-approval check verifies: a purpose the policy requires needs a valid proof by the device's registered key, and a proof sent anyway is verified too. The account state alone decides; old Candid without the `hardware` field is refused once the policy is on. Registering, replacing or retiring a key and changing the policy increment `security_epoch`, so approvals in flight lapse; commerce, membership and team wallets keep re-verifying records and epochs through `verify_application_authorization` unchanged.
+- Login recovery needs no approval key: `complete_recovery` retires every key and clears the policy at the same commit, and the replacement device registers and enables them again. With hardware approval on, taking over an account moves from "immediately, with the device's software key and a login" to "only through a delayed recovery that any device can dispute".
+
+The client (`dmsg_client::approval_key`) seals key handles under the LDK and shows them in no view or log. When a high-risk request the account protects comes to a device with a registered key, the person answers once, before the approval is assembled: the daemon obtains that presence answer without holding the client, then builds the approval, signs it with Ed25519 and signs `H` with the same answer, so waiting for the person neither holds the device sequence nor asks a second time. Once the policy is on, a device without a working key makes a key, signs its proof of possession right there and hands over a token (base64url deterministic CBOR `{format: "dmsg-approval-key/1", home, account, device_id, key}`) for an administrator device with a key to register.
+
 ## Local workspaces
 
 Each account has its own invisible-to-other-accounts workspace: `<home>/<environment>/accounts/<account>/` contains `workspace.sqlite` and Agent connector state `agents.sqlite`. A login without an account uses `logins/<principal>/`; once it creates or binds an account, the directory is renamed to `accounts/<account>/`. Login locates the account with `my_account` and selects its workspace, or the login's own workspace if there is none. Different logins for the same account share a workspace. `current` stores the last selected account for daemon restart and fast unlock. Switching accounts locks first and discards resident keys. Each workspace has its own device ID and keys, so different accounts on the same computer are distinct devices.
@@ -40,7 +62,18 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // optional
 - `unlock_secret(account_id, device_id)` is an authenticated user-home query: the caller must be an account login Principal and the device must exist and not be revoked. It returns the 32-byte `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`, where `digest(domain, value) = SHA256(CBOR([1, domain, value]))`. The home's initialization timer generates `master_secret` once with `raw_rand`, preserving it across upgrades. Revoked devices no longer receive unlock material.
 - Before account binding, a new workspace wraps LDK under a temporary random key stored in plaintext. It contains only newly generated device keys, no content, and refuses content writes. After account creation or pairing approval, the client obtains `unlock_secret`, rewraps LDK under LUK and deletes the temporary key.
 - Ordinary unlock: II login through the dmsg.net login page ([dmsg-login/1](login-v1.md), a 30-day delegation with the session private key held by the daemon) → `unlock_secret` → LUK → LDK → Bundle, all in memory. `login_unlocked_at` records the latest login unlock.
-- Fast unlock defaults on after login unlock and stays off if the person disables it; `secure_storage = "file"` has no fast unlock. `K_fast` wraps only a second LDK copy. On macOS, Secure Enclave key agreement recovers it, requiring Touch ID or the Mac login password each time and restoring the LDK-sealed 30-day login. Other platforms store a random 32-byte key in the credential store without user-presence verification or saved login. More than 30 days after login unlock, fast unlock is refused. Once online after fast unlock, the certified device table is checked; a revoked device's local data, including the sealed login, is cleared.
+- Fast unlock defaults on after login unlock and stays off if the person disables it; `secure_storage = "file"` has no fast unlock. `K_fast` wraps only a second LDK copy. On macOS, Secure Enclave key agreement recovers it, requiring Touch ID or the Mac login password each time and restoring the LDK-sealed 30-day login. Other platforms store a random 32-byte key in the credential store without user-presence verification or saved login. More than 30 days after login unlock, fast unlock is refused. Once online after fast unlock, the certified device table is checked; a revoked device's local data, including the sealed login, is cleared. When the Secure Enclave reports it cannot ask now (no Touch ID keyboard, locked out), fast unlock stays; only a key that certainly cannot be rebuilt turns it off.
+- Device binding (optional, macOS) keeps the same LDK and changes only its wrapping. A separate credential-store slot `<name>:device-bound` holds the handle and software peer of a Secure Enclave key-agreement key whose secret `S` each unlock recovers once, with the person present:
+
+  ```text
+  slot      = digest("dmsg/device-bound-key/v1", peer)
+  context   = (1, environment, account, deviceId, slot)
+  K_login   = HKDF(LUK || S, ["dmsg/local-login-bound/v1", context])
+  K_fast    = HKDF(S, ["dmsg/local-fast-bound/v1", context])
+  ldk-bound = E(K_login, LDK, ["login", context]);  ldk-fast = E(K_fast, LDK, ["fast", context])
+  ```
+
+  Enabling first recovers `S` with the new key once, then in one transaction writes `ldk-bound` and a new `ldk-fast` and deletes the copy under LUK alone; from then on both login and fast unlock need this Mac's hardware. Turning fast unlock off deletes only `ldk-fast`; signing out and any failure leave the slot, which only a workspace reset or unbinding deletes. A fingerprint-only slot reports itself lost once the fingerprints change and unavailable while the hardware cannot ask; neither falls back to the old wrapping. Unbinding wraps the LDK under LUK again. It protects only copies made after enabling: earlier copies still open the same LDK with a login, and the device signing key kept in memory with background online and resident Agent IDs' copies in the credential store are outside it, which enabling lists.
 
 ## Immutable RootBundle v2
 
@@ -85,7 +118,7 @@ Client implementation is in `dmsg_client::recovery`. The request is sealed in th
 
 1. Log in on the new device using a bound II identity and submit `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)` with PoP `dmsg/recovery-device/v1`. If II is lost too, recovery is impossible.
 2. Wait `recovery_delay_ms`, default 3 days and configurable to 1–7 days with `SetRecoveryDelay`. Existing devices see `pending_recovery_digest` in the certified leaf. Any valid device can cancel with `DisputeRecovery { op_id }`; removing the requesting login with `RemoveAuth` also invalidates it. No additional confirmation follows.
-3. After the delay, `complete_recovery(account_id, op_id)` replaces all devices and login bindings, increments `security_epoch`, marks the existing root `RekeyRequired` and records `recovered_device = (device_id, generation)`.
+3. After the delay, `complete_recovery(account_id, op_id)` replaces all devices and login bindings, retires every approval key and turns the hardware policy off, increments `security_epoch`, marks the existing root `RekeyRequired` and records `recovered_device = (device_id, generation)`.
 4. The recovering device obtains `unlock_secret` to bind locally, then calls `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`. Only `recovered_device` may derive for the current generation; the same `request_id` returns the original result, and a new approval may derive again before rotation. COSE derives the identity's vetKey and encrypts it for the transport public key. The client decrypts and verifies the vetKey, opens the root bundle's IBE envelope, then rotates to the next generation wrapped only for itself. Rotation removes derivation authority.
 
 Recovery approval uses `dmsg/derive-root/v1` with command `[generation, transport_public_key, max_cycles]`; the client commits to the cycles ceiling in its approval. Derivation and formal attestation share the account policy's daily execution limit (20 by default, at most 64 through `SetPolicy`) and 64-result retention window. A stolen II login with no device dispute during the delay exposes content; this is the tradeoff of removing recovery codes.

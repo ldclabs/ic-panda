@@ -118,6 +118,28 @@ kept sealed under the local data key and comes back with it. Elsewhere the
 key sits in the credential store, nothing asks for the person and no login is
 kept. Team-wallet cosigner keys use the Secure Enclave the same way.
 
+`device-bound enable [--biometry-only]` binds the workspace to this Mac:
+another Secure Enclave key, in a credential-store entry of its own, joins
+every unlock, the login's included, and alone opens fast unlock. Touch ID is
+asked once to check the key. It reports what stays outside it (the device
+key kept with background online, resident Agent IDs); copies of the
+workspace made before keep opening with a login. Signing out, turning fast
+unlock off and a failing key keep its entry; `device-bound disable` or a
+reset removes it. `--biometry-only` takes only the fingerprints enrolled
+now: after they change the key reports itself lost, while a missing Touch ID
+keyboard is only unavailable.
+
+Approval keys are Secure Enclave keys the account registers per device
+(`device key register|request|approve|retire`); `account hardware on|off
+[--payment] [--attestation]` requires their signature for account,
+device and Agent principal changes, and optionally payments and formal
+attestations. On a device with a registered key, a high-risk or protected
+approval asks Touch ID through the key, once, and the key signs the
+approval; a required approval on a device without one fails with
+`APPROVAL_KEY_REQUIRED`. With keys required, a device without a working key
+runs `device key request`, which asks Touch ID there and prints a request,
+and an administrator device with a key runs `device key approve`.
+
 The hardware creation test runs without a prompt:
 `cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`.
 Run it in an active macOS login session with the device unlocked. Hardware and
@@ -228,9 +250,11 @@ dmsg login [--origin dmsg.net|panda.fans] [--no-browser] [--bind]
 dmsg unlock [--fast] [--account <id>] | lock | stop
 dmsg accounts | switch <account>
 dmsg fast-unlock enable | disable
+dmsg device-bound enable [--biometry-only] | disable
 dmsg account create | show | security
 dmsg account bind-request <account> | bind-approve <request> --principal <p> | bind-accept <account>
 dmsg account unbind <principal> | policy [--freeze|--unfreeze] [--daily N] [--purposes a,b] | recovery-delay <days>
+dmsg account hardware on [--payment] [--attestation] | off
 dmsg recovery status | request | complete | dispute
 dmsg legacy delete-channel <archive-id> <canister/channel/id>
 dmsg channel delete-legacy-draft <channel-id>
@@ -238,6 +262,7 @@ dmsg legacy pair [--origin https://dmsg.net|https://panda.fans] | pairs | cancel
 dmsg legacy import <file> --nonce N --fingerprint F --principal P | list | report <id> [--offset N] [--limit N]
 dmsg legacy file <id> <source> <out> | frozen <id> <file.cbor>
 dmsg device list | pair-request [--member] | approve <request> --device <id>
+dmsg device key status | register [--biometry-only] | request [--biometry-only] | approve <request> --device <id> | retire [--device <id>]
 dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
                 [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
 dmsg vault edit <id> [--title T] [--notes N] [--username U] [--url L] [--tag T]... [--clear-tags] [--favorite|--no-favorite]
@@ -551,7 +576,8 @@ a device's capabilities or to the account's logins, signing policy,
 recovery delay or Agent principal) shows
 as such, and on a Mac whose Secure Enclave keeps the fast-unlock key
 approving it first asks for Touch ID or the login password; declined, the
-request keeps waiting. `approvals check-file <id> <file>` compares a file
+request keeps waiting. Where the account registered this device's approval
+key, that question goes through the key, which also signs the approval. `approvals check-file <id> <file>` compares a file
 with the digest a request signs (a page's document, or a digest given in
 hex) without changing what is approved; `approvals reconcile` settles
 approved requests whose outcome is not known yet, which the daemon also does

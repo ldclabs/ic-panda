@@ -15,6 +15,12 @@
 //! system keeps, or that hardware recovers only with the person present
 //! (encryption design §5.2; plan D-6); it is refused thirty days after the
 //! last unlock through a login.
+//!
+//! A device-bound workspace keeps the same LDK but no copy under the LUK
+//! alone: a hardware secret `S` from a credential-store slot of its own
+//! joins the LUK for the login unlock (`ldk-bound`) and alone opens fast
+//! unlock (`ldk-fast`), so every unlock needs this device's hardware. It
+//! protects only copies of the workspace made afterwards.
 
 use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::environment_name;
@@ -34,6 +40,9 @@ pub(crate) const META: &str = "workspace";
 const PROVISIONAL: &str = "provisional";
 const LDK: &str = "ldk";
 const FAST_LDK: &str = "ldk-fast";
+const BOUND_LDK: &str = "ldk-bound";
+/// The format of the device-bound wrapping.
+const BOUND_FORMAT: u16 = 1;
 const DEVICE: &str = "device";
 /// Largest value [`Workspace::private`] decodes.
 pub(crate) const MAX_PRIVATE: usize = 2 * 1024 * 1024;
@@ -244,6 +253,178 @@ impl Workspace {
     pub fn unlock_fast(&self, key: &Key) -> Result<Keys> {
         ensure(self.meta.fast_unlock.is_some(), Error::NotFound)?;
         self.open_keys(key, FAST_LDK, &self.fast_context()?)
+    }
+
+    /// Whether the LDK is bound to this device's hardware.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn bound(&self) -> Result<bool> {
+        Ok(self.store.sealed(BOUND_LDK)?.is_some())
+    }
+
+    /// What the device-bound keys and wrappings commit to: the format, the
+    /// environment, the account, this device and the hardware slot.
+    fn bound_context(&self, slot: Hash) -> Result<(u16, String, String, String, Hash)> {
+        let account = self
+            .meta
+            .account
+            .as_ref()
+            .ok_or(Error::RecoveryIncomplete)?;
+        Ok((
+            BOUND_FORMAT,
+            self.meta.environment.clone(),
+            account.id.to_string(),
+            hex::encode(*self.meta.device_id),
+            slot,
+        ))
+    }
+
+    /// The login wrapping key of a device-bound workspace, from the user
+    /// home's unlock secret and the hardware secret.
+    fn bound_login_key(&self, secret: &Key, device: &Key, slot: Hash) -> Result<Zeroizing<Key>> {
+        let luk = crate::crypto::unlock_key(secret, &self.name()?);
+        let joined = Zeroizing::new([luk.as_slice(), device.as_slice()].concat());
+        Ok(crate::crypto::derive(
+            &joined,
+            &("dmsg/local-login-bound/v1", self.bound_context(slot)?),
+        ))
+    }
+
+    /// The fast-unlock wrapping key of a device-bound workspace.
+    fn bound_fast_key(&self, device: &Key, slot: Hash) -> Result<Zeroizing<Key>> {
+        Ok(crate::crypto::derive(
+            device,
+            &("dmsg/local-fast-bound/v1", self.bound_context(slot)?),
+        ))
+    }
+
+    /// Bind the LDK to the hardware secret `device` of `slot`: in one
+    /// transaction seal it under the login and fast-unlock keys that need
+    /// `device`, and delete the copy under the LUK alone. The LDK and every
+    /// record it seals stay as they are.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for a workspace already bound.
+    pub fn bind_device(
+        &mut self,
+        keys: &Keys,
+        secret: &Key,
+        device: &Key,
+        slot: Hash,
+        now: u64,
+    ) -> Result<()> {
+        ensure(!self.bound()?, Error::Forbidden)?;
+        let context = self.bound_context(slot)?;
+        let login = seal(
+            &*self.bound_login_key(secret, device, slot)?,
+            keys.ldk.as_slice(),
+            &("login", &context),
+        );
+        let fast = seal(
+            &*self.bound_fast_key(device, slot)?,
+            keys.ldk.as_slice(),
+            &("fast", &context),
+        );
+        let mut meta = self.meta.clone();
+        meta.fast_unlock = (!meta.fast_declined).then_some(now);
+        meta.fast_presence = meta.fast_unlock.is_some();
+        self.store.atomic(|store| {
+            store.set_sealed(BOUND_LDK, &login)?;
+            match meta.fast_unlock {
+                Some(_) => store.set_sealed(FAST_LDK, &fast)?,
+                None => store.delete_sealed(FAST_LDK)?,
+            }
+            store.delete_sealed(LDK)?;
+            store.set_meta(META, &meta)
+        })?;
+        self.meta = meta;
+        Ok(())
+    }
+
+    /// Unlock a device-bound workspace through a login: the unlock secret
+    /// and the hardware secret of `slot`.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for either secret wrong.
+    pub fn unlock_bound(&self, secret: &Key, device: &Key, slot: Hash) -> Result<Keys> {
+        let context = self.bound_context(slot)?;
+        self.open_keys(
+            &*self.bound_login_key(secret, device, slot)?,
+            BOUND_LDK,
+            &("login", &context),
+        )
+    }
+
+    /// Fast-unlock a device-bound workspace with the hardware secret alone.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when fast unlock is off and
+    /// `Error::IntegrityFailed` for another secret.
+    pub fn unlock_fast_bound(&self, device: &Key, slot: Hash) -> Result<Keys> {
+        ensure(self.meta.fast_unlock.is_some(), Error::NotFound)?;
+        let context = self.bound_context(slot)?;
+        self.open_keys(
+            &*self.bound_fast_key(device, slot)?,
+            FAST_LDK,
+            &("fast", &context),
+        )
+    }
+
+    /// Turn fast unlock of a device-bound workspace on.
+    ///
+    /// # Errors
+    /// Returns `Error::RecoveryIncomplete` before the device has an account.
+    pub fn enable_fast_bound(
+        &mut self,
+        keys: &Keys,
+        device: &Key,
+        slot: Hash,
+        now: u64,
+    ) -> Result<()> {
+        let context = self.bound_context(slot)?;
+        let fast = seal(
+            &*self.bound_fast_key(device, slot)?,
+            keys.ldk.as_slice(),
+            &("fast", &context),
+        );
+        let mut meta = self.meta.clone();
+        meta.fast_unlock = Some(now);
+        meta.fast_presence = true;
+        meta.fast_declined = false;
+        self.store.atomic(|store| {
+            store.set_sealed(FAST_LDK, &fast)?;
+            store.set_meta(META, &meta)
+        })?;
+        self.meta = meta;
+        Ok(())
+    }
+
+    /// Undo [`Self::bind_device`]: seal the LDK under the LUK again and
+    /// delete the device-bound copies, fast unlock's included.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a workspace that is not bound.
+    pub fn unbind_device(&mut self, keys: &Keys, secret: &Key) -> Result<()> {
+        ensure(self.bound()?, Error::NotFound)?;
+        let name = self.name()?;
+        let luk = crate::crypto::unlock_key(secret, &name);
+        let wrapped = seal(
+            &luk,
+            keys.ldk.as_slice(),
+            &("dmsg/local-key/2", name.as_str()),
+        );
+        let mut meta = self.meta.clone();
+        meta.fast_unlock = None;
+        meta.fast_presence = false;
+        self.store.atomic(|store| {
+            store.set_sealed(LDK, &wrapped)?;
+            store.delete_sealed(BOUND_LDK)?;
+            store.delete_sealed(FAST_LDK)?;
+            store.set_meta(META, &meta)
+        })?;
+        self.meta = meta;
+        Ok(())
     }
 
     /// Delete the fast-unlock copy of the LDK.

@@ -293,6 +293,42 @@ pub struct AccountStateRepr {
     #[cbor(key = 29)]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pending_bindings: Vec<PendingBindingRepr>,
+    #[cbor(key = 30)]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub approval_keys: BTreeMap<Hash, ApprovalKeyRepr>,
+    #[cbor(key = 31)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hardware_policy: Vec<HardwarePurpose>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct ApprovalKeyRepr {
+    #[cbor(key = 1)]
+    pub key_id: Hash,
+    #[cbor(key = 2)]
+    pub public_key: serde_bytes::ByteBuf,
+    #[cbor(key = 3)]
+    pub registered_at: u64,
+    #[cbor(key = 4)]
+    pub registered_by: Hash,
+}
+
+fn approval_key_to_repr(key: &ApprovalKey) -> ApprovalKeyRepr {
+    ApprovalKeyRepr {
+        key_id: key.key_id,
+        public_key: key.public_key.clone(),
+        registered_at: key.registered_at,
+        registered_by: key.registered_by,
+    }
+}
+
+fn approval_key_from_repr(repr: ApprovalKeyRepr) -> ApprovalKey {
+    ApprovalKey {
+        key_id: repr.key_id,
+        public_key: repr.public_key,
+        registered_at: repr.registered_at,
+        registered_by: repr.registered_by,
+    }
 }
 
 impl StableCodec for AccountState {
@@ -339,6 +375,12 @@ impl StableCodec for AccountState {
                     device_id: r.device_id,
                     root_generation: r.root_generation,
                 }),
+            approval_keys: self
+                .approval_keys
+                .iter()
+                .map(|(id, key)| (*id, approval_key_to_repr(key)))
+                .collect(),
+            hardware_policy: self.hardware_policy.clone(),
         }
     }
 
@@ -384,6 +426,12 @@ impl StableCodec for AccountState {
                 device_id: r.device_id,
                 root_generation: r.root_generation,
             }),
+            approval_keys: repr
+                .approval_keys
+                .into_iter()
+                .map(|(id, key)| (id, approval_key_from_repr(key)))
+                .collect(),
+            hardware_policy: repr.hardware_policy,
         }
     }
 }
@@ -573,6 +621,8 @@ mod tests {
             handle_authorizations: BTreeMap::new(),
             execution_expirations: BTreeMap::new(),
             principal_updated_at: None,
+            approval_keys: BTreeMap::new(),
+            hardware_policy: vec![],
         };
         if !populated {
             return state;
@@ -723,6 +773,45 @@ mod tests {
             "{} !<= 75% of {}",
             compact.len(),
             plain.len()
+        );
+
+        // Approval keys and the hardware policy take keys of their own; the
+        // bytes above, pinned before they existed, are unchanged.
+        let mut keyed = full;
+        keyed.approval_keys = (1..=16)
+            .map(|n| {
+                (
+                    Hash::new([n; 32]),
+                    ApprovalKey {
+                        key_id: Hash::new([n + 50; 32]),
+                        public_key: vec![2; 33].into(),
+                        registered_at: 1_700_000_300_000,
+                        registered_by: Hash::new([1; 32]),
+                    },
+                )
+            })
+            .collect();
+        keyed.hardware_policy = vec![
+            HardwarePurpose::AccountControl,
+            HardwarePurpose::DeviceControl,
+            HardwarePurpose::PrincipalControl,
+            HardwarePurpose::Payment,
+            HardwarePurpose::Attestation,
+        ];
+        let bytes = compact_bytes(&keyed);
+        assert_eq!(compact_from_bytes::<AccountState>(&bytes), keyed);
+        assert_eq!(
+            top_keys(&bytes),
+            (1..=6)
+                .chain([8])
+                .chain(12..=23)
+                .chain([25, 27, 28, 29, 30, 31])
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            bytes.len() - compact.len() < 2_600,
+            "{}",
+            bytes.len() - compact.len()
         );
     }
 

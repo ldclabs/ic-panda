@@ -59,10 +59,11 @@ flowchart LR
 
 1. **登录 Principal**：caller 必须在账户的 `auth_bindings` 中（最多 8 个）。登录只能证明 caller 是谁，本身不授予设备权限。
 2. **设备批准**：设备用 Ed25519 签名 `Approval`。被签名的摘要覆盖 user home、账户、操作域、命令摘要、设备、`security_epoch`、设备序号、`request_id` 和期限，期限最长 5 分钟。签名的设备必须未撤销，并具备该操作要求的能力。设备序号必须等于 `next_sequence`，成功后加 1。`security_epoch` 增加后，所有未提交的批准都会失效。
+3. **批准钥匙**（账户开启硬件批准政策时）：受保护用途的批准还须带 `Approval.hardware`，即该设备登记的 P-256 批准钥匙对 `digest("dmsg/hardware-approval/v1", (批准摘要, key_id))` 的低 s 签名。账户、设备与 Agent 主体三项控制用途随政策必含，付款（`CashCheckout`、`PandaSubscription` 应用批准与 `AuthorizeHandle`）与正式认证（`attest`、`attest_app_action`、`approve_authentication`）可选。是否需要只由账户状态决定；请求带来的证明即使不需要也核验。四个入口（账户变更、认证、恢复派生、外部批准）都经同一个 `check_device`；恢复派生、换根、争议恢复和团队钱包批准不要求钥匙。
 
 | 能力                              | 用途                                                                                   |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
-| `RootManage`（角色须为管理员）    | 除 `DisputeRecovery` 外的全部账户变更、根预留与提交                                    |
+| `RootManage`（角色须为管理员）    | 除 `DisputeRecovery` 和设置自己的批准钥匙外的全部账户变更、根预留与提交                |
 | `VaultUnlock`                     | 根包只封装给持有它的活跃设备；云端据此放行账户密文读取（当前根、对象与文件块）        |
 | `FormalApprove`                   | 文档与 AppAction 认证、第三方认证与应用批准                                            |
 | `PaymentOffer`                    | 签署收款报价                                                                           |
@@ -84,8 +85,10 @@ flowchart LR
 | `DisputeRecovery`                                                               | 任意未撤销设备可提交，取消待处理的恢复申请                                                                 |       不变       | 不变                |
 | `EnablePrincipal`、`RetireController`、`MarkControllerCompromised`、`RenameController` | 修改 Agent principal 记录                                                                           |       不变       | 不变                |
 | `RegisterController`                                                            | 附 controller 私钥对 `dmsg/controller-pop/v1` 的 PoP                                                       |       不变       | 不变                |
+| `SetApprovalKey`                                                                | 登记、替换或退役一台设备的批准钥匙（33 字节压缩 P-256，附对 `dmsg/approval-key/v1` 的持有证明）；任何有效设备可设自己的钥匙，为其他设备设钥匙须管理员；同一钥匙不能属于两台设备 |        +1        | 不变                |
+| `SetHardwarePolicy`                                                             | 设置要求批准钥匙的用途：空集合关闭，非空须含三项控制用途；开启须附批准设备自己的有效证明                     |        +1        | 不变                |
 
-`security_epoch` 增加时，尚未接受的绑定批准一并撤回。换根只在根包接收者（持有 `VaultUnlock` 的活跃设备）变化时才需要：登录身份不是接收者，其他能力也不影响根包。`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
+`RevokeDevice` 同时退役被撤销设备的批准钥匙。`security_epoch` 增加时，尚未接受的绑定批准一并撤回。换根只在根包接收者（持有 `VaultUnlock` 的活跃设备）变化时才需要：登录身份不是接收者，其他能力也不影响根包。`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
 
 ### 账户创建与登录绑定
 
@@ -114,7 +117,7 @@ flowchart LR
 
 1. **发起**：`request_recovery(account_id, request, device_proof)` 只能由 `request.new_auth` 调用，且 caller 必须已在 `auth_bindings` 中。新设备附 `dmsg/recovery-device/v1` PoP，且必须是同时具备 `RootManage` 与 `VaultUnlock` 的管理员。请求期限必须晚于 `now + recovery_delay_ms`，最长 14 天。重复提交同一请求沿用已存的期限；要提交另一请求，须等前一请求过期或被取消。
 2. **取消**：账户的任意未撤销设备提交 `DisputeRecovery { op_id }` 即删除申请。提出争议的设备在手，它可以直接走配对，不需要再确认流程。用 `RemoveAuth` 解除发起申请的登录同样删除申请，接管权随登录绑定一起失效。
-3. **完成**：等待期结束后，`new_auth` 调用 `complete_recovery(account_id, request_id)`：全部设备替换为请求中的新设备，全部登录替换为 `new_auth` 并删除旧路由，`security_epoch` +1，已有根时置 `RekeyRequired`，并记录 `recovered_device = (device_id, 当前根代次)`。账户保留最近一次完成回执，原 caller 用同一请求重试返回成功，不会重复执行。
+3. **完成**：等待期结束后，`new_auth` 调用 `complete_recovery(account_id, request_id)`：全部设备替换为请求中的新设备，全部登录替换为 `new_auth` 并删除旧路由，全部批准钥匙退役、硬件批准政策关闭（替换设备再登记、再开启），`security_epoch` +1，已有根时置 `RekeyRequired`，并记录 `recovered_device = (device_id, 当前根代次)`。账户保留最近一次完成回执，原 caller 用同一请求重试返回成功，不会重复执行。
 4. **取回内容根**：恢复设备取得 `unlock_secret` 后，用 `derive_root` 派生当前代根的 vetKey（见下文），解开根包的 IBE 恢复信封，然后换根。换根前可凭新的批准再次派生（计入每日执行次数）；换根后 `recovered_device` 清除，派生权消失。
 
 `recovery_delay_ms` 默认 3 天，`SetRecoveryDelay` 可设 1–7 天。等待期是对登录身份被盗的唯一缓解：期间所有设备都没响应即内容泄露。
@@ -217,9 +220,9 @@ flowchart LR
 
 ### 存储
 
-稳定布局为 schema 15，支持从 schema 14 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段。schema 14/15 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+稳定布局为 schema 16，支持从 schema 14、15 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变；schema 16 在 `AccountState` 增加批准钥匙（key 30）与硬件批准政策（key 31），旧账户读为空，安全叶不含它们。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段；新 schema 也使更旧的模块拒绝装回，避免丢弃新字段。schema 14–16 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
 
-发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`，使用提交 `70d67c86` 的原始 Wasm 写入数据后升级到当前代码。
+发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`（提交 `70d67c86` 的 schema 14 原始 Wasm）与 `scripts/test-dmsg-hardware-upgrade.sh`（提交 `58197c35` 的 schema 15 原始 Wasm），各自写入数据后升级到当前代码。新客户端读取 `AccountInfo` 需要新字段，所以先升级 user home 再发布客户端；旧客户端读取新回复不受影响。
 
 | Memory | 内容                                                                    |
 | -----: | ----------------------------------------------------------------------- |
@@ -235,7 +238,7 @@ flowchart LR
 |      9 | 认证 map 的叶子：key → 认证值哈希                                       |
 |     10 | 认证 map 的 crit-bit 内部节点                                           |
 
-`AccountState` 的各个集合都有上限：设备 16、登录 8、待接受绑定 4、操作回执 16、名称意图 32、执行保留索引 64。执行载荷单独存表，普通账户操作不读取历史载荷。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开的 Candid、摘要和认证叶编码。
+`AccountState` 的各个集合都有上限：设备 16、批准钥匙 16（每台设备一把）、登录 8、待接受绑定 4、操作回执 16、名称意图 32、执行保留索引 64。16 把钥匙使满载账户的记录约增加 2.4 KB。执行载荷单独存表，普通账户操作不读取历史载荷。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开的 Candid、摘要和认证叶编码。
 
 没有 `pre_upgrade`，heap 不保存业务状态。`post_upgrade` 校验分配器后只发布认证树的根，不扫描账户，并在日志中记录 `dmsg_user upgrade: instructions=… wasm_memory_bytes=…`。
 
@@ -384,7 +387,7 @@ flowchart LR
 
   `prune_executions` 一页最多 64 条执行记录，用掉 20B 指令后在账户边界提前结束；100 万账户时一页约 1.7 亿 cycles。它只删除保留期已过的终态结果，不改动未终结执行、设备序号和月账。
 
-- **升级**：支持 schema 14 → 15 及 schema 15 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
+- **升级**：支持 schema 14、15 → 16 及 schema 16 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
 
   ```sh
   icp canister stop dmsg_user -e ic
@@ -417,6 +420,7 @@ flowchart LR
 - **配置不可变**：除两个配额外，配置在安装后不可变。
 - **注册准入**：`daily_new_accounts` 是全局额度，账户不可删除。配置 `admission_key` 后，新账户须持有云端限流签发的票据；未配置时，批量生成的非匿名 Principal 可以占满当日额度并长期占用 `max_accounts`。登录绑定的待接受项只在账户内，不再有全局额度。
 - **多 home**：可以部署多个 user home，各服务按账户 ID 的分配器指纹把账户路由到所属 home。新 home 须在 COSE、handle、payment、commerce、directory 用 `admin_add_user_home` 登记（登记前用新 home 的 `user_config` 核对 environment、issuer_namespace 与各服务 canister），并加入 handle 的 `registration_homes` 才接收新账户。账户的 `home_user` 和 `home_cose` 不可迁移；同一登录 Principal 可以在不同 home 各建一个账户，跨 home 的唯一性和账户迁移都没有实现。
+- **批准钥匙**：登记只证明公钥持有者参与了签名，不证明钥匙位于何种硬件或带何种访问控制；登录恢复仍可在等待期后接管开启了硬件批准的账户。
 - **本机解锁秘密**：`master_secret` 由 canister 持有，节点运营者、controller / SNS 与 API 边界节点都可能读到（见“本机解锁秘密”），且没有轮换机制；它只对持有设备本机密文副本的人有用。
 - **未验收**：生产部署、主网费用、真实外部应用与产品、签名发布的桌面客户端端到端流程都没有验收。
 
@@ -425,7 +429,7 @@ flowchart LR
 | 文件                  | 内容                                                                                   |
 | --------------------- | -------------------------------------------------------------------------------------- |
 | `src/api.rs`          | Candid 入口、初始化与升级、账户创建与绑定、执行授权与 COSE 调度、恢复入口、服务回调 |
-| `src/account.rs`      | 设备批准校验和全部账户变更命令                                                         |
+| `src/account.rs`      | 设备批准与批准钥匙校验和全部账户变更命令                                               |
 | `src/execution.rs`    | 认证与派生的预检、同步提交、COSE 结果校验与回执叶                                      |
 | `src/recovery.rs`     | 登录恢复的申请、取消与完成                                                             |
 | `src/commerce.rs`     | 月账：权益刷新、预留与结算                                                             |
@@ -446,13 +450,14 @@ cargo test -p dmsg_user
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 
-单元测试覆盖：根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口、home 执行汇总的累加与 12 个月滚动。
+单元测试覆盖：批准钥匙的持有证明、按账户政策强制、他设备钥匙与过期证明被拒、撤销与恢复后的钥匙和政策、根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口、home 执行汇总的累加与 12 个月滚动。
 
 PocketIC 回归覆盖：
 
 - [control_plane.rs](../../tests/dmsg_integration/tests/control_plane.rs) `identity_roots_certification_attestation_recovery_and_upgrade`：根 CAS、认证与回执、登录恢复、派生与 IBE 往返、升级。
 - [user.rs](../../tests/dmsg_integration/tests/control_plane/user.rs)：认证按月计费一次并重放产物、名称意图续期、政策变更、清理后按原月份结算、商业回调期间的并发变更、登录路由删除、对账传输失败、月账只保留当月与上月、home 月度汇总只累加成功的扣费。
 - [user_review.rs](../../tests/dmsg_integration/tests/control_plane/user_review.rs)、[review_regressions.rs](../../tests/dmsg_integration/tests/control_plane/review_regressions.rs)：inspect 拒绝非服务方与匿名 ingress、外部调用前拒绝非配置服务、恢复完成重试、登录绑定须管理员批准后由新登录接受、注册准入票据与治理轮换、跨账户分页清理、每小时调用上限、快照回滚、独立清理、文件声明认证、保留窗口与升级、登录恢复可见/争议/完成、无效传输公钥、已清理请求 ID 不可复用。
+- [hardware.rs](../../tests/dmsg_integration/tests/control_plane/hardware.rs)：真实 Wasm 上批准钥匙的登记、政策、旧 Candid 被拒、无钥匙设备受限、认证用途、撤销与恢复；schema 15 原始模块升级保留账户、认证叶、解锁秘密与操作回放（需 `scripts/test-dmsg-hardware-upgrade.sh`）。
 - [external_integration.rs](../../tests/dmsg_integration/tests/control_plane/external_integration.rs)、[agent.rs](../../tests/dmsg_integration/tests/control_plane/agent.rs)：外部批准的重试、暂停与升级，AppAction 准入与认证，自持 controller 的 PoP 注册、发布与本机签名。
 
 性能与容量 profile 默认忽略，需显式运行：

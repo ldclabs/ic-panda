@@ -14,19 +14,22 @@
 //! a device's capabilities or change who controls the account are high-risk
 //! ([`high_risk`]): clients hold to
 //! approve them and, where this device can ask, the person confirms with
-//! Touch ID or the login password first (plan S03).
+//! Touch ID or the login password first (plan S03). A device with a
+//! registered approval key answers through the key instead, which also
+//! signs the approvals the account protects ([`crate::approval_key`]), so
+//! the person is asked once.
 
 use crate::client::Client;
 use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
-use crate::secure::PresenceKey;
+use crate::secure::{ApprovalKeys, Authorized, PresenceKey};
 use crate::store::ApprovalRow;
 use dmsg_protocol::digest;
 use dmsg_types::{
-    DAY, Error, Hash, MINUTE, Result, Statement, StatementContent,
+    DAY, Error, Hash, MINUTE, P256Signature, Result, Statement, StatementContent,
     app_action::AppAction,
     ensure,
-    user::{AccountCommand, Capability},
+    user::{AccountCommand, Capability, HardwarePurpose},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
@@ -341,6 +344,31 @@ pub enum Action {
         /// The job's commitment.
         digest: Hash,
     },
+    /// Register a device's new approval key.
+    ApprovalKey {
+        /// The device the key belongs to.
+        device_id: Hash,
+        /// SEC1 compressed P-256 public key.
+        public_key: serde_bytes::ByteBuf,
+        /// Another device's proof of possession, as its request carried
+        /// it; this device's own key proves itself on approval.
+        proof: Option<P256Signature>,
+    },
+    /// Retire a device's approval key.
+    ApprovalKeyRetire {
+        /// The device.
+        device_id: Hash,
+    },
+    /// Require approval keys for these purposes, or no longer (empty).
+    HardwarePolicy {
+        /// The new purposes.
+        purposes: Vec<HardwarePurpose>,
+        /// The purposes they replace, as read when asked.
+        previous: Vec<HardwarePurpose>,
+        /// The active devices without a registered key when asked, which
+        /// the requirement shuts out.
+        without_keys: Vec<Hash>,
+    },
 }
 
 impl Action {
@@ -361,7 +389,10 @@ impl Action {
             | Action::DeviceRevoke { .. }
             | Action::DevicePair { .. }
             | Action::Account { .. }
-            | Action::Principal { .. } => "account",
+            | Action::Principal { .. }
+            | Action::ApprovalKey { .. }
+            | Action::ApprovalKeyRetire { .. }
+            | Action::HardwarePolicy { .. } => "account",
             Action::Delegation { .. } | Action::Grant { .. } => "agent",
             Action::Wallet { .. } => "wallet",
             Action::Connect { .. } => "connect",
@@ -462,7 +493,10 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         | Action::Letter { .. }
         | Action::DeviceRevoke { .. }
         | Action::DevicePair { .. }
-        | Action::DeviceCapabilities { .. } => true,
+        | Action::DeviceCapabilities { .. }
+        | Action::ApprovalKey { .. }
+        | Action::ApprovalKeyRetire { .. }
+        | Action::HardwarePolicy { .. } => true,
         Action::Principal { .. } => true,
         Action::Grant { capabilities, .. } => {
             capabilities.iter().any(|c| crate::agents::sensitive(c))
@@ -483,6 +517,49 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         }
         Action::Attest { .. } | Action::AttestAction { .. } | Action::Delegation { .. } => false,
     }
+}
+
+/// The purpose an account's hardware policy may protect a request under,
+/// from the request and its `detail` view.
+pub fn request_purpose(request: &Request, detail: &Json) -> Option<HardwarePurpose> {
+    use crate::agent::PrincipalChange;
+    use crate::security::AccountChange;
+    match &request.action {
+        Action::DeviceCapabilities { .. }
+        | Action::DeviceRevoke { .. }
+        | Action::DevicePair { .. } => Some(HardwarePurpose::DeviceControl),
+        Action::ApprovalKey { .. }
+        | Action::ApprovalKeyRetire { .. }
+        | Action::HardwarePolicy { .. } => Some(HardwarePurpose::AccountControl),
+        Action::Account { change } => (!matches!(change, AccountChange::DisputeRecovery { .. }))
+            .then_some(HardwarePurpose::AccountControl),
+        Action::Principal { change } => matches!(
+            change,
+            PrincipalChange::Enable { .. }
+                | PrincipalChange::Register { .. }
+                | PrincipalChange::Retire { .. }
+        )
+        .then_some(HardwarePurpose::PrincipalControl),
+        Action::Checkout { .. } | Action::Handle { .. } => Some(HardwarePurpose::Payment),
+        Action::Attest { .. } | Action::AttestAction { .. } => Some(HardwarePurpose::Attestation),
+        Action::Connect { .. } => match detail["method"].as_str() {
+            Some("checkout") => Some(HardwarePurpose::Payment),
+            Some("authenticate" | "signDocument" | "signAction") => {
+                Some(HardwarePurpose::Attestation)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// How the person approves a request on this device.
+pub enum Ask {
+    /// Confirm with the presence hardware.
+    Presence(Arc<dyn PresenceKey>),
+    /// Answer through this device's approval key, whose answer also signs:
+    /// the hardware and whether the key takes only fingerprints.
+    Hardware(Arc<dyn ApprovalKeys>, bool),
 }
 
 /// Check a source string.
@@ -767,25 +844,37 @@ impl Client {
         self.approval_view(&request)
     }
 
-    /// The hardware that must see the person approve `id` first, and the
-    /// request's type for its question: a high-risk request on a device
-    /// that can ask. `None` when no check is needed or possible.
+    /// How the person must approve `id` first, and the request's type for
+    /// the question: through this device's approval key where it answers
+    /// the request ([`Client::approval_answer`]), else with the presence
+    /// hardware for a high-risk request on a device that can ask. `None`
+    /// when no check is needed or possible.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::NotFound` for an
     /// unknown ID.
-    pub fn approval_presence(
-        &mut self,
-        id: &str,
-    ) -> Result<Option<(Arc<dyn PresenceKey>, String)>> {
+    pub fn approval_presence(&mut self, id: &str) -> Result<Option<(Ask, String)>> {
+        let request = self.approval_record(id)?;
+        let view = self.approval_view(&request)?;
+        let high = view["risk"] == "high";
+        let what = view["type"].as_str().unwrap_or_default().to_string();
+        let purpose = request_purpose(&request, &view["detail"]);
+        // This device's new key proves itself with the answer, so it asks.
+        let answer = match &request.action {
+            Action::ApprovalKey {
+                public_key,
+                proof: None,
+                ..
+            } => self.new_key_answer(public_key)?,
+            _ => self.approval_answer(purpose, high)?,
+        };
+        if let Some((keys, biometry_only)) = answer {
+            return Ok(Some((Ask::Hardware(keys, biometry_only), what)));
+        }
         let Some(key) = self.presence.clone().filter(|key| key.presence().is_some()) else {
             return Ok(None);
         };
-        let request = self.approval_record(id)?;
-        let view = self.approval_view(&request)?;
-        Ok(view["risk"]
-            .eq("high")
-            .then(|| (key, view["type"].as_str().unwrap_or_default().to_string())))
+        Ok(high.then(|| (Ask::Presence(key), what)))
     }
 
     /// Note on a waiting request that the person did not confirm approving
@@ -892,6 +981,39 @@ impl Client {
         via: &str,
         confirmed: bool,
     ) -> Result<Decision> {
+        self.approval_decide_with(id, shown, approve, via, confirmed, None)
+            .await
+    }
+
+    /// [`Self::approval_decide`] with the person's answer through this
+    /// device's approval key ([`Ask::Hardware`]), which confirms the
+    /// decision and signs for it only.
+    ///
+    /// # Errors
+    /// As [`Self::approval_respond`].
+    pub async fn approval_decide_with(
+        &mut self,
+        id: &str,
+        shown: &str,
+        approve: bool,
+        via: &str,
+        confirmed: bool,
+        authorized: Option<Box<dyn Authorized>>,
+    ) -> Result<Decision> {
+        self.authorized = authorized;
+        let decision = self.decide(id, shown, approve, via, confirmed).await;
+        self.authorized = None;
+        decision
+    }
+
+    async fn decide(
+        &mut self,
+        id: &str,
+        shown: &str,
+        approve: bool,
+        via: &str,
+        confirmed: bool,
+    ) -> Result<Decision> {
         let now = now_ms();
         self.expire_approvals(now)?;
         let mut request = self.approval_record(id)?;
@@ -959,7 +1081,8 @@ impl Client {
             Action::Attest { .. } | Action::AttestAction { .. }
         ) {
             return match self.attest_run(&request) {
-                Ok(run) => {
+                Ok(mut run) => {
+                    run.authorized = self.authorized.take();
                     self.running.insert(request.id.clone(), now);
                     Ok(Decision::Attest(Box::new(run)))
                 }
@@ -1151,6 +1274,28 @@ impl Client {
             Action::Wallet { .. } => {
                 Err(Error::InvalidInput("wallet approvals run in steps".into()))
             }
+            Action::ApprovalKey {
+                device_id,
+                public_key,
+                proof,
+            } => {
+                self.approval_key_execute(device_id, public_key, proof)
+                    .await
+            }
+            Action::ApprovalKeyRetire { device_id } => self
+                .mutate(
+                    AccountCommand::SetApprovalKey {
+                        device_id,
+                        key: None,
+                    },
+                    None,
+                )
+                .await
+                .map(|_| ()),
+            Action::HardwarePolicy { purposes, .. } => self
+                .mutate(AccountCommand::SetHardwarePolicy { purposes }, None)
+                .await
+                .map(|_| ()),
         }
     }
 
@@ -1325,7 +1470,10 @@ impl Client {
                 },
                 Action::Handle { id, .. } => self.handle_execute(&id).await.map(|_| ()),
                 Action::Account { change } => self.account_reconcile(&change).await,
-                Action::Principal { .. } => self.resume().await.map(|_| ()),
+                Action::Principal { .. }
+                | Action::ApprovalKey { .. }
+                | Action::ApprovalKeyRetire { .. }
+                | Action::HardwarePolicy { .. } => self.resume().await.map(|_| ()),
                 Action::Grant {
                     grantee,
                     capabilities,
@@ -1512,6 +1660,11 @@ impl Client {
             } => json!({"grantee": grantee, "capabilities": capabilities, "days": days}),
             Action::Delegation { job, .. } => self.delegation(job)?.view(),
             Action::Wallet { job, .. } => self.wallet_job_view(job)?,
+            Action::ApprovalKey { .. }
+            | Action::ApprovalKeyRetire { .. }
+            | Action::HardwarePolicy { .. } => {
+                crate::approval_key::detail(self, action).ok_or(Error::IntegrityFailed)?
+            }
         })
     }
 
@@ -1556,6 +1709,9 @@ impl Client {
                 Action::Delegation { .. } => "delegation",
                 Action::Grant { .. } => "grant",
                 Action::Wallet { .. } => "wallet",
+                Action::ApprovalKey { .. } => "approval_key",
+                Action::ApprovalKeyRetire { .. } => "approval_key_retire",
+                Action::HardwarePolicy { .. } => "hardware_policy",
             },
             "state": request.state.name(),
             "risk": if high_risk(request, &detail) { "high" } else { "normal" },

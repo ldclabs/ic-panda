@@ -96,7 +96,7 @@ fn init(args: UserInit) {
 fn post_upgrade() {
     let mut cfg = config();
     assert!(
-        matches!(cfg.schema, 14 | STABLE_SCHEMA),
+        matches!(cfg.schema, 14 | 15 | STABLE_SCHEMA),
         "unsupported user stable schema {}",
         cfg.schema,
     );
@@ -108,9 +108,11 @@ fn post_upgrade() {
         ic_cdk::api::canister_self(),
     )
     .expect("immutable allocator");
-    if cfg.schema == 14 {
-        // The account/config layouts and certification bytes are unchanged.
-        // Old principal records acquire empty metadata in their stable decoder.
+    if cfg.schema < STABLE_SCHEMA {
+        // The certification bytes are unchanged. Old principal records
+        // acquire empty metadata (14), old accounts no approval keys and no
+        // hardware policy (15), in their stable decoders; the new schema
+        // keeps an older module from dropping those fields.
         cfg.schema = STABLE_SCHEMA;
         save_config(&cfg);
     }

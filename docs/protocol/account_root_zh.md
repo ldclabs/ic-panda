@@ -22,6 +22,28 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 `RemoveAuth`（不能移除当前使用的登录）、`SetPolicy`（冻结、每日执行次数、允许的用途）、`SetRecoveryDelay` 与 `DisputeRecovery` 同样经审批中心。审批记录里登录 Principal 以文本保存，签名前才转换为命令。
 
+### 批准钥匙
+
+账户可以要求某些设备批准另带一把“批准钥匙”的签名。批准钥匙是设备硬件保管的 P-256 钥匙（macOS 上为 Secure Enclave，`.userPresence`，可选仅当前指纹 `.biometryCurrentSet`），每台设备至多一把，登记在 user home 的账户状态中，不进入 `Device`、`devices_root` 或安全叶，`dmsg_directory` 与云端的安全证据因此不变。
+
+```text
+key_id     = digest("dmsg/hardware-key/v1", public_key)            // SEC1 压缩点，33 字节
+possession = P256(key, digest("dmsg/approval-key/v1", (home, account_id, device_id, public_key)))
+M          = approval_message(home, account_id, domain, command, approval)   // 设备 Ed25519 所签
+H          = digest("dmsg/hardware-approval/v1", (M, key_id))
+Approval.hardware = { key_id, signature = P256(key, H) }          // r || s，低 s；不进入 M
+```
+
+P-256 签名按 ECDSA-SHA256 处理 32 字节的 `H`（即 CryptoKit `signature(for: Data(H))`），user home 拒绝高 s。`AccountInfo` 返回各设备的 `approval_keys` 与账户的 `hardware_policy`。
+
+- `SetApprovalKey { device_id, key }`：登记、替换（`key` 带新公钥与持有证明）或退役（`None`）。任何有效设备可设自己的钥匙，为其他设备设钥匙需要管理员；同一把钥匙不能登记给两台设备。撤销设备时其钥匙一并退役。
+- `SetHardwarePolicy { purposes }`：空集合关闭；非空时必须包含三项控制用途。开启需要批准设备本身的有效证明。
+- 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不在其列。
+- 核验只在 user home 的设备批准检查中进行：账户政策要求的用途必须带有当前登记钥匙的有效证明；未要求时请求带来的证明同样核验。是否要求只由账户状态决定，旧 Candid（没有 `hardware` 字段）在启用后被拒绝。登记、替换、退役钥匙和修改政策都递增 `security_epoch`，在途的旧批准随之失效；commerce、membership 与团队钱包仍经 `verify_application_authorization` 复核记录与 epoch，不需改动。
+- 登录恢复不需要批准钥匙：`complete_recovery` 在同一提交点退役全部钥匙并清空政策，替换设备再登记、再启用。开启硬件批准后，账户控制从“设备软件钥匙与登录同时失窃即可立即接管”变为“只能经可被争议的延迟恢复接管”。
+
+客户端（`dmsg_client::approval_key`）把钥匙句柄用 LDK 封存，不出现在任何视图或日志中。账户保护的高风险请求在本机有登记钥匙时，人只在审批开始前回答一次：daemon 在不持客户端锁时取得这次在场授权，随后组装批准、签 Ed25519，并以同一授权签 `H`，因此等待人时不占设备序号，也不弹第二次在场确认。启用政策后没有可用钥匙的设备，可在本机生成钥匙并当场以持有证明签出请求令牌（base64url 确定性 CBOR `{format: "dmsg-approval-key/1", home, account, device_id, key}`），由一台有钥匙的管理员设备批准登记。
+
 ## 本机工作区
 
 每个账户在本机有自己的工作区，账户之间互不可见：`<home>/<environment>/accounts/<account>/` 存放该账户的 `workspace.sqlite` 与 Agent 连接器状态 `agents.sqlite`；还没有账户的登录用 `logins/<principal>/`，等它有了账户（创建、被绑定）后整个目录改名为 `accounts/<account>/`。登录时客户端用 `my_account` 找到该登录的账户并选择对应工作区，没有时选择该登录自己的工作区；同一账户的不同登录共用一个工作区。`current` 记录最近选择的账户，daemon 重启和快速解锁使用它；切换到另一个账户的工作区时先锁定，其驻留密钥一并丢弃。每个工作区有自己的设备 ID 与密钥，所以同一台电脑上的不同账户是不同的设备。
@@ -40,7 +62,18 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 - `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，其中 `digest(domain, value) = SHA256(CBOR([1, domain, value]))`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
 - 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
 - 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，30 天 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
-- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；其他平台是存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。距上次登录解锁超过 30 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。
+- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；其他平台是存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。距上次登录解锁超过 30 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。Secure Enclave 报告“暂时不能询问”（无 Touch ID 键盘、锁定等）时保留快速解锁，只有钥匙确定无法重建时才关闭它。
+- 设备绑定（可选，macOS）：保留同一个 LDK，只换封装。凭据库中另有独立槽位 `<name>:device-bound`，保存一把 Secure Enclave 密钥协商钥匙的句柄与软件对端；其秘密 `S` 每次解锁取得一次（要求在场）：
+
+  ```text
+  slot     = digest("dmsg/device-bound-key/v1", peer)
+  context  = (1, environment, account, deviceId, slot)
+  K_login  = HKDF(LUK || S, ["dmsg/local-login-bound/v1", context])
+  K_fast   = HKDF(S, ["dmsg/local-fast-bound/v1", context])
+  ldk-bound = E(K_login, LDK, ["login", context]);  ldk-fast = E(K_fast, LDK, ["fast", context])
+  ```
+
+  开启时先用新钥匙实际解出一次 `S`，再在同一事务中写入 `ldk-bound`、新的 `ldk-fast` 并删除只靠 LUK 的封装；以后登录解锁和快速解锁都需要这台 Mac 的硬件。关闭快速解锁只删 `ldk-fast`，退出登录与任何错误都不删除槽位，只有重置工作区或解除绑定才删除；仅当前指纹的槽位在指纹集合变化后报告失效，硬件暂时不可用时报告不可用，均不回退旧封装。解除绑定重新以 LUK 封装 LDK。它只防开启之后复制的工作区：之前的副本仍可凭登录打开同一个 LDK；后台在线时内存中的设备签名钥匙与常驻 Agent ID 在凭据库中的副本不受它保护，开启时如实列出。
 
 ## 不可变 RootBundle v2
 
@@ -85,7 +118,7 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 1. 新设备用绑定过的 II 账户登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。II 也丢了就不能恢复。
 2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；用 `RemoveAuth` 解除发起申请的登录同样作废申请。没有再确认流程。
-3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
+3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，退役全部批准钥匙并关闭硬件批准政策，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
 4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生（同一 `request_id` 重试返回原结果，换根前也可凭新批准再次派生），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端解密并核对 vetKey 后用它解开根包的 IBE 恢复信封，随即换根到下一代（只封装给自己）。换根后派生权消失。
 
 恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`max_cycles` 是客户端在批准中写定的上限。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。

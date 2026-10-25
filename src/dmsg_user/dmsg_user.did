@@ -40,6 +40,15 @@ type AccountCommand = variant {
     // Display type of the principal.
     principal_type : PrincipalType;
   };
+  // Register or replace a device's approval key, or retire it with
+  // None. Any active device sets its own; another device's needs an
+  // administrator.
+  SetApprovalKey : record {
+    // The new key, or None to retire the current one.
+    key : opt ApprovalKeyInput;
+    // The device the key belongs to.
+    device_id : blob;
+  };
   // Change only a controller's display label.
   RenameController : record {
     // New label, or None to remove it.
@@ -72,6 +81,13 @@ type AccountCommand = variant {
   RemoveAuth : record {
     // Login Principal to bind or remove.
     "principal" : principal;
+  };
+  // Require approval-key proofs for `purposes`, which then include the
+  // three control purposes; empty turns the requirement off. Enabling it
+  // needs the approving device's own proof.
+  SetHardwarePolicy : record {
+    // The protected purposes, each once.
+    purposes : vec HardwarePurpose;
   };
   // Authorize a specific operation at the configured name registry.
   AuthorizeHandle : record {
@@ -149,10 +165,14 @@ type AccountInfo = record {
   sensitive_policy : SensitivePolicy;
   // Committed content-root bundle reference, if initialized.
   current_root : opt ContentRootRef;
+  // The purposes that need an approval-key proof; empty when off.
+  hardware_policy : vec HardwarePurpose;
   // Complete device map keyed by device ID, including revoked devices.
   devices : vec record { blob; Device };
   // Whether vault writes may proceed with the current root.
   vault_write_state : VaultWriteState;
+  // Each device's registered approval key, by device ID.
+  approval_keys : vec record { blob; ApprovalKey };
 };
 // Compare-and-swap account update with device approval.
 // The approval binds both the expected version and the complete command.
@@ -374,10 +394,34 @@ type Approval = record {
   device_id : blob;
   // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // The device's approval-key proof over the same digest. The account's
+  // hardware policy decides where it is required; a proof sent anyway
+  // is checked. Not part of the signed digest.
+  hardware : opt HardwareProof;
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
   // Next sequence expected for this device; contributes to replay protection.
   sequence : nat64;
+};
+// A device's registered approval key. A registration claims nothing about
+// the hardware that keeps it.
+type ApprovalKey = record {
+  // SEC1 compressed P-256 public key (33 bytes).
+  public_key : blob;
+  // `dmsg/hardware-key/v1` digest of the public key.
+  key_id : blob;
+  // Registration time in Unix milliseconds.
+  registered_at : nat64;
+  // The device that approved the registration.
+  registered_by : blob;
+};
+// A device's approval key as proposed: a P-256 key its platform keeps.
+type ApprovalKeyInput = record {
+  // SEC1 compressed P-256 public key (33 bytes).
+  public_key : blob;
+  // The key's proof of possession over
+  // `dmsg_protocol::approval_key_message`.
+  proof : blob;
 };
 // Exact purpose for account approval, distinct from product authorization.
 type ApprovalPurpose = variant {
@@ -822,6 +866,31 @@ type HandleIntent = record {
   expected_version : nat64;
   // Commitment to action-specific terms, including charge terms when applicable.
   terms_digest : blob;
+};
+// An approval key's signature over the hardware commitment of an
+// [`Approval`]: `dmsg_protocol::hardware_message` of its approval digest
+// and the key.
+type HardwareProof = record {
+  // P-256 ECDSA over SHA-256 of the 32-byte commitment, with a low `s`.
+  signature : blob;
+  // `dmsg/hardware-key/v1` identifier of the approving device's key.
+  key_id : blob;
+};
+// What an account may require an approval-key proof for. Enabling the
+// requirement always includes the three control purposes.
+type HardwarePurpose = variant {
+  // Approval keys, the hardware and sensitive-execution policies, the
+  // recovery delay and login bindings.
+  AccountControl;
+  // Formal attestations and third-party authentications.
+  Attestation;
+  // Checkout and PANDA subscription approvals and name authorizations.
+  Payment;
+  // Enabling the Agent Delegation principal and registering or retiring
+  // its controllers.
+  PrincipalControl;
+  // Adding and revoking devices and changing their capabilities.
+  DeviceControl;
 };
 // Controller record. The key is generated and held by the owner's client;
 // key, `valid_from` and `delegation` never change.

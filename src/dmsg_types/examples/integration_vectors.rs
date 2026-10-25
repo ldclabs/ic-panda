@@ -78,6 +78,7 @@ fn main() {
                 request_id: execution_request_id(&account, 1, Hash::new([1; 32]), 0),
                 expires_at: action.expires_at_ms,
                 signature: Default::default(),
+                hardware: None,
             },
         };
         let statement = app_action_statement(&request).unwrap();

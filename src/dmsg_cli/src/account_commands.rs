@@ -83,6 +83,48 @@ pub enum DeviceCommand {
         /// Device ID.
         device: String,
     },
+    /// This device's approval key and which approvals need one.
+    #[command(subcommand)]
+    Key(KeyCommand),
+}
+
+/// Approval keys: hardware keys whose signature the user home requires for
+/// the approvals the account protects.
+#[derive(Subcommand)]
+pub enum KeyCommand {
+    /// This device's key, every device's key and the protected purposes.
+    Status,
+    /// Make a new key on this device and ask to register it; goes through
+    /// the approval center, where the key proves itself.
+    Register {
+        /// Take only the fingerprints enrolled now, never the login password.
+        #[arg(long)]
+        biometry_only: bool,
+    },
+    /// Make a new key and print a request for an administrator device that
+    /// has a key: for a device without a working key once keys are
+    /// required. Asks for Touch ID here.
+    Request {
+        /// Take only the fingerprints enrolled now, never the login password.
+        #[arg(long)]
+        biometry_only: bool,
+    },
+    /// Ask to register another device's key from its request; goes
+    /// through the approval center.
+    Approve {
+        /// The request printed by `dmsg device key request`.
+        request: String,
+        /// The device ID shown on that device.
+        #[arg(long)]
+        device: String,
+    },
+    /// Ask to retire a device's key, this device's by default; goes
+    /// through the approval center.
+    Retire {
+        /// Device ID.
+        #[arg(long)]
+        device: Option<String>,
+    },
 }
 
 /// Account security: bound logins, the signing policy and recovery delay.
@@ -136,6 +178,21 @@ pub enum SecurityCommand {
     RecoveryDelay {
         /// Days.
         days: u64,
+    },
+    /// Require approval keys for account, device and Agent principal
+    /// changes, and optionally payments and attestations, or no longer
+    /// (`off`); goes through the approval center. Devices without a key
+    /// then cannot make those approvals; a login recovery still can take
+    /// the account over after its delay.
+    Hardware {
+        /// on or off.
+        state: String,
+        /// Also payments: checkouts, PANDA subscriptions and names.
+        #[arg(long)]
+        payment: bool,
+        /// Also formal attestations and authentications.
+        #[arg(long)]
+        attestation: bool,
     },
 }
 
@@ -324,6 +381,25 @@ pub async fn security(
                 params["allowed_purposes"] = purposes.into();
             }
             return request(remote, json, "account/policy", params).await;
+        }
+        SecurityCommand::Hardware {
+            state,
+            payment,
+            attestation,
+        } => {
+            let purposes = match state.as_str() {
+                "on" => {
+                    let mut purposes =
+                        vec!["account_control", "device_control", "principal_control"];
+                    purposes.extend(payment.then_some("payment"));
+                    purposes.extend(attestation.then_some("attestation"));
+                    purposes
+                }
+                "off" => vec![],
+                _ => return Err(Failure::new("INVALID_INPUT", "on or off")),
+            };
+            let params = json!({"purposes": purposes});
+            return request(remote, json, "account/hardware_policy", params).await;
         }
         SecurityCommand::RecoveryDelay { days } => {
             return request(
@@ -557,6 +633,86 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
         }
         DeviceCommand::Revoke { device } => {
             request(remote, json, "device/revoke", json!({"device": device})).await?
+        }
+        DeviceCommand::Key(command) => key(remote, json, command).await?,
+    }
+    Ok(())
+}
+
+/// `dmsg device key`.
+async fn key(remote: &Remote, json: bool, command: KeyCommand) -> Result<(), Failure> {
+    match command {
+        KeyCommand::Status => {
+            let view = remote.call("device/key", Value::Null).await?;
+            print(json, &view, |v| {
+                let mut lines = vec![match v["key"]["key_id"].as_str() {
+                    Some(id) if v["key"]["here"] == true => {
+                        tr!("this device: key {}", "本设备：钥匙 {}", short(id, 16))
+                    }
+                    Some(id) => tr!(
+                        "this device: key {} is not on this device",
+                        "本设备：钥匙 {} 不在本机",
+                        short(id, 16)
+                    ),
+                    None => tr!("this device: no key", "本设备：无钥匙"),
+                }];
+                if v["key"]["fingerprints_changed"] == true {
+                    lines.push(tr!(
+                        "the fingerprints changed; the key no longer works",
+                        "指纹已变化，此钥匙已失效"
+                    ));
+                }
+                let policy = v["policy"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .collect::<Vec<_>>();
+                lines.push(match policy.is_empty() {
+                    true => tr!("required for: nothing", "需要钥匙的批准：无"),
+                    false => tr!("required for: {}", "需要钥匙的批准：{}", policy.join(", ")),
+                });
+                for d in v["devices"].as_array().into_iter().flatten() {
+                    lines.push(format!(
+                        "{}{} {}",
+                        if d["this_device"] == true { "* " } else { "  " },
+                        d["device_id"].as_str().unwrap_or_default(),
+                        d["key_id"]
+                            .as_str()
+                            .map_or_else(|| tr!("no key", "无钥匙"), |k| short(k, 16).to_string()),
+                    ));
+                }
+                lines.join("\n")
+            });
+        }
+        KeyCommand::Register { biometry_only } => {
+            let params = json!({"biometry_only": biometry_only});
+            request(remote, json, "device/key_register", params).await?
+        }
+        KeyCommand::Request { biometry_only } => {
+            let params = json!({"biometry_only": biometry_only});
+            let made = remote.call("device/key_request", params).await?;
+            print(json, &made, |v| {
+                let (device, token) = (
+                    v["device_id"].as_str().unwrap_or_default(),
+                    v["token"].as_str().unwrap_or_default(),
+                );
+                tr!(
+                    "device: {device}\n\nOn an administrator device with a key run:\n  dmsg device key approve {token} --device {device}",
+                    "设备：{device}\n\n在一台有钥匙的管理员设备上运行：\n  dmsg device key approve {token} --device {device}"
+                )
+            });
+        }
+        KeyCommand::Approve {
+            request: token,
+            device,
+        } => {
+            let params = json!({"token": token, "device": device});
+            request(remote, json, "device/key_approve", params).await?
+        }
+        KeyCommand::Retire { device } => {
+            let params = json!({"device": device});
+            request(remote, json, "device/key_retire", params).await?
         }
     }
     Ok(())

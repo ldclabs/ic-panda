@@ -34,7 +34,9 @@ use dmsg_types::billing::ExecutionUsage;
 use dmsg_types::{
     AccountId, AppActionAttestRequest, Approval, AttestRequest, CertifiedBatch, Ed25519Signature,
     Error, ExecutionReceipt, Hash, Result, SignedArtifact, Statement, StatementContent,
-    app_action::AppAction, ensure, user::Capability,
+    app_action::AppAction,
+    ensure,
+    user::{Capability, HardwarePurpose},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
@@ -76,6 +78,9 @@ pub enum Subject {
 /// [`Hold`] ([`AttestRun::run`]): read, sign, send and settle, the client
 /// taken only to sign and to settle.
 pub struct AttestRun {
+    /// The person's answer through the approval key, which signs this
+    /// attestation where the account protects attestations.
+    pub(crate) authorized: Option<Box<dyn crate::secure::Authorized>>,
     request: crate::approval::Request,
     subject: Subject,
     file: Option<AttestFile>,
@@ -138,7 +143,25 @@ impl AttestRun {
             Some(path) => Some(file_reader(path.into()).await),
             None => None,
         };
-        let read = self.read(file).await;
+        let mut read = self.read(file).await;
+        // An account that protects attestations needs the approval key; ask
+        // the person now, without the client, unless the decision brought
+        // the answer, then read the account again.
+        if self.authorized.is_none()
+            && let Ok(state) = &read.account
+            && let Some((keys, biometry_only)) = h
+                .with(|c| c.required_answer(&state.info, HardwarePurpose::Attestation))
+                .await?
+        {
+            match keys.authorize("attestation", biometry_only) {
+                Ok(answer) => {
+                    self.authorized = Some(answer);
+                    read.account =
+                        crate::account::read_account(&self.ic, self.home, &self.account).await;
+                }
+                Err(error) => read.account = Err(error),
+            }
+        }
         h.with(|c| c.attest_sign(&mut self, read)).await?;
         let sent = self.send().await;
         h.with(|c| c.attest_settle(self, sent)).await
@@ -930,6 +953,7 @@ impl Client {
             ),
             expires_at: now + APPROVAL_MS,
             signature: Ed25519Signature::new([0; 64]),
+            hardware: None,
         };
         // The state may have been read before another attestation took this
         // sequence: one still open or recorded keeps its journal, and this
@@ -970,6 +994,8 @@ impl Client {
             &approval_fields,
         );
         approval_fields.signature = Ed25519Signature::new(sign(&keys.signing, message.as_slice()));
+        approval_fields.hardware =
+            self.hardware_proof(&state.info, Some(HardwarePurpose::Attestation), message)?;
         let request = match subject {
             Subject::Statement { statement, origin } => Signed::Document(AttestRequest {
                 account_id: account.id,
@@ -1071,6 +1097,7 @@ impl Client {
             _ => return Err(Error::InvalidInput("not an attestation".into())),
         };
         Ok(AttestRun {
+            authorized: None,
             request: request.clone(),
             subject,
             file,
@@ -1089,7 +1116,11 @@ impl Client {
     /// Returns `Error::IntegrityFailed` for a file that changed, the product
     /// authority's refusal and [`Self::attest_prepare`]'s errors.
     fn attest_sign(&mut self, run: &mut AttestRun, read: RunRead) -> Result<()> {
-        match self.attest_signed(run, read) {
+        // The person's answer signs within this step only.
+        self.authorized = run.authorized.take();
+        let signed = self.attest_signed(run, read);
+        self.authorized = None;
+        match signed {
             Ok(attestation) => {
                 run.request.execution = Some(attestation.execution_id());
                 run.request.started = true;
@@ -1119,6 +1150,7 @@ impl Client {
         }
         let state = read.account?;
         self.observe(&run.account, &state.security)?;
+        self.observe_hardware(&state.info);
         self.attest_sign_with(&run.request.id, run.subject.clone(), &state)
     }
 

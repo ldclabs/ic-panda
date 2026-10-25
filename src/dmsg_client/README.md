@@ -210,6 +210,34 @@ checks without the device, check by check (content, signature, evidence,
 binding), against the deployment's user homes: any canister can certify a
 receipt.
 
+### Approval keys
+
+An account may require an approval key's signature for some approvals
+(`approval_key`, `docs/protocol/account_root.md`): changes to approval keys,
+the policies, the recovery delay and logins; adding, revoking and changing
+devices; enabling the Agent principal and registering or retiring its
+controllers; optionally payments and formal attestations. A device makes its
+key with `ApprovalKeys` (`secure::ApprovalKeys`, the Secure Enclave in the
+daemon), keeps its handle sealed under the LDK and registers it through the
+approval center (`register_request`): the request is approved like any
+high-risk one and the key signs its proof of possession with that same
+answer. Once keys are required, a device without a working one makes a key,
+proves it right away (`key_request`) and hands the token to an administrator
+device with a key (`approve_request`).
+
+On a device whose key the account registered, the person answers a
+protected or high-risk request through the key instead of the presence
+check (`approval::Ask::Hardware`): the daemon asks first, without holding the
+client, and the answer then signs the hardware commitment of the approval
+once it is assembled (`Client::hardware_proof`), so the person is asked once
+and the wait holds neither the client nor the device sequence. An
+attestation the account protects asks in its run, outside the client, before
+it reads and signs. A required approval on a device without its key fails
+with `APPROVAL_KEY_REQUIRED` before anything is sent; nothing falls back to a
+software key. A fingerprint-only key that fails after the fingerprints
+changed is reported lost (`INTEGRITY_FAILED`), and one that cannot ask now
+(no Touch ID keyboard) unavailable.
+
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the
 request and page signatures, the certified application registration and the
@@ -380,6 +408,15 @@ store keeps only the hardware's handle and peer key, every fast unlock asks
 for the person, and the login of the last login unlock, sealed under the LDK,
 comes back until it expires. A device its account revoked erases its
 workspace.
+
+`bind_device` binds the workspace to the device's hardware: a key-agreement
+key in a credential-store slot of its own joins the LUK for the login unlock
+and alone opens fast unlock, so every unlock needs the hardware; the LDK and
+every record stay. Neither turning fast unlock off, signing out nor any
+failure deletes the slot or falls back to the LUK alone; only a reset or
+`unbind_device` does. It protects only copies of the workspace made after
+binding; the device key kept with `background_online` and resident Agent
+IDs' copies are outside it, and binding returns them.
 
 Unlock returns before content sync. Hosts must schedule `sync::sync(&hold)`
 after an unlocked result, as the daemon does. A matching stored root needs no

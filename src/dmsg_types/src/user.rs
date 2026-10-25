@@ -160,6 +160,57 @@ impl Default for SensitivePolicy {
     }
 }
 
+/// What an account may require an approval-key proof for. Enabling the
+/// requirement always includes the three control purposes.
+#[derive(
+    CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub enum HardwarePurpose {
+    /// Approval keys, the hardware and sensitive-execution policies, the
+    /// recovery delay and login bindings.
+    AccountControl,
+    /// Adding and revoking devices and changing their capabilities.
+    DeviceControl,
+    /// Enabling the Agent Delegation principal and registering or retiring
+    /// its controllers.
+    PrincipalControl,
+    /// Checkout and PANDA subscription approvals and name authorizations.
+    Payment,
+    /// Formal attestations and third-party authentications.
+    Attestation,
+}
+
+/// The purposes every enabled hardware policy includes.
+pub const CONTROL_PURPOSES: [HardwarePurpose; 3] = [
+    HardwarePurpose::AccountControl,
+    HardwarePurpose::DeviceControl,
+    HardwarePurpose::PrincipalControl,
+];
+
+/// A device's approval key as proposed: a P-256 key its platform keeps.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ApprovalKeyInput {
+    /// SEC1 compressed P-256 public key (33 bytes).
+    pub public_key: serde_bytes::ByteBuf,
+    /// The key's proof of possession over
+    /// `dmsg_protocol::approval_key_message`.
+    pub proof: P256Signature,
+}
+
+/// A device's registered approval key. A registration claims nothing about
+/// the hardware that keeps it.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ApprovalKey {
+    /// `dmsg/hardware-key/v1` digest of the public key.
+    pub key_id: Hash,
+    /// SEC1 compressed P-256 public key (33 bytes).
+    pub public_key: serde_bytes::ByteBuf,
+    /// Registration time in Unix milliseconds.
+    pub registered_at: u64,
+    /// The device that approved the registration.
+    pub registered_by: Hash,
+}
+
 /// Idempotent account mutation result, distinct from a certified execution receipt.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OperationReceipt {
@@ -449,6 +500,22 @@ pub enum AccountCommand {
         /// New label, or None to remove it.
         name: Option<String>,
     },
+    /// Register or replace a device's approval key, or retire it with
+    /// None. Any active device sets its own; another device's needs an
+    /// administrator.
+    SetApprovalKey {
+        /// The device the key belongs to.
+        device_id: Hash,
+        /// The new key, or None to retire the current one.
+        key: Option<ApprovalKeyInput>,
+    },
+    /// Require approval-key proofs for `purposes`, which then include the
+    /// three control purposes; empty turns the requirement off. Enabling it
+    /// needs the approving device's own proof.
+    SetHardwarePolicy {
+        /// The protected purposes, each once.
+        purposes: Vec<HardwarePurpose>,
+    },
 }
 
 /// Compare-and-swap account update with device approval.
@@ -501,4 +568,8 @@ pub struct AccountInfo {
     pub vault_write_state: VaultWriteState,
     /// Account-specific attestation restrictions and budgets.
     pub sensitive_policy: SensitivePolicy,
+    /// Each device's registered approval key, by device ID.
+    pub approval_keys: BTreeMap<Hash, ApprovalKey>,
+    /// The purposes that need an approval-key proof; empty when off.
+    pub hardware_policy: Vec<HardwarePurpose>,
 }

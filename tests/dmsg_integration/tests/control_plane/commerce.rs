@@ -70,6 +70,7 @@ fn approve(
         request_id: Hash::new([op; 32]),
         expires_at: a.expires_at_ms,
         signature: Default::default(),
+        hardware: None,
     };
     proof.signature = key(1)
         .sign(approval_message(f.user, id, "dmsg/application/approve/v1", &a, &proof).as_slice())

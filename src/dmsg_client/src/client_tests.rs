@@ -140,12 +140,18 @@ async fn a_matching_local_root_opens_without_publishing_security_to_the_relay() 
     assert!(client.load_root().await.is_err());
 }
 
-/// A [`PresenceKey`] that answers as the person tells it to.
+/// A [`PresenceKey`] that answers as the person tells it to. Each key it
+/// makes has its own secret: the first byte of the handle and peer.
 #[derive(Default)]
 struct Hardware {
     declines: std::sync::atomic::AtomicBool,
     forgot: std::sync::atomic::AtomicBool,
+    /// The person cannot be asked now, such as without a Touch ID keyboard.
+    away: std::sync::atomic::AtomicBool,
     opened: std::sync::atomic::AtomicU32,
+    made: std::sync::atomic::AtomicU8,
+    /// The enrolled fingerprints.
+    fingerprints: std::sync::atomic::AtomicU8,
 }
 
 impl PresenceKey for Hardware {
@@ -153,19 +159,31 @@ impl PresenceKey for Hardware {
         Some(Presence::Biometrics)
     }
 
-    fn create(&self) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
-        Ok((vec![7; 10], vec![4; 65], Zeroizing::new([9; 32])))
+    fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+        let n = self.made.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 7;
+        Ok((vec![n; 10], vec![n; 65], Zeroizing::new([n + 2; 32])))
     }
 
-    fn open(&self, handle: &[u8], peer: &[u8]) -> Result<Zeroizing<Key>> {
+    fn open(&self, handle: &[u8], peer: &[u8], _: bool) -> Result<Zeroizing<Key>> {
         use std::sync::atomic::Ordering::SeqCst;
-        assert_eq!((handle, peer), (&[7u8; 10][..], &[4u8; 65][..]));
+        assert_eq!((handle.len(), peer.len(), handle[0]), (10, 65, peer[0]));
         self.opened.fetch_add(1, SeqCst);
-        match (self.declines.load(SeqCst), self.forgot.load(SeqCst)) {
-            (true, _) => Err(Error::Forbidden),
-            (_, true) => Err(Error::IntegrityFailed),
-            _ => Ok(Zeroizing::new([9; 32])),
+        match (
+            self.declines.load(SeqCst),
+            self.away.load(SeqCst),
+            self.forgot.load(SeqCst),
+        ) {
+            (true, _, _) => Err(Error::Forbidden),
+            (_, true, _) => Err(Error::Unavailable("not now".into())),
+            (_, _, true) => Err(Error::IntegrityFailed),
+            _ => Ok(Zeroizing::new([handle[0] + 2; 32])),
         }
+    }
+
+    fn biometry_state(&self) -> Option<Hash> {
+        Some(Hash::new(
+            [self.fingerprints.load(std::sync::atomic::Ordering::SeqCst); 32],
+        ))
     }
 
     fn confirm(&self, _what: &str) -> Result<()> {
@@ -500,4 +518,101 @@ fn a_login_workspace_becomes_its_account() {
             .starts_with(dir.path("accounts").join(account.id.to_string()))
     );
     assert_eq!(client.accounts().unwrap().len(), 1);
+}
+
+/// Bind `client`'s workspace to a new key of `hardware`, as
+/// [`Client::bind_device`] does once the user home answered.
+fn bind_offline(client: &mut Client, hardware: &Hardware, storage: &MemoryStorage, biometry: bool) {
+    let (handle, peer, secret) = hardware.create(biometry).unwrap();
+    let slot = BoundSlot {
+        handle: handle.into(),
+        peer: peer.into(),
+        biometry: biometry.then(|| hardware.biometry_state().unwrap()),
+    };
+    storage
+        .set(&client.bound_name().unwrap(), &canonical(&slot))
+        .unwrap();
+    let keys = client.keys.take().unwrap();
+    client
+        .workspace
+        .bind_device(&keys, &crate::testing::SECRET, &secret, slot.id(), now_ms())
+        .unwrap();
+    client.keys = Some(keys);
+}
+
+#[tokio::test]
+async fn a_device_bound_workspace_keeps_its_slot_through_failures_and_logout() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    client.after_login_unlock().unwrap();
+    let fast_name = client.fast_name().unwrap();
+    bind_offline(&mut client, &hardware, &storage, false);
+    // What binding leaves: the slot, and fast unlock through it alone.
+    storage.delete(&fast_name).unwrap();
+    let bound_name = client.bound_name().unwrap();
+    let status = client.status().unwrap();
+    assert!(status.device_bound && status.fast_unlock);
+
+    // Fast unlock asks the hardware for the slot's secret.
+    client.lock();
+    let opened = hardware.opened.load(SeqCst);
+    assert_eq!(client.unlock_fast().await.unwrap().state, "unlocked");
+    assert_eq!(hardware.opened.load(SeqCst), opened + 1);
+
+    // Declined, unavailable now, or even lost: nothing is deleted and
+    // nothing falls back.
+    for flag in [&hardware.declines, &hardware.away, &hardware.forgot] {
+        client.lock();
+        flag.store(true, SeqCst);
+        assert!(client.unlock_fast().await.is_err());
+        flag.store(false, SeqCst);
+        assert!(storage.get(&bound_name).unwrap().is_some());
+        let status = client.status().unwrap();
+        assert!(status.device_bound && status.fast_unlock);
+    }
+
+    // Fast unlock off and on again, then a logout: the slot stays.
+    client.unlock_fast().await.unwrap();
+    assert!(!client.disable_fast_unlock().unwrap().fast_unlock);
+    assert!(client.enable_fast_unlock().unwrap().fast_unlock);
+    assert!(storage.get(&fast_name).unwrap().is_none());
+    client.logout().unwrap();
+    assert!(storage.get(&bound_name).unwrap().is_some());
+}
+
+#[tokio::test]
+async fn a_fingerprint_only_slot_is_lost_once_the_fingerprints_change() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    bind_offline(&mut client, &hardware, &storage, true);
+    client.lock();
+    // Without its Touch ID keyboard the key is only unavailable now.
+    hardware.away.store(true, SeqCst);
+    assert!(matches!(
+        client.unlock_fast().await,
+        Err(Error::Unavailable(_))
+    ));
+    // Other fingerprints: the key is gone for good, and still nothing
+    // is deleted.
+    hardware.fingerprints.store(1, SeqCst);
+    assert_eq!(
+        client.unlock_fast().await.err(),
+        Some(Error::IntegrityFailed)
+    );
+    assert!(
+        storage
+            .get(&client.bound_name().unwrap())
+            .unwrap()
+            .is_some()
+    );
+    assert!(client.workspace.bound().unwrap());
 }
