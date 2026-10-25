@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="800" viewBox="0 0 2000 800" font-family="'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3D4450"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#C2410C"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#D27A1F"/>
+    </marker>
+  </defs>
+
+  <rect width="2000" height="800" fill="#FBFAF7"/>
+
+  <!-- Title -->
+  <text x="60" y="66" font-size="40" font-weight="700" fill="#1F2328">dMsg 的账户、登录、设备、密钥与数据</text>
+  <text x="60" y="106" font-size="24" fill="#57606A">登录证明你是谁 · 账户定规则 · 设备持有密钥 · 数据始终加密</text>
+
+  <!-- Legend -->
+  <g font-size="21" fill="#3D4450">
+    <rect x="1262" y="48" width="20" height="20" rx="4" fill="#EAF1FD" stroke="#2F6FDB" stroke-width="2"/>
+    <text x="1292" y="65">登录身份</text>
+    <rect x="1406" y="48" width="20" height="20" rx="4" fill="#F2EDFB" stroke="#6D4BC3" stroke-width="2"/>
+    <text x="1436" y="65">链上账户</text>
+    <rect x="1550" y="48" width="20" height="20" rx="4" fill="#EAF6EE" stroke="#2E8B57" stroke-width="2"/>
+    <text x="1580" y="65">设备上的秘密</text>
+    <rect x="1736" y="48" width="20" height="20" rx="4" fill="#FFF5E8" stroke="#D27A1F" stroke-width="2"/>
+    <text x="1766" y="65">加密数据</text>
+  </g>
+
+  <!-- Column headers -->
+  <g font-size="21" font-weight="700" fill="#8C959F" letter-spacing="2">
+    <text x="230" y="172" text-anchor="middle">1 · 登录身份</text>
+    <text x="695" y="172" text-anchor="middle">2 · ICP 上的账户</text>
+    <text x="1230" y="172" text-anchor="middle">3 · 你的设备</text>
+    <text x="1745" y="172" text-anchor="middle">4 · 你的数据</text>
+  </g>
+
+  <!-- 1. Login -->
+  <circle cx="230" cy="262" r="46" fill="#FFFFFF" stroke="#2F6FDB" stroke-width="2.5"/>
+  <text x="230" y="272" font-size="28" font-weight="700" fill="#1F2328" text-anchor="middle">你</text>
+  <line x1="230" y1="310" x2="230" y2="366" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="246" y="345" font-size="21" fill="#57606A">登录</text>
+  <rect x="80" y="372" width="300" height="140" rx="18" fill="#EAF1FD" stroke="#2F6FDB" stroke-width="2.5"/>
+  <text x="230" y="424" font-size="30" font-weight="700" fill="#1F2328" text-anchor="middle">Internet Identity</text>
+  <text x="230" y="460" font-size="23" fill="#3D4450" text-anchor="middle">用通行密钥登录</text>
+  <text x="230" y="490" font-size="23" fill="#3D4450" text-anchor="middle">绑定到你的账户</text>
+  <text x="250" y="575" font-size="22" font-style="italic" fill="#57606A" text-anchor="middle">登录身份</text>
+  <text x="250" y="605" font-size="22" font-style="italic" fill="#57606A" text-anchor="middle">不是数据密钥</text>
+
+  <!-- login -> account -->
+  <line x1="382" y1="440" x2="486" y2="440" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="435" y="425" font-size="21" fill="#57606A" text-anchor="middle">绑定</text>
+
+  <!-- 2. Account -->
+  <rect x="490" y="200" width="410" height="490" rx="22" fill="#F2EDFB" stroke="#6D4BC3" stroke-width="2.5"/>
+  <text x="695" y="250" font-size="32" font-weight="700" fill="#1F2328" text-anchor="middle">dMsg 账户</text>
+  <text x="695" y="282" font-size="22" fill="#57606A" text-anchor="middle">规则与公钥，不含内容密钥</text>
+  <g font-size="24" fill="#1F2328" text-anchor="middle">
+    <rect x="512" y="310" width="366" height="56" rx="12" fill="#FFFFFF" stroke="#C9B8EE" stroke-width="1.5"/>
+    <text x="695" y="346">已绑定的登录身份</text>
+    <rect x="512" y="380" width="366" height="56" rx="12" fill="#FFFFFF" stroke="#C9B8EE" stroke-width="1.5"/>
+    <text x="695" y="416">已登记的设备</text>
+    <rect x="512" y="450" width="366" height="56" rx="12" fill="#FFFFFF" stroke="#C9B8EE" stroke-width="1.5"/>
+    <text x="695" y="486">批准钥匙与硬件批准政策</text>
+    <rect x="512" y="520" width="366" height="56" rx="12" fill="#FFFFFF" stroke="#C9B8EE" stroke-width="1.5"/>
+    <text x="695" y="556">恢复等待期 · 待处理恢复</text>
+    <rect x="512" y="590" width="366" height="56" rx="12" fill="#FFFFFF" stroke="#C9B8EE" stroke-width="1.5"/>
+    <text x="695" y="626">当前内容根的引用</text>
+  </g>
+
+  <!-- account <-> device -->
+  <line x1="902" y1="420" x2="1006" y2="420" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="955" y="380" font-size="21" fill="#57606A" text-anchor="middle">解锁</text>
+  <text x="955" y="404" font-size="21" fill="#57606A" text-anchor="middle">秘密</text>
+  <line x1="1006" y1="520" x2="904" y2="520" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="955" y="553" font-size="21" fill="#57606A" text-anchor="middle">签名的</text>
+  <text x="955" y="577" font-size="21" fill="#57606A" text-anchor="middle">批准</text>
+
+  <!-- 3. Devices -->
+  <rect x="1010" y="196" width="420" height="470" rx="22" fill="#FFFFFF" stroke="#8FBFA2" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1032" y="222" font-size="21" fill="#57606A">iPhone B …</text>
+  <rect x="1010" y="232" width="420" height="458" rx="22" fill="#EAF6EE" stroke="#2E8B57" stroke-width="2.5"/>
+  <text x="1220" y="282" font-size="32" font-weight="700" fill="#1F2328" text-anchor="middle">Mac A</text>
+  <text x="1220" y="312" font-size="21" fill="#57606A" text-anchor="middle">每个账户一个本地工作区</text>
+  <g font-size="23" fill="#1F2328" text-anchor="middle">
+    <rect x="1030" y="335" width="380" height="56" rx="12" fill="#FFFFFF" stroke="#A9D3B9" stroke-width="1.5"/>
+    <text x="1220" y="371">设备密钥：签名、解密</text>
+    <rect x="1030" y="405" width="380" height="56" rx="12" fill="#FFFFFF" stroke="#A9D3B9" stroke-width="1.5"/>
+    <text x="1220" y="441">Secure Enclave 批准钥匙</text>
+    <rect x="1030" y="475" width="380" height="56" rx="12" fill="#FFFFFF" stroke="#A9D3B9" stroke-width="1.5"/>
+    <text x="1220" y="511">本机数据密钥（LDK）</text>
+  </g>
+  <g font-size="21" fill="#3D4450" text-anchor="middle">
+    <text x="1220" y="578">LDK 用解锁秘密打开，</text>
+    <text x="1220" y="608">或用 Touch ID 快速解锁；</text>
+    <text x="1220" y="638">设备绑定后还需 Secure Enclave</text>
+  </g>
+
+  <!-- root -> device -->
+  <line x1="1548" y1="272" x2="1434" y2="272" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="1490" y="306" font-size="21" fill="#57606A" text-anchor="middle">分别封装</text>
+  <text x="1490" y="330" font-size="21" fill="#57606A" text-anchor="middle">给每台设备</text>
+
+  <!-- 4. Data -->
+  <rect x="1550" y="200" width="390" height="92" rx="16" fill="#FFF5E8" stroke="#D27A1F" stroke-width="2.5"/>
+  <text x="1745" y="243" font-size="30" font-weight="700" fill="#1F2328" text-anchor="middle">内容根</text>
+  <text x="1745" y="275" font-size="21" fill="#57606A" text-anchor="middle">随机生成 · 每代一把</text>
+  <line x1="1745" y1="294" x2="1745" y2="333" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="1550" y="337" width="390" height="82" rx="16" fill="#FFF5E8" stroke="#D27A1F" stroke-width="2.5"/>
+  <text x="1745" y="372" font-size="28" font-weight="700" fill="#1F2328" text-anchor="middle">条目密钥</text>
+  <text x="1745" y="403" font-size="20" fill="#57606A" text-anchor="middle">每个条目、文件版本、频道各一把</text>
+  <line x1="1745" y1="421" x2="1745" y2="458" stroke="#3D4450" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="1550" y="462" width="390" height="122" rx="28" fill="#FFF5E8" stroke="#D27A1F" stroke-width="2.5"/>
+  <text x="1745" y="500" font-size="28" font-weight="700" fill="#1F2328" text-anchor="middle">加密数据</text>
+  <text x="1745" y="533" font-size="22" fill="#3D4450" text-anchor="middle">保险库 · 文件 · 频道</text>
+  <text x="1745" y="563" font-size="21" fill="#57606A" text-anchor="middle">云端只保存密文</text>
+  <rect x="1550" y="622" width="390" height="70" rx="16" fill="#FFFFFF" stroke="#C2410C" stroke-width="2.5" stroke-dasharray="8 6"/>
+  <text x="1745" y="653" font-size="25" font-weight="700" fill="#1F2328" text-anchor="middle">恢复信封</text>
+  <text x="1745" y="680" font-size="20" fill="#57606A" text-anchor="middle">经 vetKD 打开</text>
+  <path d="M1942,246 H1968 V657 H1946" fill="none" stroke="#D27A1F" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Recovery path -->
+  <path d="M110,514 V740 H1745 V696" fill="none" stroke="#C2410C" stroke-width="2.5" stroke-dasharray="10 7" marker-end="url(#arrow-red)"/>
+  <circle cx="695" cy="740" r="7" fill="#C2410C"/>
+  <text x="930" y="776" font-size="22" fill="#C2410C" text-anchor="middle">设备全部丢失？已绑定的登录身份可在等待 1–7 天后恢复账户；期间你的任何一台设备都能取消</text>
+</svg>

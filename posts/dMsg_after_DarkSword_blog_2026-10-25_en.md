@@ -18,6 +18,8 @@ For dMsg, the practical question is: **if someone copies the local workspace and
 
 dMsg is one of ICPanda DAO's products: a private workspace with a password vault, encrypted files, channels and letters, document signing, team wallets, and scoped access for AI agents. Its client, protocols, and canisters are open source. The protections described below are not a claim of independent security certification or proof that dMsg resists a specific exploit chain.
 
+![How dMsg fits together: an Internet Identity login is bound to a dMsg account on ICP, which registers devices and issues them unlock secrets; each device holds its own keys, and the content root is wrapped to each device and to a vetKD recovery envelope](dMsg_account_model_2026-10-25_en.svg)
+
 ## 1. Encrypt before data leaves the device
 
 Vault items and file versions each use their own random AES-256-GCM keys. Files are split into ~1 MiB chunks and verified on download; channels use their own epoch keys. The account's content root protects the keys needed to read private data, and is wrapped separately for each device using HPKE with X25519.
