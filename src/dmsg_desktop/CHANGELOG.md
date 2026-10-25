@@ -5,6 +5,91 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.1.0] - 2026-10-25
+
+### Credential use
+
+- Signatures & approvals → Credential use lets programs, Git and agents use
+  a Vault credential without receiving the Vault. Every use is an approval
+  request; approvals and history never hold values. Fields are referenced as
+  `dmsg-secret://<account>/<item>/<field>`, Files versions as
+  `dmsg-file://<file>/<version>`.
+- `dmsg run` delivers referenced fields and file versions to one approved run
+  of a program, as environment variables (`--env-file`, references only) or as
+  inherited sequential pipes (`--file`, up to 8 files of 8 MiB each). The plan
+  binds the program, its arguments, working directory and sources; a change to
+  any of them, to the credential or to the session before the start voids it.
+- SSH and Git: an Ed25519 key generated in the Vault signs through
+  `dmsg secrets ssh socket` with one approval per signature, for commit
+  signing (`git_sign`) and SSH login (`ssh_auth`, session-bind only, no agent
+  forwarding). The private key never leaves dMsg.
+- Secret files: a project mapping mounts `.env` content and Files versions as
+  ordinary paths whose reads wait for approval (on macOS a window of at most
+  60 seconds per file and user, on Linux per open handle, over FUSE). On macOS
+  it needs the "dMsg secret files" extension; the Secret files page explains
+  how to turn it on in System Settings, and each start failure names its
+  cause. A mount never falls back to a plaintext file.
+- Agents: a device-local policy lets an agent ask to create a GitHub issue with
+  a concealed token (MCP `dmsg_secret_use_request`, `dmsg_secret_use_status`,
+  `dmsg_secret_use_cancel`). The approval shows the repository, title and body;
+  the agent gets the issue number and URL, never the token. An uncertain
+  result is `lost` and is never sent again.
+- Secret snapshots copy chosen fields, notes and attachments of one item to a
+  link (one day and one download session by default; 6 minutes to 7 days, 1 to
+  100 sessions) or to a channel. Nothing is selected by default, recipients
+  import verified copies as new items, and copies cannot be recalled.
+- Health and discovery reviews findings, scans a chosen directory for
+  `.env`-style credentials to import, lists the policies, grants, mounts, SSH
+  bindings and snapshots that use a field, and tracks a rotation through
+  upstream revocation, checking that list again before it completes.
+- File details and Vault items show complete, copyable IDs. Files copy
+  version references; fields get value-free references from the daemon.
+  Walkthrough (Chinese): [credentials, file references and developer
+  workflows](../../docs/dmsg_secrets_tutorial_zh.md).
+
+### Account security
+
+- Approval keys: a Mac can register a Secure Enclave approval key, and the
+  account can require its signature for account, device and Agent principal
+  control, optionally also payments and attestations. The user home verifies
+  it, so a stolen software device key and login are no longer enough. A login
+  recovery retires every key and clears the policy.
+- Device-bound unlock makes login unlock also need this Mac's Secure Enclave
+  secret, as fast unlock does; Touch ID only removes the password fallback. A
+  fingerprint state that cannot be read counts as unknown, not changed, so a
+  temporarily unavailable Touch ID keeps the key.
+- Pairing a device and changing its capabilities are high-risk approval
+  requests, like revoking one; the approval shows the device, role and
+  capabilities.
+- Pending recovery alerts: the daemon checks the selected account's certified
+  recovery status about once a minute, also while locked. The desktop notifies
+  once per request, without account details, and opens Account security to
+  cancel it; `dmsg status` warns as well. Alerts need the daemon and desktop
+  running, the device online and notifications allowed.
+
+### Desktop
+
+- Profiles, names, the account, membership, wallets, Inbox policy and cloud
+  storage open from encrypted, account-local display snapshots and refresh in
+  the background. Settings → Files → Display cache shows and clears them;
+  locking or switching accounts takes them off screen.
+- Legacy migration waits until the account is ready and says which setup step
+  remains. An interrupted initial account setup resumes on the same account.
+- Team wallets with hundreds of proposals load their history again: the
+  history cache is stored in pages.
+- The Chinese interface calls the vault 保险库.
+
+### Upgrade notes
+
+- Approval keys add fields to the user home's account (`dmsg_user` schema 16,
+  canisters 3.1.3). This client cannot read the account from an older user
+  home, so upgrade the user homes first.
+- Opening a secret snapshot link in a browser needs the website's share page
+  from this source.
+- On macOS, secret files need a dMsg.app whose daemon and extension are signed
+  by the same team, as packaging checks. The extension stays off until turned
+  on in System Settings.
+
 ## [1.0.2] - 2026-10-24
 
 ### Team wallets
@@ -134,6 +219,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.1.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.2...dmsg-v1.1.0
 [1.0.2]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.1...dmsg-v1.0.2
 [1.0.1]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.0...dmsg-v1.0.1
 [1.0.0]: https://github.com/ldclabs/ic-panda/releases/tag/dmsg-v1.0.0
