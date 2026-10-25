@@ -237,6 +237,8 @@ pub(crate) struct Runtime {
     next_handle: u64,
     pending: BTreeMap<String, Pending>,
     grants: BTreeMap<String, Grant>,
+    /// Ended macOS windows per entry, which the module confirms clearing from kernel caches.
+    revocations: BTreeMap<String, u64>,
 }
 
 /// Callback metadata returned to a trusted filesystem backend.
@@ -539,6 +541,7 @@ impl Client {
                 next_handle: 0,
                 pending: BTreeMap::new(),
                 grants: BTreeMap::new(),
+                revocations: BTreeMap::new(),
             },
         );
         Ok(json!({"config":config,"metadata":metadata}))
@@ -835,7 +838,8 @@ impl Client {
         Ok(json!({"stopped":id,"os_unmounted":false}))
     }
 
-    /// Expire scopes using a monotonic clock. Return entries whose kernel state must be revoked.
+    /// Expire scopes using a monotonic clock. Returns the macOS entries whose kernel
+    /// caches must be cleared, each with its revocation count for the module to confirm.
     pub fn secret_mount_tick(&mut self) -> Result<Vec<(String, String, u64)>> {
         self.keys()?;
         if self.secret_mount_runtime.is_empty() {
@@ -859,12 +863,13 @@ impl Client {
                 .collect();
             for key in expired {
                 let g = rt.grants.remove(&key).expect("grant");
-                if let Some(e) = rt.entries.iter_mut().find(|e| e.id == g.entry.id)
-                    && matches!(g.scope, Scope::MacosFileWindow { .. })
-                {
-                    e.generation = e.generation.saturating_add(1);
+                // The item keeps its identity: macOS hands new opens of a path to the
+                // item it already holds, so a later read must reach a new approval.
+                if matches!(g.scope, Scope::MacosFileWindow { .. }) {
+                    let count = rt.revocations.entry(g.entry.id.clone()).or_default();
+                    *count += 1;
+                    revoked.push((id.clone(), g.entry.id.clone(), *count));
                 }
-                revoked.push((id.clone(), g.entry.id.clone(), g.entry.generation));
                 ended.push(g);
             }
             for g in rt.grants.values() {
@@ -906,7 +911,7 @@ impl Client {
         self.mount_tick_at(at, now_ms())?;
         let rt = self.secret_mount_runtime.get(id).ok_or(Error::NotFound)?;
         Ok(
-            json!({"config":rt.config,"entries":rt.entries,"pending_io":rt.pending.len(),"handles":rt.handles.len(),"grants":rt.grants.values().map(|g|json!({"request_id":g.request,"entry":g.entry.id,"scope":g.scope,"remaining_ms":g.deadline.saturating_sub(at),"monotonic_deadline_ms":g.deadline,"released_bytes":g.released})).collect::<Vec<_>>()}),
+            json!({"config":rt.config,"entries":rt.entries,"revocations":rt.revocations,"pending_io":rt.pending.len(),"handles":rt.handles.len(),"grants":rt.grants.values().map(|g|json!({"request_id":g.request,"entry":g.entry.id,"scope":g.scope,"remaining_ms":g.deadline.saturating_sub(at),"monotonic_deadline_ms":g.deadline,"released_bytes":g.released})).collect::<Vec<_>>()}),
         )
     }
 
@@ -1166,10 +1171,14 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
-        let new_generation = c.secret_mount_entries(&id).unwrap()[0].generation;
-        assert_ne!(new_generation, generation);
+        // The item keeps its identity; its next read waits for a new approval.
+        assert_eq!(
+            c.secret_mount_entries(&id).unwrap()[0].generation,
+            generation
+        );
+        assert_eq!(c.secret_mount_status(&id).unwrap()["revocations"]["e0"], 1);
         assert!(
-            !c.secret_mount_intent(&id, "e0", new_generation, 501, None)
+            !c.secret_mount_intent(&id, "e0", generation, 501, None)
                 .unwrap()
                 .ready
         );
@@ -1229,16 +1238,11 @@ mod tests {
                 .await
                 .is_err()
         );
-        assert!(
-            c.secret_mount_intent(&id, "e0", generation, 501, None)
-                .is_err()
-        );
-        let next = c.secret_mount_entries(&id).unwrap()[0].generation;
-        assert!(
-            !c.secret_mount_intent(&id, "e0", next, 501, None)
-                .unwrap()
-                .ready
-        );
+        let after = c
+            .secret_mount_intent(&id, "e0", generation, 501, None)
+            .unwrap();
+        assert!(!after.ready && after.request_id.is_some());
+        assert_eq!(c.secret_mount_status(&id).unwrap()["revocations"]["e0"], 1);
     }
 
     #[tokio::test]

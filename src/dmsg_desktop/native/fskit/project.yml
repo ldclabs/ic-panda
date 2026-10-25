@@ -70,3 +70,7 @@ schemes:
     build:
       targets:
         SecretsFS: all
+  DevelopmentHost:
+    build:
+      targets:
+        DevelopmentHost: all

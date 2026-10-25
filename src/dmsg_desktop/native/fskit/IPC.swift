@@ -31,9 +31,15 @@ final class ContentRequest {
         var timeout = timeval(tv_sec: 2, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         let connected = withUnsafePointer(to: &address) { pointer in pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) } }
-        guard connected == 0 else { Darwin.close(fd); return finish(.failure(POSIXError(.ECONNREFUSED))) }
+        guard connected == 0 else {
+            diagnostics.error("content service connect failed: errno \(errno, privacy: .public)")
+            Darwin.close(fd); return finish(.failure(POSIXError(.ECONNREFUSED)))
+        }
         var user: uid_t = 0; var group: gid_t = 0
-        guard getpeereid(fd, &user, &group) == 0, user == getuid() else { Darwin.close(fd); return finish(.failure(POSIXError(.EACCES))) }
+        guard getpeereid(fd, &user, &group) == 0, user == getuid() else {
+            diagnostics.error("content service peer is another user")
+            Darwin.close(fd); return finish(.failure(POSIXError(.EACCES)))
+        }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true); file = handle
         do {
             let payload = try JSONSerialization.data(withJSONObject: request)

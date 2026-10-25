@@ -98,6 +98,8 @@ export interface DesktopBridge {
   secretScanDirectory(): Promise<any>
   secretMountPrepare(input: any, windowMs: number): Promise<any>
   secretMountSave(session: number): Promise<any>
+  /** macOS only: System Settings at Login Items & Extensions, where the secret-files extension is enabled. */
+  openExtensionSettings(): Promise<void>
   vaultImportPreview(): Promise<unknown>
   /** Add the selected items of this preview session, once: `{ids}`. */
   vaultImport(session: number, picks: number[], attachments?: string[], folder?: string): Promise<{ ids: string[] }>

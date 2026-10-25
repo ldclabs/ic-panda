@@ -515,6 +515,11 @@ handle('dmsg:secret-mount-save', 'main', async (_event, session: number) => {
   preparedSecretMount = null
   return daemon.call('secrets/mounts/save_request', prepared.params)
 })
+/** A fixed System Settings pane; a window never names what to open. */
+handle('dmsg:open-extension-settings', 'main', async () => {
+  if (process.platform !== 'darwin') throw new DaemonError('UNSUPPORTED_PROTOCOL', 'macOS only')
+  await shell.openExternal('x-apple.systempreferences:com.apple.LoginItems-Settings.extension')
+})
 handle('dmsg:vault-import-cancel', 'main', cancelImport)
 handle('dmsg:vault-import-preview', 'main', async () => {
   cancelImport()

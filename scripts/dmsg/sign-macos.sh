@@ -50,8 +50,22 @@ security list-keychains -d user -s "$KEYCHAIN" $USER_KEYCHAINS
 IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/"Developer ID Application:/ { print $2; exit }')
 [ -n "$IDENTITY" ] || error "MAC_CSC_LINK has no Developer ID Application identity"
 
+# The team's App Group is where the sandboxed FSKit secret-files module
+# reaches the daemon's socket (`native_directory` in secret_mounts.rs).
+cat >"${WORK}/entitlements.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>${APPLE_TEAM_ID}.net.dmsg.secrets</string>
+	</array>
+</dict>
+</plist>
+PLIST
 codesign --force --sign "$IDENTITY" --keychain "$KEYCHAIN" --options runtime --timestamp \
-    --identifier net.dmsg.dmsg "$FILE"
+    --identifier net.dmsg.dmsg --entitlements "${WORK}/entitlements.plist" "$FILE"
 codesign --verify --strict --verbose=2 "$FILE"
 
 mkdir "${WORK}/notarize"

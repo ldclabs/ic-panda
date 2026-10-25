@@ -147,7 +147,9 @@ SSH 身份认证需要签名有效、非 forwarding 的 `session-bind@openssh.co
 
 平台模式由 daemon 选择，不能由读取者声称身份。Linux 使用 OS uid 与实际打开句柄，PID 只作来源提示，不声称进程隔离。macOS 使用 uid 和 `window_ms`（1–60,000 毫秒），显示“窗口内同一用户的其他程序也可能读取”。未决 IO 最长 30 秒，回调取消后迟到批准无效；每次范围读取最多 1 MiB。统计的 `released_bytes` 是交给文件系统后端的字节，不证明应用完整消费。mmap 和写回不属于支持合同。
 
-扩展通过专用 0700 目录中的 Unix socket 连接 daemon，目录不存密钥或明文 backing file。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。锁定、退出登录与切换账户会停止并卸载全部机密挂载，项目别名在此期间悬空；解锁后不会自动重新挂载，需要 owner 再次启动，之后每次读取仍须重新批准。来源变更时每次读取立即拒绝，daemon 的周期检查随后停止该卷。
+扩展通过签名团队 App Group 容器 `<TEAM>.net.dmsg.secrets` 中专用 0700 目录里的 Unix socket 连接 daemon（App Sandbox 只允许扩展连接该容器内的 socket），目录不存密钥或明文 backing file。daemon 必须由同一团队签名，发布版 `dmsg` 带该 App Group entitlement；未签名或 ad-hoc 签名的 daemon 无法提供挂载。
+
+macOS 不会自动启用文件系统扩展：首次使用前，用户须在“系统设置 → 通用 → 登录项与扩展 → 按类别 → 文件系统扩展”中启用 “dMsg secret files”。`secrets/mounts/list` 的 `daemon_ready` 表示 daemon 能否服务扩展；`start` 失败时返回并在 `status.error` 保留固定原因，直到下一次启动：`FSKIT_EXTENSION_DISABLED`（已安装但未启用）、`FSKIT_EXTENSION_MISSING`（本 dMsg 未包含扩展）、`FSKIT_EXTENSION_REFUSED`（扩展与 daemon 不是同一签名版本）、`FSKIT_DAEMON_UNSIGNED`（daemon 缺团队签名或 App Group）、`FSKIT_UNAVAILABLE`（其他）。前三者取自 `/sbin/mount` 的固定报错格式。桌面端据此显示操作步骤，并经 main 进程打开系统设置的“登录项与扩展”。发布包只有在打包时以 `DMSG_FSKIT_EXTENSION` 内嵌 Developer ID 签名的模块（需要 FSKit 分发描述文件）才包含扩展；当前发布流程没有内嵌，发布版启动挂载得到 `FSKIT_EXTENSION_MISSING`。daemon 验证同 UID、固定扩展 ID、FSKit entitlement 和同一签名团队。普通 owner RPC 没有挂载明文读取方法。失联、来源变更、锁定和重启关闭旧授权，不自动恢复窗口；原生缓存撤销或卸载失败保留失败状态。锁定、退出登录与切换账户会停止并卸载全部机密挂载，项目别名在此期间悬空；解锁后不会自动重新挂载，需要 owner 再次启动，之后每次读取仍须重新批准。来源变更时每次读取立即拒绝，daemon 的周期检查随后停止该卷。
 
 ### 快照发送与接收
 
@@ -201,6 +203,6 @@ CLI：`dmsg secrets shares channel-prepare <channel_id> <selection.json>`；`dms
 | 快照包、链接/频道发送、导入与完整性 | [分享测试](../../src/dmsg_client/src/secrets/share_tests.rs) · [包向量](../../tests/vectors/client/secret-package-v1.json) |
 | CLI、SSH/Git 与 Linux FUSE | [本地系统集成测试](../../src/dmsg_cli/src/secret_integration_tests.rs)；各 `#[ignore]` 注明所需工具、隔离容器或 `/dev/fuse` 权限 |
 | 桌面审批与界面 | [Secrets smoke](../../src/dmsg_desktop/scripts/secrets-smoke.mjs) |
-| macOS FSKit | [原生模块说明](../../src/dmsg_desktop/native/fskit/README.md)：构建、签名、启用、内核行为与分发是独立验证步骤 |
+| macOS FSKit | [原生模块说明](../../src/dmsg_desktop/native/fskit/README.md)：构建、签名、启用、内核行为与分发是独立验证步骤；已启用的开发签名正式模块由 `real_fskit_window_reads_expire_revoke_and_stop` 实测（ignored，需同团队签名的测试二进制） |
 
-本次文档核对未执行上述测试。真实 GitHub、真实在场确认、生产中继、跨 UID/已打开文件句柄、正式 macOS 模块的挂载/撤销和分发公证不能由合成 fixture 或编译成功替代。原生模块未打包或不可用时，挂载明确返回不可用；不能回退为明文 backing file。历史验证记录不能作为当前发布通过的证明。
+本次文档核对未执行上述测试。真实 GitHub、真实在场确认、生产中继、跨 UID/已打开文件句柄和分发公证不能由合成 fixture 或编译成功替代；正式 macOS 模块的开发签名挂载/撤销已有上述实测，Developer ID 分发、休眠、升级与卸载仍需单独验证。原生模块未打包或不可用时，挂载明确返回不可用；不能回退为明文 backing file。历史验证记录不能作为当前发布通过的证明。

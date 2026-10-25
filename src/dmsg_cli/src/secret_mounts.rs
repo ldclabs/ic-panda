@@ -215,7 +215,7 @@ impl Daemon {
     pub(crate) async fn call_secret_mounts(&self, method: &str, p: &Value) -> Result<Value> {
         match method {
             "secrets/mounts/list" => Ok(
-                json!({"mounts":self.client().lock().await.secret_mount_configs()?,"platform":std::env::consts::OS,"supported":platform_supported(),"backend_status":"checked_when_started"}),
+                json!({"mounts":self.client().lock().await.secret_mount_configs()?,"platform":std::env::consts::OS,"supported":platform_supported(),"daemon_ready":daemon_ready(),"backend_status":"checked_when_started"}),
             ),
             "secrets/mounts/prepare" | "secrets/mounts/save_request" => {
                 let input: MountInput = serde_json::from_value(p["input"].clone())
@@ -347,14 +347,16 @@ impl Daemon {
             {use std::os::unix::fs::DirBuilderExt;let path=Path::new(&config.input.mount_point);if !path.exists(){std::fs::DirBuilder::new().mode(0o700).create(path).map_err(|_|Error::VersionConflict)?;}}
             #[cfg(target_os="macos")]
             {
-                let source=PathBuf::from(format!("/private/tmp/dmsg-secret-fs-{}",&hex::encode(dmsg_client::crypto::random_id())[..24]));
-                use std::os::unix::fs::DirBuilderExt;
-                std::fs::DirBuilder::new().mode(0o700).create(&source).map_err(|_|Error::Unavailable("mount IPC directory".into()))?;
+                let source=native_directory()?;
                 let server=match native_server(host.clone(),id.into(),&source){Ok(server)=>server,Err(error)=>{let _=std::fs::remove_dir(&source);return Err(error);}};
                 // Track before invoking the OS: a dropped RPC still has a discoverable, stoppable operation.
                 self.secret_mounts.active.lock().expect("mounts").insert(id.into(),Active{config:config.clone(),source:Some(source.clone()),backend:Backend::Native(server),failed:false,starting:true,started_at:std::time::Instant::now()});
                 let status=tokio::time::timeout(Duration::from_secs(30),tokio::process::Command::new("/sbin/mount").kill_on_drop(true).args(["-F","-k","-t","dmsgsecrets","-o","rdonly,nosuid,nodev,noexec,owners"]).arg(&source).arg(&config.input.mount_point).output()).await;
-                if !matches!(&status,Ok(Ok(o)) if o.status.success()) {self.stop_secret_mount(id).await?;return Err(Error::Unavailable("FSKIT_UNAVAILABLE: install and enable the signed dMsg secret-files extension".into()));}
+                if !matches!(&status,Ok(Ok(o)) if o.status.success()) {
+                    self.stop_secret_mount(id).await?;
+                    let failure=match &status {Ok(Ok(o))=>fskit_failure(&String::from_utf8_lossy(&o.stderr)),_=>"FSKIT_UNAVAILABLE: the system did not mount the volume"};
+                    return Err(Error::Unavailable(failure.into()));
+                }
                 let live=self.client().lock().await.secret_mount_entries(id);
                 if let Err(error)=live {self.stop_secret_mount(id).await?;return Err(error);}
                 let mut active=self.secret_mounts.active.lock().expect("mounts");
@@ -371,8 +373,21 @@ impl Daemon {
             return Err(Error::UnsupportedProtocol);
             Ok(json!({"state":"running","metadata":metadata,"mount_point":config.input.mount_point}))
         }.await;
-        if prepared.is_err() {
+        if let Err(error) = &prepared {
             let _ = self.client().lock().await.secret_mount_stop(id);
+            // Kept for the status, so the person sees what to do until the next start.
+            if let Error::Unavailable(message) = error
+                && let Some(code) = message
+                    .split(':')
+                    .next()
+                    .filter(|c| c.starts_with("FSKIT_"))
+            {
+                self.secret_mounts
+                    .faults
+                    .lock()
+                    .expect("mount faults")
+                    .insert(id.into(), code.into());
+            }
         }
         prepared
     }
@@ -408,7 +423,7 @@ impl Daemon {
                     .is_ok_and(|r| r.is_ok_and(|o| o.status.success()));
                 server.abort();
                 if let Some(source) = active.source {
-                    let _ = std::fs::remove_file(source.join("content.sock"));
+                    let _ = std::fs::remove_file(source.join(IPC_SOCKET));
                     let _ = std::fs::remove_dir(source);
                 }
                 if !unmounted {
@@ -448,11 +463,11 @@ impl Daemon {
         if revoked.is_empty() {
             return Ok(());
         }
-        let entries = self.client().lock().await.secret_mount_entries(id)?;
-        let expected: Vec<_> = entries
-            .into_iter()
-            .filter(|e| revoked.iter().any(|r| r[0] == id && r[1] == e.id))
-            .map(|e| (e.id, e.generation))
+        // Each ended window, as (entry, revocation count) the module must reach.
+        let expected: Vec<_> = revoked
+            .iter()
+            .filter(|r| r[0] == id)
+            .filter_map(|r| Some((r[1].as_str()?.to_owned(), r[2].as_u64()?)))
             .collect();
         let waiting = async {
             loop {
@@ -466,13 +481,13 @@ impl Daemon {
                 {
                     return Err(Error::Unavailable("FSKIT_REVOKE_FAILED".into()));
                 }
-                if expected.iter().all(|(entry, generation)| {
+                if expected.iter().all(|(entry, count)| {
                     self.secret_mounts
                         .acknowledgements
                         .lock()
                         .expect("mount acknowledgements")
                         .get(&(id.into(), entry.clone()))
-                        == Some(generation)
+                        .is_some_and(|seen| seen >= count)
                 }) {
                     return Ok(());
                 }
@@ -620,9 +635,10 @@ async fn read_ticket(
 #[serde(tag = "method", rename_all = "snake_case", deny_unknown_fields)]
 enum NativeRequest {
     Metadata,
+    /// The module cleared an entry's kernel caches through this many ended windows.
     Acknowledge {
         entry: String,
-        generation: u64,
+        revoked: u64,
         #[serde(default)]
         failed: bool,
     },
@@ -634,6 +650,66 @@ enum NativeRequest {
     },
 }
 
+/// The module's socket in its IPC directory; short, as `sun_path` holds 104 bytes.
+#[cfg(target_os = "macos")]
+const IPC_SOCKET: &str = "c";
+
+/// The team's App Group container, where the App Sandbox lets the module
+/// connect to a Unix socket, and nowhere else it can see.
+#[cfg(target_os = "macos")]
+fn ipc_root() -> Result<PathBuf> {
+    unsafe extern "C" {
+        fn dmsg_fskit_ipc_root(buffer: *mut u8, capacity: isize) -> isize;
+    }
+    let mut root = vec![0u8; 1024];
+    let length = unsafe { dmsg_fskit_ipc_root(root.as_mut_ptr(), root.len() as isize) };
+    ensure(
+        length > 0,
+        Error::Unavailable(
+            "FSKIT_DAEMON_UNSIGNED: this daemon lacks the module team's signature or app group"
+                .into(),
+        ),
+    )?;
+    root.truncate(length as usize);
+    Ok(PathBuf::from(
+        String::from_utf8(root).map_err(|_| Error::IntegrityFailed)?,
+    ))
+}
+
+/// Whether this daemon can serve the native module at all; unsigned builds cannot.
+fn daemon_ready() -> bool {
+    #[cfg(target_os = "macos")]
+    return ipc_root().is_ok();
+    #[cfg(not(target_os = "macos"))]
+    true
+}
+
+/// A fixed cause for a failed `/sbin/mount`, from the tool's own message formats.
+#[cfg(target_os = "macos")]
+fn fskit_failure(stderr: &str) -> &'static str {
+    if stderr.contains(" is disabled") {
+        "FSKIT_EXTENSION_DISABLED: enable dMsg secret files in System Settings > General > Login Items & Extensions > File System Extensions"
+    } else if stderr.contains(" not found") {
+        "FSKIT_EXTENSION_MISSING: this dMsg does not include the secret-files extension; use `dmsg run --file`"
+    } else if stderr.contains("Loading resource") {
+        "FSKIT_EXTENSION_REFUSED: the extension and this daemon are not from the same signed dMsg"
+    } else {
+        "FSKIT_UNAVAILABLE: the system did not mount the volume"
+    }
+}
+
+/// A fresh 0700 IPC directory for one mount.
+#[cfg(target_os = "macos")]
+fn native_directory() -> Result<PathBuf> {
+    use std::os::unix::fs::DirBuilderExt;
+    let directory = ipc_root()?.join(&hex::encode(dmsg_client::crypto::random_id())[..16]);
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&directory)
+        .map_err(|_| Error::Unavailable("mount IPC directory".into()))?;
+    Ok(directory)
+}
+
 #[cfg(target_os = "macos")]
 pub(crate) fn native_server(
     host: Weak<Daemon>,
@@ -642,7 +718,7 @@ pub(crate) fn native_server(
 ) -> Result<tokio::task::JoinHandle<()>> {
     use std::os::unix::fs::PermissionsExt;
     use tokio::net::UnixListener;
-    let socket = directory.join("content.sock");
+    let socket = directory.join(IPC_SOCKET);
     let listener =
         UnixListener::bind(&socket).map_err(|_| Error::Unavailable("mount IPC".into()))?;
     std::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))
@@ -711,21 +787,22 @@ async fn native_connection(host: Weak<Daemon>, id: String, mut stream: tokio::ne
                     .as_array()
                     .into_iter()
                     .flatten()
-                    .map(|e| json!({"id":e["id"],"path":e["relative_path"],"generation":e["generation"],"size":e["size"]}))
+                    .map(|e| json!({"id":e["id"],"path":e["relative_path"],"generation":e["generation"],"size":e["size"],"revoked":v["revocations"][e["id"].as_str().unwrap_or_default()].as_u64().unwrap_or(0)}))
                     .collect();
                 json!({"owner_uid":uid(),"authorization":v["config"]["mode"],"entries":entries})
             }),
         Ok(Ok(NativeRequest::Acknowledge {
             entry,
-            generation,
+            revoked,
             failed,
         })) => {
-            let current = d.client().lock().await.secret_mount_entries(&id);
-            current.and_then(|entries| {
+            let current = d.client().lock().await.secret_mount_status(&id);
+            current.and_then(|status| {
                 ensure(
-                    entries
-                        .iter()
-                        .any(|e| e.id == entry && e.generation == generation),
+                    status["entries"]
+                        .as_array()
+                        .is_some_and(|es| es.iter().any(|e| e["id"] == entry.as_str()))
+                        && revoked <= status["revocations"][&entry].as_u64().unwrap_or(0),
                     Error::VersionConflict,
                 )?;
                 if failed {
@@ -739,7 +816,9 @@ async fn native_connection(host: Weak<Daemon>, id: String, mut stream: tokio::ne
                         .acknowledgements
                         .lock()
                         .expect("mount acknowledgements")
-                        .insert((id.clone(), entry), generation);
+                        .entry((id.clone(), entry))
+                        .and_modify(|seen| *seen = (*seen).max(revoked))
+                        .or_insert(revoked);
                 }
                 d.secret_mounts.changed.notify_waiters();
                 Ok(Value::Null)
@@ -909,4 +988,31 @@ impl mounts::Clock for ContinuousClock {
 
 pub(crate) fn configure_clock(client: &mut dmsg_client::Client) {
     client.set_secret_mount_clock(std::sync::Arc::new(ContinuousClock));
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mount_failures_name_what_the_person_can_do() {
+        // The formats `/sbin/mount` prints for FSKit modules.
+        for (stderr, code) in [
+            (
+                "Module net.dmsg.desktop.SecretsFS is disabled!\nmount: Unable to invoke task\n",
+                "FSKIT_EXTENSION_DISABLED",
+            ),
+            (
+                "mount: File system named dmsgsecrets not found\n",
+                "FSKIT_EXTENSION_MISSING",
+            ),
+            (
+                "mount: Loading resource: The operation couldn’t be completed. Permission denied\nmount: Unable to invoke task\n",
+                "FSKIT_EXTENSION_REFUSED",
+            ),
+            ("mount: FSKit unavailable\n", "FSKIT_UNAVAILABLE"),
+        ] {
+            assert_eq!(fskit_failure(stderr).split(':').next(), Some(code));
+        }
+    }
 }

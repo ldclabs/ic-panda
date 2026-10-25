@@ -566,7 +566,7 @@ See [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
 
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享秘密库仍暂缓。
 
-桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。
+桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。macOS 不会自动启用文件系统扩展：“机密文件”页提示用户启用 “dMsg secret files”，提供打开系统设置的按钮，启动失败时在映射卡片上显示固定原因对应的说明。
 
 ## Mail recovery in SDK 0.12.6
 

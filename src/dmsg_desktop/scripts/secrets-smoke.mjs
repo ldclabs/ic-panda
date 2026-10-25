@@ -43,7 +43,8 @@ const methods = {
   }
 }
 Object.assign(methods,{
-  'secrets/mounts/list':()=>({mounts:[],supported:true,platform:'macos'}),
+  'secrets/mounts/list':()=>({mounts:[{id:'c2'.repeat(32),input:{project_label:'Fixture project',mount_point:'/synthetic/project/.dmsg-secrets'}}],supported:true,daemon_ready:true,platform:'macos'}),
+  'secrets/mounts/status':()=>({state:'stopped',error:'FSKIT_EXTENSION_DISABLED',mount_point:'/synthetic/project/.dmsg-secrets'}),
   'secrets/ssh/keys':()=>({keys:[],bindings:[]}),
   'secrets/ssh/status':()=>({supported:true,socket:'/synthetic/agent.sock',identities:0}),
   'secrets/health':()=>({findings:[]}),
@@ -116,6 +117,16 @@ try {
   await main.screenshot({path:join(shots,'history.png')})
   const workflows=main.getByTestId('secret-workflows')
   for(const method of ['secrets/run/request','secrets/run/claim','secrets/discovery/start','secrets/mounts/save_request'])await assert.rejects(main.evaluate(method=>window.dmsg.call(method,{}),method),/FORBIDDEN/)
+  // A turned-off extension is explained on the mount, with a fixed System Settings shortcut.
+  await app.evaluate(({shell})=>{shell.openExternal=async(url)=>{globalThis.openedSettings=url}})
+  await workflows.getByRole('button',{name:'Secret files',exact:true}).click()
+  await main.waitForFunction(()=>document.body.textContent.includes('The dMsg secret files extension is turned off'))
+  assert.match(await workflows.innerText(),/turn on “dMsg secret files” in System Settings/)
+  assert.doesNotMatch(await workflows.innerText(),/FSKIT_EXTENSION_DISABLED/)
+  await workflows.getByRole('button',{name:'Open System Settings',exact:true}).first().click()
+  for(let i=0;i<50&&!(await app.evaluate(()=>globalThis.openedSettings));i++)await new Promise(r=>setTimeout(r,100))
+  assert.equal(await app.evaluate(()=>globalThis.openedSettings),'x-apple.systempreferences:com.apple.LoginItems-Settings.extension')
+  await main.screenshot({path:join(shots,'mounts.png')})
   await workflows.getByRole('button',{name:'Secret snapshots',exact:true}).click()
   await workflows.getByLabel('Vault item').selectOption(item)
   assert.equal(await workflows.getByLabel('Token · concealed').isChecked(),false)

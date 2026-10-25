@@ -52,6 +52,7 @@ const api: DesktopBridge = {
   secretScanDirectory: () => unwrap(ipcRenderer.invoke('dmsg:secret-scan')),
   secretMountPrepare: (input, windowMs) => unwrap(ipcRenderer.invoke('dmsg:secret-mount-prepare', input, windowMs)),
   secretMountSave: (session) => unwrap(ipcRenderer.invoke('dmsg:secret-mount-save', session)),
+  openExtensionSettings: () => unwrap(ipcRenderer.invoke('dmsg:open-extension-settings')),
   vaultImportPreview: () => unwrap(ipcRenderer.invoke('dmsg:vault-import-preview')),
   vaultImport: (session, picks, attachments = [], folder = 'root') => unwrap(ipcRenderer.invoke('dmsg:vault-import', session, picks, attachments, folder)),
   vaultImportCancel: () => unwrap(ipcRenderer.invoke('dmsg:vault-import-cancel')),

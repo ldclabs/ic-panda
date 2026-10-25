@@ -10,7 +10,7 @@
   let { open }: { open: (id: string) => void } = $props()
   const tabs = ['policies','mounts','ssh','health','sharing','receive','activity']
   let tab = $state('policies'), busy = $state(false), error = $state('')
-  let mounts = $state<any[]>([]), statuses = $state<Record<string,any>>({}), supported = $state(false)
+  let mounts = $state<any[]>([]), statuses = $state<Record<string,any>>({}), supported = $state(false), daemonReady = $state(true)
   let keys = $state<any[]>([]), bindings = $state<any[]>([]), ssh = $state<any>({})
   let findings = $state<any[]>([]), rotations = $state<any[]>([]), items = $state<any[]>([]), shares = $state<any[]>([]), activity = $state<any[]>([])
   let project = $state(''), path = $state('.env'), sourceType = $state('field_utf8'), reference = $state(''), fileId = $state(''), versionId = $state(''), refs = $state(''), windowSeconds = $state(30)
@@ -37,7 +37,7 @@
         const result:any = await call('secrets/mounts/list')
         const state = await Promise.all(result.mounts.map(async(m:any)=>[m.id,await call('secrets/mounts/status',{id:m.id})]))
         if(!alive || tab!==selectedTab)return
-        mounts=result.mounts;supported=result.supported;statuses=Object.fromEntries(state)
+        mounts=result.mounts;supported=result.supported;daemonReady=result.daemon_ready!==false;statuses=Object.fromEntries(state)
       } else if(selectedTab==='ssh') {
         const [result,status]:any[]=await Promise.all([call('secrets/ssh/keys'),call('secrets/ssh/status')])
         if(!alive || tab!==selectedTab)return
@@ -59,6 +59,9 @@
   })
   function eligible(vault:any[],sharing=false){return vault.filter((e)=>!e.deleted && (sharing || e.item.type!=='wallet') && !(e.item.tags??[]).some((tag:string)=>tag.startsWith('dmsg-'))).map((e)=>({id:e.id,revision:e.revision,type:e.item.type,title:e.item.title,fields:e.item.fields.map((f:any)=>({id:f.id,label:f.label,type:f.type})),files:e.item.files??[]}))}
   async function act(fn:()=>Promise<any>,approval=false){if(busy)return;busy=true;error='';try{const result=await fn();if(!alive)return;if(approval && result?.id)open(result.id);await reload()}catch(e){if(alive)error=errorText(e)}finally{if(alive)busy=false}}
+  // A start that macOS refused leaves its cause on the mount's card; no generic banner.
+  async function startMount(id:string){await act(async()=>{try{await call('secrets/mounts/start',{id})}catch(e){await reload();if(!String(statuses[id]?.error??'').startsWith('FSKIT_'))throw e}})}
+  const openSettings=()=>act(()=>bridge(()=>window.dmsg.openExtensionSettings()))
   function changeTab(next:string){tab=next;error='';password='';receivePassword='';link='';void reload()}
   onMount(()=>{void reload();const timer=setInterval(()=>{if(!busy && (tab==='mounts'||(tab==='health' && scan?.state==='running')||(tab==='sharing' && shares.some((s)=>['encrypting','uploading','publishing'].includes(s.state)))))void reload()},1000);const off=window.dmsg.onEvent((event)=>{if(['approval/changed','vault/changed','resync'].includes(event.type))void reload()});return()=>{alive=false;selectionGeneration++;clearInterval(timer);off();password='';receivePassword='';link='';received=null;sharePreview=null}})
   function addMapping(){
@@ -82,7 +85,7 @@
   {#if tab==='policies'}<Policies {open} />
   {:else if tab==='mounts'}
     <p class="text-sm text-muted">{w('exclude')}</p>
-    {#if window.dmsg.platform==='darwin'}<Notice tone="warn">{w('sharedWindow')}</Notice>{/if}
+    {#if window.dmsg.platform==='darwin'}<Notice tone="warn">{w('sharedWindow')}</Notice>{#if supported && !daemonReady}<Notice tone="warn">{w('FSKIT_DAEMON_UNSIGNED')}</Notice>{:else if supported}<div class="flex flex-wrap items-center gap-2 text-sm"><p class="text-muted">{w('enableExtension')}</p><button class={button} disabled={busy} onclick={openSettings}>{w('openSettings')}</button></div>{/if}{/if}
     {#if !supported}<Notice>{w('unavailable')}</Notice>{:else}
       <div class={card}>
         <label class="block text-xs">{w('project')}<input class={input} bind:value={project} maxlength="100" /></label>
@@ -97,7 +100,7 @@
         {#if mountPreview}<p class="break-all text-sm">{mountPreview.input.project_directory} → {mountPreview.input.mount_point}</p><p class="text-xs text-muted">{w('local')}</p><button class={primary} disabled={busy} onclick={()=>act(async()=>{const p=mountPreview;mountPreview=null;return bridge(()=>window.dmsg.secretMountSave(p.session))},true)}>{w('review')}</button>{/if}
       </div>
     {/if}
-    {#each mounts as mount}<article class={card}><strong>{mount.input.project_label}</strong><p class="break-all text-xs">{mount.input.mount_point}</p><p>{statuses[mount.id]?.state ?? 'unknown'}</p>{#if statuses[mount.id]?.error}<p class="text-xs text-warn">{statuses[mount.id].error}</p>{/if}<div class="flex flex-wrap gap-2"><button class={button} disabled={busy||statuses[mount.id]?.state!=='stopped'} onclick={()=>act(()=>call('secrets/mounts/start',{id:mount.id}))}>{w('start')}</button><button class={button} disabled={busy||statuses[mount.id]?.state==='stopped'} onclick={()=>act(()=>call('secrets/mounts/revoke_reads',{id:mount.id}))}>{w('revoke')}</button><button class={button} disabled={busy||statuses[mount.id]?.state==='stopped'} onclick={()=>act(()=>call('secrets/mounts/stop',{id:mount.id}))}>{w('stop')}</button><button class={button} disabled={busy} onclick={()=>act(()=>call('secrets/mounts/remove',{id:mount.id}))}>{t('remove')}</button></div>{#each statuses[mount.id]?.core?.grants??[] as grant}<p class="text-sm">{grant.entry} · {Math.ceil(grant.remaining_ms/1000)}s · {grant.released_bytes} bytes <button class={button} onclick={()=>open(grant.request_id)}>{w('review')}</button></p>{/each}</article>{/each}
+    {#each mounts as mount}<article class={card}><strong>{mount.input.project_label}</strong><p class="break-all text-xs">{mount.input.mount_point}</p><p>{statuses[mount.id]?.state ?? 'unknown'}</p>{#if statuses[mount.id]?.error}{@const failure=String(statuses[mount.id].error)}<p class="text-xs text-warn">{failure.startsWith('FSKIT_')?w(failure):failure}</p>{#if failure==='FSKIT_EXTENSION_DISABLED'}<button class={button} disabled={busy} onclick={openSettings}>{w('openSettings')}</button>{/if}{/if}<div class="flex flex-wrap gap-2"><button class={button} disabled={busy||statuses[mount.id]?.state!=='stopped'} onclick={()=>startMount(mount.id)}>{w('start')}</button><button class={button} disabled={busy||statuses[mount.id]?.state==='stopped'} onclick={()=>act(()=>call('secrets/mounts/revoke_reads',{id:mount.id}))}>{w('revoke')}</button><button class={button} disabled={busy||statuses[mount.id]?.state==='stopped'} onclick={()=>act(()=>call('secrets/mounts/stop',{id:mount.id}))}>{w('stop')}</button><button class={button} disabled={busy} onclick={()=>act(()=>call('secrets/mounts/remove',{id:mount.id}))}>{t('remove')}</button></div>{#each statuses[mount.id]?.core?.grants??[] as grant}<p class="text-sm">{grant.entry} · {Math.ceil(grant.remaining_ms/1000)}s · {grant.released_bytes} bytes <button class={button} onclick={()=>open(grant.request_id)}>{w('review')}</button></p>{/each}</article>{/each}
   {:else if tab==='ssh'}
     <p class="text-sm text-muted">{w('local')}</p><code class="block break-all text-xs">SSH_AUTH_SOCK={ssh.socket??w('unavailable')}</code>{#if ssh.error}<Notice tone="warn">{ssh.error}</Notice>{/if}
     {#each keys as key}<article class={card}><strong>{key.title}</strong><p class="break-all font-mono text-xs">{key.fingerprint??key.reason}</p><pre class="whitespace-pre-wrap break-all text-xs">{key.public_key??''}</pre><div class="flex gap-2">{#each ['ssh_auth','git_sign'] as purpose}<button class={button} disabled={busy||!key.supported||!ssh.available} onclick={()=>act(()=>call('secrets/ssh/binding_request',{reference:key.reference,purposes:[purpose]}),true)}>{w('enable')} · {purpose}</button>{/each}</div></article>{/each}

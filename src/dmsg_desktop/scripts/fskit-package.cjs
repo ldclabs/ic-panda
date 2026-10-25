@@ -28,6 +28,9 @@ async function afterPack(context) {
   const app=path.join(context.appOutDir,context.packager.appInfo.productFilename+'.app')
   const daemon=path.join(app,'Contents','Resources','runtime','dmsg')
   if(info(source).team!==info(daemon).team)throw Error('FSKit and daemon must use the same signing team')
+  // The sandboxed module reaches the daemon only through the team's App Group container.
+  const daemonEntitlements=execFileSync('/usr/bin/codesign',['-d','--entitlements',':-',daemon],{encoding:'utf8',stdio:['ignore','pipe','pipe']})
+  if(!daemonEntitlements.includes(`<string>${info(daemon).team}.net.dmsg.secrets</string>`))throw Error('The daemon needs the team App Group entitlement for FSKit')
   const target=path.join(app,'Contents','Extensions','SecretsFS.appex')
   fs.mkdirSync(path.dirname(target),{recursive:true});fs.cpSync(source,target,{recursive:true,errorOnExist:true,force:false})
 }

@@ -1,6 +1,10 @@
 // Apple FSKit only. No FUSE compatibility layer, owner credential, or plaintext backing file.
 import Foundation
 import FSKit
+import os
+
+/// Fixed failure reasons only: never paths, names or content.
+let diagnostics = Logger(subsystem: "net.dmsg.desktop.SecretsFS", category: "volume")
 
 @main struct SecretsExtension: UnaryFileSystemExtension {
     var fileSystem: FSUnaryFileSystem & FSUnaryFileSystemOperations { SecretsFileSystem() }
@@ -19,13 +23,16 @@ final class SecretsFileSystem: FSUnaryFileSystem, FSUnaryFileSystemOperations {
     }
 
     func loadResource(resource: FSResource, options: FSTaskOptions, replyHandler reply: @escaping (FSVolume?, Error?) -> Void) {
-        guard let path = resource as? FSPathURLResource, !options.taskOptions.contains("-f"), path.url.startAccessingSecurityScopedResource() else { return reply(nil, POSIXError(.EACCES)) }
+        guard let path = resource as? FSPathURLResource else { diagnostics.error("load refused: not a path resource"); return reply(nil, POSIXError(.EACCES)) }
+        guard !options.taskOptions.contains("-f") else { diagnostics.error("load refused: force option"); return reply(nil, POSIXError(.EACCES)) }
+        guard path.url.startAccessingSecurityScopedResource() else { diagnostics.error("load refused: no security-scoped access"); return reply(nil, POSIXError(.EACCES)) }
         let token = UUID()
         lifecycle.lock()
         if self.resource != nil { lifecycle.unlock(); path.url.stopAccessingSecurityScopedResource(); return reply(nil, POSIXError(.EBUSY)) }
         self.resource = path; loadID = token
         lifecycle.unlock()
-        let socket = path.url.appendingPathComponent("content.sock").path
+        // The daemon's socket, in the team's App Group container (see the daemon's `IPC_SOCKET`).
+        let socket = path.url.appendingPathComponent("c").path
         let job = ContentRequest(path: socket, request: ["method": "metadata"]) { [weak self] result in
             guard let self else { return reply(nil, POSIXError(.EIO)) }
             do {
@@ -37,6 +44,7 @@ final class SecretsFileSystem: FSUnaryFileSystem, FSUnaryFileSystemOperations {
                 guard live else { volume.stop(); return reply(nil, POSIXError(.ECANCELED)) }
                 self.containerStatus = .ready; reply(volume, nil); volume.watch()
             } catch {
+                diagnostics.error("load refused: content service \((error as NSError).code, privacy: .public)")
                 self.lifecycle.lock()
                 let live = self.loadID == token
                 if live { self.resource = nil; self.loading = nil; self.loadID = nil }
@@ -70,8 +78,12 @@ final class SecretNode: FSItem {
     let entry: String?
     let generation: UInt64
     let size: UInt64
+    /// Set only when the volume stops or the content version changes. An ended
+    /// window keeps the item: macOS hands later opens of the path to this same item.
     var invalid = false
     var closed = true
+    /// Ended windows whose cached bytes this module has cleared.
+    var revoked: UInt64 = 0
     init(number: UInt64, path: String, parent: UInt64 = 2, entry: String?, generation: UInt64, size: UInt64) {
         self.number = number; self.path = path; self.parentNumber = parent; self.entry = entry; self.generation = generation; self.size = size
         super.init()
@@ -142,11 +154,15 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
                 parentNumber = nodes[directory]!.number
             }
             if let old = nodes[path], old.generation != generation {
-                if !old.invalid { old.invalid = true; revoke(old, acknowledge: generation) }
+                if !old.invalid { old.invalid = true; revoke(old) }
             }
+            let revoked = unsigned(entry["revoked"]) ?? 0
             if nodes[path]?.generation != generation {
                 let node = SecretNode(number: (UInt64(1) << 62) | (generation << 7) | UInt64(index), path: path, parent: parentNumber, entry: id, generation: generation, size: size)
-                nodes[path] = node
+                node.revoked = revoked; nodes[path] = node
+            } else if let node = nodes[path], revoked > node.revoked {
+                // A window ended or was revoked: the item stays, its cached bytes go.
+                node.revoked = revoked; windows.removeValue(forKey: id); revoke(node, acknowledge: revoked)
             }
         }
     }
@@ -170,24 +186,29 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
     private func pollMetadata() {
         guard active else { return }
         request(["method": "metadata"]) { result in
-            do { try self.install(result.get()) } catch { self.stopOnQueue(); return }
+            do { try self.install(result.get()) } catch {
+                diagnostics.error("metadata refused: \((error as NSError).code, privacy: .public)")
+                self.stopOnQueue(); return
+            }
             self.state.asyncAfter(deadline: .now() + .milliseconds(200)) { self.pollMetadata() }
         }
     }
 
-    func acknowledge(_ node: SecretNode, generation: UInt64, failed: Bool) {
+    func acknowledge(_ node: SecretNode, revoked: UInt64, failed: Bool) {
         guard let entry = node.entry else { return }
-        request(["method": "acknowledge", "entry": entry, "generation": generation, "failed": failed]) { _ in }
+        request(["method": "acknowledge", "entry": entry, "revoked": revoked, "failed": failed]) { _ in }
     }
 
-    func revoke(_ node: SecretNode, acknowledge generation: UInt64) {
+    /// Clear the item's kernel caches; confirm `revoked` to the daemon, and any failure.
+    func revoke(_ node: SecretNode, acknowledge revoked: UInt64? = nil) {
         // Never hold the state queue while FSKit can call back into this volume.
         cache.async {
             let closed = self.state.sync { node.closed }
             let error = closed ? nil : self.setCacheState(for: node, cacheMode: .none, coherencyType: .noCache, action: .revoke)
             self.state.async {
                 let failed = error != nil && !node.closed
-                self.acknowledge(node, generation: generation, failed: failed)
+                if failed { diagnostics.error("cache revocation failed: \((error as NSError?)?.code ?? 0, privacy: .public)") }
+                if failed || revoked != nil { self.acknowledge(node, revoked: revoked ?? node.revoked, failed: failed) }
                 if failed { self.stopOnQueue() }
             }
         }
@@ -195,8 +216,9 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
 
     func stopOnQueue() {
         guard active else { return }; active = false
+        diagnostics.info("volume stopped serving content")
         for (_, job) in jobs.values { job.cancel() }; jobs.removeAll()
-        for node in nodes.values where node.entry != nil { node.invalid = true; revoke(node, acknowledge: node.generation) }
+        for node in nodes.values where node.entry != nil { node.invalid = true; revoke(node) }
         windows.removeAll()
     }
     func stop() { state.async { self.stopOnQueue() } }
@@ -243,7 +265,7 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
     private func expireOnQueue(_ node: SecretNode) {
         guard let entry = node.entry, let window = windows[entry] else { return }
         guard let now = try? continuousMilliseconds(), now < window.1 else {
-            windows.removeValue(forKey: entry); node.invalid = true; revoke(node, acknowledge: node.generation); return
+            windows.removeValue(forKey: entry); revoke(node); return
         }
     }
 
@@ -257,7 +279,13 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
             reply()
         }
     }
-    func upgrade(_ item: FSItem, cacheMode: FSVolume.DataCacheMode, context: FSContext, replyHandler reply: @escaping (FSUpgradeItemResult?, Error?) -> Void) { reply(nil, POSIXError(.ENOTSUP)) }
+    // After a window ends its cache state is revoked, and the kernel asks again before
+    // the next open reads. Grant only `noCache`: the bytes stay uncached and each read
+    // still needs a live window.
+    func upgrade(_ item: FSItem, cacheMode: FSVolume.DataCacheMode, context: FSContext, replyHandler reply: @escaping (FSUpgradeItemResult?, Error?) -> Void) {
+        guard let node = item as? SecretNode, context.realUserID == Int(owner), context.effectiveUserID == Int(owner) else { return reply(nil, POSIXError(.EACCES)) }
+        state.async { guard self.active, !node.invalid else { return reply(nil, POSIXError(.EACCES)) }; reply(FSUpgradeItemResult(grantedCoherency: .noCache), nil) }
+    }
     func read(from item: FSItem, at offset: off_t, length: Int, into buffer: FSMutableFileDataBuffer, replyHandler reply: @escaping (Int, Error?) -> Void) {
         guard let node = item as? SecretNode, let entry = node.entry, offset >= 0, (0...1048576).contains(length) else { return reply(0, POSIXError(.EINVAL)) }
         state.async {
@@ -280,8 +308,8 @@ final class SecretVolume: FSVolume, FSVolume.Operations, FSVolume.ReadWriteOpera
                         self.windows[entry] = (request, candidate)
                         self.state.asyncAfter(deadline: .now() + .milliseconds(Int(candidate - now))) {
                             guard self.windows[entry]?.0 == request else { return }
-                            self.windows.removeValue(forKey: entry); node.invalid = true
-                            self.revoke(node, acknowledge: node.generation); self.watch()
+                            self.windows.removeValue(forKey: entry)
+                            self.revoke(node); self.watch()
                         }
                     }
                     guard let deadline = self.windows[entry]?.1, try continuousMilliseconds() < deadline else { throw POSIXError(.EACCES) }
