@@ -2,7 +2,7 @@
 
 [English](legacy_freeze.md) | 简体中文
 
-初版 2026-09-22；2026-10-24 整理。本文描述旧服务冻结与证据合同。客户端内置的来源频道、名称身份与 cutover 见 [production.toml](../../src/dmsg_cli/production.toml)，其中没有 OSS bucket；具体部署状态仍需盘点证据，不能从本文或源码推断。
+初版 2026-09-22；2026-10-24 整理。本文描述旧服务冻结与证据合同。客户端内置的来源频道、名称身份与 cutover 见 [production.toml](../../src/dmsg_client/production.toml)，其中没有 OSS bucket；具体部署状态仍需盘点证据，不能从本文或源码推断。
 
 ## 消息、资料、频道和名称身份
 

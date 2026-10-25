@@ -1165,32 +1165,67 @@ impl Daemon {
             "session/unlock" => {
                 let selected = optional(params, "account", account)?;
                 let fast = params["fast"].as_bool().unwrap_or(false);
-                // Nothing reads the workspace before it opens.
-                let (status, opened) = self
-                    .under_lock(async |client| {
-                        // A second window or click may have queued behind
-                        // the same unlock. Do not ask for presence again.
+                let queued = self.client.lock().await.session_generation();
+                let _turn = self.turn("session/unlock").await;
+                // Starting an unlock is activity too: an expired idle deadline
+                // must not invalidate its off-lock system presence prompt.
+                self.activity.store(now_ms(), Ordering::Relaxed);
+                // Preparation can switch/lock the workspace before failing.
+                // Shared emits the session change even when no unlock follows,
+                // so owner windows and display schedulers discard old content.
+                let (ready, prepared, selected_generation) = self
+                    .hold()
+                    .with(|client| {
                         let session = client.session_state();
                         if session.state == "unlocked"
                             && selected.as_ref().is_none_or(|account| {
                                 session.account.as_deref() == Some(account.to_string().as_str())
                             })
                         {
-                            return Ok((client.status()?, false));
+                            Ok((Some(client.status()?), None, client.session_generation()))
+                        } else {
+                            if client.session_generation() != queued {
+                                return Err(Error::Locked);
+                            }
+                            if let Some(account) = &selected {
+                                client.switch_account(account)?;
+                                *self.last_connect.lock().expect("connect report") = None;
+                            }
+                            let prepared = if fast {
+                                Some(client.prepare_fast_unlock()?)
+                            } else {
+                                None
+                            };
+                            Ok((None, prepared, client.session_generation()))
                         }
-                        // Fast unlock of another account here selects it
-                        // first.
-                        if let Some(account) = &selected {
-                            client.switch_account(account)?;
-                            *self.last_connect.lock().expect("connect report") = None;
-                        }
-                        match fast {
-                            true => client.unlock_fast().await,
-                            false => client.unlock().await,
-                        }
-                        .map(|status| (status, true))
                     })
                     .await?;
+                let (status, opened) = if let Some(status) = ready {
+                    (status, false)
+                } else if let Some(prepared) = prepared {
+                    // The OS prompt waits outside Client ownership. Lock and
+                    // account switch can invalidate it while the person decides.
+                    let (prepared, key) = blocking(move || {
+                        let key = prepared.open();
+                        Ok((prepared, key))
+                    })
+                    .await?;
+                    let status = self
+                        .under_lock(async |client| client.complete_fast_unlock(prepared, key).await)
+                        .await?;
+                    (status, true)
+                } else {
+                    (
+                        self.under_lock(async |client| {
+                            if client.session_generation() != selected_generation {
+                                return Err(Error::Locked);
+                            }
+                            client.unlock().await
+                        })
+                        .await?,
+                        true,
+                    )
+                };
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
                 self.activity.store(now_ms(), Ordering::Relaxed);
@@ -1277,7 +1312,8 @@ impl Daemon {
                 };
                 self.under_lock(async |client| {
                     let token = client.pair_request(role).await?;
-                    Ok(json!({"token": token, "device_id": client.status()?.device_id}))
+                    let qr = dmsg_client::qr::png_data(&token).ok();
+                    Ok(json!({"token": token, "device_id": client.status()?.device_id, "qr": qr}))
                 })
                 .await
             }
@@ -2670,6 +2706,32 @@ mod tests {
             );
         }
         assert!(!daemon.sync_requested.load(Ordering::Relaxed));
+    }
+
+    #[tokio::test]
+    async fn failed_unlock_preparation_notifies_after_dropping_the_previous_workspace() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        let account: dmsg_types::AccountId = "140g2081040g2081040g".parse().unwrap();
+        let target = dir.0.join("workspace/accounts").join(account.to_string());
+        std::fs::create_dir_all(&target).unwrap();
+        std::fs::write(target.join("workspace.sqlite"), b"corrupt workspace").unwrap();
+        let mut events = daemon.events.subscribe();
+        assert!(
+            daemon
+                .call_daemon(
+                    "session/unlock",
+                    &json!({"fast": true, "account": account.to_string()})
+                )
+                .await
+                .is_err()
+        );
+        let event = events
+            .try_recv()
+            .expect("failed preparation must clear owner views");
+        assert_eq!(event["type"], "session/changed");
+        assert_ne!(event["data"]["state"], "unlocked");
+        assert!(daemon.call_vault("vault/list", &Value::Null).await.is_err());
     }
 
     /// Its own daemon, so the user home's first connection is the profile's.

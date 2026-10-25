@@ -1,6 +1,11 @@
 import type { Messages } from './en'
 
 export default {
+  "Sign in to dMsg": "Iniciar sesión en dMsg",
+  "Return to the dMsg iOS app after signing in.": "Vuelve a dMsg para iOS después de iniciar sesión.",
+  "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity permite que dMsg actúe por ti. Esta página no conserva ninguna sesión.",
+  "Return to the dMsg iOS app": "Volver a dMsg para iOS",
+  "This sign-in must finish in the app that started it. Return to dMsg and start again.": "El inicio de sesión debe terminar en la aplicación que lo inició. Vuelve a dMsg e inténtalo de nuevo.",
   "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Recibir aquí e importar en dMsg utiliza sesiones distintas.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Pegue el enlace en dMsg para importar una copia independiente. Revocar no elimina copias guardadas.",
   "Save attachment": "Guardar adjunto",

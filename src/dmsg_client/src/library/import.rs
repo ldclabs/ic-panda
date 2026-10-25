@@ -595,8 +595,42 @@ pub async fn file<H: Hold>(
     h.with(|c| c.import_finish(importing, thumbnail)).await
 }
 
-/// Import a directory in the same order as [`Client::files_import_dir`],
-/// releasing the client between files and chunks.
+/// Re-encrypt a verified shared manifest without assembling its plaintext
+/// into one allocation or publishing a partially verified library version.
+/// # Errors
+/// As [`file`].
+pub(crate) async fn from_manifest<H: Hold>(
+    h: &H,
+    manifest: &crate::files::FileManifest,
+    folder: &str,
+    origin: Origin,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
+    let name = super::catalog::safe_name(&manifest.name);
+    let mut importing = h
+        .with(|c| {
+            let into = c.catalog()?.find(folder, &name);
+            c.import_start(manifest.size, &name, folder, into, origin)
+        })
+        .await?;
+    let count = chunk_count(manifest.size);
+    for index in 0..count {
+        let plain = h
+            .with(|c| crate::files::read_chunk(&c.workspace.store, manifest, index))
+            .await?;
+        h.with(|c| c.import_part(&mut importing, index, &plain))
+            .await?;
+        progress(index + 1, count);
+    }
+    ensure(
+        hex::encode(importing.overall.clone().finalize()) == manifest.sha256,
+        Error::IntegrityFailed,
+    )?;
+    let thumbnail = importing.thumbnail();
+    h.with(|c| c.import_finish(importing, thumbnail)).await
+}
+
+/// Import a directory while yielding between files and chunks.
 /// # Errors
 /// As [`file`].
 pub async fn directory<H: Hold>(

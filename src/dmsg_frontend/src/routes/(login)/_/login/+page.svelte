@@ -1,7 +1,7 @@
 <script lang="ts">
   // dmsg-login/1 (docs/protocol/login-v1_zh.md): Internet Identity signs a
   // delegation to the local dMsg client's session key; this page keeps no
-  // session and holds no key, and returns only to a loopback callback.
+  // session and holds no key, and returns only to an allowlisted callback.
   // Internet Identity ignores ICRC-34 targets, so none are asked for here:
   // the client limits the chain to its canisters itself.
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
@@ -9,7 +9,7 @@
   import { t } from '$lib/i18n'
   import { complete, takeFragment } from '$lib/login/flow'
   import {
-    callbackPort,
+    callbackTarget,
     parseRequest,
     type LoginRequest
   } from '$lib/login/protocol'
@@ -58,12 +58,12 @@
 </script>
 
 <svelte:head>
-  <title>{$t('Sign in to dMsg on this computer')}</title>
+  <title>{$t('Sign in to dMsg')}</title>
 </svelte:head>
 
 <UtilityPage>
   <div class="utility-icon" aria-hidden="true"><IconUser /></div>
-  <h1>{$t('Sign in to dMsg on this computer')}</h1>
+  <h1>{$t('Sign in to dMsg')}</h1>
   {#if invalid}
     <p class="utility-status error" role="alert">
       {$t(
@@ -71,11 +71,11 @@
       )}
     </p>
   {:else if request}
-    <p class="utility-lead"
-      >{$t('Connecting to dMsg on this computer (port {port}).', {
-        port: callbackPort(request.next_url)
-      })}</p
-    >
+    <p class="utility-lead">{#if callbackTarget(request.next_url) === 'ios'}
+      {$t('Return to the dMsg iOS app after signing in.')}
+    {:else}
+      {$t('Connecting to dMsg on this computer (port {port}).', { port: callbackTarget(request.next_url) })}
+    {/if}</p>
     <p class="utility-domain"
       >{$t('Identity domain: {origin}', {
         origin: request.derivation_origin
@@ -94,7 +94,7 @@
     </button>
     <p class="utility-note"
       >{$t(
-        'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
+        'Internet Identity lets the dMsg app act for you. This page keeps no session.'
       )}</p
     >
   {:else}

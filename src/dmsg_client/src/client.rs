@@ -97,6 +97,40 @@ enum FastKey {
     Present { handle: ByteBuf, peer: ByteBuf },
 }
 
+/// Immutable context for user presence, recovered without borrowing Client.
+pub struct FastUnlock {
+    name: String,
+    account: AccountId,
+    generation: u64,
+    deadline: u64,
+    source: FastUnlockSource,
+    hardware: Option<Arc<dyn PresenceKey>>,
+}
+
+enum FastUnlockSource {
+    Fast(FastKey),
+    Bound(BoundSlot),
+}
+
+impl FastUnlock {
+    /// Ask for presence off the client's executor; contains no Client lock.
+    ///
+    /// # Errors
+    /// Preserves cancellation, unavailable hardware and permanently lost keys.
+    pub fn open(&self) -> Result<Zeroizing<Key>> {
+        ensure(now_ms() < self.deadline, Error::AuthRequired)?;
+        match (&self.source, &self.hardware) {
+            (FastUnlockSource::Bound(slot), Some(hardware)) => slot.open(hardware.as_ref()),
+            (FastUnlockSource::Bound(_), None) => Err(Error::Unavailable("no hardware key".into())),
+            (FastUnlockSource::Fast(FastKey::Plain(key)), _) => Ok(Zeroizing::new(**key)),
+            (FastUnlockSource::Fast(FastKey::Present { handle, peer }), Some(hardware)) => hardware
+                .open(handle, peer, false)
+                .map(|secret| presence_key(&secret, &self.name)),
+            _ => Err(Error::IntegrityFailed),
+        }
+    }
+}
+
 /// The fast-unlock key of a workspace from a [`PresenceKey`]'s secret.
 fn presence_key(secret: &Key, name: &str) -> Zeroizing<Key> {
     crate::crypto::derive(secret, &("dmsg/fast-unlock/1", name))
@@ -106,7 +140,7 @@ fn presence_key(secret: &Key, name: &str) -> Zeroizing<Key> {
 /// its hardware secret. Apart from fast unlock's entry, so that signing out
 /// or turning fast unlock off leaves it; only resetting the workspace or
 /// unbinding it deletes it.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 struct BoundSlot {
     handle: ByteBuf,
     peer: ByteBuf,
@@ -122,6 +156,23 @@ impl BoundSlot {
             "dmsg/device-bound-key/v1",
             &serde_bytes::Bytes::new(&self.peer),
         )
+    }
+
+    /// Preserve the binding on cancellation, temporary unavailability or loss.
+    fn open(&self, hardware: &dyn PresenceKey) -> Result<Zeroizing<Key>> {
+        match hardware.open(&self.handle, &self.peer, self.biometry.is_some()) {
+            Err(Error::Forbidden) => Err(Error::Forbidden),
+            Err(_)
+                if self.biometry.is_some_and(|state| {
+                    hardware
+                        .biometry_state()
+                        .is_some_and(|current| current != state)
+                }) =>
+            {
+                Err(Error::IntegrityFailed)
+            }
+            result => result,
+        }
     }
 }
 
@@ -232,6 +283,8 @@ impl InFlight {
 
 /// A device's client.
 pub struct Client {
+    /// Mobile policy: hardware presence is required for every fast unlock.
+    require_fast_presence: bool,
     /// Changes whenever keys are dropped, invalidating in-flight sync work.
     pub(crate) session_generation: u64,
     /// Changes when display caches are cleared, fencing all pending display work.
@@ -564,6 +617,7 @@ impl Client {
         )?;
         let workspace = idle(&config.environment)?;
         let mut client = Self {
+            require_fast_presence: false,
             session_generation: 0,
             display_generation: 0,
             cache_invalidations: BTreeMap::new(),
@@ -624,6 +678,122 @@ impl Client {
     /// unlock turned on from now on uses it.
     pub fn set_presence_key(&mut self, key: Arc<dyn PresenceKey>) {
         self.presence = Some(key);
+    }
+
+    /// Require hardware presence; never create or read a Plain fast key.
+    pub fn require_fast_presence(&mut self) {
+        self.require_fast_presence = true;
+    }
+
+    /// The exclusive host dropped its operation future. Its persisted journals
+    /// still need reconciliation, but no approval execution is live in memory.
+    pub(crate) fn abandon_host_work(&mut self) {
+        self.running.clear();
+        self.authorized = None;
+    }
+
+    /// Prepare fast unlock before a potentially blocking system prompt.
+    ///
+    /// # Errors
+    /// As [`Self::unlock_fast`]. Plain keys are removed under mobile policy.
+    pub fn prepare_fast_unlock(&mut self) -> Result<FastUnlock> {
+        let account = self.account()?.id;
+        ensure(self.workspace.meta.fast_unlock.is_some(), Error::NotFound)?;
+        let deadline = self
+            .workspace
+            .meta
+            .login_unlocked_at
+            .unwrap_or(0)
+            .saturating_add(FAST_UNLOCK_MS);
+        ensure(now_ms() < deadline, Error::AuthRequired)?;
+        let name = self.fast_name()?;
+        let source = match self.bound_slot()? {
+            Some(slot) => FastUnlockSource::Bound(slot),
+            None => {
+                let stored = self
+                    .secure
+                    .as_ref()
+                    .ok_or(Error::NotFound)?
+                    .get(&name)?
+                    .and_then(|bytes| decode::<FastKey>(&bytes, MAX_RECORD).ok());
+                let Some(stored) = stored else {
+                    self.invalidate_fast_unlock()?;
+                    return Err(Error::AuthRequired);
+                };
+                if self.require_fast_presence && matches!(stored, FastKey::Plain(_)) {
+                    self.invalidate_fast_unlock()?;
+                    return Err(Error::AuthRequired);
+                }
+                FastUnlockSource::Fast(stored)
+            }
+        };
+        Ok(FastUnlock {
+            name,
+            account,
+            generation: self.session_generation,
+            deadline,
+            source,
+            hardware: self.presence.clone(),
+        })
+    }
+
+    /// Complete only the prepared account/session after presence returned.
+    ///
+    /// # Errors
+    /// A lock, switch or expired grant rejects the prepared result.
+    pub async fn complete_fast_unlock(
+        &mut self,
+        prepared: FastUnlock,
+        key: Result<Zeroizing<Key>>,
+    ) -> Result<Status> {
+        ensure(
+            self.session_generation == prepared.generation
+                && self.account()?.id == prepared.account,
+            Error::Locked,
+        )?;
+        ensure(now_ms() < prepared.deadline, Error::AuthRequired)?;
+        let keys = match &prepared.source {
+            FastUnlockSource::Bound(slot) => {
+                ensure(self.bound_slot()?.as_ref() == Some(slot), Error::Locked)?;
+                let key = key?;
+                self.workspace.unlock_fast_bound(&key, slot.id())?
+            }
+            FastUnlockSource::Fast(_) => {
+                ensure(!self.workspace.bound()?, Error::Locked)?;
+                let key = match key {
+                    Err(Error::IntegrityFailed) => {
+                        self.invalidate_fast_unlock()?;
+                        return Err(Error::AuthRequired);
+                    }
+                    other => other?,
+                };
+                self.workspace.unlock_fast(&key)?
+            }
+        };
+        self.lock();
+        self.keys = Some(keys);
+        let account = self.account()?.clone();
+        match self.refresh_security(account.home, &account.id).await {
+            Ok(security) => self.check_revoked(&security)?,
+            Err(Error::Unavailable(_)) => {}
+            Err(error) => {
+                self.lock();
+                return Err(error);
+            }
+        }
+        self.open_root().await?;
+        if self.workspace.meta.fast_presence {
+            let _ = self.restore_login().await;
+        }
+        self.status()
+    }
+
+    fn invalidate_fast_unlock(&mut self) -> Result<()> {
+        if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
+            secure.delete(&name)?;
+        }
+        self.workspace.disable_fast()?;
+        self.workspace.delete_private(KEPT_LOGIN)
     }
 
     /// The directory of a workspace.
@@ -976,62 +1146,9 @@ impl Client {
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn unlock_fast(&mut self) -> Result<Status> {
-        let account = self.account()?.clone();
-        ensure(self.workspace.meta.fast_unlock.is_some(), Error::NotFound)?;
-        let unlocked = self.workspace.meta.login_unlocked_at.unwrap_or(0);
-        ensure(now_ms() < unlocked + FAST_UNLOCK_MS, Error::AuthRequired)?;
-        let keys = match self.bound_slot()? {
-            Some(slot) => {
-                let device = self.device_secret(&slot)?;
-                self.workspace.unlock_fast_bound(&device, slot.id())?
-            }
-            None => {
-                let key = self.fast_key()?;
-                self.workspace.unlock_fast(&key)?
-            }
-        };
-        self.lock();
-        self.keys = Some(keys);
-        match self.refresh_security(account.home, &account.id).await {
-            Ok(security) => self.check_revoked(&security)?,
-            // Offline: the check runs with the next sync.
-            Err(Error::Unavailable(_)) => {}
-            Err(error) => {
-                self.lock();
-                return Err(error);
-            }
-        }
-        self.open_root().await?;
-        if self.workspace.meta.fast_presence {
-            // Without its login the account still opens; the next login
-            // unlock keeps a new one.
-            let _ = self.restore_login().await;
-        }
-        self.status()
-    }
-
-    /// The fast-unlock key from the credential store, through the hardware
-    /// that keeps it with the person present. A key that is gone, or that
-    /// the hardware no longer opens, turns fast unlock off and asks for a
-    /// login.
-    fn fast_key(&mut self) -> Result<Zeroizing<Key>> {
-        let secure = self.secure.clone().ok_or(Error::NotFound)?;
-        let name = self.fast_name()?;
-        let stored = secure
-            .get(&name)?
-            .and_then(|bytes| decode::<FastKey>(&bytes, MAX_RECORD).ok());
-        let key = match (stored, &self.presence) {
-            (Some(FastKey::Plain(key)), _) => Ok(Zeroizing::new(*key)),
-            (Some(FastKey::Present { handle, peer }), Some(hardware)) => hardware
-                .open(&handle, &peer, false)
-                .map(|secret| presence_key(&secret, &name)),
-            _ => Err(Error::IntegrityFailed),
-        };
-        if matches!(key, Err(Error::IntegrityFailed)) {
-            self.workspace.disable_fast()?;
-            return Err(Error::AuthRequired);
-        }
-        key
+        let prepared = self.prepare_fast_unlock()?;
+        let key = prepared.open();
+        self.complete_fast_unlock(prepared, key).await
     }
 
     /// After an unlock through a login: turn fast unlock on unless the
@@ -1095,19 +1212,7 @@ impl Client {
             .presence
             .clone()
             .ok_or_else(|| Error::Unavailable("no hardware key".into()))?;
-        match hardware.open(&slot.handle, &slot.peer, slot.biometry.is_some()) {
-            Err(Error::Forbidden) => Err(Error::Forbidden),
-            Err(_)
-                if slot.biometry.is_some_and(|s| {
-                    hardware
-                        .biometry_state()
-                        .is_some_and(|current| current != s)
-                }) =>
-            {
-                Err(Error::IntegrityFailed)
-            }
-            result => result,
-        }
+        slot.open(hardware.as_ref())
     }
 
     /// Bind the workspace to this device's hardware: from now on every
@@ -1286,6 +1391,7 @@ impl Client {
                 (stored, presence_key(&secret, &name))
             }
             None => {
+                ensure(!self.require_fast_presence, Error::Forbidden)?;
                 let key = Zeroizing::new(crate::crypto::random_key());
                 (FastKey::Plain(ByteArray::new(*key)), key)
             }
@@ -1327,9 +1433,7 @@ impl Client {
             cancel.store(true, std::sync::atomic::Ordering::Release);
         }
         self.secret_scans.clear();
-        if self.keys.is_some() || self.login.is_some() {
-            self.session_generation = self.session_generation.wrapping_add(1);
-        }
+        self.session_generation = self.session_generation.wrapping_add(1);
         self.library_lock();
         let signing = self.keys.as_ref().map(|k| k.signing.clone());
         if self.config.background_online {

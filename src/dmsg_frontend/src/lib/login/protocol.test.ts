@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { complete, errorCode, takeFragment } from './flow'
 import {
   callbackPort,
+  callbackTarget,
+  IOS_CALLBACK,
   encodeError,
   encodeResult,
   parseRequest,
@@ -62,6 +64,15 @@ describe('dmsg-login/1 vectors', () => {
       'http://127.0.0.1:8/auth/callback/'
     ])
       expect(() => callbackPort(url)).toThrow()
+  })
+
+  it('accepts only the exact associated iOS callback', () => {
+    expect(callbackTarget(IOS_CALLBACK)).toBe('ios')
+    for (const url of [IOS_CALLBACK + '/', IOS_CALLBACK + '?next=x', IOS_CALLBACK + '#x',
+      'https://dmsg.net:443/_/ios/auth/callback', 'dmsg://auth/callback',
+      'https://dmsg.net.evil.example/_/ios/auth/callback']) {
+      expect(() => callbackTarget(url)).toThrow()
+    }
   })
 })
 

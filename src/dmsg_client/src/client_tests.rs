@@ -2,6 +2,125 @@ use super::*;
 use crate::testing::{MemoryStorage, TempDir, unlocked};
 use crate::vault::{Changes, Filter};
 
+#[tokio::test]
+async fn mobile_presence_policy_refuses_plain_keys_and_lock_invalidates_a_prompt() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.require_fast_presence();
+    assert_eq!(client.enable_fast_unlock().err(), Some(Error::Forbidden));
+    assert!(!client.status().unwrap().fast_unlock);
+    client.set_presence_key(Arc::new(Hardware::default()));
+    client.enable_fast_unlock().unwrap();
+    client.lock();
+    let prepared = client.prepare_fast_unlock().unwrap();
+    let key = prepared.open();
+    client.lock();
+    assert_eq!(
+        client.complete_fast_unlock(prepared, key).await.err(),
+        Some(Error::Locked)
+    );
+    assert!(client.keys().is_err());
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.enable_fast_unlock().unwrap();
+    let name = client.fast_name().unwrap();
+    client.require_fast_presence();
+    client.lock();
+    assert_eq!(
+        client.prepare_fast_unlock().err(),
+        Some(Error::AuthRequired)
+    );
+    assert!(!client.status().unwrap().fast_unlock);
+    assert!(storage.get(&name).unwrap().is_none());
+}
+
+#[tokio::test]
+async fn prepared_device_bound_unlock_preserves_the_binding_and_rejects_late_answers() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.require_fast_presence();
+    client.set_presence_key(hardware.clone());
+    bind_offline(&mut client, &hardware, &storage, false);
+    let name = client.bound_name().unwrap();
+    let slot = storage.get(&name).unwrap().unwrap();
+    // Bound fast unlock has no independent fast-key record.
+    assert!(storage.get(&client.fast_name().unwrap()).unwrap().is_none());
+    client.lock();
+    let count = hardware.opened.load(SeqCst);
+    let prepared = client.prepare_fast_unlock().unwrap();
+    assert_eq!(hardware.opened.load(SeqCst), count);
+    let key = prepared.open();
+    assert_eq!(hardware.opened.load(SeqCst), count + 1);
+    client.lock();
+    assert_eq!(
+        client.complete_fast_unlock(prepared, key).await.err(),
+        Some(Error::Locked)
+    );
+    assert_eq!(storage.get(&name).unwrap().unwrap(), slot);
+    assert!(client.keys().is_err());
+
+    let prepared = client.prepare_fast_unlock().unwrap();
+    let key = prepared.open();
+    let status = client.complete_fast_unlock(prepared, key).await.unwrap();
+    assert_eq!(status.state, "unlocked");
+    assert!(status.device_bound && status.fast_unlock);
+}
+
+#[tokio::test]
+async fn pausing_host_work_drops_its_hardware_approval_authorization() {
+    use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
+    struct Answer(Arc<AtomicBool>);
+    impl crate::secure::Authorized for Answer {
+        fn sign(&self, _: &[u8], _: &Hash) -> Result<[u8; 64]> {
+            Err(Error::Forbidden)
+        }
+    }
+    impl Drop for Answer {
+        fn drop(&mut self) {
+            self.0.store(true, SeqCst);
+        }
+    }
+
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    let host = crate::host::Host::start(client, &tokio::runtime::Handle::current());
+    let dropped = Arc::new(AtomicBool::new(false));
+    let (started, ready) = tokio::sync::oneshot::channel();
+    let pending = tokio::spawn({
+        let host = host.clone();
+        let dropped = dropped.clone();
+        async move {
+            host.run(move |client| {
+                Box::pin(async move {
+                    client.authorized = Some(Box::new(Answer(dropped)));
+                    started.send(()).unwrap();
+                    std::future::pending::<Result<()>>().await
+                })
+            })
+            .await
+        }
+    });
+    ready.await.unwrap();
+    host.pause();
+    assert_eq!(pending.await.unwrap(), Err(Error::Locked));
+    host.resume();
+    assert!(
+        host.run(|client| Box::pin(async move {
+            Ok(client.authorized.is_none() && client.keys().is_ok())
+        }))
+        .await
+        .unwrap()
+    );
+    assert!(dropped.load(SeqCst));
+    host.close();
+    host.closed().await.unwrap();
+}
+
 fn note(title: &str) -> Changes {
     Changes {
         title: Some(title.into()),

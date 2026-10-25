@@ -24,7 +24,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// The production deployment, used when the home has no `config.toml`.
-const PRODUCTION: &str = include_str!("../production.toml");
+const PRODUCTION: &str = dmsg_client::config::PRODUCTION;
 
 /// `config.toml`.
 #[derive(Deserialize)]

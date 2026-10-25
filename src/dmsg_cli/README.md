@@ -16,7 +16,7 @@ targets. The desktop exposes this action in the account menu as **Log out**.
 
 | Path | Content |
 | --- | --- |
-| `config.toml` | Deployment parameters and policies; the only place to change them. Without it the production deployment built into the binary applies ([`production.toml`](production.toml)) |
+| `config.toml` | Deployment parameters and policies; the only place to change them. Without it the production deployment built into the binary applies ([`production.toml`](../dmsg_client/production.toml)) |
 | `preferences.json` | The desktop's file settings: `files_mount` (allowed after a system dialog, beside `config.toml`'s) and `files_trash_days` (instead of `config.toml`'s). Only the desktop's main process writes it; the daemon reads it at start and on `files/preferences_reload`, never from a request's values |
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
@@ -31,7 +31,7 @@ targets. The desktop exposes this action in the account menu as **Log out**.
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
 | `<environment>/current` | The account selected last, which a restart and fast unlock use |
 
-A home without `config.toml` uses [`production.toml`](production.toml),
+A home without `config.toml` uses [`production.toml`](../dmsg_client/production.toml),
 compiled into the binary: the production relay, IC host, name registry and
 Agent Protocols hosts, so the desktop app and a fresh install work without
 setup. A `config.toml` replaces it whole (nothing is merged), and `dmsg

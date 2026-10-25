@@ -14,6 +14,28 @@ pub const MIN_TTL_MS: u64 = MINUTE;
 pub const MAX_TTL_MS: u64 = 30 * DAY;
 /// Path of the client's callback page.
 pub const CALLBACK_PATH: &str = "/auth/callback";
+/// Fixed Associated Domains callback for the native iOS application.
+pub const IOS_CALLBACK: &str = "https://dmsg.net/_/ios/auth/callback";
+/// A callback's closed set of transports; arbitrary HTTPS redirects are refused.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallbackTarget {
+    /// A desktop client's bound loopback listener.
+    Loopback(u16),
+    /// The iOS app's associated HTTPS callback.
+    Ios,
+}
+
+/// Validate the exact callback spelling before contacting Internet Identity.
+///
+/// # Errors
+/// Any target outside this closed set returns `InvalidInput`.
+pub fn callback_target(next_url: &str) -> Result<CallbackTarget> {
+    if next_url == IOS_CALLBACK {
+        Ok(CallbackTarget::Ios)
+    } else {
+        callback_port(next_url).map(CallbackTarget::Loopback)
+    }
+}
 /// DER prefix of an Ed25519 SubjectPublicKeyInfo; the raw key follows.
 pub const ED25519_SPKI_PREFIX: [u8; 12] = [
     0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
@@ -64,7 +86,7 @@ pub fn validate_request(request: &LoginRequest) -> Result<()> {
         DERIVATION_ORIGINS.contains(&request.derivation_origin.as_str()),
         "derivation_origin",
     )?;
-    callback_port(&request.next_url).map(|_| ())
+    callback_target(&request.next_url).map(|_| ())
 }
 
 /// Canonical CBOR of a login message.

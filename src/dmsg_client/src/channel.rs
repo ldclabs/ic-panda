@@ -1976,25 +1976,24 @@ pub async fn save_shared<H: Hold>(
     Box::pin(pull(h, channel, None, None)).await?;
     let message = h.with(|c| c.message_at(channel, seq)).await?;
     let reference = message.file.clone().ok_or(Error::NotFound)?;
-    let manifest = fetch_file(h, channel, &reference, &message.account).await?;
     h.with(|c| {
-        let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
-        read_file(&c.workspace.store, &manifest, MAX_FILE, Some(&mut *plain))?;
-        let name = crate::library::catalog::safe_name(&manifest.name);
-        let into = c.catalog()?.find(folder, &name);
-        c.import_stream(
-            &mut std::io::Cursor::new(&plain[..]),
-            manifest.size,
-            &name,
-            folder,
-            into,
-            Origin::SharedIn {
-                channel: channel.into(),
-                seq,
-            },
-            progress,
+        ensure(
+            reference.size <= c.config.files_max_bytes,
+            Error::QuotaExceeded,
         )
     })
+    .await?;
+    let manifest = fetch_file(h, channel, &reference, &message.account).await?;
+    crate::library::import::from_manifest(
+        h,
+        &manifest,
+        folder,
+        Origin::SharedIn {
+            channel: channel.into(),
+            seq,
+        },
+        progress,
+    )
     .await
 }
 

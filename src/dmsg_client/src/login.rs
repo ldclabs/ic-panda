@@ -192,6 +192,41 @@ impl LoginSession {
         ttl_ms: u64,
         now: u64,
     ) -> Result<Self> {
+        Self::with_callback(
+            targets,
+            derivation_origin,
+            format!("http://127.0.0.1:{port}/auth/callback"),
+            ttl_ms,
+            now,
+        )
+    }
+
+    /// A login returned only through the iOS Associated Domains callback.
+    ///
+    /// # Errors
+    /// As [`Self::new`].
+    pub fn ios(
+        targets: &[Principal],
+        derivation_origin: &str,
+        ttl_ms: u64,
+        now: u64,
+    ) -> Result<Self> {
+        Self::with_callback(
+            targets,
+            derivation_origin,
+            dmsg_protocol::login::IOS_CALLBACK.into(),
+            ttl_ms,
+            now,
+        )
+    }
+
+    fn with_callback(
+        targets: &[Principal],
+        derivation_origin: &str,
+        next_url: String,
+        ttl_ms: u64,
+        now: u64,
+    ) -> Result<Self> {
         ensure_valid(
             !targets.is_empty() && targets.len() <= MAX_TARGETS,
             "targets",
@@ -205,7 +240,7 @@ impl LoginSession {
             session_pubkey: session_pubkey.into(),
             ttl_ms,
             derivation_origin: derivation_origin.into(),
-            next_url: format!("http://127.0.0.1:{port}/auth/callback"),
+            next_url,
         };
         validate_request(&request)?;
         Ok(Self {
@@ -229,6 +264,7 @@ impl LoginSession {
     /// `permissions` or a lifetime beyond the request is refused. A login
     /// page error comes back as `Error::Unavailable` naming its code.
     pub fn accept(&self, body: &[u8], now: u64) -> Result<Delegated> {
+        ensure(now < self.deadline, Error::Expired)?;
         ensure(
             !body.is_empty() && body.len() <= MAX_CALLBACK,
             Error::QuotaExceeded,

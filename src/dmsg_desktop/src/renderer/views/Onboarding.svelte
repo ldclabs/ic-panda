@@ -96,6 +96,9 @@
       {#if pairing}
         <Notice>
           <p>{t('pairHint')}</p>
+          {#if pairing.qr}
+            <img src={pairing.qr} alt={t('pairRequest')} width="224" height="224" class="mt-2 rounded-lg bg-white p-2" data-testid="pair-qr" />
+          {/if}
           <p class="mt-1.5 font-mono text-[11.5px] break-all select-all" data-testid="pair-token">{pairing.token}</p>
           <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{pairing.device_id}</b></p>
         </Notice>

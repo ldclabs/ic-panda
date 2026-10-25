@@ -10,6 +10,8 @@ use url::Url;
 pub const LOGIN_URL: &str = "https://dmsg.net/_/login";
 /// The dmsg-connect/1 bridge origin.
 pub const CONNECT_URL: &str = "https://connect.dmsg.net";
+/// One production trust configuration, shared by all client hosts.
+pub const PRODUCTION: &str = include_str!("../production.toml");
 /// Largest file the file library takes by default: 4 GiB.
 pub const DEFAULT_FILES_MAX_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 /// Days a trashed library file is kept by default.
@@ -93,6 +95,71 @@ pub struct LegacyConfig {
 }
 
 impl Config {
+    /// The compiled production deployment. Host policy stays outside URLs.
+    ///
+    /// # Errors
+    /// Returns `InvalidInput` if the compiled configuration is malformed.
+    pub fn production() -> Result<Self> {
+        let file: toml::Value =
+            toml::from_str(PRODUCTION).map_err(|_| dmsg_types::invalid("production config"))?;
+        let value = |name: &str| file[name].as_str().ok_or_else(|| dmsg_types::invalid(name));
+        let principal =
+            |name: &str| Principal::from_text(value(name)?).map_err(|_| dmsg_types::invalid(name));
+        let legacy = &file["legacy"];
+        let cutover = hex::decode(
+            legacy["cutover"]
+                .as_str()
+                .ok_or_else(|| dmsg_types::invalid("cutover"))?,
+        )
+        .ok()
+        .and_then(|bytes| bytes.try_into().ok())
+        .ok_or_else(|| dmsg_types::invalid("cutover"))?;
+        let config = Self {
+            environment: parse_environment(value("environment")?)?,
+            ic_host: value("ic_host")?.into(),
+            relay: value("relay")?.into(),
+            handle: principal("handle")?,
+            user_homes: vec![],
+            root_key: None,
+            login_url: LOGIN_URL.into(),
+            connect_url: CONNECT_URL.into(),
+            background_online: false,
+            files_max_bytes: DEFAULT_FILES_MAX_BYTES,
+            files_trash_days: DEFAULT_FILES_TRASH_DAYS,
+            legacy: Some(LegacyConfig {
+                channels: legacy["channels"]
+                    .as_array()
+                    .ok_or_else(|| dmsg_types::invalid("channels"))?
+                    .iter()
+                    .map(|v| {
+                        v.as_str()
+                            .map(String::from)
+                            .ok_or_else(|| dmsg_types::invalid("channel"))
+                    })
+                    .collect::<Result<_>>()?,
+                identity: legacy["identity"]
+                    .as_str()
+                    .ok_or_else(|| dmsg_types::invalid("identity"))?
+                    .into(),
+                buckets: vec![],
+                cutover,
+            }),
+            wallet: WalletSettings {
+                hub: Some(
+                    Principal::from_text(
+                        file["wallet"]["hub"]
+                            .as_str()
+                            .ok_or_else(|| dmsg_types::invalid("wallet hub"))?,
+                    )
+                    .map_err(|_| dmsg_types::invalid("wallet hub"))?,
+                ),
+                ..WalletSettings::default()
+            },
+        };
+        config.validate()?;
+        Ok(config)
+    }
+
     /// Check that every endpoint is HTTPS, or loopback HTTP in a local
     /// deployment, and that local-only settings stay local.
     ///

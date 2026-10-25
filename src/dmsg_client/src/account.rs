@@ -938,6 +938,16 @@ impl Client {
     /// # Errors
     /// A token for another home or account, an expired request or a bad
     /// proof of possession is refused.
+    pub fn pairing_preview(&self, token: &str) -> Result<serde_json::Value> {
+        let pairing = self.inspect_pairing(token)?;
+        Ok(serde_json::json!({
+            "device_id": hex::encode(*pairing.device.device_id),
+            "role": pairing.device.role, "capabilities": pairing.device.capabilities,
+            "account": pairing.account.to_string(), "expires_at": pairing.mutation.approval.expires_at,
+        }))
+    }
+
+    /// The validated mutation used only by the approval state machine.
     pub(crate) fn inspect_pairing(&self, token: &str) -> Result<PairingRequest> {
         ensure(token.len() <= 4096, Error::QuotaExceeded)?;
         let packet: Pairing = decode(&unb64(token)?, 4096)?;

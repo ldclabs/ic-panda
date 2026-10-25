@@ -4,6 +4,10 @@
 import { decode, encode } from 'cborg'
 
 export const DERIVATION_ORIGINS = ['https://dmsg.net', 'https://panda.fans']
+export const IOS_CALLBACK = 'https://dmsg.net/_/ios/auth/callback'
+export function callbackTarget(url: string): 'ios' | number {
+  return url === IOS_CALLBACK ? 'ios' : callbackPort(url)
+}
 export const MIN_TTL_MS = 60_000
 export const MAX_TTL_MS = 30 * 24 * 60 * 60_000
 const SPKI_PREFIX = [
@@ -109,7 +113,7 @@ export function parseRequest(fragment: string): LoginRequest {
     'derivation_origin'
   )
   check(typeof request.next_url === 'string', 'next_url')
-  callbackPort(request.next_url)
+  callbackTarget(request.next_url)
   return request
 }
 

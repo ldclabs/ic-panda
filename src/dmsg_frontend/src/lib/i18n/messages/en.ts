@@ -1,4 +1,9 @@
 const en = {
+  "Sign in to dMsg": "Sign in to dMsg",
+  "Return to the dMsg iOS app after signing in.": "Return to the dMsg iOS app after signing in.",
+  "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity lets the dMsg app act for you. This page keeps no session.",
+  "Return to the dMsg iOS app": "Return to the dMsg iOS app",
+  "This sign-in must finish in the app that started it. Return to dMsg and start again.": "This sign-in must finish in the app that started it. Return to dMsg and start again.",
   "Receiving here uses a download session. Importing in dMsg uses a separate session.": "Receiving here uses a download session. Importing in dMsg uses a separate session.",
   "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.": "Paste the link in dMsg to import an independent copy. Revocation cannot delete saved copies.",
   "Save attachment": "Save attachment",

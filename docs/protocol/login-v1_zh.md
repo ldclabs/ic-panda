@@ -91,7 +91,9 @@ POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校
 - `http://127.0.0.1:<port>/auth/callback`
 - `http://[::1]:<port>/auth/callback`
 
-不接受 `localhost`（解析结果不受页面控制）、其他路径、query 或 fragment。移动端阶段再增加 app link 形式，在本文件中登记。
+另接受 iOS 的精确 HTTPS 回调 `https://dmsg.net/_/ios/auth/callback`。不接受端口（包括显式 `:443`）、尾部斜杠、其他大小写、query、fragment、其他 HTTPS 地址或自定义 scheme。`localhost` 仍不接受。消息编码和版本保持为 1。
+
+iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，Associated Domains 必须将此路径绑定到实际签名的 App。AASA 由 `scripts/ios/aasa.mjs` 依据部署者提供的 Team ID 与 Bundle ID 生成，不提交猜测的团队标识。未配置和部署 AASA 时不能把登录视为可用。系统会话外打开该回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
 
 ## 6. 页面要求
 
@@ -105,13 +107,13 @@ POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校
 
 - 页面没有登录态，拿不到任何可用密钥；用户在 II 中完成认证，页面只是把 II 签给 `session_pubkey` 的 delegation 转交给 `next_url`。
 - II 签给会话公钥的 delegation 不限 canister；它只在 daemon 校验回调的这一步与会话私钥同时存在，之后 daemon 只持有限定 targets 的链（第 4 节第 5 条）。
-- `next_url` 只能是回环地址，所以这个页面不能被用来把 delegation 送到远端。
+- `next_url` 是闭合集合：回环地址或上述精确的关联域路径。HTTPS 回调由系统认证会话接收；回退页面不存储或转发 delegation。delegation 只对本次请求的会话私钥有用，客户端仍核对 state、公钥、期限、派生 origin、canister targets 与 IC 查询结果。不得推广为任意远端回调。
 - 同一 OS 用户的恶意进程可以自己监听回环端口并打开登录页，用户看到的"将连接到本机 dMsg（端口 n）"无法区分请求方。这是回环回调流程（RFC 8252）的固有局限，与 OS 用户边界一致；dMsg 客户端的本机凭证边界见桌面方案。
 - dmsg.net 主站代码的完整性是 II delegation 的信任前提，这一点与登录页放在哪里无关。
 
 ## 8. 验证要求
 
 - 向量：`LoginRequest`、`LoginResult`、`LoginError` 的规范 CBOR 与 base64url 编码，以及应拒绝的请求与回调，由 `dmsg_protocol` 的测试生成并逐字节比对（`tests/vectors/client/login-v1.json`，`DMSG_WRITE_CLIENT_VECTORS=1` 时重写）；登录页的 `src/dmsg_frontend/src/lib/login/protocol.test.ts` 读取同一文件核验。向量中的 delegation 签名是占位值，只固定编码。
-- 页面：参数缺失、键集合不闭合、`ttl_ms` 越界、不允许的 `derivation_origin`、`localhost` 与非回环的 `next_url` 都在联系 II 之前被拒绝；fragment 被清除；成功与失败回调的 fragment 格式。由 vitest 覆盖页面的协议与流程模块（`src/dmsg_frontend/src/lib/login/`），页面渲染另做浏览器检查。
+- 页面：参数缺失、键集合不闭合、`ttl_ms` 越界、不允许的 `derivation_origin`、`localhost` 与闭合集合外的 `next_url` 都在联系 II 之前被拒绝；fragment 被清除；成功与失败回调的 fragment 格式。由 vitest 覆盖页面的协议与流程模块（`src/dmsg_frontend/src/lib/login/`），页面渲染另做浏览器检查。iOS 的真实 II 弹窗、passkey、AASA 与 fragment 交付需另做真机验收，协议测试不代表这些检查通过。
 - daemon：`state` 不符、公钥不符、带 `permissions`、过期或超出 `ttl_ms`、登录页错误都被拒绝；接受不限 targets 的链并追加由会话私钥签名、限定 targets 的一级（`src/dmsg_client/src/login_tests.rs`）；带外部 `Origin` 的 POST 返回 403 并关闭监听，重复 POST 与关闭后的 `GET /auth/callback` 为 404（端到端测试）。
 - 端到端：Local 环境由测试扮演登录页，像 II 一样用生成的 Ed25519 登录身份签发不限 targets 的 delegation，经 daemon 的回调提交，IC 接受 daemon 追加的一级（`tests/dmsg_integration/tests/desktop.rs`）；daemon 没有测试专用的登录路径。真实 II 在 staging 手工验收。

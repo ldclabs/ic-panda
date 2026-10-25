@@ -113,6 +113,15 @@ fn build() -> Json {
         request_json(&legacy),
         &encode_login(&legacy),
     ));
+    let ios = LoginRequest {
+        next_url: IOS_CALLBACK.into(),
+        ..base.clone()
+    };
+    requests.push(vector(
+        "iOS associated HTTPS callback",
+        request_json(&ios),
+        &encode_login(&ios),
+    ));
 
     let result = LoginResult {
         v: 1,
@@ -277,6 +286,23 @@ fn build() -> Json {
         "rejected_requests": rejected_requests,
         "rejected_callbacks": rejected_callbacks,
     })
+}
+
+#[test]
+fn mobile_callback_is_exact_and_not_a_general_https_redirect() {
+    assert_eq!(callback_target(IOS_CALLBACK).unwrap(), CallbackTarget::Ios);
+    for wrong in [
+        "https://dmsg.net/_/ios/auth/callback/",
+        "https://dmsg.net:443/_/ios/auth/callback",
+        "https://dmsg.net/_/ios/auth/callback?next=https://evil.example",
+        "https://dmsg.net/_/ios/auth/callback#result",
+        "https://DMSG.net/_/ios/auth/callback",
+        "https://dmsg.net@evil.example/_/ios/auth/callback",
+        "https://staging.dmsg.net/_/ios/auth/callback",
+        "dmsg://auth/callback",
+    ] {
+        assert!(callback_target(wrong).is_err(), "{wrong}");
+    }
 }
 
 #[test]

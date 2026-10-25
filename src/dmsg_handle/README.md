@@ -261,7 +261,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
    空快照的 `entries_digest` 必须是 32 个零字节；`snapshot_id` 任意非零，`source_canister` 可以是任意非匿名、非管理 canister 的 principal。
 
-6. 客户端配置的 `handle` 填本 canister：生产环境写在 `dmsg` 内置的 [production.toml](../dmsg_cli/production.toml) 中，其他部署写在 dmsg home 的 `config.toml`；user home 从本 canister 的 `user_homes` 读取，`user_homes` 配置项只作钉定，见 [dmsg_cli](../dmsg_cli/README.md)。
+6. 客户端配置的 `handle` 填本 canister：生产环境写在 `dmsg` 内置的 [production.toml](../dmsg_client/production.toml) 中，其他部署写在 dmsg home 的 `config.toml`；user home 从本 canister 的 `user_homes` 读取，`user_homes` 配置项只作钉定，见 [dmsg_cli](../dmsg_cli/README.md)。
 
 7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`resolve_handle_certified` 的证书能通过客户端验证。
 

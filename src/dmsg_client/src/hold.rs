@@ -241,11 +241,29 @@ impl<H: Hold> Hold for Unlocked<'_, H> {
 /// The client held by its one caller for a whole operation.
 pub struct Owned<'a>(Mutex<&'a mut Client>);
 
+/// An owned client that yields between local steps, so a host can cancel a
+/// large stream even when its file reads and SQLite steps are immediately ready.
+pub struct Cooperative<'a>(Owned<'a>);
+
 impl Client {
     /// This client, held by the caller throughout an operation written
     /// against [`Hold`].
     pub fn hold(&mut self) -> Owned<'_> {
         Owned(Mutex::new(self))
+    }
+
+    /// The same ownership as [`Self::hold`], with cooperative cancellation
+    /// points between synchronous steps on the host's Tokio executor.
+    pub fn cooperative_hold(&mut self) -> Cooperative<'_> {
+        Cooperative(self.hold())
+    }
+}
+
+impl Hold for Cooperative<'_> {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        let value = self.0.with(step).await;
+        tokio::task::yield_now().await;
+        value
     }
 }
 

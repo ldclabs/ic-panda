@@ -56,6 +56,8 @@ signature = "2"
 url.workspace = true
 zeroize.workspace = true
 zip.workspace = true
+tokio.workspace = true
+toml = "0.9"
 
 [features]
 # Offline unlocked clients for the tests of crates built on this one.

@@ -2,7 +2,7 @@
 
 English | [简体中文](legacy_freeze_zh.md)
 
-First written 2026-09-22; reorganized 2026-10-24. This document describes the legacy-service freeze and evidence contract. The client's built-in source channels, name identity and cutover are in [production.toml](../../src/dmsg_cli/production.toml), which lists no OSS bucket. Actual deployment status requires inventory evidence and cannot be inferred from this document or source code.
+First written 2026-09-22; reorganized 2026-10-24. This document describes the legacy-service freeze and evidence contract. The client's built-in source channels, name identity and cutover are in [production.toml](../../src/dmsg_client/production.toml), which lists no OSS bucket. Actual deployment status requires inventory evidence and cannot be inferred from this document or source code.
 
 ## Messages, profiles, channels and name identity
 

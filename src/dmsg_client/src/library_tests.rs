@@ -22,6 +22,57 @@ fn pattern(len: usize, seed: u8) -> Vec<u8> {
         .collect()
 }
 
+#[tokio::test]
+async fn shared_manifest_import_checks_the_whole_digest_before_publishing() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let bytes = pattern(CHUNK * 2 + 37, 19);
+    let manifest = crate::files::store_file(
+        &client.workspace.store,
+        "shared.dat",
+        "application/octet-stream",
+        &bytes,
+    )
+    .unwrap();
+    let mut bad = manifest.clone();
+    bad.sha256 = "00".repeat(32);
+    assert_eq!(
+        super::import::from_manifest(
+            &client.cooperative_hold(),
+            &bad,
+            ROOT,
+            Origin::SharedIn {
+                channel: "a1".repeat(32),
+                seq: 1
+            },
+            &mut no_progress
+        )
+        .await
+        .err(),
+        Some(Error::IntegrityFailed)
+    );
+    assert!(client.files_list(ROOT, false).unwrap().files.is_empty());
+    let imported = super::import::from_manifest(
+        &client.cooperative_hold(),
+        &manifest,
+        ROOT,
+        Origin::SharedIn {
+            channel: "a1".repeat(32),
+            seq: 1,
+        },
+        &mut no_progress,
+    )
+    .await
+    .unwrap();
+    assert_eq!(imported.file.size, bytes.len() as u64);
+    assert_eq!(imported.file.sha256, manifest.sha256);
+    let output = dir.path("verified.dat");
+    client
+        .files_export(&imported.file.id, None, &output)
+        .unwrap();
+    assert_eq!(std::fs::read(output).unwrap(), bytes);
+}
+
 #[test]
 fn folders_files_and_versions_round_trip_through_a_reload() {
     let dir = TempDir::new();

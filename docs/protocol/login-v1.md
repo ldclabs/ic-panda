@@ -91,7 +91,9 @@ POST responses: 200 on success, 403 for wrong `Origin` or `Content-Type`, 400 fo
 - `http://127.0.0.1:<port>/auth/callback`
 - `http://[::1]:<port>/auth/callback`
 
-It rejects `localhost` (the page cannot control its resolution), other paths, queries and fragments. Mobile app-link forms will be added and documented in the mobile phase.
+It also accepts exactly `https://dmsg.net/_/ios/auth/callback` for iOS. Explicit ports (including `:443`), trailing slashes, alternate casing, queries, fragments, other HTTPS addresses and custom schemes are refused. `localhost` remains forbidden. The message encoding and version remain 1.
+
+iOS uses `ASWebAuthenticationSession.Callback.https(host:path:)`. Associated Domains must bind this path to the actual signed application. `scripts/ios/aasa.mjs` generates AASA from the operator's Team ID and Bundle ID; no guessed team identifier is shipped. Until configured and deployed, login is not operational. Outside the initiating system session the fallback page clears the fragment and asks the user to restart in the app, without forwarding or third-party scripts. A callback is consumed once; process termination invalidates pending requests.
 
 ## 6. Page requirements
 
@@ -105,13 +107,13 @@ It rejects `localhost` (the page cannot control its resolution), other paths, qu
 
 - The page has no login state or usable key. Users authenticate with II; the page only forwards II's delegation to `session_pubkey` to the allowed next_url.
 - II's session-key delegation is unrestricted. It coexists with the session private key only during callback validation, after which the daemon retains only the target-restricted chain (section 4, step 5).
-- Because `next_url` must be loopback, the page cannot forward delegation to a remote host.
+- `next_url` is a closed set: loopback or the exact associated HTTPS path above. The system authentication session receives the HTTPS result; the fallback page neither stores nor forwards delegation. Delegation is useful only to this request's session private key. Clients still check state, key, expiry, derivation origin, canister targets and IC query results. This must not become a general remote redirect.
 - A malicious process under the same OS user can listen on loopback and open the login page. The displayed local port cannot distinguish that process from dMsg. This is inherent to loopback callbacks (RFC 8252) and the OS-user boundary; local credentials follow the desktop design.
 - Integrity of dmsg.net code is a trust prerequisite for II delegation regardless of where the login page is located.
 
 ## 8. Verification requirements
 
 - Vectors: canonical CBOR/base64url for `LoginRequest`, `LoginResult` and `LoginError`, and rejected requests/callbacks, are generated and byte-compared by `dmsg_protocol` tests (`tests/vectors/client/login-v1.json`, rewritten with `DMSG_WRITE_CLIENT_VECTORS=1`). The page's `src/dmsg_frontend/src/lib/login/protocol.test.ts` uses the same file. Delegation signatures in these vectors are placeholders fixing encoding only.
-- Page: missing parameters, non-closed key sets, out-of-range TTL, disallowed derivation origin, localhost and non-loopback next_url fail before II contact. Check fragment removal and success/failure callback fragments. Vitest covers protocol/flow modules in `src/dmsg_frontend/src/lib/login/`; rendering has separate browser checks.
+- Page: missing parameters, non-closed key sets, out-of-range TTL, disallowed derivation origin, localhost and callbacks outside the closed set fail before II contact. Check fragment removal and success/failure callback fragments. Vitest covers protocol/flow modules in `src/dmsg_frontend/src/lib/login/`; rendering has separate browser checks. Real iOS II popups, passkeys, AASA and fragment delivery require device acceptance; protocol tests do not prove them.
 - Daemon: reject wrong state/key, permissions, expired/overlong TTL and login-page errors; accept unrestricted chains and append the session-key-signed restricted level (`src/dmsg_client/src/login_tests.rs`). External-Origin POST returns 403 and closes listening; repeated POST and GET after closure return 404 in E2E tests.
 - E2E: in Local, the test impersonates the login page and issues an unrestricted delegation from a generated Ed25519 login identity as II would. It submits through the daemon callback, and IC accepts the appended level (`tests/dmsg_integration/tests/desktop.rs`). The daemon has no test-only login path. Real II requires manual staging acceptance.

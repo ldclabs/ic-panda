@@ -1,0 +1,8 @@
+CoreBridge/Generated/
+CoreBridge/Headers/
+CoreBridge/Artifacts/
+.build/
+build/
+*.xcodeproj/
+*.xcuserstate
+Signing.xcconfig

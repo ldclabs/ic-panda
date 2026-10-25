@@ -1,0 +1,32 @@
+[package]
+name = "dmsg_mobile"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+dmsg_client = { path = "../dmsg_client" }
+dmsg_protocol = { path = "../dmsg_protocol" }
+dmsg_types = { path = "../dmsg_types" }
+uniffi = "=0.32.2"
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zeroize.workspace = true
+hex.workspace = true
+thiserror = "2"
+
+[dev-dependencies]
+dmsg_client = { path = "../dmsg_client", features = ["testing"] }
+
+[features]
+bindgen = ["uniffi/cli"]
+
+[[bin]]
+name = "dmsg-mobile-bindgen"
+path = "src/bin/bindgen.rs"
+required-features = ["bindgen"]

@@ -1,0 +1,5 @@
+[bindings.swift]
+module_name = "DMsgCore"
+ffi_module_name = "DMsgCoreFFI"
+generate_module_map = true
+generate_immutable_records = true
