@@ -390,12 +390,15 @@ function payment(id, fresh) {
   requests.set(r.id, r)
   return r
 }
+let recoveryWarning = null
+let pendingRecovery = null
 function status() {
   return {
     session: `smoke:${sessionEpoch}`,
     state: session,
     setup_pending: setupPending,
     account: session === 'logged_out' ? null : account,
+    recovery: recoveryWarning,
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
     pending_sync: 2,
@@ -860,7 +863,7 @@ const methods = {
       logins: [{ principal: login, current: !legacyHolderLoggedIn }, ...(legacyHolderBound ? [{ principal: legacyHolder, current: legacyHolderLoggedIn }] : [])],
       policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
       recovery_delay_ms: 3 * 86_400_000,
-      pending_recovery: null,
+      pending_recovery: pendingRecovery,
       recovered_device: null
     }
   },
@@ -1425,8 +1428,8 @@ server.on('upgrade', (req, socket, head) => {
   })
 })
 async function waitFor(check) {
-  for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 100))
-  assert.ok(check())
+  for (let i = 0; i < 100 && !await check(); i++) await new Promise((r) => setTimeout(r, 100))
+  assert.ok(await check())
 }
 /** Hold `method`'s next reply; the returned function sends it once it arrived. */
 function hold(method, matches) {
@@ -1530,6 +1533,42 @@ smoke: try {
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="palette"]', { state: 'detached' })
   assert.equal(await main.textContent('[data-testid="view-title"]'), 'Inbox')
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
+  // Recovery alerts arrive off the security page, even while locked. They
+  // expose no account/login IDs, and clicking only navigates to a fresh read.
+  const recoveryNotes = () => app.evaluate(() => globalThis.__notes.filter((body) => body.includes('Account recovery is pending.')))
+  const recoveryBefore = (await recoveryNotes()).length
+  session = 'locked'
+  declineUnlock = true
+  emit('session/changed', { state: session })
+  pendingRecovery = { op_id: 'e1'.repeat(32), new_auth: login, execute_after: Date.now() + 3 * 86_400_000 }
+  recoveryWarning = { account, pending: true, digest: 'e2'.repeat(32), observed_at_ms: Date.now(), stale: false }
+  emit('recovery/changed')
+  await waitFor(async () => (await recoveryNotes()).length === recoveryBefore + 1)
+  assert.equal((await recoveryNotes()).at(-1).includes(login), false)
+  const recoveryStatusReads = calls.filter((c) => c.method === 'daemon/status').length
+  emit('resync')
+  await waitFor(() => calls.filter((c) => c.method === 'daemon/status').length > recoveryStatusReads)
+  assert.equal((await recoveryNotes()).length, recoveryBefore + 1)
+  session = 'unlocked'
+  declineUnlock = false
+  emit('session/changed', { state: session })
+  const disputes = calls.filter((c) => c.method === 'recovery/dispute').length
+  const freshSecurityReads = calls.filter((c) => c.method === 'account/security' && c.params?.mode === 'fresh').length
+  await app.evaluate(() => globalThis.__lastNotification.emit('click'))
+  await main.waitForSelector('[data-testid="pending-recovery"] button')
+  assert.ok(calls.filter((c) => c.method === 'account/security' && c.params?.mode === 'fresh').length > freshSecurityReads)
+  assert.equal(calls.filter((c) => c.method === 'recovery/dispute').length, disputes)
+  pendingRecovery = null
+  recoveryWarning = { ...recoveryWarning, pending: false, digest: null, observed_at_ms: Date.now() }
+  emit('recovery/changed')
+  await main.waitForSelector('[data-testid="pending-recovery"]', { state: 'detached' })
+  assert.deepEqual(pageErrors, [])
+  if (process.env.DMSG_DESKTOP_RECOVERY_ONLY === '1') {
+    console.log('desktop recovery notification smoke test passed (remaining flows skipped)')
+    break smoke
+  }
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Local account choices show public names as well as their distinct IDs.

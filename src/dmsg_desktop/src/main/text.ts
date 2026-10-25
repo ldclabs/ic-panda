@@ -36,6 +36,7 @@ const en = {
   updateDownloading: 'It downloads in the background; then choose Restart to Update.',
   updateManual: 'This copy of dMsg cannot install updates itself. Download the new version from its release page and install it over this one.',
   requestWaiting: 'A request is waiting for your approval.',
+  recoveryPending: 'Account recovery is pending. If you did not request it, open Account security to cancel it before takeover.',
   eventsArrived: (n: number) => `Your agents received ${n} new event(s).`,
   agentMailArrived: (n: number) => `Your agents received ${n} new letter(s).`,
   refreshDue: "An agent's event subscription is due for renewal.",
@@ -113,6 +114,7 @@ const zh: Text = {
   updateDownloading: '更新正在后台下载，完成后选择“重启并更新”。',
   updateManual: '这份 dMsg 不能自行安装更新。请从发布页下载新版本，覆盖安装当前版本。',
   requestWaiting: '有请求等待你确认。',
+  recoveryPending: '账户有待处理的恢复申请。如非本人操作，请打开账户安全，在接管前取消恢复。',
   eventsArrived: (n: number) => `Agent 收到 ${n} 条新事件。`,
   agentMailArrived: (n: number) => `Agent 收到 ${n} 封新邮件。`,
   refreshDue: '有 Agent 的事件订阅需要续订。',
@@ -189,6 +191,7 @@ const ru: Text = {
   updateManual:
     'Эта копия dMsg не может сама устанавливать обновления. Скачайте новую версию со страницы релиза и установите её поверх текущей.',
   requestWaiting: 'Запрос ожидает вашего подтверждения.',
+  recoveryPending: 'Ожидается восстановление аккаунта. Если вы его не запрашивали, откройте настройки безопасности аккаунта и отмените его до передачи управления.',
   eventsArrived: (n: number) => `Ваши агенты получили новые события: ${n}.`,
   agentMailArrived: (n: number) => `Ваши агенты получили новые письма: ${n}.`,
   refreshDue: 'Подписку агента на события пора продлить.',
@@ -265,6 +268,7 @@ const ar: Text = {
   updateDownloading: 'يُنزَّل التحديث في الخلفية، ثم اختر «إعادة التشغيل للتحديث».',
   updateManual: 'لا تستطيع هذه النسخة من dMsg تثبيت التحديثات بنفسها. نزّل الإصدار الجديد من صفحة الإصدار وثبّته فوق هذه النسخة.',
   requestWaiting: 'هناك طلب بانتظار موافقتك.',
+  recoveryPending: 'هناك طلب لاسترداد الحساب. إذا لم تطلبه، افتح أمان الحساب لإلغائه قبل انتقال التحكم.',
   eventsArrived: (n: number) => `تلقّى وكلاؤك أحداثًا جديدة: ${n}.`,
   agentMailArrived: (n: number) => `تلقّى وكلاؤك رسائل بريد جديدة: ${n}.`,
   refreshDue: 'حان وقت تجديد اشتراك أحد الوكلاء في الأحداث.',
@@ -341,6 +345,7 @@ const fr: Text = {
   updateManual:
     'Cette copie de dMsg ne peut pas installer elle-même les mises à jour. Téléchargez la nouvelle version depuis sa page de publication et installez-la par-dessus celle-ci.',
   requestWaiting: 'Une demande attend votre approbation.',
+  recoveryPending: 'Une récupération de compte est en attente. Si vous ne l’avez pas demandée, ouvrez la sécurité du compte pour l’annuler avant la prise de contrôle.',
   eventsArrived: (n: number) => `Vos agents ont reçu ${n} nouvel(s) événement(s).`,
   agentMailArrived: (n: number) => `Vos agents ont reçu ${n} nouveau(x) courrier(s).`,
   refreshDue: 'L’abonnement aux événements d’un agent doit être renouvelé.',
@@ -418,6 +423,7 @@ const es: Text = {
   updateManual:
     'Esta copia de dMsg no puede instalar actualizaciones por sí misma. Descarga la nueva versión desde su página de publicación e instálala encima de esta.',
   requestWaiting: 'Una solicitud espera tu aprobación.',
+  recoveryPending: 'Hay una recuperación de cuenta pendiente. Si no la solicitaste, abre Seguridad de la cuenta para cancelarla antes de que se transfiera el control.',
   eventsArrived: (n: number) => `Tus agentes recibieron ${n} evento(s) nuevo(s).`,
   agentMailArrived: (n: number) => `Tus agentes recibieron ${n} carta(s) nueva(s).`,
   refreshDue: 'Hay que renovar la suscripción a eventos de un agente.',

@@ -35,6 +35,7 @@ import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
+import { RecoveryNotifications, type RecoveryWarning } from './recovery-notifications'
 import { textFor } from './text'
 import { Updates } from './updater'
 
@@ -702,17 +703,29 @@ function broadcast(channel: string, payload: unknown) {
 /** A `connect/hint` arrived since the last refresh: a web request waits at the relay. */
 let hinted = false
 
+const recoveryNotifications = new RecoveryNotifications((account) => {
+  const note = new Notification({ title: 'dMsg', body: text.recoveryPending, silent: false })
+  note.on('click', async () => {
+    // A notification may outlive an account switch; never cancel anything here.
+    const status = await daemon.call('daemon/status').catch(() => null) as { account?: string } | null
+    showMain(status?.account === account ? '/settings/security' : '/settings/session')
+  })
+  note.show()
+  return () => note.close()
+})
+
 /** Notify without saying from where; clicking opens the request, never decides it. */
 const refreshWaiting = single(async () => {
   const hint = hinted
   hinted = false
-  let status: { approvals_waiting?: number; channels_unread?: number; state?: string } = {}
+  let status: { approvals_waiting?: number; channels_unread?: number; state?: string; account?: string; recovery?: RecoveryWarning | null } = {}
   try {
     status = (await daemon.call('daemon/status')) as typeof status
   } catch {
     return
   }
   if (status.state !== 'unlocked') void forgetCopied()
+  recoveryNotifications.update(status.account, status.recovery, Notification.isSupported())
   const now = status.approvals_waiting ?? 0
   // A burst of requests, such as an agent's, notifies once.
   const quiet = Date.now() - requestNotifiedAt < 10_000
@@ -933,7 +946,7 @@ daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
   if (event.type === 'session/changed') void remindPlan()
   if (event.type === 'connect/hint') hinted = true
-  if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read'].includes(event.type)) void refreshWaiting()
+  if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read', 'recovery/changed'].includes(event.type)) void refreshWaiting()
   if (event.type === 'channel/changed') notifyChannel(event.data)
   if (event.type === 'mcp-events/changed') notifyEvents(event.data)
   if (event.type === 'agent/mail') notifyAgentMail(event.data)

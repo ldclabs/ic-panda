@@ -129,10 +129,12 @@
   const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
 
   onMount(() => {
-    void reload()
+    // A notification can open this page before its old display cache expires.
+    void reload('fresh')
     const off = onChange(['approval/changed', 'session/changed'], reload)
+    const recoveryOff = onChange(['recovery/changed'], () => reload('fresh'))
     const stop = watchDisplays(['account'], (mode) => reload(mode))
-    return () => { off(); stop() }
+    return () => { off(); recoveryOff(); stop() }
   })
 </script>
 

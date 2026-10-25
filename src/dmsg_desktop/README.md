@@ -320,6 +320,16 @@ Rules (`src/main/policy.ts`):
   request waiting, deliveries to agents, and, while the daemon is locked, a
   channel's new messages or a new letter (the relay's `channel` and `inbox`
   hints), each kind at most once a minute.
+- Pending account recovery also produces a system notification, even while the
+  selected workspace is locked. It contains no login, account ID or request
+  details. Clicking opens Settings → Account security, whose fresh read offers
+  the existing cancellation approval; after an account switch it opens account
+  selection instead. A request notifies once per desktop run, including after
+  reconnecting to a daemon that already observed it; a different request notifies
+  again. A fresh cancellation closes its notification. The daemon checks public
+  certified security about once a minute, independently of this page. Desktop
+  and daemon must be running, the device online, and OS notifications allowed;
+  this is not a remote push service or a guaranteed delivery deadline.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
   `https://panda.fans/legacy`) only with an offer (`#pair=`). Pairing and archive
   reads wait for an unlocked account. Before then, the page explains whether

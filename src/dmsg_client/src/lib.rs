@@ -44,6 +44,7 @@ pub mod payer;
 pub mod payment;
 pub mod principal;
 pub mod recovery;
+pub mod recovery_watch;
 pub mod root;
 pub mod secrets;
 pub mod secure;

@@ -326,6 +326,12 @@ pub fn security(epoch: u64, devices: BTreeMap<Hash, Device>) -> Security {
     }
 }
 
+/// Apply a fixture in place of a verified certificate, including its local
+/// observation. Tests must not use this as evidence of certificate validation.
+pub fn observe_security(client: &mut Client, security: &Security) -> dmsg_types::Result<()> {
+    client.observe(&security.snapshot.account_id, security)
+}
+
 /// A command `action` of the test account signed by device `n` under
 /// `epoch`, its payload `{"by": n}`.
 pub fn signed(n: u8, epoch: u64, action: &str) -> String {

@@ -38,6 +38,7 @@ mod mount;
 mod mount_netfs;
 mod params;
 mod process_command;
+mod recovery_watch;
 mod release;
 mod remote;
 mod secret_commands;
@@ -481,10 +482,37 @@ fn summary(status: &Value) -> String {
         ),
         false => String::new(),
     };
+    let recovery = recovery_summary(&status["recovery"]);
     tr!(
-        "state: {state}\naccount: {account}\ndevice: {device}\nlogin: {login}\nroot generation: {generation}\npending sync: {pending}\nconflicts: {conflicts}{resident}",
-        "状态：{state}\n账户：{account}\n设备：{device}\n登录：{login}\n内容根代数：{generation}\n待同步：{pending}\n冲突：{conflicts}{resident}"
+        "state: {state}\naccount: {account}\ndevice: {device}\nlogin: {login}\nroot generation: {generation}\npending sync: {pending}\nconflicts: {conflicts}{resident}\n{recovery}",
+        "状态：{state}\n账户：{account}\n设备：{device}\n登录：{login}\n内容根代数：{generation}\n待同步：{pending}\n冲突：{conflicts}{resident}\n{recovery}"
     )
+}
+
+fn recovery_summary(warning: &Value) -> String {
+    let mut text = if warning["pending"] == true {
+        tr!(
+            "WARNING: account recovery pending. If you did not request it, open Settings > Account security or run dmsg recovery dispute after unlocking/signing in.",
+            "警告：账户有待处理的恢复申请。如非本人操作，请打开设置 > 账户安全，或在解锁/登录后运行 dmsg recovery dispute 取消。"
+        )
+    } else if warning["pending"] == false && warning["stale"] == false {
+        tr!(
+            "recovery: no pending request at last check",
+            "账户恢复：最近检查未发现待处理申请"
+        )
+    } else {
+        tr!(
+            "recovery: unknown; waiting for a fresh security check",
+            "账户恢复：未知，等待刷新安全状态"
+        )
+    };
+    if warning["stale"] == true {
+        text.push_str(&tr!(
+            "\nRecovery status is stale; reconnect to check again.",
+            "\n恢复状态已过期，请联网后重新检查。"
+        ));
+    }
+    text
 }
 
 fn open_browser(url: &str) -> bool {
@@ -863,6 +891,23 @@ fn updated(r: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recovery_status_distinguishes_pending_stale_and_unknown() {
+        let pending = recovery_summary(&json!({"pending":true,"stale":false}));
+        assert!(pending.contains("dmsg recovery dispute"));
+        let stale = recovery_summary(&json!({"pending":true,"stale":true}));
+        assert!(stale.contains("dmsg recovery dispute"));
+        assert!(stale.len() > pending.len());
+        assert_eq!(
+            recovery_summary(&Value::Null),
+            recovery_summary(&json!({"pending":false}))
+        );
+        assert_ne!(
+            recovery_summary(&Value::Null),
+            recovery_summary(&json!({"pending":false,"stale":false}))
+        );
+    }
 
     #[test]
     fn short_columns_never_split_text() {

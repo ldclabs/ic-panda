@@ -401,6 +401,20 @@ seven days, three by default). After the delay, `recovery complete` takes the
 account over, derives the committed root's key once, opens it and rotates to
 a root only this device holds; run again, it resumes.
 
+The daemon watches the selected account's certified public recovery digest,
+including while locked with background online disabled. Ordinary security reads
+update this observation; an independent loop checks for changes every 10 seconds
+and fetches security about once a minute when needed. `dmsg status` warns about a
+pending recovery and points to `dmsg recovery dispute`; `--json` includes
+`recovery` (`account`, `pending`, `digest`, `observed_at_ms`, `stale`). Null means
+not yet checked; after two minutes without a fresh observation the state is
+stale, and an existing warning remains. The observation survives daemon restarts.
+`recovery/changed` tells the desktop to reread status and notify once per request
+per desktop run. A stopped daemon, sleeping/offline device or disabled OS
+notifications cannot provide timely alerts. Other local accounts are not polled
+until selected. The warning is informational; cancelling still uses the existing
+authenticated device approval flow.
+
 Unlocking opens the root and returns as soon as local content is readable;
 the daemon then syncs once in the background, even with periodic sync disabled.
 A matching stored root uses the security already checked on unlock without

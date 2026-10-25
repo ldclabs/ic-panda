@@ -534,6 +534,7 @@ impl Client {
             )?;
         }
         self.workspace.store.set_meta(&key, &seen)?;
+        self.observe_recovery(security)?;
         self.security = Some(security.clone());
         Ok(())
     }

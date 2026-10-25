@@ -361,6 +361,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::channels::run(daemon.clone()));
     tokio::spawn(crate::display::run(daemon.clone()));
     tokio::spawn(crate::snapshots::run(daemon.clone()));
+    tokio::spawn(crate::recovery_watch::run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
     tokio::spawn(crate::mail_push::run(daemon.clone()));
@@ -1015,9 +1016,11 @@ impl Daemon {
     async fn status(&self) -> Result<Value> {
         let client = self.client.lock().await;
         let status = client.status()?;
+        let recovery = client.recovery_warning()?;
         let session = format!("{}:{}", self.instance, client.session_generation());
         drop(client);
         let mut value = serde_json::to_value(status).expect("status serializes");
+        value["recovery"] = recovery;
         value["session"] = session.into();
         value["version"] = env!("CARGO_PKG_VERSION").into();
         value["instance"] = self.instance.clone().into();
@@ -2066,6 +2069,10 @@ async fn blocking<T: Send + 'static>(
 #[cfg(test)]
 #[path = "display_tests.rs"]
 mod display_tests;
+
+#[cfg(test)]
+#[path = "recovery_watch_tests.rs"]
+mod recovery_watch_tests;
 
 #[cfg(test)]
 mod tests {
