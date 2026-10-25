@@ -896,7 +896,7 @@ impl Client {
     /// # Errors
     /// A token for another home or account, an expired request or a bad
     /// proof of possession is refused.
-    pub fn inspect_pairing(&self, token: &str) -> Result<PairingRequest> {
+    pub(crate) fn inspect_pairing(&self, token: &str) -> Result<PairingRequest> {
         ensure(token.len() <= 4096, Error::QuotaExceeded)?;
         let packet: Pairing = decode(&unb64(token)?, 4096)?;
         let account = self.account()?;
@@ -939,7 +939,10 @@ impl Client {
     /// # Errors
     /// As [`Self::mutate`]; a changed account returns `Error::VersionConflict`
     /// and the new device must ask again.
-    pub async fn approve_pairing(&mut self, request: &PairingRequest) -> Result<AccountState> {
+    pub(crate) async fn approve_pairing(
+        &mut self,
+        request: &PairingRequest,
+    ) -> Result<AccountState> {
         self.mutate(
             request.mutation.command.clone(),
             Some((

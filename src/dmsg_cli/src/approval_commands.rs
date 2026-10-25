@@ -423,6 +423,18 @@ fn render(request: &Value) -> String {
                 ),
             ));
         }
+        Some("device_pair") => {
+            let (device, role) = (field(&d["device_id"]), field(&d["role"]));
+            lines.push(row(
+                "add",
+                "添加",
+                tr!(
+                    "device {device} as {role}; the content root is rotated to include it",
+                    "设备 {device}，角色 {role}；随后换根，它可以读取",
+                ),
+            ));
+            lines.push(row("rights", "能力", field(&d["capabilities"])));
+        }
         Some("device_capabilities") => {
             let (device, mark) = (field(&d["device_id"]), this_device(d));
             lines.push(row(

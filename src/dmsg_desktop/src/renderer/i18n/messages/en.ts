@@ -971,6 +971,7 @@ const messages = {
   afterRecoveryDelay: 'A recovery started with a bound login waits this many days; any active device can cancel it meanwhile.',
   afterDispute: 'The pending recovery is cancelled.',
   afterCapabilities: 'The device can do what is listed, and nothing else.',
+  afterPairDevice: 'The device joins your account with this role and these capabilities. Approve only a device you have in front of you.',
   afterRevokeDevice: 'The device can no longer unlock, sign or publish.',
   afterRotate: 'Your vault and channels move to new keys; account writes wait until that is done.',
   afterCopies: 'What the device already exported or copied cannot be called back.',

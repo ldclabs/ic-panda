@@ -37,6 +37,7 @@ export function kindOf(request: any): Label {
       return 'secretUses'
     case 'account':
     case 'device_capabilities':
+    case 'device_pair':
     case 'device_revoke':
       return 'kindSecurity'
     case 'wallet':
@@ -60,8 +61,9 @@ export const kindIcon: Record<string, Glyph> = {
 }
 
 /**
- * Requests that move money, revoke a device or change who controls the
- * account, as the daemon rates them (`risk`), are approved by holding the
+ * Requests that move money, add or revoke a device, change what a device may
+ * do or change who controls the account, as the daemon rates them (`risk`),
+ * are approved by holding the
  * button for a second, and where the device can ask, with Touch ID or the
  * login password too; the rest by a click once the approve delay has passed.
  */
@@ -136,6 +138,8 @@ export function titleOf(request: any): Title {
       return changeLabels[d.change] ? { label: changeLabels[d.change] } : { label: 'kindSecurity', detail: String(d.change ?? '') }
     case 'device_capabilities':
       return { label: 'capabilities' }
+    case 'device_pair':
+      return { label: 'approveDevice' }
     case 'device_revoke':
       return { label: 'revokeDevice' }
     case 'wallet':
@@ -189,6 +193,7 @@ export function summaryOf(request: any): string {
     case 'account':
       return String(d.principal ?? d.op_id ?? '')
     case 'device_capabilities':
+    case 'device_pair':
     case 'device_revoke':
       return String(d.device_id ?? '').slice(0, 16)
     case 'wallet':

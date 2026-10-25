@@ -55,7 +55,8 @@ pub enum DeviceCommand {
         #[arg(long)]
         member: bool,
     },
-    /// Approve a pairing request and rotate the content root to include the device.
+    /// Ask to approve a pairing request and rotate the content root to
+    /// include the device; goes through the approval center.
     Approve {
         /// The request printed by `dmsg device pair-request`.
         request: String,
@@ -538,19 +539,8 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
             request: token,
             device,
         } => {
-            let approved = remote
-                .call("device/approve", json!({"token": token, "device": device}))
-                .await?;
-            print(json, &approved, |v| {
-                let (device, generation) = (
-                    v["device_id"].as_str().unwrap_or_default(),
-                    &v["root_generation"],
-                );
-                tr!(
-                    "approved {device}\nroot generation: {generation}",
-                    "已批准 {device}\n内容根代数：{generation}"
-                )
-            });
+            let params = json!({"token": token, "device": device});
+            request(remote, json, "device/approve", params).await?
         }
         DeviceCommand::Capabilities { device, set } => {
             let params = json!({"device": device, "capabilities": set});

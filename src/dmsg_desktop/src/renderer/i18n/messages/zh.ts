@@ -969,6 +969,7 @@ export default {
     afterRecoveryDelay: '用已绑定的登录发起的恢复要等待这么多天；期间任一有效设备都可以取消。',
     afterDispute: '待处理的恢复申请被取消。',
     afterCapabilities: '这台设备只能做列出的事。',
+    afterPairDevice: '这台设备以上述角色和能力加入你的账户。只批准就在你面前的设备。',
     afterRevokeDevice: '这台设备不能再解锁、签名或发布。',
     afterRotate: '秘密库和频道换用新密钥；完成前账户写入会暂停。',
     afterCopies: '这台设备已经导出或复制出去的内容无法收回。',

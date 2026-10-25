@@ -542,8 +542,30 @@ fn high_risk_requests_are_the_ones_held() {
             device_id: Hash::new([1; 32]),
             capabilities: vec![Capability::FormalApprove],
         }),
-        "normal"
+        "high"
     );
+    // Enrolling a device is held too, and its sealed record reads back.
+    let pairing = client
+        .approval_create(
+            "gui",
+            Action::DevicePair {
+                token: "token".into(),
+                device: dmsg_types::user::DeviceInput {
+                    device_id: Hash::new([4; 32]),
+                    signing_pub: Hash::new([5; 32]),
+                    hpke_pub: Hash::new([6; 32]),
+                    role: dmsg_types::user::ControllerRole::Administrator,
+                    capabilities: vec![Capability::RootManage, Capability::VaultUnlock],
+                },
+            },
+            now_ms() + 60_000,
+        )
+        .unwrap();
+    let shown = client.approval(&pairing.id).unwrap();
+    assert_eq!(shown["type"], "device_pair");
+    assert_eq!(shown["risk"], "high");
+    assert_eq!(shown["detail"]["role"], "Administrator");
+    assert_eq!(shown["detail"]["device_id"], "04".repeat(32));
     let request = client
         .approval_create(
             "gui",

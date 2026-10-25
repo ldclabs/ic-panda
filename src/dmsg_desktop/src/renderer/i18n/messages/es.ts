@@ -969,6 +969,7 @@ export default {
     afterRecoveryDelay: 'Una recuperación iniciada con un inicio de sesión vinculado espera esos días; cualquier dispositivo activo puede cancelarla mientras tanto.',
     afterDispute: 'La recuperación pendiente se cancela.',
     afterCapabilities: 'El dispositivo podrá hacer lo que aparece en la lista, nada más.',
+    afterPairDevice: 'El dispositivo se une a tu cuenta con este rol y estas capacidades. Aprueba solo un dispositivo que tengas delante.',
     afterRevokeDevice: 'El dispositivo ya no podrá desbloquear, firmar ni publicar.',
     afterRotate: 'Tu bóveda y tus canales pasan a claves nuevas; las escrituras de la cuenta esperan hasta que termine.',
     afterCopies: 'Lo que el dispositivo ya exportó o copió no se puede recuperar.',

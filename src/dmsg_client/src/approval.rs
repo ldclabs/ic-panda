@@ -10,8 +10,9 @@
 //! was shown, the deadline and the state, then executes once: a lost reply
 //! is reconciled by its execution ID, never signed again.
 //!
-//! Requests that move money, give a name away, revoke a device or change who
-//! controls the account are high-risk ([`high_risk`]): clients hold to
+//! Requests that move money, give a name away, add or revoke a device, change
+//! a device's capabilities or change who controls the account are high-risk
+//! ([`high_risk`]): clients hold to
 //! approve them and, where this device can ask, the person confirms with
 //! Touch ID or the login password first (plan S03).
 
@@ -255,6 +256,15 @@ pub enum Action {
         /// The device.
         device_id: Hash,
     },
+    /// Enroll the device of a pairing request, then rotate the content
+    /// root to include it.
+    DevicePair {
+        /// The pairing token as the new device produced it, checked again
+        /// on approval.
+        token: String,
+        /// The device it enrolls, as shown.
+        device: dmsg_types::user::DeviceInput,
+    },
     /// A web request (dmsg-connect/1).
     Connect {
         /// Key of the operation record.
@@ -349,6 +359,7 @@ impl Action {
             Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
             | Action::DeviceRevoke { .. }
+            | Action::DevicePair { .. }
             | Action::Account { .. }
             | Action::Principal { .. } => "account",
             Action::Delegation { .. } | Action::Grant { .. } => "agent",
@@ -430,8 +441,9 @@ pub enum Decision {
 /// reconciled as any other.
 const RUN_MS: u64 = 5 * MINUTE;
 
-/// Whether approving moves money, gives a name away, revokes a device or
-/// changes who controls the account or its Agent Delegation principal, from
+/// Whether approving moves money, gives a name away, adds or revokes a
+/// device, changes what a device may do or changes who controls the account
+/// or its Agent Delegation principal, from
 /// the request and its `detail` view. Such a request is held to approve, and
 /// confirmed with the person present where the device can ask.
 pub fn high_risk(request: &Request, detail: &Json) -> bool {
@@ -446,7 +458,11 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         | Action::SecretProcess { .. }
         | Action::SecretPolicy { .. }
         | Action::SecretUse { .. } => true,
-        Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
+        Action::Checkout { .. }
+        | Action::Letter { .. }
+        | Action::DeviceRevoke { .. }
+        | Action::DevicePair { .. }
+        | Action::DeviceCapabilities { .. } => true,
         Action::Principal { .. } => true,
         Action::Grant { capabilities, .. } => {
             capabilities.iter().any(|c| crate::agents::sensitive(c))
@@ -465,10 +481,7 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
                     && detail["decision"] == "approve"
                     && ["transfer", "batch", "canister_call", "refuel"].contains(&kind))
         }
-        Action::Attest { .. }
-        | Action::AttestAction { .. }
-        | Action::DeviceCapabilities { .. }
-        | Action::Delegation { .. } => false,
+        Action::Attest { .. } | Action::AttestAction { .. } | Action::Delegation { .. } => false,
     }
 }
 
@@ -1063,6 +1076,14 @@ impl Client {
                 request.started = true;
                 self.rotate_root().await.map(|_| ())
             }
+            Action::DevicePair { token, device } => {
+                let pairing = self.inspect_pairing(&token)?;
+                ensure(pairing.device == device, Error::IntegrityFailed)?;
+                self.approve_pairing(&pairing).await?;
+                // A new root the new device opens.
+                request.started = true;
+                self.rotate_root().await.map(|_| ())
+            }
             Action::Connect { operation, .. } => self.connect_approve(&operation, request).await,
             Action::Checkout { id, digest, fresh } => {
                 ensure(
@@ -1285,10 +1306,12 @@ impl Client {
                 }
                 // Account changes reconcile through the account journal.
                 Action::DeviceCapabilities { .. } => self.resume().await.map(|_| ()),
-                Action::DeviceRevoke { .. } => match self.resume().await {
-                    Ok(_) => self.rotate_root().await.map(|_| ()),
-                    Err(error) => Err(error),
-                },
+                Action::DeviceRevoke { .. } | Action::DevicePair { .. } => {
+                    match self.resume().await {
+                        Ok(_) => self.rotate_root().await.map(|_| ()),
+                        Err(error) => Err(error),
+                    }
+                }
                 Action::Connect { operation, .. } => self.connect_reconcile(&operation).await,
                 Action::Checkout { id, fresh, .. } => match fresh {
                     true => self.plan_advance(&id).await.map(|_| ()),
@@ -1449,6 +1472,11 @@ impl Client {
                 "device_id": hex::encode(**device_id),
                 "this_device": *device_id == self.workspace.meta.device_id,
             }),
+            Action::DevicePair { device, .. } => json!({
+                "device_id": hex::encode(*device.device_id),
+                "role": format!("{:?}", device.role),
+                "capabilities": device.capabilities.iter().map(|c| format!("{c:?}")).collect::<Vec<_>>(),
+            }),
             Action::Connect {
                 operation,
                 checkout,
@@ -1518,6 +1546,7 @@ impl Client {
                 Action::Attest { .. } | Action::AttestAction { .. } => "attest",
                 Action::DeviceCapabilities { .. } => "device_capabilities",
                 Action::DeviceRevoke { .. } => "device_revoke",
+                Action::DevicePair { .. } => "device_pair",
                 Action::Connect { .. } => "connect",
                 Action::Checkout { .. } => "checkout",
                 Action::Letter { .. } => "letter",
@@ -1689,6 +1718,53 @@ pub async fn revoke_request<H: Hold>(h: &H, source: &str, device_id: Hash) -> Re
             source,
             Action::DeviceRevoke { device_id },
             now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        c.approval_view(&request)
+    })
+    .await
+}
+
+/// Ask to enroll the device of a pairing `token`; `device` is the ID the new
+/// device shows, which the person names. Approving also rotates the content
+/// root to include it. The request waits no longer than the token.
+///
+/// # Errors
+/// Returns `Error::Forbidden` on a device that cannot approve account
+/// changes, `Error::InvalidInput` when `device` is not the token's, and
+/// refuses a token of another account, an expired one or a bad proof of
+/// possession.
+pub async fn add_device_request<H: Hold>(
+    h: &H,
+    source: &str,
+    token: &str,
+    device: &str,
+) -> Result<Json> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let security = crate::account::refreshed_security(h).await?;
+    h.with(|c| {
+        let own = security.active(&c.workspace.meta.device_id)?;
+        ensure(
+            own.input.role == dmsg_types::user::ControllerRole::Administrator
+                && own.input.capabilities.contains(&Capability::RootManage),
+            Error::Forbidden,
+        )?;
+        let pairing = c.inspect_pairing(token)?;
+        ensure(
+            hex::encode(*pairing.device.device_id) == device,
+            Error::InvalidInput("device does not match the request".into()),
+        )?;
+        let expires_at = pairing
+            .mutation
+            .approval
+            .expires_at
+            .min(now_ms() + HIGH_RISK_TTL_MS);
+        let request = c.approval_create(
+            source,
+            Action::DevicePair {
+                token: token.into(),
+                device: pairing.device,
+            },
+            expires_at,
         )?;
         c.approval_view(&request)
     })

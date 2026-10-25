@@ -378,6 +378,7 @@ const GUI_SOURCED = new Set([
   'attest/request',
   'device/formal_approve',
   'device/capabilities',
+  'device/approve',
   'device/revoke',
   'inbox/pay',
   'plan/checkout',

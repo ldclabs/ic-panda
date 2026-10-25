@@ -1191,22 +1191,15 @@ impl Daemon {
                 .await
             }
             "device/approve" => {
+                // The owner names the device shown on the new device's
+                // screen; the approval center decides the enrollment.
                 let (token, device) = (text(params, "token")?, text(params, "device")?);
-                self.under_lock(async |client| {
-                    let request = client.inspect_pairing(&token)?;
-                    // The owner names the device shown on the new device's
-                    // screen.
-                    if hex::encode(*request.device.device_id) != device {
-                        return Err(Error::InvalidInput(
-                            "device does not match the request".into(),
-                        ));
-                    }
-                    client.approve_pairing(&request).await?;
-                    let generation = client.rotate_root().await?;
-                    Ok(
-                        json!({"device_id": hex::encode(*request.device.device_id), "root_generation": generation}),
-                    )
-                })
+                dmsg_client::approval::add_device_request(
+                    &self.hold(),
+                    source(params)?,
+                    &token,
+                    &device,
+                )
                 .await
             }
             "sync/run" => {
@@ -1547,10 +1540,11 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             | "attest/action"
             | "device/capabilities"
             | "device/formal_approve"
+            | "device/approve"
             | "device/revoke"
             | "connect/sync" => &["approval/changed"],
             "connect/grant" | "connect/revoke" => &["connect/changed"],
-            "session/fast_unlock" | "device/approve" => &["session/changed"],
+            "session/fast_unlock" => &["session/changed"],
             _ => &[],
         },
         Module::More => crate::methods::events_of(method),

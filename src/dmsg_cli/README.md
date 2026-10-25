@@ -313,8 +313,8 @@ daemon runs.
 
 A new device: `login`, then `account create` for a new account, or
 `device pair-request` and, on an administrator device,
-`device approve <request> --device <id>`, which also rotates the content root
-to the new device; `unlock` on the new device then binds it. Hidden values
+`device approve <request> --device <id>`, a high-risk approval request whose
+approval also rotates the content root to the new device; `unlock` on the new device then binds it. Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one
 field at a time); file keys never do.
 
@@ -546,8 +546,9 @@ label, the account and the payload. `approvals list --all` shows finished
 requests too, for 30 days after they were made, with who decided them,
 where and when. Each source other than this device's own clients (an agent,
 a client, a web origin) has at most five requests waiting. A request the
-daemon rates high-risk (a payment, a revoked device, a change to the
-account's logins, signing policy, recovery delay or Agent principal) shows
+daemon rates high-risk (a payment, an added or revoked device, a change to
+a device's capabilities or to the account's logins, signing policy,
+recovery delay or Agent principal) shows
 as such, and on a Mac whose Secure Enclave keeps the fast-unlock key
 approving it first asks for Touch ID or the login password; declined, the
 request keeps waiting. `approvals check-file <id> <file>` compares a file
@@ -1052,7 +1053,7 @@ The daemon listens on `127.0.0.1` only.
   and assets, `account/show|security`, `connect/pairings|sync` and
   `attest/readiness|action|verify`; requests for account and device
   changes (`account/bind_approve|unbind|policy|recovery_delay`,
-  `device/capabilities|formal_approve|revoke`); a high-risk approval's
+  `device/approve|capabilities|formal_approve|revoke`); a high-risk approval's
   presence prompt, an approved attestation's reads, submission and receipt,
   and the reconciling of attestations whose outcome is unknown; and the
   content sync and flush passes, mailbox read, backup passes and MCP Events

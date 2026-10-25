@@ -135,6 +135,11 @@ impl PresenceKey for SecureEnclave {
                 tr!("approve a payment in dMsg", "在 dMsg 中批准付款")
             }
             "device_revoke" => tr!("revoke a device in dMsg", "在 dMsg 中撤销设备"),
+            "device_pair" => tr!("add a device to your dMsg account", "向 dMsg 账户添加设备"),
+            "device_capabilities" => tr!(
+                "change what a device may do in dMsg",
+                "更改 dMsg 设备的权限"
+            ),
             "account" => tr!(
                 "change who controls your dMsg account",
                 "更改 dMsg 账户的控制设置"

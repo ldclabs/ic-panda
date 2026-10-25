@@ -457,6 +457,11 @@
       }
       case 'device_capabilities':
         return [[t('afterCapabilities'), false]]
+      case 'device_pair':
+        return [
+          [t('afterPairDevice'), true],
+          [t('afterRotate'), false]
+        ]
       case 'device_revoke':
         return [
           [t('afterRevokeDevice'), false],
@@ -773,6 +778,10 @@
               {#if d.invalid_from}{@render row(t('deadline'), when(d.invalid_from))}{/if}
             {:else if request.type === 'device_capabilities'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
+              {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
+            {:else if request.type === 'device_pair'}
+              {@render row(t('device'), d.device_id, { mono: true, testid: 'approval-device' })}
+              {@render row(t('role'), d.role)}
               {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
             {:else if request.type === 'device_revoke'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}

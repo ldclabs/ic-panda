@@ -276,6 +276,25 @@ impl Desktop {
         )
     }
 
+    /// Approve another device's pairing `request` from this administrator
+    /// device as the security view does: a high-risk approval request the
+    /// approval window decides. Returns the decided request.
+    fn approve_pairing(&self, http: &reqwest::blocking::Client, request: &Value) -> Value {
+        let pairing = self.run(&[
+            "device",
+            "approve",
+            request["token"].as_str().unwrap(),
+            "--device",
+            request["device_id"].as_str().unwrap(),
+        ]);
+        assert_eq!(
+            (pairing["type"].as_str(), pairing["risk"].as_str()),
+            (Some("device_pair"), Some("high")),
+            "{pairing}"
+        );
+        self.decide(http, &pairing, true).unwrap()
+    }
+
     /// The single request of `kind` waiting here, after a mailbox pass.
     fn waiting(&self, http: &reqwest::blocking::Client, kind: &str) -> Vec<Value> {
         match self.rpc(http, "connect/sync", Value::Null) {
@@ -1387,9 +1406,7 @@ impl Env {
             "pairing_required"
         );
         let request = b.run(&["device", "pair-request"]);
-        let token = request["token"].as_str().unwrap();
-        let device = request["device_id"].as_str().unwrap();
-        a.run(&["device", "approve", token, "--device", device]);
+        assert_eq!(a.approve_pairing(&self.http, &request)["state"], "done");
         assert_eq!(b.run(&["unlock"])["state"], "unlocked");
         // Unlock exposes local data before its automatic sync completes.
         eventually(30, || {
@@ -1503,12 +1520,14 @@ fn two_desktop_devices_share_an_account() {
     let request = b.run(&["device", "pair-request"]);
     let token = request["token"].as_str().unwrap();
     let device = request["device_id"].as_str().unwrap();
+    // The person names the device the new one shows; another ID is refused
+    // before any request waits.
     assert_eq!(
         a.fail(&["device", "approve", token, "--device", &"00".repeat(32)]),
         "INVALID_INPUT"
     );
-    let approved = a.run(&["device", "approve", token, "--device", device]);
-    assert_eq!(approved["root_generation"], 2);
+    assert_eq!(a.approve_pairing(http, &request)["state"], "done");
+    assert_eq!(a.run(&["status"])["root_generation"], 2);
     let sent = a.run(&["sync"]);
     assert_eq!(
         (sent["sent"].as_u64(), sent["pending"].as_u64()),
@@ -3881,13 +3900,7 @@ fn desktop_channels() {
     let (a, b) = (&env.a, &env.b);
     assert_eq!(c.login(&http, 60).unwrap()["state"], "pairing_required");
     let request = c.run(&["device", "pair-request"]);
-    b.run(&[
-        "device",
-        "approve",
-        request["token"].as_str().unwrap(),
-        "--device",
-        request["device_id"].as_str().unwrap(),
-    ]);
+    assert_eq!(b.approve_pairing(&http, &request)["state"], "done");
     assert_eq!(c.run(&["unlock"])["state"], "unlocked");
     // No backups: B's channel record, epoch keys included, reaches C
     // through the account's synced content.
@@ -8541,13 +8554,7 @@ fn desktop_legacy() {
     // A second device of X gets the archive through sync and reads it offline.
     assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
     let pairing = c.run(&["device", "pair-request"]);
-    a.run(&[
-        "device",
-        "approve",
-        pairing["token"].as_str().unwrap(),
-        "--device",
-        pairing["device_id"].as_str().unwrap(),
-    ]);
+    assert_eq!(a.approve_pairing(&http, &pairing)["state"], "done");
     assert_eq!(c.run(&["unlock"])["state"], "unlocked");
     a.run(&["sync"]);
     c.run(&["sync"]);

@@ -69,16 +69,14 @@
       if (created?.id) await bridge(() => window.dmsg.openApproval(created.id))
     })
 
-  /** A pairing request carries a device ID; a binding request a login. Their daemon events reload the view. */
+  /** A pairing request carries a device ID; a binding request a login. Either becomes an approval request the approval window decides. */
   const approve = () =>
     guard(async () => {
-      if (pairing) {
-        await call('device/approve', { token: request.trim(), device: shown.trim() })
-      } else {
-        const created: any = await call('account/bind_approve', { token: request.trim(), principal: shown.trim() })
-        if (!alive) return
-        await bridge(() => window.dmsg.openApproval(created.id))
-      }
+      const created: any = pairing
+        ? await call('device/approve', { token: request.trim(), device: shown.trim() })
+        : await call('account/bind_approve', { token: request.trim(), principal: shown.trim() })
+      if (!alive) return
+      await bridge(() => window.dmsg.openApproval(created.id))
       request = ''
       shown = ''
     })

@@ -344,7 +344,8 @@ Rules (`src/main/policy.ts`):
   binding and approval; once the holder's credential is unavailable it offers
   a login without asking to bind again. The credential expires with its
   delegation and is discarded on removal, lock or account switch.
-  Approving another device's pairing takes the device ID shown on that device.
+  Approving another device's pairing takes the device ID shown on that device
+  and opens a high-risk approval request with its role and capabilities.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer. A web
   application's checkout is quoted in the approval window (an asset, or a
@@ -392,8 +393,8 @@ Rules (`src/main/policy.ts`):
   after the request appears, again after it changes (a quote, for one) and
   when the window comes back to the front, and stays closed while the
   readiness check finds a blocker, which it names with the way to fix it.
-  Requests the daemon rates high-risk (`risk`: payments, revoking a device,
-  binding or removing a login, the signing policy, the recovery delay, the
+  Requests the daemon rates high-risk (`risk`: payments, adding or revoking a
+  device, changing its capabilities, binding or removing a login, the signing policy, the recovery delay, the
   Agent principal) are approved by holding the button for a second and,
   where the Secure Enclave keeps the fast-unlock key, with Touch ID or the
   login password. After a decision the window shows each real step (for a

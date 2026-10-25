@@ -365,9 +365,9 @@ const legacyAvatarUrl = 'https://aaaaa-aa.icp0.io/f/0?inline&filename=legacy.web
 let deferPrincipal = true
 /** A request created from the main window, as the daemon would show it. */
 function created(id, type, detail) {
-  // The daemon rates the risk: payments, revocations, control of the account and moving a name are held.
+  // The daemon rates the risk: payments, adding, changing or revoking devices, control of the account and moving a name are held.
   const named = type === 'handle' && (detail.total != null || detail.action === 'Transfer')
-  const risk = named || ['checkout', 'letter', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
+  const risk = named || ['checkout', 'letter', 'device_pair', 'device_capabilities', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
   const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, risk, digest: 'f0'.repeat(32), detail }
   requests.set(id, r)
   return r
@@ -762,6 +762,11 @@ const methods = {
         files: []
       }
     })
+  },
+  'device/approve': (p) => {
+    assert.equal(p.source, 'gui')
+    assert.equal(p.token, 'pairing-token')
+    return created('d3'.repeat(32), 'device_pair', { device_id: p.device, role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage'] })
   },
   'device/revoke': (p) => {
     assert.equal(p.source, 'gui')
@@ -1342,6 +1347,7 @@ const announced = {
   'approval/reconcile': ['approval/changed'],
   'approval/check_file': ['approval/changed'],
   'device/capabilities': ['approval/changed'],
+  'device/approve': ['approval/changed'],
   'device/revoke': ['approval/changed'],
   'account/bind_approve': ['approval/changed'],
   'approval/quote': ['approval/changed'],
@@ -2976,6 +2982,9 @@ smoke: try {
   await main.click('[data-testid="legacy-pair"]')
   await waitFor(() => calls.filter((c) => c.method === 'legacy/pair').length === offersCreated + 1)
   await main.waitForSelector('[data-testid="legacy-offer"]')
+  // The new offer opens the old site with it, and nothing else.
+  for (let i = 0; i < 50 && !(await app.evaluate(() => globalThis.__opened)).includes(offer.link); i++) await new Promise((r) => setTimeout(r, 100))
+  assert.deepEqual(await app.evaluate(() => globalThis.__opened.splice(0)), [offer.link])
   assert.equal(await main.locator('[data-testid="legacy-shared"]').count(), 0)
   await assert.rejects(main.evaluate(() => window.dmsg.call('legacy/shared_prepare', {})), /FORBIDDEN/)
   await main.check(`[data-testid="legacy-pick-${offer.nonce}"]`)
@@ -3207,7 +3216,8 @@ smoke: try {
   await main.waitForSelector('[data-testid="vault-import-items"]')
   await main.click('[data-testid="vault-import-add"]')
   await waitFor(() => latest('vault/import'))
-  assert.deepEqual(latest('vault/import').params, { path: join(picks, 'export.csv'), digest: 'd1', picks: [0] })
+  // A CSV has no attachments; the library folder they would go to stays the root.
+  assert.deepEqual(latest('vault/import').params, { path: join(picks, 'export.csv'), digest: 'd1', picks: [0], attachments: [], folder: 'root' })
   await main.waitForSelector('[data-testid="vault-import"]', { state: 'detached' })
   // The main process rejects an obsolete preview, including after a session change,
   // and consumes a preview before awaiting the daemon's reply.
@@ -3620,6 +3630,14 @@ smoke: try {
   await approval.waitForSelector('[data-testid="approval-principal"]', { timeout: 20_000 })
   assert.equal(await approval.textContent('[data-testid="approval-principal"]'), 'aaaaa-aa')
   await approval.screenshot({ path: join(shots, 'bind-login.png') })
+  // A pairing request is an approval request too, held and confirmed like a revocation.
+  await main.fill('[data-testid="approve-request"]', 'pairing-token')
+  await main.fill('[data-testid="approve-shown"]', '34'.repeat(32))
+  await main.click('button:has-text("Approve the device"), button:has-text("批准设备加入")')
+  await approval.waitForSelector('[data-testid="approval-device"]', { timeout: 20_000 })
+  assert.equal(await approval.textContent('[data-testid="approval-device"]'), '34'.repeat(32))
+  assert.deepEqual(latest('device/approve').params, { token: 'pairing-token', device: '34'.repeat(32), source: 'gui' })
+  await approval.screenshot({ path: join(shots, 'approval-pair.png') })
   // Another device is revoked only as an approval request.
   await main.click('[data-testid="settings-devices"]')
   await main.waitForSelector('[data-testid="security-snapshot"]')

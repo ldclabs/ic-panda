@@ -969,6 +969,7 @@ export default {
     afterRecoveryDelay: 'Une récupération lancée avec une connexion liée attend ce nombre de jours ; tout appareil actif peut l’annuler entre-temps.',
     afterDispute: 'La récupération en attente est annulée.',
     afterCapabilities: 'L’appareil peut faire ce qui est listé, et rien d’autre.',
+    afterPairDevice: 'L’appareil rejoint votre compte avec ce rôle et ces capacités. N’approuvez qu’un appareil que vous avez devant vous.',
     afterRevokeDevice: 'L’appareil ne peut plus déverrouiller, signer ni publier.',
     afterRotate: 'Votre coffre et vos canaux passent à de nouvelles clés ; les écritures du compte attendent la fin de l’opération.',
     afterCopies: 'Ce que l’appareil a déjà exporté ou copié ne peut pas être rappelé.',
