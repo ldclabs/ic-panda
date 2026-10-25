@@ -409,10 +409,11 @@ pending recovery and points to `dmsg recovery dispute`; `--json` includes
 `recovery` (`account`, `pending`, `digest`, `observed_at_ms`, `stale`). Null means
 not yet checked; after two minutes without a fresh observation the state is
 stale, and an existing warning remains. The observation survives daemon restarts.
-`recovery/changed` tells the desktop to reread status and notify once per request
-per desktop run. A stopped daemon, sleeping/offline device or disabled OS
-notifications cannot provide timely alerts. Other local accounts are not polled
-until selected. The warning is informational; cancelling still uses the existing
+When the request changes, the daemon expires the account security display
+snapshot, then `recovery/changed` tells the desktop to reread status and notify
+once per request per desktop run. A stopped daemon, sleeping/offline device or
+disabled OS notifications cannot provide timely alerts. Other local accounts are
+not polled until selected. The warning is informational; cancelling still uses the existing
 authenticated device approval flow.
 
 Unlocking opens the root and returns as soon as local content is readable;

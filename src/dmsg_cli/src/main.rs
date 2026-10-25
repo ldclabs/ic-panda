@@ -482,10 +482,14 @@ fn summary(status: &Value) -> String {
         ),
         false => String::new(),
     };
-    let recovery = recovery_summary(&status["recovery"]);
+    // Without an account there is no recovery to watch.
+    let recovery = match status["account"].is_string() {
+        true => format!("\n{}", recovery_summary(&status["recovery"])),
+        false => String::new(),
+    };
     tr!(
-        "state: {state}\naccount: {account}\ndevice: {device}\nlogin: {login}\nroot generation: {generation}\npending sync: {pending}\nconflicts: {conflicts}{resident}\n{recovery}",
-        "状态：{state}\n账户：{account}\n设备：{device}\n登录：{login}\n内容根代数：{generation}\n待同步：{pending}\n冲突：{conflicts}{resident}\n{recovery}"
+        "state: {state}\naccount: {account}\ndevice: {device}\nlogin: {login}\nroot generation: {generation}\npending sync: {pending}\nconflicts: {conflicts}{resident}{recovery}",
+        "状态：{state}\n账户：{account}\n设备：{device}\n登录：{login}\n内容根代数：{generation}\n待同步：{pending}\n冲突：{conflicts}{resident}{recovery}"
     )
 }
 
@@ -907,6 +911,10 @@ mod tests {
             recovery_summary(&Value::Null),
             recovery_summary(&json!({"pending":false,"stale":false}))
         );
+        // Unknown is reported for an account only.
+        let unknown = recovery_summary(&Value::Null);
+        assert!(summary(&json!({"state":"locked","account":"a"})).ends_with(&unknown));
+        assert!(!summary(&json!({"state":"logged_out","account":null})).contains(&unknown));
     }
 
     #[test]

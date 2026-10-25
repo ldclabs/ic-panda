@@ -322,8 +322,9 @@ Rules (`src/main/policy.ts`):
   hints), each kind at most once a minute.
 - Pending account recovery also produces a system notification, even while the
   selected workspace is locked. It contains no login, account ID or request
-  details. Clicking opens Settings → Account security, whose fresh read offers
-  the existing cancellation approval; after an account switch it opens account
+  details. Clicking opens Settings → Account security, which rereads the
+  account snapshot the daemon expired for the change and offers the existing
+  cancellation approval; after an account switch it opens account
   selection instead. A request notifies once per desktop run, including after
   reconnecting to a daemon that already observed it; a different request notifies
   again. A fresh cancellation closes its notification. The daemon checks public
@@ -593,6 +594,11 @@ and immediate policy disabling. P1 owner workflows are described below.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
 See [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
+File details show complete, copyable file and version IDs and copy
+`dmsg-file://<file>/<version>` references; Vault items show their ID and get
+value-free field references from `secrets/ref`. `node scripts/references-smoke.mjs`
+covers both against a local fixture with an intercepted clipboard; see the
+[tutorial](../../docs/dmsg_secrets_tutorial_zh.md).
 
 
 ## Secrets P1 开发工作流

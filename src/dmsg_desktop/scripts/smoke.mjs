@@ -1555,10 +1555,11 @@ smoke: try {
   declineUnlock = false
   emit('session/changed', { state: session })
   const disputes = calls.filter((c) => c.method === 'recovery/dispute').length
-  const freshSecurityReads = calls.filter((c) => c.method === 'account/security' && c.params?.mode === 'fresh').length
+  // The daemon expired the account snapshot before announcing; opening the page reads it again.
+  const securityReadsBefore = calls.filter((c) => c.method === 'account/security').length
   await app.evaluate(() => globalThis.__lastNotification.emit('click'))
   await main.waitForSelector('[data-testid="pending-recovery"] button')
-  assert.ok(calls.filter((c) => c.method === 'account/security' && c.params?.mode === 'fresh').length > freshSecurityReads)
+  assert.ok(calls.filter((c) => c.method === 'account/security').length > securityReadsBefore)
   assert.equal(calls.filter((c) => c.method === 'recovery/dispute').length, disputes)
   pendingRecovery = null
   recoveryWarning = { ...recoveryWarning, pending: false, digest: null, observed_at_ms: Date.now() }

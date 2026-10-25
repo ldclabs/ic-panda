@@ -129,12 +129,11 @@
   const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
 
   onMount(() => {
-    // A notification can open this page before its old display cache expires.
-    void reload('fresh')
-    const off = onChange(['approval/changed', 'session/changed'], reload)
-    const recoveryOff = onChange(['recovery/changed'], () => reload('fresh'))
+    void reload()
+    // The daemon expires the account snapshot before it announces a changed recovery.
+    const off = onChange(['approval/changed', 'session/changed', 'recovery/changed'], reload)
     const stop = watchDisplays(['account'], (mode) => reload(mode))
-    return () => { off(); recoveryOff(); stop() }
+    return () => { off(); stop() }
   })
 </script>
 
