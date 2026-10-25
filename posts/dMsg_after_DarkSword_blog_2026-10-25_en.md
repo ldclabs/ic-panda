@@ -1,94 +1,94 @@
-# After DarkSword: Why dMsg Doesn't Trust the Keychain Alone
+# When Local Data and the System Keychain Are Both Stolen: Hardware Binding and Account Recovery in dMsg
 
 [中文版](dMsg_after_DarkSword_blog_2026-10-25_zh.md)
 
 *October 25, 2026 · How dMsg protects local data and sensitive approvals—and where those protections end. This describes the implementation in this repository; availability depends on the installed release and device.*
 
-## A web page can become a way into your device
+## From web exploits to info-stealers
 
-In March 2026, Google's Threat Intelligence Group described **DarkSword**, an iPhone exploit chain targeting iOS 18.4–18.7. Visiting a malicious or compromised website could lead to device compromise. Its GHOSTBLADE payload collected sensitive data, including keychain and messaging data. Google reported that all vulnerabilities in the chain had been patched by iOS 26.3 and urged users to update. [Google's investigation](https://cloud.google.com/blog/topics/threat-intelligence/darksword-ios-exploit-chain)
+In March 2026, Google's Threat Intelligence Group described **DarkSword**, an iPhone exploit chain targeting iOS 18.4–18.7. Visiting a malicious or compromised website could compromise the device, and its GHOSTBLADE payload collected keychain items, messages, and other sensitive data. Google reported that all vulnerabilities in the chain had been patched by iOS 26.3 and urged users to update. [Google's investigation](https://cloud.google.com/blog/topics/threat-intelligence/darksword-ios-exploit-chain)
 
-Macs face related threats. Sophos documented how Atomic macOS Stealer tricks people into supplying their login password and steals sensitive files, including keychain data. [Sophos's investigation](https://www.sophos.com/en-us/blog/atomic-macos-stealer-leads-sensitive-data-theft-on-macos)
+Macs face similar threats. Sophos documented how Atomic macOS Stealer tricks users into entering their login password and steals sensitive files, including keychain data. [Sophos's investigation](https://www.sophos.com/en-us/blog/atomic-macos-stealer-leads-sensitive-data-theft-on-macos)
 
-That does **not** mean every keychain item becomes readable after any compromise. Protection depends on the platform, access controls and the attack. Apple's Secure Enclave provides a separate hardware boundary, designed to protect sensitive operations even when the main processor's software is compromised. [Apple Platform Security](https://support.apple.com/guide/security/secure-enclave-sec59b0b31ff/web)
+Still, **not every compromise makes every keychain item readable**. Protection depends on the platform, access controls, and the specific attack. Apple's Secure Enclave provides a separate hardware boundary, keeping private keys unexportable even when software on the main processor is compromised. [Apple Platform Security](https://support.apple.com/guide/security/secure-enclave-sec59b0b31ff/web)
 
-The practical question for dMsg is: **if someone copies the local workspace and credential store, what else would they need?**
+For dMsg, the practical question is: **if someone copies the local workspace and system credential store, what else do they need?**
 
 ## What dMsg is
 
-dMsg is one of ICPanda DAO's products: a private workspace with a vault, encrypted files, channels and letters, signatures, team wallets and scoped access for AI agents. Its client, protocols and canisters are open source. These protections are not a claim of independent security certification or proof that dMsg resists a particular exploit chain.
+dMsg is one of ICPanda DAO's products: a private workspace with a password vault, encrypted files, channels and letters, document signing, team wallets, and scoped access for AI agents. Its client, protocols, and canisters are open source. The protections described below are not a claim of independent security certification or proof that dMsg resists a specific exploit chain.
 
-## Layer 1: Encrypt before data leaves the device
+## 1. Encrypt before data leaves the device
 
-Vault items and file versions use separate keys. The account's content root protects the keys needed to read its private data; device-specific envelopes distribute that root using HPKE with X25519. Content encryption uses AES-256-GCM. Files are split into approximately 1 MiB chunks and checked during download. Channels have their own epoch keys.
+Vault items and file versions each use their own random AES-256-GCM keys. Files are split into ~1 MiB chunks and verified on download; channels use their own epoch keys. The account's content root protects the keys needed to read private data, and is wrapped separately for each device using HPKE with X25519.
 
-The cloud stores encrypted content and delivers it to clients. Internet Computer canisters maintain account authority, devices, recovery and relevant execution policies. In the intended protocol, neither service receives plaintext content roots.
+The cloud stores and delivers ciphertext. Internet Computer canisters maintain account authority, registered devices, recovery state, and execution policies. Under the protocol, neither service receives plaintext content roots.
 
-Content encryption does not hide all metadata. Routing relationships, sizes, timing and authorization requests remain visible where needed. Formal signing deliberately exposes the authorization data and commitments required for verification. See the [encryption design and its boundaries](../docs/dmsg_encryption.md).
+Content encryption does not hide all metadata. Routing relationships, sizes, timing, and authorization requests remain visible where needed. Formal signing also intentionally exposes the authorization data and commitments required for verification. See [encryption design and its boundaries](../docs/dmsg_encryption.md).
 
-## Layer 2: No additional dMsg password or recovery phrase
+## 2. No extra dMsg password or seed phrase
 
-You sign in with Internet Identity (II). dMsg does not add its own password or seed phrase. **II itself still has authentication and recovery mechanisms that you must protect.** A compromised II remains a serious threat, as Layer 6 explains.
+You sign in with Internet Identity (II); dMsg does not add its own password or seed phrase. **II itself still has authentication and recovery mechanisms that you must protect.** A compromised II remains a serious risk, as section 6 explains.
 
-For login unlock, the account canister releases an unlock secret only to a bound login and an eligible registered device. The client uses it to open the local data key. This is different from returning all your content to anyone who can sign in.
+When unlocking via login, the account canister releases an unlock secret (`unlock_secret`) only to a bound login identity and an eligible, non-revoked registered device. The client uses it to unwrap the local data key (LDK). Simply being able to sign in with II is not enough to pull down all of your content.
 
-By default, dMsg locks after 15 minutes without activity and releases its content keys. It does not promise forensic erasure of process memory. Explicit background-online and resident-agent options retain limited credentials; they do not retain ordinary access to the locked vault.
+By default, dMsg locks after 15 minutes of inactivity and releases content keys from memory (standard memory release, not forensic erasure). If you explicitly enable background-online mode or resident agents, the system retains the limited credentials those features need, without keeping read access to the locked vault.
 
-## Layer 3: Fast unlock needs the original Secure Enclave
+## 3. Fast unlock requires the original Secure Enclave
 
-On supported Macs, fast unlock uses a secret derived through a Secure Enclave key agreement. The system credential store holds a wrapped key representation and supporting public material, rather than an exportable plaintext private key.
+On supported Macs, fast unlock uses a secret derived through Secure Enclave key agreement. The system credential store holds a key handle and supporting public material rather than an exportable plaintext private key.
 
-Copying that material to another Mac does not reproduce the original hardware key. Using it on the original Mac requires Touch ID **or the Mac login password** under the default policy. A password fallback is still a fallback; fast unlock alone is not protection against someone who can satisfy it on the original device.
+Copying that material to another Mac does not reproduce the original hardware key. On the original Mac, however, the default policy allows Touch ID **or the Mac login password**. If an attacker already has your login password and is running code on the original device, default fast unlock alone will not stop them.
 
-## Layer 4: Device-bound unlock protects both local entry paths
+## 4. Device-bound unlock protects both local paths
 
-Optional **device-bound unlock** also makes login unlock require the original Mac's hardware secret. Fast unlock uses that hardware secret too. Both local paths require user presence, and an unavailable hardware key does not silently fall back to login-only wrapping.
+Optional **device-bound unlock** makes login unlock require the original Mac's hardware secret as well, just like fast unlock. Both local paths require user presence, and if the hardware key is unavailable, the client does not silently fall back to login-only wrapping.
 
-This protects a current workspace copied together with its credential store. It does not close the separate cloud recovery path. It also cannot repair an earlier leak: binding rewraps the existing local data key, so an older unbound copy or a previously extracted key may still compromise data protected by that key.
+This protects a current workspace copied along with its credential store, but it does not close the separate cloud recovery path or undo an earlier leak: device binding rewraps the existing local data key, so an older unbound copy or a previously extracted key can still decrypt data protected by that key.
 
-The optional **Touch ID only** policy excludes the password fallback and binds the key to the current enrolled biometric set. Changing that set can invalidate the key. Keep another authorized device or a working recovery route before enabling it.
+The optional **Touch ID only** policy removes the password fallback and binds the hardware key to the currently enrolled fingerprints. Adding or removing fingerprints in macOS settings can invalidate the key. Keep another authorized device or verify your recovery route before turning it on.
 
-## Layer 5: Approval keys add a signature the server must check
+## 5. Approval keys add a server-verified signature
 
-Every device already signs with a software key. You can also register a Secure Enclave **approval key** and require it for supported account-control, device-control and principal-control operations. Optional policy categories extend it to covered payments and attestations.
+Every device already signs with its software key. You can also register a Secure Enclave **approval key** and require it for account-control, device-control, and agent-principal-control operations; optional policy categories extend this requirement to payments and formal attestations.
 
-The extra signature is bound to the specific approval, including its operation commitment and context. The user home verifies it before accepting an operation subject to the policy. Copying only the software device key and login is insufficient for those operations.
+This extra signature is bound to the specific approval's operation commitment and context, and the user home canister verifies it before accepting the operation. Copying only the software device key and login credentials is not enough to pass these checks.
 
-This is not a blanket gate over every external wallet transaction or agent action. A valid P-256 signature also does not, by itself, remotely prove Apple's hardware or access-control settings. And a presence prompt does not give a compromised screen a trusted transaction display.
+This is not a universal gate over every external wallet transaction or local agent action. A valid P-256 signature also cannot, by itself, prove Apple hardware origin or local access-control settings to a remote canister. And if the screen itself is compromised, a Touch ID prompt does not guarantee that what you see on screen matches what is being signed.
 
-## Layer 6: Revoke devices—and watch the recovery path
+## 6. Revoke lost devices—and watch the recovery path
 
-From another administrator device, you can revoke a lost device. It loses eligibility for new unlock secrets and relevant approvals; its approval key retires. Where required, clients rotate content keys and exclude it from new envelopes. A cooperating dMsg client that detects its revocation resets its workspace. None of this retrieves copies an attacker already made or guarantees a remote wipe of an offline machine.
+From another administrator device, you can revoke a lost device. A revoked device can no longer obtain unlock secrets or submit approvals, and its approval key is retired. When content keys rotate, clients exclude the revoked device from new envelopes. A running dMsg client that detects its own revocation resets its local workspace—though none of this deletes copies an attacker has already taken or guarantees a remote wipe of an offline machine.
 
-If **all devices are lost**, a bound II login can request recovery. After the waiting period—three days by default, configurable from one to seven—the new device replaces the old devices and login bindings. Old approval keys retire and the hardware approval policy is cleared.
+If **all devices are lost**, a bound II login can request recovery. After the waiting period (3 days by default, configurable from 1 to 7 days), the new device replaces all old devices and login bindings, retires old approval keys, and clears the hardware approval policy.
 
-How can it recover encrypted content? Each content-root generation includes an encrypted recovery envelope. The canister authorizes the completed recovery device to obtain a vetKD-derived decryption key for the current generation, encrypted to that device's transport key. The device opens the envelope, recovers the root and then rotates it. Recoverable history depends on the cloud ciphertext and key history still being available; files never backed up from a lost machine are not recovered.
+How is encrypted content recovered? Each content-root generation has an encrypted recovery envelope. Once recovery completes, the canister authorizes the new device to obtain a vetKD-derived decryption key for the current generation, encrypted to that device's transport public key. The device opens the envelope, recovers the content root, and rotates it immediately. Whether older data can be recovered depends on the cloud ciphertext and key history still being intact; local files never backed up from a lost machine cannot be recovered.
 
-**An attacker who controls your bound II can use this same recovery path.** If no valid device cancels before completion, the attacker can take over the account and recover the backed-up content. Hardware approval keys deliberately do not veto this last-resort path.
+**An attacker who controls your bound II can use this same recovery path.** If no valid device cancels the request before the waiting period ends, the attacker can take over the account and recover backed-up content. To prevent permanent lockouts when all devices are lost, hardware approval keys do not block this last-resort path.
 
-The waiting period therefore needs attention, not just a timer. The daemon now checks the **selected account's** certified public recovery status in the background, including while locked, with a check about once a minute when ordinary security reads have not refreshed it. The desktop shows a system notification for a pending request. Clicking opens **Settings → Account security**, where the existing cancellation approval is available after unlocking/signing in. `dmsg status` also warns; `dmsg recovery dispute` starts cancellation from the CLI.
+Because of that, the waiting period needs active monitoring, not just a timer. `dmsg daemon` checks the **selected account's** certified public recovery status in the background—including while locked—polling roughly once a minute when normal security reads have not recently updated it. When a pending request is found, the desktop app shows a system notification. Clicking it opens **Settings → Account security**, where you can unlock or sign in and cancel the recovery through the approval flow. `dmsg status` also shows a warning in the CLI, and `dmsg recovery dispute` initiates cancellation.
 
-A request notifies once per desktop run; reconnecting does not flood you with repeats, while a new request can notify again. A cached warning survives an outage and daemon restart. Unknown or stale CLI status is labelled as such.
+A given request triggers one desktop notification per run, so reconnects do not spam you, while a new request notifies again. Recorded warnings persist across network outages and daemon restarts, and the CLI explicitly labels unknown or stale status.
 
-These are local alerts, **not guaranteed push delivery**. The daemon and desktop must be running, the device must be online, and the OS must allow notifications. Sleep, network failure or an unselected account can delay detection. Cancelling one attempt does not repair a compromised II: remove unauthorized authentication and recovery methods too.
+Keep in mind that these are local alerts, **not guaranteed push delivery**. The daemon and desktop app must be running, the device must be online, and the OS must allow notifications. Sleep, network issues, or having a different account selected can delay detection. Cancelling a recovery request also does not fix a compromised II—you must remove unauthorized authentication and recovery methods from II as well.
 
 ## What this doesn't protect against
 
-- **An unlocked, compromised client.** Malware may read plaintext or keys in memory and misuse already granted access. Secure Enclave does not protect all application memory.
-- **A malicious or misleading approval screen.** Check the action and the prompt. High-value decisions may need another device or person.
-- **Past disclosure.** Binding and revocation do not withdraw copied secrets, exported files or previously issued credentials.
-- **Disabled or unavailable protection.** Device binding and approval-key requirements are opt-in. These Secure Enclave integrations currently target macOS; other platforms use their available credential storage.
-- **Service and software trust.** Recovery needs cloud data and the relevant services. Metadata, client distribution, canister upgrades and notification delivery remain trust boundaries.
+- **An unlocked, compromised client.** Malware may read plaintext or keys directly from memory and abuse existing access. The Secure Enclave does not protect application memory.
+- **A tampered or misleading approval screen.** Check the action and prompt carefully. High-value actions may warrant confirmation on a second device or via multisig.
+- **Past leaks.** Device binding and revocation cannot claw back secrets, exported files, or credentials that were copied earlier.
+- **Unenabled or unavailable protections.** Device binding and approval-key enforcement are opt-in. The Secure Enclave integration described here currently targets macOS; other platforms use their native credential stores.
+- **Service and software trust boundaries.** Recovery depends on cloud data and related services. Metadata visibility, client distribution, canister upgrades, and notification delivery remain part of the trust boundary.
 
-## A five-minute checklist
+## 5-minute security checklist
 
-1. Update the operating system. For users at elevated risk, consider Apple's [Lockdown Mode](https://support.apple.com/en-us/105120), alongside updates.
-2. In **Settings → Account security**, bind a supported Mac and register approval keys before requiring them.
-3. Consider **Touch ID only**, with a plan for biometric changes or hardware failure.
-4. Keep another valid device, leave dMsg running on it, and allow notifications. Review unexpected recovery requests promptly.
-5. Protect II's own authentication and recovery methods. After an unauthorized request, secure II as well as cancelling the dMsg recovery.
+1. Update your OS. Users at elevated risk can also consider Apple's [Lockdown Mode](https://support.apple.com/en-us/105120) alongside updates.
+2. In **Settings → Account security**, bind your supported Mac, register an approval key, and then require it in your policy.
+3. Consider enabling **Touch ID only**, and make sure you have a recovery plan for fingerprint changes or hardware failure.
+4. Keep a second valid device with dMsg running and notifications allowed so you can spot unexpected recovery requests in time.
+5. Protect II's own authentication and recovery methods. If an unauthorized recovery request appears, cancel the dMsg recovery and clean up your II credentials.
 
-The aim is to make copied storage and stolen software keys insufficient for more operations, while making the remaining recovery authority explicit and visible.
+The goal of these mechanisms is straightforward: make copied local storage and software keys insufficient on their own, while keeping the final recovery path visible and under your control.
 
 - Learn more: [dmsg.net](https://dmsg.net/)
 - Technical detail: [dMsg encryption design](../docs/dmsg_encryption.md) · [Account and recovery protocol](../docs/protocol/account_root.md)
