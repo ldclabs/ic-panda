@@ -17,7 +17,8 @@ pub use dmsg_protocol::{canonical, digest, sha256};
 pub const MAX_RECORD: usize = 262_144;
 
 const MAX_DEPTH: usize = 24;
-const MAX_NODES: usize = 50_000;
+/// Most CBOR items, map keys included, that one decoded record may hold.
+pub(crate) const MAX_NODES: usize = 50_000;
 const MAX_ITEMS: u64 = 25_000;
 
 /// SHA-256 of `bytes` as lowercase hex.

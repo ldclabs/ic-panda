@@ -77,6 +77,20 @@ pub fn notes(c: &mut Client, wallet: Principal, change: Option<(u64, String)>) -
     Ok(json!(notes))
 }
 
+/// Each sealed page of the cached history stays within half the record
+/// decoder's byte and item limits, however many proposals the wallet keeps.
+const HISTORY_PAGE_BYTES: usize = crate::workspace::MAX_PRIVATE / 2;
+const HISTORY_PAGE_ITEMS: usize = crate::codec::MAX_NODES / 2;
+
+/// The certified audit head the cached history shows, when it was read and
+/// how many pages hold its rows.
+#[derive(Serialize, Deserialize)]
+struct HistoryIndex {
+    head: Hash,
+    read_at: u64,
+    pages: u64,
+}
+
 /// Read all retained proposals for complete queues and explicitly requested
 /// history searches. The certified audit head invalidates the encrypted cache.
 /// List rows remain navigation hints; approving still certifies the proposal.
@@ -85,42 +99,41 @@ pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result
     let h = &bound;
     let view = state(h, wallet).await?;
     let cache = format!("wallet-history:{wallet}");
-    let head = hex::encode(*view.audit_head);
     let saved = h
-        .with(|c| c.workspace.private::<Json>(c.keys()?, &cache))
+        .with(|c| read_history(c, &cache, &view.audit_head, now_ms()))
         .await?;
-    let mut result = if let Some(saved) = saved.filter(|s| {
-        s["head"] == head
-            && s["read_at"]
-                .as_u64()
-                .is_some_and(|at| now_ms().saturating_sub(at) < 60_000)
-    }) {
-        saved
-    } else {
-        let (_, ic) = identity(h).await?;
-        let mut before = None;
-        let mut rows = vec![];
-        loop {
-            let page: Result<ProposalPage> =
-                ic.query(wallet, "list_proposals", (before, 100u16)).await?;
-            let page = page?;
-            rows.extend(page.proposals.iter().map(proposal_view));
-            h.with(|_| Ok(())).await?;
-            let Some(next) = page.next else { break };
-            ensure(before.is_none_or(|old| next < old), Error::IntegrityFailed)?;
-            before = Some(next);
+    let (mut rows, read_at) = match saved {
+        Some(saved) => saved,
+        None => {
+            let (_, ic) = identity(h).await?;
+            let mut before = None;
+            let mut rows = vec![];
+            loop {
+                let page: Result<ProposalPage> =
+                    ic.query(wallet, "list_proposals", (before, 100u16)).await?;
+                let page = page?;
+                rows.extend(page.proposals.iter().map(proposal_view));
+                h.with(|_| Ok(())).await?;
+                let Some(next) = page.next else { break };
+                ensure(before.is_none_or(|old| next < old), Error::IntegrityFailed)?;
+                before = Some(next);
+            }
+            // Do not combine pages from different authorization/history snapshots.
+            ensure(
+                state(h, wallet).await?.audit_head == view.audit_head,
+                Error::VersionConflict,
+            )?;
+            let read_at = h
+                .with(|c| {
+                    let now = now_ms();
+                    save_history(c, &cache, view.audit_head, &rows, now)?;
+                    Ok(now)
+                })
+                .await?;
+            (rows, read_at)
         }
-        // Do not combine pages from different authorization/history snapshots.
-        ensure(
-            state(h, wallet).await?.audit_head == view.audit_head,
-            Error::VersionConflict,
-        )?;
-        let result = json!({"proposals": rows, "head":head, "complete":true, "read_at":now_ms()});
-        h.with(|c| c.workspace.put_private(c.keys()?, &cache, &result))
-            .await?;
-        result
     };
-    if pending && let Some(rows) = result["proposals"].as_array_mut() {
+    if pending {
         rows.retain(|p| {
             !matches!(
                 p["status"].as_str(),
@@ -140,7 +153,97 @@ pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result
                         .is_some_and(|b| !b.is_empty())
         });
     }
-    Ok(result)
+    Ok(json!({
+        "proposals": rows,
+        "head": hex::encode(*view.audit_head),
+        "complete": true,
+        "read_at": read_at,
+    }))
+}
+
+/// The cached rows for `head` read within the last minute, with their read
+/// time. A record that does not open, such as a whole history sealed as one
+/// record before it was paged, is a miss rather than a failure.
+fn read_history(
+    c: &Client,
+    cache: &str,
+    head: &Hash,
+    now: u64,
+) -> Result<Option<(Vec<Json>, u64)>> {
+    let keys = c.keys()?;
+    let Some(index) = c
+        .workspace
+        .private::<HistoryIndex>(keys, cache)
+        .unwrap_or(None)
+        .filter(|i| i.head == *head && now.saturating_sub(i.read_at) < 60_000)
+    else {
+        return Ok(None);
+    };
+    let pages: Option<Vec<Vec<Json>>> = (0..index.pages)
+        .map(|page| {
+            c.workspace
+                .private(keys, &format!("{cache}:{page}"))
+                .unwrap_or(None)
+        })
+        .collect();
+    Ok(pages.map(|pages| (pages.concat(), index.read_at)))
+}
+
+/// Replace the cached history in one transaction, deleting the pages a
+/// longer earlier history left beyond the new ones.
+fn save_history(c: &Client, cache: &str, head: Hash, rows: &[Json], now: u64) -> Result<()> {
+    let keys = c.keys()?;
+    let pages = history_pages(rows);
+    let old = c
+        .workspace
+        .private::<HistoryIndex>(keys, cache)
+        .unwrap_or(None)
+        .map_or(0, |i| i.pages);
+    c.workspace.store.atomic(|_| {
+        for (page, part) in pages.iter().enumerate() {
+            c.workspace
+                .put_private(keys, &format!("{cache}:{page}"), part)?;
+        }
+        for page in pages.len() as u64..old {
+            c.workspace.delete_private(&format!("{cache}:{page}"))?;
+        }
+        let index = HistoryIndex {
+            head,
+            read_at: now,
+            pages: pages.len() as u64,
+        };
+        c.workspace.put_private(keys, cache, &index)
+    })
+}
+
+/// Split rows into pages of at most [`HISTORY_PAGE_BYTES`] encoded bytes and
+/// [`HISTORY_PAGE_ITEMS`] CBOR items; a larger row gets a page of its own.
+fn history_pages(rows: &[Json]) -> Vec<&[Json]> {
+    let mut pages = vec![];
+    let (mut start, mut bytes, mut items) = (0, 0, 0);
+    for (i, row) in rows.iter().enumerate() {
+        let (size, count) = (crate::codec::canonical(row).len(), cbor_items(row));
+        if i > start && (bytes + size > HISTORY_PAGE_BYTES || items + count > HISTORY_PAGE_ITEMS) {
+            pages.push(&rows[start..i]);
+            (start, bytes, items) = (i, 0, 0);
+        }
+        bytes += size;
+        items += count;
+    }
+    if start < rows.len() {
+        pages.push(&rows[start..]);
+    }
+    pages
+}
+
+/// The CBOR items of `value` as the record decoder counts them: every value
+/// and every map key.
+fn cbor_items(value: &Json) -> usize {
+    1 + match value {
+        Json::Array(values) => values.iter().map(cbor_items).sum(),
+        Json::Object(map) => map.values().map(|v| 1 + cbor_items(v)).sum(),
+        _ => 0,
+    }
 }
 
 /// Policy accounting is informational; the wallet re-evaluates execution.
@@ -1343,5 +1446,71 @@ mod tests {
         assert_eq!(abi_text(&dynamic).as_deref(), Some("USDC"));
         assert!(abi_text("0x20").is_none());
         assert!(abi_text(&dynamic.replace("000020", "0000ff")).is_none());
+    }
+
+    /// A history row with `votes` votes and a memo of `memo` bytes.
+    fn row(id: usize, votes: usize, memo: usize) -> Json {
+        let votes: Vec<Json> = (0..votes)
+            .map(|v| json!({"member": format!("member-{v}"), "decision": "Approve", "at": v}))
+            .collect();
+        json!({"id": id, "status": "Settled", "memo": "m".repeat(memo), "votes": votes})
+    }
+
+    #[test]
+    fn long_histories_reopen_from_pages_and_old_records_are_misses() {
+        let dir = crate::testing::TempDir::new();
+        let client = crate::testing::unlocked(&dir.0, false, None);
+        let keys = client.keys().unwrap();
+        let cache = "wallet-history:test";
+        let head = Hash::new([1; 32]);
+        // Many times one record's item limit, and rows that fill half its
+        // byte limit alone.
+        let mut rows: Vec<Json> = (0..4_000).map(|id| row(id, 50, 16)).collect();
+        rows.extend((4_000..4_003).map(|id| row(id, 1, HISTORY_PAGE_BYTES)));
+        let pages = history_pages(&rows);
+        assert!(pages.len() > 50);
+        assert_eq!(pages.concat(), rows);
+
+        save_history(&client, cache, head, &rows, 1_000).unwrap();
+        let (read, at) = read_history(&client, cache, &head, 60_999)
+            .unwrap()
+            .unwrap();
+        assert_eq!((read, at), (rows.clone(), 1_000));
+        assert!(
+            read_history(&client, cache, &head, 61_000)
+                .unwrap()
+                .is_none()
+        );
+        let other = Hash::new([2; 32]);
+        assert!(
+            read_history(&client, cache, &other, 1_000)
+                .unwrap()
+                .is_none()
+        );
+
+        // A shorter history deletes the pages beyond its own.
+        save_history(&client, cache, head, &rows[..1], 2_000).unwrap();
+        let (read, _) = read_history(&client, cache, &head, 2_000).unwrap().unwrap();
+        assert_eq!(read, rows[..1]);
+        for page in 1..pages.len() {
+            let name = format!("{cache}:{page}");
+            assert!(client.workspace.store.sealed(&name).unwrap().is_none());
+        }
+
+        // Sealed as one record, as before paging, 200 such rows stay far
+        // below the byte limit but exceed the item limit: the record no
+        // longer opens. It reads as a miss and the next save replaces it.
+        let whole = json!({"proposals": rows[..200], "head": hex::encode(*head), "complete": true, "read_at": 3_000});
+        assert!(crate::codec::canonical(&whole).len() < HISTORY_PAGE_BYTES);
+        client.workspace.put_private(keys, cache, &whole).unwrap();
+        assert!(client.workspace.private::<Json>(keys, cache).is_err());
+        assert!(
+            read_history(&client, cache, &head, 3_000)
+                .unwrap()
+                .is_none()
+        );
+        save_history(&client, cache, head, &rows[..2], 3_000).unwrap();
+        let (read, _) = read_history(&client, cache, &head, 3_000).unwrap().unwrap();
+        assert_eq!(read, rows[..2]);
     }
 }

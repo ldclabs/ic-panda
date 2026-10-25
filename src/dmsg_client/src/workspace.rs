@@ -36,7 +36,7 @@ const LDK: &str = "ldk";
 const FAST_LDK: &str = "ldk-fast";
 const DEVICE: &str = "device";
 /// Largest value [`Workspace::private`] decodes.
-const MAX_PRIVATE: usize = 2 * 1024 * 1024;
+pub(crate) const MAX_PRIVATE: usize = 2 * 1024 * 1024;
 
 /// Plaintext facts about the workspace; nothing here is secret.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
