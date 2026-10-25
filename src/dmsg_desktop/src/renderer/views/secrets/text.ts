@@ -7,7 +7,7 @@ new|New policy|新建策略|Новая политика|سياسة جديدة|No
 name|Policy name|策略名称|Название политики|اسم السياسة|Nom de la politique|Nombre de política
 owner|GitHub owner|GitHub 所有者|Владелец GitHub|مالك GitHub|Propriétaire GitHub|Propietario GitHub
 repo|Repository|仓库|Репозиторий|المستودع|Dépôt|Repositorio
-item|Vault item|秘密库条目|Элемент хранилища|عنصر الخزنة|Élément du coffre|Elemento de bóveda
+item|Vault item|保险库条目|Элемент хранилища|عنصر الخزنة|Élément du coffre|Elemento de bóveda
 field|Concealed credential field|隐藏凭据字段|Скрытое поле ключа|حقل اعتماد مخفي|Champ d’identifiant masqué|Campo de credencial oculto
 choose|Choose…|请选择…|Выбрать…|اختر…|Choisir…|Elegir…
 agent|Also grant this Agent permission to request uses|同时允许此 Agent 申请使用|Разрешить агенту запрашивать использование|السماح لهذا الوكيل بطلب الاستخدام|Autoriser cet agent à demander une utilisation|Permitir a este agente solicitar el uso

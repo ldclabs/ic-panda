@@ -108,7 +108,7 @@ HTTP 固定 origin/path、正常 TLS、无环境代理、无跳转、关闭 reqw
 
 没有 canister 或稳定布局变更，没有新的同步种类。政策限制 dMsg 此入口，不证明 GitHub token 的实际权限，也不隔离同用户恶意代码。建议用户在上游限制仓库及 Issues 写权限。
 
-下文的 owner 工作流已实现；团队共享秘密库仍未提供。单元/本地 HTTP mock 与 Electron fixture 不代替真实 GitHub、真实系统在场验证或平台文件系统实测，见[验证入口与边界](#验证入口与边界)。
+下文的 owner 工作流已实现；团队共享保险库仍未提供。单元/本地 HTTP mock 与 Electron fixture 不代替真实 GitHub、真实系统在场验证或平台文件系统实测，见[验证入口与边界](#验证入口与边界)。
 
 ## 本机开发工作流
 

@@ -93,7 +93,7 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 按当前成员资格、控制 head 和 epoch 校验，不把本地状态或序号当成在线授权 |
 | 本地任务与 journal | 资源操作查询和实际服务回执 | 按原 request ID 对账；本地已排队或已发送不等于服务已接受 |
 
-本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。当前云端备份和分享入口限 100 MiB；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。秘密库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
+本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。当前云端备份和分享入口限 100 MiB；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。保险库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
 
 明文文件块为 1 MiB，密文块预算为 `1 MiB + 64 bytes`，manifest 最多 64 KiB；上传大小按真实密文字节计算并受资源配额约束。超限明确失败，不静默截断。
 

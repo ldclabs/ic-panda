@@ -661,7 +661,7 @@ export default {
   'Ship v1.4 on Friday. The brief is in the release channel.':
     '周五发布 v1.4。说明文档在发布频道里。',
   'Ship v1.4 on Friday. The deploy key is in the vault.':
-    '周五发布 v1.4。部署密钥在秘密库里。',
+    '周五发布 v1.4。部署密钥在保险库里。',
   'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
     '发布 v1.4：检查部署密钥，保存更新说明并发出去，再让这次发布获得签署。',
   'Show': '显示',
@@ -710,8 +710,8 @@ export default {
   'Uploaded without you': '未经你上传',
   'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
     '用过旧版 dMsg？在桌面应用的“设置 › 旧版迁移”中开始迁移，完成之前请保留旧浏览器的数据。',
-  'Vault': '秘密库',
-  'Vault locked': '秘密库已锁定',
+  'Vault': '保险库',
+  'Vault locked': '保险库已锁定',
   'Veto': '否决',
   'Vetoed': '已否决',
   'Vetoed. Nothing was signed.': '已否决，未签署任何内容。',
@@ -739,7 +739,7 @@ export default {
   'account': '账户',
   'approval window': '审批窗口',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
-    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的秘密库，审批窗口也会标明来源由谁转述。',
+    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg 尚未经过独立审计。公开仓库既不代表已有审计覆盖，也无法证明实际部署的是哪份代码。',
   'dMsg relay': 'dMsg 中继',
@@ -909,7 +909,7 @@ export default {
     '讨论计划、分享文件、共同决定。加密频道承载项目协作，每位参与者的访问范围清晰可见。',
   'A conversation with boundaries.': '沟通，有明确边界。',
   'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.':
-    '邀请伙伴进入加密频道，回复消息，在本机搜索讨论。加入频道不会打开你的秘密库。',
+    '邀请伙伴进入加密频道，回复消息，在本机搜索讨论。加入频道不会打开你的保险库。',
   'Share just what is needed.': '只分享需要的部分。',
   'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.':
     '向频道发送独立加密的文件，或通过链接分享。文件库与备份保留各自的密钥和副本。',
@@ -966,12 +966,12 @@ export default {
     '可以。从私密笔记、登录凭据或文件开始，需要时再邀请伙伴、连接智能体。',
   'How do I work with someone else?': '如何与伙伴协作？',
   'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.':
-    '邀请对方加入加密频道。接受邀请后，即可交换消息、分享文件。加入频道不会授予对方秘密库访问权。',
+    '邀请对方加入加密频道。接受邀请后，即可交换消息、分享文件。加入频道不会授予对方保险库访问权。',
   'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.':
     '你为具体资源与操作授予权限。智能体可以在范围内工作、请求正式签署，但不能批准请求，也不能更改你的账户与设备。',
   'What stays private, and what goes out?': '哪些内容私密，哪些会发出去？',
   'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.':
-    '秘密库条目与频道消息以密文同步。文件库内容留在本机，直到你备份或分享独立副本。Agent Mail 为加密私信，主动发布的知识贡献属于公开内容。交给外部 AI 客户端的内容，也受它的数据处理方式约束。',
+    '保险库条目与频道消息以密文同步。文件库内容留在本机，直到你备份或分享独立副本。Agent Mail 为加密私信，主动发布的知识贡献属于公开内容。交给外部 AI 客户端的内容，也受它的数据处理方式约束。',
   'Interactive example · sample data · nothing is sent':
     '交互示例 · 示例数据 · 不会发送任何内容',
   'One project. People and agents, together.': '一个项目，人与智能体一起完成。',
@@ -994,7 +994,7 @@ export default {
   'Release folder': '发布文件夹',
   'Release channel': '发布频道',
   'I prepared a draft from the project files. Your other folders and vault are outside my access.':
-    '我已根据项目文件整理好草稿。其他文件夹和秘密库不在我的访问范围内。',
+    '我已根据项目文件整理好草稿。其他文件夹和保险库不在我的访问范围内。',
   'Draft ready': '草稿已就绪',
   'The release notes are ready for review. Anything to add?':
     '发布说明已就绪，请帮忙审阅，有什么要补充的？',
@@ -1019,7 +1019,7 @@ export default {
   'Send an encrypted letter': '发送一封加密私信',
   'Request a signature': '请求正式签署',
   'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.':
-    '先保存只有你能读的发布计划。伙伴加入前，秘密库与文件库都保持私密。',
+    '先保存只有你能读的发布计划。伙伴加入前，保险库与文件库都保持私密。',
   'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.':
     'Mei 接受了邀请。在加密频道讨论计划，分享团队需要的文件。',
   'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.':
@@ -1067,7 +1067,7 @@ export default {
   'Waiting for your approval': '等待你批准',
   'Permission denied': '权限不足',
   'Account status checked': '已检查账户状态',
-  'Vault item found': '已找到秘密库条目',
+  'Vault item found': '已找到保险库条目',
   'Release notes saved': '发布说明已保存',
   'Message posted to the channel': '已在频道发布消息',
   'Pause animation': '暂停动效',
@@ -1106,7 +1106,7 @@ export default {
   'Everything in one window.': '所有工作，一个窗口。',
   'Every decision in its own.': '每项决定，另开一窗。',
   'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    '频道、文件、秘密库、来信、智能体和团队钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。',
+    '频道、文件、保险库、来信、智能体和团队钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。',
   'The dMsg desktop app': 'dMsg 桌面应用',
   'Views': '视图',
   'Work': '工作',

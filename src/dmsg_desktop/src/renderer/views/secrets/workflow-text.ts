@@ -23,7 +23,7 @@ review|Review request|审查请求|Проверить запрос|مراجعة 
 project|Project name|项目名称|Имя проекта|اسم المشروع|Nom du projet|Nombre del proyecto
 path|Virtual file path|虚拟文件路径|Путь виртуального файла|مسار الملف الافتراضي|Chemin virtuel|Ruta virtual
 source|Content source|内容来源|Источник|مصدر المحتوى|Source du contenu|Origen del contenido
-field|Vault field|秘密库字段|Поле хранилища|حقل الخزنة|Champ du coffre|Campo de bóveda
+field|Vault field|保险库字段|Поле хранилища|حقل الخزنة|Champ du coffre|Campo de bóveda
 library|Files version|Files 文件版本|Версия файла|نسخة ملف|Version du fichier|Versión del archivo
 refs|Reference-only environment|仅含引用的环境|Среда со ссылками|بيئة مراجع فقط|Environnement de références|Entorno de referencias
 add|Add mapping|添加映射|Добавить|إضافة ربط|Ajouter un fichier|Añadir asignación

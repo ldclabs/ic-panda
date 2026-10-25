@@ -3145,7 +3145,7 @@ smoke: try {
   // actions on many items; a conflict copy is merged part by part.
   const releaseHealth = hold('vault/health')
   const releaseConflicts = hold('vault/conflicts')
-  await main.click('nav >> text=/Vault|秘密库/')
+  await main.click('nav >> text=/Vault|保险库/')
   // The list and selection work while auxiliary checks have not answered.
   await main.click('[data-testid="vault-list"] >> text=Tagged twice')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Tagged twice')
@@ -3502,7 +3502,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="files-folder-facts"] >> text=/files/')
   await settled(main, '[data-testid="files-folder-detail"]')
   await main.screenshot({ path: join(shots, 'files-folder.png') })
-  await main.click('nav >> text=/^(Vault|秘密库)$/')
+  await main.click('nav >> text=/^(Vault|保险库)$/')
 
   // Signatures: an application action and attestation bundles enter and
   // leave only through the main process's dialogs.
