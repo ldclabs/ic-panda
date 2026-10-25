@@ -339,6 +339,8 @@ const requests = new Map([
 let sockets = []
 /** The session the mock reports, the login under way and whether the next one fails to start. */
 let session = 'unlocked'
+let setupPending = false
+let failAccountSetup = false
 let syncing = false
 let lastSync = null
 let fastUnlock = false
@@ -389,6 +391,7 @@ function payment(id, fresh) {
 function status() {
   return {
     state: session,
+    setup_pending: setupPending,
     account: session === 'logged_out' ? null : account,
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
@@ -428,6 +431,10 @@ const storageReport = () => ({loaded:true, account, entries:storageCopies.map(e=
 
 const methods = {
   ...wallets.methods,
+  'legacy/pair': () => {
+    assert.equal(session, 'unlocked')
+    return offer
+  },
   'legacy/pairs': () => [offer],
   'legacy/list': () => [archive],
   'legacy/channels': () => ({ channels: legacyChannels, errors: [] }),
@@ -457,6 +464,17 @@ const methods = {
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null,
   'daemon/status': status,
+  'account/create': () => {
+    session = 'root_required'
+    setupPending = true
+    if (failAccountSetup) {
+      failAccountSetup = false
+      throw { code: 'UNAVAILABLE', message: 'Initial root upload interrupted' }
+    }
+    session = 'unlocked'
+    setupPending = false
+    return { account, root_generation: 1 }
+  },
   'vault/list': (p) => {
     if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
     return p?.trash ? trash : vault
@@ -1315,6 +1333,8 @@ const announced = {
   'session/switch': ['session/changed', 'approval/changed'],
   'session/logout': ['session/changed', 'approval/changed', 'login/changed'],
   'session/unlock': ['session/changed', 'approval/changed'],
+  'account/create': ['session/changed'],
+  'legacy/pair': ['legacy/changed'],
   'session/fast_unlock': ['session/changed'],
   'attest/request': ['approval/changed'],
   'attest/action': ['approval/changed'],
@@ -2906,6 +2926,56 @@ smoke: try {
   // A started migration that is not imported yet shows a notice; Legacy itself lives in Settings.
   await main.click('[data-testid="legacy-notice"] >> text=Open')
   await main.waitForSelector('[data-testid="legacy-archives"]')
+  await main.waitForSelector(`[data-testid="legacy-pick-${offer.nonce}"]`)
+  // Migration never calls the daemon for account content while setup is
+  // unfinished. Every blocked state points to the account's next step.
+  for (const [state, pending, hint] of [
+    ['logged_out', false, 'Sign in'],
+    ['locked', false, 'Unlock'],
+    ['no_account', false, 'Finish setting up'],
+    ['pairing_required', false, 'device must join'],
+    ['root_required', true, 'Finish setting up'],
+    ['root_required', false, 'cannot open your account data']
+  ]) {
+    const reads = calls.filter((c) => ['legacy/pairs', 'legacy/list'].includes(c.method)).length
+    session = state
+    setupPending = pending
+    emit('session/changed')
+    await main.waitForSelector('[data-testid="legacy-not-ready"]')
+    await main.waitForFunction((hint) => document.querySelector('[data-testid="legacy-not-ready"]')?.textContent.includes(hint), hint)
+    assert.equal(await main.locator('[data-testid="legacy-pair"]').isDisabled(), true)
+    assert.equal(await main.locator('[data-testid="legacy-archives"]').count(), 0)
+    assert.equal(calls.filter((c) => ['legacy/pairs', 'legacy/list'].includes(c.method)).length, reads)
+    if (state === 'root_required' && pending) await main.screenshot({ path: join(shots, 'legacy-setup-required.png') })
+  }
+  // A failed create has already bound the account. The same page switches
+  // to finishing setup, and its retry reaches the same account/create API.
+  session = 'no_account'
+  setupPending = false
+  emit('session/changed')
+  await main.click('[data-testid="legacy-setup"]')
+  await main.waitForSelector('[data-testid="create-account"]')
+  failAccountSetup = true
+  await main.click('[data-testid="create-account"]')
+  await main.waitForSelector('[data-testid="retry-account-setup"]')
+  assert.ok((await main.textContent('[data-testid="account-setup"]')).includes('this same account'))
+  assert.equal(await main.locator('[data-testid="create-account"]').count(), 0)
+  assert.equal(await main.locator('button:has-text("Complete recovery")').count(), 0)
+  assert.ok(await main.locator('[data-testid="retry-account-setup"]').evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return r.top >= 0 && r.bottom <= innerHeight
+  }), 'the setup retry is visible without scrolling past account details')
+  await main.screenshot({ path: join(shots, 'account-setup-retry.png') })
+  await main.click('[data-testid="retry-account-setup"]')
+  await main.waitForSelector('[data-testid="retry-account-setup"]', { state: 'detached' })
+  assert.equal(session, 'unlocked')
+  await main.click('[data-testid="settings-legacy"]')
+  await main.waitForSelector('[data-testid="legacy-pair"]:not([disabled])')
+  assert.equal(await main.locator('[data-testid="legacy-not-ready"]').count(), 0)
+  const offersCreated = calls.filter((c) => c.method === 'legacy/pair').length
+  await main.click('[data-testid="legacy-pair"]')
+  await waitFor(() => calls.filter((c) => c.method === 'legacy/pair').length === offersCreated + 1)
+  await main.waitForSelector('[data-testid="legacy-offer"]')
   assert.equal(await main.locator('[data-testid="legacy-shared"]').count(), 0)
   await assert.rejects(main.evaluate(() => window.dmsg.call('legacy/shared_prepare', {})), /FORBIDDEN/)
   await main.check(`[data-testid="legacy-pick-${offer.nonce}"]`)
@@ -2964,6 +3034,12 @@ smoke: try {
     await main.waitForFunction((n) => [...document.querySelectorAll('[data-testid="channel-item"]')].filter((e) => e.textContent.includes('Legacy inheritance draft')).length === n, remaining - 1)
   }
   assert.equal(calls.filter((c) => c.method === 'channel/delete_legacy_draft').length, 3)
+
+  if (process.env.DMSG_DESKTOP_SMOKE === 'legacy') {
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop account setup and legacy smoke test passed (remaining flows skipped)')
+    break smoke
+  }
 
   // Vault: a hidden field is shown or copied only on a second click, and
   // the copy goes from the daemon to the clipboard through the main process,

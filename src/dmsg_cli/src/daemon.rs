@@ -1163,8 +1163,9 @@ impl Daemon {
             // on the IC and the relay under the client.
             "account/create" => {
                 self.under_lock(async |client| {
-                    let account = client.create_account().await?;
-                    let generation = client.rotate_root().await?;
+                    // Account and root journals must settle in order, so setup
+                    // stays under the account-operation lock while on the network.
+                    let (account, generation) = client.initialize_account().await?;
                     Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
                 })
                 .await

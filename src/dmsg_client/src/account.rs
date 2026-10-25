@@ -658,6 +658,24 @@ impl Client {
         self.dispatch(journal).await.map(Some)
     }
 
+    /// Create an account, or finish its interrupted initial root setup.
+    /// Repeating this after setup opens the committed root without rotating it.
+    ///
+    /// # Errors
+    /// As [`Self::create_account`], plus network, verification or device
+    /// authorization failures while opening or committing the initial root.
+    /// An existing account must already be bound to this unlocked device.
+    pub async fn initialize_account(&mut self) -> Result<(AccountRef, u64)> {
+        self.keys()?;
+        let account = if self.workspace.provisional() {
+            self.create_account().await?
+        } else {
+            self.account()?.clone()
+        };
+        let generation = self.initialize_root().await?;
+        Ok((account, generation))
+    }
+
     /// Create the login's account with this provisional device as its first
     /// administrator, then bind the workspace to it.
     ///

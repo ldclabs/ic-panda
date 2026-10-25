@@ -8,6 +8,44 @@ fn hash(v: &Json) -> Hash {
 }
 
 #[test]
+fn initial_setup_reuses_only_a_live_matching_reservation() {
+    let mut job = RootJob {
+        op_id: Hash::new([51; 32]),
+        expected_generation: 0,
+        context: None,
+        candidate: None,
+        bytes: None,
+        plan: None,
+    };
+    assert!(job.reservation_current(None, 1, 100));
+    let mut slot = RootReservation {
+        op_id: job.op_id,
+        expected_generation: 0,
+        generation: 2,
+        security_epoch: 1,
+        expires_at: 200,
+    };
+    job.context = Some(RootContext {
+        account: crate::testing::account().id.to_string(),
+        environment: "local".into(),
+        generation: slot.generation,
+        op_id: hex::encode(*job.op_id),
+        security_epoch: 1,
+    });
+    // A retry retains the prepared job before expiry, but cannot use it
+    // at the deadline, after a security change, or after another reservation.
+    assert!(job.reservation_current(Some(&slot), 1, 199));
+    assert!(!job.reservation_current(Some(&slot), 1, 200));
+    assert!(!job.reservation_current(Some(&slot), 2, 100));
+    assert!(!job.reservation_current(None, 1, 100));
+    slot.op_id = Hash::new([52; 32]);
+    assert!(!job.reservation_current(Some(&slot), 1, 100));
+    slot.op_id = job.op_id;
+    slot.generation += 1;
+    assert!(!job.reservation_current(Some(&slot), 1, 100));
+}
+
+#[test]
 fn opens_exported_bundles() {
     let v = load("root-v2.json");
     let account = text(&v["account"]);

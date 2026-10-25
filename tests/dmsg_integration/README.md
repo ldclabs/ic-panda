@@ -75,6 +75,8 @@ DMSG_LEGACY_RELEASES=/path/to/releases pnpm --dir src/dmsg_legacy test
 
 ## 桌面客户端验收（W1–W10）
 
+`desktop_initial_root_setup_retries_without_replacing_the_account` 覆盖初始根上传确认丢失、daemon 重启后续跑、链上 CommitRoot 成功但响应丢失、重复创建不改变账户或已提交根，以及未批准设备不能通过重试创建接管账户。使用下面相同的 PocketIC、Wasm、daemon 和私有中继环境，按测试名显式运行。
+
 `tests/desktop.rs` 在同一个 PocketIC 部署（`tests/support`）和私有中继（workerd）上启动两个 `dmsg daemon`，各用一个 `--home`，配置为 `secure_storage = "file"`，不触碰系统凭据库（只有按需运行的 `desktop_system_credentials` 例外）。测试扮演 dmsg.net 登录页：从 URL fragment 读出请求，用生成的 Ed25519 登录身份签发 delegation 链，再经 daemon 的回调页提交；daemon 没有测试专用路径。
 
 - `two_desktop_devices_share_an_account`（W1）：设备 A 建账户、写条目并同步；设备 B 用同一登录发起配对，A 批准并换根，换根前写下未同步的条目被换到新根后发出；B 解锁时同步，读到并解密 A 的条目；B 写入后 A 读到；锁定后重新登录解锁；带外部 `Origin` 的登录回调与无凭证或带 `Origin` 的 `/daemon/status` 都被拒绝。按账户分开的工作区：B 用另一个登录得到自己的工作区（新的设备 ID、看不到第一个账户的条目）并建第二个账户，再用第一个登录回到第一个账户（条目仍在、看不到第二个账户的条目），`switch` 选中第二个账户时为锁定。认证绑定：没有账户的登录 43 在 B 上生成请求，A 核对 Principal（不符为 `INVALID_INPUT`）后经审批批准，B 接受后直接解锁第一个账户；A 上的同设备绑定（`login --bind` 的登录 44）经审批绑定，再经审批移除，当前使用的登录不能移除（`FORBIDDEN`）。恢复：B 重置第一个账户的工作区后以登录 43 申请恢复，等待期内完成为 `PENDING`，A 在账户安全中看到申请并经审批取消，之后 B 的完成为 `NOT_FOUND`；第二个账户的工作区不受影响。等待期满后的完成、派生与打开没有端到端运行（daemon 用系统时钟，见 `desktop_commerce`），由 `dmsg_client` 中以 PocketIC 实际派生结果为向量的单元测试覆盖解密与打开。

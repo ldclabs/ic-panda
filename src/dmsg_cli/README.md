@@ -318,6 +318,14 @@ to the new device; `unlock` on the new device then binds it. Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one
 field at a time); file keys never do.
 
+If account creation succeeds but its initial content root fails, `status`
+shows `root_required` with `setup_pending: true`. After reconnecting or
+logging in again, repeat `account create` to finish the same account. The
+client reconciles the journal and checks certified state first: a live initial
+reservation resumes, an invalidated one is replaced only before any root was
+committed, and a committed root is opened without rotating it. An unapproved
+device still needs device approval or recovery.
+
 Vault items. An item has a type, a title, tags, notes, attached library files
 and an ordered list of fields; a new item starts with its type's fields
 (a login's user name, password and website, a card's holder, number, expiry,

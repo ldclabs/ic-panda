@@ -243,7 +243,7 @@
         {#each (part === 'session' ? [errors.account, errors.accounts] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
         {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
-          <Legacy />
+          <Legacy {status} {go} />
         {:else if part === 'files'}
           <FilesSettings />
         {:else if part === 'appearance'}
@@ -273,6 +273,7 @@
         {:else if part === 'about'}
           <About />
         {:else if part === 'session'}
+          <Onboarding {status} {refresh} />
           <Section title={t('status')} icon="account">
             {#snippet actions()}
               <button class={buttonClass(status?.state === 'logged_out' ? 'primary' : 'secondary', 'sm')} onclick={() => startLogin()} data-testid="settings-login">
@@ -343,7 +344,6 @@
               </ul>
             </Section>
           {/if}
-          <Onboarding {status} {refresh} />
         {:else if part === 'browsers'}
           {#if opened && pairings}
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>

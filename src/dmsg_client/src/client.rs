@@ -123,6 +123,9 @@ pub struct Status {
     pub state: &'static str,
     /// The content-root generation in use.
     pub root_generation: Option<u64>,
+    /// The last certified state has no committed root and this bound device
+    /// still needs initial setup. A UI hint; initialization checks fresh state.
+    pub setup_pending: bool,
     /// Local versions the relay has not accepted yet.
     pub pending_sync: u64,
     /// Conflict copies waiting for a decision.
@@ -754,6 +757,11 @@ impl Client {
             login_expires_at: login.map(|l| l.expires_at),
             state: session.state,
             root_generation: self.root.as_ref().map(|r| r.generation),
+            setup_pending: session.state == "root_required"
+                && self
+                    .security
+                    .as_ref()
+                    .is_some_and(|s| s.snapshot.content_root_digest.is_none()),
             pending_sync: self.workspace.store.count_in(LOCAL)?,
             conflicts: self.workspace.store.count_conflicts(VAULT)?,
             background_online: self.config.background_online,

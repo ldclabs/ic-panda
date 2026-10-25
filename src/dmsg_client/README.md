@@ -356,6 +356,16 @@ seven days is forgotten. The owner's endpoint list shows the creations still
 settling and the endpoints of this device on the relay that it never handed
 out.
 
+## Account setup
+
+`initialize_account` creates and binds a new account or finishes its initial
+content root after an interruption. It reconciles the journal before checking
+certified state, reuses a valid initial root job, and opens an existing committed
+root without rotating it. `Status.setup_pending` is a UI hint for a bound
+device whose last certified state has no content root; the operation always
+checks fresh state. Account creation alone (`create_account`) still only
+registers and binds the device.
+
 ## Locking
 
 `lock` drops the login and every key. With `background_online` the device

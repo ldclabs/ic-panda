@@ -321,8 +321,12 @@ Rules (`src/main/policy.ts`):
   channel's new messages or a new letter (the relay's `channel` and `inbox`
   hints), each kind at most once a minute.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
-  `https://panda.fans/legacy`) only with an offer (`#pair=`). Personal history
-  channels can be deleted after confirmation: the archive is rewritten
+  `https://panda.fans/legacy`) only with an offer (`#pair=`). Pairing and archive
+  reads wait for an unlocked account. Before then, the page explains whether
+  to sign in, unlock, finish setup or approve the device, and links to Session
+  and accounts. An account whose first content root was interrupted offers
+  **Retry account setup**, which safely resumes the existing account.
+  Personal history channels can be deleted after confirmation: the archive is rewritten
   without their messages, files, channel keys and cached copies, and the
   change syncs to the account's other devices. Old revision retention and
   the original exported migration file are separate from this deletion.
@@ -529,6 +533,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   app starts in the tray. `dmsg autostart` starts only the daemon.
 
 The smoke test normally checks native macOS fullscreen transitions as well.
+`DMSG_DESKTOP_SMOKE=legacy pnpm test:e2e` stops after the account-setup and
+legacy flows, including unavailable-account guidance and a failed initial
+setup followed by a successful retry. Later flows are explicitly skipped.
 On an automation host that cannot enter a native Space,
 `DMSG_DESKTOP_NATIVE_FULLSCREEN=0 pnpm test:e2e` runs the functional window
 flows and windowed hide/reopen assertions, and explicitly reports fullscreen

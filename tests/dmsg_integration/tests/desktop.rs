@@ -557,6 +557,8 @@ struct Proxy {
     rules: std::sync::Arc<std::sync::Mutex<Vec<(String, String)>>>,
     /// One-shot definitive nonce refusals, before forwarding a delegation write.
     nonces: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+    /// Lose one IC CommitRoot reply, after forwarding the signed mutation.
+    root_commit: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Proxy {
@@ -570,13 +572,16 @@ impl Proxy {
         let rules = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let nonces = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let nonce_rules = nonces.clone();
+        let root_commit = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let commit_rule = root_commit.clone();
         let shared = rules.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let (upstream, rules) = (upstream.clone(), shared.clone());
                 let nonces = nonce_rules.clone();
+                let root_commit = commit_rule.clone();
                 std::thread::spawn(move || {
-                    let _ = Self::serve(stream, &upstream, &rules, &nonces);
+                    let _ = Self::serve(stream, &upstream, &rules, &nonces, &root_commit);
                 });
             }
         });
@@ -584,6 +589,7 @@ impl Proxy {
             origin,
             rules,
             nonces,
+            root_commit,
         }
     }
 
@@ -602,6 +608,48 @@ impl Proxy {
 
     fn nonce_conflict_next(&self, max: u64) {
         self.nonces.lock().unwrap().push(max.to_string());
+    }
+
+    fn lose_root_commit(&self) {
+        self.root_commit
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn is_root_commit(bytes: &[u8]) -> bool {
+        // An IC ingress envelope may carry CBOR's self-described tag.
+        let bytes = bytes.strip_prefix(&[0xd9, 0xd9, 0xf7]).unwrap_or(bytes);
+        let Ok(envelope) = cbor2::from_slice::<cbor2::Value>(bytes) else {
+            return false;
+        };
+        let Some(content) = envelope.as_map().and_then(|entries| {
+            entries
+                .iter()
+                .find(|(k, _)| k.as_text() == Some("content"))
+                .map(|(_, v)| v)
+        }) else {
+            return false;
+        };
+        let Some(fields) = content.as_map() else {
+            return false;
+        };
+        let field = |name| {
+            fields
+                .iter()
+                .find(|(k, _)| k.as_text() == Some(name))
+                .map(|(_, v)| v)
+        };
+        if field("method_name").and_then(|v| v.as_text()) != Some("mutate_account") {
+            return false;
+        }
+        let Some(arg) = field("arg").and_then(|v| v.as_bytes()) else {
+            return false;
+        };
+        candid::decode_args::<(dmsg_types::user::AccountMutation,)>(arg).is_ok_and(|(mutation,)| {
+            matches!(
+                mutation.command,
+                dmsg_types::user::AccountCommand::CommitRoot { .. }
+            )
+        })
     }
 
     /// One request head and body, or `None` at the end of the stream.
@@ -662,6 +710,7 @@ impl Proxy {
         upstream: &str,
         rules: &std::sync::Mutex<Vec<(String, String)>>,
         nonces: &std::sync::Mutex<Vec<String>>,
+        root_commit: &std::sync::atomic::AtomicBool,
     ) -> std::io::Result<()> {
         let mut reader = BufReader::new(client.try_clone()?);
         let Some((head, body)) = Self::read_message(&mut reader)? else {
@@ -704,7 +753,10 @@ impl Proxy {
             });
             found.map(|i| rules.remove(i)).is_some()
         };
-        if lost {
+        let lost_commit = root_commit.load(std::sync::atomic::Ordering::SeqCst)
+            && Self::is_root_commit(&body)
+            && root_commit.swap(false, std::sync::atomic::Ordering::SeqCst);
+        if lost || lost_commit {
             // The server committed; the client never hears it.
             return client.shutdown(std::net::Shutdown::Both);
         }
@@ -1751,6 +1803,121 @@ fn check_principal_documents(env: &Env, account: &str) {
     );
     assert!(b.run(&["profile", "resolve", account])["avatar_url"].is_null());
     assert_eq!(env.http.get(&transport).send().unwrap().status(), 200);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_initial_root_setup_retries_without_replacing_the_account() {
+    let mut env = Env::launch(
+        "initial-root-setup",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
+    let (a, daemon) = env.desktop("setup");
+    assert_eq!(a.login(&env.http, 51).unwrap()["state"], "no_account");
+    assert_eq!(
+        a.fail(&["legacy", "pair", "--origin", "https://dmsg.net"]),
+        "RECOVERY_INCOMPLETE"
+    );
+    // The relay accepts the initial bundle but its finalize reply is lost.
+    // Registration and binding have already finished when setup fails.
+    env.relay_proxy
+        .as_ref()
+        .unwrap()
+        .lose_next("POST", "/uploads/finalize");
+    let error = a.fail(&["account", "create"]);
+    assert!(
+        matches!(
+            error.as_str(),
+            "NETWORK_UNAVAILABLE" | "UNAVAILABLE" | "EXECUTION_UNKNOWN"
+        ),
+        "{error}"
+    );
+    assert_eq!(env.relay_proxy.as_ref().unwrap().pending(), 0);
+    let status = a.run(&["status"]);
+    assert_eq!(status["state"], "root_required");
+    assert_eq!(status["setup_pending"], true);
+    let account = status["account"].as_str().unwrap().to_string();
+    let device = status["device_id"].clone();
+    assert_eq!(a.run(&["account", "show"])["root_generation"], 0);
+
+    // The job survives a process restart. A login does not silently create
+    // another root; the explicit retry finishes the original reservation.
+    env.relaunch(&a, daemon);
+    assert_eq!(a.login(&env.http, 51).unwrap()["state"], "root_required");
+    let created = a.run(&["account", "create"]);
+    assert_eq!(created["account"], account);
+    assert_eq!(created["root_generation"], 1);
+    assert_eq!(a.run(&["status"])["device_id"], device);
+    assert_eq!(a.run(&["status"])["setup_pending"], false);
+    let version = a.run(&["account", "show"])["account_version"].clone();
+    let note = a.run(&["vault", "add", "--title", "survives setup retry"]);
+
+    // Both a repeated click and a lost successful reply leave the same
+    // committed root and its content intact, with no extra account mutation.
+    let mut socket = a.app_socket();
+    socket
+        .send(tungstenite::Message::text(
+            json!({
+                "jsonrpc": "2.0", "id": 1, "method": "account/create", "params": {}
+            })
+            .to_string(),
+        ))
+        .unwrap();
+    drop(socket);
+    assert_eq!(a.run(&["account", "create"]), created);
+    assert_eq!(a.run(&["account", "show"])["account_version"], version);
+    assert_eq!(
+        a.run(&["vault", "show", note["id"].as_str().unwrap()])["item"]["title"],
+        "survives setup retry"
+    );
+    assert!(
+        a.run(&["legacy", "pair", "--origin", "https://dmsg.net"])["link"]
+            .as_str()
+            .unwrap()
+            .starts_with("https://dmsg.net/legacy#pair=")
+    );
+
+    // A login on an unapproved device must never bootstrap over this root.
+    assert_eq!(
+        env.b.login(&env.http, 51).unwrap()["state"],
+        "pairing_required"
+    );
+    assert_eq!(env.b.fail(&["account", "create"]), "IDEMPOTENCY_CONFLICT");
+    assert_eq!(a.run(&["account", "show"])["root_generation"], 1);
+
+    // The root itself can commit before its IC reply is lost. Reconcile
+    // that exact operation, activate the kept candidate and do not rotate.
+    let (c, _) = env.desktop("committed-setup");
+    assert_eq!(c.login(&env.http, 52).unwrap()["state"], "no_account");
+    env.ic_proxy.as_ref().unwrap().lose_root_commit();
+    let error = c.fail(&["account", "create"]);
+    assert!(
+        matches!(
+            error.as_str(),
+            "NETWORK_UNAVAILABLE" | "UNAVAILABLE" | "EXECUTION_UNKNOWN"
+        ),
+        "{error}"
+    );
+    assert!(
+        !env.ic_proxy
+            .as_ref()
+            .unwrap()
+            .root_commit
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    let committed = c.run(&["account", "show"]);
+    assert_eq!(committed["root_generation"], 1);
+    let retried = c.run(&["account", "create"]);
+    assert_eq!(retried["account"], committed["account"]);
+    assert_eq!(retried["root_generation"], 1);
+    assert_eq!(
+        c.run(&["account", "show"])["account_version"],
+        committed["account_version"]
+    );
+    assert_eq!(c.run(&["status"])["state"], "unlocked");
 }
 
 #[test]

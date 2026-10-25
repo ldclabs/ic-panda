@@ -20,7 +20,7 @@ use dmsg_types::{
     AccountId, Environment, Error, Hash, Result,
     cose::KeyDescriptor,
     ensure,
-    user::{AccountCommand, Capability, ContentRootRef},
+    user::{AccountCommand, Capability, ContentRootRef, RootReservation},
 };
 use ic_vetkeys::{DerivedPublicKey, IbeCiphertext, IbeIdentity, IbeSeed, VetKey};
 use serde::{Deserialize, Serialize};
@@ -550,6 +550,23 @@ struct RootJob {
     plan: Option<UploadPlan>,
 }
 
+impl RootJob {
+    /// An unreserved job can continue; a prepared bundle is reusable only
+    /// under the reservation and security epoch it was signed for.
+    fn reservation_current(&self, slot: Option<&RootReservation>, epoch: u64, now: u64) -> bool {
+        self.context.as_ref().is_none_or(|context| {
+            slot.is_some_and(|slot| {
+                slot.op_id == self.op_id
+                    && slot.expected_generation == self.expected_generation
+                    && slot.generation == context.generation
+                    && slot.security_epoch == context.security_epoch
+                    && slot.security_epoch == epoch
+                    && slot.expires_at > now
+            })
+        })
+    }
+}
+
 #[derive(Deserialize)]
 struct RootPointer {
     upload_id: String,
@@ -750,6 +767,53 @@ impl Client {
         self.save_root(&keys)?;
         self.root = Some(keys);
         Ok(())
+    }
+
+    /// Finish initial setup against fresh certified state. A committed root
+    /// is opened, never replaced; an interrupted initial job keeps its bytes
+    /// unless its reservation can no longer commit.
+    pub(crate) async fn initialize_root(&mut self) -> Result<u64> {
+        if let Err(error) = self.resume().await
+            && error != Error::Expired
+        {
+            return Err(error);
+        }
+        let account = self.account()?.clone();
+        let state = self.refresh(account.home, &account.id).await?;
+        self.check_revoked(&state.security)?;
+        state.active(&self.workspace.meta.device_id)?;
+        let job = self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)?;
+        if let Some(current) = &state.info.current_root {
+            // Another device's committed root also settles initial setup.
+            // Never discard a later rotation that this entry point did not start.
+            if let Some(job) = job.filter(|j| j.expected_generation == 0) {
+                if let Some(bytes) = &job.bytes
+                    && bundle_digests(&parse_bundle(bytes)?)?.bundle == current.bundle_digest
+                {
+                    return self.activate(job).await;
+                }
+                self.load_root().await?;
+                self.workspace.delete_private(ROOT_JOB)?;
+            } else {
+                self.load_root().await?;
+            }
+            return Ok(self.roots()?.generation);
+        }
+        ensure(self.root.is_none(), Error::IntegrityFailed)?;
+        if let Some(job) = job {
+            ensure(job.expected_generation == 0, Error::IntegrityFailed)?;
+            let now = now_ms();
+            if !job.reservation_current(
+                state.info.root_slot.as_ref(),
+                state.info.security_epoch,
+                now,
+            ) {
+                // The old candidate cannot commit. A new reservation uses a
+                // fresh operation ID and generation, after rereading state.
+                self.workspace.delete_private(ROOT_JOB)?;
+            }
+        }
+        self.rotate_root().await
     }
 
     /// Commit a new root generation wrapped to every active device holding

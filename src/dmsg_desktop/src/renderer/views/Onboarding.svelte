@@ -102,8 +102,14 @@
       {/if}
     </div>
   </Section>
+{:else if status?.state === 'root_required'}
+  <Section title={t('accountSetup')} description={t(status.setup_pending ? 'accountSetupHint' : 'accountOpenHint')} icon="account" testid="account-setup">
+    <button class={buttonClass('primary')} disabled={busy} onclick={status.setup_pending ? create : joined} data-testid="retry-account-setup">
+      {t(status.setup_pending ? 'retryAccountSetup' : 'checkApproval')}
+    </button>
+  </Section>
 {/if}
-{#if ['pairing_required', 'root_required'].includes(status?.state)}
+{#if status?.state === 'pairing_required' || (status?.state === 'root_required' && !status.setup_pending)}
   <Section title={t('recovery')} description={t('recoveryHint')} icon="recovery">
     <div class="grid gap-3">
       <div class="flex flex-wrap gap-2">

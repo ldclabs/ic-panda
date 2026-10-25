@@ -10,6 +10,78 @@ fn note(title: &str) -> Changes {
 }
 
 #[tokio::test]
+async fn legacy_pairing_requires_a_ready_account() {
+    let dir = TempDir::new();
+    let mut client = Client::open(crate::testing::config(false), &dir.0, None).unwrap();
+    let kept = crate::login::kept_for_tests(61, now_ms() + 60_000);
+    let delegated = kept.delegated().unwrap();
+    let principal = delegated.principal;
+    let ic = Ic::connect(&client.config, delegated.identity)
+        .await
+        .unwrap();
+    client.login = Some(Login {
+        ic,
+        principal,
+        expires_at: delegated.expires_at,
+        kept,
+    });
+    client.select(Slot::Login(principal)).unwrap();
+    client.keys = Some(client.workspace.unlock_provisional().unwrap());
+    assert_eq!(client.status().unwrap().state, "no_account");
+    assert_eq!(
+        client.legacy_pair("https://dmsg.net").err(),
+        Some(Error::RecoveryIncomplete)
+    );
+    let account = crate::testing::account();
+    client.located = Some((account.home, account.id));
+    assert_eq!(client.status().unwrap().state, "pairing_required");
+    assert_eq!(
+        client.legacy_pair("https://dmsg.net").err(),
+        Some(Error::RecoveryIncomplete)
+    );
+    assert!(client.legacy_pairs().unwrap().is_empty());
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut client);
+    client.root = None;
+    let status = client.status().unwrap();
+    assert_eq!(status.state, "root_required");
+    assert!(status.setup_pending);
+    assert_eq!(
+        client.legacy_pair("https://dmsg.net").err(),
+        Some(Error::RecoveryIncomplete)
+    );
+    assert!(client.legacy_pairs().unwrap().is_empty());
+    // The account may have a committed root that this device cannot open.
+    // That calls for device approval/recovery, never initial setup.
+    client
+        .security
+        .as_mut()
+        .unwrap()
+        .snapshot
+        .content_root_digest = Some(Hash::new([1; 32]));
+    assert!(!client.status().unwrap().setup_pending);
+    client
+        .security
+        .as_mut()
+        .unwrap()
+        .snapshot
+        .content_root_digest = None;
+    client.load_root().await.unwrap();
+    assert_eq!(client.status().unwrap().state, "unlocked");
+    assert!(!client.status().unwrap().setup_pending);
+    assert!(client.legacy_pair("https://dmsg.net").is_ok());
+    client.lock();
+    assert!(!client.status().unwrap().setup_pending);
+    assert_eq!(
+        client.legacy_pair("https://dmsg.net").err(),
+        Some(Error::Locked)
+    );
+    assert_eq!(client.initialize_account().await.err(), Some(Error::Locked));
+}
+
+#[tokio::test]
 async fn fast_unlock_works_offline_for_thirty_days() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());

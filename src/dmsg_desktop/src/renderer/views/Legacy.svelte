@@ -12,7 +12,7 @@
   import Section from '../components/page/Section.svelte'
   import Radio from '../components/Radio.svelte'
   import { buttonClass, cn } from '../components/ui'
-  import { t } from '../i18n/index.svelte'
+  import { t, type Label } from '../i18n/index.svelte'
   import { bridge, call, errorText, onChange, single, when } from '../rpc'
 
   /**
@@ -20,6 +20,14 @@
    * browser, the old site saves an encrypted file sealed to this device,
    * and the import keeps the checked archive as account content.
    */
+  let { status, go }: { status: any; go: (path: string) => void } = $props()
+  const ready = $derived(status?.state === 'unlocked')
+  const guidance = $derived<Label>(
+    !status ? 'loading' : status.state === 'logged_out' ? 'legacyLoginHint'
+      : status.state === 'locked' ? 'legacyUnlockHint'
+      : status.state === 'no_account' || status.setup_pending ? 'legacySetupHint'
+      : status.state === 'pairing_required' ? 'legacyDeviceHint' : 'legacyRootHint'
+  )
   let offer = $state<any>(null)
   let pairs = $state<any[]>([])
   let archives = $state<any[]>([])
@@ -35,6 +43,7 @@
   const pairing = $derived(pairs.find((p) => p.nonce === selected))
 
   async function attempt(work: () => Promise<void>, done = '') {
+    if (!ready) return
     busy = true
     error = ''
     notice = ''
@@ -50,6 +59,7 @@
 
   /** The offers and kept archives; the daemon's `legacy/changed` reads them again after each change. */
   const reload = single(async () => {
+    if (!ready) return
     ;[pairs, archives] = await Promise.all([call('legacy/pairs'), call('legacy/list')])
   })
 
@@ -114,12 +124,20 @@
 
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
+{#if !ready}
+  <Notice testid="legacy-not-ready">
+    {t(guidance)}
+    {#snippet action()}
+      <button class={buttonClass('secondary', 'sm')} onclick={() => go('/settings/session')} data-testid="legacy-setup">{t('sessionAccounts')}</button>
+    {/snippet}
+  </Notice>
+{/if}
 
 <Section title={t('legacyTitle')} description={t('legacyHint')} icon="legacy" testid="legacy">
   {#snippet actions()}
-    <button class={buttonClass('primary')} disabled={busy} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !ready} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
   {/snippet}
-  {#if pairs.length}
+  {#if ready && pairs.length}
     <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyOffers')}</h3>
     <RadioGroup.Root bind:value={selected} onValueChange={() => (confirmed = false)} aria-label={t('legacyOffers')}>
       <ul class="divide-y divide-line">
@@ -140,7 +158,7 @@
       </ul>
     </RadioGroup.Root>
   {/if}
-  {#if pairing}
+  {#if ready && pairing}
     <div class="mt-3 grid gap-3 rounded-xl border border-forest/30 bg-pale/40 p-4">
       <dl class="divide-y divide-line" data-testid="legacy-offer">
         <Fact label={t('legacyLink')}><bdi dir="ltr" class="font-mono text-[11.5px] break-all">{pairing.link}</bdi></Fact>
@@ -156,6 +174,7 @@
   {/if}
 </Section>
 
+{#if ready}
 <Section title={t('legacyArchives')} icon="archive" flush>
   <ul class="divide-y divide-line" data-testid="legacy-archives">
     {#each archives as a (a.id)}
@@ -259,4 +278,5 @@
       </div>
     </div>
   </Section>
+{/if}
 {/if}
