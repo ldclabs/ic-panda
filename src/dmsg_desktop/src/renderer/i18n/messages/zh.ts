@@ -2,6 +2,18 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    fileId: "文件 ID",
+    currentVersionId: "当前版本 ID",
+    versionId: "版本 ID",
+    vaultItemId: "秘密库条目 ID",
+    copyFileId: "复制文件 ID",
+    copyVersionId: "复制版本 ID",
+    copyVaultItemId: "复制条目 ID",
+    copyFileReference: "复制文件版本引用",
+    copyFieldReference: "复制字段引用",
+    fileReferenceHint: "引用当前账户中此文件的固定版本，不含密钥，也不授予访问权限。",
+    fieldReferenceHint: "仅含账户、条目和字段 ID，不含字段值；使用时仍需审批。",
+
     secretProcess: "向程序交付凭据",
     secretSsh: "授权一次 SSH/Git 签名",
     secretSshBinding: "在本设备启用 SSH 密钥",

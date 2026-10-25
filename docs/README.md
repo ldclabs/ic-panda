@@ -12,6 +12,7 @@ This index was reviewed against public source `9fd70dca` on 2026-10-24. Document
 | --- | --- |
 | Install and update | [Downloads](https://github.com/ldclabs/ic-panda/releases/latest) · [Release scripts](../scripts/dmsg/README.md) |
 | Desktop workspace | [Desktop app](../src/dmsg_desktop/README.md) · [Current design system](../src/dmsg_desktop/DESIGN.md) |
+| Credentials and file references | [Desktop IDs, references, developer workflows and verification (简体中文)](dmsg_secrets_tutorial_zh.md) |
 | Command line and MCP | [CLI and daemon](../src/dmsg_cli/README.md) · [Agent connector](../src/dmsg_agent/README.md) |
 | Reusable Rust core | [dmsg_client](../src/dmsg_client/README.md) |
 | Web and application integration | [SDK](../packages/dmsg-sdk/README.md) · [Account adapter example](../examples/dmsg-account-product/README.md) · [Bridge page](../src/dmsg_connect/README.md) |

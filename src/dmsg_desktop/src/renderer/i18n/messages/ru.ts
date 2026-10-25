@@ -2,6 +2,18 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    fileId: "ID файла",
+    currentVersionId: "ID текущей версии",
+    versionId: "ID версии",
+    vaultItemId: "ID записи хранилища",
+    copyFileId: "Скопировать ID файла",
+    copyVersionId: "Скопировать ID версии",
+    copyVaultItemId: "Скопировать ID записи",
+    copyFileReference: "Скопировать ссылку на версию файла",
+    copyFieldReference: "Скопировать ссылку на поле",
+    fileReferenceHint: "Ссылка на конкретную версию файла текущего аккаунта. Не содержит ключа и не предоставляет доступ.",
+    fieldReferenceHint: "Содержит только ID аккаунта, записи и поля, без значения поля. Использование требует одобрения.",
+
     secretProcess: "Передать данные программе",
     secretSsh: "Разрешить подпись SSH/Git",
     secretSshBinding: "Включить SSH-ключ на устройстве",

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
+  import { onDestroy } from 'svelte'
   import { localeDir } from '../../../shared/locales'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
+  import Id from '../../components/page/Id.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
@@ -55,12 +57,30 @@
   let history = $state(false)
   let base = $state('')
   let names = $state<Record<string, any>>({})
+  let copyingReference = $state<string | null>(null)
+  let alive = true
+  onDestroy(() => { alive = false })
 
   const item = $derived(entry.item)
   const type = $derived(typeOf(item))
   const managed = $derived(isManaged(item))
   const shownFields = $derived((item.fields as Field[]).filter((f) => f.value))
   const editable = $derived(unlocked && !trash && !managed)
+
+  async function copyFieldReference(field: Field) {
+    if (copyingReference || !editable || conflict || type === 'wallet' || field.type === 'otp') return
+    const id = entry.id, revision = entry.revision
+    copyingReference = field.id
+    try {
+      const result = await call<{ uri: string }>('secrets/ref', { item_id: id, field_id: field.id })
+      // A late response must not replace the clipboard after navigation, a lock or a source update.
+      if (alive && editable && !conflict && entry.id === id && entry.revision === revision) await copyText(result.uri)
+    } catch (error) {
+      if (alive) toast(() => errorText(error))
+    } finally {
+      if (alive) copyingReference = null
+    }
+  }
 
   $effect(() => {
     if (!editing) dirty = false
@@ -195,26 +215,33 @@
         {@render copyButton(field.value, field.id === 'username' ? t('copyUsername') : t('copy'))}
       {/if}
     </dd>
+    {#if field.type !== 'otp' && !managed && type !== 'wallet' && !trash}
+      <dd class="@min-[440px]:col-start-2">
+        <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || conflict || copyingReference !== null} title={conflict ? t('conflictItem') : t('fieldReferenceHint')} onclick={() => copyFieldReference(field)} data-testid="vault-copy-field-reference"><Icon name="link" />{t('copyFieldReference')}</button>
+      </dd>
+    {/if}
   </div>
 {/snippet}
 
 <section class="@container flex h-full min-w-0 flex-col" aria-label={item.title} data-testid="vault-inspector">
-  <header class="flex items-start gap-3 px-6 pt-5 pb-4">
-    <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
-      <Icon name={typeIcon[type]} />
-    </span>
-    <div class="min-w-0 flex-1">
-      <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
-      <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
-        <span>{t(typeLabel[type])}</span>
-        {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-[11.5px] text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
-        {#each item.tags as tag, i (i)}
-          <span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>
-        {/each}
+  <header class="flex flex-wrap items-start gap-3 px-6 pt-5 pb-4">
+    <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
+      <span class="grid size-9 shrink-0 place-items-center text-forest [&_svg]:size-5">
+        <Icon name={typeIcon[type]} />
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
+        <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
+          <span>{t(typeLabel[type])}</span>
+          {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-[11.5px] text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
+          {#each item.tags as tag, i (i)}
+            <span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>
+          {/each}
+        </div>
       </div>
     </div>
     {#if unlocked && !editing}
-      <div class="flex shrink-0 items-center gap-1">
+      <div class="ms-auto flex shrink-0 items-center gap-1">
         {#if trash}
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={discard} data-testid="vault-restore">
             <Icon name="restore" />{t('restore')}
@@ -291,6 +318,12 @@
   {/if}
 
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+    <dl class="mb-3">
+      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[132px_1fr] @min-[440px]:items-start">
+        <dt class="pt-2 text-[12px] text-faint @min-[440px]:pt-1.5">{t('vaultItemId')}</dt>
+        <dd class="min-w-0"><Id id={entry.id} full wrap copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
+      </div>
+    </dl>
     {#if editing}
       <ItemForm
         kind={type}

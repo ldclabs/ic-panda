@@ -4,6 +4,18 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    fileId: "File ID",
+    currentVersionId: "Current version ID",
+    versionId: "Version ID",
+    vaultItemId: "Vault item ID",
+    copyFileId: "Copy file ID",
+    copyVersionId: "Copy version ID",
+    copyVaultItemId: "Copy item ID",
+    copyFileReference: "Copy file version reference",
+    copyFieldReference: "Copy field reference",
+    fileReferenceHint: "References this exact file version in the current account. Contains no key and does not grant access.",
+    fieldReferenceHint: "Contains the account, item and field IDs, never the field value. Using it still requires approval.",
+
     secretProcess: "Deliver credentials to a program",
     secretSsh: "Authorize one SSH/Git signature",
     secretSshBinding: "Enable an SSH key on this device",

@@ -2,6 +2,18 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    fileId: "معرّف الملف",
+    currentVersionId: "معرّف الإصدار الحالي",
+    versionId: "معرّف الإصدار",
+    vaultItemId: "معرّف عنصر الخزنة",
+    copyFileId: "نسخ معرّف الملف",
+    copyVersionId: "نسخ معرّف الإصدار",
+    copyVaultItemId: "نسخ معرّف العنصر",
+    copyFileReference: "نسخ مرجع إصدار الملف",
+    copyFieldReference: "نسخ مرجع الحقل",
+    fileReferenceHint: "يشير إلى هذا الإصدار المحدد من الملف في الحساب الحالي. لا يحتوي على مفتاح ولا يمنح صلاحية الوصول.",
+    fieldReferenceHint: "يحتوي فقط على معرّفات الحساب والعنصر والحقل، دون قيمة الحقل. يظل الاستخدام بحاجة إلى موافقة.",
+
     secretProcess: "تسليم الاعتماد لبرنامج",
     secretSsh: "السماح بتوقيع SSH/Git",
     secretSshBinding: "تفعيل مفتاح SSH على هذا الجهاز",

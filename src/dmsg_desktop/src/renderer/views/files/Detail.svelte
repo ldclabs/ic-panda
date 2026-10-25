@@ -5,6 +5,7 @@
   import { localeDir } from '../../../shared/locales'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
+  import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import TagInput from '../../components/TagInput.svelte'
@@ -308,6 +309,17 @@
     {/if}
 
     <dl class="grid gap-1" data-testid="files-facts">
+      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
+        {@render row(t('fileId'))}
+        <dd class="min-w-0"><Id id={file.id} full wrap copyLabel={t('copyFileId')} disabled={!unlocked} testid="files-copy-id" /></dd>
+      </div>
+      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
+        {@render row(t('currentVersionId'))}
+        <dd class="min-w-0 space-y-1">
+          <Id id={file.current} full wrap copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-current-version" />
+          <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${file.current}`)} data-testid="files-copy-reference"><Icon name="link" />{t('copyFileReference')}</button>
+        </dd>
+      </div>
       <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
         {@render row(t('fileType'))}
         <dd class="min-w-0 truncate select-text">{file.mime}</dd>
@@ -429,6 +441,11 @@
                 · {t('statusBackedUp')} {ago(version.backup.backed_up_at)}
               {/if}
             </div>
+            <div class="mt-1 space-y-1" data-testid="files-version-identity" data-version={version.id}>
+              <span class="block text-[11.5px] text-faint">{t('versionId')}</span>
+              <Id id={version.id} full wrap copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-version" />
+              <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${version.id}`)} data-testid="files-copy-version-reference"><Icon name="link" />{t('copyFileReference')}</button>
+            </div>
           </div>
           {#if unlocked && !trash}
             <DropdownMenu.Root dir={localeDir(locale())}>
@@ -484,7 +501,6 @@
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
     <span class="inline-flex items-center gap-1.5"><Icon name="drive" class="size-3.5" />{t('createdAt')} {ago(file.created_at)}</span>
-    <span title={file.id}>ID <bdi dir="ltr" class="font-mono">{String(file.id).slice(0, 10)}</bdi></span>
     {#if current?.backup}
       <span class="inline-flex items-center gap-1.5 text-ok"><Icon name="sync" class="size-3.5" />{t('backupGeneration')} {current.backup.generation}</span>
     {/if}

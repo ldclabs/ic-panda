@@ -12,6 +12,7 @@ dMsg 是 ICPanda DAO 的产品之一，为人与智能体提供私密协作。�
 | --- | --- |
 | 安装与更新 | [下载](https://github.com/ldclabs/ic-panda/releases/latest) · [发布脚本](../scripts/dmsg/README.md) |
 | 桌面工作台 | [桌面应用](../src/dmsg_desktop/README.md) · [当前设计系统](../src/dmsg_desktop/DESIGN.md) |
+| 凭据与文件引用 | [桌面复制 ID/引用、进程交付、挂载、SSH、分享与验证教程](dmsg_secrets_tutorial_zh.md) |
 | 命令行与 MCP | [CLI 与 daemon](../src/dmsg_cli/README.md) · [Agent 连接器](../src/dmsg_agent/README.md) |
 | 可复用 Rust 核心 | [dmsg_client](../src/dmsg_client/README.md) |
 | 网页与应用接入 | [SDK](../packages/dmsg-sdk/README.md) · [账户适配示例](../examples/dmsg-account-product/README.md) · [桥接页](../src/dmsg_connect/README.md) |

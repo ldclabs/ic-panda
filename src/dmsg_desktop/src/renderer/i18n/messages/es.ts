@@ -2,6 +2,18 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    fileId: "ID del archivo",
+    currentVersionId: "ID de la versión actual",
+    versionId: "ID de versión",
+    vaultItemId: "ID del elemento de la bóveda",
+    copyFileId: "Copiar ID del archivo",
+    copyVersionId: "Copiar ID de versión",
+    copyVaultItemId: "Copiar ID del elemento",
+    copyFileReference: "Copiar referencia de versión del archivo",
+    copyFieldReference: "Copiar referencia del campo",
+    fileReferenceHint: "Hace referencia a esta versión exacta del archivo en la cuenta actual. No contiene claves ni concede acceso.",
+    fieldReferenceHint: "Solo contiene los ID de cuenta, elemento y campo, nunca su valor. Su uso sigue requiriendo aprobación.",
+
     secretProcess: "Entregar credenciales al programa",
     secretSsh: "Autorizar firma SSH/Git",
     secretSshBinding: "Activar clave SSH en este dispositivo",
