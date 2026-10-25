@@ -1092,9 +1092,11 @@ impl Client {
         match hardware.open(&slot.handle, &slot.peer, slot.biometry.is_some()) {
             Err(Error::Forbidden) => Err(Error::Forbidden),
             Err(_)
-                if slot
-                    .biometry
-                    .is_some_and(|s| hardware.biometry_state() != Some(s)) =>
+                if slot.biometry.is_some_and(|s| {
+                    hardware
+                        .biometry_state()
+                        .is_some_and(|current| current != s)
+                }) =>
             {
                 Err(Error::IntegrityFailed)
             }

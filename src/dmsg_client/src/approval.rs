@@ -866,6 +866,11 @@ impl Client {
                 proof: None,
                 ..
             } => self.new_key_answer(public_key)?,
+            // Key maintenance must remain available with a lost key when
+            // the policy is off; use ordinary presence confirmation then.
+            Action::ApprovalKey { .. } | Action::ApprovalKeyRetire { .. } => {
+                self.approval_answer(purpose, false)?
+            }
             _ => self.approval_answer(purpose, high)?,
         };
         if let Some((keys, biometry_only)) = answer {

@@ -336,7 +336,10 @@ impl Client {
     }
 
     fn biometry_changed(&self, state: Hash) -> bool {
-        self.presence.as_ref().and_then(|p| p.biometry_state()) != Some(state)
+        self.presence
+            .as_ref()
+            .and_then(|p| p.biometry_state())
+            .is_some_and(|current| current != state)
     }
 
     /// Register this device's own new key `public_key`, proving it with the

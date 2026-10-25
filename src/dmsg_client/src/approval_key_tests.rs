@@ -16,6 +16,7 @@ struct Software {
     asked: AtomicU32,
     declines: AtomicBool,
     away: AtomicBool,
+    lost_handle: AtomicU8,
     made: AtomicU8,
 }
 
@@ -41,17 +42,26 @@ impl ApprovalKeys for Software {
         self.asked.fetch_add(1, SeqCst);
         match self.declines.load(SeqCst) {
             true => Err(Error::Forbidden),
-            false => Ok(Box::new(Answer(self.away.load(SeqCst)))),
+            false => Ok(Box::new(Answer {
+                away: self.away.load(SeqCst),
+                lost_handle: self.lost_handle.load(SeqCst),
+            })),
         }
     }
 }
 
-struct Answer(bool);
+struct Answer {
+    away: bool,
+    lost_handle: u8,
+}
 
 impl Authorized for Answer {
     fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]> {
-        if self.0 {
+        if self.away {
             return Err(Error::Unavailable("not now".into()));
+        }
+        if handle[0] == self.lost_handle {
+            return Err(Error::IntegrityFailed);
         }
         let signature: Signature = signing(handle).sign(message.as_slice());
         let (r, s) = signature.normalize_s().split_scalars();
@@ -61,7 +71,10 @@ impl Authorized for Answer {
 
 /// Fingerprints that change when told to.
 #[derive(Default)]
-struct Fingerprints(AtomicU8);
+struct Fingerprints {
+    state: AtomicU8,
+    away: AtomicBool,
+}
 
 impl PresenceKey for Fingerprints {
     fn presence(&self) -> Option<crate::secure::Presence> {
@@ -80,7 +93,7 @@ impl PresenceKey for Fingerprints {
     }
 
     fn biometry_state(&self) -> Option<Hash> {
-        Some(Hash::new([self.0.load(SeqCst); 32]))
+        (!self.away.load(SeqCst)).then(|| Hash::new([self.state.load(SeqCst); 32]))
     }
 
     fn confirm(&self, _: &str) -> Result<()> {
@@ -153,6 +166,246 @@ fn info(client: &Client, key: Option<&LocalKey>, policy: &[HardwarePurpose]) -> 
             .unwrap_or_default(),
         hardware_policy: policy.to_vec(),
     }
+}
+
+fn state(info: AccountInfo) -> crate::account::AccountState {
+    crate::account::AccountState {
+        security: crate::testing::security(info.security_epoch, info.devices.clone()),
+        info,
+    }
+}
+
+#[test]
+fn key_maintenance_does_not_require_a_lost_key_while_the_policy_is_off() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let fingerprints = Arc::new(Fingerprints::default());
+    let (mut client, old) = client(&dir, &software, Some(Hash::new([0; 32])));
+    client.set_presence_key(fingerprints.clone());
+    fingerprints.state.store(1, SeqCst);
+    software.lost_handle.store(old.handle[0], SeqCst);
+    let mut state = state(info(&client, Some(&old), &[]));
+    client.observe_hardware(&state.info);
+
+    // A replacement key proves itself with a fresh answer, without the
+    // now-invalid fingerprints of the old key.
+    let (public_key, handle) = software.create(false).unwrap();
+    let new = LocalKey {
+        key_id: approval_key_id(&public_key).unwrap(),
+        public_key: public_key.into(),
+        handle: handle.into(),
+        biometry: None,
+        created_at: now_ms(),
+    };
+    client
+        .keep_approval_key(new.clone(), Some(old.key_id))
+        .unwrap();
+    let device_id = client.workspace.meta.device_id;
+    let register = client
+        .approval_create(
+            "gui",
+            Action::ApprovalKey {
+                device_id,
+                public_key: new.public_key.clone(),
+                proof: None,
+            },
+            now_ms() + 60_000,
+        )
+        .unwrap();
+    let Some((Ask::Hardware(hardware, false), what)) =
+        client.approval_presence(&register.id).unwrap()
+    else {
+        panic!("the new key must ask")
+    };
+    client.authorized = Some(hardware.authorize(&what, false).unwrap());
+    let message = approval_key_message(account().home, &account().id, device_id, &new.public_key);
+    let proof = client.approval_sign(&new, &what, &message).unwrap();
+    verify_p256(&new.public_key, message.as_slice(), &proof).unwrap();
+    let replace = AccountCommand::SetApprovalKey {
+        device_id,
+        key: Some(ApprovalKeyInput {
+            public_key: new.public_key.clone(),
+            proof,
+        }),
+    };
+    let mutation = client
+        .prepare_mutation(&state, replace.clone(), None)
+        .unwrap();
+    assert_eq!(mutation.command, replace);
+    assert!(mutation.approval.hardware.is_none());
+    dmsg_protocol::verify(
+        &client.workspace.meta.signing_pub,
+        dmsg_protocol::approval_message(
+            account().home,
+            &account().id,
+            "dmsg/account/v2",
+            &(mutation.expected_version, &mutation.command),
+            &mutation.approval,
+        )
+        .as_slice(),
+        mutation.approval.signature.as_slice(),
+    )
+    .unwrap();
+    assert_eq!(software.asked.load(SeqCst), 1);
+
+    // Retirement uses ordinary presence, not the lost key's fingerprint ACL.
+    client.authorized = None;
+    let retire = client
+        .approval_create(
+            "gui",
+            Action::ApprovalKeyRetire { device_id },
+            now_ms() + 60_000,
+        )
+        .unwrap();
+    assert!(matches!(
+        client.approval_presence(&retire.id).unwrap(),
+        Some((Ask::Presence(_), _))
+    ));
+    let remove = AccountCommand::SetApprovalKey {
+        device_id,
+        key: None,
+    };
+    assert!(
+        client
+            .prepare_mutation(&state, remove.clone(), None)
+            .unwrap()
+            .approval
+            .hardware
+            .is_none()
+    );
+
+    // Once required, neither operation can bypass the lost registered key,
+    // even with the answer that successfully signed the new key's proof.
+    state.info.hardware_policy = dmsg_types::user::CONTROL_PURPOSES.to_vec();
+    client.observe_hardware(&state.info);
+    assert!(matches!(
+        client.approval_presence(&retire.id).unwrap(),
+        Some((Ask::Hardware(_, true), _))
+    ));
+    client.authorized = Some(hardware.authorize(&what, false).unwrap());
+    for command in [replace.clone(), remove] {
+        assert_eq!(
+            client.prepare_mutation(&state, command, None),
+            Err(Error::IntegrityFailed)
+        );
+    }
+
+    // A usable old key still signs required replacements and the first
+    // activation of the policy; the exception is only key maintenance while off.
+    software.lost_handle.store(0, SeqCst);
+    fingerprints.state.store(0, SeqCst);
+    client.authorized = Some(hardware.authorize(&what, false).unwrap());
+    let protected = client.prepare_mutation(&state, replace, None).unwrap();
+    assert_eq!(protected.approval.hardware.unwrap().key_id, old.key_id);
+    state.info.hardware_policy.clear();
+    let enabling = client
+        .prepare_mutation(
+            &state,
+            AccountCommand::SetHardwarePolicy {
+                purposes: dmsg_types::user::CONTROL_PURPOSES.to_vec(),
+            },
+            None,
+        )
+        .unwrap();
+    assert_eq!(enabling.approval.hardware.unwrap().key_id, old.key_id);
+}
+
+#[test]
+fn member_devices_can_only_manage_their_own_approval_key() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let (client, key) = client(&dir, &software, None);
+    let device_id = client.workspace.meta.device_id;
+    let mut info = info(&client, None, &[]);
+    let own = info.devices.get_mut(&device_id).unwrap();
+    own.input.role = ControllerRole::Member;
+    own.input.capabilities = vec![Capability::VaultUnlock];
+    let proof = client
+        .approval_sign(
+            &key,
+            "approval_key",
+            &approval_key_message(account().home, &account().id, device_id, &key.public_key),
+        )
+        .unwrap();
+    let key = ApprovalKeyInput {
+        public_key: key.public_key,
+        proof,
+    };
+    let mut state = state(info);
+    for key in [Some(key), None] {
+        let command = AccountCommand::SetApprovalKey {
+            device_id,
+            key: key.clone(),
+        };
+        assert!(
+            client
+                .prepare_mutation(&state, command.clone(), None)
+                .is_ok()
+        );
+        assert_eq!(
+            client.prepare_mutation(
+                &state,
+                AccountCommand::SetApprovalKey {
+                    device_id: Hash::new([7; 32]),
+                    key
+                },
+                None,
+            ),
+            Err(Error::Forbidden)
+        );
+        // Revocation still prevents self-management.
+        state
+            .security
+            .devices
+            .get_mut(&device_id)
+            .unwrap()
+            .revoked_at = Some(now_ms());
+        assert_eq!(
+            client.prepare_mutation(&state, command, None),
+            Err(Error::DeviceNotApproved)
+        );
+        state
+            .security
+            .devices
+            .get_mut(&device_id)
+            .unwrap()
+            .revoked_at = None;
+    }
+    for command in [
+        AccountCommand::SetRecoveryDelay {
+            delay_ms: dmsg_types::DAY,
+        },
+        AccountCommand::SetHardwarePolicy { purposes: vec![] },
+    ] {
+        assert_eq!(
+            client.prepare_mutation(&state, command, None),
+            Err(Error::Forbidden)
+        );
+    }
+    assert!(
+        client
+            .prepare_mutation(
+                &state,
+                AccountCommand::DisputeRecovery {
+                    op_id: Hash::new([8; 32])
+                },
+                None,
+            )
+            .is_ok()
+    );
+    // Owning the device does not waive an enabled hardware policy.
+    state.info.hardware_policy = dmsg_types::user::CONTROL_PURPOSES.to_vec();
+    assert_eq!(
+        client.prepare_mutation(
+            &state,
+            AccountCommand::SetApprovalKey {
+                device_id,
+                key: None
+            },
+            None,
+        ),
+        Err(Error::InvalidInput(APPROVAL_KEY_REQUIRED.into()))
+    );
 }
 
 #[test]
@@ -364,11 +617,26 @@ fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
     let payment = Some(HardwarePurpose::Payment);
     // Without its keyboard the key is only unavailable now.
     software.away.store(true, SeqCst);
+    fingerprints.away.store(true, SeqCst);
+    assert!(fingerprints.biometry_state().is_none());
     assert!(matches!(
         client.hardware_proof(&required, payment, message),
         Err(Error::Unavailable(_))
     ));
-    fingerprints.0.store(1, SeqCst);
+    let view = client.approval_key_view(&required).unwrap();
+    assert_eq!(view["key"]["fingerprints_changed"], false);
+    assert_eq!(view["biometry"], false);
+    // Reconnecting the same keyboard restores use without replacing the key.
+    fingerprints.away.store(false, SeqCst);
+    software.away.store(false, SeqCst);
+    assert!(
+        client
+            .hardware_proof(&required, payment, message)
+            .unwrap()
+            .is_some()
+    );
+    software.away.store(true, SeqCst);
+    fingerprints.state.store(1, SeqCst);
     assert_eq!(
         client.hardware_proof(&required, payment, message),
         Err(Error::IntegrityFailed)

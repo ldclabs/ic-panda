@@ -181,9 +181,8 @@ impl PresenceKey for Hardware {
     }
 
     fn biometry_state(&self) -> Option<Hash> {
-        Some(Hash::new(
-            [self.fingerprints.load(std::sync::atomic::Ordering::SeqCst); 32],
-        ))
+        use std::sync::atomic::Ordering::SeqCst;
+        (!self.away.load(SeqCst)).then(|| Hash::new([self.fingerprints.load(SeqCst); 32]))
     }
 
     fn confirm(&self, _what: &str) -> Result<()> {
@@ -594,25 +593,31 @@ async fn a_fingerprint_only_slot_is_lost_once_the_fingerprints_change() {
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
     client.set_presence_key(hardware.clone());
     bind_offline(&mut client, &hardware, &storage, true);
+    let name = client.bound_name().unwrap();
+    let slot = storage.get(&name).unwrap().unwrap();
     client.lock();
     // Without its Touch ID keyboard the key is only unavailable now.
     hardware.away.store(true, SeqCst);
+    assert!(hardware.biometry_state().is_none());
     assert!(matches!(
         client.unlock_fast().await,
         Err(Error::Unavailable(_))
     ));
+    assert_eq!(storage.get(&name).unwrap().unwrap(), slot);
+    assert!(client.status().unwrap().fast_unlock);
+    assert!(client.workspace.bound().unwrap());
+    // Reconnecting restores fast unlock with the original slot.
+    hardware.away.store(false, SeqCst);
+    assert_eq!(client.unlock_fast().await.unwrap().state, "unlocked");
+    client.lock();
     // Other fingerprints: the key is gone for good, and still nothing
     // is deleted.
     hardware.fingerprints.store(1, SeqCst);
+    hardware.forgot.store(true, SeqCst);
     assert_eq!(
         client.unlock_fast().await.err(),
         Some(Error::IntegrityFailed)
     );
-    assert!(
-        storage
-            .get(&client.bound_name().unwrap())
-            .unwrap()
-            .is_some()
-    );
+    assert_eq!(storage.get(&name).unwrap().unwrap(), slot);
     assert!(client.workspace.bound().unwrap());
 }

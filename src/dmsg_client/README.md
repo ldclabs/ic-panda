@@ -225,6 +225,14 @@ answer. Once keys are required, a device without a working one makes a key,
 proves it right away (`key_request`) and hands the token to an administrator
 device with a key (`approve_request`).
 
+Any active device can register, replace or retire its own approval key;
+managing another device's key needs an administrator with `RootManage`.
+While the hardware policy is off, key maintenance does not sign with the
+old registered key, so a lost key can be replaced or retired. A new key
+still proves possession, and retirement or registering another device's
+key uses ordinary presence confirmation. Once the policy is on, these
+changes require the registered key's proof as usual.
+
 On a device whose key the account registered, the person answers a
 protected or high-risk request through the key instead of the presence
 check (`approval::Ask::Hardware`): the daemon asks first, without holding the
@@ -236,7 +244,9 @@ it reads and signs. A required approval on a device without its key fails
 with `APPROVAL_KEY_REQUIRED` before anything is sent; nothing falls back to a
 software key. A fingerprint-only key that fails after the fingerprints
 changed is reported lost (`INTEGRITY_FAILED`), and one that cannot ask now
-(no Touch ID keyboard) unavailable.
+(no Touch ID keyboard) unavailable. An unreadable fingerprint state is
+unknown, not evidence that the fingerprints changed; device-bound unlock
+follows the same rule and keeps its hardware slot.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

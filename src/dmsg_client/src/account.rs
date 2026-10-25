@@ -23,7 +23,7 @@ use dmsg_types::{
     AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
     user::{
         AccountCommand, AccountInfo, AccountMutation, ControllerRole, CreateAccount, Device,
-        OperationReceipt, SecuritySnapshot, UserInit,
+        HardwarePurpose, OperationReceipt, SecuritySnapshot, UserInit,
     },
 };
 use futures_util::future::{join, join3, try_join_all};
@@ -779,12 +779,14 @@ impl Client {
         Ok(zeroize::Zeroizing::new(*secret?))
     }
 
-    /// Apply a device-approved mutation with this administrator device.
+    /// Apply a device-approved mutation. An active device can dispute a
+    /// recovery or manage its own approval key; other changes need an
+    /// administrator with RootManage.
     /// `fixed` carries the request ID and version a pairing request bound.
     ///
     /// # Errors
     /// Returns `Error::Pending` while an earlier update is unsettled and
-    /// `Error::Forbidden` for a device without administrator rights.
+    /// `Error::Forbidden` for a device without the required rights.
     pub async fn mutate(
         &mut self,
         command: AccountCommand,
@@ -793,9 +795,38 @@ impl Client {
         ensure(self.pending()?.is_none(), Error::Pending)?;
         let account = self.account()?.clone();
         let state = self.refresh(account.home, &account.id).await?;
+        let mutation = self.prepare_mutation(&state, command, fixed)?;
+        let journal = Journal {
+            home: account.home,
+            caller: self.session()?.principal,
+            account: Some(account.id),
+            request: Request::Mutate(mutation),
+            stage: Stage::Prepared,
+        };
+        self.save_journal(&journal)?;
+        self.dispatch(journal).await?;
+        self.refresh(account.home, &account.id).await
+    }
+
+    /// Check device rights and sign the mutation against freshly read
+    /// account state, before journaling and sending it.
+    pub(crate) fn prepare_mutation(
+        &self,
+        state: &AccountState,
+        command: AccountCommand,
+        fixed: Option<(Hash, u64)>,
+    ) -> Result<AccountMutation> {
+        let account = self.account()?;
         let device = state.active(&self.workspace.meta.device_id)?;
+        let anyone = match &command {
+            AccountCommand::DisputeRecovery { .. } => true,
+            AccountCommand::SetApprovalKey { device_id, .. } => {
+                *device_id == self.workspace.meta.device_id
+            }
+            _ => false,
+        };
         ensure(
-            matches!(command, AccountCommand::DisputeRecovery { .. })
+            anyone
                 || (device.input.role == ControllerRole::Administrator
                     && device
                         .input
@@ -836,18 +867,21 @@ impl Client {
         );
         mutation.approval.signature =
             Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
-        mutation.approval.hardware =
-            self.hardware_proof(&state.info, command_purpose(&mutation.command), message)?;
-        let journal = Journal {
-            home: account.home,
-            caller: self.session()?.principal,
-            account: Some(account.id),
-            request: Request::Mutate(mutation),
-            stage: Stage::Prepared,
+        let purpose = match &mutation.command {
+            // With the policy off, a lost key must not prevent its own
+            // replacement or retirement. A new key still proves possession.
+            AccountCommand::SetApprovalKey { .. }
+                if !state
+                    .info
+                    .hardware_policy
+                    .contains(&HardwarePurpose::AccountControl) =>
+            {
+                None
+            }
+            command => command_purpose(command),
         };
-        self.save_journal(&journal)?;
-        self.dispatch(journal).await?;
-        self.refresh(account.home, &account.id).await
+        mutation.approval.hardware = self.hardware_proof(&state.info, purpose, message)?;
+        Ok(mutation)
     }
 
     /// A pairing request for the login's account, signed by this provisional
