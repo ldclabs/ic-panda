@@ -511,3 +511,40 @@ the credential ID, controller generation, scopes, audiences and expiry remain
 unchanged, and signing rechecks current device/controller authority. A restart
 cannot reset the retry budget. Network failures and 5xx/408/429 responses still
 replay the exact signed envelope; other refusals require a new approval.
+
+## Local display cache
+
+`display` owns the three fixed sealed records `profile-display`,
+`profile-avatar`, and `public-names`. Published directory timestamps order
+profile/name observations; failed authentication does not create an absence.
+Publication confirmation writes the display projection in the same client step.
+The avatar is returned only for the current published URL. The name map is
+bounded to 2048 observations and evicts the oldest successful observation.
+
+`cache` owns the reconstructible domain snapshots. Singleton names are fixed;
+resource IDs use HMAC with an LDK-derived purpose key. Encrypted headers bind
+snapshots to their actual home, trust root and configured service, without
+invalidating all snapshots when the home shard list grows. Personalized and
+wallet-endpoint-dependent views include their relevant source context.
+JSON projections are stored as sealed 512 KiB byte pages with a whole-snapshot
+digest, atomically with their header. Each snapshot is at most 16 MiB; each domain
+is bounded to 32 MiB of sealed records and 4096 records. Old successful
+observations are evicted first; reads do not write access timestamps.
+Wallet history, asset metadata, Inbox policy and cloud inventory use this same
+store. Unsupported old display formats are discarded, never migrated by
+resetting a workspace. Missing/corrupt pages are a miss rather than a partial
+success. A failed replacement keeps the prior complete snapshot.
+
+These types are display data, never authorization evidence. `Scoped` checks the
+captured account, unlock generation and invalidation generation at each local
+step. A cache clear cannot erase journals, outbox, roots, device credentials,
+wallet audit verification checkpoints, protocol pins or user content. Offline
+access still depends on existing unlock eligibility; no offline write queue or
+new recovery capability is introduced.
+
+Native snapshot producers use `cache_scope`/`cache_save_checked` across network
+waits as well as the daemon's `Scoped` wrapper. Invalidation fences pending
+writes even when disk cleanup fails. Capacity uses exact SQLite counts and byte
+sums rather than the first inventory page. Avatar downloads bind both URL and
+publication version, so changing away from a URL and back cannot accept an older
+in-flight image as the new publication.

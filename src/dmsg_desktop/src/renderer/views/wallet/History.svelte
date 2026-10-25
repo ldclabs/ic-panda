@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../../display.svelte'
+  import DisplayNotice from '../../components/DisplayNotice.svelte'
   import Field from '../../components/page/Field.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -39,14 +41,14 @@
       )
     })
   )
-  async function load() {
+  async function load(mode: Mode = 'swr') {
     const seq = ++generation
     busy = true
     error = ''
     complete = false
     try {
       const [history, local] = await Promise.all([
-        call<any>('wallet/history', { wallet: wallet.wallet }),
+        display<any>('wallet/history', { wallet: wallet.wallet }, mode),
         call<Record<string, string>>('wallet/notes', { wallet: wallet.wallet })
       ])
       if (alive && seq === generation) {
@@ -85,11 +87,12 @@
     wallet
     untrack(() => void load())
   })
-  onMount(() => () => {
-    alive = false
-    generation++
+  onMount(() => {
+    const stop = watchDisplays(['history'], load)
+    return () => { alive = false; generation++; stop() }
   })
 </script>
+<DisplayNotice methods={['wallet/history']} />
 
 <section class="grid gap-4" data-testid="wallet-history" aria-busy={busy}>
   <p class="text-muted text-[12px]">{w('historyCoverage')}</p>
@@ -98,7 +101,7 @@
     <Field label={w('fromDate')}><input type="date" bind:value={from} /></Field>
     <Field label={w('toDate')}><input type="date" bind:value={to} /></Field>
   </div>
-  {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={load}>{w('retry')}</button></Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={() => load()}>{w('retry')}</button></Notice>{/if}
   <div class="flex flex-wrap items-center justify-between gap-3"
     ><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : `${shown.length}`}</p><button
       class={buttonClass('secondary', 'sm')}

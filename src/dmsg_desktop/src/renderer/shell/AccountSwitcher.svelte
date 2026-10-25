@@ -7,7 +7,7 @@
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call, onChange } from '../rpc'
-  import { nameOf } from '../views/channels/names.svelte'
+  import { nameOf, refreshNames } from '../views/channels/names.svelte'
   import { startLogin } from './login.svelte'
   import { logout, shortId, switchAccount, unlocking } from './session'
 
@@ -36,20 +36,23 @@
     return () => { profileRead++ }
   })
 
-  onMount(() => onChange(['profile/changed'], () => {
-    if (unlockedAccount) void showProfile(unlockedAccount)
-  }))
+  onMount(() => {
+    const reread = () => {
+      if (unlockedAccount && !document.hidden && !document.body.inert) { void showProfile(unlockedAccount); refreshNames() }
+    }
+    const off = onChange(['profile/changed'], () => { if (unlockedAccount) void showProfile(unlockedAccount) })
+    const timer = setInterval(reread, 60_000)
+    window.addEventListener('focus', reread)
+    return () => { off(); clearInterval(timer); window.removeEventListener('focus', reread) }
+  })
 
   async function showProfile(id: string) {
     const read = ++profileRead
     const current = () => read === profileRead && unlockedAccount === id
-    const published: any = await call('profile/show').catch(() => null)
+    const published: any = await call('profile/display').catch(() => null)
     if (!published || !current()) return
     name = published.name ?? ''
-    avatar = null
-    if (!published.avatar_url) return
-    const image: any = await call('profile/avatar_image', { avatar_url: published.avatar_url }).catch(() => null)
-    if (current()) avatar = image?.url ?? null
+    avatar = published.avatar?.url ?? null
   }
 
   // Arrow keys move through the menu once its content has focus.
@@ -102,7 +105,7 @@
       <DropdownMenu.Group>
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
-          {@const accountName = (a.account === unlockedAccount && name) || nameOf(a.account)}
+          {@const accountName = (a.account === unlockedAccount && name) || (unlockedAccount ? nameOf(a.account) : null)}
           <DropdownMenu.Item
             class={cn(menuItemClass, 'data-disabled:cursor-default data-disabled:opacity-100')}
             disabled={a.current}

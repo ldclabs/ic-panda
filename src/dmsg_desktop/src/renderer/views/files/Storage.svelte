@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../../display.svelte'
+  import DisplayNotice from '../../components/DisplayNotice.svelte'
   import Icon from '../../components/Icon.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
@@ -37,15 +39,11 @@
   const phases: Record<string, Label> = { stored:'storageStored', staging:'storageUploading', unpublished:'storageUnpublished', deleting:'storageDeleting', retrying:'storageRetrying', releasing:'storageReleasing', released:'storageReleased', cancelling:'storageCancelling' }
   const kinds: Record<string, Label> = { backup:'cloudBackups', share:'shareLinks', file:'storageAttachments', avatar:'avatar', history:'storageHistory', restricted:'storageRestricted', root:'storageRecovery', envelopes:'storageRecovery', vault:'vault' }
   const label = (e: any) => t(phases[e.phase] ?? 'storageStored')
-  async function refresh() {
+  async function refresh(mode: Mode = 'swr') {
     if (busy || !unlocked) return
     busy = true; error = ''
     const current = ++revision
-    // The last verified inventory is useful immediately while the relay refreshes it.
-    if (!report) void call('files/storage').then((cached) => {
-      if (unlocked && current === revision && !report && cached?.loaded) report = cached
-    }).catch(() => {})
-    try { const next = await call('files/storage_refresh'); if (unlocked && current === revision) report = next }
+    try { const next = await display('files/storage', {}, mode); if (unlocked && current === revision) report = next }
     catch (e) { if (current === revision) error = errorText(e) }
     finally { if (current === revision) busy = false }
   }
@@ -63,16 +61,18 @@
     await refresh()
   }
   onMount(() => {
+    const stop = watchDisplays(['storage'], refresh, 300_000)
     void refresh()
     // Only an open view with accepted cleanup work refreshes; no background permanent poll.
     const timer = setInterval(() => { if (pending && !document.hidden) void refresh() }, 10000)
-    return () => clearInterval(timer)
+    return () => { stop(); clearInterval(timer) }
   })
 </script>
+<DisplayNotice methods={['files/storage']} />
 <section class="flex h-full min-w-0 flex-col" data-testid="files-storage">
   <header class="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
     <div class="min-w-0 flex-1"><h2 class="text-[15px] font-semibold">{t(linksOnly ? 'shareLinks' : 'storageTitle')}</h2><p class="mt-0.5 text-[12px] text-faint">{t('storageSubtitle')}</p></div>
-    <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={refresh} data-testid="storage-refresh"><Icon name="sync" />{t('storageRefresh')}</button>
+    <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={() => refresh('fresh')} data-testid="storage-refresh"><Icon name="sync" />{t('storageRefresh')}</button>
   </header>
   <div class="min-h-0 flex-1 overflow-y-auto p-5">
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}

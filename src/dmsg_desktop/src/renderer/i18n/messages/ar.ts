@@ -14,6 +14,12 @@ export default {
     secretPolicy: "تغيير سياسة الاعتماد",
     secretUse: "إنشاء مسألة GitHub",
 
+    displayCache: "ذاكرة العرض المؤقتة",
+    displayCacheHint: "بيانات مشفرة يمكن تنزيلها مجددًا. يحتفظ المسح بالمحتوى والمسودات والعمليات المعلقة وسجلات الأمان. الحجم هو حجم السجلات المخزنة.",
+    clearDisplayCache: "مسح ذاكرة العرض المؤقتة",
+    cachedDisplay: "عرض آخر بيانات محفوظة",
+    daemonDisconnected: "جارٍ الاتصال بخدمة dMsg المحلية…",
+    loadingCachedDisplay: "جارٍ تحميل البيانات المحفوظة…",
     localStorageUnavailable: "تعذرت قراءة البيانات المحلية أو حفظها. تحقق من مساحة القرص وأذونات الوصول.",
     networkReconnecting: "جارٍ إعادة الاتصال… لا يزال المحتوى الحالي متاحًا.",
     networkUnavailable: "يتعذر التحديث مؤقتًا. سنعيد المحاولة تلقائيًا.",

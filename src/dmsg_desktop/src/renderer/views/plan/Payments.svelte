@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../../display.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -110,9 +111,9 @@
     const next = await call('payer/status')
     if (alive) payer = next
   }))
-  const readCatalog = single(() => part('catalog', async () => {
-    if (catalog || !alive) return
-    const next = await call('plan/catalog')
+  const readCatalog = single((mode: Mode = 'swr') => part('catalog', async () => {
+    if (!alive) return
+    const next = await display('plan/catalog', {}, mode)
     if (alive) catalog = next
   }))
 
@@ -182,6 +183,7 @@
     })
 
   onMount(() => {
+    const stop = watchDisplays(['catalog'], (mode) => readCatalog(mode))
     void reload()
     const off = onChange(['approval/changed', 'session/changed'], reload)
     const timer = setInterval(() => {
@@ -191,6 +193,7 @@
     return () => {
       alive = false
       off()
+      stop()
       clearInterval(timer)
     }
   })

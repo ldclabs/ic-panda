@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../display.svelte'
+  import DisplayNotice from '../components/DisplayNotice.svelte'
   import Icon from '../components/Icon.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Page from '../components/page/Page.svelte'
@@ -78,7 +80,7 @@
     auditBusy = $state(false)
   let balanceRevision = 0,
     bookRevision = 0
-  let readCore: () => Promise<void> = async () => {}
+  let readCore: (mode?: Mode) => Promise<void> = async () => {}
   let readAssets: () => Promise<void> = async () => {}
   let reloadBook: () => Promise<void> = async () => {}
   let assetsKey = '',
@@ -244,7 +246,7 @@
     go(walletRoute(id))
     void open(id)
   }
-  function open(id: string) {
+  function open(id: string, mode: Mode = 'swr') {
     if (id !== selected) {
       const run = scope.next()
       epoch = run
@@ -270,10 +272,10 @@
       transferOpen = false
       receive = null
       access = false
-      readCore = single(async () => {
+      readCore = single(async (mode: Mode = 'swr') => {
         if (!fresh(run)) return
         try {
-          const shown = await call<Wallet>('wallet/show', { wallet: id })
+          const shown = await display<Wallet>('wallet/show', { wallet: id }, mode)
           if (!fresh(run)) return
           if (wallet?.audit_head !== shown.audit_head) {
             audit = null
@@ -307,7 +309,7 @@
         if (fresh(run) && needsExtras) await readBook()
       })
     }
-    return readCore()
+    return readCore(mode)
   }
   $effect(() => {
     const key = extrasKey
@@ -325,7 +327,7 @@
         }
       })
   })
-  async function readQueue() {
+  async function readQueue(mode: Mode = 'swr') {
     const run = epoch,
       id = selected,
       head = wallet?.audit_head,
@@ -333,7 +335,7 @@
     queueBusy = true
     queueError = ''
     try {
-      const result: any = await call('wallet/queue', { wallet: id })
+      const result: any = await display('wallet/queue', { wallet: id }, mode)
       if (fresh(run) && revision === queueRevision && wallet?.audit_head === head) tasks = result.proposals
     } catch (e) {
       if (fresh(run) && revision === queueRevision) queueError = errorText(e)
@@ -376,7 +378,7 @@
       void reloadBook()
     }
   }
-  async function readBalances() {
+  async function readBalances(mode: Mode = 'swr') {
     if (balanceBusy) return
     const revision = ++balanceRevision
     const run = epoch,
@@ -384,7 +386,7 @@
     balanceBusy = true
     balanceError = ''
     try {
-      const result = await call('wallet/balances', { wallet: id })
+      const result = await display('wallet/balances', { wallet: id }, mode)
       if (fresh(run) && selected === id && revision === balanceRevision) balances = result
     } catch (e) {
       if (fresh(run) && revision === balanceRevision) balanceError = errorText(e)
@@ -537,6 +539,10 @@
     }
   }
   onMount(() => {
+    const stopDisplays = watchDisplays(['wallet', 'history', 'balances'], (mode) => {
+      if (!unlocked || !selected || busy) return
+      return Promise.all([open(selected, mode), readQueue(mode), ...(needsExtras ? [readBalances(mode)] : [])])
+    }, 30_000)
     const off = window.dmsg.onEvent((event) => {
       if (!unlocked || !['resync', 'wallet/changed', 'approval/changed', 'channel/changed'].includes(event.type)) return
       void readPending()
@@ -569,6 +575,7 @@
     }, 30_000)
     return () => {
       active = false
+      stopDisplays()
       scope.clear()
       listEpoch++
       off()
@@ -581,6 +588,7 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col" data-testid="wallet-view">
+  <DisplayNotice methods={['wallet/show', 'wallet/queue', 'wallet/balances']} />
   {#if unlocked && wallet}
     <div class="flex flex-wrap items-center gap-3 px-8 py-3">
       <div class="min-w-[min(100%,15rem)] flex-1" data-testid="wallet-list"
@@ -696,7 +704,7 @@
               {balances}
               busy={balanceBusy}
               error={balanceError}
-              onRefresh={readBalances}
+              onRefresh={() => readBalances()}
               onReceive={(address, chain_id) => run('wallet/receive', { address, chain_id })}
               onSend={startTransfer}
             />
@@ -709,7 +717,7 @@
                   }}>{w('waiting')} · {queueBusy || queueError ? '—' : waiting}</button
                 >{/snippet}
               {#if queueError}<Notice failure={queueError} tone="danger"
-                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
+                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={() => readQueue()}>{w('retry')}</button></Notice
                 >{/if}
               {#if queueBusy}<p class="px-5 py-3 text-muted text-[12px]" role="status">{w('queueLoading')}</p>{/if}
               {#each tasks.filter((p) => queueKind(p, wallet!, now) !== 'history').slice(0, 5) as p (p.id)}
@@ -753,7 +761,7 @@
                 ></div
               >
               {#if queueError}<Notice failure={queueError} tone="danger"
-                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
+                  >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={() => readQueue()}>{w('retry')}</button></Notice
                 >{/if}
               <Section title={w('proposals')} icon="approvals" flush testid="wallet-proposals">
                 {#each shown as p (p.id)}<div
@@ -783,12 +791,12 @@
               {balances}
               busy={balanceBusy}
               error={balanceError}
-              onRefresh={readBalances}
+              onRefresh={() => readBalances()}
               onReceive={(address, chain_id) => run('wallet/receive', { address, chain_id })}
               onSend={startTransfer}
             />
             <Section title={w('addressManagement')} icon="wallet" flush testid="wallet-addresses">
-              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable || balanceBusy} onclick={readBalances}
+              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable || balanceBusy} onclick={() => readBalances()}
                   >{t('twBalances')}</button
                 >{#if mayPropose}<button
                     class={buttonClass('primary', 'sm')}

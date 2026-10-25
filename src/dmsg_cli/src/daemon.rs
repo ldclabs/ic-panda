@@ -90,7 +90,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 53] = [
+const METHODS: [&str; 56] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -108,6 +108,9 @@ const METHODS: [&str; 53] = [
     "sync/run",
     "sync/status",
     "profile/show",
+    "profile/display",
+    "cache/status",
+    "cache/clear",
     "profile/pending",
     "profile/publish",
     "profile/retry",
@@ -269,6 +272,8 @@ pub(crate) struct Daemon {
     /// What operations waiting on the network without the client take
     /// turns on.
     turns: crate::held::Turns,
+    pub(crate) display: crate::display::Display,
+    pub(crate) snapshots: crate::snapshots::Snapshots,
 }
 
 /// Who presented a credential.
@@ -354,6 +359,8 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(background(daemon.clone()));
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
+    tokio::spawn(crate::display::run(daemon.clone()));
+    tokio::spawn(crate::snapshots::run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
     tokio::spawn(crate::mail_push::run(daemon.clone()));
@@ -642,6 +649,8 @@ impl Daemon {
             channel_hints,
             channel_hinted: std::sync::Mutex::new(Some(channel_hinted)),
             turns: Default::default(),
+            display: Default::default(),
+            snapshots: Default::default(),
         }
     }
 
@@ -678,6 +687,8 @@ impl Daemon {
     /// Publish an event to every WebSocket client.
     pub(crate) fn emit(&self, kind: &str, data: Value) {
         if kind == "session/changed" {
+            self.display.clear();
+            self.snapshots.clear();
             self.hints_changed.notify_one();
         }
         if matches!(
@@ -1002,8 +1013,12 @@ impl Daemon {
     }
 
     async fn status(&self) -> Result<Value> {
-        let status = self.client.lock().await.status()?;
+        let client = self.client.lock().await;
+        let status = client.status()?;
+        let session = format!("{}:{}", self.instance, client.session_generation());
+        drop(client);
         let mut value = serde_json::to_value(status).expect("status serializes");
+        value["session"] = session.into();
         value["version"] = env!("CARGO_PKG_VERSION").into();
         value["instance"] = self.instance.clone().into();
         value["port"] = self.port.into();
@@ -1042,7 +1057,26 @@ impl Daemon {
 
     /// Run one of the owner's methods.
     async fn call(&self, module: Module, method: &str, params: &Value) -> Result<Value> {
-        match module {
+        if crate::snapshots::supports(method) && params.get("mode").is_some() {
+            return self.snapshot(method, params).await;
+        }
+        let plan_refresh = method == "plan/status" && params["refresh"].as_bool().unwrap_or(true);
+        let cache_session = if !crate::snapshots::invalidates(method).is_empty() || plan_refresh {
+            self.hold()
+                .with(|c| {
+                    if c.display_session().is_err() {
+                        return Ok(None);
+                    }
+                    if plan_refresh {
+                        c.cache_invalidate(&[dmsg_client::cache::Kind::Plan])?;
+                    }
+                    Ok(Some(c.display_session()?))
+                })
+                .await?
+        } else {
+            None
+        };
+        let result = match module {
             Module::Daemon => self.call_daemon(method, params).await,
             Module::More => self.call_more(method, params).await,
             Module::Account => self.call_account(method, params).await,
@@ -1056,7 +1090,32 @@ impl Daemon {
             Module::Secrets => self.call_secrets(method, params).await,
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Err(Error::Forbidden),
+        };
+        if let (Ok(data), Some(session)) = (&result, cache_session) {
+            let saved = self
+                .hold()
+                .with(|c| {
+                    c.check_display_session(session)?;
+                    if plan_refresh {
+                        c.cache_invalidate(&[dmsg_client::cache::Kind::Plan])?;
+                        c.cache_save(dmsg_client::cache::Kind::Plan, "", data, now_ms())?;
+                        self.emit("cache/changed", json!({"kind":"plan"}));
+                    } else if !crate::snapshots::invalidates(method).is_empty() {
+                        c.cache_invalidate(crate::snapshots::invalidates(method))?;
+                        self.display.clear();
+                        self.snapshots.clear();
+                        for kind in crate::snapshots::invalidates(method) {
+                            self.emit("cache/changed", json!({"kind":kind.name()}));
+                        }
+                    }
+                    Ok(())
+                })
+                .await;
+            if let Err(error) = saved {
+                dmsg_client::diagnostic::Diagnostic::error(&error).emit();
+            }
         }
+        result
     }
 
     /// Run one of [`METHODS`].
@@ -1247,6 +1306,17 @@ impl Daemon {
                     "syncing": self.syncing.load(Ordering::Relaxed) || self.sync_requested.load(Ordering::Relaxed),
                 }))
             }
+            "cache/status" => self.hold().with(|c| c.cache_status()).await,
+            "cache/clear" => {
+                self.hold().with(|c| c.cache_clear()).await?;
+                self.display.clear();
+                self.snapshots.clear();
+                self.emit("profile/changed", Value::Null);
+                self.emit("names/changed", Value::Null);
+                self.emit("cache/changed", json!({"kind":"all"}));
+                Ok(Value::Null)
+            }
+            "profile/display" => self.profile_display().await,
             "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
             "profile/pending" => Ok(json!(self.hold().with(|c| c.document_pending()).await?)),
             "profile/publish" => {
@@ -1312,7 +1382,13 @@ impl Daemon {
             }
             "profile/avatar_image" => {
                 let url = text(params, "avatar_url")?;
-                let image = profile::avatar(&self.hold(), &url).await?;
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
+                if let Some(cached) = h.with(|c| c.profile_avatar(&url)).await? {
+                    return Ok(crate::display::image(&cached.mime, &cached.bytes));
+                }
+                let image = profile::avatar(&h, &url).await?;
+                h.with(|_| Ok(())).await?;
                 // A data URL the desktop shows without fetching anything.
                 Ok(image.map_or(Value::Null, |(mime, bytes)| {
                     let data = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -1986,6 +2062,10 @@ async fn blocking<T: Send + 'static>(
         .await
         .map_err(|e| Error::Unavailable(format!("file worker: {e}")))?
 }
+
+#[cfg(test)]
+#[path = "display_tests.rs"]
+mod display_tests;
 
 #[cfg(test)]
 mod tests {
@@ -2699,12 +2779,13 @@ mod tests {
             async move { daemon.call_more("channel/preview", &params).await }
         });
         answers_beside(&daemon, &relay, work).await;
-        // Display names: the user homes certify the accounts' devices.
+        // Names return local data immediately; only the background worker waits.
         let params = json!({"accounts": [account]});
-        let work = tokio::spawn({
-            let daemon = daemon.clone();
-            async move { daemon.call_more("channel/names", &params).await }
-        });
+        let work = tokio::spawn(crate::display::run(daemon.clone()));
+        assert_eq!(
+            daemon.call_more("channel/names", &params).await.unwrap(),
+            json!({})
+        );
         answers_beside(&daemon, &ic, work).await;
         // How far the members took and read the messages: a signed relay read.
         let params = json!({"id": channel});

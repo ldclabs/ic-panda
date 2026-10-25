@@ -2686,6 +2686,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha2 0.11.1",
+ "tokio",
  "tungstenite",
 ]
 

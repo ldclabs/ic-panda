@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { display, watchDisplays, type Mode } from '../../display.svelte'
   import { onMount, untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
   import Collapsible from '../../components/Collapsible.svelte'
@@ -84,9 +85,9 @@
     now = Date.now()
     void refreshOperations()
   }))
-  const readMine = single(() => part('mine', async () => {
+  const readMine = single((mode: Mode = 'swr') => part('mine', async () => {
     if (!alive) return
-    const next = await call('handle/mine')
+    const next = await display('handle/mine', {}, mode)
     if (alive) mine = next
   }))
   const readPayer = single(() => part('payer', async () => {
@@ -200,6 +201,7 @@
   })
 
   onMount(() => {
+    const stop = watchDisplays(['handles'], (mode) => readMine(mode))
     void reload()
     const off = onChange(['approval/changed', 'session/changed'], reload)
     const timer = setInterval(() => {
@@ -209,6 +211,7 @@
     return () => {
       alive = false
       off()
+      stop()
       clearInterval(timer)
     }
   })

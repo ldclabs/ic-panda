@@ -28,12 +28,12 @@ export function reasonOf(error: unknown): string {
  * business operation to duplicate. Only reads recover in the background, so
  * a write whose own reads failed asks to be tried again, not to be waited for.
  */
-function settled(method: string, code: string): string {
-  if (isRead(method)) return code === 'EXECUTION_UNKNOWN' ? 'NETWORK_UNAVAILABLE' : code
+function settled(read: boolean, code: string): string {
+  if (read) return code === 'EXECUTION_UNKNOWN' ? 'NETWORK_UNAVAILABLE' : code
   return code === 'NETWORK_UNAVAILABLE' ? 'UNAVAILABLE' : code
 }
 
-type Waiting = { method: string; resolve(value: unknown): void; reject(error: Error): void; timer?: NodeJS.Timeout }
+type Waiting = { method: string; read: boolean; resolve(value: unknown): void; reject(error: Error): void; timer?: NodeJS.Timeout }
 
 /**
  * Library work that lasts as long as its bytes: a folder imported, a file
@@ -126,7 +126,7 @@ export class Daemon extends EventEmitter {
     this.recovery.reset()
     for (const [, w] of this.waiting) {
       clearTimeout(w.timer)
-      w.reject(new DaemonError(isRead(w.method) ? 'NETWORK_UNAVAILABLE' : 'EXECUTION_UNKNOWN', 'daemon connection lost'))
+      w.reject(new DaemonError(w.read ? 'DAEMON_DISCONNECTED' : 'EXECUTION_UNKNOWN', 'daemon connection lost'))
     }
     this.waiting.clear()
     if (was || changed) this.emit('state')
@@ -151,7 +151,7 @@ export class Daemon extends EventEmitter {
         for (const [id, waiting] of this.waiting) {
           // Login completion and socket initialization describe the daemon,
           // not account content; an unlock is expected while they run.
-          if (isRead(waiting.method) && !['session/login_result', 'app/initialize'].includes(waiting.method)) {
+          if (waiting.read && !['session/login_result', 'app/initialize'].includes(waiting.method)) {
             clearTimeout(waiting.timer)
             this.waiting.delete(id)
             waiting.reject(new DaemonError('LOCKED', 'session changed'))
@@ -165,7 +165,7 @@ export class Daemon extends EventEmitter {
     if (!waiting) return
     this.waiting.delete(message.id!)
     clearTimeout(waiting.timer)
-    if (message.error) waiting.reject(new DaemonError(settled(waiting.method, message.error.data?.code ?? 'UNAVAILABLE'), message.error.message))
+    if (message.error) waiting.reject(new DaemonError(settled(waiting.read, message.error.data?.code ?? 'UNAVAILABLE'), message.error.message))
     else waiting.resolve(message.result)
   }
 
@@ -190,16 +190,19 @@ export class Daemon extends EventEmitter {
    * its daemon journal remains responsible for reconciliation. */
   private requestOnce(method: string, params: unknown = null): Promise<unknown> {
     const socket = this.socket
-    if (!socket || !this.connected) return Promise.reject(new DaemonError(settled(method, 'NETWORK_UNAVAILABLE'), 'daemon disconnected'))
+    if (!socket || !this.connected) return Promise.reject(new DaemonError('DAEMON_DISCONNECTED', 'daemon disconnected'))
     const id = ++this.next
+    // Keep only classification while awaiting a reply, not a write's plaintext
+    // parameters for the entire timeout (including after the account locks).
+    const read = isRead(method, params)
     return new Promise((resolve, reject) => {
       const timer = UNTIMED.has(method)
         ? undefined
         : setTimeout(() => {
             this.waiting.delete(id)
-            reject(new DaemonError(isRead(method) ? 'NETWORK_UNAVAILABLE' : 'EXECUTION_UNKNOWN', 'daemon response timed out'))
-          }, isRead(method) ? this.options.timing?.read ?? 45_000 : this.options.timing?.write ?? 180_000)
-      this.waiting.set(id, { method, resolve, reject, timer })
+            reject(new DaemonError(read ? 'NETWORK_UNAVAILABLE' : 'EXECUTION_UNKNOWN', 'daemon response timed out'))
+          }, read ? this.options.timing?.read ?? 45_000 : this.options.timing?.write ?? 180_000)
+      this.waiting.set(id, { method, read, resolve, reject, timer })
       socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
     })
   }

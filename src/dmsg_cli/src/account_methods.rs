@@ -179,6 +179,9 @@ impl Daemon {
                     .collect::<Result<Vec<_>>>()?;
                 return approval_key::policy_request(&self.hold(), source(params)?, purposes).await;
             }
+            "recovery/status" => {
+                return dmsg_client::recovery::status(&self.hold()).await;
+            }
             "handle/transfer_commit" => {
                 let id = text(params, "id")?;
                 return handle::request(&self.hold(), source(params)?, &id).await;
@@ -307,7 +310,6 @@ impl Daemon {
             "account/bind_accept" => Ok(to_json(
                 &client.bind_accept(&account(params, "account")?).await?,
             )),
-            "recovery/status" => client.recovery_status().await,
             "recovery/request" => client.recovery_request().await,
             "recovery/complete" => Ok(to_json(&client.recovery_complete().await?)),
             "recovery/dispute" => {

@@ -189,6 +189,7 @@ fn parse_document(
     let document: PrincipalDocument =
         serde_json::from_slice(bytes).map_err(|_| Error::IntegrityFailed)?;
     validate_principal_document(&document).map_err(|_| Error::IntegrityFailed)?;
+    ensure(document.updated_at >= 0, Error::IntegrityFailed)?;
     validate_principal_resolution(
         &document,
         &dmsg_protocol::agent::principal_id(principal_origin, account),
@@ -250,12 +251,13 @@ pub async fn show<H: Hold>(h: &H) -> Result<PrincipalDocument> {
 
 /// Public names, fetched concurrently from the same documents as profile pages.
 /// One registry read and one config read per distinct home/directory serve a
-/// whole batch; a missing account has no name, and a transient failure is
-/// omitted so the caller retries instead of caching an empty name.
+/// whole batch. Per-account errors remain errors; only certified absence or
+/// an ID outside the configured homes becomes a missing-name observation.
+/// The caller stamps successful observations when it accepts them locally.
 pub async fn names<H: Hold>(
     h: &H,
     accounts: &[AccountId],
-) -> Result<Vec<(String, Option<String>)>> {
+) -> Result<Vec<(AccountId, Result<crate::display::Name>)>> {
     let config = h.with(|c| Ok(c.config.clone())).await?;
     let mut resolver = Resolver::new(&config).await?;
     let unique: BTreeSet<AccountId> = accounts.iter().copied().collect();
@@ -284,11 +286,11 @@ pub async fn names<H: Hold>(
     let mut found = Vec::with_capacity(accounts.len());
     for account in accounts {
         let name = match results.get(account) {
-            Some(Ok(Some(document))) => document.name.clone().filter(|name| !name.is_empty()),
-            Some(Ok(None)) | Some(Err(Error::NotFound | Error::IntegrityFailed)) | None => None,
-            Some(Err(_)) => continue,
+            Some(Ok(document)) => Ok(crate::display::Name::from_document(document.as_ref(), 0)),
+            None => Ok(crate::display::Name::from_document(None, 0)),
+            Some(Err(error)) => Err(error.clone()),
         };
-        found.push((account.to_string(), name));
+        found.push((*account, name));
     }
     Ok(found)
 }
@@ -331,7 +333,9 @@ impl Client {
             self.resume().await?;
         }
         self.principal_publish().await?;
-        self.principal().await?.ok_or(Error::NotFound)
+        let info = self.principal().await?.ok_or(Error::NotFound)?;
+        self.published_display(&info);
+        Ok(info)
     }
 
     /// Commit display fields under the account mutation journal and publish.
@@ -350,7 +354,9 @@ impl Client {
             None,
         )
         .await?;
-        self.principal_settled().await
+        let info = self.principal_settled().await?;
+        self.published_display(&info);
+        Ok(info)
     }
 
     /// Reuse the last attempt for identical image bytes; never invent a new

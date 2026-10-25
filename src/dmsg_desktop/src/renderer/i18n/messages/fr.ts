@@ -14,6 +14,12 @@ export default {
     secretPolicy: "Modifier la politique d’utilisation",
     secretUse: "Créer une issue GitHub",
 
+    displayCache: "Cache d’affichage",
+    displayCacheHint: "Données chiffrées téléchargeables à nouveau. Le contenu, les brouillons, les opérations et les données de sécurité sont conservés. Taille des enregistrements stockés.",
+    clearDisplayCache: "Vider le cache d’affichage",
+    cachedDisplay: "Affichage des dernières données enregistrées",
+    daemonDisconnected: "Connexion au service dMsg local…",
+    loadingCachedDisplay: "Chargement des données enregistrées…",
     localStorageUnavailable: "Impossible de lire ou d’enregistrer les données locales. Vérifiez l’espace disque et les droits d’accès.",
     networkReconnecting: "Reconnexion… Votre contenu existant reste disponible.",
     networkUnavailable: "Mise à jour temporairement indisponible. Nouvelle tentative automatique.",

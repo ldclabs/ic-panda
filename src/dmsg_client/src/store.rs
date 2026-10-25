@@ -432,6 +432,15 @@ impl Store {
         rows.collect::<rusqlite::Result<_>>().map_err(storage)
     }
 
+    /// Exact record count and ciphertext bytes under a prefix, without loading
+    /// payloads or truncating a capacity check to its first page.
+    pub fn sealed_usage(&self, prefix: &str) -> Result<(u64, u64)> {
+        self.conn().query_row(
+            "SELECT COUNT(*), COALESCE(SUM(length(CAST(value AS BLOB))), 0) FROM sealed WHERE key >= ?1 AND key < ?2",
+            params![prefix, prefix_end(prefix)], |r| Ok((r.get::<_, i64>(0)? as u64, r.get::<_, i64>(1)? as u64)),
+        ).map_err(storage)
+    }
+
     /// At most `limit` sealed records starting with `prefix` whose keys sort
     /// after `after`, in order, with their values.
     ///

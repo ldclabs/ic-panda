@@ -16,6 +16,12 @@ const messages = {
     secretPolicy: "Change credential-use policy",
     secretUse: "Create a GitHub issue",
 
+    displayCache: "Display cache",
+    displayCacheHint: "Encrypted data that can be downloaded again. Clearing it keeps content, drafts, pending work and security records. Sizes are stored record bytes.",
+    clearDisplayCache: "Clear display cache",
+    cachedDisplay: "Showing the last saved data",
+    daemonDisconnected: "Connecting to the local dMsg service…",
+    loadingCachedDisplay: "Loading saved data…",
     localStorageUnavailable: "Local data could not be read or saved. Check disk space and access permissions.",
     networkReconnecting: "Reconnecting… Your existing content is still available.",
     networkUnavailable: "Temporarily unable to update. We will retry automatically.",

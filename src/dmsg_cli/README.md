@@ -1106,7 +1106,8 @@ The daemon listens on `127.0.0.1` only.
   `files/mount {name?}|unmount|mount_status`,
   `files/share_link|share_links|share_revoke`,
   `sync/run|status`,
-  `profile/show|pending|publish|retry|resolve|avatar|avatar_image|avatar_legacy`,
+  `profile/display|show|pending|publish|retry|resolve|avatar|avatar_image|avatar_legacy`,
+  `cache/status|clear` (owner, unlocked account only),
   `approval/list|show|respond|cancel|quote`
   (`show`, `cancel` and `quote` take a unique ID prefix),
   `approval/check_file {id, path}`,
@@ -1324,3 +1325,56 @@ clearing it. This also covers lost replies and partial publication across relays
 The owner Profile display keeps durable verified pins and does not follow
 cross-origin discovery endpoints. See the [connector host](../dmsg_agent/README.md)
 for persistence and verification tests.
+
+## Display snapshots and offline reads
+
+`profile/display` and `channel/names {accounts}` return local, LDK-sealed data
+without waiting for an upstream request. Both require an unlocked account.
+The former returns `{state,name,avatar,updated_at,observed_at_ms,stale,refreshing}`;
+`avatar` is a validated image data URL. The latter accepts at most 100 account
+IDs and returns `{account: {name,stale}}`; an unobserved account is omitted,
+whereas a verified missing name is `null`. They queue bounded background work;
+`profile/changed` and `names/changed` contain no names, IDs or image URLs.
+`profile/show` and `profile/resolve` remain live verified document reads.
+
+The following owner methods additionally accept `mode: "local" | "swr" | "fresh"`:
+`plan/status|catalog|assets|panda`, `handle/mine`, `account/show|security`,
+`recovery/status`, `wallet/show|balances|history|queue`, `inbox/policy`,
+`files/storage|cloud_usage`. Parameters such as `wallet` remain required.
+These display reads return `{state,data,observed_at_ms,stale,refreshing,error}`.
+`local` never starts network work; `swr` returns local data and queues expired
+observations; `fresh` waits for a read. `plan/status` with a mode rejects
+`refresh:true`: the mode never invokes `refresh_entitlement` or relay refresh.
+A wallet history snapshot is committed only after all pages and its final
+certified head agree. A direct live history read exceeding the display budget
+still returns the fetched rows with `persisted:false`.
+
+`cache/changed {kind}` tells visible views to reread locally. Refreshes coalesce
+per resource, use at most four snapshot workers, and back off independently for
+60 seconds after failure. The profile and name workers each run one task;
+profile/name freshness is 10 minutes (missing names 1 minute), avatar freshness
+24 hours. A failed verification is never a missing-name observation. A newer
+publication cannot be overwritten by an older document. An old image cannot
+stand for a changed avatar URL.
+
+`cache/status` reports encrypted record sizes by category; these are not SQLite
+file sizes or a promise that clearing shrinks WAL/files. `cache/clear` removes
+only reconstructible display records, including the prior wallet metadata and
+history, Inbox-policy and cloud-inventory formats. Content, unsent work, notes,
+recovery material, audit checkpoints and protocol pins are excluded. Pending
+refreshes are fenced by both unlock generation and cache invalidation generation.
+None of these methods is available to an Agent credential.
+
+`daemon/status.session` is an opaque string combining the daemon instance and
+unlock generation. The desktop masks disconnected views, retains edits only
+after the same session is confirmed, and uses `DAEMON_DISCONNECTED` separately
+from upstream `NETWORK_UNAVAILABLE`. Neither local reads nor background cache
+workers renew activity. Existing serialized account mutations, connect-entry
+processing and non-wallet approval reconciliation can still delay acquiring the
+client lock; profile timing measurements must report that limitation separately.
+
+Cache producers outside the background workers capture the same account,
+unlock/invalidation generation and source before reading. A clear, policy edit
+or endpoint change prevents an earlier response from writing back. Locks caused
+by background revocation checks or a failed unlock also announce the session
+change; owner views do not wait for another successful status query to clear.

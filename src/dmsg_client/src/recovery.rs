@@ -83,19 +83,7 @@ impl Client {
     /// Returns `Error::AuthRequired` without a login and `Error::NotFound`
     /// when the login has no account.
     pub async fn recovery_status(&mut self) -> Result<Json> {
-        let pending = self.pending_recovery().await?;
-        let (_, account) = self.recovery_target()?;
-        let security = self.security.clone().ok_or(Error::IntegrityFailed)?;
-        let device = self.workspace.meta.device_id;
-        Ok(json!({
-            "account": account.to_string(),
-            "recovery_delay_ms": security.snapshot.recovery_delay_ms,
-            "member": security.active(&device).is_ok(),
-            "pending": pending.as_ref().map(|p| crate::security::recovery_view(p, &device)),
-            "ready": pending.as_ref().is_some_and(|p| {
-                p.request.device.device_id == device && now_ms() >= p.execute_after
-            }),
-        }))
+        status(&self.hold()).await
     }
 
     /// Ask to take the login's account over with this new device after the
@@ -379,4 +367,38 @@ impl Client {
             .await?;
         reconciled
     }
+}
+
+/// Read the recovery overview without holding the client over its network waits.
+/// The certified digest is checked again; this projection never completes recovery.
+pub async fn status<H: crate::hold::Hold>(h: &H) -> Result<Json> {
+    let (home, account, device, generation, principal, ic) = h
+        .with(|c| {
+            let (home, account) = c.recovery_target()?;
+            Ok((
+                home,
+                account,
+                c.workspace.meta.device_id,
+                c.session_generation,
+                c.session()?.principal,
+                c.session()?.ic.clone(),
+            ))
+        })
+        .await?;
+    let pending: Result<Option<PendingRecovery>> =
+        ic.query(home, "get_recovery_request", (account,)).await?;
+    let pending = pending?;
+    let security = crate::account::fetch_security(&ic, home, &account).await?;
+    h.with(|c| {
+        let now = now_ms();
+        ensure(c.recovery_target()? == (home, account)
+            && c.workspace.meta.device_id == device
+            && c.session_generation == generation
+            && c.session()?.principal == principal, Error::Locked)?;
+        c.observe(&account, &security)?;
+        ensure(security.snapshot.pending_recovery_digest == pending.as_ref().map(|p| dmsg_protocol::digest("dmsg/pending-recovery/v1", p)), Error::PolicyStale)?;
+        Ok(json!({"account":account.to_string(),"recovery_delay_ms":security.snapshot.recovery_delay_ms,
+            "member":security.active(&device).is_ok(),"pending":pending.as_ref().map(|p|crate::security::recovery_view(p,&device)),
+            "ready":pending.as_ref().is_some_and(|p|p.request.device.device_id==device && now>=p.execute_after)}))
+    }).await
 }

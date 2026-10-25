@@ -32,6 +32,7 @@ name = "signin_with"
 required-features = ["pocketic-tests"]
 
 [dev-dependencies]
+tokio.workspace = true
 ic_cose_types.workspace = true
 ic-oss-types.workspace = true
 ic_message_types = { path = "../../src/ic_message_types" }

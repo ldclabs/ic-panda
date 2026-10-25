@@ -48,7 +48,7 @@ pub const MAX_LETTER: usize = 6000;
 const JOURNAL: &str = "inbox-job:";
 const LETTER: &str = "inbox-letter:";
 const CURSOR: &str = "inbox-cursor";
-const CACHED_POLICY: &str = "inbox-policy";
+
 const POLICY: &str = "dmsg/inbox/policy/v1";
 const CONTACT: &str = "dmsg/inbox/contact/v1";
 
@@ -892,7 +892,9 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn inbox_cached_policy(&self) -> Result<Option<Json>> {
-        self.workspace.private(self.keys()?, CACHED_POLICY)
+        Ok(self
+            .cache_read(crate::cache::Kind::Inbox, "")?
+            .and_then(|s| (!s.data.is_null()).then_some(s.data)))
     }
 
     /// Mark a letter read or archived; archiving reopens contact for its
@@ -911,10 +913,20 @@ impl Client {
 /// Relay errors as returned.
 pub async fn policy<H: Hold>(h: &H) -> Result<Option<Json>> {
     let h = operations::Unlocked::new(h).await?;
-    let me = h.with(|c| Ok(c.account()?.id)).await?;
-    let policy = h.find(&format!("/v1/inboxes/{me}/policy")).await?;
-    h.with(|c| c.workspace.put_private(c.keys()?, CACHED_POLICY, &policy))
+    let (me, scope) = h
+        .with(|c| Ok((c.account()?.id, c.cache_scope(crate::cache::Kind::Inbox)?)))
         .await?;
+    let policy = h.find(&format!("/v1/inboxes/{me}/policy")).await?;
+    h.with(|c| {
+        c.cache_save_checked(
+            &scope,
+            crate::cache::Kind::Inbox,
+            "",
+            &serde_json::to_value(&policy).map_err(|_| Error::IntegrityFailed)?,
+            crate::now_ms(),
+        )
+    })
+    .await?;
     Ok(policy)
 }
 

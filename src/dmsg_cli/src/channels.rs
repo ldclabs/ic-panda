@@ -253,63 +253,7 @@ async fn rotate(daemon: &Daemon, channel: &str) {
     }
 }
 
-/// A found display name stays for ten minutes; a missing one is retried after
-/// one minute, so a later publication is visible without a reload.
-fn name_ttl(name: &Option<String>) -> Duration {
-    if name.is_some() {
-        Duration::from_secs(600)
-    } else {
-        Duration::from_secs(60)
-    }
-}
-
-/// Display names of accounts, read from their certified PrincipalDocuments.
-/// A failed read is not cached, so the next call asks again.
-///
-/// # Errors
-/// Returns `Error::Locked` when the client cannot be read; failed per-account
-/// reads are omitted and asked for again on a later call.
+/// Names are local, account-scoped display records; the daemon queues refreshes.
 pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_json::Value> {
-    use std::sync::{Mutex, OnceLock};
-    type Cache = Mutex<BTreeMap<String, (Option<String>, Instant)>>;
-    static CACHE: OnceLock<Cache> = OnceLock::new();
-    let cache = CACHE.get_or_init(Default::default);
-    let missing: Vec<dmsg_types::AccountId> = {
-        let known = cache.lock().expect("names");
-        accounts
-            .iter()
-            .filter(|a| {
-                known
-                    .get(*a)
-                    .is_none_or(|(name, at)| at.elapsed() >= name_ttl(name))
-            })
-            .filter_map(|a| a.parse().ok())
-            .take(100)
-            .collect()
-    };
-    if !missing.is_empty() {
-        let found = dmsg_client::principal::names(&daemon.hold(), &missing).await?;
-        let mut known = cache.lock().expect("names");
-        for (id, name) in found {
-            known.insert(id, (name, Instant::now()));
-        }
-    }
-    let known = cache.lock().expect("names");
-    Ok(json!(
-        accounts
-            .iter()
-            .filter_map(|a| known.get(a).map(|(name, _)| (a.clone(), json!(name))))
-            .collect::<serde_json::Map<_, _>>()
-    ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn missing_names_refresh_before_found_names() {
-        assert_eq!(name_ttl(&Some("Panda".into())), Duration::from_secs(600));
-        assert_eq!(name_ttl(&None), Duration::from_secs(60));
-    }
+    daemon.display_names(accounts).await
 }

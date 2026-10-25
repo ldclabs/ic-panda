@@ -22,11 +22,16 @@
   import { lock, offerUnlock, settleOffer } from './shell/session'
   import { startLogin } from './shell/login.svelte'
   import { call, onChange, single } from './rpc'
+  import { clearDisplays } from './display.svelte'
+  import { t } from './i18n/index.svelte'
+  import { namesSession, namesChanged } from './views/channels/names.svelte'
 
   const opened = location.hash.slice(1) || '/vault'
   let route = $state(opened)
   let status = $state<any>(null)
   let connected = $state(true)
+  let verifiedConnection = $state(false)
+  let viewSession = $state<string | null>(null)
   let connectionError = $state<string | undefined>()
   let palette = $state(false)
   let collapsed = $state(stored('dmsg.sidebar') === 'collapsed')
@@ -64,24 +69,49 @@
 
   /** The first status: a window opened in front of a locked device offers its fast unlock. */
   let first = true
+  let stateRevision = 0
 
   const refresh = single(async () => {
-    ;({ connected, error: connectionError } = await window.dmsg.connection())
+    const revision = stateRevision
+    const connection = await window.dmsg.connection()
+    if (revision !== stateRevision) return
+    ;({ connected, error: connectionError } = connection)
+    if (!connected) { verifiedConnection = false; return }
     try {
-      status = await call('daemon/status')
+      const next: any = await call('daemon/status')
+      if (revision !== stateRevision) return
+      // Without an opaque token, a reconnect cannot prove it is the same
+      // unlocked session (for example while the installed daemon is older).
+      const key = `${next.session || `unknown:${revision}`}:${next.account ?? ''}:${next.state}`
+      if (viewSession !== key) clearDisplays()
+      namesSession(next)
+      viewSession = key
+      status = next
+      verifiedConnection = true
     } catch {
-      status = null
+      if (revision !== stateRevision) return
+      verifiedConnection = false
     }
     settleOffer(status)
-    if (first && status && document.hasFocus()) offerUnlock(status)
+    if (isMain && first && status && document.hasFocus()) offerUnlock(status)
     first = !status
   })
 
   // The offers change on unlock and with legacy state, never on a status refresh.
   async function loadOffers() {
+    const revision = stateRevision
     const pairs = unlocked ? await call<any[]>('legacy/pairs').catch(() => []) : []
-    offers = pairs.map((p) => p.nonce)
+    if (revision === stateRevision) offers = pairs.map((p) => p.nonce)
   }
+
+  // Portalled dialogs live outside the app's inert wrapper. Mask those too,
+  // while retaining same-session forms only for a connection interruption.
+  $effect(() => {
+    const blocked = !connected || !verifiedConnection
+    document.body.inert = blocked
+    document.body.toggleAttribute('data-daemon-unverified', blocked)
+    return () => { document.body.inert = false; document.body.removeAttribute('data-daemon-unverified') }
+  })
 
   $effect(() => {
     void unlocked
@@ -152,11 +182,32 @@
     const onHash = () => visited(location.hash.slice(1) || '/vault')
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
+    void refresh()
+    offs.push(window.dmsg.onEvent((event) => {
+      if (event.type === 'session/changed' || event.type === 'connection/changed') {
+        stateRevision++
+        verifiedConnection = false
+        document.body.inert = true
+        document.body.setAttribute('data-daemon-unverified', '')
+        if (event.type === 'session/changed') {
+          // Destroy plaintext views immediately, even if the subsequent status
+          // query is blocked or the daemon disconnects before it can answer.
+          status = null
+          viewSession = null
+          offers = []
+          palette = false
+          namesSession(null)
+          clearDisplays()
+        }
+        void refresh()
+      } else if (event.type === 'resync') void refresh()
+    }))
     if (isMain) {
-      void refresh()
       offs.push(
-        onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
-        onChange(['legacy/changed'], loadOffers)
+        onChange(['approval/changed', 'sync/changed', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
+        onChange(['legacy/changed'], loadOffers),
+        onChange(['names/changed'], namesChanged),
+        window.dmsg.onEvent((event) => { if (event.type === 'cache/changed' && (event.data as any)?.kind === 'all') { namesSession(null); namesSession(status) } })
       )
     }
     return () => offs.forEach((off) => off())
@@ -176,18 +227,22 @@
   />
 {/snippet}
 
+{#if !connected || !verifiedConnection}
+  <div class="fixed inset-0 z-[100] grid place-items-center bg-paper" role="status" data-testid="daemon-disconnected">{t('daemonDisconnected')}</div>
+{/if}
 {#if !isMain}
-  <main class="h-screen">
+  <main class="h-screen" inert={!connected || !verifiedConnection} aria-hidden={!connected || !verifiedConnection}>
     <RecoveryBanner />
     {#if route.startsWith('/approval/')}
-      {#key route}
+      {#key `${viewSession}:${route}`}
         <Approval id={route.slice('/approval/'.length)} />
       {/key}
     {/if}
   </main>
 {:else}
   <Tooltip.Provider delayDuration={350}>
-    <div class="flex h-screen min-h-0">
+    <div class="flex h-screen min-h-0" inert={!connected || !verifiedConnection} aria-hidden={!connected || !verifiedConnection}>
+      {#key viewSession}
       <Sidebar
         {route}
         {status}
@@ -229,6 +284,11 @@
       <CommandPalette bind:open={palette} {status} {mod} {collapsed} {go} onToggleSidebar={() => (collapsed = !collapsed)} />
       <LoginDialog />
       <Toaster />
+      {/key}
     </div>
   </Tooltip.Provider>
 {/if}
+
+<style>
+  :global(body[data-daemon-unverified] > :not(#app)) { visibility: hidden !important; }
+</style>

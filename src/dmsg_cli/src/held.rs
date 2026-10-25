@@ -16,6 +16,7 @@ use tokio::sync::{Mutex, OwnedMutexGuard};
 /// The daemon's client, taken for each step of one operation alone.
 pub(crate) struct Shared<'a> {
     client: &'a Mutex<Client>,
+    daemon: &'a Daemon,
     /// The account selected when the operation began.
     account: OnceLock<Option<String>>,
 }
@@ -29,7 +30,18 @@ impl Hold for Shared<'_> {
             *self.account.get_or_init(|| account.clone()) == account,
             Error::Unavailable("the account changed".into()),
         )?;
-        step(&mut client)
+        let generation = client.session_generation();
+        let result = step(&mut client);
+        let changed = client.session_generation() != generation;
+        let state = client.session_state().state;
+        drop(client);
+        // A verified revocation may lock/reset inside a background Hold step.
+        // The owner must clear plaintext views even without a foreground RPC.
+        if changed {
+            self.daemon
+                .emit("session/changed", serde_json::json!({"state":state}));
+        }
+        result
     }
 }
 
@@ -42,6 +54,7 @@ impl Daemon {
     pub(crate) fn hold(&self) -> Shared<'_> {
         Shared {
             client: self.client(),
+            daemon: self,
             account: OnceLock::new(),
         }
     }
@@ -58,7 +71,17 @@ impl Daemon {
         work: impl AsyncFnOnce(&mut Client) -> Result<T>,
     ) -> Result<T> {
         let mut client = self.client().lock().await;
-        work(&mut client).await
+        let generation = client.session_generation();
+        let result = work(&mut client).await;
+        let changed = client.session_generation() != generation;
+        let state = client.session_state().state;
+        drop(client);
+        // A cancelled/failed unlock may already have locked or switched the
+        // workspace. Failed RPCs do not reach the usual success-event dispatch.
+        if changed && result.is_err() {
+            self.emit("session/changed", serde_json::json!({"state":state}));
+        }
+        result
     }
 
     /// Wait for the right to run one operation on `resource`.

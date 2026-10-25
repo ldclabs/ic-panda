@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+  import { display, watchDisplays, type Mode } from '../display.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
   import { localeDir } from '../../shared/locales'
@@ -211,10 +212,10 @@
   }
 
   /** Cloud accounting is ancillary; an offline relay must not hold up local navigation. */
-  const refreshCloudUsage = single(async () => {
+  const refreshCloudUsage = single(async (mode: Mode = 'swr') => {
     const account = status?.account
     if (!unlocked || scope !== 'cloud') return
-    const next = await call('files/cloud_usage').catch(() => null)
+    const next = await display('files/cloud_usage', {}, mode).catch(() => null)
     if (unlocked && status?.account === account && scope === 'cloud' && next) cloudUsage = next
   })
 
@@ -657,6 +658,7 @@
     })
 
   onMount(() => {
+    const stop = watchDisplays(['usage'], (mode) => refreshCloudUsage(mode))
     const offChange = onChange(['files/changed', 'session/changed'], reload)
     const offWork = window.dmsg.onEvent((event) => {
       const data = (event.data ?? {}) as any
@@ -668,6 +670,7 @@
     })
     return () => {
       offChange()
+      stop()
       offWork()
     }
   })

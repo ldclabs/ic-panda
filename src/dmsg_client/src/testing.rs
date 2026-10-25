@@ -181,6 +181,25 @@ pub fn warm(client: &mut Client) {
     client.homes = Some(vec![account().home]);
 }
 
+/// A synthetic pending mailbox entry, for measuring the serialized pairing
+/// check before it attempts to interpret the request envelope.
+pub fn pending_connect_entry(client: &Client) {
+    let id = Hash::new([0xa1; 32]);
+    let now = crate::now_ms();
+    let entry: crate::connect::Entry = serde_json::from_value(serde_json::json!({
+        "seq":1, "request_id":id, "pairing_id":Hash::new([0xb2;32]),
+        "kind":dmsg_types::connect::RequestKind::Read, "created_at":now,
+        "expires_at":now+300_000, "envelope":[1,2,3], "state":"pending",
+        "version":1, "pinned":null, "acked":null,
+    }))
+    .unwrap();
+    client
+        .workspace
+        .store
+        .put_inbox(&hex::encode(*id), 1, &entry, false)
+        .unwrap();
+}
+
 /// Keep an active, empty channel owned by the test account, without network setup.
 pub fn joined_channel(client: &mut Client, channel: &str) -> crate::channel_log::Ledger {
     use crate::channel_log::{ChannelType, Genesis, Status, start};

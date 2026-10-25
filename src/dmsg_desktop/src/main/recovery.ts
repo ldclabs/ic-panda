@@ -25,7 +25,7 @@ export class ReadRecovery {
   ) { this.read = read; this.changed = changed; this.recovered = recovered; this.delay = delay }
 
   add(method: string, params: unknown, generation: number) {
-    if (generation !== this.generation || !isRead(method)) return
+    if (generation !== this.generation || !isRead(method, params)) return
     this.failed.set(requestKey(method, params), { method, params })
     this.set(this.rounds ? 'offline' : 'recovering')
     this.schedule()

@@ -32,3 +32,18 @@ test('a failed run lets the next call start afresh', async () => {
   await run()
   assert.equal(runs, 2)
 })
+
+test('a queued local reread retains its own mode', async () => {
+  const modes: string[] = []
+  let release!: () => void
+  const read = single(async (mode: 'swr' | 'local' = 'swr') => {
+    modes.push(mode)
+    if (modes.length === 1) await new Promise<void>((resolve) => { release = resolve })
+  })
+  const first = read()
+  const event = read('local')
+  read('local')
+  release()
+  await Promise.all([first, event])
+  assert.deepEqual(modes, ['swr', 'local'])
+})

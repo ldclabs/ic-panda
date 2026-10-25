@@ -7,6 +7,8 @@ import es from './i18n/messages/es.ts'
 
 /** User-facing failures use codes, never raw transport URLs or server text. */
 export function failureLabel(code: string): Label | undefined {
+  if (code === 'DAEMON_DISCONNECTED') return 'daemonDisconnected'
+  if (code === 'CACHE_MISSING') return 'loadingCachedDisplay'
   if (code === 'NETWORK_UNAVAILABLE') return 'networkUnavailable'
   if (code === 'EXECUTION_UNKNOWN') return 'operationUnknown'
   if (code === 'UNAVAILABLE') return 'serviceUnavailable'

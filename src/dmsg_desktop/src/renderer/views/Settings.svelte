@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../display.svelte'
+  import CacheSettings from './CacheSettings.svelte'
   import { RadioGroup } from 'bits-ui'
   import { appearances, isAppearance } from '../../shared/appearance'
   import { isLocale, localeNames, locales } from '../../shared/locales'
@@ -95,11 +97,11 @@
   }
 
   function reader(key: string, method: string, visible: () => boolean, apply: (value: any) => void) {
-    return single(async () => {
+    return single(async (mode: Mode = 'swr') => {
       if (!alive || !visible()) return
       const turn = generation
       try {
-        const value = await call(method)
+        const value = method === 'account/show' && unlocked ? await display(method, {}, mode) : await call(method)
         if (current(turn)) { apply(value); errors[key] = '' }
       } catch (e) {
         if (!current(turn)) return
@@ -188,7 +190,8 @@
     const off = window.dmsg.onEvent((event) => {
       if (['resync', 'session/changed', 'connect/changed', 'approval/changed'].includes(event.type)) reload()
     })
-    return () => { alive = false; generation++; off(); stopPairing() }
+    const stop = watchDisplays(['account-summary'], (mode) => loadAccount(mode))
+    return () => { alive = false; generation++; off(); stop(); stopPairing() }
   })
 
   $effect(() => {
@@ -245,6 +248,7 @@
         {#if part === 'legacy'}
           <Legacy {status} {go} />
         {:else if part === 'files'}
+      {#if unlocked}<CacheSettings />{/if}
           <FilesSettings />
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">

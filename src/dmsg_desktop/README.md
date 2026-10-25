@@ -602,3 +602,45 @@ Local inspection continues during background receiving and reports actual key
 availability. The recovery messages are present in all six interface languages.
 The pure pagination tests and Electron smoke flow exercise recovery and the
 keyless mailbox controls.
+
+## Offline display data
+
+The account switcher reads the daemon's encrypted profile snapshot in one call,
+including already stored avatar bytes. Locked menus show account IDs only.
+Public-name batches have no renderer TTL or persistent browser store; lock and
+account/session changes clear the in-memory names and discard late replies.
+
+Membership, account/security, wallet summaries and balances, names, Inbox policy
+and cloud inventory read local display snapshots before asynchronous refreshes.
+Historical observations show their saved time. Display snapshots do not approve
+payments, signing, membership entitlement updates or wallet actions. Ordinary
+membership reads are query-only; the existing explicit refresh and the 15-minute
+follow-up after this page starts a payment retain their separate update path.
+Cache events reread locally, including during payment follow-up, so they cannot
+form an entitlement-update loop. The main-process reminder reads only a saved
+membership snapshot. Settings → Files exposes cache size and clearing.
+
+A lost daemon connection masks both main and approval windows. A confirmed
+same-session reconnect preserves edits; a different daemon instance or unlock
+generation remounts the views. `DAEMON_DISCONNECTED` does not enter read recovery.
+
+Validation commands:
+
+- `pnpm --dir src/dmsg_desktop check` and `pnpm --dir src/dmsg_desktop test`
+- `pnpm --dir src/dmsg_desktop build`
+- `cargo test -p dmsg_cli display_tests`
+- `cargo test -p dmsg_cli real_electron_cached_profile_and_reconnection -- --ignored --nocapture`
+
+The last test launches real Electron against the real Rust daemon HTTP/WebSocket
+handler with a reopened temporary SQLite workspace, a synthetic memory keystore
+and unreachable upstream services. It measures post-unlock cached rendering and
+checks same-session form preservation. It does not exercise the user's databases,
+Touch ID, production accounts or hardware-keystore latency. Mock-daemon smoke
+results and these measured timings are separate evidence.
+
+A session-change event destroys the previous views immediately, including when
+the following status query is delayed or fails. Connection-only interruptions
+mask portalled dialogs and make the document inert while preserving same-session
+edits. Each queued display read carries its own mode, so unrelated completions
+cannot turn a cache-event local reread into an entitlement refresh. Visible
+windows periodically reread profile/name snapshots; the daemon alone owns TTLs.

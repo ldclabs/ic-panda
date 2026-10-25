@@ -8,6 +8,9 @@ pub mod approval;
 pub mod approval_key;
 pub mod attest;
 pub mod audit;
+pub mod cache;
+#[cfg(test)]
+mod cache_tests;
 pub mod certified;
 pub mod channel;
 pub mod channel_log;
@@ -20,6 +23,9 @@ pub mod connect;
 pub mod content;
 pub mod crypto;
 pub mod diagnostic;
+pub mod display;
+#[cfg(test)]
+mod display_tests;
 mod downloads;
 pub mod evidence;
 pub mod files;

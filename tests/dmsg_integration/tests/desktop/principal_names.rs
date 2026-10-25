@@ -4,7 +4,7 @@ use dmsg_types::{AccountId, agent::*, user::UserInit};
 
 #[test]
 #[ignore = "needs the dmsg binary, dMsg Wasm and PocketIC"]
-fn names_survive_partial_home_and_directory_failures() {
+fn name_resolution_is_partial_and_locked_daemon_names_are_private() {
     let deployment = support::Deployment::start();
     let ic = &deployment.ic;
     let query = |canister, method: &str| {
@@ -118,14 +118,47 @@ fn names_survive_partial_home_and_directory_failures() {
         .no_proxy()
         .build()
         .unwrap();
-    let names = |accounts: &[AccountId]| {
+    assert_eq!(
         desktop
             .rpc(
                 &http,
                 "channel/names",
-                json!({"accounts": accounts.iter().map(ToString::to_string).collect::<Vec<_>>()}),
+                json!({"accounts":[cached.to_string()]})
             )
-            .unwrap()
+            .unwrap_err(),
+        "LOCKED"
+    );
+    // The network resolver has per-account results. The locked owner API must
+    // not expose it; local encrypted persistence is covered by daemon tests.
+    let config = dmsg_client::config::Config {
+        environment: dmsg_types::Environment::Local,
+        ic_host: deployment.gateway.clone(),
+        relay: "http://127.0.0.1:9".into(),
+        handle: deployment.handle,
+        user_homes: vec![deployment.user],
+        root_key: Some(hex::decode(&deployment.root_key_hex).unwrap()),
+        login_url: dmsg_client::config::LOGIN_URL.into(),
+        connect_url: dmsg_client::config::CONNECT_URL.into(),
+        background_online: false,
+        files_max_bytes: dmsg_client::config::DEFAULT_FILES_MAX_BYTES,
+        files_trash_days: dmsg_client::config::DEFAULT_FILES_TRASH_DAYS,
+        legacy: None,
+        wallet: Default::default(),
+    };
+    let mut reader = dmsg_client::Client::open(config, &dir.join("resolver"), None).unwrap();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let mut names = |accounts: &[AccountId]| {
+        let found = runtime
+            .block_on(dmsg_client::principal::names(&reader.hold(), accounts))
+            .unwrap();
+        Value::Object(
+            found
+                .into_iter()
+                .filter_map(|(id, result)| {
+                    result.ok().map(|name| (id.to_string(), json!(name.name)))
+                })
+                .collect(),
+        )
     };
     assert_eq!(names(&[cached]), json!({cached.to_string(): "Cached name"}));
 
@@ -141,13 +174,12 @@ fn names_survive_partial_home_and_directory_failures() {
         );
         publish(second_home, second_directory, failed, "Recovered name");
         ic.stop_canister(stopped, None).unwrap();
-        // A failed config read must not discard either fresh names from
-        // another home or previously cached names from the affected home.
+        // A failed config read must not discard fresh names from another home,
+        // or turn the failed accounts into trusted absence.
         assert_eq!(
             names(&[failed, healthy, cached, absent, healthy]),
             json!({
                 healthy.to_string(): "Healthy name",
-                cached.to_string(): "Cached name",
                 absent.to_string(): null,
             }),
         );
@@ -163,6 +195,7 @@ fn names_survive_partial_home_and_directory_failures() {
             }),
         );
     }
+    drop(reader);
     drop(children);
     std::fs::remove_dir_all(dir).unwrap();
 }

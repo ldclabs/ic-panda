@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../display.svelte'
+  import DisplayNotice from '../components/DisplayNotice.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Field from '../components/page/Field.svelte'
@@ -45,10 +47,10 @@
   const CONTROL = ['account_control', 'device_control', 'principal_control']
 
   // A field follows the account only when the account's value changed, so an edit under way stays.
-  const reload = single(async () => {
+  const reload = single(async (mode: Mode = 'swr') => {
     if (!alive) return
     try {
-      const next: any = await call('account/security')
+      const next: any = await display('account/security', {}, mode)
       if (!alive) return
       error = ''
       if (next.policy.daily_executions !== security?.policy.daily_executions) daily = String(next.policy.daily_executions)
@@ -62,7 +64,6 @@
       keys = key
     } catch (e) {
       if (!alive) return
-      security = null
       needsLogin = code(e) === 'AUTH_REQUIRED'
       error = needsLogin ? '' : errorText(e)
     }
@@ -129,10 +130,13 @@
 
   onMount(() => {
     void reload()
-    return onChange(['approval/changed', 'session/changed'], reload)
+    const off = onChange(['approval/changed', 'session/changed'], reload)
+    const stop = watchDisplays(['account'], (mode) => reload(mode))
+    return () => { off(); stop() }
   })
 </script>
 
+<DisplayNotice methods={['account/security']} />
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if needsLogin}
   <Notice icon="login" testid="security-needs-login">

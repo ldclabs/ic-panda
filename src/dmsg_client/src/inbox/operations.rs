@@ -523,8 +523,11 @@ pub async fn configure<H: Hold>(h: &H, input: &PolicyInput) -> Result<Json> {
         false,
     )
     .await?;
-    h.with(|c| c.workspace.put_private(c.keys()?, CACHED_POLICY, &result))
-        .await?;
+    h.with(|c| {
+        c.cache_invalidate(&[crate::cache::Kind::Inbox])?;
+        c.cache_save(crate::cache::Kind::Inbox, "", &result, now_ms())
+    })
+    .await?;
     Ok(result)
 }
 

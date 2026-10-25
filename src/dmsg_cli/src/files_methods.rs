@@ -377,7 +377,10 @@ impl Daemon {
         };
         let answer = async || -> Result<Option<Value>> {
             Ok(Some(match method {
-                "files/storage_refresh" => storage::refresh(&h).await?,
+                "files/storage_refresh" => {
+                    let h = dmsg_client::hold::Unlocked::new(&h).await?;
+                    storage::refresh(&h).await?
+                }
                 "files/storage_action" => {
                     storage::act(&h, &parse::<Vec<storage::Target>>(params, "targets")?).await?
                 }

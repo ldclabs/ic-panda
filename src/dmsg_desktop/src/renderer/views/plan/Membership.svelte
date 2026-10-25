@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../../display.svelte'
+  import DisplayNotice from '../../components/DisplayNotice.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
   import Fact from '../../components/page/Fact.svelte'
@@ -54,21 +56,21 @@
 
   // Each part coalesces its own reads. A slow usage request never queues
   // a later entitlement refresh behind it.
-  const readPlan = single(() => part('plan', async () => {
+  const readPlan = single((mode: Mode = 'swr') => part('plan', async () => {
     if (!alive) return
-    const refresh = refreshPlan || Date.now() - paidAt < 15 * 60_000
+    const refresh = refreshPlan || (mode !== 'local' && !document.body.inert && Date.now() - paidAt < 15 * 60_000)
     refreshPlan = false
-    const next = await call('plan/status', { refresh })
+    const next = refresh ? await call('plan/status', { refresh: true }) : await display('plan/status', { refresh: false }, mode)
     if (alive) plan = next
   }))
-  const readCatalog = single(() => part('catalog', async () => {
-    if (catalog || !alive) return
-    const next = await call('plan/catalog')
+  const readCatalog = single((mode: Mode = 'swr') => part('catalog', async () => {
+    if (!alive) return
+    const next = await display('plan/catalog', {}, mode)
     if (alive) catalog = next
   }))
-  const readCloud = single(() => part('cloud', async () => {
+  const readCloud = single((mode: Mode = 'swr') => part('cloud', async () => {
     if (!alive) return
-    const next = await call('files/cloud_usage')
+    const next = await display('files/cloud_usage', {}, mode)
     if (alive) cloud = next
   }))
   const readExecution = single(() => part('execution', async () => {
@@ -124,18 +126,25 @@
 
   onMount(() => {
     void load()
-    const off = onChange(['approval/changed', 'session/changed'], () => {
+    const off = onChange(['approval/changed'], () => {
+      // A session event remounts this view. Its old payment-follow-up state
+      // must never update the account being selected during that transition.
+      if (document.body.inert) return
       void readPlan()
       void readExecution()
       if (Date.now() - paidAt < 15 * 60_000) void readCloud()
     })
-    return () => { alive = false; off() }
+    const stop = watchDisplays(['plan', 'catalog', 'usage'], (mode) => {
+      return Promise.all([readPlan(mode), readCatalog(mode), readCloud(mode)])
+    })
+    return () => { alive = false; off(); stop() }
   })
 
   const price = (cents: number) => `$${(cents / 100).toFixed(2)}`
   const share = (used?: number | null, limit?: number | null) => (used != null && limit ? Math.min(100, Math.round((used / limit) * 100)) : 0)
   const label = (labels: Record<string, any>, value: string) => (labels[value] ? t(labels[value]) : value)
 </script>
+
 
 {#snippet ack()}
   <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={acknowledge} data-testid="plan-notice-ack">{t('acknowledge')}</button>
@@ -154,6 +163,7 @@
 {/snippet}
 
 <Page>
+  <DisplayNotice methods={['plan/status', 'plan/catalog', 'files/cloud_usage']} />
   <section class="px-5" data-testid="plan-hero">
     <div class="flex flex-wrap items-start gap-3">
       <div class="min-w-0 flex-1">

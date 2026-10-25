@@ -4,10 +4,12 @@
  * view reloads with it on each daemon event, so a burst of events reads
  * the daemon twice at most and an older read never lands after a newer one.
  */
-export function single(work: () => Promise<unknown>): () => Promise<void> {
+export function single<A extends unknown[]>(work: (...args: A) => Promise<unknown>): (...args: A) => Promise<void> {
   let running: Promise<void> | null = null
   let again = false
-  return () => {
+  let next: A
+  return (...args: A) => {
+    next = args
     if (running) {
       again = true
       return running
@@ -16,7 +18,7 @@ export function single(work: () => Promise<unknown>): () => Promise<void> {
       try {
         do {
           again = false
-          await work()
+          await work(...next)
         } while (again)
       } finally {
         running = null

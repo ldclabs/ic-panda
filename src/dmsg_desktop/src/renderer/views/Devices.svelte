@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../display.svelte'
+  import DisplayNotice from '../components/DisplayNotice.svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -23,16 +25,15 @@
 
   const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
-  const reload = single(async () => {
+  const reload = single(async (mode: Mode = 'swr') => {
     if (!alive) return
     try {
-      const next = await call('account/show')
+      const next = await display('account/show', {}, mode)
       if (!alive) return
       view = next
       error = ''
     } catch (e) {
       if (!alive) return
-      view = null
       error = code(e) === 'AUTH_REQUIRED' ? '' : errorText(e)
     }
   })
@@ -61,9 +62,12 @@
 
   onMount(() => {
     void reload()
-    return onChange(['approval/changed', 'session/changed', 'sync/changed'], reload)
+    const off = onChange(['approval/changed', 'session/changed', 'sync/changed'], reload)
+    const stop = watchDisplays(['account-summary'], (mode) => reload(mode))
+    return () => { off(); stop() }
   })
 </script>
+<DisplayNotice methods={['account/show']} />
 
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if view}

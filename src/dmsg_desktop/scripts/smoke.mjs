@@ -358,7 +358,9 @@ let legacyHolderCredential = false
 let legacyHolderLoggedIn = false
 let legacyNameClaimed = false
 const legacyHolder = '2vxsx-fae'
+let sessionEpoch = 0
 function emit(type, data) {
+  if (type === 'session/changed') sessionEpoch++
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type, data } }))
 }
 const legacyAvatarUrl = 'https://aaaaa-aa.icp0.io/f/0?inline&filename=legacy.webp'
@@ -390,6 +392,7 @@ function payment(id, fresh) {
 }
 function status() {
   return {
+    session: `smoke:${sessionEpoch}`,
     state: session,
     setup_pending: setupPending,
     account: session === 'logged_out' ? null : account,
@@ -973,6 +976,9 @@ const methods = {
     return { forgotten: true }
   },
   'profile/show': () => published,
+  'profile/display': () => ({ state: 'present', name: published.name, avatar: published.avatar_url ? methods['profile/avatar_image']({ avatar_url: published.avatar_url }) : null, updated_at: published.updated_at, observed_at_ms: Date.now(), stale: false, refreshing: false }),
+  'cache/status': () => ({domains:[]}),
+  'cache/clear': () => null,
   'profile/pending': () => principalUnknown,
   'profile/publish': (p) => {
     if (principalUnknown) throw { code: 'PENDING', message: 'Account journal awaiting confirmation' }
@@ -1034,7 +1040,7 @@ const methods = {
   },
   'channel/outbox': () => [],
   'channel/receipts': () => ({ latest_seq: messages.length, cursors: { [peer]: { delivered: messages.length, read: 1 } } }),
-  'channel/names': (p) => Object.fromEntries(p.accounts.map((a) => [a, a === peer ? 'Peer Person' : a === account ? published.name : a === other ? 'Work account' : null])),
+  'channel/names': (p) => Object.fromEntries(p.accounts.map((a) => [a, { name: a === peer ? 'Peer Person' : a === account ? published.name : a === other ? 'Work account' : null, stale: false }])),
   'channel/mark': (p) => ({ ...channel, read: p.through, unread: 0 }),
   'channel/draft': () => ({ saved: true }),
   'channel/settings': (p) => {
@@ -1404,6 +1410,9 @@ server.on('upgrade', (req, socket, head) => {
         // A handler throws `{code, message}` for a daemon error.
         reply = { jsonrpc: '2.0', id: message.id, error: { code: -32000, message: failure.message, data: { code: failure.code } } }
       }
+      if (handler && !reply.error && ['local','swr','fresh'].includes(message.params?.mode)) {
+        reply.result = {state:reply.result === null ? 'absent':'present',data:reply.result,observed_at_ms:Date.now(),stale:false,refreshing:false,error:null}
+      }
       const send = () => {
         if (['profile/publish', 'profile/retry'].includes(message.method) && reply.result?.published) emit('profile/changed')
         if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
@@ -1524,7 +1533,16 @@ smoke: try {
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Local account choices show public names as well as their distinct IDs.
+  // A cache event can reach the window before its original missing response.
+  // It must trigger a later local reread rather than leave initials forever.
+  const publicNames = methods['channel/names']
+  methods['channel/names'] = () => ({})
+  const finishNames = hold('channel/names')
   await main.click('[data-testid="account-switcher"]')
+  await waitFor(() => held.get('channel/names'))
+  methods['channel/names'] = publicNames
+  emit('names/changed')
+  await finishNames()
   await main.waitForSelector(`[data-testid="account-menu"] [data-value="${account}"] >> text=Smoke`)
   await main.waitForSelector(`[data-testid="account-menu"] [data-value="${other}"] >> text=Work account`)
   assert.ok(await main.locator(`[data-testid="account-menu"] [data-value="${other}"] [title="${other}"]`).isVisible())
@@ -1710,10 +1728,10 @@ smoke: try {
 
   // Cached letters and sent items do not wait for either remote read.
   const finishLetters = hold('inbox/list', (p) => p?.refresh !== false)
-  const finishPolicy = hold('inbox/policy', (p) => p?.refresh !== false)
+  const finishPolicy = async () => emit('cache/changed', { kind: 'inbox-policy' })
   await main.click('nav >> text=/Inbox|收件箱/')
   await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
-  await waitFor(() => held.get('inbox/list') && held.get('inbox/policy'))
+  await waitFor(() => held.get('inbox/list') && latest('inbox/policy'))
   await main.click('[data-testid="inbox-sent"]')
   await main.click('[data-testid="inbox-received"]')
   await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
@@ -1841,6 +1859,14 @@ smoke: try {
   // A payment just made has the relay read the plan anew.
   assert.ok(calls.some((c) => c.method === 'plan/status' && c.params?.refresh === true))
   await main.screenshot({ path: join(shots, 'plan.png') })
+  // Payment follow-up belongs to that page's session. A session boundary
+  // must not let the disappearing page refresh the newly selected account.
+  const entitlementUpdates = calls.filter((c) => c.method === 'plan/status' && c.params?.refresh === true).length
+  const localPlanReads = calls.filter((c) => c.method === 'plan/status' && c.params?.mode === 'swr').length
+  emit('session/changed', { state: 'unlocked' })
+  await waitFor(() => calls.filter((c) => c.method === 'plan/status' && c.params?.mode === 'swr').length > localPlanReads)
+  await main.waitForSelector('[data-testid="plan-name"] >> text=Plus')
+  assert.equal(calls.filter((c) => c.method === 'plan/status' && c.params?.refresh === true).length, entitlementUpdates)
   // A renewal through PANDA picks a neuron the payer may act for, whose stake and lock cover the term.
   await main.click('[data-testid="plan-plus-renew"]')
   await main.click('[data-testid="checkout-method"] [data-value="Panda"]')
@@ -1986,6 +2012,11 @@ smoke: try {
   emit('session/changed', { state: 'unlocked' })
   emit('login/changed', null)
   await main.waitForSelector('[data-testid="login-dialog"]', { state: 'detached' })
+  // A new login clears the previous session's forms; the bound holder can
+  // claim after looking up the public name again, without another binding.
+  await main.click('[data-testid="plan-tab-names"]')
+  await main.fill('[data-testid="handle-name"]', 'oldpanda')
+  await main.click('[data-testid="handle-lookup"]')
   await main.waitForSelector('[data-testid="handle-claim"]')
   assert.equal(await main.locator('[data-testid="handle-login-claim"]').count(), 0)
   await main.click('[data-testid="handle-claim"]')

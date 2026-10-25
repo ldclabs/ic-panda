@@ -59,12 +59,9 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, D
     };
     let token = match stored {
         Some(token) if token.expires_at > now_ms() + 7 * dmsg_types::DAY => token,
-        // A new token, about weekly, still registers under the client.
+        // A new token, about weekly, registers outside the client lock.
         stored if session.state == "unlocked" || session.resident => {
-            match daemon
-                .under_lock(async |client| client.hint_token().await)
-                .await
-            {
+            match dmsg_client::connect::hint_token(&daemon.hold()).await {
                 Ok(token) => token,
                 Err(_) if stored.is_some() => stored.expect("stored token"),
                 Err(error) => return Err(Diagnostic::error(&error)),

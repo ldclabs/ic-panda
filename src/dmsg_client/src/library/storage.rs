@@ -9,8 +9,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
-const SNAPSHOT: &str = "lib-storage-snapshot";
-
 impl Client {
     pub(crate) fn seal_management(
         &self,
@@ -71,8 +69,8 @@ impl Client {
     /// The last explicit refresh, encrypted locally. It is never proof that a delete completed.
     pub fn files_storage(&self) -> Result<Value> {
         Ok(self
-            .workspace
-            .private(self.keys()?, SNAPSHOT)?
+            .cache_read(crate::cache::Kind::Storage, "")?
+            .map(|s| s.data)
             .unwrap_or_else(|| json!({"entries":[],"loaded":false})))
     }
 }
@@ -235,6 +233,9 @@ pub(crate) async fn sync_metadata<H: Hold>(h: &H) -> Result<()> {
 /// Refresh cloud copies and the payer's complete accounting ledger. Failed sources
 /// are explicit; missing permissions never grant access to channel contents.
 pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
+    let scope = h
+        .with(|c| c.cache_scope(crate::cache::Kind::Storage))
+        .await?;
     let (account, path, channels) = h
         .with(|c| {
             c.roots()?;
@@ -397,7 +398,13 @@ pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
             c.account()?.id.to_string() == account,
             Error::VersionConflict,
         )?;
-        c.workspace.put_private(c.keys()?, SNAPSHOT, &result)
+        c.cache_save_checked(
+            &scope,
+            crate::cache::Kind::Storage,
+            "",
+            &result,
+            crate::now_ms(),
+        )
     })
     .await?;
     Ok(result)

@@ -687,7 +687,7 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   await writeFile(appearanceFile(), next)
   applyAppearance(next)
 })
-handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError ? 'NETWORK_UNAVAILABLE' : undefined, recovery: daemon.recovery.state }))
+handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError ? 'DAEMON_DISCONNECTED' : undefined, recovery: daemon.recovery.state }))
 /** What an MCP client runs to reach this daemon: the installed binary and its home. */
 handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
@@ -903,7 +903,9 @@ const remindPlan = single(async () => {
   type Term = { contract: string; plan: string; ends_at_ms: number; terminated_at_ms?: number | null }
   let status: { current?: Term | null; next?: unknown }
   try {
-    status = (await daemon.call('plan/status', { refresh: false })) as typeof status
+    const snapshot = await daemon.call('plan/status', { mode: 'local' }) as { data: typeof status | null }
+    if (!snapshot.data) return
+    status = snapshot.data
   } catch {
     return
   }

@@ -8,7 +8,7 @@ export const READ_METHODS = new Set([
   'files/list', 'files/tree', 'files/show', 'files/search', 'files/tags', 'files/preview', 'files/open_list',
   'files/usage', 'files/backup_status', 'files/cloud_list', 'files/storage', 'files/cloud_usage',
   'files/mount_status', 'files/preferences', 'files/share_links', 'files/share_quote',
-  'sync/status', 'profile/show', 'profile/pending', 'profile/resolve', 'profile/avatar_image',
+  'sync/status', 'profile/show', 'profile/display', 'cache/status', 'profile/pending', 'profile/resolve', 'profile/avatar_image',
   'approval/list', 'approval/show', 'attest/readiness', 'attest/history', 'attest/usage',
   'connect/candidates', 'connect/pairings', 'connect/status',
   'channel/list', 'channel/show', 'channel/messages', 'channel/outbox', 'channel/search', 'channel/preview', 'channel/names', 'channel/receipts',
@@ -27,7 +27,8 @@ export const READ_METHODS = new Set([
   'legacy/pairs', 'legacy/channels', 'legacy/list',
 ])
 
-export const isRead = (method: string) => READ_METHODS.has(method)
+export const isRead = (method: string, params?: unknown) => READ_METHODS.has(method)
+  && (method !== 'plan/status' || ((params as any)?.refresh !== true && ((params as any)?.refresh === false || ['local', 'swr', 'fresh'].includes((params as any)?.mode))))
 
 /** Canonical only in memory; never log request keys or their parameters. */
 export function requestKey(method: string, params: unknown): string {

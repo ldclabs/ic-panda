@@ -14,6 +14,12 @@ export default {
     secretPolicy: "Cambiar política de credenciales",
     secretUse: "Crear un issue de GitHub",
 
+    displayCache: "Caché de visualización",
+    displayCacheHint: "Datos cifrados que se pueden descargar de nuevo. Conserva el contenido, borradores, operaciones pendientes y registros de seguridad. Tamaño de los registros almacenados.",
+    clearDisplayCache: "Borrar caché de visualización",
+    cachedDisplay: "Se muestran los últimos datos guardados",
+    daemonDisconnected: "Conectando al servicio local de dMsg…",
+    loadingCachedDisplay: "Cargando los datos guardados…",
     localStorageUnavailable: "No se pudieron leer o guardar los datos locales. Revisa el espacio en disco y los permisos.",
     networkReconnecting: "Reconectando… El contenido existente sigue disponible.",
     networkUnavailable: "No se puede actualizar temporalmente. Reintentaremos automáticamente.",

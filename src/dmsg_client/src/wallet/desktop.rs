@@ -77,33 +77,22 @@ pub fn notes(c: &mut Client, wallet: Principal, change: Option<(u64, String)>) -
     Ok(json!(notes))
 }
 
-/// Each sealed page of the cached history stays within half the record
-/// decoder's byte and item limits, however many proposals the wallet keeps.
-const HISTORY_PAGE_BYTES: usize = crate::workspace::MAX_PRIVATE / 2;
-const HISTORY_PAGE_ITEMS: usize = crate::codec::MAX_NODES / 2;
-
-/// The certified audit head the cached history shows, when it was read and
-/// how many pages hold its rows.
-#[derive(Serialize, Deserialize)]
-struct HistoryIndex {
-    head: Hash,
-    read_at: u64,
-    pages: u64,
-}
-
 /// Read all retained proposals for complete queues and explicitly requested
 /// history searches. The certified audit head invalidates the encrypted cache.
 /// List rows remain navigation hints; approving still certifies the proposal.
 pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result<Json> {
     let bound = Unlocked::new(h).await?;
     let h = &bound;
+    let scope = h
+        .with(|c| c.cache_scope(crate::cache::Kind::History))
+        .await?;
     let view = state(h, wallet).await?;
-    let cache = format!("wallet-history:{wallet}");
+    let cache = wallet.to_text();
     let saved = h
         .with(|c| read_history(c, &cache, &view.audit_head, now_ms()))
         .await?;
-    let (mut rows, read_at) = match saved {
-        Some(saved) => saved,
+    let (mut rows, read_at, persisted) = match saved {
+        Some((rows, at)) => (rows, at, true),
         None => {
             let (_, ic) = identity(h).await?;
             let mut before = None;
@@ -123,14 +112,23 @@ pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result
                 state(h, wallet).await?.audit_head == view.audit_head,
                 Error::VersionConflict,
             )?;
-            let read_at = h
+            let (read_at, persisted) = h
                 .with(|c| {
                     let now = now_ms();
-                    save_history(c, &cache, view.audit_head, &rows, now)?;
-                    Ok(now)
+                    ensure(
+                        c.cache_scope(crate::cache::Kind::History)? == scope,
+                        Error::VersionConflict,
+                    )?;
+                    let saved = save_history(c, &cache, view.audit_head, &rows, now);
+                    if let Err(ref error) = saved {
+                        crate::diagnostic::Diagnostic::error(error).emit();
+                    }
+                    // A display budget or full disk must not make a successfully
+                    // fetched large wallet permanently unreadable.
+                    Ok((now, saved.is_ok()))
                 })
                 .await?;
-            (rows, read_at)
+            (rows, read_at, persisted)
         }
     };
     if pending {
@@ -158,92 +156,32 @@ pub async fn history<H: Hold>(h: &H, wallet: Principal, pending: bool) -> Result
         "head": hex::encode(*view.audit_head),
         "complete": true,
         "read_at": read_at,
+        "persisted": persisted,
     }))
 }
 
-/// The cached rows for `head` read within the last minute, with their read
-/// time. A record that does not open, such as a whole history sealed as one
-/// record before it was paged, is a miss rather than a failure.
 fn read_history(
     c: &Client,
     cache: &str,
     head: &Hash,
     now: u64,
 ) -> Result<Option<(Vec<Json>, u64)>> {
-    let keys = c.keys()?;
-    let Some(index) = c
-        .workspace
-        .private::<HistoryIndex>(keys, cache)
-        .unwrap_or(None)
-        .filter(|i| i.head == *head && now.saturating_sub(i.read_at) < 60_000)
-    else {
+    let Some(saved) = c.cache_read(crate::cache::Kind::History, cache)? else {
         return Ok(None);
     };
-    let pages: Option<Vec<Vec<Json>>> = (0..index.pages)
-        .map(|page| {
-            c.workspace
-                .private(keys, &format!("{cache}:{page}"))
-                .unwrap_or(None)
-        })
-        .collect();
-    Ok(pages.map(|pages| (pages.concat(), index.read_at)))
+    if saved.data["head"] != hex::encode(**head)
+        || crate::display::stale(saved.observed_at_ms, crate::cache::Kind::History.ttl(), now)
+    {
+        return Ok(None);
+    }
+    Ok(saved.data["proposals"]
+        .as_array()
+        .cloned()
+        .map(|rows| (rows, saved.observed_at_ms)))
 }
 
-/// Replace the cached history in one transaction, deleting the pages a
-/// longer earlier history left beyond the new ones.
 fn save_history(c: &Client, cache: &str, head: Hash, rows: &[Json], now: u64) -> Result<()> {
-    let keys = c.keys()?;
-    let pages = history_pages(rows);
-    let old = c
-        .workspace
-        .private::<HistoryIndex>(keys, cache)
-        .unwrap_or(None)
-        .map_or(0, |i| i.pages);
-    c.workspace.store.atomic(|_| {
-        for (page, part) in pages.iter().enumerate() {
-            c.workspace
-                .put_private(keys, &format!("{cache}:{page}"), part)?;
-        }
-        for page in pages.len() as u64..old {
-            c.workspace.delete_private(&format!("{cache}:{page}"))?;
-        }
-        let index = HistoryIndex {
-            head,
-            read_at: now,
-            pages: pages.len() as u64,
-        };
-        c.workspace.put_private(keys, cache, &index)
-    })
-}
-
-/// Split rows into pages of at most [`HISTORY_PAGE_BYTES`] encoded bytes and
-/// [`HISTORY_PAGE_ITEMS`] CBOR items; a larger row gets a page of its own.
-fn history_pages(rows: &[Json]) -> Vec<&[Json]> {
-    let mut pages = vec![];
-    let (mut start, mut bytes, mut items) = (0, 0, 0);
-    for (i, row) in rows.iter().enumerate() {
-        let (size, count) = (crate::codec::canonical(row).len(), cbor_items(row));
-        if i > start && (bytes + size > HISTORY_PAGE_BYTES || items + count > HISTORY_PAGE_ITEMS) {
-            pages.push(&rows[start..i]);
-            (start, bytes, items) = (i, 0, 0);
-        }
-        bytes += size;
-        items += count;
-    }
-    if start < rows.len() {
-        pages.push(&rows[start..]);
-    }
-    pages
-}
-
-/// The CBOR items of `value` as the record decoder counts them: every value
-/// and every map key.
-fn cbor_items(value: &Json) -> usize {
-    1 + match value {
-        Json::Array(values) => values.iter().map(cbor_items).sum(),
-        Json::Object(map) => map.values().map(|v| 1 + cbor_items(v)).sum(),
-        _ => 0,
-    }
+    c.cache_save(crate::cache::Kind::History, cache, &json!({"proposals":rows,"head":hex::encode(*head),"complete":true,"next_cursor":null,"read_at":now}), now)
 }
 
 /// Policy accounting is informational; the wallet re-evaluates execution.
@@ -257,7 +195,7 @@ pub async fn policy_usage<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
     )
 }
 
-pub(super) fn settings(c: &Client) -> Result<WalletSettings> {
+pub(crate) fn settings(c: &Client) -> Result<WalletSettings> {
     let mut s = c.config.wallet.clone();
     if let Some(saved) = c
         .workspace
@@ -289,6 +227,7 @@ pub fn rpc_settings(c: &mut Client, input: Option<RpcSettings>) -> Result<Json> 
         config.validate()?;
         c.workspace.put_private(c.keys()?, "wallet-rpc", &input)?;
         c.chains = None;
+        c.cache_invalidate(&[crate::cache::Kind::Asset, crate::cache::Kind::Balances])?;
     }
     let s = settings(c)?;
     Ok(json!({"bitcoin_api": s.bitcoin_api, "evm_rpc": s.evm_rpc, "solana_rpc": s.solana_rpc}))
@@ -325,11 +264,17 @@ pub async fn rpc_check<H: Hold>(h: &H) -> Result<Json> {
 
 /// Metadata of one asset. Failed metadata stays unknown, never guessed.
 pub async fn metadata<H: Hold>(h: &H, asset: &AssetKey, refresh: bool) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
+    let scope = h.with(|c| c.cache_scope(crate::cache::Kind::Asset)).await?;
     let key = asset_key(asset);
-    let cache = format!("wallet-asset:{key}");
+    let cache = key.clone();
     if !refresh
         && let Some(v) = h
-            .with(|c| c.workspace.private::<Json>(c.keys()?, &cache))
+            .with(|c| {
+                Ok(c.cache_read(crate::cache::Kind::Asset, &cache)?
+                    .map(|s| s.data))
+            })
             .await?
         && v["read_at"]
             .as_u64()
@@ -440,8 +385,10 @@ pub async fn metadata<H: Hold>(h: &H, asset: &AssetKey, refresh: bool) -> Result
             out["decimals"] = json!(decimals);
             out["source"] = json!(source);
             out["read_at"] = json!(now_ms());
-            h.with(|c| c.workspace.put_private(c.keys()?, &cache, &out))
-                .await?;
+            h.with(|c| {
+                c.cache_save_checked(&scope, crate::cache::Kind::Asset, &cache, &out, now_ms())
+            })
+            .await?;
         }
         Ok(_) => out["error"] = json!("unsupported asset decimals"),
         Err(error) => out["error"] = json!(error.to_string()),
@@ -1460,17 +1407,10 @@ mod tests {
     fn long_histories_reopen_from_pages_and_old_records_are_misses() {
         let dir = crate::testing::TempDir::new();
         let client = crate::testing::unlocked(&dir.0, false, None);
-        let keys = client.keys().unwrap();
-        let cache = "wallet-history:test";
+        let cache = "test-wallet";
         let head = Hash::new([1; 32]);
-        // Many times one record's item limit, and rows that fill half its
-        // byte limit alone.
         let mut rows: Vec<Json> = (0..4_000).map(|id| row(id, 50, 16)).collect();
-        rows.extend((4_000..4_003).map(|id| row(id, 1, HISTORY_PAGE_BYTES)));
-        let pages = history_pages(&rows);
-        assert!(pages.len() > 50);
-        assert_eq!(pages.concat(), rows);
-
+        rows.extend((4_000..4_003).map(|id| row(id, 1, 1024 * 1024)));
         save_history(&client, cache, head, &rows, 1_000).unwrap();
         let (read, at) = read_history(&client, cache, &head, 60_999)
             .unwrap()
@@ -1492,18 +1432,16 @@ mod tests {
         save_history(&client, cache, head, &rows[..1], 2_000).unwrap();
         let (read, _) = read_history(&client, cache, &head, 2_000).unwrap().unwrap();
         assert_eq!(read, rows[..1]);
-        for page in 1..pages.len() {
-            let name = format!("{cache}:{page}");
-            assert!(client.workspace.store.sealed(&name).unwrap().is_none());
-        }
-
-        // Sealed as one record, as before paging, 200 such rows stay far
-        // below the byte limit but exceed the item limit: the record no
-        // longer opens. It reads as a miss and the next save replaces it.
-        let whole = json!({"proposals": rows[..200], "head": hex::encode(*head), "complete": true, "read_at": 3_000});
-        assert!(crate::codec::canonical(&whole).len() < HISTORY_PAGE_BYTES);
-        client.workspace.put_private(keys, cache, &whole).unwrap();
-        assert!(client.workspace.private::<Json>(keys, cache).is_err());
+        let key = client
+            .cache_key(crate::cache::Kind::History, cache)
+            .unwrap();
+        let pages = client
+            .workspace
+            .store
+            .sealed_after(&format!("{key}:"), "", 100)
+            .unwrap();
+        assert_eq!(pages.len(), 1);
+        client.workspace.store.set_sealed(&key, "broken").unwrap();
         assert!(
             read_history(&client, cache, &head, 3_000)
                 .unwrap()

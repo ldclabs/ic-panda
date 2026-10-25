@@ -2,6 +2,7 @@
   import Notice from '../components/page/Notice.svelte'
   import { Tabs } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
+  import { display, watchDisplays, type Mode } from '../display.svelte'
   import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
   import Icon from '../components/Icon.svelte'
@@ -10,7 +11,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { ago, call, closed, errorText, single, when } from '../rpc'
+  import { ago, call, closed, code, errorText, single, when } from '../rpc'
   import { shortId } from '../shell/session'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
@@ -71,7 +72,7 @@
       const next = await call('inbox/outgoing')
       if (valid(at)) outgoing = next
     } catch (e) {
-      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+      if (valid(at) && code(e) !== 'CACHE_MISSING' && !closed(e, status)) toast(() => errorText(e))
     }
   })
 
@@ -94,17 +95,14 @@
     }
   })
 
-  const loadPolicy = single(async () => {
+  const loadPolicy = single(async (mode: Mode = 'swr') => {
     const at = generation
     if (!valid(at)) return
     try {
-      const cached = await call('inbox/policy', { refresh: false })
-      if (!valid(at)) return
-      if (cached) { policy = cached; policyReady = true }
-      const next = await call('inbox/policy')
+      const next = await display('inbox/policy', {}, mode)
       if (valid(at)) { policy = next; policyReady = true }
     } catch (e) {
-      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+      if (valid(at) && code(e) !== 'CACHE_MISSING' && !closed(e, status)) toast(() => errorText(e))
     }
   })
 
@@ -171,13 +169,14 @@
     })
 
   onMount(() => {
+    const stop = watchDisplays(['inbox-policy'], (mode) => loadPolicy(mode))
     const off = window.dmsg.onEvent((event) => {
       if (event.type === 'approval/changed') { void loadOutgoing(); return }
       if (['inbox/changed', 'sync/changed', 'resync'].includes(event.type)) void reload()
       const detail = event.data as { method?: string; hint?: boolean } | null
       if (event.type === 'resync' || (event.type === 'inbox/changed' && (detail?.method === 'inbox/configure' || detail?.hint))) void loadPolicy()
     })
-    return () => { alive = false; generation += 1; off() }
+    return () => { alive = false; generation += 1; off(); stop() }
   })
 
   const tabClass =

@@ -2251,53 +2251,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` without the device key and relay errors.
     pub async fn hint_token(&mut self) -> Result<HintToken> {
-        let name = self.hint_name()?;
-        let stored: Option<HintToken> = match self.secure() {
-            Some(secure) => secure
-                .get(&name)?
-                .and_then(|bytes| serde_json::from_slice(&bytes).ok()),
-            None => self.workspace.store.meta(&name)?,
-        };
-        let now = now_ms();
-        if let Some(token) = &stored
-            && token.expires_at > now + HINT_RENEW_MS
-        {
-            return Ok(token.clone());
-        }
-        let secret = random_key();
-        let token = HintToken {
-            token: b64(&secret),
-            expires_at: now + HINT_TTL_MS,
-        };
-        let path = format!("{}/hint-tokens", self.base()?);
-        self.relay_post(
-            &path,
-            HINT_CREATE_ACTION,
-            &dmsg_types::connect::HintToken {
-                token_hash: sha256(&secret),
-                expires_at: token.expires_at,
-            },
-            &Hash::new(random_id()),
-        )
-        .await?;
-        match self.secure() {
-            Some(secure) => secure.set(&name, &serde_json::to_vec(&token).expect("JSON"))?,
-            None => self.workspace.store.set_meta(&name, &token)?,
-        }
-        if let Some(old) = stored {
-            let path = format!("{}/hint-tokens/revoke", self.base()?);
-            let _ = self
-                .relay_post(
-                    &path,
-                    HINT_REVOKE_ACTION,
-                    &RevokeHintToken {
-                        token_hash: sha256(&unb64(&old.token)?),
-                    },
-                    &Hash::new(random_id()),
-                )
-                .await;
-        }
-        Ok(token)
+        hint_token(&self.hold()).await
     }
 
     /// Web requests fetched but not yet opened.
@@ -2401,3 +2355,73 @@ fn attestation_result(attestation: &crate::attest::Attestation) -> Result<Json> 
 #[cfg(test)]
 #[path = "connect_tests.rs"]
 mod tests;
+
+/// Register or renew content-free hints without holding the client over HTTP.
+/// A session change prevents storing the reply in another workspace.
+pub async fn hint_token<H: Hold>(h: &H) -> Result<HintToken> {
+    let (name, account, generation, stored, path) = h
+        .with(|c| {
+            Ok((
+                c.hint_name()?,
+                c.account()?.id,
+                c.session_generation(),
+                c.stored_hint_token()?,
+                c.base()?,
+            ))
+        })
+        .await?;
+    let now = now_ms();
+    if let Some(token) = &stored
+        && token.expires_at > now + HINT_RENEW_MS
+    {
+        return Ok(token.clone());
+    }
+    let secret = random_key();
+    let token = HintToken {
+        token: b64(&secret),
+        expires_at: now + HINT_TTL_MS,
+    };
+    let create_path = format!("{path}/hint-tokens");
+    let create_id = Hash::new(random_id());
+    let input = dmsg_types::connect::HintToken {
+        token_hash: sha256(&secret),
+        expires_at: token.expires_at,
+    };
+    h.send(|c| {
+        ensure(
+            c.account()?.id == account && c.session_generation() == generation,
+            Error::Locked,
+        )?;
+        c.signed_post(&create_path, HINT_CREATE_ACTION, &input, &create_id)
+    })
+    .await?;
+    h.with(|c| {
+        ensure(
+            c.account()?.id == account && c.session_generation() == generation,
+            Error::Locked,
+        )?;
+        match c.secure() {
+            Some(secure) => secure.set(&name, &serde_json::to_vec(&token).expect("JSON"))?,
+            None => c.workspace.store.set_meta(&name, &token)?,
+        }
+        Ok(())
+    })
+    .await?;
+    if let Some(old) = stored {
+        let revoke_path = format!("{path}/hint-tokens/revoke");
+        let revoke_id = Hash::new(random_id());
+        let input = RevokeHintToken {
+            token_hash: sha256(&unb64(&old.token)?),
+        };
+        let _ = h
+            .send(|c| {
+                ensure(
+                    c.account()?.id == account && c.session_generation() == generation,
+                    Error::Locked,
+                )?;
+                c.signed_post(&revoke_path, HINT_REVOKE_ACTION, &input, &revoke_id)
+            })
+            .await;
+    }
+    Ok(token)
+}

@@ -14,6 +14,7 @@ mod autostart;
 mod channels;
 mod commands;
 mod daemon;
+mod display;
 mod doctor;
 #[cfg(target_os = "macos")]
 mod enclave;
@@ -48,6 +49,7 @@ mod secret_mounts;
 #[path = "secret_mounts_unavailable.rs"]
 mod secret_mounts;
 mod secure;
+mod snapshots;
 #[cfg(unix)]
 mod ssh_agent;
 mod vault_commands;

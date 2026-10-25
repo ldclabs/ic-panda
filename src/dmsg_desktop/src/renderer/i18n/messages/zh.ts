@@ -14,6 +14,12 @@ export default {
     secretPolicy: "变更凭据使用策略",
     secretUse: "创建 GitHub issue",
 
+    displayCache: "展示缓存",
+    displayCacheHint: "可重新下载的加密数据。清理后保留内容、草稿、待处理操作和安全记录。容量按已存储的记录计算。",
+    clearDisplayCache: "清理展示缓存",
+    cachedDisplay: "正在显示上次保存的数据",
+    daemonDisconnected: "正在连接本机 dMsg 服务…",
+    loadingCachedDisplay: "正在读取已保存的数据…",
     localStorageUnavailable: "无法读取或保存本机数据，请检查磁盘空间与访问权限。",
     networkReconnecting: "正在重新连接，已有内容仍可查看。",
     networkUnavailable: "暂时无法更新，正在自动重试。",
