@@ -112,6 +112,8 @@
     detailOpen = $state(false),
     detailId = $state<number | null>(null)
   let activation = $state<any>(null)
+  let abortQuote = $state<string | null>(null), abortBusy = $state(false), abortError = $state<unknown>(null)
+  let abortCancel = $state<HTMLButtonElement | null>(null)
   let pendingRead = false
   let pending = $state<any>(null),
     drafts = $state<Record<string, any>>({})
@@ -158,6 +160,9 @@
         deposits = []
         pending = null
         activation = null
+        abortQuote = null
+        abortError = null
+        abortBusy = false
         drafts = {}
         error = ''
         depositError = ''
@@ -536,6 +541,22 @@
       if (owner === account) error = errorText(e)
     } finally {
       if (owner === account) busy = false
+    }
+  }
+  async function abortActivation() {
+    if (abortBusy || busy || !abortQuote || !deposits.some((d) => d.quote_id === abortQuote && d.abortable)) return
+    const quote = abortQuote, owner = account, generation = epoch
+    abortBusy = true
+    abortError = null
+    try {
+      await call('wallet/activation_abort', { quote })
+      if (!fresh(generation) || owner !== account || abortQuote !== quote) return
+      abortQuote = null
+      await loadDeposits()
+    } catch (e) {
+      if (fresh(generation) && owner === account && abortQuote === quote) abortError = e
+    } finally {
+      if (fresh(generation) && owner === account) abortBusy = false
     }
   }
   onMount(() => {
@@ -997,10 +1018,8 @@
                   >{#if d.reason}<p class="text-danger text-[12px] break-all">{d.reason}</p>{/if}</div
                 >{#if d.abortable}<button
                     class={buttonClass('danger', 'sm')}
-                    disabled={busy}
-                    onclick={() => {
-                      if (window.confirm(w('abortActivationHint'))) void run('wallet/activation_abort', { quote: d.quote_id })
-                    }}>{w('abortActivation')}</button
+                    disabled={busy || abortBusy}
+                    onclick={() => { abortError = null; abortQuote = d.quote_id }} data-testid="wallet-abort">{w('abortActivation')}</button
                   >{/if}{#if d.refundable}<button
                     class={buttonClass('primary', 'sm')}
                     disabled={busy}
@@ -1017,6 +1036,17 @@
   </div>
 </div>
 {#if unlocked}
+  <Dialog bind:open={() => !!abortQuote, (open) => { if (!open && !abortBusy) { abortQuote = null; abortError = null } }}
+    title={w('abortActivation')} description={w('abortActivationHint')} icon="warning" tone="danger"
+    dismissible={!abortBusy} onOpenAutoFocus={(event) => { event.preventDefault(); abortCancel?.focus() }} testid="wallet-abort-dialog">
+    {#if abortQuote}<Id id={abortQuote} full />{/if}
+    {#if abortError}<Notice failure={errorText(abortError)} tone="danger">{errorText(abortError)}</Notice>{/if}
+    {#snippet footer()}
+      <span class="flex-1"></span>
+      <button bind:this={abortCancel} class={buttonClass('ghost')} disabled={abortBusy} onclick={() => { abortQuote = null; abortError = null }} data-testid="wallet-abort-cancel">{t('cancel')}</button>
+      <button class={buttonClass('danger')} disabled={abortBusy || busy || !deposits.some((d) => d.quote_id === abortQuote && d.abortable)} aria-busy={abortBusy} onclick={abortActivation} data-testid="wallet-abort-confirm">{w('abortActivation')}</button>
+    {/snippet}
+  </Dialog>
   <Dialog bind:open={newOpen} title={w('newWallet')} icon="coins" wide
     >{#if newOpen}<Create {status} onRequest={request} />{/if}</Dialog
   >

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DateInput from '../../components/DateInput.svelte'
+  import { validDateText } from '../../components/form-values'
   import { onMount } from 'svelte'
   import { display, watchDisplays, type Mode } from '../../display.svelte'
   import DisplayNotice from '../../components/DisplayNotice.svelte'
@@ -32,7 +34,7 @@
   let before = $state('')
   let sort = $state('size')
   const all = $derived((report?.entries ?? []).filter((e: any) => !linksOnly || e.kind === 'share'))
-  const rows = $derived(filtered(all, { text, kind, phase, resource, before, sort }))
+  const rows = $derived(before && !validDateText(before, 'date') ? [] : filtered(all, { text, kind, phase, resource, before, sort }))
   const shown = $derived(rows.slice(0, limit))
   const picked = $derived(candidates(all, selected))
   const pending = $derived((report?.entries ?? []).some((e: any) => ['deleting', 'retrying', 'releasing', 'cancelling'].includes(e.phase)))
@@ -93,14 +95,14 @@
           {#if !linksOnly}<div class="min-w-0"><p class="mb-1 text-[11px] text-faint">{t('storageType')}</p><Select bind:value={kind} label={t('storageType')} class="w-full" options={[{value:'',label:t('storageAll')}, ...Object.entries(kinds).map(([value,key]) => ({value,label:t(key)}))]} /></div>{/if}
           <div class="min-w-0"><p class="mb-1 text-[11px] text-faint">{t('storageState')}</p><Select bind:value={phase} label={t('storageState')} class="w-full" options={[{value:'',label:t('storageAll')}, ...Object.entries(phases).map(([value,key]) => ({value,label:t(key)}))]} /></div>
           <div class="min-w-0"><p class="mb-1 text-[11px] text-faint">{t('storageChannel')}</p><Select bind:value={resource} label={t('storageChannel')} class="w-full" options={[{value:'',label:t('storageAll')}, ...[...new Set<string>(all.filter((e: any) => e.owner_kind === 'channel').map((e: any) => e.resource))].map(value => ({value,label:all.find((e: any) => e.resource === value)?.channel_name ?? value.slice(0,12)+'…'}))]} /></div>
-          <label class="min-w-0 text-[11px] text-faint">{t('storageBefore')}<input type="date" bind:value={before} class="mt-1 w-full min-w-0 text-[12px]" /></label>
+          <DateInput label={t('storageBefore')} bind:value={before} testid="storage-before" />
           <div class="min-w-0"><p class="mb-1 text-[11px] text-faint">{t('storageSort')}</p><Select bind:value={sort} label={t('storageSort')} class="w-full" options={[{value:'size',label:t('storageBySize')},{value:'date',label:t('storageByDate')}]} /></div>
         </div>
       </div>
       <div class="mb-2 flex items-center gap-3 text-[12px]">
         <button class="text-forest hover:underline" onclick={() => selected = shown.filter(e => e.can_delete || e.can_cancel || e.can_revoke).map(e => e.id)}>{t('storageSelectVisible')}</button>
         <span class="flex-1 text-faint">{rows.length} · {report.refreshed_at ? when(report.refreshed_at) : ''}</span>
-        {#if picked.length}<button class={buttonClass('danger','sm')} onclick={() => confirmation = picked} disabled={busy} data-testid="storage-bulk-delete">{t('storageClean', { n: picked.length, bytes: size(releaseBytes(picked)) })}</button>{/if}
+        {#if picked.length}<button class={buttonClass('danger','sm')} onclick={() => confirmation = picked} disabled={busy || (!!before && !validDateText(before, 'date'))} data-testid="storage-bulk-delete">{t('storageClean', { n: picked.length, bytes: size(releaseBytes(picked)) })}</button>{/if}
       </div>
       <ul class="divide-y divide-line" data-testid="storage-list">
         {#each shown as entry (entry.id)}

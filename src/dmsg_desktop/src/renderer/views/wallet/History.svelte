@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DateInput from '../../components/DateInput.svelte'
+  import { validDateText } from '../../components/form-values'
   import { onMount, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../../display.svelte'
   import DisplayNotice from '../../components/DisplayNotice.svelte'
@@ -31,11 +33,12 @@
     complete = $state(false)
   let alive = true,
     generation = 0
+  const rangeValid = $derived((!from || validDateText(from, 'date')) && (!to || validDateText(to, 'date')) && (!from || !to || from <= to))
   const shown = $derived(
     rows.filter((p) => {
       const text = [p.id, intentHeadline(p.intent, metadata).text, notes[p.id] ?? '', p.proposer].join(' ').toLowerCase()
       return (
-        text.includes(search.trim().toLowerCase()) &&
+        rangeValid && text.includes(search.trim().toLowerCase()) &&
         (!from || p.created_at >= new Date(`${from}T00:00:00`).getTime()) &&
         (!to || p.created_at <= new Date(`${to}T23:59:59.999`).getTime())
       )
@@ -63,6 +66,7 @@
     }
   }
   async function save() {
+    if (!rangeValid || busy || !complete || !shown.length) return
     const report = shown.flatMap((p) =>
       (p.intent.outputs?.length ? p.intent.outputs : [{}]).map((o: any) => [
         wallet.wallet,
@@ -98,14 +102,14 @@
   <p class="text-muted text-[12px]">{w('historyCoverage')}</p>
   <div class="grid gap-3 sm:grid-cols-[minmax(0,2fr)_1fr_1fr]">
     <Field label={w('searchHistory')}><input bind:value={search} /></Field>
-    <Field label={w('fromDate')}><input type="date" bind:value={from} /></Field>
-    <Field label={w('toDate')}><input type="date" bind:value={to} /></Field>
+    <DateInput label={w('fromDate')} bind:value={from} max={validDateText(to, 'date') ? to : undefined} testid="wallet-history-from" />
+    <DateInput label={w('toDate')} bind:value={to} testid="wallet-history-to" />
   </div>
   {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'sm')} onclick={() => load()}>{w('retry')}</button></Notice>{/if}
   <div class="flex flex-wrap items-center justify-between gap-3"
     ><p class="text-muted text-[12px]" role="status">{busy ? w('loading') : `${shown.length}`}</p><button
       class={buttonClass('secondary', 'sm')}
-      disabled={busy || !complete || !shown.length}
+      disabled={busy || !rangeValid || !complete || !shown.length}
       onclick={save}>{w('exportHistory')}</button
     ></div
   >

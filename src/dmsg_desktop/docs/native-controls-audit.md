@@ -1,93 +1,95 @@
-# 桌面原生控件排查与整改清单
+# 桌面表单统一：整改与验证记录
 
-核对日期：2026-10-26；界面源码基线：`643693a5`，`main`。
-本文记录源码现状，不表示以下待办已修复，也不是运行中安装包的视觉验收。
+更新日期：2026-10-26。本次整改基于 `main@777a7c3f`；原始排查的界面基线为 `643693a5`。
+原始 9 项整改、11 处特殊控件/交互，以及设置的 17 处直接文本输入均已完成代码整改。
+实际交互验证使用构建后的 Electron 与隔离的本地 mock daemon，不操作真实账户。
 
-## 范围与口径
+## 整改结果
 
-- 遍历全部 **134 个 Svelte 文件与 48 个 renderer TypeScript 文件**，覆盖主窗口、独立审批窗口、设置子页面、弹窗与共享组件。另检查 HTML 入口、全局 CSS、主进程系统对话框调用及动态 DOM 创建。
-- Svelte AST 统计 **124 个 `input`、26 个 `textarea`、1 个 `progress`** 源码位置；另有 **1 个 `window.confirm`**。循环或可复用组件每个源码位置计一次，不能当作屏幕上的控件个数。
-- 实际模板中 **0 个 `select`、`datalist`、原生 radio、file input、color input、meter**；`Select.svelte`、`Suggest.svelte` 注释中的 HTML 示例不计。bits-ui 可能生成隐藏的表单节点，不等于用户看见了原生控件。
-- `app.css:157–200` 统一设置文本框/多行框的尺寸、颜色、边框、焦点、禁用态，并移除数字输入框默认 spinner。因此 **直接使用 HTML 元素、未封装共享输入组件、保留浏览器默认外观是三个不同问题**。
-- 明确需要统一的控件/交互共有 **11 个源码位置，涉及 9 个文件**。另列设置表单的标签和布局问题，不能用“未发现原生下拉框”概括设置体验。
-
-## 优先整改项
-
-| 编号 | 优先级 | 功能与源码 | 现状及影响 | 修复要求 |
-| --- | --- | --- | --- | --- |
-| NC-01 | P1 | [保险库导入附件](../src/renderer/views/vault/Import.svelte#L130) | 1 个原生 checkbox；同一弹窗的条目选择已用 `Checkbox`，附件选择外观不一致 | 复用 `Checkbox`，保留附件选择、不可用原因、父条目选择约束与 busy 禁用状态 |
-| NC-02 | P1 | [钱包撤销激活](../src/renderer/views/Wallet.svelte#L1002) | 1 个 `window.confirm`；阻塞式浏览器确认，不能遵循应用的确认布局、按钮命名与状态反馈 | 使用 `Dialog`，说明作用于哪个激活请求，取消默认聚焦，提交等待/失败可见，保留实际审批与执行边界 |
-| NC-03 | P2 | [密码生成器](../src/renderer/views/vault/Generator.svelte#L93) | 两个原生 range：词数、密码/PIN 长度；仅加 `accent-forest`，还被通用文本 input CSS 命中 | 实现共享 Slider，统一轨道、滑块、焦点和禁用态，保留 min/max/step、键盘操作及读出的当前值；核验中文与 RTL |
-| NC-04 | P2 | [Agent 泄露起点](../src/renderer/views/agents/Overview.svelte#L449) | 1 个 `datetime-local`，外框受主题控制，日期时间弹层仍由浏览器绘制 | 共享日期时间组件；明确本地时区、校验无效/未来输入，保持现有时间含义 |
-| NC-05 | P2 | [文件清理日期](../src/renderer/views/files/Storage.svelte#L96)；[钱包历史起止日期](../src/renderer/views/wallet/History.svelte#L101) | 共 3 个原生 date；弹层、内部日期分段和图标未统一 | 与 NC-04 共用日期基础组件，保留清空、范围边界、查询语义；日期值不得隐式当作 UTC 时间戳 |
-| NC-06 | P2 | [保险库字段编辑](../src/renderer/views/vault/ItemForm.svelte#L198) | 1 个动态 input，映射同时包含 date/month 与 text/url/email/tel，简单搜索固定 type 会漏报 | 按字段类型显式选择日期/月组件；普通文本保留语义与主题，秘密字段继续使用 `SecretInput` |
-| NC-07 | P2 | [文件分享密码](../src/renderer/views/Files.svelte#L1109) | 1 个 `input type=password`，已统一文本样式且默认掩码，但与凭据快照分享的秘密输入交互不一致 | 复用 `SecretInput`，统一显示/隐藏、关闭清理和错误重试；不要改变密码值或把密码写进日志 |
-| NC-08 | P2 | [秘密快照上传](../src/renderer/views/secrets/Sharing.svelte#L319) | 1 个原生 progress，仅加 accent 色；这是本次凭据流程优化后仍遗漏的一处 | 实现共享 Progress，统一 track/fill、高度、动画与状态文本；保留无障碍名称、完成量和总量，区分确定与未知进度 |
-| NC-09 | P2 | 设置各子页，见下表 | 17 个文本类原生源码位置仍由页面直接编排；部分只靠 placeholder，尺寸与说明组织分散 | 先统一标签/说明/错误和布局；提取有实际复用需求的 TextField/TextArea 等共享组件，再迁移同类表单；保留原生输入语义 |
-
-P1 指现成组件即可替换的明显一致性问题及确认流程问题；P2 需要共享组件或更完整的表单整理，不表示安全漏洞严重性。
-
-## 设置页面专项核查
-
-设置必须沿 `Settings.svelte` 的组件引用继续检查，不能只扫描入口文件。
-
-| 设置区域 | 直接 HTML 表单位置 | 当前实现与需要处理的点 |
+| 编号 | 结果 | 实现与保留的行为 |
 | --- | --- | --- |
-| 会话与账户 | [Onboarding.svelte:75](../src/renderer/views/Onboarding.svelte#L75)：1 个 input | 加入账户输入框仅有 placeholder，没有关联的持久标签；补 `Field` / 明确可访问名称与输入说明 |
-| 安全 | [Security.svelte:171](../src/renderer/views/Security.svelte#L171)：4 个 input、3 个 textarea | 请求、设备标识、执行限额、硬件请求令牌；已有 `Field`，但控件仍直接编排。将只读值/复制动作与编辑字段区分，统一宽度、说明及失败状态；复选框和恢复天数已用 `Checkbox` / `Segmented` |
-| 公开资料 | [Profile.svelte:241](../src/renderer/views/Profile.svelte#L241)：7 个 input、1 个 textarea | 昵称、简介、地址与链接；编辑区大部分用 `Field`。[查询账户框](../src/renderer/views/Profile.svelte#L273)仅有 placeholder，需补持久标签。链接编辑组应统一列宽、换行及删除操作布局 |
-| 旧数据迁移 | [Legacy.svelte:168](../src/renderer/views/Legacy.svelte#L168)：1 个 input | Principal 核对字段已用 `Field`；单选和勾选用共享组件，仍需检查长标识的布局与错误说明 |
-| 语言与外观 | [Settings.svelte:257](../src/renderer/views/Settings.svelte#L257) | `Select` 与 `Radio` / bits-ui `RadioGroup`，没有直接原生 select/radio；组件间对齐、宽度与选中反馈仍属于视觉验收范围 |
-| 文件设置 | [FilesSettings.svelte:69](../src/renderer/views/files/FilesSettings.svelte#L69) | 挂载用 `Checkbox`，回收站期限用 `Select`；缓存区是共享按钮。文件库清理页的 date 另列 NC-05，它不是设置入口里的控件 |
-| 设备、浏览器、关于 | `Devices.svelte` / `Settings.svelte` / `About.svelte` | 设备权限用 `Checkbox`，其余为按钮、状态与列表；未发现直接原生表单选择控件 |
+| NC-01 保险库附件选择 | 已替换 | `Checkbox` 统一条目与附件；条目有可访问名称，busy 时禁用；不支持的附件与未选父条目的附件不可选，提交仍按所选父条目过滤 |
+| NC-02 钱包终止激活 | 已替换 | `Dialog` 展示目标请求和后果，取消默认聚焦；取消不调用接口，失败留在弹窗内可重试，等待期间禁止重复提交和关闭，账户改变清理状态 |
+| NC-03 密码生成器 | 已替换 | `Slider` 统一轨道、滑块、数值、禁用态与键盘；词数、随机密码和 PIN 各自保留范围；弹层按可用高度滚动 |
+| NC-04 泄露起点 | 已替换 | `DateInput` 显示本地时区，支持手动输入和日历；保留本地时间转换，阻止无效/未来时间提交 |
+| NC-05 文件/钱包日期筛选 | 已替换 | 共享日期控件保留日历字符串；可清空，无效日期不给出筛选结果，钱包倒置范围和无效日期禁止导出 |
+| NC-06 保险库日期/年月 | 已替换 | 按字段类型使用日期/月份选择器，月份仍序列化为 `YYYY-MM`；无效日期阻止保存（含快捷键），普通字段用受限类型的 `TextField`，秘密字段保留 `SecretInput` |
+| NC-07 文件分享密码 | 已替换 | `SecretInput` 统一掩码与显隐；失败保留草稿，成功清除密码，关闭后重开为空；迟到结果不覆盖新弹窗 |
+| NC-08 快照上传进度 | 已替换 | `Progress` 统一主题、可访问值和百分比；未知总量显示不确定进度，不伪报 0% 或完成 |
+| NC-09 设置表单 | 已统一 | `TextField` / `TextArea` 覆盖 13 个单行、4 个多行源码位置，标签与输入关联、说明/错误通过 ID 关联；只读值有独立外观，请求令牌提供独立复制动作 |
 
-所以“设置使用了原生表单元素”是成立的；“设置全部是浏览器默认样式”不成立。
-源码表明大部分已有主题和共享选择组件，但不能因此否定视觉上的粗糙感。
-本次没有核对正在运行的客户端版本或逐页截图，不能把源码结论直接套到当前安装包。
+## 设置页落实情况
 
-## 可保留的原生机制
+- **会话与账户**：加入账户使用持久标签和共享输入，窄窗口可换行，不再只靠 placeholder。
+- **安全**：请求、设备 ID、执行限额和硬件令牌统一；限额错误在字段下显示，等待时禁用编辑，原来的审批窗口边界不变；只读请求令牌标为“请求令牌”，提供复制按钮。
+- **公开资料**：昵称、简介、地址与链接全部使用共享输入；身份类型补可见标签；查询账户补持久标签；链接组用统一行列、间距和分隔线，移除动作有明确名称。
+- **旧数据迁移**：Principal 核对字段使用共享输入与持久标签，保留确认勾选和忙碌状态。
+- **语言、外观、设备和文件设置**：继续使用已有 `Select`、`Radio`、`Checkbox`、`Segmented`；不重复建设一套选择控件。
 
-- 普通文本、搜索、数字、URL、邮件、电话输入与 textarea：保留语义和全局样式，并持续统一 Field、标签、状态和布局，不需要仅为消除 HTML 标签就套无意义的包装。
-- `SecretInput` 的 textarea 与 `TagInput` 的内部 input：共享组件的实现细节；仍需检查复合组件的名称、焦点与关联方式。
-- 主进程的文件/保存/目录选择：`src/main/index.ts` 中 7 处 `showOpenDialog` / `showSaveDialog` 调用，是 OS 文件访问入口，应保留；系统身份确认同样不能被 renderer 自制确认替代。
-- 本次源码未发现无 class 的直接 button，但有 class 不保证正确复用了按钮体系；手写导航、列表行和组件内部按钮需结合用途人工检查。
+## 共享组件与安全边界
 
-## 防回退与复查
+组件位于 `src/renderer/components`：`TextField`、`TextArea`、`DateInput`、`Slider`、`Progress`，以及扩展的 `SecretInput`、`Checkbox`、`page/Field`。
+日期和生成器弹层有可用高度限制；Escape 先退出弹层，模态表单交由 `Dialog` 管理关闭层级，避免一次按键把整个表单关闭。
+
+`TextField` 的动态 input 只允许 text/search/url/email/tel，检查器单独识别这一个共享实现；业务页面的历史例外全部移除。
+原生文本语义和 bits-ui 内部节点仍保留，统一的是外观、标签、状态与操作，而不是以 div 模拟输入。
+OS 文件/目录选择、系统身份确认、主进程路径校验和审批权限均保持原边界。
+
+## 检查与复查方法
 
 ```sh
 pnpm --dir src/dmsg_desktop audit:controls
 pnpm --dir src/dmsg_desktop audit:controls --json
+pnpm --dir src/dmsg_desktop check
 pnpm --dir src/dmsg_desktop test
+pnpm --dir src/dmsg_desktop build
+# 在桌面目录内，对最新构建执行：
+node scripts/smoke.mjs
+node scripts/secrets-smoke.mjs
+DMSG_DESKTOP_SMOKE=forms node scripts/smoke.mjs
 ```
 
-`audit:controls` 输出待审查的特殊类型与浏览器对话框；JSON 同时输出所有文本输入位置。
-`tests/ui-controls.test.ts` 在现有 11 处基线上阻止新增同类用法。整改后同步删去基线；不为通过测试增加豁免。
-检查会扫描 Svelte 模板、脚本和表达式中的直接调用，以及 renderer TypeScript 中的直接调用。
-它不执行页面，不解析动态 DOM/属性展开的最终类型，也不能证明第三方组件内部、无障碍名称或视觉状态正确；这些仍按 `DESIGN.md` 做实际界面验证。
+检查器扫描当前 **139 个 Svelte 文件与 49 个 renderer TypeScript 文件**，结果为 **0 个未批准用法**。
+设置的四个有文本输入的子页面不得再直接定义 input/textarea；这一要求也由 `ui-controls.test.ts` 检查。
+当前剩余的直接 HTML 元素是主题化文本输入、文本域和数字输入；没有直接原生 checkbox/radio/range、date/month/datetime-local、password、select/datalist、progress/meter 或浏览器确认框。
 
-## 全量源码位置索引
+交互脚本覆盖：钱包取消/失败/重试/等待关闭；无效日期、范围倒置、日历与月份选择；Slider 的 Home/End/方向键与 RTL；附件禁用约束；分享密码显隐、失败保留、成功清理与迟到结果隔离；设置字段名称、错误和编辑草稿；已知/未知总量的进度语义。
 
-以下是所有直接 input/textarea/progress 及浏览器确认的源码位置；数字是行号，不是渲染数量。共享组件调用与 bits-ui 内部生成的元素不重复计数。
+视觉矩阵在实际 Electron renderer 中覆盖中文明暗、法语长标签、阿拉伯语 RTL，含主窗口 760×540 的最小内容尺寸；截图在忽略的 `test-results/controls-*.png` 与 `test-results/secrets/controls-upload-progress.png` 中。
+脚本检查横向尺寸与弹层完整边界；已人工复核设置、确认弹窗、日历、滑块和进度条的代表性截图，修正了窄窗口裁切和错误文字导致的按钮错位。
+
+本次验证结果：
+
+- Svelte / TypeScript 检查通过，Svelte 0 errors / 0 warnings；构建成功。
+- 124 项桌面单元测试通过，原生控件检查 0 个未批准用法。
+- 完整 `smoke.mjs` 通过；最终设置布局另由 `DMSG_DESKTOP_SMOKE=forms` 实际界面回归通过。
+- `secrets-smoke.mjs` 通过，额外验证确定/未知上传进度的可访问值；审批、挂载、快照、导入、迟到响应隔离和键盘行为保持通过。
+- 检查直接调用已安装的 Node 工具执行，避免本机 Corepack 在受限目录创建临时目录失败；命令内容与 package scripts 一致。截图与日志为本地验证产物，不提交测试账户图片到源码仓库。
+
+本次不代表真实云端交易、硬件身份确认、原生磁盘挂载、跨操作系统或读屏软件验收。运行中的用户客户端和 daemon 未被替换。
+
+## 当前全量源码索引
+
+下列行号来自整改后的源码；每个源码位置计一次，循环和共享组件调用不展开。重新扫描可更新 JSON 位置。
 
 | 源码（相对 `src/renderer`） | 元素与行号 |
 | --- | --- |
-| [components/SecretInput.svelte](../src/renderer/components/SecretInput.svelte) | `textarea`: 33 |
+| [components/DateInput.svelte](../src/renderer/components/DateInput.svelte) | `input:text`: 91 |
+| [components/SecretInput.svelte](../src/renderer/components/SecretInput.svelte) | `textarea`: 40 |
 | [components/TagInput.svelte](../src/renderer/components/TagInput.svelte) | `input:text`: 71 |
+| [components/TextArea.svelte](../src/renderer/components/TextArea.svelte) | `textarea`: 41 |
+| [components/TextField.svelte](../src/renderer/components/TextField.svelte) | `input:dynamic`: 47 |
 | [views/Approval.svelte](../src/renderer/views/Approval.svelte) | `input:text`: 895 |
 | [views/Channels.svelte](../src/renderer/views/Channels.svelte) | `input:search`: 554, 772；`input:text`: 922；`input:number`: 961, 966 |
-| [views/Files.svelte](../src/renderer/views/Files.svelte) | `input:search`: 819；`input:text`: 1019, 1031；`input:number`: 1105；`input:password`: 1109；`textarea`: 1146 |
-| [views/Legacy.svelte](../src/renderer/views/Legacy.svelte) | `input:text`: 168 |
-| [views/Onboarding.svelte](../src/renderer/views/Onboarding.svelte) | `input:text`: 75 |
-| [views/Profile.svelte](../src/renderer/views/Profile.svelte) | `input:text`: 241, 246, 251, 254, 273；`textarea`: 247；`input:url`: 252, 253 |
-| [views/Security.svelte](../src/renderer/views/Security.svelte) | `textarea`: 171, 269, 274；`input:text`: 174, 189, 268, 276 |
+| [views/Files.svelte](../src/renderer/views/Files.svelte) | `input:search`: 826；`input:text`: 1026, 1038；`input:number`: 1113；`textarea`: 1152 |
 | [views/Vault.svelte](../src/renderer/views/Vault.svelte) | `input:search`: 427 |
-| [views/Wallet.svelte](../src/renderer/views/Wallet.svelte) | `input:text`: 751, 972, 1024；`dialog:confirm`: 1002 |
+| [views/Wallet.svelte](../src/renderer/views/Wallet.svelte) | `input:text`: 772, 993, 1054 |
 | [views/agents/AgentIds.svelte](../src/renderer/views/agents/AgentIds.svelte) | `input:text`: 173 |
 | [views/agents/Capabilities.svelte](../src/renderer/views/agents/Capabilities.svelte) | `input:text`: 177 |
 | [views/agents/Events.svelte](../src/renderer/views/agents/Events.svelte) | `input:text`: 173, 177 |
 | [views/agents/Knowledge.svelte](../src/renderer/views/agents/Knowledge.svelte) | `input:text`: 208, 365 |
 | [views/agents/Mail.svelte](../src/renderer/views/agents/Mail.svelte) | `input:text`: 378 |
-| [views/agents/Overview.svelte](../src/renderer/views/agents/Overview.svelte) | `input:text`: 307, 310, 312, 379, 380, 384, 424, 470, 474, 475, 508, 526；`input:number`: 381, 509；`input:datetime-local`: 449 |
+| [views/agents/Overview.svelte](../src/renderer/views/agents/Overview.svelte) | `input:text`: 304, 307, 309, 376, 377, 381, 421, 465, 469, 470, 503, 521；`input:number`: 378, 504 |
 | [views/approvals/Sign.svelte](../src/renderer/views/approvals/Sign.svelte) | `textarea`: 168；`input:text`: 173, 175, 176, 179 |
 | [views/channels/LibraryPicker.svelte](../src/renderer/views/channels/LibraryPicker.svelte) | `input:search`: 39 |
 | [views/channels/Members.svelte](../src/renderer/views/channels/Members.svelte) | `input:text`: 84, 221；`textarea`: 85 |
@@ -96,7 +98,7 @@ pnpm --dir src/dmsg_desktop test
 | [views/channels/Thread.svelte](../src/renderer/views/channels/Thread.svelte) | `textarea`: 529 |
 | [views/channels/Transfer.svelte](../src/renderer/views/channels/Transfer.svelte) | `textarea`: 101 |
 | [views/files/Detail.svelte](../src/renderer/views/files/Detail.svelte) | `textarea`: 355, 543 |
-| [views/files/Storage.svelte](../src/renderer/views/files/Storage.svelte) | `input:text`: 91；`input:date`: 96 |
+| [views/files/Storage.svelte](../src/renderer/views/files/Storage.svelte) | `input:text`: 93 |
 | [views/inbox/Compose.svelte](../src/renderer/views/inbox/Compose.svelte) | `input:text`: 77；`textarea`: 81 |
 | [views/inbox/Rules.svelte](../src/renderer/views/inbox/Rules.svelte) | `input:text`: 85 |
 | [views/plan/Names.svelte](../src/renderer/views/plan/Names.svelte) | `input:text`: 252, 387, 408；`textarea`: 432 |
@@ -104,16 +106,15 @@ pnpm --dir src/dmsg_desktop test
 | [views/secrets/Health.svelte](../src/renderer/views/secrets/Health.svelte) | `input:search`: 171 |
 | [views/secrets/Mounts.svelte](../src/renderer/views/secrets/Mounts.svelte) | `input:text`: 248, 252, 315, 344, 353；`textarea`: 335；`input:number`: 390 |
 | [views/secrets/Policies.svelte](../src/renderer/views/secrets/Policies.svelte) | `input:text`: 163, 167, 175；`input:search`: 250 |
-| [views/secrets/Sharing.svelte](../src/renderer/views/secrets/Sharing.svelte) | `input:number`: 248；`progress`: 319 |
+| [views/secrets/Sharing.svelte](../src/renderer/views/secrets/Sharing.svelte) | `input:number`: 249 |
 | [views/vault/Conflict.svelte](../src/renderer/views/vault/Conflict.svelte) | `textarea`: 167 |
 | [views/vault/FilePicker.svelte](../src/renderer/views/vault/FilePicker.svelte) | `input:search`: 43 |
-| [views/vault/Generator.svelte](../src/renderer/views/vault/Generator.svelte) | `input:range`: 93, 102；`input:text`: 97 |
-| [views/vault/Import.svelte](../src/renderer/views/vault/Import.svelte) | `input:checkbox`: 130 |
-| [views/vault/ItemForm.svelte](../src/renderer/views/vault/ItemForm.svelte) | `textarea`: 189, 280；`input:dynamic`: 198；`input:text`: 215, 230, 258 |
+| [views/vault/Generator.svelte](../src/renderer/views/vault/Generator.svelte) | `input:text`: 96 |
+| [views/vault/ItemForm.svelte](../src/renderer/views/vault/ItemForm.svelte) | `textarea`: 197, 284；`input:text`: 219, 234, 262 |
 | [views/wallet/AmountField.svelte](../src/renderer/views/wallet/AmountField.svelte) | `input:text`: 43 |
 | [views/wallet/Create.svelte](../src/renderer/views/wallet/Create.svelte) | `input:text`: 223, 278 |
 | [views/wallet/DurationField.svelte](../src/renderer/views/wallet/DurationField.svelte) | `input:number`: 14 |
-| [views/wallet/History.svelte](../src/renderer/views/wallet/History.svelte) | `input:text`: 100；`input:date`: 101, 102 |
+| [views/wallet/History.svelte](../src/renderer/views/wallet/History.svelte) | `input:text`: 104 |
 | [views/wallet/Manage.svelte](../src/renderer/views/wallet/Manage.svelte) | `input:text`: 201, 236, 237, 245, 277, 281；`textarea`: 205；`input:number`: 264 |
 | [views/wallet/MemberLookup.svelte](../src/renderer/views/wallet/MemberLookup.svelte) | `input:text`: 42 |
 | [views/wallet/Operations.svelte](../src/renderer/views/wallet/Operations.svelte) | `input:text`: 185；`input:url`: 314, 315, 318；`input:number`: 317 |

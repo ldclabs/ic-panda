@@ -34,6 +34,14 @@ export interface Control {
   review: boolean
 }
 
+/** The shared TextField bounds its dynamic type to theme-styled text variants. */
+export function sharedImplementation(control: Control) {
+  return (
+    control.file === 'components/TextField.svelte' &&
+    control.kind === 'input:dynamic'
+  )
+}
+
 function walk(node: any, visit: (node: any) => void) {
   if (!node || typeof node !== 'object') return
   visit(node)
@@ -164,13 +172,15 @@ if (
     console.log(
       `Scanned ${result.svelteFiles} Svelte files and ${result.files - result.svelteFiles} TypeScript files.`
     )
-    for (const c of result.controls.filter((c) => c.review)) {
+    for (const c of result.controls.filter(
+      (c) => c.review && !sharedImplementation(c)
+    )) {
       console.log(
         `${relative(process.cwd(), join(renderer, c.file))}:${c.line} ${c.kind}`
       )
     }
     console.log(
-      `${result.controls.filter((c) => c.review).length} source occurrences need review; see docs/native-controls-audit.md.`
+      `${result.controls.filter((c) => c.review && !sharedImplementation(c)).length} unapproved source occurrences; ${result.controls.filter(sharedImplementation).length} shared text implementation. See docs/native-controls-audit.md.`
     )
     console.log(
       'This is a source inventory, not a visual or accessibility pass. Use --json for all controls.'

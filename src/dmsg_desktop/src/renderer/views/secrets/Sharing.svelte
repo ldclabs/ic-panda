@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Progress from '../../components/Progress.svelte'
   import { onDestroy } from 'svelte'
   import Panel from './Panel.svelte'
   import SourcePicker from './SourcePicker.svelte'
@@ -316,12 +317,7 @@
       </p>
       {#if share.plan.channel}<p class="text-xs text-muted">
           {w('channelWarning')}
-        </p>{/if}{#if share.total_chunks}<progress
-          class="w-full accent-forest"
-          value={share.uploaded_chunks}
-          max={share.total_chunks}
-          aria-label={term(share.state)}
-        ></progress>{/if}{#if share.error}<Notice tone="warn"
+        </p>{/if}{#if share.total_chunks || ['uploading', 'publishing'].includes(share.state)}<Progress value={share.uploaded_chunks} max={share.total_chunks} label={term(share.state)} testid="share-upload-progress" />{/if}{#if share.error}<Notice tone="warn"
           >{ux('unknown')}</Notice
         >{/if}
       <div class="flex flex-wrap gap-2">

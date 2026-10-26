@@ -9,6 +9,7 @@
     checked = $bindable(false),
     disabled = false,
     onCheckedChange,
+    label,
     testid,
     class: className,
     children
@@ -16,6 +17,7 @@
     checked?: boolean
     disabled?: boolean
     onCheckedChange?: (checked: boolean) => void
+    label?: string
     testid?: string
     class?: string
     children?: Snippet
@@ -28,6 +30,7 @@
     {disabled}
     {onCheckedChange}
     data-testid={testid}
+    aria-label={label}
     class="grid size-4 shrink-0 place-items-center rounded-[5px] border border-edge bg-surface text-on-forest outline-none transition-colors duration-150 focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=checked]:border-forest data-[state=checked]:bg-forest"
   >
     {#snippet children({ checked })}

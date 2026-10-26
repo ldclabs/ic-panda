@@ -1,4 +1,7 @@
 <script lang="ts">
+  import DateInput from '../../components/DateInput.svelte'
+  import TextField from '../../components/TextField.svelte'
+  import { validDateText, type TextInputType } from '../../components/form-values'
   import { DropdownMenu } from 'bits-ui'
   import { tick, untrack } from 'svelte'
   import { localeDir } from '../../../shared/locales'
@@ -41,6 +44,7 @@
     busy = false,
     mod,
     dirty = $bindable(false),
+    valid = $bindable(false),
     onSubmit,
     onCancel,
     footer = true
@@ -51,6 +55,7 @@
     busy?: boolean
     mod: string
     dirty?: boolean
+    valid?: boolean
     onSubmit: (changes: Record<string, unknown>) => void
     onCancel: () => void
     footer?: boolean
@@ -87,7 +92,7 @@
   })
 
   export function submit() {
-    if (!title.trim() || busy) return
+    if (!title.trim() || busy || !datesValid) return
     onSubmit({ title: title.trim(), tags, notes, files, fields: fieldChanges(fields) })
   }
 
@@ -145,13 +150,16 @@
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
       submit()
-    } else if (event.key === 'Escape' && !picking) {
+    // Modal forms let Dialog manage the topmost popover; inline editing closes here.
+    } else if (event.key === 'Escape' && !picking && footer && !event.defaultPrevented) {
       event.stopPropagation()
       onCancel()
     }
   }
 
-  const inputType: Partial<Record<FieldType, string>> = { url: 'url', email: 'email', phone: 'tel', date: 'date', month: 'month' }
+  const inputType: Partial<Record<FieldType, TextInputType>> = { url: 'url', email: 'email', phone: 'tel' }
+  const datesValid = $derived(fields.every((field) => !field.value || !['date', 'month'].includes(field.type) || validDateText(field.value, field.type as 'date' | 'month')))
+  $effect(() => { valid = !!title.trim() && datesValid })
   const placeholder = (field: Draft) => (fieldLabel[field.id] ? t(fieldLabel[field.id]) : t('fieldLabelHint'))
 </script>
 
@@ -194,17 +202,13 @@
       class={cn('text-[13px] text-ink', ['public_key', 'fingerprint'].includes(field.id) && 'font-mono text-[12px]')}
       data-testid={`field-${field.id || i}`}
     ></textarea>
+  {:else if field.type === 'date' || field.type === 'month'}
+    <DateInput label={fieldName(field, t)} mode={field.type} value={field.value} onChange={(value) => set(i, { value })} hideLabel testid={`field-${field.id || i}`} />
   {:else}
-    <input
-      type={inputType[field.type] ?? 'text'}
-      value={field.value}
-      oninput={(e) => set(i, { value: e.currentTarget.value })}
-      spellcheck="false"
+    <TextField hideLabel mono={['fingerprint', 'port'].includes(field.id)} label={fieldName(field, t)} type={inputType[field.type] ?? 'text'} value={field.value}
+      oninput={(e) => set(i, { value: e.currentTarget.value })} spellcheck="false"
       dir={field.type === 'url' || field.type === 'email' ? 'ltr' : undefined}
-      placeholder={field.type === 'url' ? 'https://' : ''}
-      class={cn('text-[13.5px] text-ink', ['fingerprint', 'port'].includes(field.id) && 'font-mono text-[12.5px]')}
-      data-testid={`field-${field.id || i}`}
-    />
+      placeholder={field.type === 'url' ? 'https://' : ''} data-testid={`field-${field.id || i}`} />
   {/if}
 {/snippet}
 
@@ -306,7 +310,7 @@
   {#if footer}
     <div class="flex items-center justify-end gap-2 pt-1">
       <button type="button" class={buttonClass('ghost')} onclick={onCancel}>{t('cancel')}</button>
-      <button type="button" class={buttonClass('primary')} disabled={busy || !title.trim()} onclick={submit} data-testid="vault-save">
+      <button type="button" class={buttonClass('primary')} disabled={busy || !title.trim() || !datesValid} onclick={submit} data-testid="vault-save">
         {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
       </button>
     </div>

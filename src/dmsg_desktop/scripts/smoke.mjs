@@ -323,10 +323,12 @@ const nextRequest = () => (requestSeq++).toString(16).repeat(32)
 const payer = 'rwlgt-iiaaa-aaaaa-aaaaa-cai'
 const deposits = [
   { quote_id: 'b1'.repeat(32), state: 'failed', refundable: true, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() - 60_000, reason: 'insufficient liquid cycle balance' },
-  { quote_id: 'b2'.repeat(32), state: 'unused', refundable: false, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() + 600_000, reason: null }
+  { quote_id: 'b2'.repeat(32), state: 'unused', abortable: true, refundable: false, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() + 600_000, reason: null }
 ]
 /** What the wallet view's quote preview says; the form is tested once it has room. */
 let walletPreview = { plan: 'Free', remaining: 0, price_e8s: '1000000000', ledger_fee_e8s: '10000', cycles_to_wallet: '3000000000000', version: 1 }
+let abortShouldFail = true
+let shareLinkShouldFail = true
 const calls = []
 /** Whether the hosted Agent ID is paused. */
 let agentPaused = false
@@ -558,6 +560,11 @@ const methods = {
   },
   'vault/import_preview': () => ({
     format: 'csv',
+    attachments: [
+      { entry_id: 'attachment-supported', item_index: 0, name: 'attachment.txt', size: 32, supported: true },
+      { entry_id: 'attachment-unavailable', item_index: 0, name: 'unsupported.bin', size: 64, supported: false, reason: 'Unsupported attachment' },
+      { entry_id: 'attachment-unselected', item_index: 1, name: 'other.txt', size: 16, supported: true }
+    ],
     digest: 'd1',
     skipped: 1,
     incomplete: 1,
@@ -659,6 +666,10 @@ const methods = {
   },
   'files/share_quote': () => ({payer:account,estimated_bytes:20000,existing:storageCopies.filter(e=>e.phase==='stored')}),
   'files/share_links': () => [],
+  'files/share_link': (p) => {
+    if (shareLinkShouldFail) { shareLinkShouldFail = false; throw { code: 'UNAVAILABLE', message: 'retry link' } }
+    return { share_id: 'd9'.repeat(32), url: 'https://example.test/#fixture-link', password: !!p.password }
+  },
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
   'files/cloud_usage': () => ({
@@ -781,6 +792,7 @@ const methods = {
       { device_id: '12'.repeat(32), this_device: false, key_id: null }
     ]
   }),
+  'device/key_request': () => ({ device_id: '11'.repeat(32), token: 'fixture-device-key-request' }),
   'device/key_register': (p) => created('5b'.repeat(32), 'approval_key', { device_id: '11'.repeat(32), this_device: true, key_id: '5a'.repeat(32) }),
   'device/approve': (p) => {
     assert.equal(p.source, 'gui')
@@ -1095,6 +1107,13 @@ const methods = {
   'wallet/quote_preview': () => walletPreview,
   'wallet/quote': () => ({ ...walletPreview, quote_id: 'b3'.repeat(32) }),
   'wallet/deposits': () => deposits,
+  'wallet/activation_abort': (p) => {
+    if (abortShouldFail) { abortShouldFail = false; throw { code: 'UNAVAILABLE', message: 'retry abort' } }
+    const deposit = deposits.find((d) => d.quote_id === p.quote)
+    assert.ok(deposit?.abortable)
+    deposit.abortable = false
+    return { quote_id: p.quote }
+  },
   'wallet/refund': (p) => {
     const i = deposits.findIndex((d) => d.quote_id === p.quote && d.refundable)
     assert.ok(i >= 0, 'a refundable deposit')
@@ -1444,6 +1463,33 @@ function hold(method, matches) {
   }
 }
 /** Picks an option of a dropdown menu (`components/Select.svelte`, the language menu) by its value. */
+async function formMatrix(app, page, shots, name, selector) {
+  const window = await app.browserWindow(page)
+  for (const [locale, theme, width, height] of [
+    ['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540],
+    ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540]
+  ]) {
+    await window.evaluate((window, [width, height]) => window.setContentSize(width, height), [width, height])
+    await page.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
+    await page.waitForSelector(`html[lang|="${locale}"]`)
+    await page.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
+    if (!selector.includes('popover')) await page.locator(selector).scrollIntoViewIfNeeded()
+    if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator')) {
+      await page.waitForFunction((selector) => {
+        const r = document.querySelector(selector)?.getBoundingClientRect()
+        return r && r.x >= 0 && r.y >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1
+      }, selector)
+    }
+    assert.ok(await page.locator(selector).evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `${name} fits ${locale} ${width}`)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name} no window overflow`)
+    await page.screenshot({ path: join(shots, `controls-${name}-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+  }
+  await window.evaluate((window) => window.setContentSize(1180, 760))
+  await page.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+  await page.waitForSelector('html[lang="en"]')
+  await page.waitForFunction(() => !matchMedia('(prefers-color-scheme: dark)').matches)
+}
+
 async function choose(page, testid, value) {
   await page.click(`[data-testid="${testid}"]`)
   await page.click(`[data-testid="${testid}-menu"] [data-value="${value}"]`)
@@ -1509,11 +1555,32 @@ const settled = (page, selector) =>
   page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => null))))
 smoke: try {
   const main = await app.firstWindow()
+  main.setDefaultTimeout(20000)
   // An uncaught error in a window fails the run, such as an effect that
   // writes what it reads and so runs until Svelte gives up on it.
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
+  if (process.env.DMSG_DESKTOP_SMOKE === 'forms') {
+    await main.evaluate(() => location.hash = '/settings/security')
+    await main.getByTestId('daily-executions').waitFor()
+    await main.getByTestId('daily-executions').fill('invalid')
+    await formMatrix(app, main, shots, 'settings-security', '[data-testid="daily-executions"]')
+    await main.getByTestId('daily-executions').fill('7')
+    assert.notEqual(await main.getByTestId('daily-executions').getAttribute('aria-invalid'), 'true')
+    await main.evaluate(() => location.hash = '/settings/profile')
+    await main.getByTestId('profile-name').waitFor()
+    await main.getByTestId('profile-name').fill('A profile draft')
+    await main.getByRole('button', { name: 'Add link', exact: true }).click()
+    await main.getByTestId('profile-link-row').first().waitFor()
+    await formMatrix(app, main, shots, 'settings-links', '[data-testid="profile-link-row"]')
+    await formMatrix(app, main, shots, 'settings-lookup', '[data-testid="profile-lookup-account"]')
+    assert.equal(await main.getByTestId('profile-lookup-account').evaluate((el) => el.labels.length), 1)
+    assert.deepEqual(pageErrors, [])
+    console.log('Desktop forms smoke passed: settings errors, labels, links, lookup and visual matrix')
+    break smoke
+  }
+
   assert.equal(await main.textContent('[data-testid="waiting-count"]'), '2')
   // Unlocked, the gate rail keeps one Lock button and what waits to sync in view.
   assert.equal(await main.locator('[data-testid="gate-lock"]').count(), 1)
@@ -2140,6 +2207,29 @@ smoke: try {
   assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 1)
   assert.match(await main.textContent('[data-testid="wallet-deposits"]'), /9\.9999 ICP to return[\s\S]*Creation failed[\s\S]*Refundable after/)
   await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits.png') })
+  const aborts = () => calls.filter((c) => c.method === 'wallet/activation_abort').length
+  await main.getByTestId('wallet-abort').click()
+  await main.getByTestId('wallet-abort-dialog').waitFor()
+  await main.waitForFunction(() => document.activeElement?.getAttribute('data-testid') === 'wallet-abort-cancel')
+  await main.keyboard.press('Escape')
+  await main.getByTestId('wallet-abort-dialog').waitFor({ state: 'detached' })
+  assert.equal(aborts(), 0)
+  await main.getByTestId('wallet-abort').click()
+  await main.getByTestId('wallet-abort-confirm').click()
+  await waitFor(() => aborts() === 1)
+  await main.getByTestId('wallet-abort-confirm').waitFor({ state: 'visible' })
+  await main.waitForFunction(() => !document.querySelector('[data-testid="wallet-abort-confirm"]').disabled)
+  await formMatrix(app, main, shots, 'abort', '[data-testid="wallet-abort-dialog"]')
+  const releaseAbort = hold('wallet/activation_abort')
+  await main.getByTestId('wallet-abort-confirm').click()
+  await waitFor(() => held.get('wallet/activation_abort'))
+  assert.equal(await main.getByTestId('wallet-abort-confirm').isDisabled(), true)
+  await main.keyboard.press('Escape')
+  assert.equal(await main.getByTestId('wallet-abort-dialog').isVisible(), true)
+  await releaseAbort()
+  await main.getByTestId('wallet-abort-dialog').waitFor({ state: 'detached' })
+  assert.equal(latest('wallet/activation_abort').params.quote, 'b2'.repeat(32))
+
   const requested = requests.size
   await main.click('[data-testid="wallet-refund"]')
   await waitFor(() => latest('wallet/refund'))
@@ -2616,6 +2706,20 @@ smoke: try {
   await main.getByRole('button',{name:'History',exact:true}).click()
   await main.locator('[data-testid="wallet-history"]').getByLabel('Recipient, asset, proposal or note').fill('Invoice 42')
   await main.waitForSelector('[data-testid="wallet-history"] >> text=#802')
+  await main.getByTestId('wallet-history-from').fill('2026-02-30')
+  assert.equal(await main.getByTestId('wallet-history-from').getAttribute('aria-invalid'), 'true')
+  assert.equal(await main.getByRole('button', { name: 'Export filtered history (CSV)', exact: true }).isDisabled(), true)
+  await main.getByTestId('wallet-history-from-clear').click()
+  await main.getByTestId('wallet-history-to').fill('2026-10-25')
+  await main.getByTestId('wallet-history-from').fill('2026-10-26')
+  assert.equal(await main.getByTestId('wallet-history-from').getAttribute('aria-invalid'), 'true')
+  await main.getByTestId('wallet-history-from-clear').click()
+  await main.getByTestId('wallet-history-to-clear').click()
+  await main.getByTestId('wallet-history-from-calendar').click()
+  await main.getByTestId('wallet-history-from-popover').waitFor()
+  await main.keyboard.press('Escape')
+  await main.waitForFunction(() => document.activeElement?.getAttribute('data-testid') === 'wallet-history-from-calendar')
+
   const walletCsv = join(picks,'wallet-history.csv')
   await app.evaluate((_electron,path)=>globalThis.__save.push(path),walletCsv)
   await main.getByRole('button',{name:'Export filtered history (CSV)',exact:true}).click()
@@ -2752,6 +2856,22 @@ smoke: try {
   requests.delete('97'.repeat(32))
   await main.waitForSelector('[data-testid="rotate-dialog"]', { state: 'hidden' })
   await main.locator('[data-testid="controllers"]').screenshot({ path: join(shots, 'controllers.png') })
+  const beforeDateDecisions = calls.filter((c) => c.method === 'approval/respond').length
+  await main.getByTestId('controller-compromise').first().click()
+  await main.getByTestId('compromise-at').fill('2026-02-30 10:00')
+  assert.equal(await main.getByTestId('compromise-confirm').isDisabled(), true)
+  await main.getByTestId('compromise-at').fill('2999-01-01 10:00')
+  assert.equal(await main.getByTestId('compromise-confirm').isDisabled(), true)
+  await main.getByTestId('compromise-at').fill('2026-01-01 10:15')
+  assert.equal(await main.getByTestId('compromise-confirm').isDisabled(), false)
+  await main.getByTestId('compromise-at-calendar').click()
+  await main.getByTestId('compromise-at-popover').waitFor()
+  await formMatrix(app, main, shots, 'date-time', '[data-testid="compromise-at-popover"]')
+  await main.keyboard.press('Escape')
+  await main.getByTestId('compromise-at-popover').waitFor({ state: 'detached' })
+  await main.getByTestId('compromise-dialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, beforeDateDecisions, JSON.stringify(calls.filter((c) => c.method === 'approval/respond')))
+
   await main.fill('[data-testid="grant-subject"]', 'claude')
   await main.fill('[data-testid="grant-scopes"]', 'message.draft')
   await main.fill('[data-testid="grant-audiences"]', 'https://dmsg.net')
@@ -2760,7 +2880,7 @@ smoke: try {
   // A hosted Agent ID shows by its name as well.
   assert.equal(await approval.textContent('[data-testid="approval-subject"]'), `claude · ${claude}`)
   await approval.screenshot({ path: join(shots, 'delegation.png') })
-  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, decisionsBeforeGrant)
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, decisionsBeforeGrant, JSON.stringify(calls.filter((c) => c.method === 'approval/respond')))
   // A credential is renewed under its own ID, which another approval decides;
   // what this device signed is listed with where it stands.
   await main.waitForSelector('[data-testid="delegation-journal"]')
@@ -3046,6 +3166,8 @@ smoke: try {
   emit('session/changed')
   await main.click('[data-testid="legacy-setup"]')
   await main.waitForSelector('[data-testid="create-account"]')
+  assert.equal(await main.getByTestId('bind-account').evaluate((el) => el.labels.length), 1)
+  await formMatrix(app, main, shots, 'settings-account', '[data-testid="onboarding"]')
   failAccountSetup = true
   await main.click('[data-testid="create-account"]')
   await main.waitForSelector('[data-testid="retry-account-setup"]')
@@ -3240,6 +3362,44 @@ smoke: try {
   await main.keyboard.press(`${mod}+n`)
   await main.waitForSelector('[data-testid="vault-new-dialog"]')
   await main.click('[data-testid="vault-type-login"]')
+  await main.getByTestId('field-password-generate').click()
+  const slider = main.getByTestId('generator-length').getByRole('slider')
+  await slider.focus()
+  await main.keyboard.press('Home')
+  assert.equal(await slider.getAttribute('aria-valuenow'), '8')
+  await main.keyboard.press('End')
+  assert.equal(await slider.getAttribute('aria-valuenow'), '64')
+  await main.keyboard.press('ArrowLeft')
+  assert.equal(await slider.getAttribute('aria-valuenow'), '63')
+  await formMatrix(app, main, shots, 'slider', '[data-testid="generator"]')
+  await main.evaluate(() => window.dmsg.setLocale('ar'))
+  await main.waitForSelector('html[dir="rtl"]')
+  await slider.focus()
+  await main.keyboard.press('Home')
+  await main.keyboard.press('ArrowLeft')
+  assert.equal(await slider.getAttribute('aria-valuenow'), '9')
+  await main.evaluate(() => window.dmsg.setLocale('en'))
+  await main.waitForSelector('html[lang="en"]')
+  await slider.focus()
+  await main.keyboard.press('Escape')
+  await main.getByTestId('generator').waitFor({ state: 'detached' })
+  assert.equal(await main.getByTestId('vault-new-dialog').isVisible(), true)
+  // Date and month values stay calendar strings in the actual item editor.
+  await main.getByTestId('vault-type-api').click()
+  await main.getByTestId('vault-title').fill('Date validation')
+  await main.getByTestId('field-expires').fill('2026-02-30')
+  assert.equal(await main.getByTestId('vault-add').isDisabled(), true)
+  await main.getByTestId('field-expires-calendar').click()
+  await main.getByTestId('field-expires-popover').waitFor()
+  await main.locator('[data-testid="field-expires-popover"] [data-date]:not([data-disabled])').first().click()
+  assert.equal(await main.getByTestId('field-expires').getAttribute('aria-invalid'), 'false')
+  await main.getByTestId('vault-type-card').click()
+  await main.getByTestId('field-expiry').fill('2027-05')
+  await main.getByTestId('field-expiry-calendar').click()
+  await main.locator('[data-month="2027-06"]').click()
+  assert.equal(await main.getByTestId('field-expiry').inputValue(), '2027-06')
+  await main.getByTestId('vault-type-login').click()
+
   await main.fill('[data-testid="vault-new-dialog"] [data-testid="vault-title"]', 'New login')
   await main.fill('[data-testid="field-password"]', 'new-secret')
   await settled(main, '[data-testid="vault-new-dialog"]')
@@ -3291,6 +3451,17 @@ smoke: try {
   await main.click('[data-testid="vault-import-choose"]')
   await main.waitForSelector('[data-testid="vault-import-items"] >> text=Imported mail')
   assert.equal(await main.locator('[data-testid="vault-import-tick"][data-state="checked"]').count(), 1)
+  const attachments = main.getByTestId('vault-import-attachment')
+  assert.equal(await attachments.count(), 3)
+  assert.equal(await attachments.nth(1).isDisabled(), true)
+  assert.equal(await attachments.nth(2).isDisabled(), true)
+  await attachments.first().check()
+  await main.getByTestId('vault-import-tick').first().uncheck()
+  assert.equal(await attachments.first().isDisabled(), true)
+  await main.getByTestId('vault-import-tick').first().check()
+  await attachments.first().uncheck()
+  await main.getByTestId('vault-import').screenshot({ path: join(shots, 'controls-import.png') })
+
   assert.match(await main.textContent('[data-testid="vault-import-incomplete"]'), /not imported/)
   // Replacing the file clears its old selection; cancelling that picker leaves no stale preview.
   await answer('__open', null)
@@ -3384,6 +3555,16 @@ smoke: try {
   await main.click('[data-testid="files-scope-storage"]')
   await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
   assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),3)
+  await main.getByTestId('storage-before').fill('2026-02-30')
+  assert.equal(await main.getByTestId('storage-before').getAttribute('aria-invalid'), 'true')
+  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(), 0)
+  await main.getByTestId('storage-before-clear').click()
+  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(), 3)
+  await main.getByTestId('storage-before-calendar').click()
+  await main.getByTestId('storage-before-popover').waitFor()
+  await main.screenshot({ path: join(shots, 'controls-storage-date.png'), animations: 'disabled' })
+  await main.keyboard.press('Escape')
+
   assert.equal(calls.some((c) => c.method === 'files/storage_refresh'), false)
   await settled(main,'[data-testid="files-storage"]')
   while (await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').count()) await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').first().click()
@@ -3421,6 +3602,36 @@ smoke: try {
   await main.waitForSelector('[data-testid="files-link-create"]:enabled')
   assert.match(await main.textContent('[data-testid="files-link-dialog"]'), /new encrypted copy/)
   assert.match(await main.textContent('[data-testid="files-link-dialog"]'), /charged to me/)
+  await main.getByTestId('files-link-password').fill('fixture-secret')
+  assert.equal(await main.getByTestId('files-link-password').getAttribute('data-shown'), 'false')
+  await main.getByTestId('files-link-dialog').getByRole('button', { name: 'Show what you typed', exact: true }).click()
+  assert.equal(await main.getByTestId('files-link-password').getAttribute('data-shown'), 'true')
+  await main.getByTestId('files-link-dialog').screenshot({ path: join(shots, 'controls-share-password.png') })
+  await main.getByTestId('files-link-create').click()
+  await waitFor(() => calls.some((c) => c.method === 'files/share_link'))
+  await main.waitForSelector('[data-testid="files-link-create"]:enabled')
+  assert.equal(await main.getByTestId('files-link-password').inputValue(), 'fixture-secret')
+  assert.equal(await main.getByTestId('files-link-dialog').getByRole('alert').count(), 1)
+  await main.getByTestId('files-link-create').click()
+  await main.getByTestId('files-link-url').waitFor()
+  assert.equal(await main.getByTestId('files-link-password').count(), 0)
+  await main.getByTestId('files-link-dialog').getByRole('button', { name: 'Done', exact: true }).click()
+  await main.getByTestId('files-more').click()
+  await main.getByTestId('files-link').click()
+  assert.equal(await main.getByTestId('files-link-password').inputValue(), '')
+  const lateLink = hold('files/share_link')
+  await main.getByTestId('files-link-password').fill('late-fixture-secret')
+  await main.getByTestId('files-link-create').click()
+  await waitFor(() => held.get('files/share_link'))
+  await main.getByTestId('files-link-dialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+  await main.getByTestId('files-more').click()
+  await main.getByTestId('files-link').click()
+  await lateLink()
+  await main.waitForSelector('[data-testid="files-link-create"]:enabled')
+  assert.equal(await main.getByTestId('files-link-url').count(), 0)
+  assert.equal(await main.getByTestId('files-link-password').inputValue(), '')
+
+
   await main.locator('[data-testid="files-link-dialog"]').getByRole('button',{name:'Cancel',exact:true}).click()
   await main.waitForSelector('[data-testid="files-link-dialog"]',{state:'detached'})
   await main.screenshot({ path: join(shots, 'files.png') })
@@ -3704,6 +3915,13 @@ smoke: try {
   await main.waitForSelector('[data-testid="security-needs-login"]', { state: 'detached' })
   // An edit under way stays when the daemon's events reload the page.
   await main.fill('[data-testid="daily-executions"]', '7')
+  assert.equal(await main.getByTestId('daily-executions').evaluate((el) => el.labels.length), 1)
+  await main.getByTestId('daily-executions').fill('invalid')
+  assert.equal(await main.getByTestId('daily-executions').getAttribute('aria-invalid'), 'true')
+  await formMatrix(app, main, shots, 'settings-security', '[data-testid="daily-executions"]')
+  await main.getByTestId('daily-executions').fill('7')
+  assert.notEqual(await main.getByTestId('daily-executions').getAttribute('aria-invalid'), 'true')
+
   const securityReads = calls.filter((c) => c.method === 'account/security').length
   emit('approval/changed')
   await waitFor(() => calls.filter((c) => c.method === 'account/security').length > securityReads)
@@ -3726,6 +3944,17 @@ smoke: try {
   // An approval key is registered through the approval center too; keys
   // can be required only once this device has one.
   await main.waitForSelector('[data-testid="approval-keys"]')
+  await main.getByRole('button', { name: 'Ask another device', exact: true }).click()
+  await main.getByTestId('approval-key-token').waitFor()
+  assert.equal(await main.getByTestId('approval-key-token').evaluate((el) => el.readOnly && el.labels.length === 1), true)
+  await main.evaluate(() => {
+    window.__clipboardWrite = navigator.clipboard.writeText.bind(navigator.clipboard)
+    navigator.clipboard.writeText = async (value) => { window.__copiedRequest = value }
+  })
+  await main.getByTestId('approval-key-copy').click()
+  assert.equal(await main.evaluate(() => window.__copiedRequest), 'fixture-device-key-request')
+  await main.evaluate(() => { navigator.clipboard.writeText = window.__clipboardWrite })
+
   assert.equal(await main.locator('[data-testid="approval-keys-require"]').isDisabled(), true)
   await main.click('[data-testid="approval-key-register"]')
   await approval.waitForSelector('[data-testid="approval-key-id"]', { timeout: 20_000 })
@@ -3755,6 +3984,10 @@ smoke: try {
   await waitFor(() => held.get('legacy/list'))
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]')?.value && !document.querySelector('[data-testid="profile"] fieldset')?.disabled)
   await main.fill('[data-testid="profile-name"]', 'Draft while archives load')
+  assert.equal(await main.getByTestId('profile-lookup-account').evaluate((el) => el.labels.length), 1)
+  assert.equal(await main.getByTestId('profile-bio').evaluate((el) => el.labels.length), 1)
+  await formMatrix(app, main, shots, 'settings-profile', '[data-testid="profile-name"]')
+
   await finishProfileArchives()
   await main.waitForSelector('[data-testid="profile-use-legacy"]')
   assert.equal(await main.inputValue('[data-testid="profile-name"]'), 'Draft while archives load')

@@ -4,6 +4,19 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+
+    requestToken: "Request token",
+    chooseDate: "Choose date",
+    invalidDate: "Enter a valid date.",
+    dateFormatHint: "Use {format}.",
+    localTimeZone: "Local time · {zone}",
+    dateMaximum: "The date must be on or before {date}.",
+    previousYear: "Previous year",
+    nextYear: "Next year",
+    wholeNumber: "Enter a non-negative whole number.",
+
     fileId: "File ID",
     currentVersionId: "Current version ID",
     versionId: "Version ID",

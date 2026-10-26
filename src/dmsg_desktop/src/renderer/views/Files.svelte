@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+  import SecretInput from '../components/SecretInput.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount, tick, untrack } from 'svelte'
@@ -601,17 +602,23 @@
     }, t('savedVerified'))
 
   const askLink = (id: string, version: string | null, name: string) => (linking = { id, version, name, days: 7, maxDownloads: 0, password: '', result: null })
-  const createLink = () =>
-    attempt(async () => {
-      if (!linking) return
-      linking.result = await call('files/share_link', {
-        id: linking.id,
-        version: linking.version,
-        expires_in_ms: linking.days * 86_400_000,
-        max_downloads: linking.maxDownloads,
-        password: linking.password || null
+  let linkError = $state('')
+  $effect(() => { linking?.id; linkError = '' })
+  async function createLink() {
+    if (!linking || busy) return
+    const draft = linking
+    busy = true
+    linkError = ''
+    try {
+      const result = await call('files/share_link', {
+        id: draft.id, version: draft.version, expires_in_ms: draft.days * 86_400_000,
+        max_downloads: draft.maxDownloads, password: draft.password || null
       })
-    })
+      if (linking === draft) { draft.result = result; draft.password = '' }
+    } catch (e) {
+      if (linking === draft) linkError = failure(e)
+    } finally { busy = false }
+  }
   const revokeLink = (shareId: string) => attempt(() => call('files/share_revoke', { share_id: shareId }), t('linkRevoked'))
   const refreshLinks = () => attempt(async () => (links = await call('files/share_links', { refresh: true })))
 
@@ -1096,6 +1103,7 @@
     <div class="grid gap-3">
       <Notice tone="info">{t('linkHint')}</Notice>
       {@render costQuote()}
+      <fieldset disabled={busy} class="grid min-w-0 gap-3">
       <div class="grid gap-1 text-[12px] text-faint">
         {t('linkDays')}
         <Select bind:value={() => String(linking?.days ?? 7), (next) => linking && (linking.days = Number(next))} options={[{ value: '1', label: t('days1') }, { value: '7', label: t('days7') }, { value: '30', label: t('days30') }]} label={t('linkDays')} testid="files-link-days" class="w-full" />
@@ -1104,11 +1112,9 @@
         {t('linkMaxDownloads')}
         <input type="number" min="0" max="1000000" bind:value={linking.maxDownloads} class="text-[13.5px] text-ink" data-testid="files-link-max" />
       </label>
-      <label class="grid gap-1 text-[12px] text-faint">
-        {t('linkPassword')}
-        <input type="password" bind:value={linking.password} class="text-[13.5px] text-ink" autocomplete="off" data-testid="files-link-password" />
-        <span class="text-[11.5px]">{t('linkPasswordHint')}</span>
-      </label>
+      <SecretInput disabled={busy} label={t('linkPassword')} hint={t('linkPasswordHint')} bind:value={linking.password} testid="files-link-password" />
+      </fieldset>
+      {#if linkError}<Notice tone="danger">{linkError}</Notice>{/if}
     </div>
   {/if}
   {#snippet footer()}

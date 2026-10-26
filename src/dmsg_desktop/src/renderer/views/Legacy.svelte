@@ -1,11 +1,12 @@
 <script lang="ts">
+  import TextField from '../components/TextField.svelte'
+
   import { RadioGroup } from 'bits-ui'
   import { onMount } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
-  import Field from '../components/page/Field.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
@@ -165,7 +166,7 @@
         <Fact label={t('device')}><span class="font-mono text-[12px] break-all">{pairing.target}</span></Fact>
         <Fact label={t('fingerprint')}><span class="font-mono text-[12px] font-semibold break-all text-forest">{pairing.fingerprint}</span></Fact>
       </dl>
-      <Field label={t('legacyPrincipal')}><input bind:value={principal} autocomplete="off" class="font-mono text-[12.5px]" /></Field>
+      <TextField label={t('legacyPrincipal')} bind:value={principal} autocomplete="off" mono disabled={busy} data-testid="legacy-principal" />
       <Checkbox bind:checked={confirmed}>{t('legacyConfirm')}</Checkbox>
       <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy || !confirmed || !principal.trim()} onclick={importFile}>
         <Icon name="verified" />{t('legacyImport')}

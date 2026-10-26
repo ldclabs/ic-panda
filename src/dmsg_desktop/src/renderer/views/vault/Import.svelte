@@ -7,7 +7,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, errorText } from '../../rpc'
+  import { bridge, call, errorText, size } from '../../rpc'
   import FolderPicker from '../files/FolderPicker.svelte'
   import {workflowText as w} from '../secrets/workflow-text'
   import { typeIcon, typeOf } from './vault'
@@ -113,7 +113,7 @@
       <ul class="grid max-h-[50vh] gap-0.5 overflow-y-auto rounded-xl border border-line p-1" data-testid="vault-import-items">
         {#each preview.items as entry (entry.index)}
           <li class={cn('flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px]', ticked.has(entry.index) ? 'bg-pale' : '')}>
-            <Checkbox checked={ticked.has(entry.index)} onCheckedChange={(on) => toggle(entry.index, on)} testid="vault-import-tick" />
+            <Checkbox label={entry.title} disabled={busy} checked={ticked.has(entry.index)} onCheckedChange={(on) => toggle(entry.index, on)} testid="vault-import-tick" />
             <Icon name={typeIcon[typeOf(entry)]} class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate font-medium text-ink">{entry.title}</span>
@@ -127,7 +127,10 @@
         <p class="text-xs text-warn">#{omission.source_item_index}: {omission.category} · {omission.reason}</p>
       {/each}
       {#each preview.attachments ?? [] as a}
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!a.supported || !ticked.has(a.item_index) || busy} checked={attachments.has(a.entry_id)} onchange={(event) => { const next=new Set(attachments); if(event.currentTarget.checked) next.add(a.entry_id); else next.delete(a.entry_id); attachments=next }} />{a.name} · {a.size} bytes {a.reason ?? ''}</label>
+        <Checkbox disabled={!a.supported || !ticked.has(a.item_index) || busy} checked={attachments.has(a.entry_id)}
+          onCheckedChange={(on) => { const next = new Set(attachments); if (on) next.add(a.entry_id); else next.delete(a.entry_id); attachments = next }} testid="vault-import-attachment">
+          <span class="break-words">{a.name} · {size(a.size)} {a.reason ?? ''}</span>
+        </Checkbox>
       {/each}
       {#if preview.attachments?.length}<p class="text-xs text-warn">{w('localFiles')}</p><p class="text-xs text-warn">{w('filesPermissions')}</p><p class="text-xs">{w('destination')}: {folder==='root'?t('library'):folders.find((f)=>f.id===folder)?.name??folder}</p><button class={buttonClass('secondary','sm')} disabled={busy} onclick={async()=>{const current=generation;try{const tree:any[]=await call('files/tree');if(current===generation && open){folders=tree;folderPicker=true}}catch(e){if(current===generation && open)error=errorText(e)}}}>{w('choose')}</button>{/if}
       {#if preview.incomplete}<p class="text-[12px] text-warn" data-testid="vault-import-incomplete">{t('importIncomplete', { n: preview.incomplete })}</p>{/if}

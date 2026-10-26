@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { t } from '../i18n/index.svelte'
+  import { localeDir } from '../../shared/locales'
+  import { locale, t } from '../i18n/index.svelte'
   import Generator from '../views/vault/Generator.svelte'
   import Icon from './Icon.svelte'
   import Tooltip from './Tooltip.svelte'
@@ -13,14 +14,18 @@
    * generator fills it.
    */
   let {
+    label,
+    hint,
+    disabled = false,
     value = $bindable(''),
     placeholder = '',
     generate = false,
     pin = false,
     multiline = false,
     testid
-  }: { value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
+  }: { label?: string; hint?: string; disabled?: boolean; value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
 
+  const id = $props.id()
   let shown = $state(false)
   const rows = $derived(Math.min(12, Math.max(multiline ? 3 : 1, value.split('\n').length)))
 
@@ -29,8 +34,13 @@
   }
 </script>
 
+<div class="grid min-w-0 gap-1.5">
+{#if label}<label for={id} class="text-[12px] text-muted">{label}</label>{/if}
 <div class="relative flex items-start">
   <textarea
+    {id}
+    {disabled}
+    aria-describedby={hint ? `${id}-hint` : undefined}
     bind:value
     {placeholder}
     {rows}
@@ -41,7 +51,7 @@
     class={cn(
       'min-h-8 resize-none py-[5px] font-mono text-[12.5px] leading-[1.55] placeholder:font-sans placeholder:text-[13px]',
       !shown && 'concealed',
-      generate ? 'pe-[112px]' : 'pe-9'
+      localeDir(locale()) === 'rtl' ? (generate ? 'ps-[112px] pe-2.5' : 'ps-9 pe-2.5') : (generate ? 'pe-[112px]' : 'pe-9')
     )}
     onkeydown={onKey}
     data-testid={testid}
@@ -53,12 +63,14 @@
     {/if}
     <Tooltip content={shown ? t('hideSecret') : t('showTyped')}>
       {#snippet children(props)}
-        <button {...props} type="button" class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={shown ? t('hideSecret') : t('showTyped')} onclick={() => (shown = !shown)}>
+        <button {...props} {disabled} type="button" class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={shown ? t('hideSecret') : t('showTyped')} onclick={() => (shown = !shown)}>
           <Icon name={shown ? 'eye-off' : 'eye'} />
         </button>
       {/snippet}
     </Tooltip>
   </div>
+</div>
+{#if hint}<p id={`${id}-hint`} class="text-[11.5px] text-faint">{hint}</p>{/if}
 </div>
 
 <style>

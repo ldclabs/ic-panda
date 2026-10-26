@@ -1,4 +1,7 @@
 <script lang="ts">
+  import TextField from '../components/TextField.svelte'
+  import TextArea from '../components/TextArea.svelte'
+
   import { onDestroy, onMount } from 'svelte'
   import type { PrincipalDocument, PrincipalLink } from 'agent-protocols/delegation'
   import Avatar from '../components/Avatar.svelte'
@@ -238,21 +241,21 @@
           {/if}
         </div>
       </div>
-      {#if avatarUrl}<Field label={t('avatarAddress')}><input value={avatarUrl} readonly class="font-mono text-[12px]" data-testid="profile-avatar-url" /></Field>{/if}
-      <Select bind:value={kind} label={t('principalKind')} options={[
+      {#if avatarUrl}<TextField label={t('avatarAddress')} value={avatarUrl} readonly mono data-testid="profile-avatar-url" />{/if}
+      <Field label={t('principalKind')}><Select bind:value={kind} label={t('principalKind')} options={[
         {value:'person',label:t('principalPerson')}, {value:'organization',label:t('principalOrganization')},
         {value:'team',label:t('principalTeam')}, {value:'project',label:t('principalProject')}, {value:'other',label:t('principalOther')}
-      ]} testid="profile-kind" />
-      <Field label={t('displayName')}><input bind:value={displayName} data-testid="profile-name" /></Field>
-      <Field label={t('bio')}><textarea bind:value={bio} rows="3"></textarea></Field>
+      ]} testid="profile-kind" class="w-full" /></Field>
+      <TextField label={t('displayName')} bind:value={displayName} data-testid="profile-name" />
+      <TextArea label={t('bio')} bind:value={bio} rows={3} data-testid="profile-bio" />
       <div class="grid gap-2">
         {#each links as link, index (index)}
-          <div class="grid gap-2 rounded-lg bg-surface-2 p-3">
-            <Field label={t('principalLinkName')}><input bind:value={link.name} /></Field>
-            <Field label={t('link')}><input value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" /></Field>
-            <Field label={t('principalLinkImage')}><input value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" /></Field>
-            <Field label={t('principalLinkRelation')}><input bind:value={link.rel} /></Field>
-            <button class={buttonClass('ghost', 'sm')} onclick={() => links = links.filter((_, i) => i !== index)}>{t('remove')}</button>
+          <div class="grid gap-3 border-b border-line py-3 @min-[600px]:grid-cols-2" data-testid="profile-link-row">
+            <TextField label={t('principalLinkName')} bind:value={link.name} />
+            <TextField label={t('principalLinkRelation')} bind:value={link.rel} />
+            <TextField label={t('link')} value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" dir="ltr" />
+            <TextField label={t('principalLinkImage')} value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" dir="ltr" />
+            <button class={buttonClass('ghost', 'sm', 'justify-self-start')} onclick={() => links = links.filter((_, i) => i !== index)} aria-label={`${t('remove')} · ${link.name || t('link')}`}>{t('remove')}</button>
           </div>
         {/each}
         <button class={buttonClass('secondary', 'sm')} onclick={() => links = [...links, { name: '', url: '', rel: 'related' }]}>{t('principalAddLink')}</button>
@@ -269,8 +272,8 @@
 
 <Section title={t('resolveProfile')} icon="search">
   <div class="grid gap-3">
-    <div class="flex gap-2">
-      <input placeholder={t('accountId')} bind:value={other} class="font-mono text-[12.5px] placeholder:font-sans" />
+    <div class="flex flex-wrap items-end gap-2">
+      <TextField label={t('accountId')} bind:value={other} mono disabled={lookupBusy} class="min-w-48 flex-1" data-testid="profile-lookup-account" />
       <button class={buttonClass('secondary')} disabled={lookupBusy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
     </div>
     {#if lookupError}<Notice failure={lookupError} tone="danger">{lookupError}</Notice>{/if}

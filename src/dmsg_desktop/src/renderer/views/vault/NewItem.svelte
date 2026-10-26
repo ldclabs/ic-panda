@@ -26,6 +26,7 @@
   let busy = $state(false)
   let error = $state('')
   let dirty = $state(false)
+  let valid = $state(false)
   let leaving = $state(false)
   let form = $state<ItemForm | null>(null)
 
@@ -85,7 +86,7 @@
     </RadioGroup.Root>
     {#if templates}
       {#key type}
-        <ItemForm bind:this={form} bind:dirty kind={type} {initial} {busy} {mod} footer={false} onSubmit={save} onCancel={() => close(false)} />
+        <ItemForm bind:this={form} bind:dirty bind:valid kind={type} {initial} {busy} {mod} footer={false} onSubmit={save} onCancel={() => close(false)} />
       {/key}
     {:else}
       <p class="shimmer text-[13px]">{t('loading')}</p>
@@ -100,7 +101,7 @@
     {:else}
       <span class="min-w-0 flex-1"></span>
       <button class={buttonClass('ghost')} onclick={() => close(false)}>{t('cancel')}</button>
-      <button class={buttonClass('primary')} disabled={busy || !templates} onclick={() => form?.submit()} data-testid="vault-add">
+      <button class={buttonClass('primary')} disabled={busy || !templates || !valid} onclick={() => form?.submit()} data-testid="vault-add">
         {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
       </button>
     {/if}

@@ -1,4 +1,8 @@
 <script lang="ts">
+  import TextField from '../components/TextField.svelte'
+  import TextArea from '../components/TextArea.svelte'
+  import { copyText } from '../components/clipboard'
+
   import { onDestroy, onMount } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
@@ -168,11 +172,9 @@
 
   <Section title={t('approveOthers')} description={t('approveOthersHint')} icon="pair">
     <div class="grid gap-2.5">
-      <Field label={t('pasteRequest')}><textarea bind:value={request} rows="3" class="font-mono text-[11.5px]" data-testid="approve-request"></textarea></Field>
+      <TextArea label={t('pasteRequest')} bind:value={request} rows={3} mono disabled={busy} data-testid="approve-request" />
       <div class="flex flex-wrap items-end gap-2">
-        <Field label={`${t('deviceShown')} / ${t('principalShown')}`} class="min-w-60 flex-1">
-          <input bind:value={shown} class="font-mono text-[12.5px]" data-testid="approve-shown" />
-        </Field>
+        <TextField label={`${t('deviceShown')} / ${t('principalShown')}`} bind:value={shown} mono disabled={busy} class="min-w-48 flex-1" data-testid="approve-shown" />
         <button class={buttonClass('primary')} disabled={busy || !request.trim() || !shown.trim()} onclick={approve}>
           {pairing ? t('approveDevice') : t('approveLogin')}
         </button>
@@ -185,13 +187,13 @@
       <Pill tone={security.policy.frozen ? 'warn' : 'ok'}>{security.policy.frozen ? t('frozen') : t('policyOpen')}</Pill>
     {/snippet}
     <div class="grid gap-4">
-      <div class="flex flex-wrap items-end gap-2">
-        <Field label={t('dailyExecutions')}><input bind:value={daily} inputmode="numeric" class="w-28 tabular-nums" data-testid="daily-executions" /></Field>
-        <button class={buttonClass('secondary')} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>
+      <div class="flex flex-wrap items-start gap-2">
+        <TextField label={t('dailyExecutions')} bind:value={daily} inputmode="numeric" disabled={busy} class="w-40" error={daily && !/^\d+$/.test(daily) ? t('wholeNumber') : ''} data-testid="daily-executions" />
+        <button class={buttonClass('secondary', 'md', 'mt-6')} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>
           {t('save')}
         </button>
         <span class="flex-1"></span>
-        <button class={buttonClass(security.policy.frozen ? 'primary' : 'danger')} disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
+        <button class={buttonClass(security.policy.frozen ? 'primary' : 'danger', 'md', 'mt-6')} disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
           {security.policy.frozen ? t('unfreeze') : t('freeze')}
         </button>
       </div>
@@ -265,15 +267,16 @@
               <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={requestKey}>{t('keyRequest')}</button>
             </div>
             {#if made}
-              <Field label={t('deviceShown')}><input readonly value={made.device_id} class="font-mono text-[12.5px]" /></Field>
-              <Field label={t('pasteRequest')}><textarea readonly rows="2" value={made.token} class="font-mono text-[11.5px]" data-testid="approval-key-token"></textarea></Field>
+              <TextField label={t('deviceShown')} readonly value={made.device_id} mono />
+              <TextArea label={t('requestToken')} readonly rows={2} value={made.token} mono data-testid="approval-key-token" />
+              <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(made.token)} data-testid="approval-key-copy"><Icon name="copy" />{t('copy')}</button>
             {/if}
           </div>
         {/if}
         <div class="grid gap-2 border-t border-line pt-3">
-          <Field label={t('pasteRequest')}><textarea bind:value={keyRequest} rows="2" class="font-mono text-[11.5px]" data-testid="approval-key-request"></textarea></Field>
+          <TextArea label={t('pasteRequest')} bind:value={keyRequest} rows={2} mono disabled={busy} data-testid="approval-key-request" />
           <div class="flex flex-wrap items-end gap-2">
-            <Field label={t('deviceShown')} class="min-w-60 flex-1"><input bind:value={keyDevice} class="font-mono text-[12.5px]" /></Field>
+            <TextField label={t('deviceShown')} class="min-w-48 flex-1" bind:value={keyDevice} mono disabled={busy} />
             <button class={buttonClass('secondary')} disabled={busy || !keyRequest.trim() || !keyDevice.trim()} onclick={() => ask('device/key_approve', { token: keyRequest.trim(), device: keyDevice.trim() })}>
               {t('approveKeyRequest')}
             </button>

@@ -257,7 +257,10 @@ Object.assign(methods, {
       assert.equal(p.dependencies_digest, 'b3'.repeat(32))
     return {}
   },
-  'secrets/shares/list': () => ({ shares: [] }),
+  'secrets/shares/list': () => ({ shares: [
+    { id: 'progress-known', state: 'uploading', uploaded_chunks: 1, total_chunks: 4, plan: { title: 'Upload fixture', expires_at: Date.now() + 60000 } },
+    { id: 'progress-unknown', state: 'uploading', uploaded_chunks: 0, total_chunks: 0, plan: { title: 'Preparing upload', expires_at: Date.now() + 60000 } }
+  ] }),
   'secrets/shares/prepare': (p) => ({
     id: 'a1'.repeat(32),
     state: 'prepared',
@@ -646,6 +649,13 @@ try {
   await workflows
     .getByRole('button', { name: 'Secret snapshots', exact: true })
     .click()
+  await main.getByTestId('share-upload-progress').first().waitFor()
+  const progress = main.getByTestId('share-upload-progress').getByRole('progressbar')
+  assert.equal(await progress.nth(0).getAttribute('aria-valuenow'), '1')
+  assert.equal(await progress.nth(0).getAttribute('aria-valuemax'), '4')
+  assert.equal(await progress.nth(1).getAttribute('aria-valuenow'), null)
+  await main.getByTestId('share-upload-progress').last().scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'controls-upload-progress.png'), animations: 'disabled' })
   await pick(main, 'snapshot-source-item', item)
   assert.equal(
     await workflows.getByLabel('Token · Hidden value').isChecked(),

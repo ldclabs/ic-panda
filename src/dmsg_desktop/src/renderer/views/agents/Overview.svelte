@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DateInput from '../../components/DateInput.svelte'
+  import { localMinute, validDateText } from '../../components/form-values'
   import Checkbox from '../../components/Checkbox.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import { copyText } from '../../components/clipboard'
@@ -94,11 +96,6 @@
   const successor = $derived(rotation ? current.find((c: any) => c.generation >= rotation!.after) : null)
   const rotatingFrom = $derived(rotation ? principal?.controllers.find((c: any) => c.generation === rotation!.from) : null)
 
-  /** A time as a `datetime-local` value, in this computer's zone. */
-  const localTime = (ms: number) => {
-    const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000)
-    return d.toISOString().slice(0, 16)
-  }
 
   async function registerDefault() {
     if (!defaultConsent || defaultController || registrationPending) return
@@ -291,7 +288,7 @@
                 class={buttonClass('ghost', 'sm', 'text-danger')}
                 disabled={busy}
                 data-testid="controller-compromise"
-                onclick={() => (compromising = { generation: c.generation, at: localTime(Math.min(Date.now(), c.invalid_from ?? Date.now(), c.retired_at ?? Date.now())) })}
+                onclick={() => (compromising = { generation: c.generation, at: localMinute(Math.min(Date.now(), c.invalid_from ?? Date.now(), c.retired_at ?? Date.now())) })}
                 >{t('markCompromised')}</button
               >
             </div>
@@ -445,18 +442,16 @@
   tone="danger"
   testid="compromise-dialog"
 >
-  <Field label={t('untrustedFrom')}>
-    <input type="datetime-local" bind:value={() => compromising?.at ?? '', (v) => compromising && (compromising.at = v)} data-testid="compromise-at" />
-  </Field>
+  <DateInput label={t('untrustedFrom')} mode="datetime" max={localMinute(Date.now())} disabled={busy} bind:value={() => compromising?.at ?? '', (v) => compromising && (compromising.at = v)} testid="compromise-at" />
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (compromising = null)}>{t('cancel')}</button>
     <button
       class={buttonClass('danger')}
-      disabled={busy || !compromising?.at}
+      disabled={busy || !compromising?.at || !validDateText(compromising.at, 'datetime') || new Date(compromising.at).getTime() > Date.now()}
       data-testid="compromise-confirm"
       onclick={async () => {
-        if (!compromising) return
+        if (!compromising || !validDateText(compromising.at, 'datetime') || new Date(compromising.at).getTime() > Date.now()) return
         await request('agent/compromise', { generation: compromising.generation, invalid_from: new Date(compromising.at).getTime() })
         compromising = null
       }}>{t('markCompromised')}</button

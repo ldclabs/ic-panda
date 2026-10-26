@@ -2,6 +2,19 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    previousMonth: "الشهر السابق",
+    nextMonth: "الشهر التالي",
+
+    requestToken: "رمز الطلب",
+    chooseDate: "اختيار التاريخ",
+    invalidDate: "أدخل تاريخًا صالحًا.",
+    dateFormatHint: "التنسيق: {format}.",
+    localTimeZone: "التوقيت المحلي · {zone}",
+    dateMaximum: "يجب ألا يكون التاريخ بعد {date}.",
+    previousYear: "السنة السابقة",
+    nextYear: "السنة التالية",
+    wholeNumber: "أدخل عددًا صحيحًا غير سالب.",
+
     fileId: "معرّف الملف",
     currentVersionId: "معرّف الإصدار الحالي",
     versionId: "معرّف الإصدار",

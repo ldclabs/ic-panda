@@ -1,4 +1,6 @@
 <script lang="ts">
+  import TextField from '../components/TextField.svelte'
+
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -71,8 +73,8 @@
       <div class="grid gap-2 rounded-lg bg-surface-2/60 p-3.5">
         <b class="text-[13px] font-semibold">{t('joinAccount')}</b>
         <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
-        <div class="flex gap-2">
-          <input placeholder={t('accountId')} bind:value={account} class="font-mono text-[12.5px] placeholder:font-sans" data-testid="bind-account" />
+        <div class="flex flex-wrap items-end gap-2">
+          <TextField label={t('accountId')} bind:value={account} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
           <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={bindRequest}>{t('bindRequest')}</button>
         </div>
         {#if token}

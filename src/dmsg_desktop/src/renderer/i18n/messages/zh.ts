@@ -2,6 +2,19 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    previousMonth: "上个月",
+    nextMonth: "下个月",
+
+    requestToken: "请求令牌",
+    chooseDate: "选择日期",
+    invalidDate: "请输入有效日期。",
+    dateFormatHint: "格式：{format}。",
+    localTimeZone: "本地时间 · {zone}",
+    dateMaximum: "日期不能晚于 {date}。",
+    previousYear: "上一年",
+    nextYear: "下一年",
+    wholeNumber: "请输入非负整数。",
+
     fileId: "文件 ID",
     currentVersionId: "当前版本 ID",
     versionId: "版本 ID",

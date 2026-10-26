@@ -330,11 +330,12 @@ controls inside one label.
 | Long list of items, files, agents or channels | `SearchSelect`, or an existing domain picker; search labels and safe metadata, show unavailable reasons |
 | Free text with suggestions / multiple tags | `Suggest` / `TagInput` |
 | Boolean / one-of-many choice | `Checkbox` / `Radio` within `RadioGroup.Root` |
-| Text, number or multiline input | Theme-styled semantic input/textarea in `Field`, or a shared composite such as the wallet's amount field |
+| Text or multiline input | `TextField` / `TextArea`, with linked labels, hints and errors; numeric text uses `inputmode`, amounts use the wallet’s amount field |
 | Typed password, token, private key or secret-bearing link | `SecretInput`; preserve multiline values, masking and existing clipboard boundaries |
 | Standard action / icon tool | `buttonClass` / `iconButtonClass`; icon-only controls need a name and tooltip |
 | Confirmation / feedback | `Dialog` / `Notice` and `toast`; explain the consequence and retain the approval-window boundary |
-| Date, month, time, range or progress | Add a shared themed component before adding another use; existing gaps are tracked below |
+| Date / month / local date-time | `DateInput`: typed calendar value, themed calendar/month popover, validation and explicit local timezone for time |
+| Bounded numeric choice / progress | `Slider` / `Progress`, including keyboard controls, accessible values and unknown progress |
 | OS file/directory choice or system identity confirmation | Existing main-process bridge; preserve the platform/security dialog |
 
 Do not introduce native `select`, `datalist`, checkbox/radio/range inputs,
@@ -355,14 +356,32 @@ empty states in both themes. Reusing a component does not prove that the
 resulting layout is polished.
 
 This contract covers the main view, settings and all its child views,
-dialogs, popovers and the independent approval window. Current exceptions
-are **open work**, not examples to copy: see the dated
-[native-control inventory and remediation list](docs/native-controls-audit.md).
-The repository test records only that existing debt; remove entries as
-they are fixed, rather than increasing the baseline for new uses.
+dialogs, popovers and the independent approval window. The original native-control debt is resolved; see the dated
+[remediation and validation record](docs/native-controls-audit.md).
+The repository test now permits no view-level exceptions. The dynamic
+input inside `TextField` is bounded to the five reviewed text types; this
+component implementation is separately recognized by the checker.
 When implementing a themed native primitive inside a new shared component,
 add a specific checker rule and interaction coverage for that implementation;
 do not add new view-level uses to the historical debt baseline.
+
+### Shared form behavior
+
+`TextField` and `TextArea` associate a persistent label with the input ID,
+link hints and errors through `aria-describedby`, and mark invalid fields
+with `aria-invalid`. Readonly values retain selection and use the secondary
+surface. Keep copy actions separate from editable input, and let failure
+leave the draft available for retry. Use `hideLabel` only when the same
+field already has a persistent visible label, as in the vault field editor.
+
+`DateInput` preserves `YYYY-MM-DD` and `YYYY-MM` calendar values. Local date
+and time display a space between the parts and serialize with `T`; the
+hint names the device timezone. Reject rollover dates, invalid times and
+caller-provided maximums. Callers must also gate submission/export: a red
+field alone must not let JavaScript normalize an invalid date into an action.
+Its popup and the password generator fit the available viewport height and
+scroll internally. Escape dismisses the topmost popup before its dialog;
+inline editors alone handle their own cancel shortcut.
 
 ### Patterns
 
@@ -446,7 +465,7 @@ and Arabic). Look at the screenshots of the views a change touches.
 `pnpm audit:controls` inventories native markup and direct browser-dialog
 calls across the renderer; `pnpm audit:controls --json` includes ordinary
 theme-styled text inputs too. `pnpm test` includes `ui-controls.test.ts`,
-which rejects new disallowed occurrences and stale debt entries. The
+which rejects disallowed occurrences and direct settings inputs. The
 scanner uses the Svelte/TypeScript AST, so comments and documentation
 examples do not count. It cannot prove visual quality, accessible names,
 runtime-generated controls or the behavior of third-party internals.

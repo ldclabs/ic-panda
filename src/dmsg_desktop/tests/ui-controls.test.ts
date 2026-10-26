@@ -3,32 +3,32 @@ import { test } from 'node:test'
 import {
   auditNativeControls,
   inspectSvelte,
-  reviewCounts
+  reviewCounts,
+  sharedImplementation
 } from '../scripts/audit-native-controls.ts'
 
-test('new UI uses shared controls; existing native-control debt must shrink, not spread', () => {
-  // Each entry is an open task in docs/native-controls-audit.md, not permission
-  // to reuse that pattern. Remove entries as the corresponding UI is fixed.
-  const existing = {
-    'views/Files.svelte | input:password': 1,
-    'views/Wallet.svelte | dialog:confirm': 1,
-    'views/agents/Overview.svelte | input:datetime-local': 1,
-    'views/files/Storage.svelte | input:date': 1,
-    'views/secrets/Sharing.svelte | progress': 1,
-    'views/vault/Generator.svelte | input:range': 2,
-    'views/vault/Import.svelte | input:checkbox': 1,
-    'views/vault/ItemForm.svelte | input:dynamic': 1,
-    'views/wallet/History.svelte | input:date': 2
-  }
+test('views have no remaining browser-default controls or dialogs', () => {
   const { controls } = auditNativeControls()
   assert.deepEqual(
-    reviewCounts(controls),
-    existing,
-    'Use DESIGN.md shared controls. After fixing existing debt, remove its entry here; do not expand the baseline to accept new controls.\n' +
+    reviewCounts(controls.filter((c) => !sharedImplementation(c))),
+    {},
+    'Use DESIGN.md shared controls; do not add view-level exceptions.\n' +
       controls
         .filter((c) => c.review)
         .map((c) => `${c.file}:${c.line} ${c.kind}`)
         .join('\n')
+  )
+  assert.equal(controls.filter(sharedImplementation).length, 1)
+  const settings = [
+    'views/Security.svelte',
+    'views/Profile.svelte',
+    'views/Onboarding.svelte',
+    'views/Legacy.svelte'
+  ]
+  assert.equal(
+    controls.filter((c) => settings.includes(c.file)).length,
+    0,
+    'settings fields compose shared controls'
   )
 })
 
