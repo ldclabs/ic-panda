@@ -23,6 +23,23 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
             },
         ],
     };
+    let preview = |config: &AppStoreConfig| -> std::result::Result<String, String> {
+        query(
+            &f.ic,
+            f.commerce,
+            person(9),
+            "validate_set_app_store_config",
+            (config.clone(),),
+        )
+    };
+    let mut invalid = config.clone();
+    invalid.verifiers.clear();
+    assert_eq!(preview(&invalid), Err("InvalidInput(\"verifiers\")".into()));
+    assert!(
+        preview(&config)
+            .unwrap()
+            .starts_with("Set App Store config for net.dmsg.ios")
+    );
     let denied: Result<()> = update(
         &f.ic,
         f.commerce,
@@ -39,6 +56,7 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         (config.clone(),),
     );
     applied.unwrap();
+    assert!(preview(&config).unwrap().ends_with("; no change."));
     let now = time(&f.ic);
     let mut transaction = StoreTransaction {
         beneficiary: beneficiary(f.user, &account),

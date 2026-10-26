@@ -100,6 +100,7 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
     private let mutex = NSLock()
     private var connection: URLSession?
     private var scheduling = false
+    private var rescheduling = false
     let store: CipherTransferStore?
     override init() { store = try? CipherTransferStore(); super.init() }
     private var session: URLSession {
@@ -132,9 +133,14 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
         let values = (task.taskDescription ?? "").split(separator: ":"); guard values.count == 3, let attempt = Int(values[1]) else { return nil }; return (String(values[0]), attempt, String(values[2]))
     }
     private func schedule() {
-        guard mutex.withLock({ if scheduling { return false }; scheduling = true; return true }) else { return }
+        // A completion that arrives mid-pass may be missing from its task list;
+        // run once more so the last finished task always schedules the rest.
+        guard mutex.withLock({ if scheduling { rescheduling = true; return false }; scheduling = true; return true }) else { return }
         session.getAllTasks { [self] tasks in
-            defer { mutex.withLock { scheduling = false } }
+            defer {
+                let again = mutex.withLock { () -> Bool in let again = rescheduling; scheduling = false; rescheduling = false; return again }
+                if again { schedule() }
+            }
             guard let store, let state = try? store.snapshot(), !state.paused, state.failure == nil, !state.ready else { return }
             guard Double(state.transfer.expiresAt) > Date.now.timeIntervalSince1970 * 1000 else {
                 try? store.update(state.transfer.id) { $0.failure = "expired" }; changed(); return

@@ -6,8 +6,8 @@ mod requests;
 pub use codec::*;
 pub use handle::*;
 pub use requests::*;
-pub mod app_action;
 /// Application-action profile, registered command schemas and admission checks.
+pub mod app_action;
 pub mod app_store;
 mod signing;
 pub use signing::*;

@@ -1273,6 +1273,7 @@ service : (CommerceInit) -> {
   validate_register_settlement_asset : (SettlementAsset) -> (Result_20) query;
   validate_schedule_policy : (Catalog) -> (Result_20) query;
   validate_set_admission_pause : (bool) -> (Result_20) query;
+  validate_set_app_store_config : (AppStoreConfig) -> (Result_20) query;
   validate_set_settlement_price_authority : (principal) -> (Result_20) query;
   validate_verify_settlement_asset : (principal, opt nat) -> (Result_20) query;
   verify_billing_offer : (BillingOffer) -> (Result);

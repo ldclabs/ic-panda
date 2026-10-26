@@ -50,7 +50,7 @@ def source_hash():
     for name in sorted(paths):
         path = ROOT / name
         if path.is_file():
-            h.update(name.encode() + b"\\0" + digest(path).encode() + b"\\n")
+            h.update(name.encode() + b"\0" + digest(path).encode() + b"\n")
     return h.hexdigest()
 
 

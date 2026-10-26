@@ -2,7 +2,10 @@
 //! validating Apple JWS/certificates. Rights remain certified by this canister.
 use crate::{api, model, store};
 use dmsg_protocol::{app_store::account_token, billing::beneficiary_account, digest};
-use dmsg_runtime::storage::{MapExt, Stored};
+use dmsg_runtime::{
+    admin::{self, Validation, hex, validation},
+    storage::{MapExt, Stored},
+};
 use dmsg_types::{
     app_store::*,
     billing::*,
@@ -71,6 +74,37 @@ fn set_app_store_config(config: AppStoreConfig) -> Result<()> {
 }
 
 #[ic_cdk::query]
+fn validate_set_app_store_config(config: AppStoreConfig) -> Validation {
+    validation(
+        validate_config(&config, &store::config(|c| c.environment.clone())).map(|()| {
+            let verifiers: Vec<String> = config.verifiers.iter().map(|v| v.to_text()).collect();
+            let products: Vec<String> = config
+                .products
+                .iter()
+                .map(|p| match &p.kind {
+                    StoreProductKind::Plan(plan) => format!("{} => {plan:?} plan", p.product_id),
+                    StoreProductKind::Storage(id) => {
+                        format!("{} => storage {}", p.product_id, hex(id.as_slice()))
+                    }
+                })
+                .collect();
+            format!(
+                "Set App Store config for {} (Apple ID {}, {:?}): verifiers [{}], products [{}].{}",
+                config.bundle_id,
+                config.app_apple_id,
+                config.environment,
+                verifiers.join(", "),
+                products.join(", "),
+                admin::unchanged(
+                    CONFIG.with_borrow(|c| c.get().0.as_ref() != Some(&config)),
+                    "Already set"
+                ),
+            )
+        }),
+    )
+}
+
+#[ic_cdk::query]
 fn get_app_store_config() -> Option<AppStoreConfig> {
     CONFIG.with_borrow(|c| c.get().0.clone())
 }
@@ -135,8 +169,13 @@ fn apply(
             existing.starts_at_ms == t.purchased_at_ms,
             Error::IdempotencyConflict,
         )?;
+        // A refund never reopens a term an upgrade already ended.
         if let Some(revoked) = t.revoked_at_ms {
-            existing.terminated_at_ms = Some(revoked);
+            existing.terminated_at_ms = Some(
+                existing
+                    .terminated_at_ms
+                    .map_or(revoked, |end| end.min(revoked)),
+            );
         }
         existing.expires_at_ms = t
             .expires_at_ms
@@ -443,6 +482,27 @@ mod tests {
         )
         .unwrap();
         assert!(subject.active(NOW).is_none());
+    }
+
+    #[test]
+    fn refund_after_upgrade_does_not_reopen_the_replaced_term() {
+        let old = transaction("101", NOW - DAY);
+        let new = transaction("102", NOW - MINUTE);
+        let mut subject = model::Subject::new(old.beneficiary.clone());
+        let plus = StoreProductKind::Plan(PlanId::Plus);
+        apply(&mut subject, &old, &plus, &catalog(), NOW).unwrap();
+        apply(
+            &mut subject,
+            &new,
+            &StoreProductKind::Plan(PlanId::Pro),
+            &catalog(),
+            NOW,
+        )
+        .unwrap();
+        let mut refunded = old;
+        refunded.revoked_at_ms = Some(NOW);
+        apply(&mut subject, &refunded, &plus, &catalog(), NOW).unwrap();
+        assert_eq!(model::end(&subject.contracts[0]), new.purchased_at_ms);
     }
 
     #[test]

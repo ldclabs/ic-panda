@@ -42,7 +42,7 @@ flowchart LR
 
 ### App Store 适配
 
-`set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
+`set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射，提案前可用同参数的 `validate_set_app_store_config` 预检；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
 
 交易绑定 user home、账号和确定性的 `appAccountToken`，原始交易不能迁移到另一账号。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与 Apple 基础套餐互斥，存储包要求有效的 Apple 基础套餐。
 
@@ -54,7 +54,7 @@ Production 拒绝 Sandbox 事实。TestFlight 的沙盒购买必须使用独立 
 
 | 类别          | 方法                                                                                                                                                                                                | 调用者                                         |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 治理          | `register_integration_app`、`register_integration_product`、`register_settlement_asset`、`verify_settlement_asset`、`set_settlement_price_authority`、`schedule_policy`、`set_admission_pause`、`admin_add_user_home`、`admin_set_limits` | controller 或 `governance`                     |
+| 治理          | `register_integration_app`、`register_integration_product`、`register_settlement_asset`、`verify_settlement_asset`、`set_settlement_price_authority`、`schedule_policy`、`set_admission_pause`、`admin_add_user_home`、`admin_set_limits`、`set_app_store_config` | controller 或 `governance`                     |
 | 价格          | `publish_settlement_price`                                                                                                                                                                          | controller、`governance` 或价格权威            |
 | 提案预演      | 以上每个方法的 `validate_*`，参数相同                                                                                                                                                               | 任何人（query）                                |
 | dMsg 报价     | `prepare_account_subscription`                                                                                                                                                                      | 任何人                                         |
@@ -68,9 +68,10 @@ Production 拒绝 Sandbox 事实。TestFlight 的沙盒购买必须使用独立 
 | 订单查询      | `get_checkout`、`checkout_deposits`                                                                                                                                                                 | 订单读者                                       |
 |               | `get_checkout_transfer`                                                                                                                                                                             | 收款 owner 或订单读者                          |
 |               | `checkout_operations`、`checkout_transfers`                                                                                                                                                         | 非匿名 caller，只返回自己可读的记录            |
-| 公开查询      | `checkout_progress`、`settlement_assets`、`integration_configuration_certificate`、`get_catalog`、`list_catalogs`、`get_entitlement_batch`、`get_commerce_limits`、`commerce_stats`                 | 任何人                                         |
+| 公开查询      | `checkout_progress`、`settlement_assets`、`integration_configuration_certificate`、`get_catalog`、`list_catalogs`、`get_entitlement_batch`、`get_commerce_limits`、`commerce_stats`、`get_app_store_config` | 任何人                                         |
 | 权益          | `refresh_entitlement`、`refresh_catalog`                                                                                                                                                            | 任何人；`refresh_entitlement` 只刷新已有主体   |
 |               | `get_execution_entitlement`                                                                                                                                                                         | 受益主体所属的 user home                       |
+|               | `apply_app_store_transaction`                                                                                                                                                                       | App Store 配置登记的验证方                     |
 | 跨服务读取    | `read_integration_configuration`                                                                                                                                                                    | 任何人（复制调用，供 user 和 membership 使用） |
 |               | `get_checkout_for_product`                                                                                                                                                                          | 该订单的产品 adapter                           |
 | dMsg 产品回调 | `verify_billing_offer`、`get_product_decision`                                                                                                                                                      | 本 canister 或 membership                      |
@@ -499,7 +500,7 @@ icp canister start dmsg_commerce -e ic
 
 ## 验证
 
-2026-10-27 的移动适配检查：commerce 41 项单元测试通过、2 项忽略；新增 `commerce::app_store::app_store_verifier_binding_idempotence_refunds_and_upgrade` 使用优化 Wasm 通过 PocketIC，覆盖验证方拒绝、账号／环境绑定、订阅和存储幂等、新鲜度、退款回滚拒绝及当前 Wasm 原地升级后的新稳定记录保留。这不是旧版本布局迁移或主网验收；历史完整回归记录见下文。
+2026-10-27 的移动适配检查：commerce 41 项单元测试通过、2 项忽略；新增 `commerce::app_store::app_store_verifier_binding_idempotence_refunds_and_upgrade` 使用优化 Wasm 通过 PocketIC，覆盖验证方拒绝、账号／环境绑定、订阅和存储幂等、新鲜度、退款回滚拒绝及当前 Wasm 原地升级后的新稳定记录保留。这不是旧版本布局迁移或主网验收；历史完整回归记录见下文。同日审查补充 `validate_set_app_store_config`，并使升级后旧交易的退款不再推迟其已被替代的终止时间：commerce 42 项单元测试通过、2 项忽略，上述 PocketIC 用例（含提案预演）与 `governance` 用例使用重新构建的 Wasm 通过。
 
 ```sh
 cargo test --locked -p dmsg_commerce
