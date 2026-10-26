@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "S9Z2WAMAV8.net.dmsg.ios"
+        ],
+        "components": [
+          {
+            "/": "/_/ios/auth/callback"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "S9Z2WAMAV8.net.dmsg.ios"
+    ]
+  }
+}

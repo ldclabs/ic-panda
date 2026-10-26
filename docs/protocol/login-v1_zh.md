@@ -93,7 +93,7 @@ POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校
 
 另接受 iOS 的精确 HTTPS 回调 `https://dmsg.net/_/ios/auth/callback`。不接受端口（包括显式 `:443`）、尾部斜杠、其他大小写、query、fragment、其他 HTTPS 地址或自定义 scheme。`localhost` 仍不接受。消息编码和版本保持为 1。
 
-iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，Associated Domains 必须将此路径绑定到实际签名的 App。AASA 由 `scripts/ios/aasa.mjs` 依据部署者提供的 Team ID 与 Bundle ID 生成，不提交猜测的团队标识。未配置和部署 AASA 时不能把登录视为可用。系统会话外打开该回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
+iOS 使用 `ASWebAuthenticationSession.Callback.https(host:path:)`，App 的 Associated Domains 须含 `webcredentials:dmsg.net`，dmsg.net 的 AASA 须列出实际签名的 App。生产 App 为 LDC Labs Limited 团队（`S9Z2WAMAV8`）的 `net.dmsg.ios`：`src/dmsg_ios/project.yml` 固定该团队，`src/dmsg_frontend/static/.well-known/apple-app-site-association` 由 `scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios` 生成，随前端部署，必须直接返回 200 JSON 而不跳转。团队或 Bundle ID 变化时两处同时更新。前端发布含该文件和回调页之前，登录不可用。系统会话外打开该回调页时，只清除 fragment 并显示重新从 App 登录的说明，不转发或加载第三方脚本。回调消费一次，进程终止后旧请求失效。
 
 ## 6. 页面要求
 

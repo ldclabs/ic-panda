@@ -158,12 +158,15 @@ selected folder's grants. OTP selection includes the reusable seed explicitly.
 
 This tree is development code, not an App Store release assertion. In particular:
 
-1. Configure the real Apple team and production/staging bundle identifiers.
-   Deploy the updated web login and fixed callback page from this branch.
-   Generate AASA with `node scripts/ios/aasa.mjs TEAM_ID net.dmsg.ios`, deploy it
-   without redirects at `/.well-known/apple-app-site-association`, and verify
-   association, the II popup/passkey and fragment callback on a physical phone.
-   The fixed callback page clears fragments and offers no forwarding target.
+1. The app is signed by LDC Labs Limited (`S9Z2WAMAV8`) as `net.dmsg.ios`;
+   `project.yml` pins the team. The frontend ships the matching
+   `static/.well-known/apple-app-site-association`, generated with
+   `node scripts/ios/aasa.mjs S9Z2WAMAV8 net.dmsg.ios`; change both together.
+   Release the frontend with the login page, fixed callback page and AASA, check
+   that `https://dmsg.net/.well-known/apple-app-site-association` answers 200
+   JSON without redirects, then verify association, the II popup/passkey and
+   fragment callback on a physical phone. The fixed callback page clears
+   fragments and offers no forwarding target.
 2. Verify Secure Enclave, device-password fallback, lock-screen file protection,
    current-biometry invalidation, real copy-to-another-app behavior and the
    cross-device login/edit/revoke slice. Confirm user home supports the current

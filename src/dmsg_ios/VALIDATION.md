@@ -168,8 +168,9 @@ from Git. The manual GitHub workflow was not dispatched.
 This is a working native implementation and local validation record, **not a
 claim that every P0–P3 milestone or the App Store release is complete**.
 
-- Deploy the updated login page, fixed callback page and AASA using real Apple
-  identifiers. Verify the id.ai popup/passkey flow and full fragment callback in
+- Release the frontend with the login page, fixed callback page and the AASA
+  for `S9Z2WAMAV8.net.dmsg.ios` (committed in `static/.well-known`). Verify the
+  id.ai popup/passkey flow and full fragment callback in
   `ASWebAuthenticationSession` on a physical phone. No such login was performed.
 - Verify iOS Secure Enclave, device-password fallback, locked-device data
   protection, cross-app paste, cross-device edits/conflicts, approval/revocation
