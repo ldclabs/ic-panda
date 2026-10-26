@@ -170,7 +170,10 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
 - **R3 Identifiers are recognizable, inspectable and copyable.** An ID shows
   as a neutral chip with its first and last four characters; the tooltip
   holds all of it and a click copies it. Equal abbreviations do not prove
-  equal IDs.
+  equal IDs. Internal file, version and vault-item IDs belong at the end of
+  detail content, after the content and version history, in the shortened
+  `Id` presentation. Version rows also use shortened IDs. Hover or keyboard
+  focus exposes the full value; copying always uses the complete identifier.
 - **R4 Consequence first, details after.** Approvals, grants and transfers
   say in one sentence what will happen; raw fields stay folded below.
 - **R5 Risk costs one more step.** Reject has the focus; Approve waits 1.2
@@ -244,7 +247,8 @@ monospace face: Arabic loses its letter joining there, so only the value
   drawer (256–280px); the file library adds a folder tree (220px) before
   its list, and its cloud and trash places take the list's and the object's
   room as one page. Container queries narrow them: the vault's filter rail turns
-  into a menu below 860px, the members drawer floats over the timeline below
+  into a menu below 860px; the file library’s places move into a dialog below
+  800px, leaving room for its list and detail; the members drawer floats over the timeline below
   860px, the settings section list turns into a row of buttons below 720px.
 - **Page views** (agents, signatures, plan, settings) scroll as one column of
   sections, 860px wide (1040px for the capability matrix), with tab bars or

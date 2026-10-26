@@ -318,12 +318,6 @@
   {/if}
 
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-    <dl class="mb-3">
-      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[132px_1fr] @min-[440px]:items-start">
-        <dt class="pt-2 text-[12px] text-faint @min-[440px]:pt-1.5">{t('vaultItemId')}</dt>
-        <dd class="min-w-0"><Id id={entry.id} full wrap copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
-      </div>
-    </dl>
     {#if editing}
       <ItemForm
         kind={type}
@@ -374,6 +368,12 @@
         <History id={entry.id} head={entry.revision} {device} {unlocked} {editable} onClose={() => (history = false)} />
       {/if}
     {/if}
+    <dl class="mt-5 border-t border-line pt-3 text-[11.5px] text-faint" data-testid="vault-identifiers">
+      <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <dt>{t('vaultItemId')}</dt>
+        <dd class="min-w-0"><Id id={entry.id} copyLabel={t('copyVaultItemId')} disabled={!unlocked} testid="vault-copy-id" /></dd>
+      </div>
+    </dl>
   </div>
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">

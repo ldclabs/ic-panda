@@ -210,7 +210,7 @@
       </div>
     </div>
     {#if unlocked}
-      <div class="ms-auto flex shrink-0 items-center gap-1">
+      <div class="ms-auto flex max-w-full flex-wrap items-center gap-1">
         {#if trash}
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={onDiscard} data-testid="files-restore">
             <Icon name="restore" />{t('restore')}
@@ -309,17 +309,6 @@
     {/if}
 
     <dl class="grid gap-1" data-testid="files-facts">
-      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
-        {@render row(t('fileId'))}
-        <dd class="min-w-0"><Id id={file.id} full wrap copyLabel={t('copyFileId')} disabled={!unlocked} testid="files-copy-id" /></dd>
-      </div>
-      <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
-        {@render row(t('currentVersionId'))}
-        <dd class="min-w-0 space-y-1">
-          <Id id={file.current} full wrap copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-current-version" />
-          <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${file.current}`)} data-testid="files-copy-reference"><Icon name="link" />{t('copyFileReference')}</button>
-        </dd>
-      </div>
       <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
         {@render row(t('fileType'))}
         <dd class="min-w-0 truncate select-text">{file.mime}</dd>
@@ -441,9 +430,9 @@
                 · {t('statusBackedUp')} {ago(version.backup.backed_up_at)}
               {/if}
             </div>
-            <div class="mt-1 space-y-1" data-testid="files-version-identity" data-version={version.id}>
-              <span class="block text-[11.5px] text-faint">{t('versionId')}</span>
-              <Id id={version.id} full wrap copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-version" />
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="files-version-identity" data-version={version.id}>
+              <span class="text-[11.5px] text-faint">{t('versionId')}</span>
+              <Id id={version.id} copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-version" />
               <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${version.id}`)} data-testid="files-copy-version-reference"><Icon name="link" />{t('copyFileReference')}</button>
             </div>
           </div>
@@ -497,6 +486,20 @@
         </li>
       {/each}
     </ol>
+
+    <dl class="mt-5 grid gap-1 border-t border-line pt-3 text-[11.5px] text-faint" data-testid="files-identifiers">
+      <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <dt>{t('fileId')}</dt>
+        <dd class="min-w-0"><Id id={file.id} copyLabel={t('copyFileId')} disabled={!unlocked} testid="files-copy-id" /></dd>
+      </div>
+      <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <dt>{t('currentVersionId')}</dt>
+        <dd class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <Id id={file.current} copyLabel={t('copyVersionId')} disabled={!unlocked} testid="files-copy-current-version" />
+          <button class={buttonClass('ghost', 'xs', 'h-auto min-h-7 max-w-full whitespace-normal text-start')} disabled={!unlocked || trash} title={t('fileReferenceHint')} onclick={() => copyText(`dmsg-file://${file.id}/${file.current}`)} data-testid="files-copy-reference"><Icon name="link" />{t('copyFileReference')}</button>
+        </dd>
+      </div>
+    </dl>
   </div>
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">

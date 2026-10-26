@@ -64,6 +64,7 @@
   let usage = $state<any>(null)
   let query = $state('')
   let selected = $state<string[]>([])
+  let placesOpen = $state(false)
   /** Where a shift-extended selection starts. */
   let anchor = $state<string | null>(null)
   let details = $state<any>(null)
@@ -592,7 +593,7 @@
       .finally(() => { if (serial === quoteSerial) quoting = false })
   })
   $effect(() => {
-    if (!unlocked) { sharing = null; linking = null; quote = null; quoteSerial++ }
+    if (!unlocked) { placesOpen = false; sharing = null; linking = null; quote = null; quoteSerial++ }
   })
   const share = () =>
     attempt(async () => {
@@ -714,20 +715,8 @@
   </DropdownMenu.Root>
 {/snippet}
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-  class="@container relative flex h-full min-h-0"
-  ondragenter={onDragEnter}
-  ondragover={onDragOver}
-  ondragleave={(event) => isFiles(event) && (dragging = Math.max(0, dragging - 1))}
-  ondrop={onDrop}
-  data-testid="files"
->
-  {#if error === 'LOCKED'}
-    <Locked {status} testid="files-locked" />
-  {:else}
-    <aside class="flex w-[220px] shrink-0 flex-col border-e border-line">
-      <Tree {folders} {tags} {scope} {unlocked} onPick={pick} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
+{#snippet places()}
+      <Tree {folders} {tags} {scope} {unlocked} onPick={(next) => { placesOpen = false; pick(next) }} onDropMove={move} onDropFiles={dropFiles} onNewFolder={newFolderIn} onFolderAction={folderAction} />
       {#if usage}
         <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint">
           <p>{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
@@ -758,6 +747,26 @@
           {/if}
         </div>
       {/if}
+{/snippet}
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="@container relative flex h-full min-h-0 flex-col"
+  ondragenter={onDragEnter}
+  ondragover={onDragOver}
+  ondragleave={(event) => isFiles(event) && (dragging = Math.max(0, dragging - 1))}
+  ondrop={onDrop}
+  data-testid="files"
+>
+  {#if error === 'LOCKED'}
+    <Locked {status} testid="files-locked" />
+  {:else}
+    <div class="border-b border-line px-3 py-2 @min-[800px]:hidden">
+      <button class={buttonClass('ghost', 'sm')} onclick={() => (placesOpen = true)} data-testid="files-places-open"><Icon name="folder" />{t('files')}</button>
+    </div>
+    <div class="flex min-h-0 min-w-0 flex-1">
+    <aside class="hidden w-[220px] shrink-0 flex-col border-e border-line @min-[800px]:flex">
+      {@render places()}
     </aside>
 
     {#if scope === 'storage' || scope === 'links'}
@@ -818,7 +827,7 @@
         </div>
       {/if}
     {:else}
-      <section class="relative flex w-[280px] shrink-0 flex-col border-e border-line @min-[980px]:w-[320px]">
+      <section class="relative flex w-[248px] shrink-0 flex-col border-e border-line @min-[800px]:w-[280px] @min-[980px]:w-[320px]">
         <div class="grid gap-2 p-3 pb-2">
           <div class="flex items-center gap-1.5">
             <label class="relative min-w-0 flex-1">
@@ -1007,6 +1016,7 @@
         {/if}
       </div>
     {/if}
+    </div>
   {/if}
 
   {#if dragging}
@@ -1019,6 +1029,10 @@
     </div>
   {/if}
 </div>
+
+<Dialog bind:open={placesOpen} title={t('files')} icon="folder" testid="files-places-dialog">
+  <div class="flex min-h-0 max-h-[65vh] flex-col">{@render places()}</div>
+</Dialog>
 
 <Dialog bind:open={() => !!naming, (next) => !next && (naming = null)} title={t('newFolder')} icon="folder-add" testid="files-new-folder-dialog">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
