@@ -184,6 +184,10 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
   eases in, work under way shimmers. Buttons do not move or blink; one
   whose click is still waiting turns a ring. Everything stops under
   reduced motion.
+- **R7 Shared controls are the default.** Views compose the kit below.
+  Missing controls are implemented once in the kit, with the same tokens,
+  keyboard behavior and states. A browser-default control with an accent
+  color is not a finished desktop component.
 
 ## Colors
 
@@ -289,7 +293,8 @@ restyle a control by hand.
   (`pending.ts`, after 150 ms); views only disable it by their `busy` flag.
 - **Menus** — bits-ui DropdownMenu and ContextMenu with `menuContentClass`
   and `menuItemClass`; destructive items last, after a separator, in Danger.
-  `Select` is a dropdown that checks the chosen option.
+  `Select` is a dropdown that checks the chosen option. `SearchSelect` is a
+  searchable, closed set of choices, with labels, hints and disabled options.
 - **Choices** — `Checkbox`, `Radio`, `Segmented` (one of a short ordered
   set), radio cards for types and modes, `Suggest` for free text with
   suggestions, `TagInput`, `SecretInput` (hidden while typed, with a
@@ -306,6 +311,58 @@ restyle a control by hand.
   belong to a form stay in the form.
 - **Avatars** — initials (or an ID's first two characters) on a tone that
   stays with the ID; a tone helps recognition and never means verified.
+
+### Form control contract
+
+Use semantic HTML inside the design system. Ordinary text inputs and
+textareas already get their border, height, background, focus and disabled
+styles from `app.css`; they are not unstyled just because a view contains
+an `<input>`. They still need a consistent field layout and visual review.
+`Field` supplies the visible label and optional help; connect help/errors
+with `aria-describedby` and invalid state with `aria-invalid`. A placeholder
+is an example, not the only label. For a compound control, explicitly name
+its interactive element; do not nest labels or put several unrelated
+controls inside one label.
+
+| Need | Required implementation |
+| --- | --- |
+| Short fixed choice | `Select`; use `Segmented` for a small set worth keeping visible |
+| Long list of items, files, agents or channels | `SearchSelect`, or an existing domain picker; search labels and safe metadata, show unavailable reasons |
+| Free text with suggestions / multiple tags | `Suggest` / `TagInput` |
+| Boolean / one-of-many choice | `Checkbox` / `Radio` within `RadioGroup.Root` |
+| Text, number or multiline input | Theme-styled semantic input/textarea in `Field`, or a shared composite such as the wallet's amount field |
+| Typed password, token, private key or secret-bearing link | `SecretInput`; preserve multiline values, masking and existing clipboard boundaries |
+| Standard action / icon tool | `buttonClass` / `iconButtonClass`; icon-only controls need a name and tooltip |
+| Confirmation / feedback | `Dialog` / `Notice` and `toast`; explain the consequence and retain the approval-window boundary |
+| Date, month, time, range or progress | Add a shared themed component before adding another use; existing gaps are tracked below |
+| OS file/directory choice or system identity confirmation | Existing main-process bridge; preserve the platform/security dialog |
+
+Do not introduce native `select`, `datalist`, checkbox/radio/range inputs,
+browser date/time/color pickers or `window.alert/confirm/prompt` directly in
+a view. Do not replace them with hand-written clickable divs. A new shared
+control must preserve accessible semantics and keyboard navigation, using
+bits-ui where suitable. Native internals are acceptable only when their
+visible states are deliberately themed and verified; a wrapper alone or
+`accent-color` alone does not meet this requirement. New input types and
+dynamic types require inspection of every reachable type.
+
+Extend shared components instead of overriding their borders, heights,
+focus rings or colors in a view. Width, alignment and content density may
+adapt to the task. Match control rows at 32px by default; bound and scroll
+long menus, wrap hints and errors, and keep labels readable in narrow and
+RTL layouts. Inspect hover, focus, selection, disabled, loading, error and
+empty states in both themes. Reusing a component does not prove that the
+resulting layout is polished.
+
+This contract covers the main view, settings and all its child views,
+dialogs, popovers and the independent approval window. Current exceptions
+are **open work**, not examples to copy: see the dated
+[native-control inventory and remediation list](docs/native-controls-audit.md).
+The repository test records only that existing debt; remove entries as
+they are fixed, rather than increasing the baseline for new uses.
+When implementing a themed native primitive inside a new shared component,
+add a specific checker rule and interaction coverage for that implementation;
+do not add new view-level uses to the historical debt baseline.
 
 ### Patterns
 
@@ -359,6 +416,12 @@ restyle a control by hand.
 - The idle lock follows a person's input, which the main process reports;
   what windows read on events never keeps the device unlocked.
 - Never present a pending or unknown result as success.
+- A preview belongs to the exact input that produced it. Editing an input
+  invalidates that preview, including responses still in flight. A response
+  from a closed view must not update the next view.
+- Refresh and retry belong to their section; one failed read does not hide
+  independent results. Keep retryable drafts on failure and give errors a
+  cause and next action in the interface language.
 
 ## Accessibility & Languages
 
@@ -379,6 +442,24 @@ restyle a control by hand.
 plan, policy, languages) and `pnpm test:e2e`, which runs the built app against a
 mock daemon and saves screenshots in `test-results/` (light, dark, French
 and Arabic). Look at the screenshots of the views a change touches.
+
+`pnpm audit:controls` inventories native markup and direct browser-dialog
+calls across the renderer; `pnpm audit:controls --json` includes ordinary
+theme-styled text inputs too. `pnpm test` includes `ui-controls.test.ts`,
+which rejects new disallowed occurrences and stale debt entries. The
+scanner uses the Svelte/TypeScript AST, so comments and documentation
+examples do not count. It cannot prove visual quality, accessible names,
+runtime-generated controls or the behavior of third-party internals.
+
+For changed forms, check keyboard-only entry, menu selection, Escape and
+focus return; opening/closing while reads are pending; invalid inputs and
+retry; empty and long lists; Chinese, long translated labels and Arabic
+RTL; light/dark themes and the affected window's minimum supported size
+(main 760×540, approval 400×560). Build before running the appropriate
+Electron smoke script; credential workflows also have
+`node scripts/secrets-smoke.mjs`. Use isolated fixtures for UI checks, and
+report real-device, OS-dialog or accessibility checks separately if they
+were not run. Documentation-only changes do not require a new visual run.
 
 
 ## 2026-10-24 UI simplification
