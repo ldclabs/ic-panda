@@ -24,7 +24,7 @@ project|Project name|项目名称|Имя проекта|اسم المشروع|No
 path|Virtual file path|虚拟文件路径|Путь виртуального файла|مسار الملف الافتراضي|Chemin virtuel|Ruta virtual
 source|Content source|内容来源|Источник|مصدر المحتوى|Source du contenu|Origen del contenido
 field|Vault field|保险库字段|Поле хранилища|حقل الخزنة|Champ du coffre|Campo de bóveda
-library|Files version|Files 文件版本|Версия файла|نسخة ملف|Version du fichier|Versión del archivo
+library|Files version|文件版本|Версия файла|نسخة ملف|Version du fichier|Versión del archivo
 refs|Reference-only environment|仅含引用的环境|Среда со ссылками|بيئة مراجع فقط|Environnement de références|Entorno de referencias
 add|Add mapping|添加映射|Добавить|إضافة ربط|Ajouter un fichier|Añadir asignación
 prepare|Choose project and preview|选择项目并预览|Выбрать проект|اختيار مشروع ومعاينة|Choisir le projet|Elegir proyecto y vista previa
@@ -54,7 +54,7 @@ rotation|Credential rotation|凭据轮换|Ротация ключа|تدوير �
 reported|Upstream revocation is owner-reported, not independently verified.|上游撤销由用户报告，未被独立验证。|Отзыв на сервере заявлен владельцем, не проверен.|إلغاء المصدر أبلغ عنه المالك ولم يُتحقق منه مستقلاً.|La révocation amont est déclarée par le propriétaire, pas vérifiée indépendamment.|La revocación en origen es declarada por el propietario, sin verificación independiente.
 activity|Device activity|本设备活动|Действия устройства|نشاط الجهاز|Activité de l’appareil|Actividad del dispositivo
 
-item|Vault item|秘密条目|Запись хранилища|عنصر الخزنة|Élément du coffre|Elemento de bóveda
+item|Vault item|保险库条目|Запись хранилища|عنصر الخزنة|Élément du coffre|Elemento de bóveda
 choose|Choose…|请选择…|Выбрать…|اختر…|Choisir…|Elegir…
 unavailable|Unavailable on this device|此设备不可用|Недоступно на устройстве|غير متاح على هذا الجهاز|Indisponible sur cet appareil|No disponible en este dispositivo
 invalidRefs|Use one NAME=dmsg-secret:// reference per line.|每行应为 NAME=dmsg-secret:// 引用。|Одна ссылка NAME=dmsg-secret:// на строку.|مرجع NAME=dmsg-secret:// واحد لكل سطر.|Une référence NAME=dmsg-secret:// par ligne.|Una referencia NAME=dmsg-secret:// por línea.

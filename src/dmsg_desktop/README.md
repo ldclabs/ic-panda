@@ -589,8 +589,12 @@ Signatures & approvals → Credential use configures device-local GitHub
 issue-create policies using masked field selectors. Changes and optional
 Agent grants open the existing approval window. Uses show the exact target,
 credential revision and full literal title/body, with high-risk confirmation.
-History distinguishes `lost` from success and supports manual-review markers
-and immediate policy disabling. P1 owner workflows are described below.
+History distinguishes `lost` from success, preserves the current page during
+background refresh, and supports manual-review markers and immediate policy
+disabling. Policy cards show requesting Agents and MCP setup guidance.
+The workflow navigation groups credential use, sharing/import and maintenance;
+each page owns its loading, retry and error state. Source selectors search
+metadata without retaining hidden values. P1 owner workflows are described below.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
 See [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
@@ -605,7 +609,7 @@ covers both against a local fixture with an intercepted clipboard; see the
 
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享保险库仍暂缓。
 
-桌面入口位于“签名与审批 → 凭据使用”；配置、项目文件、SSH/Git、健康与发现、快照及本设备活动使用独立页签。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。macOS 不会自动启用文件系统扩展：“机密文件”页提示用户启用 “dMsg secret files”，提供打开系统设置的按钮，启动失败时在映射卡片上显示固定原因对应的说明。
+桌面入口位于“签名与授权 → 凭据使用”；策略、机密文件、SSH/Git、健康与发现、快照、导入及本设备活动使用独立页签，按任务分组。健康结果可筛选并打开来源处理；轮换按实际凭据变化与依赖清单开放步骤；审批以结构化摘要显示范围，原始数据可展开核对。挂载和快照预览在表单变化后失效，迟到结果不能重新启用提交。导入失败保留当前页面内的掩码输入，成功、离页及锁定时清除；导入记录提供结果入口。原生 Apple FSKit 的开发构建和打包见 [native/fskit](native/fskit/README.md)。macOS 不会自动启用文件系统扩展：“机密文件”页提示用户启用 “dMsg secret files”，提供打开系统设置的按钮，启动失败时在映射卡片上显示固定原因对应的说明。
 
 ## Mail recovery in SDK 0.12.6
 

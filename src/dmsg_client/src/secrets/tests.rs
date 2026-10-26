@@ -1257,6 +1257,56 @@ fn rotation_is_an_ordered_owner_report_not_an_upstream_revocation_proof() {
 }
 
 #[test]
+fn rotation_readiness_requires_a_changed_credential_not_just_a_new_revision() {
+    let (_dir, mut c, _, policy) = setup();
+    c.secret_rotation_create(policy.credential.clone()).unwrap();
+    assert_eq!(
+        c.secret_rotation_views().unwrap()[0]["can_report_created"],
+        false
+    );
+    c.vault_edit(
+        &policy.credential.item_id,
+        None,
+        &Changes {
+            title: Some("Renamed only".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        c.secret_rotation_views().unwrap()[0]["can_report_created"],
+        false
+    );
+    c.vault_edit(
+        &policy.credential.item_id,
+        None,
+        &Changes {
+            set: Some(vec![FieldChange {
+                id: Some(policy.credential.field_id.clone()),
+                value: Some("replacement-only-for-tests".into()),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let views = c.secret_rotation_views().unwrap();
+    assert_eq!(views[0]["can_report_created"], true);
+    assert!(!views[0].to_string().contains(TOKEN));
+    assert!(!views[0].to_string().contains("replacement-only-for-tests"));
+    c.secret_rotation_update(views[0]["id"].as_str().unwrap(), "created", None)
+        .unwrap();
+    assert_eq!(
+        c.secret_rotation_views().unwrap()[0]["can_report_created"],
+        false
+    );
+    c.vault_delete(&policy.credential.item_id).unwrap();
+    let views = c.secret_rotation_views().unwrap();
+    assert_eq!(views[0]["can_report_created"], false);
+    assert!(views[0]["source_error"].is_string());
+}
+
+#[test]
 fn external_import_receipts_do_not_expose_guessable_source_digests() {
     let (_dir, mut c, _, _) = setup();
     let digest = "ab".repeat(32);

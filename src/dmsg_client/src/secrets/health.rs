@@ -351,6 +351,45 @@ impl Client {
             .unwrap_or_default())
     }
 
+    /// Rotation progress with a value-free check of whether the credential
+    /// actually changed. Editing only a title cannot unlock the first step.
+    pub fn secret_rotation_views(&self) -> Result<Vec<Value>> {
+        self.secret_rotations()?
+            .into_iter()
+            .map(|rotation| {
+                let mut view = json!(rotation);
+                let checked = (|| -> Result<(String, bool)> {
+                    let current = self.secret_resolve(&rotation.reference, false)?;
+                    let mut previous = self
+                        .vault_version(&rotation.reference.item_id, &rotation.previous_revision)?;
+                    let value = self.secret_value(&rotation.reference)?;
+                    let changed =
+                        previous.item.value(&rotation.reference.field_id) != value.as_str();
+                    for field in &mut previous.item.fields {
+                        field.value.zeroize();
+                    }
+                    previous.item.notes.zeroize();
+                    Ok((current.item_revision, changed))
+                })();
+                match checked {
+                    Ok((revision, changed)) => {
+                        view["can_report_created"] = json!(
+                            rotation.completed_at.is_none()
+                                && changed
+                                && rotation.new_revision.as_ref() != Some(&revision)
+                        );
+                        view["current_revision"] = json!(revision);
+                    }
+                    Err(error) => {
+                        view["can_report_created"] = json!(false);
+                        view["source_error"] = json!(crate::error_code(&error));
+                    }
+                }
+                Ok(view)
+            })
+            .collect()
+    }
+
     /// Record the credential version before the owner changes it upstream.
     pub fn secret_rotation_create(&mut self, reference: SecretRef) -> Result<Value> {
         let resolved = self.secret_resolve(&reference, false)?;

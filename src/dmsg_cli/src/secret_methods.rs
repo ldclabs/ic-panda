@@ -178,7 +178,7 @@ impl Daemon {
             }
             "secrets/health" => c.secret_health(),
             "secrets/health/dismiss" => c.secret_health_dismiss(&text(p, "id")?),
-            "secrets/rotation/list" => Ok(json!({"rotations":c.secret_rotations()?})),
+            "secrets/rotation/list" => Ok(json!({"rotations":c.secret_rotation_views()?})),
             "secrets/rotation/create" => c.secret_rotation_create(
                 serde_json::from_value(p["reference"].clone())
                     .map_err(|_| Error::InvalidInput("reference".into()))?,
