@@ -17,6 +17,7 @@ struct LibraryFile: Decodable, Identifiable {
 struct ApprovalView: Decodable, Identifiable {
     let id: String; let digest: String; let type: String; let state: String
     let source: String; let risk: String; let expiresAt: UInt64
+    let mobileSupported: Bool?
 }
 
 /// Lossless JSON display for the full canonical approval payload. Integers

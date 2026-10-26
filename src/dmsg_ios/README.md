@@ -3,7 +3,7 @@
 Native SwiftUI client with an in-process `dmsg_mobile` / UniFFI bridge to
 `dmsg_client`. There is no daemon, loopback server or embedded web client.
 The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
-v0.2 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
+v0.3 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
 ## Build
@@ -42,13 +42,22 @@ The workflow has not been run on GitHub as part of local development.
   device pairing by text/share/QR, second-login binding, account switching,
   device revocation and delayed recovery through the existing core.
 - Vault search, compact favorites, field-level reveal/copy, TOTP, editing,
-  conflict selection and local/sync status. App-managed keys remain read-only.
+  conflict selection, field references, attachment relationships and local/sync
+  status. App-managed keys remain read-only.
 - Channels, invitations, messages, encrypted durable send intents and immutable
   attachments. Retries retain the original message ID after restart. Incoming
   attachments are verified and re-encrypted a chunk at a time. The inbox has
   cached/refreshable lists, native reading, read marks and archive/restore.
 - Private document/photo import, folder browsing, verified Quick Look/share
   copies, explicit cloud backup, public profile publication and approval review.
+- Hardware approval-key registration, administrator enrollment tokens,
+  replacement/retirement and account-purpose policies. Independent Secure Enclave
+  signing and agreement keys support user presence or current-biometry-only ACLs.
+- Optional device-bound workspace unlock, recovery warnings from public certified
+  security, and distinct missing-key, unavailable-hardware and invalidated-key UI.
+- Selected secret snapshots by link or channel, verified previews and selective
+  imports, explicit sharing/revocation/reconciliation, local health, dependency
+  lists, rotation review and paginated activity including terminal outcomes.
 - Four system tabs and adaptive `NavigationSplitView`, six-language String
   Catalog, Dynamic Type, dark appearance and system accessibility controls.
 
@@ -56,6 +65,11 @@ Production trust parameters come from `dmsg_client/production.toml`, also used
 by the desktop. No deep link can replace endpoints, roots or canister pins.
 The app's core enforces a 100 MiB import limit; this is an initial engineering
 limit, not a measured minimum-device performance guarantee.
+Secret packages have a separate 8 MiB payload ceiling, checked before downloads,
+against cached previews, before approval and again on import. This is not a peak
+RSS budget: chunk/manifest buffers and password derivation also consume memory.
+The limits API reports those bounds. Normal attachment saving refuses secret
+packages so their contents use the verified preview and explicit-selection flow.
 
 ## Session and privacy behavior
 
@@ -65,6 +79,13 @@ owns the client without holding a mutex across network waits. Lock cancels the
 current future before clearing keys; existing core journals remain authoritative.
 Heavy operations have explicit cancellation tokens, linked to Swift task
 cancellation. Cooperative holds yield between streaming file steps.
+
+Identity changes have a shared transition gate and fences at both entry and
+completion. Old or intermediate snapshots cannot mint a new content handle,
+including during binding acceptance, creation or recovery of the same account.
+Foreground resume is conditional on the lifecycle generation observed before
+the async call; a late foreground task cannot undo a newer background pause.
+Background suspension and optional immediate lock are requested synchronously.
 
 Legacy `&mut Client` account/control operations are serialized on this
 cancellable owner. This is the architecture's temporary dedicated-worker path;
@@ -81,10 +102,20 @@ bundle, environment and installation, non-synchronizable, and use
 hardware are distinct. Simulator presentation fixtures do not unlock Rust and
 are compiled out of Release builds.
 
-The adapter supports user presence with device-passcode fallback. Main's
-biometry-only policy is explicitly rejected until its native support is added;
-it is never downgraded to passcode fallback. The iOS host does not yet provide
-the new hardware approval-key signing backend or management UI.
+The adapter supports device-passcode fallback and an explicit current-biometry-only
+policy. A missing biometric-state observation is unknown, not a changed enrollment.
+Hardware approval uses the core's purpose selection and canonical commitments;
+Swift signs Data(H), while Rust verifies and normalizes the signature. A private
+authorization token belongs to one decision and is released on completion or
+cancellation. Neither handles nor an arbitrary-digest signing API are exposed to UI.
+
+Login, binding acceptance, strict device binding, re-enabling bound fast unlock
+and enrollment-token proof use preparation, native authentication outside the
+client owner, and completion against the same account, generation and key slot.
+The mobile host rejects an unprepared fallback authentication if requirements
+change. The original bound slot survives logout, disabling fast unlock and errors.
+Explicitly removing binding rewraps the same local data key; reset is a separate
+operation. Binding protects copies made after activation, not earlier copies.
 
 Inactive scenes cover content, including native sheets. Background stops new
 core work; the default grace is three minutes, measured with `ContinuousClock`.
@@ -106,6 +137,23 @@ open and unlocked; interaction cancels it in favor of the user's operation.
 It does not select files for backup. Files require their own explicit selection
 and confirmation. This opt-in differs from the brief's automatic-sync default.
 
+Recovery checks use public certified metadata while the app is active, including
+when the content workspace is locked. They do not depend on content-sync opt-in,
+unlock keys or upload content. A previous pending warning survives a failed
+refresh and is marked stale; unknown never becomes a verified safe state. Checks
+stop on background/protected-data loss. This is not an always-on notification
+service. Recovery details and disputes remain in the account-security flow.
+
+Approval capability is an explicit allowlist shared with the UI through the
+fresh request view. Secret use, CLI execution, SSH and mounts are not mobile
+execution paths; local desktop requests/grants/history do not synchronize here.
+Connect checkout and other financial approvals remain disabled. Share and import
+execution uses cancellation tokens and existing receipts: an unknown delivery
+is reconciled by its original operation, never automatically repeated as new.
+Link limits apply to download sessions; channel snapshots have neither link
+expiry nor recall. Files imported with a snapshot stay local and inherit the
+selected folder's grants. OTP selection includes the reusable seed explicitly.
+
 ## Deployment gates
 
 This tree is development code, not an App Store release assertion. In particular:
@@ -117,7 +165,10 @@ This tree is development code, not an App Store release assertion. In particular
    association, the II popup/passkey and fragment callback on a physical phone.
    The fixed callback page clears fragments and offers no forwarding target.
 2. Verify Secure Enclave, device-password fallback, lock-screen file protection,
-   real copy-to-another-app behavior and the cross-device login/edit/revoke slice.
+   current-biometry invalidation, real copy-to-another-app behavior and the
+   cross-device login/edit/revoke slice. Confirm user home supports the current
+   AccountInfo/hardware-proof contract before testing real protected accounts.
+   Simulator/software-vector checks do not establish native ACL or presence behavior.
 3. APNs registration/provider services and their authenticated wire contract are
    not implemented or deployed here. Notifications are explicitly shown as
    unavailable; foreground use works independently. No APNs signing key belongs
@@ -136,5 +187,5 @@ This tree is development code, not an App Store release assertion. In particular
 
 The exact local checks and remaining gaps are recorded in [VALIDATION.md](VALIDATION.md).
 
-Implementation: Codex (OpenAI), 2026-10-25. The development worktree is retained
-on `codex/ios-app`; changes are not merged into `main`.
+Implementation: Codex (OpenAI), 2026-10-25; hardware-security and Secrets
+integration updated 2026-10-26.

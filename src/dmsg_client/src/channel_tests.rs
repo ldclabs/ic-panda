@@ -7,6 +7,87 @@ use crate::codec::decode_value;
 use crate::crypto::hpke_open;
 use crate::vectors::{bytes, field, key, load, text, value};
 
+#[tokio::test]
+async fn ordinary_attachment_import_rejects_a_refreshed_secret_package_before_fetch() {
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Refreshed {
+        client: Mutex<Client>,
+        head: Json,
+        reads: AtomicUsize,
+    }
+    impl Hold for Refreshed {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            self.with(|c| sign(c)).await?;
+            assert_eq!(
+                self.reads.fetch_add(1, Ordering::SeqCst),
+                0,
+                "must not fetch the package"
+            );
+            Ok(self.head.clone())
+        }
+    }
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let message = Message {
+        seq: 1,
+        file: Some(FileRef {
+            upload_id: "a1".repeat(32),
+            file_id: "a2".repeat(32),
+            version: "a3".repeat(32),
+            epoch: 1,
+            manifest_digest: "a4".repeat(32),
+            name: "looks-like-a-document.bin".into(),
+            size: 100,
+            mime: crate::secrets::package::MIME.into(),
+            key: b64(&[9; 32]),
+        }),
+        ..Message::default()
+    };
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("{INBOX}{channel}:{:020}", 1),
+            &message,
+        )
+        .unwrap();
+    let h = Refreshed {
+        client: Mutex::new(client),
+        head: json(&ledger),
+        reads: AtomicUsize::new(0),
+    };
+    assert!(matches!(
+        save_regular_shared(&h, &channel, 1, "root", &mut |_, _| {}).await,
+        Err(Error::UnsupportedProtocol)
+    ));
+    assert_eq!(h.reads.load(Ordering::SeqCst), 1);
+    assert!(
+        h.client
+            .lock()
+            .unwrap()
+            .files_list("root", false)
+            .unwrap()
+            .files
+            .is_empty()
+    );
+}
+
 #[test]
 fn only_empty_unactivated_legacy_drafts_can_be_deleted() {
     let dir = crate::testing::TempDir::new();

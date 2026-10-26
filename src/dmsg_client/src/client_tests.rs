@@ -72,6 +72,115 @@ async fn prepared_device_bound_unlock_preserves_the_binding_and_rejects_late_ans
 }
 
 #[tokio::test]
+async fn prepared_login_factor_cannot_unlock_after_lock_or_slot_replacement() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    bind_offline(&mut client, &hardware, &storage, false);
+    let slot = client.bound_slot().unwrap().unwrap();
+    let prepared = LoginUnlock {
+        presence: client.device_presence(slot).unwrap(),
+        secret: Zeroizing::new(crate::testing::SECRET),
+    };
+    let key = prepared.open();
+    client.lock();
+    assert_eq!(
+        client.complete_login_unlock(prepared, key).await.err(),
+        Some(Error::Locked)
+    );
+    assert!(client.keys().is_err());
+    let slot = client.bound_slot().unwrap().unwrap();
+    let prepared = LoginUnlock {
+        presence: client.device_presence(slot).unwrap(),
+        secret: Zeroizing::new(crate::testing::SECRET),
+    };
+    let key = prepared.open();
+    let mut replacement = client.bound_slot().unwrap().unwrap();
+    replacement.handle = vec![99; 10].into();
+    storage
+        .set(&client.bound_name().unwrap(), &canonical(&replacement))
+        .unwrap();
+    assert_eq!(
+        client.complete_login_unlock(prepared, key).await.err(),
+        Some(Error::Locked)
+    );
+    assert!(client.workspace.bound().unwrap());
+    assert!(client.keys().is_err());
+}
+
+#[tokio::test]
+async fn enabling_bound_fast_unlock_waits_off_client_and_preserves_slot_on_cancellation() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    bind_offline(&mut client, &hardware, &storage, false);
+    client.disable_fast_unlock().unwrap();
+    let slot = storage.get(&client.bound_name().unwrap()).unwrap().unwrap();
+    let count = hardware.opened.load(SeqCst);
+    let prepared = client.prepare_enable_fast_unlock().unwrap().unwrap();
+    assert_eq!(hardware.opened.load(SeqCst), count);
+    hardware.declines.store(true, SeqCst);
+    let key = prepared.open();
+    assert_eq!(
+        client.complete_enable_fast_unlock(prepared, key).err(),
+        Some(Error::Forbidden)
+    );
+    assert!(!client.status().unwrap().fast_unlock);
+    assert_eq!(
+        storage.get(&client.bound_name().unwrap()).unwrap().unwrap(),
+        slot
+    );
+    hardware.declines.store(false, SeqCst);
+    let prepared = client.prepare_enable_fast_unlock().unwrap().unwrap();
+    let key = prepared.open();
+    assert!(
+        client
+            .complete_enable_fast_unlock(prepared, key)
+            .unwrap()
+            .fast_unlock
+    );
+    client.disable_fast_unlock().unwrap();
+    let prepared = client.prepare_enable_fast_unlock().unwrap().unwrap();
+    let key = prepared.open();
+    client.lock();
+    assert_eq!(
+        client.complete_enable_fast_unlock(prepared, key).err(),
+        Some(Error::Locked)
+    );
+    assert!(!client.status().unwrap().fast_unlock);
+}
+
+#[tokio::test]
+async fn new_binding_is_not_persisted_before_presence_or_after_a_session_change() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    let name = client.bound_name().unwrap();
+    let prepared = client.prepare_device_binding(true).unwrap();
+    assert_eq!(hardware.opened.load(SeqCst), 0);
+    assert!(storage.get(&name).unwrap().is_none());
+    let opened = prepared.open().unwrap();
+    assert_eq!(hardware.opened.load(SeqCst), 1);
+    assert!(storage.get(&name).unwrap().is_none());
+    client.lock();
+    assert_eq!(
+        client.complete_device_binding(opened).await.err(),
+        Some(Error::Locked)
+    );
+    assert!(!client.workspace.bound().unwrap());
+    assert!(storage.get(&name).unwrap().is_none());
+}
+
+#[tokio::test]
 async fn pausing_host_work_drops_its_hardware_approval_authorization() {
     use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
     struct Answer(Arc<AtomicBool>);

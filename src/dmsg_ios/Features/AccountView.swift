@@ -23,13 +23,15 @@ struct AccountView: View {
                 NavigationLink { DevicesView() } label: { Label("Authorized devices", systemImage: "laptopcomputer.and.iphone") }
                 NavigationLink { RecoveryView() } label: { Label("Account recovery", systemImage: "arrow.counterclockwise.shield") }
                 NavigationLink { AccountSecurityView() } label: { Label("Login identities", systemImage: "person.badge.key") }
+                NavigationLink { HardwareSecurityView() } label: { Label("Hardware security", systemImage: "cpu") }
+                    .accessibilityIdentifier("account.hardware")
+                NavigationLink { SecretActivityView() } label: { Label("Activity on this device", systemImage: "clock.arrow.circlepath") }
                 NavigationLink { AccountsView() } label: { Label("Switch account", systemImage: "person.2") }
             }
             Section("Privacy") {
                 Toggle("Quick unlock with system authentication", isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task {
-                    do { _ = try await model.engine?.setFastUnlock(enabled: enabled); await model.updateSession() }
-                    catch { model.report(error) }
-                } }))
+                    await model.setFastUnlock(enabled: enabled)
+                } })).disabled(model.busy)
                 Toggle("Automatic foreground sync", isOn: Binding(get: { model.automaticSyncEnabled }, set: { enabled in
                     if enabled { confirmAutomaticSync = true } else { model.setAutomaticSync(false) }
                 }))

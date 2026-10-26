@@ -1,11 +1,10 @@
 # iOS implementation validation
 
-Date: 2026-10-25. Branch: `codex/ios-app`, originally based on `58197c35`,
-rebased onto local `main` at `537e28ae`. Fetched `origin/main` was `1ac82a94`;
-the one additional local commit adds only `proposals/proposal-568.sh`.
-The user requested retaining the worktree. Nothing is merged into `main`.
+Updated: 2026-10-26. The original `codex/ios-app` implementation was based on
+`58197c35` and rebased onto `537e28ae`. Historical checks are retained below;
+the hardware-security and Secrets integration has its own verification section.
 
-The implementation used the locally revised iOS brief v0.2 and compact UI
+The original implementation used the locally revised iOS brief v0.2 and compact UI
 prototype, not an assertion that the private product baseline has released
 mobile support. Brief SHA-256:
 `348f5470e6a86ae860d63adda446bf31ce1669b1af8dd38b4ae31bbe6b61b558`.
@@ -51,9 +50,10 @@ temporary approval authorization. Desktop unlock preparation now uses `Hold` so
 a failed account switch also invalidates the previous display snapshots; starting
 an unlock renews activity before waiting for the system prompt.
 
-The mobile adapter rejects biometry-only requests instead of downgrading them to
-device-passcode fallback. Hardware approval-key signing is still not implemented
-by the iOS host. Chinese UI terminology follows main's “保险库” naming.
+At that rebase, the mobile adapter rejected biometry-only requests instead of downgrading them to
+device-passcode fallback. Hardware approval-key signing was not yet implemented
+by the iOS host. The 2026-10-26 integration below replaces those limitations.
+Chinese UI terminology follows main's “保险库” naming.
 
 | Check after rebase | Result |
 | --- | --- |
@@ -69,7 +69,69 @@ by the iOS host. Chinese UI terminology follows main's “保险库” naming.
 The earlier Release, Duo UI matrix and Electron smoke results above describe
 the original implementation; those full checks were not repeated for this rebase.
 
-## What the tests establish
+## Hardware-security and Secrets integration (2026-10-26)
+
+Native approval keys, one-decision authorizations, current-biometry-only ACLs,
+optional device-bound unlock, certified recovery warnings, selective secret
+snapshot delivery/import, references, attachments, health/rotation and local
+activity are implemented. The local architecture document is now v0.3 and remains
+in the main checkout's ignored `misc` directory at the user's explicit request.
+
+| Current check | Result |
+| --- | --- |
+| `dmsg_client` | 373 passed, 5 ignored (including main's old-file-link compatibility regressions) |
+| `dmsg_mobile` | 10 passed |
+| `dmsg_cli` | 92 passed, 6 ignored |
+| `dmsg_protocol` | 84 unit tests, 20 signing tests and 3 doctests passed |
+| Strict lint | Client/mobile/CLI all-target Clippy with `-D warnings` passed |
+| Native artifacts | ARM64 device and simulator slices, generated bindings and the Swift app built successfully |
+| iPhone 16 Pro / iOS 18.4 | 21 distinct XCTest/XCUITest cases passed: the 19-case suite plus 2 targeted lifecycle tests; 0 outstanding failures |
+| iPhone Duo / iOS 27.1 | 3 targeted UI cases passed together: Arabic accessibility text, recovery-warning navigation/tab reachability, and explicit snapshot selection through rotation |
+| Release configuration | ARM64 simulator app built successfully with test fixtures excluded; Rust slices use the tested development profile |
+| Swift/Rust crypto vectors | CryptoKit verifies the three public Rust hardware commitment vectors; altered messages and the wrong prehash convention fail |
+| Localization | 593 entries complete in six languages; String Catalog compilation passed |
+
+The core regression additions exercise bound login/slot changes, late results,
+cancelled hardware preparation, one-decision authorization release, refusal of
+unprepared authentication, stronger ACL selection during key replacement,
+package limits before download/approval/execution, receipt reuse, local history
+pagination and refusal of secret packages through ordinary attachment saving.
+Identity transitions also fence both entry and completion, preventing an old
+or intermediate handle from reaching a replacement account. Tests cover delayed
+polling, transition failure/cancellation, stale foreground resume, and keeping a
+newer background pause intact. Swift invalidates cached views when the device
+identity changes, even if the account ID stays the same.
+
+Swift tests verify recovery freshness, account/generation isolation, retained
+warnings on unknown observations, privacy lifecycle and real FFI rejection while
+locked. UI fixtures verify no automatic snapshot selection, persistence through
+rotation, hardware-page honesty without data, and navigation remaining reachable
+under a recovery warning. A failed snapshot UI test was traced to a tap on the
+middle of the Form row; tapping the actual switch confirmed the behavior and the
+test now checks selection both before and after resizing. Visual QA also corrected
+the warning layout and field-reference controls consuming content width.
+Duo required an explicit switch to the detail column after ordinary list
+selection; its system BackButton also differs from a conventional iPhone navbar.
+The final targeted suite covers both. Background suspension/immediate lock is
+synchronous, and a cancelled UI operation cannot clear a newer operation's busy
+state. A copied value survives background lock until its normal expiration.
+
+Final native evidence: iPhone suite `2026-10-26T02-05-42`, lifecycle cases
+`2026-10-26T02-26-21`, Duo cases `2026-10-26T02-27-09`, Release build
+`2026-10-26T02-29-24`. These are local XcodeBuildMCP result/log timestamps,
+not assertions about production deployment or physical-device validation.
+
+The shared approval-key status view keeps its existing shape; mobile-only local
+binding/permission details use the explicit owner-security view. The pre-existing
+main-checkout change to `approval_key_tests.rs` was not edited by this task and
+was later committed by the user in `38694aba`. Delivery also includes main's
+`3e60938d` file-link compatibility fix. The full Rust suite was rerun after
+integrating those commits, and native libraries were rebuilt from that source.
+The real Rust/Swift bridge smoke test passed again on the rebuilt artifact
+(`2026-10-26T02-58-05`).
+The full earlier Electron smoke matrix was not rerun for this integration.
+
+## What the earlier tests establish
 
 Rust tests cover cancellation during network work, stale queued operations,
 concurrent lock generations, dropped callers, replay-safe send intents,
@@ -111,7 +173,11 @@ claim that every P0–P3 milestone or the App Store release is complete**.
   `ASWebAuthenticationSession` on a physical phone. No such login was performed.
 - Verify iOS Secure Enclave, device-password fallback, locked-device data
   protection, cross-app paste, cross-device edits/conflicts, approval/revocation
-  and recovery against a real account. macOS SE success does not establish iOS SE.
+  and recovery against a real account. Also verify actual Face ID/Touch ID ACLs,
+  biometric changes, handle portability, signed key enrollment and the real
+  one-prompt behavior. Software vectors and macOS SE success do not establish
+  iOS hardware behavior. Check that user home supports the current AccountInfo
+  contract before protected-account validation.
 - APNs registration, its authenticated public wire contract and the private
   provider service are not implemented or deployed. The settings page explicitly
   reports this. Foreground synchronization is available without push permission.
@@ -127,6 +193,13 @@ claim that every P0–P3 milestone or the App Store release is complete**.
   reporting/blocking, privacy labels and distribution review remain unverified or
   require the corresponding service/product work. No canister stable layout was
   changed, and no canister upgrade test is claimed.
+
+The 8 MiB secret-package ceiling limits payload buffers, not process RSS. Chunk
+buffers, the manifest, Swift UI metadata and password derivation have additional
+costs; minimum-device peak memory remains a physical-device acceptance check.
+Foreground recovery checks are independent of content-sync opt-in and cannot
+promise notification delivery while the app is suspended or protected data is
+unavailable. Desktop-local approvals and grants are not mirrored to the phone.
 
 Automatic foreground synchronization is off until the user opts in for that
 account. File backup still needs a separate explicit choice. Interrupted import

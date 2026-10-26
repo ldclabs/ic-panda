@@ -110,7 +110,7 @@ impl Host {
     /// Invalidate queued/in-flight operations immediately. The next command
     /// acts as a barrier after the worker has discarded keys.
     pub fn lock(&self) {
-        self.control(true, false);
+        self.control(true, false, false);
     }
 
     /// A user-initiated logout/switch belongs to the UI session that requested it.
@@ -131,10 +131,28 @@ impl Host {
         if accepted { Ok(()) } else { Err(Error::Locked) }
     }
 
+    /// Fence work during a host-controlled identity transition without losing
+    /// the login needed to complete it. Never clears a lifecycle pause or close.
+    ///
+    /// # Errors
+    /// Returns `Locked` when the expected generation is no longer current.
+    pub fn fence_if(&self, expected: u64) -> Result<u64> {
+        let mut next = None;
+        self.locked.send_if_modified(|control| {
+            if control.generation != expected || control.close {
+                return false;
+            }
+            control.generation += 1;
+            self.generation.store(control.generation, Ordering::Release);
+            next = Some(control.generation);
+            true
+        });
+        next.ok_or(Error::Locked)
+    }
+
     /// Stop all work while retaining keys only for the host's background grace.
     pub fn pause(&self) {
-        self.paused.store(true, Ordering::Release);
-        self.control(false, false);
+        self.control(false, false, true);
     }
 
     /// Permit foreground work again; no automatic unlock takes place.
@@ -142,10 +160,26 @@ impl Host {
         self.paused.store(false, Ordering::Release);
     }
 
+    /// Resume only the lifecycle generation observed before an async call.
+    /// A late foreground task cannot undo a newer background pause.
+    ///
+    /// # Errors
+    /// Returns `Locked` after another lifecycle event or closure.
+    pub fn resume_if(&self, expected: u64) -> Result<()> {
+        let mut resumed = false;
+        self.locked.send_if_modified(|control| {
+            if control.generation == expected && !control.close {
+                self.paused.store(false, Ordering::Release);
+                resumed = true;
+            }
+            false
+        });
+        if resumed { Ok(()) } else { Err(Error::Locked) }
+    }
+
     /// Cancel work, clear keys and close the database on its owning executor.
     pub fn close(&self) {
-        self.paused.store(true, Ordering::Release);
-        self.control(true, true);
+        self.control(true, true, true);
     }
 
     /// Wait until the worker has dropped its keys and SQLite connection.
@@ -161,8 +195,11 @@ impl Host {
             .map_err(|_| Error::Unavailable("client host stopped".into()))
     }
 
-    fn control(&self, lock: bool, close: bool) {
+    fn control(&self, lock: bool, close: bool, pause: bool) {
         self.locked.send_modify(|control| {
+            if pause {
+                self.paused.store(true, Ordering::Release);
+            }
             control.generation += 1;
             // A following pause must never erase an unprocessed lock/close.
             if lock {
@@ -228,6 +265,29 @@ mod tests {
     use super::*;
     use crate::testing::{TempDir, config};
     use std::time::Duration;
+
+    #[tokio::test]
+    async fn stale_foreground_cannot_resume_a_new_pause_and_lock_preserves_pause() {
+        let dir = TempDir::new();
+        let client = crate::testing::unlocked(&dir.0, false, None);
+        let host = Host::start(client, &tokio::runtime::Handle::current());
+        let foreground = host.generation();
+        host.pause();
+        assert_eq!(host.resume_if(foreground), Err(Error::Locked));
+        host.lock();
+        assert_eq!(
+            host.run(|_| Box::pin(async { Ok(()) })).await,
+            Err(Error::Locked)
+        );
+        host.resume_if(host.generation()).unwrap();
+        assert!(
+            host.run(|c| Box::pin(async { Ok(c.keys().is_err()) }))
+                .await
+                .unwrap()
+        );
+        host.close();
+        host.closed().await.unwrap();
+    }
 
     #[tokio::test]
     async fn lock_cancels_a_network_wait_and_rejects_queued_old_work() {

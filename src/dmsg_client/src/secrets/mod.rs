@@ -698,6 +698,67 @@ impl Client {
         )
     }
 
+    /// All owner secret actions, including terminal delivery/import records.
+    /// Only a page is decrypted; the cursor is the last request ID of that page.
+    pub fn secret_activity(&mut self, before: Option<&str>, limit: usize) -> Result<Value> {
+        self.keys()?;
+        ensure_valid((1..=100).contains(&limit), "activity page")?;
+        self.expire_approvals(now_ms())?;
+        let mut rows: Vec<_> = self
+            .workspace
+            .store
+            .approvals(&[])?
+            .into_iter()
+            .filter(|r| r.class == "secret")
+            .collect();
+        rows.sort_by(|a, b| (b.created_at, &b.id).cmp(&(a.created_at, &a.id)));
+        if let Some(before) = before {
+            let index = rows
+                .iter()
+                .position(|row| row.id == before)
+                .ok_or(Error::NotFound)?;
+            rows.drain(..=index);
+        }
+        let has_more = rows.len() > limit;
+        let page: Vec<_> = rows
+            .iter()
+            .take(limit)
+            .map(|row| self.approval_view(&self.approval_record(&row.id)?))
+            .collect::<Result<_>>()?;
+        let next = has_more
+            .then(|| page.last().and_then(|r| r["id"].as_str()))
+            .flatten();
+        Ok(json!({"items":page,"next":next,"device_local":true}))
+    }
+
+    /// Cancel an undecided owner secret action without accepting unrelated IDs.
+    pub fn secret_activity_cancel(&mut self, id: &str) -> Result<Value> {
+        self.secret_activity_record(id)?;
+        self.approval_cancel(id)
+    }
+
+    fn secret_activity_record(&self, id: &str) -> Result<Request> {
+        self.keys()?;
+        ensure(
+            self.workspace
+                .store
+                .approvals(&[])?
+                .iter()
+                .any(|row| row.id == id && row.class == "secret"),
+            Error::NotFound,
+        )?;
+        self.approval_record(id)
+    }
+
+    /// Mark a lost secret action as manually checked, without changing its outcome.
+    pub fn secret_activity_reviewed(&mut self, id: &str) -> Result<Value> {
+        let mut request = self.secret_activity_record(id)?;
+        ensure(request.state == State::Lost, Error::Forbidden)?;
+        request.reviewed_at = Some(now_ms());
+        self.save_approval(&request)?;
+        self.approval_view(&request)
+    }
+
     /// Record manual inspection of a lost result without pretending it succeeded.
     pub fn secret_use_reviewed(&mut self, id: &str) -> Result<Value> {
         let now = now_ms();

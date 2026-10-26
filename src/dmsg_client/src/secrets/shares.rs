@@ -157,6 +157,18 @@ pub struct Preparation {
     job: Job,
 }
 impl Preparation {
+    /// Reject a host-specific payload budget before persisting a preparation.
+    pub fn limit_size(self, max_plain_bytes: u64) -> Result<Self> {
+        ensure_valid(
+            max_plain_bytes > 0 && max_plain_bytes <= crate::files::MAX_FILE,
+            "package limit",
+        )?;
+        ensure(
+            self.job.plan.plain_bytes <= max_plain_bytes,
+            Error::QuotaExceeded,
+        )?;
+        Ok(self)
+    }
     /// Password derivation runs outside the client lock; the password is not retained.
     pub fn wrap_password(mut self, password: Option<&str>) -> Result<Self> {
         if let Some(password) = password {
@@ -1069,11 +1081,23 @@ mod tests;
 
 /// Prepare a one-time delivery to a freshly verified channel, without uploading bytes.
 pub async fn prepare_channel<H: Hold>(h: &H, channel: &str, input: ShareInput) -> Result<Value> {
+    prepare_channel_limited(h, channel, input, crate::files::MAX_FILE).await
+}
+
+/// Prepare a channel snapshot within a constrained host's payload budget.
+pub async fn prepare_channel_limited<H: Hold>(
+    h: &H,
+    channel: &str,
+    input: ShareInput,
+    max_plain_bytes: u64,
+) -> Result<Value> {
     let bound = Unlocked::new(h).await?;
     let target = crate::channel::snapshot::prepare(&bound, channel).await?;
     bound
         .with(|c| {
-            let prepared = c.secret_channel_preparation(input, target)?;
+            let prepared = c
+                .secret_channel_preparation(input, target)?
+                .limit_size(max_plain_bytes)?;
             c.secret_share_save_preparation(prepared)
         })
         .await

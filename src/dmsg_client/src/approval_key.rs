@@ -39,6 +39,8 @@ const REQUEST: &str = "dmsg-approval-key/1";
 /// The error of an approval the account protects, on a device without its
 /// registered key.
 pub const APPROVAL_KEY_REQUIRED: &str = "APPROVAL_KEY_REQUIRED";
+/// The host must prepare a fresh answer outside its client executor.
+pub const HARDWARE_AUTHORIZATION_REQUIRED: &str = "hardware: authorization required";
 
 /// An approval key this device made.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -75,6 +77,45 @@ struct KeyTools {
     hardware: Arc<dyn ApprovalKeys>,
     presence: Option<Arc<dyn PresenceKey>>,
     account: crate::workspace::AccountRef,
+}
+
+/// A new local key awaiting its proof of possession outside the client.
+pub struct KeyRequestPreparation {
+    hardware: Arc<dyn ApprovalKeys>,
+    account: crate::workspace::AccountRef,
+    device_id: Hash,
+    generation: u64,
+    key: LocalKey,
+}
+
+/// A proved key, not persisted until the originating session is rechecked.
+pub struct ProvedKeyRequest {
+    preparation: KeyRequestPreparation,
+    proof: P256Signature,
+}
+
+impl KeyRequestPreparation {
+    /// Ask once and prove the new key without borrowing the client.
+    ///
+    /// # Errors
+    /// Returns cancellation, unavailable hardware or an invalid signature.
+    pub fn prove(self) -> Result<ProvedKeyRequest> {
+        let message = approval_key_message(
+            self.account.home,
+            &self.account.id,
+            self.device_id,
+            &self.key.public_key,
+        );
+        let raw = self
+            .hardware
+            .authorize("approval_key", self.key.biometry.is_some())?
+            .sign(&self.key.handle, &message)?;
+        let proof = low_s(&self.key.public_key, &message, &raw)?;
+        Ok(ProvedKeyRequest {
+            preparation: self,
+            proof,
+        })
+    }
 }
 
 /// A purpose's name in views, requests and questions.
@@ -140,10 +181,17 @@ impl Client {
         self.approval_keys = Some(keys);
     }
 
+    /// For suspendable hosts: never start an unprepared system prompt inside a
+    /// client operation. A raced policy change requires a new explicit attempt.
+    pub fn require_prepared_approval(&mut self) {
+        self.require_prepared_approval = true;
+    }
+
     fn approval_hardware(&self) -> Result<Arc<dyn ApprovalKeys>> {
         self.approval_keys
             .clone()
-            .ok_or_else(|| Error::Unavailable("no approval-key hardware".into()))
+            .filter(|hardware| hardware.available())
+            .ok_or_else(|| Error::Unavailable("hardware: no approval-key hardware".into()))
     }
 
     /// What making a key needs, taken from an unlocked client: the
@@ -215,17 +263,27 @@ impl Client {
         purpose: Option<HardwarePurpose>,
         high: bool,
     ) -> Result<Option<(Arc<dyn ApprovalKeys>, bool)>> {
-        let (Some(purpose), Some(hardware), Some(seen)) =
-            (purpose, self.approval_keys.clone(), &self.hardware_seen)
-        else {
+        let (Some(purpose), Some(seen)) = (purpose, &self.hardware_seen) else {
             return Ok(None);
         };
         if seen.account != self.account()?.id || !(high || seen.policy.contains(&purpose)) {
             return Ok(None);
         }
-        Ok(self
-            .registered_key(seen.key)?
-            .map(|key| (hardware, key.biometry.is_some())))
+        let key = self.registered_key(seen.key)?;
+        if seen.policy.contains(&purpose) {
+            ensure(
+                key.is_some(),
+                Error::InvalidInput(APPROVAL_KEY_REQUIRED.into()),
+            )?;
+            ensure(
+                self.approval_keys.is_some(),
+                Error::Unavailable("hardware: no approval-key hardware".into()),
+            )?;
+        }
+        Ok(match (key, &self.approval_keys) {
+            (Some(key), Some(hardware)) => Some((hardware.clone(), key.biometry.is_some())),
+            _ => None,
+        })
     }
 
     /// The hardware to ask the person through for registering this
@@ -241,8 +299,25 @@ impl Client {
             .local_approval_keys()?
             .into_iter()
             .find(|k| k.public_key.as_slice() == public_key);
+        // A required replacement signs with both the new key (possession) and
+        // the currently registered key (authority). Ask for the stronger ACL
+        // once, rather than letting an old biometry-only key ask a second time.
+        let old_biometry = match &self.hardware_seen {
+            Some(seen)
+                if seen.account == self.account()?.id
+                    && seen.policy.contains(&HardwarePurpose::AccountControl) =>
+            {
+                let old = self
+                    .registered_key(seen.key)?
+                    .ok_or_else(|| Error::InvalidInput(APPROVAL_KEY_REQUIRED.into()))?;
+                old.biometry.is_some()
+            }
+            _ => false,
+        };
         Ok(match (key, &self.approval_keys) {
-            (Some(key), Some(hardware)) => Some((hardware.clone(), key.biometry.is_some())),
+            (Some(key), Some(hardware)) => {
+                Some((hardware.clone(), old_biometry || key.biometry.is_some()))
+            }
             _ => None,
         })
     }
@@ -267,7 +342,13 @@ impl Client {
             .map(|k| k.key_id);
         Ok(
             match (self.registered_key(registered)?, &self.approval_keys) {
-                (Some(key), Some(hardware)) => Some((hardware.clone(), key.biometry.is_some())),
+                (Some(key), Some(hardware)) => {
+                    ensure(
+                        !self.require_prepared_approval,
+                        Error::Unavailable(HARDWARE_AUTHORIZATION_REQUIRED.into()),
+                    )?;
+                    Some((hardware.clone(), key.biometry.is_some()))
+                }
                 _ => None,
             },
         )
@@ -317,6 +398,9 @@ impl Client {
     fn approval_sign(&self, key: &LocalKey, what: &str, message: &Hash) -> Result<P256Signature> {
         let signed = match &self.authorized {
             Some(answer) => answer.sign(&key.handle, message),
+            None if self.require_prepared_approval => {
+                return Err(Error::Unavailable(HARDWARE_AUTHORIZATION_REQUIRED.into()));
+            }
             None => self
                 .approval_hardware()?
                 .authorize(what, key.biometry.is_some())
@@ -412,7 +496,7 @@ impl Client {
         let registered = info.approval_keys.get(&device_id);
         let own = registered.and_then(|r| local.iter().find(|k| k.key_id == r.key_id));
         Ok(json!({
-            "available": self.approval_keys.is_some(),
+            "available": self.approval_keys.as_ref().is_some_and(|hardware| hardware.available()),
             "device_bound": self.workspace.bound()?,
             "biometry": self.presence.as_ref().and_then(|p| p.biometry_state()).is_some(),
             "key": registered.map(|k| json!({
@@ -472,6 +556,35 @@ pub async fn status<H: Hold>(h: &H) -> Result<Json> {
     h.with(|c| c.approval_key_view(&state.info)).await
 }
 
+/// Combined owner settings view. Keep the existing approval-key view's public
+/// shape stable; device-local binding details belong to this explicit view.
+///
+/// # Errors
+/// As [`status`], or a local credential-store error.
+pub async fn owner_security_status<H: Hold>(h: &H) -> Result<Json> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let state = crate::account::refreshed(h).await?;
+    h.with(|c| {
+        let mut view = c.approval_key_view(&state.info)?;
+        let binding = c.device_binding_status()?;
+        for name in ["bound_biometry_only", "bound_key_available", "unprotected"] {
+            view[name] = binding[name].clone();
+        }
+        view["can_manage_policy"] = state
+            .info
+            .devices
+            .get(&c.workspace.meta.device_id)
+            .is_some_and(|device| {
+                device.revoked_at.is_none()
+                    && device.input.role == ControllerRole::Administrator
+                    && device.input.capabilities.contains(&Capability::RootManage)
+            })
+            .into();
+        Ok(view)
+    })
+    .await
+}
+
 /// Ask to register a new approval key of this device; the key is made now
 /// without asking, and proves itself when the request is approved. While
 /// the account requires keys, approving needs the key it replaces, if any.
@@ -522,31 +635,77 @@ pub async fn register_request<H: Hold>(h: &H, source: &str, biometry_only: bool)
 /// # Errors
 /// As [`register_request`]; `Error::Forbidden` when the person declines.
 pub async fn key_request<H: Hold>(h: &H, biometry_only: bool) -> Result<String> {
+    let prepared = prepare_key_request(h, biometry_only).await?;
+    complete_key_request(h, prepared.prove()?).await
+}
+
+/// Prepare a cross-device registration without asking on the client executor.
+///
+/// # Errors
+/// As [`key_request`].
+pub async fn prepare_key_request<H: Hold>(
+    h: &H,
+    biometry_only: bool,
+) -> Result<KeyRequestPreparation> {
     let KeyTools {
         hardware,
         presence,
         account,
     } = h.with(|c| c.key_tools()).await?;
     let state = crate::account::refreshed(h).await?;
-    let device_id = h.with(|c| Ok(c.workspace.meta.device_id)).await?;
+    let (device_id, generation) = h
+        .with(|c| Ok((c.workspace.meta.device_id, c.session_generation())))
+        .await?;
     state.active(&device_id)?;
     let biometry = biometry(presence, biometry_only)?;
     let (public_key, handle) = hardware.create(biometry_only)?;
     let key_id = approval_key_id(&public_key)?;
-    let message = approval_key_message(account.home, &account.id, device_id, &public_key);
-    let raw = hardware
-        .authorize("approval_key", biometry_only)?
-        .sign(&handle, &message)?;
-    let proof = low_s(&public_key, &message, &raw)?;
+    Ok(KeyRequestPreparation {
+        hardware,
+        account,
+        device_id,
+        generation,
+        key: LocalKey {
+            key_id,
+            public_key: public_key.into(),
+            handle: handle.into(),
+            biometry,
+            created_at: now_ms(),
+        },
+    })
+}
+
+/// Save a proved registration only in its original account/session, using a
+/// fresh account read to preserve the currently registered local key.
+///
+/// # Errors
+/// Returns `Locked` after a session change and the account read's errors.
+pub async fn complete_key_request<H: Hold>(h: &H, proved: ProvedKeyRequest) -> Result<String> {
+    let ProvedKeyRequest { preparation, proof } = proved;
+    let KeyRequestPreparation {
+        account,
+        device_id,
+        generation,
+        key,
+        ..
+    } = preparation;
     h.with(|c| {
+        ensure(
+            c.session_generation() == generation && c.account()?.id == account.id,
+            Error::Locked,
+        )
+    })
+    .await?;
+    let state = crate::account::refreshed(h).await?;
+    h.with(|c| {
+        ensure(
+            c.session_generation() == generation && c.account()?.id == account.id,
+            Error::Locked,
+        )?;
+        state.active(&device_id)?;
+        let public_key = key.public_key.clone();
         c.keep_approval_key(
-            LocalKey {
-                key_id,
-                public_key: public_key.clone().into(),
-                handle: handle.into(),
-                biometry,
-                created_at: now_ms(),
-            },
+            key,
             state.info.approval_keys.get(&device_id).map(|k| k.key_id),
         )?;
         Ok(b64(&canonical(&KeyRequest {
@@ -554,10 +713,7 @@ pub async fn key_request<H: Hold>(h: &H, biometry_only: bool) -> Result<String> 
             home: account.home,
             account: account.id,
             device_id,
-            key: ApprovalKeyInput {
-                public_key: public_key.into(),
-                proof,
-            },
+            key: ApprovalKeyInput { public_key, proof },
         })))
     })
     .await
@@ -714,3 +870,7 @@ pub(crate) fn detail(client: &Client, action: &Action) -> Option<Json> {
 #[cfg(test)]
 #[path = "approval_key_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "approval_key_mobile_tests.rs"]
+mod mobile_tests;

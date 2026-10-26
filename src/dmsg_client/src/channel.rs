@@ -1972,10 +1972,38 @@ pub async fn save_shared<H: Hold>(
     folder: &str,
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<Imported> {
+    save_shared_in(h, channel, seq, folder, progress, false).await
+}
+
+/// Save an ordinary attachment. Secret snapshots require their dedicated
+/// verified preview, explicit selection and import approval instead.
+/// Both the refreshed message and verified manifest must be ordinary files.
+pub async fn save_regular_shared<H: Hold>(
+    h: &H,
+    channel: &str,
+    seq: u64,
+    folder: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
+    save_shared_in(h, channel, seq, folder, progress, true).await
+}
+
+async fn save_shared_in<H: Hold>(
+    h: &H,
+    channel: &str,
+    seq: u64,
+    folder: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+    regular_only: bool,
+) -> Result<Imported> {
     h.with(|c| c.catalog()?.live_folder(folder)).await?;
     Box::pin(pull(h, channel, None, None)).await?;
     let message = h.with(|c| c.message_at(channel, seq)).await?;
     let reference = message.file.clone().ok_or(Error::NotFound)?;
+    ensure(
+        !regular_only || reference.mime != crate::secrets::package::MIME,
+        Error::UnsupportedProtocol,
+    )?;
     h.with(|c| {
         ensure(
             reference.size <= c.config.files_max_bytes,
@@ -1984,6 +2012,10 @@ pub async fn save_shared<H: Hold>(
     })
     .await?;
     let manifest = fetch_file(h, channel, &reference, &message.account).await?;
+    ensure(
+        !regular_only || manifest.mime != crate::secrets::package::MIME,
+        Error::UnsupportedProtocol,
+    )?;
     crate::library::import::from_manifest(
         h,
         &manifest,

@@ -86,6 +86,12 @@ pub trait PresenceKey: Send + Sync {
 /// with the person present. The user home requires their signature for the
 /// approvals an account protects.
 pub trait ApprovalKeys: Send + Sync {
+    /// Whether this provider currently has hardware capable of user presence.
+    /// This is capability discovery, not evidence that a stored key will open.
+    fn available(&self) -> bool {
+        true
+    }
+
     /// A new key: its SEC1 compressed public key (33 bytes) and its opaque
     /// handle. Asks nothing. A `biometry_only` key takes only the
     /// fingerprints enrolled now.

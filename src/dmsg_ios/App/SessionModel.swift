@@ -22,6 +22,9 @@ final class SessionModel {
     var library: LibraryListing = .empty
     var filesFolder = "root"
     var approvals: [ApprovalView] = []
+    private(set) var recoveryWarning: RecoveryObservation?
+    private(set) var recoveryRefreshFailed = false
+    private(set) var checkingRecovery = false
     var selectedTab: AppTab = .vault
     var immediateBackgroundLock = false {
         didSet {
@@ -42,12 +45,18 @@ final class SessionModel {
     private var opening = false
     private var closing: Task<Void, Never>?
     private var authenticationGeneration: UInt64 = 0
+    private var lifecycleGeneration: UInt64 = 0
+    private var isForeground = false
+    private var busyOperation: UUID?
     private var lastSessionSequence: UInt64 = 0
     private var fixtureLoaded = false
     private var automaticSyncAccounts: Set<String> = []
     private var automaticPassRunning = false
     private var automaticOperation: OperationToken?
     private var automaticChannelCursor = 0
+    private var recoveryOperation: OperationToken?
+    private var recoveryRequest: UUID?
+    private var seenRecoveryDigests: [String: String] = [:]
     #if DEBUG
     let uiTesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
     #else
@@ -60,12 +69,17 @@ final class SessionModel {
     #if DEBUG
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
         session = state; vault = items
+        if let account = state.account {
+            recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
+                observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
+        }
         channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Private project conversation")]
     }
     #endif
 
     func start() async {
         guard !opening, engine == nil else { return }
+        isForeground = UIApplication.shared.applicationState == .active
         opening = true; defer { opening = false }
         #if DEBUG
         if uiTesting { if !fixtureLoaded { loadFixtures(); fixtureLoaded = true }; concealed = false; return }
@@ -86,22 +100,44 @@ final class SessionModel {
             guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { try? await engine.close(); return }
             self.files = files; self.security = security; self.engine = engine
             try adopt(try await engine.sessionState())
-            concealed = false
+            uncoverIfActive()
         } catch { report(error) }
     }
 
-    func activity() { lastActivity = .now; automaticOperation?.cancel() }
+    func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
+
+    func beginBusyOperation() -> UUID {
+        let token = UUID(); busyOperation = token; busy = true
+        return token
+    }
+
+    @discardableResult
+    func finishBusyOperation(_ token: UUID) -> Bool {
+        guard busyOperation == token else { return false }
+        busyOperation = nil; busy = false
+        return true
+    }
 
     private func adopt(_ state: SessionSnapshot?) throws {
         guard let state else { session = nil; return }
         guard state.sequence >= lastSessionSequence, let engine else { return }
         let handle = try engine.scoped(generation: state.generation)
+        if recoveryWarning?.account != state.account {
+            recoveryWarning = nil; recoveryRefreshFailed = false
+        }
         if (session?.state == "unlocked" && state.state != "unlocked") ||
-            (session?.account != nil && session?.account != state.account) {
+            (session?.account != nil && session?.account != state.account) ||
+            (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             epoch &+= 1; viewGeneration &+= 1
             vault = []; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; approvals = []; search = ""
         }
         self.engine = handle; session = state; lastSessionSequence = state.sequence
+        uncoverIfActive()
+    }
+
+    private func uncoverIfActive() {
+        guard isForeground, UIApplication.shared.applicationState == .active else { return }
+        concealed = false; privacyShield.hide()
     }
 
     /// Called only by the settings confirmation. Disabled by default and never
@@ -157,69 +193,108 @@ final class SessionModel {
         if unlocked && !concealed && lastActivity.duration(to: .now) >= .seconds(15 * 60) { await lock() }
     }
 
-    func inactive() { concealed = true; if unlocked { privacyShield.show() } }
+    func inactive() { lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
 
-    func background() async {
+    func background() {
+        lifecycleGeneration &+= 1
+        isForeground = false
         concealed = true
+        recoveryOperation?.cancel()
         epoch &+= 1
         engine?.suspend()
         backgroundAt = .now
-        if immediateBackgroundLock { await lock(clearClipboard: false) }
+        if immediateBackgroundLock {
+            clearContent(clearClipboard: false)
+            engine?.lockNow()
+        }
     }
 
     func foreground() async {
+        guard UIApplication.shared.applicationState == .active else { return }
+        isForeground = true
+        lifecycleGeneration &+= 1
+        let activation = lifecycleGeneration
         let away = backgroundAt.map { $0.duration(to: .now) }
         backgroundAt = nil
         if let away, away >= .seconds(immediateBackgroundLock ? 0 : 180) { await lock(clearClipboard: false) }
+        guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active else { return }
         if engine == nil { await start() }
-        else {
-            let current = epoch
-            do { let state = try await engine?.resume(); if current == epoch { try adopt(state) } }
-            catch { if current == epoch { report(error) } }
+        else if let engine {
+            while activation == lifecycleGeneration && UIApplication.shared.applicationState == .active && !Task.isCancelled {
+                do {
+                    let token = engine.controlGeneration()
+                    let state = try await engine.resume(expectedGeneration: token)
+                    guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active else { return }
+                    try adopt(state)
+                    break
+                } catch {
+                    guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active else { return }
+                    if let failure = error as? MobileError, case .Failure(let code) = failure, code == "LOCKED" {
+                        // Identity cancellation can briefly hold the transition
+                        // gate. Retry metadata only, without revealing old UI.
+                        do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+                        continue
+                    }
+                    report(error); return
+                }
+            }
         }
-        concealed = false
-        privacyShield.hide()
+        guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active, !Task.isCancelled else { return }
+        uncoverIfActive()
         if unlocked { await refresh() }
     }
 
     func protectedDataUnavailable() {
+        lifecycleGeneration &+= 1
+        isForeground = false
+        recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
+        recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); busy = false; authenticating = false
+        busyOperation = nil
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]
         vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; session = nil
-        if let engine { closing = Task { _ = try? await engine.close() } }
+        if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
         engine = nil; security?.cancelPresence()
     }
 
     func lock(clearClipboard: Bool = true) async {
+        if clearClipboard { lifecycleGeneration &+= 1 }
+        clearContent(clearClipboard: clearClipboard)
+        do { try adopt(try await engine?.lock()) } catch { report(error) }
+    }
+
+    private func clearContent(clearClipboard: Bool) {
+        recoveryOperation?.cancel()
         epoch &+= 1
         viewGeneration &+= 1; drafts = [:]
         vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; search = ""
         busy = false; notice = nil; error = nil
+        busyOperation = nil
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin(); authenticating = false }
         security?.cancelPresence()
         // Remove the unlocked UI before awaiting the Rust barrier.
         session = nil
-        do { try adopt(try await engine?.lock()) } catch { report(error) }
     }
 
     func login(legacy: Bool = false) async {
         guard let engine, !busy else { return }
-        busy = true; authenticating = true; error = nil; activity()
+        let operation = beginBusyOperation()
+        authenticating = true; error = nil; activity()
         authenticationGeneration &+= 1
         let current = authenticationGeneration
-        defer { if current == authenticationGeneration { busy = false; authenticating = false } }
+        defer { if finishBusyOperation(operation) { authenticating = false } }
         do {
             let start = try await engine.beginLogin(legacyOrigin: legacy)
             guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
             let callback = try await webLogin.authenticate(url: url)
             await waitUntilActive()
             guard current == authenticationGeneration else { return }
-            _ = try await engine.resume()
+            _ = try await engine.resume(expectedGeneration: engine.controlGeneration())
             let state = try await engine.completeLogin(callback: callback.absoluteString)
             guard current == authenticationGeneration else { return }
-            try adopt(state); concealed = false
+            try adopt(state); uncoverIfActive()
             if unlocked { await refresh() }
         } catch { if current == authenticationGeneration { engine.cancelLogin(); await updateSession(); report(error) } }
     }
@@ -233,14 +308,26 @@ final class SessionModel {
 
     func fastUnlock() async {
         guard let engine, !busy else { return }
-        busy = true; authenticating = true; activity()
+        let operation = beginBusyOperation()
+        authenticating = true; activity()
         let current = epoch
-        defer { if current == epoch { busy = false; authenticating = false } }
+        defer { if finishBusyOperation(operation) { authenticating = false } }
         do {
             let state = try await engine.unlockFast()
             guard current == epoch else { return }
             try adopt(state); await refresh()
-        } catch { if current == epoch { report(error) } }
+        } catch { if current == epoch { await updateSession(); report(error) } }
+    }
+
+    func setFastUnlock(enabled: Bool) async {
+        guard let engine, unlocked, !busy else { return }
+        let operation = beginBusyOperation(), current = epoch
+        authenticating = true; activity()
+        defer { if finishBusyOperation(operation) { authenticating = false } }
+        do {
+            let state = try await engine.setFastUnlock(enabled: enabled)
+            guard current == epoch else { return }; try adopt(state)
+        } catch { if current == epoch { await updateSession(); report(error) } }
     }
 
     func refresh() async {
@@ -277,7 +364,8 @@ final class SessionModel {
     func synchronize() async {
         activity()
         guard let engine, !busy else { return }
-        busy = true; defer { busy = false }; let current = epoch
+        let operation = beginBusyOperation(), current = epoch
+        defer { finishBusyOperation(operation) }
         do {
             _ = try await coreOperation { try await engine.reconcile(operation: $0) }
             _ = try await coreOperation { try await engine.sync(operation: $0) }
@@ -293,6 +381,55 @@ final class SessionModel {
             let values: [ApprovalView] = try decode(result)
             guard current == epoch else { return }; approvals = values
         } catch { if current == epoch { report(error) } }
+    }
+
+    /// Public certified metadata only. It does not unlock content, upload it,
+    /// or depend on the account's automatic-content-sync preference.
+    func refreshRecoveryWarning(refresh: Bool = true) async {
+        guard let engine, let account = session?.account else { return }
+        let current = epoch, request = UUID(), operation = OperationToken()
+        recoveryOperation?.cancel()
+        recoveryOperation = operation; recoveryRequest = request; checkingRecovery = true
+        defer {
+            if recoveryRequest == request {
+                recoveryOperation = nil; recoveryRequest = nil; checkingRecovery = false
+            }
+        }
+        do {
+            let cached = try await engine.recoveryWarning()
+            guard current == epoch, recoveryRequest == request, session?.account == account else { return }
+            recordRecoveryObservation(try decode(cached), for: account)
+            guard refresh, !concealed, !Task.isCancelled else { return }
+            let fresh = try await withTaskCancellationHandler {
+                try await engine.refreshRecoveryWarning(operation: operation)
+            } onCancel: { operation.cancel() }
+            guard current == epoch, recoveryRequest == request, session?.account == account else { return }
+            recordRecoveryObservation(try decode(fresh), for: account)
+            recoveryRefreshFailed = false
+        } catch {
+            guard current == epoch, recoveryRequest == request, session?.account == account,
+                  !Task.isCancelled else { return }
+            if let failure = error as? MobileError, case .Failure(let code) = failure,
+               code == "CANCELLED" || code == "LOCKED" { return }
+            // Failure never clears a previously verified pending warning.
+            recoveryRefreshFailed = true
+        }
+    }
+
+    func recordRecoveryObservation(_ next: RecoveryObservation?, for account: String) {
+        guard session?.account == account else { return }
+        guard let next else {
+            if recoveryWarning?.account != account { recoveryWarning = nil }
+            return
+        }
+        guard next.account == account else { return }
+        if let previous = recoveryWarning, previous.account == account,
+           previous.observedAtMs > next.observedAtMs { return }
+        recoveryWarning = next
+        if next.pending, let digest = next.digest, seenRecoveryDigests[account] != digest {
+            seenRecoveryDigests[account] = digest
+            notice = String(localized: "An account recovery is pending. Review it in Account security.")
+        }
     }
 
     func decode<T: Decodable>(_ snapshot: ObjectSnapshot) throws -> T {
@@ -322,7 +459,16 @@ final class SessionModel {
                 }
                 if code == "FORBIDDEN" { self.error = String(localized: "The operation was cancelled or is not permitted.") }
                 else if code == "EXECUTION_UNKNOWN" { self.error = String(localized: "The result is not confirmed. Reconcile this request before retrying.") }
-                else if code == "NETWORK_UNAVAILABLE" || code == "UNAVAILABLE" { self.error = String(localized: "Connection unavailable. Your saved content stays on this device.") }
+                else if code == "HARDWARE_UNAVAILABLE" { self.error = String(localized: "Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.") }
+                else if code == "HARDWARE_KEY_INVALIDATED" { self.error = String(localized: "This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.") }
+                else if code == "INTEGRITY_FAILED" { self.error = String(localized: "A record or device key could not be verified. Your workspace has not been erased.") }
+                else if code == "HARDWARE_AUTHORIZATION_REQUIRED" || code == "POLICY_STALE" { self.error = String(localized: "Security requirements changed. Review the request again before approving it.") }
+                else if code == "APPROVAL_KEY_REQUIRED" { self.error = String(localized: "This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.") }
+                else if code == "NETWORK_UNAVAILABLE" { self.error = String(localized: "Connection unavailable. Your saved content stays on this device.") }
+                else if code == "UNAVAILABLE" { self.error = String(localized: "This operation is temporarily unavailable. Your saved data is kept.") }
+                else if code == "LOCAL_STORAGE_UNAVAILABLE" { self.error = String(localized: "Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.") }
+                else if code == "QUOTA_EXCEEDED" { self.error = String(localized: "This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.") }
+                else if code == "UNSUPPORTED_PROTOCOL" { self.error = String(localized: "This action is not supported on this device. Secret snapshots must use their dedicated import flow.") }
                 else { self.error = String(localized: "The operation could not be completed.") + " (\(code))" }
             }
         } else { self.error = String(localized: "The operation could not be completed. Please try again.") }

@@ -43,7 +43,7 @@ struct AccountSecurityView: View {
                     } }
                 }
             }
-        }.privateScreen().navigationTitle("Account security").task { await load() }
+        }.privateScreen().navigationTitle("Account security").task { await load() }.refreshable { await load() }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }
             }

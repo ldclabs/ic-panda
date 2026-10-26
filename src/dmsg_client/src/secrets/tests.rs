@@ -8,6 +8,76 @@ use crate::{
 const TOKEN: &str = "dmsg-test-credential-never-publish-93ae";
 
 #[tokio::test]
+async fn owner_activity_pages_include_terminal_configuration_delivery_and_use() {
+    let (_dir, mut c, actor, policy) = setup();
+    let reference = policy.credential.clone();
+    let policy = configure(&mut c, &actor, policy).await;
+    let requested = c.secret_use_request(&actor, input(&policy)).unwrap();
+    let use_id = requested["request_id"].as_str().unwrap().to_owned();
+    approve(&mut c, &use_id)
+        .await
+        .run_with(&c.hold(), |_, _, _, _| async {
+            Err(Error::ExecutionUnknown)
+        })
+        .await
+        .unwrap();
+    let entry = c.vault_show(&reference.item_id).unwrap();
+    let prepared = c
+        .secret_share_prepare(shares::ShareInput {
+            item_id: entry.id,
+            revision: entry.revision,
+            field_ids: vec!["credential".into()],
+            include_notes: false,
+            attachments: vec![],
+            expires_in_ms: None,
+            max_download_sessions: None,
+        })
+        .unwrap();
+    let job = c.secret_share_save_preparation(prepared).unwrap();
+    let share = c
+        .secret_share_request("gui", job["id"].as_str().unwrap())
+        .unwrap();
+    c.secret_activity_cancel(share["id"].as_str().unwrap())
+        .unwrap();
+    let reviewed = c.secret_activity_reviewed(&use_id).unwrap();
+    assert_eq!(reviewed["state"], "lost");
+    assert!(reviewed["reviewed_at"].is_u64());
+
+    let mut before = None;
+    let mut records = Vec::new();
+    loop {
+        let page = c.secret_activity(before.as_deref(), 1).unwrap();
+        assert_eq!(page["device_local"], true);
+        assert!(!page.to_string().contains(TOKEN));
+        records.extend(page["items"].as_array().unwrap().iter().cloned());
+        before = page["next"].as_str().map(str::to_owned);
+        if before.is_none() {
+            break;
+        }
+    }
+    assert_eq!(records.len(), 3);
+    for (kind, state) in [
+        ("secret_policy", "done"),
+        ("secret_share", "cancelled"),
+        ("secret_use", "lost"),
+    ] {
+        assert!(
+            records
+                .iter()
+                .any(|r| r["type"] == kind && r["state"] == state)
+        );
+    }
+    assert!(c.secret_activity(None, 0).is_err());
+    assert!(c.secret_activity(Some("missing"), 1).is_err());
+    c.lock();
+    assert!(matches!(c.secret_activity(None, 10), Err(Error::Locked)));
+    assert!(matches!(
+        c.secret_activity_reviewed(&use_id),
+        Err(Error::Locked)
+    ));
+}
+
+#[tokio::test]
 async fn review_old_requests_cannot_revive_after_pause_or_regrant() {
     for pause in [true, false] {
         let (_dir, mut c, actor, p) = setup();

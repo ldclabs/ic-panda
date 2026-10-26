@@ -41,6 +41,34 @@ fn fixture() -> (TempDir, Client, String) {
     (dir, c, view["id"].as_str().unwrap().into())
 }
 
+#[test]
+fn preparation_budget_rejects_before_persisting_an_oversized_job() {
+    let (_dir, mut c, id) = fixture();
+    let job = c.share_job(&id).unwrap();
+    let before = c.secret_shares().unwrap()["shares"]
+        .as_array()
+        .unwrap()
+        .len();
+    let prepared = c.secret_share_prepare(job.plan.input.clone()).unwrap();
+    assert!(matches!(
+        prepared.limit_size(job.plan.plain_bytes - 1),
+        Err(Error::QuotaExceeded)
+    ));
+    assert_eq!(
+        c.secret_shares().unwrap()["shares"]
+            .as_array()
+            .unwrap()
+            .len(),
+        before
+    );
+    let prepared = c
+        .secret_share_prepare(job.plan.input.clone())
+        .unwrap()
+        .limit_size(job.plan.plain_bytes)
+        .unwrap();
+    assert!(c.secret_share_save_preparation(prepared).is_ok());
+}
+
 fn assert_no_fixture_plaintext(path: &std::path::Path) {
     for entry in std::fs::read_dir(path).unwrap() {
         let path = entry.unwrap().path();

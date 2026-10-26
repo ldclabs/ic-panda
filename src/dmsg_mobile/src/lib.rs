@@ -1,8 +1,12 @@
 //! Native mobile API. The generated API exposes named operations, not daemon RPC.
+mod approvals;
 mod error;
 mod models;
 mod operation;
 mod platform;
+mod recovery;
+mod secrets;
+mod security;
 mod session;
 
 use dmsg_client::hold::Hold;
@@ -12,7 +16,8 @@ pub use error::MobileError;
 use error::Result;
 pub use models::*;
 pub use operation::OperationToken;
-pub use platform::{Agreement, Platform};
+pub use platform::{Agreement, Platform, SigningKey};
+pub use secrets::{SecretAttachmentSelection, SecretPackageSelection, SecretSnapshotInput};
 use session::ScopedHost;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{
@@ -120,8 +125,10 @@ impl MobileEngine {
         let client = runtime()
             .spawn_blocking(move || {
                 let mut client = Client::open(opened_config, &directory, Some(adapter.clone()))?;
-                client.set_presence_key(adapter);
+                client.set_presence_key(adapter.clone());
+                client.set_approval_keys(adapter);
                 client.require_fast_presence();
+                client.require_prepared_approval();
                 Ok::<_, Error>(client)
             })
             .await
@@ -136,6 +143,7 @@ impl MobileEngine {
     }
 
     pub async fn session_state(&self) -> Result<SessionSnapshot> {
+        self.host.ensure_available()?;
         let generation = self.host.inner.generation();
         let (status, sequence) = self
             .host
@@ -149,6 +157,8 @@ impl MobileEngine {
                 })
             })
             .await?;
+        self.host.ensure_available()?;
+        ensure(generation == self.host.inner.generation(), Error::Locked)?;
         Ok(SessionSnapshot::from_status(status, generation, sequence))
     }
 
@@ -156,7 +166,7 @@ impl MobileEngine {
     pub fn scoped(&self, generation: u64) -> Result<Arc<Self>> {
         ensure(generation == self.host.inner.generation(), Error::Locked)?;
         Ok(Arc::new(Self {
-            host: ScopedHost::new(self.host.inner.clone(), generation),
+            host: self.host.scoped(generation)?,
             platform: self.platform.clone(),
             login: self.login.clone(),
             config: self.config.clone(),
@@ -165,10 +175,13 @@ impl MobileEngine {
     }
 
     pub async fn lock(&self) -> Result<SessionSnapshot> {
+        self.lock_now();
+        self.session_state().await
+    }
+
+    pub fn lock_now(&self) {
         self.host.inner.lock();
         self.platform.cancel_presence();
-        self.host.inner.resume();
-        self.session_state().await
     }
 
     pub fn suspend(&self) {
@@ -176,8 +189,12 @@ impl MobileEngine {
         self.platform.cancel_presence();
     }
 
-    pub async fn resume(&self) -> Result<SessionSnapshot> {
-        self.host.inner.resume();
+    pub fn control_generation(&self) -> u64 {
+        self.host.inner.generation()
+    }
+
+    pub async fn resume(&self, expected_generation: u64) -> Result<SessionSnapshot> {
+        self.host.inner.resume_if(expected_generation)?;
         self.session_state().await
     }
 
@@ -190,13 +207,11 @@ impl MobileEngine {
     }
 
     pub async fn logout(&self) -> Result<SessionSnapshot> {
-        self.host.inner.lock_if(self.host.generation())?;
+        let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
         self.cancel_login();
-        self.host
-            .inner
-            .run(|c| Box::pin(async { c.logout() }))
-            .await?;
+        transition.run(|c| Box::pin(async { c.logout() })).await?;
+        transition.finish()?;
         self.session_state().await
     }
 
@@ -208,13 +223,13 @@ impl MobileEngine {
         let account = account
             .parse()
             .map_err(|_| dmsg_types::invalid("account"))?;
-        self.host.inner.lock_if(self.host.generation())?;
+        let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
         self.cancel_login();
-        self.host
-            .inner
+        transition
             .run(move |c| Box::pin(async move { c.switch_account(&account) }))
             .await?;
+        transition.finish()?;
         self.session_state().await
     }
 
@@ -341,20 +356,28 @@ impl MobileEngine {
         let delegated = session.session.accept(&bytes, dmsg_client::now_ms())?;
         // A newly authenticated identity starts a new content session. Even a
         // handle captured on the locked screen may not act for this new account.
-        self.host.inner.lock();
-        self.host.inner.resume();
-        self.host
-            .inner
-            .run(move |c| Box::pin(async move { c.login(delegated).await }))
+        let controller = self.host.scoped(self.host.inner.generation())?;
+        let transition = controller.begin_transition()?;
+        self.platform.cancel_presence();
+        let generation = transition.generation();
+        let prepared = transition
+            .run(move |c| {
+                Box::pin(async move {
+                    c.lock();
+                    c.prepare_login(delegated).await
+                })
+            })
             .await?;
+        self.finish_login_unlock(generation, prepared).await?;
+        transition.finish()?;
         self.session_state().await
     }
 
     pub async fn unlock_fast(&self) -> Result<SessionSnapshot> {
-        let generation = self.host.generation();
-        let prepared = self
-            .host
-            .run_at(generation, |c| Box::pin(async { c.prepare_fast_unlock() }))
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        let prepared = transition
+            .run(|c| Box::pin(async { c.prepare_fast_unlock() }))
             .await?;
         let (prepared, key) = runtime()
             .spawn_blocking(move || {
@@ -363,33 +386,68 @@ impl MobileEngine {
             })
             .await
             .map_err(|_| Error::Unavailable("presence worker".into()))?;
-        self.host
-            .run_at(generation, move |c| {
-                Box::pin(async move { c.complete_fast_unlock(prepared, key).await })
-            })
-            .await?;
+        let failure = key.as_ref().err().cloned().map(security::hardware_failure);
+        let completed = transition
+            .run(move |c| Box::pin(async move { c.complete_fast_unlock(prepared, key).await }))
+            .await;
+        if matches!(completed, Err(Error::Locked)) {
+            return Err(Error::Locked.into());
+        }
+        if let Some(error) = failure {
+            return Err(error);
+        }
+        completed?;
+        transition.finish()?;
         self.session_state().await
     }
 
     pub async fn set_fast_unlock(&self, enabled: bool) -> Result<SessionSnapshot> {
-        self.host
-            .run(move |c| {
-                Box::pin(async move {
-                    if enabled {
-                        c.enable_fast_unlock()
-                    } else {
-                        c.disable_fast_unlock()
-                    }
+        let generation = self.host.generation();
+        if enabled {
+            let prepared = self
+                .host
+                .run_at(generation, |c| {
+                    Box::pin(async { c.prepare_enable_fast_unlock() })
                 })
-            })
-            .await?;
+                .await?;
+            if let Some(prepared) = prepared {
+                let (prepared, key) = runtime()
+                    .spawn_blocking(move || {
+                        let key = prepared.open();
+                        (prepared, key)
+                    })
+                    .await
+                    .map_err(|_| Error::Unavailable("hardware: worker".into()))?;
+                let failure = key.as_ref().err().cloned().map(security::hardware_failure);
+                let completed = self
+                    .host
+                    .run_at(generation, move |c| {
+                        Box::pin(async move { c.complete_enable_fast_unlock(prepared, key) })
+                    })
+                    .await;
+                if matches!(completed, Err(Error::Locked)) {
+                    return Err(Error::Locked.into());
+                }
+                if let Some(error) = failure {
+                    return Err(error);
+                }
+                completed?;
+            }
+        } else {
+            self.host
+                .run_at(generation, |c| Box::pin(async { c.disable_fast_unlock() }))
+                .await?;
+        }
         self.session_state().await
     }
 
     pub async fn initialize_account(&self) -> Result<SessionSnapshot> {
-        self.host
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        transition
             .run(|c| Box::pin(async { c.initialize_account().await }))
             .await?;
+        transition.finish()?;
         self.session_state().await
     }
 
@@ -404,9 +462,14 @@ impl MobileEngine {
     }
 
     pub async fn refresh_account(&self) -> Result<SessionSnapshot> {
-        self.host
-            .run(|c| Box::pin(async { c.unlock().await }))
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        let generation = transition.generation();
+        let prepared = transition
+            .run(|c| Box::pin(async { c.prepare_unlock().await }))
             .await?;
+        self.finish_login_unlock(generation, prepared).await?;
+        transition.finish()?;
         self.session_state().await
     }
 
@@ -503,6 +566,7 @@ impl MobileEngine {
                         title: Some(edit.title),
                         notes: Some(edit.notes),
                         favorite: Some(edit.favorite),
+                        files: edit.files,
                         fields: Some(
                             edit.fields
                                 .into_iter()
@@ -776,7 +840,9 @@ impl MobileEngine {
                         account: m.account,
                         text: m.text,
                         created_at_ms: m.created_at,
-                        attachment_name: m.file.map(|f| f.name),
+                        attachment_name: m.file.as_ref().map(|f| f.name.clone()),
+                        attachment_mime: m.file.as_ref().map(|f| f.mime.clone()),
+                        attachment_size: m.file.as_ref().map(|f| f.size),
                         unreadable: m.unreadable,
                     })
                     .collect())
@@ -889,7 +955,7 @@ impl MobileEngine {
         operation
             .run(self.object(move |c| {
                 Box::pin(async move {
-                    dmsg_client::channel::save_shared(
+                    dmsg_client::channel::save_regular_shared(
                         &c.cooperative_hold(),
                         &channel,
                         sequence,
@@ -1122,76 +1188,6 @@ impl MobileEngine {
             .await
     }
 
-    pub async fn approvals(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
-            Box::pin(async { dmsg_client::approval::list(&c.cooperative_hold(), false).await })
-        })
-        .await
-    }
-
-    pub async fn approval(&self, id: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move { c.approval(&id) }))
-            .await
-    }
-
-    pub async fn decide(
-        &self,
-        id: String,
-        digest: String,
-        approve: bool,
-    ) -> Result<ObjectSnapshot> {
-        let generation = self.host.generation();
-        let (read_id, shown) = (id.clone(), digest.clone());
-        let high = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(async move {
-                    let view = c.approval(&read_id)?;
-                    if approve {
-                        ensure(
-                            !matches!(
-                                view["type"].as_str(),
-                                Some("wallet" | "checkout" | "letter")
-                            ),
-                            Error::UnsupportedProtocol,
-                        )?;
-                    }
-                    ensure(
-                        view["digest"].as_str() == Some(shown.as_str()),
-                        Error::IntegrityFailed,
-                    )?;
-                    ensure(view["state"] == "awaiting_user", Error::Expired)?;
-                    Ok((
-                        view["risk"] == "high",
-                        view["type"].as_str().unwrap_or("approval").to_string(),
-                    ))
-                })
-            })
-            .await?;
-        if approve && high.0 {
-            let platform = self.platform.clone();
-            let key = id.clone();
-            let shown = digest.clone();
-            runtime()
-                .spawn_blocking(move || platform.confirm(key, shown, high.1))
-                .await
-                .map_err(|_| Error::Unavailable("presence worker".into()))??;
-        }
-        let json = self
-            .host
-            .run_at(generation, move |c| {
-                Box::pin(async move {
-                    serde_json::to_string(
-                        &c.approval_respond(&id, &digest, approve, "gui", approve && high.0)
-                            .await?,
-                    )
-                    .map_err(|_| Error::IntegrityFailed)
-                })
-            })
-            .await?;
-        Ok(ObjectSnapshot { generation, json })
-    }
-
     pub async fn approve_pairing_request(
         &self,
         token: String,
@@ -1259,9 +1255,14 @@ impl MobileEngine {
         let account = account
             .parse()
             .map_err(|_| dmsg_types::invalid("account"))?;
-        self.host
-            .run(move |c| Box::pin(async move { c.bind_accept(&account).await }))
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        let generation = transition.generation();
+        let prepared = transition
+            .run(move |c| Box::pin(async move { c.prepare_bind_accept(&account).await }))
             .await?;
+        self.finish_login_unlock(generation, prepared).await?;
+        transition.finish()?;
         self.session_state().await
     }
 
@@ -1377,9 +1378,12 @@ impl MobileEngine {
     }
 
     pub async fn complete_recovery(&self) -> Result<SessionSnapshot> {
-        self.host
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        transition
             .run(|c| Box::pin(async { c.recovery_complete().await }))
             .await?;
+        transition.finish()?;
         self.session_state().await
     }
 }

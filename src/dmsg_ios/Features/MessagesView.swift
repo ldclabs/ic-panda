@@ -87,6 +87,8 @@ struct ConversationView: View {
     @State private var ownerEpoch: UInt64 = 0
     @State private var choosingAttachment = false
     @State private var inviting = false
+    @State private var sharingSecret = false
+    @State private var secretPackage: SecretPackageImportView.ChannelSource?
     @State private var hasEarlier = false
     @State private var preserveMessage: String?
     @State private var persistTask: Task<Void, Never>?
@@ -102,7 +104,16 @@ struct ConversationView: View {
                                 Text(message.account).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                                 Text(message.unreadable ? String(localized: "This message could not be verified.") : message.text).textSelection(.enabled)
                                 if let name = message.attachmentName {
-                                    Button { Task { await receiveAttachment(message) } } label: { Label(name, systemImage: "doc.badge.arrow.down").font(.subheadline).padding(10) }
+                                    Button {
+                                        if message.attachmentMime == "application/vnd.dmsg.secret-package" {
+                                            secretPackage = .init(channel: channel.id, sequence: message.sequence)
+                                        } else { Task { await receiveAttachment(message) } }
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Label(name, systemImage: message.attachmentMime == "application/vnd.dmsg.secret-package" ? "lock.doc" : "doc.badge.arrow.down")
+                                            if message.attachmentMime == "application/vnd.dmsg.secret-package" { Text("Preview and choose what to import").font(.caption) }
+                                        }.font(.subheadline).padding(10)
+                                    }.disabled(message.unreadable)
                                         .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
                                 }
                                 Text(Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000), style: .time).font(.caption2).foregroundStyle(.secondary)
@@ -128,8 +139,10 @@ struct ConversationView: View {
         }.background(Theme.paper).navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 HStack(alignment: .bottom, spacing: 10) {
-                    Button("Attach file", systemImage: "paperclip") { choosingAttachment = true }
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Menu("Attach", systemImage: "paperclip") {
+                        Button("Attach file", systemImage: "doc") { choosingAttachment = true }
+                        Button("Share secret snapshot", systemImage: "lock.doc") { sharingSecret = true }
+                    }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
                     TextField("Write a message", text: Binding(get: { draft }, set: { draft = $0 }), axis: .vertical).lineLimit(1...5)
                         .padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
                         .accessibilityIdentifier("message.draft")
@@ -146,6 +159,8 @@ struct ConversationView: View {
                 } }
             }
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
+            .sheet(isPresented: $sharingSecret) { NavigationStack { SecretSnapshotItemPicker(channel: channel.id) } }
+            .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
             .task(id: channel.id) {
                 ownerEpoch = model.epoch
                 if model.drafts[channel.id] == nil { draft = channel.draft }

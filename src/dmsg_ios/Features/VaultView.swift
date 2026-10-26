@@ -40,6 +40,7 @@ struct VaultView: View {
                                 Button {
                                     selected = item.id
                                     compactColumn = .detail
+                                    columns = .automatic
                                 } label: {
                                     HStack(spacing: 8) {
                                         Image(systemName: vaultSymbol(item.kind)).font(.system(size: 20)).foregroundStyle(Theme.forest)
@@ -74,12 +75,18 @@ struct VaultView: View {
                     ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("Add item", systemImage: "plus") { editing = .new }
-                        Button("Trash", systemImage: "trash") { trash = true }
+                        Menu("Vault tools", systemImage: "ellipsis.circle") {
+                            NavigationLink("Import secret package") { SecretPackageImportView() }
+                            NavigationLink("Shared snapshots") { SecretSharesView() }
+                            NavigationLink("Local security review") { SecretHealthView() }
+                            NavigationLink("Activity on this device") { SecretActivityView() }
+                            Button("Trash", systemImage: "trash") { trash = true }
+                        }
                     }
                 }
                 .refreshable { await model.synchronize() }
                 .onChange(of: listSelection) { _, value in
-                    if let value { selected = value; model.activity() }
+                    if let value { selected = value; compactColumn = .detail; model.activity() }
                 }
                 .task(id: model.search) {
                     try? await Task.sleep(for: .milliseconds(200))
@@ -118,6 +125,7 @@ struct VaultEditorTarget: Identifiable {
 }
 
 struct VaultDetailView: View {
+    private struct ReferenceTarget: Hashable { let itemID: String; let fieldID: String }
     let id: String
     var revision: String? = nil
     @Environment(SessionModel.self) private var model
@@ -126,6 +134,7 @@ struct VaultDetailView: View {
     @State private var pendingField: VaultField?
     @State private var copyPending = false
     @State private var editing: VaultEditorTarget?
+    @State private var referenceTarget: ReferenceTarget?
 
     var body: some View {
         List {
@@ -154,13 +163,23 @@ struct VaultDetailView: View {
                                 }
                                 Button("Copy", systemImage: "doc.on.doc") { pendingField = field; copyPending = true }
                                     .labelStyle(.iconOnly).font(.system(size: 20)).frame(minWidth: 44, minHeight: 44).disabled(item.reserved)
+                                if revision == nil && !item.reserved {
+                                    Button { referenceTarget = ReferenceTarget(itemID: item.id, fieldID: field.id) } label: {
+                                        Image(systemName: "link").font(.system(size: 20)).frame(width: 44, height: 44)
+                                    }.accessibilityLabel("Field reference and dependencies")
+                                }
                             }.buttonStyle(.borderless)
                         }.padding(.vertical, 4)
                     }
                 }
                 if !item.notes.isEmpty { Section("Notes") { Text(item.notes).textSelection(.enabled) } }
                 if !item.reserved && revision == nil {
-                    Button("Edit item", systemImage: "pencil") { editing = VaultEditorTarget(item: item) }.frame(minHeight: 44)
+                    Section {
+                        Button("Edit item", systemImage: "pencil") { editing = VaultEditorTarget(item: item) }.frame(minHeight: 44)
+                        NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: { Label("Item attachments", systemImage: "paperclip") }
+                        NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
+                            .accessibilityIdentifier("vault.share")
+                    }
                 } else if item.reserved { NoticeBar(text: String(localized: "This key is managed by dMsg and cannot be copied or edited.")) }
                 if revision != nil { NoticeBar(text: String(localized: "You are viewing an immutable historical version.")) }
             } else { ProgressView() }
@@ -169,6 +188,9 @@ struct VaultDetailView: View {
             .onDisappear { revealed = [:] }
             .onChange(of: model.concealed) { _, concealed in if concealed { revealed = [:] } }
             .sheet(item: $editing, onDismiss: { Task { await load() } }) { target in NavigationStack { VaultEditor(target: target) } }
+            .navigationDestination(item: $referenceTarget) { target in
+                SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID)
+            }
             .confirmationDialog(copyPending ? "Copy this field?" : "Reveal this field?", isPresented: Binding(get: { pendingField != nil }, set: { if !$0 { pendingField = nil } })) {
                 Button(copyPending ? "Copy for 30 seconds" : "Reveal") { if let field = pendingField { Task { await reveal(field) } } }
             } message: { Text("Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.") }
@@ -212,6 +234,11 @@ struct VaultEditor: View {
     @State private var fields: [EditableField] = []
     @State private var saving = false
     @State private var deleting = false
+    @State private var attachmentIDs: [String] = []
+    @State private var attachmentFiles: [String: LibraryFile] = [:]
+    @State private var attachmentsChanged = false
+    @State private var choosingAttachment = false
+    @State private var initialized = false
     struct EditableField: Identifiable { let id: String; let kind: String; let label: String; var value: String; let concealed: Bool; var changed = false }
 
     var body: some View {
@@ -239,6 +266,22 @@ struct VaultEditor: View {
                 }.disabled(fields.count >= 64)
             }
             Section("Notes") { TextEditor(text: $notes).frame(minHeight: 100) }
+            Section("Item attachments") {
+                ForEach(attachmentIDs, id: \.self) { id in
+                    HStack(alignment: .top, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(attachmentFiles[id]?.name ?? id).font(.subheadline).lineLimit(2)
+                            if attachmentFiles[id] == nil { Text("File not available on this device").font(.caption).foregroundStyle(.secondary) }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Remove attachment reference", systemImage: "minus.circle", role: .destructive) {
+                            attachmentIDs.removeAll { $0 == id }; attachmentsChanged = true
+                        }.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    }
+                }
+                Button("Attach a file", systemImage: "paperclip") { choosingAttachment = true }.disabled(saving)
+                Text("Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             NoticeBar(text: String(localized: "Saved locally first. Sync status is shown separately."))
             if target.item != nil { Button("Move to Trash", role: .destructive) { deleting = true } }
         }.privateScreen().navigationTitle(target.item == nil ? "New secret" : "Edit secret")
@@ -247,6 +290,15 @@ struct VaultEditor: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving) }
             }
             .onAppear { setup() }
+            .task(id: target.id) { await loadAttachments() }
+            .sheet(isPresented: $choosingAttachment) {
+                NavigationStack {
+                    AttachmentPicker(folder: "root") { file in
+                        if !attachmentIDs.contains(file.id) { attachmentIDs.append(file.id); attachmentsChanged = true }
+                        attachmentFiles[file.id] = file; choosingAttachment = false
+                    }
+                }
+            }
             .onChange(of: kind) { _, _ in if target.item == nil { template() } }
             .onChange(of: title) { _, _ in model.activity() }
             .onChange(of: notes) { _, _ in model.activity() }
@@ -260,12 +312,23 @@ struct VaultEditor: View {
     }
 
     private func setup() {
+        guard !initialized else { return }; initialized = true
         if let item = target.item {
             title = item.title; kind = item.kind; notes = item.notes; favorite = item.favorite
+            attachmentIDs = item.files
             fields = item.fields.map { EditableField(id: $0.id, kind: $0.kind, label: $0.label, value: $0.concealed ? "" : $0.value, concealed: $0.concealed) }
         } else {
             template()
         }
+    }
+
+    private func loadAttachments() async {
+        guard let id = target.item?.id else { return }; let epoch = model.epoch
+        do {
+            guard let result = try await model.engine?.secretItemAttachments(itemId: id), epoch == model.epoch else { return }
+            let listing: SecretAttachmentListing = try model.decode(result)
+            for entry in listing.files { if let file = entry.details?.file { attachmentFiles[entry.id] = file } }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
 
     private func template() {
@@ -282,7 +345,7 @@ struct VaultEditor: View {
             let saved = try await model.engine?.saveItem(id: target.item?.id, revision: target.item?.revision,
                 edit: VaultEdit(title: title, kind: kind, notes: notes, favorite: favorite, fields: fields.map {
                     FieldEdit(id: $0.id, kind: $0.kind, label: $0.label, value: target.item != nil && !$0.changed ? nil : $0.value)
-                }))
+                }, files: target.item == nil || attachmentsChanged ? attachmentIDs : nil))
             guard epoch == model.epoch else { return }
             if saved?.item.conflict == true { model.notice = String(localized: "Saved as a separate version. Review sync conflicts.") }
             await model.updateSession(); dismiss()

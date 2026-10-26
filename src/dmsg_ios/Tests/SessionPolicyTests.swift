@@ -7,7 +7,7 @@ final class SessionPolicyTests: XCTestCase {
         let model = SessionModel()
         model.clipboard.copy("test-secret")
         UIPasteboard.general.string = "another app"
-        await model.background()
+        model.background()
         XCTAssertTrue(model.concealed)
         await model.lock()
         XCTAssertEqual(UIPasteboard.general.string, "another app")
@@ -66,12 +66,41 @@ final class SessionPolicyTests: XCTestCase {
         let model = SessionModel()
         model.drafts["channel"] = "unsent text"
         let view = model.viewGeneration, epoch = model.epoch
-        await model.background()
+        model.background()
         XCTAssertEqual(model.viewGeneration, view)
         XCTAssertGreaterThan(model.epoch, epoch)
         XCTAssertEqual(model.drafts["channel"], "unsent text")
         await model.lock()
         XCTAssertTrue(model.drafts.isEmpty)
         XCTAssertGreaterThan(model.viewGeneration, view)
+    }
+
+    func testImmediateBackgroundLockClearsPresentationBeforeReturningAndKeepsCopiedValue() {
+        let model = SessionModel()
+        model.immediateBackgroundLock = true
+        model.drafts["channel"] = "private draft"
+        model.clipboard.copy("fixture-copied-value")
+        let view = model.viewGeneration
+        model.background()
+        XCTAssertTrue(model.concealed)
+        XCTAssertTrue(model.drafts.isEmpty)
+        XCTAssertGreaterThan(model.viewGeneration, view)
+        XCTAssertEqual(UIPasteboard.general.string, "fixture-copied-value")
+        model.clipboard.clearOwned()
+    }
+
+    func testCancelledBusyOperationCannotClearItsReplacementAfterLock() async {
+        let model = SessionModel()
+        let old = model.beginBusyOperation()
+        model.background()
+        XCTAssertTrue(model.finishBusyOperation(old))
+        XCTAssertFalse(model.busy)
+        let locked = model.beginBusyOperation()
+        await model.lock()
+        let current = model.beginBusyOperation()
+        XCTAssertFalse(model.finishBusyOperation(locked))
+        XCTAssertTrue(model.busy)
+        XCTAssertTrue(model.finishBusyOperation(current))
+        XCTAssertFalse(model.busy)
     }
 }

@@ -69,6 +69,21 @@ struct Received {
     selection: Option<Selection>,
     request_boot: Option<String>,
     request_session: Option<u64>,
+    /// Receiver's allocation limit, retained through approval and resumed import.
+    #[serde(default = "default_package_limit")]
+    max_plain_bytes: u64,
+}
+
+fn default_package_limit() -> u64 {
+    crate::files::MAX_FILE
+}
+
+fn check_package_size(size: u64, limit: u64) -> Result<()> {
+    ensure_valid(
+        limit > 0 && limit <= crate::files::MAX_FILE,
+        "package limit",
+    )?;
+    ensure(size <= limit, Error::QuotaExceeded)
 }
 impl Drop for Received {
     fn drop(&mut self) {
@@ -122,6 +137,14 @@ impl Client {
     pub fn secret_package_request(&mut self, source: &str, selection: Selection) -> Result<Value> {
         ensure(matches!(source, "gui" | "cli"), Error::Forbidden)?;
         let mut received = self.received(&selection.package_id)?;
+        check_package_size(
+            received
+                .file
+                .as_ref()
+                .ok_or(Error::RecoveryIncomplete)?
+                .size,
+            received.max_plain_bytes,
+        )?;
         ensure(
             received.digest.as_ref() == Some(&selection.digest),
             Error::VersionConflict,
@@ -183,6 +206,28 @@ impl Client {
         received.request_session = Some(self.session_generation);
         self.save_received(&received)?;
         self.approval_view(&r)
+    }
+
+    /// Apply a host's smaller payload budget before accepting an import request.
+    pub fn secret_package_request_limited(
+        &mut self,
+        source: &str,
+        selection: Selection,
+        max_plain_bytes: u64,
+    ) -> Result<Value> {
+        ensure(matches!(source, "gui" | "cli"), Error::Forbidden)?;
+        let mut received = self.received(&selection.package_id)?;
+        check_package_size(
+            received
+                .file
+                .as_ref()
+                .ok_or(Error::RecoveryIncomplete)?
+                .size,
+            max_plain_bytes,
+        )?;
+        received.max_plain_bytes = received.max_plain_bytes.min(max_plain_bytes);
+        self.save_received(&received)?;
+        self.secret_package_request(source, selection)
     }
 
     pub(crate) fn secret_package_detail(&self, selection: &Selection) -> Result<Value> {
@@ -305,6 +350,19 @@ async fn ciphertext<H: Hold>(
 
 /// Download is explicit. Retries of the same link reuse the sealed random session ID.
 pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Result<Value> {
+    preview_limited(h, url, password, crate::files::MAX_FILE).await
+}
+
+/// Receive with a host-specific allocation limit. This limits the whole-package
+/// plaintext buffer, not total RSS: chunk buffers, manifest parsing and the
+/// separate password-derivation phase require additional memory.
+pub async fn preview_limited<H: Hold>(
+    h: &H,
+    url: &str,
+    password: Option<&str>,
+    max_plain_bytes: u64,
+) -> Result<Value> {
+    check_package_size(0, max_plain_bytes)?;
     let bound = Unlocked::new(h).await?;
     let (cloud, site) = bound
         .with(|c| Ok((c.relay(), c.config.login_url.clone())))
@@ -340,8 +398,12 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
         && record.preview.is_some()
         && now_ms() < record.expires_at
     {
+        check_package_size(
+            record.file.as_ref().ok_or(Error::RecoveryIncomplete)?.size,
+            max_plain_bytes,
+        )?;
         return Ok(
-            json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"already_imported":record.imported,"files_local_only":true}),
+            json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"already_imported":record.imported,"files_local_only":true,"files_inherit_folder_grants":true}),
         );
     }
     let descriptor: Descriptor = serde_json::from_value(
@@ -353,6 +415,14 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
     )
     .map_err(|_| Error::IntegrityFailed)?;
     validate_descriptor(&descriptor, id)?;
+    // Each chunk has at most 64 bytes of framing. Reject definitely oversized
+    // packages before consuming a counted download session or deriving a key.
+    let minimum_plain_bytes = descriptor.chunks.iter().try_fold(0u64, |total, chunk| {
+        total
+            .checked_add(chunk.size.saturating_sub(64))
+            .ok_or(Error::QuotaExceeded)
+    })?;
+    check_package_size(minimum_plain_bytes, max_plain_bytes)?;
     let key = if descriptor.password {
         ensure(link_url.fragment().is_none(), Error::Forbidden)?;
         link::unwrap_key(
@@ -414,10 +484,12 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
                 selection: None,
                 request_boot: None,
                 request_session: None,
+                max_plain_bytes,
             }
         }
     };
     record.expires_at = now + 30 * MINUTE;
+    record.max_plain_bytes = record.max_plain_bytes.min(max_plain_bytes);
     // Persist before the counted POST; a lost response retries this exact session identity.
     bound.with(|c| c.save_received(&record)).await?;
     let mut grant = authorize(&bound, &cloud, &mut record).await?;
@@ -451,6 +523,7 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
         )?;
     }
     let mut file = SensitiveManifest(manifest.file);
+    check_package_size(file.size, record.max_plain_bytes)?;
     file.key = crate::codec::b64(&key[..]);
     let mut whole = Zeroizing::new(Vec::with_capacity(file.size as usize));
     for index in 0..file.chunks.len() {
@@ -485,6 +558,7 @@ pub async fn preview<H: Hold>(h: &H, url: &str, password: Option<&str>) -> Resul
 
 async fn received_bytes<H: Hold>(h: &H, received: &Received) -> Result<Zeroizing<Vec<u8>>> {
     let file = received.file.as_ref().ok_or(Error::RecoveryIncomplete)?;
+    check_package_size(file.size, received.max_plain_bytes)?;
     let mut bytes = Zeroizing::new(Vec::with_capacity(file.size as usize));
     for i in 0..file.chunks.len() {
         let block = h
@@ -607,11 +681,25 @@ impl ImportRun {
 
 /// Receive a verified channel attachment without exporting a plaintext package to Files or disk.
 pub async fn channel_preview<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<Value> {
+    channel_preview_limited(h, channel, seq, crate::files::MAX_FILE).await
+}
+
+/// Channel receive with a smaller whole-package buffer budget for constrained hosts.
+pub async fn channel_preview_limited<H: Hold>(
+    h: &H,
+    channel: &str,
+    seq: u64,
+    max_plain_bytes: u64,
+) -> Result<Value> {
+    check_package_size(0, max_plain_bytes)?;
     let bound = Unlocked::new(h).await?;
     crate::channel::read(&bound, &mut crate::channel::Reading::new(channel)).await?;
     let message = bound
         .with(|c| c.snapshot_channel_message(channel, seq))
         .await?;
+    let reference = message.file.as_ref().ok_or(Error::NotFound)?;
+    ensure(reference.mime == package::MIME, Error::UnsupportedProtocol)?;
+    check_package_size(reference.size, max_plain_bytes)?;
     let source = json!({"channel_id":channel,"seq":seq,"message_digest":message.digest,"sender_account":message.account});
     let identity = hex::encode(Sha256::digest(canonical(&(
         "dmsg/channel-secret-import/1",
@@ -621,7 +709,10 @@ pub async fn channel_preview<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<
         for key in c.workspace.store.sealed_keys(PREFIX)? {
             if let Some(record) = c.workspace.private::<Received>(c.keys()?, &key)?
                 && record.link_digest == identity && (record.imported.is_some() || now_ms() < record.expires_at)
-            { return Ok(Some(json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"channel_source":source,"already_imported":record.imported,"files_local_only":true,"files_inherit_folder_grants":true}))); }
+            {
+                check_package_size(record.file.as_ref().ok_or(Error::RecoveryIncomplete)?.size, max_plain_bytes)?;
+                return Ok(Some(json!({"package_id":record.id,"digest":record.digest,"preview":record.preview,"channel_source":source,"already_imported":record.imported,"files_local_only":true,"files_inherit_folder_grants":true})));
+            }
         }
         ensure(c.workspace.store.sealed_keys(PREFIX)?.len() < 128, Error::QuotaExceeded)?;
         Ok(None)
@@ -630,9 +721,20 @@ pub async fn channel_preview<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<
     let file = SensitiveManifest(
         crate::channel::fetch_file(&bound, channel, reference, &message.account).await?,
     );
-    channel_received(&bound, channel, seq, &message, &file, source, identity).await
+    channel_received_limited(
+        &bound,
+        channel,
+        seq,
+        &message,
+        &file,
+        source,
+        identity,
+        max_plain_bytes,
+    )
+    .await
 }
 
+#[cfg(test)]
 async fn channel_received<H: Hold>(
     bound: &H,
     channel: &str,
@@ -642,6 +744,31 @@ async fn channel_received<H: Hold>(
     source: Value,
     identity: String,
 ) -> Result<Value> {
+    channel_received_limited(
+        bound,
+        channel,
+        seq,
+        message,
+        file,
+        source,
+        identity,
+        crate::files::MAX_FILE,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn channel_received_limited<H: Hold>(
+    bound: &H,
+    channel: &str,
+    seq: u64,
+    message: &crate::channel::Message,
+    file: &SensitiveManifest,
+    source: Value,
+    identity: String,
+    max_plain_bytes: u64,
+) -> Result<Value> {
+    check_package_size(file.size, max_plain_bytes)?;
     let mut whole = Zeroizing::new(Vec::with_capacity(file.size as usize));
     let id = hex::encode(random_id());
     let now = now_ms();
@@ -692,6 +819,7 @@ async fn channel_received<H: Hold>(
         selection: None,
         request_boot: None,
         request_session: None,
+        max_plain_bytes,
     };
     bound.with(|c| {
         ensure(c.snapshot_channel_message(channel, seq)?.digest == message.digest, Error::VersionConflict)?;
@@ -779,6 +907,7 @@ mod tests {
             selection: None,
             request_boot: None,
             request_session: None,
+            max_plain_bytes: crate::files::MAX_FILE,
         };
         c.save_received(&record).unwrap();
         (
@@ -793,6 +922,72 @@ mod tests {
                 folder: "root".into(),
             },
         )
+    }
+
+    #[tokio::test]
+    async fn constrained_receiver_rechecks_cached_packages_and_import_budget() {
+        let (_dir, mut c, selection) = fixture();
+        let mut record = c.received(&selection.package_id).unwrap();
+        let size = record.file.as_ref().unwrap().size;
+        let mut url = url::Url::parse(&c.config.login_url).unwrap();
+        url.set_path(&format!("/s/{}", "a2".repeat(32)));
+        url.set_fragment(Some(&record.key));
+        let url = url.to_string();
+        record.link_digest = hex::encode(Sha256::digest(url.as_bytes()));
+        c.save_received(&record).unwrap();
+
+        // The cached path cannot bypass a smaller host budget or start a session.
+        assert!(matches!(
+            preview_limited(&c.hold(), &url, None, size - 1).await,
+            Err(Error::QuotaExceeded)
+        ));
+        let preview = preview_limited(&c.hold(), &url, None, size).await.unwrap();
+        assert_eq!(preview["package_id"], selection.package_id);
+        assert_eq!(preview["files_inherit_folder_grants"], true);
+        assert!(!preview.to_string().contains("SECRET_RECEIVER_FIXTURE"));
+        assert!(matches!(
+            c.secret_package_request_limited("gui", selection.clone(), size - 1),
+            Err(Error::QuotaExceeded)
+        ));
+        assert!(c.approvals(true).unwrap().is_empty());
+
+        let request = c
+            .secret_package_request_limited("gui", selection.clone(), size)
+            .unwrap();
+        let stored = c.received(&selection.package_id).unwrap();
+        assert_eq!(stored.max_plain_bytes, size);
+        let result = c
+            .approval_respond(
+                request["id"].as_str().unwrap(),
+                request["digest"].as_str().unwrap(),
+                true,
+                "gui",
+                false,
+            )
+            .await
+            .unwrap();
+        assert_eq!(result["state"], "done");
+        assert_eq!(result["delivery_report"]["files_local_only"], true);
+        assert_eq!(
+            c.secret_package_request_limited("gui", selection, size)
+                .unwrap()["state"],
+            "done"
+        );
+    }
+
+    #[tokio::test]
+    async fn persisted_receiver_budget_is_checked_before_allocating_import_buffer() {
+        let (_dir, mut c, selection) = fixture();
+        let mut record = c.received(&selection.package_id).unwrap();
+        record.max_plain_bytes = record.file.as_ref().unwrap().size - 1;
+        assert!(matches!(
+            received_bytes(&c.hold(), &record).await,
+            Err(Error::QuotaExceeded)
+        ));
+        let mut legacy = serde_json::to_value(&record).unwrap();
+        legacy.as_object_mut().unwrap().remove("max_plain_bytes");
+        let legacy: Received = serde_json::from_value(legacy).unwrap();
+        assert_eq!(legacy.max_plain_bytes, crate::files::MAX_FILE);
     }
 
     #[tokio::test]

@@ -176,6 +176,90 @@ impl BoundSlot {
     }
 }
 
+/// An immutable device-bound hardware request. Hosts run `open` outside their
+/// client executor, then return its result to the same account and generation.
+pub struct DevicePresence {
+    account: AccountId,
+    generation: u64,
+    slot: BoundSlot,
+    hardware: Arc<dyn PresenceKey>,
+}
+
+impl DevicePresence {
+    /// Recover the slot's secret without holding the client.
+    ///
+    /// # Errors
+    /// Preserves cancellation, temporary unavailability and permanent key loss.
+    pub fn open(&self) -> Result<Zeroizing<Key>> {
+        self.slot.open(self.hardware.as_ref())
+    }
+}
+
+/// A login unlock awaiting the hardware factor, with its login factor sealed
+/// in zeroizing memory and its originating account/session fixed.
+pub struct LoginUnlock {
+    presence: DevicePresence,
+    secret: Zeroizing<Key>,
+}
+
+impl LoginUnlock {
+    /// Ask for the hardware factor outside the client executor.
+    ///
+    /// # Errors
+    /// As [`DevicePresence::open`].
+    pub fn open(&self) -> Result<Zeroizing<Key>> {
+        self.presence.open()
+    }
+}
+
+/// Hardware initialization of a new device binding, before anything depends on
+/// it. Creating and verifying the key runs without the client.
+pub struct DeviceBinding {
+    account: AccountId,
+    generation: u64,
+    hardware: Arc<dyn PresenceKey>,
+    biometry_only: bool,
+}
+
+/// A successfully verified binding, still awaiting a same-session commit.
+pub struct OpenedDeviceBinding {
+    account: AccountId,
+    generation: u64,
+    slot: BoundSlot,
+    secret: Zeroizing<Key>,
+}
+
+impl DeviceBinding {
+    /// Create and open the new hardware key before storing it.
+    ///
+    /// # Errors
+    /// Refuses unavailable biometry, cancellation and mismatched secrets.
+    pub fn open(self) -> Result<OpenedDeviceBinding> {
+        let biometry = match self.biometry_only {
+            true => Some(
+                self.hardware
+                    .biometry_state()
+                    .ok_or_else(|| Error::Unavailable("hardware: biometry unavailable".into()))?,
+            ),
+            false => None,
+        };
+        let (handle, peer, created) = self.hardware.create(self.biometry_only)?;
+        let slot = BoundSlot {
+            handle: handle.into(),
+            peer: peer.into(),
+            biometry,
+        };
+        let secret = slot.open(self.hardware.as_ref())?;
+        ensure(*secret == *created, Error::IntegrityFailed)?;
+        Ok(OpenedDeviceBinding {
+            account: self.account,
+            generation: self.generation,
+            slot,
+            secret,
+        })
+    }
+}
+
 /// What a client can do right now; nothing here is secret.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Status {
@@ -333,6 +417,8 @@ pub struct Client {
     pub(crate) cosign: Option<Arc<dyn crate::wallet::cosign::CosignProvider>>,
     /// The hardware that keeps this device's approval keys.
     pub(crate) approval_keys: Option<Arc<dyn crate::secure::ApprovalKeys>>,
+    /// Mobile hosts prepare authorization off their cancellable executor.
+    pub(crate) require_prepared_approval: bool,
     /// The person's answer through the approval key, while the decision it
     /// answers runs.
     pub(crate) authorized: Option<Box<dyn crate::secure::Authorized>>,
@@ -650,6 +736,7 @@ impl Client {
             chains: None,
             cosign: None,
             approval_keys: None,
+            require_prepared_approval: false,
             authorized: None,
             hardware_seen: None,
             binding: None,
@@ -1039,6 +1126,21 @@ impl Client {
     /// Query failures discard the login; a workspace bound to another
     /// account or home returns `Error::IntegrityFailed`.
     pub async fn login(&mut self, login: Delegated) -> Result<Status> {
+        match self.prepare_login(login).await? {
+            Some(prepared) => {
+                let key = prepared.open();
+                self.complete_login_unlock(prepared, key).await
+            }
+            None => self.status(),
+        }
+    }
+
+    /// Accept a login and prepare any device-bound hardware factor without
+    /// asking for presence on the client executor. `None` means already open.
+    ///
+    /// # Errors
+    /// As [`Self::login`].
+    pub async fn prepare_login(&mut self, login: Delegated) -> Result<Option<LoginUnlock>> {
         ensure(login.expires_at > now_ms(), Error::Expired)?;
         let ic = Ic::connect(&self.config, login.identity).await?;
         let principal = ic.principal()?;
@@ -1049,12 +1151,12 @@ impl Client {
             expires_at: login.expires_at,
             kept: login.kept,
         });
-        self.enter().await
+        self.prepare_enter().await
     }
 
     /// Select the workspace of the login's account, or the login's own
     /// while it has none, and unlock it; any failure discards the login.
-    pub(crate) async fn enter(&mut self) -> Result<Status> {
+    pub(crate) async fn prepare_enter(&mut self) -> Result<Option<LoginUnlock>> {
         let principal = self.session()?.principal;
         let checked = match self.locate().await {
             Ok(found) => {
@@ -1077,7 +1179,7 @@ impl Client {
             self.lock();
             return Err(error);
         }
-        self.unlock().await
+        self.prepare_unlock().await
     }
 
     /// Unlock with the current login: a bound workspace through its unlock
@@ -1091,6 +1193,21 @@ impl Client {
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn unlock(&mut self) -> Result<Status> {
+        match self.prepare_unlock().await? {
+            Some(prepared) => {
+                let key = prepared.open();
+                self.complete_login_unlock(prepared, key).await
+            }
+            None => self.status(),
+        }
+    }
+
+    /// Prepare a login unlock. A bound workspace returns the hardware request;
+    /// an ordinary/provisional workspace completes without any presence wait.
+    ///
+    /// # Errors
+    /// As [`Self::unlock`].
+    pub async fn prepare_unlock(&mut self) -> Result<Option<LoginUnlock>> {
         self.session()?;
         if self.workspace.provisional() {
             self.keys = Some(self.workspace.unlock_provisional()?);
@@ -1108,12 +1225,10 @@ impl Client {
             let secret = self.unlock_secret(account.home, &account.id).await?;
             match self.bound_slot()? {
                 Some(slot) => {
-                    let device = self.device_secret(&slot)?;
-                    let keys = self.workspace.unlock_bound(&secret, &device, slot.id())?;
-                    self.keys = Some(keys);
-                    self.workspace.meta.login_unlocked_at = Some(now_ms());
-                    self.workspace.save_meta()?;
-                    self.after_bound_unlock(&device, slot.id())?;
+                    return Ok(Some(LoginUnlock {
+                        presence: self.device_presence(slot)?,
+                        secret,
+                    }));
                 }
                 None => {
                     self.keys = Some(self.workspace.unlock(&secret)?);
@@ -1131,6 +1246,41 @@ impl Client {
             }
             self.open_root().await?;
         }
+        Ok(None)
+    }
+
+    /// Complete only the prepared account, generation and unchanged hardware
+    /// slot. A cancelled or failed answer never alters either wrapping.
+    ///
+    /// # Errors
+    /// As [`Self::unlock`], plus `Locked` for an obsolete request.
+    pub async fn complete_login_unlock(
+        &mut self,
+        prepared: LoginUnlock,
+        device: Result<Zeroizing<Key>>,
+    ) -> Result<Status> {
+        self.check_device_presence(&prepared.presence)?;
+        self.session()?;
+        let device = device?;
+        let account = self.account()?.clone();
+        // The device may have been revoked while the system was asking.
+        let security = self.refresh_security(account.home, &account.id).await?;
+        self.check_revoked(&security)?;
+        self.check_device_presence(&prepared.presence)?;
+        let slot = prepared.presence.slot.id();
+        self.keys = Some(
+            self.workspace
+                .unlock_bound(&prepared.secret, &device, slot)?,
+        );
+        self.workspace.meta.login_unlocked_at = Some(now_ms());
+        self.workspace.save_meta()?;
+        self.after_bound_unlock(&device, slot)?;
+        if let Err(error) = self.resume().await
+            && error != Error::Expired
+        {
+            return Err(error);
+        }
+        self.open_root().await?;
         self.status()
     }
 
@@ -1207,12 +1357,54 @@ impl Client {
     /// deleted on a failure: a fingerprint-only key whose fingerprints
     /// changed returns `Error::IntegrityFailed`, a key that cannot ask now
     /// `Error::Unavailable`.
-    fn device_secret(&self, slot: &BoundSlot) -> Result<Zeroizing<Key>> {
+    fn device_presence(&self, slot: BoundSlot) -> Result<DevicePresence> {
         let hardware = self
             .presence
             .clone()
-            .ok_or_else(|| Error::Unavailable("no hardware key".into()))?;
-        slot.open(hardware.as_ref())
+            .ok_or_else(|| Error::Unavailable("hardware: no hardware key".into()))?;
+        Ok(DevicePresence {
+            account: self.account()?.id,
+            generation: self.session_generation,
+            slot,
+            hardware,
+        })
+    }
+
+    fn check_device_presence(&self, prepared: &DevicePresence) -> Result<()> {
+        ensure(
+            self.session_generation == prepared.generation
+                && self.account()?.id == prepared.account,
+            Error::Locked,
+        )?;
+        ensure(
+            self.bound_slot()?.as_ref() == Some(&prepared.slot),
+            Error::Locked,
+        )
+    }
+
+    /// Local protection state, including copies outside the hardware binding.
+    ///
+    /// # Errors
+    /// Returns storage errors or `Locked` when the workspace is not open.
+    pub fn device_binding_status(&self) -> Result<Json> {
+        self.keys()?;
+        let bound = self.workspace.bound()?;
+        // Losing a slot must not hide the account's remaining recovery and
+        // key-management controls. This view never authorizes an unlock.
+        let slot = match self.bound_slot() {
+            Ok(slot) => slot,
+            Err(Error::IntegrityFailed) => None,
+            Err(error) => return Err(error),
+        };
+        Ok(serde_json::json!({
+            "device_bound": bound,
+            "bound_key_available": slot.is_some(),
+            "bound_biometry_only": slot.as_ref().map(|s| s.biometry.is_some()),
+            "unprotected": {
+                "background_online": self.config.background_online,
+                "resident_agents": self.agents()?.list.iter().filter(|a| a.resident).count(),
+            },
+        }))
     }
 
     /// Bind the workspace to this device's hardware: from now on every
@@ -1228,6 +1420,45 @@ impl Client {
     /// a login, `Error::Unavailable` without presence hardware or a
     /// credential store, and `Error::Forbidden` when the person declines.
     pub async fn bind_device(&mut self, biometry_only: bool) -> Result<Json> {
+        let prepared = self.prepare_device_binding(biometry_only)?.open()?;
+        self.complete_device_binding(prepared).await
+    }
+
+    /// Prepare hardware initialization without invoking it on the client.
+    ///
+    /// # Errors
+    /// As [`Self::bind_device`].
+    pub fn prepare_device_binding(&self, biometry_only: bool) -> Result<DeviceBinding> {
+        self.keys()?;
+        self.session()?;
+        ensure(!self.workspace.bound()?, Error::Forbidden)?;
+        ensure(
+            self.secure.is_some(),
+            Error::Unavailable("no credential store".into()),
+        )?;
+        let hardware = self
+            .presence
+            .clone()
+            .filter(|key| key.presence().is_some())
+            .ok_or_else(|| Error::Unavailable("hardware: no hardware key".into()))?;
+        Ok(DeviceBinding {
+            account: self.account()?.id,
+            generation: self.session_generation,
+            hardware,
+            biometry_only,
+        })
+    }
+
+    /// Commit a verified hardware binding only into its originating session.
+    ///
+    /// # Errors
+    /// As [`Self::bind_device`], plus `Locked` after a session change.
+    pub async fn complete_device_binding(&mut self, prepared: OpenedDeviceBinding) -> Result<Json> {
+        ensure(
+            self.session_generation == prepared.generation
+                && self.account()?.id == prepared.account,
+            Error::Locked,
+        )?;
         self.keys()?;
         ensure(!self.workspace.bound()?, Error::Forbidden)?;
         let account = self.account()?.clone();
@@ -1235,28 +1466,11 @@ impl Client {
             .secure
             .clone()
             .ok_or_else(|| Error::Unavailable("no credential store".into()))?;
-        let hardware = self
-            .presence
-            .clone()
-            .filter(|key| key.presence().is_some())
-            .ok_or_else(|| Error::Unavailable("no hardware key".into()))?;
-        let biometry = match biometry_only {
-            true => Some(
-                hardware
-                    .biometry_state()
-                    .ok_or_else(|| Error::Unavailable("Touch ID is not set up".into()))?,
-            ),
-            false => None,
-        };
-        let (handle, peer, created) = hardware.create(biometry_only)?;
-        let slot = BoundSlot {
-            handle: handle.into(),
-            peer: peer.into(),
-            biometry,
-        };
-        // The new key must open before anything depends on it.
-        let device = self.device_secret(&slot)?;
-        ensure(*device == *created, Error::IntegrityFailed)?;
+        let OpenedDeviceBinding {
+            slot,
+            secret: device,
+            ..
+        } = prepared;
         let secret = self.unlock_secret(account.home, &account.id).await?;
         let name = self.bound_name()?;
         secure.set(&name, &Zeroizing::new(canonical(&slot)))?;
@@ -1272,15 +1486,9 @@ impl Client {
         // Fast unlock now opens with the slot alone.
         secure.delete(&self.fast_name()?)?;
         self.keep_login()?;
-        let resident = self.agents()?.list.iter().filter(|a| a.resident).count();
-        Ok(serde_json::json!({
-            "device_bound": true,
-            "biometry_only": biometry_only,
-            "unprotected": {
-                "background_online": self.config.background_online,
-                "resident_agents": resident,
-            },
-        }))
+        let mut status = self.device_binding_status()?;
+        status["biometry_only"] = slot.biometry.is_some().into();
+        Ok(status)
     }
 
     /// Undo [`Self::bind_device`]: the LUK alone opens the workspace again,
@@ -1366,18 +1574,25 @@ impl Client {
     /// Returns `Error::Locked` while locked and `Error::NotFound` without a
     /// credential store.
     pub fn enable_fast_unlock(&mut self) -> Result<Status> {
+        match self.prepare_enable_fast_unlock()? {
+            Some(prepared) => {
+                let key = prepared.open();
+                self.complete_enable_fast_unlock(prepared, key)
+            }
+            None => self.status(),
+        }
+    }
+
+    /// Prepare re-enabling fast unlock. A bound workspace returns its hardware
+    /// request; an ordinary workspace creates the new entry without prompting.
+    ///
+    /// # Errors
+    /// As [`Self::enable_fast_unlock`].
+    pub fn prepare_enable_fast_unlock(&mut self) -> Result<Option<DevicePresence>> {
         let secure = self.secure.clone().ok_or(Error::NotFound)?;
         self.keys()?;
         if let Some(slot) = self.bound_slot()? {
-            let device = self.device_secret(&slot)?;
-            let keys = self.keys.take().ok_or(Error::Locked)?;
-            let enabled = self
-                .workspace
-                .enable_fast_bound(&keys, &device, slot.id(), now_ms());
-            self.keys = Some(keys);
-            enabled?;
-            self.keep_login()?;
-            return self.status();
+            return Ok(Some(self.device_presence(slot)?));
         }
         let name = self.fast_name()?;
         let hardware = self.presence.clone().filter(|key| key.presence().is_some());
@@ -1400,6 +1615,27 @@ impl Client {
         secure.set(&name, &Zeroizing::new(canonical(&stored)))?;
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let enabled = self.workspace.enable_fast(&keys, &key, now_ms(), presence);
+        self.keys = Some(keys);
+        enabled?;
+        self.keep_login()?;
+        Ok(None)
+    }
+
+    /// Re-enable bound fast unlock only after this session's hardware answer.
+    ///
+    /// # Errors
+    /// As [`Self::enable_fast_unlock`], plus `Locked` for an obsolete answer.
+    pub fn complete_enable_fast_unlock(
+        &mut self,
+        prepared: DevicePresence,
+        device: Result<Zeroizing<Key>>,
+    ) -> Result<Status> {
+        self.check_device_presence(&prepared)?;
+        let device = device?;
+        let keys = self.keys.take().ok_or(Error::Locked)?;
+        let enabled =
+            self.workspace
+                .enable_fast_bound(&keys, &device, prepared.slot.id(), now_ms());
         self.keys = Some(keys);
         enabled?;
         self.keep_login()?;

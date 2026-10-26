@@ -62,6 +62,7 @@ pub struct VaultItem {
     pub synced: bool,
     pub conflict: bool,
     pub reserved: bool,
+    pub files: Vec<String>,
     pub fields: Vec<VaultField>,
 }
 
@@ -97,6 +98,7 @@ impl From<VaultEntry> for VaultItem {
             synced: entry.synced,
             conflict: entry.conflict,
             reserved,
+            files: entry.item.files,
             fields: entry
                 .item
                 .fields
@@ -144,6 +146,7 @@ pub struct VaultEdit {
     pub notes: String,
     pub favorite: bool,
     pub fields: Vec<FieldEdit>,
+    pub files: Option<Vec<String>>,
 }
 
 /// Core-produced display JSON for evolving, nested protocol objects (approval
@@ -184,6 +187,8 @@ pub struct MessageItem {
     pub text: String,
     pub created_at_ms: u64,
     pub attachment_name: Option<String>,
+    pub attachment_mime: Option<String>,
+    pub attachment_size: Option<u64>,
     pub unreadable: bool,
 }
 

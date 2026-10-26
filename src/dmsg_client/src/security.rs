@@ -15,7 +15,7 @@
 
 use crate::account::AccountState;
 use crate::approval::{Action, HIGH_RISK_TTL_MS};
-use crate::client::{Client, Status};
+use crate::client::{Client, LoginUnlock, Status};
 use crate::codec::{b64, canonical, decode, principal_input, unb64};
 use crate::hold::{Hold, Unlocked};
 use crate::ic::Ic;
@@ -271,6 +271,24 @@ impl Client {
     /// Returns `Error::NotFound` without this login's request or until an
     /// administrator approved it.
     pub async fn bind_accept(&mut self, account: &AccountId) -> Result<Status> {
+        match self.prepare_bind_accept(account).await? {
+            Some(prepared) => {
+                let key = prepared.open();
+                self.complete_login_unlock(prepared, key).await
+            }
+            None => self.status(),
+        }
+    }
+
+    /// Accept the login binding without waiting for a bound workspace's
+    /// hardware on the client executor.
+    ///
+    /// # Errors
+    /// As [`Self::bind_accept`].
+    pub async fn prepare_bind_accept(
+        &mut self,
+        account: &AccountId,
+    ) -> Result<Option<LoginUnlock>> {
         let key = format!("{BINDING}{account}");
         let (home, nonce): (Principal, Hash) =
             self.workspace.store.meta(&key)?.ok_or(Error::NotFound)?;
@@ -280,7 +298,7 @@ impl Client {
             .await?;
         accepted?;
         self.workspace.store.delete_meta(&key)?;
-        self.enter().await
+        self.prepare_enter().await
     }
 
     /// The same-device binding: `identity` is a second login, completed for

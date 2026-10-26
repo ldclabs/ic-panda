@@ -7,18 +7,24 @@ struct RootView: View {
     var body: some View {
         @Bindable var model = model
         ZStack {
-            if model.unlocked {
-                TabView(selection: $model.selectedTab) {
-                    VaultView().tabItem { Label("Vault", systemImage: "key.horizontal") }.tag(AppTab.vault)
-                    MessagesView().tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right") }.tag(AppTab.messages)
-                    FilesView().tabItem { Label("Files", systemImage: "folder") }.tag(AppTab.files)
-                    NavigationStack { AccountView() }.tabItem { Label("Account", systemImage: "person.crop.circle") }.tag(AppTab.account)
-                }
-                .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refresh() } }
-                .environment(\.openApprovals, { showApprovals = true })
-                .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView() } }
-                .id(model.viewGeneration)
-            } else { NavigationStack { AccessView() } }
+            VStack(spacing: 0) {
+                RecoveryNotice()
+                    .fixedSize(horizontal: false, vertical: true)
+                Group {
+                    if model.unlocked {
+                        TabView(selection: $model.selectedTab) {
+                            VaultView().tabItem { Label("Vault", systemImage: "key.horizontal") }.tag(AppTab.vault)
+                            MessagesView().tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right") }.tag(AppTab.messages)
+                            FilesView().tabItem { Label("Files", systemImage: "folder") }.tag(AppTab.files)
+                            NavigationStack { AccountView() }.tabItem { Label("Account", systemImage: "person.crop.circle") }.tag(AppTab.account)
+                        }
+                        .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refresh() } }
+                        .environment(\.openApprovals, { showApprovals = true })
+                        .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView() } }
+                        .id(model.viewGeneration)
+                    } else { NavigationStack { AccessView() } }
+                }.frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             if let notice = model.notice, !model.concealed {
                 VStack { Spacer(); NoticeBar(text: notice).padding(.horizontal, 20).padding(.bottom, 86) }
                     .allowsHitTesting(false)
