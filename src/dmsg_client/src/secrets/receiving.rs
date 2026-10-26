@@ -721,7 +721,7 @@ pub async fn channel_preview_limited<H: Hold>(
     let file = SensitiveManifest(
         crate::channel::fetch_file(&bound, channel, reference, &message.account).await?,
     );
-    channel_received_limited(
+    channel_received(
         &bound,
         channel,
         seq,
@@ -734,31 +734,8 @@ pub async fn channel_preview_limited<H: Hold>(
     .await
 }
 
-#[cfg(test)]
-async fn channel_received<H: Hold>(
-    bound: &H,
-    channel: &str,
-    seq: u64,
-    message: &crate::channel::Message,
-    file: &SensitiveManifest,
-    source: Value,
-    identity: String,
-) -> Result<Value> {
-    channel_received_limited(
-        bound,
-        channel,
-        seq,
-        message,
-        file,
-        source,
-        identity,
-        crate::files::MAX_FILE,
-    )
-    .await
-}
-
 #[allow(clippy::too_many_arguments)]
-async fn channel_received_limited<H: Hold>(
+async fn channel_received<H: Hold>(
     bound: &H,
     channel: &str,
     seq: u64,
@@ -1141,6 +1118,7 @@ mod tests {
             &file,
             source.clone(),
             identity.clone(),
+            crate::files::MAX_FILE,
         )
         .await
         .unwrap();
@@ -1153,6 +1131,7 @@ mod tests {
             &file,
             source.clone(),
             identity.clone(),
+            crate::files::MAX_FILE,
         )
         .await
         .unwrap();
@@ -1188,7 +1167,8 @@ mod tests {
                 &message,
                 &broken,
                 source.clone(),
-                "ff".repeat(32)
+                "ff".repeat(32),
+                crate::files::MAX_FILE,
             )
             .await
             .is_err()
@@ -1205,9 +1185,18 @@ mod tests {
             )
             .unwrap();
         assert!(
-            channel_received(&c.hold(), &channel, 1, &message, &file, source, identity)
-                .await
-                .is_err()
+            channel_received(
+                &c.hold(),
+                &channel,
+                1,
+                &message,
+                &file,
+                source,
+                identity,
+                crate::files::MAX_FILE,
+            )
+            .await
+            .is_err()
         );
     }
 }

@@ -113,24 +113,6 @@ impl Host {
         self.control(true, false, false);
     }
 
-    /// A user-initiated logout/switch belongs to the UI session that requested it.
-    /// # Errors
-    /// Returns `Locked` without affecting a replacement session.
-    pub fn lock_if(&self, expected: u64) -> Result<()> {
-        let mut accepted = false;
-        self.locked.send_if_modified(|control| {
-            if control.generation != expected {
-                return false;
-            }
-            control.generation += 1;
-            control.lock_generation = control.generation;
-            self.generation.store(control.generation, Ordering::Release);
-            accepted = true;
-            true
-        });
-        if accepted { Ok(()) } else { Err(Error::Locked) }
-    }
-
     /// Fence work during a host-controlled identity transition without losing
     /// the login needed to complete it. Never clears a lifecycle pause or close.
     ///
@@ -155,13 +137,9 @@ impl Host {
         self.control(false, false, true);
     }
 
-    /// Permit foreground work again; no automatic unlock takes place.
-    pub fn resume(&self) {
-        self.paused.store(false, Ordering::Release);
-    }
-
-    /// Resume only the lifecycle generation observed before an async call.
-    /// A late foreground task cannot undo a newer background pause.
+    /// Permit foreground work again, but only in the lifecycle generation
+    /// observed before an async call; no automatic unlock takes place. A late
+    /// foreground task cannot undo a newer background pause.
     ///
     /// # Errors
     /// Returns `Locked` after another lifecycle event or closure.
@@ -241,10 +219,10 @@ impl Host {
                 job: Box::new(move |client| {
                     Box::pin(async move {
                         let value = tokio::select! {
-                                    biased;
-                        _ = reply.closed() => return Err(Error::Locked),
-                                    value = work(client) => value,
-                                };
+                            biased;
+                            _ = reply.closed() => return Err(Error::Locked),
+                            value = work(client) => value,
+                        };
                         let _ = reply.send(value);
                         Ok(())
                     })
@@ -331,7 +309,7 @@ mod tests {
                 .await
                 .unwrap()
         );
-        assert_eq!(host.lock_if(old), Err(Error::Locked));
+        assert_eq!(host.fence_if(old), Err(Error::Locked));
         host.close();
         host.closed().await.unwrap();
     }

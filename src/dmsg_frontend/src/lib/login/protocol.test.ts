@@ -68,9 +68,14 @@ describe('dmsg-login/1 vectors', () => {
 
   it('accepts only the exact associated iOS callback', () => {
     expect(callbackTarget(IOS_CALLBACK)).toBe('ios')
-    for (const url of [IOS_CALLBACK + '/', IOS_CALLBACK + '?next=x', IOS_CALLBACK + '#x',
-      'https://dmsg.net:443/_/ios/auth/callback', 'dmsg://auth/callback',
-      'https://dmsg.net.evil.example/_/ios/auth/callback']) {
+    for (const url of [
+      IOS_CALLBACK + '/',
+      IOS_CALLBACK + '?next=x',
+      IOS_CALLBACK + '#x',
+      'https://dmsg.net:443/_/ios/auth/callback',
+      'dmsg://auth/callback',
+      'https://dmsg.net.evil.example/_/ios/auth/callback'
+    ]) {
       expect(() => callbackTarget(url)).toThrow()
     }
   })

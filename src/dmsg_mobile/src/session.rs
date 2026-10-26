@@ -182,7 +182,7 @@ mod tests {
         let old = ScopedHost::new(host.clone(), host.generation());
         assert!(old.run(|c| Box::pin(async { c.status() })).await.is_ok());
         host.pause();
-        host.resume();
+        host.resume_if(host.generation()).unwrap();
         // Even an operation first polled now still belongs to the old UI.
         assert!(matches!(
             old.run(|_| Box::pin(async { Ok(()) })).await,
@@ -307,7 +307,7 @@ mod tests {
             fresh.run(|_| Box::pin(async { Ok(()) })).await,
             Err(Error::Locked)
         ));
-        host.resume();
+        host.resume_if(paused_generation).unwrap();
         assert!(fresh.run(|_| Box::pin(async { Ok(()) })).await.is_ok());
         host.close();
         host.closed().await.unwrap();

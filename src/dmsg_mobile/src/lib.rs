@@ -1232,15 +1232,26 @@ impl MobileEngine {
         description: String,
         expected_updated_at: i64,
     ) -> Result<ObjectSnapshot> {
-        self.object(move |c| Box::pin(async move {
-            let mut document = dmsg_client::principal::show(&c.cooperative_hold()).await?;
-            ensure(document.updated_at == expected_updated_at, Error::VersionConflict)?;
-            document.name = if name.trim().is_empty() { None } else { Some(name.trim().into()) };
-            document.description = if description.trim().is_empty() { None } else { Some(description.trim().into()) };
-            let info = c.publish_document(&document).await?;
-            Ok(serde_json::json!({"version":info.state.version, "published_version":info.published_version,
-                "published":info.state.version == info.published_version}))
-        })).await
+        let text = |value: String| Some(value.trim().to_string()).filter(|v| !v.is_empty());
+        let (name, description) = (text(name), text(description));
+        self.object(move |c| {
+            Box::pin(async move {
+                let mut document = dmsg_client::principal::show(&c.cooperative_hold()).await?;
+                ensure(
+                    document.updated_at == expected_updated_at,
+                    Error::VersionConflict,
+                )?;
+                document.name = name;
+                document.description = description;
+                let info = c.publish_document(&document).await?;
+                Ok(serde_json::json!({
+                    "version": info.state.version,
+                    "published_version": info.published_version,
+                    "published": info.state.version == info.published_version,
+                }))
+            })
+        })
+        .await
     }
 
     pub async fn create_binding_request(&self, account: String) -> Result<ObjectSnapshot> {

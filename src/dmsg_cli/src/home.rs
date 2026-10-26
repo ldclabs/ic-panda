@@ -439,6 +439,11 @@ mod tests {
             crate::remote::Remote::connect(&home).err().unwrap().code,
             "DAEMON_STOPPED"
         );
+        // Mobile hosts read the same file without the daemon's settings.
+        assert_eq!(
+            settings.config,
+            dmsg_client::config::Config::production().unwrap()
+        );
         assert_eq!(
             settings.config.environment,
             dmsg_types::Environment::Production

@@ -457,7 +457,7 @@ async fn background(daemon: Arc<Daemon>) {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
             if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
-                client.lock();
+                client.lock_idle();
             }
             let session = client.session_state();
             if session.state != before {

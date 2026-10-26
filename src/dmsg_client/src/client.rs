@@ -369,7 +369,8 @@ impl InFlight {
 pub struct Client {
     /// Mobile policy: hardware presence is required for every fast unlock.
     require_fast_presence: bool,
-    /// Changes whenever keys are dropped, invalidating in-flight sync work.
+    /// Changes on every explicit lock, invalidating in-flight sync work and
+    /// prepared unlocks.
     pub(crate) session_generation: u64,
     /// Changes when display caches are cleared, fencing all pending display work.
     pub(crate) display_generation: u64,
@@ -1690,6 +1691,15 @@ impl Client {
         self.bound_logins.clear();
         self.authorized = None;
         self.hardware_seen = None;
+    }
+
+    /// Lock after inactivity. An already locked session keeps its generation,
+    /// so work that runs while locked (the recovery watch, a resident key's
+    /// reads) is not invalidated by every idle pass.
+    pub fn lock_idle(&mut self) {
+        if self.keys.is_some() || self.login.is_some() {
+            self.lock();
+        }
     }
 
     /// Drop everything, the resident key included, as the daemon exits.

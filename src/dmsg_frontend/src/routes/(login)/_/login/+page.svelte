@@ -71,11 +71,15 @@
       )}
     </p>
   {:else if request}
-    <p class="utility-lead">{#if callbackTarget(request.next_url) === 'ios'}
-      {$t('Return to the dMsg iOS app after signing in.')}
-    {:else}
-      {$t('Connecting to dMsg on this computer (port {port}).', { port: callbackTarget(request.next_url) })}
-    {/if}</p>
+    <p class="utility-lead"
+      >{#if callbackTarget(request.next_url) === 'ios'}
+        {$t('Return to the dMsg iOS app after signing in.')}
+      {:else}
+        {$t('Connecting to dMsg on this computer (port {port}).', {
+          port: callbackTarget(request.next_url)
+        })}
+      {/if}</p
+    >
     <p class="utility-domain"
       >{$t('Identity domain: {origin}', {
         origin: request.derivation_origin

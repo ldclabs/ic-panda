@@ -36,6 +36,22 @@ async fn mobile_presence_policy_refuses_plain_keys_and_lock_invalidates_a_prompt
     assert!(storage.get(&name).unwrap().is_none());
 }
 
+#[test]
+fn idle_lock_keeps_a_locked_generation_for_work_that_runs_while_locked() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let open = client.session_generation;
+    client.lock_idle();
+    assert!(client.keys().is_err());
+    let locked = client.session_generation;
+    assert_ne!(locked, open);
+    // The daemon repeats its idle check every pass while locked.
+    client.lock_idle();
+    assert_eq!(client.session_generation, locked);
+    client.lock();
+    assert_ne!(client.session_generation, locked);
+}
+
 #[tokio::test]
 async fn prepared_device_bound_unlock_preserves_the_binding_and_rejects_late_answers() {
     use std::sync::atomic::Ordering::SeqCst;
@@ -217,7 +233,7 @@ async fn pausing_host_work_drops_its_hardware_approval_authorization() {
     ready.await.unwrap();
     host.pause();
     assert_eq!(pending.await.unwrap(), Err(Error::Locked));
-    host.resume();
+    host.resume_if(host.generation()).unwrap();
     assert!(
         host.run(|client| Box::pin(async move {
             Ok(client.authorized.is_none() && client.keys().is_ok())
