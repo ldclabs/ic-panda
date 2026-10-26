@@ -44,7 +44,7 @@ flowchart LR
 
 `set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射，提案前可用同参数的 `validate_set_app_store_config` 预检；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
 
-交易绑定 user home、账号和确定性的 `appAccountToken`，原始交易不能迁移到另一账号。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与 Apple 基础套餐互斥，存储包要求有效的 Apple 基础套餐。
+交易绑定 user home、账号和确定性的 `appAccountToken`，原始交易不能迁移到另一账号。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与 Apple 基础套餐互斥；反过来，Apple 基础合同结束前 `prepare_account_subscription` 也拒绝现金或 PANDA 基础套餐报价，续订由 Apple 完成。Apple 存储包要求有效的 Apple 基础套餐。
 
 Production 拒绝 Sandbox 事实。TestFlight 的沙盒购买必须使用独立 Staging 部署，不能因收据位于沙盒而修改生产认证信任根。实际 App Store 商品、验证方和密钥尚需部署配置，本仓库测试没有发生真实购买、续订或退款。
 
@@ -500,7 +500,7 @@ icp canister start dmsg_commerce -e ic
 
 ## 验证
 
-2026-10-27 的移动适配检查：commerce 41 项单元测试通过、2 项忽略；新增 `commerce::app_store::app_store_verifier_binding_idempotence_refunds_and_upgrade` 使用优化 Wasm 通过 PocketIC，覆盖验证方拒绝、账号／环境绑定、订阅和存储幂等、新鲜度、退款回滚拒绝及当前 Wasm 原地升级后的新稳定记录保留。这不是旧版本布局迁移或主网验收；历史完整回归记录见下文。同日审查补充 `validate_set_app_store_config`，并使升级后旧交易的退款不再推迟其已被替代的终止时间：commerce 42 项单元测试通过、2 项忽略，上述 PocketIC 用例（含提案预演）与 `governance` 用例使用重新构建的 Wasm 通过。
+2026-10-27 的移动适配检查：commerce 41 项单元测试通过、2 项忽略；新增 `commerce::app_store::app_store_verifier_binding_idempotence_refunds_and_upgrade` 使用优化 Wasm 通过 PocketIC，覆盖验证方拒绝、账号／环境绑定、订阅和存储幂等、新鲜度、退款回滚拒绝及当前 Wasm 原地升级后的新稳定记录保留。这不是旧版本布局迁移或主网验收；历史完整回归记录见下文。同日审查补充 `validate_set_app_store_config`，并使升级后旧交易的退款不再推迟其已被替代的终止时间：commerce 42 项单元测试通过、2 项忽略，上述 PocketIC 用例（含提案预演）与 `governance` 用例使用重新构建的 Wasm 通过。其后 Apple 基础合同结束前拒绝现金／PANDA 基础套餐报价，`commerce` 与 `governance` 的 PocketIC 用例 55 项通过、7 项忽略。
 
 ```sh
 cargo test --locked -p dmsg_commerce

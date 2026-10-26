@@ -8,6 +8,7 @@ import {
   DAY,
   daysLeft,
   isTab,
+  methodLabels,
   moving,
   namePrice,
   nameProblem,
@@ -18,8 +19,10 @@ import {
   refundOutcome,
   reusableQuote,
   skuOf,
-  tokenOf
+  tokenOf,
+  waitLabels
 } from '../src/renderer/views/plan/plan.ts'
+import en from '../src/renderer/i18n/messages/en.ts'
 
 const now = 1_800_000_000_000
 const cash = (stage: string, extra: Record<string, unknown> = {}) => ({ id: 'a1', stage, starts_at_ms: now - DAY, terms: { method: 'Cash', funding_deadline_ms: now + 60_000 }, ...extra })
@@ -148,4 +151,10 @@ test('quote reuse respects both acceptance and funding deadlines and approval st
   assert.equal(reusableQuote({ ...quote, accept_by_ms: now + 90_000 }, now + 60_000), false)
   assert.equal(reusableQuote({ ...quote, stage: 'accepted' }, now), false)
   assert.equal(reusableQuote(cash('review'), now), false)
+})
+
+test('an App Store term is named and waits for Apple without a date', () => {
+  assert.equal(en.messages[methodLabels.AppStore], 'App Store')
+  assert.ok(en.messages[waitLabels.APP_STORE_MANAGED])
+  assert.doesNotMatch(en.messages[waitLabels.APP_STORE_MANAGED], /\{time\}/)
 })

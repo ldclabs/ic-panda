@@ -115,6 +115,32 @@ fn a_term_that_has_not_started_is_only_queued() {
     );
 }
 
+/// Apple renews an App Store term itself: inside the renewal window a cash
+/// term is offered a renewal, an App Store term no renewal, switch or upgrade.
+#[test]
+fn an_app_store_term_offers_no_other_renewal_or_switch() {
+    let catalog = Catalog {
+        schema: 1,
+        version: 1,
+        effective_at_ms: 0,
+        plans: dmsg_protocol::billing::default_plans(1),
+        storage_products: vec![],
+        terms_digest: Hash::new([9; 32]),
+    };
+    let cash = contract(11, PlanId::Plus, NOW - 360 * DAY_MS, NOW + 5 * DAY_MS);
+    let renew = offers(&catalog, Some(&cash), None, NOW).unwrap();
+    assert!(renew.iter().any(|o| o["action"] == "renew"));
+    let mut apple = cash;
+    apple.source = ContractSource::AppStore {
+        transaction_id: Hash::new([12; 32]),
+    };
+    let managed = offers(&catalog, Some(&apple), None, NOW).unwrap();
+    assert_eq!(managed.len(), 3);
+    assert!(managed.iter().all(|o| o["action"] == "unavailable"
+        && o["reason"] == "APP_STORE_MANAGED"
+        && o["available_at_ms"].is_null()));
+}
+
 /// A funding transfer sends the amount and its fee reserve, and the ledger
 /// charges the network fee on top; an order needing more than a `u128`
 /// cannot be funded.

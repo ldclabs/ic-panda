@@ -899,7 +899,8 @@ fn queued<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a Membershi
 /// What each paid plan's card offers this account now: a first
 /// subscription, a renewal or a switch from the end of the current term
 /// (within [`RENEWAL_WINDOW_MS`] of it), an upgrade for the rest of a cash
-/// term, or why none is possible yet. A term that was refunded early ends
+/// term, or why none is possible yet. An App Store term renews through Apple,
+/// so nothing else is offered while it lasts. A term that was refunded early ends
 /// with its lease; a new subscription starts at once. Each offer names the
 /// term end (`ends_at_ms`) that a PANDA neuron's lock must cover.
 fn offers(
@@ -955,6 +956,10 @@ fn offers(
                     &["Cash", "Panda"],
                 );
             };
+            // Apple renews this term itself; other payment waits until it ends.
+            if matches!(c.source, ContractSource::AppStore { .. }) {
+                return wait("APP_STORE_MANAGED", None);
+            }
             let same = c.plan.plan_id == p.plan_id;
             let higher = price(&c.plan.plan_id).is_some_and(|cents| p.price_cents > cents);
             if higher && matches!(c.source, ContractSource::Cash { .. }) {
@@ -1083,8 +1088,12 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
         && status["eligibility"] == "Eligible")
         .into();
     // Only a term running to its end is continued; one renewal at a time.
+    // Apple renews an App Store term without a window here.
     status["renew_from_ms"] = match (current, next) {
-        (Some(c), None) if c.terminated_at_ms.is_none() => {
+        (Some(c), None)
+            if c.terminated_at_ms.is_none()
+                && !matches!(c.source, ContractSource::AppStore { .. }) =>
+        {
             c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS).into()
         }
         _ => Json::Null,

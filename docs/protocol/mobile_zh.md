@@ -35,7 +35,7 @@ appAccountToken 的输入为 UTF-8：
 dmsg/apple/account/1、换行、user home Principal 文本、换行、AccountId 文本。
 取 SHA-256 前 16 字节，设置 UUID 版本／variant 位后用 UUID 文本表示。这是固定协议的 UUID 形状账号绑定，不是访问凭据。
 
-客户端在付款前检查经认证的套餐和商品，以及验证服务的环境与配置。外部渠道有效套餐、缺少基础订阅的存储购买或不可验证状态不会进入付款。年度套餐使用 auto-renewable subscription，当前周期存储使用 consumable。
+客户端在付款前检查经认证的套餐和商品，以及验证服务的环境与配置。外部渠道有效套餐、缺少基础订阅的存储购买或不可验证状态不会进入付款。反过来，Apple 基础合同结束前，commerce 不为该账号报价现金或 PANDA 基础套餐，桌面套餐页只说明由 App Store 续订。年度套餐使用 auto-renewable subscription，当前周期存储使用 consumable。
 
 POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验证 Apple 签名、证书、应用、环境、商品、购买所有权及账号 token，并查询当前 Apple 状态。治理配置的验证者才可调用 commerce 的 apply_app_store_transaction。事实包含交易及原始交易 ID、受益主体、商品、购买／到期／撤销时间、Apple signedDate 和状态复核时间 checked_at_ms。
 

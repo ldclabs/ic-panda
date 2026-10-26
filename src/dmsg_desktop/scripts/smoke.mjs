@@ -286,6 +286,22 @@ function planStatus() {
       refund: null
     }
   }
+  if (membership === 'appstore') {
+    const ends = now + 20 * DAY
+    return {
+      plan: 'Plus',
+      source: 'Active',
+      eligibility: 'Eligible',
+      limits: LIMITS.Plus,
+      addons: [],
+      current: { contract: 'c8'.repeat(32), plan: 'Plus', method: 'AppStore', source: 'a5'.repeat(32), term_starts_at_ms: now - 345 * DAY, starts_at_ms: now - 345 * DAY, expires_at_ms: ends, terminated_at_ms: null, ends_at_ms: ends },
+      next: null,
+      offers: ['Plus', 'Pro', 'Max'].map((plan) => ({ plan, action: 'unavailable', reason: 'APP_STORE_MANAGED', available_at_ms: null })),
+      storage_available: true,
+      renew_from_ms: null,
+      refund: null
+    }
+  }
   const contract = 'c7'.repeat(32)
   return {
     plan: 'Plus',
@@ -2016,6 +2032,39 @@ smoke: try {
   await main.click('[data-testid="refund-confirm"]')
   await waitFor(() => latest('plan/cancel'))
   assert.deepEqual(latest('plan/cancel').params, { id: '88'.repeat(32) })
+  await main.waitForSelector('[data-testid="plan-name"] >> text=Free')
+
+  // Apple renews an App Store term: no card offers another renewal, switch or upgrade while it lasts.
+  membership = 'appstore'
+  await main.focus('[data-testid="plan-refresh"]')
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="plan-name"] >> text=Plus')
+  await main.waitForSelector('[data-testid="plan-hero"] >> text=App Store')
+  for (const plan of ['plus', 'pro', 'max']) assert.match(await main.textContent(`[data-testid="plan-${plan}-wait"]`), /Renewed through the App Store/)
+  assert.equal(await main.locator('[data-testid="plan-cards"] button').count(), 0)
+  assert.equal(await main.locator('[data-testid="plan-hero"] >> text=Renewal opens').count(), 0)
+  {
+    const window = await app.browserWindow(main)
+    for (const [locale, theme, width, height] of [
+      ['en', 'light', 1180, 760], ['zh', 'dark', 760, 540],
+      ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540]
+    ]) {
+      await window.evaluate((window, [width, height]) => window.setContentSize(width, height), [width, height])
+      await main.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
+      await main.waitForSelector(`html[lang|="${locale}"]`)
+      await main.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
+      await main.locator('[data-testid="plan-cards"]').scrollIntoViewIfNeeded()
+      assert.ok(await main.locator('[data-testid="plan-cards"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `App Store plan fits ${locale} ${width}`)
+      assert.ok(await main.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `App Store plan no window overflow ${locale}`)
+      await main.screenshot({ path: join(shots, `plan-appstore-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+    }
+    await window.evaluate((window) => window.setContentSize(1180, 760))
+    await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+    await main.waitForSelector('html[lang="en"]')
+    await main.waitForFunction(() => !matchMedia('(prefers-color-scheme: dark)').matches)
+  }
+  membership = 'free'
+  await main.click('[data-testid="plan-refresh"]')
   await main.waitForSelector('[data-testid="plan-name"] >> text=Free')
 
   // Payments, newest first: each order with its state and only what that state allows.

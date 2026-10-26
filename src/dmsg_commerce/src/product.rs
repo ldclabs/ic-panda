@@ -266,6 +266,13 @@ fn offer(
             )
         }
         Sku::Plan(id) => {
+            // Apple renews an App Store term itself; another base term waits until it ends.
+            ensure(
+                !s.contracts.iter().any(|c| {
+                    matches!(c.source, ContractSource::AppStore { .. }) && model::end(c) > at
+                }),
+                Error::Forbidden,
+            )?;
             let plan = model::plan(&catalog, &id)?;
             let start = if let Some(current) = current {
                 ensure(

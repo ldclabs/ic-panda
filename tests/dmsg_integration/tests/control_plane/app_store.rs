@@ -97,6 +97,20 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         (transaction.clone(),),
     );
     assert_eq!(view.business_revision, repeated.unwrap().business_revision);
+    // Apple renews the term itself: no cash or PANDA base term while it lasts.
+    let renewal: Result<BillingOffer> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "prepare_account_subscription",
+        (
+            "dmsg".to_string(),
+            beneficiary(f.user, &account),
+            "plus".to_string(),
+            Hash::new([7; 32]),
+        ),
+    );
+    assert_eq!(renewal, Err(Error::Forbidden));
     let mut forged = transaction.clone();
     forged.beneficiary = beneficiary(f.user, &other);
     forged.app_account_token = dmsg_protocol::app_store::account_token(f.user, &other);
@@ -212,4 +226,6 @@ fn app_store_verifier_binding_idempotence_refunds_and_upgrade() {
         (old,),
     );
     assert_eq!(rollback, Err(Error::VersionConflict));
+    // Once the App Store term ended, other payment opens again.
+    assert_eq!(offer_sku(&f, &account, "plus", 8).sku, "plus".to_string());
 }

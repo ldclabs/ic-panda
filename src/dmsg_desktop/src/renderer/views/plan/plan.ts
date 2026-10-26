@@ -35,6 +35,7 @@ export const eligibilityLabels: Record<string, Label> = {
 export const methodLabels: Record<string, Label> = {
   Cash: 'methodCash',
   Panda: 'methodPanda',
+  AppStore: 'methodAppStore',
   Compensation: 'methodCompensation'
 }
 
@@ -46,12 +47,13 @@ export const offerLabels: Record<string, Label> = {
   upgrade: 'upgrade'
 }
 
-/** Why a plan card offers nothing now; all but a queued renewal say from when (`{time}`). */
+/** Why a plan card offers nothing now; all but a queued renewal or an App Store term say from when (`{time}`). */
 export const waitLabels: Record<string, Label> = {
   RENEWAL_QUEUED: 'renewalQueued',
   RENEWAL_WINDOW: 'renewalWindow',
   UPGRADE_CASH_ONLY: 'upgradeCashOnly',
-  SWITCH_AT_RENEWAL: 'switchAtRenewal'
+  SWITCH_AT_RENEWAL: 'switchAtRenewal',
+  APP_STORE_MANAGED: 'appStoreManaged'
 }
 
 export type Tone = 'neutral' | 'forest' | 'gem' | 'warn' | 'danger' | 'ok'
