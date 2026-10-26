@@ -62,7 +62,7 @@ struct AccountSecurityView: View {
         let epoch = model.epoch
         defer { busy = false; if epoch == model.epoch { model.authenticating = false } }
         do {
-            let started = try await engine.beginBinding(legacyOrigin: false)
+            let started = try await engine.beginBinding()
             guard let url = URL(string: started.url) else { throw CancellationError() }
             let callback = try await model.webLogin.authenticate(url: url)
             await model.waitUntilActive()

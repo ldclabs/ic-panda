@@ -73,6 +73,25 @@ packages so their contents use the verified preview and explicit-selection flow.
 
 ## Session and privacy behavior
 
+Mobile login and login binding always use the `dmsg.net` identity domain. The
+mobile UI and bridge no longer offer the `panda.fans` selector; old-account and
+legacy-data migration remain desktop workflows. Existing account data is not
+recreated or merged just because a login domain changes.
+
+System web authentication requests an ephemeral browser session for each login.
+This avoids reusing persisted website data after an Internet Identity IndexedDB
+cache failure in the system authentication window. II still owns authentication
+and passkey access; users may need to select their identity again. The fixed HTTPS
+callback and core delegation validation are unchanged. This is a client-side
+isolation measure, not a repair of II's cache implementation; successful Safari
+login alone does not establish that the in-app flow works on a physical device.
+
+Newly approved devices still need relay connectivity to retrieve their encrypted
+root bundle before entering the workspace. A failed initial download is not a
+reason to revoke the device or reset its local data. The native console records
+only the core's allowlisted diagnostic source, reason and HTTP status, prefixed
+with `dmsg:`; it does not record request URLs, identities, tokens or content.
+
 One application owns one engine. UI snapshots carry a generation, and Swift
 also invalidates view work on lock/account changes. The core's bounded host
 owns the client without holding a mutex across network waits. Lock cancels the
@@ -136,6 +155,13 @@ settings confirmation for the current account. It runs only while the app is
 open and unlocked; interaction cancels it in favor of the user's operation.
 It does not select files for backup. Files require their own explicit selection
 and confirmation. This opt-in differs from the brief's automatic-sync default.
+
+Manual synchronization shows an activity indicator until completion or failure.
+Both manual and opted-in synchronization refresh the verified cloud-backup
+inventory. Files lists cloud backups directly alongside local content; restoring
+file bytes onto this device remains an explicit action. The Account header reads
+the official public name and avatar, with anonymous, bounded avatar downloads and
+an explicit retry when loading fails.
 
 Recovery checks use public certified metadata while the app is active, including
 when the content workspace is locked. They do not depend on content-sync opt-in,

@@ -7,7 +7,6 @@ struct PublicProfileView: View {
     @State private var updated: Int64?
     @State private var status = ""
     @State private var confirming = false
-    struct Profile: Decodable { let name: String?; let description: String?; let updatedAt: Int64 }
     struct Publication: Decodable { let published: Bool }
     var body: some View {
         Form {
@@ -18,7 +17,7 @@ struct PublicProfileView: View {
         }.privateScreen().navigationTitle("Public profile").task {
             do {
                 guard let result = try await model.engine?.profile() else { return }
-                let profile: Profile = try model.decode(result)
+                let profile: AccountProfile = try model.decode(result)
                 name = profile.name ?? ""; about = profile.description ?? ""; updated = profile.updatedAt
             } catch { model.report(error) }
         }.confirmationDialog("Publish these details publicly?", isPresented: $confirming) {

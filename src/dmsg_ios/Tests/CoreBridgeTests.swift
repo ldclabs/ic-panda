@@ -58,6 +58,8 @@ final class CoreBridgeTests: XCTestCase {
         XCTAssertEqual(currentState.generation, resumed.generation)
         do { _ = try await engine.recoveryWarning(); XCTFail("Stale security observation") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
+        do { _ = try await engine.profileAvatar(url: "https://assets.dmsg.net/avatar.png"); XCTFail("Stale avatar fetch") }
+        catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
         try await engine.close()
     }
 }

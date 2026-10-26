@@ -6,9 +6,10 @@ extension SessionModel {
     /// UI-test-only, in-memory presentation fixtures. Never unlocks Rust,
     /// writes a real workspace, or appears in a Release build.
     func loadFixtures() {
+        let access = ProcessInfo.processInfo.arguments.contains("--ui-access")
         installFixtures(
-            SessionSnapshot(generation: 0, sequence: 0, state: "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
-                            pendingSync: 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: false, setupPending: false, lastSyncAtMs: nil, syncError: nil),
+            SessionSnapshot(generation: 0, sequence: 0, state: access ? "root_required" : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
+                            pendingSync: 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 VaultItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: "Personal development account", favorite: true, synced: true, conflict: false, reserved: false, files: [],
                           fields: [VaultField(id: "username", kind: "text", label: "Username", value: "lin@studio.example", concealed: false),
@@ -16,6 +17,7 @@ extension SessionModel {
                 VaultItem(id: "fixture-mail", revision: "1", kind: "login", title: "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, synced: true, conflict: false, reserved: false, files: [], fields: []),
                 VaultItem(id: "fixture-note", revision: "1", kind: "note", title: "Project notes", subtitle: "A place for unfinished ideas", notes: "", favorite: false, synced: false, conflict: false, reserved: false, files: [], fields: []),
             ])
+        if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(synchronizing: true) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {
             let account = "040g2081040g2081040g"
             recordRecoveryObservation(RecoveryObservation(account: account, pending: true,

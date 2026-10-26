@@ -1,10 +1,32 @@
 import Foundation
 
+struct AccountProfile: Decodable {
+    let name: String?
+    let description: String?
+    let avatarUrl: String?
+    let updatedAt: Int64
+
+    var displayName: String? {
+        guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+        return name
+    }
+}
+
 struct LibraryListing: Decodable {
     let folder: FolderItem?
     let folders: [FolderItem]
     let files: [LibraryFile]
     static let empty = LibraryListing(folder: nil, folders: [], files: [])
+}
+
+struct CloudBackup: Decodable, Identifiable {
+    let uploadId: String
+    let name: String?
+    let size: UInt64?
+    let bytes: UInt64
+    let needsRoot: Bool
+    let local: Bool
+    var id: String { uploadId }
 }
 
 struct FolderItem: Decodable, Identifiable { let id: String; let name: String; let parent: String? }

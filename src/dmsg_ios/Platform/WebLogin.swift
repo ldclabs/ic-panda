@@ -19,7 +19,9 @@ final class WebLogin: NSObject, ASWebAuthenticationPresentationContextProviding 
                 else { completion.finish(.failure(error ?? CancellationError())) }
             }
             session.presentationContextProvider = self
-            session.prefersEphemeralWebBrowserSession = false
+            // II caches subnet keys in IndexedDB. Isolate each attempt from
+            // persisted browser data; a failed cache must not poison retries.
+            session.prefersEphemeralWebBrowserSession = true
             self.session = session
             if !session.start() { self.session = nil; completion.finish(.failure(CancellationError())) }
         }

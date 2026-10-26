@@ -9,7 +9,6 @@ struct FilesView: View {
     @State private var selected: String?
     @State private var importing = false
     @State private var photo: PhotosPickerItem?
-    @State private var cloud = false
     @State private var newFolder = false
     @State private var folderName = ""
     @State private var trash = false
@@ -34,13 +33,17 @@ struct FilesView: View {
                         }.listRowBackground(Color.clear)
                     }
                 }
-                Section("All files") {
+                Section("On this device") {
                     ForEach(model.library.files) { file in
                         NavigationLink(value: file.id) { FileRow(file: file) }
                             .contextMenu { Button("Move to Trash", role: .destructive) { removing = file } }
                     }
-                    if model.library.files.isEmpty { ContentUnavailableView("Your files stay private", systemImage: "folder", description: Text("Import a document to encrypt it on this device. Cloud backup is a separate action.")) }
+                    if model.library.files.isEmpty && model.cloudBackups.isEmpty && !model.loadingCloudBackups && !model.cloudBackupsFailed {
+                        Text("Import a document to encrypt it on this device. Cloud backup is a separate action.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
+                CloudBackupSection()
                 NoticeBar(text: String(localized: "Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup."))
                     .listRowBackground(Color.clear)
             }.listStyle(.plain).privateScreen().navigationTitle(model.library.folder?.name ?? String(localized: "Files"))
@@ -54,11 +57,11 @@ struct FilesView: View {
                             Button("Import file", systemImage: "doc") { importing = true }
                             PhotosPicker(selection: $photo, matching: .images) { Label("Import photo", systemImage: "photo") }
                             Button("New folder", systemImage: "folder.badge.plus") { newFolder = true }
-                            Button("Cloud backups", systemImage: "icloud") { cloud = true }
                             Button("Trash", systemImage: "trash") { trash = true }
                         }.disabled(model.filesFolder != (model.library.folder?.id ?? "root"))
                     }
-                }.task { await model.refresh() }
+                }.task { await model.refresh(); await model.loadCloudBackups(refresh: true) }
+                .refreshable { await model.synchronize() }
                 .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { result in
                     Task { await importFile(result) }
                 }
@@ -78,7 +81,6 @@ struct FilesView: View {
         .navigationSplitViewStyle(.balanced)
         .onAppear { if selected == nil { columns = .all } }
         .onChange(of: selected) { _, value in if value != nil { columns = .automatic } }
-        .sheet(isPresented: $cloud) { NavigationStack { CloudBackupsView() } }
         .sheet(isPresented: $trash) { NavigationStack { FileTrashView() } }
         .confirmationDialog("Move this local file to Trash?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
             Button("Move to Trash", role: .destructive) { if let removing { Task {

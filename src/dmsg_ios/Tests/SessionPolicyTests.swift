@@ -91,16 +91,43 @@ final class SessionPolicyTests: XCTestCase {
 
     func testCancelledBusyOperationCannotClearItsReplacementAfterLock() async {
         let model = SessionModel()
-        let old = model.beginBusyOperation()
+        let old = model.beginBusyOperation(synchronizing: true)
+        XCTAssertTrue(model.synchronizing)
         model.background()
         XCTAssertTrue(model.finishBusyOperation(old))
         XCTAssertFalse(model.busy)
-        let locked = model.beginBusyOperation()
+        XCTAssertFalse(model.synchronizing)
+        let locked = model.beginBusyOperation(synchronizing: true)
         await model.lock()
-        let current = model.beginBusyOperation()
+        XCTAssertFalse(model.synchronizing)
+        let current = model.beginBusyOperation(synchronizing: true)
         XCTAssertFalse(model.finishBusyOperation(locked))
         XCTAssertTrue(model.busy)
+        XCTAssertTrue(model.synchronizing)
         XCTAssertTrue(model.finishBusyOperation(current))
         XCTAssertFalse(model.busy)
+        XCTAssertFalse(model.synchronizing)
+    }
+
+    func testPublicProfileAndCloudBackupDecodeCoreWireFields() throws {
+        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let profile = try decoder.decode(AccountProfile.self,
+            from: Data(#"{"name":"  Studio  ","avatar_url":"https://assets.dmsg.net/avatar.png","updated_at":42}"#.utf8))
+        XCTAssertEqual(profile.displayName, "Studio")
+        XCTAssertEqual(profile.avatarUrl, "https://assets.dmsg.net/avatar.png")
+        let backup = try decoder.decode(CloudBackup.self,
+            from: Data(#"{"upload_id":"backup","name":"Notes.pdf","size":12,"bytes":64,"needs_root":false,"local":false}"#.utf8))
+        XCTAssertEqual(backup.id, "backup")
+        XCTAssertEqual(backup.name, "Notes.pdf")
+        XCTAssertFalse(backup.local)
+    }
+
+    func testLockClearsCloudBackupMetadata() async {
+        let model = SessionModel()
+        model.loadFixtures()
+        XCTAssertFalse(model.cloudBackups.isEmpty)
+        await model.lock()
+        XCTAssertTrue(model.cloudBackups.isEmpty)
+        XCTAssertFalse(model.loadingCloudBackups)
     }
 }

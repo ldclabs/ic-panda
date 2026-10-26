@@ -1,5 +1,6 @@
 //! Native mobile API. The generated API exposes named operations, not daemon RPC.
 mod approvals;
+mod diagnostics;
 mod error;
 mod models;
 mod operation;
@@ -111,6 +112,7 @@ impl MobileEngine {
         staging: String,
         platform: Box<dyn Platform>,
     ) -> Result<Arc<Self>> {
+        diagnostics::init();
         let platform: Arc<dyn Platform> = Arc::from(platform);
         let adapter = Arc::new(platform::Adapter(platform.clone()));
         let mut config = Config::production()?;
@@ -233,7 +235,7 @@ impl MobileEngine {
         self.session_state().await
     }
 
-    pub async fn begin_login(&self, legacy_origin: bool) -> Result<LoginStart> {
+    pub async fn begin_login(&self) -> Result<LoginStart> {
         self.cancel_login();
         let revision = self.login.lock().map_err(|_| Error::Locked)?.revision;
         let config = self.config.clone();
@@ -242,11 +244,7 @@ impl MobileEngine {
                 let targets = dmsg_client::account::login_targets(&config).await?;
                 LoginSession::ios(
                     &targets,
-                    if legacy_origin {
-                        "https://panda.fans"
-                    } else {
-                        "https://dmsg.net"
-                    },
+                    "https://dmsg.net",
                     dmsg_client::login::DEFAULT_TTL_MS,
                     dmsg_client::now_ms(),
                 )
@@ -273,14 +271,14 @@ impl MobileEngine {
         }
     }
 
-    pub async fn begin_binding(&self, legacy_origin: bool) -> Result<LoginStart> {
+    pub async fn begin_binding(&self) -> Result<LoginStart> {
         let generation = self.host.generation();
         self.host
             .run_at(generation, |c| {
                 Box::pin(async { ensure(c.session_state().state == "unlocked", Error::Locked) })
             })
             .await?;
-        let start = self.begin_login(legacy_origin).await?;
+        let start = self.begin_login().await?;
         let mut login = self.login.lock().map_err(|_| Error::Locked)?;
         ensure(
             login
@@ -1224,6 +1222,20 @@ impl MobileEngine {
             Box::pin(async { dmsg_client::principal::show(&c.cooperative_hold()).await })
         })
         .await
+    }
+
+    /// Fetch a public profile image through the core's anonymous, bounded
+    /// downloader. A stale account handle cannot return image bytes to Swift.
+    pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
+        self.host
+            .run(move |c| {
+                Box::pin(async move {
+                    let image = dmsg_client::principal::avatar(&c.cooperative_hold(), &url).await?;
+                    Ok(image.map(|(_, bytes)| bytes))
+                })
+            })
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn publish_profile(

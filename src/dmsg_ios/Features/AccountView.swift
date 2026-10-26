@@ -7,16 +7,37 @@ struct AccountView: View {
     @Environment(SessionModel.self) private var model
     @State private var signingOut = false
     @State private var confirmAutomaticSync = false
+    @State private var profile: AccountProfile?
+    @State private var avatar: UIImage?
+    @State private var loadingProfile = false
+    @State private var profileFailed = false
     var body: some View {
         @Bindable var model = model
         List {
             HStack(spacing: 12) {
-                ObjectIcon(name: "person.crop.circle")
+                Group {
+                    if let avatar {
+                        Image(uiImage: avatar).resizable().scaledToFill()
+                    } else {
+                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFit()
+                            .padding(8).foregroundStyle(Theme.forest)
+                    }
+                }.frame(width: 60, height: 60)
+                    .background(Theme.forest.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .accessibilityIdentifier("account.avatar")
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("My account").font(.title2.bold())
-                    Text(model.session?.account ?? "").font(.caption.monospaced()).textSelection(.enabled)
-                }
+                    Text(profile?.displayName ?? String(localized: "My account"))
+                        .font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("account.name")
+                    Text(model.session?.account ?? "").font(.caption.monospaced())
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                if loadingProfile { ProgressView().controlSize(.small) }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+            if profileFailed {
+                Button("Retry loading profile") { Task { await loadProfile() } }.disabled(loadingProfile)
+            }
             Section {
                 NavigationLink { PublicProfileView() } label: { Label("Public profile", systemImage: "person.text.rectangle") }
                 NavigationLink { ApprovalsView() } label: { Label("Approvals", systemImage: "checkmark.shield") }
@@ -41,13 +62,22 @@ struct AccountView: View {
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
             }
             Section {
-                Button("Sync now", systemImage: "arrow.triangle.2.circlepath") { Task { await model.synchronize() } }.disabled(model.busy)
+                Button { Task { await model.synchronize() } } label: {
+                    Label {
+                        if model.synchronizing { Text("Syncing…") } else { Text("Sync now") }
+                    } icon: {
+                        if model.synchronizing {
+                            ProgressView().controlSize(.small).tint(Theme.forest).accessibilityHidden(true)
+                        } else { Image(systemName: "arrow.triangle.2.circlepath") }
+                    }
+                }.disabled(model.busy).accessibilityIdentifier("account.sync")
                 Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }
                 Button("Sign out", role: .destructive) { signingOut = true }
             }
             NoticeBar(text: String(localized: "This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device."))
                 .listRowBackground(Color.clear)
         }.privateScreen().navigationTitle("Account")
+            .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0)") { await loadProfile() }
             .confirmationDialog("Enable automatic sync for this account?", isPresented: $confirmAutomaticSync) {
                 Button("Enable automatic sync") { model.setAutomaticSync(true) }
             } message: {
@@ -57,6 +87,36 @@ struct AccountView: View {
             .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }
+    }
+
+    private func loadProfile() async {
+        #if DEBUG
+        if model.uiTesting {
+            let name = ProcessInfo.processInfo.arguments.contains("--ui-long-profile")
+                ? "Studio Research · Design, Security and Collaboration" : "Studio"
+            profile = AccountProfile(name: name, description: nil, avatarUrl: nil, updatedAt: 1)
+            avatar = UIImage(named: "BrandMark")
+            return
+        }
+        #endif
+        guard let engine = model.engine, model.unlocked else { return }
+        let epoch = model.epoch, account = model.session?.account
+        loadingProfile = true; profileFailed = false
+        defer { if !Task.isCancelled, epoch == model.epoch { loadingProfile = false } }
+        do {
+            let result = try await engine.profile()
+            guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
+            let incoming: AccountProfile = try model.decode(result)
+            if incoming.avatarUrl != profile?.avatarUrl { avatar = nil }
+            profile = incoming
+            if let url = incoming.avatarUrl, avatar == nil {
+                let bytes = try await engine.profileAvatar(url: url)
+                guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
+                avatar = bytes.flatMap { UIImage(data: $0) }
+            }
+        } catch {
+            if !Task.isCancelled, epoch == model.epoch, account == model.session?.account { profileFailed = true }
+        }
     }
 
     private func logout() async {

@@ -163,6 +163,78 @@ environment; they are not accepted as visual evidence. Duo visual checks used
 the visible Device Hub window. Local build products and screenshots are excluded
 from Git. The manual GitHub workflow was not dispatched.
 
+## System web authentication isolation (2026-10-26)
+
+A physical-device report showed `transaction -> get -> fetchSubnetKeys` failing
+inside II's `id.ai` page, while the user confirmed Safari login worked on the
+same phone. The served II bundle uses IndexedDB for this cache and propagates
+cache read errors into authentication. The screenshot does not identify why
+the IndexedDB connection failed.
+
+The native session now requests ephemeral website storage to avoid reusing
+persisted browser state between login attempts. This is a client-side mitigation;
+the fixed HTTPS callback and Rust delegation checks are unchanged. Debug builds
+for the ARM64 iOS simulator and generic iOS device passed with signing disabled.
+After installing this change, the user confirmed that II login succeeded and
+returned to dMsg on the affected physical iPhone. The test suite was not rerun;
+this confirms that reported login path, not the full device/security matrix.
+No II deployment was changed.
+
+## Approved device and first unlock (2026-10-26)
+
+The user confirmed desktop approval of the iPhone, followed by
+`EXECUTION_UNKNOWN` on authorization refresh, II login and system unlock. After
+enabling a VPN, system unlock entered the workspace with the same approved
+device. This establishes that the reported failure depends on network access;
+it does not identify a particular blocked host or transport failure. No device
+revocation, re-pairing or workspace reset was needed.
+
+The initially empty workspace was also verified: automatic sync was off, and
+the user confirmed that Account > Sync now brought the existing account data
+onto the iPhone. Unlock and content synchronization remain separate actions.
+
+The mobile host now forwards only `dmsg::diagnostic` records validated by the
+core's allowlist to the native console as `dmsg: <source> <reason> <status>`.
+Other library logs and arbitrary messages are rejected. The authorization and
+root-decryption rules are unchanged.
+
+Validation: all 10 mobile Rust tests passed; mobile all-target Clippy with
+`-D warnings`, Rustfmt and `git diff --check` passed. Device and ARM64 simulator
+Rust libraries and bindings were regenerated, and the Swift simulator app built
+successfully. Native UI tests and a new signed-device installation were not run
+for this diagnostic-only change.
+
+## Sync feedback, access layout and account content (2026-10-26)
+
+Manual sync now owns a visible spinner and localized waiting label through
+completion/failure; locking clears that state and a late completion cannot clear
+a replacement operation. Access actions use equal widths and a primary/secondary
+hierarchy. Mobile login and binding are fixed to `dmsg.net`; `panda.fans` and old
+data migration remain desktop workflows at the user's explicit direction.
+
+The Account header loads the official name and avatar with the core's bounded,
+anonymous image reader. Files exposes the verified cloud-backup inventory inline;
+manual and opted-in synchronization refresh that inventory, while file restoration
+still requires a separate selection. Profile and backup results are guarded against
+cancelled or replaced sessions, and lock clears cached backup metadata.
+
+- 28 distinct XCTest/XCUITest cases passed across the full run and targeted
+  reruns, with no remaining failures. The first file-row test could not address
+  the restore button; an explicit bordered button and removal of the parent
+  accessibility identifier corrected it. A new Chinese test initially
+  used the wrong tab translation and passed after using the actual label.
+- Screenshots were inspected for Chinese access actions, the account header,
+  manual sync progress, inline cloud files, dark Chinese long names, and dark
+  Arabic at the largest accessibility text size on iPhone 16 Pro / iOS 18.4.
+- All 10 mobile Rust tests, mobile all-target Clippy with `-D warnings`, Rustfmt
+  and diff whitespace checks passed. Device/simulator Rust slices and bindings
+  were rebuilt. The simulator Debug app and unsigned device Release app built;
+  test-fixture markers were absent from the Release executable. Rust slices used
+  the development profile, so this is not a release-performance measurement.
+- The user installed the update on the affected iPhone and confirmed that the
+  account name, avatar and desktop-origin cloud backups all appeared correctly.
+  A real-device restore/download of one of those backups was not separately tested.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a
@@ -171,7 +243,9 @@ claim that every P0–P3 milestone or the App Store release is complete**.
 - Release the frontend with the login page, fixed callback page and the AASA
   for `S9Z2WAMAV8.net.dmsg.ios` (committed in `static/.well-known`). Verify the
   id.ai popup/passkey flow and full fragment callback in
-  `ASWebAuthenticationSession` on a physical phone. No such login was performed.
+  `ASWebAuthenticationSession` on a physical phone. The affected-phone login and
+  return were confirmed by the user after the isolation change above; the wider
+  device and identity-provider matrix remains unverified.
 - Verify iOS Secure Enclave, device-password fallback, locked-device data
   protection, cross-app paste, cross-device edits/conflicts, approval/revocation
   and recovery against a real account. Also verify actual Face ID/Touch ID ACLs,

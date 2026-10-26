@@ -127,4 +127,78 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Recovery warning preserves navigation"; shot.lifetime = .keepAlways; add(shot)
     }
+
+    func testAccountShowsPublicNameAvatarAndSyncProgress() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-syncing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        tab(app, symbol: "person.crop.circle", title: "Account").tap()
+        XCTAssertTrue(app.staticTexts["account.name"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["account.name"].label, "Studio")
+        XCTAssertTrue(app.images["account.avatar"].exists)
+        let header = XCTAttachment(screenshot: app.screenshot())
+        header.name = "Account public profile"; header.lifetime = .keepAlways; add(header)
+        let sync = app.buttons["account.sync"]
+        for _ in 0..<4 where !sync.isHittable { app.swipeUp() }
+        XCTAssertTrue(sync.exists)
+        XCTAssertEqual(sync.label, "Syncing…")
+        XCTAssertFalse(sync.isEnabled)
+        let progress = XCTAttachment(screenshot: app.screenshot())
+        progress.name = "Manual sync progress"; progress.lifetime = .keepAlways; add(progress)
+    }
+
+    func testAccessActionsAreAlignedWithoutLegacyLogin() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let unlock = app.buttons["login.unlock"], authorize = app.buttons["login.authorize"], login = app.buttons["login.start"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 5))
+        XCTAssertEqual(unlock.frame.width, authorize.frame.width, accuracy: 2)
+        XCTAssertEqual(unlock.frame.width, login.frame.width, accuracy: 2)
+        XCTAssertTrue(unlock.isHittable && authorize.isHittable && login.isHittable)
+        XCTAssertEqual(app.switches.count, 0)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Chinese access actions"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testAccessActionsRemainReachableInDarkArabic() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-dark", "-AppleLanguages", "(ar)", "-AppleLocale", "ar",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        for identifier in ["login.unlock", "login.authorize", "login.start"] {
+            let button = app.buttons[identifier]
+            XCTAssertTrue(button.waitForExistence(timeout: 5))
+            for _ in 0..<6 where !button.isHittable { app.swipeUp() }
+            XCTAssertTrue(button.isHittable)
+        }
+        XCTAssertEqual(app.switches.count, 0)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Dark Arabic large-text access actions"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testFilesShowCloudBackupsWithoutOpeningImportMenu() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        tab(app, symbol: "folder", title: "Files").tap()
+        XCTAssertTrue(app.staticTexts["Project brief.pdf"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["backup.restore.fixture-backup"].isHittable)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Files shows another device's cloud backup"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testAccountHeaderWrapsLongNameInDarkChinese() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-dark", "--ui-long-profile", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        tab(app, symbol: "person.crop.circle", title: "我的").tap()
+        let name = app.staticTexts["account.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertEqual(name.label, "Studio Research · Design, Security and Collaboration")
+        XCTAssertTrue(name.isHittable)
+        XCTAssertLessThanOrEqual(name.frame.maxX, app.frame.maxX - 16)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Dark Chinese account with a long public name"; shot.lifetime = .keepAlways; add(shot)
+    }
 }

@@ -8,6 +8,9 @@ struct DMsgApp: App {
     var body: some Scene {
         WindowGroup {
             RootView().environment(model).tint(Theme.forest)
+                #if DEBUG
+                .preferredColorScheme(model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-dark") ? .dark : nil)
+                #endif
                 .task { await model.start() }
                 .task(id: "\(scenePhase == .active):\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
                     guard scenePhase == .active, model.session?.account != nil else { return }

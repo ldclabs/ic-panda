@@ -12,6 +12,7 @@ final class SessionModel {
     private(set) var viewGeneration: UInt64 = 0
     var concealed = true
     var busy = false
+    private(set) var synchronizing = false
     var error: String?
     var notice: String?
     var vault: [VaultItem] = []
@@ -20,6 +21,10 @@ final class SessionModel {
     /// account session and are also persisted by the core.
     var drafts: [String: String] = [:]
     var library: LibraryListing = .empty
+    private(set) var cloudBackups: [CloudBackup] = []
+    private(set) var cloudBackupsFailed = false
+    private var cloudBackupRequest: UUID?
+    var loadingCloudBackups: Bool { cloudBackupRequest != nil }
     var filesFolder = "root"
     var approvals: [ApprovalView] = []
     private(set) var recoveryWarning: RecoveryObservation?
@@ -74,6 +79,7 @@ final class SessionModel {
                 observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
         }
         channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Private project conversation")]
+        cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false)]
     }
     #endif
 
@@ -106,15 +112,16 @@ final class SessionModel {
 
     func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
 
-    func beginBusyOperation() -> UUID {
+    func beginBusyOperation(synchronizing: Bool = false) -> UUID {
         let token = UUID(); busyOperation = token; busy = true
+        self.synchronizing = synchronizing
         return token
     }
 
     @discardableResult
     func finishBusyOperation(_ token: UUID) -> Bool {
         guard busyOperation == token else { return false }
-        busyOperation = nil; busy = false
+        busyOperation = nil; busy = false; synchronizing = false
         return true
     }
 
@@ -130,6 +137,7 @@ final class SessionModel {
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             epoch &+= 1; viewGeneration &+= 1
             vault = []; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; approvals = []; search = ""
+            clearCloudBackups()
         }
         self.engine = handle; session = state; lastSessionSequence = state.sequence
         uncoverIfActive()
@@ -162,6 +170,8 @@ final class SessionModel {
                 _ = try await engine.reconcile(operation: operation)
                 _ = try await engine.sync(operation: operation)
                 _ = try await engine.syncConnect(operation: operation)
+                guard current == epoch else { return }
+                try await fetchCloudBackups(refresh: true, operation: operation)
                 let channels = try await engine.channels().items
                 for index in 0..<min(4, channels.count) {
                     let item = channels[(automaticChannelCursor + index) % channels.count]
@@ -250,10 +260,11 @@ final class SessionModel {
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); busy = false; authenticating = false
-        busyOperation = nil
+        busyOperation = nil; synchronizing = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]
         vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; session = nil
+        clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
         engine = nil; security?.cancelPresence()
     }
@@ -269,8 +280,9 @@ final class SessionModel {
         epoch &+= 1
         viewGeneration &+= 1; drafts = [:]
         vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; search = ""
+        clearCloudBackups()
         busy = false; notice = nil; error = nil
-        busyOperation = nil
+        busyOperation = nil; synchronizing = false
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin(); authenticating = false }
         security?.cancelPresence()
@@ -278,7 +290,7 @@ final class SessionModel {
         session = nil
     }
 
-    func login(legacy: Bool = false) async {
+    func login() async {
         guard let engine, !busy else { return }
         let operation = beginBusyOperation()
         authenticating = true; error = nil; activity()
@@ -286,7 +298,7 @@ final class SessionModel {
         let current = authenticationGeneration
         defer { if finishBusyOperation(operation) { authenticating = false } }
         do {
-            let start = try await engine.beginLogin(legacyOrigin: legacy)
+            let start = try await engine.beginLogin()
             guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
             let callback = try await webLogin.authenticate(url: url)
             await waitUntilActive()
@@ -346,6 +358,7 @@ final class SessionModel {
                 let result = try await engine.files(folder: folder)
                 let files: LibraryListing = try decode(result)
                 guard current == epoch, folder == filesFolder else { return }; library = files
+                await loadCloudBackups(refresh: false)
             case .account: break
             }
         } catch { if current == epoch { report(error) } }
@@ -364,14 +377,43 @@ final class SessionModel {
     func synchronize() async {
         activity()
         guard let engine, !busy else { return }
-        let operation = beginBusyOperation(), current = epoch
+        let operation = beginBusyOperation(synchronizing: true), current = epoch
         defer { finishBusyOperation(operation) }
         do {
             _ = try await coreOperation { try await engine.reconcile(operation: $0) }
             _ = try await coreOperation { try await engine.sync(operation: $0) }
             _ = try await coreOperation { try await engine.syncConnect(operation: $0) }
+            guard current == epoch else { return }
+            try await coreOperation { try await fetchCloudBackups(refresh: true, operation: $0) }
             guard current == epoch else { return }; await refresh()
         } catch { if current == epoch { await updateSession(); report(error) } }
+    }
+
+    func loadCloudBackups(refresh: Bool) async {
+        let current = epoch
+        do { try await coreOperation { try await fetchCloudBackups(refresh: refresh, operation: $0) } }
+        catch { if current == epoch { report(error) } }
+    }
+
+    private func fetchCloudBackups(refresh: Bool, operation: OperationToken) async throws {
+        guard let engine, unlocked else { return }
+        let current = epoch, request = UUID()
+        cloudBackupRequest = request
+        defer { if cloudBackupRequest == request { cloudBackupRequest = nil } }
+        do {
+            let result = try await engine.cloudBackups(refresh: refresh, operation: operation)
+            guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
+            cloudBackups = try decode(result)
+            if refresh { cloudBackupsFailed = false }
+        } catch {
+            if !Task.isCancelled, current == epoch, cloudBackupRequest == request {
+                cloudBackupsFailed = true; throw error
+            }
+        }
+    }
+
+    private func clearCloudBackups() {
+        cloudBackups = []; cloudBackupsFailed = false; cloudBackupRequest = nil
     }
 
     func loadApprovals() async {
@@ -454,6 +496,7 @@ final class SessionModel {
                 if code == "LOCKED" { return }
                 if code == "DEVICE_NOT_APPROVED" {
                     epoch &+= 1; viewGeneration &+= 1; drafts = [:]; vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; session = nil
+                    clearCloudBackups()
                     let engine = engine
                     Task { _ = try? await engine?.lock() }
                 }
