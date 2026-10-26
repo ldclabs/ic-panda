@@ -20,7 +20,7 @@ use crate::hold::Hold;
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
 use dmsg_types::{DAY, Error, Hash, MINUTE, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{Value, json};
 use zeroize::Zeroizing;
 
 /// The sealed records of the links this device made.
@@ -159,6 +159,7 @@ pub enum LinkSource {
 
 /// A link this device made.
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct LinkRecord {
     pub(crate) source: LinkSource,
     pub(crate) name: String,
@@ -175,6 +176,24 @@ pub(crate) struct LinkRecord {
     pub(crate) revoked_at: Option<u64>,
     /// As the relay last reported.
     pub(crate) downloads: u64,
+}
+
+impl LinkRecord {
+    /// Read local records and decrypted cloud management with the same source
+    /// rules. File links written before snapshots stored `file`/`version` at
+    /// the top level; their keys, limits and observation history stay intact.
+    pub(super) fn from_value(mut value: Value) -> Result<Self> {
+        let fields = value.as_object_mut().ok_or(Error::IntegrityFailed)?;
+        if !fields.contains_key("source") {
+            let file = fields.remove("file").ok_or(Error::IntegrityFailed)?;
+            let version = fields.remove("version").ok_or(Error::IntegrityFailed)?;
+            fields.insert(
+                "source".into(),
+                json!({"type":"file_version", "file":file, "version":version}),
+            );
+        }
+        serde_json::from_value(value).map_err(|_| Error::IntegrityFailed)
+    }
 }
 
 /// A link as it leaves the daemon; `url`, `file`, `version`, `name` and
@@ -245,8 +264,8 @@ impl Client {
     pub(crate) fn link_records(&self) -> Result<Vec<LinkRecord>> {
         let mut records = Vec::new();
         for key in self.workspace.store.sealed_keys(LINK)? {
-            if let Some(record) = self.workspace.private::<LinkRecord>(self.keys()?, &key)? {
-                records.push(record);
+            if let Some(value) = self.workspace.private::<Value>(self.keys()?, &key)? {
+                records.push(LinkRecord::from_value(value)?);
             }
         }
         Ok(records)

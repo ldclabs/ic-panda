@@ -56,6 +56,94 @@ fn links_take_the_site_from_the_login_url() {
     assert_eq!(state(10, Some(3), 9), "revoked");
 }
 
+fn file_link_record() -> serde_json::Value {
+    serde_json::json!({
+        "file": "11".repeat(32),
+        "version": "22".repeat(32),
+        "name": "fixture.txt",
+        "size": 7,
+        "share_id": "33".repeat(32),
+        "upload_id": "44".repeat(32),
+        "key": b64(&[5; 32]),
+        "expires_at": crate::now_ms() + DAY,
+        "max_downloads": 3,
+        "password": false,
+        "created_at": 1,
+        "revoked_at": null,
+        "downloads": 1,
+    })
+}
+
+#[test]
+fn file_links_without_source_remain_readable_by_health() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    // The persisted file-link shape before Vault snapshots introduced `source`.
+    let record = file_link_record();
+    let share_id = record["share_id"].as_str().unwrap();
+    let key = format!("{LINK}{share_id}");
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), &key, &record)
+        .unwrap();
+    let sealed = client.workspace.store.sealed(&key).unwrap();
+
+    let health = client.secret_health().unwrap();
+    let finding = health["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["rule"] == "active_share")
+        .unwrap();
+    assert_eq!(finding["subject"], share_id);
+    assert_eq!(finding["evidence"], "cloud_state_not_refreshed");
+    assert_eq!(finding["observed_at"], record["created_at"]);
+    let links = client.files_share_links().unwrap();
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0].file.as_deref(), record["file"].as_str());
+    assert_eq!(links[0].version.as_deref(), record["version"].as_str());
+    assert_eq!(links[0].downloads, 1);
+    assert_eq!(links[0].max_downloads, 3);
+    assert_eq!(links[0].last_checked_at, None);
+    assert!(
+        links[0]
+            .url
+            .as_ref()
+            .unwrap()
+            .ends_with(record["key"].as_str().unwrap())
+    );
+    assert_eq!(client.workspace.store.sealed(&key).unwrap(), sealed);
+}
+
+#[test]
+fn link_records_reject_incomplete_ambiguous_and_unknown_sources() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let original = file_link_record();
+    let key = format!("{LINK}{}", original["share_id"].as_str().unwrap());
+    let mut missing = original.clone();
+    missing.as_object_mut().unwrap().remove("version");
+    let mut wrong_type = original.clone();
+    wrong_type["file"] = serde_json::Value::Null;
+    let mut ambiguous = original.clone();
+    ambiguous["source"] = json!({"type":"file_version","file":"other","version":"other"});
+    let mut malformed = original.clone();
+    malformed["source"] = serde_json::Value::Null;
+    let mut unknown = original.clone();
+    unknown["unexpected"] = true.into();
+    for record in [missing, wrong_type, ambiguous, malformed, unknown] {
+        client
+            .workspace
+            .put_private(client.keys().unwrap(), &key, &record)
+            .unwrap();
+        assert_eq!(
+            client.files_share_links().err(),
+            Some(Error::IntegrityFailed)
+        );
+        assert_eq!(client.secret_health().err(), Some(Error::IntegrityFailed));
+    }
+}
+
 /// The share vector: a browser page that follows `content-v1.json` opens
 /// the same manifest, key wrap and chunk.
 #[test]

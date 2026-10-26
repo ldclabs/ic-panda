@@ -158,9 +158,8 @@ fn decorate(c: &mut Client, item: &mut Value, kind: &str, resource: &str) -> Res
                 metadata["intent"]["kind"].as_str(),
                 Some("link" | "secret_link")
             ) {
-                let mut record: super::link::LinkRecord =
-                    serde_json::from_value(metadata["intent"]["record"].clone())
-                        .map_err(|_| Error::IntegrityFailed)?;
+                let mut record =
+                    super::link::LinkRecord::from_value(metadata["intent"]["record"].clone())?;
                 if !item["share"].is_null() {
                     record.revoked_at = item["share"]["revoked_at"].as_u64();
                     c.save_link(&record)?;
@@ -592,9 +591,7 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
             target.owner_kind == "account",
             Error::InvalidInput("link target must be an account".into()),
         )?;
-        let record: super::link::LinkRecord =
-            serde_json::from_value(metadata["intent"]["record"].clone())
-                .map_err(|_| Error::IntegrityFailed)?;
+        let record = super::link::LinkRecord::from_value(metadata["intent"]["record"].clone())?;
         ensure(record.upload_id == target.upload_id, Error::IntegrityFailed)?;
         let existing = super::link::share_links_remote(h).await?;
         if existing.iter().any(|link| link.share_id == record.share_id) {
@@ -713,6 +710,61 @@ mod tests {
         item["upload_id"] = "ff".repeat(32).into();
         assert!(client.open_management(&item).is_err());
     }
+
+    #[test]
+    fn sharing_management_restores_old_file_links_and_current_sources() {
+        use super::super::link::{LinkRecord, LinkSource};
+
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let plan: UploadPlan = serde_json::from_value(json!({
+            "upload_id":"01".repeat(32), "object_id":"02".repeat(32),
+            "version_id":"03".repeat(32), "root_generation":0, "epoch":0,
+            "control_head":null, "kind":"share", "chunks":[],
+            "manifest_digest":"04".repeat(32), "manifest_size":1, "expires_at":1,
+        }))
+        .unwrap();
+        let old = json!({
+            "file":"05".repeat(32), "version":"06".repeat(32),
+            "name":"fixture.txt", "size":7, "share_id":plan.object_id,
+            "upload_id":plan.upload_id, "key":crate::codec::b64(&[7;32]),
+            "expires_at":crate::now_ms() + dmsg_types::DAY, "max_downloads":3,
+            "password":false, "created_at":1, "revoked_at":null, "downloads":1,
+        });
+        let file = LinkRecord::from_value(old.clone()).unwrap();
+        let mut snapshot = file.clone();
+        snapshot.source = LinkSource::VaultSnapshot {
+            item_id: "08".repeat(32),
+            item_revision: "09".repeat(32),
+            snapshot_id: "0a".repeat(32),
+        };
+        for (record, expected, kind) in [
+            (old, &file, "link"),
+            (json!(file), &file, "link"),
+            (json!(snapshot), &snapshot, "secret_link"),
+        ] {
+            let metadata = json!({"intent":{"kind":kind,"record":record}});
+            let sealed = client.seal_management(&plan, &metadata).unwrap();
+            let mut item = json!({
+                "upload_id":plan.upload_id, "object_id":plan.object_id,
+                "version_id":plan.version_id, "kind":"share", "status":"committed",
+                "management":sealed, "share":{"revoked_at":2},
+            });
+            let account = client.account().unwrap().id.to_string();
+            decorate(&mut client, &mut item, "account", &account).unwrap();
+            assert_eq!(item["recoverable"], true);
+            assert!(item["url"].as_str().unwrap().ends_with(&expected.key));
+            let records = client.link_records().unwrap();
+            assert_eq!(records.len(), 1);
+            let mut expected = expected.clone();
+            expected.revoked_at = Some(2);
+            assert_eq!(json!(records[0]), json!(expected));
+            let links = client.files_share_links().unwrap();
+            assert_eq!(links[0].source.as_ref(), Some(&expected.source));
+            assert_eq!(links[0].state, "revoked");
+        }
+    }
+
     #[tokio::test]
     async fn storage_reads_four_channels_together_and_keeps_partial_errors() {
         use std::sync::{
