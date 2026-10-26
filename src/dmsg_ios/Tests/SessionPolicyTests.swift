@@ -130,4 +130,64 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertTrue(model.cloudBackups.isEmpty)
         XCTAssertFalse(model.loadingCloudBackups)
     }
+    func testSendingClearsOnlyTheSubmittedDraft() {
+        let model = SessionModel()
+        model.drafts["one"] = "new draft"
+        model.drafts["two"] = "other channel"
+        model.clearQueuedDraft(channel: "one", sent: "submitted")
+        XCTAssertEqual(model.drafts["one"], "new draft")
+        model.clearQueuedDraft(channel: "one", sent: "new draft")
+        XCTAssertEqual(model.drafts["one"], "")
+        XCTAssertEqual(model.drafts["two"], "other channel")
+    }
+
+    func testChannelBatchesPrioritizeTheVisibleChannelWithoutStarvingOthers() {
+        let ids = (0..<8).map(String.init)
+        var visited = Set<String>()
+        for cursor in [0, 3, 6] {
+            let batch = SessionModel.channelBatch(ids, active: "0", cursor: cursor, limit: 4)
+            XCTAssertEqual(batch.first, "0")
+            XCTAssertEqual(Set(batch).count, batch.count)
+            visited.formUnion(batch)
+        }
+        XCTAssertEqual(visited, Set(ids))
+        XCTAssertEqual(SessionModel.channelBatch([], active: nil, cursor: 0, limit: 4), [])
+    }
+
+    func testStagingStoresDestinationAndStartupRemovesOnlyPreviewCopies() throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let files = try PrivateFiles(base: base)
+        let account = "040g2081040g2081040g"
+        let original = base.appending(path: "original.txt")
+        try Data("original".utf8).write(to: original)
+        let staged = try files.importDocument(original, account: account, folder: "chosen-folder")
+        let saved = try XCTUnwrap(files.pending(account: account).first)
+        XCTAssertEqual(saved.folder, "chosen-folder")
+        XCTAssertTrue(saved.ready)
+        let preview = files.workspace.appending(path: "accounts/" + account + "/open/nonce")
+        try FileManager.default.createDirectory(at: preview, withIntermediateDirectories: true)
+        try Data("preview".utf8).write(to: preview.appending(path: "copy.txt"))
+        _ = try PrivateFiles(base: base)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: preview.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: staged.path))
+        XCTAssertEqual(try files.pending(account: account).count, 1)
+        try files.finishImport(staged)
+        XCTAssertTrue(try files.pending(account: account).isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+    }
+
+}
+
+extension SessionPolicyTests {
+    func testStagingUsesSeparateWorkspaceAndInstallationPreferences() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let production = try PrivateFiles(base: root.appending(path: "production"))
+        let staged = try PrivateFiles(base: root.appending(path: "staging"), environment: "staging")
+        XCTAssertNotEqual(production.workspace, staged.workspace)
+        XCTAssertNotEqual(production.installation, staged.installation)
+        XCTAssertEqual(staged.workspace.lastPathComponent, "staging")
+        XCTAssertThrowsError(try PrivateFiles(base: root, environment: "../production"))
+    }
 }

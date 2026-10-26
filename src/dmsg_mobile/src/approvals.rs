@@ -17,6 +17,11 @@ fn supported(view: &Value) -> bool {
             | "secret_share"
             | "secret_package_import",
         ) => true,
+        Some("wallet") => matches!(
+            view["detail"]["action"].as_str(),
+            Some("join" | "decide" | "cosign")
+        ),
+        Some("grant" | "delegation") => true,
         Some("connect") => matches!(
             view["detail"]["method"].as_str(),
             Some("authenticate" | "signDocument" | "signAction")
@@ -67,6 +72,31 @@ impl MobileEngine {
         digest: String,
         approve: bool,
     ) -> Result<ObjectSnapshot> {
+        // Serialize decisions and their reconciliation, not Client access.
+        let _turn = self.approval_turn.lock().await;
+        struct Running {
+            host: ScopedHost,
+            id: String,
+        }
+        impl Drop for Running {
+            fn drop(&mut self) {
+                let host = self.host.clone();
+                let id = self.id.clone();
+                runtime().spawn(async move {
+                    let _ = host
+                        .inner
+                        .with_at(host.generation(), |c| {
+                            c.abandon_approval_runtime(&id);
+                            Ok(())
+                        })
+                        .await;
+                });
+            }
+        }
+        let _running = Running {
+            host: self.host.clone(),
+            id: id.clone(),
+        };
         let generation = self.host.generation();
         let (read_id, shown) = (id.clone(), digest.clone());
         let ask = self
@@ -139,27 +169,30 @@ impl MobileEngine {
                 }
             }
         }
-        let json = self
+        let decision = self
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    let decision = c
-                        .approval_decide_with(&id, &digest, approve, "gui", confirmed, authorized)
-                        .await?;
-                    let view = match decision {
-                        Decision::Done(view) => view,
-                        Decision::Attest(run) => run.run(&c.cooperative_hold()).await?,
-                        Decision::SecretShare(run) => run.run(&c.cooperative_hold()).await?,
-                        Decision::SecretPackageImport(run) => {
-                            run.run(&c.cooperative_hold()).await?
-                        }
-                        // New action types require an explicit mobile implementation.
-                        _ => return Err(Error::UnsupportedProtocol),
-                    };
-                    Ok(annotate(view).to_string())
+                    c.approval_decide_with(&id, &digest, approve, "gui", confirmed, authorized)
+                        .await
                 })
             })
             .await?;
+        let view = self
+            .held(move |h| {
+                Box::pin(async move {
+                    match decision {
+                        Decision::Done(view) => Ok(view),
+                        Decision::Attest(run) => run.run(h).await,
+                        Decision::Wallet(run) => run.run(h).await,
+                        Decision::SecretShare(run) => run.run(h).await,
+                        Decision::SecretPackageImport(run) => run.run(h).await,
+                        _ => Err(Error::UnsupportedProtocol),
+                    }
+                })
+            })
+            .await?;
+        let json = annotate(view).to_string();
         Ok(ObjectSnapshot { generation, json })
     }
 }

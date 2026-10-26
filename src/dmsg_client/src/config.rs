@@ -35,8 +35,7 @@ pub struct Config {
     pub root_key: Option<Vec<u8>>,
     /// Login page; only a local deployment may replace [`LOGIN_URL`].
     pub login_url: String,
-    /// Bridge origin of web applications; only a local deployment may
-    /// replace [`CONNECT_URL`].
+    /// Bridge origin of web applications; production uses the reviewed fixed origin.
     pub connect_url: String,
     /// Keep the device signing key while locked ("后台在线", plan D-7).
     pub background_online: bool,
@@ -194,7 +193,8 @@ impl Config {
             local
                 || (self.root_key.is_none()
                     && self.login_url == LOGIN_URL
-                    && self.connect_url == CONNECT_URL),
+                    && (self.environment == Environment::Staging
+                        || self.connect_url == CONNECT_URL)),
             "local-only setting",
         )?;
         ensure_valid(
@@ -205,6 +205,44 @@ impl Config {
             (1..=365).contains(&self.files_trash_days),
             "files_trash_days",
         )
+    }
+
+    /// An explicitly configured test deployment on the real IC trust root.
+    /// Production login callbacks remain fixed; test content has its own realm.
+    /// # Errors
+    /// Invalid principals, non-HTTPS origins or unsupported configuration.
+    pub fn staging(
+        relay: &str,
+        handle: &str,
+        user_homes: &[String],
+        wallet_hub: Option<&str>,
+        connect: &str,
+    ) -> Result<Self> {
+        let mut config = Self::production()?;
+        let origin = |value: &str| -> Result<()> {
+            let url = Url::parse(value).map_err(|_| dmsg_types::invalid("staging origin"))?;
+            ensure_valid(
+                url.scheme() == "https"
+                    && url.origin().ascii_serialization() == value.trim_end_matches('/'),
+                "staging origin",
+            )
+        };
+        origin(relay)?;
+        origin(connect)?;
+        config.environment = Environment::Staging;
+        config.relay = relay.trim_end_matches('/').into();
+        config.connect_url = connect.trim_end_matches('/').into();
+        config.handle = Principal::from_text(handle).map_err(|_| dmsg_types::invalid("handle"))?;
+        config.user_homes = user_homes
+            .iter()
+            .map(|home| Principal::from_text(home).map_err(|_| dmsg_types::invalid("user home")))
+            .collect::<Result<_>>()?;
+        config.wallet.hub = wallet_hub
+            .map(|hub| Principal::from_text(hub).map_err(|_| dmsg_types::invalid("wallet hub")))
+            .transpose()?;
+        config.legacy = None;
+        config.validate()?;
+        Ok(config)
     }
 
     /// The origin of the relay, without a trailing slash.
@@ -232,5 +270,52 @@ pub fn parse_environment(name: &str) -> Result<Environment> {
         "staging" => Ok(Environment::Staging),
         "production" => Ok(Environment::Production),
         _ => Err(dmsg_types::invalid("environment")),
+    }
+}
+
+#[cfg(test)]
+mod staging_tests {
+    use super::*;
+
+    #[test]
+    fn staging_uses_mainnet_trust_and_does_not_relax_production_origins() {
+        let staged = Config::staging(
+            "https://core.example.test",
+            "aaaaa-aa",
+            &[],
+            None,
+            "https://connect.example.test",
+        )
+        .unwrap();
+        assert_eq!(staged.environment, Environment::Staging);
+        assert!(staged.root_key.is_none());
+        assert!(staged.legacy.is_none());
+        assert_eq!(staged.login_url, LOGIN_URL);
+        let mut production = staged.clone();
+        production.environment = Environment::Production;
+        assert!(production.validate().is_err());
+        assert!(
+            Config::staging(
+                "http://localhost:8000",
+                "aaaaa-aa",
+                &[],
+                None,
+                "https://connect.example.test"
+            )
+            .is_err()
+        );
+        assert!(
+            Config::staging(
+                "https://core.example.test/path",
+                "aaaaa-aa",
+                &[],
+                None,
+                "https://connect.example.test"
+            )
+            .is_err()
+        );
+        let mut untrusted = staged;
+        untrusted.root_key = Some(vec![1]);
+        assert!(untrusted.validate().is_err());
     }
 }

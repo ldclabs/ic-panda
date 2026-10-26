@@ -2,8 +2,16 @@ import XCTest
 
 @MainActor final class NavigationTests: XCTestCase {
     private func tab(_ app: XCUIApplication, symbol: String, title: String) -> XCUIElement {
-        let adaptive = app.descendants(matching: .any).matching(identifier: symbol).firstMatch
-        return adaptive.waitForExistence(timeout: 1) ? adaptive : app.tabBars.buttons[title]
+        // The system can move these buttons outside TabBar into a side rail.
+        let named = app.buttons[title].firstMatch
+        if named.waitForExistence(timeout: 10) { return named }
+        return app.descendants(matching: .any).matching(identifier: symbol).firstMatch
+    }
+
+    private func back(_ app: XCUIApplication) {
+        let rail = app.buttons["BackButton"].firstMatch
+        if rail.exists { rail.tap() }
+        else { app.navigationBars.buttons.element(boundBy: 0).tap() }
     }
     func testCompactVaultAndLockClearContent() {
         let app = XCUIApplication()
@@ -106,6 +114,7 @@ import XCTest
         app.launch()
         tab(app, symbol: "person.crop.circle", title: "Account").tap()
         let hardware = app.buttons["account.hardware"]
+        for _ in 0..<4 where !hardware.isHittable { app.swipeUp() }
         XCTAssertTrue(hardware.waitForExistence(timeout: 5)); hardware.tap()
         XCTAssertTrue(app.buttons["Retry loading hardware security"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Review key registration"].exists)
@@ -201,4 +210,28 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Dark Chinese account with a long public name"; shot.lifetime = .keepAlways; add(shot)
     }
+    func testPublicDemoAndOfflinePrivacyNeverEnterARealWorkspace() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let demo = app.buttons["access.demo"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 5))
+        for _ in 0..<4 { if demo.isHittable { break }; app.swipeUp() }
+        demo.tap()
+        XCTAssertTrue(app.staticTexts["Local demo · Fictitious data · Resets when closed"].waitForExistence(timeout: 5))
+        app.buttons["demo.login"].firstMatch.tap()
+        XCTAssertTrue(app.secureTextFields["Sample password"].waitForExistence(timeout: 5))
+        let sample = XCTAttachment(screenshot: app.screenshot())
+        sample.name = "Public local demo with fictional credentials"; sample.lifetime = .keepAlways; add(sample)
+        back(app)
+        back(app)
+        XCTAssertTrue(app.buttons["login.start"].exists)
+        let privacy = app.buttons["access.privacy"]
+        for _ in 0..<4 { if privacy.isHittable { break }; app.swipeUp() }
+        privacy.tap()
+        XCTAssertTrue(app.staticTexts["dMsg Privacy Policy"].waitForExistence(timeout: 5))
+        let policy = XCTAttachment(screenshot: app.screenshot())
+        policy.name = "Privacy available before login"; policy.lifetime = .keepAlways; add(policy)
+    }
+
 }

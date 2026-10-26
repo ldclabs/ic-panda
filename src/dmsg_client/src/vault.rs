@@ -928,6 +928,40 @@ impl Client {
             .atomic(|_| self.vault_write_items(items, now))
     }
 
+    /// Resume an explicitly staged import without duplicating its committed items.
+    /// A different selection for the same source handle is refused.
+    /// # Errors
+    /// As [`Self::vault_add_all`], or `VersionConflict` for a changed selection.
+    pub fn vault_add_all_once(&mut self, source: &str, items: Vec<Item>) -> Result<Vec<String>> {
+        #[derive(Serialize, Deserialize)]
+        struct Receipt {
+            digest: String,
+            ids: Vec<String>,
+        }
+        let key = format!(
+            "vault-import:{}",
+            hex::encode(*crate::codec::sha256(source.as_bytes()))
+        );
+        let digest = hex::encode(*crate::codec::sha256(&canonical(&items)));
+        if let Some(receipt) = self.workspace.private::<Receipt>(self.keys()?, &key)? {
+            ensure(receipt.digest == digest, Error::VersionConflict)?;
+            return Ok(receipt.ids);
+        }
+        let now = crate::now_ms();
+        self.workspace.store.atomic(|_| {
+            let ids = self.vault_write_items(items, now)?;
+            self.workspace.put_private(
+                self.keys()?,
+                &key,
+                &Receipt {
+                    digest,
+                    ids: ids.clone(),
+                },
+            )?;
+            Ok(ids)
+        })
+    }
+
     /// Write inside an existing workspace transaction, including attachment catalog writes.
     pub(crate) fn vault_write_items(&self, items: Vec<Item>, now: u64) -> Result<Vec<String>> {
         let account = self.account()?.id.to_string();

@@ -490,7 +490,7 @@ read / open:
 | `dmsg://connect/pair?account=<xid>` | 打开"连接浏览器"界面；桥接页不知道目标账户时（如 `authenticate`）省略 `account` |
 | `dmsg://connect/request?account=<xid>&request=<hex>` | 打开审批中心并定位到该请求 |
 
-任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。移动端将使用 `https://connect.dmsg.net/app/…` 形式的 universal link / app link，在移动端阶段定义。
+任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。iOS 已使用 https://connect.dmsg.net/app/pair 与 /app/request，参数与上表一致；它们仅定位原账号及已验证请求。未安装／同域 Safari 导航时，落地页提供显式 dmsg: 导航按钮，不自动跳转任意回调。桥接页切回前台后刷新原操作；应用取回结果仍需原会话证明。配对与请求恢复不会自动批准。这里的 App 切换导航不替代第 11 节预留的注册 redirect URI 协议模式。
 
 ## 9. 与 `dmsg-extension/4` 的差异
 

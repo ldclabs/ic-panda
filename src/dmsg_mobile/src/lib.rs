@@ -1,11 +1,22 @@
 //! Native mobile API. The generated API exposes named operations, not daemon RPC.
+mod agents;
+mod apple;
 mod approvals;
+mod background;
+pub use apple::{AppAssertion, PushRegistration};
+mod connect;
+mod content;
+pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
 mod error;
 mod models;
 mod operation;
 mod platform;
 mod recovery;
+mod safety;
+pub use safety::ReportInput;
+mod wallet;
+pub use wallet::{WalletChange, WalletTransfer};
 mod secrets;
 mod security;
 mod session;
@@ -16,7 +27,7 @@ use dmsg_types::{Error, ensure, ensure_valid};
 pub use error::MobileError;
 use error::Result;
 pub use models::*;
-pub use operation::OperationToken;
+pub use operation::{OperationToken, TransferProgress};
 pub use platform::{Agreement, Platform, SigningKey};
 pub use secrets::{SecretAttachmentSelection, SecretPackageSelection, SecretSnapshotInput};
 use session::ScopedHost;
@@ -47,6 +58,7 @@ pub fn vault_template(kind: String) -> Vec<VaultField> {
             id: (*id).into(),
             kind: (*kind).into(),
             label: String::new(),
+            section: String::new(),
             value: String::new(),
             concealed: matches!(*kind, "concealed" | "otp"),
         })
@@ -74,6 +86,7 @@ pub struct MobileEngine {
     login: Arc<Mutex<LoginState>>,
     config: Config,
     staging: PathBuf,
+    approval_turn: Arc<tokio::sync::Mutex<()>>,
 }
 
 struct PendingLogin {
@@ -87,6 +100,41 @@ struct LoginState {
 }
 
 impl MobileEngine {
+    async fn held<T: Send + 'static>(
+        &self,
+        work: impl for<'a> FnOnce(&'a ScopedHost) -> dmsg_client::host::Work<'a, T> + Send + 'static,
+    ) -> Result<T> {
+        let host = self.host.clone();
+        let task = runtime().spawn(async move {
+            host.inner
+                .while_current(host.generation(), work(&host))
+                .await
+        });
+        struct Abort(tokio::task::AbortHandle);
+        impl Drop for Abort {
+            fn drop(&mut self) {
+                self.0.abort();
+            }
+        }
+        let _abort = Abort(task.abort_handle());
+        task.await.map_err(|_| Error::Locked)?.map_err(Into::into)
+    }
+
+    async fn held_object<T: serde::Serialize + Send + 'static>(
+        &self,
+        work: impl for<'a> FnOnce(&'a ScopedHost) -> dmsg_client::host::Work<'a, T> + Send + 'static,
+    ) -> Result<ObjectSnapshot> {
+        let generation = self.host.generation();
+        let json = self
+            .held(move |h| {
+                Box::pin(async move {
+                    serde_json::to_string(&work(h).await?).map_err(|_| Error::IntegrityFailed)
+                })
+            })
+            .await?;
+        Ok(ObjectSnapshot { generation, json })
+    }
+
     async fn object<T: serde::Serialize + Send + 'static>(
         &self,
         work: impl for<'a> FnOnce(&'a mut Client) -> dmsg_client::host::Work<'a, T> + Send + 'static,
@@ -104,18 +152,17 @@ impl MobileEngine {
     }
 }
 
-#[uniffi::export]
 impl MobileEngine {
-    #[uniffi::constructor]
-    pub async fn open(
+    async fn open_config(
         directory: String,
         staging: String,
         platform: Box<dyn Platform>,
+        mut config: Config,
     ) -> Result<Arc<Self>> {
         diagnostics::init();
         let platform: Arc<dyn Platform> = Arc::from(platform);
         let adapter = Arc::new(platform::Adapter(platform.clone()));
-        let mut config = Config::production()?;
+
         config.files_max_bytes = 100 * 1024 * 1024;
         let directory = PathBuf::from(directory);
         let staging = PathBuf::from(staging);
@@ -128,8 +175,11 @@ impl MobileEngine {
             .spawn_blocking(move || {
                 let mut client = Client::open(opened_config, &directory, Some(adapter.clone()))?;
                 client.set_presence_key(adapter.clone());
-                client.set_approval_keys(adapter);
+                client.set_approval_keys(adapter.clone());
+                client.set_cosign_provider(adapter);
                 client.require_fast_presence();
+                client.use_read_only_previews();
+                client.set_thumbnail_budget(dmsg_client::library::import::ThumbnailBudget::MOBILE);
                 client.require_prepared_approval();
                 Ok::<_, Error>(client)
             })
@@ -141,7 +191,37 @@ impl MobileEngine {
             login: Arc::new(Mutex::new(LoginState::default())),
             config,
             staging,
+            approval_turn: Arc::new(tokio::sync::Mutex::new(())),
         }))
+    }
+}
+
+#[uniffi::export]
+impl MobileEngine {
+    #[uniffi::constructor]
+    pub async fn open(
+        directory: String,
+        staging: String,
+        platform: Box<dyn Platform>,
+    ) -> Result<Arc<Self>> {
+        Self::open_config(directory, staging, platform, Config::production()?).await
+    }
+
+    #[uniffi::constructor]
+    pub async fn open_staging(
+        directory: String,
+        staging: String,
+        platform: Box<dyn Platform>,
+        deployment: StagingDeployment,
+    ) -> Result<Arc<Self>> {
+        let config = Config::staging(
+            &deployment.relay,
+            &deployment.handle,
+            &deployment.user_homes,
+            deployment.wallet_hub.as_deref(),
+            &deployment.connect_url,
+        )?;
+        Self::open_config(directory, staging, platform, config).await
     }
 
     pub async fn session_state(&self) -> Result<SessionSnapshot> {
@@ -173,7 +253,56 @@ impl MobileEngine {
             login: self.login.clone(),
             config: self.config.clone(),
             staging: self.staging.clone(),
+            approval_turn: self.approval_turn.clone(),
         }))
+    }
+
+    /// Explicit lock flushes already authored drafts behind a transition fence.
+    /// Existing network work is cancelled before the short local transaction.
+    pub async fn lock_with_drafts(
+        &self,
+        account: String,
+        drafts: Vec<MessageDraft>,
+    ) -> Result<SessionSnapshot> {
+        ensure_valid(drafts.len() <= 100, "drafts")?;
+        let transition = self.host.begin_transition()?;
+        struct LockOnDrop {
+            host: Host,
+            armed: bool,
+        }
+        impl Drop for LockOnDrop {
+            fn drop(&mut self) {
+                if self.armed {
+                    self.host.lock();
+                }
+            }
+        }
+        let mut cleanup = LockOnDrop {
+            host: self.host.inner.clone(),
+            armed: true,
+        };
+        self.platform.cancel_presence();
+        transition
+            .run(move |c| {
+                Box::pin(async move {
+                    let saved = (|| {
+                        ensure(
+                            c.session_state().account.as_deref() == Some(account.as_str()),
+                            Error::Locked,
+                        )?;
+                        for draft in drafts {
+                            c.channel_draft(&draft.channel, &draft.text)?;
+                        }
+                        Ok(())
+                    })();
+                    c.lock();
+                    saved
+                })
+            })
+            .await?;
+        cleanup.armed = false;
+        transition.finish()?;
+        self.session_state().await
     }
 
     pub async fn lock(&self) -> Result<SessionSnapshot> {
@@ -471,31 +600,63 @@ impl MobileEngine {
         self.session_state().await
     }
 
-    pub async fn vault_page(&self, query: String, offset: u32, limit: u32) -> Result<VaultPage> {
-        ensure_valid(query.len() <= 1000 && limit > 0 && limit <= 100, "page")?;
+    pub async fn vault_page(
+        &self,
+        query: String,
+        kind: Option<String>,
+        favorites_only: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<VaultPage> {
+        ensure_valid(query.len() <= 1000, "query")?;
         let generation = self.host.generation();
-        let items = self
+        let (items, has_more) = self
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    Ok(c.vault_list(&dmsg_client::vault::Filter {
-                        trash: false,
-                        query: Some(query),
-                    })?
-                    .into_iter()
-                    .skip(offset as usize)
-                    .take(limit as usize + 1)
-                    .map(VaultItem::summary)
-                    .collect::<Vec<_>>())
+                    dmsg_client::vault::reading::page(
+                        &c.cooperative_hold(),
+                        &dmsg_client::vault::Filter {
+                            trash: false,
+                            query: Some(query),
+                        },
+                        kind.as_deref(),
+                        favorites_only,
+                        offset as usize,
+                        limit as usize,
+                    )
+                    .await
                 })
             })
             .await?;
-        let has_more = items.len() > limit as usize;
         Ok(VaultPage {
             generation,
-            items: items.into_iter().take(limit as usize).collect(),
+            items: items.into_iter().map(VaultItem::summary).collect(),
             has_more,
         })
+    }
+
+    pub async fn vault_history(&self, id: String) -> Result<ObjectSnapshot> {
+        self.object(move |c| Box::pin(async move { c.vault_history(&id) }))
+            .await
+    }
+
+    pub async fn revert_item(
+        &self,
+        id: String,
+        revision: String,
+        expected_revision: String,
+    ) -> Result<ObjectSnapshot> {
+        self.object(move |c| {
+            Box::pin(async move {
+                ensure(
+                    c.vault_show(&id)?.revision == expected_revision,
+                    Error::VersionConflict,
+                )?;
+                c.vault_revert(&id, &revision).map(|e| e.masked(false))
+            })
+        })
+        .await
     }
 
     pub async fn vault_item(&self, id: String, revision: Option<String>) -> Result<VaultDetail> {
@@ -564,6 +725,7 @@ impl MobileEngine {
                         title: Some(edit.title),
                         notes: Some(edit.notes),
                         favorite: Some(edit.favorite),
+                        tags: Some(edit.tags),
                         files: edit.files,
                         fields: Some(
                             edit.fields
@@ -572,8 +734,8 @@ impl MobileEngine {
                                     id: Some(f.id),
                                     kind: Some(f.kind),
                                     label: Some(f.label),
+                                    section: Some(f.section),
                                     value: f.value,
-                                    ..Default::default()
                                 })
                                 .collect(),
                         ),
@@ -602,29 +764,29 @@ impl MobileEngine {
     }
 
     pub async fn vault_trash(&self, offset: u32, limit: u32) -> Result<VaultPage> {
-        ensure_valid(limit > 0 && limit <= 100, "page")?;
         let generation = self.host.generation();
-        let mut items: Vec<VaultItem> = self
+        let (items, has_more) = self
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    Ok(c.vault_list(&dmsg_client::vault::Filter {
-                        trash: true,
-                        query: None,
-                    })?
-                    .into_iter()
-                    .skip(offset as usize)
-                    .take(limit as usize + 1)
-                    .map(VaultItem::summary)
-                    .collect())
+                    dmsg_client::vault::reading::page(
+                        &c.cooperative_hold(),
+                        &dmsg_client::vault::Filter {
+                            trash: true,
+                            query: None,
+                        },
+                        None,
+                        false,
+                        offset as usize,
+                        limit as usize,
+                    )
+                    .await
                 })
             })
             .await?;
-        let has_more = items.len() > limit as usize;
-        items.truncate(limit as usize);
         Ok(VaultPage {
             generation,
-            items,
+            items: items.into_iter().map(VaultItem::summary).collect(),
             has_more,
         })
     }
@@ -671,13 +833,12 @@ impl MobileEngine {
 
     pub async fn sync(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(|c| {
-                Box::pin(async { dmsg_client::sync::sync(&c.cooperative_hold()).await })
-            }))
+            .run(self.held_object(|h| Box::pin(async { dmsg_client::sync::sync(h).await })))
             .await
     }
 
     pub async fn reconcile(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+        let _turn = self.approval_turn.lock().await;
         operation
             .run(self.object(|c| Box::pin(async { c.approvals_reconcile().await })))
             .await
@@ -696,13 +857,14 @@ impl MobileEngine {
     }
 
     pub async fn run_backups(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+        let progress = operation.clone();
         operation
-            .run(self.object(|c| {
-                Box::pin(async {
+            .run(self.object(move |c| {
+                Box::pin(async move {
                     dmsg_client::library::backup::backup_run(
                         &c.cooperative_hold(),
                         Some(15_000),
-                        &mut |_, _, _| {},
+                        &mut |_, done, total| progress.report(done, total),
                     )
                     .await
                 })
@@ -832,17 +994,7 @@ impl MobileEngine {
                         limit as usize + 1,
                     )?
                     .into_iter()
-                    .map(|m| MessageItem {
-                        id: m.message_id,
-                        sequence: m.seq,
-                        account: m.account,
-                        text: m.text,
-                        created_at_ms: m.created_at,
-                        attachment_name: m.file.as_ref().map(|f| f.name.clone()),
-                        attachment_mime: m.file.as_ref().map(|f| f.mime.clone()),
-                        attachment_size: m.file.as_ref().map(|f| f.size),
-                        unreadable: m.unreadable,
-                    })
+                    .map(MessageItem::from)
                     .collect())
                 })
             })
@@ -861,6 +1013,23 @@ impl MobileEngine {
     pub async fn mark_read(&self, channel: String, through: u64) -> Result<()> {
         self.host
             .run(move |c| Box::pin(async move { c.channel_mark(&channel, through).map(|_| ()) }))
+            .await?;
+        Ok(())
+    }
+
+    pub async fn save_message_drafts(&self, drafts: Vec<MessageDraft>) -> Result<()> {
+        ensure_valid(drafts.len() <= 100, "drafts")?;
+        self.host
+            .run(move |c| {
+                Box::pin(async move {
+                    c.save_message_drafts(
+                        &drafts
+                            .into_iter()
+                            .map(|d| (d.channel, d.text))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+            })
             .await?;
         Ok(())
     }
@@ -993,6 +1162,16 @@ impl MobileEngine {
         .await
     }
 
+    pub async fn maintain_files(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| {
+            Box::pin(async {
+                let now = dmsg_client::now_ms();
+                c.files_maintain(now)
+            })
+        })
+        .await
+    }
+
     pub async fn files(&self, folder: String) -> Result<ObjectSnapshot> {
         self.object(move |c| Box::pin(async move { c.files_list(&folder, false) }))
             .await
@@ -1003,13 +1182,19 @@ impl MobileEngine {
             .await
     }
 
-    pub async fn open_file(&self, id: String, version: String) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
-            Box::pin(async move {
-                dmsg_client::library::open::open(&c.cooperative_hold(), &id, Some(&version)).await
-            })
-        })
-        .await
+    pub async fn open_file(
+        &self,
+        id: String,
+        version: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(
+                    async move { dmsg_client::library::open::open(h, &id, Some(&version)).await },
+                )
+            }))
+            .await
     }
 
     pub async fn close_file(&self, nonce: String) -> Result<()> {
@@ -1028,6 +1213,7 @@ impl MobileEngine {
         &self,
         name: String,
         folder: String,
+        shared_id: Option<String>,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         let path = self.staging.join(&name);
@@ -1062,6 +1248,18 @@ impl MobileEngine {
             canonical.parent().and_then(|p| p.parent()) == Some(directory.join(&owner).as_path()),
             "import path",
         )?;
+        let progress = operation.clone();
+        let receipt = if let Some(shared) = shared_id {
+            ensure_valid(
+                shared.len() == 36 && shared.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-'),
+                "shared import ID",
+            )?;
+            hex::encode(*dmsg_client::codec::sha256(
+                format!("shared:{shared}").as_bytes(),
+            ))
+        } else {
+            hex::encode(*dmsg_client::codec::sha256(name.as_bytes()))
+        };
         operation
             .run(self.object(move |c| {
                 Box::pin(async move {
@@ -1070,12 +1268,13 @@ impl MobileEngine {
                         c.session_state().account.as_deref() == Some(owner.as_str()),
                         Error::Forbidden,
                     )?;
-                    dmsg_client::library::import::file(
+                    dmsg_client::library::import::file_once(
                         &c.cooperative_hold(),
                         &path,
                         &folder,
                         true,
-                        &mut |_, _| {},
+                        Some(&receipt),
+                        &mut |done, total| progress.report(done, total),
                     )
                     .await
                 })
@@ -1145,12 +1344,12 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
                     if refresh {
-                        dmsg_client::library::cloud::cloud_refresh(&c.cooperative_hold()).await?;
+                        dmsg_client::library::cloud::cloud_refresh(h).await?;
                     }
-                    c.files_cloud_list()
+                    h.with(|c| c.files_cloud_list()).await
                 })
             }))
             .await
@@ -1162,6 +1361,7 @@ impl MobileEngine {
         folder: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let progress = operation.clone();
         operation
             .run(self.object(move |c| {
                 Box::pin(async move {
@@ -1178,7 +1378,7 @@ impl MobileEngine {
                         &c.cooperative_hold(),
                         &upload,
                         Some(&folder),
-                        &mut |_, _| {},
+                        &mut |done, total| progress.report(done, total),
                     )
                     .await
                 })
@@ -1218,24 +1418,21 @@ impl MobileEngine {
     }
 
     pub async fn profile(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
-            Box::pin(async { dmsg_client::principal::show(&c.cooperative_hold()).await })
-        })
-        .await
+        self.held_object(|h| Box::pin(async { dmsg_client::principal::show(h).await }))
+            .await
     }
 
     /// Fetch a public profile image through the core's anonymous, bounded
     /// downloader. A stale account handle cannot return image bytes to Swift.
     pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
-        self.host
-            .run(move |c| {
-                Box::pin(async move {
-                    let image = dmsg_client::principal::avatar(&c.cooperative_hold(), &url).await?;
-                    Ok(image.map(|(_, bytes)| bytes))
-                })
+        self.held(move |h| {
+            Box::pin(async move {
+                Ok(dmsg_client::principal::avatar(h, &url)
+                    .await?
+                    .map(|(_, bytes)| bytes))
             })
-            .await
-            .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn publish_profile(
@@ -1243,24 +1440,53 @@ impl MobileEngine {
         name: String,
         description: String,
         expected_updated_at: i64,
+        avatar_url: Option<String>,
     ) -> Result<ObjectSnapshot> {
         let text = |value: String| Some(value.trim().to_string()).filter(|v| !v.is_empty());
         let (name, description) = (text(name), text(description));
         self.object(move |c| {
             Box::pin(async move {
-                let mut document = dmsg_client::principal::show(&c.cooperative_hold()).await?;
+                let mut document = dmsg_client::principal::editable(&c.cooperative_hold()).await?;
                 ensure(
                     document.updated_at == expected_updated_at,
                     Error::VersionConflict,
                 )?;
                 document.name = name;
                 document.description = description;
+                if let Some(avatar) = avatar_url {
+                    document.avatar_url = (!avatar.is_empty()).then_some(avatar);
+                }
                 let info = c.publish_document(&document).await?;
                 Ok(serde_json::json!({
                     "version": info.state.version,
+                    "updated_at": info.state.updated_at,
                     "published_version": info.published_version,
                     "published": info.state.version == info.published_version,
                 }))
+            })
+        })
+        .await
+    }
+
+    pub async fn profile_publication(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| {
+            Box::pin(async {
+                let pending = c.document_pending()?;
+                let info = c.principal().await?;
+                Ok(serde_json::json!({"pending": pending,
+                "published": info.as_ref().is_none_or(|i| i.state.version == i.published_version),
+                "updated_at": info.map(|i| i.state.updated_at)}))
+            })
+        })
+        .await
+    }
+
+    pub async fn retry_profile_publication(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| {
+            Box::pin(async {
+                let info = c.retry_document().await?;
+                Ok(serde_json::json!({"updated_at": info.state.updated_at,
+                "published": info.state.version == info.published_version}))
             })
         })
         .await

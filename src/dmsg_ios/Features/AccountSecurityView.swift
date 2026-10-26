@@ -58,9 +58,9 @@ struct AccountSecurityView: View {
     }
     private func bind() async {
         guard let engine = model.engine, !busy else { return }
-        busy = true; model.authenticating = true
+        busy = true
         let epoch = model.epoch
-        defer { busy = false; if epoch == model.epoch { model.authenticating = false } }
+        defer { busy = false }
         do {
             let started = try await engine.beginBinding()
             guard let url = URL(string: started.url) else { throw CancellationError() }

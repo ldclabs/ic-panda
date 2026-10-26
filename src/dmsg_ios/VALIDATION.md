@@ -1,5 +1,78 @@
 # iOS implementation validation
 
+## Native capabilities and review requirements (2026-10-27)
+
+This pass starts from local public main 5242f364 and preserves the pre-existing
+plist/catalog edits. It implements the [Chinese checklist](IMPLEMENTATION_CHECKLIST_zh.md)
+and [mobile contract](../../docs/protocol/mobile_zh.md). Private service implementation
+stays in its own repository. No production deployment, real payment, push delivery or
+account deletion was performed.
+
+| Check | Observed result |
+| --- | --- |
+| Client Rust | 384 passed, 5 ignored |
+| Mobile Rust | 10 passed |
+| Protocol | 84 unit tests, 20 signing tests and 3 doctests passed |
+| Types | 18 contract tests and 3 doctests passed |
+| Commerce | 41 passed, 2 ignored |
+| CLI | 92 passed, 6 ignored in the shared-core regression run |
+| Strict lint | Client/mobile/CLI/commerce/types/protocol all-target Clippy with warnings denied passed |
+| Formatting | Selected Rust packages pass cargo fmt check |
+| StoreKit canister adapter | Real optimized commerce Wasm: authority rejection, account/environment binding, duplicate subscription/storage transactions, status freshness, refund rollback refusal and same-version stable-state upgrade passed in PocketIC |
+| Private services | Frozen dependency install and full workspace format/type/test/dry-run-build checks passed in both the isolated source copy and the final real checkout; core 407, Apple gateway 5, agent kit 24, discourse 82 plus 3 script checks, mail 289, knowledge 681 |
+| Private writes | Source-only patches passed automatic approval after review/tests, with source/destination hash checks; deployment was not part of the write |
+| Website | Svelte check: 0 errors, 0 warnings; 99 tests passed, 1 skipped |
+| Connect bridge | Type check, 10 unit tests and production asset build passed |
+| Native Rust artifacts | Both ARM64 device/simulator libraries were built with the optimized Release profile; transitive local source, binding and library hashes verified |
+| Translation/data preservation | All pre-existing plist values and localization values preserved; six-language catalogs and offline policy copies checked |
+| iPhone 16 Pro, iOS 18.4 | 27 unit tests and 13 UI tests passed, 0 failed or skipped; Chinese dark, Arabic accessibility text, concealed fields, public demo and offline privacy screenshots inspected |
+| Optimized device Release | Unsigned archive succeeded with all five extensions; optimized Rust profile/hash verification passed; debug fixture markers absent from the app executable |
+| iPhone Duo, iOS 27.1 | All 13 distinct UI cases passed across two runs; the seven initial selector/visibility failures passed after tests handled the system side rail and scrolled to offscreen settings |
+| iPhone 16e, iOS 18.4 | Five targeted cases passed: Chinese dark long profile, Arabic large text/access actions, hardware page and demo/privacy; screenshots inspected |
+| iPad mini, iOS 18.4 | Four targeted cases passed: long Chinese profile, rotation/draft continuity, Arabic large text and demo/privacy; screenshots inspected |
+
+Private channel tests timed out in runs sharing the machine with compiler or
+simulator work. Both the isolated source copy and the final real checkout passed
+full validation without that competing load; test timeouts were not raised.
+Native checks caught and fixed missing API conformance,
+an overlarge Swift view expression, and a directory-URL trailing-slash comparison
+that incorrectly rejected valid staged files. Tests retained those regression cases.
+
+Account deletion refreshes the remote encrypted inventory and channel controls
+without flushing or uploading local changes. Optional wallet lookup failure is
+shown explicitly and requires an independent access acknowledgement. Editable
+public profile data is cleared before permanent service closure. Public identity/
+ledger history and shared copies have separate retention boundaries.
+
+The user and directory canisters' stable layouts were not modified. The commerce
+test above upgrades its actual current Wasm and checks its new receipt/configuration
+storage; it is not presented as an old-to-new user/directory migration test.
+
+The shipped local demo is intentionally public and uses fictitious in-memory data.
+It is not a production authentication bypass or proof of full App Review access.
+Actual App Store products and test deployment IDs have not been supplied. Sandbox
+distribution uses a separate configured Staging workspace; production commerce
+still refuses sandbox purchase facts. App Attest, APNs and StoreKit environments
+are independently configured for development, TestFlight and App Store.
+
+Unrun external acceptance remains explicit: real Secure Enclave/biometric ACLs,
+signed App Groups/Keychain access, actual credential/File Provider handoff, APNs,
+App Attest, Apple purchases/renewals/refunds, physical-device background scheduling,
+store submission and production readiness. No minimum-device latency or peak-RSS
+numbers are claimed from source inspection or simulator tests. The full repository
+PocketIC suite and desktop Electron UI checks were not repeated in this mobile pass.
+
+Native evidence: XcodeBuildMCP results dated 2026-10-26 UTC (2026-10-27 local),
+16:43:21 full iPhone suite; 16:50:27 and 16:56:21 Duo batches; 16:59:11 narrow
+iPhone batch; 17:01:06 iPad batch. The unsigned device archive is generated at
+`.build/FinalRelease/dMsg.xcarchive` and is excluded from Git. Initial archive
+execution was blocked from writing the Xcode cache; the approved retry passed.
+The archive contains Share, Widget, Credential Provider, File Provider and its
+authentication UI. This is a build result, not a signing/entitlement acceptance.
+
+Implementation and verification: Codex (OpenAI).
+
+
 Updated: 2026-10-26. The original `codex/ios-app` implementation was based on
 `58197c35` and rebased onto `537e28ae`. Historical checks are retained below;
 the hardware-security and Secrets integration has its own verification section.

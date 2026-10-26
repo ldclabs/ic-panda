@@ -2,6 +2,7 @@
 #![warn(missing_docs)]
 pub mod account;
 pub mod agent;
+pub mod app_store;
 pub mod billing;
 /// dmsg-connect/1 messages between the bridge page, the relay and devices.
 pub mod connect;

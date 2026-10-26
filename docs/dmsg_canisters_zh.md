@@ -30,10 +30,10 @@
 - **签名**：设备在本机签署 COSE 声明和应用动作；`attest` / `attest_app_action` 核验签名与设备批准、扣减执行额度、发布认证回执。公钥本身不证明账户授权，见[声明与回执](protocol/README_zh.md)。
 - **公开身份**：user home 保存官方 PrincipalDocument 展示字段及 controller 记录，`dmsg_directory` 发布认证 JSON。展示资料更新写链，公开头像二进制留在云端。Agent controller 是客户端 vault 中自持的 Ed25519 key，见 [Agent Delegation](protocol/agent_zh.md)。
 - **名称**：注册表保存规范名称及可选展示大小写，处理注册、旧名称认领和账户批准的转移；注册费直接进入配置的收入账户。
-- **支付与订阅**：`dmsg_payment` 结算付费来信托管；`dmsg_commerce` 实现 commerce 2 现金结账、资源权益与自动归集；共享 `membership` 实现 membership 2 的 PANDA 资格与跨产品占用。见[商业合同](protocol/commerce_zh.md)。这些职责独立于日常加密投递。
+- **支付与订阅**：`dmsg_payment` 结算付费来信托管；`dmsg_commerce` 实现 commerce 2 现金结账、资源权益与自动归集，并接收登记验证方的 Apple 交易事实；共享 `membership` 实现 membership 2 的 PANDA 资格与跨产品占用。见[商业合同](protocol/commerce_zh.md)。这些职责独立于日常加密投递。
 - **团队钱包**：hub 激活实例并管理已登记的代码版本；各钱包管理自己的提案、批准、资金、链上密钥签名与审计。升级先由钱包接受。桌面端当前暂停新建，已有钱包操作继续提供，见[钱包合同](protocol/wallet_zh.md)与[桌面范围](dMsg_wallet_zh.md)。
 
-普通消息、文件、保险库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
+普通消息、文件、保险库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；[iOS](../src/dmsg_ios/README.md) 通过 UniFFI 直接复用客户端核心，Apple 与系统能力见 [mobile 合同](protocol/mobile_zh.md)；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
 
 ## 持久化与升级
 

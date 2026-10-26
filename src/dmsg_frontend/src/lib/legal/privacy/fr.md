@@ -1,86 +1,47 @@
 # Politique de confidentialité de dMsg
 
-Dernière mise à jour : 2026-10-11.
+Dernière mise à jour : 2026-10-27.
 
-dMsg est conçu pour que votre contenu privé soit chiffré sur vos propres appareils. Cette politique explique quelles informations traitent le site dMsg, l’ancienne application web, l’extension de navigateur, le service cloud et les canisters sur Internet Computer (ICP), qui peut les voir et quels choix s’offrent à vous.
+dMsg chiffre les contenus privés sur vos appareils autorisés. Cette politique couvre dmsg.net, l’ancienne application web en lecture seule, les applications de bureau et iOS, connect.dmsg.net, le service cloud et les canisters Internet Computer (ICP). « Nous » désigne l’équipe qui exploite dMsg sous la gouvernance d’ICPanda DAO. Les fonctionnalités disponibles dépendent de la version et de la configuration du service.
 
-Nous ne vendons pas de données personnelles, nous n’utilisons pas votre contenu à des fins publicitaires, et le site ne contient aucun traceur d’analyse ou de publicité.
+Nous ne vendons pas vos données et n’utilisons pas vos contenus à des fins publicitaires. Le site ne contient aucun traceur publicitaire ou analytique.
 
-## 1. Champ d’application
+## 1. Contenus et informations publiques
 
-Cette politique couvre dmsg.net, l’ancienne application web en lecture seule, l’extension de navigateur dMsg, le service cloud dMsg et les canisters dMsg. « Nous » désigne l’équipe qui exploite dMsg sous la gouvernance d’ICPanda DAO. Les portefeuilles, Internet Identity, les registres de jetons et les applications que vous connectez ont leurs propres pratiques de confidentialité.
+Les éléments du coffre, messages privés et fichiers sont chiffrés avant leur envoi. Les clés restent sur les appareils autorisés ou dans des enveloppes de récupération que le service ne peut pas ouvrir. Les destinataires peuvent conserver les copies partagées. Les profils, avatars, noms et documents d’annuaire que vous publiez sont publics. Un signalement communique aux modérateurs son motif, votre note, les identifiants du compte et de la ressource, et seulement le texte que vous choisissez explicitement de joindre. Il ne leur donne pas les clés du compte.
 
-## 2. Contenu privé
+## 2. Métadonnées du service
 
-- Les notes, messages, fichiers et éléments du coffre sont chiffrés sur vos appareils approuvés et déverrouillés avant d’être envoyés. Le cloud ne stocke et ne distribue que des données chiffrées.
-- Les clés de contenu restent sur vos appareils, enveloppées pour chaque appareil que vous approuvez. Pour la récupération, le compte conserve aussi une enveloppe qui ne peut être ouverte que par le service vetKD d’ICP, selon les règles de récupération du compte.
-- Nous ne recevons ni votre contenu en clair ni vos clés de contenu.
-- Les personnes avec qui vous partagez du contenu peuvent le lire et en garder des copies.
+Le service traite les identifiants de compte et de connexion, clés publiques des appareils, membres des canaux, règles de contact et de blocage, tailles des objets, horaires, adresses IP et informations opérationnelles. Les états certifiés, reçus de signature et droits servent à vérifier les autorisations. Les transactions et autres données publiques ou certifiées inscrites sur la blockchain ne peuvent généralement pas être effacées.
 
-## 3. Informations non chiffrées
+## 3. Apple et paiements
 
-Le chiffrement protège le contenu, pas chaque relation ou action. Pour faire fonctionner le service, le service cloud et les canisters traitent :
+Les notifications iOS facultatives utilisent APNs. Apple et notre service de livraison traitent un identifiant d’installation, un jeton d’appareil et des métadonnées. Les notifications contiennent un rappel générique et une référence opaque, jamais un message, mot de passe ou nom de fichier. Vous pouvez les désactiver dans dMsg ou les réglages système ; les notifications déjà livrées ne sont pas toujours récupérables.
 
-- les identifiants de compte, les principals de connexion, les clés publiques et identifiants des appareils ;
-- les noms, les profils publics et les règles de contact que vous définissez ;
-- l’appartenance aux canaux et les relations de contact nécessaires pour appliquer vos règles ;
-- la taille et l’horodatage des objets, messages et requêtes ;
-- les adresses IP et les informations des requêtes qui parviennent au service cloud ;
-- les enregistrements de commandes, de paiements, de remboursements et de droits.
+App Attest vérifie l’installation avec un identifiant de clé, des preuves et des défis. Face ID, Touch ID et le code de l’appareil sont gérés par le système ; dMsg ne reçoit ni données biométriques ni code.
 
-## 4. Informations publiques et on-chain
+Apple traite les achats StoreKit. Notre vérificateur et le canister commercial traitent les identifiants de transaction et de produit, un jeton lié au compte, les dates et les états de remboursement ou révocation, sans données de carte bancaire. D’autres clients peuvent proposer des paiements ICP et l’adhésion PANDA, avec des registres publics. Supprimer un compte dMsg n’annule pas l’abonnement Apple : gérez-le dans votre compte Apple.
 
-Certaines informations sont publiques par conception :
+Les canisters de portefeuille traitent les politiques et propositions d’équipe ; leur visibilité dépend des réglages du portefeuille. Les fournisseurs RPC reçoivent les adresses, données de transaction et informations IP nécessaires aux soldes, simulations de frais et diffusions. Les points d’accès par défaut comprennent mempool.space, PublicNode, mainnet.base.org et api.mainnet-beta.solana.com ; les autres services configurés ont leurs propres pratiques.
 
-- les noms et les comptes qui les détiennent ;
-- les documents d’annuaire servis sur id.dmsg.net, y compris leurs contrôleurs, leur service de délégation et le lien de profil ;
-- les informations de profil que vous choisissez de publier ;
-- les transactions sur les registres de jetons ICP, y compris les paiements à dMsg et les remboursements de dMsg.
+## 4. Données locales et intégrations
 
-L’état du compte que d’autres services doivent vérifier, comme les droits liés à la formule et les reçus des signatures formelles, est publié sous forme de données certifiées. Les enregistrements écrits sur ICP ne peuvent généralement pas être effacés.
+Les applications natives conservent un espace chiffré, des clés protégées par le système lorsque disponible, brouillons, opérations en attente et préférences. Le déverrouillage rend le contenu sélectionné accessible en mémoire. Les applications destinataires peuvent conserver les fichiers exportés et textes copiés.
 
-## 5. Paiements et adhésion PANDA
+L’extension de partage iOS prépare uniquement les éléments choisis pour une importation ultérieure. AutoFill et Fichiers reçoivent uniquement des instantanés sélectionnés et chiffrés séparément, valables 24 heures. AutoFill exige une authentification système indépendante. Une session Fichiers dure au maximum cinq minutes et se termine au verrouillage de dMsg ; les copies déjà téléchargées peuvent rester ailleurs. Les modifications de la source ne mettent pas automatiquement ces instantanés à jour.
 
-Vous payez depuis votre propre portefeuille sur des registres ICP comme ckUSDC et PANDA. Les canisters commerce, payment et handle de dMsg conservent les enregistrements des commandes, séquestres, dépôts, remboursements et reçus, y compris le compte payeur et les montants. Si vous demandez une exonération PANDA, le canister membership lit dans le SNS PANDA la mise, l’état de dissolution et les principals de votre neurone.
+Un transfert en arrière-plan explicitement lancé conserve uniquement du contenu chiffré et une autorisation limitée dans un répertoire séparé, accessible après le premier déverrouillage de l’appareil. Aucune clé de signature ou de contenu n’y figure. Il faut déverrouiller le compte d’origine pour vérifier et terminer le transfert. iOS peut le retarder ou l’arrêter.
 
-## 6. Données sur votre appareil
+Le site mémorise votre langue localement. L’ancienne application utilise le stockage du navigateur pour les sessions et caches ; son portefeuille peut demander des prix à ICPSwap. La suppression de l’application ou de ses données peut perdre définitivement les contenus non synchronisés ou exportés.
 
-- L’extension conserve dans le navigateur vos clés, une base de données locale chiffrée, les modifications non envoyées, l’état de synchronisation et les réglages.
-- Le site enregistre la langue choisie dans le stockage local.
-- L’ancienne application conserve votre session et des données en cache dans l’IndexedDB du navigateur, et son service worker met en cache les fichiers du site. Sa vue portefeuille demande les prix des jetons à l’API ICPSwap.
+## 5. Prestataires et conservation
 
-Désinstaller l’extension ou effacer les données du site supprime ces copies locales. Le contenu non synchronisé avec le cloud est alors perdu.
+Cloudflare traite le contenu chiffré et les métadonnées ; les nœuds et passerelles ICP exécutent les canisters et sites. Apple distribue l’application iOS et fournit les services facultatifs décrits ci-dessus. Internet Identity, les portefeuilles et applications connectées ont leurs propres politiques. Nous pouvons divulguer les informations détenues si la loi l’exige, y compris les signalements volontairement soumis, mais pas un texte en clair que nous ne possédons pas.
 
-## 7. Prestataires
+La suppression du compte de service est une demande de nettoyage suivie : elle bloque les nouveaux accès, supprime le contenu cloud appartenant au compte et ses avatars publics, puis confirme la fin du nettoyage. Elle ne supprime pas les copies chez les destinataires ou sur d’autres appareils, les registres publics ni les données financières et anti-rejeu nécessaires. Les transactions en attente et les canaux actifs possédés peuvent devoir être réglés d’abord. Les signalements sont conservés jusqu’à 90 jours, les jetons de livraison expirent sans renouvellement, et les journaux opérationnels sont conservés selon les besoins de sécurité et de dépannage. Le stockage cloud suit aussi les règles du compte et de son offre.
 
-Nous faisons appel aux prestataires suivants uniquement dans la mesure nécessaire au fonctionnement de dMsg :
+## 6. Choix, droits et contact
 
-- Cloudflare exécute le service cloud et traite les données chiffrées et les informations des requêtes qui lui sont envoyées.
-- Les fournisseurs de nœuds ICP exécutent les canisters, et des passerelles HTTP servent dmsg.net et id.dmsg.net. Ils peuvent conserver des journaux de requêtes standard.
-- Internet Identity et les portefeuilles que vous choisissez gèrent votre connexion et vos paiements.
-- Le Chrome Web Store distribue l’extension.
+Vous pouvez exporter ou supprimer du contenu, révoquer des appareils ou navigateurs, bloquer, signaler, modifier les règles de contact, demander la suppression du compte de service et retirer séparément ses données locales. Selon votre pays, vous pouvez disposer de droits d’accès, de rectification, d’effacement ou d’opposition. Contactez l’[assistance](https://dmsg.net/_/support), également pour signaler une vulnérabilité en privé. Nous expliquerons les limites dues au chiffrement ou aux registres conservés ou immuables.
 
-Nous pouvons divulguer des informations lorsque la loi l’exige. Le contenu étant chiffré, nous ne pouvons divulguer que les données chiffrées et les métadonnées que nous détenons.
-
-## 8. Conservation
-
-- Les données chiffrées restent dans le cloud tant que votre compte les utilise et dans la mesure permise par votre formule. Lorsque vous supprimez un élément, ses données chiffrées sont retirées selon les règles affichées dans l’extension.
-- À la fin d’une formule payante, les Conditions d’utilisation décrivent le sort du contenu au-delà des limites gratuites.
-- Les journaux d’exploitation ne sont conservés que le temps nécessaire à la sécurité, à la prévention des abus et au dépannage.
-- Les noms, transactions de registre, reçus de signature et autres enregistrements écrits sur ICP sont conservés par les canisters et les registres et ne peuvent généralement pas être supprimés.
-
-## 9. Vos choix et vos droits
-
-Dans l’extension, vous pouvez exporter vos données, supprimer des éléments, révoquer des appareils et modifier ou fermer vos règles de contact. Selon votre lieu de résidence, vous pouvez avoir le droit d’accéder à vos informations personnelles, de les rectifier ou de les supprimer, ou de vous opposer à leur utilisation. Contactez-nous via la page d’assistance. Comme nous ne pouvons ni déchiffrer votre contenu ni effacer les enregistrements on-chain, certaines demandes ne peuvent être satisfaites qu’en partie.
-
-## 10. Sécurité et ses limites
-
-dMsg utilise le chiffrement sur l’appareil, des approbations distinctes pour la connexion, les appareils et les signatures, et des données certifiées que les clients peuvent vérifier. Aucun système n’est parfaitement sûr. Les canisters dMsg sont contrôlés par la gouvernance d’ICPanda DAO, qui peut les mettre à niveau et modifier leurs règles, et les mises à jour de l’extension constituent un autre point de confiance. Signalez les vulnérabilités en privé via la page d’assistance.
-
-## 11. Enfants
-
-dMsg ne s’adresse pas aux enfants de moins de 13 ans, ni à ceux qui n’ont pas l’âge minimum requis dans leur pays pour utiliser des services en ligne sans consentement parental.
-
-## 12. Modifications et contact
-
-Lorsque cette politique change, nous mettons à jour la date ci-dessus et annonçons les changements importants sur le site ou dans l’extension. Pour toute question ou demande, consultez l’[Assistance](/_/support).
+Aucun système n’est parfaitement sûr. Les mises à jour et les évolutions des canisters sous gouvernance DAO restent des éléments de confiance. dMsg ne s’adresse pas aux moins de 13 ans ni aux personnes sous l’âge local requis sans consentement parental. Les changements importants seront annoncés dans l’application ou sur le site, avec une nouvelle date.

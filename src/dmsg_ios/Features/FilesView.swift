@@ -16,6 +16,8 @@ struct FilesView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columns) {
             List(selection: $selected) {
+                TransferStatusView()
+                NavigationLink("Transfers") { TransfersView() }
                 Section {
                     HStack {
                         Label("Files in this folder", systemImage: "internaldrive")
@@ -47,6 +49,8 @@ struct FilesView: View {
                 NoticeBar(text: String(localized: "Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup."))
                     .listRowBackground(Color.clear)
             }.listStyle(.plain).privateScreen().navigationTitle(model.library.folder?.name ?? String(localized: "Files"))
+                .searchable(text: Binding(get: { model.filesSearch }, set: { model.filesSearch = $0 }), prompt: "Search files")
+                .task(id: model.filesSearch) { try? await Task.sleep(for: .milliseconds(200)); if !Task.isCancelled { await model.refresh() } }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         if let folder = model.library.folder { Button("Back", systemImage: "chevron.backward") { openFolder(folder.parent ?? "root") } }
@@ -75,7 +79,7 @@ struct FilesView: View {
                     } catch { if epoch == model.epoch { model.report(error) } }
                 } }
         } detail: {
-            if let file = model.library.files.first(where: { $0.id == selected }) { FileDetailView(file: file) }
+            if let file = model.library.files.first(where: { $0.id == selected }) { FileDetailView(file: file).id(file.id) }
             else { ContentUnavailableView("Select a file", systemImage: "doc") }
         }
         .navigationSplitViewStyle(.balanced)
@@ -106,10 +110,13 @@ struct FilesView: View {
             guard let paths = model.files, let engine = model.engine, let account = model.session?.account else { return }
             let folder = model.filesFolder
             let url = try result.get()
-            let staged = try await Task.detached { try paths.importDocument(url, account: account) }.value
-            guard epoch == model.epoch else { return }
+            let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder) }.value
+            guard epoch == model.epoch else {
+                if !FileManager.default.fileExists(atPath: paths.workspace.appending(path: "accounts").appending(path: account).path) { try? paths.finishImport(staged) }
+                return
+            }
             let handle = account + "/" + staged.deletingLastPathComponent().lastPathComponent + "/" + staged.lastPathComponent
-            _ = try await coreOperation { try await engine.importFile(name: handle, folder: folder, operation: $0) }
+            _ = try await model.transfer.run(staged.lastPathComponent) { try await engine.importFile(name: handle, folder: folder, sharedId: nil, operation: $0) }
             try paths.finishImport(staged)
             if epoch == model.epoch { await model.refresh() }
         } catch { if epoch == model.epoch { model.report(error) } }
@@ -132,13 +139,14 @@ struct FileRow: View {
 
 struct FileDetailView: View {
     let file: LibraryFile
+    var historical = false
     @Environment(SessionModel.self) private var model
     @State private var preview: SharedFile?
     @State private var sharing: SharedFile?
     @State private var confirmBackup = false
     @State private var working = false
-    @State private var details: DisplayValue?
     @State private var openedNonce: String?
+    @State private var actionTask: Task<Void, Never>?
     struct Opened: Decodable { let path: String; let nonce: String }
     struct BackupProgress: Decodable { let pending: UInt64; let failed: UInt64; let paused: Bool }
     struct SharedFile: Identifiable { let url: URL; var id: URL { url } }
@@ -154,12 +162,17 @@ struct FileDetailView: View {
                 }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
-                Button("Preview file", systemImage: "doc.text.magnifyingglass") { Task { await open(share: false) } }
-                Button("Share a copy", systemImage: "square.and.arrow.up") { Task { await open(share: true) } }
-                Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { confirmBackup = true }
+                Button("Preview file", systemImage: "doc.text.magnifyingglass") { actionTask = Task { await open(share: false) } }
+                Button("Share a copy", systemImage: "square.and.arrow.up") { actionTask = Task { await open(share: true) } }
+                if !historical {
+                    Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { confirmBackup = true }
+                    NavigationLink("Manage file") { FileManagementView(file: file) }
+                    NavigationLink("File versions") { FileVersionsView(file: file) }
+                }
             }.disabled(working)
+            TransferStatusView()
             Section("Integrity") { LabeledContent("SHA-256") { Text(file.sha256).font(.caption.monospaced()).textSelection(.enabled) } }
-            if let details { Section("Versions") { CanonicalDetails(value: details) } }
+
             NoticeBar(text: String(localized: "Shared copies leave dMsg's protection and cannot be recalled."))
                 .listRowBackground(Color.clear)
         }.privateScreen().navigationTitle("File").navigationBarTitleDisplayMode(.inline)
@@ -167,22 +180,20 @@ struct FileDetailView: View {
             .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
             .onChange(of: preview?.id) { before, after in if before != nil && after == nil { cleanup() } }
             .onChange(of: sharing?.id) { before, after in if before != nil && after == nil { cleanup() } }
-            .onDisappear { if preview == nil && sharing == nil { cleanup() } }
+            .onDisappear { if preview == nil && sharing == nil { actionTask?.cancel(); cleanup() } }
             .confirmationDialog("Back up this file?", isPresented: $confirmBackup) {
-                Button("Back up encrypted copy") { Task { await backup() } }
+                Button("Back up encrypted copy") { actionTask = Task { await backup() } }
             } message: { Text("The encrypted version will use cloud storage. Your local copy stays on this device.") }
-            .task(id: file.id) {
-                details = nil; let epoch = model.epoch
-                do { if let result = try await model.engine?.fileDetails(id: file.id), epoch == model.epoch, !Task.isCancelled { details = try model.decode(result) } }
-                catch { model.report(error) }
-            }
+
     }
 
     private func open(share: Bool) async {
         model.activity()
         working = true; defer { working = false }; let epoch = model.epoch
         do {
-            guard let result = try await model.engine?.openFile(id: file.id, version: file.current), epoch == model.epoch else { return }
+            guard let engine = model.engine else { return }
+            let result = try await coreOperation { try await engine.openFile(id: file.id, version: file.current, operation: $0) }
+            guard epoch == model.epoch, !Task.isCancelled, !model.concealed else { return }
             let opened: Opened = try model.decode(result)
             openedNonce = opened.nonce
             let url = URL(fileURLWithPath: opened.path)
@@ -198,7 +209,7 @@ struct FileDetailView: View {
             _ = try await engine.backupFile(id: file.id, expectedVersion: file.current)
             // Continue only this explicit confirmation while the scene is active.
             repeat {
-                let snapshot = try await coreOperation { try await engine.runBackups(operation: $0) }
+                let snapshot = try await model.transfer.run(file.name) { try await engine.runBackups(operation: $0) }
                 guard epoch == model.epoch else { return }
                 let progress: BackupProgress = try model.decode(snapshot)
                 if progress.pending == 0 || progress.failed > 0 || !progress.paused { break }

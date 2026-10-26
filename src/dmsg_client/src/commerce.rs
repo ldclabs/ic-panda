@@ -866,6 +866,7 @@ fn contract_view(c: &MembershipContract) -> Json {
     let (method, source) = match &c.source {
         ContractSource::Cash { order_id } => ("Cash", hex::encode(**order_id)),
         ContractSource::Sns { claim_id } => ("Panda", hex::encode(**claim_id)),
+        ContractSource::AppStore { transaction_id } => ("AppStore", hex::encode(**transaction_id)),
         ContractSource::Compensation => ("Compensation", String::new()),
     };
     json!({
@@ -1726,3 +1727,98 @@ pub async fn commerce_sweep<H: Hold>(h: &H) -> Result<u32> {
 #[cfg(test)]
 #[path = "commerce_tests.rs"]
 mod tests;
+
+/// Governed StoreKit products and the account-bound purchase token. Prices are
+/// obtained from StoreKit, never inferred from the cash catalogue.
+pub async fn app_store_products<H: Hold>(h: &H) -> Result<Json> {
+    let beneficiary = h.with(|c| c.beneficiary()).await?;
+    let commerce = services(h).await?.commerce;
+    let ic = h.anonymous().await?;
+    let configured: Option<dmsg_types::app_store::AppStoreConfig> =
+        ic.query(commerce, "get_app_store_config", ()).await?;
+    let account = dmsg_protocol::billing::beneficiary_account(&beneficiary)?;
+    let token = dmsg_protocol::app_store::account_token(beneficiary.authority_canister, &account);
+    Ok(
+        json!({"configuration":configured,"account_token":token,"home":beneficiary.authority_canister.to_text(),"account":account.to_string()}),
+    )
+}
+
+/// Recheck the supported plan transition before presenting Apple's payment UI.
+/// This is a preflight, not proof of a purchase or a durable entitlement.
+/// # Errors
+/// Unconfigured product, stale certification, or unavailable commerce.
+pub async fn app_store_purchase_check<H: Hold>(h: &H, product: &str) -> Result<Json> {
+    let commerce = services(h).await?.commerce;
+    let ic = h.anonymous().await?;
+    let config: Option<dmsg_types::app_store::AppStoreConfig> =
+        ic.query(commerce, "get_app_store_config", ()).await?;
+    let config = config.ok_or(Error::UnsupportedProtocol)?;
+    let kind = &config
+        .products
+        .iter()
+        .find(|p| p.product_id == product)
+        .ok_or(Error::UnsupportedProtocol)?
+        .kind;
+    let status = plan_status(h, true).await?;
+    let reason = app_store_purchase_reason(kind, &status);
+    Ok(
+        json!({"eligible":reason.is_none(),"reason":reason,"environment":config.environment,"kind":if matches!(kind,dmsg_types::app_store::StoreProductKind::Plan(_)){"subscription"}else{"storage"}}),
+    )
+}
+
+fn app_store_purchase_reason(
+    kind: &dmsg_types::app_store::StoreProductKind,
+    status: &Json,
+) -> Option<&'static str> {
+    if status["source"] == "Unverifiable" {
+        return Some("unavailable");
+    }
+    let current = &status["current"];
+    if !current.is_null() && current["method"] != "AppStore" {
+        return Some("external_plan");
+    }
+    if matches!(kind, dmsg_types::app_store::StoreProductKind::Storage(_))
+        && (current.is_null() || status["source"] != "Active")
+    {
+        return Some("subscription_required");
+    }
+    None
+}
+
+#[cfg(test)]
+mod app_store_purchase_tests {
+    use super::*;
+    #[test]
+    fn no_payment_ui_for_unsupported_source_or_storage_without_a_live_base() {
+        use dmsg_types::app_store::StoreProductKind::{Plan, Storage};
+        let plan = Plan(PlanId::Plus);
+        let storage = Storage(Hash::new([1; 32]));
+        let free = json!({"source":"Free","current":null});
+        assert_eq!(app_store_purchase_reason(&plan, &free), None);
+        assert_eq!(
+            app_store_purchase_reason(&storage, &free),
+            Some("subscription_required")
+        );
+        assert_eq!(
+            app_store_purchase_reason(
+                &plan,
+                &json!({"source":"Active","current":{"method":"Cash"}})
+            ),
+            Some("external_plan")
+        );
+        assert_eq!(
+            app_store_purchase_reason(
+                &storage,
+                &json!({"source":"Active","current":{"method":"AppStore"}})
+            ),
+            None
+        );
+        assert_eq!(
+            app_store_purchase_reason(
+                &plan,
+                &json!({"source":"Unverifiable","current":{"method":"AppStore"}})
+            ),
+            Some("unavailable")
+        );
+    }
+}

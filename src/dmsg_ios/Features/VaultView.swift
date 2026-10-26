@@ -9,10 +9,9 @@ struct VaultView: View {
     @State private var compactColumn: NavigationSplitViewColumn = .sidebar
     @State private var columns: NavigationSplitViewVisibility = .all
     @State private var editing: VaultEditorTarget?
-    @State private var filter = "all"
     @State private var trash = false
-    private var shown: [VaultItem] { model.vault.filter { filter == "all" || $0.kind == filter } }
-    private var favorites: [VaultItem] { Array(model.vault.filter(\.favorite).prefix(4)) }
+    private var shown: [VaultItem] { model.vault }
+    private var favorites: [VaultItem] { model.favorites }
 
     var body: some View {
         @Bindable var model = model
@@ -57,13 +56,13 @@ struct VaultView: View {
                     }
                 }
                 Section {
-                    Picker("Type", selection: $filter) {
+                    Picker("Type", selection: $model.vaultFilter) {
                         Text("All").tag("all"); Text("Passwords").tag("login"); Text("Notes").tag("note"); Text("Keys").tag("key")
                     }.pickerStyle(.segmented).listRowBackground(Color.clear).listRowSeparator(.hidden)
                     ForEach(shown, id: \.id) { item in
                         NavigationLink(value: item.id) { VaultRow(item: item) }.accessibilityIdentifier("vault.item.\(item.id)")
                     }
-                    if model.vaultHasMore { Button("Load more") { Task { await model.loadVault(more: true) } } }
+                    if model.vaultHasMore { Button("Load more") { Task { await model.loadVault(more: true) } }.disabled(model.loadingVault) }
                 }
                 if shown.isEmpty {
                     ContentUnavailableView.search(text: model.search)
@@ -76,6 +75,7 @@ struct VaultView: View {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button("Add item", systemImage: "plus") { editing = .new }
                         Menu("Vault tools", systemImage: "ellipsis.circle") {
+                            NavigationLink("Import passwords") { VaultImportView() }
                             NavigationLink("Import secret package") { SecretPackageImportView() }
                             NavigationLink("Shared snapshots") { SecretSharesView() }
                             NavigationLink("Local security review") { SecretHealthView() }
@@ -88,12 +88,12 @@ struct VaultView: View {
                 .onChange(of: listSelection) { _, value in
                     if let value { selected = value; compactColumn = .detail; model.activity() }
                 }
-                .task(id: model.search) {
+                .task(id: model.search + ":" + model.vaultFilter) {
                     try? await Task.sleep(for: .milliseconds(200))
                     if !Task.isCancelled { await model.loadVault() }
                 }
         } detail: {
-            if let id = selected { VaultDetailView(id: id) }
+            if let id = selected { VaultDetailView(id: id).id(id) }
             else { ContentUnavailableView("Select a secret", systemImage: "key.horizontal", description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
         }
         .navigationSplitViewStyle(.balanced)
@@ -135,6 +135,8 @@ struct VaultDetailView: View {
     @State private var copyPending = false
     @State private var editing: VaultEditorTarget?
     @State private var referenceTarget: ReferenceTarget?
+    @State private var revealTask: Task<Void, Never>?
+    @State private var revealRequest: UUID?
 
     var body: some View {
         List {
@@ -175,6 +177,7 @@ struct VaultDetailView: View {
                 if !item.notes.isEmpty { Section("Notes") { Text(item.notes).textSelection(.enabled) } }
                 if !item.reserved && revision == nil {
                     Section {
+                        NavigationLink("Version history") { VaultHistoryView(item: item) }
                         Button("Edit item", systemImage: "pencil") { editing = VaultEditorTarget(item: item) }.frame(minHeight: 44)
                         NavigationLink { SecretItemAttachmentsView(itemID: item.id) } label: { Label("Item attachments", systemImage: "paperclip") }
                         NavigationLink { SecretSnapshotComposer(item: item) } label: { Label("Share secret snapshot", systemImage: "square.and.arrow.up") }
@@ -185,19 +188,19 @@ struct VaultDetailView: View {
             } else { ProgressView() }
         }.privateScreen().navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
             .task(id: id + ":" + (revision ?? "head")) { await load() }
-            .onDisappear { revealed = [:] }
-            .onChange(of: model.concealed) { _, concealed in if concealed { revealed = [:] } }
+            .onDisappear { clearRevealed() }
+            .onChange(of: model.concealed) { _, concealed in if concealed { clearRevealed() } }
             .sheet(item: $editing, onDismiss: { Task { await load() } }) { target in NavigationStack { VaultEditor(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in
                 SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID)
             }
             .confirmationDialog(copyPending ? "Copy this field?" : "Reveal this field?", isPresented: Binding(get: { pendingField != nil }, set: { if !$0 { pendingField = nil } })) {
-                Button(copyPending ? "Copy for 30 seconds" : "Reveal") { if let field = pendingField { Task { await reveal(field) } } }
+                Button(copyPending ? "Copy for 30 seconds" : "Reveal") { if let field = pendingField { revealTask?.cancel(); revealTask = Task { await reveal(field) } } }
             } message: { Text("Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.") }
     }
 
     private func load() async {
-        revealed = [:]; let epoch = model.epoch
+        clearRevealed(); item = nil; let epoch = model.epoch
         #if DEBUG
         if model.uiTesting { item = model.vault.first { $0.id == id }; return }
         #endif
@@ -207,17 +210,23 @@ struct VaultDetailView: View {
         } catch { model.report(error) }
     }
 
+    private func clearRevealed() {
+        revealTask?.cancel(); revealTask = nil; revealRequest = nil
+        revealed = [:]; pendingField = nil
+    }
+
     private func reveal(_ field: VaultField) async {
         guard let item else { return }
-        let copying = copyPending, epoch = model.epoch
+        let copying = copyPending, epoch = model.epoch, request = UUID()
+        revealRequest = request
         pendingField = nil; model.activity()
         do {
-            guard let value = try await model.engine?.revealField(id: item.id, revision: item.revision, field: field.id), epoch == model.epoch else { return }
+            guard let value = try await model.engine?.revealField(id: item.id, revision: item.revision, field: field.id), epoch == model.epoch, revealRequest == request, !model.concealed, !Task.isCancelled else { return }
             if copying { model.clipboard.copy(value.value); model.notice = String(localized: "Copied for 30 seconds") }
             else { revealed[field.id] = value.value }
             if let remaining = value.remainingMs {
                 try? await Task.sleep(for: .milliseconds(Int64(remaining)))
-                if epoch == model.epoch { revealed.removeValue(forKey: field.id) }
+                if epoch == model.epoch, revealRequest == request, !Task.isCancelled { revealed.removeValue(forKey: field.id) }
             }
         } catch { model.report(error) }
     }
@@ -231,6 +240,8 @@ struct VaultEditor: View {
     @State private var kind = "login"
     @State private var notes = ""
     @State private var favorite = false
+    @State private var tags = ""
+    @State private var newFieldKind = "text"
     @State private var fields: [EditableField] = []
     @State private var saving = false
     @State private var deleting = false
@@ -239,7 +250,7 @@ struct VaultEditor: View {
     @State private var attachmentsChanged = false
     @State private var choosingAttachment = false
     @State private var initialized = false
-    struct EditableField: Identifiable { let id: String; let kind: String; let label: String; var value: String; let concealed: Bool; var changed = false }
+    struct EditableField: Identifiable { let id: String; let kind: String; var label: String; var section: String = ""; var value: String; let concealed: Bool; var changed = false }
 
     var body: some View {
         Form {
@@ -251,6 +262,7 @@ struct VaultEditor: View {
                     }
                 }
                 Toggle("Favorite", isOn: $favorite)
+                TextField("Tags, separated by commas", text: $tags).textInputAutocapitalization(.never)
             }
             Section("Fields") {
                 ForEach($fields) { $field in
@@ -258,11 +270,22 @@ struct VaultEditor: View {
                         Text(field.label.isEmpty ? (field.kind == "otp" ? String(localized: "One-time code") : vaultFieldName(field.id)) : field.label).font(.caption).foregroundStyle(.secondary)
                         if field.concealed { SecureField(target.item == nil ? "Value" : "Leave empty to keep existing value", text: $field.value) }
                         else { TextField("Value", text: $field.value).textInputAutocapitalization(.never) }
+                        DisclosureGroup("Field settings") {
+                            TextField("Field name", text: $field.label)
+                            TextField("Section", text: $field.section)
+                            Button("Remove field", role: .destructive) { fields.removeAll { $0.id == field.id } }
+                        }
                     }.onChange(of: field.value) { _, _ in field.changed = true; model.activity() }
                 }
-                Button("Add one-time code") {
-                    fields.append(.init(id: "otp_" + UUID().uuidString.prefix(8).lowercased(), kind: "otp",
-                        label: "", value: "", concealed: true, changed: true))
+                Picker("New field type", selection: $newFieldKind) {
+                    Text("Text").tag("text"); Text("Hidden value").tag("concealed")
+                    Text("Website").tag("url"); Text("Email").tag("email")
+                    Text("Phone").tag("phone"); Text("Date").tag("date")
+                    Text("Month").tag("month"); Text("One-time code").tag("otp")
+                }
+                Button("Add field") {
+                    fields.append(.init(id: "field_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16).lowercased(),
+                        kind: newFieldKind, label: "", value: "", concealed: ["concealed", "otp"].contains(newFieldKind), changed: true))
                 }.disabled(fields.count >= 64)
             }
             Section("Notes") { TextEditor(text: $notes).frame(minHeight: 100) }
@@ -314,9 +337,9 @@ struct VaultEditor: View {
     private func setup() {
         guard !initialized else { return }; initialized = true
         if let item = target.item {
-            title = item.title; kind = item.kind; notes = item.notes; favorite = item.favorite
+            title = item.title; kind = item.kind; notes = item.notes; favorite = item.favorite; tags = item.tags.joined(separator: ", ")
             attachmentIDs = item.files
-            fields = item.fields.map { EditableField(id: $0.id, kind: $0.kind, label: $0.label, value: $0.concealed ? "" : $0.value, concealed: $0.concealed) }
+            fields = item.fields.map { EditableField(id: $0.id, kind: $0.kind, label: $0.label, section: $0.section, value: $0.concealed ? "" : $0.value, concealed: $0.concealed) }
         } else {
             template()
         }
@@ -343,8 +366,8 @@ struct VaultEditor: View {
         saving = true; defer { saving = false }; let epoch = model.epoch
         do {
             let saved = try await model.engine?.saveItem(id: target.item?.id, revision: target.item?.revision,
-                edit: VaultEdit(title: title, kind: kind, notes: notes, favorite: favorite, fields: fields.map {
-                    FieldEdit(id: $0.id, kind: $0.kind, label: $0.label, value: target.item != nil && !$0.changed ? nil : $0.value)
+                edit: VaultEdit(title: title, kind: kind, notes: notes, favorite: favorite, tags: tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }, fields: fields.map {
+                    FieldEdit(id: $0.id, kind: $0.kind, label: $0.label, section: $0.section, value: target.item != nil && !$0.changed ? nil : $0.value)
                 }, files: target.item == nil || attachmentsChanged ? attachmentIDs : nil))
             guard epoch == model.epoch else { return }
             if saved?.item.conflict == true { model.notice = String(localized: "Saved as a separate version. Review sync conflicts.") }

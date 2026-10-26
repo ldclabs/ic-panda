@@ -3,10 +3,12 @@
  * answers only `window.opener`, at the origin the browser reports, and
  * shows what is happening; approval always happens in dMsg.
  */
+import { nativeLink } from '../src/native-link.ts'
 import { xidText } from '../src/bridge.ts'
 import { BridgePage, type Target } from '../src/page.ts'
 import { browserLabel, el, isSafari, openBridge, supported, t } from './shared.ts'
 
+const mobile = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 const SAFARI_IDLE_MS = 5 * 86_400_000
 const CREATE = ['authenticate', 'signDocument', 'signAction', 'checkout']
 
@@ -77,7 +79,7 @@ const page = new BridgePage(bridge, {
   },
   done: (method, outcome) => {
     if (outcome.error === 'NOT_PAIRED') {
-      const href = outcome.account ? `dmsg://connect/pair?account=${outcome.account}` : 'dmsg://connect/pair'
+      const href = nativeLink('pair', outcome.account, undefined, mobile)
       note(el('p', {}, t('notPaired')), el('a', { class: 'button', href, 'data-testid': 'pair-link' }, t('openDmsg')))
       return
     }
@@ -87,7 +89,7 @@ const page = new BridgePage(bridge, {
     }
     const value = outcome.value!
     if (CREATE.includes(method) && value.state === 'awaiting_user' && outcome.link) {
-      const href = `dmsg://connect/request?account=${outcome.link.account}&request=${outcome.link.requestId}`
+      const href = nativeLink('request', outcome.link.account, outcome.link.requestId, mobile)
       note(
         el('p', { 'data-testid': 'sent' }, t('sent')),
         el('a', { class: 'button', href, 'data-testid': 'request-link' }, t('confirm')),
@@ -109,3 +111,13 @@ window.addEventListener('message', (event) => void page.receive(event))
 setInterval(() => page.tick(), 1000)
 document.documentElement.dataset.label = browserLabel()
 document.documentElement.dataset.ready = 'true'
+
+// Resume only existing operations after an app hop. Results still require the
+// registered opener's fresh proof via getOperation; never post unsolicited data.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !page.current) return
+  const current = page.current
+  void bridge.refreshPending(current.origin, current.appId).then(() => {
+    if (page.current === current) status.dataset.resumed = 'true'
+  }).catch(() => { /* The authenticated getOperation call can retry. */ })
+})

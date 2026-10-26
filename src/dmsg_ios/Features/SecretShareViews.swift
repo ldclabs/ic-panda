@@ -76,6 +76,7 @@ struct SecretSnapshotComposer: View {
         }.disabled(working).privateScreen().navigationTitle("Share secret snapshot").navigationBarTitleDisplayMode(.inline)
             .task {
                 if !initialized { destination = initialChannel ?? "link"; initialized = true }
+                await model.loadChannels()
                 let epoch = model.epoch
                 do {
                     guard let snapshot = try await model.engine?.secretItemAttachments(itemId: item.id), epoch == model.epoch else { return }
@@ -283,7 +284,7 @@ struct SecretSnapshotItemPicker: View {
     private func load(reset: Bool) async {
         let epoch = model.epoch, query = search; reading = true; defer { reading = false }
         do {
-            guard let page = try await model.engine?.vaultPage(query: query, offset: reset ? 0 : UInt32(items.count), limit: 100),
+            guard let page = try await model.engine?.vaultPage(query: query, kind: nil, favoritesOnly: false, offset: reset ? 0 : UInt32(items.count), limit: 100),
                   epoch == model.epoch, query == search, !Task.isCancelled else { return }
             items = reset ? page.items : items + page.items; hasMore = page.hasMore
         } catch { if epoch == model.epoch { model.report(error) } }

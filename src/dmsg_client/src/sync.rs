@@ -801,6 +801,24 @@ struct SyncSession<'a, H> {
     generation: u64,
 }
 
+/// Refresh the encrypted account inventory without flushing or uploading local
+/// work. Used when reviewing account deletion from a newly authorized device.
+/// # Errors
+/// Locked/revoked device, unavailable relay or an unverifiable snapshot.
+pub async fn pull_metadata<H: Hold>(h: &H) -> Result<usize> {
+    let h = crate::hold::Unlocked::new(h).await?;
+    h.signed(|c| {
+        let security = c.fresh()?;
+        c.check_revoked(&security)?;
+        c.roots()?;
+        Ok(())
+    })
+    .await?;
+    let mut stage = SyncStage::ExportStart;
+    let snapshot = fetch(&h, &mut stage).await?;
+    h.with(|c| c.apply(&snapshot)).await
+}
+
 impl<H: Hold> Hold for SyncSession<'_, H> {
     async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
         self.h

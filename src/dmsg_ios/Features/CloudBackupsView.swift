@@ -27,6 +27,7 @@ struct CloudBackupSection: View {
                             }
                         }.buttonStyle(.bordered).disabled(restoring != nil)
                             .accessibilityIdentifier("backup.restore.\(backup.id)")
+                        Button("Download encrypted copy in background") { Task { await model.startBackgroundDownload(upload: backup.id) } }.disabled(model.busy || restoring != nil)
                     }
                 }.padding(.vertical, 4)
                     .contextMenu { Button("Delete cloud backup", role: .destructive) { deleting = backup } }
@@ -55,7 +56,7 @@ struct CloudBackupSection: View {
             if let files = model.files,
                let available = try files.root.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage,
                available < Int64(backup.bytes) + 8 * 1024 * 1024 { throw CocoaError(.fileWriteOutOfSpace) }
-            _ = try await coreOperation { try await engine.restoreBackup(upload: backup.id, folder: folder, operation: $0) }
+            _ = try await model.transfer.run(backup.name ?? String(localized: "Restoring…")) { try await engine.restoreBackup(upload: backup.id, folder: folder, operation: $0) }
             guard epoch == model.epoch else { return }
             await model.loadCloudBackups(refresh: false); await model.refresh()
         } catch { if epoch == model.epoch { model.report(error) } }

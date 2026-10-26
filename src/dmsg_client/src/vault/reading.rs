@@ -56,6 +56,58 @@ pub async fn list<H: Hold>(h: &H, filter: &Filter) -> Result<Vec<VaultEntry>> {
     Ok(entries)
 }
 
+/// Page after applying all display filters. Only one encrypted batch and the
+/// requested matching entries are retained; each decryption is interruptible.
+pub async fn page<H: Hold>(
+    h: &H,
+    filter: &Filter,
+    kind: Option<&str>,
+    favorites: bool,
+    offset: usize,
+    limit: usize,
+) -> Result<(Vec<VaultEntry>, bool)> {
+    dmsg_types::ensure_valid((1..=100).contains(&limit), "page")?;
+    dmsg_types::ensure_valid(kind.is_none_or(|k| super::TYPES.contains(&k)), "kind")?;
+    let session = h.with(|c| Session::start(c)).await?;
+    let mut after = String::new();
+    let mut matched = 0;
+    let mut entries = Vec::with_capacity(limit);
+    loop {
+        let rows = h
+            .with(|c| {
+                session.check(c)?;
+                c.workspace.store.head_objects_after(VAULT, &after, 64)
+            })
+            .await?;
+        if rows.is_empty() {
+            break;
+        }
+        for row in rows {
+            after = row.item.clone();
+            let entry = h
+                .with(|c| {
+                    session.check(c)?;
+                    c.vault_list_entry(&row, filter)
+                })
+                .await?;
+            let Some(entry) = entry.filter(|e| {
+                kind.is_none_or(|k| e.item.kind == k) && (!favorites || e.item.favorite)
+            }) else {
+                continue;
+            };
+            if matched >= offset {
+                if entries.len() == limit {
+                    return Ok((entries, true));
+                }
+                entries.push(entry);
+            }
+            matched += 1;
+        }
+    }
+    h.with(|c| session.check(c)).await?;
+    Ok((entries, false))
+}
+
 /// Check passwords and dates without holding the client during the analysis.
 /// # Errors
 /// As [`list`].
@@ -230,6 +282,57 @@ mod tests {
         eprintln!(
             "1000 items, 10 local list reads: previous={before:?}, joined={:?}",
             started.elapsed()
+        );
+    }
+    #[tokio::test]
+    async fn paging_applies_type_favorites_and_query_before_the_offset() {
+        let dir = TempDir::new();
+        let mut c = unlocked(&dir.0, false, None);
+        c.vault_add_all(
+            (0..130)
+                .map(|i| {
+                    let mut item = super::super::Item::new(
+                        if i % 2 == 0 { "login" } else { "note" },
+                        &format!("entry {i}"),
+                        1,
+                    );
+                    item.favorite = i % 3 == 0;
+                    item
+                })
+                .collect(),
+        )
+        .unwrap();
+        let filter = Filter {
+            trash: false,
+            query: Some("entry".into()),
+        };
+        let expected: Vec<_> = c
+            .vault_list(&filter)
+            .unwrap()
+            .into_iter()
+            .filter(|e| e.item.kind == "login" && e.item.favorite)
+            .map(|e| e.id)
+            .collect();
+        let (first, more) = page(&c.hold(), &filter, Some("login"), true, 0, 10)
+            .await
+            .unwrap();
+        assert!(more);
+        assert_eq!(
+            first.into_iter().map(|e| e.id).collect::<Vec<_>>(),
+            expected[..10]
+        );
+        let (last, more) = page(&c.hold(), &filter, Some("login"), true, 10, 100)
+            .await
+            .unwrap();
+        assert!(!more);
+        assert_eq!(
+            last.into_iter().map(|e| e.id).collect::<Vec<_>>(),
+            expected[10..]
+        );
+        c.lock();
+        assert_eq!(
+            page(&c.hold(), &filter, None, false, 0, 10).await.err(),
+            Some(Error::Locked)
         );
     }
 }

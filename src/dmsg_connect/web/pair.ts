@@ -3,6 +3,7 @@
  * (connect-v1 §5.2). The fragment never reaches a server and is cleared as
  * soon as it is read; the device shows the label and the person confirms.
  */
+import { nativeLink } from '../src/native-link.ts'
 import { ConnectError } from '../src/errors.ts'
 import { browserLabel, el, openBridge, supported, t } from './shared.ts'
 
@@ -25,7 +26,7 @@ else {
     const { account, pairingId } = await bridge.pair(fragment, label)
     main.dataset.account = account
     main.dataset.pairing = pairingId
-    show('waiting', el('p', {}, t('pairWaiting')), el('p', { class: 'label', 'data-testid': 'label' }, label))
+    show('waiting', el('p', {}, t('pairWaiting')), el('p', { class: 'label', 'data-testid': 'label' }, label), el('a', { class: 'button', href: nativeLink('pair', account, undefined, false) }, t('openDmsg')))
     await bridge.awaitGrant(account, 600_000)
     show(
       'active',

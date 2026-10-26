@@ -1180,6 +1180,39 @@ impl Store {
             .ok_or(Error::IntegrityFailed)
     }
 
+    /// A bounded batch of current encrypted rows, ordered by item ID.
+    /// Missing objects remain integrity failures, including during pagination.
+    pub fn head_objects_after(
+        &self,
+        kind: &str,
+        after: &str,
+        limit: usize,
+    ) -> Result<Vec<ObjectRow>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT o.key, o.item, o.revision, o.kind, o.frame, o.state,
+                    o.conflict, o.resolved, o.created_at
+             FROM heads h LEFT JOIN objects o ON o.key = h.item || ':' || h.revision
+             WHERE h.kind = ?1 AND h.item > ?2 ORDER BY h.item LIMIT ?3",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(params![kind, after, limit as i64], |r| {
+                if r.get::<_, Option<String>>(0)?.is_none() {
+                    Ok(None)
+                } else {
+                    row(r).map(Some)
+                }
+            })
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(storage)?
+            .into_iter()
+            .collect::<Option<Vec<_>>>()
+            .ok_or(Error::IntegrityFailed)
+    }
+
     /// Store a ciphertext chunk under the SHA-256 of its bytes.
     ///
     /// # Errors

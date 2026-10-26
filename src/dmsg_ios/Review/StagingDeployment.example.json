@@ -1,0 +1,7 @@
+{
+  "relay": "REQUIRED_HTTPS_ORIGIN",
+  "handle": "REQUIRED_STAGING_HANDLE_CANISTER",
+  "user_homes": [],
+  "wallet_hub": null,
+  "connect_url": "REQUIRED_HTTPS_BRIDGE_ORIGIN"
+}

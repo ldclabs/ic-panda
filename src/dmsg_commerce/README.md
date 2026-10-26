@@ -4,7 +4,7 @@ dMsg 的商业服务 canister，承担三项职责：
 
 1. **集成注册表**：保存治理登记的应用（`AppRegistration`）和产品（`ProductRegistration`），并发布认证配置。`dmsg_user`、`membership` 和客户端都从这里读取。
 2. **通用现金结算**：为任何已登记产品收取 ckUSDC / ckUSDT。每个订单有独立的收款子账户，按账本分别记账，负责入金核验、原路退款和商户收入归集。结算部分不写死 dMsg 的收款方。
-3. **dMsg 账户产品**：作为产品 `dmsg` 的报价权威与适配器，提供年度套餐、现金升级和存储包，接受 `membership` 的 PANDA 全额抵扣决定，并把合同投影成认证资源权益，以及 `dmsg_user` 使用的 UTC 月执行额度。
+3. **dMsg 账户产品**：作为产品 `dmsg` 的报价权威与适配器，提供年度套餐、现金升级和存储包，接受 `membership` 的 PANDA 全额抵扣决定，以及治理授权验证方提供的 Apple 交易事实，并把合同投影成认证资源权益，以及 `dmsg_user` 使用的 UTC 月执行额度。
 
 完整接口见 [dmsg_commerce.did](dmsg_commerce.did)。公开合同见 [commerce v2](../../docs/protocol/commerce.md) 与 [integration](../../docs/protocol/integration.md)；类型见 [integration_billing](../dmsg_types/src/integration_billing.rs)、[billing](../dmsg_types/src/billing.rs)；纯规则见 [commerce_v2](../dmsg_protocol/src/commerce_v2.rs) 与 [product_book](../dmsg_protocol/src/product_book.rs)。
 
@@ -38,7 +38,15 @@ flowchart LR
 | governance            | 初始化时固定的管理主体，与 controller 一起可调用全部治理方法                                                                                                                                          |
 | 价格权威              | 可选；governance 指定的 principal 也可以发布，未指定时 controller/governance 手动发布长期价格                                                                                                         |
 | 商户                  | 产品注册中 `merchant` 账户的 owner，自动接收服务结束后的收入                                                                                                                                                  |
-| 私有云端              | 读取认证目录和资源权益，不参与资金或交付决定                                                                                                                                                          |
+| 私有云端              | 读取认证目录和资源权益；独立的 Apple 验证方验证交易并提交事实，最终权益仍由 commerce 认证发布 |
+
+### App Store 适配
+
+`set_app_store_config` 由 controller/governance 配置验证方、bundle ID、Apple ID、环境和真实商品映射；`get_app_store_config` 读取当前配置。只有登记验证方可调用 `apply_app_store_transaction`，客户端不能自行提交付款成功状态。公开数据与设备合同见 [mobile](../../docs/protocol/mobile_zh.md)。
+
+交易绑定 user home、账号和确定性的 `appAccountToken`，原始交易不能迁移到另一账号。交易观察按签名时间和验证时间单调推进，重复交付不叠加权益，退款不能被旧观察复活。验证方每次必须先向 Apple 查询当前状态；认证权益最长信任一小时的新鲜观察。已有有效非 Apple 基础合同与 Apple 基础套餐互斥，存储包要求有效的 Apple 基础套餐。
+
+Production 拒绝 Sandbox 事实。TestFlight 的沙盒购买必须使用独立 Staging 部署，不能因收据位于沙盒而修改生产认证信任根。实际 App Store 商品、验证方和密钥尚需部署配置，本仓库测试没有发生真实购买、续订或退款。
 
 ### 接口与调用者
 
@@ -211,6 +219,9 @@ flowchart LR
 | 31、32 | 自动结算截止时间索引与任务索引：订单收入 / 出金腿，固定批次处理 |
 |     33 | 自动结算索引补建游标，订单和转账分别推进，每分钟各最多补建 16 条热记录 |
 |     34 | 出金腿的到期子索引，为派发保留批次名额 |
+|     35 | Apple 配置：验证方、应用、环境与商品映射 |
+|     36 | 按环境与交易号去重的 Apple 交易观察与指纹 |
+|     37 | 原始 Apple 交易绑定的唯一受益账号 |
 | 28、29 | 认证 map 的叶子（key → 认证值哈希）与按 id 定址的内部节点  |
 
 heap 保存配置缓存（含调用计数）、目录缓存、调用 guard 和定时器运行状态。认证树用 `dmsg_runtime::cert_map` 存放在 stable memory，只保存 key 与哈希；注册、目录和付费主体视图的认证值在查询时从记录重新生成，并与已认证哈希核对。订单、出金腿和资产没有认证叶。`post_upgrade` 加载目录缓存，按当前时间刷新目录叶后发布根，不扫描订单或主体；新增结算索引由定时任务有界补建，已有订单和转账记录仍用 schema 8，补建游标跨升级保留。升级在日志中记录 `commerce_upgrade subjects=… instructions=…`。
@@ -460,6 +471,7 @@ icp canister start dmsg_commerce -e ic
 
 ## 当前限制
 
+- 上述容量样本不包含后来新增的 Apple 交易观察与原始交易账号索引；这些记录的长期容量尚未实测。
 - `governance` 本身不能修改。
 - 只识别 `1xfer`/`2xfer` 入金。铸造到订单子账户等其他区块无法入账，也没有清扫接口。
 - 已开始的现金服务仅首份基础会员有七天自助退款窗口；PANDA 合同不能主动提前退出，已知失格则终止，原租约结束后可重新申请。
@@ -473,6 +485,7 @@ icp canister start dmsg_commerce -e ic
 | 文件                    | 内容                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------- |
 | `src/api.rs`            | 初始化与升级、目录治理、权益刷新、执行额度                                      |
+| `src/app_store.rs`      | 治理配置、Apple 验证方准入、幂等交易与退款、原交易账号绑定、权益投影 |
 | `src/model.rs`          | 主体、资格暂停、存储包、权益投影与月额度片段                                    |
 | `src/product.rs`        | dMsg 产品：SKU 与报价、ProductBook 预留/交付/取消、PANDA 资格观察               |
 | `src/checkout.rs`       | 资产治理、报价、开单、入金、交付、取消、退款、收入、出金派发与对账               |
@@ -485,6 +498,8 @@ icp canister start dmsg_commerce -e ic
 | `src/capacity.rs`       | 测试用：主机构建容量 profile 的 stable memory 镜像                              |
 
 ## 验证
+
+2026-10-27 的移动适配检查：commerce 41 项单元测试通过、2 项忽略；新增 `commerce::app_store::app_store_verifier_binding_idempotence_refunds_and_upgrade` 使用优化 Wasm 通过 PocketIC，覆盖验证方拒绝、账号／环境绑定、订阅和存储幂等、新鲜度、退款回滚拒绝及当前 Wasm 原地升级后的新稳定记录保留。这不是旧版本布局迁移或主网验收；历史完整回归记录见下文。
 
 ```sh
 cargo test --locked -p dmsg_commerce

@@ -13,16 +13,16 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(|c| {
+            .run(self.held_object(|h| {
                 Box::pin(async {
                     // A failed refresh leaves the last certified observation intact.
                     tokio::time::timeout(
                         std::time::Duration::from_secs(12),
-                        dmsg_client::recovery_watch::refresh(&c.cooperative_hold()),
+                        dmsg_client::recovery_watch::refresh(h),
                     )
                     .await
                     .map_err(|_| Error::Unavailable("recovery refresh timed out".into()))??;
-                    c.recovery_warning()
+                    h.with(|c| c.recovery_warning()).await
                 })
             }))
             .await

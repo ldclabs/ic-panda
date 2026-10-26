@@ -555,3 +555,40 @@ fn large_vault() {
     client.vault_health().unwrap();
     println!("checked in {:?}", started.elapsed());
 }
+
+#[test]
+fn staged_import_receipt_is_atomic_and_preserves_original_selection() {
+    let directory = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&directory.0, false, None);
+    let item = Item::new("login", "Imported", 1);
+    let first = client
+        .vault_add_all_once("staged-source", vec![item.clone()])
+        .unwrap();
+    assert_eq!(
+        client
+            .vault_add_all_once("staged-source", vec![item.clone()])
+            .unwrap(),
+        first
+    );
+    let mut changed = item.clone();
+    changed.title = "Changed selection".into();
+    assert!(matches!(
+        client.vault_add_all_once("staged-source", vec![changed]),
+        Err(Error::VersionConflict)
+    ));
+    assert_eq!(client.vault_show(&first[0]).unwrap().item.title, "Imported");
+    let mut invalid = item.clone();
+    invalid.kind = "unsupported".into();
+    assert!(
+        client
+            .vault_add_all_once("other-source", vec![item.clone(), invalid])
+            .is_err()
+    );
+    assert_eq!(
+        client
+            .vault_add_all_once("other-source", vec![item])
+            .unwrap()
+            .len(),
+        1
+    );
+}

@@ -35,6 +35,7 @@ struct InboxDetail: View {
     let changed: () async -> Void
     @Environment(SessionModel.self) private var model
     @State private var working = false
+    @State private var reporting = false
 
     var body: some View {
         List {
@@ -51,6 +52,8 @@ struct InboxDetail: View {
                 } else { Text(letter.text).textSelection(.enabled) }
             }
             Section {
+                Button("Report content") { reporting = true }
+                Button("Block this account", role: .destructive) { Task { await model.blockAccount(letter.sender, blocked: true) } }
                 Button(letter.archived ? "Restore" : "Archive", systemImage: "archivebox") {
                     Task { await mark(read: letter.read, archived: !letter.archived) }
                 }.disabled(working)
@@ -61,6 +64,7 @@ struct InboxDetail: View {
                 }
             }
         }.privateScreen().navigationTitle("Inbox").navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $reporting) { NavigationStack { ReportContentView(target: ReportTarget(kind: "inbox", account: letter.sender, resource: letter.id)) } }
     }
 
     private func mark(read: Bool, archived: Bool) async {

@@ -103,6 +103,11 @@ fn remove_empty_dir(path: &std::path::Path) {
 }
 
 impl Client {
+    /// Native read-only previews are disposable even if another app changed a copy.
+    pub fn use_read_only_previews(&mut self) {
+        self.read_only_previews = true;
+    }
+
     /// The opened copies' directory.
     fn open_dir(&self) -> Result<PathBuf> {
         Ok(self
@@ -227,7 +232,7 @@ impl Client {
             if nonce.is_some_and(|n| n != found) {
                 continue;
             }
-            let current = digest_of(&copy.path)?;
+            let current = if save { digest_of(&copy.path)? } else { None };
             let changed = current
                 .as_ref()
                 .is_some_and(|(digest, size)| *digest != copy.sha256 || *size != copy.size);
@@ -255,6 +260,10 @@ impl Client {
     /// On lock: remove the unchanged copies. A changed copy stays for the
     /// next unlock's sweep, which reports it.
     pub(crate) fn open_copies_on_lock(&mut self) -> Result<()> {
+        if self.read_only_previews {
+            self.files_open_cleanup(None, false, &mut |_, _| {})?;
+            return Ok(());
+        }
         for (nonce, copy) in self.copies()? {
             let unchanged = digest_of(&copy.path)?
                 .is_none_or(|(digest, size)| digest == copy.sha256 && size == copy.size);
@@ -264,6 +273,18 @@ impl Client {
             }
         }
         Ok(())
+    }
+}
+
+struct PendingCopy {
+    path: PathBuf,
+    published: bool,
+}
+impl Drop for PendingCopy {
+    fn drop(&mut self) {
+        if !self.published {
+            remove_copy(&self.path.display().to_string());
+        }
     }
 }
 
@@ -289,6 +310,10 @@ pub async fn open<H: crate::hold::Hold>(
             ))
         })
         .await?;
+    let mut pending = PendingCopy {
+        path: path.clone(),
+        published: false,
+    };
     let result = async {
         let manifest = super::reading::export(h, id, Some(&version), &path).await?;
         h.with(|c| {
@@ -310,9 +335,7 @@ pub async fn open<H: crate::hold::Hold>(
         .await
     }
     .await;
-    if result.is_err() {
-        remove_copy(&path.display().to_string());
-    }
+    pending.published = result.is_ok();
     result
 }
 

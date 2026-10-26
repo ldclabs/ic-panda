@@ -32,7 +32,7 @@ final class CoreBridgeTests: XCTestCase {
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
         do { _ = try await engine.secretHealth(); XCTFail("Locked secret health read") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
-        do { _ = try await engine.vaultPage(query: "", offset: 0, limit: 20); XCTFail("Locked content read") }
+        do { _ = try await engine.vaultPage(query: "", kind: nil, favoritesOnly: false, offset: 0, limit: 20); XCTFail("Locked content read") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
         do { _ = try await engine.completeLogin(callback: "https://evil.example/#abc"); XCTFail("Foreign callback") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "INVALID_INPUT") }
@@ -46,6 +46,8 @@ final class CoreBridgeTests: XCTestCase {
         engine.suspend()
         do { _ = try await engine.resume(expectedGeneration: oldForeground); XCTFail("Late foreground resumed background work") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }
+        do { _ = try await engine.configureInbox(mode: "paid", allow: [], operation: OperationToken()); XCTFail("Paid policy enabled through the free iOS API") }
+        catch MobileError.Failure(let code) { XCTAssertEqual(code, "INVALID_INPUT") }
         engine.lockNow()
         do { _ = try await engine.sessionState(); XCTFail("Suspended operation") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "LOCKED") }

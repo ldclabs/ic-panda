@@ -844,6 +844,11 @@ impl Client {
         self.approval_view(&request)
     }
 
+    /// Clear only the interrupted runner's in-memory marker; its journal remains.
+    pub fn abandon_approval_runtime(&mut self, id: &str) {
+        self.running.remove(id);
+    }
+
     /// How the person must approve `id` first, and the request's type for
     /// the question: through this device's approval key where it answers
     /// the request ([`Client::approval_answer`]), else with the presence

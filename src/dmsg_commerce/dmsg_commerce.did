@@ -53,6 +53,19 @@ type AppRegistration = record {
   // Stops new approvals; does not erase accepted commitments.
   paused : bool;
 };
+// Merchant-verification policy set by governance.
+type AppStoreConfig = record {
+  // Signed application bundle ID.
+  bundle_id : text;
+  // Principals of the server-side Apple-verification service.
+  verifiers : vec principal;
+  // One deployment environment.
+  environment : StoreEnvironment;
+  // App Store Connect application Apple ID.
+  app_apple_id : nat64;
+  // No unknown product can mint an entitlement.
+  products : vec StoreProduct;
+};
 // Approved dMsg account and product beneficiary are deliberately separate.
 type ApplicationApproval = record {
   // Exact service allowed to consume this approval.
@@ -497,6 +510,11 @@ type ContractSource = variant {
     // Stable merchant order identity.
     order_id : blob;
   };
+  // Benefit paid through a verified App Store transaction.
+  AppStore : record {
+    // Domain-separated identity of the Apple transaction.
+    transaction_id : blob;
+  };
   // Product-granted compensation benefit.
   Compensation;
 };
@@ -939,29 +957,29 @@ type ResourceLimits = record {
   storage_bytes : nat64;
 };
 type Result = variant { Ok; Err : Error };
-type Result_1 = variant { Ok : ProductReceipt; Err : Error };
-type Result_10 = variant { Ok : CheckoutView; Err : Error };
-type Result_11 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_12 = variant { Ok : MembershipTerms; Err : Error };
-type Result_13 = variant { Ok : opt ProductReceipt; Err : Error };
-type Result_14 = variant { Ok : BillingOffer; Err : Error };
-type Result_15 = variant { Ok : CashTransferProgress; Err : Error };
-type Result_16 = variant { Ok : SettlementAsset; Err : Error };
-type Result_17 = variant { Ok : CheckoutQuote; Err : Error };
-type Result_18 = variant {
+type Result_1 = variant { Ok : EntitlementView; Err : Error };
+type Result_10 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_11 = variant { Ok : CheckoutView; Err : Error };
+type Result_12 = variant { Ok : ExecutionEntitlement; Err : Error };
+type Result_13 = variant { Ok : MembershipTerms; Err : Error };
+type Result_14 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_15 = variant { Ok : BillingOffer; Err : Error };
+type Result_16 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_17 = variant { Ok : SettlementAsset; Err : Error };
+type Result_18 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_19 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_19 = variant { Ok : EntitlementView; Err : Error };
-type Result_2 = variant { Ok : CashCancellationReceipt; Err : Error };
+type Result_2 = variant { Ok : ProductReceipt; Err : Error };
 type Result_20 = variant { Ok : text; Err : text };
-type Result_3 = variant { Ok : CheckoutProgress; Err : Error };
-type Result_4 = variant { Ok : CheckoutDepositsPage; Err : Error };
-type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
-type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
-type Result_7 = variant { Ok : CashTransfer; Err : Error };
-type Result_8 = variant { Ok : opt CashCancellationReceipt; Err : Error };
-type Result_9 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_3 = variant { Ok : CashCancellationReceipt; Err : Error };
+type Result_4 = variant { Ok : CheckoutProgress; Err : Error };
+type Result_5 = variant { Ok : CheckoutDepositsPage; Err : Error };
+type Result_6 = variant { Ok : CheckoutOperationsPage; Err : Error };
+type Result_7 = variant { Ok : CashTransfersPage; Err : Error };
+type Result_8 = variant { Ok : CashTransfer; Err : Error };
+type Result_9 = variant { Ok : opt CashCancellationReceipt; Err : Error };
 // Fields in display and encoding order: a command's arguments or a record's fields.
 type SchemaFields = vec record {
   ty : variant {
@@ -1113,62 +1131,112 @@ type StorageProduct = record {
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
+// Apple's transaction environment; sandbox rights never enter production.
+type StoreEnvironment = variant {
+  // Transactions signed for App Store distribution.
+  Production;
+  // Apple sandbox transactions for nonproduction deployments.
+  Sandbox;
+};
+// One App Store Connect product ID, independent of the application's SKU.
+type StoreProduct = record {
+  // Exact Apple product identifier.
+  product_id : text;
+  // Existing dMsg product to grant.
+  kind : StoreProductKind;
+};
+// A governed mapping from an Apple product to an existing dMsg catalogue item.
+type StoreProductKind = variant {
+  // Storage for the active subscription term.
+  Storage : blob;
+  // Annual base subscription.
+  Plan : PlanId;
+};
+// Facts extracted from a cryptographically verified Apple transaction.
+type StoreTransaction = record {
+  // Time the trusted verifier refreshed current status through Apple's server API.
+  checked_at_ms : nat64;
+  // Immutable Apple transaction ID, retained across retries.
+  transaction_id : text;
+  // StoreKit appAccountToken in UUID form.
+  app_account_token : text;
+  // Signed bundle ID.
+  bundle_id : text;
+  // Exact configured product ID.
+  product_id : text;
+  // Rights recipient; the account token must bind the same beneficiary.
+  beneficiary : Beneficiary;
+  // Apple's signedDate, used to reject older observations.
+  signed_at_ms : nat64;
+  // Original subscription transaction ID, bound to one beneficiary forever.
+  original_transaction_id : text;
+  // Apple purchase time in Unix milliseconds.
+  purchased_at_ms : nat64;
+  // Signed Apple environment.
+  environment : StoreEnvironment;
+  // Verified refund or revocation time.
+  revoked_at_ms : opt nat64;
+  // Apple subscription expiry; absent only for a configured storage product.
+  expires_at_ms : opt nat64;
+};
 service : (CommerceInit) -> {
   // Append a user home. Its `dmsg_user` must name this canister as
   // `commerce_canister`; product registrations list it separately.
   admin_add_user_home : (principal) -> (Result);
   // Replace the admission limits. Accepted subjects, orders and recovery are unaffected.
   admin_set_limits : (CommerceLimits) -> (Result);
+  apply_app_store_transaction : (StoreTransaction) -> (Result_1);
   // Only a failed call to an authority leaves the decision unknown. Every other failure
   // is a durable rejection, so the settlement service can refund without waiting.
-  apply_product_decision : (ProductDecision) -> (Result_1);
-  cancel_cash_contract : (blob, blob, blob) -> (Result_2);
-  cancel_checkout : (blob) -> (Result_3);
-  check_checkout_funding : (blob, CashBlock) -> (Result_3);
-  checkout_deposits : (blob, opt blob, nat16) -> (Result_4) query;
+  apply_product_decision : (ProductDecision) -> (Result_2);
+  cancel_cash_contract : (blob, blob, blob) -> (Result_3);
+  cancel_checkout : (blob) -> (Result_4);
+  check_checkout_funding : (blob, CashBlock) -> (Result_4);
+  checkout_deposits : (blob, opt blob, nat16) -> (Result_5) query;
   // Private operations centre; quoting and monitoring never reserve an interval.
-  checkout_operations : (opt blob, nat16) -> (Result_5) query;
-  checkout_progress : (blob) -> (Result_3) query;
-  checkout_transfers : (opt blob, nat16) -> (Result_6) query;
+  checkout_operations : (opt blob, nat16) -> (Result_6) query;
+  checkout_progress : (blob) -> (Result_4) query;
+  checkout_transfers : (opt blob, nat16) -> (Result_7) query;
   // Return the unused fee reserve to the payer once all revenue is collected.
   // Anyone may trigger it: the destination is the payer frozen in the quote.
-  claim_checkout_fee_reserve : (blob) -> (Result_7);
-  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_7);
+  claim_checkout_fee_reserve : (blob) -> (Result_8);
+  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_8);
   // Monitor the calling merchant's applied orders still awaiting automatic
   // collection, ordered by service end (including an early refund).
-  collectable_checkouts : (opt blob, nat16) -> (Result_5) query;
+  collectable_checkouts : (opt blob, nat16) -> (Result_6) query;
   // Record counts against the limits, with the stable size and cycle balance.
   commerce_stats : () -> (CommerceStats) query;
-  get_cash_cancellation : (blob) -> (Result_8);
-  get_catalog : () -> (Result_9) query;
-  get_checkout : (blob) -> (Result_10) query;
+  get_app_store_config : () -> (opt AppStoreConfig) query;
+  get_cash_cancellation : (blob) -> (Result_9);
+  get_catalog : () -> (Result_10) query;
+  get_checkout : (blob) -> (Result_11) query;
   // Consensus read for the pinned product adapter during Apply. Query replies are not delivery authority.
-  get_checkout_for_product : (blob) -> (Result_10);
-  get_checkout_transfer : (blob) -> (Result_7) query;
+  get_checkout_for_product : (blob) -> (Result_11);
+  get_checkout_transfer : (blob) -> (Result_8) query;
   get_commerce_limits : () -> (CommerceLimits) query;
-  get_entitlement_batch : (vec Beneficiary) -> (Result_9) query;
-  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_11);
+  get_entitlement_batch : (vec Beneficiary) -> (Result_10) query;
+  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_12);
   // A beneficiary's base contracts and storage add-ons for display, with the
   // refund window of its first cash purchase. An account that never bought
   // anything has none; its rights are the certified Free entitlement.
-  get_membership_terms : (Beneficiary) -> (Result_12) query;
-  get_product_decision : (blob) -> (Result_13);
+  get_membership_terms : (Beneficiary) -> (Result_13) query;
+  get_product_decision : (blob) -> (Result_14);
   // Public, authenticated discovery. A paused configuration remains discoverable.
-  integration_configuration_certificate : (text, opt text) -> (Result_9) query;
+  integration_configuration_certificate : (text, opt text) -> (Result_10) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
-  open_checkout : (OpenCheckout) -> (Result_10);
-  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_14);
-  process_checkout_transfer : (blob) -> (Result_15);
+  open_checkout : (OpenCheckout) -> (Result_11);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_15);
+  process_checkout_transfer : (blob) -> (Result_16);
   // Publish a reference price observed now; the price authority calls this routinely.
-  publish_settlement_price : (principal, nat, nat64) -> (Result_16);
-  quote_checkout : (BillingOffer, principal, Account) -> (Result_17);
+  publish_settlement_price : (principal, nat, nat64) -> (Result_17);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_18);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_18);
+  read_integration_configuration : (text, opt text) -> (Result_19);
   // Safe progress can be advanced without revealing the payer or private bill.
-  reconcile_checkout : (blob) -> (Result_3);
-  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_15);
+  reconcile_checkout : (blob) -> (Result_4);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_16);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_19);
+  refresh_entitlement : (Beneficiary) -> (Result_1);
   // Register or replace an app at the next config version. Every listed product
   // must already be registered.
   register_integration_app : (AppRegistration) -> (Result);
@@ -1181,13 +1249,14 @@ service : (CommerceInit) -> {
   reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result);
   // The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
   // keeping its fee or adopting the ledger's expected fee within the original cap.
-  revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
+  revise_checkout_transfer_fee : (blob, nat) -> (Result_8);
   // Announce a catalog at least 7 days ahead. With effective_at_ms = 0,
   // apply a limits-only increase now, preserving prices, terms and weights.
   schedule_policy : (Catalog) -> (Result);
   // Pause or resume new cash checkouts; reconciliation, refunds, lease
   // refresh and expiry continue.
   set_admission_pause : (bool) -> (Result);
+  set_app_store_config : (AppStoreConfig) -> (Result);
   set_settlement_price_authority : (principal) -> (Result);
   settlement_assets : () -> (vec SettlementAssetView) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.

@@ -108,6 +108,21 @@ impl ScopedHost {
     }
 }
 
+impl dmsg_client::hold::Hold for ScopedHost {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        self.ensure_available()?;
+        let result = self
+            .inner
+            .with_at(self.stamp, |client| {
+                self.ensure_available()?;
+                step(client)
+            })
+            .await;
+        self.ensure_available()?;
+        result
+    }
+}
+
 /// One identity transition. No client borrow or mutex survives an await.
 /// Dropping before `finish` fences its outstanding work, then releases only its
 /// own gate token; lifecycle controls can still invalidate it immediately.

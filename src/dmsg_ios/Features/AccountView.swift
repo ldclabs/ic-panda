@@ -11,6 +11,9 @@ struct AccountView: View {
     @State private var avatar: UIImage?
     @State private var loadingProfile = false
     @State private var profileFailed = false
+    @State private var profileLoadedAt: Date?
+    @State private var profileAccount: String?
+    @State private var loadedProfileRevision: UInt64 = 0
     var body: some View {
         @Bindable var model = model
         List {
@@ -36,17 +39,24 @@ struct AccountView: View {
                 if loadingProfile { ProgressView().controlSize(.small) }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
             if profileFailed {
-                Button("Retry loading profile") { Task { await loadProfile() } }.disabled(loadingProfile)
+                Button("Retry loading profile") { Task { await loadProfile(force: true) } }.disabled(loadingProfile)
             }
             Section {
                 NavigationLink { PublicProfileView() } label: { Label("Public profile", systemImage: "person.text.rectangle") }
                 NavigationLink { ApprovalsView() } label: { Label("Approvals", systemImage: "checkmark.shield") }
+                NavigationLink { AgentsView() } label: { Label("Agents", systemImage: "person.crop.square.filled.and.at.rectangle") }
+                NavigationLink { WalletsView() } label: { Label("Team wallets", systemImage: "wallet.pass") }
                 NavigationLink { DevicesView() } label: { Label("Authorized devices", systemImage: "laptopcomputer.and.iphone") }
                 NavigationLink { RecoveryView() } label: { Label("Account recovery", systemImage: "arrow.counterclockwise.shield") }
                 NavigationLink { AccountSecurityView() } label: { Label("Login identities", systemImage: "person.badge.key") }
+                NavigationLink("Try the local demo") { LocalDemoView() }
+                NavigationLink { BrowserConnectionsView() } label: { Label("Connected browsers", systemImage: "globe") }
+                NavigationLink { SystemExportsView() } label: { Label("System integrations", systemImage: "square.stack.3d.up") }
                 NavigationLink { HardwareSecurityView() } label: { Label("Hardware security", systemImage: "cpu") }
                     .accessibilityIdentifier("account.hardware")
                 NavigationLink { SecretActivityView() } label: { Label("Activity on this device", systemImage: "clock.arrow.circlepath") }
+                NavigationLink { SafetySettingsView() } label: { Label("Safety and support", systemImage: "hand.raised") }
+                NavigationLink { AccountDeletionView() } label: { Label("Delete account", systemImage: "person.crop.circle.badge.minus") }
                 NavigationLink { AccountsView() } label: { Label("Switch account", systemImage: "person.2") }
             }
             Section("Privacy") {
@@ -59,6 +69,8 @@ struct AccountView: View {
                 Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
                 Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.")
                     .font(.footnote).foregroundStyle(.secondary)
+                NavigationLink { SubscriptionView() } label: { Label("Plan and usage", systemImage: "creditcard") }
+                NavigationLink("Inbox settings") { InboxSettingsView() }
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
             }
             Section {
@@ -77,7 +89,7 @@ struct AccountView: View {
             NoticeBar(text: String(localized: "This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device."))
                 .listRowBackground(Color.clear)
         }.privateScreen().navigationTitle("Account")
-            .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0)") { await loadProfile() }
+            .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
             .confirmationDialog("Enable automatic sync for this account?", isPresented: $confirmAutomaticSync) {
                 Button("Enable automatic sync") { model.setAutomaticSync(true) }
             } message: {
@@ -89,7 +101,7 @@ struct AccountView: View {
             } message: { Text("Your encrypted files remain here. Saved login and quick unlock are removed.") }
     }
 
-    private func loadProfile() async {
+    private func loadProfile(force: Bool = false) async {
         #if DEBUG
         if model.uiTesting {
             let name = ProcessInfo.processInfo.arguments.contains("--ui-long-profile")
@@ -101,6 +113,7 @@ struct AccountView: View {
         #endif
         guard let engine = model.engine, model.unlocked else { return }
         let epoch = model.epoch, account = model.session?.account
+        if !force, profileAccount == account, let at = profileLoadedAt, Date.now.timeIntervalSince(at) < 300 { return }
         loadingProfile = true; profileFailed = false
         defer { if !Task.isCancelled, epoch == model.epoch { loadingProfile = false } }
         do {
@@ -108,19 +121,22 @@ struct AccountView: View {
             guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
             let incoming: AccountProfile = try model.decode(result)
             if incoming.avatarUrl != profile?.avatarUrl { avatar = nil }
-            profile = incoming
+            profile = incoming; profileAccount = account; profileLoadedAt = .now; loadedProfileRevision = model.profileRevision
             if let url = incoming.avatarUrl, avatar == nil {
                 let bytes = try await engine.profileAvatar(url: url)
                 guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
-                avatar = bytes.flatMap { UIImage(data: $0) }
+                avatar = await AvatarImage.decode(bytes)
             }
         } catch {
-            if !Task.isCancelled, epoch == model.epoch, account == model.session?.account { profileFailed = true }
+            if !Task.isCancelled, epoch == model.epoch, account == model.session?.account { profileFailed = true; profileLoadedAt = nil }
         }
     }
 
     private func logout() async {
         let account = model.session?.account
+        if let account { await model.cancelBackgroundForAccount(account) }
+        model.invalidateSystemExports()
+        await model.push.setEnabled(false, model: model)
         await model.lock()
         guard account == model.session?.account else { return }
         do { _ = try await model.engine?.logout(); await model.updateSession() } catch { model.report(error) }
@@ -196,6 +212,7 @@ struct PairView: View {
     @Environment(SessionModel.self) private var model
     @State private var token: String?
     @State private var expires = Date.distantPast
+    @State private var qrImage: UIImage?
     var body: some View {
         List {
             HStack(spacing: 12) {
@@ -206,7 +223,7 @@ struct PairView: View {
                 }
             }.listRowBackground(Color.clear)
             if let token {
-                if let image = QRCode.image(token) { Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code") }
+                if let image = qrImage { Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code") }
                 Text(model.session?.deviceId ?? "").font(.caption.monospaced()).textSelection(.enabled)
                 ShareLink(item: token) { Label("Share pairing request", systemImage: "square.and.arrow.up") }
                 Button("Copy pairing request") { model.clipboard.copy(token) }
@@ -224,6 +241,7 @@ struct PairView: View {
             if let result = try await model.engine?.pairRequest() {
                 // Pairing is available before a content root is opened.
                 token = try JSONDecoder().decode(String.self, from: Data(result.json.utf8)); expires = .now.addingTimeInterval(270)
+                qrImage = token.flatMap(QRCode.image)
             }
         } catch { model.report(error) }
     }
@@ -322,6 +340,7 @@ struct AccountsView: View {
         }
     }
     private func choose(_ account: String) async {
+        model.invalidateSystemExports()
         await model.lock()
         do { _ = try await model.engine?.switchAccount(account: account); await model.updateSession() }
         catch { model.report(error) }

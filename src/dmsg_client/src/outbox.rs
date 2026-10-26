@@ -16,6 +16,15 @@ pub struct Intent {
     pub id: String,
     /// User-authored text, sealed under this workspace's LDK.
     pub text: String,
+    /// Exact original message references for replies and amendments.
+    #[serde(default)]
+    pub reply_to: Option<channel::MessageRef>,
+    /// Same-author replacement, checked again when dispatched.
+    #[serde(default)]
+    pub edit_of: Option<channel::MessageRef>,
+    /// Same-author withdrawal, checked again when dispatched.
+    #[serde(default)]
+    pub retract: Option<channel::MessageRef>,
     /// Immutable local file version selected by the person, when present.
     #[serde(default)]
     pub attachment: Option<Attachment>,
@@ -39,12 +48,41 @@ pub struct Attachment {
 }
 
 impl Client {
+    /// Persist a batch of already authored drafts in one local transaction.
+    pub fn save_message_drafts(&self, drafts: &[(String, String)]) -> Result<()> {
+        self.workspace.store.atomic(|_| {
+            for (channel, text) in drafts {
+                self.channel_draft(channel, text)?;
+            }
+            Ok(())
+        })
+    }
+
     /// Atomically seal an intent and clear the matching composer draft.
     ///
     /// # Errors
     /// Refuses a locked workspace, missing channel, oversized text or full queue.
     pub fn queue_message(&self, channel: &str, text: &str) -> Result<Intent> {
-        self.queue_intent(channel, text, None)
+        self.queue_draft(
+            channel,
+            &channel::Draft {
+                text: text.into(),
+                ..Default::default()
+            },
+        )
+    }
+
+    /// Persist a reply, edit or withdrawal before its first network attempt.
+    pub fn queue_draft(&self, channel: &str, draft: &channel::Draft) -> Result<Intent> {
+        ensure_valid(
+            draft.agent.is_none() && draft.packet.is_none(),
+            "user draft",
+        )?;
+        ensure_valid(
+            draft.edit_of.is_none() || draft.retract.is_none(),
+            "amendment",
+        )?;
+        self.queue_intent(channel, draft, None)
     }
 
     /// Queue an immutable attachment before any upload or authorization wait.
@@ -55,7 +93,10 @@ impl Client {
         let details = self.files_show(file)?;
         self.queue_intent(
             channel,
-            text,
+            &channel::Draft {
+                text: text.into(),
+                ..Default::default()
+            },
             Some(Attachment {
                 file: file.into(),
                 version: details.file.current,
@@ -67,12 +108,14 @@ impl Client {
     fn queue_intent(
         &self,
         channel: &str,
-        text: &str,
+        draft: &channel::Draft,
         attachment: Option<Attachment>,
     ) -> Result<Intent> {
         self.channel_view(channel)?;
+        let text = &draft.text;
         ensure_valid(
-            (!text.trim().is_empty() || attachment.is_some()) && text.len() <= 16 * 1024,
+            (!text.trim().is_empty() || attachment.is_some() || draft.retract.is_some())
+                && text.len() <= 16 * 1024,
             "message",
         )?;
         ensure(
@@ -82,7 +125,10 @@ impl Client {
         let intent = Intent {
             channel: channel.into(),
             id: hex::encode(crate::crypto::random_id()),
-            text: text.into(),
+            text: text.clone(),
+            reply_to: draft.reply_to.clone(),
+            edit_of: draft.edit_of.clone(),
+            retract: draft.retract.clone(),
             attachment,
             created_at: crate::now_ms(),
             attempted: false,
@@ -91,7 +137,10 @@ impl Client {
         self.workspace.store.atomic(|_| {
             self.workspace
                 .put_private(self.keys()?, &intent.key(), &intent)?;
-            if self.channel_view(channel)?.draft == text {
+            if draft.edit_of.is_none()
+                && draft.retract.is_none()
+                && self.channel_view(channel)?.draft == *text
+            {
                 self.channel_draft(channel, "")?;
             }
             Ok(())
@@ -136,6 +185,9 @@ pub async fn send<H: Hold>(h: &H, channel: &str, id: &str) -> Result<serde_json:
         .await?;
     let draft = channel::Draft {
         text: intent.text.clone(),
+        reply_to: intent.reply_to.clone(),
+        edit_of: intent.edit_of.clone(),
+        retract: intent.retract.clone(),
         ..Default::default()
     };
     let result = match &intent.attachment {
@@ -205,4 +257,93 @@ mod tests {
         client.lock();
         assert_eq!(client.message_intents(&channel), Err(Error::Locked));
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct LetterIntent {
+    recipient: String,
+    text: String,
+    invitation: Option<String>,
+    result: Option<serde_json::Value>,
+}
+const LETTER_INTENT: &str = "letter-intent:";
+
+impl Client {
+    /// Persist the exact free letter before its first relay request.
+    pub fn queue_free_letter(
+        &self,
+        id: &str,
+        recipient: &str,
+        text: &str,
+        invitation: Option<String>,
+    ) -> Result<()> {
+        crate::upload::hex_id(id)?;
+        recipient
+            .parse::<dmsg_types::AccountId>()
+            .map_err(|_| dmsg_types::invalid("recipient"))?;
+        ensure_valid(!text.trim().is_empty() && text.len() <= 16 * 1024, "letter")?;
+        let key = format!("{LETTER_INTENT}{id}");
+        if let Some(old) = self.workspace.private::<LetterIntent>(self.keys()?, &key)? {
+            return ensure(
+                old.recipient == recipient && old.text == text && old.invitation == invitation,
+                Error::IdempotencyConflict,
+            );
+        }
+        self.workspace.put_private(
+            self.keys()?,
+            &key,
+            &LetterIntent {
+                recipient: recipient.into(),
+                text: text.into(),
+                invitation,
+                result: None,
+            },
+        )
+    }
+
+    /// Pending letters, with only the metadata needed to resume them.
+    pub fn pending_letters(&self) -> Result<Vec<serde_json::Value>> {
+        let mut result = Vec::new();
+        for key in self.workspace.store.sealed_keys(LETTER_INTENT)? {
+            if let Some(letter) = self.workspace.private::<LetterIntent>(self.keys()?, &key)?
+                && letter.result.is_none()
+            {
+                result.push(serde_json::json!({"id":key.trim_start_matches(LETTER_INTENT),"recipient":letter.recipient}));
+            }
+        }
+        Ok(result)
+    }
+}
+
+/// Submit a free letter with its original order ID. A paid quote is not approved.
+pub async fn send_free_letter<H: Hold>(h: &H, id: &str) -> Result<serde_json::Value> {
+    let h = crate::hold::Unlocked::new(h).await?;
+    let key = format!("{LETTER_INTENT}{id}");
+    let mut letter = h
+        .with(|c| {
+            c.workspace
+                .private::<LetterIntent>(c.keys()?, &key)?
+                .ok_or(Error::NotFound)
+        })
+        .await?;
+    if let Some(result) = letter.result {
+        return Ok(result);
+    }
+    let recipient = letter
+        .recipient
+        .parse()
+        .map_err(|_| Error::IntegrityFailed)?;
+    let result = crate::inbox::send(
+        &h,
+        &recipient,
+        &letter.text,
+        Some(id),
+        letter.invitation.as_deref(),
+        false,
+    )
+    .await?;
+    letter.result = Some(result.clone());
+    h.with(|c| c.workspace.put_private(c.keys()?, &key, &letter))
+        .await?;
+    Ok(result)
 }

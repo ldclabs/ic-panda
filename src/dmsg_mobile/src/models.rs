@@ -46,6 +46,7 @@ pub struct VaultField {
     pub id: String,
     pub kind: String,
     pub label: String,
+    pub section: String,
     pub value: String,
     pub concealed: bool,
 }
@@ -59,6 +60,7 @@ pub struct VaultItem {
     pub subtitle: String,
     pub notes: String,
     pub favorite: bool,
+    pub tags: Vec<String>,
     pub synced: bool,
     pub conflict: bool,
     pub reserved: bool,
@@ -95,6 +97,7 @@ impl From<VaultEntry> for VaultItem {
             subtitle,
             notes: entry.item.notes,
             favorite: entry.item.favorite,
+            tags: entry.item.tags,
             synced: entry.synced,
             conflict: entry.conflict,
             reserved,
@@ -109,6 +112,7 @@ impl From<VaultEntry> for VaultItem {
                         id: f.id,
                         kind: f.kind,
                         label: f.label,
+                        section: f.section,
                         value: f.value,
                         concealed,
                     }
@@ -136,6 +140,7 @@ pub struct FieldEdit {
     pub id: String,
     pub kind: String,
     pub label: String,
+    pub section: String,
     pub value: Option<String>,
 }
 
@@ -145,6 +150,7 @@ pub struct VaultEdit {
     pub kind: String,
     pub notes: String,
     pub favorite: bool,
+    pub tags: Vec<String>,
     pub fields: Vec<FieldEdit>,
     pub files: Option<Vec<String>>,
 }
@@ -190,6 +196,11 @@ pub struct MessageItem {
     pub attachment_mime: Option<String>,
     pub attachment_size: Option<u64>,
     pub unreadable: bool,
+    pub digest: String,
+    pub reply_sequence: Option<u64>,
+    pub edited: bool,
+    pub retracted: bool,
+    pub attachment_deleted: bool,
 }
 
 #[derive(uniffi::Record)]
@@ -212,4 +223,40 @@ pub struct OutgoingMessage {
 pub struct OutboxPage {
     pub generation: u64,
     pub items: Vec<OutgoingMessage>,
+}
+
+impl From<dmsg_client::channel::Message> for MessageItem {
+    fn from(m: dmsg_client::channel::Message) -> Self {
+        Self {
+            id: m.message_id,
+            sequence: m.seq,
+            account: m.account,
+            text: m.text,
+            created_at_ms: m.created_at,
+            attachment_name: m.file.as_ref().map(|f| f.name.clone()),
+            attachment_mime: m.file.as_ref().map(|f| f.mime.clone()),
+            attachment_size: m.file.as_ref().map(|f| f.size),
+            unreadable: m.unreadable,
+            digest: m.digest,
+            reply_sequence: m.reply_to.map(|r| r.seq),
+            edited: m.edited_at.is_some(),
+            retracted: m.retracted,
+            attachment_deleted: m.file_deleted,
+        }
+    }
+}
+
+#[derive(uniffi::Record)]
+pub struct MessageDraft {
+    pub channel: String,
+    pub text: String,
+}
+
+#[derive(Clone, uniffi::Record)]
+pub struct StagingDeployment {
+    pub relay: String,
+    pub handle: String,
+    pub user_homes: Vec<String>,
+    pub wallet_hub: Option<String>,
+    pub connect_url: String,
 }

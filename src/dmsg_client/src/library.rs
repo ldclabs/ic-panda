@@ -17,6 +17,7 @@
 //! cleaned up after a while, on lock and on exit ([`open`]); chunks nothing
 //! references any more are collected from the blob directory ([`gc`]).
 
+pub mod background;
 pub mod backup;
 pub mod blobs;
 pub mod catalog;

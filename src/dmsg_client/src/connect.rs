@@ -747,6 +747,50 @@ impl Client {
         invite(&self.hold()).await
     }
 
+    /// Restore unexpired local browser invitations after an app switch/restart.
+    /// # Errors
+    /// Returns `Locked` without local keys or an error reading sealed state.
+    pub fn connect_invitations(&self) -> Result<Json> {
+        let now = now_ms();
+        let account = self.account()?.id;
+        let mut invitations = Vec::new();
+        for key in self.workspace.store.sealed_keys(INVITE)? {
+            let Some(saved) = self.workspace.private::<Invitation>(self.keys()?, &key)? else {
+                continue;
+            };
+            if saved.expires_at <= now {
+                self.workspace.delete_private(&key)?;
+                continue;
+            }
+            let id = &key[INVITE.len()..];
+            let invite_id = hex_hash(&Json::String(id.into()))?;
+            let invite = PairingInvite {
+                v: 1,
+                environment: self.config.environment.clone(),
+                account_id: account,
+                invite_id,
+                secret: saved.secret,
+            };
+            invitations.push(json!({"invite_id":id,"expires_at":saved.expires_at,"url":format!("{}{PAIR_PATH}#{}",self.config.connect_url.trim_end_matches('/'),b64(&canonical(&invite)))}));
+        }
+        Ok(Json::Array(invitations))
+    }
+
+    /// Locate an already verified relay request; links never create approvals.
+    /// # Errors
+    /// Returns `Locked` or an invalid request ID error.
+    pub fn connect_approval(&self, request: &str) -> Result<Option<String>> {
+        let id = hex_hash(&Json::String(request.into()))?;
+        for key in self.workspace.store.sealed_keys(OP)? {
+            if let Some(op) = self.workspace.private::<Operation>(self.keys()?, &key)?
+                && op.channels.iter().any(|channel| channel.request_id == id)
+            {
+                return Ok(Some(op.approval));
+            }
+        }
+        Ok(None)
+    }
+
     fn prepare_invite(&mut self) -> Result<(String, InviteCommand, Json)> {
         self.keys()?;
         let account = self.account()?.clone();

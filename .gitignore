@@ -33,3 +33,6 @@ debug
 misc
 proposal-message.json
 AGENTS.md
+
+# Reviewed public test-deployment IDs are supplied locally for Apple sandbox builds.
+/src/dmsg_ios/Resources/StagingDeployment.json

@@ -12,7 +12,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{Mutex, mpsc, oneshot, watch};
 
 /// A bounded operation on the exclusively owned client.
 pub type Work<'a, T> = Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
@@ -28,10 +28,37 @@ struct Control {
     close: bool,
 }
 
+struct Hosted {
+    client: Option<Client>,
+    generation: u64,
+}
+
+impl Hosted {
+    fn apply(&mut self, control: Control) {
+        if self.generation == control.generation {
+            return;
+        }
+        if let Some(client) = self.client.as_mut() {
+            client.abandon_host_work();
+            if control.lock_generation > self.generation {
+                client.lock();
+            }
+            if control.close {
+                client.shutdown();
+            }
+        }
+        self.generation = control.generation;
+        if control.close {
+            self.client = None;
+        }
+    }
+}
+
 /// A running client's command queue. Its task runs on the host's runtime.
 #[derive(Clone)]
 pub struct Host {
     queue: mpsc::Sender<Command>,
+    client: Arc<Mutex<Hosted>>,
     locked: watch::Sender<Control>,
     generation: Arc<AtomicU64>,
     paused: Arc<AtomicBool>,
@@ -40,39 +67,38 @@ pub struct Host {
 
 impl Host {
     /// Start on an explicit runtime with an already opened client.
-    pub fn start(mut client: Client, runtime: &tokio::runtime::Handle) -> Self {
+    pub fn start(client: Client, runtime: &tokio::runtime::Handle) -> Self {
         let (queue, mut receiver) = mpsc::channel::<Command>(32);
         let (locked, mut changes) = watch::channel(Control::default());
         let generation = Arc::new(AtomicU64::new(0));
         let (stopped_sender, stopped) = watch::channel(false);
+        let client = Arc::new(Mutex::new(Hosted {
+            client: Some(client),
+            generation: 0,
+        }));
+        let owned = client.clone();
         runtime.spawn(async move {
-            let mut current = 0;
             loop {
                 tokio::select! {
                     biased;
                     changed = changes.changed() => {
                         if changed.is_err() { break; }
                         let control = *changes.borrow_and_update();
-                        client.abandon_host_work();
-                        if control.lock_generation > current { client.lock(); }
-                        current = control.generation;
+                        owned.lock().await.apply(control);
                         if control.close { break; }
                     }
                     command = receiver.recv() => {
                         let Some(command) = command else { break; };
-                        // A control may arrive between select polling its two
-                        // branches. Apply it before accepting a new-generation job.
+                        let mut state = owned.lock().await;
                         let control = *changes.borrow_and_update();
-                        if control.generation != current {
-                            client.abandon_host_work();
-                            if control.lock_generation > current { client.lock(); }
-                            current = control.generation;
-                            if control.close { break; }
-                        }
-                        if command.generation != current { continue; }
-                        // Drop the operation (and its borrow) before locking.
+                        state.apply(control);
+                        if control.close { break; }
+                        if command.generation != state.generation { continue; }
+                        let Some(client) = state.client.as_mut() else { break; };
+                        // Only legacy whole-client operations hold this guard
+                        // while waiting. Migrated Hold steps take it synchronously.
                         let cancelled = {
-                            let work = (command.job)(&mut client);
+                            let work = (command.job)(client);
                             tokio::select! {
                                 biased;
                                 _ = changes.changed() => true,
@@ -80,25 +106,70 @@ impl Host {
                             }
                         };
                         if cancelled {
-                            client.abandon_host_work();
+                            if let Some(client) = state.client.as_mut() { client.abandon_host_work(); }
                             let control = *changes.borrow_and_update();
-                            if control.lock_generation > current { client.lock(); }
-                            current = control.generation;
+                            state.apply(control);
                             if control.close { break; }
                         }
                     }
                 }
             }
-            client.shutdown();
-            drop(client);
+            if let Some(mut client) = owned.lock().await.client.take() { client.shutdown(); }
             stopped_sender.send_replace(true);
         });
         Self {
             queue,
+            client,
             locked,
             generation,
             paused: Arc::new(AtomicBool::new(false)),
             stopped,
+        }
+    }
+
+    /// A short shared step. The control barrier is applied under the same lock
+    /// before a new-generation step can observe the client.
+    pub async fn with_at<T: Send>(
+        &self,
+        generation: u64,
+        step: impl FnOnce(&mut Client) -> Result<T> + Send,
+    ) -> Result<T> {
+        let result = {
+            let mut state = self.client.lock().await;
+            let control = *self.locked.borrow();
+            state.apply(control);
+            dmsg_types::ensure(
+                generation == control.generation
+                    && !control.close
+                    && !self.paused.load(Ordering::Acquire),
+                Error::Locked,
+            )?;
+            step(state.client.as_mut().ok_or(Error::Locked)?)
+        };
+        dmsg_types::ensure(generation == self.generation(), Error::Locked)?;
+        result
+    }
+
+    /// Cancel a multi-step workflow even while it is outside the client.
+    pub async fn while_current<T>(
+        &self,
+        generation: u64,
+        work: impl Future<Output = Result<T>>,
+    ) -> Result<T> {
+        let mut changes = self.locked.subscribe();
+        dmsg_types::ensure(
+            generation == self.generation()
+                && !self.paused.load(Ordering::Acquire)
+                && !changes.borrow().close,
+            Error::Locked,
+        )?;
+        tokio::select! {
+            biased;
+            _ = changes.changed() => Err(Error::Locked),
+            result = work => {
+                dmsg_types::ensure(generation == self.generation(), Error::Locked)?;
+                result
+            }
         }
     }
 
@@ -366,6 +437,42 @@ mod tests {
         .unwrap()
         .unwrap();
         assert_eq!(state, (true, true));
+        host.close();
+        host.closed().await.unwrap();
+    }
+    #[tokio::test]
+    async fn shared_network_wait_does_not_block_local_reads_and_lock_cancels_it() {
+        let dir = TempDir::new();
+        let client = crate::testing::unlocked(&dir.0, false, None);
+        let host = Host::start(client, &tokio::runtime::Handle::current());
+        let generation = host.generation();
+        let running = host.clone();
+        let (entered, waiting) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            running
+                .while_current(generation, async {
+                    running.with_at(generation, |c| c.status()).await?;
+                    let _ = entered.send(());
+                    std::future::pending::<Result<()>>().await
+                })
+                .await
+        });
+        waiting.await.unwrap();
+        let state = tokio::time::timeout(
+            Duration::from_millis(200),
+            host.with_at(generation, |c| c.status()),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(state.state, "unlocked");
+        host.lock();
+        assert_eq!(task.await.unwrap(), Err(Error::Locked));
+        assert!(
+            host.with_at(host.generation(), |c| Ok(c.keys().is_err()))
+                .await
+                .unwrap()
+        );
         host.close();
         host.closed().await.unwrap();
     }

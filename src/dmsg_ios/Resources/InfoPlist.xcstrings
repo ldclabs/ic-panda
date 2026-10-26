@@ -1,86 +1,114 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "NSFaceIDUsageDescription": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlock your private workspace and confirm the request you reviewed."
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "dMsg"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "dMsg"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "NSCameraUsageDescription" : {
+      "comment" : "Privacy - Camera Usage Description",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "امسح طلب اقتران جهاز dMsg لمراجعته."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解锁你的私密工作区，并确认你已核对的请求。"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan a dMsg device pairing request for review."
           }
         },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Déverrouillez votre espace privé et confirmez la demande examinée."
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escanea una solicitud de emparejamiento de dMsg para revisarla."
           }
         },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desbloquea tu espacio privado y confirma la solicitud revisada."
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannez une demande d’association d’appareil dMsg pour l’examiner."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разблокируйте личное пространство и подтвердите проверенный запрос."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сканируйте запрос сопряжения устройства dMsg для проверки."
           }
         },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "افتح مساحة عملك الخاصة وأكّد الطلب الذي راجعته."
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫描 dMsg 设备配对请求，以便核对。"
           }
         }
       }
     },
-    "NSCameraUsageDescription": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan a dMsg device pairing request for review."
+    "NSFaceIDUsageDescription" : {
+      "comment" : "Privacy - Face ID Usage Description",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح مساحة عملك الخاصة وأكّد الطلب الذي راجعته."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "扫描 dMsg 设备配对请求，以便核对。"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock your private workspace and confirm the request you reviewed."
           }
         },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scannez une demande d’association d’appareil dMsg pour l’examiner."
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquea tu espacio privado y confirma la solicitud revisada."
           }
         },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escanea una solicitud de emparejamiento de dMsg para revisarla."
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déverrouillez votre espace privé et confirmez la demande examinée."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сканируйте запрос сопряжения устройства dMsg для проверки."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разблокируйте личное пространство и подтвердите проверенный запрос."
           }
         },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "امسح طلب اقتران جهاز dMsg لمراجعته."
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁你的私密工作区，并确认你已核对的请求。"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

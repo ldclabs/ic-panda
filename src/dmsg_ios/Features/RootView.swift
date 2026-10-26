@@ -3,11 +3,16 @@ import SwiftUI
 struct RootView: View {
     @Environment(SessionModel.self) private var model
     @State private var showApprovals = false
+    @State private var showIncoming = false
 
     var body: some View {
         @Bindable var model = model
+        @Bindable var connect = ConnectNavigation.shared
         ZStack {
             VStack(spacing: 0) {
+                if model.environment == "staging" {
+                    Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
+                }
                 RecoveryNotice()
                     .fixedSize(horizontal: false, vertical: true)
                 Group {
@@ -42,8 +47,24 @@ struct RootView: View {
         .alert("dMsg", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK", role: .cancel) { model.error = nil }
         } message: { Text(model.error ?? "") }
-        .onChange(of: model.epoch) { _, _ in showApprovals = false }
+        .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
+        .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
+        .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
+        .task { routeIntent() }
+        .onChange(of: IntentNavigation.shared.destination) { _, _ in routeIntent() }
+        .onChange(of: model.unlocked) { _, unlocked in if unlocked { routeIntent() } }
+        .onChange(of: model.epoch) { _, _ in showApprovals = false; showIncoming = false }
     }
+    private func routeIntent() {
+        guard model.unlocked, let destination = IntentNavigation.shared.destination else { return }
+        IntentNavigation.shared.destination = nil
+        switch destination {
+        case .vault: model.selectedTab = .vault
+        case .approvals: model.selectedTab = .account; showApprovals = true
+        case .imports: model.selectedTab = .files; showIncoming = true
+        }
+    }
+
 }
 
 private struct ApprovalActionKey: EnvironmentKey { static let defaultValue: @MainActor () -> Void = {} }
@@ -117,6 +138,11 @@ struct AccessView: View {
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
                 NoticeBar(text: String(localized: "Signing in proves your identity. An existing device must authorize a new device before it can read your content."))
+                VStack(spacing: 12) {
+                    NavigationLink("Try the local demo") { LocalDemoView() }.accessibilityIdentifier("access.demo")
+                    NavigationLink("Privacy policy") { PrivacyPolicyView() }.accessibilityIdentifier("access.privacy")
+                    Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
+                }.font(.footnote).frame(maxWidth: .infinity)
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)

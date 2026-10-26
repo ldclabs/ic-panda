@@ -249,6 +249,25 @@ pub async fn show<H: Hold>(h: &H) -> Result<PrincipalDocument> {
     })
 }
 
+/// Render editable state from the user home, including an unpublished update.
+/// The directory may legitimately lag behind that state after a failed publish.
+/// # Errors
+/// Locked session, unavailable home/configuration or invalid principal metadata.
+pub async fn editable<H: Hold>(h: &H) -> Result<PrincipalDocument> {
+    let h = Unlocked::new(h).await?;
+    let Some(info) = crate::agent::principal(&h).await? else {
+        return show(&h).await;
+    };
+    let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
+    let mut resolver = Resolver::new(&config).await?;
+    let home = resolver.home(&account)?;
+    resolver.prepare([home]).await;
+    let (_, user, directory) = resolver.context(&account)?;
+    let bytes = dmsg_protocol::agent::render_principal_document(directory, &account, &info.state)?;
+    let document = parse_document(&bytes, &account, &user.principal_origin)?;
+    h.with(|_| Ok(document)).await
+}
+
 /// Public names, fetched concurrently from the same documents as profile pages.
 /// One registry read and one config read per distinct home/directory serve a
 /// whole batch. Per-account errors remain errors; only certified absence or

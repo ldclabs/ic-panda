@@ -1,86 +1,47 @@
 # dMsg Privacy Policy
 
-Last updated: 2026-10-11.
+Last updated: 2026-10-27.
 
-dMsg is designed so that your private content is encrypted on your own devices. This policy explains what the dMsg website, the legacy web app, the browser extension, the cloud service and the canisters on the Internet Computer (ICP) handle, who can see it, and the choices you have.
+dMsg encrypts private content on your authorized devices. This policy covers dmsg.net, the read-only legacy web app, the desktop and iOS apps, connect.dmsg.net, the cloud service and the Internet Computer (ICP) canisters. “We” means the team operating dMsg under ICPanda DAO governance. Availability of individual features depends on the app version and service configuration.
 
-We do not sell personal data, we do not use your content for advertising, and the website contains no analytics or advertising trackers.
+We do not sell personal data or use your content for advertising. The website contains no advertising or analytics trackers.
 
-## 1. Scope
+## 1. Content and public information
 
-This policy covers dmsg.net, the read-only legacy web app, the dMsg browser extension, the dMsg cloud service and the dMsg canisters. "We" means the team that operates dMsg under the governance of ICPanda DAO. Wallets, Internet Identity, token ledgers and applications you connect have their own privacy practices.
+Vault items, private messages and files are encrypted before upload. Content keys remain on authorized devices or in recovery/device envelopes that the service cannot open. Recipients can read and retain shared copies. Public profiles, avatars, handles, directory documents and information you intentionally publish are public. A report is a separate disclosure: moderators receive your reason, note, account/resource identifiers and only the message text you explicitly choose to include. Reporting does not give moderators the keys to your account.
 
-## 2. Private content
+## 2. Service metadata
 
-- Notes, messages, files and vault items are encrypted on your approved and unlocked devices before they are uploaded. The cloud stores and delivers only ciphertext.
-- Content keys stay on your devices, wrapped for each device you approve. For recovery, the account also keeps an envelope that can be opened only through the ICP vetKD service under the account's recovery rules.
-- We do not receive your plaintext or your content keys.
-- People you share content with can read it and can keep copies.
+The service processes account and login identifiers, device public keys, channel membership, contact and blocking rules, object sizes, request timing, IP addresses and operational request information. Certified account state, signature receipts and entitlements allow clients and services to verify authority. Ledger transactions and public or certified on-chain records generally cannot be erased.
 
-## 3. Information that is not encrypted
+## 3. Apple services and payments
 
-Encryption protects content, not every relationship or action. To run the service, the cloud service and the canisters process:
+On iOS, optional notifications use Apple Push Notification service. Apple and our delivery service process an installation identifier, device token and delivery metadata. Notifications contain a generic reminder and an opaque route, not a message body, password or filename. You can disable notifications in dMsg or system settings; already delivered notifications cannot always be recalled.
 
-- account IDs, login principals, device public keys and device identifiers;
-- handles, public profiles and the contact rules you set;
-- channel membership and the contact relations needed to enforce your rules;
-- the size and timing of objects, messages and requests;
-- IP addresses and request details that reach the cloud service;
-- order, payment, refund and entitlement records.
+App Attest processes an app-generated key identifier, attestation/assertion evidence and challenges to verify an app installation. Face ID, Touch ID and the device passcode are handled by the operating system; dMsg does not receive biometric images or your passcode.
 
-## 4. Public and on-chain information
+StoreKit purchases are handled by Apple. Our verifier and commerce canister process transaction/product identifiers, an account-binding token, purchase and expiry dates, and refund/revocation status. They do not receive your payment-card details. Other dMsg clients may support ICP wallet payments and PANDA membership, with public ledger and entitlement records. Account deletion does not cancel an Apple subscription; manage subscriptions in your Apple account.
 
-Some information is public by design:
+Team-wallet policies and proposals are processed by the wallet canisters; their visibility follows the wallet's settings. Blockchain RPC providers receive the addresses, transaction data and IP information needed for balance queries, fee simulation and broadcasting. Default endpoints include mempool.space, PublicNode, mainnet.base.org and api.mainnet-beta.solana.com; configured alternatives have their own privacy practices.
 
-- handles and the accounts that hold them;
-- directory documents served at id.dmsg.net, including their controllers, delegation service and profile link;
-- profile details you choose to publish;
-- transactions on ICP token ledgers, including payments to and refunds from dMsg.
+## 4. Local data and system integrations
 
-Account state that other services must verify, such as plan entitlements and receipts for formal signatures, is published as certified data. Records written on ICP generally cannot be erased.
+The native apps keep a local encrypted workspace, keys protected by the operating system where supported, drafts, pending operations and preferences. Unlocking makes selected content available in app memory. Exported files and copied text may be retained by their destination apps.
 
-## 5. Payments and PANDA membership
+The iOS Share extension stages only the items you select for a later account import. Password AutoFill and Files integrations contain only explicitly selected, separately encrypted snapshots. AutoFill requires independent system authentication; snapshots expire after 24 hours. Files access sessions last at most five minutes and end when dMsg locks, but the Files app and other recipients may retain copies already downloaded. Changing source items does not update an exported snapshot automatically.
 
-You pay from your own wallet on ICP ledgers such as ckUSDC and PANDA. The dMsg commerce, payment and handle canisters keep order, escrow, deposit, refund and receipt records, including the paying account and the amounts. If you apply for a PANDA waiver, the membership canister reads your neuron's stake, dissolve state and listed principals from the PANDA SNS.
+Explicit background transfers store only bounded ciphertext and transfer authority in a separate device directory accessible after the first device unlock. They do not hold account signing or content keys. The original account must be unlocked to verify and finish a transfer. The system may delay or stop delivery.
 
-## 6. Data on your device
+The website remembers your language locally. The legacy app uses browser storage for sessions and cached data; its wallet view may request prices from ICPSwap. Removing an app or clearing its data can permanently lose content that was never synchronized or exported.
 
-- The extension keeps your keys, a local encrypted database, unsent changes, sync state and settings in the browser.
-- The website stores your language choice in local storage.
-- The legacy app keeps your login session and cached data in the browser's IndexedDB, and its service worker caches the site's files. Its wallet view requests token prices from the ICPSwap API.
+## 5. Providers and retention
 
-Removing the extension or clearing site data deletes these local copies. Content that was not synced to the cloud is lost with them.
+Cloudflare processes cloud ciphertext and request metadata. ICP node providers and gateways operate canisters and websites. Apple distributes the iOS app and provides the optional services described above. Internet Identity, wallet providers and connected applications have their own privacy policies. We may disclose information we hold when legally required, including explicitly submitted reports; we cannot disclose plaintext that we do not possess.
 
-## 7. Service providers
+Cloud ciphertext follows the account's storage and deletion rules. Service-account deletion is a tracked cleanup request: it blocks new service access, removes account-owned cloud content and public avatar copies, and reports completion only after cleanup. It does not erase other people's shared copies, local copies on other devices, public ledger history or necessary financial/anti-replay records. Unsettled transactions or owned active channels may need resolution first. Report records are retained for up to 90 days for review; delivery tokens expire unless renewed. Operational logs are kept only as needed for security, abuse prevention and troubleshooting.
 
-We use the following providers only as needed to run dMsg:
+## 6. Choices, rights and contact
 
-- Cloudflare runs the cloud service and processes the ciphertext and request information sent to it.
-- ICP node providers run the canisters, and HTTP gateways serve dmsg.net and id.dmsg.net. They may keep standard request logs.
-- Internet Identity and the wallets you choose handle your login and your payments.
-- The Chrome Web Store distributes the extension.
+You can export or delete content, revoke devices or browsers, block senders, report abuse, change contact rules, request service-account deletion and separately remove this device's account data. Depending on your location, you may have rights to access, correct, delete or object to processing of personal information. Contact [Support](https://dmsg.net/_/support) for requests or private vulnerability reports. We explain when encryption, retained transaction records or immutable public records limit a request.
 
-We may disclose information when the law requires it. Because content is encrypted, we can disclose only the ciphertext and metadata we hold.
-
-## 8. Retention
-
-- Ciphertext stays in the cloud while your account uses it and as your plan allows. When you delete an item, its ciphertext is removed under the rules shown in the extension.
-- When a paid plan ends, the Terms of Service describe what happens to content above the Free limits.
-- Operational logs are kept only as long as needed for security, abuse prevention and troubleshooting.
-- Handles, ledger transactions, signature receipts and other records written on ICP are kept by the canisters and ledgers and generally cannot be deleted.
-
-## 9. Your choices and rights
-
-You can export your data, delete items, revoke devices and change or close your contact rules in the extension. Depending on where you live, you may have rights to access, correct or delete your personal information, or to object to its use. Contact us through the support page. Because we cannot decrypt your content and cannot erase on-chain records, some requests can be met only in part.
-
-## 10. Security and its limits
-
-dMsg uses device encryption, separate approvals for login, devices and signatures, and certified data that clients can verify. No system is perfectly secure. The dMsg canisters are controlled by ICPanda DAO governance, which can upgrade them and change their rules, and extension updates are another point of trust. Please report vulnerabilities privately through the support page.
-
-## 11. Children
-
-dMsg is not intended for children under 13, or under the minimum age required in their country to use online services without parental consent.
-
-## 12. Changes and contact
-
-When this policy changes, we update the date above and announce significant changes on the website or in the extension. For questions or requests, see [Support](/_/support).
+No system is perfectly secure. App updates and canister upgrades under DAO governance remain points of trust. dMsg is not intended for children under 13 or below the applicable minimum age for using online services without parental consent. We update the date above and announce material policy changes in the app or on the website.

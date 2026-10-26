@@ -210,9 +210,12 @@ pub fn project(
     // unstarted term lies beyond the next boundary. A PANDA qualification can
     // be lost at any time, so its lease stays short too.
     let short = refund_window(s, at).is_some()
-        || active
-            .as_ref()
-            .is_some_and(|c| matches!(c.source, ContractSource::Sns { .. }));
+        || active.as_ref().is_some_and(|c| {
+            matches!(
+                c.source,
+                ContractSource::Sns { .. } | ContractSource::AppStore { .. }
+            )
+        });
     let mut until = at.saturating_add(if short { PANDA_LEASE_MS } else { CASH_LEASE_MS });
     let mut observed = at;
     let mut terminated = s
@@ -230,7 +233,10 @@ pub fn project(
         observed = c.observed_at_ms;
         if c.eligibility == Eligibility::Unverifiable
             || (c.eligibility == Eligibility::Eligible
-                && matches!(c.source, ContractSource::Sns { .. })
+                && matches!(
+                    c.source,
+                    ContractSource::Sns { .. } | ContractSource::AppStore { .. }
+                )
                 && at >= c.qualified_until_ms)
         {
             status = SourceStatus::Unverifiable;

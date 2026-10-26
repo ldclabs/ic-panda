@@ -370,6 +370,12 @@ export class Bridge {
     }
   }
 
+  /** Refresh previously stored operations without creating or returning a result to a web app. */
+  async refreshPending(origin: string, appId: string): Promise<void> {
+    const pending = [...this.operations.values()].filter((op) => op.origin === origin && op.command.appId === appId && !ENDED.includes(op.last?.state ?? 'awaiting_user'))
+    for (const op of pending.slice(0, MAX_PER_ORIGIN)) await this.refresh(op, 0)
+  }
+
   /** The account and relay request of an operation, for the page's `dmsg://` link. */
   request(origin: string, appId: string, operationId: string): { account: string; requestId: string } | null {
     const op = this.operations.get(key(origin, { appId, operationId }))

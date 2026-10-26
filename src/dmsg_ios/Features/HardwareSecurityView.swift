@@ -148,8 +148,8 @@ struct HardwareSecurityView: View {
 
     private func approval(_ action: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async {
         guard let engine = model.engine, !busy else { return }
-        let epoch = model.epoch; busy = true; model.authenticating = true; model.activity()
-        defer { busy = false; if epoch == model.epoch { model.authenticating = false } }
+        let epoch = model.epoch; busy = true; model.activity()
+        defer { busy = false }
         do {
             let result = try await action(engine)
             guard epoch == model.epoch else { return }; request = try model.decode(result)
@@ -164,8 +164,8 @@ struct HardwareSecurityView: View {
     private func enrollment() async {
         struct Token: Decodable { let token: String }
         guard let engine = model.engine, !busy else { return }
-        let epoch = model.epoch; busy = true; model.authenticating = true; model.activity()
-        defer { busy = false; if epoch == model.epoch { model.authenticating = false } }
+        let epoch = model.epoch; busy = true; model.activity()
+        defer { busy = false }
         do {
             let result = try await engine.approvalKeyRequest(biometryOnly: biometryOnly)
             guard epoch == model.epoch else { return }
@@ -176,9 +176,10 @@ struct HardwareSecurityView: View {
     private func bindWorkspace(_ enabled: Bool) async {
         bindingChange = nil
         guard let engine = model.engine, !busy else { return }
-        let epoch = model.epoch; busy = true; model.authenticating = true; model.activity()
-        defer { busy = false; if epoch == model.epoch { model.authenticating = false } }
+        let epoch = model.epoch; busy = true; model.activity()
+        defer { busy = false }
         do {
+            model.invalidateSystemExports()
             _ = try await engine.setDeviceBound(enabled: enabled, biometryOnly: enabled && biometryOnly)
             guard epoch == model.epoch else { return }; await model.updateSession(); await load()
         } catch { if epoch == model.epoch { model.report(error) } }

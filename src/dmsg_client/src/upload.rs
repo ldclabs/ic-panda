@@ -254,7 +254,11 @@ pub(crate) async fn upload<H: Hold>(
 
 // A committed avatar may still be waiting for its public object. Reuse the same
 // plan and finalize without reserving, uploading or charging again.
-async fn finalize<H: Hold>(h: &H, base: &str, plan: &UploadPlan) -> Result<Option<String>> {
+pub(crate) async fn finalize<H: Hold>(
+    h: &H,
+    base: &str,
+    plan: &UploadPlan,
+) -> Result<Option<String>> {
     let result = h
         .post(
             &format!("{base}/uploads/finalize"),

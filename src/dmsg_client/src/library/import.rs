@@ -24,8 +24,39 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use zeroize::{Zeroize, Zeroizing};
 
 pub(crate) const IMPORT: &str = "lib-import:";
-/// Largest image a thumbnail is made of.
-const MAX_THUMBNAIL_SOURCE: u64 = 64 * 1024 * 1024;
+/// Host-specific decode bounds. Oversized images still import normally;
+/// only their optional thumbnail is omitted.
+#[derive(Clone, Copy)]
+pub struct ThumbnailBudget {
+    /// Maximum compressed input retained for a thumbnail.
+    pub source_bytes: u64,
+    /// Maximum decoded pixel count.
+    pub pixels: u64,
+    /// Decoder allocation ceiling.
+    pub allocation_bytes: u64,
+}
+
+impl Default for ThumbnailBudget {
+    fn default() -> Self {
+        Self {
+            source_bytes: 64 * 1024 * 1024,
+            pixels: 16_384 * 16_384,
+            allocation_bytes: 512 * 1024 * 1024,
+        }
+    }
+}
+
+impl ThumbnailBudget {
+    /// Small, optional thumbnails for mobile devices.
+    pub const MOBILE: Self = Self {
+        source_bytes: 8 * 1024 * 1024,
+        pixels: 12_000_000,
+        allocation_bytes: 48 * 1024 * 1024,
+    };
+}
+
+static THUMBNAIL_SLOTS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
+
 /// Thumbnail edge, in pixels.
 const THUMBNAIL: u32 = 256;
 /// Bytes sniffed for the media type.
@@ -52,6 +83,8 @@ pub(crate) struct ImportJob {
     /// SHA-256 of each sealed chunk's plaintext.
     plain: Vec<String>,
     started_at: u64,
+    #[serde(default)]
+    receipt: Option<String>,
 }
 
 /// One import's state between bounded client steps. No account key leaves
@@ -63,6 +96,7 @@ struct Importing {
     key: Zeroizing<[u8; 32]>,
     overall: Sha256,
     image: Option<Zeroizing<Vec<u8>>>,
+    budget: ThumbnailBudget,
 }
 
 impl Drop for Importing {
@@ -72,9 +106,30 @@ impl Drop for Importing {
 }
 
 impl Importing {
+    async fn thumbnail_async(&mut self) -> Option<(String, Vec<u8>)> {
+        let image = self.image.take()?;
+        let budget = self.budget;
+        let permit = THUMBNAIL_SLOTS.acquire().await.ok()?;
+        let png = tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            thumbnail(&image, budget).map(Zeroizing::new)
+        })
+        .await
+        .ok()??;
+        let sealed = seal_bytes(
+            &self.key,
+            &png,
+            &thumb_aad(&self.job.file_id, &self.job.version),
+        );
+        Some((hex::encode(*sha256(&sealed)), sealed))
+    }
+
     /// Decode and seal a thumbnail without holding the client.
     fn thumbnail(&self) -> Option<(String, Vec<u8>)> {
-        let png = self.image.as_deref().and_then(|bytes| thumbnail(bytes))?;
+        let png = self
+            .image
+            .as_deref()
+            .and_then(|bytes| thumbnail(bytes, self.budget))?;
         let sealed = seal_bytes(
             &self.key,
             &png,
@@ -143,11 +198,19 @@ pub(crate) fn fill(reader: &mut dyn Read, buffer: &mut [u8]) -> Result<usize> {
 }
 
 /// A 256 px PNG thumbnail of an image, if it decodes.
-fn thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
+fn thumbnail(bytes: &[u8], budget: ThumbnailBudget) -> Option<Vec<u8>> {
+    let (width, height) = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?
+        .into_dimensions()
+        .ok()?;
+    if u64::from(width) * u64::from(height) > budget.pixels {
+        return None;
+    }
     let mut limits = image::Limits::default();
     limits.max_image_width = Some(16_384);
     limits.max_image_height = Some(16_384);
-    limits.max_alloc = Some(512 * 1024 * 1024);
+    limits.max_alloc = Some(budget.allocation_bytes);
     let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .ok()?;
@@ -160,6 +223,11 @@ fn thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
 }
 
 impl Client {
+    /// Limit optional image work without lowering the file-content limit.
+    pub fn set_thumbnail_budget(&mut self, budget: ThumbnailBudget) {
+        self.thumbnail_budget = budget;
+    }
+
     /// Let `cancel` stop the imports that follow, until it is taken away
     /// with `None`. A stopped import leaves nothing: its job and chunks go.
     pub fn files_import_cancel(&mut self, cancel: Option<Arc<AtomicBool>>) {
@@ -278,6 +346,7 @@ impl Client {
                     chunks: vec![],
                     plain: vec![],
                     started_at: now,
+                    receipt: None,
                 },
                 false,
             ),
@@ -295,6 +364,7 @@ impl Client {
             key,
             overall: Sha256::new(),
             image: None,
+            budget: self.thumbnail_budget,
         })
     }
 
@@ -336,7 +406,7 @@ impl Client {
                 Error::IntegrityFailed,
             )?;
             job.mime = mime;
-            if job.mime.starts_with("image/") && job.size <= MAX_THUMBNAIL_SOURCE {
+            if job.mime.starts_with("image/") && job.size <= importing.budget.source_bytes {
                 importing.image = Some(Zeroizing::new(Vec::with_capacity(job.size as usize)));
             }
         }
@@ -447,6 +517,13 @@ impl Client {
             self.save_version(&file_id, &job.version, &version)?;
             self.workspace
                 .put_private(self.keys()?, &format!("{FILE}{file_id}"), &file)?;
+            if let Some(receipt) = &job.receipt {
+                self.workspace.put_private(
+                    self.keys()?,
+                    &format!("lib-import-complete:{receipt}"),
+                    &(file_id.clone(), job.version.clone()),
+                )?;
+            }
             self.workspace.delete_private(&job_key)
         })?;
         self.catalog()?.put_file(&file_id, file);
@@ -555,6 +632,45 @@ pub async fn file<H: Hold>(
     keep_both: bool,
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<Imported> {
+    file_once(h, path, folder, keep_both, None, progress).await
+}
+
+/// Import with a host-owned stable receipt, so a lost completion cannot create
+/// a second library entry. The receipt is local to the unlocked account.
+pub async fn file_once<H: Hold>(
+    h: &H,
+    path: &Path,
+    folder: &str,
+    keep_both: bool,
+    receipt: Option<&str>,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
+    if let Some(receipt) = receipt {
+        ensure_valid(
+            receipt.len() == 64 && receipt.bytes().all(|b| b.is_ascii_hexdigit()),
+            "import receipt",
+        )?;
+        let completed = h
+            .with(|c| {
+                let found: Option<(String, String)> = c
+                    .workspace
+                    .private(c.keys()?, &format!("lib-import-complete:{receipt}"))?;
+                found
+                    .map(|(id, version)| {
+                        Ok(Imported {
+                            file: c.files_show(&id)?.file,
+                            version,
+                            resumed: true,
+                            duplicate_of: vec![],
+                        })
+                    })
+                    .transpose()
+            })
+            .await?;
+        if let Some(result) = completed {
+            return Ok(result);
+        }
+    }
     ensure_valid(path.is_absolute(), "path")?;
     let metadata = std::fs::metadata(path).map_err(io)?;
     ensure_valid(metadata.is_file(), "path")?;
@@ -572,7 +688,14 @@ pub async fn file<H: Hold>(
             } else {
                 (catalog.find(folder, name), name.to_owned())
             };
-            c.import_start(size, &name, folder, into, Origin::Imported)
+            let mut started = c.import_start(size, &name, folder, into, Origin::Imported)?;
+            started.job.receipt = receipt.map(str::to_owned);
+            c.workspace.put_private(
+                c.keys()?,
+                &format!("{IMPORT}{}", started.job.version),
+                &started.job,
+            )?;
+            Ok(started)
         })
         .await?;
     let mut reader = std::fs::File::open(path).map_err(io)?;
@@ -591,7 +714,7 @@ pub async fn file<H: Hold>(
         fill(&mut reader, &mut buffer[..1])? == 0,
         Error::IntegrityFailed,
     )?;
-    let thumbnail = importing.thumbnail();
+    let thumbnail = importing.thumbnail_async().await;
     h.with(|c| c.import_finish(importing, thumbnail)).await
 }
 
@@ -626,7 +749,7 @@ pub(crate) async fn from_manifest<H: Hold>(
         hex::encode(importing.overall.clone().finalize()) == manifest.sha256,
         Error::IntegrityFailed,
     )?;
-    let thumbnail = importing.thumbnail();
+    let thumbnail = importing.thumbnail_async().await;
     h.with(|c| c.import_finish(importing, thumbnail)).await
 }
 
@@ -686,4 +809,73 @@ fn directory_entries(path: &Path) -> Result<Vec<(std::path::PathBuf, bool)>> {
         }
     }
     Ok(children)
+}
+
+#[cfg(test)]
+mod mobile_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn completed_import_receipt_survives_a_lost_response() {
+        let dir = crate::testing::TempDir::new();
+        let source = dir.0.join("original.txt");
+        std::fs::write(&source, b"selected bytes").unwrap();
+        let mut c = crate::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let receipt = "ab".repeat(32);
+        let first = file_once(
+            &c.cooperative_hold(),
+            &source,
+            "root",
+            true,
+            Some(&receipt),
+            &mut |_, _| {},
+        )
+        .await
+        .unwrap();
+        let again = file_once(
+            &c.cooperative_hold(),
+            &source,
+            "root",
+            true,
+            Some(&receipt),
+            &mut |_, _| {},
+        )
+        .await
+        .unwrap();
+        assert_eq!(first.file.id, again.file.id);
+        assert_eq!(first.version, again.version);
+        assert_eq!(c.files_list("root", false).unwrap().files.len(), 1);
+        c.lock();
+        assert!(
+            file_once(
+                &c.cooperative_hold(),
+                &source,
+                "root",
+                true,
+                Some(&receipt),
+                &mut |_, _| {}
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn thumbnail_pixel_budget_skips_optional_work_without_rejecting_the_file() {
+        let image = image::DynamicImage::new_rgb8(200, 200);
+        let mut out = std::io::Cursor::new(Vec::new());
+        image.write_to(&mut out, image::ImageFormat::Png).unwrap();
+        let bytes = out.into_inner();
+        assert!(
+            thumbnail(
+                &bytes,
+                ThumbnailBudget {
+                    pixels: 100,
+                    ..ThumbnailBudget::MOBILE
+                }
+            )
+            .is_none()
+        );
+        assert!(thumbnail(&bytes, ThumbnailBudget::MOBILE).is_some());
+    }
 }

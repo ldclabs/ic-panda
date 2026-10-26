@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 import SwiftUI
+import AuthenticationServices
+import FileProvider
 @preconcurrency import DMsgCore
 
 @MainActor @Observable
@@ -17,15 +19,26 @@ final class SessionModel {
     var notice: String?
     var vault: [VaultItem] = []
     var channels: [ChannelItem] = []
+    private(set) var blockedAccounts: Set<String> = []
+    var activeChannel: String?
+    private(set) var contentRevision: UInt64 = 0
+    private(set) var profileRevision: UInt64 = 0
+    private(set) var favorites: [VaultItem] = []
+    var vaultFilter = "all"
+    private(set) var loadingVault = false
+    private var vaultRequest: UUID?
+    private var vaultQuery = ""
     /// Navigation/layout may recreate a detail column; drafts belong to the
     /// account session and are also persisted by the core.
     var drafts: [String: String] = [:]
+    private var dirtyDrafts: Set<String> = []
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
     private(set) var cloudBackupsFailed = false
     private var cloudBackupRequest: UUID?
     var loadingCloudBackups: Bool { cloudBackupRequest != nil }
     var filesFolder = "root"
+    var filesSearch = ""
     var approvals: [ApprovalView] = []
     private(set) var recoveryWarning: RecoveryObservation?
     private(set) var recoveryRefreshFailed = false
@@ -40,8 +53,11 @@ final class SessionModel {
     }
     var search = ""
     var vaultHasMore = false
-    var authenticating = false
     let clipboard = PrivateClipboard()
+    let transfer = TransferModel()
+    let apple = NativeApple()
+    let push = NativePush()
+    let purchases = PurchaseModel()
     let webLogin = WebLogin()
     private let privacyShield = PrivacyShield()
     private var backgroundAt: ContinuousClock.Instant?
@@ -73,7 +89,7 @@ final class SessionModel {
 
     #if DEBUG
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
-        session = state; vault = items
+        session = state; vault = items; favorites = Array(items.filter(\.favorite).prefix(4))
         if let account = state.account {
             recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
                 observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
@@ -82,6 +98,8 @@ final class SessionModel {
         cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false)]
     }
     #endif
+
+    private(set) var environment = "production"
 
     func start() async {
         guard !opening, engine == nil else { return }
@@ -97,17 +115,110 @@ final class SessionModel {
         do {
             await closing?.value; closing = nil
             guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { return }
-            let files = try await Task.detached { try PrivateFiles() }.value
+            environment = MobileDeployment.wantsStaging ? "staging" : "production"
+            let deployment = try MobileDeployment.load()
+            if try deployment.recordSelection() { invalidateSystemExports() }
+            let name = deployment.name
+            let files = try await Task.detached { try PrivateFiles(environment: name) }.value
             let preferences = try LocalPreferences.read(at: files.root)
             automaticSyncAccounts = preferences.automaticSyncAccounts
             immediateBackgroundLock = preferences.immediateBackgroundLock
-            let security = AppleSecurity(installation: files.installation)
-            let engine = try await MobileEngine.open(directory: files.workspace.path, staging: files.staging.path, platform: security)
+            let security = AppleSecurity(installation: files.installation, environment: deployment.name)
+            let engine: MobileEngine
+            switch deployment {
+            case .production: engine = try await MobileEngine.open(directory: files.workspace.path, staging: files.staging.path, platform: security)
+            case .staging(let configuration): engine = try await MobileEngine.openStaging(directory: files.workspace.path, staging: files.staging.path, platform: security, deployment: configuration)
+            }
             guard UIApplication.shared.isProtectedDataAvailable, openingEpoch == epoch else { try? await engine.close(); return }
             self.files = files; self.security = security; self.engine = engine
             try adopt(try await engine.sessionState())
             uncoverIfActive()
+            if let route = DMsgAppDelegate.pendingRoute { await openPushRoute(route) }
+        } catch {
+            if openingEpoch == epoch {
+                report(error)
+                if session == nil { uncoverIfActive() }
+            }
+        }
+    }
+
+    func profileDidChange() { profileRevision &+= 1 }
+
+    func loadBlockedAccounts() async {
+        let current = epoch
+        do { if let values = try await engine?.blockedAccounts(), current == epoch { blockedAccounts = Set(values) } }
+        catch { if current == epoch { report(error) } }
+    }
+
+    func blockAccount(_ account: String, blocked: Bool) async {
+        let current = epoch
+        do { _ = try await engine?.setBlockedAccount(account: account, blocked: blocked) }
+        catch { if current == epoch { report(error) } }
+        if current == epoch { await loadBlockedAccounts() }
+    }
+
+    var integrationReset: Task<Void, Never>?
+
+    func invalidateSystemExports() {
+        for purpose in [ExportPurpose.credentials, .files] {
+            do { try SystemExports(purpose).invalidate() } catch { report(error) }
+        }
+        let previous = integrationReset
+        integrationReset = Task {
+            await previous?.value
+            try? await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
+            let domain = NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier("net.dmsg.ios.exports"), displayName: "dMsg")
+            try? await NSFileProviderManager.remove(domain)
+        }
+    }
+
+    func removeLocalAccount() async {
+        guard let account = session?.account, let engine, let files else { return }
+        await cancelBackgroundForAccount(account)
+        invalidateSystemExports()
+        clearContent(clearClipboard: true)
+        do {
+            _ = try await engine.removeLocalAccount(account: account)
+            try push.forget(account)
+            if let incoming = try? IncomingShares() {
+                for entry in try incoming.list() where entry.accountHash == IncomingShares.accountHash(account) { try incoming.remove(entry) }
+            }
+            automaticSyncAccounts.remove(account)
+            try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts).write(at: files.root)
+            let staging = files.staging.appending(path: account)
+            if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
+            for suffix in [".json", ".development.json", ".production.json"] {
+                let native = files.root.appending(path: "apple").appending(path: account + suffix)
+                if FileManager.default.fileExists(atPath: native.path) { try FileManager.default.removeItem(at: native) }
+            }
+            clearContent(clearClipboard: true); await updateSession()
         } catch { report(error) }
+    }
+
+    func setDraft(channel: String, text: String) {
+        drafts[channel] = text; dirtyDrafts.insert(channel)
+    }
+
+    func draftSaved(channel: String, text: String) {
+        if drafts[channel] == text { dirtyDrafts.remove(channel) }
+    }
+
+    func clearQueuedDraft(channel: String, sent: String) {
+        if drafts[channel] == sent { drafts[channel] = "" }
+    }
+
+    func openPushRoute(_ route: String) async {
+        guard let files, engine != nil else { DMsgAppDelegate.pendingRoute = route; return }
+        try? push.load(files)
+        DMsgAppDelegate.pendingRoute = nil
+        guard let account = push.account(for: route) else { return }
+        if session?.account != account {
+            await lock()
+            do { _ = try await engine?.switchAccount(account: account); await updateSession() }
+            catch { report(error); return }
+        }
+        selectedTab = .messages
+        if unlocked { await synchronize() }
     }
 
     func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
@@ -136,9 +247,14 @@ final class SessionModel {
             (session?.account != nil && session?.account != state.account) ||
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             epoch &+= 1; viewGeneration &+= 1
-            vault = []; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; approvals = []; search = ""
+            vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
         }
+        if let old = session?.account, old != state.account { invalidateSystemExports() }
+        if let account = state.account, [ExportPurpose.credentials, .files].contains(where: { purpose in
+            guard let header = try? SystemExports(purpose).header(checkExpiry: false) else { return false }
+            return header.accountHash != IncomingShares.accountHash(account)
+        }) { invalidateSystemExports() }
         self.engine = handle; session = state; lastSessionSequence = state.sequence
         uncoverIfActive()
     }
@@ -160,34 +276,78 @@ final class SessionModel {
     }
 
     func optedInSyncPass() async {
-        guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning, let engine else { return }
+        guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning else { return }
         automaticPassRunning = true
         let operation = OperationToken(), current = epoch
         automaticOperation = operation
         defer { automaticOperation = nil; automaticPassRunning = false }
         do {
             try await withTaskCancellationHandler {
-                _ = try await engine.reconcile(operation: operation)
-                _ = try await engine.sync(operation: operation)
-                _ = try await engine.syncConnect(operation: operation)
-                guard current == epoch else { return }
-                try await fetchCloudBackups(refresh: true, operation: operation)
-                let channels = try await engine.channels().items
-                for index in 0..<min(4, channels.count) {
-                    let item = channels[(automaticChannelCursor + index) % channels.count]
-                    _ = try await engine.refreshChannel(channel: item.id, operation: operation)
-                }
-                if !channels.isEmpty { automaticChannelCursor = (automaticChannelCursor + 4) % channels.count }
-                // File backup is deliberately absent: it requires its own
-                // explicit selection and confirmation in Files.
+                try await syncPass(operation: operation, automatic: true)
             } onCancel: { operation.cancel() }
-            guard current == epoch else { return }; await updateSession()
         } catch {
-            // Keep local content visible; the explicit Sync action surfaces
-            // detailed failures. Lock and account switches invalidate snapshots.
             if current == epoch, let failure = error as? MobileError, case .Failure(let code) = failure,
-               code == "LOCKED" || code == "DEVICE_NOT_APPROVED" { report(error) }
+               code == "DEVICE_NOT_APPROVED" { report(error) }
         }
+    }
+
+    /// One pass owns its handle. Independent read failures do not starve the
+    /// current channel; cancellation and session changes still end the pass.
+    private func syncPass(operation: OperationToken, automatic: Bool) async throws {
+        guard let engine, unlocked else { return }
+        let current = epoch
+        var failures: [Error] = []
+        func attempt(_ work: () async throws -> Void) async throws {
+            guard current == epoch, !Task.isCancelled else { throw CancellationError() }
+            do { try await work() }
+            catch {
+                if let failure = error as? MobileError, case .Failure(let code) = failure,
+                   ["LOCKED", "CANCELLED", "DEVICE_NOT_APPROVED"].contains(code) { throw error }
+                if error is CancellationError { throw error }
+                failures.append(error)
+            }
+        }
+        try await attempt { _ = try await engine.reconcile(operation: operation) }
+        // This verifies current device authority before content is refreshed.
+        _ = try await engine.sync(operation: operation)
+        try await attempt { _ = try await engine.syncConnect(operation: operation) }
+        let available = try await engine.channels().items
+        let ids = Self.channelBatch(available.map(\.id), active: activeChannel,
+                                    cursor: automaticChannelCursor, limit: automatic ? 4 : available.count)
+        let remaining = available.filter { $0.id != activeChannel }.count
+        if remaining > 0 { automaticChannelCursor = (automaticChannelCursor + max(1, ids.filter { $0 != activeChannel }.count)) % remaining }
+        for id in ids {
+            try await attempt { _ = try await engine.refreshChannel(channel: id, operation: operation) }
+        }
+        try await attempt { _ = try await engine.inbox(refresh: true) }
+        try await attempt { try await fetchCloudBackups(refresh: true, operation: operation) }
+        guard current == epoch else { throw CancellationError() }
+        try await attempt { _ = try await engine.syncBlockedAccounts() }
+        await loadBlockedAccounts()
+        try await attempt { _ = try await engine.maintainFiles() }
+        contentRevision &+= 1
+        await updateSession()
+        await loadApprovals()
+        if let error = failures.first { throw error }
+    }
+
+    static func channelBatch(_ ids: [String], active: String?, cursor: Int, limit: Int) -> [String] {
+        guard !ids.isEmpty, limit > 0 else { return [] }
+        var batch: [String] = []
+        if let active, ids.contains(active) { batch.append(active) }
+        let remaining = ids.filter { $0 != active }
+        for index in 0..<remaining.count where batch.count < limit {
+            batch.append(remaining[(cursor + index) % remaining.count])
+        }
+        return batch
+    }
+
+    func loadChannels() async {
+        guard let engine, unlocked else { return }; let current = epoch
+        do {
+            let result = try await engine.channels()
+            guard current == epoch, !Task.isCancelled else { return }; channels = result.items
+        } catch { if current == epoch { report(error) } }
     }
 
     func updateSession() async {
@@ -211,6 +371,7 @@ final class SessionModel {
         concealed = true
         recoveryOperation?.cancel()
         epoch &+= 1
+        transfer.cancel()
         engine?.suspend()
         backgroundAt = .now
         if immediateBackgroundLock {
@@ -251,19 +412,30 @@ final class SessionModel {
         }
         guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active, !Task.isCancelled else { return }
         uncoverIfActive()
-        if unlocked { await refresh() }
+        if unlocked {
+            let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+            let current = epoch
+            do {
+                try await engine?.saveMessageDrafts(drafts: pending)
+                guard current == epoch else { return }
+                for draft in pending { draftSaved(channel: draft.channel, text: draft.text) }
+            } catch { report(error) }
+            await refresh()
+        }
     }
 
     func protectedDataUnavailable() {
+        (try? SystemExports(.files))?.lockFiles()
         lifecycleGeneration &+= 1
         isForeground = false
+        transfer.cancel()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
-        authenticationGeneration &+= 1; webLogin.cancel(); busy = false; authenticating = false
+        authenticationGeneration &+= 1; webLogin.cancel(); busy = false
         busyOperation = nil; synchronizing = false
         privacyShield.show()
-        concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]
-        vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; session = nil
+        concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
+        vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
         engine = nil; security?.cancelPresence()
@@ -271,20 +443,32 @@ final class SessionModel {
 
     func lock(clearClipboard: Bool = true) async {
         if clearClipboard { lifecycleGeneration &+= 1 }
+        let account = session?.account, engine = engine
+        let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+        let flush = clearClipboard && unlocked && account != nil && !drafts.isEmpty
         clearContent(clearClipboard: clearClipboard)
-        do { try adopt(try await engine?.lock()) } catch { report(error) }
+        let work = beginBusyOperation(); defer { finishBusyOperation(work) }
+        do {
+            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts)) }
+            else { try adopt(try await engine?.lock()) }
+        } catch {
+            _ = try? await engine?.lock()
+            await updateSession(); report(error)
+        }
     }
 
     private func clearContent(clearClipboard: Bool) {
+        (try? SystemExports(.files))?.lockFiles()
+        transfer.cancel()
         recoveryOperation?.cancel()
         epoch &+= 1
-        viewGeneration &+= 1; drafts = [:]
-        vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; search = ""
+        viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
+        vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         busy = false; notice = nil; error = nil
         busyOperation = nil; synchronizing = false
         if clearClipboard { clipboard.clearOwned() }
-        if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin(); authenticating = false }
+        if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin() }
         security?.cancelPresence()
         // Remove the unlocked UI before awaiting the Rust barrier.
         session = nil
@@ -293,10 +477,10 @@ final class SessionModel {
     func login() async {
         guard let engine, !busy else { return }
         let operation = beginBusyOperation()
-        authenticating = true; error = nil; activity()
+        error = nil; activity()
         authenticationGeneration &+= 1
         let current = authenticationGeneration
-        defer { if finishBusyOperation(operation) { authenticating = false } }
+        defer { finishBusyOperation(operation) }
         do {
             let start = try await engine.beginLogin()
             guard let url = URL(string: start.url) else { throw CocoaError(.coderInvalidValue) }
@@ -321,9 +505,9 @@ final class SessionModel {
     func fastUnlock() async {
         guard let engine, !busy else { return }
         let operation = beginBusyOperation()
-        authenticating = true; activity()
+        activity()
         let current = epoch
-        defer { if finishBusyOperation(operation) { authenticating = false } }
+        defer { finishBusyOperation(operation) }
         do {
             let state = try await engine.unlockFast()
             guard current == epoch else { return }
@@ -334,8 +518,8 @@ final class SessionModel {
     func setFastUnlock(enabled: Bool) async {
         guard let engine, unlocked, !busy else { return }
         let operation = beginBusyOperation(), current = epoch
-        authenticating = true; activity()
-        defer { if finishBusyOperation(operation) { authenticating = false } }
+        activity()
+        defer { finishBusyOperation(operation) }
         do {
             let state = try await engine.setFastUnlock(enabled: enabled)
             guard current == epoch else { return }; try adopt(state)
@@ -351,12 +535,20 @@ final class SessionModel {
             switch selectedTab {
             case .vault: await loadVault()
             case .messages:
+                await loadBlockedAccounts()
                 let result = try await engine.channels()
                 guard current == epoch else { return }; channels = result.items
             case .files:
+                _ = try await engine.maintainFiles()
                 let folder = filesFolder
-                let result = try await engine.files(folder: folder)
-                let files: LibraryListing = try decode(result)
+                let query = filesSearch
+                let files: LibraryListing
+                if query.isEmpty { files = try decode(try await engine.files(folder: folder)) }
+                else {
+                    let matches: [LibraryFile] = try decode(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
+                    files = LibraryListing(folder: library.folder, folders: [], files: matches)
+                }
+                guard query == filesSearch, !Task.isCancelled else { return }
                 guard current == epoch, folder == filesFolder else { return }; library = files
                 await loadCloudBackups(refresh: false)
             case .account: break
@@ -365,28 +557,37 @@ final class SessionModel {
     }
 
     func loadVault(more: Bool = false) async {
-        guard unlocked, let engine else { return }
-        let current = epoch, query = search
+        guard unlocked, let engine, !more || !loadingVault else { return }
+        let current = epoch, query = search, kind = vaultFilter, request = UUID()
+        let queryKey = query + "\u{0}" + kind
+        let count = more ? 60 : (queryKey == vaultQuery ? max(60, vault.count) : 60)
+        let offset = more ? vault.count : 0
+        vaultRequest = request; loadingVault = true
+        defer { if vaultRequest == request { vaultRequest = nil; loadingVault = false } }
         do {
-            let page = try await engine.vaultPage(query: query, offset: more ? UInt32(vault.count) : 0, limit: 60)
-            guard current == epoch, query == search else { return }
-            vault = more ? vault + page.items : page.items; vaultHasMore = page.hasMore
-        } catch { if current == epoch { report(error) } }
+            var items: [VaultItem] = [], hasMore = false
+            repeat {
+                let size = min(100, count - items.count)
+                let page = try await engine.vaultPage(query: query, kind: kind == "all" ? nil : kind,
+                    favoritesOnly: false, offset: UInt32(offset + items.count), limit: UInt32(size))
+                guard current == epoch, request == vaultRequest, query == search, kind == vaultFilter, !Task.isCancelled else { return }
+                items += page.items; hasMore = page.hasMore
+                if !hasMore { break }
+            } while items.count < count
+            vault = more ? vault + items : items; vaultHasMore = hasMore; vaultQuery = queryKey
+            let starred = try await engine.vaultPage(query: "", kind: nil, favoritesOnly: true, offset: 0, limit: 4)
+            guard current == epoch, request == vaultRequest, !Task.isCancelled else { return }
+            favorites = starred.items
+        } catch { if current == epoch, request == vaultRequest { report(error) } }
     }
 
     func synchronize() async {
         activity()
-        guard let engine, !busy else { return }
+        guard engine != nil, !busy else { return }
         let operation = beginBusyOperation(synchronizing: true), current = epoch
         defer { finishBusyOperation(operation) }
-        do {
-            _ = try await coreOperation { try await engine.reconcile(operation: $0) }
-            _ = try await coreOperation { try await engine.sync(operation: $0) }
-            _ = try await coreOperation { try await engine.syncConnect(operation: $0) }
-            guard current == epoch else { return }
-            try await coreOperation { try await fetchCloudBackups(refresh: true, operation: $0) }
-            guard current == epoch else { return }; await refresh()
-        } catch { if current == epoch { await updateSession(); report(error) } }
+        do { try await coreOperation { try await syncPass(operation: $0, automatic: false) } }
+        catch { if current == epoch { await updateSession(); report(error) } }
     }
 
     func loadCloudBackups(refresh: Bool) async {
@@ -416,9 +617,10 @@ final class SessionModel {
         cloudBackups = []; cloudBackupsFailed = false; cloudBackupRequest = nil
     }
 
-    func loadApprovals() async {
+    func loadApprovals(refresh: Bool = false) async {
         guard let engine else { return }; let current = epoch
         do {
+            if refresh { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } }
             let result = try await engine.approvals()
             let values: [ApprovalView] = try decode(result)
             guard current == epoch else { return }; approvals = values
@@ -495,12 +697,15 @@ final class SessionModel {
                 // lifecycle already clears views when it requests a lock.
                 if code == "LOCKED" { return }
                 if code == "DEVICE_NOT_APPROVED" {
-                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; vault = []; channels = []; library = .empty; filesFolder = "root"; approvals = []; session = nil
+                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
                     clearCloudBackups()
                     let engine = engine
                     Task { _ = try? await engine?.lock() }
                 }
-                if code == "FORBIDDEN" { self.error = String(localized: "The operation was cancelled or is not permitted.") }
+                if code == "TEST_DEPLOYMENT_UNAVAILABLE" { self.error = String(localized: "The test deployment is not configured. The local demo and privacy policy remain available.") }
+                else if code == "APP_INTEGRITY_UNAVAILABLE" { self.error = String(localized: "App verification is unavailable on this device. Your saved content remains available.") }
+                else if code == "FORBIDDEN" { self.error = String(localized: "The operation was cancelled or is not permitted.") }
+                else if code == "VERSION_CONFLICT" { self.error = String(localized: "The record changed. Refresh and review your edits before saving again.") }
                 else if code == "EXECUTION_UNKNOWN" { self.error = String(localized: "The result is not confirmed. Reconcile this request before retrying.") }
                 else if code == "HARDWARE_UNAVAILABLE" { self.error = String(localized: "Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.") }
                 else if code == "HARDWARE_KEY_INVALIDATED" { self.error = String(localized: "This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.") }

@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct DMsgApp: App {
+    @UIApplicationDelegateAdaptor(DMsgAppDelegate.self) private var appDelegate
     @State private var model = SessionModel()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -12,6 +13,20 @@ struct DMsgApp: App {
                 .preferredColorScheme(model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-dark") ? .dark : nil)
                 #endif
                 .task { await model.start() }
+                .onOpenURL { url in
+                    if let link = ConnectLink(url) { ConnectNavigation.shared.pending = link }
+                    if url.scheme == "dmsg", url.host == "open", let destination = WorkspaceDestination(rawValue: url.lastPathComponent), url.query == nil, url.fragment == nil { IntentNavigation.shared.destination = destination }
+                }
+                .task(id: "push:\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
+                    if model.unlocked { await model.push.refresh(model) }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushToken)) { _ in Task { await model.push.refresh(model) } }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushOpen)) { notification in
+                    if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
+                }
+                .task(id: "store:\(model.session?.account ?? ""):\(model.unlocked)") {
+                    if model.unlocked { await model.purchases.listen(model) }
+                }
                 .task(id: "\(scenePhase == .active):\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
                     guard scenePhase == .active, model.session?.account != nil else { return }
                     while !Task.isCancelled {

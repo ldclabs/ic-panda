@@ -164,6 +164,11 @@ pub enum ContractSource {
         /// Stable qualification claim identity.
         claim_id: Hash,
     },
+    /// Benefit paid through a verified App Store transaction.
+    AppStore {
+        /// Domain-separated identity of the Apple transaction.
+        transaction_id: Hash,
+    },
     /// Product-granted compensation benefit.
     Compensation,
 }

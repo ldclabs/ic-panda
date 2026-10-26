@@ -10,6 +10,7 @@ settings:
     ARCHS: arm64
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_EMIT_LOC_STRINGS: YES
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
@@ -24,9 +25,19 @@ targets:
   dMsg:
     type: application
     platform: iOS
-    sources: [App, Features, Platform, Resources]
+    sources: [App, Features, Platform, Shared, Intents, Resources]
     dependencies:
       - package: DMsgCore
+      - target: dMsgShare
+        embed: true
+      - target: dMsgWidget
+        embed: true
+      - target: dMsgCredentials
+        embed: true
+      - target: dMsgFiles
+        embed: true
+      - target: dMsgFilesUI
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios
@@ -35,9 +46,105 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
+        DMSG_USE_STAGING: NO
+        DMSG_APNS_ENVIRONMENT: production
+        DMSG_ATTEST_ENVIRONMENT: production
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+          DMSG_APNS_ENVIRONMENT: development
+          DMSG_ATTEST_ENVIRONMENT: development
+  dMsgShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Extensions/Share
+      - Shared/IncomingShare.swift
+      - Shared/NativeTheme.swift
+      - Resources/Localizable.xcstrings
+      - Resources/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.share
+        INFOPLIST_FILE: Extensions/Share/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extensions/Share/Share.entitlements
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+  dMsgWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Extensions/Widget
+      - Shared/NativeTheme.swift
+      - Resources/Localizable.xcstrings
+      - Resources/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.widget
+        INFOPLIST_FILE: Extensions/Widget/Info.plist
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+  dMsgCredentials:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Extensions/Credentials
+      - Shared/SystemExports.swift
+      - Shared/IncomingShare.swift
+      - Shared/NativeTheme.swift
+      - Resources/Localizable.xcstrings
+      - Resources/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.autofill
+        INFOPLIST_FILE: Extensions/Credentials/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extensions/Credentials/Extension.entitlements
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+  dMsgFiles:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Extensions/Files
+      - Shared/SystemExports.swift
+      - Shared/IncomingShare.swift
+      - Shared/NativeTheme.swift
+      - Resources/Localizable.xcstrings
+      - Resources/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.files
+        INFOPLIST_FILE: Extensions/Files/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extensions/Files/Extension.entitlements
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+  dMsgFilesUI:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Extensions/FilesUI
+      - Shared/SystemExports.swift
+      - Shared/IncomingShare.swift
+      - Shared/NativeTheme.swift
+      - Resources/Localizable.xcstrings
+      - Resources/PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.files-ui
+        INFOPLIST_FILE: Extensions/FilesUI/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extensions/FilesUI/Extension.entitlements
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
   dMsgTests:
     type: bundle.unit-test
     platform: iOS

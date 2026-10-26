@@ -79,11 +79,13 @@ function assets(config: ConnectConfig): Plugin {
       }
     },
     { match: 'assets/**/*', headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
-    { match: '.well-known', ignore: false }
+    { match: '.well-known', ignore: false },
+    { match: '.well-known/apple-app-site-association', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } }
   ]
   return {
     name: 'dmsg-connect-assets',
     generateBundle() {
+      this.emitFile({ type: 'asset', fileName: '.well-known/apple-app-site-association', source: JSON.stringify({ applinks: { details: [{ appIDs: ['S9Z2WAMAV8.net.dmsg.ios'], components: [{ '/': '/app/pair' }, { '/': '/app/request' }] }] } }) })
       this.emitFile({ type: 'asset', fileName: '.ic-assets.json5', source: JSON.stringify(rules, null, 2) + '\n' })
       this.emitFile({ type: 'asset', fileName: '.well-known/ic-domains', source: (config.domains ?? []).join('\n') + '\n' })
     }
@@ -115,7 +117,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         bridge: resolve('web/v1/index.html'),
-        pair: resolve('web/v1/pair/index.html')
+        pair: resolve('web/v1/pair/index.html'),
+        nativePair: resolve('web/app/pair/index.html'),
+        nativeRequest: resolve('web/app/request/index.html')
       }
     }
   }

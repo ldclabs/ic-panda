@@ -13,8 +13,8 @@ final class AppleSecurity: Platform, @unchecked Sendable {
     private var authorization: UInt64?
     private var nextAuthorization: UInt64 = 0
 
-    init(installation: String) {
-        service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").production.\(installation)"
+    init(installation: String, environment: String = "production") {
+        service = "\(Bundle.main.bundleIdentifier ?? "net.dmsg.ios").\(environment).\(installation)"
     }
 
     private func query(_ name: String) -> [String: Any] {
@@ -153,6 +153,9 @@ final class AppleSecurity: Platform, @unchecked Sendable {
 
     private func explanation(_ reason: String) -> String {
         switch reason {
+        case "autofill_export": String(localized: "Export the selected login items to Password AutoFill")
+        case "account_deletion": String(localized: "Permanently delete the dMsg service account you reviewed")
+        case "wallet": String(localized: "Approve the wallet transaction plan you reviewed")
         case "device_pair": String(localized: "Approve this device and distribute new content keys")
         case "device_revoke": String(localized: "Revoke this device and rotate content keys")
         case "account", "device_capabilities", "account_control", "device_control", "principal_control": String(localized: "Confirm this account security change")

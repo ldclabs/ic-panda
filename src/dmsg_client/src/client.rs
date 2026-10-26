@@ -434,6 +434,8 @@ pub struct Client {
     pub(crate) blobs: Option<Blobs>,
     /// The library's catalog, read on first use while unlocked.
     pub(crate) library: Option<Catalog>,
+    pub(crate) read_only_previews: bool,
+    pub(crate) thumbnail_budget: crate::library::import::ThumbnailBudget,
     /// When the library's maintenance last ran.
     pub(crate) library_maintained_at: Option<u64>,
     /// When the library's unreferenced chunks were last collected.
@@ -744,6 +746,8 @@ impl Client {
             bound_logins: BTreeMap::new(),
             blobs: None,
             library: None,
+            thumbnail_budget: Default::default(),
+            read_only_previews: false,
             library_maintained_at: None,
             library_collected_at: None,
             import_cancel: None,
@@ -1730,6 +1734,17 @@ impl Client {
         self.workspace = idle(&self.config.environment)?;
         self.slot = Slot::Idle;
         self.blobs = None;
+        self.status()
+    }
+
+    /// Remove only the selected account's device workspace and platform slots.
+    pub fn remove_local_account(&mut self, expected: &str) -> Result<crate::Status> {
+        self.keys()?;
+        ensure(self.account()?.id.to_string() == expected, Error::Forbidden)?;
+        let directory = self.dir.join("accounts").join(expected);
+        self.reset()?;
+        self.logout()?;
+        std::fs::remove_dir_all(directory).map_err(crate::storage)?;
         self.status()
     }
 

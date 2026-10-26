@@ -184,6 +184,46 @@ impl ApprovalKeys for Adapter {
     }
 }
 
+impl dmsg_client::wallet::cosign::CosignProvider for Adapter {
+    fn name(&self) -> &'static str {
+        "ios-secure-enclave"
+    }
+
+    fn create(&self, _label: &str) -> Result<(Vec<u8>, String)> {
+        let key = self.0.create_signing(false).map_err(platform_error)?;
+        dmsg_protocol::approval_key_id(&key.public_key)?;
+        Ok((key.public_key, dmsg_client::codec::b64(&key.handle)))
+    }
+
+    fn sign(
+        &self,
+        handle: String,
+        messages: Vec<Hash>,
+    ) -> dmsg_client::wallet::cosign::CosignFuture {
+        let platform = self.0.clone();
+        Box::pin(async move {
+            ensure(
+                !messages.is_empty() && messages.len() <= 64,
+                Error::QuotaExceeded,
+            )?;
+            let handle = dmsg_client::codec::unb64(&handle)?;
+            crate::runtime()
+                .spawn_blocking(move || {
+                    let token = platform
+                        .authorize("wallet".into(), false)
+                        .map_err(platform_error)?;
+                    let answer = Answer { platform, token };
+                    messages
+                        .into_iter()
+                        .map(|message| answer.sign(&handle, &message).map(Vec::from))
+                        .collect()
+                })
+                .await
+                .map_err(|_| Error::Unavailable("hardware: wallet signer".into()))?
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

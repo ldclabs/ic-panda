@@ -24,13 +24,16 @@ struct ApprovalsView: View {
             }
         }.privateScreen().navigationTitle("Approvals")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
-            .task { await model.loadApprovals() }
-            .refreshable { await model.loadApprovals() }
+            .task(id: model.contentRevision) { await model.loadApprovals(); await model.loadApprovals(refresh: true) }
+            .refreshable { await model.loadApprovals(refresh: true) }
     }
 }
 
 func approvalTitle(_ type: String) -> String {
     switch type {
+    case "wallet": String(localized: "Review wallet action")
+    case "delegation": String(localized: "Review agent delegation")
+    case "grant": String(localized: "Review agent permissions")
     case "device_pair": String(localized: "Authorize a new device")
     case "device_revoke": String(localized: "Revoke a device")
     case "device_capabilities": String(localized: "Change device permissions")
@@ -66,7 +69,7 @@ struct ApprovalDetailView: View {
     @State private var supported = false
     @State private var readyAt = Date.distantFuture
     @State private var decisionTask: Task<Void, Never>?
-    private let supportedTypes: Set<String> = ["device_pair", "device_revoke", "device_capabilities", "attest", "connect", "account", "principal", "approval_key", "approval_key_retire", "hardware_policy", "secret_share", "secret_package_import"]
+
 
     var body: some View {
         List {
@@ -137,7 +140,7 @@ struct ApprovalDetailView: View {
             let fresh: ApprovalView = try model.decode(snapshot)
             guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
             state = fresh.state
-            supported = fresh.mobileSupported == true && supportedTypes.contains(fresh.type)
+            supported = fresh.mobileSupported == true
             payload = try model.decode(snapshot); readyAt = .now.addingTimeInterval(1)
         } catch { if epoch == model.epoch { model.report(error) } }
     }
@@ -153,7 +156,7 @@ struct ApprovalDetailView: View {
             let fresh: ApprovalView = try model.decode(snapshot)
             guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
             state = fresh.state; payload = try model.decode(snapshot)
-            supported = fresh.mobileSupported == true && supportedTypes.contains(fresh.type)
+            supported = fresh.mobileSupported == true
             await model.loadApprovals()
         } catch { if epoch == model.epoch { supported = false; state = nil; model.report(error) } }
         working = false
@@ -162,9 +165,9 @@ struct ApprovalDetailView: View {
 
     private func decide(_ approve: Bool) async {
         guard let engine = model.engine, !working, !approve || supported else { return }
-        decision = nil; working = true; model.authenticating = true; model.activity()
+        decision = nil; working = true; model.activity()
         let epoch = model.epoch
-        defer { working = false; if epoch == model.epoch { model.authenticating = false } }
+        defer { working = false }
         do {
             let snapshot = try await coreOperation { try await engine.decide(id: request.id, digest: request.digest, approve: approve, operation: $0) }
             guard epoch == model.epoch else { return }
@@ -189,7 +192,8 @@ struct ApprovalDetailView: View {
 struct CanonicalDetails: View {
     let value: DisplayValue
     struct Row: Identifiable { let id: String; let label: String; let text: String }
-    private var rows: [Row] { flatten(value, path: "", label: "") }
+    private let rows: [Row]
+    init(value: DisplayValue) { self.value = value; rows = Self.flatten(value, path: "", label: "") }
     var body: some View {
         ForEach(rows) { row in
             VStack(alignment: .leading, spacing: 4) {
@@ -199,7 +203,7 @@ struct CanonicalDetails: View {
         }
     }
 
-    private func flatten(_ value: DisplayValue, path: String, label: String) -> [Row] {
+    private static func flatten(_ value: DisplayValue, path: String, label: String) -> [Row] {
         switch value {
         case .object(let values):
             return values.keys.sorted().flatMap { key in flatten(values[key]!, path: path + "/" + key,

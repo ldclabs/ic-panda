@@ -152,17 +152,164 @@ pub async fn propose<H: Hold>(
     intent: Intent,
     via_agent: Option<String>,
 ) -> Result<Json> {
+    propose_with_id(h, wallet, intent, via_agent, Hash::new(random_id())).await
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+struct PendingProposal {
+    wallet: Principal,
+    args: ProposeArgs,
+    result: Option<Json>,
+    #[serde(default)]
+    rejection: Option<Error>,
+}
+const PROPOSAL_DRAFT: &str = "wallet-proposal:";
+const PROPOSAL_RESULT: &str = "wallet-proposal-result:";
+
+/// Persist the operation identity before the update; retries keep its payload.
+pub async fn propose_with_id<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    intent: Intent,
+    via_agent: Option<String>,
+    op_id: Hash,
+) -> Result<Json> {
     validate_intent(&intent)?;
-    let (_, ic) = identity(h).await?;
-    let args = ProposeArgs {
-        intent,
-        op_id: Hash::new(random_id()),
-        via_agent,
+    let h = crate::hold::Unlocked::new(h).await?;
+    let draft = PendingProposal {
+        wallet,
+        args: ProposeArgs {
+            intent,
+            op_id,
+            via_agent,
+        },
+        result: None,
+        rejection: None,
     };
-    let p: Result<Proposal> = ic.update(wallet, "propose", (args,)).await?;
-    let mut out = proposal_view(&p?);
-    out["wallet"] = json!(wallet.to_text());
-    Ok(out)
+    let completed = h
+        .with(|c| {
+            let key = format!("{PROPOSAL_DRAFT}{}", hex::encode(*op_id));
+            let previous: Option<PendingProposal> = c.workspace.private(c.keys()?, &key)?.or(c
+                .workspace
+                .private(
+                    c.keys()?,
+                    &format!("{PROPOSAL_RESULT}{}", hex::encode(*op_id)),
+                )?);
+            ensure(
+                previous
+                    .as_ref()
+                    .is_none_or(|p| p.wallet == draft.wallet && p.args == draft.args),
+                Error::IdempotencyConflict,
+            )?;
+            if let Some(previous) = previous {
+                if let Some(error) = previous.rejection {
+                    return Ok(Some(Err(error)));
+                }
+                if let Some(value) = previous.result {
+                    return Ok(Some(Ok(value)));
+                }
+            }
+            c.workspace.put_private(c.keys()?, &key, &draft)?;
+            Ok(None)
+        })
+        .await?;
+    if let Some(value) = completed {
+        return value;
+    }
+    let (_, ic) = identity(&h).await?;
+    let result: Result<Proposal> = ic.update(wallet, "propose", (draft.args.clone(),)).await?;
+    let out = result.map(|proposal| {
+        let mut value = proposal_view(&proposal);
+        value["wallet"] = json!(wallet.to_text());
+        value
+    });
+    h.with(|c| {
+        c.workspace.store.atomic(|_| {
+            c.workspace.put_private(
+                c.keys()?,
+                &format!("{PROPOSAL_RESULT}{}", hex::encode(*op_id)),
+                &PendingProposal {
+                    result: out.as_ref().ok().cloned(),
+                    rejection: out.as_ref().err().cloned(),
+                    ..draft
+                },
+            )?;
+            c.workspace
+                .delete_private(&format!("{PROPOSAL_DRAFT}{}", hex::encode(*op_id)))
+        })
+    })
+    .await?;
+    out
+}
+
+/// Reconcile an interrupted proposal using the originally sealed arguments.
+pub async fn resume_proposal<H: Hold>(h: &H, id: &str) -> Result<Json> {
+    let draft = h
+        .with(|c| {
+            crate::upload::hex_id(id)?;
+            c.workspace
+                .private::<PendingProposal>(c.keys()?, &format!("{PROPOSAL_DRAFT}{id}"))?
+                .or(c
+                    .workspace
+                    .private(c.keys()?, &format!("{PROPOSAL_RESULT}{id}"))?)
+                .ok_or(Error::NotFound)
+        })
+        .await?;
+    propose_with_id(
+        h,
+        draft.wallet,
+        draft.args.intent,
+        draft.args.via_agent,
+        draft.args.op_id,
+    )
+    .await
+}
+
+impl Client {
+    /// Distinguish transport uncertainty from a confirmed canister reply.
+    /// # Errors
+    /// Locked workspace, invalid ID or a corrupt local receipt.
+    pub fn wallet_proposal_attempt(&self, id: &str) -> Result<&'static str> {
+        crate::upload::hex_id(id)?;
+        if let Some(record) = self
+            .workspace
+            .private::<PendingProposal>(self.keys()?, &format!("{PROPOSAL_RESULT}{id}"))?
+        {
+            return Ok(if record.rejection.is_some() {
+                "rejected"
+            } else {
+                "completed"
+            });
+        }
+        Ok(
+            if self
+                .workspace
+                .private::<PendingProposal>(self.keys()?, &format!("{PROPOSAL_DRAFT}{id}"))?
+                .is_some()
+            {
+                "pending"
+            } else {
+                "absent"
+            },
+        )
+    }
+
+    /// Pending proposal metadata, without wallet key material.
+    pub fn pending_wallet_proposals(&self) -> Result<Vec<Json>> {
+        let mut jobs = Vec::new();
+        for key in self.workspace.store.sealed_keys(PROPOSAL_DRAFT)? {
+            if let Some(draft) = self
+                .workspace
+                .private::<PendingProposal>(self.keys()?, &key)?
+            {
+                if draft.result.is_some() {
+                    continue;
+                }
+                jobs.push(json!({"id":hex::encode(*draft.args.op_id),"wallet":draft.wallet.to_text(),"intent":intent_view(&draft.args.intent)}));
+            }
+        }
+        Ok(jobs)
+    }
 }
 
 /// Member agents: the client is taken only for synchronous steps.
@@ -201,6 +348,26 @@ pub async fn send<H: Hold>(
     memo: Option<&str>,
     via_agent: Option<String>,
 ) -> Result<Json> {
+    send_with_id(
+        h, wallet, from, asset, to, amount, max_fee, memo, via_agent, None,
+    )
+    .await
+}
+
+/// A transfer proposal with a caller-retained operation identity.
+#[allow(clippy::too_many_arguments)]
+pub async fn send_with_id<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    from: u32,
+    asset: &str,
+    to: &str,
+    amount: &str,
+    max_fee: &str,
+    memo: Option<&str>,
+    via_agent: Option<String>,
+    op_id: Option<Hash>,
+) -> Result<Json> {
     let view = state(h, wallet).await?;
     let asset = parse_asset(asset)?;
     let to = parse_destination(&asset, to, view.btc_network)?;
@@ -220,7 +387,14 @@ pub async fn send<H: Hold>(
         max_fee,
         memo,
     };
-    propose(h, wallet, intent, via_agent).await
+    propose_with_id(
+        h,
+        wallet,
+        intent,
+        via_agent,
+        op_id.unwrap_or_else(|| Hash::new(random_id())),
+    )
+    .await
 }
 
 /// Cancel: the client is taken only for synchronous steps.
@@ -1177,4 +1351,73 @@ pub(super) async fn local_cosigs<H: Hold>(
             client_data_json: None,
         })
         .collect())
+}
+
+#[cfg(test)]
+mod proposal_receipt_tests {
+    use super::*;
+    use crate::testing::{TempDir, unlocked};
+
+    #[tokio::test]
+    async fn terminal_receipts_replay_without_network_and_do_not_fill_pending_pages() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let id = Hash::new([7; 32]);
+        let text = hex::encode(*id);
+        let mut receipt = PendingProposal {
+            wallet: Principal::from_slice(&[1]),
+            args: ProposeArgs {
+                intent: Intent::Unfreeze,
+                op_id: id,
+                via_agent: None,
+            },
+            result: None,
+            rejection: Some(Error::Forbidden),
+        };
+        client
+            .workspace
+            .put_private(
+                client.keys().unwrap(),
+                &format!("{PROPOSAL_RESULT}{text}"),
+                &receipt,
+            )
+            .unwrap();
+        assert_eq!(client.wallet_proposal_attempt(&text).unwrap(), "rejected");
+        assert!(client.pending_wallet_proposals().unwrap().is_empty());
+        assert_eq!(
+            resume_proposal(&client.hold(), &text).await,
+            Err(Error::Forbidden)
+        );
+        receipt.rejection = None;
+        receipt.result = Some(json!({"id":12}));
+        client
+            .workspace
+            .put_private(
+                client.keys().unwrap(),
+                &format!("{PROPOSAL_RESULT}{text}"),
+                &receipt,
+            )
+            .unwrap();
+        assert_eq!(client.wallet_proposal_attempt(&text).unwrap(), "completed");
+        assert_eq!(
+            resume_proposal(&client.hold(), &text).await.unwrap()["id"],
+            12
+        );
+        assert!(client.pending_wallet_proposals().unwrap().is_empty());
+        client
+            .workspace
+            .delete_private(&format!("{PROPOSAL_RESULT}{text}"))
+            .unwrap();
+        receipt.result = None;
+        client
+            .workspace
+            .put_private(
+                client.keys().unwrap(),
+                &format!("{PROPOSAL_DRAFT}{text}"),
+                &receipt,
+            )
+            .unwrap();
+        assert_eq!(client.wallet_proposal_attempt(&text).unwrap(), "pending");
+        assert_eq!(client.pending_wallet_proposals().unwrap().len(), 1);
+    }
 }

@@ -3,7 +3,7 @@
 Native SwiftUI client with an in-process `dmsg_mobile` / UniFFI bridge to
 `dmsg_client`. There is no daemon, loopback server or embedded web client.
 The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
-v0.3 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
+v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
 ## Build
@@ -24,7 +24,7 @@ open src/dmsg_ios/dMsg.xcodeproj
 Build the `dMsg` scheme. `CoreBridge/Package.swift` consumes the generated
 Swift module and the device/simulator XCFramework. Build artifacts and the
 generated Xcode project are ignored; do not copy a library from a different
-commit. The build records the Cargo lockfile and Swift binding hashes.
+commit. The build records the transitive local source fingerprint, toolchain, profile, Swift binding and both native-library hashes. A source change during the build prevents recording a misleading manifest.
 Use `DMSG_IOS_PROFILE=release` for optimized Rust slices. App code uses Swift 6;
 generated UniFFI code is isolated in its Swift 5 language-mode package.
 
@@ -198,23 +198,57 @@ This tree is development code, not an App Store release assertion. In particular
    cross-device login/edit/revoke slice. Confirm user home supports the current
    AccountInfo/hardware-proof contract before testing real protected accounts.
    Simulator/software-vector checks do not establish native ACL or presence behavior.
-3. APNs registration/provider services and their authenticated wire contract are
-   not implemented or deployed here. Notifications are explicitly shown as
-   unavailable; foreground use works independently. No APNs signing key belongs
-   in this repository or app.
+3. APNs, App Attest and StoreKit now have native APIs, provider/verification
+   services and a governed commerce adapter. Apple products and deployment
+   credentials must be provisioned; no private key belongs in this repository
+   or app. Production refuses sandbox purchase facts. A signed bundle can carry
+   the reviewed public StagingDeployment.json for isolated TestFlight testing;
+   the test realm has separate storage and Keychain namespaces and a visible banner.
 4. Duo closed, open and partially open presentations have been exercised in
    Apple's iOS 27.1 Duo simulator. The remaining device matrix includes side
    Touch ID, system reserved regions with live activities/camera, real keyboard
    and fold transitions, and App Store screenshots. Simulator layout evidence
    is not Duo hardware evidence.
-5. Wallet execution, purchasing, hosted agents, system extensions, long-running
-   background transfers and mobile-browser connect redirects retain the brief's
-   independent release gates. Unsupported financial approvals cannot be approved
-   by this app. App Store account deletion, reporting/blocking, privacy labels
-   and export-compliance submissions require the corresponding service/product
-   decisions; signing out is not account deletion.
+5. Wallet execution/management, agent management, Share/AutoFill/Files extensions,
+   widgets, App Intents, browser app-hop navigation and bounded background ciphertext
+   transfers are implemented. Existing product-level wallet creation pause and the
+   paid-letter sending gate remain. iOS is not a persistent agent daemon.
+6. Service-account deletion, report/block, offline/privacy pages and a public local
+   demo are implemented. The offline tour never authenticates or purchases. Real
+   review account access, signing, merchant/provider configuration and device
+   acceptance remain release tasks, detailed in [Review/README_zh.md](Review/README_zh.md).
 
 The exact local checks and remaining gaps are recorded in [VALIDATION.md](VALIDATION.md).
 
 Implementation: Codex (OpenAI), 2026-10-25; hardware-security and Secrets
 integration updated 2026-10-26.
+
+## Native capability contracts and checklist
+
+The public [mobile contract](../../docs/protocol/mobile_zh.md) describes account
+binding, assertions, signed routes, StoreKit authority, deletion and narrow
+ciphertext grants. [The executable checklist](IMPLEMENTATION_CHECKLIST_zh.md)
+separates implemented code from external deployment and device acceptance.
+
+The main app is the only process holding a Client workspace. Share stages explicit
+inputs, while AutoFill and Files get separate selected encrypted snapshots that
+expire after 24 hours. File Provider is read-only; its independently authenticated
+access session lasts five minutes and ends on app lock. Recipients may retain
+already exported copies. No extension receives account roots or device signing keys.
+
+Background URLSession handles one selected immutable backup at a time with at most
+three tasks. Its separate directory contains only ciphertext and scoped capabilities.
+Native task descriptions and the local progress record survive app reconstruction;
+the original unlocked account verifies and finalizes. A completed download is not
+an imported or committed file, and force quitting can postpone delivery.
+
+Use the archive helper for optimized Rust plus Swift Release:
+
+    bash scripts/ios/archive.sh --archive-path /absolute/output/dMsg.xcarchive
+
+Set signing/provisioning for a real archive; local unsigned builds do not prove
+distribution eligibility. Check compiler extraction and offline policy parity with:
+
+    python3 scripts/ios/localizations.py --derived-data src/dmsg_ios/.build/ReviewDerivedData
+
+Implementation and review: Codex (OpenAI), 2026-10-27.
