@@ -612,7 +612,15 @@ fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
     let fingerprints = Arc::new(Fingerprints::default());
     let (mut client, key) = client(&dir, &software, Some(Hash::new([0; 32])));
     client.set_presence_key(fingerprints.clone());
-    let required = info(&client, Some(&key), &[HardwarePurpose::Payment]);
+    let mut required = info(&client, Some(&key), &[HardwarePurpose::Payment]);
+    let device_id = client.workspace.meta.device_id;
+    // A public ID can contain the handle's bytes without exposing the handle.
+    let registered_by = Hash::new([key.handle[0]; 32]);
+    required
+        .approval_keys
+        .get_mut(&device_id)
+        .unwrap()
+        .registered_by = registered_by;
     let message = Hash::new([3; 32]);
     let payment = Some(HardwarePurpose::Payment);
     // Without its keyboard the key is only unavailable now.
@@ -642,8 +650,29 @@ fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
         Err(Error::IntegrityFailed)
     );
     let view = client.approval_key_view(&required).unwrap();
-    assert_eq!(view["key"]["fingerprints_changed"], true);
-    assert_eq!(view["key"]["biometry_only"], true);
-    // The view never shows a handle.
-    assert!(!view.to_string().contains(&hex::encode(&key.handle)));
+    // Check the complete public view, not a hex substring that can also
+    // occur in public IDs (as it deliberately does in registered_by).
+    assert_eq!(
+        view,
+        json!({
+            "available": true,
+            "device_bound": false,
+            "biometry": true,
+            "key": {
+                "key_id": hex::encode(*key.key_id),
+                "registered_at": 1,
+                "registered_by": hex::encode(*registered_by),
+                "here": true,
+                "biometry_only": true,
+                "fingerprints_changed": true,
+            },
+            "waiting": [],
+            "policy": ["payment"],
+            "devices": [{
+                "device_id": hex::encode(*device_id),
+                "this_device": true,
+                "key_id": hex::encode(*key.key_id),
+            }],
+        })
+    );
 }
