@@ -5,6 +5,52 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.1.1] - 2026-10-26
+
+### Credential use
+
+- The credential pages open on one compact navigation row. Sources are chosen
+  from searchable pickers that show names and IDs, never values; empty pages
+  explain how to set up each workflow.
+- Approvals show structured summaries, health findings link to the item or
+  setting to fix, rotations list their steps in order, imports report what
+  they created, and device activity filters by status, type and period with
+  stable pages.
+- Each workflow loads, fails and retries on its own. A snapshot or mount
+  preview no longer applies once its inputs change, a failed import keeps the
+  masked input, and results that arrive after leaving a page are dropped.
+- A rotation offers "new credential created" only once the field's value
+  actually changed; editing only the item's title no longer enables it. The
+  daemon compares the values without returning them.
+- Health reports and cloud storage's sharing management read file share links
+  created by earlier versions again; they failed with an integrity error.
+
+### Account security
+
+- Fast unlock waits for Touch ID without holding the daemon, so other windows
+  and commands keep answering while the prompt is open. Locking or switching
+  accounts meanwhile cancels the unlock, and a failed unlock clears the
+  previous account's views.
+- When the account requires an approval-key signature for an action, a device
+  without the registered key refuses before sending, instead of leaving the
+  user home to reject it. Replacing a required approval key asks for Touch ID
+  once, with the stricter setting of the old and new key.
+
+### Desktop
+
+- Choices, dates, sliders, progress bars and confirmations use the app's
+  themed controls everywhere, with persistent labels. Settings fields share one
+  layout, failed edits keep their drafts, invalid date ranges are refused, and
+  dialogs and popovers stay inside narrow windows.
+- File and Vault item details keep IDs at the end, with shorter version chips;
+  tooltips and copies still give full values. File places open in a dialog and
+  toolbar actions wrap, so details stay readable in narrow windows.
+- When this Mac joins an account as a new device, onboarding also shows the
+  pairing request as a QR code.
+- Saving a channel attachment to Files checks the Files size limit before
+  downloading and re-encrypts it chunk by chunk, instead of holding the whole
+  file in memory.
+
 ## [1.1.0] - 2026-10-25
 
 ### Credential use
