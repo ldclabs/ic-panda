@@ -5,6 +5,47 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.1.2] - 2026-10-27
+
+### Desktop
+
+- New windows open Channels by default.
+- Settings show the current configuration before opening an editor for a
+  specific task. Profile, device, account security, file, browser connection
+  and migration pages explain the next action and keep drafts after failures
+  or background refreshes.
+- Unchanged or invalid settings cannot be submitted. Signing limits and
+  purposes share one approval; pending changes show their request status
+  until they finish, and cancelling a system dialog no longer reports success.
+- Opening a local file cleans up an unfinished temporary copy if the operation
+  is interrupted.
+
+### Team wallets
+
+- Code management distinguishes the installed version from an accepted
+  version waiting for installation, without displaying internal debug text.
+  An already accepted version no longer offers a duplicate upgrade proposal.
+- Installation progress, failures and completion appear beside the install
+  button. Pending installation prevents duplicate clicks; a failed attempt
+  offers a state refresh and can be retried.
+- A completed installation updates the displayed version immediately. Older
+  reads cannot overwrite that result, and leaving the page discards late
+  feedback.
+
+### Membership
+
+- App Store terms are identified as managed by Apple. While such a base term
+  is active, plan cards do not offer cash or PANDA renewals, upgrades or
+  switches, and do not show a separate renewal window.
+
+### Upgrade notes
+
+- Installing an already accepted upgrade from a `canisters-v3.1.0` wallet
+  requires the wallet-hub fix from this source. Upgrade the hub first, then
+  install the accepted wallet version; no new proposal or approval is needed.
+- The service-side refusal of overlapping App Store and cash/PANDA base
+  terms requires the corresponding `dmsg_commerce` update.
+
 ## [1.1.1] - 2026-10-26
 
 ### Credential use
