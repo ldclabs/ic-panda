@@ -10,7 +10,7 @@ struct ApprovalsView: View {
                 ForEach(model.approvals) { request in
                     NavigationLink { ApprovalDetailView(request: request) } label: {
                         HStack(alignment: .top, spacing: 12) {
-                            ObjectIcon(name: request.type == "device_pair" ? "laptopcomputer.and.iphone" : "signature")
+                            ObjectIcon(glyph: request.type == "device_pair" ? .device : .signature)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(approvalTitle(request.type)).font(.headline)
                                 Text(request.source).font(.subheadline).foregroundStyle(.secondary)
@@ -20,7 +20,7 @@ struct ApprovalsView: View {
                         }.padding(.vertical, 6)
                     }
                 }
-                if model.approvals.isEmpty { ContentUnavailableView("All caught up", systemImage: "checkmark.shield", description: Text("Requests that need your decision appear here.")) }
+                if model.approvals.isEmpty { ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here.")) }
             }
         }.privateScreen().navigationTitle("Approvals")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
@@ -74,7 +74,7 @@ struct ApprovalDetailView: View {
     var body: some View {
         List {
             HStack(alignment: .top, spacing: 12) {
-                ObjectIcon(name: "checkmark.shield")
+                ObjectIcon(glyph: .approvals)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(approvalTitle(request.type)).font(.title2.bold())
                     Text(request.source).font(.subheadline).foregroundStyle(.secondary).textSelection(.enabled)

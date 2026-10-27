@@ -22,6 +22,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIPrefersShowingLanguageSettings</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a dMsg device pairing request for review.</string>
 	<key>NSFaceIDUsageDescription</key>

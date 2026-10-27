@@ -28,6 +28,29 @@ import XCTest
         shot.name = "Production startup with passkey self-registration"; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testLanguageSettingsAvailableBeforeLoginAndInAccount() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let language = app.buttons["settings.language"]
+        XCTAssertTrue(language.waitForExistence(timeout: 5))
+        for _ in 0..<4 where !language.isHittable { app.swipeUp() }
+        XCTAssertTrue(language.isHittable)
+        XCTAssertEqual(language.label, "App language")
+        let access = XCTAttachment(screenshot: app.screenshot())
+        access.name = "Language entry before login"; access.lifetime = .keepAlways; add(access)
+
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: "我的").tap()
+        for _ in 0..<8 where !language.isHittable { app.swipeUp() }
+        XCTAssertTrue(language.isHittable)
+        XCTAssertEqual(language.label, "App 语言")
+        let account = XCTAttachment(screenshot: app.screenshot())
+        account.name = "Language entry in account"; account.lifetime = .keepAlways; add(account)
+    }
+
     func testPlanRemainsReadableWithoutPurchaseEntrypoints() {
         assertReadOnlyPlan(language: "en", locale: "en_US", accountTitle: "Account", dark: false)
     }
@@ -41,7 +64,7 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
-        tab(app, symbol: "person.crop.circle", title: accountTitle).tap()
+        tab(app, symbol: "Glyph-account", title: accountTitle).tap()
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable); plan.tap()
@@ -60,7 +83,7 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.staticTexts["GitHub"].firstMatch.waitForExistence(timeout: 10))
-        tab(app, symbol: "person.crop.circle", title: "Account").tap()
+        tab(app, symbol: "Glyph-account", title: "Account").tap()
         if !app.buttons["account.lock"].isHittable { app.swipeUp() }
         app.buttons["account.lock"].tap()
         XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 5))
@@ -86,7 +109,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        tab(app, symbol: "bubble.left.and.bubble.right", title: "Messages").tap()
+        tab(app, symbol: "Glyph-channels", title: "Messages").tap()
         let row = app.buttons["channel.row.fixture-channel"]
         // Regular-width portrait devices can keep the inactive tab's sidebar
         // collapsed. Exercise its system navigation before the draft assertion.
@@ -154,7 +177,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        tab(app, symbol: "person.crop.circle", title: "Account").tap()
+        tab(app, symbol: "Glyph-account", title: "Account").tap()
         let hardware = app.buttons["account.hardware"]
         for _ in 0..<4 where !hardware.isHittable { app.swipeUp() }
         XCTAssertTrue(hardware.waitForExistence(timeout: 5)); hardware.tap()
@@ -174,7 +197,7 @@ import XCTest
                           app.buttons["Show Sidebar"].firstMatch, app.buttons["Hide Sidebar"].firstMatch,
                           app.buttons["BackButton"].firstMatch]
         XCTAssertTrue(navigation.contains { $0.exists && $0.isHittable })
-        XCTAssertTrue(tab(app, symbol: "person.crop.circle", title: "Account").isHittable)
+        XCTAssertTrue(tab(app, symbol: "Glyph-account", title: "Account").isHittable)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Recovery warning preserves navigation"; shot.lifetime = .keepAlways; add(shot)
     }
@@ -183,7 +206,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-syncing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        tab(app, symbol: "person.crop.circle", title: "Account").tap()
+        tab(app, symbol: "Glyph-account", title: "Account").tap()
         XCTAssertTrue(app.staticTexts["account.name"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["account.name"].label, "Studio")
         XCTAssertTrue(app.images["account.avatar"].exists)
@@ -232,7 +255,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        tab(app, symbol: "folder", title: "Files").tap()
+        tab(app, symbol: "Glyph-folder", title: "Files").tap()
         XCTAssertTrue(app.staticTexts["Project brief.pdf"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["backup.restore.fixture-backup"].isHittable)
         let shot = XCTAttachment(screenshot: app.screenshot())
@@ -243,7 +266,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-dark", "--ui-long-profile", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
-        tab(app, symbol: "person.crop.circle", title: "我的").tap()
+        tab(app, symbol: "Glyph-account", title: "我的").tap()
         let name = app.staticTexts["account.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertEqual(name.label, "Studio Research · Design, Security and Collaboration")

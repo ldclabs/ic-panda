@@ -28,7 +28,7 @@ struct FilesView: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
                             ForEach(model.library.folders) { folder in
                                 Button { openFolder(folder.id) } label: {
-                                    Label(folder.name, systemImage: "folder").font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
+                                    Label { Text(folder.name) } icon: { AppGlyph.folder.image }.font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(14).background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
                                 }.buttonStyle(.plain)
                             }
@@ -80,7 +80,7 @@ struct FilesView: View {
                 } }
         } detail: {
             if let file = model.library.files.first(where: { $0.id == selected }) { FileDetailView(file: file).id(file.id) }
-            else { ContentUnavailableView("Select a file", systemImage: "doc") }
+            else { ContentUnavailableView("Select a file", image: AppGlyph.file.assetName) }
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear { if selected == nil { columns = .all } }
@@ -127,7 +127,7 @@ struct FileRow: View {
     let file: LibraryFile
     var body: some View {
         HStack(spacing: 12) {
-            ObjectIcon(name: file.mime.hasPrefix("image/") ? "photo" : "doc.text")
+            ObjectIcon(glyph: file.mime.hasPrefix("image/") ? .image : .file)
             VStack(alignment: .leading, spacing: 4) {
                 Text(file.name).font(.body.weight(.medium)).lineLimit(2)
                 Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file) + " · " + (file.status == "backed_up" ? String(localized: "Backed up") : String(localized: "Local")))
@@ -153,7 +153,7 @@ struct FileDetailView: View {
     var body: some View {
         List {
             HStack(spacing: 14) {
-                Image(systemName: "doc.richtext").font(.system(size: 36)).foregroundStyle(Theme.forest).frame(width: 80, height: 94)
+                AppGlyph.file.image.resizable().scaledToFit().frame(width: 36, height: 36).foregroundStyle(Theme.forest).frame(width: 80, height: 94)
                     .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
                 VStack(alignment: .leading, spacing: 6) {
                     Text(file.name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)

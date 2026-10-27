@@ -13,6 +13,13 @@ Deployment target: iOS / iPadOS 18. The SDK version does not raise that minimum.
 The current XCFramework and project support ARM64 devices and Apple Silicon
 simulators; an Intel Mac simulator slice is not included.
 
+Business icons use the desktop's Remix Icon paths, including navigation,
+account destinations and all eleven vault item types. `Features/AppGlyph.swift`
+selects the shipped template assets; system actions keep SF Symbols.
+Run `python3 scripts/ios/sync-icons.py` after changing the shared desktop paths
+or the selected icons. `python3 scripts/ios/sync-icons.py --check` verifies the
+assets and bundled license against their source and is part of `verify.sh`.
+
 From the repository root:
 
 ```sh
@@ -72,6 +79,20 @@ The limits API reports those bounds. Normal attachment saving refuses secret
 packages so their contents use the verified preview and explicit-selection flow.
 
 ## Session and privacy behavior
+
+When the workspace is locked and quick unlock is enabled, cold launch or a
+return from the background automatically requests the existing system
+authentication once. Cancelling or failing leaves the manual unlock button
+available; an authentication dialog's inactive/active transition does not
+retrigger it. Explicit and idle locks stay locked during the current visit.
+The existing Secure Enclave, presence and account checks still perform unlock.
+
+The app follows iOS language preferences unless a per-app language is selected.
+The **App language** link on the access screen and in **Account** opens iOS
+Settings, where the dMsg language option is always shown. Supported languages
+are English, Simplified Chinese, French, Spanish, Russian and Arabic. This uses
+the system's per-app setting for native UI and Foundation strings; no in-memory
+locale override is installed.
 
 Mobile login and login binding always use the `dmsg.net` identity domain. The
 mobile UI and bridge no longer offer the `panda.fans` selector; old-account and

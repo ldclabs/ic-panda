@@ -3,6 +3,33 @@ import XCTest
 
 @MainActor
 final class SessionPolicyTests: XCTestCase {
+    func testAutomaticUnlockWaitsForALockedReadySession() {
+        var policy = AutomaticUnlockPolicy()
+        XCTAssertFalse(policy.consume(locked: false, fastUnlock: true, busy: false))
+        XCTAssertFalse(policy.consume(locked: true, fastUnlock: false, busy: false))
+        XCTAssertFalse(policy.consume(locked: true, fastUnlock: true, busy: true))
+        XCTAssertTrue(policy.consume(locked: true, fastUnlock: true, busy: false))
+    }
+
+    func testAutomaticUnlockDoesNotRetryCancelledAuthenticationUntilAnotherVisit() {
+        var policy = AutomaticUnlockPolicy()
+        XCTAssertTrue(policy.consume(locked: true, fastUnlock: true, busy: false))
+        // A cancelled prompt leaves the same eligible session. Its inactive /
+        // active transition must not present another prompt.
+        XCTAssertFalse(policy.consume(locked: true, fastUnlock: true, busy: false))
+        policy.rearm()
+        XCTAssertTrue(policy.consume(locked: true, fastUnlock: true, busy: false))
+        XCTAssertFalse(policy.consume(locked: true, fastUnlock: true, busy: false))
+    }
+
+    func testExplicitAuthenticationOrLockSuppressesAutomaticUnlockForThisVisit() {
+        var policy = AutomaticUnlockPolicy()
+        policy.suppress()
+        XCTAssertFalse(policy.consume(locked: true, fastUnlock: true, busy: false))
+        policy.rearm()
+        XCTAssertTrue(policy.consume(locked: true, fastUnlock: true, busy: false))
+    }
+
     func testBackgroundConcealsWithoutDestroyingAnotherAppsClipboard() async {
         let model = SessionModel()
         model.clipboard.copy("test-secret")

@@ -22,7 +22,7 @@ struct AccountView: View {
                     if let avatar {
                         Image(uiImage: avatar).resizable().scaledToFill()
                     } else {
-                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFit()
+                        AppGlyph.profile.image.resizable().scaledToFit()
                             .padding(8).foregroundStyle(Theme.forest)
                     }
                 }.frame(width: 60, height: 60)
@@ -42,22 +42,22 @@ struct AccountView: View {
                 Button("Retry loading profile") { Task { await loadProfile(force: true) } }.disabled(loadingProfile)
             }
             Section {
-                NavigationLink { PublicProfileView() } label: { Label("Public profile", systemImage: "person.text.rectangle") }
-                NavigationLink { ApprovalsView() } label: { Label("Approvals", systemImage: "checkmark.shield") }
-                NavigationLink { AgentsView() } label: { Label("Agents", systemImage: "person.crop.square.filled.and.at.rectangle") }
-                NavigationLink { WalletsView() } label: { Label("Team wallets", systemImage: "wallet.pass") }
-                NavigationLink { DevicesView() } label: { Label("Authorized devices", systemImage: "laptopcomputer.and.iphone") }
-                NavigationLink { RecoveryView() } label: { Label("Account recovery", systemImage: "arrow.counterclockwise.shield") }
-                NavigationLink { AccountSecurityView() } label: { Label("Login identities", systemImage: "person.badge.key") }
+                NavigationLink { PublicProfileView() } label: { Label("Public profile", glyph: .profile) }
+                NavigationLink { ApprovalsView() } label: { Label("Approvals", glyph: .approvals) }
+                NavigationLink { AgentsView() } label: { Label("Agents", glyph: .agents) }
+                NavigationLink { WalletsView() } label: { Label("Team wallets", glyph: .coins) }
+                NavigationLink { DevicesView() } label: { Label("Authorized devices", glyph: .device) }
+                NavigationLink { RecoveryView() } label: { Label("Account recovery", glyph: .recovery) }
+                NavigationLink { AccountSecurityView() } label: { Label("Login identities", glyph: .security) }
                 NavigationLink("Try the local demo") { LocalDemoView() }
-                NavigationLink { BrowserConnectionsView() } label: { Label("Connected browsers", systemImage: "globe") }
+                NavigationLink { BrowserConnectionsView() } label: { Label("Connected browsers", glyph: .browser) }
                 NavigationLink { SystemExportsView() } label: { Label("System integrations", systemImage: "square.stack.3d.up") }
                 NavigationLink { HardwareSecurityView() } label: { Label("Hardware security", systemImage: "cpu") }
                     .accessibilityIdentifier("account.hardware")
-                NavigationLink { SecretActivityView() } label: { Label("Activity on this device", systemImage: "clock.arrow.circlepath") }
+                NavigationLink { SecretActivityView() } label: { Label("Activity on this device", glyph: .audit) }
                 NavigationLink { SafetySettingsView() } label: { Label("Safety and support", systemImage: "hand.raised") }
                 NavigationLink { AccountDeletionView() } label: { Label("Delete account", systemImage: "person.crop.circle.badge.minus") }
-                NavigationLink { AccountsView() } label: { Label("Switch account", systemImage: "person.2") }
+                NavigationLink { AccountsView() } label: { Label("Switch account", glyph: .account) }
             }
             Section("Privacy") {
                 Toggle("Quick unlock with system authentication", isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task {
@@ -69,12 +69,13 @@ struct AccountView: View {
                 Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
                 Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.")
                     .font(.footnote).foregroundStyle(.secondary)
-                NavigationLink { SubscriptionView() } label: { Label("Plan and usage", systemImage: "creditcard") }
+                NavigationLink { SubscriptionView() } label: { Label("Plan and usage", glyph: .plan) }
                     .accessibilityIdentifier("account.plan")
-                NavigationLink("Inbox settings") { InboxSettingsView() }
+                NavigationLink { InboxSettingsView() } label: { Label("Inbox settings", glyph: .inbox) }
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
             }
             Section {
+                LanguageSettingsLink()
                 Button { Task { await model.synchronize() } } label: {
                     Label {
                         if model.synchronizing { Text("Syncing…") } else { Text("Sync now") }

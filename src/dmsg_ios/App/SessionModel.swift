@@ -14,6 +14,7 @@ final class SessionModel {
     private(set) var viewGeneration: UInt64 = 0
     var concealed = true
     var busy = false
+    private(set) var unlocking = false
     private(set) var synchronizing = false
     var error: String?
     var notice: String?
@@ -68,6 +69,7 @@ final class SessionModel {
     private var authenticationGeneration: UInt64 = 0
     private var lifecycleGeneration: UInt64 = 0
     private var isForeground = false
+    private var automaticUnlock = AutomaticUnlockPolicy()
     private var busyOperation: UUID?
     private var lastSessionSequence: UInt64 = 0
     private var fixtureLoaded = false
@@ -134,6 +136,7 @@ final class SessionModel {
             try adopt(try await engine.sessionState())
             uncoverIfActive()
             if let route = DMsgAppDelegate.pendingRoute { await openPushRoute(route) }
+            await unlockAutomaticallyIfNeeded()
         } catch {
             if openingEpoch == epoch {
                 report(error)
@@ -225,6 +228,7 @@ final class SessionModel {
 
     func beginBusyOperation(synchronizing: Bool = false) -> UUID {
         let token = UUID(); busyOperation = token; busy = true
+        unlocking = false
         self.synchronizing = synchronizing
         return token
     }
@@ -232,7 +236,7 @@ final class SessionModel {
     @discardableResult
     func finishBusyOperation(_ token: UUID) -> Bool {
         guard busyOperation == token else { return false }
-        busyOperation = nil; busy = false; synchronizing = false
+        busyOperation = nil; busy = false; synchronizing = false; unlocking = false
         return true
     }
 
@@ -366,6 +370,7 @@ final class SessionModel {
     func inactive() { lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
 
     func background() {
+        automaticUnlock.rearm()
         lifecycleGeneration &+= 1
         isForeground = false
         concealed = true
@@ -421,10 +426,13 @@ final class SessionModel {
                 for draft in pending { draftSaved(channel: draft.channel, text: draft.text) }
             } catch { report(error) }
             await refresh()
+        } else {
+            await unlockAutomaticallyIfNeeded()
         }
     }
 
     func protectedDataUnavailable() {
+        automaticUnlock.rearm()
         (try? SystemExports(.files))?.lockFiles()
         lifecycleGeneration &+= 1
         isForeground = false
@@ -432,7 +440,7 @@ final class SessionModel {
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); busy = false
-        busyOperation = nil; synchronizing = false
+        busyOperation = nil; synchronizing = false; unlocking = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
@@ -442,6 +450,7 @@ final class SessionModel {
     }
 
     func lock(clearClipboard: Bool = true) async {
+        if clearClipboard { automaticUnlock.suppress() }
         if clearClipboard { lifecycleGeneration &+= 1 }
         let account = session?.account, engine = engine
         let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
@@ -466,7 +475,7 @@ final class SessionModel {
         vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         busy = false; notice = nil; error = nil
-        busyOperation = nil; synchronizing = false
+        busyOperation = nil; synchronizing = false; unlocking = false
         if clearClipboard { clipboard.clearOwned() }
         if clearClipboard { authenticationGeneration &+= 1; webLogin.cancel(); engine?.cancelLogin() }
         security?.cancelPresence()
@@ -476,6 +485,7 @@ final class SessionModel {
 
     func login() async {
         guard let engine, !busy else { return }
+        automaticUnlock.suppress()
         let operation = beginBusyOperation()
         error = nil; activity()
         authenticationGeneration &+= 1
@@ -504,7 +514,9 @@ final class SessionModel {
 
     func fastUnlock() async {
         guard let engine, !busy else { return }
+        automaticUnlock.suppress()
         let operation = beginBusyOperation()
+        unlocking = true; error = nil
         activity()
         let current = epoch
         defer { finishBusyOperation(operation) }
@@ -513,6 +525,15 @@ final class SessionModel {
             guard current == epoch else { return }
             try adopt(state); await refresh()
         } catch { if current == epoch { await updateSession(); report(error) } }
+    }
+
+    private func unlockAutomaticallyIfNeeded() async {
+        guard isForeground, !concealed, engine != nil,
+              UIApplication.shared.applicationState == .active,
+              UIApplication.shared.isProtectedDataAvailable,
+              automaticUnlock.consume(locked: session?.state == "locked",
+                                      fastUnlock: session?.fastUnlock == true, busy: busy) else { return }
+        await fastUnlock()
     }
 
     func setFastUnlock(enabled: Bool) async {
@@ -729,7 +750,23 @@ enum AppTab: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self { case .vault: "Vault"; case .messages: "Messages"; case .files: "Files"; case .account: "Account" }
     }
-    var icon: String {
-        switch self { case .vault: "key.horizontal"; case .messages: "bubble.left.and.bubble.right"; case .files: "folder"; case .account: "person.crop.circle" }
+    var icon: AppGlyph {
+        switch self { case .vault: .vault; case .messages: .channels; case .files: .folder; case .account: .account }
+    }
+}
+
+/// One automatic attempt per real visit. Authentication dialogs make the app
+/// inactive, so only backgrounding (or protected-data loss) rearms the request.
+struct AutomaticUnlockPolicy {
+    private var pending = true
+
+    mutating func rearm() { pending = true }
+
+    mutating func suppress() { pending = false }
+
+    mutating func consume(locked: Bool, fastUnlock: Bool, busy: Bool) -> Bool {
+        guard pending, locked, fastUnlock, !busy else { return false }
+        pending = false
+        return true
     }
 }

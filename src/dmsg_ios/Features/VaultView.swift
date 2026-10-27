@@ -42,7 +42,7 @@ struct VaultView: View {
                                     columns = .automatic
                                 } label: {
                                     HStack(spacing: 8) {
-                                        Image(systemName: vaultSymbol(item.kind)).font(.system(size: 20)).foregroundStyle(Theme.forest)
+                                        AppGlyph.vaultItem(item.kind).image.resizable().scaledToFit().frame(width: 20, height: 20).foregroundStyle(Theme.forest)
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(item.title).font(.subheadline.weight(.semibold)).lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                                             Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -94,7 +94,7 @@ struct VaultView: View {
                 }
         } detail: {
             if let id = selected { VaultDetailView(id: id).id(id) }
-            else { ContentUnavailableView("Select a secret", systemImage: "key.horizontal", description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
+            else { ContentUnavailableView("Select a secret", image: AppGlyph.vault.assetName, description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear { if selected == nil { columns = .all } }
@@ -108,7 +108,7 @@ struct VaultRow: View {
     let item: VaultItem
     var body: some View {
         HStack(spacing: 12) {
-            ObjectIcon(name: vaultSymbol(item.kind))
+            ObjectIcon(glyph: .vaultItem(item.kind))
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(.body.weight(.medium))
                 Text(item.subtitle.isEmpty ? item.kind : item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -142,7 +142,7 @@ struct VaultDetailView: View {
         List {
             if let item {
                 HStack(spacing: 12) {
-                    ObjectIcon(name: vaultSymbol(item.kind))
+                    ObjectIcon(glyph: .vaultItem(item.kind))
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
                         Text(item.synced ? "Synced" : "Saved on this device").font(.caption).foregroundStyle(.secondary)

@@ -18,7 +18,7 @@ struct MessagesView: View {
                     ForEach(model.channels, id: \.id) { channel in
                         NavigationLink(value: channel.id) {
                             HStack(spacing: 12) {
-                                ObjectIcon(name: "number")
+                                ObjectIcon(glyph: .channels)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(channel.name).font(.body.weight(.medium))
                                     Text(channel.draft.isEmpty ? channel.preview : String(localized: "Draft: ") + channel.draft)
@@ -28,14 +28,14 @@ struct MessagesView: View {
                             }.padding(.vertical, 6)
                         }.accessibilityIdentifier("channel.row.\(channel.id)")
                     }
-                    if model.channels.isEmpty { ContentUnavailableView("No conversations yet", systemImage: "bubble.left.and.bubble.right", description: Text("Your authorized channels appear after synchronization.")) }
+                    if model.channels.isEmpty { ContentUnavailableView("No conversations yet", image: AppGlyph.channels.assetName, description: Text("Your authorized channels appear after synchronization.")) }
                 } else {
                     Toggle("Archived", isOn: $archived)
                     let visible = letters.filter { $0.archived == archived && !model.blockedAccounts.contains($0.sender) }
                     ForEach(visible) { letter in
                         NavigationLink(value: letter.id) { InboxRow(letter: letter) }
                     }
-                    if visible.isEmpty { ContentUnavailableView("No letters yet", systemImage: "envelope") }
+                    if visible.isEmpty { ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName) }
                 }
             }.listStyle(.plain).privateScreen().navigationTitle("Messages")
                 .toolbar {
@@ -56,7 +56,7 @@ struct MessagesView: View {
             if mode == 1, let letter = letters.first(where: { $0.id == selected }) {
                 InboxDetail(letter: letter) { await loadLetters(refresh: false) }
             } else if mode == 0, let channel = model.channels.first(where: { $0.id == selected }) { ConversationView(channel: channel).id(channel.id) }
-            else { ContentUnavailableView("Select a conversation", systemImage: "bubble.left.and.bubble.right") }
+            else { ContentUnavailableView("Select a conversation", image: AppGlyph.channels.assetName) }
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear { if selected == nil { columns = .all } }

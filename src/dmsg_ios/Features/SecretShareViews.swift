@@ -125,7 +125,7 @@ struct SecretSharesView: View {
                 ForEach(shares) { share in
                     NavigationLink { SecretShareDetailView(id: share.id) } label: {
                         HStack(spacing: 12) {
-                            ObjectIcon(name: share.plan.channel == nil ? "link" : "bubble.left.and.bubble.right")
+                            ObjectIcon(glyph: share.plan.channel == nil ? .link : .channels)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(share.plan.title).font(.headline)
                                 Text(secretStateTitle(share.state)).font(.caption).foregroundStyle(.secondary)

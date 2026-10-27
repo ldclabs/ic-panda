@@ -7,9 +7,14 @@ enum Theme {
 }
 
 struct ObjectIcon: View {
-    let name: String
+    private let image: Image
+
+    init(name: String) { image = Image(systemName: name) }
+
+    init(glyph: AppGlyph) { image = glyph.image }
+
     var body: some View {
-        Image(systemName: name).font(.system(size: 20, weight: .medium)).foregroundStyle(Theme.forest)
+        image.resizable().scaledToFit().frame(width: 20, height: 20).foregroundStyle(Theme.forest)
             .frame(width: 42, height: 44).background(Theme.forest.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityHidden(true)
     }
@@ -32,8 +37,4 @@ private struct PrivateScreen: ViewModifier {
             .listSectionSpacing(.compact)
             .onAppear { model.activity() }
     }
-}
-
-func vaultSymbol(_ kind: String) -> String {
-    switch kind { case "login": "key.horizontal"; case "note": "note.text"; case "api": "terminal"; case "key", "ssh": "key"; default: "lock.doc" }
 }

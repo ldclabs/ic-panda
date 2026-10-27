@@ -31,7 +31,7 @@ struct LocalDemoView: View {
                     Toggle("Hide sample sender", isOn: $blocked)
                     Button("Preview reporting disclosure") { reportPreview = true }
                 } else if tab == 2 {
-                    NavigationLink { ScrollView { Text("This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.").padding() }.navigationTitle("Example document") } label: { Label("Example document", systemImage: "doc.text") }
+                    NavigationLink { ScrollView { Text("This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.").padding() }.navigationTitle("Example document") } label: { Label("Example document", glyph: .file) }
                     Text("This tour does not upload files or register system integrations.").font(.footnote).foregroundStyle(.secondary)
                 } else {
                     LabeledContent("Request source", value: "https://example.invalid")

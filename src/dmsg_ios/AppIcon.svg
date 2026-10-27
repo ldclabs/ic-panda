@@ -2,7 +2,8 @@
   <!-- iOS applies its own corner mask; the source canvas must be fully opaque. -->
   <defs><linearGradient id="background" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1b6b53"/><stop offset="1" stop-color="#104d3d"/></linearGradient></defs>
   <rect width="1024" height="1024" fill="url(#background)"/>
-  <g transform="translate(281 248) scale(11)">
+  <!-- Center the 42 × 48 mark at 630 × 720 px (70.3% canvas height). -->
+  <g transform="translate(197 152) scale(15)">
 
   <!-- The Gate: a post and a dome with one request waiting between them. -->
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">

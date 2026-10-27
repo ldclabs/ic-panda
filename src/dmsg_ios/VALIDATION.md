@@ -1,5 +1,55 @@
 # iOS implementation validation
 
+## Automatic unlock and language settings (2026-10-27)
+
+Cold startup and foreground return now request the existing system quick-unlock
+flow once when the workspace is locked and quick unlock is enabled. A cancelled
+or failed attempt stays on the access screen with manual retry. Inactive/active
+authentication transitions do not rearm the request; explicit and idle locks
+suppress it until the next background visit. Presence and key validation remain
+in the existing Rust/AppleSecurity path.
+
+The access screen and Account include an App language link using the public
+iOS settings URL. `UIPrefersShowingLanguageSettings` keeps the system language
+option visible even with one preferred device language. The installed bundle
+contains all six localizations and the setting was checked in its built plist.
+
+Validation: 49 native tests passed (32 unit, 17 UI; none skipped), including
+three automatic-unlock policy tests and language-entry checks in English and
+Chinese. Debug build/launch, six-language catalogs/compiler extraction,
+icon-source parity and plist/diff checks passed. Language-entry screenshots
+were inspected in `.build/startup-language-20261027/`; the full result bundle is
+`.build/StartupLanguage-20261027.xcresult`. The language link opened the system
+Apps settings list; manual navigation to the language choices was interrupted
+by the Mac locking. Real-device biometric/cancellation behavior, an actual
+language change, Release archive and TestFlight upload remain unverified in
+this pass. Rust sources were unchanged; Cargo tests were not rerun.
+
+## Business icon alignment (2026-10-27)
+
+Navigation, main account destinations, related list/detail/empty states and
+all eleven vault item types now use the desktop's Remix paths. Template SVGs
+retain vector rendering and native tinting. `scripts/ios/sync-icons.py --check`
+checks the shipped assets, license and vault type mapping against the desktop.
+
+The Debug build succeeded and six targeted navigation UI tests passed on
+iPhone 16 Pro / iOS 18.4, covering locking, message drafts across rotation,
+files, Chinese dark appearance, Arabic accessibility text and the public demo.
+The English vault, Chinese dark account, files and Arabic detail screenshots
+were inspected. Artifacts are in `.build/icon-alignment-20261027/` and
+`.build/IconAlignment-20261027.xcresult`. No desktop implementation changed.
+
+## App icon proportions (2026-10-27)
+
+The centered D mark now measures 630 × 720 px on the 1024 px canvas (70.3%
+height, previously 51.6%). Its paths, colors and background are unchanged.
+`AppIcon.svg` and the generated RGB PNG are synchronized; the PNG has no alpha.
+The 48 px and 64 px previews and the installed Home Screen icon were inspected.
+The Debug build and launch succeeded on iPhone 16 Pro / iOS 18.4 Simulator.
+Comparison and Home Screen images are in `.build/icon-proportion-20261027/`.
+Unit/UI suites, a physical-device check and a new TestFlight upload were not run
+for this asset-only change.
+
 ## TestFlight upload and store screenshots (2026-10-27)
 
 Source changes were committed on local main as `6970564d`; the opaque icon repair

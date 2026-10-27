@@ -18,10 +18,10 @@ struct RootView: View {
                 Group {
                     if model.unlocked {
                         TabView(selection: $model.selectedTab) {
-                            VaultView().tabItem { Label("Vault", systemImage: "key.horizontal") }.tag(AppTab.vault)
-                            MessagesView().tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right") }.tag(AppTab.messages)
-                            FilesView().tabItem { Label("Files", systemImage: "folder") }.tag(AppTab.files)
-                            NavigationStack { AccountView() }.tabItem { Label("Account", systemImage: "person.crop.circle") }.tag(AppTab.account)
+                            VaultView().tabItem { Label(AppTab.vault.title, glyph: AppTab.vault.icon) }.tag(AppTab.vault)
+                            MessagesView().tabItem { Label(AppTab.messages.title, glyph: AppTab.messages.icon) }.tag(AppTab.messages)
+                            FilesView().tabItem { Label(AppTab.files.title, glyph: AppTab.files.icon) }.tag(AppTab.files)
+                            NavigationStack { AccountView() }.tabItem { Label(AppTab.account.title, glyph: AppTab.account.icon) }.tag(AppTab.account)
                         }
                         .onChange(of: model.selectedTab) { _, _ in model.activity(); Task { await model.refresh() } }
                         .environment(\.openApprovals, { showApprovals = true })
@@ -80,7 +80,7 @@ struct ApprovalButton: View {
     @Environment(\.openApprovals) private var open
     var body: some View {
         Button(action: open) {
-            Label("Approvals", systemImage: "checkmark.shield")
+            Label("Approvals", glyph: .approvals)
                 .overlay(alignment: .topTrailing) {
                     if (model.session?.approvalsWaiting ?? 0) > 0 { Circle().fill(.orange).frame(width: 7, height: 7) }
                 }
@@ -90,8 +90,7 @@ struct ApprovalButton: View {
 
 struct AccessView: View {
     @Environment(SessionModel.self) private var model
-    @State private var authentication: Authentication?
-    private enum Authentication { case login, unlock }
+    @State private var signingIn = false
     private var fastUnlock: Bool { model.session?.fastUnlock == true }
     private var needsSetup: Bool { model.session?.state == "no_account" || model.session?.setupPending == true }
     private var needsAuthorization: Bool { model.session?.state == "pairing_required" || model.session?.state == "root_required" }
@@ -109,10 +108,9 @@ struct AccessView: View {
                 VStack(spacing: 12) {
                     if fastUnlock {
                         Button { Task {
-                            authentication = .unlock; defer { authentication = nil }
                             await model.fastUnlock()
                         } } label: {
-                            AccessActionLabel("Unlock with system authentication", symbol: "lock.open", working: authentication == .unlock)
+                            AccessActionLabel("Unlock with system authentication", symbol: "lock.open", working: model.unlocking)
                         }.modifier(AccessActionStyle(prominent: true)).accessibilityIdentifier("login.unlock")
                     }
                     if needsSetup {
@@ -130,15 +128,16 @@ struct AccessView: View {
                         }.modifier(AccessActionStyle(prominent: !fastUnlock)).accessibilityIdentifier("login.authorize")
                     }
                     Button { Task {
-                        authentication = .login; defer { authentication = nil }
+                        signingIn = true; defer { signingIn = false }
                         await model.login()
                     } } label: {
-                        AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: authentication == .login)
+                        AccessActionLabel("Continue with Internet Identity", symbol: "person.crop.circle", working: signingIn)
                     }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization))
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
                 NoticeBar(text: String(localized: "Signing in proves your identity. An existing device must authorize a new device before it can read your content."))
                 VStack(spacing: 12) {
+                    LanguageSettingsLink()
                     NavigationLink("Try the local demo") { LocalDemoView() }.accessibilityIdentifier("access.demo")
                     NavigationLink("Privacy policy") { PrivacyPolicyView() }.accessibilityIdentifier("access.privacy")
                     Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
