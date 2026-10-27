@@ -62,12 +62,16 @@
   let invite = $state<any>(null)
   let candidates = $state<any[]>([])
   let error = $state('')
+  let actionBusy = $state(false)
+  let languageBusy = $state(false)
+  let appearanceBusy = $state(false)
   let timer: ReturnType<typeof setTimeout> | undefined
   let alive = true
   let generation = 0
   let pairingRevision = 0
   let pairingBusy = $state(false)
   let lastSession: string | undefined
+  let lastPart: Part | undefined
   let errors = $state<Record<string, string>>({})
   let loaded = $state<Record<string, boolean>>({})
   const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
@@ -79,21 +83,23 @@
 
   /** The main process keeps the interface language and appearance for every window. */
   async function pickLanguage(next: string) {
-    if (!isLocale(next) || next === locale()) return
+    if (languageBusy || !isLocale(next) || next === locale()) return
+    languageBusy = true
     try {
       await setLocale(next)
     } catch {
       toast(() => t('languageFailed'))
-    }
+    } finally { languageBusy = false }
   }
 
   async function pickAppearance(next: string) {
-    if (!isAppearance(next) || next === appearance()) return
+    if (appearanceBusy || !isAppearance(next) || next === appearance()) return
+    appearanceBusy = true
     try {
       await setAppearance(next)
     } catch {
       toast(() => t('appearanceFailed'))
-    }
+    } finally { appearanceBusy = false }
   }
 
   function reader(key: string, method: string, visible: () => boolean, apply: (value: any) => void) {
@@ -117,19 +123,26 @@
 
   /** A session or browser change; its daemon event reloads what it changed. */
   async function act(method: string, params?: unknown) {
+    if (actionBusy) return
     const turn = generation
+    actionBusy = true
+    error = ''
     try {
       await call(method, params)
     } catch (e) {
       if (current(turn)) error = errorText(e)
-    }
+    } finally { if (current(turn)) actionBusy = false }
   }
 
   /** Another account's workspace opens locked; its fast unlock or a login opens it. */
   async function switchTo(id: string, fast: boolean) {
+    if (actionBusy || $unlocking || id === status?.account) return
+    actionBusy = true
+    const turn = generation
     account = null
     pairings = []
-    await switchAccount(id, fast)
+    try { await switchAccount(id, fast) }
+    finally { if (current(turn)) actionBusy = false }
   }
 
   function stopPairing() {
@@ -199,10 +212,15 @@
     part
     untrack(() => {
       error = ''
+      if (lastPart !== part) {
+        lastPart = part
+        generation++
+        actionBusy = false
+      }
       if (lastSession !== next) {
         lastSession = next
         generation++
-        account = null; accounts = []; pairings = []; error = ''; errors = {}; loaded = {}
+        account = null; accounts = []; pairings = []; error = ''; errors = {}; loaded = {}; actionBusy = false
         stopPairing()
       } else if (part !== 'browsers') stopPairing()
       reload()
@@ -248,8 +266,8 @@
         {#if part === 'legacy'}
           <Legacy {status} {go} />
         {:else if part === 'files'}
-      {#if unlocked}<CacheSettings />{/if}
           <FilesSettings />
+          {#if unlocked}<CacheSettings />{/if}
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
             <dl>
@@ -259,12 +277,13 @@
                   options={locales.map((code) => ({ value: code, label: localeNames[code] }))}
                   label={t('language')}
                   onChange={pickLanguage}
+                  disabled={languageBusy}
                   testid="settings-language"
                   class="w-56"
                 />
               </Fact>
               <Fact label={t('appearance')}>
-                <RadioGroup.Root value={appearance()} onValueChange={pickAppearance} aria-label={t('appearance')} class="flex flex-wrap gap-x-5 gap-y-2">
+                <RadioGroup.Root value={appearance()} onValueChange={pickAppearance} disabled={appearanceBusy} aria-label={t('appearance')} class="flex flex-wrap gap-x-5 gap-y-2">
                   {#each appearances as choice (choice)}
                     <Radio value={choice} testid={`appearance-${choice}`}>
                       <span class="inline-flex items-center gap-1.5"><Icon name={choice} class="text-faint" />{t(appearanceLabel[choice])}</span>
@@ -279,11 +298,11 @@
         {:else if part === 'session'}
           <Onboarding {status} {refresh} />
           <Section title={t('status')} icon="account">
-            {#snippet actions()}
+            <div class="mb-3 flex flex-wrap gap-2">
               <button class={buttonClass(status?.state === 'logged_out' ? 'primary' : 'secondary', 'sm')} onclick={() => startLogin()} data-testid="settings-login">
                 <Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}
               </button>
-            {/snippet}
+            </div>
             <dl>
               <Fact label={t('status')} testid="session-state">
                 <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
@@ -291,9 +310,9 @@
               <Fact label={t('account')}>{#if status?.account}<Id id={status.account} full />{:else}-{/if}</Fact>
               <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
               <Fact label={t('formal')}>
-                <Pill tone={own?.capabilities?.includes('FormalApprove') ? 'forest' : 'neutral'}>
+                <span class="text-[12.5px] text-muted">
                   {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
-                </Pill>
+                </span>
               </Fact>
               <Fact label={t('syncState')}>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</Fact>
               <Fact label={t('backgroundOnline')}>
@@ -319,14 +338,14 @@
                 <button class={buttonClass('primary', 'sm')} disabled={$unlocking} aria-busy={$unlocking} onclick={() => unlock(status)}><Icon name={$unlocking ? 'sync' : 'unlock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : status.fast_unlock ? t('fastUnlock') : t('login')}</button>
               {/if}
               {#if unlocked}
-                <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
+                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
                 <!-- Turning it on needs the open account's keys; its key goes to the OS keychain. -->
-                <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/fast_unlock', { enable: !status.fast_unlock })} data-testid="fast-unlock-toggle">
+                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy} onclick={() => act('session/fast_unlock', { enable: !status.fast_unlock })} data-testid="fast-unlock-toggle">
                   <Icon name="key" />{status.fast_unlock ? t('fastUnlockOff') : t('fastUnlockOn')}
                 </button>
               {/if}
               {#if status?.account}
-                <button class={buttonClass('secondary', 'sm')} disabled={$unlocking || status.syncing} onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
+                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy || $unlocking || status.syncing} onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
               {/if}
             </div>
           </Section>
@@ -340,8 +359,8 @@
                     {#if !a.bound}<Pill tone="warn">{t('waitingDevice')}</Pill>{/if}
                     <span class="flex-1"></span>
                     {#if !a.current}
-                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} disabled={$unlocking} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
-                      <button class={buttonClass('secondary', 'xs')} disabled={$unlocking} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
+                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} disabled={actionBusy || $unlocking} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
+                      <button class={buttonClass('secondary', 'xs')} disabled={actionBusy || $unlocking} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
                     {/if}
                   </li>
                 {/each}
@@ -351,12 +370,13 @@
         {:else if part === 'browsers'}
           {#if opened && pairings}
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
-              {#snippet actions()}
-                <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
-                <button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
-              {/snippet}
+              <div class="mb-3 flex flex-wrap gap-2 px-5">
+                <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
+                <button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked || actionBusy} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
+              </div>
               {#if invite}
                 <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
+                  <button class={buttonClass('ghost', 'xs', 'justify-self-end')} disabled={pairingBusy} onclick={stopPairing} data-testid="browser-cancel">{t('cancel')}</button>
                   <p class="flex items-center gap-2 text-[12.5px] text-muted"><span class="shimmer">{t('waitingBrowser')}</span></p>
                   <bdi dir="ltr" class="font-mono text-[11.5px] break-all text-faint">{invite.url}</bdi>
                   {#each candidates as c (c.pairing_id)}
@@ -378,7 +398,7 @@
                       · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
                     </span>
                     {#if p.state === 'active'}
-                      <button class={buttonClass('danger', 'xs')} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>
+                      <button class={buttonClass('danger', 'xs')} disabled={actionBusy || pairingBusy} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>
                     {/if}
                   </li>
                 {:else}

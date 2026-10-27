@@ -2,6 +2,23 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    settingsNameLimit: "最多 80 个字符，不含控制字符。",
+    settingsBioLimit: "最多 2,000 个字符，可以换行。",
+    settingsLinkName: "请输入 1–128 个字符的链接名称。",
+    settingsHttps: "请输入有效的 HTTPS 地址，不能包含用户名或密码。",
+    settingsLinkRelation: "请输入 1–64 字节的关系类型，不含控制字符。",
+
+    securityApprovalHint: "更改需经审批后生效，请在审批窗口中一起核对。",
+    securityApprovalPending: "已提交审批，完成前仍使用当前设置。",
+    securityViewApproval: "查看审批",
+    securityUnchanged: "尚未修改",
+    securityDailyRange: "请输入 0–64 之间的整数。",
+    securityDailyHint: "每天 0–64 次；设为 0 将停止新的正式签名。",
+    securityNoSigning: "此设置将停止所有新的正式签名。",
+    securityKeyTransfer: "通过另一台设备设置",
+    securityDeviceIdHint: "请输入另一台设备显示的 64 位设备 ID。",
+    securityNoLogins: "没有已绑定的登录身份",
+
     previousMonth: "上个月",
     nextMonth: "下个月",
 

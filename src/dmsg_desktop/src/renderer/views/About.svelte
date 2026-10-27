@@ -15,9 +15,10 @@
   onDestroy(() => { alive = false })
   let info = $state<AppUpdates | null>(null)
   let error = $state('')
+  let acting = $state(false)
 
   const update = $derived(info?.state)
-  const busy = $derived(update?.kind === 'checking' || update?.kind === 'downloading')
+  const busy = $derived(acting || update?.kind === 'checking' || update?.kind === 'downloading')
 
   const reload = single(async () => {
     if (!alive) return
@@ -34,13 +35,15 @@
 
   /** A check or an update; the `updates/changed` events it causes reload the section. */
   async function act(work: () => Promise<unknown>) {
+    if (busy) return
+    acting = true
     error = ''
     try {
       await bridge(work)
     } catch (e) {
       if (!alive) return
       error = errorText(e)
-    }
+    } finally { if (alive) acting = false }
   }
 
   onMount(() => {
@@ -51,13 +54,13 @@
 
 {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 <Section title={t('aboutApp')} description={t('aboutHint')} icon="info" testid="about">
-  {#snippet actions()}
+  <div class="mb-3 flex flex-wrap gap-2">
     {#if update?.kind === 'ready'}
-      <button class={buttonClass('primary', 'sm')} onclick={() => act(() => window.dmsg.applyUpdate())} data-testid="apply-update">
+      <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => act(() => window.dmsg.applyUpdate())} data-testid="apply-update">
         <Icon name="download" />{t('restartToUpdate')}
       </button>
     {:else if update?.kind === 'available'}
-      <button class={buttonClass('primary', 'sm')} onclick={() => act(() => window.dmsg.applyUpdate())} data-testid="apply-update">
+      <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => act(() => window.dmsg.applyUpdate())} data-testid="apply-update">
         <Icon name="external" />{t('download')}
       </button>
     {/if}
@@ -66,7 +69,7 @@
         <Icon name="sync-now" />{t('checkUpdates')}
       </button>
     {/if}
-  {/snippet}
+  </div>
   <dl>
     <Fact label={t('appVersion')} testid="app-version">{info?.version ?? '-'}</Fact>
     <Fact label={t('updates')} testid="update-state">

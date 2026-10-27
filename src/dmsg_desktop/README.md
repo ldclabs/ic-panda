@@ -560,6 +560,16 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   app starts in the tray. `dmsg autostart` starts only the daemon.
 
 The smoke test normally checks native macOS fullscreen transitions as well.
+`DMSG_DESKTOP_SMOKE=settings pnpm test:e2e` checks all nine Settings routes,
+profile publication and lookup drafts, device capability edits, file
+preferences and the system mount confirmation, cache clearing, browser
+pairing cancellation, late replies, setup/recovery eligibility, keyboard
+navigation and a four-case theme/language/window-size screenshot matrix.
+`DMSG_DESKTOP_SMOKE=security pnpm test:e2e` runs the isolated account-security
+flows: unchanged/invalid drafts, combined policy approval, retry and refresh,
+pending receipts, recovery and hardware settings, late replies, keyboard
+navigation, and light/dark screenshots in Chinese, French and Arabic at the
+minimum window size. It skips the unrelated full smoke flows.
 `DMSG_DESKTOP_SMOKE=legacy pnpm test:e2e` stops after the account-setup and
 legacy flows, including unavailable-account guidance and a failed initial
 setup followed by a successful retry. Later flows are explicitly skipped.

@@ -36,7 +36,7 @@ export const shortcuts: View[] = [...groups.flatMap((g) => g.views), views.setti
 /** The view a route shows; Settings' own pages keep Settings selected in the sidebar. */
 export function viewOf(route: string): View {
   if (route.startsWith(views.legacy.path)) return views.legacy
-  return shortcuts.find((view) => route.startsWith(view.path)) ?? views.vault
+  return shortcuts.find((view) => route.startsWith(view.path)) ?? views.channels
 }
 
 /** The sidebar entry a route belongs to. */

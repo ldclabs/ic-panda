@@ -173,7 +173,7 @@ function showMain(route?: string) {
   })
   main = window
   harden(window)
-  load(window, route ?? '/vault')
+  load(window, route ?? '/channels')
   let leavingFullScreen = false
   // Full screen hides the traffic lights; the title bar takes back their room.
   window.on('enter-full-screen', () => window.webContents.send('dmsg:fullscreen', true))

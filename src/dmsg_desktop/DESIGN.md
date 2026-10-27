@@ -389,6 +389,16 @@ inline editors alone handle their own cancel shortcut.
 
 ### Patterns
 
+- **Settings** — show effective settings first. Public profile, device
+  capabilities, file preferences and account security each open their own
+  editor. Language and appearance stay immediate choices. Hide migration
+  and lookup forms until requested. Signing limits and purposes share one approval. Unchanged or
+  invalid drafts cannot be submitted. A pending request shows its receipt
+  until it settles; request creation does not change the displayed setting.
+  Background refreshes retain edited fields and submission errors. Cache
+  clearing needs a known, nonempty cache; cancelling system dialogs never
+  reports success. Recovery
+  alerts stay visible in the overview; cross-device key setup is folded.
 - **Secret field** — first click arms Show or Copy for three seconds with a
   draining bar; the second click acts. A shown secret hides after a minute.
 - **Conflict** — the current version and the copy side by side, changed

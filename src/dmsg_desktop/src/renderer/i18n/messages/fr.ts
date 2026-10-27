@@ -2,6 +2,23 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    settingsNameLimit: "80 caractères maximum, sans caractères de contrôle.",
+    settingsBioLimit: "2 000 caractères maximum ; les sauts de ligne sont autorisés.",
+    settingsLinkName: "Saisissez un nom de lien de 1 à 128 caractères.",
+    settingsHttps: "Saisissez une URL HTTPS valide, sans identifiants intégrés.",
+    settingsLinkRelation: "Saisissez une relation de 1 à 64 octets, sans caractères de contrôle.",
+
+    securityApprovalHint: "Les changements prennent effet après approbation. Vérifiez-les ensemble dans la fenêtre d’approbation.",
+    securityApprovalPending: "Demande envoyée. Le réglage actuel reste actif jusqu’à la fin de l’opération.",
+    securityViewApproval: "Voir la demande",
+    securityUnchanged: "Aucun changement",
+    securityDailyRange: "Saisissez un nombre entier de 0 à 64.",
+    securityDailyHint: "De 0 à 64 par jour. Zéro bloque les nouvelles signatures formelles.",
+    securityNoSigning: "Ces réglages bloquent toutes les nouvelles signatures formelles.",
+    securityKeyTransfer: "Configurer via un autre appareil",
+    securityDeviceIdHint: "Saisissez l’identifiant de 64 caractères affiché sur l’autre appareil.",
+    securityNoLogins: "Aucune identité de connexion liée",
+
     previousMonth: "Mois précédent",
     nextMonth: "Mois suivant",
 

@@ -4,6 +4,23 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    settingsNameLimit: "Use up to 80 characters without control characters.",
+    settingsBioLimit: "Use up to 2,000 characters; line breaks are allowed.",
+    settingsLinkName: "Enter a link name of 1–128 characters.",
+    settingsHttps: "Enter a valid HTTPS URL without embedded credentials.",
+    settingsLinkRelation: "Enter a relation of 1–64 bytes without control characters.",
+
+    securityApprovalHint: "Changes take effect only after approval. Review all changes together in the approval window.",
+    securityApprovalPending: "Submitted for approval. The current setting stays in effect until completion.",
+    securityViewApproval: "View approval",
+    securityUnchanged: "No changes yet",
+    securityDailyRange: "Enter a whole number from 0 to 64.",
+    securityDailyHint: "0–64 per day. Zero stops new formal signatures.",
+    securityNoSigning: "These settings stop all new formal signatures.",
+    securityKeyTransfer: "Set up through another device",
+    securityDeviceIdHint: "Enter the 64-character device ID shown on the other device.",
+    securityNoLogins: "No bound logins",
+
     previousMonth: "Previous month",
     nextMonth: "Next month",
 

@@ -26,7 +26,7 @@
   import { t } from './i18n/index.svelte'
   import { namesSession, namesChanged } from './views/channels/names.svelte'
 
-  const opened = location.hash.slice(1) || '/vault'
+  const opened = location.hash.slice(1) || views.channels.path
   let route = $state(opened)
   let status = $state<any>(null)
   let connected = $state(true)
@@ -179,7 +179,7 @@
     // The route follows the hash only, so a view the hash still names opens again on a click.
     // `/login` is not a view: the approval window asks the main window to log in.
     const offNavigate = window.dmsg.onNavigate((next) => (next === '/login' ? void startLogin() : go(next)))
-    const onHash = () => visited(location.hash.slice(1) || '/vault')
+    const onHash = () => visited(location.hash.slice(1) || views.channels.path)
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
     void refresh()

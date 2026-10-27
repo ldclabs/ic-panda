@@ -4,6 +4,9 @@
 
   import { onDestroy, onMount } from 'svelte'
   import type { PrincipalDocument, PrincipalLink } from 'agent-protocols/delegation'
+  import Dialog from '../components/Dialog.svelte'
+  import Collapsible from '../components/Collapsible.svelte'
+  import { httpsUrl, profileChanged, profileText } from './profile-form'
   import Avatar from '../components/Avatar.svelte'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
@@ -23,11 +26,14 @@
   onDestroy(() => { alive = false })
   let loaded = $state({ document: false, status: false })
   let loadErrors = $state<Record<string, string>>({})
+  let editing = $state(false)
+  let lookupOpen = $state(false)
+  let lookupFor = $state('')
   let lookupBusy = $state(false)
   let lookupError = $state('')
   let lookupRevision = 0
   const imageReads = new Set<string>()
-  const ready = $derived(loaded.document && loaded.status)
+  const ready = $derived(loaded.document && loaded.status && !loadErrors.document && !loadErrors.status)
   let mine = $state<PrincipalDocument | null>(null)
   let avatarUrl = $state<string | null>(null)
   let extra = $state<Record<string, unknown>>({})
@@ -45,10 +51,29 @@
   let archive = $state('')
   let fromLegacy = $state(false)
   let legacyAvatarReference = $state(false)
+  const draft = $derived.by(() => {
+    if (!mine) return null
+    const keptExtra = { ...extra }
+    const artwork = Object.fromEntries(Object.entries(linkImages).filter(([url, image]) => image && links.some(link => link.url === url)))
+    if (Object.keys(artwork).length) keptExtra['dmsg.link_images'] = artwork
+    else delete keptExtra['dmsg.link_images']
+    return { ...mine, type: kind as PrincipalDocument['type'], name: displayName.trim() || undefined, description: bio.trim() || undefined, avatar_url: avatarUrl ?? undefined, links, extra: keptExtra }
+  })
+  const changed = $derived(!!mine && !!draft && profileChanged(mine, draft))
+  const valid = $derived(profileText(displayName.trim(), 80) && profileText(bio.trim(), 2000, true) && links.length <= 100 && links.every(link => !!link.name.trim() && profileText(link.name, 128) && !!link.rel && new TextEncoder().encode(link.rel).length <= 64 && profileText(link.rel, 64) && httpsUrl(link.url) && (!linkImages[link.url] || httpsUrl(linkImages[link.url]))))
+
+  function edit() {
+    if (!ready || busy || !mine) return
+    if (!pending) show($state.snapshot(mine))
+    error = ''
+    editing = true
+  }
+
   /** Data URLs of the avatars shown, keyed by the document's complete URL. */
   let images = $state<Record<string, string>>({})
 
   async function attempt(work: () => Promise<void>) {
+    if (busy) return
     busy = true
     error = ''
     try {
@@ -57,7 +82,7 @@
       if (!alive) return
       error = errorText(e)
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
 
@@ -75,7 +100,9 @@
 
   function show(document: PrincipalDocument) {
     if (!alive) return
+    if (!document) return
     mine = document
+    fromLegacy = false
     legacyAvatarReference = false
     kind = document.type ?? 'person'
     displayName = document.name ?? ''
@@ -152,7 +179,7 @@
   })
 
   const publish = () => attempt(async () => {
-    if (!mine || !ready) return
+    if (!mine || !ready || (!pending && (!changed || !valid))) return
     if (pending) {
       let outcome: any
       try { outcome = await call('profile/retry') } catch (cause) {
@@ -161,15 +188,8 @@
       }
       if (!alive || !outcome.published) return
     } else {
-      const keptExtra = { ...extra }
-      const artwork = Object.fromEntries(Object.entries(linkImages).filter(([url, image]) => image && links.some(link => link.url === url)))
-      if (Object.keys(artwork).length) keptExtra['dmsg.link_images'] = artwork
-      else delete keptExtra['dmsg.link_images']
       let outcome: any
-      try { outcome = await call('profile/publish', {
-        ...mine, type: kind, name: displayName.trim() || undefined, description: bio.trim() || undefined,
-        avatar_url: avatarUrl ?? undefined, links, extra: keptExtra
-      }) } catch (cause) {
+      try { outcome = await call('profile/publish', draft) } catch (cause) {
         if (code(cause) === 'EXECUTION_UNKNOWN') pending = true
         if (code(cause) === 'PENDING') pending = await call<boolean>('profile/pending')
         throw cause
@@ -191,7 +211,10 @@
   }
 
   async function resolve() {
+    if (lookupBusy || !other.trim()) return
     const turn = ++lookupRevision
+    lookupFor = other.trim()
+    found = undefined
     const account = other.trim()
     lookupBusy = true; lookupError = ''
     try {
@@ -216,16 +239,37 @@
   {/if}
 {/snippet}
 
-{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+{#if error && !editing}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}<button class={buttonClass('secondary','sm')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
-<Section title={t('publicProfile')} description={t('avatarHint')} icon="profile" testid="profile">
-  {#if status?.state === 'unlocked'}
+<Section title={t('publicProfile')} icon="profile" testid="profile-summary">
+  {#if mine}
+    <div class="flex items-start gap-4">
+      {@render picture(mine, 'size-16')}
+      <dl class="min-w-0 flex-1">
+        <Fact label={t('displayName')}>{mine.name || '-'}</Fact>
+        <Fact label={t('bio')}>{mine.description || '-'}</Fact>
+        {#each mine.links ?? [] as link}<Fact label={t('link')}><span class="break-all">{link.name} · {link.url}</span></Fact>{/each}
+      </dl>
+    </div>
+  {:else if !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{loaded.document ? '-' : t('loading')}</p>{/if}
+  {#if pending}<Notice tone="warn">{t('principalPublicationPending')}</Notice>{/if}
+  <div class="mt-3 flex flex-wrap gap-2">
+    <button class={buttonClass('secondary', 'sm')} disabled={busy || !ready || !mine} onclick={edit} data-testid="profile-edit">{pending ? t('retry') : t('edit')}</button>
+    <button class={buttonClass('secondary', 'sm')} onclick={() => (lookupOpen = true)} data-testid="profile-lookup-open"><Icon name="search" />{t('resolveProfile')}</button>
+  </div>
+</Section>
+
+<Dialog bind:open={editing} title={t('publicProfile')} description={t('avatarHint')} icon="profile" wide dismissible={!busy} testid="profile">
     <div class="grid gap-4">
+      {#if error}<Notice failure={error} tone="danger" testid="profile-edit-error">{error}</Notice>{/if}
       {#if archives.length}
+        <Collapsible testid="profile-import">
+          {#snippet title()}<span class="text-[12.5px]">{t('legacyUseProfile')}</span>{/snippet}
         <div class="flex flex-wrap items-center gap-2">
-          <Select bind:value={archive} label={t('legacyArchives')} options={archives.map((a) => ({ value: a.id, label: a.principal, mono: true }))} testid="profile-legacy-archive" />
+          <Select bind:value={archive} label={t('legacyArchives')} options={archives.map((a) => ({ value: a.id, label: a.principal, mono: true }))} disabled={busy || pending} testid="profile-legacy-archive" />
           <button class={buttonClass('secondary', 'sm')} disabled={busy || pending || !ready || !archive} onclick={useLegacy} data-testid="profile-use-legacy">{t('legacyUseProfile')}</button>
         </div>
+        </Collapsible>
       {/if}
       {#if fromLegacy}<Notice>{t('legacyProfileDraft')}</Notice>{/if}
       {#if legacyAvatarReference}<Notice>{t('legacyAvatarReference')}</Notice>{/if}
@@ -246,39 +290,39 @@
         {value:'person',label:t('principalPerson')}, {value:'organization',label:t('principalOrganization')},
         {value:'team',label:t('principalTeam')}, {value:'project',label:t('principalProject')}, {value:'other',label:t('principalOther')}
       ]} testid="profile-kind" class="w-full" /></Field>
-      <TextField label={t('displayName')} bind:value={displayName} data-testid="profile-name" />
-      <TextArea label={t('bio')} bind:value={bio} rows={3} data-testid="profile-bio" />
+      <TextField label={t('displayName')} bind:value={displayName} error={!profileText(displayName.trim(), 80) ? t('settingsNameLimit') : ''} data-testid="profile-name" />
+      <TextArea label={t('bio')} bind:value={bio} error={!profileText(bio.trim(), 2000, true) ? t('settingsBioLimit') : ''} rows={3} data-testid="profile-bio" />
       <div class="grid gap-2">
         {#each links as link, index (index)}
           <div class="grid gap-3 border-b border-line py-3 @min-[600px]:grid-cols-2" data-testid="profile-link-row">
-            <TextField label={t('principalLinkName')} bind:value={link.name} />
-            <TextField label={t('principalLinkRelation')} bind:value={link.rel} />
-            <TextField label={t('link')} value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" dir="ltr" />
-            <TextField label={t('principalLinkImage')} value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" dir="ltr" />
+            <TextField label={t('principalLinkName')} bind:value={link.name} error={!link.name.trim() || !profileText(link.name, 128) ? t('settingsLinkName') : ''} />
+            <TextField label={t('principalLinkRelation')} bind:value={link.rel} error={!link.rel || !profileText(link.rel, 64) || new TextEncoder().encode(link.rel).length > 64 ? t('settingsLinkRelation') : ''} />
+            <TextField label={t('link')} value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" dir="ltr" error={!httpsUrl(link.url) ? t('settingsHttps') : ''} />
+            <TextField label={t('principalLinkImage')} value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" dir="ltr" error={linkImages[link.url] && !httpsUrl(linkImages[link.url]) ? t('settingsHttps') : ''} />
             <button class={buttonClass('ghost', 'sm', 'justify-self-start')} onclick={() => links = links.filter((_, i) => i !== index)} aria-label={`${t('remove')} · ${link.name || t('link')}`}>{t('remove')}</button>
           </div>
         {/each}
-        <button class={buttonClass('secondary', 'sm')} onclick={() => links = [...links, { name: '', url: '', rel: 'related' }]}>{t('principalAddLink')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={links.length >= 100} onclick={() => links = [...links, { name: '', url: '', rel: 'related' }]}>{t('principalAddLink')}</button>
       </div>
       </fieldset>
-      <div class="flex flex-wrap items-center gap-3">
-        {#if mine?.updated_at}<span class="text-[12px] text-faint">{new Date(mine.updated_at).toLocaleString()}</span>{/if}
-        <span class="flex-1"></span>
-        <button class={buttonClass('primary')} disabled={busy || !ready} onclick={publish}>{pending ? t('retry') : t('publish')}</button>
-      </div>
     </div>
-  {/if}
-</Section>
+  {#snippet footer()}
+    {#if !changed && !pending}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
+    <span class="flex-1"></span>
+    <button class={buttonClass('secondary')} disabled={busy} onclick={() => { editing = false; error = '' }}>{t('close')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !ready || (!pending && (!changed || !valid))} onclick={publish} data-testid="profile-publish">{pending ? t('retry') : t('publish')}</button>
+  {/snippet}
+</Dialog>
 
-<Section title={t('resolveProfile')} icon="search">
+<Dialog bind:open={() => lookupOpen, (value) => { lookupOpen = value; if (!value) { lookupRevision++; lookupBusy = false; found = undefined } }} title={t('resolveProfile')} icon="search" testid="profile-lookup">
   <div class="grid gap-3">
     <div class="flex flex-wrap items-end gap-2">
-      <TextField label={t('accountId')} bind:value={other} mono disabled={lookupBusy} class="min-w-48 flex-1" data-testid="profile-lookup-account" />
+      <TextField label={t('accountId')} bind:value={other} oninput={() => { lookupRevision++; found = undefined; lookupError = ''; lookupBusy = false }} mono class="min-w-48 flex-1" data-testid="profile-lookup-account" />
       <button class={buttonClass('secondary')} disabled={lookupBusy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
     </div>
     {#if lookupError}<Notice failure={lookupError} tone="danger">{lookupError}</Notice>{/if}
-    {#if found}
-      <div class="flex items-start gap-3 rounded-lg bg-surface-2 p-3.5" data-testid="profile-found">
+    {#if found && lookupFor === other.trim()}
+      <div class="flex flex-wrap items-start gap-3 rounded-lg bg-surface-2 p-3.5" data-testid="profile-found">
         {@render picture(found, 'size-12')}
         <dl class="min-w-0 flex-1 divide-y divide-line">
           <Fact label={t('displayName')}>{found.name || '-'}</Fact>
@@ -298,4 +342,4 @@
       <p class="text-[12.5px] text-faint">-</p>
     {/if}
   </div>
-</Section>
+</Dialog>

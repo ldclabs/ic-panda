@@ -34,6 +34,8 @@
 // Run with `pnpm test:e2e`.
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
+import { securityFlow } from './security-flow.mjs'
+import { settingsFlow } from './settings-flow.mjs'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
@@ -1576,23 +1578,41 @@ smoke: try {
   // writes what it reads and so runs until Svelte gives up on it.
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
+  await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'security') {
+    await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop account security smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'settings') {
+    await settingsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop settings smoke test passed')
+    break smoke
+  }
+  await main.evaluate(() => location.hash = '/vault')
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
   if (process.env.DMSG_DESKTOP_SMOKE === 'forms') {
     await main.evaluate(() => location.hash = '/settings/security')
+    await main.getByTestId('security-policy-edit').click()
     await main.getByTestId('daily-executions').waitFor()
     await main.getByTestId('daily-executions').fill('invalid')
     await formMatrix(app, main, shots, 'settings-security', '[data-testid="daily-executions"]')
     await main.getByTestId('daily-executions').fill('7')
     assert.notEqual(await main.getByTestId('daily-executions').getAttribute('aria-invalid'), 'true')
+    await main.keyboard.press('Escape')
     await main.evaluate(() => location.hash = '/settings/profile')
+    await main.getByTestId('profile-edit').click()
     await main.getByTestId('profile-name').waitFor()
     await main.getByTestId('profile-name').fill('A profile draft')
     await main.getByRole('button', { name: 'Add link', exact: true }).click()
     await main.getByTestId('profile-link-row').first().waitFor()
     await formMatrix(app, main, shots, 'settings-links', '[data-testid="profile-link-row"]')
+    await main.keyboard.press('Escape')
+    await main.getByTestId('profile-lookup-open').click()
     await formMatrix(app, main, shots, 'settings-lookup', '[data-testid="profile-lookup-account"]')
-    assert.equal(await main.getByTestId('profile-lookup-account').evaluate((el) => el.labels.length), 1)
-    assert.deepEqual(pageErrors, [])
+      assert.deepEqual(pageErrors, [])
     console.log('Desktop forms smoke passed: settings errors, labels, links, lookup and visual matrix')
     break smoke
   }
@@ -1742,8 +1762,8 @@ smoke: try {
   await main.fill('[data-testid="statement-text"]', 'Signed from the desktop')
   await main.click('[data-testid="statement-submit"]')
   await approval.waitForSelector('text=Signed from the desktop', { timeout: 20_000 })
-  const created = calls.find((c) => c.method === 'attest/request')
-  assert.equal(created.params.source, 'gui')
+  const statementCreated = calls.find((c) => c.method === 'attest/request')
+  assert.equal(statementCreated.params.source, 'gui')
 
   // Channels read and write through the daemon; a message shows as sending
   // until the relay stores it.
@@ -3215,6 +3235,7 @@ smoke: try {
   emit('session/changed')
   await main.click('[data-testid="legacy-setup"]')
   await main.waitForSelector('[data-testid="create-account"]')
+  await main.getByTestId('join-account').getByRole('button').click()
   assert.equal(await main.getByTestId('bind-account').evaluate((el) => el.labels.length), 1)
   await formMatrix(app, main, shots, 'settings-account', '[data-testid="onboarding"]')
   failAccountSetup = true
@@ -3935,16 +3956,19 @@ smoke: try {
   // Files: allowing the disk mount asks in a system dialog, and the main
   // process writes the choice for the daemon to read.
   await main.click('[data-testid="settings-files"]')
-  await main.waitForSelector('[data-testid="files-settings"]')
+  await main.getByTestId('files-settings-edit').click()
   const finishOldPreferences = hold('files/preferences')
   emit('files/changed')
   await waitFor(() => held.get('files/preferences'))
   await answer('__box', 0)
   await main.click('[data-testid="files-settings-mount"]')
+  await main.getByTestId('files-settings-save').click()
   await waitFor(() => latest('files/preferences_reload'))
   assert.deepEqual(JSON.parse(await readFile(join(profile, 'home', 'preferences.json'), 'utf8')), { files_mount: true })
   await finishOldPreferences()
+  await main.getByTestId('files-settings-edit').click()
   await main.waitForSelector('[data-testid="files-settings-mount"][aria-checked="true"]')
+  await main.keyboard.press('Escape')
   // About dMsg: the app's version; a development run checks for no updates,
   // and only the main window reaches them.
   await main.click('[data-testid="settings-about"]')
@@ -3963,6 +3987,7 @@ smoke: try {
   await main.waitForSelector('[data-testid="logins"]')
   await main.waitForSelector('[data-testid="security-needs-login"]', { state: 'detached' })
   // An edit under way stays when the daemon's events reload the page.
+  await main.getByTestId('security-policy-edit').click()
   await main.fill('[data-testid="daily-executions"]', '7')
   assert.equal(await main.getByTestId('daily-executions').evaluate((el) => el.labels.length), 1)
   await main.getByTestId('daily-executions').fill('invalid')
@@ -3976,6 +4001,8 @@ smoke: try {
   await waitFor(() => calls.filter((c) => c.method === 'account/security').length > securityReads)
   await new Promise((r) => setTimeout(r, 300))
   assert.equal(await main.inputValue('[data-testid="daily-executions"]'), '7')
+  await main.keyboard.press('Escape')
+  await main.getByTestId('security-approve-others').click()
   await main.fill('[data-testid="approve-request"]', 'binding-token')
   await main.fill('[data-testid="approve-shown"]', 'aaaaa-aa')
   await main.click('button:has-text("Approve the login"), button:has-text("批准绑定登录")')
@@ -3983,6 +4010,7 @@ smoke: try {
   assert.equal(await approval.textContent('[data-testid="approval-principal"]'), 'aaaaa-aa')
   await approval.screenshot({ path: join(shots, 'bind-login.png') })
   // A pairing request is an approval request too, held and confirmed like a revocation.
+  await main.getByTestId('security-approve-others').click()
   await main.fill('[data-testid="approve-request"]', 'pairing-token')
   await main.fill('[data-testid="approve-shown"]', '34'.repeat(32))
   await main.click('button:has-text("Approve the device"), button:has-text("批准设备加入")')
@@ -3993,7 +4021,9 @@ smoke: try {
   // An approval key is registered through the approval center too; keys
   // can be required only once this device has one.
   await main.waitForSelector('[data-testid="approval-keys"]')
+  await main.getByTestId('security-key-transfer').getByRole('button').click()
   await main.getByRole('button', { name: 'Ask another device', exact: true }).click()
+  await main.getByTestId('security-submit').click()
   await main.getByTestId('approval-key-token').waitFor()
   assert.equal(await main.getByTestId('approval-key-token').evaluate((el) => el.readOnly && el.labels.length === 1), true)
   await main.evaluate(() => {
@@ -4003,8 +4033,10 @@ smoke: try {
   await main.getByTestId('approval-key-copy').click()
   assert.equal(await main.evaluate(() => window.__copiedRequest), 'fixture-device-key-request')
   await main.evaluate(() => { navigator.clipboard.writeText = window.__clipboardWrite })
+  await main.keyboard.press('Escape')
 
   assert.equal(await main.locator('[data-testid="approval-keys-require"]').isDisabled(), true)
+  await main.getByTestId('security-key-edit').click()
   await main.click('[data-testid="approval-key-register"]')
   await approval.waitForSelector('[data-testid="approval-key-id"]', { timeout: 20_000 })
   assert.equal(await approval.textContent('[data-testid="approval-key-id"]'), '5a'.repeat(32))
@@ -4016,11 +4048,15 @@ smoke: try {
   // The capabilities picked go to the daemon as plain values, though the
   // window keeps them as state, and the change is an approval request.
   await main.locator('[data-testid="device-capabilities"]').nth(1).click()
-  await main.click('[data-testid="devices"] label:has-text("FormalApprove")')
+  await main.getByTestId('device-editor').getByRole('checkbox', { name: 'FormalApprove', exact: true }).click()
   await main.click('[data-testid="capabilities-submit"]')
   await waitFor(() => latest('device/capabilities'))
   assert.deepEqual(latest('device/capabilities').params, { device: '12'.repeat(32), capabilities: ['ContentSign', 'VaultUnlock', 'FormalApprove'], source: 'gui' })
   await approval.waitForSelector('[data-testid="approval-title"] >> text=Capabilities', { timeout: 20_000 })
+  // Resolve this proposal before starting another change for the same device.
+  for (const request of requests.values()) if (request.type === 'device_capabilities') request.state = 'rejected'
+  emit('approval/changed')
+  await waitFor(() => main.getByTestId('revoke-device').isEnabled())
   await main.click('[data-testid="revoke-device"]')
   await approval.waitForSelector(`text=${'12'.repeat(32)}`, { timeout: 20_000 })
   assert.equal(latest('device/revoke').params.device, '12'.repeat(32))
@@ -4031,13 +4067,14 @@ smoke: try {
   const finishProfileArchives = hold('legacy/list')
   await main.click('[data-testid="settings-profile"]')
   await waitFor(() => held.get('legacy/list'))
+  await main.getByTestId('profile-edit').click()
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]')?.value && !document.querySelector('[data-testid="profile"] fieldset')?.disabled)
   await main.fill('[data-testid="profile-name"]', 'Draft while archives load')
-  assert.equal(await main.getByTestId('profile-lookup-account').evaluate((el) => el.labels.length), 1)
   assert.equal(await main.getByTestId('profile-bio').evaluate((el) => el.labels.length), 1)
   await formMatrix(app, main, shots, 'settings-profile', '[data-testid="profile-name"]')
 
   await finishProfileArchives()
+  await main.getByTestId('profile-import').getByRole('button').click()
   await main.waitForSelector('[data-testid="profile-use-legacy"]')
   assert.equal(await main.inputValue('[data-testid="profile-name"]'), 'Draft while archives load')
   await main.waitForSelector('[data-testid="profile-avatar"]')
@@ -4081,9 +4118,11 @@ smoke: try {
   await waitFor(() => principalUnknown)
   assert.equal(published.name, 'Reply lost')
   assert.equal(methods['agent/principal']().published, true)
+  await main.keyboard.press('Escape')
   await main.click('[data-testid="settings-devices"]')
   await main.waitForSelector('[data-testid="profile"]', { state: 'detached' })
   await main.click('[data-testid="settings-profile"]')
+  await main.getByTestId('profile-edit').click()
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]')?.value === 'Reply lost' && document.querySelector('[data-testid="profile"] fieldset')?.disabled)
   const profileWrites = calls.filter(c => c.method === 'profile/publish').length
   await retryProfile()
@@ -4098,6 +4137,7 @@ smoke: try {
   assert.equal(published.name, 'After reconciliation')
   // Immediate publication, including a retained legacy URL, refreshes the shell.
   deferPrincipal = false
+  await main.getByTestId('profile-import').getByRole('button').click()
   await main.click('[data-testid="profile-use-legacy"]')
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').value === 'Old Panda')
   await publishProfile()

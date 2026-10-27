@@ -71,6 +71,7 @@ try {
   // keeps the edited form. A new unlock generation resets it.
   await page.evaluate(() => { location.hash = '#/settings/security' })
   await page.waitForSelector('[data-testid="security"]')
+  await page.getByTestId('security-policy-edit').click()
   const field = page.locator('[data-testid="daily-executions"]')
   await field.fill('77')
   for (const socket of wss.clients) socket.terminate()
@@ -87,6 +88,7 @@ try {
   heldStatus = []
   await page.evaluate(() => window.dmsg.call('session/unlock', { fast: true }))
   await page.waitForSelector('[data-testid="security"]')
+  await page.getByTestId('security-policy-edit').click()
   assert.equal(await field.inputValue(), '5')
   assert.equal(await page.evaluate(() => Object.keys(localStorage).some((key) => /cache|profile|names/.test(key))), false)
   const sorted = [...times].sort((a,b) => a-b)

@@ -2,6 +2,23 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    settingsNameLimit: "استخدم حتى 80 محرفًا دون محارف تحكم.",
+    settingsBioLimit: "استخدم حتى 2000 محرف؛ يُسمح بفواصل الأسطر.",
+    settingsLinkName: "أدخل اسم رابط من محرف واحد إلى 128 محرفًا.",
+    settingsHttps: "أدخل عنوان HTTPS صالحًا دون بيانات اعتماد مضمّنة.",
+    settingsLinkRelation: "أدخل علاقة من 1 إلى 64 بايت دون محارف تحكم.",
+
+    securityApprovalHint: "تسري التغييرات بعد الموافقة فقط. راجعها معًا في نافذة الموافقة.",
+    securityApprovalPending: "أُرسل طلب الموافقة. يبقى الإعداد الحالي ساريًا حتى الاكتمال.",
+    securityViewApproval: "عرض طلب الموافقة",
+    securityUnchanged: "لا توجد تغييرات بعد",
+    securityDailyRange: "أدخل عددًا صحيحًا من 0 إلى 64.",
+    securityDailyHint: "من 0 إلى 64 يوميًا. الصفر يوقف التوقيعات الرسمية الجديدة.",
+    securityNoSigning: "ستوقف هذه الإعدادات جميع التوقيعات الرسمية الجديدة.",
+    securityKeyTransfer: "الإعداد عبر جهاز آخر",
+    securityDeviceIdHint: "أدخل معرّف الجهاز المكوّن من 64 محرفًا كما يظهر على الجهاز الآخر.",
+    securityNoLogins: "لا توجد هويات دخول مرتبطة",
+
     previousMonth: "الشهر السابق",
     nextMonth: "الشهر التالي",
 

@@ -2,6 +2,8 @@
   import { onDestroy, onMount } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
+  import Dialog from '../components/Dialog.svelte'
+  import { sameSelection } from './security'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -10,7 +12,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
+  import { bridge, call, errorText, onChange, single, when } from '../rpc'
 
   /** The account's devices as the user home certified them; changes are approval requests. */
   let { status }: { status: any } = $props()
@@ -22,6 +24,11 @@
   let chosen = $state<string[]>([])
   let error = $state('')
   let busy = $state(false)
+  let loadError = $state('')
+  let pending = $state<Record<string, string>>({})
+  const target = $derived(view?.devices.find((device: any) => device.device_id === editing))
+  const changed = $derived(!!target && !sameSelection(chosen, target.capabilities))
+  const canSubmit = $derived(changed && !busy && !loadError && !target?.revoked_at && !pending[editing ?? ''])
 
   const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
@@ -30,34 +37,57 @@
     try {
       const next = await display('account/show', {}, mode)
       if (!alive) return
+      if (target && sameSelection(chosen, target.capabilities)) {
+        const updated = next.devices.find((device: any) => device.device_id === editing)
+        if (updated) chosen = [...updated.capabilities]
+      }
       view = next
-      error = ''
+      loadError = ''
+      for (const [device, id] of Object.entries(pending)) {
+        const result: any = await call('approval/show', { id }).catch(() => null)
+        if (!alive) return
+        if (['done', 'rejected', 'cancelled', 'expired', 'failed', 'elsewhere'].includes(result?.state)) delete pending[device]
+      }
     } catch (e) {
       if (!alive) return
-      error = code(e) === 'AUTH_REQUIRED' ? '' : errorText(e)
+      loadError = errorText(e)
     }
   })
 
   /** The approval window shows the device and decides. */
-  async function ask(method: string, params: unknown) {
+  async function ask(method: string, params: { device: string; capabilities?: string[] }) {
+    if (busy || loadError) return
+    if (method === 'device/capabilities' && !canSubmit) return
     busy = true
     error = ''
     try {
-      const created: any = await call(method, params)
+      const id = pending[params.device] || (await call<any>(method, params)).id
       if (!alive) return
-      editing = null
-      await bridge(() => window.dmsg.openApproval(created.id))
+      pending[params.device] = id
+      await bridge(() => window.dmsg.openApproval(id))
+      if (alive) { editing = null; void reload() }
     } catch (e) {
       if (!alive) return
       error = errorText(e)
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
 
   function edit(device: any) {
+    if (busy || pending[device.device_id]) return
+    error = ''
     editing = editing === device.device_id ? null : device.device_id
     chosen = [...device.capabilities]
+  }
+
+  async function showPending(device: string) {
+    const id = pending[device]
+    if (busy || !id) return
+    busy = true
+    try { await bridge(() => window.dmsg.openApproval(id)) }
+    catch (e) { if (alive) error = errorText(e) }
+    finally { if (alive) busy = false }
   }
 
   onMount(() => {
@@ -69,7 +99,11 @@
 </script>
 <DisplayNotice methods={['account/show']} />
 
-{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+{#if loadError}<Notice failure={loadError} tone="danger">{loadError}
+  {#snippet action()}<button class={buttonClass('secondary','xs')} disabled={busy} onclick={() => reload('fresh')}>{t('retry')}</button>{/snippet}
+</Notice>{/if}
+{#if error && !editing}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+{#if !view && !loadError}<p class="px-5 text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
 {#if view}
   <Section title={t('devices')} icon="device" flush testid="devices">
     <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-[12px] text-faint" data-testid="security-snapshot">
@@ -81,11 +115,11 @@
     <ul class="divide-y divide-line">
       {#each view.devices as device (device.device_id)}
         <li class={cn('px-5 py-3.5', device.revoked_at && 'opacity-60')}>
-          <div class="flex items-start gap-3">
+          <div class="flex flex-wrap items-start gap-3">
             <span class={cn('grid size-9 shrink-0 place-items-center rounded-xl', device.current ? 'bg-pale text-forest' : 'bg-surface-2 text-faint')}>
               <Icon name="device" />
             </span>
-            <div class="min-w-0 flex-1">
+            <div class="min-w-48 flex-1">
               <div class="flex flex-wrap items-center gap-1.5">
                 <Id id={device.device_id} />
                 {#if device.current}<Pill tone="forest">{t('thisDevice')}</Pill>{/if}
@@ -101,37 +135,41 @@
             </div>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <div class="flex shrink-0 gap-1.5">
-                <button class={buttonClass('secondary', 'xs')} disabled={busy} aria-expanded={editing === device.device_id} onclick={() => edit(device)} data-testid="device-capabilities">
+                <button class={buttonClass('secondary', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} aria-expanded={editing === device.device_id} onclick={() => edit(device)} data-testid="device-capabilities">
                   {t('capabilities')}
                 </button>
                 {#if !device.current}
-                  <button class={buttonClass('danger', 'xs')} disabled={busy} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
+                  <button class={buttonClass('danger', 'xs')} disabled={busy || !!loadError || !!pending[device.device_id]} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
                     {t('revoke')}
                   </button>
                 {/if}
               </div>
             {/if}
           </div>
-          {#if editing === device.device_id}
-            <div class="ms-12 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-surface-2/60 p-3">
-              {#each CAPABILITIES as capability (capability)}
-                <Checkbox checked={chosen.includes(capability)} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter((c) => c !== capability))}>
-                  {capability}
-                </Checkbox>
-              {/each}
-              <span class="flex-1"></span>
-              <button
-                class={buttonClass('primary', 'sm')}
-                disabled={busy}
-                data-testid="capabilities-submit"
-                onclick={() => ask('device/capabilities', { device: device.device_id, capabilities: chosen })}
-              >
-                {t('submit')}
-              </button>
-            </div>
+          {#if pending[device.device_id]}
+            <Notice>{t('securityApprovalPending')}
+              {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => showPending(device.device_id)}>{t('securityViewApproval')}</button>{/snippet}
+            </Notice>
           {/if}
         </li>
       {/each}
     </ul>
   </Section>
 {/if}
+
+<Dialog bind:open={() => editing !== null, (open) => { if (!open) { editing = null; error = '' } }} title={t('capabilities')} description={t('securityApprovalHint')} icon="device" dismissible={!busy} testid="device-editor">
+  <div class="grid gap-3">
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+    {#if target?.revoked_at}<Notice tone="warn">{t('revokedAt')} {when(target.revoked_at)}</Notice>{/if}
+    {#if editing}<Id id={editing} />{/if}
+    {#each CAPABILITIES as capability (capability)}
+      <Checkbox checked={chosen.includes(capability)} disabled={busy || !!pending[editing ?? ''] || !!target?.revoked_at} onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter(c => c !== capability))}>{capability}</Checkbox>
+    {/each}
+  </div>
+  {#snippet footer()}
+    {#if !changed}<span class="text-[12px] text-faint">{t('securityUnchanged')}</span>{/if}
+    <span class="flex-1"></span>
+    <button class={buttonClass('secondary')} disabled={busy} onclick={() => { editing = null; error = '' }}>{t('cancel')}</button>
+    <button class={buttonClass('primary')} disabled={!canSubmit} data-testid="capabilities-submit" onclick={() => ask('device/capabilities', { device: editing!, capabilities: chosen })}>{t('submit')}</button>
+  {/snippet}
+</Dialog>

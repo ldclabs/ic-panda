@@ -2,6 +2,23 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    settingsNameLimit: "Не более 80 символов без управляющих символов.",
+    settingsBioLimit: "Не более 2000 символов; переносы строк разрешены.",
+    settingsLinkName: "Введите название ссылки от 1 до 128 символов.",
+    settingsHttps: "Введите корректный адрес HTTPS без встроенных учётных данных.",
+    settingsLinkRelation: "Введите тип связи от 1 до 64 байт без управляющих символов.",
+
+    securityApprovalHint: "Изменения вступят в силу после одобрения. Проверьте их вместе в окне одобрения.",
+    securityApprovalPending: "Отправлено на одобрение. До завершения действует текущая настройка.",
+    securityViewApproval: "Открыть запрос",
+    securityUnchanged: "Изменений пока нет",
+    securityDailyRange: "Введите целое число от 0 до 64.",
+    securityDailyHint: "От 0 до 64 в день. Ноль запрещает новые официальные подписи.",
+    securityNoSigning: "Эти настройки запрещают все новые официальные подписи.",
+    securityKeyTransfer: "Настроить через другое устройство",
+    securityDeviceIdHint: "Введите идентификатор из 64 символов, показанный на другом устройстве.",
+    securityNoLogins: "Нет привязанных способов входа",
+
     previousMonth: "Предыдущий месяц",
     nextMonth: "Следующий месяц",
 

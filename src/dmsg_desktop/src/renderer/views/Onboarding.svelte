@@ -1,5 +1,7 @@
 <script lang="ts">
   import TextField from '../components/TextField.svelte'
+  import { onDestroy, onMount } from 'svelte'
+  import Collapsible from '../components/Collapsible.svelte'
 
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
@@ -8,7 +10,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, errorText, when } from '../rpc'
+  import { call, errorText, onChange, when } from '../rpc'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
@@ -20,17 +22,22 @@
   let recovery = $state<any>(null)
   let error = $state('')
   let busy = $state(false)
+  let alive = true
+  let now = $state(Date.now())
+  const recoverable = $derived(status?.state === 'pairing_required' || (status?.state === 'root_required' && !status.setup_pending))
+  const canComplete = $derived(!!recovery && (recovery.ready || (recovery.pending?.this_device && now >= recovery.pending.execute_after) || (status?.state === 'root_required' && !status.setup_pending && recovery.member)))
+  onDestroy(() => { alive = false })
 
   async function attempt(work: () => Promise<void>) {
+    if (busy || !alive) return
     busy = true
     error = ''
     try {
       await work()
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
-      busy = false
-      await refresh()
+      if (alive) { busy = false; await refresh() }
     }
   }
 
@@ -38,7 +45,9 @@
 
   const bindRequest = () =>
     attempt(async () => {
-      token = ((await call('account/bind_request', { account: account.trim() })) as any).token
+      const target = account.trim()
+      const result: any = await call('account/bind_request', { account: target })
+      if (alive && target === account.trim()) token = result.token
     })
 
   const bindAccept = () =>
@@ -49,7 +58,8 @@
 
   const pair = () =>
     attempt(async () => {
-      pairing = await call('device/pair_request', { role: member ? 'member' : 'administrator' })
+      const value = await call('device/pair_request', { role: member ? 'member' : 'administrator' })
+      if (alive) pairing = value
     })
 
   /** An approved device joins on the next unlock with the login. */
@@ -57,9 +67,18 @@
 
   const recoveryCall = (method: string) =>
     attempt(async () => {
+      if (method === 'recovery/complete' && !canComplete) return
+      if (method === 'recovery/request' && (!recovery || recovery.pending)) return
       const value = await call(method)
-      if (method !== 'recovery/complete') recovery = value
+      if (alive && method !== 'recovery/complete') recovery = value
     })
+
+  onMount(() => {
+    if (recoverable) void recoveryCall('recovery/status')
+    const off = onChange(['recovery/changed'], () => { if (recoverable) void recoveryCall('recovery/status') })
+    const timer = setInterval(() => { now = Date.now() }, 1000)
+    return () => { clearInterval(timer); off() }
+  })
 </script>
 
 {#if error}<Notice failure={error} tone="danger" testid="onboarding-error">{error}</Notice>{/if}
@@ -70,18 +89,20 @@
       <button class={buttonClass('primary', 'lg', 'justify-self-start')} disabled={busy} data-testid="create-account" onclick={create}>
         <Icon name="add" />{t('createAccount')}
       </button>
-      <div class="grid gap-2 rounded-lg bg-surface-2/60 p-3.5">
-        <b class="text-[13px] font-semibold">{t('joinAccount')}</b>
+      <Collapsible testid="join-account">
+        {#snippet title()}<b class="text-[13px] font-semibold">{t('joinAccount')}</b>{/snippet}
+        <div class="grid gap-2 py-2">
         <p class="text-[12.5px] text-muted">{t('joinAccountHint')}</p>
         <div class="flex flex-wrap items-end gap-2">
-          <TextField label={t('accountId')} bind:value={account} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
-          <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={bindRequest}>{t('bindRequest')}</button>
+          <TextField label={t('accountId')} bind:value={account} oninput={() => (token = '')} mono disabled={busy} class="min-w-48 flex-1" data-testid="bind-account" />
+          <button class={buttonClass('secondary')} disabled={busy || !account.trim() || !!token} onclick={bindRequest}>{t('bindRequest')}</button>
         </div>
         {#if token}
           <p class="rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all select-all" data-testid="bind-token">{token}</p>
           <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy} onclick={bindAccept}>{t('bindAccept')}</button>
         {/if}
-      </div>
+        </div>
+      </Collapsible>
     </div>
   </Section>
 {:else if status?.state === 'pairing_required'}
@@ -90,9 +111,9 @@
       <div class="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted">
         {t('account')} {#if status.account}<Id id={status.account} />{:else}-{/if} · {t('device')} <Id id={status.device_id} />
       </div>
-      <Checkbox bind:checked={member}>{t('memberRole')}</Checkbox>
+      <Checkbox bind:checked={member} disabled={busy} onCheckedChange={() => (pairing = null)}>{t('memberRole')}</Checkbox>
       <div class="flex flex-wrap gap-2">
-        <button class={buttonClass('primary')} disabled={busy} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
+        <button class={buttonClass('primary')} disabled={busy || (!!pairing && (!pairing.expires_at || pairing.expires_at > now))} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
         <button class={buttonClass('secondary')} disabled={busy} onclick={joined}>{t('checkApproval')}</button>
       </div>
       {#if pairing}
@@ -120,9 +141,9 @@
       <div class="flex flex-wrap gap-2">
         <button class={buttonClass('secondary')} disabled={busy} onclick={() => recoveryCall('recovery/status')}>{t('recoveryStatus')}</button>
         {#if status?.state === 'pairing_required'}
-          <button class={buttonClass('secondary')} disabled={busy} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
+          <button class={buttonClass('secondary')} disabled={busy || !recovery || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
         {/if}
-        <button class={buttonClass('primary')} disabled={busy} onclick={() => recoveryCall('recovery/complete')}>{t('completeRecovery')}</button>
+        <button class={buttonClass('primary')} disabled={busy || !canComplete} onclick={() => recoveryCall('recovery/complete')} data-testid="recovery-complete">{t('completeRecovery')}</button>
       </div>
       {#if recovery}
         {#if recovery.pending}

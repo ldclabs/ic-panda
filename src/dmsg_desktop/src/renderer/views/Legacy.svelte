@@ -2,7 +2,7 @@
   import TextField from '../components/TextField.svelte'
 
   import { RadioGroup } from 'bits-ui'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
@@ -40,68 +40,77 @@
   let notice = $state('')
   let error = $state('')
   let busy = $state(false)
+  let alive = true
+  onDestroy(() => { alive = false })
 
   const pairing = $derived(pairs.find((p) => p.nonce === selected))
 
-  async function attempt(work: () => Promise<void>, done = '') {
-    if (!ready) return
+  async function attempt(work: () => Promise<void>) {
+    if (!ready || busy || !alive) return
     busy = true
     error = ''
     notice = ''
     try {
       await work()
-      notice = done
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
-      busy = false
+      if (alive) busy = false
     }
   }
 
   /** The offers and kept archives; the daemon's `legacy/changed` reads them again after each change. */
   const reload = single(async () => {
-    if (!ready) return
-    ;[pairs, archives] = await Promise.all([call('legacy/pairs'), call('legacy/list')])
+    if (!ready || !alive) return
+    const values = await Promise.all([call('legacy/pairs'), call('legacy/list')])
+    if (alive) [pairs, archives] = values
   })
 
   const pair = () =>
     attempt(async () => {
-      offer = await call('legacy/pair', { origin: 'https://dmsg.net' })
-      await bridge(() => window.dmsg.openLegacy(offer.link))
+      const result = await call('legacy/pair', { origin: 'https://dmsg.net' })
+      if (!alive) return
+      offer = result
+      await bridge(() => window.dmsg.openLegacy(result.link))
+      if (!alive) return
       selected = offer.nonce
       confirmed = false
     })
 
   const importFile = () =>
     attempt(async () => {
+      if (!pairing || !confirmed || !principal.trim()) return
       const result = await bridge(() => window.dmsg.legacyImport(pairing.nonce, pairing.fingerprint, principal.trim()))
-      if (!result) return
+      if (!result || !alive) return
       report = result
       limit = 100
-    }, t('legacyKept'))
+      notice = t('legacyKept')
+    })
 
   const open = (id: string) =>
     attempt(async () => {
       limit = 100
-      report = await call('legacy/report', { id, limit })
+      const result = await call('legacy/report', { id, limit })
+      if (alive) report = result
     })
 
   const sync = () => attempt(async () => {
     await call('sync/run')
     await reload()
-    if (report) report = await call('legacy/report', { id: report.id, limit })
+    if (alive && report) { const result = await call('legacy/report', { id: report.id, limit }); if (alive) report = result }
   })
 
   const more = () =>
     attempt(async () => {
       limit += 100
-      report = await call('legacy/report', { id: report.id, limit })
+      const result = await call('legacy/report', { id: report.id, limit })
+      if (alive) report = result
     })
 
   const frozen = () =>
     attempt(async () => {
       const result = await bridge(() => window.dmsg.legacyFrozen(report.id))
-      if (result) report = await call('legacy/report', { id: report.id, limit })
+      if (alive && result) { const next = await call('legacy/report', { id: report.id, limit }); if (alive) report = next }
     })
 
   const saveFile = (file: any) =>
@@ -135,12 +144,12 @@
 {/if}
 
 <Section title={t('legacyTitle')} description={t('legacyHint')} icon="legacy" testid="legacy">
-  {#snippet actions()}
+  <div class="mb-3 flex flex-wrap gap-2">
     <button class={buttonClass('primary')} disabled={busy || !ready} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
-  {/snippet}
+  </div>
   {#if ready && pairs.length}
     <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyOffers')}</h3>
-    <RadioGroup.Root bind:value={selected} onValueChange={() => (confirmed = false)} aria-label={t('legacyOffers')}>
+    <RadioGroup.Root bind:value={selected} disabled={busy} onValueChange={() => { confirmed = false; principal = '' }} aria-label={t('legacyOffers')}>
       <ul class="divide-y divide-line">
         {#each pairs as p (p.nonce)}
           <li class={cn('flex flex-wrap items-center gap-2 px-3.5 py-2.5', selected === p.nonce && 'bg-pale/60')}>
@@ -166,8 +175,8 @@
         <Fact label={t('device')}><span class="font-mono text-[12px] break-all">{pairing.target}</span></Fact>
         <Fact label={t('fingerprint')}><span class="font-mono text-[12px] font-semibold break-all text-forest">{pairing.fingerprint}</span></Fact>
       </dl>
-      <TextField label={t('legacyPrincipal')} bind:value={principal} autocomplete="off" mono disabled={busy} data-testid="legacy-principal" />
-      <Checkbox bind:checked={confirmed}>{t('legacyConfirm')}</Checkbox>
+      <TextField label={t('legacyPrincipal')} bind:value={principal} oninput={() => (confirmed = false)} autocomplete="off" mono disabled={busy} data-testid="legacy-principal" />
+      <Checkbox bind:checked={confirmed} disabled={busy}>{t('legacyConfirm')}</Checkbox>
       <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy || !confirmed || !principal.trim()} onclick={importFile}>
         <Icon name="verified" />{t('legacyImport')}
       </button>
