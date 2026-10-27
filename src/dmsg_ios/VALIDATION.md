@@ -1,5 +1,15 @@
 # iOS implementation validation
 
+## App Store icon validation repair (2026-10-27)
+
+The first upload attempt for build 2 was rejected before acceptance because the
+1024px app icon contained an alpha channel. The icon is now rendered from the
+existing dMsg vector paths in `AppIcon.svg` onto a full opaque green canvas, with
+RGB PNG output and system-applied corner masking. The 1024 × 1024 dimensions and
+absence of an alpha channel were checked, and the rendered icon was inspected.
+The build number remains 2 because the original binary was not accepted.
+This asset-only repair does not change the previously tested native behavior.
+
 ## Production TestFlight, purchases disabled — build 2 (2026-10-27)
 
 At the user's request, Release/TestFlight now use the fixed production backend.
