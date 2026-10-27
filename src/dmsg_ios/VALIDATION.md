@@ -1,5 +1,29 @@
 # iOS implementation validation
 
+## TestFlight upload and store screenshots (2026-10-27)
+
+Source changes were committed on local main as `6970564d`; the opaque icon repair
+is `2961c27e`, both with Codex co-author trailers. The repaired `0.1.0 (2)` archive
+was uploaded successfully and Apple processing completed. App Store Connect shows
+build 2 as Ready to Submit under TestFlight. Bilingual testing instructions explain
+production access, passkey self-registration and disabled purchases. No tester
+group was created, no invitations were sent, and no App Store review was submitted.
+
+20 original simulator screenshots were saved in the store version's media slots:
+English (US) and Simplified Chinese each have four 1206 × 2622 iPhone screenshots,
+four 1320 × 2868 iPhone screenshots, and two 2064 × 2752 iPad screenshots. These
+show actual views populated with fictitious in-memory presentation data. The RGB
+PNG dimensions/no-alpha format and visible content were inspected. The temporary
+XCTest capture driver was removed after capture; it is not part of the app.
+
+Local artifacts are under `.build/TestFlightProduction-build2-opaque/` (the repaired
+archive, IPA and upload verification record) and `.build/AppStoreScreenshots-20261027/`
+(screenshots and manifest). The repaired IPA is 21,627,651 bytes, SHA-256
+`4a611d99390bff85a899d803f5e492782be85ae90f06aa37bf00ac3c682a79c2`.
+It supersedes the earlier local IPA with the transparent icon. The App Store
+Connect media slots, not TestFlight's tester-feedback screenshots, contain the
+uploaded marketing screenshots. This is delivery evidence, not review approval.
+
 ## App Store icon validation repair (2026-10-27)
 
 The first upload attempt for build 2 was rejected before acceptance because the
