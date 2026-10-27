@@ -94,6 +94,110 @@ import XCTest
         XCTAssertFalse(app.staticTexts["GitHub"].exists)
     }
 
+    func testRepeatedManagedSecretAndFileNavigation() {
+        checkDetailNavigation(language: "en", locale: "en_US", dark: false, repetitions: 3)
+    }
+
+    func testDetailNavigationInDarkChinese() {
+        checkDetailNavigation(language: "zh-Hans", locale: "zh_CN", dark: true, repetitions: 1)
+    }
+
+    private func checkDetailNavigation(language: String, locale: String, dark: Bool, repetitions: Int) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch()
+        for iteration in 0..<repetitions {
+            for (id, title) in [("fixture-managed", "dMsg controller #1"), ("fixture-note", "Project notes")] {
+                let row = app.buttons["vault.item.\(id)"]
+                XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+                let detail = app.staticTexts["vault.detail.title"]
+                guard detail.waitForExistence(timeout: 5) else { XCTFail("Secret detail did not finish loading: \(id)"); return }
+                XCTAssertEqual(detail.label, title)
+                if id == "fixture-managed" {
+                    XCTAssertFalse(app.buttons["vault.reveal.key"].isEnabled)
+                    if iteration == 0 { capture(app, name: "Managed secret · \(language)") }
+                }
+                back(app)
+            }
+            tab(app, symbol: "Glyph-folder", title: language == "en" ? "Files" : "文件").tap()
+            let file = app.buttons.containing(.staticText, identifier: "Local image.png").firstMatch
+            XCTAssertTrue(file.waitForExistence(timeout: 5)); file.tap()
+            XCTAssertTrue(app.buttons[language == "en" ? "Preview file" : "预览文件"].waitForExistence(timeout: 5))
+            if iteration == 0 { capture(app, name: "File detail after secret navigation · \(language)") }
+            back(app)
+            tab(app, symbol: "Glyph-vault", title: language == "en" ? "Vault" : "保险库").tap()
+        }
+    }
+
+    private func capture(_ app: XCUIApplication, name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testLeavingPendingSecretDoesNotReplaceNextDetail() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let managed = app.buttons["vault.item.fixture-managed"]
+        XCTAssertTrue(managed.waitForExistence(timeout: 5)); managed.tap()
+        back(app)
+        let note = app.buttons["vault.item.fixture-note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5)); note.tap()
+        let detail = app.staticTexts["vault.detail.title"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        XCTAssertEqual(detail.label, "Project notes")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
+    func testRegularWidthSelectionReplacesPendingRead() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        guard app.frame.width > 700 else { throw XCTSkip("Requires a regular-width iPad") }
+        let managed = app.buttons["vault.item.fixture-managed"]
+        XCTAssertTrue(managed.waitForExistence(timeout: 5)); managed.tap()
+        app.buttons["vault.item.fixture-note"].tap()
+        let detail = app.staticTexts["vault.detail.title"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        XCTAssertEqual(detail.label, "Project notes")
+        app.buttons["vault.favorite.fixture-github"].tap()
+        let github = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "GitHub"), object: detail)
+        XCTAssertEqual(XCTWaiter.wait(for: [github], timeout: 5), .completed)
+        capture(app, name: "iPad selection and favorites")
+    }
+
+    func testCancelledSecretReadOffersRetry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-vault-load-failure", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let row = app.buttons["vault.item.fixture-managed"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        let retry = app.buttons["vault.detail.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "vault.detail.loading").firstMatch.exists)
+        capture(app, name: "Interrupted secret read offers retry")
+        retry.tap()
+        let detail = app.staticTexts["vault.detail.title"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
+        XCTAssertEqual(detail.label, "dMsg controller #1")
+    }
+
+    func testSecretLoadingResumesAfterBackground() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let row = app.buttons["vault.item.fixture-managed"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        let detail = app.staticTexts["vault.detail.title"]
+        guard detail.waitForExistence(timeout: 8) else { XCTFail("Secret did not resume after background suspension"); return }
+        XCTAssertEqual(detail.label, "dMsg controller #1")
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        capture(app, name: "Secret load recovered after background")
+    }
+
     func testSecretFieldsRemainHiddenUntilRequested() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

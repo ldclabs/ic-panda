@@ -9,10 +9,9 @@ struct MessagesView: View {
     @State private var creating = false
     @State private var letters: [InboxLetter] = []
     @State private var archived = false
-    @State private var columns: NavigationSplitViewVisibility = .all
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            List(selection: $selected) {
+        WorkspaceNavigation(selection: $selected) { listSelection in
+            List(selection: listSelection) {
                 Picker("Messages", selection: $mode) { Text("Channels").tag(0); Text("Inbox").tag(1) }
                     .pickerStyle(.segmented).listRowBackground(Color.clear)
                 if mode == 0 {
@@ -53,15 +52,13 @@ struct MessagesView: View {
                 .refreshable {
                     if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() }
                 }
-        } detail: {
-            if mode == 1, let letter = letters.first(where: { $0.id == selected }) {
+        } detail: { id in
+            if mode == 1, let letter = letters.first(where: { $0.id == id }) {
                 InboxDetail(letter: letter) { await loadLetters(refresh: false) }
-            } else if mode == 0, let channel = model.channels.first(where: { $0.id == selected }) { ConversationView(channel: channel).id(channel.id) }
+            } else if mode == 0, let channel = model.channels.first(where: { $0.id == id }) { ConversationView(channel: channel).id(channel.id) }
             else { ContentUnavailableView("Select a conversation", image: AppGlyph.channels.assetName) }
         }
-        .navigationSplitViewStyle(.balanced)
-        .onAppear { if selected == nil { columns = .all } }
-        .onChange(of: selected) { _, value in if value != nil { columns = .automatic } }
+        .onChange(of: selected) { _, value in if value != nil { model.activity() } }
         .sheet(isPresented: $creating) { NavigationStack { ConversationSetupView() } }
     }
 

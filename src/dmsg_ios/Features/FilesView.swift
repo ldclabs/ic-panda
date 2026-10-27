@@ -4,7 +4,6 @@ import QuickLook
 import PhotosUI
 
 struct FilesView: View {
-    @State private var columns: NavigationSplitViewVisibility = .all
     @Environment(SessionModel.self) private var model
     @State private var selected: String?
     @State private var importing = false
@@ -14,8 +13,8 @@ struct FilesView: View {
     @State private var trash = false
     @State private var removing: LibraryFile?
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            List(selection: $selected) {
+        WorkspaceNavigation(selection: $selected) { listSelection in
+            List(selection: listSelection) {
                 TransferStatusView()
                 NavigationLink("Transfers") { TransfersView() }
                 Section {
@@ -78,13 +77,11 @@ struct FilesView: View {
                         await importFile(.success(imported.file))
                     } catch { if epoch == model.epoch { model.report(error) } }
                 } }
-        } detail: {
-            if let file = model.library.files.first(where: { $0.id == selected }) { FileDetailView(file: file).id(file.id) }
+        } detail: { id in
+            if let file = model.library.files.first(where: { $0.id == id }) { FileDetailView(file: file).id(file.id) }
             else { ContentUnavailableView("Select a file", image: AppGlyph.file.assetName) }
         }
-        .navigationSplitViewStyle(.balanced)
-        .onAppear { if selected == nil { columns = .all } }
-        .onChange(of: selected) { _, value in if value != nil { columns = .automatic } }
+        .onChange(of: selected) { _, value in if value != nil { model.activity() } }
         .sheet(isPresented: $trash) { NavigationStack { FileTrashView() } }
         .confirmationDialog("Move this local file to Trash?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
             Button("Move to Trash", role: .destructive) { if let removing { Task {

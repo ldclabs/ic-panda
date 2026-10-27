@@ -5,9 +5,6 @@ struct VaultView: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selected: String?
-    @State private var listSelection: String?
-    @State private var compactColumn: NavigationSplitViewColumn = .sidebar
-    @State private var columns: NavigationSplitViewVisibility = .all
     @State private var editing: VaultEditorTarget?
     @State private var trash = false
     private var shown: [VaultItem] { model.vault }
@@ -15,8 +12,8 @@ struct VaultView: View {
 
     var body: some View {
         @Bindable var model = model
-        NavigationSplitView(columnVisibility: $columns, preferredCompactColumn: $compactColumn) {
-            List(selection: $listSelection) {
+        WorkspaceNavigation(selection: $selected) { listSelection in
+            List(selection: listSelection) {
                 if model.session?.syncError != nil {
                     VStack(alignment: .leading, spacing: 4) {
                         NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish."))
@@ -37,9 +34,8 @@ struct VaultView: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 280 : 130), spacing: 10)], spacing: 10) {
                             ForEach(favorites, id: \.id) { item in
                                 Button {
+                                    model.activity()
                                     selected = item.id
-                                    compactColumn = .detail
-                                    columns = .automatic
                                 } label: {
                                     HStack(spacing: 8) {
                                         AppGlyph.vaultItem(item.kind).image.resizable().scaledToFit().frame(width: 20, height: 20).foregroundStyle(Theme.forest)
@@ -86,20 +82,15 @@ struct VaultView: View {
                     }
                 }
                 .refreshable { await model.synchronize() }
-                .onChange(of: listSelection) { _, value in
-                    if let value { selected = value; compactColumn = .detail; model.activity() }
-                }
                 .task(id: model.search + ":" + model.vaultFilter) {
                     try? await Task.sleep(for: .milliseconds(200))
                     if !Task.isCancelled { await model.loadVault() }
                 }
-        } detail: {
-            if let id = selected { VaultDetailView(id: id).id(id) }
+        } detail: { id in
+            if let id { VaultDetailView(id: id) }
             else { ContentUnavailableView("Select a secret", image: AppGlyph.vault.assetName, description: Text("Your hidden fields stay concealed until you choose to reveal them.")) }
         }
-        .navigationSplitViewStyle(.balanced)
-        .onAppear { if selected == nil { columns = .all } }
-        .onChange(of: selected) { _, value in if value != nil { columns = .automatic } }
+        .onChange(of: selected) { _, value in if value != nil { model.activity() } }
         .sheet(item: $editing) { target in NavigationStack { VaultEditor(target: target) } }
         .sheet(isPresented: $trash) { NavigationStack { VaultTrashView() } }
     }
@@ -133,6 +124,8 @@ struct VaultDetailView: View {
     var revision: String? = nil
     @Environment(SessionModel.self) private var model
     @State private var item: VaultItem?
+    @State private var loadFailed = false
+    @State private var reload = 0
     @State private var revealed: [String: String] = [:]
     @State private var pendingField: VaultField?
     @State private var copyPending = false
@@ -188,12 +181,21 @@ struct VaultDetailView: View {
                     }
                 } else if item.reserved { NoticeBar(text: String(localized: "This key is managed by dMsg and cannot be copied or edited.")) }
                 if revision != nil { NoticeBar(text: String(localized: "You are viewing an immutable historical version.")) }
-            } else { ProgressView() }
+            } else if loadFailed {
+                NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
+                Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
+            } else { ProgressView().accessibilityIdentifier("vault.detail.loading") }
         }.privateScreen().navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
-            .task(id: id + ":" + (revision ?? "head")) { await load() }
+            .task(id: "\(id):\(revision ?? "head"):\(model.epoch):\(model.concealed):\(reload)") {
+                // Background suspension invalidates in-flight reads without
+                // destroying the navigation column. Resume with a fresh handle.
+                guard !model.concealed else { return }
+                await load()
+            }
             .onDisappear { clearRevealed() }
+            .onChange(of: id) { _, _ in editing = nil; referenceTarget = nil }
             .onChange(of: model.concealed) { _, concealed in if concealed { clearRevealed() } }
-            .sheet(item: $editing, onDismiss: { Task { await load() } }) { target in NavigationStack { VaultEditor(target: target) } }
+            .sheet(item: $editing, onDismiss: { reload &+= 1 }) { target in NavigationStack { VaultEditor(target: target) } }
             .navigationDestination(item: $referenceTarget) { target in
                 SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID)
             }
@@ -203,14 +205,42 @@ struct VaultDetailView: View {
     }
 
     private func load() async {
-        clearRevealed(); item = nil; let epoch = model.epoch
-        #if DEBUG
-        if model.uiTesting { item = model.vault.first { $0.id == id }; return }
-        #endif
+        clearRevealed(); item = nil; loadFailed = false
+        let epoch = model.epoch
         do {
-            let result = try await model.engine?.vaultItem(id: id, revision: revision)
-            guard model.epoch == epoch, !Task.isCancelled else { return }; item = result?.item
-        } catch { model.report(error) }
+            let loaded: VaultItem
+            #if DEBUG
+            if model.uiTesting {
+                if ProcessInfo.processInfo.arguments.contains("--ui-slow-vault") {
+                    try await Task.sleep(for: .seconds(2))
+                }
+                if ProcessInfo.processInfo.arguments.contains("--ui-vault-load-failure"), reload == 0 {
+                    throw MobileError.Failure(code: "CANCELLED")
+                }
+                guard let fixture = model.vault.first(where: { $0.id == id }) else {
+                    throw MobileError.Failure(code: "NOT_FOUND")
+                }
+                loaded = fixture
+            } else {
+                loaded = try await readItem()
+            }
+            #else
+            loaded = try await readItem()
+            #endif
+            guard model.epoch == epoch, !model.concealed, !Task.isCancelled else { return }
+            item = loaded
+        } catch {
+            guard model.epoch == epoch, !model.concealed, !Task.isCancelled else { return }
+            loadFailed = true
+            model.report(error)
+        }
+    }
+
+    private func readItem() async throws -> VaultItem {
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let result = try await engine.vaultItem(id: id, revision: revision)
+        guard result.generation == model.session?.generation else { throw CancellationError() }
+        return result.item
     }
 
     private func clearRevealed() {

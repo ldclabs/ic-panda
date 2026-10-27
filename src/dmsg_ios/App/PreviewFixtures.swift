@@ -19,6 +19,16 @@ extension SessionModel {
                 VaultItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
                 VaultItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])
+        if ProcessInfo.processInfo.arguments.contains("--ui-detail-navigation") {
+            vault.insert(VaultItem(id: "fixture-managed", revision: "1", kind: "key", title: "dMsg controller #1",
+                subtitle: "", notes: "", favorite: false, tags: ["dmsg-controller"], synced: true, conflict: false,
+                reserved: true, files: [], fields: [VaultField(id: "key", kind: "concealed", label: "Key",
+                    section: "", value: "••••••••", concealed: true)]), at: 0)
+            library = LibraryListing(folder: nil, folders: [], files: [
+                LibraryFile(id: "fixture-local", name: "Local image.png", mime: "image/png", size: 2048,
+                    current: "1", sha256: "fixture-digest", status: "local", versions: 1),
+            ])
+        }
         if storeScreens { loadStorePresentation() }
         if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(synchronizing: true) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {

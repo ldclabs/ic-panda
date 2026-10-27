@@ -1,5 +1,40 @@
 # iOS implementation validation
 
+## Secret and file detail navigation hangs (2026-10-27)
+
+The old implementation reproduced a stalled second secret detail on iPhone 17 /
+iOS 27.0 with a delayed local read, and a permanently loading detail after
+background interruption on iOS 18.4. The collapsed split view mixed list
+selection, copied detail selection and manual column changes. Detail tasks also
+ignored the session epoch/foreground state, so an invalidated result could leave
+the existing page loading forever.
+
+Compact widths now use a `NavigationStack`; regular widths retain a
+`NavigationSplitView`. Vault, files and messages share one navigation selection.
+Secret detail reads follow item/session/visibility changes, reject late results,
+and offer retry after failure. Managed keys remain masked and read-only.
+
+Validation:
+
+- iPhone 16 Pro / iOS 18.4: all 32 native unit tests and 8 selected UI tests
+  passed. These cover the Rust bridge/session fences, repeated managed-secret /
+  ordinary-secret / file navigation, background recovery, cancelled-read retry,
+  leaving a pending read, lock clearing, recovery banners, drafts and nested
+  snapshot navigation through rotation.
+- iPhone 17 / iOS 27.0: 5 selected UI tests passed, including repeated navigation,
+  foreground recovery, retry, dark Chinese and Arabic accessibility text.
+- iPad Pro 13-inch / iOS 27.0: 2 UI tests passed, covering selection replacement
+  during a pending read, favorites and draft preservation through rotation.
+- Debug and Release simulator builds, six-language catalogs, icon parity,
+  existing native-artifact/source fingerprints and diff whitespace checks passed.
+  Native screenshot attachments were inspected; exported copies are in
+  `.build/navigation-fix-20261027/` and `.build/navigation-fix-ipad-20261027/`.
+
+The UI tests use fictitious local presentation data and inject delayed/cancelled
+reads; they do not exercise a real account's network or biometric flows. Rust
+sources were unchanged and Cargo tests were not rerun. No physical-device test,
+distribution archive or TestFlight upload was performed for this fix.
+
 ## Compact lists, access guidance and TestFlight build 3 (2026-10-27)
 
 Vault, channel, inbox, file, approval and device lists use smaller icon tiles

@@ -123,6 +123,16 @@ reason to revoke the device or reset its local data. The native console records
 only the core's allowlisted diagnostic source, reason and HTTP status, prefixed
 with `dmsg:`; it does not record request URLs, identities, tokens or content.
 
+Vault, file and message lists use `NavigationStack` at compact widths and
+`NavigationSplitView` at regular widths, with one shared selection for rows
+and favorites. Compact lists do not also drive split-view selection or column
+changes during a push. Secret tasks follow the selected item and session.
+Secret reads restart after foreground recovery and offer Retry after a failed
+read. Cancelled or old-session results cannot overwrite the current detail.
+The navigation UI tests include delayed reads, managed keys, repeated back/tab
+navigation and background interruption; these are presentation fixtures, not
+claims about production network availability.
+
 One application owns one engine. UI snapshots carry a generation, and Swift
 also invalidates view work on lock/account changes. The core's bounded host
 owns the client without holding a mutex across network waits. Lock cancels the
