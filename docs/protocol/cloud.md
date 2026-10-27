@@ -195,7 +195,7 @@ UploadPlan optionally carries `management:{generation,ciphertext}`, at most 16 K
 
 Accepted deletion is separate from physical deleted and quota released. Show freed space only when deleted and both charged_bytes/reserved_bytes are 0; unknown balances/failures stay pending. Recovery uses original upload/share/message IDs. Other devices may decrypt uploaded management records to resume unpublished links/messages; completed publication never resends. Keep locally unconfirmed reservations too: one remote NotFound before expiry cannot prove cancellation.
 
-Desktop has cloud-space, global-share-link and backup views with source association, filtering, fee previews and per-item batch feedback, up to 50 per batch. Local deletion does not affect cloud copies; cloud deletion cannot recall downloads. Detail scans are not atomic across resources; refresh discrepancies rather than editing quotas. `print_storage_management_vector` emits new Rust interoperability vectors.
+The desktop Cloud storage interface was removed on 2026-10-28. The generic daemon APIs `files/storage`, `files/storage_refresh` and `files/storage_action` are **deprecated** and remain callable for explicit clients. Membership shows usage through `files/cloud_usage`; Files keeps dedicated Links and Cloud backups views, using their content-specific APIs. The underlying HTTP contracts above remain supported for encrypted provenance, recovery and deletion synchronization. Local deletion does not affect cloud copies; cloud deletion cannot recall downloads. Inventory scans are not atomic across resources; discrepancies require refreshing, never editing quotas. `print_storage_management_vector` emits Rust interoperability vectors.
 
 ## Direct private-file reads (2026-10-23)
 

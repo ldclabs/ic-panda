@@ -98,7 +98,7 @@ DMSG_DESKTOP_SMOKE=forms node scripts/smoke.mjs
 | [views/channels/Thread.svelte](../src/renderer/views/channels/Thread.svelte) | `textarea`: 529 |
 | [views/channels/Transfer.svelte](../src/renderer/views/channels/Transfer.svelte) | `textarea`: 101 |
 | [views/files/Detail.svelte](../src/renderer/views/files/Detail.svelte) | `textarea`: 355, 543 |
-| [views/files/Storage.svelte](../src/renderer/views/files/Storage.svelte) | `input:text`: 93 |
+| `views/files/Storage.svelte`（2026-10-28 已移除） | 原 `input:text`: 93 |
 | [views/inbox/Compose.svelte](../src/renderer/views/inbox/Compose.svelte) | `input:text`: 77；`textarea`: 81 |
 | [views/inbox/Rules.svelte](../src/renderer/views/inbox/Rules.svelte) | `input:text`: 85 |
 | [views/plan/Names.svelte](../src/renderer/views/plan/Names.svelte) | `input:text`: 252, 387, 408；`textarea`: 432 |

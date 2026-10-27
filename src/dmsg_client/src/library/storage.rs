@@ -67,6 +67,9 @@ impl Client {
     }
 
     /// The last explicit refresh, encrypted locally. It is never proof that a delete completed.
+    #[deprecated(
+        note = "Cloud-space inventory is deprecated; use cloud::cloud_usage for usage and link/cloud APIs for content."
+    )]
     pub fn files_storage(&self) -> Result<Value> {
         Ok(self
             .cache_read(crate::cache::Kind::Storage, "")?
@@ -231,6 +234,9 @@ pub(crate) async fn sync_metadata<H: Hold>(h: &H) -> Result<()> {
 
 /// Refresh cloud copies and the payer's complete accounting ledger. Failed sources
 /// are explicit; missing permissions never grant access to channel contents.
+#[deprecated(
+    note = "Cloud-space inventory is deprecated; use cloud::cloud_usage and link::share_links_refresh."
+)]
 pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
     let scope = h
         .with(|c| c.cache_scope(crate::cache::Kind::Storage))
@@ -429,6 +435,9 @@ pub struct Target {
 }
 
 /// Explicit bounded bulk actions. One failure does not hide other outcomes.
+#[deprecated(
+    note = "Generic cloud-space actions are deprecated; use content-specific link/cloud operations."
+)]
 pub async fn act<H: Hold>(h: &H, targets: &[Target]) -> Result<Value> {
     ensure_valid(!targets.is_empty() && targets.len() <= 50, "targets")?;
     let mut outcomes = Vec::new();

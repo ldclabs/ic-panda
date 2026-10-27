@@ -1257,28 +1257,26 @@ transport continues to carry `dmsg.relay.delivery` occurrences.
 
 ## Cloud-copy management
 
-The desktop Files view has separate Cloud storage, Links and Cloud backups pages.
-Cloud storage accounts for backups, shared editions, channel attachments and the
-accounting-only charges of channels this account sponsors. It shows who pays,
-reserved/used/pending bytes, and whether physical cleanup and quota release finished.
-A sender or channel owner/admin with access to the attachment epoch may delete a
-channel file; sponsorship alone grants no content permission. Messages retain an
-attachment-deleted marker. Downloaded copies cannot be recalled.
+The desktop Files view keeps separate Links and Cloud backups pages. Account
+storage usage is shown in Membership through `files/cloud_usage`. The generic Cloud
+storage interface and its file-detail entry points were removed on 2026-10-28.
 
-Daemon methods: `files/storage` reads the encrypted local snapshot;
-`files/storage_refresh` refreshes inventory and accounting; `files/share_quote`
-accepts `{id,version?,channel?}` and returns payer, estimated bytes and existing
-copies; `files/storage_action` accepts at most 50 targets, each
-`{owner_kind,resource,upload_id,generation,action,share_id?}` with action
-`delete`, `cancel`, `retry` or `recover`. Outcomes are per target. `files/cloud_delete`
-now returns `accepted`, not a claim that physical deletion already completed.
+**Deprecated (2026-10-28):** `files/storage` (encrypted local inventory snapshot),
+`files/storage_refresh` (inventory/accounting refresh), and `files/storage_action`
+(generic bulk actions). They remain callable for explicit clients, including the
+existing display modes on `files/storage`, but new clients should use content-specific
+APIs. Use `files/share_links` with `{refresh:true}` and `files/share_revoke` for links,
+`files/cloud_*` for backups, and `files/cloud_usage` for account usage.
 
-Names, source versions and publication recovery details travel only as account-root
-encrypted management records. After a lost reply, another unlocked device can recover
-the same share ID and link key; deleting the local source does not remove management.
-Unconfirmed reservations remain recoverable, and an absent server row does not prove
-cancellation before the upload plan expires. Refresh is explicit; the visible desktop
-management page polls only while cleanup is pending.
+The deprecated `files/storage_action` still accepts at most 50 targets, each
+`{owner_kind,resource,upload_id,generation,action,share_id?}`, with `delete`, `cancel`,
+`retry` or `recover` and per-target outcomes. `files/cloud_delete` returns `accepted`,
+not a claim that physical deletion or quota release already completed.
+`files/share_quote {id,version?,channel?}` remains supported for payer/size estimates
+and existing copies. Names, source versions and publication recovery details remain
+account-root encrypted; deleting a local source does not remove link management.
+Low-level metadata synchronization, attachment deletion evidence and quota accounting
+remain supported. Sponsorship alone never grants content/deletion permission.
 
 ## Real-time Agent Mail
 

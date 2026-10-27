@@ -455,6 +455,13 @@ certified heads and execution-time validation remain authoritative.
 
 ## Cloud storage management
 
+**Deprecated (2026-10-28):** `Client::files_storage`, `library::storage::refresh`
+and `library::storage::act`. The generic desktop cloud-space page has been removed;
+these APIs remain callable for explicit clients. Use `library::cloud::cloud_usage`
+for account usage, `library::link` for share-link management, and `library::cloud`
+for backups. Encryption, provenance synchronization and sharing estimates in
+`library::storage` remain supported.
+
 `library::storage` provides an encrypted local inventory snapshot, explicit paginated
 refresh and quota reconciliation, sharing estimates, and bounded per-object management
 outcomes. Upload plans optionally carry account-root-encrypted source and recovery

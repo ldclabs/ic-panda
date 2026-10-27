@@ -34,7 +34,7 @@ const methods = {
   'files/tree': () => [], 'files/list': () => ({ folder: null, folders: [], files: [file] }),
   'files/show': () => ({ file, versions }), 'files/versions': () => versions,
   'files/tags': () => [], 'files/share_links': () => [], 'files/backup_status': () => [],
-  'files/usage': () => null, 'files/mount_status': () => null, 'files/storage': () => ({ loaded: true, entries: [] }),
+  'files/usage': () => null, 'files/mount_status': () => null,
   'secrets/ref': async p => {
     assert.deepEqual(Object.keys(p).sort(), ['field_id', 'item_id'])
     assert.equal(p.item_id, itemId)

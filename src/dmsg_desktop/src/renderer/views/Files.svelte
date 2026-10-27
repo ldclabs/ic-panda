@@ -22,7 +22,7 @@
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
   import { added, backups, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
-  import Storage from './files/Storage.svelte'
+  import Links from './files/Links.svelte'
   import Detail from './files/Detail.svelte'
   import { ancestorsOf, isSort, matchesFile, ordered, ROOT, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
@@ -59,8 +59,6 @@
   let cloud = $state<any[]>([])
   let cloudLoaded = $state(false)
   let cloudUsage = $state<any>(null)
-  let cloudCopies = $state<any[]>([])
-  let copiesKnown = $state(false)
   let usage = $state<any>(null)
   let query = $state('')
   let selected = $state<string[]>([])
@@ -109,7 +107,7 @@
 
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
-  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'storage' && scope !== 'links' && !tag)
+  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && !tag)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
@@ -171,9 +169,9 @@
 
   // The route names the place; the place changes the route.
   $effect(() => {
-    const next = route.startsWith('/files/storage') ? 'storage' : route.startsWith('/files/links') ? 'links' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
+    const next = route.startsWith('/files/links') ? 'links' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
     if (next && next !== scope) scope = next
-    if (!next && ['cloud', 'trash', 'storage', 'links'].includes(scope)) scope = ROOT
+    if (!next && ['cloud', 'trash', 'links'].includes(scope)) scope = ROOT
   })
 
   function pick(next: string) {
@@ -183,7 +181,7 @@
     selected = []
     anchor = null
     trashOpened = null
-    if (next === 'storage' || next === 'links') go(`/files/${next}`)
+    if (next === 'links') go(`/files/${next}`)
     else if (next === 'cloud') go('/files/cloud')
     else if (next === 'trash') go('/files/trash')
     else if (route !== '/files') go('/files')
@@ -223,21 +221,18 @@
 
   const reloadMetadata = single(async () => {
     const account = status?.account
-    const [local, disk, shares, running, tagList, storage] = await Promise.all([
+    const [local, disk, shares, running, tagList] = await Promise.all([
       call('files/usage').catch(() => null),
       call('files/mount_status').catch(() => null),
       call('files/share_links').catch(() => []),
       call('files/backup_status').catch(() => []),
-      call('files/tags').catch(() => []),
-      call<any>('files/storage').catch(() => null)
+      call('files/tags').catch(() => [])
     ])
     if (!unlocked || status?.account !== account) return
     usage = local
     mount = disk
     links = shares
     tags = tagList
-    cloudCopies = storage?.entries ?? []
-    copiesKnown = !!storage?.loaded
     backups(running)
   })
 
@@ -769,8 +764,8 @@
       {@render places()}
     </aside>
 
-    {#if scope === 'storage' || scope === 'links'}
-      <div class="min-w-0 flex-1 @container">{#key `${scope}:${status?.account}`}<Storage {unlocked} linksOnly={scope === 'links'} sourceFile={new URLSearchParams(route.split('?')[1] ?? '').get('source') ?? ''} onSource={(id) => { focus.id = id; pick(ROOT) }} onChannel={(id) => go(`/channels/${id}`)} />{/key}</div>
+    {#if scope === 'links'}
+      <div class="min-w-0 flex-1">{#key status?.account}<Links {unlocked} />{/key}</div>
     {:else if scope === 'cloud'}
       <div class="min-w-0 flex-1">
         <Cloud
@@ -984,9 +979,6 @@
               }}
               onShare={(version) => askShare(current.id, version, current.name)}
               links={links.filter((l) => l.file === current.id)}
-              copies={cloudCopies.filter((copy) => copy.source_file === current.id)}
-              {copiesKnown}
-              onManageCopies={() => go(`/files/storage?source=${current.id}`)}
               onLink={(version) => askLink(current.id, version, current.name)}
               onRevokeLink={revokeLink}
               onRefreshLinks={refreshLinks}
@@ -1099,7 +1091,7 @@
   {#if quoteError}<Notice failure={quoteError} tone="danger">{quoteError}</Notice>{/if}
   {#if quoting}<p class="text-[12px] text-faint">{t('loading')}</p>{:else if quote}
     <Notice tone="info">{t('storageQuote',{bytes:size(quote.estimated_bytes),payer:quote.payer === status?.account ? t('storageMe') : quote.payer})}</Notice>
-    {#if quote.existing?.length}<p class="mt-2 text-[12px] text-muted">{t('storageExisting',{n:quote.existing.length})} <button class="text-forest underline" onclick={() => { sharing=null; linking=null; pick('storage') }}>{t('storageManage')}</button></p>{/if}
+    {#if quote.existing?.length}<p class="mt-2 text-[12px] text-muted">{t('storageExisting',{n:quote.existing.length})}</p>{/if}
   {/if}
 {/snippet}
 

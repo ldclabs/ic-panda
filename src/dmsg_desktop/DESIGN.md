@@ -245,7 +245,7 @@ monospace face: Arabic loses its letter joining there, so only the value
 - **Pane views** (vault, files, channels, inbox) run edge to edge: a filter
   or list column (248–320px), the open object, and for channels a members
   drawer (256–280px); the file library adds a folder tree (220px) before
-  its list, and its cloud and trash places take the list's and the object's
+  its list, and its links, cloud backups and trash places take the list's and the object's
   room as one page. Container queries narrow them: the vault's filter rail turns
   into a menu below 860px; the file library’s places move into a dialog below
   800px, leaving room for its list and detail; the members drawer floats over the timeline below

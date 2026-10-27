@@ -545,9 +545,10 @@ pub async fn share_link<H: Hold>(
     .await
 }
 
-/// Read the account's links from the relay: this device's records take
-/// the download counts and revocations; links other devices made are
-/// listed without a URL, since their keys never left those devices.
+/// Read the account's links after opening their encrypted source records.
+/// Links from other devices retain their URL when the required account root
+/// is available, even if the local source was deleted. Undecryptable records
+/// still expose remote status without inventing a URL.
 ///
 /// # Errors
 /// Relay errors as returned.

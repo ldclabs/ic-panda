@@ -37,6 +37,7 @@ import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, remind
 import { resolveRuntime } from './runtime'
 import { RecoveryNotifications, type RecoveryWarning } from './recovery-notifications'
 import { textFor } from './text'
+import { trayVariant } from './tray-state'
 import { Updates } from './updater'
 
 const testMode = !app.isPackaged && process.env.DMSG_DESKTOP_TEST === '1'
@@ -63,7 +64,7 @@ let main: BrowserWindow | null = null
 let hideAfterFullScreen = false
 let approval: BrowserWindow | null = null
 let tray: Tray | null = null
-let trayImages: { idle: Electron.NativeImage; waiting: Electron.NativeImage } | null = null
+let trayImages: Record<ReturnType<typeof trayVariant>, Electron.NativeImage> | null = null
 let quitting = false
 let waiting = 0
 /** When a waiting request last notified. */
@@ -826,12 +827,14 @@ function updateItem(): Electron.MenuItemConstructorOptions[] {
 
 /**
  * The tray shows the Gate with its diamond, and a badge at the top right
- * while a request waits. macOS tints template images for the menu bar;
+ * while a request waits; a separate bottom-right lock marks a locked account.
+ * macOS tints template images for the menu bar;
  * elsewhere the mark keeps its tile so it shows on dark and light taskbars.
  */
-function trayImage(waitingNow: boolean) {
+function trayImage(variant: ReturnType<typeof trayVariant>) {
   const mac = process.platform === 'darwin'
-  const name = `tray${waitingNow ? 'Waiting' : ''}${mac ? 'Template' : ''}.png`
+  const badge = variant === 'idle' ? '' : variant[0].toUpperCase() + variant.slice(1)
+  const name = `tray${badge}${mac ? 'Template' : ''}.png`
   const image = nativeImage.createFromPath(join(__dirname, '../../resources', name))
   if (mac) image.setTemplateImage(true)
   return image
@@ -840,7 +843,7 @@ function trayImage(waitingNow: boolean) {
 function updateTray(state: string) {
   trayState = state
   if (!tray) return
-  if (trayImages) tray.setImage(waiting ? trayImages.waiting : trayImages.idle)
+  if (trayImages) tray.setImage(trayImages[trayVariant(state, waiting)])
   tray.setToolTip(text.tooltip(app.getVersion(), text.state(state), waiting))
   tray.setContextMenu(
     Menu.buildFromTemplate([
@@ -1017,7 +1020,9 @@ app.whenReady().then(async () => {
   if (!testMode) {
     if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('dmsg', process.execPath, [resolve(process.argv[1])])
     else app.setAsDefaultProtocolClient('dmsg')
-    trayImages = { idle: trayImage(false), waiting: trayImage(true) }
+  }
+  if (!testMode || process.env.DMSG_DESKTOP_TEST_TRAY === '1') {
+    trayImages = { idle: trayImage('idle'), waiting: trayImage('waiting'), locked: trayImage('locked'), lockedWaiting: trayImage('lockedWaiting') }
     tray = new Tray(trayImages.idle)
     updateTray('connecting')
   }

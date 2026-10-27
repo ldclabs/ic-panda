@@ -311,6 +311,7 @@ async fn fetch<H: Hold>(d: &Daemon, h: &H, session: Session, r: &Resource) -> Re
         Kind::Balances => wallet::balances(h, wallet()?).await?,
         Kind::History => wallet::desktop::history(h, wallet()?, false).await?,
         Kind::Inbox => inbox::policy(h).await?.unwrap_or(Value::Null),
+        #[allow(deprecated)] // Display modes remain supported on the deprecated files/storage RPC.
         Kind::Storage => storage::refresh(h).await?,
         Kind::Usage => to_json(&cloud::cloud_usage(h).await?),
         Kind::Asset => return Err(Error::Forbidden),

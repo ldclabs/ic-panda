@@ -195,7 +195,7 @@ UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 K
 
 删除命令成功仅表示已受理，物理 deleted 与额度 released 分别确认。只有 deleted 且 charged_bytes/reserved_bytes 均为 0 才显示空间已释放；未知余额或失败继续显示待处理。恢复沿用原 upload/share/message ID；客户端可以跨设备解密已上传管理记录并恢复未发布的链接或消息，已完成 publication 不重复发送。未确认预留的本地任务也保留；未过期时远端一次查无记录不能证明取消。
 
-桌面提供云端空间、全局分享链接和备份三个视图，支持来源关联、筛选、费用预览和逐项反馈的批量操作（每次最多 50）。文件仅在本机删除不影响云端副本；删除云端副本也不能收回他人已经下载的文件。明细扫描不是跨资源原子快照，差额须刷新核对，不能直接改配额。新增 Rust 互操作向量可由 `print_storage_management_vector` 测试输出。
+桌面「云端空间」界面已于 2026-10-28 移除；通用 daemon API `files/storage`、`files/storage_refresh`、`files/storage_action` 标记为 **deprecated**，暂保留调用能力。会员页面通过 `files/cloud_usage` 展示用量；文件中的「链接」「云端备份」继续使用各自的内容管理 API。上表底层 HTTP 合同继续供加密来源、恢复与删除同步使用。文件仅在本机删除不影响云端副本；删除云端副本也不能收回他人已下载的文件。明细扫描不是跨资源原子快照，差额须刷新核对，不能直接改配额。Rust 互操作向量由 `print_storage_management_vector` 测试输出。
 
 ## 私有文件直读（2026-10-23）
 

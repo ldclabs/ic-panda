@@ -440,9 +440,12 @@ Notifications say only that a request waits, never from where; clicking one
 opens the approval window. For agents' MCP Events they say how many
 deliveries arrived, or that a subscription needs renewing, never what or
 from where; clicking one opens the Agents view. The tray icon is the dMsg
-mark with its diamond; while a request waits, a badge cut out of its top
-right corner joins it. On macOS it is a template image; on Windows it keeps
-its green tile, and the badge is amber.
+mark with its diamond. A confirmed locked session adds a small padlock at the
+bottom right; unlocking removes it. The top-right approval badge remains visible
+independently, including while locked. Unknown/connecting states do not claim a
+confirmed lock. On macOS all four states use template images with 1x/2x assets;
+Windows keeps its green tile and amber approval badge. Regenerate the lock variants
+with `node scripts/generate-tray-locks.mjs` (requires `rsvg-convert`).
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
@@ -580,18 +583,19 @@ as skipped. This is not a passing native fullscreen validation.
 
 ## Cloud copies and sharing
 
-Files → Cloud storage lists backups, link editions, channel attachments and read-only
-accounting for inaccessible sponsored channels. Filters cover source/name, type,
-state, channel and creation date, with size/date sorting and bounded bulk cleanup.
-Files → Links is independent of the source file and shows links from other devices
-when their encrypted metadata can be opened. File details link to associated copies.
+The Cloud storage page, its navigation and file-detail links were removed on
+2026-10-28. Membership shows account storage usage through `files/cloud_usage`.
+Files → Links uses `files/share_links` and `files/share_revoke`; it remains independent
+of the local source and can recover link metadata from other devices. Cloud backups
+and file/version backup actions remain in Files. The desktop no longer allows or
+calls the deprecated `files/storage`, `files/storage_refresh` or `files/storage_action` RPCs.
 
-Before sharing, the dialog shows the estimated new storage and payer and points to
-existing copies. Deletion confirmation explains the effect on links/attachments and
-previously downloaded copies. Accepted deletion, physical cleanup and quota release
-have distinct states; failures can retry. Locking clears decrypted inventory and link
-information. The page only polls while visible with pending cleanup. Electron smoke
-covers the global inventory, links, bulk confirmation and delayed quota release.
+Sharing still previews the estimated new storage and payer and identifies existing
+copies. Local deletion does not revoke links or remove backups; removing a cloud
+copy cannot recall downloaded copies. Link revocation requires confirmation, keeps
+its error available for retry, and ignores replies after locking or leaving the page.
+Electron smoke covers links, backup navigation, membership usage, and absence of the
+removed cloud-space interface in both themes, narrow windows and RTL.
 
 ## Credential use
 

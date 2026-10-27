@@ -50,6 +50,7 @@ pub(crate) const METHODS: [&str; 44] = [
     "files/purge",
     "files/verify",
     "files/usage",
+    // Deprecated cloud-space RPCs; retained for explicit callers, not desktop UI.
     "files/storage",
     "files/storage_refresh",
     "files/storage_action",
@@ -284,6 +285,7 @@ impl Daemon {
                 };
                 Ok(to_json(&client.files_purge(ids.as_deref())?))
             }
+            #[allow(deprecated)] // Keep the deprecated RPC callable until its removal.
             "files/storage" => client.files_storage(),
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
@@ -377,10 +379,12 @@ impl Daemon {
         };
         let answer = async || -> Result<Option<Value>> {
             Ok(Some(match method {
+                #[allow(deprecated)] // Deprecated RPC, retained for explicit callers.
                 "files/storage_refresh" => {
                     let h = dmsg_client::hold::Unlocked::new(&h).await?;
                     storage::refresh(&h).await?
                 }
+                #[allow(deprecated)] // Deprecated RPC, retained for explicit callers.
                 "files/storage_action" => {
                     storage::act(&h, &parse::<Vec<storage::Target>>(params, "targets")?).await?
                 }

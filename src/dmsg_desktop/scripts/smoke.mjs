@@ -36,6 +36,8 @@ import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
+import { filesFlow } from './files-flow.mjs'
+import { trayFlow } from './tray-flow.mjs'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
@@ -447,13 +449,6 @@ const legacyChannels = [
 ]
 let legacyDrafts = []
 const wallets = walletFixture(account, created)
-let storageReleased = false
-const storageCopies = [
-  { id:'backup-copy', owner_kind:'account', resource:account, upload_id:'71'.repeat(32), kind:'backup', name:'Project archive.zip', source_file:'23'.repeat(32), bytes:4096, payer:account, charged_bytes:4096, reserved_bytes:0, generation:0, phase:'stored', can_delete:true, created_at:Date.now() },
-  { id:'link-copy', owner_kind:'account', resource:account, upload_id:'72'.repeat(32), kind:'share', name:'Shared report.pdf', source_file:'23'.repeat(32), bytes:2048, payer:account, charged_bytes:2048, reserved_bytes:0, generation:0, phase:'stored', can_revoke:true, share:{share_id:'73'.repeat(32),state:'active',expires_at:Date.now()+86400000,downloads:2}, url:'https://dmsg.test/s/example#test-key',created_at:Date.now() },
-  { id:'channel-copy', owner_kind:'channel', resource:'74'.repeat(32),upload_id:'75'.repeat(32),kind:'file',name:'Design notes.txt',channel_name:'Project channel',source_file:'23'.repeat(32),bytes:1024,payer:account,charged_bytes:1024,reserved_bytes:0,generation:0,phase:'stored',can_delete:true,created_at:Date.now() }
-]
-const storageReport = () => ({loaded:true, account, entries:storageCopies.map(e=>storageReleased && e.phase==='releasing' ? {...e,phase:'released',charged_bytes:0}:e), errors:[],links:[],usage:{committed:storageReleased?0:7168,reserved:0,lifecycle:{storage_limit:104857600}},categories:{backup:4096,share:2048,file:1024},pending_release:storageCopies.some(e=>e.phase==='releasing')&&!storageReleased?7168:0,refreshed_at:Date.now(),reconciliation:{consistent:true}})
 
 const methods = {
   ...wallets.methods,
@@ -672,17 +667,7 @@ const methods = {
     backupJobs.splice(backupJobs.findIndex((j) => j.file === p.id && j.version === p.version), 1)
     return null
   },
-  'files/storage': storageReport,
-  'files/storage_refresh': storageReport,
-  'files/storage_action': (p) => {
-    for (const target of p.targets) {
-      const entry=storageCopies.find(e=>e.upload_id===target.upload_id)
-      assert.ok(entry)
-      entry.phase='releasing';entry.can_delete=false;entry.can_revoke=false
-    }
-    return {outcomes:p.targets.map(target=>({target,accepted:true}))}
-  },
-  'files/share_quote': () => ({payer:account,estimated_bytes:20000,existing:storageCopies.filter(e=>e.phase==='stored')}),
+  'files/share_quote': () => ({ payer: account, estimated_bytes: 20000, existing: [] }),
   'files/share_links': () => [],
   'files/share_link': (p) => {
     if (shareLinkShouldFail) { shareLinkShouldFail = false; throw { code: 'UNAVAILABLE', message: 'retry link' } }
@@ -1579,6 +1564,13 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'files') {
+    await filesFlow({ app, main, shots, methods, hold, waitFor, calls, emit, setSession: value => { session = value } })
+    if (process.env.DMSG_DESKTOP_TEST_TRAY === '1') await trayFlow({ app, methods, emit, waitFor, shots, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop files and tray smoke test passed')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'security') {
     await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
     assert.deepEqual(pageErrors, [])
@@ -3620,42 +3612,8 @@ smoke: try {
   await main.click('nav >> text=/^(Files|文件)$/')
   await main.waitForSelector('[data-testid="files-loading"]')
   assert.equal(await main.locator('[data-testid="files-empty"]').count(), 0)
-  // The view reads the daemon's inventory snapshot; the daemon refreshes it
-  // in the background (covered by the daemon's display tests).
-  await main.click('[data-testid="files-scope-storage"]')
-  await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
-  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),3)
-  await main.getByTestId('storage-before').fill('2026-02-30')
-  assert.equal(await main.getByTestId('storage-before').getAttribute('aria-invalid'), 'true')
-  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(), 0)
-  await main.getByTestId('storage-before-clear').click()
-  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(), 3)
-  await main.getByTestId('storage-before-calendar').click()
-  await main.getByTestId('storage-before-popover').waitFor()
-  await main.screenshot({ path: join(shots, 'controls-storage-date.png'), animations: 'disabled' })
-  await main.keyboard.press('Escape')
-
-  assert.equal(calls.some((c) => c.method === 'files/storage_refresh'), false)
-  await settled(main,'[data-testid="files-storage"]')
-  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').count()) await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').first().click()
-  await main.screenshot({path:join(shots,'cloud-storage.png')})
-  await main.getByRole('button',{name:'Select reclaimable items',exact:true}).click()
-  await main.click('[data-testid="storage-bulk-delete"]')
-  await main.waitForSelector('[data-testid="storage-confirm"]')
-  assert.match(await main.textContent('[data-testid="storage-confirm"]'),/already downloaded/)
-  await main.click('[data-testid="storage-confirm-delete"]')
-  await main.waitForSelector('[data-testid="storage-confirm"]',{state:'detached'})
-  await waitFor(()=>latest('files/storage_action'))
-  assert.equal(latest('files/storage_action').params.targets.length,3)
-  await main.getByTestId('storage-phase').filter({hasText:'awaiting quota release'}).first().waitFor()
-  storageReleased=true
-  await main.click('[data-testid="storage-refresh"]')
-  await main.getByTestId('storage-phase').filter({hasText:'Space released'}).first().waitFor()
-  await main.click('[data-testid="files-scope-links"]')
-  await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
-  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),1)
-  await main.click('[data-testid="files-scope-root"]')
   await listing()
+  await filesFlow({ app, main, shots, methods, hold, waitFor, calls, emit, setSession: value => { session = value } })
   await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
   assert.equal(await main.locator('[data-testid="files-loading"]').count(), 0)
   const finishCloudQuota = hold('files/cloud_usage')
