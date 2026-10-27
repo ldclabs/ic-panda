@@ -47,6 +47,10 @@
             : 4)
   )
   const latestVersion = $derived(Math.max(0, ...(versions?.versions ?? []).filter((v: any) => !v.retired).map((v: any) => v.version)))
+  const acceptedUpgrade = $derived(wallet.code_acceptance?.Upgrade)
+  const pendingUpgrade = $derived(acceptedUpgrade && acceptedUpgrade.version !== versions?.record?.version)
+  let codePending = $state(false), codeError = $state(''), installedVersion = $state<number | null>(null)
+  let versionRead = 0
   let alive = true
   let errors = $state<Record<string, string>>({})
   function reader(key: string, method: string, apply: (value: any) => void) {
@@ -64,7 +68,16 @@
     })
   }
   const readHealth = reader('health', 'wallet/health', (value) => (health = value))
-  const readVersions = reader('versions', 'wallet/versions', (value) => (versions = value))
+  const readVersions = single(async () => {
+    if (!alive) return
+    const read = ++versionRead
+    try {
+      const value = await call('wallet/versions', { wallet: wallet.wallet })
+      if (alive && read === versionRead) { versions = value; errors.versions = '' }
+    } catch (e) {
+      if (alive && read === versionRead) errors.versions = errorText(e)
+    }
+  })
   const readRpc = reader('rpc', 'wallet/rpc', (value) => (rpc = value))
   const readKeys = reader('keys', 'wallet/cosigners', (value) => (keys = value))
   const readChannels = reader('channels', 'channel/list', (value) => (channels = value))
@@ -75,6 +88,31 @@
     void readKeys()
     void readChannels()
     void readBinding()
+  }
+  async function installUpgrade() {
+    if (busy || !pendingUpgrade) return
+    busy = true
+    codePending = true
+    codeError = ''
+    installedVersion = null
+    try {
+      const result: any = await call('wallet/upgrade', { wallet: wallet.wallet })
+      if (!alive) return
+      // The hub's completed install takes precedence over an older read in flight.
+      ++versionRead
+      versions = { ...versions, record: result.record }
+      errors.versions = ''
+      installedVersion = result.record.version
+      onUpdated()
+    } catch (e) {
+      if (!alive) return
+      codeError = errorText(e)
+      void readVersions()
+      onUpdated()
+    } finally {
+      busy = false
+      codePending = false
+    }
   }
   async function run(method: string, params: any = {}) {
     busy = true
@@ -130,7 +168,7 @@
 </script>
 
 <div class="grid gap-5">
-  {#each Object.values(errors).filter(Boolean) as failure}<Notice failure={failure} tone="danger"
+  {#each Object.entries(errors).filter(([key, value]) => key !== 'versions' && value).map(([, value]) => value) as failure}<Notice failure={failure} tone="danger"
       >{failure}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice
     >{/each}
   {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
@@ -241,14 +279,12 @@
     </Collapsible>
   </Section>
   <Section title={w('versions')} icon="settings">
+    {#if errors.versions}<Notice failure={errors.versions} tone="danger">{errors.versions}<button class={buttonClass('ghost', 'xs')} onclick={readVersions}>{w('retry')}</button></Notice>{/if}
     {#if versions}
-      <p class="mb-3 text-[12px]"
-        >{w('version')}: {versions.record?.version ?? '—'} · {versions.record?.locked
-          ? w('lock_code')
-          : wallet.code === 'None'
-            ? w('noCodeChange')
-            : wallet.code}</p
+      <p class="mb-3 text-[12px]" data-testid="wallet-code-current"
+        >{w('currentVersion')}: <bdi dir="ltr">v{versions.record?.version ?? '—'}</bdi>{#if versions.record?.locked} · {w('lock_code')}{:else if !pendingUpgrade} · {wallet.code_acceptance === 'Lock' ? w('applyLock') : w('noCodeChange')}{/if}</p
       >
+      {#if pendingUpgrade}<p class="mb-3 text-[12px]" data-testid="wallet-code-accepted">{w('upgradeAccepted')}: <bdi dir="ltr">v{acceptedUpgrade.version}</bdi></p>{/if}
       {#each versions.versions as v (v.version)}<div class="border-line flex flex-wrap items-center gap-2 border-t py-3"
           ><b>v{v.version}</b>{#if v.version === versions.record?.version}<Pill>{w('currentVersion')}</Pill>{:else if v.retired}<Pill
               >{w('retiredVersion')}</Pill
@@ -258,7 +294,7 @@
                 >{v.module_hash}</p
               ></Collapsible
             ></div
-          >{#if mayPropose && !versions.record?.locked && !v.retired && v.version !== versions.record?.version}<button
+          >{#if mayPropose && !versions.record?.locked && !v.retired && v.version !== versions.record?.version && v.version !== acceptedUpgrade?.version}<button
               class={buttonClass('secondary', 'sm')}
               disabled={busy}
               onclick={() =>
@@ -277,10 +313,14 @@
             >{w('rollback')}</button
           ></Notice
         >{/if}
-      {#if wallet.code_acceptance?.Upgrade}<button
+      {#if codePending}<Notice class="mb-3" testid="wallet-upgrade-progress">{w('upgradeInstalling')}</Notice>{/if}
+      {#if codeError}<Notice class="mb-3" tone="danger" testid="wallet-upgrade-error">{w('upgradeNotConfirmed')}<p class="mt-1">{codeError}</p><button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => { void readVersions(); onUpdated() }}>{t('refresh')}</button></Notice>{/if}
+      {#if installedVersion !== null}<Notice class="mb-3" tone="ok" testid="wallet-upgrade-success">{w('upgradeInstalled')}: <bdi dir="ltr">v{installedVersion}</bdi></Notice>{/if}
+      {#if pendingUpgrade}<button
+          data-testid="wallet-upgrade-install"
           class={buttonClass('primary', 'sm')}
           disabled={busy}
-          onclick={() => run('wallet/upgrade')}>{w('applyUpgrade')}</button
+          onclick={installUpgrade}>{w('applyUpgrade')}</button
         >{/if}
       {#if !versions.record?.locked && mayPropose}<div class="border-line mt-3 border-t pt-3"
           ><button class={buttonClass('ghost', 'sm')} onclick={() => onManage('lock_code')}>{w('lockCode')}</button></div

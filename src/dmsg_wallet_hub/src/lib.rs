@@ -834,6 +834,44 @@ async fn release_code(wallet: Principal) {
     let _: Result<Result<()>> = dmsg_runtime::call(wallet, "release_code", ()).await;
 }
 
+/// Older wallets have no claim_code. In that case bracket a fresh acceptance
+/// read with the IC's execution version, then verify it after stopping. Only
+/// that replicated read and the two stop transitions may advance the version.
+async fn claim_upgrade(wallet: Principal, expected: &CodeAcceptance) -> Result<Option<u64>> {
+    use ic_cdk::call::{Call, CallFailed, RejectCode};
+
+    match Call::bounded_wait(wallet, "claim_code")
+        .with_arg(expected)
+        .await
+    {
+        Ok(reply) => {
+            let claimed: Result<()> = reply.candid().map_err(unavailable)?;
+            claimed?;
+            Ok(None)
+        }
+        Err(CallFailed::CallRejected(rejection))
+            if rejection.reject_code() == Ok(RejectCode::CanisterError)
+                && rejection.reject_message().starts_with(&format!(
+                    "IC0536: Error from Canister {wallet}: Canister has no update method 'claim_code'."
+                )) =>
+        {
+            let status = canister_status(&CanisterIdRecord { canister_id: wallet })
+                .await
+                .map_err(unavailable)?;
+            ensure(status.status == CanisterStatusType::Running, Error::Pending)?;
+            ensure(
+                status.settings.controllers == [ic_cdk::api::canister_self()],
+                Error::Forbidden,
+            )?;
+            let accepted: CodeAcceptance =
+                dmsg_runtime::call(wallet, "accepted_upgrade", ()).await?;
+            ensure(accepted == *expected, Error::VersionConflict)?;
+            Ok(Some(status.version))
+        }
+        Err(error) => Err(unavailable(error)),
+    }
+}
+
 /// Install the version a wallet accepted. Anyone may call it.
 #[ic_cdk::update]
 async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
@@ -872,16 +910,14 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
         Error::IdempotencyConflict,
     )?;
     let module = store::module(version).ok_or(Error::NotFound)?;
-    let claimed: Result<()> = dmsg_runtime::call(
+    let guarded_version = claim_upgrade(
         wallet,
-        "claim_code",
-        (CodeAcceptance::Upgrade {
+        &CodeAcceptance::Upgrade {
             version,
             module_hash,
-        },),
+        },
     )
     .await?;
-    claimed?;
     // The wallet has no calls to the hub in flight, so stopping it ends. A
     // stop that fails, such as one timing out on a call still in flight,
     // leaves it stopping: it runs again, since this method could not reach
@@ -892,8 +928,19 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
         }
         return Err(unavailable(e));
     }
-    let arg = candid::encode_one(Some(version)).map_err(unavailable)?;
-    let installed = install(wallet, &module, CanisterInstallMode::Upgrade(None), arg).await;
+    let installed = async {
+        if let Some(before) = guarded_version {
+            let status = canister_status(&id).await.map_err(unavailable)?;
+            ensure(
+                status.status == CanisterStatusType::Stopped
+                    && Some(status.version) == before.checked_add(3),
+                Error::VersionConflict,
+            )?;
+        }
+        let arg = candid::encode_one(Some(version)).map_err(unavailable)?;
+        install(wallet, &module, CanisterInstallMode::Upgrade(None), arg).await
+    }
+    .await;
     // The installed version is recorded even if the start below fails.
     if installed.is_ok() {
         let mut record = store::wallet(wallet).ok_or(Error::NotFound)?;

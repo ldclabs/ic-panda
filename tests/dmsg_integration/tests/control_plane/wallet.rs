@@ -99,6 +99,10 @@ fn register_module(f: &Fixture, hub: Principal, module: &[u8]) -> WalletVersion 
 }
 
 fn setup(f: &Fixture) -> Principal {
+    setup_with_module(f, &wasm("dmsg_wallet"))
+}
+
+fn setup_with_module(f: &Fixture, module: &[u8]) -> Principal {
     let cmc = f.ic.create_canister();
     f.ic.add_cycles(cmc, 10_000_000_000_000_000);
     f.ic.install_canister(
@@ -176,7 +180,7 @@ fn setup(f: &Fixture) -> Principal {
     };
     let r: Result<()> = update(&f.ic, f.commerce, f.sns, "register_integration_app", (app,));
     r.unwrap();
-    register_module(f, hub, &gz(&wasm("dmsg_wallet")));
+    register_module(f, hub, &gz(module));
     hub
 }
 
@@ -342,8 +346,12 @@ fn claim_refund(f: &Fixture, hub: Principal, by: u8, quote: Hash, to: Account) -
 
 impl Team {
     fn new(approvers: u8) -> Self {
+        Self::with_module(approvers, &wasm("dmsg_wallet"))
+    }
+
+    fn with_module(approvers: u8, module: &[u8]) -> Self {
         let f = Fixture::new();
-        let hub = setup(&f);
+        let hub = setup_with_module(&f, module);
         let a = create_member(&f, A);
         let b = create_member(&f, B);
         let quote: Result<ActivationQuote> =
@@ -1486,6 +1494,133 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
         )
         .unwrap();
     assert_eq!(plan.summary.outputs[0].amount, 50_000);
+}
+
+/// Simulate an installed module without the newer entry point in the default
+/// suite. The separate release test below uses unmodified historical source.
+fn without_code_claim() -> Vec<u8> {
+    let mut bytes = wasm("dmsg_wallet");
+    let name = b"canister_update claim_code";
+    let matches: Vec<_> = bytes
+        .windows(name.len())
+        .enumerate()
+        .filter_map(|(i, value)| (value == name).then_some(i))
+        .collect();
+    assert_eq!(matches.len(), 1);
+    bytes[matches[0] + name.len() - 1] = b'x';
+    bytes
+}
+
+fn accept_version(t: &Team, version: &WalletVersion) -> Proposal {
+    let accept = t.approve_p(
+        t.propose(
+            P,
+            Intent::AcceptUpgrade {
+                version: version.version,
+                module_hash: version.module_hash,
+            },
+        )
+        .id,
+    );
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    t.execute(accept.id, None, vec![]).unwrap();
+    accept
+}
+
+fn upgrade_without_claim(old: &[u8]) {
+    let t = Team::with_module(1, old);
+    let v2 = register_module(&t.f, t.hub, &gz(&wasm("dmsg_wallet")));
+    let accept = accept_version(&t, &v2);
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(t.wallet), 123_456_789u128),
+    );
+    let before = t.view();
+    assert!(
+        !old.windows(b"canister_update claim_code".len())
+            .any(|name| name == b"canister_update claim_code")
+    );
+    let upgraded: Result<WalletRecord> =
+        update(&t.f.ic, t.hub, person(99), "upgrade_wallet", (t.wallet,));
+    assert_eq!(upgraded.unwrap().version, v2.version);
+    let after = t.view();
+    assert_eq!(after.code, CodeAcceptance::None);
+    assert_eq!(after.members, before.members);
+    assert_eq!(after.policy, before.policy);
+    assert_eq!(after.addresses, before.addresses);
+    assert_eq!(after.key_roots, before.key_roots);
+    assert_eq!(t.balance(account(t.wallet)), 123_456_789);
+    let proposal: Result<Proposal> =
+        query(&t.f.ic, t.wallet, person(A), "get_proposal", (accept.id,));
+    assert_eq!(proposal.unwrap().status, ProposalStatus::Settled);
+}
+
+#[test]
+fn wallet_upgrade_without_claim_preserves_state() {
+    upgrade_without_claim(&without_code_claim());
+}
+
+#[test]
+#[ignore = "run scripts/test-dmsg-wallet-upgrade.sh with the actual canisters-v3.1.0 Wasm"]
+fn wallet_upgrade_from_v310_preserves_state() {
+    let directory =
+        PathBuf::from(std::env::var_os("DMSG_PRE_CLAIM_WASM_DIR").expect("old wallet Wasm"));
+    upgrade_without_claim(&std::fs::read(directory.join("dmsg_wallet.wasm")).unwrap());
+}
+
+#[test]
+fn wallet_upgrade_without_claim_rejects_concurrent_execution_and_restarts() {
+    let t = Team::with_module(1, &without_code_claim());
+    let v2 = register_module(&t.f, t.hub, &gz(&wasm("dmsg_wallet")));
+    accept_version(&t, &v2);
+    let upgrade =
+        t.f.ic
+            .submit_call(
+                t.hub,
+                person(99),
+                "upgrade_wallet",
+                candid::encode_one(t.wallet).unwrap(),
+            )
+            .unwrap();
+    let mut concurrent = vec![];
+    for _ in 0..24 {
+        // A successful replicated execution between the acceptance read and
+        // stopping invalidates the guard, even if it leaves acceptance alone.
+        if let Ok(call) = t.f.ic.submit_call(
+            t.wallet,
+            person(A),
+            "bootstrap",
+            candid::encode_args(()).unwrap(),
+        ) {
+            concurrent.push(call);
+        }
+        t.f.ic.tick();
+    }
+    let upgraded: Result<WalletRecord> =
+        candid::decode_one(&t.f.ic.await_call(upgrade).unwrap()).unwrap();
+    assert_eq!(upgraded, Err(Error::VersionConflict));
+    for call in concurrent {
+        let _ = t.f.ic.await_call(call);
+    }
+    assert_eq!(
+        t.view().code,
+        CodeAcceptance::Upgrade {
+            version: v2.version,
+            module_hash: v2.module_hash
+        }
+    );
+    let record: Option<WalletRecord> =
+        query(&t.f.ic, t.hub, person(99), "get_wallet_record", (t.wallet,));
+    assert_eq!(record.unwrap().version, 1);
+    let retried: Result<WalletRecord> =
+        update(&t.f.ic, t.hub, person(99), "upgrade_wallet", (t.wallet,));
+    assert_eq!(retried.unwrap().version, 2);
+    assert_eq!(t.view().code, CodeAcceptance::None);
 }
 
 #[test]

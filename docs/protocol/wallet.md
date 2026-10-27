@@ -157,7 +157,7 @@ Structured desktop methods, multi-device packages, incremental audit and encrypt
 - Client approval/cosigning authenticates the full proposal through get_proposal_certified, deriving expiry/delay from freshly certified wallet version/time. Recomputing a supplied digest is not authoritative reading.
 - Native EVM/ERC-20 preview and execution estimate gas using the same final call parameters; instances still enforce fee ceilings.
 
-Deploy in order: register/upgrade wallet instances through the existing hub, then update the claim_code-aware hub, then clients. Old cancellation/release proposals without target binding must be recreated. These are source contracts, not production deployment claims.
+2026-10-27 upgrade revision: the hub can upgrade older wallets that explicitly lack `claim_code` (IC0536). It verifies that it is the sole controller, reads the system execution version before a fresh `accepted_upgrade()` call, and permits only three increments through stopping: the replicated query and the two stop transitions. Any additional execution returns `VersionConflict` and restarts the wallet for a retry. Timeouts, other rejections and claim business errors are not ignored. The accepted release version and module hash remain binding, so the fixed hub can be deployed first and then install the already accepted wallet version. Older wallets must still upgrade before locking their code. Old cancellation/release proposals without target binding must be recreated. These are source contracts, not production deployment claims.
 
 
 ## Policy usage and local workflows

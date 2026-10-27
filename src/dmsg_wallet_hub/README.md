@@ -31,6 +31,8 @@
 
 `upgrade_wallet` 读取实例的 `accepted_upgrade()`，核对版本已登记、哈希一致且与已装版本不同，然后 stop → 分块 install（`Upgrade`，参数为版本号）→ start。停止失败（例如在途调用使其超时）或安装失败都会重新启动实例；安装成功即记下新版本，即使随后启动失败。读取 `accepted_upgrade()` 失败时先 `start_canister`（对运行中的实例无影响），所以上一次没能启动的实例在下一次调用时恢复运行。`lock_wallet` 在实例接受 `LockCode` 后把 controllers 设为空。
 
+安装前优先用 `claim_code` 领取接受记录。对明确返回 IC0536、缺少此接口的旧实例，hub 确认自己是唯一 controller，读取系统执行版本后重新读取精确接受记录，停止后要求执行版本只增加 3（一次 replicated query、Running → Stopping → Stopped）。额外执行会返回 `VersionConflict` 并重启钱包，等待安静时重试；超时、其他拒绝和业务错误不会触发此路径。这里的系统执行版本不是界面中的钱包发布版本。此路径保留原已接受版本与哈希，不替团队选择新版本。
+
 ## 存储
 
 stable 记录用整数键的紧凑编码（`dmsg_runtime::stable_types::wallet` 与 [stable_codec.rs](src/stable_codec.rs)），`post_upgrade` 校验 `STABLE_SCHEMA`。订单只存规格与进度，报价单独存一份：一次激活（报价 + 订单）由 1,250 B 降为 669 B（3 名成员的规格）。报价不再改写 hub 记录；`sync_wallet` 成员不变时不写，变化时只改动增删的索引项。
@@ -56,4 +58,4 @@ stable 记录用整数键的紧凑编码（`dmsg_runtime::stable_types::wallet` 
 - 收入只归集固定报价金额，多付款和迟到款留在报价子账户。`get_activation_reserve` 返回必须保留的收入金额；`claim_activation_refund` 只退未预留余额，费用读取当前账本值。收入作业与退款作业独立存储，同一报价从读取余额到发送结果全程互斥。
 - 已完成退款再次调用且没有新款，返回原区块；有新款时生成独立固定参数的退款。客户端保留报价追踪记录，不再在创建/退款完成时删除。
 
-实际部署应先升级钱包实例，再升级启用 `claim_code` 的 hub；本文不代表已执行生产变更。
+修复后的 hub 可直接升级尚无 `claim_code` 的旧钱包；无需回退 hub 或重新提议同一个已接受版本。旧钱包锁定代码仍需先升级到支持领取的版本。`bash scripts/test-dmsg-wallet-upgrade.sh` 从固定的 `canisters-v3.1.0` 提交构建未修改的旧钱包，验证原地升级后成员、策略、地址、公钥、余额和提案历史保留；常规 `wallet_upgrade_*` 回归另覆盖接口缺失、并发执行中止与重启后重试。本文不代表已执行生产变更。
