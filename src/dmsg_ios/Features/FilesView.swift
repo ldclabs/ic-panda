@@ -37,7 +37,7 @@ struct FilesView: View {
                 }
                 Section("On this device") {
                     ForEach(model.library.files) { file in
-                        NavigationLink(value: file.id) { FileRow(file: file) }
+                        NavigationLink(value: file.id) { FileRow(file: file) }.compactObjectRow()
                             .contextMenu { Button("Move to Trash", role: .destructive) { removing = file } }
                     }
                     if model.library.files.isEmpty && model.cloudBackups.isEmpty && !model.loadingCloudBackups && !model.cloudBackupsFailed {
@@ -125,14 +125,16 @@ struct FilesView: View {
 
 struct FileRow: View {
     let file: LibraryFile
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ObjectIcon(glyph: file.mime.hasPrefix("image/") ? .image : .file)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(file.name).font(.body.weight(.medium)).lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(file.name).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file) + " · " + (file.status == "backed_up" ? String(localized: "Backed up") : String(localized: "Local")))
                     .font(.caption).foregroundStyle(.secondary)
-            }.padding(.vertical, 5)
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MessagesView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selected: String?
     @State private var mode = 0
     @State private var creating = false
@@ -17,23 +18,23 @@ struct MessagesView: View {
                 if mode == 0 {
                     ForEach(model.channels, id: \.id) { channel in
                         NavigationLink(value: channel.id) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 10) {
                                 ObjectIcon(glyph: .channels)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(channel.name).font(.body.weight(.medium))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(channel.name).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                                     Text(channel.draft.isEmpty ? channel.preview : String(localized: "Draft: ") + channel.draft)
-                                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                                        .font(.caption).foregroundStyle(.secondary).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                 if channel.unread > 0 { Text(channel.unread.formatted()).font(.caption.bold()).padding(6).background(Theme.forest.opacity(0.1), in: Circle()) }
-                            }.padding(.vertical, 6)
-                        }.accessibilityIdentifier("channel.row.\(channel.id)")
+                            }
+                        }.compactObjectRow().accessibilityIdentifier("channel.row.\(channel.id)")
                     }
                     if model.channels.isEmpty { ContentUnavailableView("No conversations yet", image: AppGlyph.channels.assetName, description: Text("Your authorized channels appear after synchronization.")) }
                 } else {
                     Toggle("Archived", isOn: $archived)
                     let visible = letters.filter { $0.archived == archived && !model.blockedAccounts.contains($0.sender) }
                     ForEach(visible) { letter in
-                        NavigationLink(value: letter.id) { InboxRow(letter: letter) }
+                        NavigationLink(value: letter.id) { InboxRow(letter: letter) }.compactObjectRow()
                     }
                     if visible.isEmpty { ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName) }
                 }

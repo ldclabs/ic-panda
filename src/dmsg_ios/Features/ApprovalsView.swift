@@ -9,16 +9,16 @@ struct ApprovalsView: View {
             Section("Approvals") {
                 ForEach(model.approvals) { request in
                     NavigationLink { ApprovalDetailView(request: request) } label: {
-                        HStack(alignment: .top, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
                             ObjectIcon(glyph: request.type == "device_pair" ? .device : .signature)
-                            VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(approvalTitle(request.type)).font(.headline)
-                                Text(request.source).font(.subheadline).foregroundStyle(.secondary)
+                                Text(request.source).font(.caption).foregroundStyle(.secondary)
                                 Text(Date(timeIntervalSince1970: Double(request.expiresAt) / 1000), style: .relative)
                                     .font(.caption).foregroundStyle(.orange)
                             }
-                        }.padding(.vertical, 6)
-                    }
+                        }
+                    }.compactObjectRow()
                 }
                 if model.approvals.isEmpty { ContentUnavailableView("All caught up", image: AppGlyph.approvals.assetName, description: Text("Requests that need your decision appear here.")) }
             }

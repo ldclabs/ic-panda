@@ -1,5 +1,48 @@
 # iOS implementation validation
 
+## Compact lists, access guidance and TestFlight build 3 (2026-10-27)
+
+Vault, channel, inbox, file, approval and device lists use smaller icon tiles
+and shared row insets instead of stacked vertical padding. Ordinary two-line
+rows target 56 pt and retain at least 44 pt of tappable content. Titles and
+previews can grow at accessibility text sizes; inbox dates move below the
+sender in that mode. The access footer now uses two adaptive rows, a smaller
+language glyph and the shorter Language label in all six languages. Its notice
+distinguishes first sign-in, workspace creation, existing-account authorization
+and returning unlock instead of presenting device approval to every new user.
+
+Validation and delivery:
+
+- 49 native tests passed, none failed or skipped, on iPhone 16 Pro / iOS 18.4.
+  This includes the compact-row height check, normal startup guidance, language
+  entrypoints, Arabic accessibility text, rotation, lock and draft regressions.
+- Six-language catalogs/compiler extraction, icon-source parity, optimized Rust
+  artifact/source fingerprints, plist and diff checks passed. Rust sources were
+  unchanged; Cargo tests were not rerun.
+- A signed Release archive and App Store IPA export succeeded for version
+  `0.1.0 (3)`. All six distribution signatures/profiles were verified, including
+  no debugging entitlement or device-list restriction. Production backend,
+  APNs/App Attest, disabled purchases and the opaque app icon are retained.
+  Screenshot fixture flags are absent from the Release executable.
+- Build 3 uploaded successfully and completed Apple processing. App Store
+  Connect shows Ready to Submit and the existing internal dMsg group with one
+  tester. Bilingual testing notes describe these changes and production access.
+  No new testers were invited and no App Store review was submitted.
+- 24 RGB PNGs replaced the English (US) and Simplified Chinese store screenshots:
+  each locale has five 1206 × 2622 iPhone images, five 1320 × 2868 iPhone images,
+  and two 2064 × 2752 iPad images. Native views use fictitious presentation data;
+  their content was inspected. The temporary capture test was removed afterward.
+
+Local outputs: `.build/CompactLists-build3-20261027.xcresult`,
+`.build/TestFlight-build3/` and `.build/AppStoreScreenshots-build3-20261027/`.
+The exported IPA is 21,737,224 bytes; SHA-256
+`75e61f596d803cbc890952ef2bdc579c93c639b8627aa78e1fcb13a3ec39fe35`.
+Identical promotional PNGs and a SHA-256 manifest are saved under the repository's
+local `misc/dmsg-ios-screenshots/2026-10-27-build3/` directory. User feedback
+confirmed that the language link reaches the system language picker. Physical
+device biometric behavior and installation of this TestFlight build were not
+validated by this run.
+
 ## Automatic unlock and language settings (2026-10-27)
 
 Cold startup and foreground return now request the existing system quick-unlock

@@ -24,6 +24,7 @@ import XCTest
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: login)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["On your first visit, sign in and follow the steps to create your encrypted workspace."].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Production startup with passkey self-registration"; shot.lifetime = .keepAlways; add(shot)
     }
@@ -36,7 +37,7 @@ import XCTest
         XCTAssertTrue(language.waitForExistence(timeout: 5))
         for _ in 0..<4 where !language.isHittable { app.swipeUp() }
         XCTAssertTrue(language.isHittable)
-        XCTAssertEqual(language.label, "App language")
+        XCTAssertEqual(language.label, "Language")
         let access = XCTAttachment(screenshot: app.screenshot())
         access.name = "Language entry before login"; access.lifetime = .keepAlways; add(access)
 
@@ -46,7 +47,7 @@ import XCTest
         tab(app, symbol: "Glyph-account", title: "我的").tap()
         for _ in 0..<8 where !language.isHittable { app.swipeUp() }
         XCTAssertTrue(language.isHittable)
-        XCTAssertEqual(language.label, "App 语言")
+        XCTAssertEqual(language.label, "语言")
         let account = XCTAttachment(screenshot: app.screenshot())
         account.name = "Language entry in account"; account.lifetime = .keepAlways; add(account)
     }
@@ -83,6 +84,9 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.staticTexts["GitHub"].firstMatch.waitForExistence(timeout: 10))
+        let row = app.buttons["vault.item.fixture-github"]
+        XCTAssertGreaterThanOrEqual(row.frame.height, 44)
+        XCTAssertLessThanOrEqual(row.frame.height, 60)
         tab(app, symbol: "Glyph-account", title: "Account").tap()
         if !app.buttons["account.lock"].isHittable { app.swipeUp() }
         app.buttons["account.lock"].tap()
@@ -231,6 +235,7 @@ import XCTest
         XCTAssertEqual(unlock.frame.width, login.frame.width, accuracy: 2)
         XCTAssertTrue(unlock.isHittable && authorize.isHittable && login.isHittable)
         XCTAssertEqual(app.switches.count, 0)
+        XCTAssertTrue(app.staticTexts["要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。"].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Chinese access actions"; shot.lifetime = .keepAlways; add(shot)
     }
@@ -249,6 +254,13 @@ import XCTest
         XCTAssertEqual(app.switches.count, 0)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Dark Arabic large-text access actions"; shot.lifetime = .keepAlways; add(shot)
+        for identifier in ["settings.language", "access.demo", "access.privacy"] {
+            let link = app.buttons[identifier]
+            for _ in 0..<6 where !link.isHittable { app.swipeUp() }
+            XCTAssertTrue(link.isHittable)
+        }
+        let footer = XCTAttachment(screenshot: app.screenshot())
+        footer.name = "Dark Arabic large-text access footer"; footer.lifetime = .keepAlways; add(footer)
     }
 
     func testFilesShowCloudBackupsWithoutOpeningImportMenu() {

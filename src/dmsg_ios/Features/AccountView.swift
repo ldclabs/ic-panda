@@ -155,15 +155,15 @@ struct DevicesView: View {
             Section("Authorized devices") {
                 ForEach(devices) { device in
                     NavigationLink { DeviceDetail(device: device) } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 10) {
                             ObjectIcon(name: device.current ? "iphone" : "laptopcomputer.and.iphone")
-                            VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(device.current ? String(localized: "This iPhone") : device.role).font(.headline)
                                 Text(device.deviceId).font(.caption.monospaced()).lineLimit(1).foregroundStyle(.secondary)
                                 if device.revokedAt != nil { Text("Revoked").font(.caption).foregroundStyle(.red) }
-                            }.padding(.vertical, 5)
+                            }
                         }
-                    }
+                    }.compactObjectRow()
                 }
             }
         }.privateScreen().navigationTitle("Devices").task {

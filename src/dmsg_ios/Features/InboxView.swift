@@ -15,18 +15,26 @@ struct InboxLetter: Decodable, Identifiable {
 
 struct InboxRow: View {
     let letter: InboxLetter
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        let header = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))
+        HStack(alignment: .top, spacing: 10) {
             ObjectIcon(name: letter.read ? "envelope.open" : "envelope.badge")
-            VStack(alignment: .leading, spacing: 4) {
-                Text(letter.sender).font(.subheadline.weight(letter.read ? .regular : .semibold))
-                    .lineLimit(1).environment(\.layoutDirection, .leftToRight)
+            VStack(alignment: .leading, spacing: 2) {
+                header {
+                    Text(letter.sender).font(.subheadline.weight(letter.read ? .regular : .semibold))
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1).environment(\.layoutDirection, .leftToRight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Date(timeIntervalSince1970: Double(letter.createdAt) / 1000), style: .date)
+                        .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: true, vertical: false)
+                }
                 Text(letter.state == "aborted" ? String(localized: "This letter was withdrawn.") : letter.text)
-                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
-                Text(Date(timeIntervalSince1970: Double(letter.createdAt) / 1000), style: .date)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
-        }.padding(.vertical, 6)
+        }
     }
 }
 

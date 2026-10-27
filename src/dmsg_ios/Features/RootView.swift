@@ -94,6 +94,20 @@ struct AccessView: View {
     private var fastUnlock: Bool { model.session?.fastUnlock == true }
     private var needsSetup: Bool { model.session?.state == "no_account" || model.session?.setupPending == true }
     private var needsAuthorization: Bool { model.session?.state == "pairing_required" || model.session?.state == "root_required" }
+    private var guidance: String {
+        if needsSetup {
+            return String(localized: "Create your encrypted workspace to start saving passwords, notes and files.")
+        }
+        if needsAuthorization {
+            return String(localized: "To use your existing account on this iPhone, approve this device from one of your authorized devices.")
+        }
+        if model.session?.account != nil {
+            return fastUnlock
+                ? String(localized: "Use system authentication to unlock the encrypted workspace on this iPhone.")
+                : String(localized: "Sign in again to unlock your encrypted workspace on this iPhone.")
+        }
+        return String(localized: "On your first visit, sign in and follow the steps to create your encrypted workspace.")
+    }
 
     var body: some View {
         ScrollView {
@@ -135,13 +149,8 @@ struct AccessView: View {
                     }.modifier(AccessActionStyle(prominent: !fastUnlock && !needsSetup && !needsAuthorization))
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
-                NoticeBar(text: String(localized: "Signing in proves your identity. An existing device must authorize a new device before it can read your content."))
-                VStack(spacing: 12) {
-                    LanguageSettingsLink()
-                    NavigationLink("Try the local demo") { LocalDemoView() }.accessibilityIdentifier("access.demo")
-                    NavigationLink("Privacy policy") { PrivacyPolicyView() }.accessibilityIdentifier("access.privacy")
-                    Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
-                }.font(.footnote).frame(maxWidth: .infinity)
+                NoticeBar(text: guidance)
+                AccessFooter()
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)
@@ -150,6 +159,33 @@ struct AccessView: View {
     private func initialize() async {
         do { _ = try await model.engine?.initializeAccount(); await model.updateSession() }
         catch { model.report(error) }
+    }
+}
+
+private struct AccessFooter: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) { workspaceLinks }.fixedSize(horizontal: true, vertical: false)
+                VStack(spacing: 0) { workspaceLinks }
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) { supportLinks }.fixedSize(horizontal: true, vertical: false)
+                VStack(spacing: 0) { supportLinks }
+            }.foregroundStyle(.secondary)
+        }.font(.footnote).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder private var workspaceLinks: some View {
+        LanguageSettingsLink(iconSize: 14).frame(minHeight: 44)
+        NavigationLink("Try the local demo") { LocalDemoView() }
+            .frame(minHeight: 44).accessibilityIdentifier("access.demo")
+    }
+
+    @ViewBuilder private var supportLinks: some View {
+        NavigationLink("Privacy policy") { PrivacyPolicyView() }
+            .frame(minHeight: 44).accessibilityIdentifier("access.privacy")
+        Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!).frame(minHeight: 44)
     }
 }
 

@@ -1,43 +1,43 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "App language": {
+    "Language": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لغة التطبيق"
+            "value": "اللغة"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "App language"
+            "value": "Language"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Idioma de la app"
+            "value": "Idioma"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Langue de l’app"
+            "value": "Langue"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Язык приложения"
+            "value": "Язык"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "App 语言"
+            "value": "语言"
           }
         }
       }
@@ -20170,43 +20170,207 @@
         }
       }
     },
-    "Signing in proves your identity. An existing device must authorize a new device before it can read your content." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يثبت تسجيل الدخول هويتك. يجب أن يفوّض جهاز حالي الجهاز الجديد قبل أن يتمكن من قراءة محتواك."
+    "On your first visit, sign in and follow the steps to create your encrypted workspace.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند الاستخدام لأول مرة، سجّل الدخول واتبع الخطوات لإنشاء مساحة عملك المشفّرة."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Signing in proves your identity. An existing device must authorize a new device before it can read your content."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On your first visit, sign in and follow the steps to create your encrypted workspace."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iniciar sesión demuestra tu identidad. Un dispositivo existente debe autorizar el nuevo dispositivo antes de que pueda leer tu contenido."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La primera vez, inicia sesión y sigue los pasos para crear tu espacio de trabajo cifrado."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La connexion prouve votre identité. Un appareil existant doit autoriser le nouvel appareil avant qu’il puisse lire votre contenu."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lors de votre première utilisation, connectez-vous et suivez les étapes pour créer votre espace de travail chiffré."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вход подтверждает вашу личность. Существующее устройство должно авторизовать новое, прежде чем оно сможет читать ваши данные."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "При первом использовании войдите и следуйте инструкциям, чтобы создать зашифрованное рабочее пространство."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录只证明你的身份。新设备需要已有设备授权后，才能读取私密内容。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次使用 dMsg 时，登录后按引导创建你的加密工作区。"
+          }
+        }
+      }
+    },
+    "Create your encrypted workspace to start saving passwords, notes and files.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنشئ مساحة عملك المشفّرة لبدء حفظ كلمات المرور والملاحظات والملفات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create your encrypted workspace to start saving passwords, notes and files."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea tu espacio de trabajo cifrado para empezar a guardar contraseñas, notas y archivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créez votre espace de travail chiffré pour commencer à enregistrer des mots de passe, des notes et des fichiers."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создайте зашифрованное рабочее пространство для хранения паролей, заметок и файлов."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创建你的加密工作区，即可开始保存密码、笔记和文件。"
+          }
+        }
+      }
+    },
+    "To use your existing account on this iPhone, approve this device from one of your authorized devices.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لاستخدام حسابك الحالي على هذا الـ iPhone، وافق على هذا الجهاز من أحد أجهزتك المصرّح لها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To use your existing account on this iPhone, approve this device from one of your authorized devices."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para usar tu cuenta existente en este iPhone, aprueba este dispositivo desde uno de tus dispositivos autorizados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour utiliser votre compte existant sur cet iPhone, approuvez cet appareil depuis l’un de vos appareils autorisés."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чтобы использовать существующий аккаунт на этом iPhone, одобрите это устройство с одного из авторизованных устройств."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。"
+          }
+        }
+      }
+    },
+    "Use system authentication to unlock the encrypted workspace on this iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم مصادقة النظام لفتح مساحة العمل المشفّرة على هذا الـ iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use system authentication to unlock the encrypted workspace on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa la autenticación del sistema para desbloquear el espacio de trabajo cifrado en este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilisez l’authentification du système pour déverrouiller l’espace de travail chiffré sur cet iPhone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте системную аутентификацию, чтобы разблокировать зашифрованное рабочее пространство на этом iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用系统验证，即可解锁这台 iPhone 上的加密工作区。"
+          }
+        }
+      }
+    },
+    "Sign in again to unlock your encrypted workspace on this iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سجّل الدخول مجددًا لفتح مساحة عملك المشفّرة على هذا الـ iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in again to unlock your encrypted workspace on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a iniciar sesión para desbloquear tu espacio de trabajo cifrado en este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnectez-vous pour déverrouiller votre espace de travail chiffré sur cet iPhone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите снова, чтобы разблокировать зашифрованное рабочее пространство на этом iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新登录，解锁这台 iPhone 上的加密工作区。"
           }
         }
       }

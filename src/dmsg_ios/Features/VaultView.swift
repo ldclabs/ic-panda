@@ -60,7 +60,8 @@ struct VaultView: View {
                         Text("All").tag("all"); Text("Passwords").tag("login"); Text("Notes").tag("note"); Text("Keys").tag("key")
                     }.pickerStyle(.segmented).listRowBackground(Color.clear).listRowSeparator(.hidden)
                     ForEach(shown, id: \.id) { item in
-                        NavigationLink(value: item.id) { VaultRow(item: item) }.accessibilityIdentifier("vault.item.\(item.id)")
+                        NavigationLink(value: item.id) { VaultRow(item: item) }
+                            .compactObjectRow().accessibilityIdentifier("vault.item.\(item.id)")
                     }
                     if model.vaultHasMore { Button("Load more") { Task { await model.loadVault(more: true) } }.disabled(model.loadingVault) }
                 }
@@ -106,15 +107,17 @@ struct VaultView: View {
 
 struct VaultRow: View {
     let item: VaultItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ObjectIcon(glyph: .vaultItem(item.kind))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.title).font(.body.weight(.medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 Text(item.subtitle.isEmpty ? item.kind : item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }.frame(maxWidth: .infinity, alignment: .leading)
             if !item.synced { Image(systemName: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary).accessibilityLabel("Waiting to sync") }
-        }.padding(.vertical, 5)
+        }
     }
 }
 
