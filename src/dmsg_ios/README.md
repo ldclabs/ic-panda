@@ -48,6 +48,74 @@ The manual `dmsg-ios.yml` workflow runs the same checks on a runner with the
 reviewed SDK. A missing SDK is an explicit failure, not a lower-version pass.
 The workflow has not been run on GitHub as part of local development.
 
+## 一键生成 TestFlight IPA
+
+在已配置 Apple 开发者账号和签名的 Mac 上，从仓库根目录执行：
+
+```sh
+python3 scripts/ios/testflight.py
+```
+
+需要完整 Xcode（在 Settings → Accounts 登录有本项目签名权限的账号）、
+Python 3、Rust 和 XcodeGen。首次配置时安装 XcodeGen 和两个 Rust target：
+
+```sh
+brew install xcodegen
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+```
+
+脚本取 `project.yml` 中主 App 和所有扩展的最大 `CURRENT_PROJECT_VERSION`
+加一，统一写回所有目标，保留其余配置和已有改动；`MARKETING_VERSION` 不变。
+例如主 App 为 `4`、扩展为 `3` 时，下次会统一生成 `0.1.0 (5)`。
+需要更改产品版本号时，先把所有目标的 `MARKETING_VERSION` 改为同一版本。
+构建号依据本地文件递增，不查询 App Store Connect；在其他机器上传过构建时，
+先同步已提交的构建号，或把本地最大构建号更新到已使用的编号。
+
+可以先预览，不修改文件或执行构建：
+
+```sh
+python3 scripts/ios/testflight.py --dry-run
+```
+
+脚本复用 `archive.sh`，重新构建优化后的 Rust 核心、生成 Xcode 工程并归档
+Swift Release，再使用自动签名导出 App Store Connect IPA。导出时使用系统工具
+PATH，避免 Homebrew `rsync` 与 Xcode 导出的参数冲突。完成后会检查 IPA 内主 App
+及全部扩展的版本/构建号，并输出 IPA 路径及 SHA-256 校验文件。
+
+以 `0.1.0 (5)` 为例，输出目录是：
+
+```text
+src/dmsg_ios/.build/TestFlight-0.1.0-5/
+├── dMsg.xcarchive
+├── ExportOptions.plist
+├── archive.log
+├── export.log
+└── Distribution/
+    ├── dMsg.ipa
+    └── dMsg.ipa.sha256
+```
+
+输出目录被 Git 忽略且不会覆盖已有同名目录。开始构建后即保留递增后的编号；
+如果归档或导出失败，查看对应日志，修复后重新执行会使用下一个编号。
+将 `project.yml` 的构建号变更随代码提交，便于下次更新和其他机器接续。
+脚本打包当前工作区，未提交改动也会包含在内；打包期间不要同时修改源码或运行另一套
+原生构建。脚本不自动执行完整单元/UI 测试，发布前仍按上面的 `verify.sh` 验证。
+
+生成后，在 Apple **Transporter** 中添加 `Distribution/dMsg.ipa` 并点击“交付”。
+也可以打开 `dMsg.xcarchive`，在 Xcode Organizer 选择
+**Distribute App → App Store Connect → Upload**；取消勾选
+**Manage version and build numbers** 可保留脚本分配的构建号。
+Apple 处理完成后，在 App Store Connect → TestFlight → 测试组中添加新构建。
+打包脚本不会自动上传、提交审核或邀请测试员。
+
+如果 `export.log` 出现 `No Accounts` 或找不到 Distribution 签名证书，先在
+Xcode → Settings → Accounts 检查 Apple ID 登录和团队权限，再重试；如果 Xcode
+界面可以导出、受限终端不可以，改在 macOS Terminal 中运行同一脚本。
+归档成功但导出失败时不会显示“IPA ready”，也不能把 `.xcarchive` 当作 IPA 上传。
+
+当前 Release/TestFlight 连接线上服务，内购开关为关闭；脚本沿用 `project.yml`
+和应用代码中的部署设置，不额外切换环境。
+
 ## Implemented paths
 
 - System authentication with the fixed HTTPS callback, account initialization,

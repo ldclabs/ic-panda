@@ -1,5 +1,33 @@
 # iOS implementation validation
 
+## One-command TestFlight packaging (2026-10-27)
+
+`python3 scripts/ios/testflight.py` increments all app/extension build numbers
+from the local maximum, reuses the optimized archive helper, exports an App Store
+Connect IPA, validates its bundle versions and writes a SHA-256 file. `--dry-run`
+shows the next number without changing files. The script retains failed build
+numbers/logs and never uploads or submits a build.
+
+Validation:
+
+- Seven Python packaging tests passed, including mixed app/extension numbers,
+  preservation of unrelated text, dry-run, existing-output protection, failed
+  archive handling, export options and stale/missing extension rejection.
+  These run from `scripts/ios/verify.sh`; export tests use fixture IPAs and do
+  not establish Apple signing eligibility.
+- The real dry-run found app build 4 / extension build 3 and planned build 5.
+  The first actual attempt retained build 5 after the execution sandbox denied
+  SwiftPM cache access. A retry with expanded execution permissions produced a
+  successful optimized, development-signed Release archive for `0.1.0 (6)`.
+- Both automatic export and one direct export retry failed with Xcode's
+  `No Accounts` / missing `iOS Distribution` certificate errors in this execution
+  environment. **No build 6 IPA was produced or uploaded.** The archive and
+  stage logs remain in `.build/TestFlight-0.1.0-6/`; final distribution export
+  still needs verification in a session with working Apple signing access.
+- Shell syntax, ShellCheck for the updated verification script and whitespace
+  checks passed. App unit/UI tests and device acceptance were not rerun for this
+  packaging-only change.
+
 ## Secret and file detail navigation hangs (2026-10-27)
 
 The old implementation reproduced a stalled second secret detail on iPhone 17 /

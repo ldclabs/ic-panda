@@ -45,7 +45,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/dMsg.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         DMSG_USE_STAGING: NO
         DMSG_IN_APP_PURCHASES_ENABLED: NO
         DMSG_APNS_ENVIRONMENT: production
@@ -70,7 +70,7 @@ targets:
         INFOPLIST_FILE: Extensions/Share/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Share/Share.entitlements
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgWidget:
@@ -86,7 +86,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: net.dmsg.ios.widget
         INFOPLIST_FILE: Extensions/Widget/Info.plist
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgCredentials:
@@ -105,7 +105,7 @@ targets:
         INFOPLIST_FILE: Extensions/Credentials/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Credentials/Extension.entitlements
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgFiles:
@@ -124,7 +124,7 @@ targets:
         INFOPLIST_FILE: Extensions/Files/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/Files/Extension.entitlements
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgFilesUI:
@@ -143,7 +143,7 @@ targets:
         INFOPLIST_FILE: Extensions/FilesUI/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extensions/FilesUI/Extension.entitlements
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "3"
+        CURRENT_PROJECT_VERSION: "6"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
   dMsgTests:

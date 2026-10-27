@@ -6,6 +6,7 @@ if [[ ! "$simulator" =~ ^[A-Fa-f0-9-]{36}$ ]]; then
   echo "Expected a simulator UUID" >&2
   exit 2
 fi
+python3 -B -m unittest discover -s scripts/ios -p 'test_*.py'
 cargo fmt --check -p dmsg_client -p dmsg_protocol -p dmsg_mobile -p dmsg_cli -p dmsg_commerce -p dmsg_types
 cargo test --locked -p dmsg_client -p dmsg_protocol -p dmsg_mobile -p dmsg_cli -p dmsg_commerce -p dmsg_types
 cargo clippy --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli -p dmsg_commerce -p dmsg_types --all-targets -- -D warnings
