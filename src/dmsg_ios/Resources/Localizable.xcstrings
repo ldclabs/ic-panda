@@ -1,6 +1,47 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "In-app purchases are disabled in this build. Your current plan and usage remain available.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عمليات الشراء داخل التطبيق معطلة في هذا الإصدار. تظل خطتك الحالية ومعلومات الاستخدام متاحة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In-app purchases are disabled in this build. Your current plan and usage remain available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las compras dentro de la app están desactivadas en esta versión. Puedes seguir consultando tu plan y uso actuales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les achats intégrés sont désactivés dans cette version. Votre offre actuelle et votre utilisation restent consultables."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В этой версии встроенные покупки отключены. Текущий тариф и сведения об использовании по-прежнему доступны."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此版本暂不开放内购，仍可查看当前套餐和用量。"
+          }
+        }
+      }
+    },
     "%lld days" : {
       "extractionState" : "stale",
       "localizations" : {

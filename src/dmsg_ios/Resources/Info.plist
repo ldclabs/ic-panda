@@ -19,7 +19,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
@@ -63,6 +63,8 @@
 	<string>$(AppIdentifierPrefix)</string>
 	<key>DMsgUseStaging</key>
 	<string>$(DMSG_USE_STAGING)</string>
+	<key>DMsgInAppPurchasesEnabled</key>
+	<string>$(DMSG_IN_APP_PURCHASES_ENABLED)</string>
 	<key>DMsgAttestEnvironment</key>
 	<string>$(DMSG_ATTEST_ENVIRONMENT)</string>
 </dict>

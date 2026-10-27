@@ -25,7 +25,7 @@ struct DMsgApp: App {
                     if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
                 }
                 .task(id: "store:\(model.session?.account ?? ""):\(model.unlocked)") {
-                    if model.unlocked { await model.purchases.listen(model) }
+                    if model.unlocked && model.purchases.enabled { await model.purchases.listen(model) }
                 }
                 .task(id: "\(scenePhase == .active):\(model.session?.account ?? ""):\(model.session?.generation ?? 0)") {
                     guard scenePhase == .active, model.session?.account != nil else { return }

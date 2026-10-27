@@ -1,0 +1,42 @@
+{
+  "reviewed_on": "2026-10-27",
+  "source_commit": "a075ff4c",
+  "app_id": "6827050680",
+  "bundle_id": "net.dmsg.ios",
+  "version": "0.1.0",
+  "storefronts": ["USA", "HKG", "TWN", "SGP"],
+  "uses_encryption": true,
+  "uses_encryption_outside_apple_os": true,
+  "uses_proprietary_or_unpublished_cryptography": false,
+  "distributes_in_france": false,
+  "app_store_connect_result": "No encryption documentation upload required based on these answers",
+  "info_plist": {"ITSAppUsesNonExemptEncryption": false},
+  "app_purpose": "Encrypted vault, private messaging, file backup, device authentication and recovery. Uses AES-256-GCM, X25519/HKDF-SHA256 HPKE, Ed25519/P-256, TLS and the publicly documented ICP vetKeys/BLS12-381 IBE recovery protocol. No proprietary or unpublished cryptography.",
+  "implementation_evidence": [
+    "src/dmsg_client/src/crypto.rs",
+    "src/dmsg_client/src/root.rs",
+    "src/dmsg_client/src/recovery.rs",
+    "src/dmsg_ios/Platform/AppleSecurity.swift",
+    "Cargo.lock: ic-vetkeys 0.9.0"
+  ],
+  "assessment": [
+    "AES-GCM, HPKE, HKDF, X25519, Ed25519, P-256 and TLS are implemented by Apple APIs and publicly available libraries; this is not an Apple-OS-only encryption claim.",
+    "The vetKeys recovery protocol is publicly described in IACR ePrint 2023/616 and implemented in the published ic-vetkeys 0.9.0 library. The non-proprietary/unpublished answer is based on this publication evidence and the published-functionality clause in the current 15 CFR 772.1 definition, also cited by Apple's export-compliance overview. It is not a claim that vetKeys is NIST-certified or an IETF standard.",
+    "App Store Connect's questionnaire displayed that no document upload was needed after selecting encryption implemented outside Apple's OS and no distribution in France. No CCATS, French declaration, or Apple compliance code was uploaded or issued.",
+    "The Info.plist value describes Apple's documentation-exemption answer, not absence of encryption. This record is a developer self-assessment, not a BIS classification ruling or blanket export authorization."
+  ],
+  "reassess_when": [
+    "France or another storefront with additional encryption requirements is added",
+    "Algorithms, cryptographic protocols, dependencies or their publication status change",
+    "Apple or applicable export requirements change"
+  ],
+  "sources": [
+    "https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/",
+    "https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption",
+    "https://developer.apple.com/documentation/bundleresources/information-property-list/itsappusesnonexemptencryption",
+    "https://www.ecfr.gov/current/title-15/subtitle-B/chapter-VII/subchapter-C/part-772/section-772.1",
+    "https://eprint.iacr.org/2023/616",
+    "https://docs.rs/ic-vetkeys/0.9.0/ic_vetkeys/",
+    "https://github.com/dfinity/vetkeys"
+  ]
+}

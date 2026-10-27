@@ -13,6 +13,48 @@ import XCTest
         if rail.exists { rail.tap() }
         else { app.navigationBars.buttons.element(boundBy: 0).tap() }
     }
+
+    func testProductionStartupAllowsPasskeyLoginWithoutStagingConfiguration() {
+        let app = XCUIApplication()
+        // Exercise normal startup and the real bridge, not presentation fixtures.
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let login = app.buttons["login.start"]
+        XCTAssertTrue(login.waitForExistence(timeout: 10))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: login)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Production startup with passkey self-registration"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testPlanRemainsReadableWithoutPurchaseEntrypoints() {
+        assertReadOnlyPlan(language: "en", locale: "en_US", accountTitle: "Account", dark: false)
+    }
+
+    func testReadOnlyPlanInDarkChinese() {
+        assertReadOnlyPlan(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", dark: true)
+    }
+
+    private func assertReadOnlyPlan(language: String, locale: String, accountTitle: String, dark: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch()
+        tab(app, symbol: "person.crop.circle", title: accountTitle).tap()
+        let plan = app.buttons["account.plan"]
+        for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
+        XCTAssertTrue(plan.isHittable); plan.tap()
+        XCTAssertTrue(app.staticTexts["plan.purchases-disabled"].waitForExistence(timeout: 5))
+        // LabeledContent exposes its localized label and value as one element.
+        let currentPlan = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Free")).firstMatch
+        XCTAssertTrue(currentPlan.exists)
+        XCTAssertFalse(app.buttons["plan.restore"].exists)
+        XCTAssertFalse(app.buttons["plan.manage"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Read-only plan · \(language)"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     func testCompactVaultAndLockClearContent() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

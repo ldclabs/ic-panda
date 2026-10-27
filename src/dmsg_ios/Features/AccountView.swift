@@ -70,6 +70,7 @@ struct AccountView: View {
                 Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.")
                     .font(.footnote).foregroundStyle(.secondary)
                 NavigationLink { SubscriptionView() } label: { Label("Plan and usage", systemImage: "creditcard") }
+                    .accessibilityIdentifier("account.plan")
                 NavigationLink("Inbox settings") { InboxSettingsView() }
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
             }

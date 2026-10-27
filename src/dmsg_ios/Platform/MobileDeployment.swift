@@ -1,8 +1,8 @@
 import Foundation
 @preconcurrency import DMsgCore
 
-/// The receipt path selects an isolated test realm; it never grants an
-/// entitlement. Apple JWS verification and canister authority remain mandatory.
+/// Business endpoints are independent of Apple's receipt environment.
+/// Release and TestFlight use production; staging is an explicit Debug option.
 enum MobileDeployment {
     case production
     case staging(StagingDeployment)
@@ -12,7 +12,7 @@ enum MobileDeployment {
         #if DEBUG
         return (Bundle.main.object(forInfoDictionaryKey: "DMsgUseStaging") as? String)?.uppercased() == "YES"
         #else
-        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        return false
         #endif
     }
     static func load() throws -> Self {

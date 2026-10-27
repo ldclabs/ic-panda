@@ -201,9 +201,16 @@ This tree is development code, not an App Store release assertion. In particular
 3. APNs, App Attest and StoreKit now have native APIs, provider/verification
    services and a governed commerce adapter. Apple products and deployment
    credentials must be provisioned; no private key belongs in this repository
-   or app. Production refuses sandbox purchase facts. A signed bundle can carry
-   the reviewed public StagingDeployment.json for isolated TestFlight testing;
-   the test realm has separate storage and Keychain namespaces and a visible banner.
+   or app. Production refuses sandbox purchase facts. TestFlight and App Store
+   Release builds both use the fixed production services; a sandbox receipt never
+   changes business endpoints. Testers register with their own Internet Identity
+   passkey. No shared review account or StagingDeployment.json is required.
+   This build sets DMSG_IN_APP_PURCHASES_ENABLED=NO: product loading, purchase,
+   restore, transaction listeners and delivery are disabled, while current plan
+   and usage remain readable. Purchases need a separate release decision and
+   verified Apple/service configuration before this build switch is enabled.
+   Staging remains an explicit Debug-only option with separate storage, Keychain
+   namespaces and a visible banner; it is not selected by TestFlight.
 4. Duo closed, open and partially open presentations have been exercised in
    Apple's iOS 27.1 Duo simulator. The remaining device matrix includes side
    Touch ID, system reserved regions with live activities/camera, real keyboard
@@ -245,6 +252,14 @@ an imported or committed file, and force quitting can postpone delivery.
 Use the archive helper for optimized Rust plus Swift Release:
 
     bash scripts/ios/archive.sh --archive-path /absolute/output/dMsg.xcarchive
+
+The 2026-10-27 App Store Connect encryption questionnaire returned no document
+upload requirement for the published cryptography and selected storefronts
+(United States, Hong Kong, Taiwan and Singapore; excluding France). The answers,
+implementation evidence and assessment limits are recorded in
+[ExportCompliance.json](Review/ExportCompliance.json). Accordingly,
+`ITSAppUsesNonExemptEncryption` is false; this describes documentation exemption,
+not absence of encryption. Reassess before changing algorithms or storefronts.
 
 Set signing/provisioning for a real archive; local unsigned builds do not prove
 distribution eligibility. Check compiler extraction and offline policy parity with:

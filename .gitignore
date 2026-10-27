@@ -3,6 +3,7 @@
 .idea/
 **/*~
 .pnpm-store
+.swiftpm
 
 # Mac OSX temporary files
 .DS_Store
@@ -34,5 +35,5 @@ misc
 proposal-message.json
 AGENTS.md
 
-# Reviewed public test-deployment IDs are supplied locally for Apple sandbox builds.
+# Optional public test-deployment IDs for explicitly selected Debug staging builds.
 /src/dmsg_ios/Resources/StagingDeployment.json

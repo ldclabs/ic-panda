@@ -4,6 +4,9 @@ import StoreKit
 
 @MainActor @Observable
 final class PurchaseModel {
+    // Explicitly disabled in the current build, including transaction replay.
+    // Missing configuration fails closed; server-side verification is unchanged.
+    let enabled = (Bundle.main.object(forInfoDictionaryKey: "DMsgInAppPurchasesEnabled") as? String) == "YES"
     struct Catalogue: Decodable {
         struct Configuration: Decodable {
             struct ProductID: Decodable { let productId: String }
@@ -18,6 +21,7 @@ final class PurchaseModel {
     private var token: UUID?
 
     func load(_ model: SessionModel, reportErrors: Bool = true) async {
+        guard enabled else { return }
         guard let engine = model.engine, model.unlocked else { return }; let epoch = model.epoch
         #if DEBUG
         guard model.environment == "staging" else { products = []; token = nil; return }
@@ -36,7 +40,7 @@ final class PurchaseModel {
     }
 
     func purchase(_ product: Product, model: SessionModel) async {
-        guard !working, let token, account == model.session?.account else { return }
+        guard enabled, !working, let token, account == model.session?.account else { return }
         working = true; defer { working = false }
         let epoch = model.epoch, expectedAccount = account
         do {
@@ -65,7 +69,7 @@ final class PurchaseModel {
     }
 
     func restore(_ model: SessionModel) async {
-        guard !working else { return }; working = true; defer { working = false }
+        guard enabled, !working else { return }; working = true; defer { working = false }
         do {
             try await AppStore.sync()
             await load(model)
@@ -75,6 +79,7 @@ final class PurchaseModel {
     }
 
     func listen(_ model: SessionModel) async {
+        guard enabled else { return }
         await load(model, reportErrors: false)
         for await value in Transaction.unfinished {
             if Task.isCancelled { return }
@@ -89,6 +94,7 @@ final class PurchaseModel {
     }
 
     private func deliver(_ value: VerificationResult<Transaction>, model: SessionModel) async throws {
+        guard enabled else { return }
         guard case .verified(let transaction) = value else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
         guard let token, transaction.appAccountToken == token, let account, account == model.session?.account,
               model.unlocked, let engine = model.engine, let files = model.files else { return }

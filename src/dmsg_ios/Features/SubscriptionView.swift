@@ -24,27 +24,36 @@ struct SubscriptionView: View {
                     if plan.source == "Unverifiable" { NoticeBar(text: String(localized: "Your current entitlement could not be refreshed. Retry when the verification service is available.")) }
                 } else if loading { ProgressView() }
                 if failed {
-                    Text("Purchases are not currently available.").foregroundStyle(.secondary)
+                    Text("Your current entitlement could not be refreshed. Retry when the verification service is available.").foregroundStyle(.secondary)
                     Button("Retry") { Task { await load() } }
                 }
             }
-            Section("App Store subscriptions") {
-                productRows(model.purchases.products.filter { $0.type == .autoRenewable })
-                if let term = plan?.current, term.method != "AppStore" {
-                    NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
-                } else if plan?.current == nil {
-                    Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
+            if model.purchases.enabled {
+                Section("App Store subscriptions") {
+                    productRows(model.purchases.products.filter { $0.type == .autoRenewable })
+                    if let term = plan?.current, term.method != "AppStore" {
+                        NoticeBar(text: String(localized: "Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription."))
+                    } else if plan?.current == nil {
+                        Text("Storage purchases require an active App Store subscription.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    if model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
+                    if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
+                    Button("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
+                        .accessibilityIdentifier("plan.restore")
+                    Button("Manage subscriptions") { managing = true }.accessibilityIdentifier("plan.manage")
+                    Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
                 }
-                if model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
-                if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
-                Button("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
-                Button("Manage subscriptions") { managing = true }
-                Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
-            }
-            if model.purchases.products.contains(where: { $0.type == .consumable }) {
-                Section("Storage packs") {
-                    Text("Storage is a one-time purchase for the current subscription term and does not renew automatically.").font(.footnote).foregroundStyle(.secondary)
-                    productRows(model.purchases.products.filter { $0.type == .consumable })
+                if model.purchases.products.contains(where: { $0.type == .consumable }) {
+                    Section("Storage packs") {
+                        Text("Storage is a one-time purchase for the current subscription term and does not renew automatically.").font(.footnote).foregroundStyle(.secondary)
+                        productRows(model.purchases.products.filter { $0.type == .consumable })
+                    }
+                }
+            } else {
+                Section {
+                    Text("In-app purchases are disabled in this build. Your current plan and usage remain available.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("plan.purchases-disabled")
                 }
             }
             Section {
@@ -82,6 +91,13 @@ struct SubscriptionView: View {
     }
     private func load() async {
         guard !loading else { return }; loading = true; failed = false; defer { loading = false }
+        #if DEBUG
+        if model.uiTesting {
+            plan = Plan(plan: "Free", source: "Free", limits: Plan.Limits(storageBytes: 104857600,
+                activeChannels: 2, monthlyExecutionUnits: 3), current: nil)
+            return
+        }
+        #endif
         let epoch = model.epoch
         await model.purchases.load(model)
         do { if let result = try await model.engine?.accountPlan() { if epoch == model.epoch, !Task.isCancelled { plan = try model.decode(result) } } }

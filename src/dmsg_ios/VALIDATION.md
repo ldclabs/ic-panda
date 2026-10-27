@@ -1,5 +1,84 @@
 # iOS implementation validation
 
+## Production TestFlight, purchases disabled — build 2 (2026-10-27)
+
+At the user's request, Release/TestFlight now use the fixed production backend.
+Apple's sandbox receipt no longer chooses a staging business environment. Testers
+register through Internet Identity with their own passkeys; no shared test account
+or StagingDeployment.json is required. Explicit Debug staging remains optional.
+This supersedes the staging requirement recorded for the earlier build below.
+
+The current build sets `DMSG_IN_APP_PURCHASES_ENABLED=NO`. It hides subscription,
+storage-purchase, restore and purchase-management controls from Plan and usage;
+existing entitlement/usage reads remain available. Product queries, purchase,
+restore, unfinished/update listeners and transaction delivery all return before
+StoreKit/service work. Production's rejection of Sandbox payment facts is unchanged.
+
+Validation performed:
+
+- 45 distinct native tests passed across the full run and a targeted rerun:
+  29 unit tests and 16 UI tests. Two initial UI assertions looked for a separate
+  `Free` text element; SwiftUI exposes LabeledContent's label/value together.
+  Screenshots showed the correct data, and the corrected accessible-element
+  queries passed in both English light and Chinese dark appearance.
+- Normal app startup with the real Rust bridge reached an enabled Internet
+  Identity login button without a staging configuration or presentation fixture.
+  Disabled purchase loading, restore and listeners returned without work. Public
+  demo/privacy, lock, sync, files and existing navigation regressions passed.
+- Six-language catalogs, formats, compiler-extracted keys and offline policy
+  parity passed. Optimized native artifact/source fingerprints, plist/JSON and
+  diff whitespace checks passed. Rust source was unchanged; Cargo tests were not
+  rerun in this configuration/UI pass.
+- A signed optimized Release archive and App Store IPA export succeeded. All six
+  bundle signatures/profiles were verified for `S9Z2WAMAV8`, version `0.1.0`, build
+  `2`, Apple Distribution, no debugging entitlement and no device-list restriction.
+- The exported main app has production APNs/App Attest, private Keychain group
+  first, `DMsgUseStaging=NO`, `DMsgInAppPurchasesEnabled=NO` and the existing
+  `ITSAppUsesNonExemptEncryption=false` declaration. No staging configuration,
+  `sandboxReceipt` routing string or debug fixture launch flags are shipped.
+
+Outputs (excluded from Git): `.build/TestFlightProduction-build2/dMsg.xcarchive`,
+`.build/TestFlightProduction-build2/Distribution/dMsg.ipa` and
+`.build/TestFlightProduction-build2/verification.json`. The IPA is 21,688,771 bytes.
+Export used the system-only command-local PATH described below. The version was
+not uploaded to TestFlight or submitted for review. Physical-device passkey
+registration, installed TestFlight behavior and live service acceptance were not
+performed by this run; no production account was created or deleted.
+
+## Encryption declaration and signed export (2026-10-27)
+
+Starting source: local main `a075ff4c`, plus the documentation-exemption setting
+recorded in [ExportCompliance.json](Review/ExportCompliance.json). App Store
+Connect's questionnaire displayed that no encryption document upload was needed
+for the recorded answers and storefronts. This is not a BIS classification ruling
+or an Apple review approval. No compliance code was issued.
+
+- Optimized host, ARM64 device and ARM64 simulator Rust libraries built; generated
+  bindings and the transitive source/artifact fingerprint verification passed.
+- The Release archive succeeded with the main app and five extensions, signed
+  with the team's Apple Development identity.
+- App Store IPA export succeeded with Apple Distribution signing for team
+  `S9Z2WAMAV8`. All six bundle signatures were verified; each reports version
+  `0.1.0`, build `1`, and a distribution profile with debugging disabled and no
+  device-list restriction. The main app's APNs and App Attest entitlements are
+  production, and its private Keychain group remains first.
+- `ITSAppUsesNonExemptEncryption=false` was checked in both the archive and the
+  exported IPA. Debug UI launch flags were absent from the main executable.
+- Two initial exports failed in packaging: Apple's `rsync` invoked the Homebrew
+  `rsync` server, which rejected `--extended-attributes`. Exporting with the
+  command-local `PATH=/usr/bin:/bin:/usr/sbin:/sbin` succeeded. No global tool or
+  security setting was changed.
+- Plist/JSON validation and diff whitespace checks passed. This configuration
+  change did not rerun the complete Rust or native test suites.
+
+Local outputs (excluded from Git): `.build/AppStore-20261027/dMsg.xcarchive`,
+`.build/AppStore-20261027/Distribution-SystemTools/dMsg.ipa` and
+`.build/AppStore-20261027/verification.json` (bundle checks and IPA SHA-256).
+The IPA is 21,691,925 bytes. Nothing was uploaded to TestFlight or submitted for
+App Review. The user confirmed that the separate test deployment is not yet
+deployed; `Resources/StagingDeployment.json` remains absent. Signing success
+does not establish service deployment, real-device acceptance or review access.
+
 ## Native capabilities and review requirements (2026-10-27)
 
 This pass starts from local public main 5242f364 and preserves the pre-existing
