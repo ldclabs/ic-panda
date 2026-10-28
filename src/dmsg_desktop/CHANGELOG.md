@@ -5,6 +5,41 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.1.3] - 2026-10-28
+
+### Desktop
+
+- The tray icon adds a padlock while the account is locked. The approval
+  badge stays visible beside it, and connecting or setup states show no lock.
+
+### Files
+
+- The Cloud storage page is removed. Membership still shows storage usage,
+  and Files keeps the Links and Cloud backups pages.
+- Links searches by name or ID, copies active links and revokes them after a
+  confirmation. A failed revocation keeps its error for a retry; replies that
+  arrive after locking or leaving the page are dropped.
+- Links reads the relay when it opens or on Refresh. Library changes,
+  background backups included, only re-read the saved list.
+- File details no longer list cloud copies, and sharing only notes how many
+  copies of the version already exist.
+
+### Account setup and uploads
+
+- Upload deadlines stay five minutes below the relay's 24-hour limit, so a
+  device clock slightly ahead of the relay no longer fails account setup,
+  sync, backups, links or avatars with `RESULT_EXPIRED`.
+- When the initial root upload expires, setup checks the old upload first,
+  reuses it if it was committed, and otherwise retries once under a new
+  upload ID with the same root, bundle and reservation. Setup plans saved by
+  earlier versions resume the same way.
+
+### Daemon
+
+- `files/storage`, `files/storage_refresh` and `files/storage_action` are
+  deprecated. They still answer explicit callers; the desktop no longer
+  uses them.
+
 ## [1.1.2] - 2026-10-27
 
 ### Desktop
