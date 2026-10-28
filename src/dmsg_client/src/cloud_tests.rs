@@ -4,6 +4,126 @@ use dmsg_types::Hash;
 use std::collections::BTreeMap;
 
 #[test]
+fn notifications_publication_sidecar_preserves_command_and_binds_every_send_path() {
+    let seed = [7u8; 32];
+    let signer = Signer {
+        issuer: "https://dmsg.test/u/040g2081040g2081040g",
+        device_id: Hash::new([7; 32]),
+        security_epoch: 1,
+        seed: &seed,
+        expires_at: u64::MAX,
+    };
+    let cloud = Cloud::new("https://api.dmsg.test", false).unwrap();
+    let path = format!("/v1/channels/{}/messages", "ab".repeat(32));
+    let request_id = Hash::new([3; 32]);
+    let payload = serde_json::json!({"ciphertext":"original-ciphertext"});
+    let action = "dmsg/channel/message/v1";
+    let notice = PublishNotification {
+        version: 1,
+        kind: PublishKind::Message,
+    };
+    let original = cloud
+        .prepare_post(&signer, &path, action, &payload, &request_id, None, 1_000)
+        .unwrap();
+    let new = cloud
+        .prepare_post_notification(
+            &signer,
+            &path,
+            action,
+            &payload,
+            &request_id,
+            None,
+            Some(notice),
+            1_000,
+        )
+        .unwrap();
+    let old_body: Json = cbor2::from_slice(original.body.as_ref().unwrap()).unwrap();
+    let new_body: Json = cbor2::from_slice(new.body.as_ref().unwrap()).unwrap();
+    assert_eq!(old_body["cose_sign1"], new_body["cose_sign1"]);
+    assert_eq!(old_body.as_object().unwrap().len(), 1);
+    assert_eq!(
+        new_body["notification"],
+        serde_json::json!({"version":1,"kind":"message"})
+    );
+    let cose = old_body["cose_sign1"].as_str().unwrap();
+    let repost = cloud
+        .prepare_signed_notification(
+            &signer,
+            &path,
+            cose,
+            &hex::encode(*request_id),
+            46_000,
+            Some(notice),
+            1_000,
+        )
+        .unwrap();
+    let presigned = cloud
+        .presign_notification(
+            &signer,
+            &path,
+            action,
+            &payload,
+            &request_id,
+            "/v1/operations/id",
+            Some(notice),
+            1_000,
+        )
+        .unwrap();
+    assert_eq!(repost.body, new.body);
+    assert_eq!(presigned.body.as_ref(), new.body.as_ref().unwrap());
+    assert_eq!(repost.pop, new.pop);
+    assert_eq!(presigned.post, new.pop);
+    let bare = command_body(&path, cose, None, None).unwrap();
+    assert_eq!(bare, *original.body.as_ref().unwrap());
+    assert_eq!(bare, canonical(&BTreeMap::from([("cose_sign1", cose)])));
+
+    // The signature covers the body digest; changing only the sidecar cannot
+    // satisfy that digest even though the original command signature is intact.
+    let proof_bytes = unb64(&new.pop).unwrap();
+    let Value::Array(parts) = decode_value(&proof_bytes[1..], 262_144).unwrap() else {
+        panic!("COSE");
+    };
+    let protected = parts[0].as_bytes().unwrap();
+    let proof_payload = parts[2].as_bytes().unwrap();
+    let signature = parts[3].as_bytes().unwrap();
+    verify(
+        &Hash::new(crate::crypto::signing_public(&seed)),
+        &sig_structure(protected, proof_payload),
+        signature,
+    )
+    .unwrap();
+    let proof: Json = cbor2::from_slice(proof_payload).unwrap();
+    assert_eq!(
+        proof["body_digest"],
+        hex::encode(*sha256(new.body.as_ref().unwrap()))
+    );
+    let changed = command_body(
+        &path,
+        cose,
+        None,
+        Some(PublishNotification {
+            kind: PublishKind::Update,
+            ..notice
+        }),
+    )
+    .unwrap();
+    assert_ne!(proof["body_digest"], hex::encode(*sha256(&changed)));
+    assert!(command_body("/v1/inbox/orders", cose, None, Some(notice)).is_err());
+    assert!(
+        command_body(
+            &path,
+            cose,
+            None,
+            Some(PublishNotification {
+                version: 2,
+                ..notice
+            })
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn reproduces_commands_and_http_proofs() {
     // Preserve the historical fixture's exact encoding; the retired profile
     // command is no longer accepted by the relay's business protocol.

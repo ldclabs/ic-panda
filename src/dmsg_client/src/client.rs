@@ -686,6 +686,39 @@ fn fresh(state: &Security, account: &AccountId) -> bool {
 }
 
 impl Client {
+    /// Installation-wide notification state path. Contains no credentials.
+    pub fn notification_runtime_path(&self) -> PathBuf {
+        self.dir.join("notification-runtime.json")
+    }
+
+    /// Serialize minimal notification access through the Client owner without
+    /// switching the active workspace or loading another account's content keys.
+    /// Only an existing bound local account is eligible; no caller-supplied paths.
+    pub fn with_notification_store<T>(
+        &self,
+        account: &AccountId,
+        f: impl FnOnce(&crate::store::Store) -> Result<T>,
+    ) -> Result<T> {
+        if self
+            .workspace
+            .meta
+            .account
+            .as_ref()
+            .is_some_and(|a| a.id == *account)
+        {
+            return f(&self.workspace.store);
+        }
+        ensure(
+            self.accounts()?
+                .iter()
+                .any(|a| a.account == account.to_string() && a.bound),
+            Error::NotFound,
+        )?;
+        let path = self.slot_dir(&Slot::Account(*account)).join(WORKSPACE);
+        let store = crate::store::Store::open(&path)?;
+        f(&store)
+    }
+
     /// Open the client of `config` with its workspaces under `dir`, on the
     /// account selected last. `secure` is the operating system's credential
     /// store; without it fast unlock is unavailable.

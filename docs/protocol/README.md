@@ -14,6 +14,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 | Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) |
 | Encrypted content and files | [Cloud](cloud.md) · [Channels](channel_migration.md) |
 | Agent identity and events | [Agent Delegation](agent.md) · [Mail events](mail_events.md) |
+| Content-free system notifications | [dmsg-notifications/1 (中文)](notifications_zh.md) |
 | Approved credential use | [Secrets](secrets.md) |
 | Team wallets | [dmsg-wallet/1](wallet.md) |
 | Legacy data | [Read-only archive](legacy_archive.md) · [Freeze evidence](legacy_freeze.md) |

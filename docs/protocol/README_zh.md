@@ -14,6 +14,7 @@
 | 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) |
 | 加密内容与文件 | [云端](cloud_zh.md) · [频道](channel_migration_zh.md) |
 | Agent 身份与事件 | [Agent Delegation](agent_zh.md) · [Mail 事件](mail_events_zh.md) |
+| 无内容系统通知 | [dmsg-notifications/1](notifications_zh.md) |
 | 凭据受控使用 | [Secrets](secrets_zh.md) |
 | 团队钱包 | [dmsg-wallet/1](wallet_zh.md) |
 | 旧版数据 | [只读档案](legacy_archive_zh.md) · [冻结证据](legacy_freeze_zh.md) |

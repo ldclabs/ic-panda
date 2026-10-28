@@ -421,6 +421,55 @@ struct WireBody<'a> {
     cose_sign1: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     sealed: Option<&'a Bytes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notification: Option<PublishNotification>,
+}
+
+/// Content-free channel publication classification, bound by the HTTP PoP.
+/// It never changes the original v1 message/COSE bytes or declares urgency.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublishNotification {
+    /// Version 1 only.
+    pub version: u8,
+    /// The sender's verified operation kind, not a recipient preference.
+    pub kind: PublishKind,
+}
+
+/// Permitted message publication hints; no security/action escalation exists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PublishKind {
+    /// A new message, attachment or reply.
+    Message,
+    /// Edit/retraction of an existing message.
+    Update,
+    /// Background collaboration/control payload.
+    Silent,
+}
+
+fn command_body(
+    path: &str,
+    cose: &str,
+    sealed: Option<&Bytes>,
+    notification: Option<PublishNotification>,
+) -> Result<Vec<u8>> {
+    if let Some(notice) = notification {
+        let channel = path
+            .strip_prefix("/v1/channels/")
+            .and_then(|s| s.strip_suffix("/messages"));
+        ensure(
+            notice.version == 1
+                && sealed.is_none()
+                && channel.is_some_and(crate::channel_log::is_hash),
+            Error::InvalidInput("notification publication".into()),
+        )?;
+    }
+    Ok(canonical(&WireBody {
+        cose_sign1: cose,
+        sealed,
+        notification,
+    }))
 }
 
 /// Largest command body: a connect reply carries up to 512 KiB beside its command.
@@ -869,14 +918,31 @@ impl Cloud {
         sealed: Option<&[u8]>,
         now: u64,
     ) -> Result<Prepared> {
+        self.prepare_post_notification(signer, path, action, payload, request_id, sealed, None, now)
+    }
+
+    /// Prepare the optional, HTTP-authenticated publication sidecar.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_post_notification<P: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        sealed: Option<&[u8]>,
+        notification: Option<PublishNotification>,
+        now: u64,
+    ) -> Result<Prepared> {
+        ensure(
+            notification.is_none() || action == "dmsg/channel/message/v1",
+            Error::InvalidInput("notification action".into()),
+        )?;
         let url = self.url(path)?;
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
-        let body = canonical(&WireBody {
-            cose_sign1: &command,
-            sealed: sealed.map(Bytes::new),
-        });
+        let body = command_body(path, &command, sealed.map(Bytes::new), notification)?;
         ensure(
             body.len() <= if sealed.is_some() { MAX_BODY } else { 262_144 },
             Error::QuotaExceeded,
@@ -904,13 +970,25 @@ impl Cloud {
         deadline: u64,
         now: u64,
     ) -> Result<Prepared> {
+        self.prepare_signed_notification(signer, path, cose, request_id, deadline, None, now)
+    }
+
+    /// Repost the original command and its original optional sidecar.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_signed_notification(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        cose: &str,
+        request_id: &str,
+        deadline: u64,
+        notification: Option<PublishNotification>,
+        now: u64,
+    ) -> Result<Prepared> {
         ensure(now < deadline, Error::Expired)?;
         let url = self.url(path)?;
         let proof = signer.deadline(now)?.min(deadline);
-        let body = canonical(&WireBody {
-            cose_sign1: cose,
-            sealed: None,
-        });
+        let body = command_body(path, cose, None, notification)?;
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
         let pop = sign_http(signer, &url, "POST", &body, request_id, proof)?;
         Ok(Prepared {
@@ -936,24 +1014,8 @@ impl Cloud {
         deadline: u64,
         now: u64,
     ) -> Result<Json> {
-        ensure(now < deadline, Error::Expired)?;
-        let url = self.url(path)?;
-        let proof = signer.deadline(now)?.min(deadline);
-        let body = canonical(&WireBody {
-            cose_sign1: cose,
-            sealed: None,
-        });
-        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
-        let pop = sign_http(signer, &url, "POST", &body, request_id, proof)?;
-        self.exchange(
-            reqwest::Method::POST,
-            url,
-            Some((body, "application/cbor")),
-            Some(pop),
-            false,
-        )
-        .await?
-        .json()
+        self.send(self.prepare_signed(signer, path, cose, request_id, deadline, now)?)
+            .await
     }
 
     /// A POST of a canonical CBOR body that is not a command, such as a
@@ -1010,15 +1072,42 @@ impl Cloud {
         status_path: &str,
         now: u64,
     ) -> Result<Presigned> {
+        self.presign_notification(
+            signer,
+            path,
+            action,
+            payload,
+            request_id,
+            status_path,
+            None,
+            now,
+        )
+    }
+
+    /// Presign with a capability-negotiated sidecar. The stored body and PoP
+    /// preserve it on every subsequent submission, including while locked.
+    #[allow(clippy::too_many_arguments)]
+    pub fn presign_notification<P: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        status_path: &str,
+        notification: Option<PublishNotification>,
+        now: u64,
+    ) -> Result<Presigned> {
+        ensure(
+            notification.is_none() || action == "dmsg/channel/message/v1",
+            Error::InvalidInput("notification action".into()),
+        )?;
         let url = self.url(path)?;
         let status_url = self.url(status_path)?;
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
-        let body = canonical(&WireBody {
-            cose_sign1: &command,
-            sealed: None,
-        });
+        let body = command_body(path, &command, None, notification)?;
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
         Ok(Presigned {
             post: sign_http(signer, &url, "POST", &body, &request_id, deadline)?,

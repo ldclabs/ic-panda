@@ -45,6 +45,19 @@ CREATE TABLE IF NOT EXISTS approvals (
   expires_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS approvals_state ON approvals (state, created_at);
+CREATE TABLE IF NOT EXISTS notification_items (
+  key TEXT PRIMARY KEY,
+  open INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  deadline INTEGER,
+  value BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS notification_items_open ON notification_items (open, updated_at);
+CREATE INDEX IF NOT EXISTS notification_items_deadline ON notification_items (deadline);
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  key TEXT PRIMARY KEY,
+  value BLOB NOT NULL
+);
 CREATE TABLE IF NOT EXISTS connect_inbox (
   request_id TEXT PRIMARY KEY,
   seq INTEGER NOT NULL,
@@ -319,6 +332,75 @@ impl Store {
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn delete_meta(&self, key: &str) -> Result<()> {
         self.delete("meta", key)
+    }
+
+    /// Read a content-free notification projection, including while locked.
+    pub fn notification_item(&self, id: &str) -> Result<Option<crate::notifications::Item>> {
+        self.get("notification_items", id)
+    }
+
+    /// Save an already validated projection; usable inside a domain transaction.
+    pub fn set_notification_item(&self, item: &crate::notifications::Item) -> Result<()> {
+        self.conn().execute(
+            "INSERT OR REPLACE INTO notification_items (key, open, updated_at, deadline, value) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![item.id, item.open, item.updated_at.min(i64::MAX as u64) as i64, item.deadline.map(|at| at.min(i64::MAX as u64) as i64), crate::codec::canonical(item)],
+        ).map(|_| ()).map_err(storage)
+    }
+
+    /// Current projection in stable recent-first order. No domain network reads.
+    pub fn notification_items(&self) -> Result<Vec<crate::notifications::Item>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare("SELECT value FROM notification_items ORDER BY updated_at DESC, key")
+            .map_err(storage)?;
+        let rows = statement
+            .query_map([], |row| row.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|row| cbor(&row.map_err(storage)?)).collect()
+    }
+
+    /// Persisted attempt for one stable system group.
+    pub fn notification_delivery(
+        &self,
+        id: &str,
+    ) -> Result<Option<crate::notifications::Delivery>> {
+        self.get("notification_deliveries", id)
+    }
+
+    /// Reserve/update the exact coverage before an OS call.
+    pub fn set_notification_delivery(
+        &self,
+        delivery: &crate::notifications::Delivery,
+    ) -> Result<()> {
+        self.set("notification_deliveries", &delivery.system_id, delivery)
+    }
+
+    /// Read platform groups for reconnection, cancellation and deadline scheduling.
+    pub fn notification_deliveries(&self) -> Result<Vec<crate::notifications::Delivery>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare("SELECT value FROM notification_deliveries ORDER BY key")
+            .map_err(storage)?;
+        let rows = statement
+            .query_map([], |row| row.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|row| cbor(&row.map_err(storage)?)).collect()
+    }
+
+    /// Forget a platform group only; it cannot resolve an item or read a message.
+    pub fn delete_notification_delivery(&self, id: &str) -> Result<()> {
+        self.delete("notification_deliveries", id)
+    }
+
+    /// Trim expired resolved tombstones. Domain cursors and unresolved items stay.
+    pub fn prune_notifications(&self, before: u64) -> Result<()> {
+        self.conn()
+            .execute(
+                "DELETE FROM notification_items WHERE open = 0 AND updated_at < ?1",
+                [before.min(i64::MAX as u64) as i64],
+            )
+            .map(|_| ())
+            .map_err(storage)
     }
 
     /// A sync job: ciphertext, signatures and progress, never a key.

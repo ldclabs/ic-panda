@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "base": {
+    "account": "account-a",
+    "target": {
+      "kind": "channel",
+      "id": "channel-a"
+    },
+    "version": "9",
+    "unread": 2,
+    "first_at": 1000,
+    "now": 4000,
+    "enabled": true
+  },
+  "cases": [
+    {
+      "name": "ordinary-after-three-seconds",
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": false,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "aggregation",
+      "context": {
+        "now": 3999
+      },
+      "expected": {
+        "decision": "wait",
+        "until": 4000,
+        "reason": "merge"
+      }
+    },
+    {
+      "name": "explicit-account-opt-in",
+      "enabled": false,
+      "expected": {
+        "decision": "keep",
+        "reason": "disabled"
+      }
+    },
+    {
+      "name": "no-permission",
+      "context": {
+        "allowed": false
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "permission"
+      }
+    },
+    {
+      "name": "same-visible-resource",
+      "context": {
+        "viewing": true
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "viewed"
+      }
+    },
+    {
+      "name": "foreground-other-page",
+      "context": {
+        "foreground": true
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": false,
+        "in_app": true,
+        "update": false
+      }
+    },
+    {
+      "name": "observed-watermark",
+      "item": {
+        "observed": "9"
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "viewed"
+      }
+    },
+    {
+      "name": "remote-actual-view",
+      "context": {
+        "remote_viewed": true
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "viewed"
+      }
+    },
+    {
+      "name": "own-mobile-presentation",
+      "context": {
+        "remote_owner": true
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "remote_owner"
+      }
+    },
+    {
+      "name": "resource-mute",
+      "item": {
+        "muted": true
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "muted"
+      }
+    },
+    {
+      "name": "quiet-hours",
+      "context": {
+        "quiet_until": 9000
+      },
+      "expected": {
+        "decision": "wait",
+        "until": 9000,
+        "reason": "quiet"
+      }
+    },
+    {
+      "name": "covered-watermark",
+      "item": {
+        "notified": "9"
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "covered"
+      }
+    },
+    {
+      "name": "same-conversation-interval",
+      "item": {
+        "attempted_at": 1000
+      },
+      "expected": {
+        "decision": "wait",
+        "until": 61000,
+        "reason": "budget"
+      }
+    },
+    {
+      "name": "installation-budget",
+      "runtime": {
+        "messages": [
+          1000,
+          2000,
+          3000
+        ]
+      },
+      "expected": {
+        "decision": "wait",
+        "until": 61000,
+        "reason": "budget"
+      }
+    },
+    {
+      "name": "no-mail-opt-in",
+      "item": {
+        "target": {
+          "kind": "agent_mail",
+          "id": "agent"
+        }
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "disabled"
+      }
+    },
+    {
+      "name": "closed-domain",
+      "item": {
+        "open": false
+      },
+      "expected": {
+        "decision": "remove"
+      }
+    },
+    {
+      "name": "security-first-immediate",
+      "item": {
+        "target": {
+          "kind": "recovery",
+          "id": "digest"
+        }
+      },
+      "context": {
+        "now": 1000,
+        "remote_viewed": true
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": true,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "security-does-not-borrow-message-budget",
+      "item": {
+        "target": {
+          "kind": "recovery",
+          "id": "digest"
+        }
+      },
+      "runtime": {
+        "messages": [
+          1000,
+          2000,
+          3000
+        ]
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": true,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "sound-budget",
+      "sound": true,
+      "runtime": {
+        "sound_at": 1000
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": false,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "retry-is-quiet",
+      "sound": true,
+      "item": {
+        "quiet": true
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": false,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "security-stage-with-verified-deadline",
+      "item": {
+        "target": {
+          "kind": "recovery",
+          "id": "digest"
+        },
+        "deadline": 100000,
+        "stage": 1,
+        "observed": "9"
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 3,
+        "sound": true,
+        "in_app": false,
+        "update": false
+      }
+    },
+    {
+      "name": "unknown-recovery-deadline",
+      "item": {
+        "target": {
+          "kind": "recovery",
+          "id": "digest"
+        },
+        "stage": 1
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "covered"
+      }
+    },
+    {
+      "name": "expired-approval",
+      "item": {
+        "target": {
+          "kind": "approval",
+          "id": "request"
+        },
+        "deadline": 4000
+      },
+      "expected": {
+        "decision": "remove"
+      }
+    },
+    {
+      "name": "action-deadline",
+      "item": {
+        "target": {
+          "kind": "approval",
+          "id": "request"
+        },
+        "stage": 1,
+        "first_at": 0,
+        "deadline": 100000,
+        "attempted_at": 0
+      },
+      "expected": {
+        "decision": "wait",
+        "until": 80000,
+        "reason": "deadline"
+      }
+    },
+    {
+      "name": "short-approval-no-extra-nag",
+      "item": {
+        "target": {
+          "kind": "approval",
+          "id": "request"
+        },
+        "stage": 1,
+        "first_at": 0,
+        "deadline": 10000,
+        "attempted_at": 0
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "covered"
+      }
+    },
+    {
+      "name": "business-unread-resolved",
+      "item": {
+        "unread": 0
+      },
+      "expected": {
+        "decision": "remove"
+      }
+    }
+  ]
+}

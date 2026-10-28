@@ -200,6 +200,8 @@ struct Operation {
     /// Another account approved these exact bytes: never signed again.
     fixed: bool,
     result: Option<Json>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    notification: Option<crate::cloud::PublishNotification>,
 }
 
 /// A message to send, kept until the relay stores it.
@@ -1306,7 +1308,10 @@ pub(crate) async fn journaled<H: Hold>(
                     let request_id = previous
                         .as_ref()
                         .map_or_else(random_hex, |j| j.request_id.clone());
-                    let job = c.sign_now(action, path.clone(), payload.clone(), request_id)?;
+                    let mut job = c.sign_now(action, path.clone(), payload.clone(), request_id)?;
+                    if let Some(previous) = previous {
+                        job.notification = previous.notification;
+                    }
                     if action == GENESIS {
                         c.renew_genesis(channel, &job.cose)?;
                     }
@@ -1315,12 +1320,13 @@ pub(crate) async fn journaled<H: Hold>(
                 }
             };
             let state = c.fresh()?;
-            Ok(Posting::Send(c.cloud.prepare_signed(
+            Ok(Posting::Send(c.cloud.prepare_signed_notification(
                 &c.signer(&state)?,
                 &job.path,
                 &job.cose,
                 &job.request_id,
                 job.deadline,
+                job.notification,
                 now_ms(),
             )?))
         })
@@ -2455,6 +2461,38 @@ impl Client {
         let signer = self.signer(state)?;
         let deadline = signer.deadline(now_ms())?;
         let cose = sign_command(&signer, action, &payload, &request_id, deadline);
+        let notification = if action == MESSAGE
+            && self
+                .workspace
+                .store
+                .meta::<bool>("notification:publish_v1")?
+                .unwrap_or(false)
+        {
+            let channel = payload["channel_id"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?;
+            let message = payload["message_id"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?;
+            self.job::<Outgoing>(channel, &format!("message:{message}"))?
+                .map(|outgoing| {
+                    use crate::cloud::{PublishKind, PublishNotification};
+                    PublishNotification {
+                        version: 1,
+                        kind: if outgoing.draft.edit_of.is_some()
+                            || outgoing.draft.retract.is_some()
+                        {
+                            PublishKind::Update
+                        } else if outgoing.draft.packet.is_some() {
+                            PublishKind::Silent
+                        } else {
+                            PublishKind::Message
+                        },
+                    }
+                })
+        } else {
+            None
+        };
         Ok(Operation {
             action: action.into(),
             path,
@@ -2464,6 +2502,7 @@ impl Client {
             deadline,
             fixed: false,
             result: None,
+            notification,
         })
     }
 
@@ -4672,6 +4711,7 @@ impl Client {
             deadline: context.deadline,
             fixed: true,
             result: None,
+            notification: None,
         })
     }
 
