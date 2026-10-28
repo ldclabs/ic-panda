@@ -1969,6 +1969,30 @@ smoke: try {
   await main.waitForSelector('[data-testid="usage-channels"]')
   assert.match(await main.textContent('[data-testid="usage-channels"]'), /2\s*\/\s*3/)
   assert.equal(await main.locator('[data-testid="plan-pack-buy"]').isDisabled(), true)
+  // A failed optional hub read is cached with the otherwise usable catalog.
+  // The hub has recovered, but local/SWR reads still return that fresh cache.
+  // The page's advertised retry must bypass it without waiting for its TTL.
+  const normalCatalog = methods['plan/catalog']
+  let cachedCatalog = structuredClone(normalCatalog())
+  cachedCatalog.wallet_quotas_error = 'UNAVAILABLE: wallet hub unavailable'
+  for (const plan of cachedCatalog.plans) plan.limits.team_wallets = null
+  methods['plan/catalog'] = ({ mode }) => {
+    if (mode === 'fresh') cachedCatalog = normalCatalog()
+    return cachedCatalog
+  }
+  emit('cache/changed', { kind: 'catalog' })
+  await main.getByTestId('wallet-quotas-error').waitFor()
+  assert.match(await main.getByTestId('plan-max-wallets').textContent(), /—/)
+  assert.match(await main.getByTestId('plan-device-limit').textContent(), /2 devices/)
+  await main.getByText('Letter sent', { exact: true }).waitFor({ state: 'hidden' })
+  await formMatrix(app, main, shots, 'membership-wallet-retry', '[data-testid="wallet-quotas-error"]')
+  await main.getByTestId('plan-refresh').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('wallet-quotas-error').waitFor({ state: 'hidden' })
+  assert.equal(latest('plan/catalog').params.mode, 'fresh')
+  assert.match(await main.getByTestId('plan-wallet-limit').textContent(), /Team wallet slots: 0/)
+  assert.match(await main.getByTestId('plan-max-wallets').textContent(), /Team wallet slots: 10/)
+  methods['plan/catalog'] = normalCatalog
   // The relay's notice of an account over its plan is acknowledged once, which starts its export window.
   await main.click('[data-testid="plan-notice-ack"]')
   await waitFor(() => latest('plan/notice_ack'))

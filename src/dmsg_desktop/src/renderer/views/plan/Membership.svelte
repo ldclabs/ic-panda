@@ -82,7 +82,7 @@
 
   function load(refresh = false) {
     refreshPlan ||= refresh
-    void readCatalog()
+    void readCatalog(refresh ? 'fresh' : 'swr')
     void readCloud()
     void readExecution()
     return readPlan()
