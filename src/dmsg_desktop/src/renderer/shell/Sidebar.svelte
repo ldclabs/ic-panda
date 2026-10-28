@@ -128,7 +128,7 @@
       <button class={buttonClass('secondary', 'xs', 'justify-self-start border-transparent')} onclick={() => go(views.legacy.path)}>{t('open')}</button>
     </div>
   {/if}
-  <nav class={cn('mt-1 flex min-h-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto', collapsed && 'items-center')} aria-label={t('views')}>
+  <nav class={cn('-mx-2.5 mt-1 flex min-h-0 flex-col gap-0.5 self-stretch overflow-x-hidden overflow-y-auto px-2.5', collapsed && 'items-center')} aria-label={t('views')}>
     {#each groups as group (group.label)}
       {#if collapsed}
         <div class="mx-auto my-2 h-px w-6 bg-line"></div>

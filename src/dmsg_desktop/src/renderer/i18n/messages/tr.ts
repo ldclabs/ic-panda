@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'En fazla {n} cihaz',
+    teamWalletSlots: 'En fazla {n} ekip cüzdanı',
+    walletQuotasUnavailable: 'Ekip cüzdanı limitleri alınamıyor. Yeniden denemek için yenileyin.',
     "settingsNameLimit": "Kontrol karakterleri olmadan en fazla 80 karakter kullanın.",
     "settingsBioLimit": "2.000'e kadar karakter kullanın; satır sonlarına izin verilir.",
     "settingsLinkName": "1-128 karakterden oluşan bir bağlantı adı girin.",

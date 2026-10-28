@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'อุปกรณ์สูงสุด {n} เครื่อง',
+    teamWalletSlots: 'กระเป๋าเงินทีมสูงสุด {n} ใบ',
+    walletQuotasUnavailable: 'ไม่สามารถโหลดขีดจำกัดกระเป๋าเงินทีมได้ โปรดรีเฟรชเพื่อลองอีกครั้ง',
     "settingsNameLimit": "ใช้อักขระได้สูงสุด 80 ตัวโดยไม่มีอักขระควบคุม",
     "settingsBioLimit": "ใช้ได้ถึง 2,000 ตัวอักษร; อนุญาตให้แบ่งบรรทัดได้",
     "settingsLinkName": "ป้อนชื่อลิงก์ที่มีความยาว 1–128 อักขระ",

@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'デバイス最大 {n} 台',
+    teamWalletSlots: 'チームウォレット最大 {n} 個',
+    walletQuotasUnavailable: 'チームウォレットの上限を取得できません。更新して再試行してください。',
     "settingsNameLimit": "制御文字を除く最大 80 文字を使用します。",
     "settingsBioLimit": "最大 2,000 文字を使用します。改行は許可されます。",
     "settingsLinkName": "リンク名を 1 ～ 128 文字で入力します。",

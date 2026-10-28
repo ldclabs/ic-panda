@@ -157,7 +157,7 @@ owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定
 - **地址空间**：各 canister 的 `MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。这是地址容量，不是业务容量；平台的 stable memory 上限和子网存储余量另行约束。
 - **紧凑表示**：每个 canister 用私有的 `stable_codec.rs` 以 CBOR 整数 key 保存记录，不影响公开 Candid、签名摘要和认证叶编码。
 - **认证树**：user、payment、commerce、membership 和 directory 使用 `dmsg_runtime::cert_map`，一棵存在 stable memory 的 crit-bit Merkle 前缀树，只保存 key、认证值哈希和 201 字节定长的内部节点槽位。认证值在查询时由记录重新生成并与已认证的哈希核对，写入只重算一条路径。100 万个 key 时，一次写入的 stable 读从 B 树节点布局的 4,394 次降到 167 次。handle 使用按名称哈希分成 2^20 个桶的 `name_tree`，节点哈希存在定长数组中，写入只重算一个桶和一条路径。
-- **有界集合**：每个账户最多 16 台设备（5 台活跃）、8 个登录、4 条待接受绑定、16 条操作回执和 64 条执行保留；认证批量响应不超过 256 KiB。普通账户操作不读取历史执行载荷。
+- **有界集合**：每个账户最多 16 条设备记录（活跃设备上限：Free 2、Plus 3、Pro 5、Max 10；降级保留已有设备）、8 个登录、4 条待接受绑定、16 条操作回执和 64 条执行保留；认证批量响应不超过 256 KiB。普通账户操作不读取历史执行载荷。
 - **升级**：稳定记录是权威；每个 canister 明确支持的 schema 转换。`dmsg_user` 与 `dmsg_directory` 已有线上数据：user 14 → 15、directory 6 → 7 原地保留数据，并有旧 Wasm 升级验证；directory 首次转换会构建额外的认证树。不支持的布局拒绝加载。见[升级边界](dmsg_canisters_zh.md#持久化与升级)，重装不能代替迁移。
 
 `post_upgrade` 实测（PocketIC 16.0.0、release Wasm；大规模样本由主机用各 canister 自己的存储代码构建 stable 镜像后上传）：

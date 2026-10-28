@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Do {n} urządzeń',
+    teamWalletSlots: 'Do {n} portfeli zespołowych',
+    walletQuotasUnavailable: 'Limity portfeli zespołowych są niedostępne. Odśwież, aby spróbować ponownie.',
     "settingsNameLimit": "Użyj maksymalnie 80 znaków bez znaków kontrolnych.",
     "settingsBioLimit": "Użyj maksymalnie 2000 znaków; dozwolone są przerwy w wierszach.",
     "settingsLinkName": "Wprowadź nazwę łącza składającą się z 1–128 znaków.",

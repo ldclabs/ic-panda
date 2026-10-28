@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+  deviceSlots: '最多 {n} 台设备',
+  teamWalletSlots: '最多开通 {n} 个团队钱包',
+  walletQuotasUnavailable: '暂时无法读取团队钱包额度，请刷新重试。',
     settingsNameLimit: "最多 80 个字符，不含控制字符。",
     settingsBioLimit: "最多 2,000 个字符，可以换行。",
     settingsLinkName: "请输入 1–128 个字符的链接名称。",

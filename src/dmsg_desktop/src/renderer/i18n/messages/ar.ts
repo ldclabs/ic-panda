@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    deviceSlots: 'ما يصل إلى {n} أجهزة',
+    teamWalletSlots: 'ما يصل إلى {n} محافظ فريق',
+    walletQuotasUnavailable: 'حدود محافظ الفريق غير متاحة. حدّث الصفحة لإعادة المحاولة.',
     settingsNameLimit: "استخدم حتى 80 محرفًا دون محارف تحكم.",
     settingsBioLimit: "استخدم حتى 2000 محرف؛ يُسمح بفواصل الأسطر.",
     settingsLinkName: "أدخل اسم رابط من محرف واحد إلى 128 محرفًا.",

@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'زیادہ سے زیادہ {n} آلات',
+    teamWalletSlots: 'زیادہ سے زیادہ {n} ٹیم والیٹس',
+    walletQuotasUnavailable: 'ٹیم والیٹس کی حدود دستیاب نہیں ہیں۔ دوبارہ کوشش کے لیے ریفریش کریں۔',
     "settingsNameLimit": "کنٹرول حروف کے بغیر 80 حروف تک استعمال کریں۔",
     "settingsBioLimit": "2,000 حروف تک استعمال کریں۔ لائن بریک کی اجازت ہے.",
     "settingsLinkName": "1-128 حروف کے لنک کا نام درج کریں۔",

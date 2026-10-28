@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Bis zu {n} Geräte',
+    teamWalletSlots: 'Bis zu {n} Team-Wallets',
+    walletQuotasUnavailable: 'Die Limits für Team-Wallets sind nicht verfügbar. Zum erneuten Versuch aktualisieren.',
     "settingsNameLimit": "Verwenden Sie bis zu 80 Zeichen ohne Steuerzeichen.",
     "settingsBioLimit": "Verwenden Sie bis zu 2.000 Zeichen; Zeilenumbrüche sind erlaubt.",
     "settingsLinkName": "Geben Sie einen Linknamen mit 1–128 Zeichen ein.",

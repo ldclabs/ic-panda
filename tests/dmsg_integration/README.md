@@ -14,6 +14,8 @@ POCKET_IC_BIN=/path/to/pocket-ic cargo test -p dmsg_integration --features pocke
 
 这些测试不代替真实账本部署、客户端 UI、私有 Worker、TSA 信任验证和容量验收。
 
+`commerce::device_limits` 覆盖 Free 2 / Plus 3 / Pro 5 / Max 10 台活跃设备的实际准入、即时升级、到期保留存量、撤销释放名额、commerce 停止时的安全维护与操作重放，以及权益回调后的并发撤销复核。显式运行的 `device_limit_upgrade_preserves_legacy_over_limit_accounts` 需要 `DMSG_PRE_DEVICE_LIMIT_USER_WASM` 指向修改前源码（`d3c90749`）构建的 user Wasm，验证旧 Free 账号的 5 台设备、解锁秘密、认证叶和操作回执原地升级后保持不变。
+
 `user_execution_retention_survives_a_full_window_and_upgrade` 覆盖 user 执行窗口满额、拒绝无写入、到期清理、旧批准防重放及升级后的认证回执。另有显式运行的 `user_cycles_profile`，以 4 KiB 正文和 0/4/8 条已完成签名历史比较 user canister 的 cycles：
 
 ```sh

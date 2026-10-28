@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    deviceSlots: 'Jusqu’à {n} appareils',
+    teamWalletSlots: 'Portefeuilles d’équipe : {n}',
+    walletQuotasUnavailable: 'Les limites des portefeuilles d’équipe sont indisponibles. Actualisez pour réessayer.',
     settingsNameLimit: "80 caractères maximum, sans caractères de contrôle.",
     settingsBioLimit: "2 000 caractères maximum ; les sauts de ligne sont autorisés.",
     settingsLinkName: "Saisissez un nom de lien de 1 à 128 caractères.",

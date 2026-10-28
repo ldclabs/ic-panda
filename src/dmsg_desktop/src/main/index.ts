@@ -39,6 +39,10 @@ import { RecoveryNotifications, type RecoveryWarning } from './recovery-notifica
 import { textFor } from './text'
 import { trayVariant } from './tray-state'
 import { Updates } from './updater'
+import { handleBrokenOutput } from './stdio'
+
+handleBrokenOutput(process.stdout)
+handleBrokenOutput(process.stderr)
 
 const testMode = !app.isPackaged && process.env.DMSG_DESKTOP_TEST === '1'
 if (testMode) {

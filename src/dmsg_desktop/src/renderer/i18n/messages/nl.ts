@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Tot {n} apparaten',
+    teamWalletSlots: 'Tot {n} teamwallets',
+    walletQuotasUnavailable: 'De limieten voor teamwallets zijn niet beschikbaar. Vernieuw om het opnieuw te proberen.',
     "settingsNameLimit": "Gebruik maximaal 80 tekens zonder controletekens.",
     "settingsBioLimit": "Gebruik maximaal 2.000 tekens; regeleinden zijn toegestaan.",
     "settingsLinkName": "Voer een linknaam van 1–128 tekens in.",

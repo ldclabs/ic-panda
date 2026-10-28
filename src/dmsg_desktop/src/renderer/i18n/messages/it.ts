@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Fino a {n} dispositivi',
+    teamWalletSlots: 'Fino a {n} portafogli di squadra',
+    walletQuotasUnavailable: 'I limiti dei portafogli di squadra non sono disponibili. Aggiorna per riprovare.',
     "settingsNameLimit": "Utilizza fino a 80 caratteri senza caratteri di controllo.",
     "settingsBioLimit": "Utilizza fino a 2.000 caratteri; sono consentite interruzioni di riga.",
     "settingsLinkName": "Inserisci un nome di collegamento composto da 1 a 128 caratteri.",

@@ -10,6 +10,53 @@ use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::Vi
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
+/// Device admission uses the existing commerce projection without adding
+/// fields to signed plan snapshots or persisting a second membership cache.
+pub async fn device_plan(home_user: candid::Principal, id: &AccountId) -> Result<(PlanId, u64)> {
+    let home = store::config().init.commerce_canister;
+    let b = beneficiary(home_user, id);
+    let reply: Result<EntitlementView> =
+        dmsg_runtime::call(home, "refresh_entitlement", (b.clone(),)).await?;
+    let at = nanos_to_millis(ic_cdk::api::time());
+    ensure(
+        store::config().init.commerce_canister == home,
+        Error::PolicyStale,
+    )?;
+    let plan = match reply {
+        Ok(view) => device_plan_from_view(&view, home, &b, at)?,
+        // Commerce has no subject row for an account that has never paid.
+        Err(Error::NotFound) => PlanId::Free,
+        Err(error) => return Err(error),
+    };
+    Ok((plan, at))
+}
+
+fn device_plan_from_view(
+    view: &EntitlementView,
+    home: candid::Principal,
+    b: &dmsg_types::membership::Beneficiary,
+    at: u64,
+) -> Result<PlanId> {
+    ensure(
+        view.schema == 1
+            && view.home_commerce == home
+            && view.beneficiary == *b
+            && view.issued_at_ms <= at
+            && at < view.valid_until_ms
+            && view.next_limit_change_at_ms.is_none_or(|end| at < end)
+            && view.effective_stop_at_ms.is_none_or(|end| at < end)
+            && view.eligibility_status == dmsg_types::membership::Eligibility::Eligible
+            && (view.source_status == SourceStatus::Active
+                || (view.plan_snapshot.plan_id == PlanId::Free
+                    && matches!(
+                        view.source_status,
+                        SourceStatus::Free | SourceStatus::Expired
+                    ))),
+        Error::MembershipStale,
+    )?;
+    Ok(view.plan_snapshot.plan_id.clone())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Month {
     pub(crate) usage: ExecutionUsage,
@@ -175,4 +222,73 @@ fn count(month: u32, first: bool, units: u64) {
     t.attestations += 1;
     t.charged_units += units;
     store::save_config(&cfg);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use candid::Principal;
+    use dmsg_types::membership::Eligibility;
+
+    #[test]
+    fn device_admission_requires_a_current_matching_eligible_projection() {
+        let home = Principal::from_slice(&[1]);
+        let b = beneficiary(Principal::from_slice(&[2]), &AccountId([3; 12]));
+        let plan = default_plans(1).pop().unwrap();
+        let view = EntitlementView {
+            schema: 1,
+            home_commerce: home,
+            beneficiary: b.clone(),
+            business_revision: 1,
+            lease_revision: 1,
+            active_contract_id: Some(Hash::new([4; 32])),
+            effective_limits: plan.limits.clone(),
+            plan_snapshot: plan,
+            addons: vec![],
+            next_limit_change_at_ms: None,
+            lease_source_contract_ids: vec![Hash::new([4; 32])],
+            source_status: SourceStatus::Active,
+            eligibility_status: Eligibility::Eligible,
+            observed_at_ms: 100,
+            issued_at_ms: 100,
+            valid_until_ms: 200,
+            effective_stop_at_ms: None,
+            repair_deadline_ms: None,
+            service_terminated_at_ms: None,
+        };
+        assert_eq!(device_plan_from_view(&view, home, &b, 100), Ok(PlanId::Max));
+        for at in [99, 200, 201] {
+            assert_eq!(
+                device_plan_from_view(&view, home, &b, at),
+                Err(Error::MembershipStale)
+            );
+        }
+        for change in [
+            |v: &mut EntitlementView| v.schema = 2,
+            |v: &mut EntitlementView| v.home_commerce = Principal::anonymous(),
+            |v: &mut EntitlementView| v.beneficiary.authority_canister = Principal::anonymous(),
+            |v: &mut EntitlementView| v.eligibility_status = Eligibility::Unverifiable,
+            |v: &mut EntitlementView| v.eligibility_status = Eligibility::Ineligible,
+            |v: &mut EntitlementView| v.source_status = SourceStatus::Suspended,
+            |v: &mut EntitlementView| v.source_status = SourceStatus::Expired,
+            |v: &mut EntitlementView| v.next_limit_change_at_ms = Some(150),
+            |v: &mut EntitlementView| v.effective_stop_at_ms = Some(150),
+        ] {
+            let mut invalid = view.clone();
+            change(&mut invalid);
+            assert_eq!(
+                device_plan_from_view(&invalid, home, &b, 150),
+                Err(Error::MembershipStale)
+            );
+        }
+        for status in [SourceStatus::Free, SourceStatus::Expired] {
+            let mut free = view.clone();
+            free.plan_snapshot = default_plans(1).remove(0);
+            free.source_status = status;
+            assert_eq!(
+                device_plan_from_view(&free, home, &b, 150),
+                Ok(PlanId::Free)
+            );
+        }
+    }
 }

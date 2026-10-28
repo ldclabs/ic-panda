@@ -8,6 +8,8 @@ use serde::Serialize;
 mod app_store;
 #[path = "commerce_review.rs"]
 mod commerce_review;
+#[path = "device_limits.rs"]
+mod device_limits;
 #[path = "external_integration.rs"]
 mod external_integration;
 #[path = "membership_review.rs"]

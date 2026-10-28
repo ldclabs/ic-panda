@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Tối đa {n} thiết bị',
+    teamWalletSlots: 'Tối đa {n} ví nhóm',
+    walletQuotasUnavailable: 'Chưa thể tải giới hạn ví nhóm. Hãy làm mới để thử lại.',
     "settingsNameLimit": "Sử dụng tối đa 80 ký tự không có ký tự điều khiển.",
     "settingsBioLimit": "Sử dụng tối đa 2.000 ký tự; ngắt dòng được cho phép.",
     "settingsLinkName": "Nhập tên liên kết từ 1–128 ký tự.",

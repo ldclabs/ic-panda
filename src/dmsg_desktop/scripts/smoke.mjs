@@ -266,10 +266,10 @@ const DAY = 86_400_000
 let membership = 'free'
 let termEnds = 0
 const LIMITS = {
-  Free: { storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 },
-  Plus: { storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 },
-  Pro: { storage_bytes: 200_000_000_000, active_channels: 50, monthly_execution_units: 500 },
-  Max: { storage_bytes: 1_000_000_000_000, active_channels: 200, monthly_execution_units: 2000 }
+  Free: { active_devices: 2, team_wallets: 0, storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 },
+  Plus: { active_devices: 3, team_wallets: 1, storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 },
+  Pro: { active_devices: 5, team_wallets: 3, storage_bytes: 200_000_000_000, active_channels: 50, monthly_execution_units: 500 },
+  Max: { active_devices: 10, team_wallets: 10, storage_bytes: 1_000_000_000_000, active_channels: 200, monthly_execution_units: 2000 }
 }
 /** The catalog's storage pack. */
 const pack = 'e7'.repeat(32)
@@ -1521,6 +1521,17 @@ const app = await electron.launch({
     DMSG_HOME: join(profile, 'home')
   }
 })
+// An interrupted run must also close its isolated Electron process before
+// the runner's output pipes disappear. Bound cleanup if a native dialog hangs.
+let closing
+function closeTest() {
+  return closing ??= (async () => {
+    const kill = setTimeout(() => app.process().kill('SIGKILL'), 5_000)
+    try { await app.close() } finally { clearTimeout(kill); server.close() }
+  })()
+}
+process.once('SIGINT', () => { void closeTest().finally(() => process.exit(130)) })
+process.once('SIGTERM', () => { void closeTest().finally(() => process.exit(143)) })
 // Dialogs, the clipboard and notifications are the main process's; the test
 // answers the dialogs and watches the other two instead of the system's.
 const picks = join(profile, 'picks')
@@ -1942,6 +1953,13 @@ smoke: try {
   await main.click('nav >> text=/Plan & names|会员与名称/')
   await main.waitForSelector('[data-testid="plan-name"]')
   assert.equal(await main.textContent('[data-testid="plan-name"]'), 'Free')
+  await main.waitForSelector('[data-testid="plan-max-wallets"]')
+  assert.match(await main.textContent('[data-testid="plan-device-limit"]'), /2 devices/)
+  assert.match(await main.textContent('[data-testid="plan-wallet-limit"]'), /Team wallet slots: 0/)
+  for (const [tier, devices, wallets] of [['plus', 3, 1], ['pro', 5, 3], ['max', 10, 10]]) {
+    assert.match(await main.textContent(`[data-testid="plan-${tier}-devices"]`), new RegExp(`${devices} devices`))
+    assert.match(await main.textContent(`[data-testid="plan-${tier}-wallets"]`), new RegExp(`Team wallet slots: ${wallets}`))
+  }
   const statusReads = calls.filter((c) => c.method === 'plan/status').length
   await main.click('[data-testid="plan-refresh"]')
   await waitFor(() => calls.filter((c) => c.method === 'plan/status').length > statusReads)
@@ -2066,6 +2084,7 @@ smoke: try {
   for (const plan of ['plus', 'pro', 'max']) assert.match(await main.textContent(`[data-testid="plan-${plan}-wait"]`), /Renewed through the App Store/)
   assert.equal(await main.locator('[data-testid="plan-cards"] button').count(), 0)
   assert.equal(await main.locator('[data-testid="plan-hero"] >> text=Renewal opens').count(), 0)
+  await main.getByText('Refund sent.', { exact: true }).waitFor({ state: 'hidden' })
   {
     const window = await app.browserWindow(main)
     for (const [locale, theme, width, height] of [
@@ -2079,7 +2098,22 @@ smoke: try {
       await main.locator('[data-testid="plan-cards"]').scrollIntoViewIfNeeded()
       assert.ok(await main.locator('[data-testid="plan-cards"]').evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `App Store plan fits ${locale} ${width}`)
       assert.ok(await main.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `App Store plan no window overflow ${locale}`)
+      const edgeGap = await main.locator('[data-testid="sidebar"]').evaluate((sidebar) => {
+        const nav = sidebar.querySelector('nav').getBoundingClientRect()
+        const edge = sidebar.getBoundingClientRect()
+        return document.dir === 'rtl' ? nav.left - edge.left : edge.right - nav.right
+      })
+      assert.ok(edgeGap <= 1, `sidebar scroll area reaches divider in ${locale}: ${edgeGap}px`)
       await main.screenshot({ path: join(shots, `plan-appstore-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+      await main.locator('[data-testid="sidebar"]').screenshot({ path: join(shots, `sidebar-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+      if (width === 760) {
+        for (const tier of ['plus', 'pro', 'max']) {
+          const card = main.locator(`[data-testid="plan-${tier}"]`)
+          await card.scrollIntoViewIfNeeded()
+          assert.ok(await card.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `benefits fit ${tier} ${locale}`)
+          await card.screenshot({ path: join(shots, `plan-benefits-${tier}-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+        }
+      }
     }
     await window.evaluate((window) => window.setContentSize(1180, 760))
     await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
@@ -2244,6 +2278,9 @@ smoke: try {
   await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://handle/accept#${incomingToken}`)
   await main.waitForSelector('[data-testid="accept-token"]')
   assert.equal(await main.inputValue('[data-testid="accept-token"]'), incomingToken)
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  await (await app.browserWindow(main)).evaluate((window) => { window.show(); window.focus() })
+  await settled(main, '[data-testid="accept"]')
   await main.click('[data-testid="accept-continue"]')
   await waitFor(() => latest('handle/accept'))
   assert.deepEqual(latest('handle/accept').params, { token: incomingToken, source: 'gui' })
@@ -2848,7 +2885,7 @@ smoke: try {
   if(process.env.DMSG_DESKTOP_SMOKE==='wallet') {
     assert.deepEqual(pageErrors,[])
     console.log(`Wallet experience smoke passed. Screenshots: ${shots}`)
-    await app.close(); server.close(); process.exit(0)
+    await closeTest(); process.exit(0)
   }
   wallets.state.enabled=false
   for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
@@ -4391,8 +4428,17 @@ smoke: try {
     assert.deepEqual(closed, { hidden: mode !== 'reopen-during-exit', fullScreen: false, destroyed: false, reopened: true }, `close and reopen (${mode})`)
     await main.waitForSelector('html:not([data-fullscreen])')
   }
+  // A launcher can disappear while Electron still reports an IPC failure.
+  // Closing the real output pipes must leave the main process responsive.
+  app.process().stdout?.destroy()
+  app.process().stderr?.destroy()
+  assert.equal(await app.evaluate(async () => {
+    process.stdout.write('closed launcher output\n')
+    process.stderr.write('closed launcher error output\n')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    return 'alive'
+  }), 'alive')
   console.log(process.platform === 'darwin' && !nativeFullscreen ? 'desktop smoke test passed (native fullscreen checks explicitly skipped)' : 'desktop smoke test passed')
 } finally {
-  await app.close()
-  server.close()
+  await closeTest()
 }

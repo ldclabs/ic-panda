@@ -42,6 +42,7 @@
   const offers = $derived(new Map<string, any>((plan?.offers ?? []).map((o: any) => [o.plan, o])))
   const paid = $derived<any[]>((catalog?.plans ?? []).filter((p: any) => p.price_cents > 0))
   const packs = $derived<any[]>(catalog?.storage_products ?? [])
+  const walletLimit = $derived(catalog?.plans?.find((p: any) => p.plan_id === plan?.plan)?.limits?.team_wallets)
   const notice = $derived(cloud?.notice ?? null)
 
   /** One part of the page: its failure shows in its place and leaves the others. */
@@ -229,15 +230,22 @@
         {@render meter(t('signaturesThisMonth'), '—', '—', 0, 'usage-signatures')}
       {/if}
     </div>
-    {#if plan?.limits}<p class="mt-3 text-[12px] text-muted">{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</p>{/if}
+    {#if plan?.limits}
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted" data-testid="plan-benefits">
+        <li>{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</li>
+        <li data-testid="plan-device-limit">{t('deviceSlots', { n: plan.limits.active_devices ?? '—' })}</li>
+        <li data-testid="plan-wallet-limit">{t('teamWalletSlots', { n: walletLimit ?? '—' })}</li>
+      </ul>
+    {/if}
     {#if errors.cloud}<Notice failure={errors.cloud} tone="danger" class="mt-3">{errors.cloud}</Notice>{/if}
     {#if errors.execution}<Notice failure={errors.execution} tone="danger" class="mt-3">{errors.execution}</Notice>{/if}
   </Section>
 
   {#if errors.catalog}<Notice failure={errors.catalog} tone="danger">{errors.catalog}</Notice>{/if}
+  {#if catalog?.wallet_quotas_error}<Notice tone="warn" failure={catalog.wallet_quotas_error} testid="wallet-quotas-error">{t('walletQuotasUnavailable')}</Notice>{/if}
   {#if paid.length}
     <Section title={t('plans')} description={t('plansHint')} icon="coins" testid="plan-cards">
-      <div class="grid gap-2 sm:grid-cols-3">
+      <div class="grid gap-2 lg:grid-cols-3">
         {#each paid as p (p.plan_id)}
           {@const offer = offers.get(p.plan_id)}
           {@const value = String(p.plan_id).toLowerCase()}
@@ -252,6 +260,8 @@
               <li class="flex items-center gap-1.5"><Icon name="sync" class="size-3.5 text-faint" />{size(p.limits.storage_bytes)}</li>
               <li class="flex items-center gap-1.5"><Icon name="channels" class="size-3.5 text-faint" />{t('channelSlots', { n: p.limits.active_channels })}</li>
               <li class="flex items-center gap-1.5"><Icon name="signature" class="size-3.5 text-faint" />{t('executionUnits', { n: p.limits.monthly_execution_units })}</li>
+              <li class="flex items-center gap-1.5" data-testid={`plan-${value}-devices`}><Icon name="device" class="size-3.5 shrink-0 text-faint" />{t('deviceSlots', { n: p.limits.active_devices ?? '—' })}</li>
+              <li class="flex items-center gap-1.5" data-testid={`plan-${value}-wallets`}><Icon name="wallet" class="size-3.5 shrink-0 text-faint" />{t('teamWalletSlots', { n: p.limits.team_wallets ?? '—' })}</li>
             </ul>
             {#if offer && offer.action !== 'unavailable'}
               <button

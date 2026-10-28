@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'সর্বোচ্চ {n}টি ডিভাইস',
+    teamWalletSlots: 'সর্বোচ্চ {n}টি টিম ওয়ালেট',
+    walletQuotasUnavailable: 'টিম ওয়ালেটের সীমা পাওয়া যাচ্ছে না। আবার চেষ্টা করতে রিফ্রেশ করুন।',
     "settingsNameLimit": "নিয়ন্ত্রণ অক্ষর ছাড়া 80 অক্ষর পর্যন্ত ব্যবহার করুন.",
     "settingsBioLimit": "2,000 অক্ষর পর্যন্ত ব্যবহার করুন; লাইন বিরতি অনুমোদিত।",
     "settingsLinkName": "1-128 অক্ষরের একটি লিঙ্কের নাম লিখুন।",

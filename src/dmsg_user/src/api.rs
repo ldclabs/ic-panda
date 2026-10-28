@@ -346,24 +346,46 @@ fn accept_auth_binding(account_id: AccountId, nonce: Hash) -> Result<()> {
 
 #[ic_cdk::update]
 async fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
+    let caller = ic_cdk::api::msg_caller();
+    let mut at = now();
     if principal::is_command(&input.command) {
-        let receipt = commit_principal(&input, ic_cdk::api::msg_caller(), now())?;
+        let receipt = commit_principal(&input, caller, at)?;
         // A failed or unknown publication is retried by publish_principal.
         let _ = principal::publish(input.account_id).await;
         return Ok(receipt);
     }
-    let at = now();
     let mut s = load(&input.account_id)?;
+    let mut plan = PlanId::Free;
+    if matches!(input.command, AccountCommand::AddDevice { .. })
+        && s.devices
+            .values()
+            .filter(|d| d.revoked_at.is_none())
+            .count()
+            >= plan.device_limit()
+    {
+        // Reject unauthorized calls before spending cycles on commerce, and
+        // return committed retries even after expiry, downgrade or an outage.
+        if let account::Authorized::Replay(receipt) =
+            account::authorize_mutation(&s, caller, &input, at)?
+        {
+            return Ok(receipt);
+        }
+        (plan, at) = crate::commerce::device_plan(s.home_user, &input.account_id).await?;
+        // The call may have raced a revocation, recovery or another enrollment.
+        // apply rechecks the fresh account, approval, version and device count.
+        s = load(&input.account_id)?;
+    }
     let replay = s
         .operations
         .iter()
         .any(|r| r.id == input.approval.request_id);
     let r = account::apply(
         &mut s,
-        ic_cdk::api::msg_caller(),
+        caller,
         &input,
         at,
         config().init.handle_canister,
+        &plan,
     )?;
     if replay {
         return Ok(r);

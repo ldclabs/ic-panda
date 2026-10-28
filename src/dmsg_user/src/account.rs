@@ -3,6 +3,7 @@ use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::*;
 use dmsg_types::{
+    billing::PlanId,
     handle::{HANDLE_AUTHORIZATION_MS, HandleAction, TRANSFER_AUTHORIZATION_MS},
     user::*,
     *,
@@ -287,6 +288,7 @@ pub(crate) fn apply(
     m: &AccountMutation,
     now: u64,
     handle_canister: Principal,
+    plan: &PlanId,
 ) -> Result<OperationReceipt> {
     let fp = match authorize_mutation(s, caller, m, now)? {
         Authorized::Replay(r) => return Ok(r),
@@ -303,7 +305,7 @@ pub(crate) fn apply(
                     .values()
                     .filter(|d| d.revoked_at.is_none())
                     .count()
-                    < 5,
+                    < plan.device_limit(),
                 Error::QuotaExceeded,
             )?;
             // Bound the current device set without making sixteen lifetime

@@ -22,6 +22,21 @@ pub enum PlanId {
     Max,
 }
 
+impl PlanId {
+    /// Maximum active devices admitted by this tier. Revoked devices do not
+    /// consume a slot; a downgrade never revokes existing devices. Derived
+    /// from the tier so existing signed contracts and resource leases keep
+    /// their original encoding.
+    pub const fn device_limit(&self) -> usize {
+        match self {
+            Self::Free => 2,
+            Self::Plus => 3,
+            Self::Pro => 5,
+            Self::Max => 10,
+        }
+    }
+}
+
 /// Logical storage, active-channel and formal-execution resource limits.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ResourceLimits {

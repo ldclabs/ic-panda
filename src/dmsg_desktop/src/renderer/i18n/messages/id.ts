@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Hingga {n} perangkat',
+    teamWalletSlots: 'Hingga {n} dompet tim',
+    walletQuotasUnavailable: 'Batas dompet tim tidak tersedia. Segarkan untuk mencoba lagi.',
     "settingsNameLimit": "Gunakan hingga 80 karakter tanpa karakter kontrol.",
     "settingsBioLimit": "Gunakan hingga 2.000 karakter; jeda baris diperbolehkan.",
     "settingsLinkName": "Masukkan nama tautan 1–128 karakter.",

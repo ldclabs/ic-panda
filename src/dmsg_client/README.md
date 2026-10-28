@@ -55,6 +55,12 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`legacy_proof`] | Frozen-source evidence: certified `legacy_snapshot` and `legacy_folder_manifest` ingress proofs and their page series, a shared channel's frozen source, old-identity approvals, the inheritance digests, and the frozen comparison of a personal archive |
 | [`migration`] | Personal archives: offers sealed on the device, import (the file's digest recorded first, duplicates by content), archives kept as `migration` and `migration_part` records that sync, offline reports, old attachments, frozen comparison |
 
+The membership display adds `limits.active_devices` from the existing plan ID
+(Free 2, Plus 3, Pro 5, Max 10). `catalog_display` also reads the wallet hub's
+current `HubPricing.quotas` for `limits.team_wallets`; an omitted tier is zero,
+while a failed read is null with `wallet_quotas_error`. Existing display fields,
+signed plan snapshots and the `catalog_view` API remain compatible.
+
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
 [cloud contract](../../docs/protocol/cloud_zh.md) and

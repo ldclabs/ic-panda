@@ -7,6 +7,60 @@ const DAY_MS: u64 = 86_400_000;
 const NOW: u64 = 1_000 * DAY_MS;
 
 #[test]
+fn benefit_list_uses_tier_devices_and_the_hubs_actual_wallet_quotas() {
+    use dmsg_types::wallet::PlanQuota;
+    let catalog = Catalog {
+        schema: 1,
+        version: 1,
+        effective_at_ms: 0,
+        plans: dmsg_protocol::billing::default_plans(1),
+        storage_products: vec![],
+        terms_digest: Hash::new([9; 32]),
+    };
+    // Governance may change quotas or enable Free; the display must not use
+    // the launch proposal's 0/1/3/10 in place of the actual configuration.
+    let quotas = vec![
+        PlanQuota {
+            plan: PlanId::Free,
+            wallets: 1,
+        },
+        PlanQuota {
+            plan: PlanId::Pro,
+            wallets: 7,
+        },
+        PlanQuota {
+            plan: PlanId::Max,
+            wallets: 12,
+        },
+    ];
+    let view = catalog_benefits(&catalog, Some(&quotas));
+    for (index, (devices, wallets)) in [(2, 1), (3, 0), (5, 7), (10, 12)].into_iter().enumerate() {
+        assert_eq!(view["plans"][index]["limits"]["active_devices"], devices);
+        assert_eq!(view["plans"][index]["limits"]["team_wallets"], wallets);
+        assert_eq!(
+            view["plans"][index]["limits"]["storage_bytes"],
+            catalog.plans[index].limits.storage_bytes
+        );
+    }
+    let unavailable = catalog_view(&catalog);
+    assert!(
+        unavailable["plans"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|p| p["limits"]["team_wallets"].is_null())
+    );
+    let empty = catalog_benefits(&catalog, Some(&[]));
+    assert!(
+        empty["plans"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|p| p["limits"]["team_wallets"] == 0)
+    );
+}
+
+#[test]
 fn cash_views_display_symbols_without_renaming_the_wire_asset_variants() {
     use dmsg_types::integration_billing::SettlementAssetKind;
     for (asset, symbol, wire) in [

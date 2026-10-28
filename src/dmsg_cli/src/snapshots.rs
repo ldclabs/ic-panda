@@ -294,7 +294,7 @@ async fn fetch<H: Hold>(d: &Daemon, h: &H, session: Session, r: &Resource) -> Re
     let scope = h.with(|c| c.cache_scope(r.kind)).await?;
     let data = match r.kind {
         Kind::Plan => commerce::plan_status(h, false).await?,
-        Kind::Catalog => commerce::catalog_view(&commerce::catalog(h).await?),
+        Kind::Catalog => commerce::catalog_display(h).await?,
         Kind::Assets => commerce::plan_assets(h).await?,
         Kind::Panda => commerce::plan_panda(h).await?,
         Kind::Handles => Value::Array(handle::mine(h).await?),

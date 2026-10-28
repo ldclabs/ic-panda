@@ -989,6 +989,18 @@ pub async fn quote_preview<H: Hold>(h: &H) -> Result<Json> {
     }))
 }
 
+/// Current wallet creation quotas for the membership benefit list. This
+/// public configuration read also works before an account is initialized.
+pub(crate) async fn plan_quotas<H: Hold>(h: &H) -> Result<Vec<PlanQuota>> {
+    let hub = h.with(|c| c.wallet_hub()).await?;
+    let config: HubInit = h
+        .anonymous()
+        .await?
+        .query(hub, "get_hub_config", ())
+        .await?;
+    Ok(config.pricing.quotas)
+}
+
 /// The ledger's current fee, in its atomic unit.
 async fn ledger_fee(ic: &Ic, ledger: Principal) -> Result<u128> {
     let n: Nat = ic.query(ledger, "icrc1_fee", ()).await?;

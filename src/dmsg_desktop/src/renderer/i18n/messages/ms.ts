@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Sehingga {n} peranti',
+    teamWalletSlots: 'Sehingga {n} dompet pasukan',
+    walletQuotasUnavailable: 'Had dompet pasukan tidak tersedia. Muat semula untuk mencuba lagi.',
     "settingsNameLimit": "Gunakan sehingga 80 aksara tanpa aksara kawalan.",
     "settingsBioLimit": "Gunakan sehingga 2,000 aksara; rehat baris dibenarkan.",
     "settingsLinkName": "Masukkan nama pautan 1–128 aksara.",

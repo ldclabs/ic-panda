@@ -828,32 +828,58 @@ pub async fn plan_assets<H: Hold>(h: &H) -> Result<Json> {
 }
 
 /// Resource limits for display.
-fn limits_view(l: &ResourceLimits) -> Json {
+fn limits_view(l: &ResourceLimits, plan: &PlanId) -> Json {
     json!({
         "storage_bytes": l.storage_bytes,
         "active_channels": l.active_channels,
         "monthly_execution_units": l.monthly_execution_units,
+        "active_devices": plan.device_limit(),
     })
 }
 
 /// The certified catalog for display: the plans with their limits and the
 /// storage products, by product ID hex.
 pub fn catalog_view(c: &Catalog) -> Json {
+    catalog_benefits(c, None)
+}
+
+fn catalog_benefits(c: &Catalog, wallet_quotas: Option<&[dmsg_types::wallet::PlanQuota]>) -> Json {
     json!({
         "version": c.version,
         "effective_at_ms": c.effective_at_ms,
-        "plans": c.plans.iter().map(|p| json!({
-            "plan_id": format!("{:?}", p.plan_id),
-            "price_cents": p.price_cents,
-            "limits": limits_view(&p.limits),
-            "terms_version": p.terms_version,
-        })).collect::<Vec<_>>(),
+        "plans": c.plans.iter().map(|p| {
+            let mut limits = limits_view(&p.limits, &p.plan_id);
+            // The hub treats a missing tier as zero; a failed read stays
+            // unknown instead of inventing a quota or hiding other benefits.
+            limits["team_wallets"] = wallet_quotas.map(|quotas| {
+                quotas.iter().find(|q| q.plan == p.plan_id).map_or(0, |q| q.wallets)
+            }).into();
+            json!({
+                "plan_id": format!("{:?}", p.plan_id),
+                "price_cents": p.price_cents,
+                "limits": limits,
+                "terms_version": p.terms_version,
+            })
+        }).collect::<Vec<_>>(),
         "storage_products": c.storage_products.iter().map(|p| json!({
             "product_id": hex::encode(*p.product_id),
             "storage_bytes": p.storage_bytes,
             "price_cents": p.price_cents,
         })).collect::<Vec<_>>(),
     })
+}
+
+/// Catalog benefits for display, with wallet creation quotas read from the
+/// hub's current governance configuration. A hub failure leaves the catalog
+/// usable and explicitly marks its wallet quotas unavailable.
+pub async fn catalog_display<H: Hold>(h: &H) -> Result<Json> {
+    let (catalog, quotas) =
+        futures_util::future::join(catalog(h), crate::wallet::plan_quotas(h)).await;
+    let mut view = catalog_benefits(&catalog?, quotas.as_deref().ok());
+    if let Err(error) = quotas {
+        view["wallet_quotas_error"] = error.to_string().into();
+    }
+    Ok(view)
 }
 
 /// When a contract's rights end: its term, or an earlier termination.
@@ -1051,7 +1077,7 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
             "plan": format!("{:?}", view.plan_snapshot.plan_id),
             "source": format!("{:?}", view.source_status),
             "eligibility": format!("{:?}", view.eligibility_status),
-            "limits": limits_view(&view.effective_limits),
+            "limits": limits_view(&view.effective_limits, &view.plan_snapshot.plan_id),
             "addons": view.addons.iter().map(addon_view).collect::<Vec<_>>(),
             "lease_until_ms": view.valid_until_ms,
             "next_change_at_ms": view.next_limit_change_at_ms,
@@ -1067,7 +1093,7 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
             json!({
                 "plan": "Free",
                 "source": "Free",
-                "limits": limits_view(&free.limits),
+                "limits": limits_view(&free.limits, &PlanId::Free),
                 "addons": [],
             })
         }

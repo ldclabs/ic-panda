@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: '최대 {n}개의 기기',
+    teamWalletSlots: '최대 {n}개의 팀 지갑',
+    walletQuotasUnavailable: '팀 지갑 한도를 불러올 수 없습니다. 새로고침하여 다시 시도하세요.',
     "settingsNameLimit": "제어 문자 없이 최대 80자를 사용하세요.",
     "settingsBioLimit": "최대 2,000자를 사용하세요. 줄 바꿈이 허용됩니다.",
     "settingsLinkName": "1~128자의 링크 이름을 입력합니다.",

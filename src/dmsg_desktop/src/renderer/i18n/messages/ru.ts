@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    deviceSlots: 'До {n} устройств',
+    teamWalletSlots: 'До {n} командных кошельков',
+    walletQuotasUnavailable: 'Не удалось загрузить лимиты командных кошельков. Обновите страницу.',
     settingsNameLimit: "Не более 80 символов без управляющих символов.",
     settingsBioLimit: "Не более 2000 символов; переносы строк разрешены.",
     settingsLinkName: "Введите название ссылки от 1 до 128 символов.",

@@ -22,6 +22,8 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 `RemoveAuth`（不能移除当前使用的登录）、`SetPolicy`（冻结、每日执行次数、允许的用途）、`SetRecoveryDelay` 与 `DisputeRecovery` 同样经审批中心。审批记录里登录 Principal 以文本保存，签名前才转换为命令。
 
+设备权益规则（2026-10-28）：Free / Plus / Pro / Max 最多分别有 2 / 3 / 5 / 10 台活跃设备；已撤销设备不占名额。存量超额或会员到期降级只限制继续新增，不撤销设备或阻止安全维护。`AddDevice` 超限返回现有 `QuotaExceeded`，会员状态失效返回 `MembershipStale`；已提交请求仍幂等返回原回执。额度由现有 commerce 投影的套餐标识推导，账户/设备结构、Candid、签名编码和安全叶格式均不变。
+
 ### 批准钥匙
 
 账户可以要求某些设备批准另带一把“批准钥匙”的签名。批准钥匙是设备硬件保管的 P-256 钥匙（macOS 上为 Secure Enclave，`.userPresence`，可选仅当前指纹 `.biometryCurrentSet`），每台设备至多一把，登记在 user home 的账户状态中，不进入 `Device`、`devices_root` 或安全叶，`dmsg_directory` 与云端的安全证据因此不变。

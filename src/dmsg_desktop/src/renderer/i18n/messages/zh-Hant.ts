@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: '最多 {n} 台裝置',
+    teamWalletSlots: '最多開通 {n} 個團隊錢包',
+    walletQuotasUnavailable: '暫時無法讀取團隊錢包額度，請重新整理再試。',
     "settingsNameLimit": "最多 80 個字元，不含控制字元。",
     "settingsBioLimit": "最多 2,000 個字元，可以換行。",
     "settingsLinkName": "請輸入 1–128 個字元的連結名稱。",

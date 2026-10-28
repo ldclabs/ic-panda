@@ -2,6 +2,9 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    deviceSlots: 'Hanggang {n} device',
+    teamWalletSlots: 'Hanggang {n} team wallet',
+    walletQuotasUnavailable: 'Hindi makuha ang mga limitasyon ng team wallet. I-refresh upang subukang muli.',
     "settingsNameLimit": "Gumamit ng hanggang 80 character na walang control character.",
     "settingsBioLimit": "Gumamit ng hanggang 2,000 character; pinapayagan ang mga line break.",
     "settingsLinkName": "Maglagay ng pangalan ng link na 1–128 character.",

@@ -296,7 +296,7 @@ impl Daemon {
                 )
                 .await;
             }
-            "plan/catalog" => return Ok(commerce::catalog_view(&commerce::catalog(&h).await?)),
+            "plan/catalog" => return commerce::catalog_display(&h).await,
             "plan/status" => {
                 let refresh = params["refresh"].as_bool().unwrap_or(true);
                 return commerce::plan_status(&h, refresh).await;

@@ -4,6 +4,9 @@
  * from the parameters `t` gets.
  */
 const messages = {
+  deviceSlots: 'Up to {n} devices',
+  teamWalletSlots: 'Team wallet slots: {n}',
+  walletQuotasUnavailable: 'Team wallet limits are unavailable. Refresh to retry.',
     settingsNameLimit: "Use up to 80 characters without control characters.",
     settingsBioLimit: "Use up to 2,000 characters; line breaks are allowed.",
     settingsLinkName: "Enter a link name of 1–128 characters.",

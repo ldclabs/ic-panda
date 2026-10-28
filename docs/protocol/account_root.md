@@ -22,6 +22,8 @@ Client authentication binding (`dmsg_client::security`) has two routes, both req
 
 `RemoveAuth` (which cannot remove the current login), `SetPolicy` (freeze, daily executions and allowed purposes), `SetRecoveryDelay` and `DisputeRecovery` also go through the approval center. Approval records store login Principals as text, converted to commands only before signing.
 
+Device benefits (2026-10-28): Free / Plus / Pro / Max admit up to 2 / 3 / 5 / 10 active devices. Revoked devices do not use a slot. Existing accounts above the limit and expired subscriptions retain their devices and security maintenance; only new enrollments are limited. `AddDevice` returns the existing `QuotaExceeded` at capacity or `MembershipStale` for an invalid entitlement. Committed requests still replay their receipts. Limits derive from the existing commerce plan ID, preserving account/device records, Candid, signed encodings and security leaves.
+
 ### Approval keys
 
 An account may require some device approvals to carry the signature of an "approval key" as well: a P-256 key the device's hardware keeps (on macOS the Secure Enclave, `.userPresence`, or optionally `.biometryCurrentSet` for the fingerprints enrolled now). Each device has at most one, registered in the user home's account state; keys are not in `Device`, `devices_root` or the security leaf, so `dmsg_directory` and the cloud's security evidence are unchanged.

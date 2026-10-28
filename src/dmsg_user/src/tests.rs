@@ -1,5 +1,6 @@
 use super::*;
 use dmsg_runtime::Budget;
+use dmsg_types::billing::PlanId;
 use ed25519_dalek::{Signer, SigningKey};
 use std::collections::BTreeMap;
 
@@ -129,7 +130,7 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
 
 fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<OperationReceipt> {
     let m = mutation(s, command, 1, time);
-    account::apply(s, p(1), &m, time, p(7))
+    account::apply(s, p(1), &m, time, p(7), &PlanId::Pro)
 }
 
 /// A generation-`generation` root reference wrapped to the account's root
@@ -163,7 +164,7 @@ fn committed_by(s: &mut AccountState, n: u8, time: u64) -> ContentRootRef {
         n,
         time,
     );
-    account::apply(s, p(n), &reserve, time, p(7)).unwrap();
+    account::apply(s, p(n), &reserve, time, p(7), &PlanId::Pro).unwrap();
     let root = root_ref(s, s.root_slot.as_ref().unwrap().generation);
     let commit = mutation(
         s,
@@ -175,7 +176,7 @@ fn committed_by(s: &mut AccountState, n: u8, time: u64) -> ContentRootRef {
         n,
         time + 1,
     );
-    account::apply(s, p(n), &commit, time + 1, p(7)).unwrap();
+    account::apply(s, p(n), &commit, time + 1, p(7), &PlanId::Pro).unwrap();
     root
 }
 
@@ -433,8 +434,11 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
         1,
         1,
     );
-    let receipt = account::apply(&mut s, p(1), &m, 1, p(7)).unwrap();
-    assert_eq!(account::apply(&mut s, p(1), &m, 1, p(7)).unwrap(), receipt);
+    let receipt = account::apply(&mut s, p(1), &m, 1, p(7), &PlanId::Pro).unwrap();
+    assert_eq!(
+        account::apply(&mut s, p(1), &m, 1, p(7), &PlanId::Pro).unwrap(),
+        receipt
+    );
     let before = s.clone();
     assert_eq!(
         apply(
@@ -537,7 +541,7 @@ fn commit_root_binds_the_vault_devices_and_vetkd_identity() {
         4,
     );
     assert_eq!(
-        account::apply(&mut s, p(1), &foreign, 4, p(7)),
+        account::apply(&mut s, p(1), &foreign, 4, p(7), &PlanId::Pro),
         Err(Error::IntegrityFailed)
     );
     assert_eq!(s, before);
@@ -605,7 +609,7 @@ fn abandoned_root_generation_is_never_reused() {
         1,
         2,
     );
-    account::apply(&mut s, p(1), &m, 2, p(7)).unwrap();
+    account::apply(&mut s, p(1), &m, 2, p(7), &PlanId::Pro).unwrap();
     assert!(s.root_slot.is_none());
     apply(
         &mut s,
@@ -642,7 +646,7 @@ fn content_device_cannot_administer_or_attest() {
     );
     let before = s.clone();
     assert_eq!(
-        account::apply(&mut s, p(1), &m, 1, p(7)),
+        account::apply(&mut s, p(1), &m, 1, p(7), &PlanId::Pro),
         Err(Error::Forbidden)
     );
     assert_eq!(s, before);
@@ -1123,7 +1127,7 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         4,
         at + 1,
     );
-    account::apply(&mut s, p(4), &m, at + 1, p(7)).unwrap();
+    account::apply(&mut s, p(4), &m, at + 1, p(7), &PlanId::Pro).unwrap();
     save(&s.account);
     let before = load(&s.account_id).unwrap();
     let snapshot = CERT.with_borrow(|c| c.get(s.account_id.as_slice()));
@@ -1318,7 +1322,7 @@ fn device_capability_changes_are_administrator_only_atomic_and_rekey_for_vault_a
     };
     let request = mutation(&s, command, 1, 3);
     let epoch = s.security_epoch;
-    let receipt = account::apply(&mut s, p(1), &request, 3, p(7)).unwrap();
+    let receipt = account::apply(&mut s, p(1), &request, 3, p(7), &PlanId::Pro).unwrap();
     assert_eq!(s.security_epoch, epoch + 1);
     assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
     assert_eq!(
@@ -1327,7 +1331,7 @@ fn device_capability_changes_are_administrator_only_atomic_and_rekey_for_vault_a
     );
     assert_eq!(s.devices[&device_id].input.hpke_pub, original.hpke_pub);
     assert_eq!(
-        account::apply(&mut s, p(1), &request, 3, p(7)).unwrap(),
+        account::apply(&mut s, p(1), &request, 3, p(7), &PlanId::Pro).unwrap(),
         receipt
     );
     let before = s.clone();
@@ -1355,7 +1359,7 @@ fn device_capability_changes_are_administrator_only_atomic_and_rekey_for_vault_a
     s.devices.get_mut(&device_id).unwrap().input.role = ControllerRole::Member;
     denied.expected_version = s.account_version;
     let before = s.clone();
-    assert!(account::apply(&mut s, p(1), &denied, 4, p(7)).is_err());
+    assert!(account::apply(&mut s, p(1), &denied, 4, p(7), &PlanId::Pro).is_err());
     assert_eq!(s, before);
 }
 
@@ -1410,6 +1414,11 @@ fn certified_value_encodings_are_pinned() {
 
 /// Enroll `input` with its own proof, approved by administrator 1.
 fn add_device(s: &mut AccountState, input: DeviceInput, time: u64) -> Result<OperationReceipt> {
+    let m = add_device_mutation(s, input, time);
+    account::apply(s, p(1), &m, time, p(7), &PlanId::Pro)
+}
+
+fn add_device_mutation(s: &AccountState, input: DeviceInput, time: u64) -> AccountMutation {
     let request_id = digest("test", &(s.account_version, 1u8));
     let proof = SigningKey::from_bytes(&[input.device_id[0]; 32])
         .sign(
@@ -1427,14 +1436,89 @@ fn add_device(s: &mut AccountState, input: DeviceInput, time: u64) -> Result<Ope
         )
         .to_bytes()
         .into();
-    apply(
+    mutation(
         s,
         AccountCommand::AddDevice {
             device: input,
             proof,
         },
+        1,
         time,
     )
+}
+
+#[test]
+fn device_admission_obeys_each_plan_without_changing_existing_devices() {
+    for (plan, limit) in [
+        (PlanId::Free, 2),
+        (PlanId::Plus, 3),
+        (PlanId::Pro, 5),
+        (PlanId::Max, 10),
+    ] {
+        let mut s = fixture();
+        for n in 2..=limit {
+            let m = add_device_mutation(&s, device(n, false), u64::from(n));
+            let receipt = account::apply(&mut s, p(1), &m, u64::from(n), p(7), &plan).unwrap();
+            // A committed enrollment still replays after downgrade and expiry.
+            assert_eq!(
+                account::apply(&mut s, p(1), &m, DAY, p(7), &PlanId::Free),
+                Ok(receipt)
+            );
+        }
+        let before = s.clone();
+        let denied = add_device_mutation(&s, device(20, false), 20);
+        assert_eq!(
+            account::apply(&mut s, p(1), &denied, 20, p(7), &plan),
+            Err(Error::QuotaExceeded)
+        );
+        assert_eq!(s, before);
+        // Downgrade keeps every device and still permits security maintenance.
+        assert_eq!(
+            account::apply(&mut s, p(1), &denied, 20, p(7), &PlanId::Free),
+            Err(Error::QuotaExceeded)
+        );
+        assert_eq!(s, before);
+        let revoke = mutation(
+            &s,
+            AccountCommand::RevokeDevice {
+                device_id: Hash::new([2; 32]),
+            },
+            1,
+            21,
+        );
+        account::apply(&mut s, p(1), &revoke, 21, p(7), &PlanId::Free).unwrap();
+        let replacement = add_device_mutation(&s, device(20, false), 22);
+        account::apply(&mut s, p(1), &replacement, 22, p(7), &plan).unwrap();
+        assert_eq!(
+            s.devices
+                .values()
+                .filter(|d| d.revoked_at.is_none())
+                .count(),
+            usize::from(limit)
+        );
+    }
+}
+
+#[test]
+fn revoked_devices_free_plan_slots_and_old_records_remain_bounded() {
+    let mut s = fixture();
+    for n in 2..=25 {
+        let at = u64::from(n) * 2;
+        let m = add_device_mutation(&s, device(n, false), at);
+        account::apply(&mut s, p(1), &m, at, p(7), &PlanId::Free).unwrap();
+        assert!(s.devices.len() <= MAX_DEVICES);
+        let revoke = mutation(
+            &s,
+            AccountCommand::RevokeDevice {
+                device_id: Hash::new([n; 32]),
+            },
+            1,
+            at + 1,
+        );
+        account::apply(&mut s, p(1), &revoke, at + 1, p(7), &PlanId::Free).unwrap();
+    }
+    assert_eq!(s.devices.len(), MAX_DEVICES);
+    assert!(!s.devices.contains_key(&Hash::new([2; 32])));
 }
 
 #[test]
@@ -1743,7 +1827,7 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     // The ordinary account path never applies principal commands.
     let m = register(&s, 3, 22, restricted(), 40);
     assert!(matches!(
-        account::apply(&mut s, p(1), &m, 40, p(7)),
+        account::apply(&mut s, p(1), &m, 40, p(7), &PlanId::Pro),
         Err(Error::InvalidInput(_))
     ));
     // At most eight current controllers.
@@ -2154,7 +2238,7 @@ fn apply_as(
         prove(s, &mut approval, "dmsg/account/v2", &payload, k);
         m.approval = approval;
     }
-    account::apply(s, p(1), &m, time, p(7))
+    account::apply(s, p(1), &m, time, p(7), &PlanId::Pro)
 }
 
 fn set_key(n: u8, key: Option<ApprovalKeyInput>) -> AccountCommand {
@@ -2251,7 +2335,7 @@ fn approval_keys_guard_account_control_once_the_account_requires_them() {
     );
     m.approval.hardware = approval.hardware;
     assert_eq!(
-        account::apply(&mut s, p(1), &m, 8, p(7)),
+        account::apply(&mut s, p(1), &m, 8, p(7), &PlanId::Pro),
         Err(Error::IntegrityFailed)
     );
     // Root rotation is not protected.
@@ -2366,5 +2450,5 @@ fn optional_purposes_protect_attestations_and_recovery_resets_the_policy() {
         )
         .to_bytes()
         .into();
-    account::apply(&mut s, p(4), &m, now, p(7)).unwrap();
+    account::apply(&mut s, p(4), &m, now, p(7), &PlanId::Pro).unwrap();
 }

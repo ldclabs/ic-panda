@@ -73,7 +73,7 @@ flowchart LR
 
 | 命令                                                                            | 作用与约束                                                                                                 | `security_epoch` | 已有内容根时        |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | :--------------: | ------------------- |
-| `AddDevice`                                                                     | 新设备对 `dmsg/add-device/v1` 自签 PoP；活跃设备最多 5 台，含已撤销最多 16 台，满时淘汰最早撤销的一台      |        +1        | 新设备持有 `VaultUnlock` 时置 `RekeyRequired` |
+| `AddDevice`                                                                     | 新设备对 `dmsg/add-device/v1` 自签 PoP；活跃设备按 Free / Plus / Pro / Max 分别最多 2 / 3 / 5 / 10 台，含已撤销最多 16 台，满时淘汰最早撤销的一台      |        +1        | 新设备持有 `VaultUnlock` 时置 `RekeyRequired` |
 | `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备                                                                 |        +1        | 被撤销设备持有 `VaultUnlock` 时置 `RekeyRequired` |
 | `SetDeviceCapabilities`                                                         | 只替换能力集，不改角色和密钥；同样须保留一台管理员                                                         |        +1        | `VaultUnlock` 增减时置 `RekeyRequired` |
 | `BindAuth`                                                                      | 登记待接受的绑定，10 分钟内有效，每账户最多 4 条；新 Principal 用同一 nonce 调用 `accept_auth_binding` 才生效 |    接受时 +1     | 不变                |
@@ -87,6 +87,8 @@ flowchart LR
 | `RegisterController`                                                            | 附 controller 私钥对 `dmsg/controller-pop/v1` 的 PoP                                                       |       不变       | 不变                |
 | `SetApprovalKey`                                                                | 登记、替换或退役一台设备的批准钥匙（33 字节压缩 P-256，附对 `dmsg/approval-key/v1` 的持有证明）；任何有效设备可设自己的钥匙，为其他设备设钥匙须管理员；同一钥匙不能属于两台设备 |        +1        | 不变                |
 | `SetHardwarePolicy`                                                             | 设置要求批准钥匙的用途：空集合关闭，非空须含三项控制用途；开启须附批准设备自己的有效证明                     |        +1        | 不变                |
+
+新增设备只统计未撤销设备。超出 Free 的 2 台额度时，user home 经已配置 commerce 的 `refresh_entitlement` 读取当前套餐；未购买会员的 `NotFound` 按 Free 处理，失效或不可核验的权益不放行新增设备。跨 canister 等待后重新读取时间、配置与账户，并重新核验设备批准、版本和数量。存量超额及会员到期不会自动撤销设备，撤销、换根和恢复仍可执行；已成功操作继续返回原回执。设备额度由现有 `PlanId` 推导，不向合同、资源投影、账户记录或签名载荷增加字段，稳定布局和 Candid 接口不变。
 
 `RevokeDevice` 同时退役被撤销设备的批准钥匙。`security_epoch` 增加时，尚未接受的绑定批准一并撤回。换根只在根包接收者（持有 `VaultUnlock` 的活跃设备）变化时才需要：登录身份不是接收者，其他能力也不影响根包。`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
 
@@ -250,7 +252,7 @@ flowchart LR
 | 每 UTC 日新账户              | `daily_new_accounts`，1–100,000，全局共享               |
 | 注册准入                     | 配置 `admission_key` 后每个新账户须附票据，期限 ≤ 10 分钟 |
 | 每账户待接受绑定             | 4 条，10 分钟                                           |
-| 每账户登录 / 活跃设备 / 设备 | 8 / 5 / 16                                              |
+| 每账户登录 / 活跃设备 / 设备 | 8 / 2、3、5、10（按套餐） / 16                                              |
 | 设备批准期限                 | 5 分钟；名称意图 60 秒，转移的意图十分钟                |
 | 每账户操作回执               | 最近 16 条                                              |
 | 每账户执行保留               | 64 条；每日次数上限同为 64                              |
