@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld days</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld أيام</string>
+			<key>many</key>
+			<string>%lld يومًا</string>
+			<key>one</key>
+			<string>%lld يوم</string>
+			<key>other</key>
+			<string>%lld يوم</string>
+			<key>two</key>
+			<string>%lld يومان</string>
+			<key>zero</key>
+			<string>%lld يوم</string>
+		</dict>
+	</dict>
+	<key>%lld download sessions</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld جلسات تنزيل</string>
+			<key>many</key>
+			<string>%lld جلسة تنزيل</string>
+			<key>one</key>
+			<string>جلسة تنزيل واحدة</string>
+			<key>other</key>
+			<string>%lld جلسة تنزيل</string>
+			<key>two</key>
+			<string>جلستا تنزيل</string>
+			<key>zero</key>
+			<string>لا توجد جلسات تنزيل</string>
+		</dict>
+	</dict>
+	<key>%llu days</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>llu</string>
+			<key>few</key>
+			<string>%llu أيام</string>
+			<key>many</key>
+			<string>%llu يومًا</string>
+			<key>one</key>
+			<string>%llu يوم</string>
+			<key>other</key>
+			<string>%llu يوم</string>
+			<key>two</key>
+			<string>%llu يومان</string>
+			<key>zero</key>
+			<string>%llu يوم</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

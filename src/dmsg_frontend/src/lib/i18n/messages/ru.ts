@@ -1217,7 +1217,7 @@ export default {
   'Light or dark': 'Светлая или тёмная',
   'Follows your system, or keeps the look you pick.':
     'Следует за системой или сохраняет выбранный вами вид.',
-  'Six languages': 'Шесть языков',
+  'Your language': 'Ваш язык',
   'Arabic lays the windows out right to left; IDs and code keep their order.':
     'На арабском окна идут справа налево, а ID и код сохраняют свой порядок.',
   'Stays in the tray': 'Остаётся в трее',

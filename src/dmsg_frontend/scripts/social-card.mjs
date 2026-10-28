@@ -1,4 +1,4 @@
-// Export the live hero's vector artwork with the same six localized catalogs.
+// Export the live hero's vector artwork with the registered localized catalogs.
 // sharp is provided by the existing PWA asset generator dependency.
 import { readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -22,44 +22,57 @@ async function readModule(path) {
   )
 }
 const { glyphs } = await readModule('../src/lib/components/landing/glyphs.ts')
-const measure = (text, size) =>
-  [...text].reduce(
-    (sum, c) =>
-      sum +
-      (/\s/.test(c)
-        ? 0.25
-        : /[\u2e80-\u9fff]/.test(c)
-          ? 1
-          : /[MWЖШЩЮФ]/.test(c)
-            ? 0.86
-            : /[il.,!]/.test(c)
-              ? 0.25
-              : 0.56),
-    0
-  ) * size
-function wrap(text, size, width) {
-  const words = text.split(' ')
+const { locales, localeDir } = await readModule('../src/lib/i18n/locales.ts')
+const requested = process.argv.slice(2)
+if (requested.some((locale) => !locales.includes(locale))) throw new Error('Unsupported locale')
+// Measure with the same Pango font engine used by sharp's SVG renderer.
+// Character counts underestimate long words and contextual glyph shaping.
+const widths = new Map()
+async function measure(text, size) {
+  const key = `${size}:${text}`
+  if (!widths.has(key)) {
+    const { width } = await sharp({ text: { text: escape(text), font: `Helvetica Neue Bold ${size}`, dpi: 72 } }).metadata()
+    widths.set(key, width ?? 0)
+  }
+  return widths.get(key)
+}
+async function wrap(text, size, width, locale) {
+  const words = []
+  for (const part of new Intl.Segmenter(locale, { granularity: 'word' }).segment(text)) {
+    if (!part.isWordLike && !/\s/.test(part.segment) && words.length) words[words.length - 1] += part.segment
+    else words.push(part.segment)
+  }
   const lines = ['']
   for (const word of words) {
     const last = lines.length - 1
-    const next = `${lines[last]}${lines[last] ? ' ' : ''}${word}`
-    if (lines[last] && measure(next, size) > width) lines.push(word)
+    const next = `${lines[last]}${word}`
+    if (lines[last] && await measure(next, size) > width) lines.push(word.trimStart())
     else lines[last] = next
   }
-  return lines
+  return lines.map((line) => line.trim()).filter(Boolean)
 }
-for (const locale of ['en', 'zh', 'fr', 'es', 'ru', 'ar']) {
+async function fits(lines, size, width) {
+  return lines.length <= 2 && (await Promise.all(lines.map((line) => measure(line, size)))).every((measured) => measured <= width)
+}
+for (const locale of requested.length ? requested : locales) {
   const { default: copy } = await readModule(
     `../src/lib/i18n/messages/${locale}.ts`
   )
-  const rtl = locale === 'ar'
+  const rtl = localeDir(locale) === 'rtl'
   const direction = rtl ? 'rtl' : 'ltr'
   const x = rtl ? 1136 : 64
-  const titleSize =
-    locale === 'zh' ? 82 : locale === 'ru' ? 54 : locale === 'ar' ? 72 : 78
-  const first = wrap(copy['Private collaboration.'], titleSize, 510)
-  const secondSize = locale === 'zh' ? 54 : locale === 'ar' ? 49 : 42
-  const second = wrap(copy['For people and agents.'], secondSize, 540)
+  let titleSize = locale.startsWith('zh') ? 82 : locale === 'ru' ? 54 : locale === 'ar' ? 72 : 78
+  let first = await wrap(copy['Private collaboration.'], titleSize, 510, locale)
+  while (titleSize > 32 && !(await fits(first, titleSize, 510))) {
+    titleSize -= 2
+    first = await wrap(copy['Private collaboration.'], titleSize, 510, locale)
+  }
+  let secondSize = locale.startsWith('zh') ? 54 : locale === 'ar' ? 49 : 42
+  let second = await wrap(copy['For people and agents.'], secondSize, 540, locale)
+  while (secondSize > 24 && !(await fits(second, secondSize, 540))) {
+    secondSize -= 2
+    second = await wrap(copy['For people and agents.'], secondSize, 540, locale)
+  }
   const firstY = first.length === 1 ? 238 : 206
   const secondY = firstY + (first.length - 1) * (titleSize + 7) + 77
   const text = (content, y, size, color, weight = 600) =>

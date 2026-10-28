@@ -131,6 +131,20 @@
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Keep the shared type scale while selecting the matching CJK script. */
+html[lang='zh-Hant'] {
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+}
+html[lang='th'] {
+  --font-sans: 'Inter Variable', 'Thonburi', 'Leelawadee UI', 'Noto Sans Thai', sans-serif;
+}
+html[lang='bn'] {
+  --font-sans: 'Inter Variable', 'Kohinoor Bangla', 'Nirmala UI', 'Noto Sans Bengali', sans-serif;
+}
+html[lang='ur'] {
+  --font-sans: 'Inter Variable', 'Noto Sans Arabic', 'Geeza Pro', Tahoma, sans-serif;
+}
+
 @layer base {
   body {
     margin: 0;

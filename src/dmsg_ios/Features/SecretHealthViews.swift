@@ -17,7 +17,7 @@ struct SecretHealthView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Label(secretFindingTitle(finding.rule), systemImage: finding.severity == "high" ? "exclamationmark.shield" : "info.circle")
                                 .font(.headline).foregroundStyle(finding.severity == "high" ? Color.red : Color.primary)
-                            Text(finding.evidence == "last_known_cloud_state" ? "Last known cloud state" : "Observed on this device")
+                            Text(LocalizedStringKey(finding.evidence == "last_known_cloud_state" ? "Last known cloud state" : "Observed on this device"))
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(Date(timeIntervalSince1970: Double(finding.observedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
                             if let field = finding.field {
@@ -39,7 +39,7 @@ struct SecretHealthView: View {
                         NavigationLink { SecretRotationView(initial: rotation) } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(vaultFieldName(rotation.reference.fieldId)).font(.headline)
-                                Text(rotation.completedAt == nil ? "In progress" : "Checklist completed").font(.caption).foregroundStyle(.secondary)
+                                Text(LocalizedStringKey(rotation.completedAt == nil ? "In progress" : "Checklist completed")).font(.caption).foregroundStyle(.secondary)
                                 Text(rotation.reference.itemId).font(.caption.monospaced()).lineLimit(1).foregroundStyle(.secondary)
                             }
                         }

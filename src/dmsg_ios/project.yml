@@ -4,7 +4,7 @@ options:
   deploymentTarget:
     iOS: "18.0"
   developmentLanguage: en
-  knownRegions: [en, zh-Hans, fr, es, ru, ar]
+  knownRegions: [en, zh-Hans, zh-Hant, fr, es, ru, ar, hi, id, pt-BR, ja, de, ko, it, tr, vi, th, fil, ms, bn, ur, pl, nl]
 settings:
   base:
     ARCHS: arm64
@@ -62,7 +62,7 @@ targets:
       - Extensions/Share
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
-      - Resources/Localizable.xcstrings
+      - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
       base:
@@ -79,7 +79,7 @@ targets:
     sources:
       - Extensions/Widget
       - Shared/NativeTheme.swift
-      - Resources/Localizable.xcstrings
+      - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
       base:
@@ -97,7 +97,7 @@ targets:
       - Shared/SystemExports.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
-      - Resources/Localizable.xcstrings
+      - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
       base:
@@ -116,7 +116,7 @@ targets:
       - Shared/SystemExports.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
-      - Resources/Localizable.xcstrings
+      - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
       base:
@@ -135,7 +135,7 @@ targets:
       - Shared/SystemExports.swift
       - Shared/IncomingShare.swift
       - Shared/NativeTheme.swift
-      - Resources/Localizable.xcstrings
+      - Resources/Localizations
       - Resources/PrivacyInfo.xcprivacy
     settings:
       base:

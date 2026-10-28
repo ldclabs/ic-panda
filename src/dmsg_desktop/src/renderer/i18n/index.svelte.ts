@@ -1,5 +1,5 @@
 /**
- * Interface text in the six languages of `shared/locales.ts`. The main
+ * Interface text in the languages of `shared/locales.ts`. The main
  * process passes each window the language it resolved and tells every window
  * when the person picks another in the main window. `t` reads the current
  * language, so whatever a template shows follows a switch; text a view
@@ -12,10 +12,27 @@ import ru from './messages/ru'
 import ar from './messages/ar'
 import fr from './messages/fr'
 import es from './messages/es'
+import zhHant from './messages/zh-Hant'
+import hi from './messages/hi'
+import id from './messages/id'
+import ptBR from './messages/pt-BR'
+import ja from './messages/ja'
+import de from './messages/de'
+import ko from './messages/ko'
+import it from './messages/it'
+import tr from './messages/tr'
+import vi from './messages/vi'
+import th from './messages/th'
+import fil from './messages/fil'
+import ms from './messages/ms'
+import bn from './messages/bn'
+import ur from './messages/ur'
+import pl from './messages/pl'
+import nl from './messages/nl'
 
 export type { Label }
 
-const catalogs: Record<Locale, Catalog> = { en, zh, ru, ar, fr, es }
+const catalogs: Record<Locale, Catalog> = { en, zh, ru, ar, fr, es, 'zh-Hant': zhHant, 'hi': hi, 'id': id, 'pt-BR': ptBR, 'ja': ja, 'de': de, 'ko': ko, 'it': it, 'tr': tr, vi, th, fil, ms, bn, ur, pl, nl }
 
 let current = $state<Locale>(defaultLocale)
 
@@ -54,4 +71,9 @@ export function stateLabel(state: string): string {
 export function sessionLabel(state: string): string {
   const states: Record<string, string> = catalogs[current].sessionStates
   return states[state] ?? state
+}
+
+/** Dynamic vocabulary keys still use the same complete, checked catalogs. */
+export function hasLabel(key: string): key is Label {
+  return Object.hasOwn(en.messages, key)
 }

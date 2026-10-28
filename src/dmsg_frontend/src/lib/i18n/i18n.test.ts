@@ -23,14 +23,17 @@ import {
 
 describe('locale detection', () => {
   it('matches regional tags and skips unsupported browser preferences', () => {
-    for (const tag of ['zh-CN', 'zh-Hant-TW', 'ZH_hk'])
+    for (const tag of ['zh-CN', 'zh-SG', 'zh-Hans-TW'])
       expect(matchLocale(tag)).toBe('zh')
+    for (const tag of ['zh-Hant', 'zh-Hant-TW', 'ZH_hk', 'zh-MO']) expect(matchLocale(tag)).toBe('zh-Hant')
+    for (const tag of ['pt', 'pt-BR', 'pt-PT', 'PT_br']) expect(matchLocale(tag)).toBe('pt-BR')
+    expect(matchLocale('in-ID')).toBe('id')
     expect(matchLocale('fr-CA')).toBe('fr')
     expect(matchLocale(' ar-EG ')).toBe('ar')
-    expect(matchLocale('de-DE')).toBeNull()
-    expect(resolveLocale(null, ['de-DE', 'ru-RU', 'en'])).toBe('ru')
+    expect(matchLocale('de-DE')).toBe('de')
+    expect(resolveLocale(null, ['sv-SE', 'ru-RU', 'en'])).toBe('ru')
     expect(resolveLocale('en', ['zh-CN'])).toBe('en')
-    expect(resolveLocale('invalid', ['de'])).toBe('en')
+    expect(resolveLocale('invalid', ['sv'])).toBe('en')
     expect(isLocale('__proto__')).toBe(false)
   })
 
@@ -38,10 +41,18 @@ describe('locale detection', () => {
     const html = readFileSync(resolve('src/app.html'), 'utf8')
     const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1]
     expect(script).toBeTruthy()
-    for (const stored of [null, 'en', 'zh-TW', 'invalid', 'AR_eg']) {
+    for (const stored of [null, ...locales, 'zh-TW', 'zh-Hans-HK', 'zh-Hant-CN', 'pt-PT', 'in-ID', 'invalid', 'AR_eg', 'tl_PH', 'ur_PK']) {
       for (const preferred of [
         ['de', 'fr-CA'],
         ['zh-CN'],
+        ['zh-HK'],
+        ['nl', 'pt-PT'],
+        ['unsupported', 'hi-IN'],
+        ['ja-JP', 'de-DE'],
+        ['ko-KR'],
+        ['it-IT'],
+        ['tr-TR'],
+        ...['vi-VN', 'th-TH', 'fil-PH', 'tl-PH', 'ms-MY', 'bn-BD', 'ur-PK', 'pl-PL', 'nl-BE'].map(tag => ['unsupported', tag]),
         ['unsupported'],
         []
       ]) {
@@ -106,7 +117,8 @@ describe('catalogs and switching', () => {
       expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe(language)
     }
     unsubscribe()
-    expect(new Set(updates).size).toBe(6)
+    // Spanish and Portuguese both say "Idioma"; verify each notification in order.
+    expect(updates).toEqual(await Promise.all(locales.map(async (language) => (await loadCatalog(language)).Language)))
   })
 
   it('honors a saved choice and survives blocked storage', async () => {
@@ -116,7 +128,7 @@ describe('catalogs and switching', () => {
     expect(get(locale)).toBe('en')
     localStorage.clear()
     await initLocale()
-    expect(get(locale)).toBe('zh')
+    expect(get(locale)).toBe('zh-Hant')
     vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
       throw new Error('blocked')
     })

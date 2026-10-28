@@ -28,7 +28,7 @@ struct ReportContentView: View {
             if target.kind != "account" { Toggle("Include this message's text", isOn: $disclose) }
             NoticeBar(text: String(localized: "Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included."))
             if received { Label("Report received for review", systemImage: "checkmark.circle") }
-            else { Button(reportID == nil ? "Submit report" : "Retry this report") { Task { await submit() } } }
+            else { Button(LocalizedStringKey(reportID == nil ? "Submit report" : "Retry this report")) { Task { await submit() } } }
             Button("Block this account", role: .destructive) { Task { await model.blockAccount(target.account, blocked: true) } }
             Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
         }.disabled(working).privateScreen().navigationTitle("Report content")
@@ -74,7 +74,7 @@ struct SafetySettingsView: View {
             Section("Your reports") {
                 ForEach(reports) { report in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(report.state == "reviewed" ? "Reviewed" : report.state == "pending" ? "Waiting to submit" : "Received for review")
+                        Text(LocalizedStringKey(report.state == "reviewed" ? "Reviewed" : report.state == "pending" ? "Waiting to submit" : "Received for review"))
                         if let resolution = report.resolution { Text(resolution).font(.footnote) }
                         if report.state == "pending" { Button("Retry this report") { Task {
                             do { if let engine = model.engine { _ = try await coreOperation { try await engine.submitReport(id: report.id, operation: $0) } }; await load() }
@@ -124,7 +124,7 @@ struct AccountDeletionView: View {
             Text("Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.").font(.footnote).foregroundStyle(.secondary)
             if let job {
                 Section("Deletion status") {
-                    Text(job.state == "deleted" ? "Cloud deletion completed" : "Deletion is in progress")
+                    Text(LocalizedStringKey(job.state == "deleted" ? "Cloud deletion completed" : "Deletion is in progress"))
                     FingerprintRow(title: "Request ID", value: job.id)
                     Button("Check deletion status") { Task { await checkStatus() } }
                 }

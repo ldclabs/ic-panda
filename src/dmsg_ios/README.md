@@ -138,8 +138,8 @@ Xcode → Settings → Accounts 检查 Apple ID 登录和团队权限，再重�
 - Selected secret snapshots by link or channel, verified previews and selective
   imports, explicit sharing/revocation/reconciliation, local health, dependency
   lists, rotation review and paginated activity including terminal outcomes.
-- Four system tabs and adaptive `NavigationSplitView`, six-language String
-  Catalog, Dynamic Type, dark appearance and system accessibility controls.
+- Four system tabs and adaptive `NavigationSplitView`, resources for 23 locales,
+  Dynamic Type, dark appearance and system accessibility controls.
 
 Production trust parameters come from `dmsg_client/production.toml`, also used
 by the desktop. No deep link can replace endpoints, roots or canister pins.
@@ -163,9 +163,26 @@ The existing Secure Enclave, presence and account checks still perform unlock.
 The app follows iOS language preferences unless a per-app language is selected.
 The **Language** link on the access screen and in **Account** opens iOS
 Settings, where the dMsg language option is always shown. Supported languages
-are English, Simplified Chinese, French, Spanish, Russian and Arabic. This uses
+are English, Simplified and Traditional Chinese, French, Spanish, Russian, Arabic,
+Hindi, Indonesian, Brazilian Portuguese, Japanese, German, Korean, Italian, Turkish,
+Vietnamese, Thai, Filipino, Malay, Bengali, Urdu, Polish and Dutch.
+Traditional Chinese uses one `zh-Hant` catalog for Taiwan, Hong Kong and Macau. This uses
 the system's per-app setting for native UI and Foundation strings; no in-memory
 locale override is installed.
+
+Application text is maintained per language in
+`Resources/Localizations/<language>.lproj/Localizable.strings`, with plural
+rules in the adjacent `Localizable.stringsdict`. These are UTF-8 XML property
+lists, the native format emitted by Apple's String Catalog compiler. The app
+and all five extensions include the same resource directory; default
+`Text` and `String(localized:)` lookups continue to use the `Localizable` table.
+No catalog merge step or custom runtime loader is needed.
+
+Add new keys to English and the other language resources. The localization
+check compares keys, format arguments and plural rules, and checks compiler
+extraction with `--derived-data`. Unlike String Catalogs, these files are not
+automatically populated during a build. The small `InfoPlist.xcstrings` and
+`AppShortcuts.xcstrings` tables retain their existing platform-specific roles.
 
 The access screen explains the next step for the current account state: first
 sign-in, workspace creation, approving this iPhone for an existing account, or

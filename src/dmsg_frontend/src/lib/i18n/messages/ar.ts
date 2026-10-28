@@ -1184,7 +1184,7 @@ export default {
   'Light or dark': 'فاتح أو داكن',
   'Follows your system, or keeps the look you pick.':
     'يتبع نظامك، أو يحتفظ بالمظهر الذي تختاره.',
-  'Six languages': 'ست لغات',
+  'Your language': 'لغتك',
   'Arabic lays the windows out right to left; IDs and code keep their order.':
     'بالعربية تُعرض النوافذ من اليمين إلى اليسار، وتحتفظ المعرّفات والشيفرة بترتيبها.',
   'Stays in the tray': 'يبقى في شريط النظام',

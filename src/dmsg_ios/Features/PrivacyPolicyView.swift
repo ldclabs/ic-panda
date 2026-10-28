@@ -14,7 +14,7 @@ struct PrivacyPolicyView: View {
             }.frame(maxWidth: 680, alignment: .leading).padding(20).frame(maxWidth: .infinity)
         }.navigationTitle("Privacy policy").task {
             let preferred = Bundle.main.preferredLocalizations.first ?? "en"
-            let language = preferred.hasPrefix("zh") ? "zh" : ["fr","es","ru","ar"].first(where: { preferred.hasPrefix($0) }) ?? "en"
+            let language = preferred == "zh-Hans" ? "zh" : preferred
             if let url = Bundle.main.url(forResource: "privacy-" + language, withExtension: "md"), let text = try? String(contentsOf: url, encoding: .utf8) { paragraphs = text.components(separatedBy: "\n\n").filter { !$0.isEmpty } }
         }
     }

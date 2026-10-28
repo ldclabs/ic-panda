@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 วัน</string>
+	<key>1 hour</key>
+	<string>1 ชั่วโมง</string>
+	<key>7 days</key>
+	<string>7 วัน</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>การโอนในเบื้องหลังเป็นของบัญชีอื่น สลับไปที่บัญชีนั้นเพื่อเสร็จสิ้นหรือยกเลิก</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>สมาชิกที่มีสิทธิ์เข้าถึงยุคนี้สามารถดูภาพรวมของช่องได้ รวมถึงสิทธิ์ในการเข้าถึงประวัติในภายหลังด้วย ลิงก์ไม่มีวันหมดอายุ การจำกัดเซสชันการดาวน์โหลด หรือการเรียกคืน</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>เซสชันการดาวน์โหลดเป็นสิทธิ์ในการเรียกข้อมูล ไม่ใช่จำนวนการอ่านไฟล์ การหมดอายุหรือการเพิกถอนไม่สามารถลบสำเนาที่บันทึกไว้แล้วได้</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>ไม่สามารถตรวจสอบบันทึกหรือรหัสอุปกรณ์ได้ พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>การอ้างอิงระบุฟิลด์ ไม่มีค่าลับหรืออนุญาตให้อ่านได้</string>
+	<key>A snapshot contains an older credential</key>
+	<string>สแนปชอตมีข้อมูลประจำตัวที่เก่ากว่า</string>
+	<key>A snapshot link is still active</key>
+	<string>ลิงก์สแน็ปช็อตยังคงทำงานอยู่</string>
+	<key>API credential</key>
+	<string>หนังสือรับรอง API</string>
+	<key>About</key>
+	<string>เกี่ยวกับ</string>
+	<key>Accept approved binding</key>
+	<string>ยอมรับการผูกมัดที่ได้รับอนุมัติ</string>
+	<key>Access granted</key>
+	<string>ให้สิทธิ์การเข้าถึงแล้ว</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>เข้าถึงสำเนาที่คุณส่งออกอย่างชัดเจนจาก dMsg</string>
+	<key>Account</key>
+	<string>บัญชี</string>
+	<key>Account ID</key>
+	<string>รหัสบัญชี</string>
+	<key>Account recovery</key>
+	<string>การกู้คืนบัญชี</string>
+	<key>Account recovery is pending</key>
+	<string>การกู้คืนบัญชีอยู่ระหว่างรอดำเนินการ</string>
+	<key>Account security</key>
+	<string>ความปลอดภัยของบัญชี</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>การป้องกันบัญชี อุปกรณ์ และตัวตนจะเปลี่ยนแปลงไปพร้อมกัน การอนุมัติที่จำเป็นไม่สามารถถอยกลับไปยังกล่องโต้ตอบการยืนยันปกติได้</string>
+	<key>Account, devices and identities</key>
+	<string>บัญชี อุปกรณ์ และตัวตน</string>
+	<key>Accounts</key>
+	<string>บัญชี</string>
+	<key>Active conversations</key>
+	<string>การสนทนาที่ใช้งานอยู่</string>
+	<key>Activity on this device</key>
+	<string>กิจกรรมบนอุปกรณ์นี้</string>
+	<key>Add device</key>
+	<string>เพิ่มอุปกรณ์</string>
+	<key>Add field</key>
+	<string>เพิ่มฟิลด์</string>
+	<key>Add item</key>
+	<string>เพิ่มรายการ</string>
+	<key>Add message to demo</key>
+	<string>เพิ่มข้อความในการสาธิต</string>
+	<key>Add one-time code</key>
+	<string>เพิ่มรหัสแบบใช้ครั้งเดียว</string>
+	<key>Add receiving address</key>
+	<string>เพิ่มที่อยู่รับ</string>
+	<key>Add sample login</key>
+	<string>เพิ่มตัวอย่างการเข้าสู่ระบบ</string>
+	<key>Added</key>
+	<string>เพิ่มแล้ว</string>
+	<key>Address</key>
+	<string>ที่อยู่</string>
+	<key>Address label</key>
+	<string>ป้ายที่อยู่</string>
+	<key>Address verification failed</key>
+	<string>การยืนยันที่อยู่ล้มเหลว</string>
+	<key>Administrative approvals %u</key>
+	<string>การอนุมัติของผู้ดูแลระบบ %u</string>
+	<key>Administrator</key>
+	<string>ผู้ดูแลระบบ</string>
+	<key>Agent ID</key>
+	<string>รหัสเอเจนต์</string>
+	<key>Agents</key>
+	<string>เอเจนต์</string>
+	<key>All</key>
+	<string>ทั้งหมด</string>
+	<key>All caught up</key>
+	<string>ทั้งหมดตามทัน</string>
+	<key>All devices lost?</key>
+	<string>อุปกรณ์ทั้งหมดสูญหาย?</string>
+	<key>All files</key>
+	<string>ไฟล์ทั้งหมด</string>
+	<key>Allow key rotation</key>
+	<string>อนุญาตให้หมุนคีย์</string>
+	<key>Allowed</key>
+	<string>ได้รับอนุญาต</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>รหัสบัญชีที่อนุญาต หนึ่งรายการต่อบรรทัด</string>
+	<key>Already imported</key>
+	<string>นำเข้าแล้ว</string>
+	<key>Already present</key>
+	<string>อยู่แล้ว</string>
+	<key>Amount in base units</key>
+	<string>จำนวนเงินในหน่วยฐาน</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>การกู้คืนบัญชีอยู่ระหว่างรอดำเนินการ ตรวจสอบได้ในความปลอดภัยของบัญชี</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>ใครก็ตามที่มีลิงก์ที่สมบูรณ์และรหัสผ่านที่จำเป็นสามารถเรียกค้นได้ภายในขีดจำกัด</string>
+	<key>Anyone, free of charge</key>
+	<string>ใครๆ ก็ได้ฟรี</string>
+	<key>App Store subscriptions</key>
+	<string>การสมัครสมาชิก App Store</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>การยืนยันแอปไม่พร้อมใช้งานบนอุปกรณ์นี้ เนื้อหาที่บันทึกไว้ของคุณยังคงอยู่</string>
+	<key>Apply these receiving rules?</key>
+	<string>ใช้กฎการรับเหล่านี้หรือไม่</string>
+	<key>Apply this conversation change?</key>
+	<string>ใช้การเปลี่ยนแปลงการสนทนานี้ใช่ไหม</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>การอนุมัติจะนำเข้าเฉพาะฟิลด์และไฟล์แนบที่คุณเลือกเป็นรายการอิสระใหม่ ไฟล์ยังคงอยู่ในเครื่องและสืบทอดสิทธิ์การเข้าถึงของโฟลเดอร์ปลายทาง</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>การอนุมัติจะเผยแพร่ช่องและไฟล์แนบที่ได้รับการตรวจสอบแล้วในรูปแบบสแน็ปช็อตอิสระ ตรวจสอบปลายทางและขีดจำกัด ผู้รับสามารถเก็บสำเนาไว้ได้</string>
+	<key>Approval thresholds</key>
+	<string>เกณฑ์การอนุมัติ</string>
+	<key>Approvals</key>
+	<string>การอนุมัติ</string>
+	<key>Approve</key>
+	<string>อนุมัติ</string>
+	<key>Approve a binding request</key>
+	<string>อนุมัติคำขอผูกพัน</string>
+	<key>Approve the reviewed request?</key>
+	<string>อนุมัติคำขอที่ตรวจสอบแล้วใช่ไหม</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>อนุมัติแผนธุรกรรมกระเป๋าเงินที่คุณตรวจสอบ</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>อนุมัติอุปกรณ์นี้และแจกจ่ายคีย์เนื้อหาใหม่</string>
+	<key>Approve this request</key>
+	<string>อนุมัติคำขอนี้</string>
+	<key>Approved by</key>
+	<string>ได้รับการอนุมัติโดย</string>
+	<key>Approver</key>
+	<string>ผู้อนุมัติ</string>
+	<key>Archive</key>
+	<string>เก็บถาวร</string>
+	<key>Archive conversation</key>
+	<string>เก็บการสนทนา</string>
+	<key>Archived</key>
+	<string>เก็บถาวรแล้ว</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>ขอให้ผู้ดูแลระบบผูกข้อมูลการเข้าสู่ระบบนี้กับบัญชีที่มีอยู่ของคุณ การอนุญาตอุปกรณ์เป็นขั้นตอนแยกต่างหาก</string>
+	<key>Asset identifier</key>
+	<string>ตัวระบุสินทรัพย์</string>
+	<key>Attach</key>
+	<string>แนบ</string>
+	<key>Attach a file</key>
+	<string>แนบไฟล์</string>
+	<key>Attach file</key>
+	<string>แนบไฟล์</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>การสำรองข้อมูลไฟล์แนบไม่ได้รับการยืนยัน</string>
+	<key>Attachment unavailable on this device</key>
+	<string>ไฟล์แนบไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
+	<key>Attestations</key>
+	<string>การรับรอง</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>ต้นกำเนิดผู้ชมหรือรหัสเอเจนต์ หนึ่งรายการต่อบรรทัด</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>ตรวจสอบสิทธิ์เพื่อเข้าถึงสำเนาไฟล์ที่คุณส่งออกจาก dMsg การเข้าถึงใช้เวลาห้านาที สแนปชอตจะหมดอายุหลังจาก 24 ชั่วโมง</string>
+	<key>Authenticate to continue</key>
+	<string>ตรวจสอบสิทธิ์เพื่อดำเนินการต่อ</string>
+	<key>Authorize a new device</key>
+	<string>อนุญาตอุปกรณ์ใหม่</string>
+	<key>Authorize another device</key>
+	<string>อนุญาตอุปกรณ์อื่น</string>
+	<key>Authorize this device</key>
+	<string>อนุญาตอุปกรณ์นี้</string>
+	<key>Authorize this device's approval key</key>
+	<string>ให้สิทธิ์คีย์การอนุมัติของอุปกรณ์นี้</string>
+	<key>Authorize this iPhone</key>
+	<string>อนุญาต iPhone เครื่องนี้</string>
+	<key>Authorized device</key>
+	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
+	<key>Authorized devices</key>
+	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>ป้อนอัตโนมัติจะได้รับเฉพาะรายการเข้าสู่ระบบที่คุณเลือก สแน็ปช็อตจะหมดอายุหลังจาก 24 ชั่วโมง และต้องมีการรับรองความถูกต้องของระบบโดยไม่ขึ้นอยู่กับพื้นที่ทำงาน ชื่อผู้ใช้และชื่อเว็บไซต์อาจปรากฏในคำแนะนำของระบบ</string>
+	<key>AutoFill snapshot updated</key>
+	<string>อัปเดตสแนปชอตการป้อนอัตโนมัติแล้ว</string>
+	<key>Automatic foreground sync</key>
+	<string>การซิงค์เบื้องหน้าอัตโนมัติ</string>
+	<key>Back</key>
+	<string>ย้อนกลับ</string>
+	<key>Back up encrypted copy</key>
+	<string>สำรองสำเนาที่เข้ารหัส</string>
+	<key>Back up this file?</key>
+	<string>สำรองไฟล์นี้ไหม</string>
+	<key>Back up to cloud</key>
+	<string>สำรองข้อมูลไปยังคลาวด์</string>
+	<key>Backed up</key>
+	<string>สำรองข้อมูลแล้ว</string>
+	<key>Background ciphertext transfer</key>
+	<string>การถ่ายโอนข้อความไซเฟอร์พื้นหลัง</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>ความสามารถของการลงนามในเบื้องหลังและความสามารถของเอเจนต์ประจำจะแยกจากการล็อกพื้นที่ทำงานนี้</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>เริ่มการถ่ายโอนเบื้องหลังแล้ว ตรวจสอบความคืบหน้าในการโอน</string>
+	<key>Backing up…</key>
+	<string>กำลังสำรองข้อมูล...</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>บันทึกความคืบหน้าในการสำรองข้อมูลแล้ว ตรวจสอบสถานะไฟล์ว่าเสร็จสมบูรณ์</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>สำรองข้อมูลอยู่ในคิว เปิด dMsg ค้างไว้เพื่ออัปโหลดให้เสร็จสิ้น</string>
+	<key>Bind another Internet Identity</key>
+	<string>ผูก Internet Identity อื่น</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>ผูกพื้นที่ทำงานนี้กับ iPhone เครื่องนี้หรือไม่</string>
+	<key>Bind workspace</key>
+	<string>ผูกพื้นที่ทำงาน</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>Binding ปกป้องพื้นที่ทำงานภายในเครื่องนี้แม้ว่าจะเข้าสู่ระบบใหม่แล้วก็ตาม เก็บอุปกรณ์ที่ได้รับอนุญาตอื่นหรือเส้นทางการกู้คืนก่อนที่จะเปลี่ยน</string>
+	<key>Biometrics only</key>
+	<string>ไบโอเมตริกซ์เท่านั้น</string>
+	<key>Biometrics only for exported copies</key>
+	<string>ข้อมูลชีวภาพสำหรับสำเนาที่ส่งออกเท่านั้น</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>คีย์ไบโอเมตริกซ์เท่านั้นไม่สามารถใช้รหัสผ่านอุปกรณ์ได้ และอาจหยุดทำงานเมื่อมีการเปลี่ยนแปลงไบโอเมตริกซ์ที่ลงทะเบียนไว้</string>
+	<key>Birthday</key>
+	<string>วันเกิด</string>
+	<key>Bitcoin</key>
+	<string>บิทคอยน์</string>
+	<key>Block this account</key>
+	<string>บล็อกบัญชีนี้</string>
+	<key>Blocked accounts</key>
+	<string>บัญชีที่ถูกบล็อก</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>ผู้ส่งที่ถูกบล็อกถูกซ่อนอยู่ในอุปกรณ์นี้ การบล็อกออนไลน์ยังป้องกันการติดต่อและการเชิญโดยตรงใหม่ สำเนาที่แชร์ที่มีอยู่จะไม่ถูกเรียกคืน</string>
+	<key>Broadcast original signed transaction</key>
+	<string>ออกอากาศธุรกรรมที่ลงนามต้นฉบับ</string>
+	<key>Browser request</key>
+	<string>คำขอเบราว์เซอร์</string>
+	<key>Cancel</key>
+	<string>ยกเลิก</string>
+	<key>Cancel background transfer</key>
+	<string>ยกเลิกการถ่ายโอนเบื้องหลัง</string>
+	<key>Cancel pending request</key>
+	<string>ยกเลิกคำขอที่รอดำเนินการ</string>
+	<key>Cancel proposal</key>
+	<string>ยกเลิกข้อเสนอ</string>
+	<key>Cancel reply</key>
+	<string>ยกเลิกการตอบกลับ</string>
+	<key>Cancel request</key>
+	<string>ยกเลิกคำขอ</string>
+	<key>Cancel this pending request?</key>
+	<string>ยกเลิกคำขอที่รอดำเนินการนี้หรือไม่</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>การยกเลิกมีผลกับคำขอที่ยังไม่ได้ตัดสินใจนี้ มันไม่ได้ยกเลิกการจัดส่งที่เสร็จสมบูรณ์</string>
+	<key>Cancelled</key>
+	<string>ยกเลิกแล้ว</string>
+	<key>Capabilities, one per line</key>
+	<string>ความสามารถ หนึ่งรายการต่อบรรทัด</string>
+	<key>Cardholder</key>
+	<string>ผู้ถือบัตร</string>
+	<key>Chain</key>
+	<string>โซ่</string>
+	<key>Change a device secret policy</key>
+	<string>เปลี่ยนนโยบายความลับของอุปกรณ์</string>
+	<key>Change account security</key>
+	<string>เปลี่ยนความปลอดภัยของบัญชี</string>
+	<key>Change device permissions</key>
+	<string>เปลี่ยนการอนุญาตของอุปกรณ์</string>
+	<key>Change hardware approval policy</key>
+	<string>เปลี่ยนนโยบายการอนุมัติฮาร์ดแวร์</string>
+	<key>Change identity settings</key>
+	<string>เปลี่ยนการตั้งค่าข้อมูลประจำตัว</string>
+	<key>Change role</key>
+	<string>เปลี่ยนบทบาท</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>การเปลี่ยนแปลงจะสร้างข้อเสนอและยังคงต้องได้รับการอนุมัติจากกระเป๋าเงินที่มีอยู่ ช่องนโยบายที่มีอยู่และสิทธิ์ของเอเจนต์สมาชิกจะยังคงอยู่</string>
+	<key>Channel</key>
+	<string>ช่อง</string>
+	<key>Channel ID</key>
+	<string>รหัสช่อง</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>สำเนาของช่องไม่มีวันหมดอายุ ขีดจำกัดในการเรียกคืน หรือการเรียกคืน ผู้รับสามารถเก็บสำเนาได้โดยอิสระ</string>
+	<key>Channel snapshot</key>
+	<string>ภาพรวมของช่อง</string>
+	<key>Channels</key>
+	<string>ช่อง</string>
+	<key>Check authorization</key>
+	<string>ตรวจสอบการอนุญาต</string>
+	<key>Check deletion status</key>
+	<string>ตรวจสอบสถานะการลบ</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>ตรวจสอบการอ้างอิงโครงการและสำเนาที่จัดส่งไปแล้ว</string>
+	<key>Check recovery status</key>
+	<string>ตรวจสอบสถานะการกู้คืน</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>ตรวจสอบกิจกรรมของอุปกรณ์นี้ก่อนที่จะตัดสินใจว่ายังจำเป็นต้องเข้าถึงหรือไม่</string>
+	<key>Checking permission…</key>
+	<string>กำลังตรวจสอบสิทธิ์...</string>
+	<key>Checklist completed</key>
+	<string>รายการตรวจสอบเสร็จสมบูรณ์</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>รายการตรวจสอบเสร็จสมบูรณ์จากใบแจ้งยอดของคุณ สถานะอัปสตรีมยังคงตรวจสอบได้โดยอิสระกับผู้ให้บริการเท่านั้น</string>
+	<key>Choose a credential for:</key>
+	<string>เลือกข้อมูลรับรองสำหรับ:</string>
+	<key>Choose a secret</key>
+	<string>เลือกความลับ</string>
+	<key>Choose a version</key>
+	<string>เลือกรุ่น</string>
+	<key>Choose an attachment</key>
+	<string>เลือกไฟล์แนบ</string>
+	<key>Choose avatar</key>
+	<string>เลือกรูปประจำตัว</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>เลือกสิ่งที่สแน็ปช็อตอิสระนี้ประกอบด้วยอะไรบ้าง การแก้ไขแหล่งที่มาจะไม่เปลี่ยนสำเนาที่ส่งไปแล้ว</string>
+	<key>Choose password export</key>
+	<string>เลือกส่งออกรหัสผ่าน</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>เลือกภาษาสำหรับ dMsg ในการตั้งค่า iOS</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>เลือกเวอร์ชันที่จะเก็บไว้ ประวัติศาสตร์ที่มีอยู่จะถูกเก็บรักษาไว้ ความลับไม่เคยถูกเขียนทับอย่างเงียบๆ</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>เลือกผู้ที่อาจส่งจดหมายถึงคุณฟรี บัญชีที่ถูกบล็อกจะยังคงถูกบล็อกจนกว่าคุณจะปลดบล็อก</string>
+	<key>Closed</key>
+	<string>ปิดแล้ว</string>
+	<key>Cloud backups</key>
+	<string>การสำรองข้อมูลบนคลาวด์</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>การสำรองข้อมูลบนคลาวด์จะถูกเก็บไว้ การดำเนินการนี้จะเปลี่ยนสำเนาบนอุปกรณ์นี้เท่านั้น</string>
+	<key>Cloud deletion completed</key>
+	<string>การลบคลาวด์เสร็จสมบูรณ์</string>
+	<key>Cloud storage</key>
+	<string>ที่เก็บข้อมูลบนคลาวด์</string>
+	<key>Complete recovery after waiting period</key>
+	<string>การกู้คืนเสร็จสมบูรณ์หลังจากระยะเวลารอคอย</string>
+	<key>Completed</key>
+	<string>เสร็จสิ้น</string>
+	<key>Configure a desktop file mapping</key>
+	<string>กำหนดค่าการแมปไฟล์เดสก์ท็อป</string>
+	<key>Configured on this device</key>
+	<string>กำหนดค่าบนอุปกรณ์นี้</string>
+	<key>Confirm change</key>
+	<string>ยืนยันการเปลี่ยนแปลง</string>
+	<key>Confirm completed step</key>
+	<string>ยืนยันขั้นตอนที่เสร็จสมบูรณ์</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>ยืนยันเฉพาะงานที่คุณทำเสร็จแล้วจริงเท่านั้น สิ่งนี้จะบันทึกคำสั่งของคุณ มันไม่ได้ดำเนินการตามผู้ให้บริการ</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>ยืนยันคำขอ dMsg ที่คุณตรวจสอบแล้ว</string>
+	<key>Confirm this account security change</key>
+	<string>ยืนยันการเปลี่ยนแปลงความปลอดภัยของบัญชีนี้</string>
+	<key>Confirm your completed steps</key>
+	<string>ยืนยันขั้นตอนที่เสร็จสมบูรณ์ของคุณ</string>
+	<key>Conflicting version</key>
+	<string>เวอร์ชันที่ขัดแย้งกัน</string>
+	<key>Connect</key>
+	<string>เชื่อมต่อ</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>เชื่อมต่อเฉพาะเบราว์เซอร์ที่คุณควบคุม เบราว์เซอร์ที่เชื่อมต่อสามารถส่งคำขอได้ ลายเซ็นแต่ละรายการยังคงต้องได้รับอนุมัติจากคุณใน dMsg</string>
+	<key>Connect this browser</key>
+	<string>เชื่อมต่อเบราว์เซอร์นี้</string>
+	<key>Connect this browser?</key>
+	<string>เชื่อมต่อเบราว์เซอร์นี้ไหม</string>
+	<key>Connected browsers</key>
+	<string>เบราว์เซอร์ที่เชื่อมต่อ</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>การเชื่อมต่อไม่พร้อมใช้งาน เนื้อหาที่บันทึกไว้ของคุณจะยังคงอยู่ในอุปกรณ์นี้</string>
+	<key>Contact invitation, if provided</key>
+	<string>คำเชิญให้ติดต่อ หากมีให้</string>
+	<key>Contact support</key>
+	<string>ติดต่อฝ่ายสนับสนุน</string>
+	<key>Continue import</key>
+	<string>ดำเนินการนำเข้าต่อไป</string>
+	<key>Continue password import</key>
+	<string>ดำเนินการนำเข้ารหัสผ่านต่อไป</string>
+	<key>Continue selected backups</key>
+	<string>ดำเนินการสำรองข้อมูลที่เลือกต่อไป</string>
+	<key>Continue this backup in background</key>
+	<string>ทำการสำรองข้อมูลนี้ต่อในเบื้องหลัง</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>ดำเนินการนำเข้านี้ต่อในบัญชีที่คุณเลือกไว้ตั้งแต่แรก</string>
+	<key>Continue with Internet Identity</key>
+	<string>ดำเนินการต่อด้วย Internet Identity</string>
+	<key>Controller ID</key>
+	<string>Controller ไอดี</string>
+	<key>Controller name</key>
+	<string>ชื่อ Controller</string>
+	<key>Controllers</key>
+	<string>Controllers</string>
+	<key>Controllers and delegations</key>
+	<string>Controllers และการมอบหมาย</string>
+	<key>Conversation</key>
+	<string>การสนทนา</string>
+	<key>Conversation name</key>
+	<string>ชื่อการสนทนา</string>
+	<key>Conversation settings</key>
+	<string>การตั้งค่าการสนทนา</string>
+	<key>Copied for 30 seconds</key>
+	<string>คัดลอกเป็นเวลา 30 วินาที</string>
+	<key>Copy</key>
+	<string>คัดลอก</string>
+	<key>Copy address</key>
+	<string>คัดลอกที่อยู่</string>
+	<key>Copy binding request</key>
+	<string>คัดลอกคำขอเข้าเล่ม</string>
+	<key>Copy enrollment request</key>
+	<string>คัดลอกคำขอลงทะเบียน</string>
+	<key>Copy for 30 seconds</key>
+	<string>คัดลอกเป็นเวลา 30 วินาที</string>
+	<key>Copy link</key>
+	<string>คัดลอกลิงก์</string>
+	<key>Copy pairing request</key>
+	<string>คัดลอกคำขอจับคู่</string>
+	<key>Copy reference</key>
+	<string>คัดลอกการอ้างอิง</string>
+	<key>Copy this field?</key>
+	<string>คัดลอกช่องนี้ใช่ไหม</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>Cosigners สำหรับนโยบายที่อยู่ที่นำเสนอ</string>
+	<key>Create</key>
+	<string>สร้าง</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>สร้างข้อมูลประจำตัวใหม่ที่ผู้ให้บริการและบันทึกไว้ในห้องนิรภัย</string>
+	<key>Create a new pairing request</key>
+	<string>สร้างคำขอจับคู่ใหม่</string>
+	<key>Create a revocation request?</key>
+	<string>สร้างคำขอเพิกถอน?</string>
+	<key>Create agent</key>
+	<string>สร้างเอเจนต์</string>
+	<key>Create an administrator enrollment request</key>
+	<string>สร้างคำขอลงทะเบียนผู้ดูแลระบบ</string>
+	<key>Create an agent identity</key>
+	<string>สร้างตัวตนของเอเจนต์</string>
+	<key>Create binding request</key>
+	<string>สร้างคำขอผูกมัด</string>
+	<key>Create conversation</key>
+	<string>สร้างการสนทนา</string>
+	<key>Create hardware cosigner</key>
+	<string>สร้าง cosigner ฮาร์ดแวร์</string>
+	<key>Create invitation</key>
+	<string>สร้างคำเชิญ</string>
+	<key>Create proposal</key>
+	<string>สร้างข้อเสนอ</string>
+	<key>Create this wallet proposal?</key>
+	<string>สร้างข้อเสนอกระเป๋าสตางค์นี้หรือไม่?</string>
+	<key>Create transfer proposal</key>
+	<string>สร้างข้อเสนอการโอน</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>สร้างพื้นที่ทำงานที่เข้ารหัสของคุณเพื่อเริ่มบันทึกรหัสผ่าน บันทึกย่อ และไฟล์</string>
+	<key>Credential</key>
+	<string>หนังสือรับรอง</string>
+	<key>Credential ID</key>
+	<string>รหัสประจำตัว</string>
+	<key>Credential expired</key>
+	<string>ข้อมูลรับรองหมดอายุแล้ว</string>
+	<key>Credential reused</key>
+	<string>ข้อมูลประจำตัวถูกนำมาใช้ซ้ำ</string>
+	<key>Credential rotation</key>
+	<string>การหมุนเวียนข้อมูลรับรอง</string>
+	<key>Current</key>
+	<string>ปัจจุบัน</string>
+	<key>Current local dependencies</key>
+	<string>การพึ่งพาท้องถิ่นในปัจจุบัน</string>
+	<key>Current login</key>
+	<string>การเข้าสู่ระบบปัจจุบัน</string>
+	<key>Current plan and limits</key>
+	<string>แผนปัจจุบันและข้อจำกัด</string>
+	<key>Current policy requires payment</key>
+	<string>กรมธรรม์ปัจจุบันต้องมีการชำระเงิน</string>
+	<key>Current term ends</key>
+	<string>ภาคเรียนปัจจุบันสิ้นสุดลง</string>
+	<key>Current version</key>
+	<string>รุ่นปัจจุบัน</string>
+	<key>Cvv</key>
+	<string>ประวัติย่อ</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>กิจกรรมใหม่ใน dMsg</string>
+	<key>Database</key>
+	<string>ฐานข้อมูล</string>
+	<key>Date</key>
+	<string>วันที่</string>
+	<key>Delegations</key>
+	<string>การมอบหมาย</string>
+	<key>Delete account</key>
+	<string>ลบบัญชี</string>
+	<key>Delete cloud backup</key>
+	<string>ลบข้อมูลสำรองบนคลาวด์</string>
+	<key>Delete this cloud backup?</key>
+	<string>ลบข้อมูลสำรองบนคลาวด์นี้ใช่ไหม</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>การลบบัญชี dMsg ของคุณไม่ได้เป็นการยกเลิกการสมัครสมาชิก Apple ยกเลิกในการตั้งค่าบัญชี Apple ของคุณเพื่อหยุดการต่ออายุ</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>การลบบัญชีบริการ dMsg ของคุณจะเป็นการลบไซเฟอร์เท็กซ์คลาวด์ ข้อมูลบริการส่วนตัว การลงทะเบียนการแจ้งเตือนอุปกรณ์ และสำเนาที่มาของอวตารสาธารณะออกอย่างถาวร ไม่สามารถลบบันทึกบล็อคเชน สำเนาของผู้รับรายอื่น หรือข้อมูลที่บริการอื่นถือครองได้</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>การลบจะไม่โอนเงิน การลบคีย์ในเครื่องและสำเนาบนคลาวด์สามารถลบการเข้าถึงกระเป๋าเงินและข้อมูลรับรองภายนอกของอุปกรณ์นี้อย่างถาวร</string>
+	<key>Deletion is in progress</key>
+	<string>กำลังดำเนินการลบ</string>
+	<key>Deletion status</key>
+	<string>สถานะการลบ</string>
+	<key>Deliver a secret to a local process</key>
+	<string>ส่งมอบความลับให้กับกระบวนการในท้องถิ่น</string>
+	<key>Demo approved · No signature created</key>
+	<string>อนุมัติการสาธิต · ไม่มีการสร้างลายเซ็น</string>
+	<key>Demo rejected · No signature created</key>
+	<string>การสาธิตถูกปฏิเสธ · ไม่มีการสร้างลายเซ็น</string>
+	<key>Demo section</key>
+	<string>ส่วนสาธิต</string>
+	<key>Dependencies on this device</key>
+	<string>การพึ่งพาอุปกรณ์นี้</string>
+	<key>Describe the issue</key>
+	<string>อธิบายปัญหา</string>
+	<key>Desktop file mapping</key>
+	<string>การแมปไฟล์บนเดสก์ท็อป</string>
+	<key>Desktop file mapping needs review</key>
+	<string>การแมปไฟล์บนเดสก์ท็อปจำเป็นต้องได้รับการตรวจสอบ</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>การอนุมัติคำสั่งบนเดสก์ท็อปจะยังคงอยู่บนเดสก์ท็อปนั้น เฉพาะคำขอที่ใช้ได้กับอุปกรณ์นี้เท่านั้นที่ปรากฏที่นี่</string>
+	<key>Destination</key>
+	<string>จุดหมายปลายทาง</string>
+	<key>Destination folder</key>
+	<string>โฟลเดอร์ปลายทาง</string>
+	<key>Device</key>
+	<string>อุปกรณ์</string>
+	<key>Device ID</key>
+	<string>รหัสอุปกรณ์</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>การรับรองความถูกต้องของอุปกรณ์ไม่พร้อมใช้งานชั่วคราว กุญแจของคุณจะถูกเก็บไว้ ลองอีกครั้งเมื่ออุปกรณ์นี้ถูกปลดล็อค</string>
+	<key>Device pairing request QR code</key>
+	<string>คำขอจับคู่อุปกรณ์ขอรหัส QR</string>
+	<key>Device permissions</key>
+	<string>สิทธิ์ของอุปกรณ์</string>
+	<key>Device policy</key>
+	<string>นโยบายอุปกรณ์</string>
+	<key>Device policy needs review</key>
+	<string>นโยบายด้านอุปกรณ์จำเป็นต้องได้รับการตรวจสอบ</string>
+	<key>Device request</key>
+	<string>คำขออุปกรณ์</string>
+	<key>Device-bound workspace</key>
+	<string>พื้นที่ทำงานที่เชื่อมโยงกับอุปกรณ์</string>
+	<key>Devices</key>
+	<string>อุปกรณ์</string>
+	<key>Disabled</key>
+	<string>ปิดใช้งาน</string>
+	<key>Discard</key>
+	<string>ทิ้ง</string>
+	<key>Discard staged copy</key>
+	<string>ทิ้งสำเนาแบบจัดฉาก</string>
+	<key>Discard this staged copy?</key>
+	<string>ทิ้งสำเนาแบบทีละขั้นนี้ไหม</string>
+	<key>Dismiss this observation</key>
+	<string>ยกเลิกข้อสังเกตนี้</string>
+	<key>Dismiss this observation?</key>
+	<string>ยกเลิกข้อสังเกตนี้ใช่ไหม</string>
+	<key>Dispute pending recovery</key>
+	<string>ข้อพิพาทที่รอการกู้คืน</string>
+	<key>Done</key>
+	<string>เสร็จสิ้น</string>
+	<key>Download encrypted copy in background</key>
+	<string>ดาวน์โหลดสำเนาที่เข้ารหัสในเบื้องหลัง</string>
+	<key>Download sessions</key>
+	<string>ดาวน์โหลดเซสชั่น</string>
+	<key>Downloading encrypted backup</key>
+	<string>กำลังดาวน์โหลดข้อมูลสำรองที่เข้ารหัส</string>
+	<key>Draft: </key>
+	<string>ร่าง: </string>
+	<key>EVM</key>
+	<string>อีวีเอ็ม</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>แพ็กเกจมือถือแต่ละแพ็กเกจจำกัดอยู่ที่ 8 MiB รวมถึงไฟล์แนบที่เลือก การอนุมัติขั้นสุดท้ายจะแสดงการเลือกและปลายทางที่ไม่เปลี่ยนรูปอย่างแน่นอน</string>
+	<key>Edit item</key>
+	<string>แก้ไขรายการ</string>
+	<key>Edit member</key>
+	<string>แก้ไขสมาชิก</string>
+	<key>Edit message</key>
+	<string>แก้ไขข้อความ</string>
+	<key>Edit secret</key>
+	<string>แก้ไขความลับ</string>
+	<key>Edited</key>
+	<string>แก้ไขแล้ว</string>
+	<key>Email</key>
+	<string>อีเมล</string>
+	<key>Enable automatic sync</key>
+	<string>เปิดใช้งานการซิงค์อัตโนมัติ</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>เปิดใช้งานการซิงค์อัตโนมัติสำหรับบัญชีนี้หรือไม่</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>เปิดใช้งาน dMsg ในการตั้งค่าป้อนอัตโนมัติ</string>
+	<key>Encrypted backup</key>
+	<string>การสำรองข้อมูลที่เข้ารหัส</string>
+	<key>Encrypting</key>
+	<string>กำลังเข้ารหัส</string>
+	<key>Engine</key>
+	<string>เครื่องยนต์</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>ข้อมูลไบโอเมตริกซ์ที่ลงทะเบียนมีการเปลี่ยนแปลง ลงทะเบียนคีย์ทดแทนก่อนที่จะใช้คีย์นี้</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>ป้อนรหัสบัญชีที่ถูกต้อง หนึ่งรายการต่อบรรทัด</string>
+	<key>Error details</key>
+	<string>รายละเอียดข้อผิดพลาด</string>
+	<key>Example document</key>
+	<string>เอกสารตัวอย่าง</string>
+	<key>Example login</key>
+	<string>ตัวอย่างการเข้าสู่ระบบ</string>
+	<key>Execute</key>
+	<string>เรียกใช้</string>
+	<key>Execute approved proposal</key>
+	<string>ดำเนินการข้อเสนอที่ได้รับอนุมัติ</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>ดำเนินการข้อเสนอกระเป๋าเงินที่ได้รับอนุมัตินี้หรือไม่</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>กฎการบล็อก คำเชิญ และความจุของกล่องจดหมายที่มีอยู่จะยังคงอยู่ การเลือกนโยบายแบบฟรีหรือแบบปิดจะแทนที่การตั้งค่าการติดต่อแบบชำระเงินก่อนหน้านี้</string>
+	<key>Expired</key>
+	<string>หมดอายุ</string>
+	<key>Expires</key>
+	<string>หมดอายุ</string>
+	<key>Expires after</key>
+	<string>หมดอายุหลัง</string>
+	<key>Expiry</key>
+	<string>หมดอายุ</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>สำรองข้อมูลเวอร์ชันไฟล์ที่เลือกอย่างชัดเจนหากคุณต้องการสำเนาบนคลาวด์</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>ส่งออกรายการเข้าสู่ระบบที่เลือกไปยังการป้อนรหัสผ่านอัตโนมัติ</string>
+	<key>Failed</key>
+	<string>ไม่สำเร็จ</string>
+	<key>Favorite</key>
+	<string>ของโปรด</string>
+	<key>Favorites</key>
+	<string>รายการโปรด</string>
+	<key>Field</key>
+	<string>สนาม</string>
+	<key>Field name</key>
+	<string>ชื่อฟิลด์</string>
+	<key>Field reference</key>
+	<string>การอ้างอิงภาคสนาม</string>
+	<key>Field reference and dependencies</key>
+	<string>การอ้างอิงฟิลด์และการขึ้นต่อกัน</string>
+	<key>Field settings</key>
+	<string>การตั้งค่าภาคสนาม</string>
+	<key>Fields</key>
+	<string>เขตข้อมูล</string>
+	<key>File</key>
+	<string>ไฟล์</string>
+	<key>File name</key>
+	<string>ชื่อไฟล์</string>
+	<key>File not available on this device</key>
+	<string>ไฟล์ไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
+	<key>File versions</key>
+	<string>เวอร์ชันของไฟล์</string>
+	<key>Files</key>
+	<string>ไฟล์</string>
+	<key>Files app copies</key>
+	<string>คัดลอกแอปไฟล์</string>
+	<key>Files app snapshot updated</key>
+	<string>อัปเดตภาพรวมของแอป Files แล้ว</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>ไฟล์ต่างๆ จะได้รับการสำรองข้อมูลเฉพาะเมื่อคุณเลือกที่จะดำเนินการดังกล่าวอย่างชัดเจนเท่านั้น</string>
+	<key>Files in this folder</key>
+	<string>ไฟล์ในโฟลเดอร์นี้</string>
+	<key>Fingerprint</key>
+	<string>ลายนิ้วมือ</string>
+	<key>Folder name</key>
+	<string>ชื่อโฟลเดอร์</string>
+	<key>Freeze this wallet?</key>
+	<string>แช่แข็งกระเป๋าเงินนี้เหรอ?</string>
+	<key>Freeze wallet</key>
+	<string>แช่แข็งกระเป๋าสตางค์</string>
+	<key>Grant delegation</key>
+	<string>อนุมัติการมอบหมาย</string>
+	<key>Handled on another device</key>
+	<string>จัดการบนอุปกรณ์อื่น</string>
+	<key>Harassment</key>
+	<string>การล่วงละเมิด</string>
+	<key>Hardware approval key</key>
+	<string>คีย์การอนุมัติฮาร์ดแวร์</string>
+	<key>Hardware cosigners</key>
+	<string>ผู้ออกแบบฮาร์ดแวร์</string>
+	<key>Hardware keys on this device</key>
+	<string>คีย์ฮาร์ดแวร์บนอุปกรณ์นี้</string>
+	<key>Hardware security</key>
+	<string>ความปลอดภัยของฮาร์ดแวร์</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>คุณได้ตรวจสอบผลลัพธ์ที่หายไปแล้วหรือยัง?</string>
+	<key>Hidden fields differ: </key>
+	<string>ช่องที่ซ่อนจะแตกต่างออกไป: </string>
+	<key>Hidden value</key>
+	<string>คุณค่าที่ซ่อนอยู่</string>
+	<key>Hide</key>
+	<string>ซ่อน</string>
+	<key>Hide sample sender</key>
+	<string>ซ่อนผู้ส่งตัวอย่าง</string>
+	<key>Historical version</key>
+	<string>เวอร์ชันประวัติศาสตร์</string>
+	<key>Host</key>
+	<string>โฮสต์</string>
+	<key>I completed this step</key>
+	<string>ฉันทำขั้นตอนนี้เสร็จแล้ว</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>ฉันได้รักษาความปลอดภัยการเข้าถึงกระเป๋าเงินและข้อมูลรับรองภายนอกแล้ว</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>หมายเลขประจำตัว</string>
+	<key>Identity</key>
+	<string>อัตลักษณ์</string>
+	<key>Illegal content</key>
+	<string>เนื้อหาที่ผิดกฎหมาย</string>
+	<key>Import</key>
+	<string>นำเข้า</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>นำเข้าเอกสารเพื่อเข้ารหัสบนอุปกรณ์นี้ การสำรองข้อมูลบนคลาวด์เป็นการดำเนินการแยกต่างหาก</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>นำเข้าไฟล์ในไฟล์ก่อนที่จะแนบ</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>นำเข้าการส่งออก 1Password, Bitwarden หรือรหัสผ่านเบราว์เซอร์ที่ไม่ได้เข้ารหัส แหล่งที่มาจะยังคงอยู่ในอุปกรณ์นี้ เพิ่มเฉพาะบันทึกที่เลือกเท่านั้น</string>
+	<key>Import completed</key>
+	<string>การนำเข้าเสร็จสมบูรณ์</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>การนำเข้าจะสร้างรายการอิสระใหม่ ไฟล์จะยังคงอยู่ในอุปกรณ์นี้และสืบทอดสิทธิ์การเข้าถึงของโฟลเดอร์ที่เลือก ไม่มีสิ่งใดถูกเลือกโดยอัตโนมัติ</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>นำเข้าความลับที่ค้นพบบนเดสก์ท็อป</string>
+	<key>Import file</key>
+	<string>นำเข้าไฟล์</string>
+	<key>Import files</key>
+	<string>นำเข้าไฟล์</string>
+	<key>Import into dMsg</key>
+	<string>นำเข้าสู่ dMsg</string>
+	<key>Import into this account</key>
+	<string>นำเข้าสู่บัญชีนี้</string>
+	<key>Import passwords</key>
+	<string>นำเข้ารหัสผ่าน</string>
+	<key>Import photo</key>
+	<string>นำเข้ารูปภาพ</string>
+	<key>Import secret package</key>
+	<string>นำเข้าแพ็คเกจลับ</string>
+	<key>Import selected records</key>
+	<string>นำเข้าบันทึกที่เลือก</string>
+	<key>Import selected secrets</key>
+	<string>นำเข้าข้อมูลลับที่เลือก</string>
+	<key>In Trash</key>
+	<string>ในถังขยะ</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>ในรายงานจริง บริการจะได้รับเหตุผลของคุณและตัวระบุบัญชี/ทรัพยากร ข้อความจะถูกรวมไว้เฉพาะเมื่อคุณเลือกที่จะเปิดเผยอย่างชัดเจน</string>
+	<key>In progress</key>
+	<string>อยู่ระหว่างดำเนินการ</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>การซื้อในแอปถูกปิดใช้งานในโครงสร้างนี้ แผนปัจจุบันและการใช้งานของคุณยังคงใช้งานได้</string>
+	<key>Inbox</key>
+	<string>กล่องจดหมาย</string>
+	<key>Inbox settings</key>
+	<string>การตั้งค่ากล่องจดหมาย</string>
+	<key>Include notes</key>
+	<string>รวมบันทึก</string>
+	<key>Include this message's text</key>
+	<string>รวมข้อความของข้อความนี้</string>
+	<key>Inspect pairing request</key>
+	<string>ตรวจสอบคำขอจับคู่</string>
+	<key>Inspect this version</key>
+	<string>ตรวจสอบรุ่นนี้</string>
+	<key>Integrity</key>
+	<string>ความซื่อสัตย์</string>
+	<key>Interrupted</key>
+	<string>ขัดจังหวะ</string>
+	<key>Inventory fingerprint</key>
+	<string>ลายนิ้วมือสินค้าคงคลัง</string>
+	<key>Invite member</key>
+	<string>เชิญสมาชิก</string>
+	<key>Issued credentials</key>
+	<string>ออกหนังสือรับรองแล้ว</string>
+	<key>Item attachments</key>
+	<string>สิ่งที่แนบมารายการ</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>การอ้างอิงรายการสามารถซิงค์ก่อนไฟล์ได้ มีเพียงไฟล์ที่มีอยู่ในอุปกรณ์นี้เท่านั้นที่สามารถเพิ่มลงในสแนปชอตใหม่ได้</string>
+	<key>Join</key>
+	<string>เข้าร่วม</string>
+	<key>Join account</key>
+	<string>เข้าร่วมบัญชี</string>
+	<key>Join an existing account</key>
+	<string>เข้าร่วมบัญชีที่มีอยู่</string>
+	<key>Join an existing wallet</key>
+	<string>เข้าร่วมกระเป๋าเงินที่มีอยู่</string>
+	<key>Join conversation</key>
+	<string>เข้าร่วมการสนทนา</string>
+	<key>Keep current version</key>
+	<string>เก็บเวอร์ชันปัจจุบันไว้</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>เก็บความลับ การสนทนา และไฟล์ของคุณไว้ด้วยกัน เฉพาะอุปกรณ์ที่ได้รับอนุญาตของคุณเท่านั้นที่สามารถเปิดได้</string>
+	<key>Key</key>
+	<string>คีย์</string>
+	<key>Key fingerprint</key>
+	<string>ลายนิ้วมือที่สำคัญ</string>
+	<key>Key label</key>
+	<string>ป้ายคีย์</string>
+	<key>Keys</key>
+	<string>กุญแจ</string>
+	<key>Language</key>
+	<string>ภาษา</string>
+	<key>Last known cloud state</key>
+	<string>สถานะคลาวด์ที่ทราบล่าสุด</string>
+	<key>Leave conversation</key>
+	<string>ออกจากการสนทนา</string>
+	<key>Leave empty to keep existing value</key>
+	<string>เว้นว่างไว้เพื่อเก็บค่าที่มีอยู่</string>
+	<key>License Key</key>
+	<string>รหัสใบอนุญาต</string>
+	<key>Licensed To</key>
+	<string>ได้รับอนุญาตให้</string>
+	<key>Link limits</key>
+	<string>ขีดจำกัดของลิงก์</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>คำขอที่เผยแพร่อยู่จะแสดงแหล่งที่มาที่ได้รับการยืนยันและเพย์โหลดเต็ม และจำเป็นต้องได้รับอนุมัติจากระบบหรือฮาร์ดแวร์ที่กำหนดค่าไว้</string>
+	<key>Load earlier activity</key>
+	<string>โหลดกิจกรรมก่อนหน้า</string>
+	<key>Load earlier messages</key>
+	<string>โหลดข้อความก่อนหน้า</string>
+	<key>Load earlier proposals</key>
+	<string>โหลดข้อเสนอก่อนหน้านี้</string>
+	<key>Load more</key>
+	<string>โหลดเพิ่ม</string>
+	<key>Loading the verified request…</key>
+	<string>กำลังโหลดคำขอที่ยืนยันแล้ว...</string>
+	<key>Local</key>
+	<string>ท้องถิ่น</string>
+	<key>Local delivery record</key>
+	<string>บันทึกการส่งมอบในพื้นที่</string>
+	<key>Local demo</key>
+	<string>การสาธิตในท้องถิ่น</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>การสาธิตในพื้นที่ · ข้อมูลสมมติ · รีเซ็ตเมื่อปิด</string>
+	<key>Local dependencies</key>
+	<string>การพึ่งพาท้องถิ่น</string>
+	<key>Local dependency</key>
+	<string>การพึ่งพาท้องถิ่น</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>ไฟล์ในเครื่องจะไม่ได้รับการสำรองข้อมูลโดยอัตโนมัติ การถอนการติดตั้ง dMsg จะลบไฟล์ที่ไม่มีการสำรองข้อมูลบนคลาวด์</string>
+	<key>Local findings</key>
+	<string>การค้นพบในท้องถิ่น</string>
+	<key>Local label</key>
+	<string>ป้ายกำกับท้องถิ่น</string>
+	<key>Local security review</key>
+	<string>การตรวจสอบความปลอดภัยในท้องถิ่น</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>ที่เก็บข้อมูลในเครื่องไม่พร้อมใช้งาน ปลดล็อคอุปกรณ์นี้แล้วลองอีกครั้ง อย่ารีเซ็ตเวิร์กสเปซเพื่อกู้คืนการดำเนินการที่ถูกขัดจังหวะ</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>ขยะในท้องถิ่นจะถูกเก็บไว้เป็นเวลา 30 วัน การสำรองข้อมูลบนคลาวด์ได้รับการจัดการแยกกัน</string>
+	<key>Lock immediately in background</key>
+	<string>ล็อคทันทีในพื้นหลัง</string>
+	<key>Lock workspace</key>
+	<string>ล็อคพื้นที่ทำงาน</string>
+	<key>Login identities</key>
+	<string>ข้อมูลระบุตัวตนในการเข้าสู่ระบบ</string>
+	<key>Manage Apple subscriptions</key>
+	<string>จัดการการสมัครสมาชิก Apple</string>
+	<key>Manage file</key>
+	<string>จัดการไฟล์</string>
+	<key>Manage subscriptions</key>
+	<string>จัดการการสมัครสมาชิก</string>
+	<key>Mark as read</key>
+	<string>ทำเครื่องหมายว่าอ่านแล้ว</string>
+	<key>Maximum fee in base units</key>
+	<string>ค่าธรรมเนียมสูงสุดในหน่วยฐาน</string>
+	<key>Member account ID</key>
+	<string>รหัสบัญชีสมาชิก</string>
+	<key>Member account or Principal</key>
+	<string>บัญชีสมาชิกหรือ Principal</string>
+	<key>Member label</key>
+	<string>ป้ายสมาชิก</string>
+	<key>Members</key>
+	<string>สมาชิก</string>
+	<key>Message</key>
+	<string>ข้อความ</string>
+	<key>Message withdrawn</key>
+	<string>ถอนข้อความแล้ว</string>
+	<key>Messages</key>
+	<string>ข้อความ</string>
+	<key>Month</key>
+	<string>เดือน</string>
+	<key>Monthly execution units</key>
+	<string>หน่วยปฏิบัติการรายเดือน</string>
+	<key>Move this local file to Trash?</key>
+	<string>ย้ายไฟล์ในเครื่องนี้ไปที่ถังขยะไหม</string>
+	<key>Move this secret to Trash?</key>
+	<string>ย้ายความลับนี้ไปที่ถังขยะไหม</string>
+	<key>Move to Trash</key>
+	<string>ย้ายไปที่ถังขยะ</string>
+	<key>Move to another folder</key>
+	<string>ย้ายไปยังโฟลเดอร์อื่น</string>
+	<key>Mute notifications</key>
+	<string>ปิดเสียงการแจ้งเตือน</string>
+	<key>My account</key>
+	<string>บัญชีของฉัน</string>
+	<key>Name</key>
+	<string>ชื่อ</string>
+	<key>Needs a fresh review</key>
+	<string>จำเป็นต้องทบทวนใหม่</string>
+	<key>Network</key>
+	<string>เครือข่าย</string>
+	<key>New controller</key>
+	<string>ใหม่ Controller</string>
+	<key>New conversation</key>
+	<string>บทสนทนาใหม่</string>
+	<key>New field type</key>
+	<string>ประเภทฟิลด์ใหม่</string>
+	<key>New folder</key>
+	<string>โฟลเดอร์ใหม่</string>
+	<key>New free letter</key>
+	<string>จดหมายฟรีใหม่</string>
+	<key>New revision</key>
+	<string>การแก้ไขใหม่</string>
+	<key>New secret</key>
+	<string>ความลับใหม่</string>
+	<key>No</key>
+	<string>ไม่</string>
+	<key>No activity on this device</key>
+	<string>ไม่มีกิจกรรมบนอุปกรณ์นี้</string>
+	<key>No background transfer</key>
+	<string>ไม่มีการถ่ายโอนพื้นหลัง</string>
+	<key>No blocked accounts</key>
+	<string>ไม่มีบัญชีที่ถูกบล็อก</string>
+	<key>No cloud backups</key>
+	<string>ไม่มีการสำรองข้อมูลบนคลาวด์</string>
+	<key>No connected browsers</key>
+	<string>ไม่มีเบราว์เซอร์ที่เชื่อมต่อ</string>
+	<key>No conversations yet</key>
+	<string>ยังไม่มีการสนทนา</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>ไม่มีการบันทึกการอ้างอิงบนอุปกรณ์นี้</string>
+	<key>No findings from this device's checks.</key>
+	<string>ไม่พบผลจากการตรวจสอบอุปกรณ์นี้</string>
+	<key>No interrupted imports</key>
+	<string>ไม่มีการนำเข้าที่ถูกขัดจังหวะ</string>
+	<key>No item attachments</key>
+	<string>ไม่มีการแนบรายการ</string>
+	<key>No letters yet</key>
+	<string>ยังไม่มีจดหมายเลย</string>
+	<key>No pending backups</key>
+	<string>ไม่มีการสำรองข้อมูลที่รอดำเนินการ</string>
+	<key>No recent use observed on this device</key>
+	<string>ไม่พบการใช้งานล่าสุดบนอุปกรณ์นี้</string>
+	<key>No registered approval key</key>
+	<string>ไม่มีรหัสอนุมัติที่ลงทะเบียน</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>ไม่มีผู้ลงนามร่วมที่เลือก หมายความว่าไม่มีนโยบายการลงนามร่วมเพิ่มเติม ตรวจสอบข้อเสนอที่สมบูรณ์ก่อนที่จะอนุมัติ</string>
+	<key>No shared items waiting</key>
+	<string>ไม่มีรายการที่ใช้ร่วมกันรอ</string>
+	<key>No snapshots on this device</key>
+	<string>ไม่มีสแนปชอตบนอุปกรณ์นี้</string>
+	<key>No team wallets</key>
+	<string>ไม่มีกระเป๋าสตางค์ของทีม</string>
+	<key>Not enabled</key>
+	<string>ไม่ได้เปิดใช้งาน</string>
+	<key>Not enough storage on this device.</key>
+	<string>พื้นที่เก็บข้อมูลไม่เพียงพอในอุปกรณ์นี้</string>
+	<key>Not registered</key>
+	<string>ไม่ได้ลงทะเบียน</string>
+	<key>Note</key>
+	<string>หมายเหตุ</string>
+	<key>Notes</key>
+	<string>บันทึกย่อ</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>การลงทะเบียนการแจ้งเตือนจำเป็นต้องลองอีกครั้ง การซิงค์เบื้องหน้ายังคงใช้งานได้</string>
+	<key>Notifications</key>
+	<string>การแจ้งเตือน</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>การแจ้งเตือนถูกปิดใช้งานในการตั้งค่าระบบ</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>การแจ้งเตือนไม่มีข้อความ ผู้ส่ง ชื่อไฟล์ หรือเพย์โหลดการอนุมัติ การเปิด dMsg จะรีเฟรชสถานะจริงเสมอ</string>
+	<key>Notifications enabled</key>
+	<string>เปิดใช้งานการแจ้งเตือนแล้ว</string>
+	<key>Notify this account on this device</key>
+	<string>แจ้งบัญชีนี้บนอุปกรณ์นี้</string>
+	<key>Number</key>
+	<string>หมายเลข</string>
+	<key>OK</key>
+	<string>ตกลง</string>
+	<key>Observed on this device</key>
+	<string>สังเกตได้จากอุปกรณ์นี้</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>บนอุปกรณ์ที่ได้รับอนุญาต ให้เปิดการอนุมัติและตรวจสอบลายนิ้วมือ บทบาท และสิทธิ์ทั้งหมดของอุปกรณ์นี้ การสแกนจะไม่อนุมัติโดยอัตโนมัติ</string>
+	<key>On this device</key>
+	<string>บนอุปกรณ์นี้</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>ในการเข้าชมครั้งแรก ให้ลงชื่อเข้าใช้และทำตามขั้นตอนเพื่อสร้างพื้นที่ทำงานที่เข้ารหัสของคุณ</string>
+	<key>One-time code</key>
+	<string>รหัสครั้งเดียว</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>ทำสิ่งนี้เมื่อคุณพร้อมที่จะใช้เท่านั้น สำเนาจะยังคงอยู่ในอุปกรณ์นี้และหมดอายุหลังจากผ่านไป 30 วินาที</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>ที่นี่รองรับเฉพาะการติดต่อแบบฟรีเท่านั้น การดำเนินการนี้ไม่สามารถชำระหรืออนุมัติค่าธรรมเนียมของผู้รับได้</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>เฉพาะสำเนาที่เลือกและไม่เปลี่ยนรูปเท่านั้นที่จะปรากฏในแอพไฟล์ การเข้าถึงจำเป็นต้องมีการรับรองความถูกต้องของระบบ การล็อก dMsg จะสิ้นสุดเซสชันการเข้าถึงปัจจุบัน ไฟล์อาจเก็บสำเนาและชื่อไฟล์ที่ดาวน์โหลดไว้ ซึ่ง dMsg ไม่สามารถจำได้</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>เฉพาะไฟล์ที่เข้ารหัสที่เลือกเท่านั้นที่สามารถถ่ายโอนได้ในขณะที่ dMsg ถูกล็อค iOS ควบคุมการตั้งเวลา บังคับให้เลิกหยุดการส่งจนกว่าคุณจะเปิดแอปอีกครั้ง เปิดบัญชีเดิมเพื่อตรวจสอบและเสร็จสิ้น</string>
+	<key>Open approval record</key>
+	<string>เปิดบันทึกการอนุมัติ</string>
+	<key>Open approvals</key>
+	<string>เปิดการอนุมัติ</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>เปิด dMsg โดยไม่เปิดเผยเนื้อหาส่วนตัวบนหน้าจอหลัก</string>
+	<key>Open dMsg workspace</key>
+	<string>เปิดเวิร์กสเปซ dMsg</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>เปิด dMsg การปลดล็อกและการอนุมัติยังคงต้องมีการโต้ตอบจากคุณในแอป</string>
+	<key>Open invitation in browser</key>
+	<string>เปิดคำเชิญในเบราว์เซอร์</string>
+	<key>Open notification settings</key>
+	<string>เปิดการตั้งค่าการแจ้งเตือน</string>
+	<key>Open private workspace</key>
+	<string>เปิดพื้นที่ทำงานส่วนตัว</string>
+	<key>Open secret</key>
+	<string>เปิดความลับ</string>
+	<key>Open workspace</key>
+	<string>เปิดพื้นที่ทำงาน</string>
+	<key>Optional password</key>
+	<string>รหัสผ่านเพิ่มเติม</string>
+	<key>Original revision</key>
+	<string>การแก้ไขต้นฉบับ</string>
+	<key>Other</key>
+	<string>อื่นๆ</string>
+	<key>Other devices</key>
+	<string>อุปกรณ์อื่นๆ</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>มิฉะนั้น dMsg จะล็อคหลังจากผ่านไป 3 นาที การล็อคอุปกรณ์จะล็อคพื้นที่ทำงานของคุณทันทีเสมอ</string>
+	<key>Outcome no longer available</key>
+	<string>ไม่มีผลลัพธ์อีกต่อไป</string>
+	<key>Package size</key>
+	<string>ขนาดบรรจุภัณฑ์</string>
+	<key>Parent folder</key>
+	<string>โฟลเดอร์หลัก</string>
+	<key>Password</key>
+	<string>รหัสผ่าน</string>
+	<key>Password AutoFill</key>
+	<string>ป้อนรหัสผ่านอัตโนมัติ</string>
+	<key>Password protected</key>
+	<string>ป้องกันด้วยรหัสผ่าน</string>
+	<key>Password, if required</key>
+	<string>รหัสผ่าน หากจำเป็น</string>
+	<key>Passwords</key>
+	<string>รหัสผ่าน</string>
+	<key>Paste binding request</key>
+	<string>วางคำขอผูกมัด</string>
+	<key>Paste enrollment request</key>
+	<string>วางคำขอลงทะเบียน</string>
+	<key>Paste invitation</key>
+	<string>วางคำเชิญ</string>
+	<key>Paste pairing request</key>
+	<string>วางคำขอจับคู่</string>
+	<key>Paste secret package link</key>
+	<string>วางลิงก์แพ็กเกจลับ</string>
+	<key>Pause this agent</key>
+	<string>หยุดเอเจนต์นี้ชั่วคราว</string>
+	<key>Pause transfer</key>
+	<string>หยุดการโอนชั่วคราว</string>
+	<key>Payment card</key>
+	<string>บัตรชำระเงิน</string>
+	<key>Payments</key>
+	<string>การชำระเงิน</string>
+	<key>Pending backups</key>
+	<string>การสำรองข้อมูลที่รอดำเนินการ</string>
+	<key>Pending imports</key>
+	<string>อยู่ระหว่างการนำเข้า</string>
+	<key>Pending letters</key>
+	<string>จดหมายที่รอดำเนินการ</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>ลบบัญชีบริการ dMsg ที่คุณตรวจสอบอย่างถาวร</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>ลบบัญชีบริการ dMsg นี้อย่างถาวรหรือไม่</string>
+	<key>Permissions</key>
+	<string>สิทธิ์</string>
+	<key>Phone</key>
+	<string>โทรศัพท์</string>
+	<key>Phrase</key>
+	<string>วลี</string>
+	<key>Pin</key>
+	<string>พิน</string>
+	<key>Plan</key>
+	<string>แผน</string>
+	<key>Plan and usage</key>
+	<string>การวางแผนและการใช้งาน</string>
+	<key>Policy points to an unavailable field</key>
+	<string>นโยบายชี้ไปที่ช่องที่ไม่พร้อมใช้งาน</string>
+	<key>Port</key>
+	<string>พอร์ต</string>
+	<key>Prepare selected snapshot</key>
+	<string>เตรียมสแนปชอตที่เลือก</string>
+	<key>Prepared on this device</key>
+	<string>เตรียมไว้บนอุปกรณ์นี้</string>
+	<key>Preview and choose what to import</key>
+	<string>ดูตัวอย่างและเลือกสิ่งที่จะนำเข้า</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>ดูตัวอย่างการดาวน์โหลดและยืนยันแพ็กเกจบนอุปกรณ์นี้และใช้เซสชันการดาวน์โหลด เลือกอุปกรณ์รับก่อนดำเนินการต่อ</string>
+	<key>Preview file</key>
+	<string>ดูตัวอย่างไฟล์</string>
+	<key>Preview package</key>
+	<string>ดูตัวอย่างแพ็คเกจ</string>
+	<key>Preview reporting disclosure</key>
+	<string>ดูตัวอย่างการเปิดเผยการรายงาน</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>ข้อมูลประจำตัวและสำเนาที่จัดส่งก่อนหน้านี้มีความเป็นอิสระ เพิกถอนการมอบหมายแยกต่างหากหากจำเป็น</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>ความเป็นส่วนตัว</string>
+	<key>Privacy policy</key>
+	<string>นโยบายความเป็นส่วนตัว</string>
+	<key>Private Key</key>
+	<string>คีย์ส่วนตัว</string>
+	<key>Private workspace hidden</key>
+	<string>พื้นที่ทำงานส่วนตัวถูกซ่อนไว้</string>
+	<key>Proposal %llu</key>
+	<string>ข้อเสนอ %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>สร้างข้อเสนอแล้ว ตรวจสอบในรายการข้อเสนอของกระเป๋าเงิน</string>
+	<key>Proposals</key>
+	<string>ข้อเสนอ</string>
+	<key>Propose address</key>
+	<string>เสนอที่อยู่</string>
+	<key>Propose member change</key>
+	<string>เสนอให้เปลี่ยนสมาชิก</string>
+	<key>Propose registering this key</key>
+	<string>เสนอให้ลงทะเบียนคีย์นี้</string>
+	<key>Propose removing cosigner</key>
+	<string>เสนอให้ถอด Cosigner ออก</string>
+	<key>Propose removing member</key>
+	<string>เสนอให้ถอดสมาชิกออก</string>
+	<key>Propose thresholds</key>
+	<string>เสนอเกณฑ์</string>
+	<key>Propose transfer</key>
+	<string>เสนอให้โอน</string>
+	<key>Propose unfreezing</key>
+	<string>เสนอให้เลิกแช่แข็ง</string>
+	<key>Proposer</key>
+	<string>ผู้เสนอ</string>
+	<key>Public Key</key>
+	<string>กุญแจสาธารณะ</string>
+	<key>Public avatar</key>
+	<string>อวตารสาธารณะ</string>
+	<key>Public profile</key>
+	<string>โปรไฟล์สาธารณะ</string>
+	<key>Publication pending</key>
+	<string>อยู่ระหว่างการตีพิมพ์</string>
+	<key>Publish</key>
+	<string>เผยแพร่</string>
+	<key>Publish a secret snapshot</key>
+	<string>เผยแพร่สแน็ปช็อตที่เป็นความลับ</string>
+	<key>Publish profile</key>
+	<string>เผยแพร่โปรไฟล์</string>
+	<key>Publish these details publicly?</key>
+	<string>เผยแพร่รายละเอียดเหล่านี้ต่อสาธารณะหรือไม่</string>
+	<key>Published</key>
+	<string>เผยแพร่แล้ว</string>
+	<key>Purchased</key>
+	<string>ซื้อแล้ว</string>
+	<key>Purchases are not currently available.</key>
+	<string>ไม่สามารถซื้อได้ในขณะนี้</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>การแจ้งเตือนแบบพุชไม่ได้เปิดใช้งานในโครงสร้างนี้ เปิด dMsg เพื่อซิงโครไนซ์</string>
+	<key>Quick unlock with system authentication</key>
+	<string>ปลดล็อคอย่างรวดเร็วด้วยการรับรองความถูกต้องของระบบ</string>
+	<key>Read from a desktop file mapping</key>
+	<string>อ่านจากการแมปไฟล์บนเดสก์ท็อป</string>
+	<key>Read the published policy</key>
+	<string>อ่านนโยบายที่เผยแพร่</string>
+	<key>Reason</key>
+	<string>เหตุผล</string>
+	<key>Received for review</key>
+	<string>ได้รับการตรวจทานแล้ว</string>
+	<key>Receiving addresses</key>
+	<string>ที่อยู่รับ</string>
+	<key>Receiving policy</key>
+	<string>นโยบายการรับ</string>
+	<key>Recipient</key>
+	<string>ผู้รับ</string>
+	<key>Recipient account ID</key>
+	<string>รหัสบัญชีผู้รับ</string>
+	<key>Recipient address</key>
+	<string>ที่อยู่ผู้รับ</string>
+	<key>Reconcile original execution</key>
+	<string>ยืนยันผลการดำเนินการเดิม</string>
+	<key>Reconcile original operation</key>
+	<string>ยืนยันผลการดำเนินงานเดิม</string>
+	<key>Reconcile original proposal</key>
+	<string>ตกลงข้อเสนอเดิม</string>
+	<key>Reconcile original send</key>
+	<string>กระทบยอดการส่งต้นฉบับ</string>
+	<key>Reconcile original snapshot</key>
+	<string>ปรับภาพสแนปชอตต้นฉบับ</string>
+	<key>Record manual review</key>
+	<string>บันทึกการตรวจสอบด้วยตนเอง</string>
+	<key>Record this step as completed?</key>
+	<string>บันทึกขั้นตอนนี้ว่าเสร็จสิ้นแล้วใช่ไหม</string>
+	<key>Recovery</key>
+	<string>การกู้คืน</string>
+	<key>Recovery status</key>
+	<string>สถานะการกู้คืน</string>
+	<key>Recovery status needs checking</key>
+	<string>จำเป็นต้องตรวจสอบสถานะการกู้คืน</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>การกู้คืนใช้การเข้าสู่ระบบที่ผูกมัดของคุณและระยะเวลารอคอย อุปกรณ์ที่ได้รับอนุญาตสามารถโต้แย้งได้ เนื้อหาในเครื่องที่ไม่ได้ซิงค์ไม่สามารถกู้คืนได้</string>
+	<key>Recovery waiting period</key>
+	<string>ระยะเวลารอคอยการฟื้นตัว</string>
+	<key>Refresh</key>
+	<string>รีเฟรช</string>
+	<key>Refresh balances</key>
+	<string>รีเฟรชยอดคงเหลือ</string>
+	<key>Refresh dependencies</key>
+	<string>รีเฟรชการอ้างอิง</string>
+	<key>Register a hardware approval key</key>
+	<string>ลงทะเบียนคีย์การอนุมัติฮาร์ดแวร์</string>
+	<key>Register an SSH binding</key>
+	<string>ลงทะเบียนการผูก SSH</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>ลงทะเบียนกุญแจสาธารณะนี้ผ่านข้อเสนอกระเป๋าเงิน</string>
+	<key>Registered on this device</key>
+	<string>ลงทะเบียนบนอุปกรณ์นี้แล้ว</string>
+	<key>Reject</key>
+	<string>ปฏิเสธ</string>
+	<key>Reject this request?</key>
+	<string>ปฏิเสธคำขอนี้ใช่ไหม</string>
+	<key>Rejected</key>
+	<string>ถูกปฏิเสธ</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>รุ่น 1.0 พร้อมสำหรับการตรวจสอบแล้ว</string>
+	<key>Remove</key>
+	<string>นำออก</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>ลบสแนปชอตการป้อนอัตโนมัติ</string>
+	<key>Remove Files app snapshot</key>
+	<string>ลบสแนปชอตแอป Files</string>
+	<key>Remove attachment reference</key>
+	<string>ลบการอ้างอิงไฟล์แนบ</string>
+	<key>Remove device binding</key>
+	<string>ลบการเชื่อมโยงอุปกรณ์</string>
+	<key>Remove device binding?</key>
+	<string>นำการเชื่อมโยงอุปกรณ์ออกใช่ไหม</string>
+	<key>Remove field</key>
+	<string>ลบฟิลด์</string>
+	<key>Remove local data</key>
+	<string>ลบข้อมูลในเครื่อง</string>
+	<key>Remove member</key>
+	<string>ลบสมาชิก</string>
+	<key>Remove this account's data from this device?</key>
+	<string>ลบข้อมูลของบัญชีนี้ออกจากอุปกรณ์นี้ใช่ไหม</string>
+	<key>Remove this account's local data</key>
+	<string>ลบข้อมูลในเครื่องของบัญชีนี้</string>
+	<key>Remove this local agent</key>
+	<string>ลบเอเจนต์ท้องถิ่นนี้</string>
+	<key>Remove this local agent?</key>
+	<string>ลบเอเจนต์ท้องถิ่นนี้หรือไม่</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>การลบข้อมูลอ้างอิงจะไม่ลบไฟล์ ข้อมูลอ้างอิงที่มีอยู่จะถูกเก็บไว้แม้ว่าไฟล์จะหายไปในอุปกรณ์นี้ก็ตาม</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>ซ่อมแซมการอ้างอิงฟิลด์ที่ไม่พร้อมใช้งานบนอุปกรณ์ต้นทาง</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>แทนที่สแนปชอตการป้อนอัตโนมัติ</string>
+	<key>Replace Files app snapshot</key>
+	<string>แทนที่สแนปช็อตของแอป Files</string>
+	<key>Replace cosignature policy</key>
+	<string>แทนที่นโยบายลายเซ็นร่วม</string>
+	<key>Reply</key>
+	<string>ตอบกลับ</string>
+	<key>Reply to message %llu</key>
+	<string>ตอบกลับข้อความ %llu</string>
+	<key>Report content</key>
+	<string>รายงานเนื้อหา</string>
+	<key>Report received for review</key>
+	<string>ได้รับรายงานเพื่อตรวจสอบแล้ว</string>
+	<key>Reported account</key>
+	<string>บัญชีที่รายงานแล้ว</string>
+	<key>Reporting disclosure</key>
+	<string>การรายงานการเปิดเผย</string>
+	<key>Request ID</key>
+	<string>ขอรหัส</string>
+	<key>Request account deletion</key>
+	<string>ขอลบบัญชี</string>
+	<key>Request account recovery</key>
+	<string>ร้องขอการกู้คืนบัญชี</string>
+	<key>Request recovery</key>
+	<string>ร้องขอการกู้คืน</string>
+	<key>Request source</key>
+	<string>แหล่งขอ</string>
+	<key>Requested permissions</key>
+	<string>สิทธิ์ที่ร้องขอ</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>คำขอที่ต้องตัดสินใจของคุณปรากฏที่นี่</string>
+	<key>Require hardware approval</key>
+	<string>ต้องได้รับการอนุมัติฮาร์ดแวร์</string>
+	<key>Require this device to unlock</key>
+	<string>ต้องใช้อุปกรณ์นี้เพื่อปลดล็อก</string>
+	<key>Required cosignatures %u</key>
+	<string>ลายเซ็นร่วมที่จำเป็น %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>แก้ไขการดำเนินการบัญชีที่รอดำเนินการก่อนที่จะลบบัญชีนี้</string>
+	<key>Restore</key>
+	<string>กู้คืน</string>
+	<key>Restore purchases</key>
+	<string>คืนค่าการซื้อ</string>
+	<key>Restore this version</key>
+	<string>คืนค่าเวอร์ชันนี้</string>
+	<key>Restore this version as a new current version?</key>
+	<string>คืนค่าเวอร์ชันนี้เป็นเวอร์ชันปัจจุบันใหม่หรือไม่</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>กู้คืนเวอร์ชันนี้จากข้อมูลสำรองบนคลาวด์ก่อนที่จะเปิด</string>
+	<key>Restore to this device</key>
+	<string>คืนค่าไปยังอุปกรณ์นี้</string>
+	<key>Restoring…</key>
+	<string>กำลังคืนค่า...</string>
+	<key>Result</key>
+	<string>ผลลัพธ์</string>
+	<key>Result unconfirmed</key>
+	<string>ผลลัพธ์ไม่ได้รับการยืนยัน</string>
+	<key>Retire a hardware approval key</key>
+	<string>เลิกใช้คีย์การอนุมัติฮาร์ดแวร์</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>การเลิกใช้คีย์จะลบความสามารถในการอนุมัติการดำเนินการที่ได้รับการป้องกัน ตรวจสอบว่ายังมีเส้นทางการอนุมัติอื่นที่ได้รับอนุญาตอยู่</string>
+	<key>Retry</key>
+	<string>ลองอีกครั้ง</string>
+	<key>Retry loading activity</key>
+	<string>ลองโหลดกิจกรรมอีกครั้ง</string>
+	<key>Retry loading hardware security</key>
+	<string>ลองโหลดความปลอดภัยของฮาร์ดแวร์อีกครั้ง</string>
+	<key>Retry loading profile</key>
+	<string>ลองโหลดโปรไฟล์อีกครั้ง</string>
+	<key>Retry original change</key>
+	<string>ลองการเปลี่ยนแปลงเดิมอีกครั้ง</string>
+	<key>Retry original letter</key>
+	<string>ลองจดหมายต้นฉบับอีกครั้ง</string>
+	<key>Retry preview</key>
+	<string>ลองแสดงตัวอย่างอีกครั้ง</string>
+	<key>Retry publication</key>
+	<string>ลองเผยแพร่อีกครั้ง</string>
+	<key>Retry registration</key>
+	<string>ลองลงทะเบียนอีกครั้ง</string>
+	<key>Retry this report</key>
+	<string>ลองรายงานนี้อีกครั้ง</string>
+	<key>Reveal</key>
+	<string>แสดง</string>
+	<key>Reveal this field?</key>
+	<string>เปิดเผยฟิลด์นี้?</string>
+	<key>Review</key>
+	<string>รีวิว</string>
+	<key>Review a web connection request</key>
+	<string>ตรวจสอบคำขอเชื่อมต่อเว็บ</string>
+	<key>Review agent delegation</key>
+	<string>ตรวจสอบการมอบหมายเอเจนต์</string>
+	<key>Review agent permissions</key>
+	<string>ตรวจสอบสิทธิ์ของเอเจนต์</string>
+	<key>Review an enrollment request</key>
+	<string>ตรวจสอบคำขอลงทะเบียน</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>ตรวจสอบและรีสตาร์ทการแมปไฟล์เดสก์ท็อปบนอุปกรณ์ต้นทาง</string>
+	<key>Review approval</key>
+	<string>ตรวจสอบการอนุมัติ</string>
+	<key>Review binding</key>
+	<string>มีผลผูกพันการตรวจสอบ</string>
+	<key>Review controller registration</key>
+	<string>ตรวจสอบการลงทะเบียน Controller</string>
+	<key>Review delegation grant</key>
+	<string>ตรวจสอบสิทธิ์การเข้าถึงการมอบอำนาจ</string>
+	<key>Review deletion</key>
+	<string>ตรวจสอบการลบ</string>
+	<key>Review enabling a principal</key>
+	<string>ตรวจสอบการเปิดใช้งาน principal</string>
+	<key>Review field and dependencies</key>
+	<string>ตรวจสอบฟิลด์และการขึ้นต่อกัน</string>
+	<key>Review hardware policy changes</key>
+	<string>ตรวจสอบการเปลี่ยนแปลงนโยบายฮาร์ดแวร์</string>
+	<key>Review in approval center</key>
+	<string>ตรวจสอบในศูนย์อนุมัติ</string>
+	<key>Review joining wallet</key>
+	<string>รีวิวการเข้าร่วมกระเป๋าเงิน</string>
+	<key>Review key enrollment</key>
+	<string>ตรวจสอบการลงทะเบียนคีย์</string>
+	<key>Review key registration</key>
+	<string>ตรวจสอบการลงทะเบียนคีย์</string>
+	<key>Review local finding</key>
+	<string>ตรวจสอบการค้นพบในท้องถิ่น</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>ตรวจสอบสแนปชอตเก่าและเพิกถอนลิงก์ที่เหลือตามความเหมาะสม</string>
+	<key>Review permissions</key>
+	<string>ตรวจสอบสิทธิ์</string>
+	<key>Review publication or resume</key>
+	<string>ตรวจสอบสิ่งพิมพ์หรือประวัติย่อ</string>
+	<key>Review rejection</key>
+	<string>ตรวจสอบการปฏิเสธ</string>
+	<key>Review removing this login</key>
+	<string>ตรวจสอบการลบการเข้าสู่ระบบนี้</string>
+	<key>Review replacement key</key>
+	<string>ตรวจสอบคีย์ทดแทน</string>
+	<key>Review request</key>
+	<string>คำขอตรวจสอบ</string>
+	<key>Review retiring controller</key>
+	<string>ตรวจสอบการเลิกใช้ Controller</string>
+	<key>Review retiring this approval key</key>
+	<string>ตรวจสอบการยกเลิกคีย์การอนุมัตินี้</string>
+	<key>Review revocation</key>
+	<string>ตรวจสอบการเพิกถอน</string>
+	<key>Review selected import</key>
+	<string>ตรวจสอบการนำเข้าที่เลือก</string>
+	<key>Review sync conflicts</key>
+	<string>ตรวจสอบข้อขัดแย้งในการซิงค์</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>ตรวจสอบการอนุญาตของเอเจนต์บนอุปกรณ์ต้นทาง</string>
+	<key>Review the complete request</key>
+	<string>ตรวจสอบคำขอที่สมบูรณ์</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>ตรวจสอบคีย์ปัจจุบันและต่ออายุการเชื่อมโยง SSH บนอุปกรณ์ต้นทาง</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>ตรวจสอบคำขอและโต้แย้งหากไม่ใช่ของคุณ</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>ตรวจสอบผู้รับของสแนปชอตและการหมดอายุ</string>
+	<key>Review this device's current dependencies</key>
+	<string>ตรวจสอบการอ้างอิงปัจจุบันของอุปกรณ์นี้</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>ตรวจสอบนโยบายของอุปกรณ์นี้และสิทธิ์การเข้าถึง</string>
+	<key>Review this local record before making changes.</key>
+	<string>ตรวจสอบบันทึกในเครื่องนี้ก่อนที่จะทำการเปลี่ยนแปลง</string>
+	<key>Review waiting-period change</key>
+	<string>ตรวจสอบการเปลี่ยนแปลงระยะเวลารอคอย</string>
+	<key>Review wallet action</key>
+	<string>ตรวจสอบการกระทำของกระเป๋าเงิน</string>
+	<key>Reviewed</key>
+	<string>ตรวจสอบแล้ว</string>
+	<key>Revocation pending</key>
+	<string>อยู่ระหว่างการเพิกถอน</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>การเพิกถอนจะหยุดการเข้าถึงใหม่หลังจากรีเฟรชสถานะความปลอดภัยและหมุนเวียนคีย์แล้ว เนื้อหาที่คัดลอกไว้ก่อนหน้านี้ไม่สามารถเรียกคืนได้</string>
+	<key>Revoke</key>
+	<string>เพิกถอน</string>
+	<key>Revoke a device</key>
+	<string>เพิกถอนอุปกรณ์</string>
+	<key>Revoke browser</key>
+	<string>เพิกถอนเบราว์เซอร์</string>
+	<key>Revoke delegation</key>
+	<string>เพิกถอนการมอบหมาย</string>
+	<key>Revoke grant</key>
+	<string>เพิกถอนสิทธิ์การเข้าถึง</string>
+	<key>Revoke or cancel</key>
+	<string>เพิกถอนหรือยกเลิก</string>
+	<key>Revoke or cancel this link</key>
+	<string>เพิกถอนหรือยกเลิกลิงก์นี้</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>เพิกถอนข้อมูลประจำตัวเก่าที่ผู้ให้บริการ</string>
+	<key>Revoke this browser?</key>
+	<string>เพิกถอนเบราว์เซอร์นี้หรือไม่</string>
+	<key>Revoke this device</key>
+	<string>เพิกถอนอุปกรณ์นี้</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>เพิกถอนอุปกรณ์นี้และหมุนคีย์เนื้อหา</string>
+	<key>Revoke this snapshot link?</key>
+	<string>เพิกถอนลิงก์สแนปชอตนี้หรือไม่</string>
+	<key>Revoked</key>
+	<string>เพิกถอนแล้ว</string>
+	<key>Role</key>
+	<string>บทบาท</string>
+	<key>Rotate conversation keys</key>
+	<string>หมุนแป้นสนทนา</string>
+	<key>Rotation checklists</key>
+	<string>รายการตรวจสอบการหมุน</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>การผูก SSH</string>
+	<key>SSH binding needs review</key>
+	<string>การเชื่อมโยง SSH จำเป็นต้องตรวจสอบ</string>
+	<key>SSH key</key>
+	<string>คีย์ SSH</string>
+	<key>Safety and support</key>
+	<string>ความปลอดภัยและการสนับสนุน</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>ตัวอย่างการดำเนินการ: ลงนามในประกาศเผยแพร่</string>
+	<key>Sample login</key>
+	<string>ตัวอย่างการเข้าสู่ระบบ</string>
+	<key>Sample password</key>
+	<string>ตัวอย่างรหัสผ่าน</string>
+	<key>Save</key>
+	<string>บันทึก</string>
+	<key>Save name</key>
+	<string>บันทึกชื่อ</string>
+	<key>Save receiving policy</key>
+	<string>บันทึกนโยบายการรับ</string>
+	<key>Save selected version</key>
+	<string>บันทึกเวอร์ชันที่เลือก</string>
+	<key>Save settings</key>
+	<string>บันทึกการตั้งค่า</string>
+	<key>Save the selected version?</key>
+	<string>บันทึกเวอร์ชันที่เลือกหรือไม่</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>บันทึกรายการเหล่านี้สำหรับ dMsg เลือกบัญชีและนำเข้าหลังจากเปิดและปลดล็อคแอป</string>
+	<key>Save to dMsg</key>
+	<string>บันทึกไปที่ dMsg</string>
+	<key>Saved</key>
+	<string>บันทึกแล้ว</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>บันทึกเป็นเวอร์ชันแยกต่างหาก ตรวจสอบข้อขัดแย้งในการซิงค์</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>บันทึกไว้สำหรับ dMsg เปิดแอปเพื่อตรวจสอบและนำเข้ารายการเหล่านี้</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>บันทึกในเครื่องก่อน สถานะการซิงค์จะแสดงแยกกัน</string>
+	<key>Saved on this device</key>
+	<string>บันทึกไว้ในอุปกรณ์นี้</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>บันทึกไว้ในอุปกรณ์นี้ การเปลี่ยนแปลงกำลังรอการซิงค์</string>
+	<key>Saved. Publication is pending.</key>
+	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
+	<key>Scan device request</key>
+	<string>สแกนคำขออุปกรณ์</string>
+	<key>Scopes, one per line</key>
+	<string>ขอบเขต หนึ่งรายการต่อบรรทัด</string>
+	<key>Screenshots may contain private information.</key>
+	<string>ภาพหน้าจออาจมีข้อมูลส่วนตัว</string>
+	<key>Search files</key>
+	<string>ค้นหาไฟล์</string>
+	<key>Search messages</key>
+	<string>ค้นหาข้อความ</string>
+	<key>Search your vault</key>
+	<string>ค้นหาห้องนิรภัยของคุณ</string>
+	<key>Secret</key>
+	<string>ข้อมูลลับ</string>
+	<key>Secret package link</key>
+	<string>ลิงค์แพ็คเกจลับ</string>
+	<key>Section</key>
+	<string>มาตรา</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave ไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>ข้อกำหนดด้านความปลอดภัยมีการเปลี่ยนแปลง ตรวจสอบคำขออีกครั้งก่อนที่จะอนุมัติ</string>
+	<key>Select a conversation</key>
+	<string>เลือกการสนทนา</string>
+	<key>Select a file</key>
+	<string>เลือกไฟล์</string>
+	<key>Select a secret</key>
+	<string>เลือกความลับ</string>
+	<key>Select attachments to import</key>
+	<string>เลือกไฟล์แนบที่จะนำเข้า</string>
+	<key>Select attachments to share</key>
+	<string>เลือกไฟล์แนบที่จะแชร์</string>
+	<key>Select fields to import</key>
+	<string>เลือกฟิลด์ที่จะนำเข้า</string>
+	<key>Select fields to share</key>
+	<string>เลือกฟิลด์ที่จะแชร์</string>
+	<key>Select login items</key>
+	<string>เลือกรายการเข้าสู่ระบบ</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>ฟิลด์ OTP ที่เลือกจะรวมเมล็ดพันธุ์ที่นำมาใช้ซ้ำได้ ไม่ใช่แค่โค้ดปัจจุบัน</string>
+	<key>Selected accounts</key>
+	<string>บัญชีที่เลือก</string>
+	<key>Send free letter</key>
+	<string>ส่งจดหมายฟรี</string>
+	<key>Send message</key>
+	<string>ส่งข้อความ</string>
+	<key>Send queued message</key>
+	<string>ส่งข้อความเข้าคิว</string>
+	<key>Send to an administrator</key>
+	<string>ส่งให้ผู้ดูแลระบบ</string>
+	<key>Sender</key>
+	<string>ผู้ส่ง</string>
+	<key>Sender account</key>
+	<string>บัญชีผู้ส่ง</string>
+	<key>Server</key>
+	<string>เซิร์ฟเวอร์</string>
+	<key>Set up this account</key>
+	<string>ตั้งค่าบัญชีนี้</string>
+	<key>Share a copy</key>
+	<string>แบ่งปันสำเนา</string>
+	<key>Share binding request</key>
+	<string>แบ่งปันคำขอผูกพัน</string>
+	<key>Share enrollment request</key>
+	<string>แบ่งปันคำขอลงทะเบียน</string>
+	<key>Share invitation</key>
+	<string>แบ่งปันคำเชิญ</string>
+	<key>Share link</key>
+	<string>แชร์ลิงก์</string>
+	<key>Share pairing request</key>
+	<string>แบ่งปันคำขอจับคู่</string>
+	<key>Share secret snapshot</key>
+	<string>แบ่งปันภาพรวมความลับ</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>แบ่งปันคำขอนี้กับผู้ดูแลระบบที่ได้รับอนุญาต มันไม่ได้ลงทะเบียนหรืออนุมัติคีย์ด้วยตัวเอง</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>สำเนาที่แชร์จะออกจากการคุ้มครองของ dMsg และไม่สามารถเรียกคืนได้</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>รายการที่แชร์ไม่พร้อมใช้งาน เปิดแอปอีกครั้งหลังจากปลดล็อกอุปกรณ์นี้</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>รายการที่แชร์กำลังรออยู่ในอุปกรณ์นี้ การนำเข้าจะเข้ารหัสลงในบัญชีที่เลือกในปัจจุบัน</string>
+	<key>Shared snapshots</key>
+	<string>สแนปชอตที่แชร์</string>
+	<key>Shared with dMsg</key>
+	<string>แชร์กับ dMsg</string>
+	<key>Show dismissed findings</key>
+	<string>แสดงผลการสืบค้นที่ถูกปิด</string>
+	<key>Show sample password</key>
+	<string>แสดงรหัสผ่านตัวอย่าง</string>
+	<key>Show share link</key>
+	<string>แสดงลิงก์แชร์</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>กำลังแสดงเนื้อหาที่บันทึกไว้ การซิงค์ครั้งล่าสุดไม่เสร็จสิ้น</string>
+	<key>Sign a statement</key>
+	<string>ลงนามในแถลงการณ์</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>ลงชื่อเข้าใช้อีกครั้งเพื่อปลดล็อกพื้นที่ทำงานที่เข้ารหัสของคุณบน iPhone เครื่องนี้</string>
+	<key>Sign in to another account</key>
+	<string>ลงชื่อเข้าใช้บัญชีอื่น</string>
+	<key>Sign out</key>
+	<string>ออกจากระบบ</string>
+	<key>Sign out of this account?</key>
+	<string>ออกจากระบบบัญชีนี้ใช่ไหม</string>
+	<key>Sign the statement you reviewed</key>
+	<string>ลงนามในคำชี้แจงที่คุณตรวจสอบ</string>
+	<key>Simulate approval</key>
+	<string>จำลองการอนุมัติ</string>
+	<key>Simulate rejection</key>
+	<string>จำลองการปฏิเสธ</string>
+	<key>Simulate this approval?</key>
+	<string>จำลองการอนุมัตินี้หรือไม่</string>
+	<key>Snapshot</key>
+	<string>สแนปชอต</string>
+	<key>Snapshot link</key>
+	<string>ลิงค์ภาพรวม</string>
+	<key>Software license</key>
+	<string>ใบอนุญาตซอฟต์แวร์</string>
+	<key>Solana</key>
+	<string>โซลานา</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>ไม่รองรับระเบียนหรือคุณสมบัติแหล่งที่มาบางอย่าง การนำเข้านี้จะคัดลอกเฉพาะช่องที่เลือกเท่านั้น ไฟล์แนบที่เก็บถาวร พาสคีย์ และประวัติจะไม่ถูกนำเข้าที่นี่</string>
+	<key>Source address %u</key>
+	<string>ที่อยู่ต้นทาง %u</string>
+	<key>Spam</key>
+	<string>สแปม</string>
+	<key>Spending approvals %u</key>
+	<string>การอนุมัติการใช้จ่าย %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>จัดการไฟล์ที่เลือก จากนั้นเลือกบัญชีและนำเข้าใน dMsg</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>เริ่มรายการตรวจสอบจากหน้าอ้างอิงของฟิลด์</string>
+	<key>Start a rotation checklist</key>
+	<string>เริ่มรายการตรวจสอบการหมุนเวียน</string>
+	<key>Start a rotation checklist?</key>
+	<string>เริ่มรายการตรวจสอบการหมุนเวียนหรือไม่?</string>
+	<key>Start account recovery?</key>
+	<string>เริ่มการกู้คืนบัญชีใช่ไหม</string>
+	<key>Start checklist</key>
+	<string>เริ่มรายการตรวจสอบ</string>
+	<key>Status</key>
+	<string>สถานะ</string>
+	<key>Stop this device's transfer</key>
+	<string>หยุดการถ่ายโอนอุปกรณ์นี้</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>พื้นที่เก็บข้อมูลเป็นการซื้อครั้งเดียวสำหรับระยะเวลาการสมัครสมาชิกปัจจุบันและไม่มีการต่ออายุโดยอัตโนมัติ</string>
+	<key>Storage packs</key>
+	<string>ชุดจัดเก็บข้อมูล</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>การซื้อพื้นที่เก็บข้อมูลจำเป็นต้องมีการสมัครสมาชิก App Store ที่ใช้งานได้</string>
+	<key>Subject Agent ID</key>
+	<string>รหัสเอเจนต์เรื่อง</string>
+	<key>Submit report</key>
+	<string>ส่งรายงาน</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>การสมัครสมาชิกจะต่ออายุโดยอัตโนมัติเว้นแต่จะยกเลิกในการตั้งค่าบัญชี Apple ของคุณ การลบบัญชี dMsg ของคุณไม่ได้เป็นการยกเลิกการสมัครสมาชิก Apple</string>
+	<key>Switch account</key>
+	<string>สลับบัญชี</string>
+	<key>Switch to this account</key>
+	<string>เปลี่ยนไปใช้บัญชีนี้</string>
+	<key>Sync conflicts</key>
+	<string>ข้อขัดแย้งในการซิงค์</string>
+	<key>Sync now</key>
+	<string>ซิงค์เลย</string>
+	<key>Synced</key>
+	<string>ซิงค์แล้ว</string>
+	<key>Syncing…</key>
+	<string>กำลังซิงค์...</string>
+	<key>System authentication</key>
+	<string>การรับรองความถูกต้องของระบบ</string>
+	<key>System integrations</key>
+	<string>บูรณาการระบบ</string>
+	<key>System permission</key>
+	<string>สิทธิ์ของระบบ</string>
+	<key>Tags, separated by commas</key>
+	<string>แท็ก คั่นด้วยเครื่องหมายจุลภาค</string>
+	<key>Team wallets</key>
+	<string>กระเป๋าเงินของทีม</string>
+	<key>Terms of service</key>
+	<string>ข้อกำหนดในการให้บริการ</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>สภาพแวดล้อมการทดสอบ · แยกบัญชีและทดสอบการซื้อ</string>
+	<key>Test the new credential at its provider</key>
+	<string>ทดสอบข้อมูลประจำตัวใหม่ที่ผู้ให้บริการ</string>
+	<key>Text</key>
+	<string>ข้อความ</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>เวอร์ชันที่เข้ารหัสจะใช้ที่เก็บข้อมูลบนคลาวด์ สำเนาในเครื่องของคุณยังคงอยู่ในอุปกรณ์นี้</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>ขอบเขตและกลุ่มเป้าหมายที่ชัดเจนข้างต้นยังใช้กับข้อมูลรับรองนี้ด้วย สิทธิการใช้งาน Controller ที่ไม่จำกัด ไม่เคยทำให้ข้อมูลรับรองไม่ถูกจำกัด</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>ข้อมูลรับรองที่ส่งออกไม่พร้อมใช้งานหรือหมดอายุ เปิด dMsg เพื่อสร้างสแน็ปช็อตใหม่</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>สำเนาไฟล์ไม่พร้อมใช้งานหรือหมดอายุ เปิด dMsg เพื่อสร้างสแน็ปช็อตใหม่ จากนั้นลองอีกครั้ง</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>คำเชิญเชื่อมโยงกับบัญชีนี้ การแชร์ลิงก์ไม่อนุญาตให้เข้าถึงบัญชีอื่น</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>การสังเกตที่ตรวจสอบแล้วครั้งล่าสุดจะถูกเก็บไว้ ไม่สามารถยืนยันสถานะปัจจุบันได้</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>คีย์การเชื่อมโยงในเครื่องไม่พร้อมใช้งาน เก็บพื้นที่ทำงานนี้ไว้และตรวจสอบตัวเลือกการกู้คืนของคุณก่อนที่จะล็อค</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>ทัวร์ท้องถิ่นมีให้สำหรับทุกคน หากต้องการทดสอบการสร้างบัญชี การซิงโครไนซ์ การซื้อ การแจ้งเตือน และการอนุญาตฮาร์ดแวร์ ให้ออกจากทัวร์ชมและลงชื่อเข้าใช้ผ่าน Internet Identity</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>ขีดจำกัดแพ็กเกจมือถือคือ 8 MiB ดูตัวอย่างจะตรวจสอบแพ็คเกจก่อนที่คุณจะเลือกสิ่งที่จะนำเข้า</string>
+	<key>The operation could not be completed.</key>
+	<string>ไม่สามารถดำเนินการให้เสร็จสิ้นได้</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>ไม่สามารถดำเนินการให้เสร็จสิ้นได้ โปรดลองอีกครั้ง</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>การดำเนินการถูกยกเลิกหรือไม่ได้รับอนุญาต</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>ผลลัพธ์ก็ไม่แน่นอน ตรวจสอบงานเดิมก่อนที่จะทำอะไรอีกครั้ง</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>บันทึกมีการเปลี่ยนแปลง รีเฟรชและตรวจสอบการแก้ไขของคุณก่อนที่จะบันทึกอีกครั้ง</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>คำขอไม่พร้อมใช้งานกับอุปกรณ์นี้ มันอาจจะหมดอายุหรือได้รับการจัดการแล้ว</string>
+	<key>The required content key is not available yet.</key>
+	<string>คีย์เนื้อหาที่ต้องการยังไม่พร้อมใช้งาน</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>ผลลัพธ์ไม่ได้รับการยืนยัน ปรับยอดคำขอนี้ก่อนที่จะลองอีกครั้ง</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>รูปภาพที่เลือกจะยังคงอยู่ในอุปกรณ์นี้จนกว่าคุณจะเผยแพร่ อวตารที่เผยแพร่เป็นแบบสาธารณะ และสำเนาอาจยังคงอยู่นอก dMsg</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>รายการที่เลือกไม่สามารถจัดฉากได้ เปิด dMsg แล้วลองนำเข้าที่นั่น</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>สำเนาต้นฉบับถูกขัดจังหวะ ทิ้งและเลือกแหล่งที่มาอีกครั้ง</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>ไม่ได้กำหนดค่าการปรับใช้ทดสอบ การสาธิตในท้องถิ่นและนโยบายความเป็นส่วนตัวยังคงมีอยู่</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>ใบอนุญาตการโอนหมดอายุ ยกเลิกงานนี้ จากนั้นสำรองข้อมูลเดิมต่อในเบื้องหน้าหรือเริ่มการดาวน์โหลดใหม่</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>การโอนหยุดชั่วคราว ลองบล็อกที่เข้ารหัสเดิมอีกครั้ง</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>กระเป๋าเงินจะตรวจสอบนโยบายและการอนุมัติในปัจจุบัน มีการร้องขอลายเซ็นฮาร์ดแวร์ที่จำเป็นสำหรับแผนที่แน่นอนนี้</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>สิ่งเหล่านี้เป็นข้อสังเกตในท้องถิ่น ไม่ใช่การสแกนการละเมิดหรือการพิสูจน์ว่าผู้ให้บริการเพิกถอนข้อมูลรับรอง อุปกรณ์อื่นๆ อาจมีบันทึกที่แตกต่างกันได้</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>งานเหล่านี้เป็นงานสแนปชอตที่สร้างขึ้นบนอุปกรณ์นี้ คำขออนุมัติภายในเดสก์ท็อปจะไม่ซิงโครไนซ์ที่นี่</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>สิ่งเหล่านี้เป็นข้อมูลสำรองที่ได้รับการยืนยันจากอุปกรณ์ของบัญชีของคุณ กู้คืนอย่างชัดเจนเพื่อเก็บสำเนาไว้ในอุปกรณ์นี้</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>การส่งออกเหล่านี้ไม่มีคีย์รูทของบัญชีหรือคีย์การลงนามอุปกรณ์ การเปลี่ยนแปลงรายการแหล่งที่มาจำเป็นต้องมีสแนปชอตใหม่</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>บัญชีนี้ต้องมีรหัสอนุมัติที่ลงทะเบียนไว้ ตั้งค่าอุปกรณ์นี้ในความปลอดภัยของฮาร์ดแวร์ หรือสอบถามอุปกรณ์อื่นที่ได้รับอนุญาต</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>อุปกรณ์นี้ไม่รองรับการดำเนินการนี้ สแน็ปช็อตลับต้องใช้ขั้นตอนการนำเข้าเฉพาะ</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>คำขอเบราว์เซอร์นี้เป็นของบัญชีอื่น การสลับจะล็อกพื้นที่ทำงานปัจจุบันและรักษาแบบร่างไว้</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>สิ่งนี้ไม่สามารถยกเลิกได้ การออกจากระบบเพียงอย่างเดียวไม่ได้เป็นการลบบัญชี</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>สิ่งนี้จะเปลี่ยนการป้องกันการปลดล็อคในเครื่อง อาจจำเป็นต้องมีการรับรองความถูกต้องของระบบ ไม่มีการกู้คืนบัญชีหรืออุปกรณ์อื่นใดเปลี่ยนแปลง</string>
+	<key>This changes only the local sample.</key>
+	<string>สิ่งนี้จะเปลี่ยนเฉพาะตัวอย่างในเครื่องเท่านั้น</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>สิ่งนี้จะเปลี่ยนการดำเนินการของบัญชีที่จำเป็นต้องมีลายเซ็นฮาร์ดแวร์ การปิดใช้งานการป้องกันจะทำให้สามารถดำเนินการได้โดยไม่ต้องมีหลักฐานฮาร์ดแวร์ดังกล่าว</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>สิ่งนี้จะสร้างคำขอที่รอดำเนินการ มันไม่อนุญาตให้อุปกรณ์</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>สิ่งนี้จะสร้างข้อเสนอ จะไม่โอนเงินจนกว่าจะเป็นไปตามข้อกำหนดการอนุมัติและการดำเนินการของกระเป๋าเงิน จำนวนเป็นจำนวนเต็มหน่วยฐานที่แน่นอน</string>
+	<key>This device</key>
+	<string>อุปกรณ์นี้</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>อุปกรณ์นี้มีการเปลี่ยนแปลงที่ยังไม่ได้ซิงค์ บันทึกสิ่งที่คุณต้องการก่อนที่จะลบบัญชี</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>อุปกรณ์นี้จะเก็บพื้นที่ทำงานที่เข้ารหัสไว้ของตัวเอง เนื้อหาที่ไม่ได้ซิงค์จะไม่สามารถกู้คืนจากอุปกรณ์อื่นได้</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>รหัสอุปกรณ์นี้ใช้งานไม่ได้อีกต่อไป ใช้อุปกรณ์อื่นที่ได้รับอนุญาตหรือการกู้คืนบัญชี พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>อุปกรณ์นี้อาจรับเนื้อหาส่วนตัวของคุณ คีย์การเข้ารหัสเนื้อหาหลักต้องได้รับการแจกจ่ายซ้ำหลังจากได้รับการอนุมัติ</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>ไฟล์นี้เกินขีดจำกัด 100 MiB</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>ประวัตินี้เป็นของอุปกรณ์นี้ ไม่จำลอง CLI, SSH ภายในเดสก์ท็อป หรือการอนุมัติการติดตั้งไฟล์จากอุปกรณ์อื่น</string>
+	<key>This iPhone</key>
+	<string>ไอโฟนเครื่องนี้</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>iPhone เครื่องนี้จัดการข้อมูลประจำตัวและการอนุญาตของเอเจนต์ มันไม่ทำให้เอเจนต์ทำงานในขณะที่ iOS ระงับแอป</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>สินค้าคงคลังนี้ครอบคลุมถึงข้อมูลอ้างอิงและบันทึกการจัดส่งบนอุปกรณ์นี้ ไม่ค้นหาอุปกรณ์อื่นหรือไฟล์โครงการโดยพลการ</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>นี่เป็นเอกสารสมมติสำหรับการทัวร์ท้องถิ่น ในบัญชีของคุณ ไฟล์ที่เลือกจะถูกเข้ารหัสบนอุปกรณ์ก่อนการสำรองข้อมูล พื้นหลังถ่ายโอนชื่อผู้ใช้เฉพาะบล็อกที่เข้ารหัสเท่านั้น การตกแต่งต้องใช้บัญชีที่ปลดล็อคเดิม</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>คีย์นี้ได้รับการจัดการโดย dMsg และไม่สามารถคัดลอกหรือแก้ไขได้</string>
+	<key>This letter was withdrawn.</key>
+	<string>จดหมายนี้ถูกถอนออก</string>
+	<key>This message could not be verified.</key>
+	<string>ไม่สามารถยืนยันข้อความนี้ได้</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>วิธีนี้จะซ่อนเฉพาะการค้นหาและการแก้ไขที่แน่นอนบนอุปกรณ์นี้เท่านั้น จะไม่ซ่อมแซมข้อมูลรับรองหรือยกเลิกการเปลี่ยนแปลงในอนาคต</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>การดำเนินการนี้เกินขนาดหรือขีดจำกัดความจุ สแน็ปช็อตลับบนอุปกรณ์นี้จำกัดไว้ที่ 8 MiB</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>การดำเนินการนี้ไม่สามารถใช้งานได้ชั่วคราว ข้อมูลที่บันทึกไว้ของคุณจะถูกเก็บไว้</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>แพ็คเกจนี้ถูกนำเข้าบนอุปกรณ์นี้แล้ว สำเนาที่มีอยู่ยังคงเป็นอิสระ</string>
+	<key>This preview sends nothing.</key>
+	<string>การแสดงตัวอย่างนี้ไม่ส่งอะไรเลย</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>โปรไฟล์นี้เป็นแบบสาธารณะ อย่าใส่ความลับหรือข้อมูลติดต่อส่วนตัว</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>บันทึกนี้ว่าคุณตรวจสอบผลลัพธ์ด้วยตนเอง ไม่ได้ทำเครื่องหมายว่าการดำเนินการสำเร็จหรือรันอีกครั้ง</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>วิธีนี้จะลบเฉพาะสำเนาบนคลาวด์ที่เลือกเท่านั้น ไฟล์ในเครื่องจะยังคงอยู่ในอุปกรณ์ของพวกเขา</string>
+	<key>This request has expired</key>
+	<string>คำขอนี้หมดอายุแล้ว</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>คำขอนี้ต้องการไคลเอ็นต์เดสก์ท็อปที่รองรับ</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>สิ่งนี้ขอยุติการดึงข้อมูลในอนาคต สำเนาที่บันทึกไว้แล้วยังคงใช้งานได้ สิ่งพิมพ์ที่ไม่แน่นอนยังต้องได้รับการกระทบยอด</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>สแนปชอตนี้ต้องการความสนใจ ตรวจสอบสถานะก่อนดำเนินการต่อ</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>ทัวร์ชมนี้ไม่ได้อัปโหลดไฟล์หรือลงทะเบียนการรวมระบบ</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>สิ่งนี้จะติดตามงานของคุณบนอุปกรณ์นี้ มันไม่ได้สร้าง ทดสอบ หรือเพิกถอนข้อมูลรับรองจากผู้ให้บริการ</string>
+	<key>Title</key>
+	<string>ชื่อเรื่อง</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>หากต้องการใช้บัญชีที่มีอยู่ของคุณบน iPhone เครื่องนี้ ให้อนุมัติอุปกรณ์นี้จากหนึ่งในอุปกรณ์ที่ได้รับอนุญาตของคุณ</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>โอนหรือเก็บถาวรการสนทนาที่เป็นเจ้าของก่อน</string>
+	<key>Transfer proposal</key>
+	<string>ข้อเสนอการโอน</string>
+	<key>Transfers</key>
+	<string>การโอน</string>
+	<key>Trash</key>
+	<string>ถังขยะ</string>
+	<key>Trash is empty</key>
+	<string>ถังขยะว่างเปล่า</string>
+	<key>Try the local demo</key>
+	<string>ลองสาธิตท้องถิ่น</string>
+	<key>Two versions need your decision</key>
+	<string>สองเวอร์ชันต้องการการตัดสินใจของคุณ</string>
+	<key>Type</key>
+	<string>ประเภท</string>
+	<key>Type this account ID to confirm</key>
+	<string>พิมพ์รหัสบัญชีนี้เพื่อยืนยัน</string>
+	<key>Unblock</key>
+	<string>เลิกบล็อก</string>
+	<key>Unconfirmed proposals</key>
+	<string>ข้อเสนอที่ไม่ได้รับการยืนยัน</string>
+	<key>Unknown state</key>
+	<string>รัฐที่ไม่รู้จัก</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>ปลดล็อค dMsg เพื่อตรวจสอบคำขอนี้</string>
+	<key>Unlock policy</key>
+	<string>ปลดล็อคนโยบาย</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>ปลดล็อค iPhone เครื่องนี้เพื่อเปิด dMsg</string>
+	<key>Unlock with system authentication</key>
+	<string>ปลดล็อกด้วยการยืนยันตัวตนของระบบ</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>ปลดล็อคพื้นที่ทำงาน dMsg ของคุณ</string>
+	<key>Unrestricted delegation authority</key>
+	<string>อำนาจการมอบหมายไม่ จำกัด</string>
+	<key>Uploading</key>
+	<string>กำลังอัพโหลด</string>
+	<key>Uploading encrypted backup</key>
+	<string>กำลังอัปโหลดข้อมูลสำรองที่เข้ารหัส</string>
+	<key>Url</key>
+	<string>URL</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>ใช้รหัสผ่านจากสแน็ปช็อตที่คุณส่งออกอย่างชัดเจนใน dMsg</string>
+	<key>Use a secret through a device policy</key>
+	<string>ใช้ข้อมูลลับผ่านนโยบายด้านอุปกรณ์</string>
+	<key>Use an SSH signing key</key>
+	<string>ใช้คีย์การเซ็นชื่อ SSH</string>
+	<key>Use conflicting version</key>
+	<string>ใช้เวอร์ชันที่ขัดแย้งกัน</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>ใช้ข้อมูลสมมติที่นี่ การปิดทัวร์ชมจะละทิ้งการเปลี่ยนแปลงของคุณ</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>ใช้ icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol หรือ sol:mint</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>ใช้การรับรองความถูกต้องของระบบเพื่อปลดล็อคพื้นที่ทำงานที่เข้ารหัสบน iPhone นี้</string>
+	<key>Use this folder</key>
+	<string>ใช้โฟลเดอร์นี้</string>
+	<key>Use this password for:</key>
+	<string>ใช้รหัสผ่านนี้เพื่อ:</string>
+	<key>Username</key>
+	<string>ชื่อผู้ใช้</string>
+	<key>Value</key>
+	<string>ความคุ้มค่า</string>
+	<key>Vault</key>
+	<string>คลังนิรภัย</string>
+	<key>Vault tools</key>
+	<string>เครื่องมือห้องนิรภัย</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>บันทึกไฟล์แนบที่ยืนยันแล้วลงในไฟล์แล้ว</string>
+	<key>Verified package fingerprint</key>
+	<string>ลายนิ้วมือบรรจุภัณฑ์ที่ตรวจสอบแล้ว</string>
+	<key>Verify and finish</key>
+	<string>ตรวจสอบและเสร็จสิ้น</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>ตรวจสอบอุปกรณ์ทั้งหมดและลายนิ้วมือที่สำคัญ รหัสนี้จะพิสูจน์การอนุมัติฮาร์ดแวร์สำหรับการดำเนินการที่ได้รับการป้องกันของบัญชีนี้</string>
+	<key>Verify the full device fingerprint</key>
+	<string>ตรวจสอบลายนิ้วมือของอุปกรณ์แบบเต็ม</string>
+	<key>Version history</key>
+	<string>ประวัติเวอร์ชัน</string>
+	<key>Versions</key>
+	<string>รุ่นต่างๆ</string>
+	<key>Viewer</key>
+	<string>ผู้ดู</string>
+	<key>Waiting for approval</key>
+	<string>รอการอนุมัติ</string>
+	<key>Waiting for browser confirmation</key>
+	<string>กำลังรอการยืนยันเบราว์เซอร์</string>
+	<key>Waiting for confirmation: </key>
+	<string>กำลังรอการยืนยัน: </string>
+	<key>Waiting for notification registration…</key>
+	<string>กำลังรอการลงทะเบียนการแจ้งเตือน...</string>
+	<key>Waiting for your decision</key>
+	<string>รอการตัดสินใจของคุณ</string>
+	<key>Waiting to submit</key>
+	<string>รอส่งครับ</string>
+	<key>Waiting to sync</key>
+	<string>กำลังรอการซิงค์</string>
+	<key>Wallet</key>
+	<string>กระเป๋าเงิน</string>
+	<key>Wallet access</key>
+	<string>การเข้าถึงกระเป๋าเงิน</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>ไม่สามารถตรวจสอบการเข้าถึงกระเป๋าเงินได้ ตรวจสอบอย่างอิสระก่อนที่จะลบ</string>
+	<key>Wallet canister ID</key>
+	<string>กระเป๋าสตางค์ canister ID</string>
+	<key>Wallet controls</key>
+	<string>การควบคุมกระเป๋าเงิน</string>
+	<key>Wallet details and policy</key>
+	<string>รายละเอียดและนโยบายกระเป๋าสตางค์</string>
+	<key>Wallet secret</key>
+	<string>ความลับกระเป๋าเงิน</string>
+	<key>Wallets</key>
+	<string>กระเป๋าสตางค์</string>
+	<key>Weak credential</key>
+	<string>ข้อมูลประจำตัวที่อ่อนแอ</string>
+	<key>Website</key>
+	<string>เว็บไซต์</string>
+	<key>Welcome back.</key>
+	<string>ยินดีต้อนรับกลับ</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>ยินดีต้อนรับสู่การสาธิตในท้องถิ่น ข้อความเหล่านี้จะยังคงอยู่ในหน้าจอนี้</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>ขณะที่เปิดและปลดล็อก dMsg การแก้ไขที่เข้ารหัสแล้วจะถูกอัปโหลด และข้อความกับคำขออนุมัติจะอัปเดต การสำรองไฟล์ยังต้องยืนยันแยกต่างหาก คุณปิดการตั้งค่านี้ได้ทุกเมื่อ</string>
+	<key>Who may contact you</key>
+	<string>ใครสามารถติดต่อคุณได้</string>
+	<key>Withdraw</key>
+	<string>ถอนออก</string>
+	<key>Withdraw message</key>
+	<string>ถอนข้อความ</string>
+	<key>Withdraw this message?</key>
+	<string>ถอนข้อความนี้?</string>
+	<key>Workspace destination</key>
+	<string>ปลายทางของพื้นที่ทำงาน</string>
+	<key>Write a demo message</key>
+	<string>เขียนข้อความสาธิต</string>
+	<key>Write a letter</key>
+	<string>เขียนจดหมาย</string>
+	<key>Write a message</key>
+	<string>เขียนข้อความ</string>
+	<key>Yes</key>
+	<string>ใช่</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>คุณกำลังดูเวอร์ชันทางประวัติศาสตร์ที่ไม่เปลี่ยนรูป</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>คุณดำเนินการเปลี่ยนแปลงผู้ให้บริการด้วยตนเอง dMsg บันทึกใบแจ้งยอดของคุณและตรวจสอบการแก้ไขในท้องถิ่น ไม่สามารถตรวจสอบการสร้าง การทดสอบ หรือการเพิกถอนอัปสตรีมได้</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>ช่องที่ได้รับอนุญาตของคุณจะปรากฏขึ้นหลังจากการซิงโครไนซ์</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>ไม่สามารถรีเฟรชการให้สิทธิ์ปัจจุบันของคุณได้ ลองอีกครั้งเมื่อบริการตรวจสอบพร้อมใช้งาน</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>แผนปัจจุบันของคุณได้รับการจัดการภายนอก App Store รอจนกว่าจะสิ้นสุดก่อนที่จะเริ่มการสมัครสมาชิก App Store</string>
+	<key>Your decision applies only to this request.</key>
+	<string>การตัดสินใจของคุณใช้กับคำขอนี้เท่านั้น</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>ไฟล์ที่เข้ารหัสของคุณยังคงอยู่ที่นี่ การเข้าสู่ระบบที่บันทึกไว้และการปลดล็อคด่วนจะถูกลบออก</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>อุปกรณ์ที่มีอยู่ของคุณจะเป็นผู้ตัดสินใจขั้นสุดท้าย</string>
+	<key>Your files stay private</key>
+	<string>ไฟล์ของคุณยังคงเป็นส่วนตัว</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>ช่องที่ซ่อนอยู่ของคุณจะถูกปกปิดจนกว่าคุณจะเลือกที่จะเปิดเผย</string>
+	<key>Your private workspace.</key>
+	<string>พื้นที่ทำงานส่วนตัวของคุณ</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>การซื้อของคุณกำลังรอการยืนยัน คืนค่าการซื้อเพื่อลองอีกครั้งโดยไม่ต้องชำระเงินอีกครั้ง</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>รายงานของคุณและข้อความใดๆ ที่คุณระบุไว้อย่างชัดเจนจะถูกส่งไปยังทีมกลั่นกรอง ไม่รวมเนื้อหาและคีย์ส่วนตัวอื่น ๆ</string>
+	<key>Your reports</key>
+	<string>รายงานของคุณ</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>พื้นที่ทำงาน dMsg</string>
+</dict>
+</plist>

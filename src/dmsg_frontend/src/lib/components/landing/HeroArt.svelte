@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { flip } from 'svelte/animate'
   import { fly } from 'svelte/transition'
-  import { locale, t } from '$lib/i18n'
+  import { locale, localeDir, t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
   import { glyphs, type GlyphName } from './glyphs'
   import { ASKERS, HOSTS, ROOMS, renderHeroArt } from './hero-art.js'
@@ -122,7 +122,7 @@
         website: $t('Website')
       },
       icons: glyphs,
-      rtl: $locale === 'ar',
+      rtl: localeDir($locale) === 'rtl',
       narrow,
       live: true
     })

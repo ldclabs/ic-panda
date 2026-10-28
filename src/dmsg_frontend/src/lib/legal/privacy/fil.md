@@ -1,0 +1,47 @@
+# dMsg Patakaran sa Privacy
+
+Huling na-update: 2026-10-27.
+
+Ini-encrypt ng dMsg ang pribadong nilalaman sa iyong mga awtorisadong device. Sinasaklaw ng patakarang ito ang dmsg.net, ang read-only na legacy na web app, ang desktop at iOS app, connect.dmsg.net, ang cloud service at ang Internet Computer (ICP) canisters. Ang ibig sabihin ng "Kami" ay ang team na nagpapatakbo ng dMsg sa ilalim ng ICPanda DAO na pamamahala. Ang availability ng mga indibidwal na feature ay depende sa bersyon ng app at configuration ng serbisyo.
+
+Hindi kami nagbebenta ng personal na data o ginagamit ang iyong nilalaman para sa advertising. Ang website ay naglalaman ng walang advertising o analytics tracker.
+
+## 1. Nilalaman at pampublikong impormasyon
+
+Ang mga item sa Vault, pribadong mensahe at mga file ay naka-encrypt bago i-upload. Ang mga content key ay nananatili sa mga awtorisadong device o sa mga recovery/device na sobre na hindi mabubuksan ng serbisyo. Maaaring basahin at panatilihin ng mga tatanggap ang mga nakabahaging kopya. Pampubliko ang mga pampublikong profile, avatar, handle, dokumento ng direktoryo at impormasyong sinasadya mong i-publish. Ang isang ulat ay isang hiwalay na pagsisiwalat: natatanggap ng mga moderator ang iyong dahilan, tala, account/resource identifier at tanging ang text ng mensahe na tahasang pinili mong isama. Ang pag-uulat ay hindi nagbibigay sa mga moderator ng mga susi sa iyong account.
+
+## 2. Metadata ng serbisyo
+
+Pinoproseso ng serbisyo ang account at login identifiers, device public key, channel membership, contact at blocking rules, object sizes, request timing, IP addresses at operational request information. Ang sertipikadong estado ng account, mga resibo ng lagda at mga karapatan ay nagbibigay-daan sa mga kliyente at serbisyo na i-verify ang awtoridad. Ang mga transaksyon sa ledger at pampubliko o sertipikadong on-chain na mga tala sa pangkalahatan ay hindi mabubura.
+
+## 3. Mga serbisyo at pagbabayad ng Apple
+
+Sa iOS, ang mga opsyonal na notification ay gumagamit ng serbisyo ng Apple Push Notification. Ang Apple at ang aming serbisyo sa paghahatid ay nagpoproseso ng pagkakakilanlan ng pag-install, token ng device at metadata ng paghahatid. Naglalaman ang mga notification ng generic na paalala at isang opaque na ruta, hindi katawan ng mensahe, password o filename. Maaari mong i-disable ang mga notification sa dMsg o mga setting ng system; Ang naihatid na mga abiso ay hindi palaging maaalala.
+
+Pinoproseso ng App Attest ang isang key identifier na binuo ng app, ebidensya ng pagpapatotoo/pagpapahayag at mga hamon para ma-verify ang pag-install ng app. Ang Face ID, Touch ID at ang passcode ng device ay pinangangasiwaan ng operating system; Ang dMsg ay hindi tumatanggap ng mga biometric na larawan o ang iyong passcode.
+
+Ang mga pagbili sa StoreKit ay pinangangasiwaan ng Apple. Pinoproseso ng aming verifier at commerce canister ang mga pagkakakilanlan ng transaksyon/produkto, isang token na nagbubuklod ng account, mga petsa ng pagbili at pag-expire, at status ng refund/pagbawi. Hindi nila natatanggap ang mga detalye ng iyong payment-card. Maaaring suportahan ng ibang mga kliyente ng dMsg ang mga pagbabayad sa wallet ng ICP at membership ng PANDA, na may mga pampublikong ledger at mga talaan ng karapatan. Hindi kinakansela ng pagtanggal ng account ang isang subscription sa Apple; pamahalaan ang mga subscription sa iyong Apple account.
+
+Ang mga patakaran at panukala ng team-wallet ay pinoproseso ng wallet na canisters; ang kanilang visibility ay sumusunod sa mga setting ng wallet. Ang mga provider ng Blockchain RPC ay tumatanggap ng mga address, data ng transaksyon at impormasyon ng IP na kailangan para sa mga query sa balanse, simulation ng bayad at pagsasahimpapawid. Kasama sa mga default na endpoint ang mempool.space, PublicNode, mainnet.base.org at api.mainnet-beta.solana.com; ang mga na-configure na alternatibo ay may sariling mga kasanayan sa privacy.
+
+## 4. Lokal na data at mga integrasyon ng system
+
+Ang mga native na app ay nagpapanatili ng isang lokal na naka-encrypt na workspace, mga key na protektado ng operating system kung saan sinusuportahan, mga draft, nakabinbing operasyon at mga kagustuhan. Ginagawang available ng pag-unlock ang napiling content sa memorya ng app. Ang mga na-export na file at kinopyang text ay maaaring mapanatili ng kanilang mga patutunguhang app.
+
+Ang extension ng iOS Share ay nagha-stage lang ng mga item na iyong pipiliin para sa pag-import ng account sa ibang pagkakataon. Ang AutoFill ng Password at mga pagsasama ng File ay naglalaman lamang ng mga tahasang napili, hiwalay na naka-encrypt na mga snapshot. Ang AutoFill ay nangangailangan ng independiyenteng pagpapatunay ng system; mag-e-expire ang mga snapshot pagkalipas ng 24 na oras. Ang mga session ng pag-access sa mga file ay tatagal nang hindi hihigit sa limang minuto at magtatapos kapag nag-lock ang dMsg, ngunit ang Files app at iba pang mga tatanggap ay maaaring magpanatili ng mga kopyang na-download na. Ang pagpapalit ng mga source item ay hindi awtomatikong nag-a-update ng na-export na snapshot.
+
+Ang mga tahasang paglilipat sa background ay nag-iimbak lamang ng bounded na ciphertext at awtoridad sa paglilipat sa isang hiwalay na direktoryo ng device na maa-access pagkatapos ng unang pag-unlock ng device. Hindi nila hawak ang pag-sign ng account o content key. Ang orihinal na account ay dapat na ma-unlock upang i-verify at tapusin ang isang paglipat. Maaaring maantala o ihinto ng system ang paghahatid.
+
+Naaalala ng website ang iyong wika nang lokal. Gumagamit ang legacy na app ng imbakan ng browser para sa mga session at naka-cache na data; ang wallet view nito ay maaaring humiling ng mga presyo mula sa ICPSwap. Ang pag-alis ng app o pag-clear sa data nito ay maaaring permanenteng mawalan ng content na hindi kailanman na-synchronize o na-export.
+
+## 5. Mga tagapagbigay at pagpapanatili
+
+Pinoproseso ng Cloudflare ang cloud ciphertext at humiling ng metadata. Ang ICP node provider at gateway ay nagpapatakbo ng canisters at mga website. Ipinamamahagi ng Apple ang iOS app at ibinibigay ang mga opsyonal na serbisyong inilarawan sa itaas. Ang Internet Identity, mga provider ng wallet at konektadong application ay may sariling mga patakaran sa privacy. Maaari naming ibunyag ang impormasyong hawak namin kapag kinakailangan ng batas, kabilang ang mga tahasang isinumite na ulat; hindi natin maisisiwalat ang plaintext na hindi natin taglay.
+
+Sinusunod ng cloud ciphertext ang mga panuntunan sa pag-iimbak at pagtanggal ng account. Ang pagtanggal ng service-account ay isang sinusubaybayang kahilingan sa paglilinis: hinaharangan nito ang bagong access sa serbisyo, inaalis ang nilalaman ng cloud na pagmamay-ari ng account at mga pampublikong avatar na kopya, at iniuulat lamang ang pagkumpleto pagkatapos ng paglilinis. Hindi nito binubura ang mga nakabahaging kopya ng ibang tao, mga lokal na kopya sa iba pang mga device, kasaysayan ng pampublikong ledger o kinakailangang mga talaan sa pananalapi/anti-replay. Maaaring kailanganin munang lutasin ang mga hindi maayos na transaksyon o pag-aaring aktibong channel. Ang mga rekord ng ulat ay pinananatili ng hanggang 90 araw para sa pagsusuri; mag-e-expire ang mga delivery token maliban kung na-renew. Ang mga operational log ay pinananatili lamang kung kinakailangan para sa seguridad, pag-iwas sa pang-aabuso at pag-troubleshoot.
+
+## 6. Mga pagpipilian, karapatan at pakikipag-ugnayan
+
+Maaari kang mag-export o magtanggal ng content, bawiin ang mga device o browser, i-block ang mga nagpadala, mag-ulat ng pang-aabuso, baguhin ang mga panuntunan sa pakikipag-ugnayan, humiling ng pagtanggal ng service-account at hiwalay na alisin ang data ng account ng device na ito. Depende sa iyong lokasyon, maaari kang magkaroon ng mga karapatan na i-access, itama, tanggalin o tutol sa pagproseso ng personal na impormasyon. Makipag-ugnayan sa [Support](https://dmsg.net/_/support) para sa mga kahilingan o pribadong ulat sa kahinaan. Ipinapaliwanag namin kung kailan nililimitahan ng pag-encrypt, napanatili ang mga talaan ng transaksyon o hindi nababagong pampublikong talaan ang isang kahilingan.
+
+Walang sistemang ganap na ligtas. Ang mga update sa app at canister upgrade sa ilalim ng DAO na pamamahala ay nananatiling mga punto ng pagtitiwala. Ang dMsg ay hindi inilaan para sa mga batang wala pang 13 taong gulang o mas mababa sa naaangkop na minimum na edad para sa paggamit ng mga online na serbisyo nang walang pahintulot ng magulang. Ina-update namin ang petsa sa itaas at inanunsyo namin ang mga pagbabago sa patakaran sa materyal sa app o sa website.

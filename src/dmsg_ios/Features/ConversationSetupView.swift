@@ -12,7 +12,7 @@ struct ConversationSetupView: View {
             Picker("Conversation", selection: $joining) { Text("Create").tag(false); Text("Join").tag(true) }.pickerStyle(.segmented)
             if joining { TextField("Paste invitation", text: $invitation, axis: .vertical).lineLimit(3...8).textInputAutocapitalization(.never) }
             else { TextField("Conversation name", text: $name) }
-            Button(joining ? "Join conversation" : "Create conversation") { Task { await complete() } }
+            Button(LocalizedStringKey(joining ? "Join conversation" : "Create conversation")) { Task { await complete() } }
                 .disabled(working || (joining ? invitation.isEmpty : name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
         }.privateScreen().navigationTitle("New conversation")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }

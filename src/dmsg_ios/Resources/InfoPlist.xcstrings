@@ -1,114 +1,318 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "CFBundleDisplayName" : {
-      "comment" : "Bundle display name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "dMsg"
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "comment": "Bundle display name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "dMsg"
           }
         }
       },
-      "shouldTranslate" : false
+      "shouldTranslate": false
     },
-    "CFBundleName" : {
-      "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "dMsg"
+    "CFBundleName": {
+      "comment": "Bundle name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "dMsg"
           }
         }
       },
-      "shouldTranslate" : false
+      "shouldTranslate": false
     },
-    "NSCameraUsageDescription" : {
-      "comment" : "Privacy - Camera Usage Description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "امسح طلب اقتران جهاز dMsg لمراجعته."
+    "NSCameraUsageDescription": {
+      "comment": "Privacy - Camera Usage Description",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "امسح طلب اقتران جهاز dMsg لمراجعته."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan a dMsg device pairing request for review."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan a dMsg device pairing request for review."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escanea una solicitud de emparejamiento de dMsg para revisarla."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escanea una solicitud de emparejamiento de dMsg para revisarla."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scannez une demande d’association d’appareil dMsg pour l’examiner."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scannez une demande d’association d’appareil dMsg pour l’examiner."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сканируйте запрос сопряжения устройства dMsg для проверки."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканируйте запрос сопряжения устройства dMsg для проверки."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫描 dMsg 设备配对请求，以便核对。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描 dMsg 设备配对请求，以便核对。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描 dMsg 設備配對請求，以便覈對。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समीक्षा के लिए dMsg डिवाइस पेयरिंग अनुरोध को स्कैन करें।"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pindai permintaan pemasangan perangkat dMsg untuk ditinjau."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitalize uma solicitação de emparelhamento de dispositivo dMsg para revisão."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レビューのために dMsg デバイス ペアリング リクエストをスキャンします。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scannen Sie eine dMsg-Gerätekopplungsanfrage zur Überprüfung."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검토를 위해 dMsg 장치 페어링 요청을 스캔하세요."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scansiona una richiesta di associazione del dispositivo dMsg per la revisione."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İncelenmek üzere bir dMsg cihaz eşleştirme talebini tarayın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quét yêu cầu ghép nối thiết bị dMsg để xem xét."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สแกนคำขอจับคู่อุปกรณ์ dMsg เพื่อตรวจสอบ"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeskanuj prośbę o parowanie urządzenia dMsg w celu sprawdzenia."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mag-scan ng dMsg na kahilingan sa pagpapares ng device para sa pagsusuri."
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imbas permintaan berpasangan peranti dMsg untuk semakan."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "পর্যালোচনার জন্য একটি dMsg ডিভাইস জোড়ার অনুরোধ স্ক্যান করুন।"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan een dMsg-apparaatkoppelingsverzoek ter beoordeling."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جائزہ کے لیے dMsg ڈیوائس جوڑا بنانے کی درخواست کو اسکین کریں۔"
           }
         }
       }
     },
-    "NSFaceIDUsageDescription" : {
-      "comment" : "Privacy - Face ID Usage Description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "افتح مساحة عملك الخاصة وأكّد الطلب الذي راجعته."
+    "NSFaceIDUsageDescription": {
+      "comment": "Privacy - Face ID Usage Description",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح مساحة عملك الخاصة وأكّد الطلب الذي راجعته."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlock your private workspace and confirm the request you reviewed."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock your private workspace and confirm the request you reviewed."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquea tu espacio privado y confirma la solicitud revisada."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquea tu espacio privado y confirma la solicitud revisada."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Déverrouillez votre espace privé et confirmez la demande examinée."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déverrouillez votre espace privé et confirmez la demande examinée."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разблокируйте личное пространство и подтвердите проверенный запрос."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разблокируйте личное пространство и подтвердите проверенный запрос."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解锁你的私密工作区，并确认你已核对的请求。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁你的私密工作区，并确认你已核对的请求。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解鎖你的私密工作區，並確認你已覈對的請求。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने निजी कार्यक्षेत्र को अनलॉक करें और आपके द्वारा समीक्षा किए गए अनुरोध की पुष्टि करें।"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buka kunci ruang kerja pribadi Anda dan konfirmasikan permintaan yang Anda tinjau."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloqueie seu espaço de trabalho privado e confirme a solicitação que você analisou."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プライベート ワークスペースのロックを解除し、確認したリクエストを確認します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entsperren Sie Ihren privaten Arbeitsbereich und bestätigen Sie die von Ihnen überprüfte Anfrage."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비공개 작업 공간을 잠금 해제하고 검토한 요청을 확인하세요."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca il tuo spazio di lavoro privato e conferma la richiesta che hai esaminato."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Özel çalışma alanınızın kilidini açın ve incelediğiniz isteği onaylayın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở khóa không gian làm việc riêng tư của bạn và xác nhận yêu cầu bạn đã xem xét."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ปลดล็อกพื้นที่ทำงานส่วนตัวของคุณและยืนยันคำขอที่คุณตรวจสอบ"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odblokuj swoją prywatną przestrzeń do pracy i potwierdź przejrzaną prośbę."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I-unlock ang iyong pribadong workspace at kumpirmahin ang kahilingang iyong nasuri."
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buka kunci ruang kerja peribadi anda dan sahkan permintaan yang anda semak."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার ব্যক্তিগত ওয়ার্কস্পেস আনলক করুন এবং আপনার পর্যালোচনা করা অনুরোধ নিশ্চিত করুন।"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontgrendel je privéwerkruimte en bevestig het verzoek dat je hebt beoordeeld."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اپنی نجی ورک اسپیس کو غیر مقفل کریں اور اس درخواست کی تصدیق کریں جس کا آپ نے جائزہ لیا ہے۔"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

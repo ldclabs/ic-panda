@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 hari</string>
+	<key>1 hour</key>
+	<string>1 jam</string>
+	<key>7 days</key>
+	<string>7 hari</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>Pemindahan latar belakang kepunyaan akaun lain. Beralih ke akaun itu untuk menyelesaikan atau membatalkannya.</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>Gambar saluran tersedia untuk ahli yang mempunyai akses kepada zaman ini, termasuk kebenaran akses sejarah kemudian. Ia tidak mempunyai tamat tempoh pautan, had sesi muat turun atau panggil balik.</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>Sesi muat turun ialah elaun mendapatkan semula, bukan kiraan fail dibaca. Tamat tempoh atau pembatalan tidak boleh memadam salinan yang telah disimpan.</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>Rekod atau kunci peranti tidak dapat disahkan. Ruang kerja anda belum dipadamkan.</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>Rujukan mengenal pasti medan; ia tidak mengandungi nilai rahsianya atau Benarkan kebenaran untuk membacanya.</string>
+	<key>A snapshot contains an older credential</key>
+	<string>Gambar mengandungi bukti kelayakan yang lebih lama</string>
+	<key>A snapshot link is still active</key>
+	<string>Pautan syot kilat masih aktif</string>
+	<key>API credential</key>
+	<string>Bukti kelayakan API</string>
+	<key>About</key>
+	<string>Tentang</string>
+	<key>Accept approved binding</key>
+	<string>Terima pengikatan yang diluluskan</string>
+	<key>Access granted</key>
+	<string>Akses diberikan</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>Akses salinan yang anda eksport secara eksplisit daripada dMsg</string>
+	<key>Account</key>
+	<string>Akaun</string>
+	<key>Account ID</key>
+	<string>ID Akaun</string>
+	<key>Account recovery</key>
+	<string>Pemulihan akaun</string>
+	<key>Account recovery is pending</key>
+	<string>Pemulihan akaun belum selesai</string>
+	<key>Account security</key>
+	<string>Keselamatan akaun</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>Perlindungan akaun, peranti dan identiti berubah bersama-sama. Kelulusan yang diperlukan tidak boleh kembali kepada dialog pengesahan biasa.</string>
+	<key>Account, devices and identities</key>
+	<string>Akaun, peranti dan identiti</string>
+	<key>Accounts</key>
+	<string>Akaun</string>
+	<key>Active conversations</key>
+	<string>Perbualan aktif</string>
+	<key>Activity on this device</key>
+	<string>Aktiviti pada peranti ini</string>
+	<key>Add device</key>
+	<string>Tambah peranti</string>
+	<key>Add field</key>
+	<string>Tambah medan</string>
+	<key>Add item</key>
+	<string>Tambah item</string>
+	<key>Add message to demo</key>
+	<string>Tambahkan mesej pada demo</string>
+	<key>Add one-time code</key>
+	<string>Tambah kod sekali sahaja</string>
+	<key>Add receiving address</key>
+	<string>Tambah alamat penerima</string>
+	<key>Add sample login</key>
+	<string>Tambah contoh log masuk</string>
+	<key>Added</key>
+	<string>Ditambah</string>
+	<key>Address</key>
+	<string>Alamat</string>
+	<key>Address label</key>
+	<string>Label alamat</string>
+	<key>Address verification failed</key>
+	<string>Pengesahan alamat gagal</string>
+	<key>Administrative approvals %u</key>
+	<string>Kelulusan pentadbiran %u</string>
+	<key>Administrator</key>
+	<string>Pentadbir</string>
+	<key>Agent ID</key>
+	<string>ID ejen</string>
+	<key>Agents</key>
+	<string>Ejen</string>
+	<key>All</key>
+	<string>Semua</string>
+	<key>All caught up</key>
+	<string>Semua terperangkap</string>
+	<key>All devices lost?</key>
+	<string>Semua peranti hilang?</string>
+	<key>All files</key>
+	<string>Semua fail</string>
+	<key>Allow key rotation</key>
+	<string>Benarkan putaran kunci</string>
+	<key>Allowed</key>
+	<string>dibenarkan</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>ID akaun yang dibenarkan, satu setiap baris</string>
+	<key>Already imported</key>
+	<string>Sudah diimport</string>
+	<key>Already present</key>
+	<string>Sudah hadir</string>
+	<key>Amount in base units</key>
+	<string>Jumlah dalam unit asas</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>Pemulihan akaun belum selesai. Semaknya dalam keselamatan Akaun.</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>Sesiapa sahaja yang mempunyai pautan lengkap dan kata laluan yang diperlukan boleh mendapatkannya dalam hadnya.</string>
+	<key>Anyone, free of charge</key>
+	<string>Sesiapa sahaja, percuma</string>
+	<key>App Store subscriptions</key>
+	<string>Langganan App Store</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>Pengesahan apl tidak tersedia pada peranti ini. Kandungan anda yang disimpan masih tersedia.</string>
+	<key>Apply these receiving rules?</key>
+	<string>Gunakan peraturan penerimaan ini?</string>
+	<key>Apply this conversation change?</key>
+	<string>Gunakan perubahan perbualan ini?</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>Kelulusan hanya mengimport medan dan lampiran pilihan anda sebagai item bebas baharu. Fail kekal setempat dan mewarisi kebenaran akses akses folder destinasi.</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>Kelulusan menerbitkan dengan tepat medan dan lampiran yang disemak sebagai petikan bebas. Sahkan destinasi dan had; penerima boleh menyimpan salinan.</string>
+	<key>Approval thresholds</key>
+	<string>Ambang kelulusan</string>
+	<key>Approvals</key>
+	<string>Kelulusan</string>
+	<key>Approve</key>
+	<string>Luluskan</string>
+	<key>Approve a binding request</key>
+	<string>Luluskan permintaan yang mengikat</string>
+	<key>Approve the reviewed request?</key>
+	<string>Luluskan permintaan yang disemak?</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>Luluskan pelan transaksi dompet yang anda semak</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>Luluskan peranti ini dan edarkan kunci kandungan baharu</string>
+	<key>Approve this request</key>
+	<string>Luluskan permintaan ini</string>
+	<key>Approved by</key>
+	<string>Diluluskan oleh</string>
+	<key>Approver</key>
+	<string>Pelulus</string>
+	<key>Archive</key>
+	<string>Arkib</string>
+	<key>Archive conversation</key>
+	<string>Arkibkan perbualan</string>
+	<key>Archived</key>
+	<string>Diarkibkan</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>Minta pentadbir untuk mengikat log masuk ini ke akaun sedia ada anda. Keizinan peranti adalah langkah yang berasingan.</string>
+	<key>Asset identifier</key>
+	<string>Pengecam aset</string>
+	<key>Attach</key>
+	<string>Lampirkan</string>
+	<key>Attach a file</key>
+	<string>Lampirkan fail</string>
+	<key>Attach file</key>
+	<string>Lampirkan fail</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>Sandaran lampiran tidak disahkan</string>
+	<key>Attachment unavailable on this device</key>
+	<string>Lampiran tidak tersedia pada peranti ini</string>
+	<key>Attestations</key>
+	<string>Pengesahan</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>Asal khalayak atau ID Ejen, satu setiap baris</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>Sahkan untuk mengakses salinan fail yang anda eksport daripada dMsg. Akses berlangsung selama lima minit; syot kilat tamat tempoh selepas 24 jam.</string>
+	<key>Authenticate to continue</key>
+	<string>Sahkan untuk meneruskan</string>
+	<key>Authorize a new device</key>
+	<string>Benarkan peranti baharu</string>
+	<key>Authorize another device</key>
+	<string>Benarkan peranti lain</string>
+	<key>Authorize this device</key>
+	<string>Benarkan peranti ini</string>
+	<key>Authorize this device's approval key</key>
+	<string>Benarkan kunci kelulusan peranti ini</string>
+	<key>Authorize this iPhone</key>
+	<string>Benarkan iPhone ini</string>
+	<key>Authorized device</key>
+	<string>Peranti yang dibenarkan</string>
+	<key>Authorized devices</key>
+	<string>Peranti yang dibenarkan</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Isi Auto hanya menerima item log masuk yang anda pilih. Syot kilat tamat tempoh selepas 24 jam dan memerlukan pengesahan sistem secara bebas daripada ruang kerja. Nama pengguna dan nama tapak web mungkin muncul dalam cadangan sistem.</string>
+	<key>AutoFill snapshot updated</key>
+	<string>petikan AutoIsi dikemas kini</string>
+	<key>Automatic foreground sync</key>
+	<string>Penyegerakan latar depan automatik</string>
+	<key>Back</key>
+	<string>Kembali</string>
+	<key>Back up encrypted copy</key>
+	<string>Sandarkan salinan yang disulitkan</string>
+	<key>Back up this file?</key>
+	<string>Sandarkan fail ini?</string>
+	<key>Back up to cloud</key>
+	<string>Sandarkan ke awan</string>
+	<key>Backed up</key>
+	<string>Disandarkan</string>
+	<key>Background ciphertext transfer</key>
+	<string>Pemindahan teks sifir latar belakang</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>Penandatanganan latar belakang dan keupayaan ejen pemastautin adalah berasingan daripada kunci ruang kerja ini.</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>Pemindahan latar belakang bermula. Semak kemajuannya dalam Pemindahan.</string>
+	<key>Backing up…</key>
+	<string>Membuat sandaran…</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>Kemajuan sandaran disimpan. Semak status fail untuk selesai.</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>Sandaran beratur. Pastikan dMsg terbuka untuk menyelesaikan muat naik.</string>
+	<key>Bind another Internet Identity</key>
+	<string>Ikat Internet Identity yang lain</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>Ikat ruang kerja ini pada iPhone ini?</string>
+	<key>Bind workspace</key>
+	<string>Ikat ruang kerja</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>Binding melindungi ruang kerja tempatan ini walaupun selepas log masuk baharu. Simpan peranti lain yang dibenarkan atau laluan pemulihan sebelum menukarnya.</string>
+	<key>Biometrics only</key>
+	<string>Biometrik sahaja</string>
+	<key>Biometrics only for exported copies</key>
+	<string>Biometrik hanya untuk salinan yang dieksport</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>Kunci biometrik sahaja tidak boleh menggunakan kod laluan peranti dan mungkin berhenti berfungsi apabila biometrik yang didaftarkan berubah.</string>
+	<key>Birthday</key>
+	<string>hari jadi</string>
+	<key>Bitcoin</key>
+	<string>Bitcoin</string>
+	<key>Block this account</key>
+	<string>Sekat akaun ini</string>
+	<key>Blocked accounts</key>
+	<string>Akaun disekat</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>Pengirim yang disekat disembunyikan pada peranti ini. Sekatan dalam talian juga menghalang hubungan langsung dan jemputan baharu; salinan kongsi sedia ada tidak ditarik balik.</string>
+	<key>Broadcast original signed transaction</key>
+	<string>Siarkan transaksi asal yang ditandatangani</string>
+	<key>Browser request</key>
+	<string>Permintaan penyemak imbas</string>
+	<key>Cancel</key>
+	<string>Batal</string>
+	<key>Cancel background transfer</key>
+	<string>Batalkan pemindahan latar belakang</string>
+	<key>Cancel pending request</key>
+	<string>Batalkan permintaan yang belum selesai</string>
+	<key>Cancel proposal</key>
+	<string>Batalkan cadangan</string>
+	<key>Cancel reply</key>
+	<string>Batalkan balasan</string>
+	<key>Cancel request</key>
+	<string>Batalkan permintaan</string>
+	<key>Cancel this pending request?</key>
+	<string>Batalkan permintaan yang belum selesai ini?</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>Pembatalan dikenakan pada permintaan yang belum diputuskan ini. Ia tidak membatalkan penghantaran yang lengkap.</string>
+	<key>Cancelled</key>
+	<string>Dibatalkan</string>
+	<key>Capabilities, one per line</key>
+	<string>Keupayaan, satu setiap baris</string>
+	<key>Cardholder</key>
+	<string>Pemegang kad</string>
+	<key>Chain</key>
+	<string>rantai</string>
+	<key>Change a device secret policy</key>
+	<string>Tukar dasar rahsia peranti</string>
+	<key>Change account security</key>
+	<string>Tukar keselamatan akaun</string>
+	<key>Change device permissions</key>
+	<string>Tukar kebenaran peranti</string>
+	<key>Change hardware approval policy</key>
+	<string>Tukar dasar kelulusan perkakasan</string>
+	<key>Change identity settings</key>
+	<string>Tukar tetapan identiti</string>
+	<key>Change role</key>
+	<string>Tukar peranan</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>Perubahan membuat cadangan dan masih memerlukan kelulusan sedia ada dompet. Medan dasar sedia ada dan kebenaran ejen ahli dikekalkan.</string>
+	<key>Channel</key>
+	<string>Saluran</string>
+	<key>Channel ID</key>
+	<string>ID Saluran</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>Salinan saluran tidak mempunyai tarikh luput, had pengambilan atau penarikan balik. Penerima boleh menyimpan salinan bebas.</string>
+	<key>Channel snapshot</key>
+	<string>Gambar saluran</string>
+	<key>Channels</key>
+	<string>Saluran</string>
+	<key>Check authorization</key>
+	<string>Semak kebenaran</string>
+	<key>Check deletion status</key>
+	<string>Semak status pemadaman</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>Semak rujukan projek dan sebarang salinan yang telah dihantar.</string>
+	<key>Check recovery status</key>
+	<string>Semak status pemulihan</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>Semak aktiviti peranti ini sebelum memutuskan sama ada akses masih diperlukan.</string>
+	<key>Checking permission…</key>
+	<string>Menyemak kebenaran…</string>
+	<key>Checklist completed</key>
+	<string>Senarai semak selesai</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>Senarai semak dilengkapkan daripada penyata anda. Status huluan kekal boleh disahkan secara bebas hanya dengan pembekal.</string>
+	<key>Choose a credential for:</key>
+	<string>Pilih kelayakan untuk:</string>
+	<key>Choose a secret</key>
+	<string>Pilih rahsia</string>
+	<key>Choose a version</key>
+	<string>Pilih versi</string>
+	<key>Choose an attachment</key>
+	<string>Pilih lampiran</string>
+	<key>Choose avatar</key>
+	<string>Pilih avatar</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>Pilih dengan tepat apa yang terkandung dalam petikan bebas ini. Suntingan sumber tidak akan menukar salinan yang telah dihantar.</string>
+	<key>Choose password export</key>
+	<string>Pilih eksport kata laluan</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>Pilih bahasa untuk dMsg dalam Tetapan iOS.</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>Pilih versi yang ingin disimpan. Sejarah sedia ada dikekalkan; rahsia tidak pernah ditimpa senyap.</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>Pilih siapa yang boleh menghantar surat percuma kepada anda. Akaun yang disekat kekal disekat sehingga anda menyahsekatnya.</string>
+	<key>Closed</key>
+	<string>tertutup</string>
+	<key>Cloud backups</key>
+	<string>Sandaran awan</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>Sandaran awan disimpan. Ini hanya menukar salinan pada peranti ini.</string>
+	<key>Cloud deletion completed</key>
+	<string>Pemadaman awan selesai</string>
+	<key>Cloud storage</key>
+	<string>Storan awan</string>
+	<key>Complete recovery after waiting period</key>
+	<string>Pemulihan sepenuhnya selepas tempoh menunggu</string>
+	<key>Completed</key>
+	<string>Selesai</string>
+	<key>Configure a desktop file mapping</key>
+	<string>Konfigurasikan pemetaan fail desktop</string>
+	<key>Configured on this device</key>
+	<string>Dikonfigurasikan pada peranti ini</string>
+	<key>Confirm change</key>
+	<string>Sahkan perubahan</string>
+	<key>Confirm completed step</key>
+	<string>Sahkan langkah yang telah selesai</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>Sahkan hanya kerja yang telah anda selesaikan sebenarnya. Ini merekodkan kenyataan anda; ia tidak melaksanakan tindakan pembekal.</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>Sahkan permintaan dMsg yang anda semak</string>
+	<key>Confirm this account security change</key>
+	<string>Sahkan perubahan keselamatan akaun ini</string>
+	<key>Confirm your completed steps</key>
+	<string>Sahkan langkah anda yang telah selesai</string>
+	<key>Conflicting version</key>
+	<string>Versi bercanggah</string>
+	<key>Connect</key>
+	<string>Sambung</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>Sambungkan penyemak imbas yang anda kawal sahaja. Penyemak imbas yang disambungkan boleh menghantar permintaan; setiap tandatangan masih memerlukan kelulusan anda dalam dMsg.</string>
+	<key>Connect this browser</key>
+	<string>Sambungkan penyemak imbas ini</string>
+	<key>Connect this browser?</key>
+	<string>Sambungkan penyemak imbas ini?</string>
+	<key>Connected browsers</key>
+	<string>Pelayar yang disambungkan</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>Sambungan tidak tersedia. Kandungan anda yang disimpan kekal pada peranti ini.</string>
+	<key>Contact invitation, if provided</key>
+	<string>Hubungi jemputan, jika disediakan</string>
+	<key>Contact support</key>
+	<string>Hubungi sokongan</string>
+	<key>Continue import</key>
+	<string>Teruskan import</string>
+	<key>Continue password import</key>
+	<string>Teruskan import kata laluan</string>
+	<key>Continue selected backups</key>
+	<string>Teruskan sandaran yang dipilih</string>
+	<key>Continue this backup in background</key>
+	<string>Teruskan sandaran ini di latar belakang</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>Teruskan import ini dalam akaun yang anda pilih pada asalnya.</string>
+	<key>Continue with Internet Identity</key>
+	<string>Teruskan dengan Internet Identity</string>
+	<key>Controller ID</key>
+	<string>ID Controller</string>
+	<key>Controller name</key>
+	<string>Nama Controller</string>
+	<key>Controllers</key>
+	<string>Controllers</string>
+	<key>Controllers and delegations</key>
+	<string>Controllers dan delegasi</string>
+	<key>Conversation</key>
+	<string>Perbualan</string>
+	<key>Conversation name</key>
+	<string>Nama perbualan</string>
+	<key>Conversation settings</key>
+	<string>Tetapan perbualan</string>
+	<key>Copied for 30 seconds</key>
+	<string>Disalin selama 30 saat</string>
+	<key>Copy</key>
+	<string>Salin</string>
+	<key>Copy address</key>
+	<string>Salin alamat</string>
+	<key>Copy binding request</key>
+	<string>Salin permintaan mengikat</string>
+	<key>Copy enrollment request</key>
+	<string>Salin permintaan pendaftaran</string>
+	<key>Copy for 30 seconds</key>
+	<string>Salin selama 30 saat</string>
+	<key>Copy link</key>
+	<string>Salin pautan</string>
+	<key>Copy pairing request</key>
+	<string>Salin permintaan pasangan</string>
+	<key>Copy reference</key>
+	<string>Salin rujukan</string>
+	<key>Copy this field?</key>
+	<string>Salin medan ini?</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>Cosigners untuk dasar alamat yang dicadangkan</string>
+	<key>Create</key>
+	<string>Buat</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>Buat bukti kelayakan baharu di pembekalnya dan simpan dalam peti besi</string>
+	<key>Create a new pairing request</key>
+	<string>Buat permintaan gandingan baharu</string>
+	<key>Create a revocation request?</key>
+	<string>Buat permintaan pembatalan?</string>
+	<key>Create agent</key>
+	<string>Buat ejen</string>
+	<key>Create an administrator enrollment request</key>
+	<string>Buat permintaan pendaftaran pentadbir</string>
+	<key>Create an agent identity</key>
+	<string>Buat identiti ejen</string>
+	<key>Create binding request</key>
+	<string>Buat permintaan yang mengikat</string>
+	<key>Create conversation</key>
+	<string>Cipta perbualan</string>
+	<key>Create hardware cosigner</key>
+	<string>Buat cosigner perkakasan</string>
+	<key>Create invitation</key>
+	<string>Buat jemputan</string>
+	<key>Create proposal</key>
+	<string>Buat cadangan</string>
+	<key>Create this wallet proposal?</key>
+	<string>Buat cadangan dompet ini?</string>
+	<key>Create transfer proposal</key>
+	<string>Buat cadangan pemindahan</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>Cipta ruang kerja anda yang disulitkan untuk mula menyimpan kata laluan, nota dan fail.</string>
+	<key>Credential</key>
+	<string>Tauliah</string>
+	<key>Credential ID</key>
+	<string>ID Tauliah</string>
+	<key>Credential expired</key>
+	<string>Tauliah tamat tempoh</string>
+	<key>Credential reused</key>
+	<string>Bukti kelayakan digunakan semula</string>
+	<key>Credential rotation</key>
+	<string>Putaran kelayakan</string>
+	<key>Current</key>
+	<string>semasa</string>
+	<key>Current local dependencies</key>
+	<string>Kebergantungan tempatan semasa</string>
+	<key>Current login</key>
+	<string>Log masuk semasa</string>
+	<key>Current plan and limits</key>
+	<string>Pelan dan had semasa</string>
+	<key>Current policy requires payment</key>
+	<string>Polisi semasa memerlukan bayaran</string>
+	<key>Current term ends</key>
+	<string>Penggal semasa tamat</string>
+	<key>Current version</key>
+	<string>Versi semasa</string>
+	<key>Cvv</key>
+	<string>Cvv</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>Aktiviti baharu dalam dMsg.</string>
+	<key>Database</key>
+	<string>Pangkalan data</string>
+	<key>Date</key>
+	<string>tarikh</string>
+	<key>Delegations</key>
+	<string>Perwakilan</string>
+	<key>Delete account</key>
+	<string>Padam akaun</string>
+	<key>Delete cloud backup</key>
+	<string>Padamkan sandaran awan</string>
+	<key>Delete this cloud backup?</key>
+	<string>Padamkan sandaran awan ini?</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>Memadam akaun dMsg anda tidak membatalkan langganan Apple. Batalkannya dalam tetapan akaun Apple anda untuk menghentikan pembaharuan.</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>Memadamkan akaun perkhidmatan dMsg anda akan mengalih keluar teks sifir awan, data perkhidmatan peribadi, pendaftaran pemberitahuan peranti dan salinan asal avatar awamnya secara kekal. Ia tidak boleh memadamkan rekod blockchain, salinan penerima lain atau data yang dipegang oleh perkhidmatan lain.</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>Pemadaman tidak memindahkan dana. Mengalih keluar kunci tempatan dan salinan awan boleh mengalih keluar akses peranti ini kepada dompet dan bukti kelayakan luaran secara kekal.</string>
+	<key>Deletion is in progress</key>
+	<string>Pemadaman sedang dijalankan</string>
+	<key>Deletion status</key>
+	<string>Status pemadaman</string>
+	<key>Deliver a secret to a local process</key>
+	<string>Sampaikan rahsia kepada proses tempatan</string>
+	<key>Demo approved · No signature created</key>
+	<string>Demo diluluskan · Tiada tandatangan dibuat</string>
+	<key>Demo rejected · No signature created</key>
+	<string>Demo ditolak · Tiada tandatangan dibuat</string>
+	<key>Demo section</key>
+	<string>Bahagian demo</string>
+	<key>Dependencies on this device</key>
+	<string>Kebergantungan pada peranti ini</string>
+	<key>Describe the issue</key>
+	<string>Huraikan isu tersebut</string>
+	<key>Desktop file mapping</key>
+	<string>Pemetaan fail desktop</string>
+	<key>Desktop file mapping needs review</key>
+	<string>Pemetaan fail desktop memerlukan semakan</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>Kelulusan arahan tempatan desktop kekal pada desktop itu. Hanya permintaan yang tersedia untuk peranti ini dipaparkan di sini.</string>
+	<key>Destination</key>
+	<string>Destinasi</string>
+	<key>Destination folder</key>
+	<string>Folder destinasi</string>
+	<key>Device</key>
+	<string>Peranti</string>
+	<key>Device ID</key>
+	<string>ID peranti</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>Pengesahan peranti tidak tersedia buat sementara waktu. Kunci anda disimpan; cuba lagi apabila peranti ini dibuka kuncinya.</string>
+	<key>Device pairing request QR code</key>
+	<string>Permintaan pasangan peranti kod QR</string>
+	<key>Device permissions</key>
+	<string>Kebenaran peranti</string>
+	<key>Device policy</key>
+	<string>Dasar peranti</string>
+	<key>Device policy needs review</key>
+	<string>Dasar peranti memerlukan semakan</string>
+	<key>Device request</key>
+	<string>Permintaan peranti</string>
+	<key>Device-bound workspace</key>
+	<string>Ruang kerja terikat peranti</string>
+	<key>Devices</key>
+	<string>Peranti</string>
+	<key>Disabled</key>
+	<string>Dinyahaktifkan</string>
+	<key>Discard</key>
+	<string>Buang</string>
+	<key>Discard staged copy</key>
+	<string>Buang salinan berperingkat</string>
+	<key>Discard this staged copy?</key>
+	<string>Buang salinan berperingkat ini?</string>
+	<key>Dismiss this observation</key>
+	<string>Tolak pemerhatian ini</string>
+	<key>Dismiss this observation?</key>
+	<string>Tolak pemerhatian ini?</string>
+	<key>Dispute pending recovery</key>
+	<string>Pertikaian menunggu pemulihan</string>
+	<key>Done</key>
+	<string>Selesai</string>
+	<key>Download encrypted copy in background</key>
+	<string>Muat turun salinan yang disulitkan di latar belakang</string>
+	<key>Download sessions</key>
+	<string>Muat turun sesi</string>
+	<key>Downloading encrypted backup</key>
+	<string>Memuat turun sandaran yang disulitkan</string>
+	<key>Draft: </key>
+	<string>Draf: </string>
+	<key>EVM</key>
+	<string>EVM</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>Setiap pakej mudah alih adalah terhad kepada 8 MiB, termasuk lampiran terpilih. Kelulusan akhir menunjukkan pemilihan dan destinasi tidak berubah yang tepat.</string>
+	<key>Edit item</key>
+	<string>Edit item</string>
+	<key>Edit member</key>
+	<string>Edit ahli</string>
+	<key>Edit message</key>
+	<string>Edit mesej</string>
+	<key>Edit secret</key>
+	<string>Edit rahsia</string>
+	<key>Edited</key>
+	<string>disunting</string>
+	<key>Email</key>
+	<string>E-mel</string>
+	<key>Enable automatic sync</key>
+	<string>Dayakan penyegerakan automatik</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>Dayakan penyegerakan automatik untuk akaun ini?</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>Dayakan dMsg dalam tetapan AutoIsi</string>
+	<key>Encrypted backup</key>
+	<string>Sandaran yang disulitkan</string>
+	<key>Encrypting</key>
+	<string>Menyulitkan</string>
+	<key>Engine</key>
+	<string>Enjin</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>Biometrik yang didaftarkan telah berubah. Daftar kunci gantian sebelum bergantung pada kunci ini.</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>Masukkan ID akaun yang sah, satu setiap baris.</string>
+	<key>Error details</key>
+	<string>Butiran ralat</string>
+	<key>Example document</key>
+	<string>Contoh dokumen</string>
+	<key>Example login</key>
+	<string>Contoh log masuk</string>
+	<key>Execute</key>
+	<string>Laksanakan</string>
+	<key>Execute approved proposal</key>
+	<string>Melaksanakan cadangan yang diluluskan</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>Laksanakan cadangan dompet yang diluluskan ini?</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>Peraturan blok sedia ada, jemputan dan kapasiti peti masuk dikekalkan. Memilih dasar percuma atau tertutup menggantikan sebarang tetapan hubungan berbayar sebelumnya.</string>
+	<key>Expired</key>
+	<string>Tamat tempoh</string>
+	<key>Expires</key>
+	<string>tamat tempoh</string>
+	<key>Expires after</key>
+	<string>Tamat tempoh selepas</string>
+	<key>Expiry</key>
+	<string>tamat tempoh</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>Sandarkan versi fail yang dipilih secara eksplisit jika anda mahukan salinan awan.</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>Eksport item log masuk yang dipilih ke AutoFill Kata Laluan</string>
+	<key>Failed</key>
+	<string>Gagal</string>
+	<key>Favorite</key>
+	<string>Kegemaran</string>
+	<key>Favorites</key>
+	<string>Kegemaran</string>
+	<key>Field</key>
+	<string>Padang</string>
+	<key>Field name</key>
+	<string>Nama medan</string>
+	<key>Field reference</key>
+	<string>Rujukan lapangan</string>
+	<key>Field reference and dependencies</key>
+	<string>Rujukan medan dan kebergantungan</string>
+	<key>Field settings</key>
+	<string>Tetapan medan</string>
+	<key>Fields</key>
+	<string>Padang</string>
+	<key>File</key>
+	<string>Fail</string>
+	<key>File name</key>
+	<string>Nama fail</string>
+	<key>File not available on this device</key>
+	<string>Fail tidak tersedia pada peranti ini</string>
+	<key>File versions</key>
+	<string>Versi fail</string>
+	<key>Files</key>
+	<string>Fail</string>
+	<key>Files app copies</key>
+	<string>Failkan salinan apl</string>
+	<key>Files app snapshot updated</key>
+	<string>Gambar apl fail dikemas kini</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>Fail disandarkan hanya apabila anda secara eksplisit memilih untuk berbuat demikian.</string>
+	<key>Files in this folder</key>
+	<string>Fail dalam folder ini</string>
+	<key>Fingerprint</key>
+	<string>Cap jari</string>
+	<key>Folder name</key>
+	<string>Nama folder</string>
+	<key>Freeze this wallet?</key>
+	<string>Bekukan dompet ini?</string>
+	<key>Freeze wallet</key>
+	<string>Bekukan dompet</string>
+	<key>Grant delegation</key>
+	<string>Memberi kuasa kepada perwakilan</string>
+	<key>Handled on another device</key>
+	<string>Dikendalikan pada peranti lain</string>
+	<key>Harassment</key>
+	<string>Gangguan</string>
+	<key>Hardware approval key</key>
+	<string>Kunci kelulusan perkakasan</string>
+	<key>Hardware cosigners</key>
+	<string>Cosigners perkakasan</string>
+	<key>Hardware keys on this device</key>
+	<string>Kekunci perkakasan pada peranti ini</string>
+	<key>Hardware security</key>
+	<string>Keselamatan perkakasan</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>Adakah anda telah menyemak hasil yang hilang?</string>
+	<key>Hidden fields differ: </key>
+	<string>Medan tersembunyi berbeza: </string>
+	<key>Hidden value</key>
+	<string>Nilai tersembunyi</string>
+	<key>Hide</key>
+	<string>Sembunyikan</string>
+	<key>Hide sample sender</key>
+	<string>Sembunyikan penghantar sampel</string>
+	<key>Historical version</key>
+	<string>Versi sejarah</string>
+	<key>Host</key>
+	<string>Hos</string>
+	<key>I completed this step</key>
+	<string>Saya menyelesaikan langkah ini</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>Saya telah menjamin akses dompet saya dan bukti kelayakan luaran</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>Nombor Id</string>
+	<key>Identity</key>
+	<string>identiti</string>
+	<key>Illegal content</key>
+	<string>Kandungan haram</string>
+	<key>Import</key>
+	<string>Import</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>Import dokumen untuk menyulitkannya pada peranti ini. Sandaran awan ialah tindakan yang berasingan.</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>Import fail dalam Fail sebelum melampirkannya.</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>Import 1Password, Bitwarden atau eksport kata laluan penyemak imbas yang tidak disulitkan. Sumber kekal pada peranti ini; hanya rekod terpilih ditambah.</string>
+	<key>Import completed</key>
+	<string>Import selesai</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>Import mencipta item bebas baharu. Fail kekal pada peranti ini dan mewarisi kebenaran akses akses folder yang dipilih. Tiada apa-apa yang dipilih secara automatik.</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>Import rahsia yang ditemui desktop</string>
+	<key>Import file</key>
+	<string>Import fail</string>
+	<key>Import files</key>
+	<string>Import fail</string>
+	<key>Import into dMsg</key>
+	<string>Import ke dalam dMsg</string>
+	<key>Import into this account</key>
+	<string>Import ke dalam akaun ini</string>
+	<key>Import passwords</key>
+	<string>Import kata laluan</string>
+	<key>Import photo</key>
+	<string>Import foto</string>
+	<key>Import secret package</key>
+	<string>Import pakej rahsia</string>
+	<key>Import selected records</key>
+	<string>Import rekod yang dipilih</string>
+	<key>Import selected secrets</key>
+	<string>Import rahsia terpilih</string>
+	<key>In Trash</key>
+	<string>Dalam Sampah</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>Dalam laporan sebenar, perkhidmatan menerima sebab anda dan pengecam akaun/sumber. Teks mesej disertakan hanya jika anda secara eksplisit memilih untuk mendedahkannya.</string>
+	<key>In progress</key>
+	<string>Sedang berlangsung</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>Pembelian dalam apl dilumpuhkan dalam binaan ini. Pelan dan penggunaan semasa anda kekal tersedia.</string>
+	<key>Inbox</key>
+	<string>Peti masuk</string>
+	<key>Inbox settings</key>
+	<string>Tetapan peti masuk</string>
+	<key>Include notes</key>
+	<string>Sertakan nota</string>
+	<key>Include this message's text</key>
+	<string>Sertakan teks mesej ini</string>
+	<key>Inspect pairing request</key>
+	<string>Periksa permintaan pasangan</string>
+	<key>Inspect this version</key>
+	<string>Periksa versi ini</string>
+	<key>Integrity</key>
+	<string>Integriti</string>
+	<key>Interrupted</key>
+	<string>tergendala</string>
+	<key>Inventory fingerprint</key>
+	<string>Cap jari inventori</string>
+	<key>Invite member</key>
+	<string>Jemput ahli</string>
+	<key>Issued credentials</key>
+	<string>Bukti kelayakan yang dikeluarkan</string>
+	<key>Item attachments</key>
+	<string>Lampiran item</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>Rujukan item boleh disegerakkan sebelum failnya. Hanya fail yang tersedia pada peranti ini boleh ditambahkan pada syot kilat baharu.</string>
+	<key>Join</key>
+	<string>Sertai</string>
+	<key>Join account</key>
+	<string>Sertai akaun</string>
+	<key>Join an existing account</key>
+	<string>Sertai akaun sedia ada</string>
+	<key>Join an existing wallet</key>
+	<string>Sertai dompet sedia ada</string>
+	<key>Join conversation</key>
+	<string>Sertai perbualan</string>
+	<key>Keep current version</key>
+	<string>Kekalkan versi semasa</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>Simpan rahsia, perbualan dan fail anda bersama-sama. Hanya peranti anda yang dibenarkan boleh membukanya.</string>
+	<key>Key</key>
+	<string>kunci</string>
+	<key>Key fingerprint</key>
+	<string>Cap jari kunci</string>
+	<key>Key label</key>
+	<string>Label kunci</string>
+	<key>Keys</key>
+	<string>kunci</string>
+	<key>Language</key>
+	<string>Bahasa</string>
+	<key>Last known cloud state</key>
+	<string>Keadaan awan terakhir yang diketahui</string>
+	<key>Leave conversation</key>
+	<string>Tinggalkan perbualan</string>
+	<key>Leave empty to keep existing value</key>
+	<string>Biarkan kosong untuk mengekalkan nilai sedia ada</string>
+	<key>License Key</key>
+	<string>Kunci Lesen</string>
+	<key>Licensed To</key>
+	<string>Berlesen Kepada</string>
+	<key>Link limits</key>
+	<string>Had pautan</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>Permintaan langsung menunjukkan asal dan muatan penuhnya yang disahkan dan memerlukan kelulusan sistem atau perkakasan yang dikonfigurasikan.</string>
+	<key>Load earlier activity</key>
+	<string>Muatkan aktiviti lebih awal</string>
+	<key>Load earlier messages</key>
+	<string>Muatkan mesej terdahulu</string>
+	<key>Load earlier proposals</key>
+	<string>Muatkan cadangan terdahulu</string>
+	<key>Load more</key>
+	<string>Muatkan lagi</string>
+	<key>Loading the verified request…</key>
+	<string>Memuatkan permintaan yang disahkan…</string>
+	<key>Local</key>
+	<string>Tempatan</string>
+	<key>Local delivery record</key>
+	<string>Rekod penghantaran tempatan</string>
+	<key>Local demo</key>
+	<string>Demo tempatan</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>Demo setempat · Data rekaan · Ditetapkan semula apabila ditutup</string>
+	<key>Local dependencies</key>
+	<string>Kebergantungan tempatan</string>
+	<key>Local dependency</key>
+	<string>Kebergantungan tempatan</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>Fail tempatan tidak disandarkan secara automatik. Menyahpasang dMsg mengalih keluar fail yang tidak mempunyai sandaran awan.</string>
+	<key>Local findings</key>
+	<string>Penemuan tempatan</string>
+	<key>Local label</key>
+	<string>Label tempatan</string>
+	<key>Local security review</key>
+	<string>Kajian keselamatan tempatan</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>Storan tempatan tidak tersedia. Buka kunci peranti ini dan cuba lagi; jangan tetapkan semula ruang kerja untuk memulihkan operasi yang terganggu.</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>Sampah tempatan disimpan selama 30 hari. Sandaran awan diuruskan secara berasingan.</string>
+	<key>Lock immediately in background</key>
+	<string>Kunci segera di latar belakang</string>
+	<key>Lock workspace</key>
+	<string>Kunci ruang kerja</string>
+	<key>Login identities</key>
+	<string>Identiti log masuk</string>
+	<key>Manage Apple subscriptions</key>
+	<string>Urus langganan Apple</string>
+	<key>Manage file</key>
+	<string>Urus fail</string>
+	<key>Manage subscriptions</key>
+	<string>Urus langganan</string>
+	<key>Mark as read</key>
+	<string>Tandakan sebagai dibaca</string>
+	<key>Maximum fee in base units</key>
+	<string>Bayaran maksimum dalam unit asas</string>
+	<key>Member account ID</key>
+	<string>ID akaun ahli</string>
+	<key>Member account or Principal</key>
+	<string>Akaun ahli atau Principal</string>
+	<key>Member label</key>
+	<string>Label ahli</string>
+	<key>Members</key>
+	<string>ahli</string>
+	<key>Message</key>
+	<string>Mesej</string>
+	<key>Message withdrawn</key>
+	<string>Mesej ditarik balik</string>
+	<key>Messages</key>
+	<string>Mesej</string>
+	<key>Month</key>
+	<string>bulan</string>
+	<key>Monthly execution units</key>
+	<string>Unit operasi bulanan</string>
+	<key>Move this local file to Trash?</key>
+	<string>Alihkan fail setempat ini ke Sampah?</string>
+	<key>Move this secret to Trash?</key>
+	<string>Alihkan rahsia ini ke Sampah?</string>
+	<key>Move to Trash</key>
+	<string>Beralih ke Sampah</string>
+	<key>Move to another folder</key>
+	<string>Beralih ke folder lain</string>
+	<key>Mute notifications</key>
+	<string>Redamkan pemberitahuan</string>
+	<key>My account</key>
+	<string>akaun saya</string>
+	<key>Name</key>
+	<string>Nama</string>
+	<key>Needs a fresh review</key>
+	<string>Perlu ulasan baru</string>
+	<key>Network</key>
+	<string>Rangkaian</string>
+	<key>New controller</key>
+	<string>Controller baharu</string>
+	<key>New conversation</key>
+	<string>Perbualan baru</string>
+	<key>New field type</key>
+	<string>Jenis medan baharu</string>
+	<key>New folder</key>
+	<string>Folder baharu</string>
+	<key>New free letter</key>
+	<string>Surat percuma baru</string>
+	<key>New revision</key>
+	<string>Semakan baru</string>
+	<key>New secret</key>
+	<string>Rahsia baru</string>
+	<key>No</key>
+	<string>Tidak</string>
+	<key>No activity on this device</key>
+	<string>Tiada aktiviti pada peranti ini</string>
+	<key>No background transfer</key>
+	<string>Tiada pemindahan latar belakang</string>
+	<key>No blocked accounts</key>
+	<string>Tiada akaun yang disekat</string>
+	<key>No cloud backups</key>
+	<string>Tiada sandaran awan</string>
+	<key>No connected browsers</key>
+	<string>Tiada pelayar yang disambungkan</string>
+	<key>No conversations yet</key>
+	<string>Tiada perbualan lagi</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>Tiada kebergantungan direkodkan pada peranti ini.</string>
+	<key>No findings from this device's checks.</key>
+	<string>Tiada penemuan daripada semakan peranti ini.</string>
+	<key>No interrupted imports</key>
+	<string>Tiada import terganggu</string>
+	<key>No item attachments</key>
+	<string>Tiada lampiran item</string>
+	<key>No letters yet</key>
+	<string>Belum ada surat</string>
+	<key>No pending backups</key>
+	<string>Tiada sandaran yang belum selesai</string>
+	<key>No recent use observed on this device</key>
+	<string>Tiada penggunaan terbaru diperhatikan pada peranti ini</string>
+	<key>No registered approval key</key>
+	<string>Tiada kunci kelulusan berdaftar</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>Tiada kosigner terpilih bermakna tiada dasar cosignature tambahan. Semak cadangan lengkap sebelum diluluskan.</string>
+	<key>No shared items waiting</key>
+	<string>Tiada item kongsi menunggu</string>
+	<key>No snapshots on this device</key>
+	<string>Tiada syot kilat pada peranti ini</string>
+	<key>No team wallets</key>
+	<string>Tiada dompet pasukan</string>
+	<key>Not enabled</key>
+	<string>Tidak didayakan</string>
+	<key>Not enough storage on this device.</key>
+	<string>Storan tidak mencukupi pada peranti ini.</string>
+	<key>Not registered</key>
+	<string>Tidak berdaftar</string>
+	<key>Note</key>
+	<string>Nota</string>
+	<key>Notes</key>
+	<string>Nota</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>Pendaftaran pemberitahuan perlu dicuba semula. Penyegerakan latar depan kekal tersedia.</string>
+	<key>Notifications</key>
+	<string>Pemberitahuan</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>Pemberitahuan dilumpuhkan dalam tetapan sistem.</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>Pemberitahuan tidak mengandungi teks mesej, penghantar, nama fail atau muatan kelulusan. Membuka dMsg sentiasa menyegarkan keadaan sebenar.</string>
+	<key>Notifications enabled</key>
+	<string>Pemberitahuan didayakan</string>
+	<key>Notify this account on this device</key>
+	<string>Maklumkan akaun ini pada peranti ini</string>
+	<key>Number</key>
+	<string>Nombor</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Observed on this device</key>
+	<string>Diperhatikan pada peranti ini</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>Pada peranti yang dibenarkan, buka Kelulusan dan semak cap jari, peranan dan kebenaran penuh peranti ini. Pengimbasan tidak pernah meluluskan secara automatik.</string>
+	<key>On this device</key>
+	<string>Pada peranti ini</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>Pada lawatan pertama anda, log masuk dan ikuti langkah untuk mencipta ruang kerja anda yang disulitkan.</string>
+	<key>One-time code</key>
+	<string>Kod sekali sahaja</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>Hanya lakukan ini apabila anda sudah bersedia untuk menggunakannya. Salinan kekal pada peranti ini dan tamat tempoh selepas 30 saat.</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>Hanya kenalan percuma disokong di sini. Tindakan ini tidak boleh membayar atau meluluskan yuran penerima.</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>Hanya salinan yang terpilih dan tidak berubah muncul dalam apl Fail. Akses memerlukan pengesahan sistem; mengunci dMsg menamatkan sesi akses semasa. Fail mungkin menyimpan salinan dan nama fail yang dimuat turun, yang tidak dapat diingati oleh dMsg.</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>Hanya fail yang disulitkan yang dipilih boleh dipindahkan semasa dMsg dikunci. iOS mengawal penjadualan; paksa berhenti menghentikan penghantaran sehingga anda membuka apl semula. Buka akaun asal untuk mengesahkan dan menyelesaikannya.</string>
+	<key>Open approval record</key>
+	<string>Buka rekod kelulusan</string>
+	<key>Open approvals</key>
+	<string>Kelulusan terbuka</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>Buka dMsg tanpa mendedahkan kandungan peribadi pada Skrin Utama.</string>
+	<key>Open dMsg workspace</key>
+	<string>Buka ruang kerja dMsg</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>Buka dMsg. Membuka kunci dan kelulusan masih memerlukan interaksi anda dalam apl.</string>
+	<key>Open invitation in browser</key>
+	<string>Buka jemputan dalam penyemak imbas</string>
+	<key>Open notification settings</key>
+	<string>Buka tetapan pemberitahuan</string>
+	<key>Open private workspace</key>
+	<string>Buka ruang kerja peribadi</string>
+	<key>Open secret</key>
+	<string>Rahsia terbuka</string>
+	<key>Open workspace</key>
+	<string>Buka ruang kerja</string>
+	<key>Optional password</key>
+	<string>Kata laluan pilihan</string>
+	<key>Original revision</key>
+	<string>Semakan asal</string>
+	<key>Other</key>
+	<string>Lain-lain</string>
+	<key>Other devices</key>
+	<string>Peranti lain</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>Jika tidak, dMsg terkunci selepas 3 minit. Kunci peranti sentiasa mengunci ruang kerja anda dengan segera.</string>
+	<key>Outcome no longer available</key>
+	<string>Hasil tidak lagi tersedia</string>
+	<key>Package size</key>
+	<string>Saiz pakej</string>
+	<key>Parent folder</key>
+	<string>Folder induk</string>
+	<key>Password</key>
+	<string>Kata laluan</string>
+	<key>Password AutoFill</key>
+	<string>AutoIsi Kata Laluan</string>
+	<key>Password protected</key>
+	<string>Kata laluan dilindungi</string>
+	<key>Password, if required</key>
+	<string>Kata laluan, jika diperlukan</string>
+	<key>Passwords</key>
+	<string>Kata laluan</string>
+	<key>Paste binding request</key>
+	<string>Tampal permintaan mengikat</string>
+	<key>Paste enrollment request</key>
+	<string>Tampalkan permintaan pendaftaran</string>
+	<key>Paste invitation</key>
+	<string>Tampal jemputan</string>
+	<key>Paste pairing request</key>
+	<string>Tampal permintaan gandingan</string>
+	<key>Paste secret package link</key>
+	<string>Tampal pautan pakej rahsia</string>
+	<key>Pause this agent</key>
+	<string>Jeda ejen ini</string>
+	<key>Pause transfer</key>
+	<string>Jeda pemindahan</string>
+	<key>Payment card</key>
+	<string>Kad pembayaran</string>
+	<key>Payments</key>
+	<string>Pembayaran</string>
+	<key>Pending backups</key>
+	<string>Menunggu sandaran</string>
+	<key>Pending imports</key>
+	<string>Import belum selesai</string>
+	<key>Pending letters</key>
+	<string>Surat menunggu</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>Padamkan akaun perkhidmatan dMsg yang anda semak secara kekal</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>Padamkan akaun perkhidmatan dMsg ini secara kekal?</string>
+	<key>Permissions</key>
+	<string>Kebenaran</string>
+	<key>Phone</key>
+	<string>telefon</string>
+	<key>Phrase</key>
+	<string>Frasa</string>
+	<key>Pin</key>
+	<string>Pin</string>
+	<key>Plan</key>
+	<string>Rancang</string>
+	<key>Plan and usage</key>
+	<string>Pelan dan penggunaan</string>
+	<key>Policy points to an unavailable field</key>
+	<string>Dasar menunjukkan medan yang tidak tersedia</string>
+	<key>Port</key>
+	<string>Port</string>
+	<key>Prepare selected snapshot</key>
+	<string>Sediakan syot kilat yang dipilih</string>
+	<key>Prepared on this device</key>
+	<string>Disediakan pada peranti ini</string>
+	<key>Preview and choose what to import</key>
+	<string>Pratonton dan pilih perkara yang hendak diimport</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>Pratonton muat turun dan sahkan pakej pada peranti ini dan menggunakan sesi muat turun. Pilih peranti penerima sebelum meneruskan.</string>
+	<key>Preview file</key>
+	<string>Pratonton fail</string>
+	<key>Preview package</key>
+	<string>Pakej pratonton</string>
+	<key>Preview reporting disclosure</key>
+	<string>Pratonton pendedahan pelaporan</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>Bukti kelayakan dan salinan yang dihantar sebelum ini adalah bebas. Batalkan perwakilan secara berasingan jika perlu.</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>Privasi</string>
+	<key>Privacy policy</key>
+	<string>Dasar privasi</string>
+	<key>Private Key</key>
+	<string>Kunci Peribadi</string>
+	<key>Private workspace hidden</key>
+	<string>Ruang kerja peribadi disembunyikan</string>
+	<key>Proposal %llu</key>
+	<string>Cadangan %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>Cadangan dibuat. Semak ia dalam senarai cadangan dompet.</string>
+	<key>Proposals</key>
+	<string>Cadangan</string>
+	<key>Propose address</key>
+	<string>Cadangkan alamat</string>
+	<key>Propose member change</key>
+	<string>Cadangkan pertukaran ahli</string>
+	<key>Propose registering this key</key>
+	<string>Cadangkan mendaftarkan kunci ini</string>
+	<key>Propose removing cosigner</key>
+	<string>Cadangkan untuk mengalih keluar cosigner</string>
+	<key>Propose removing member</key>
+	<string>Cadangkan memecat ahli</string>
+	<key>Propose thresholds</key>
+	<string>Cadangkan ambang</string>
+	<key>Propose transfer</key>
+	<string>Cadangkan pemindahan</string>
+	<key>Propose unfreezing</key>
+	<string>Cadangkan nyahbeku</string>
+	<key>Proposer</key>
+	<string>Pencadang</string>
+	<key>Public Key</key>
+	<string>Kunci Awam</string>
+	<key>Public avatar</key>
+	<string>Avatar awam</string>
+	<key>Public profile</key>
+	<string>Profil awam</string>
+	<key>Publication pending</key>
+	<string>Penerbitan belum selesai</string>
+	<key>Publish</key>
+	<string>Terbitkan</string>
+	<key>Publish a secret snapshot</key>
+	<string>Terbitkan petikan rahsia</string>
+	<key>Publish profile</key>
+	<string>Terbitkan profil</string>
+	<key>Publish these details publicly?</key>
+	<string>Terbitkan butiran ini secara terbuka?</string>
+	<key>Published</key>
+	<string>Diterbitkan</string>
+	<key>Purchased</key>
+	<string>Dibeli</string>
+	<key>Purchases are not currently available.</key>
+	<string>Pembelian tidak tersedia pada masa ini.</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>Pemberitahuan tolak tidak didayakan dalam binaan ini. Buka dMsg untuk menyegerakkan.</string>
+	<key>Quick unlock with system authentication</key>
+	<string>Buka kunci cepat dengan pengesahan sistem</string>
+	<key>Read from a desktop file mapping</key>
+	<string>Baca daripada pemetaan fail desktop</string>
+	<key>Read the published policy</key>
+	<string>Baca dasar yang diterbitkan</string>
+	<key>Reason</key>
+	<string>Sebab</string>
+	<key>Received for review</key>
+	<string>Diterima untuk semakan</string>
+	<key>Receiving addresses</key>
+	<string>Menerima alamat</string>
+	<key>Receiving policy</key>
+	<string>Polisi penerimaan</string>
+	<key>Recipient</key>
+	<string>Penerima</string>
+	<key>Recipient account ID</key>
+	<string>ID akaun penerima</string>
+	<key>Recipient address</key>
+	<string>Alamat penerima</string>
+	<key>Reconcile original execution</key>
+	<string>Sahkan hasil pelaksanaan asal</string>
+	<key>Reconcile original operation</key>
+	<string>Sahkan hasil operasi asal</string>
+	<key>Reconcile original proposal</key>
+	<string>Selaraskan cadangan asal</string>
+	<key>Reconcile original send</key>
+	<string>Selaraskan hantaran asal</string>
+	<key>Reconcile original snapshot</key>
+	<string>Selaraskan petikan asal</string>
+	<key>Record manual review</key>
+	<string>Rekod semakan manual</string>
+	<key>Record this step as completed?</key>
+	<string>Catatkan langkah ini sebagai selesai?</string>
+	<key>Recovery</key>
+	<string>Pemulihan</string>
+	<key>Recovery status</key>
+	<string>Status pemulihan</string>
+	<key>Recovery status needs checking</key>
+	<string>Status pemulihan perlu disemak</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>Pemulihan menggunakan log masuk terikat anda dan tempoh menunggu. Peranti yang dibenarkan boleh mempertikaikannya. Kandungan tempatan yang tidak disegerakkan tidak boleh dipulihkan.</string>
+	<key>Recovery waiting period</key>
+	<string>Tempoh menunggu pemulihan</string>
+	<key>Refresh</key>
+	<string>Muat semula</string>
+	<key>Refresh balances</key>
+	<string>Muat semula baki</string>
+	<key>Refresh dependencies</key>
+	<string>Muat semula kebergantungan</string>
+	<key>Register a hardware approval key</key>
+	<string>Daftar kunci kelulusan perkakasan</string>
+	<key>Register an SSH binding</key>
+	<string>Daftarkan pengikatan SSH</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>Daftar kunci awam ini melalui cadangan dompet</string>
+	<key>Registered on this device</key>
+	<string>Didaftarkan pada peranti ini</string>
+	<key>Reject</key>
+	<string>Tolak</string>
+	<key>Reject this request?</key>
+	<string>Tolak permintaan ini?</string>
+	<key>Rejected</key>
+	<string>ditolak</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>Keluaran 1.0 sedia untuk semakan.</string>
+	<key>Remove</key>
+	<string>Buang</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>Alih keluar petikan AutoIsi</string>
+	<key>Remove Files app snapshot</key>
+	<string>Alih keluar petikan apl Fail</string>
+	<key>Remove attachment reference</key>
+	<string>Alih keluar rujukan lampiran</string>
+	<key>Remove device binding</key>
+	<string>Alih keluar pengikatan peranti</string>
+	<key>Remove device binding?</key>
+	<string>Alih keluar pengikatan peranti?</string>
+	<key>Remove field</key>
+	<string>Alih keluar medan</string>
+	<key>Remove local data</key>
+	<string>Alih keluar data setempat</string>
+	<key>Remove member</key>
+	<string>Alih keluar ahli</string>
+	<key>Remove this account's data from this device?</key>
+	<string>Alih keluar data akaun ini daripada peranti ini?</string>
+	<key>Remove this account's local data</key>
+	<string>Alih keluar data setempat akaun ini</string>
+	<key>Remove this local agent</key>
+	<string>Alih keluar ejen tempatan ini</string>
+	<key>Remove this local agent?</key>
+	<string>Alih keluar ejen tempatan ini?</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>Mengalih keluar rujukan tidak memadamkan fail. Rujukan sedia ada disimpan walaupun failnya tiada pada peranti ini.</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>Baiki rujukan medan yang tidak tersedia pada peranti asalnya.</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>Gantikan petikan AutoIsi</string>
+	<key>Replace Files app snapshot</key>
+	<string>Gantikan petikan apl Files</string>
+	<key>Replace cosignature policy</key>
+	<string>Gantikan polisi tandatangan bersama</string>
+	<key>Reply</key>
+	<string>Balas</string>
+	<key>Reply to message %llu</key>
+	<string>Balas mesej %llu</string>
+	<key>Report content</key>
+	<string>Laporkan kandungan</string>
+	<key>Report received for review</key>
+	<string>Laporan diterima untuk semakan</string>
+	<key>Reported account</key>
+	<string>Akaun yang dilaporkan</string>
+	<key>Reporting disclosure</key>
+	<string>Pendedahan pelaporan</string>
+	<key>Request ID</key>
+	<string>Minta ID</string>
+	<key>Request account deletion</key>
+	<string>Minta pemadaman akaun</string>
+	<key>Request account recovery</key>
+	<string>Minta pemulihan akaun</string>
+	<key>Request recovery</key>
+	<string>Minta pemulihan</string>
+	<key>Request source</key>
+	<string>Minta sumber</string>
+	<key>Requested permissions</key>
+	<string>Meminta kebenaran</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>Permintaan yang memerlukan keputusan anda dipaparkan di sini.</string>
+	<key>Require hardware approval</key>
+	<string>Memerlukan kelulusan perkakasan</string>
+	<key>Require this device to unlock</key>
+	<string>Memerlukan peranti ini untuk membuka kunci</string>
+	<key>Required cosignatures %u</key>
+	<string>Tandatangan bersama yang diperlukan %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>Selesaikan operasi akaun yang belum selesai sebelum memadamkan akaun ini.</string>
+	<key>Restore</key>
+	<string>Pulihkan</string>
+	<key>Restore purchases</key>
+	<string>Pulihkan pembelian</string>
+	<key>Restore this version</key>
+	<string>Pulihkan versi ini</string>
+	<key>Restore this version as a new current version?</key>
+	<string>Pulihkan versi ini sebagai versi semasa baharu?</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>Pulihkan versi ini daripada sandaran awan sebelum membukanya.</string>
+	<key>Restore to this device</key>
+	<string>Pulihkan pada peranti ini</string>
+	<key>Restoring…</key>
+	<string>Memulihkan…</string>
+	<key>Result</key>
+	<string>Hasilnya</string>
+	<key>Result unconfirmed</key>
+	<string>Keputusan tidak disahkan</string>
+	<key>Retire a hardware approval key</key>
+	<string>Menanggalkan kunci kelulusan perkakasan</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>Menamatkan kunci mengalih keluar keupayaannya untuk meluluskan tindakan yang dilindungi. Semak sama ada laluan kelulusan lain yang dibenarkan masih tersedia.</string>
+	<key>Retry</key>
+	<string>Cuba lagi</string>
+	<key>Retry loading activity</key>
+	<string>Cuba semula aktiviti memuatkan</string>
+	<key>Retry loading hardware security</key>
+	<string>Cuba muat semula keselamatan perkakasan</string>
+	<key>Retry loading profile</key>
+	<string>Cuba semula memuatkan profil</string>
+	<key>Retry original change</key>
+	<string>Cuba semula perubahan asal</string>
+	<key>Retry original letter</key>
+	<string>Cuba semula huruf asal</string>
+	<key>Retry preview</key>
+	<string>Cuba semula pratonton</string>
+	<key>Retry publication</key>
+	<string>Cuba semula penerbitan</string>
+	<key>Retry registration</key>
+	<string>Cuba semula pendaftaran</string>
+	<key>Retry this report</key>
+	<string>Cuba semula laporan ini</string>
+	<key>Reveal</key>
+	<string>Tunjukkan</string>
+	<key>Reveal this field?</key>
+	<string>Dedahkan bidang ini?</string>
+	<key>Review</key>
+	<string>Semakan</string>
+	<key>Review a web connection request</key>
+	<string>Semak permintaan sambungan web</string>
+	<key>Review agent delegation</key>
+	<string>Semak delegasi ejen</string>
+	<key>Review agent permissions</key>
+	<string>Semak kebenaran ejen</string>
+	<key>Review an enrollment request</key>
+	<string>Semak permintaan pendaftaran</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>Semak dan mulakan semula pemetaan fail desktop pada peranti asalnya.</string>
+	<key>Review approval</key>
+	<string>Semak kelulusan</string>
+	<key>Review binding</key>
+	<string>Mengikat ulasan</string>
+	<key>Review controller registration</key>
+	<string>Semak pendaftaran Controller</string>
+	<key>Review delegation grant</key>
+	<string>Semak kebenaran akses perwakilan</string>
+	<key>Review deletion</key>
+	<string>Semak pemadaman</string>
+	<key>Review enabling a principal</key>
+	<string>Semak semula yang membolehkan principal</string>
+	<key>Review field and dependencies</key>
+	<string>Semak medan dan kebergantungan</string>
+	<key>Review hardware policy changes</key>
+	<string>Semak perubahan dasar perkakasan</string>
+	<key>Review in approval center</key>
+	<string>Semakan di pusat kelulusan</string>
+	<key>Review joining wallet</key>
+	<string>Semak menyertai dompet</string>
+	<key>Review key enrollment</key>
+	<string>Semak pendaftaran kunci</string>
+	<key>Review key registration</key>
+	<string>Semak pendaftaran kunci</string>
+	<key>Review local finding</key>
+	<string>Semak penemuan tempatan</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>Semak petikan lama dan batalkan pautan yang tinggal jika sesuai.</string>
+	<key>Review permissions</key>
+	<string>Semak kebenaran</string>
+	<key>Review publication or resume</key>
+	<string>Semak penerbitan atau resume</string>
+	<key>Review rejection</key>
+	<string>Semakan penolakan</string>
+	<key>Review removing this login</key>
+	<string>Semak mengalih keluar log masuk ini</string>
+	<key>Review replacement key</key>
+	<string>Semak kunci gantian</string>
+	<key>Review request</key>
+	<string>Semak permintaan</string>
+	<key>Review retiring controller</key>
+	<string>Semak akan bersara Controller</string>
+	<key>Review retiring this approval key</key>
+	<string>Semak penamatan kunci kelulusan ini</string>
+	<key>Review revocation</key>
+	<string>Semak semula pembatalan</string>
+	<key>Review selected import</key>
+	<string>Semak import yang dipilih</string>
+	<key>Review sync conflicts</key>
+	<string>Semak konflik penyegerakan</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>Semak kebenaran ejen pada peranti asalnya.</string>
+	<key>Review the complete request</key>
+	<string>Semak permintaan lengkap</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>Semak kunci semasa dan perbaharui pengikatan SSH pada peranti asalnya.</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>Semak permintaan dan pertikaikan jika ia bukan milik anda.</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>Semak penerima syot kilat dan tamat tempoh.</string>
+	<key>Review this device's current dependencies</key>
+	<string>Semak kebergantungan semasa peranti ini</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>Semak dasar peranti ini dan kebenaran akses akses.</string>
+	<key>Review this local record before making changes.</key>
+	<string>Semak rekod tempatan ini sebelum membuat perubahan.</string>
+	<key>Review waiting-period change</key>
+	<string>Semak perubahan tempoh menunggu</string>
+	<key>Review wallet action</key>
+	<string>Semak tindakan dompet</string>
+	<key>Reviewed</key>
+	<string>Disemak</string>
+	<key>Revocation pending</key>
+	<string>Pembatalan belum selesai</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>Pembatalan menghentikan akses baharu selepas keadaan keselamatan dimuat semula dan kunci diputar. Kandungan yang disalin sebelum ini tidak boleh ditarik balik.</string>
+	<key>Revoke</key>
+	<string>Tarik balik</string>
+	<key>Revoke a device</key>
+	<string>Batalkan peranti</string>
+	<key>Revoke browser</key>
+	<string>Batalkan penyemak imbas</string>
+	<key>Revoke delegation</key>
+	<string>Batalkan delegasi</string>
+	<key>Revoke grant</key>
+	<string>Batalkan kebenaran akses</string>
+	<key>Revoke or cancel</key>
+	<string>Batalkan atau batalkan</string>
+	<key>Revoke or cancel this link</key>
+	<string>Batalkan atau batalkan pautan ini</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>Batalkan kelayakan lama di pembekalnya</string>
+	<key>Revoke this browser?</key>
+	<string>Batalkan penyemak imbas ini?</string>
+	<key>Revoke this device</key>
+	<string>Batalkan peranti ini</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>Batalkan peranti ini dan putar kekunci kandungan</string>
+	<key>Revoke this snapshot link?</key>
+	<string>Batalkan pautan petikan ini?</string>
+	<key>Revoked</key>
+	<string>Dibatalkan</string>
+	<key>Role</key>
+	<string>Peranan</string>
+	<key>Rotate conversation keys</key>
+	<string>Putar kekunci perbualan</string>
+	<key>Rotation checklists</key>
+	<string>Senarai semak giliran</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>SSH mengikat</string>
+	<key>SSH binding needs review</key>
+	<string>SSH memerlukan semakan semula</string>
+	<key>SSH key</key>
+	<string>Kunci SSH</string>
+	<key>Safety and support</key>
+	<string>Keselamatan dan sokongan</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>Contoh tindakan: menandatangani pengumuman keluaran</string>
+	<key>Sample login</key>
+	<string>Contoh log masuk</string>
+	<key>Sample password</key>
+	<string>Contoh kata laluan</string>
+	<key>Save</key>
+	<string>Simpan</string>
+	<key>Save name</key>
+	<string>Simpan nama</string>
+	<key>Save receiving policy</key>
+	<string>Polisi penerimaan simpan</string>
+	<key>Save selected version</key>
+	<string>Simpan versi yang dipilih</string>
+	<key>Save settings</key>
+	<string>Simpan tetapan</string>
+	<key>Save the selected version?</key>
+	<string>Simpan versi yang dipilih?</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>Simpan item ini untuk dMsg. Pilih akaun dan importnya selepas membuka dan membuka kunci apl.</string>
+	<key>Save to dMsg</key>
+	<string>Jimat kepada dMsg</string>
+	<key>Saved</key>
+	<string>Disimpan</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>Disimpan sebagai versi berasingan. Semak konflik penyegerakan.</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>Disimpan untuk dMsg. Buka apl untuk menyemak dan mengimport item ini.</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>Disimpan secara tempatan dahulu. Status penyegerakan ditunjukkan secara berasingan.</string>
+	<key>Saved on this device</key>
+	<string>Disimpan pada peranti ini</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>Disimpan pada peranti ini. Perubahan sedang menunggu untuk disegerakkan.</string>
+	<key>Saved. Publication is pending.</key>
+	<string>Disimpan. Penerbitan belum selesai.</string>
+	<key>Scan device request</key>
+	<string>Imbas permintaan peranti</string>
+	<key>Scopes, one per line</key>
+	<string>Skop, satu setiap baris</string>
+	<key>Screenshots may contain private information.</key>
+	<string>Tangkapan skrin mungkin mengandungi maklumat peribadi.</string>
+	<key>Search files</key>
+	<string>Cari fail</string>
+	<key>Search messages</key>
+	<string>Cari mesej</string>
+	<key>Search your vault</key>
+	<string>Cari bilik kebal anda</string>
+	<key>Secret</key>
+	<string>Rahsia</string>
+	<key>Secret package link</key>
+	<string>Pautan pakej rahsia</string>
+	<key>Section</key>
+	<string>Bahagian</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave tidak tersedia pada peranti ini.</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>Keperluan keselamatan berubah. Semak semula permintaan itu sebelum meluluskannya.</string>
+	<key>Select a conversation</key>
+	<string>Pilih perbualan</string>
+	<key>Select a file</key>
+	<string>Pilih fail</string>
+	<key>Select a secret</key>
+	<string>Pilih rahsia</string>
+	<key>Select attachments to import</key>
+	<string>Pilih lampiran untuk diimport</string>
+	<key>Select attachments to share</key>
+	<string>Pilih lampiran untuk dikongsi</string>
+	<key>Select fields to import</key>
+	<string>Pilih medan untuk diimport</string>
+	<key>Select fields to share</key>
+	<string>Pilih medan untuk dikongsi</string>
+	<key>Select login items</key>
+	<string>Pilih item log masuk</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>Medan OTP yang dipilih termasuk benih boleh guna semula, bukan hanya kod semasa.</string>
+	<key>Selected accounts</key>
+	<string>Akaun terpilih</string>
+	<key>Send free letter</key>
+	<string>Hantar surat percuma</string>
+	<key>Send message</key>
+	<string>Hantar mesej</string>
+	<key>Send queued message</key>
+	<string>Hantar mesej beratur</string>
+	<key>Send to an administrator</key>
+	<string>Hantar kepada pentadbir</string>
+	<key>Sender</key>
+	<string>penghantar</string>
+	<key>Sender account</key>
+	<string>Akaun penghantar</string>
+	<key>Server</key>
+	<string>pelayan</string>
+	<key>Set up this account</key>
+	<string>Sediakan akaun ini</string>
+	<key>Share a copy</key>
+	<string>Kongsi salinan</string>
+	<key>Share binding request</key>
+	<string>Kongsi permintaan yang mengikat</string>
+	<key>Share enrollment request</key>
+	<string>Kongsi permintaan pendaftaran</string>
+	<key>Share invitation</key>
+	<string>Kongsi jemputan</string>
+	<key>Share link</key>
+	<string>Kongsi pautan</string>
+	<key>Share pairing request</key>
+	<string>Kongsi permintaan pasangan</string>
+	<key>Share secret snapshot</key>
+	<string>Kongsi gambar rahsia</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>Kongsi permintaan ini dengan pentadbir yang diberi kuasa. Ia tidak mendaftar atau meluluskan kunci dengan sendirinya.</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>Salinan yang dikongsi meninggalkan perlindungan dMsg dan tidak boleh ditarik balik.</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>Item yang dikongsi tidak tersedia. Buka apl sekali lagi selepas membuka kunci peranti ini.</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>Item kongsi sedang menunggu pada peranti ini. Mengimport menyulitkannya ke dalam akaun yang dipilih pada masa ini.</string>
+	<key>Shared snapshots</key>
+	<string>Syot kilat dikongsi</string>
+	<key>Shared with dMsg</key>
+	<string>Dikongsi dengan dMsg</string>
+	<key>Show dismissed findings</key>
+	<string>Tunjukkan penemuan yang ditolak</string>
+	<key>Show sample password</key>
+	<string>Tunjukkan contoh kata laluan</string>
+	<key>Show share link</key>
+	<string>Tunjukkan pautan kongsi</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>Menunjukkan kandungan yang disimpan. Penyegerakan terkini tidak selesai.</string>
+	<key>Sign a statement</key>
+	<string>Tandatangani kenyataan</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>Log masuk sekali lagi untuk membuka kunci ruang kerja anda yang disulitkan pada iPhone ini.</string>
+	<key>Sign in to another account</key>
+	<string>Log masuk ke akaun lain</string>
+	<key>Sign out</key>
+	<string>Log keluar</string>
+	<key>Sign out of this account?</key>
+	<string>Log keluar daripada akaun ini?</string>
+	<key>Sign the statement you reviewed</key>
+	<string>Tandatangani penyata yang anda semak</string>
+	<key>Simulate approval</key>
+	<string>Simulasikan kelulusan</string>
+	<key>Simulate rejection</key>
+	<string>Simulasikan penolakan</string>
+	<key>Simulate this approval?</key>
+	<string>Simulasikan kelulusan ini?</string>
+	<key>Snapshot</key>
+	<string>Syot kilat</string>
+	<key>Snapshot link</key>
+	<string>Pautan syot kilat</string>
+	<key>Software license</key>
+	<string>Lesen perisian</string>
+	<key>Solana</key>
+	<string>Solana</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>Sesetengah rekod sumber atau sifat tidak disokong. Import ini menyalin medan yang dipilih sahaja; lampiran arkib, kunci laluan dan sejarah tidak diimport di sini.</string>
+	<key>Source address %u</key>
+	<string>Alamat sumber %u</string>
+	<key>Spam</key>
+	<string>Spam</string>
+	<key>Spending approvals %u</key>
+	<string>Kelulusan perbelanjaan %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>Peringkat fail yang dipilih, kemudian pilih akaun dan importnya dalam dMsg.</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>Mulakan senarai semak daripada halaman rujukan medan.</string>
+	<key>Start a rotation checklist</key>
+	<string>Mulakan senarai semak giliran</string>
+	<key>Start a rotation checklist?</key>
+	<string>Mulakan senarai semak giliran?</string>
+	<key>Start account recovery?</key>
+	<string>Mulakan pemulihan akaun?</string>
+	<key>Start checklist</key>
+	<string>Mulakan senarai semak</string>
+	<key>Status</key>
+	<string>Status</string>
+	<key>Stop this device's transfer</key>
+	<string>Hentikan pemindahan peranti ini</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>Storan ialah pembelian sekali untuk tempoh langganan semasa dan tidak diperbaharui secara automatik.</string>
+	<key>Storage packs</key>
+	<string>Pek simpanan</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>Pembelian storan memerlukan langganan App Store yang aktif.</string>
+	<key>Subject Agent ID</key>
+	<string>ID Ejen Subjek</string>
+	<key>Submit report</key>
+	<string>Hantar laporan</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>Langganan diperbaharui secara automatik melainkan dibatalkan dalam tetapan akaun Apple anda. Memadam akaun dMsg anda tidak membatalkan langganan Apple.</string>
+	<key>Switch account</key>
+	<string>Tukar akaun</string>
+	<key>Switch to this account</key>
+	<string>Beralih ke akaun ini</string>
+	<key>Sync conflicts</key>
+	<string>Konflik penyegerakan</string>
+	<key>Sync now</key>
+	<string>Segerakkan sekarang</string>
+	<key>Synced</key>
+	<string>disegerakkan</string>
+	<key>Syncing…</key>
+	<string>Menyegerakkan…</string>
+	<key>System authentication</key>
+	<string>Pengesahan sistem</string>
+	<key>System integrations</key>
+	<string>Penyepaduan sistem</string>
+	<key>System permission</key>
+	<string>Kebenaran sistem</string>
+	<key>Tags, separated by commas</key>
+	<string>Teg, dipisahkan dengan koma</string>
+	<key>Team wallets</key>
+	<string>Dompet pasukan</string>
+	<key>Terms of service</key>
+	<string>Syarat perkhidmatan</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>Persekitaran ujian · Asingkan akaun dan ujian pembelian</string>
+	<key>Test the new credential at its provider</key>
+	<string>Uji kelayakan baharu di pembekalnya</string>
+	<key>Text</key>
+	<string>Teks</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>Versi yang disulitkan akan menggunakan storan awan. Salinan tempatan anda kekal pada peranti ini.</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>Skop dan khalayak eksplisit di atas juga digunakan pada kelayakan ini. Pihak berkuasa Controller yang tidak terhad tidak sekali-kali menjadikan kelayakan tidak terhad.</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>Bukti kelayakan yang dieksport tidak tersedia atau tamat tempoh. Buka dMsg untuk membuat syot kilat baharu.</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>Salinan fail tidak tersedia atau tamat tempoh. Buka dMsg untuk membuat syot kilat baharu, kemudian cuba semula.</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>Jemputan terikat pada akaun ini. Berkongsi pautan tidak Membenarkan akses kepada akaun lain.</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>Pemerhatian terakhir yang disahkan disimpan. Status semasa tidak dapat disahkan.</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>Kunci pengikat tempatan tidak tersedia. Simpan ruang kerja ini dan semak pilihan pemulihan anda sebelum menguncinya.</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>Lawatan tempatan tersedia untuk semua orang. Untuk menguji penciptaan akaun, penyegerakan, pembelian, pemberitahuan dan kebenaran perkakasan, tinggalkan lawatan dan log masuk melalui Internet Identity.</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>Had pakej mudah alih ialah 8 MiB. Pratonton menyemak pakej sebelum anda memilih perkara yang hendak diimport.</string>
+	<key>The operation could not be completed.</key>
+	<string>Operasi tidak dapat diselesaikan.</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>Operasi tidak dapat diselesaikan. Sila cuba lagi.</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>Operasi telah dibatalkan atau tidak dibenarkan.</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>Kesudahannya tidak pasti. Semak kerja asal sebelum mencuba apa-apa lagi.</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>Rekod itu berubah. Muat semula dan semak pengeditan anda sebelum menyimpan semula.</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>Permintaan tidak tersedia untuk peranti ini. Ia mungkin telah tamat tempoh atau sudah dikendalikan.</string>
+	<key>The required content key is not available yet.</key>
+	<string>Kunci kandungan yang diperlukan belum tersedia lagi.</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>Keputusan tidak disahkan. Selaraskan permintaan ini sebelum mencuba semula.</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>Imej yang dipilih kekal pada peranti ini sehingga anda menerbitkan. Avatar yang diterbitkan adalah awam dan salinan mungkin kekal di luar dMsg.</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>Item yang dipilih tidak dapat dipentaskan. Buka dMsg dan cuba mengimportnya ke sana.</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>Salinan sumber terganggu. Buang dan pilih sumber semula.</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>Arahan ujian tidak dikonfigurasikan. Dasar demo dan privasi tempatan kekal tersedia.</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>Kebenaran pemindahan telah tamat tempoh. Batalkan tugas ini, kemudian teruskan sandaran asal di latar depan atau mulakan muat turun baharu.</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>Pemindahan dijeda. Cuba semula blok yang disulitkan asal.</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>Dompet menyemak dasar dan kelulusan semasanya. Tandatangan perkakasan yang diperlukan diminta untuk pelan yang tepat ini.</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>Ini adalah pemerhatian tempatan, bukan imbasan pelanggaran atau bukti bahawa pembekal telah membatalkan kelayakan. Peranti lain boleh mempunyai rekod yang berbeza.</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>Ini ialah kerja syot kilat yang dibuat pada peranti ini. Permintaan kelulusan tempatan desktop tidak disegerakkan di sini.</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>Ini ialah sandaran yang disahkan daripada peranti akaun anda. Pulihkan secara eksplisit untuk menyimpan salinan pada peranti ini.</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>Eksport ini tidak pernah mengandungi kunci akar akaun atau kunci tandatangan peranti. Perubahan kepada item sumber memerlukan syot kilat baharu.</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>Akaun ini memerlukan kunci kelulusan berdaftar. Sediakan peranti ini dalam keselamatan Perkakasan, atau tanya peranti lain yang dibenarkan.</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>Tindakan ini tidak disokong pada peranti ini. Gambar rahsia mesti menggunakan aliran import khusus mereka.</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>Permintaan penyemak imbas ini dimiliki oleh akaun lain. Penukaran mengunci ruang kerja semasa dan mengekalkan drafnya.</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>Ini tidak boleh dibuat asal. Log keluar sahaja tidak memadamkan akaun.</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>Ini mengubah perlindungan buka kunci setempat. Pengesahan sistem mungkin diperlukan. Tiada pemulihan akaun atau peranti lain ditukar.</string>
+	<key>This changes only the local sample.</key>
+	<string>Ini hanya mengubah sampel tempatan.</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>Ini mengubah tindakan akaun yang memerlukan tandatangan perkakasan. Melumpuhkan perlindungan membenarkan tindakan tersebut tanpa bukti perkakasan itu.</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>Ini mewujudkan permintaan yang belum selesai. Ia tidak membenarkan peranti.</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>Ini mewujudkan cadangan. Ia tidak memindahkan dana sehingga kelulusan dompet dan keperluan operasi dipenuhi. Jumlah adalah integer unit asas yang tepat.</string>
+	<key>This device</key>
+	<string>Peranti ini</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>Peranti ini mempunyai perubahan yang belum disegerakkan. Simpan apa sahaja yang anda perlukan sebelum memadamkan akaun.</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>Peranti ini menyimpan ruang kerja yang disulitkan sendiri. Kandungan yang belum disegerakkan tidak boleh dipulihkan daripada peranti lain.</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>Kunci peranti ini tidak boleh digunakan lagi. Gunakan peranti lain yang dibenarkan atau pemulihan akaun. Ruang kerja anda belum dipadamkan.</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>Peranti ini mungkin menerima kandungan peribadi anda. Kunci penyulitan kandungan induk mesti diedarkan semula selepas diluluskan.</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>Fail ini melebihi had 100 MiB.</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>Sejarah ini kepunyaan peranti ini. Ia tidak mencerminkan CLI setempat desktop, SSH atau kelulusan pemasangan fail daripada peranti lain.</string>
+	<key>This iPhone</key>
+	<string>iPhone ini</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>iPhone ini menguruskan identiti dan kebenaran ejen. Ia tidak memastikan ejen berjalan semasa iOS menggantung apl.</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>Inventori ini meliputi rujukan dan rekod penghantaran pada peranti ini. Ia tidak mencari peranti lain atau fail projek sewenang-wenangnya.</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>Ini adalah dokumen rekaan untuk lawatan tempatan. Dalam akaun anda, fail yang dipilih disulitkan pada peranti sebelum sandaran. Latar belakang memindahkan nama pengguna hanya blok yang disulitkan; penamat memerlukan akaun asal yang tidak dikunci.</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>Kunci ini diuruskan oleh dMsg dan tidak boleh disalin atau diedit.</string>
+	<key>This letter was withdrawn.</key>
+	<string>Surat ini ditarik balik.</string>
+	<key>This message could not be verified.</key>
+	<string>Mesej ini tidak dapat disahkan.</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>Ini hanya menyembunyikan penemuan dan semakan tepat ini pada peranti ini. Ia tidak membaiki kelayakan atau menolak perubahan masa hadapan.</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>Operasi ini melebihi had saiz atau kapasitinya. Gambar rahsia pada peranti ini terhad kepada 8 MiB.</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>Operasi ini tidak tersedia buat sementara waktu. Data anda yang disimpan disimpan.</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>Pakej ini telah pun diimport pada peranti ini. Salinan sedia ada kekal bebas.</string>
+	<key>This preview sends nothing.</key>
+	<string>Pratonton ini tidak menghantar apa-apa.</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>Profil ini adalah umum. Jangan sertakan rahsia atau maklumat hubungan peribadi.</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>Ini merekodkan bahawa anda menyemak keputusan secara manual. Ia tidak menandakan operasi berjaya atau menjalankannya semula.</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>Ini hanya mengalih keluar salinan awan yang dipilih. Fail tempatan kekal pada peranti mereka.</string>
+	<key>This request has expired</key>
+	<string>Permintaan ini telah tamat tempoh</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>Permintaan ini memerlukan klien desktop yang disokong.</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>Ini meminta penamatan untuk mendapatkan semula masa hadapan. Salinan yang telah disimpan masih boleh digunakan. Penerbitan yang tidak pasti masih perlu diselaraskan.</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>Gambar ini memerlukan perhatian. Semak statusnya sebelum meneruskan.</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>Lawatan ini tidak memuat naik fail atau mendaftarkan integrasi sistem.</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>Ini menjejak kerja anda pada peranti ini. Ia tidak membuat, menguji atau membatalkan kelayakan di pembekal mereka.</string>
+	<key>Title</key>
+	<string>Tajuk</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>Untuk menggunakan akaun sedia ada anda pada iPhone ini, luluskan peranti ini daripada salah satu peranti anda yang dibenarkan.</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>Pindahkan atau arkibkan perbualan yang dimiliki terlebih dahulu</string>
+	<key>Transfer proposal</key>
+	<string>Cadangan pemindahan</string>
+	<key>Transfers</key>
+	<string>Pemindahan</string>
+	<key>Trash</key>
+	<string>Sampah</string>
+	<key>Trash is empty</key>
+	<string>Sampah kosong</string>
+	<key>Try the local demo</key>
+	<string>Cuba demo tempatan</string>
+	<key>Two versions need your decision</key>
+	<string>Dua versi memerlukan keputusan anda</string>
+	<key>Type</key>
+	<string>Jenis</string>
+	<key>Type this account ID to confirm</key>
+	<string>Taip ID akaun ini untuk mengesahkan</string>
+	<key>Unblock</key>
+	<string>Nyahsekat</string>
+	<key>Unconfirmed proposals</key>
+	<string>Cadangan yang tidak disahkan</string>
+	<key>Unknown state</key>
+	<string>Keadaan tidak diketahui</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>Buka kunci dMsg untuk menyemak permintaan ini.</string>
+	<key>Unlock policy</key>
+	<string>Dasar buka kunci</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>Buka kunci iPhone ini untuk membuka dMsg.</string>
+	<key>Unlock with system authentication</key>
+	<string>Buka kunci dengan pengesahan sistem</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>Buka kunci ruang kerja dMsg anda</string>
+	<key>Unrestricted delegation authority</key>
+	<string>Pihak berkuasa perwakilan tidak terhad</string>
+	<key>Uploading</key>
+	<string>Memuat naik</string>
+	<key>Uploading encrypted backup</key>
+	<string>Memuat naik sandaran yang disulitkan</string>
+	<key>Url</key>
+	<string>Url</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>Gunakan kata laluan daripada syot kilat yang anda eksport secara eksplisit dalam dMsg.</string>
+	<key>Use a secret through a device policy</key>
+	<string>Gunakan rahsia melalui dasar peranti</string>
+	<key>Use an SSH signing key</key>
+	<string>Gunakan kunci tandatangan SSH</string>
+	<key>Use conflicting version</key>
+	<string>Gunakan versi bercanggah</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>Gunakan data rekaan di sini. Menutup lawatan akan membuang perubahan anda.</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>Gunakan icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol atau sol:mint.</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>Gunakan pengesahan sistem untuk membuka kunci ruang kerja yang disulitkan pada iPhone ini.</string>
+	<key>Use this folder</key>
+	<string>Gunakan folder ini</string>
+	<key>Use this password for:</key>
+	<string>Gunakan kata laluan ini untuk:</string>
+	<key>Username</key>
+	<string>Nama pengguna</string>
+	<key>Value</key>
+	<string>Nilai</string>
+	<key>Vault</key>
+	<string>Peti simpanan</string>
+	<key>Vault tools</key>
+	<string>Alat peti besi</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>Lampiran yang disahkan disimpan pada Fail.</string>
+	<key>Verified package fingerprint</key>
+	<string>Cap jari pakej yang disahkan</string>
+	<key>Verify and finish</key>
+	<string>Sahkan dan selesaikan</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>Sahkan peranti penuh dan cap jari kunci. Kunci ini akan membuktikan kelulusan perkakasan untuk tindakan yang dilindungi akaun ini.</string>
+	<key>Verify the full device fingerprint</key>
+	<string>Sahkan cap jari peranti penuh</string>
+	<key>Version history</key>
+	<string>Sejarah versi</string>
+	<key>Versions</key>
+	<string>Versi</string>
+	<key>Viewer</key>
+	<string>Penonton</string>
+	<key>Waiting for approval</key>
+	<string>Menunggu kelulusan</string>
+	<key>Waiting for browser confirmation</key>
+	<string>Menunggu pengesahan pelayar</string>
+	<key>Waiting for confirmation: </key>
+	<string>Menunggu pengesahan: </string>
+	<key>Waiting for notification registration…</key>
+	<string>Menunggu pendaftaran pemberitahuan…</string>
+	<key>Waiting for your decision</key>
+	<string>Menunggu keputusan anda</string>
+	<key>Waiting to submit</key>
+	<string>Menunggu untuk diserahkan</string>
+	<key>Waiting to sync</key>
+	<string>Menunggu untuk disegerakkan</string>
+	<key>Wallet</key>
+	<string>Dompet</string>
+	<key>Wallet access</key>
+	<string>Akses dompet</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>Akses dompet tidak dapat disemak. Sahkan ia secara bebas sebelum memadam.</string>
+	<key>Wallet canister ID</key>
+	<string>ID dompet canister</string>
+	<key>Wallet controls</key>
+	<string>Kawalan dompet</string>
+	<key>Wallet details and policy</key>
+	<string>Butiran dan dasar dompet</string>
+	<key>Wallet secret</key>
+	<string>Rahsia dompet</string>
+	<key>Wallets</key>
+	<string>Dompet</string>
+	<key>Weak credential</key>
+	<string>Tauliah yang lemah</string>
+	<key>Website</key>
+	<string>Laman web</string>
+	<key>Welcome back.</key>
+	<string>Selamat kembali.</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>Selamat datang ke demo tempatan. Mesej ini kekal dalam skrin ini.</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Walaupun dMsg dibuka dan tidak berkunci, pengeditan yang disulitkan akan dimuat naik dan mesej serta kelulusan akan dimuat semula. Sandaran fail masih memerlukan pengesahan berasingan. Anda boleh mematikan ini pada bila-bila masa.</string>
+	<key>Who may contact you</key>
+	<string>Siapa yang boleh menghubungi anda</string>
+	<key>Withdraw</key>
+	<string>tarik diri</string>
+	<key>Withdraw message</key>
+	<string>Tarik balik mesej</string>
+	<key>Withdraw this message?</key>
+	<string>Tarik balik mesej ini?</string>
+	<key>Workspace destination</key>
+	<string>Destinasi ruang kerja</string>
+	<key>Write a demo message</key>
+	<string>Tulis mesej demo</string>
+	<key>Write a letter</key>
+	<string>Tulis surat</string>
+	<key>Write a message</key>
+	<string>Tulis mesej</string>
+	<key>Yes</key>
+	<string>Ya</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>Anda sedang melihat versi sejarah yang tidak boleh diubah.</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>Anda sendiri melakukan perubahan pembekal. dMsg merekodkan penyata anda dan menyemak semakan tempatan; ia tidak boleh mengesahkan penciptaan huluan, ujian atau pembatalan.</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>Saluran dibenarkan anda muncul selepas penyegerakan.</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>Kelayakan semasa anda tidak dapat dimuat semula. Cuba semula apabila perkhidmatan pengesahan tersedia.</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>Pelan semasa anda diuruskan di luar App Store. Tunggu sehingga ia tamat sebelum memulakan langganan App Store.</string>
+	<key>Your decision applies only to this request.</key>
+	<string>Keputusan anda hanya digunakan untuk permintaan ini.</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>Fail disulitkan anda kekal di sini. Log masuk yang disimpan dan buka kunci cepat dialih keluar.</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>Peranti sedia ada anda membuat keputusan muktamad.</string>
+	<key>Your files stay private</key>
+	<string>Fail anda kekal peribadi</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>Medan tersembunyi anda kekal tersembunyi sehingga anda memilih untuk mendedahkannya.</string>
+	<key>Your private workspace.</key>
+	<string>Ruang kerja peribadi anda.</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>Pembelian anda sedang menunggu pengesahan. Pulihkan pembelian untuk mencuba semula tanpa membayar lagi.</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>Laporan anda dan sebarang teks yang anda sertakan secara eksplisit akan dihantar kepada pasukan penyederhana. Kandungan dan kunci peribadi lain tidak disertakan.</string>
+	<key>Your reports</key>
+	<string>Laporan anda</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>Ruang kerja dMsg</string>
+</dict>
+</plist>

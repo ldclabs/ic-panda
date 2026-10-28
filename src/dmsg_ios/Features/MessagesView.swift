@@ -126,7 +126,7 @@ struct ConversationView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             NoticeBar(text: String(localized: "Waiting for confirmation: ") + pending.text)
                             if let name = pending.attachmentName { Label(name, systemImage: "doc") }
-                            Button(pending.attempted ? "Reconcile original send" : "Send queued message") { actionTask = Task { await deliver(pending.id) } }
+                            Button(LocalizedStringKey(pending.attempted ? "Reconcile original send" : "Send queued message")) { actionTask = Task { await deliver(pending.id) } }
                                 .disabled(sending)
                         }
                     }

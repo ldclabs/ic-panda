@@ -163,7 +163,7 @@ struct WalletTransferView: View {
                 TextField("Maximum fee in base units", text: $maxFee).keyboardType(.numberPad)
             }.disabled(working || attempted)
             NoticeBar(text: String(localized: "This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers."))
-            Button(attempted ? "Reconcile original proposal" : "Create transfer proposal") { Task { await submit() } }.disabled(working || result != nil || amount.isEmpty || maxFee.isEmpty || recipient.isEmpty)
+            Button(LocalizedStringKey(attempted ? "Reconcile original proposal" : "Create transfer proposal")) { Task { await submit() } }.disabled(working || result != nil || amount.isEmpty || maxFee.isEmpty || recipient.isEmpty)
             if let result { CanonicalDetails(value: result) }
         }.privateScreen().navigationTitle("Propose transfer")
     }

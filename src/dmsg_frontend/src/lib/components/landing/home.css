@@ -2823,7 +2823,7 @@ html[dir='rtl'] .home .up {
 }
 
 /* ——— Languages ——— */
-html:is([lang='zh'], [lang='ar']) .home :is(h1, .sec-head h2, .closing h2) {
+html:is([lang='zh'], [lang='ar'], [lang='ur'], [lang='bn'], [lang='th']) .home :is(h1, .sec-head h2, .closing h2) {
   letter-spacing: 0;
 }
 
@@ -2836,8 +2836,8 @@ html:is([lang='ru'], [lang='fr'], [lang='es']) .home .sec-head h2 {
 html[lang='zh'] .home .kicker {
   letter-spacing: 0.04em;
 }
-/* Arabic letters join: no monospace, tracking or capitals on Arabic copy. */
-html[lang='ar']
+/* Connected scripts and combining marks need their native proportional font. */
+html:is([lang='ar'], [lang='ur'], [lang='bn'], [lang='th'])
   .home
   :is(
     .kicker,

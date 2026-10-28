@@ -52,6 +52,39 @@ import XCTest
         account.name = "Language entry in account"; account.lifetime = .keepAlways; add(account)
     }
 
+    func testExpandedLanguageAccessScreens() {
+        let cases = [
+            ("zh-Hant", "zh_TW", "語言"), ("hi", "hi_IN", "भाषा"),
+            ("id", "id_ID", "Bahasa"), ("pt-BR", "pt_BR", "Idioma"),
+            ("ja", "ja_JP", "言語"), ("de", "de_DE", "Sprache"),
+            ("ko", "ko_KR", "언어"), ("it", "it_IT", "Lingua"),
+            ("tr", "tr_TR", "Dil"), ("ar", "ar_SA", "اللغة"),
+            ("zh-Hans", "zh_CN", "语言"),
+            ("vi", "vi_VN", "Ngôn ngữ"), ("th", "th_TH", "ภาษา"),
+            ("fil", "fil_PH", "Wika"), ("ms", "ms_MY", "Bahasa"),
+            ("bn", "bn_BD", "ভাষা"), ("ur", "ur_PK", "زبان"),
+            ("pl", "pl_PL", "Język"), ("nl", "nl_NL", "Taal")
+        ]
+        let app = XCUIApplication()
+        for (index, item) in cases.enumerated() {
+            let (language, locale, label) = item
+            app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+            if index.isMultiple(of: 2) { app.launchArguments.append("--ui-dark") }
+            app.launch()
+            let button = app.buttons["settings.language"]
+            XCTAssertTrue(button.waitForExistence(timeout: 10), language)
+            for _ in 0..<4 where !button.isHittable { app.swipeUp() }
+            XCTAssertTrue(button.isHittable, language)
+            XCTAssertEqual(button.label, label, language)
+            XCTAssertFalse(app.staticTexts["Welcome back."].exists, language)
+            XCTAssertFalse(app.buttons["login.start"].label.contains("Continue with Internet Identity"), language)
+            XCTAssertFalse(app.buttons["login.unlock"].label.contains("Unlock with system authentication"), language)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Access language · \(language)"; screenshot.lifetime = .keepAlways; add(screenshot)
+            app.terminate()
+        }
+    }
+
     func testPlanRemainsReadableWithoutPurchaseEntrypoints() {
         assertReadOnlyPlan(language: "en", locale: "en_US", accountTitle: "Account", dark: false)
     }

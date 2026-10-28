@@ -102,6 +102,9 @@ function pages(): { login: string[]; pairing: string[] } {
 }
 
 function load(window: BrowserWindow, route: string) {
+  // Process arguments keep the opening language even after a window reloads.
+  // Replay the current choice once its renderer has installed the listeners.
+  window.webContents.on('did-finish-load', () => window.webContents.send('dmsg:locale', locale))
   if (process.env.ELECTRON_RENDERER_URL) void window.loadURL(`${process.env.ELECTRON_RENDERER_URL}#${route}`)
   else void window.loadFile(join(__dirname, '../renderer/index.html'), { hash: route })
 }

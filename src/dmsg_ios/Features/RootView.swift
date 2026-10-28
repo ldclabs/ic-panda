@@ -114,7 +114,7 @@ struct AccessView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 16) {
                     Image("BrandMark").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
-                    Text(model.session?.account == nil ? "Your private workspace." : "Welcome back.")
+                    Text(LocalizedStringKey(model.session?.account == nil ? "Your private workspace." : "Welcome back."))
                         .font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
                     Text("Keep your secrets, conversations and files together. Only your authorized devices can open them.")
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

@@ -2,18 +2,39 @@
 html[lang='zh'] {
   --locale-font: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
+html[lang='zh-Hant'] {
+  --locale-font: 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+}
+html[lang='ja'] {
+  --locale-font: 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
+}
+html[lang='ko'] {
+  --locale-font: 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+}
+html[lang='hi'] {
+  --locale-font: 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
+}
+html[lang='th'] {
+  --locale-font: 'Thonburi', 'Leelawadee UI', 'Noto Sans Thai', system-ui, sans-serif;
+}
+html[lang='bn'] {
+  --locale-font: 'Kohinoor Bangla', 'Nirmala UI', 'Noto Sans Bengali', system-ui, sans-serif;
+}
+html[lang='ur'] {
+  --locale-font: 'Noto Sans Arabic', 'Geeza Pro', Tahoma, sans-serif;
+}
 html[lang='ru'] {
   --locale-font: system-ui, sans-serif;
 }
 html[lang='ar'] {
   --locale-font: 'Geeza Pro', 'Noto Sans Arabic', Tahoma, sans-serif;
 }
-html:is([lang='zh'], [lang='ru'], [lang='ar']) body,
-html:is([lang='zh'], [lang='ru'], [lang='ar'])
+html:is([lang='zh'], [lang='zh-Hant'], [lang='ja'], [lang='ko'], [lang='hi'], [lang='ru'], [lang='ar'], [lang='th'], [lang='bn'], [lang='ur']) body,
+html:is([lang='zh'], [lang='zh-Hant'], [lang='ja'], [lang='ko'], [lang='hi'], [lang='ru'], [lang='ar'], [lang='th'], [lang='bn'], [lang='ur'])
   :is(.dmsg-site, .display, .font-mono, .eyebrow, .archive-account-menu) {
   font-family: var(--locale-font);
 }
-html[lang='ar'] :is(h1, h2, h3, .eyebrow, .display) {
+html:is([lang='ar'], [lang='hi'], [lang='th'], [lang='bn'], [lang='ur']) :is(h1, h2, h3, .eyebrow, .display) {
   letter-spacing: normal;
 }
 html[dir='rtl'] .text-left {

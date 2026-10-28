@@ -1165,7 +1165,7 @@ export default {
   'Light or dark': '浅色或深色',
   'Follows your system, or keeps the look you pick.':
     '跟随系统，或保持你选定的外观。',
-  'Six languages': '六种语言',
+  'Your language': '你的语言',
   'Arabic lays the windows out right to left; IDs and code keep their order.':
     '阿拉伯语界面从右向左排布，ID 和代码保持原有顺序。',
   'Stays in the tray': '常驻托盘',

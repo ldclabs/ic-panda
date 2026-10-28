@@ -27,10 +27,10 @@ struct RecoveryNotice: View {
                         .foregroundStyle(observation?.pending == true ? .orange : Theme.forest)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(observation?.pending == true ? "Account recovery is pending" : "Recovery status needs checking")
+                        Text(LocalizedStringKey(observation?.pending == true ? "Account recovery is pending" : "Recovery status needs checking"))
                             .font(.subheadline.weight(.semibold))
                         if observation?.pending == true {
-                            Text(model.unlocked ? "Review the request and dispute it if it is not yours." : "Unlock dMsg to review this request.")
+                            Text(LocalizedStringKey(model.unlocked ? "Review the request and dispute it if it is not yours." : "Unlock dMsg to review this request."))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         if model.recoveryRefreshFailed || observation?.isStale(at: timeline.date) == true {

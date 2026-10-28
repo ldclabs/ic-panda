@@ -553,10 +553,10 @@
   font-size: 17px;
 }
 
-html[lang='zh'] .home :is(h2, h3, h4) {
+html:is([lang='zh'], [lang='ur'], [lang='bn'], [lang='th']) .home :is(h2, h3, h4) {
   letter-spacing: 0;
 }
-html[lang='zh'] .home .sec-head h2 {
+html:is([lang='zh'], [lang='ur'], [lang='bn'], [lang='th']) .home .sec-head h2 {
   line-height: 1.35;
 }
 

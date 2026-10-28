@@ -5,12 +5,20 @@
     <link rel="preconnect" href="https://icp-api.io" crossorigin="anonymous" />
     <script>
       ;(() => {
-        const supported = ['en', 'zh', 'ru', 'ar', 'fr', 'es']
-        const match = (value) =>
-          typeof value === 'string' &&
-          supported.find(
-            (code) => code === value.trim().toLowerCase().split(/[-_]/)[0]
-          )
+        const supported = ['en', 'zh', 'zh-Hant', 'ru', 'ar', 'fr', 'es', 'hi', 'id', 'pt-BR', 'ja', 'de', 'ko', 'it', 'tr', 'vi', 'th', 'fil', 'ms', 'bn', 'ur', 'pl', 'nl']
+        const match = (value) => {
+          if (typeof value !== 'string') return null
+          const [primary, ...subtags] = value.trim().toLowerCase().replaceAll('_', '-').split('-')
+          if (primary === 'zh') {
+            if (subtags.includes('hans')) return 'zh'
+            if (subtags.includes('hant')) return 'zh-Hant'
+            return subtags.some((part) => ['tw', 'hk', 'mo'].includes(part)) ? 'zh-Hant' : 'zh'
+          }
+          if (primary === 'pt') return 'pt-BR'
+          if (primary === 'in') return 'id'
+          if (primary === 'tl') return 'fil'
+          return supported.includes(primary) ? primary : null
+        }
         let stored
         try {
           stored = localStorage.getItem('dmsg:locale')
@@ -25,7 +33,7 @@
             .find(Boolean) ||
           'en'
         document.documentElement.lang = locale
-        document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
+        document.documentElement.dir = (locale === 'ar' || locale === 'ur') ? 'rtl' : 'ltr'
       })()
     </script>
 

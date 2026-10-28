@@ -562,7 +562,7 @@ html[lang='zh'] .home .hero h1 > span {
 html:is([lang='fr'], [lang='es'], [lang='ru']) .home .hero h1 {
   font-size: clamp(36px, 3.9vw, 56px);
 }
-html[lang='ar'] .home .hero h1 {
+html:is([lang='ar'], [lang='ur']) .home .hero h1 {
   font-size: clamp(36px, 4.2vw, 58px);
   line-height: 1.4;
   letter-spacing: 0;
@@ -596,7 +596,7 @@ html[lang='ar'] .home .hero h1 {
   html[lang='zh'] .home .hero h1 {
     font-size: clamp(26px, 7.2vw, 48px);
   }
-  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar']) .home .hero h1 {
+  html:is([lang='fr'], [lang='es'], [lang='ru'], [lang='ar'], [lang='ur']) .home .hero h1 {
     font-size: clamp(30px, 7.4vw, 48px);
   }
   .home .hero-kicker {

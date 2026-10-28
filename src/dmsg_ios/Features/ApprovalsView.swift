@@ -101,7 +101,7 @@ struct ApprovalDetailView: View {
                     VStack(spacing: 8) {
                         TimelineView(.periodic(from: .now, by: 1)) { context in
                             let expired = context.date.timeIntervalSince1970 * 1000 >= Double(request.expiresAt)
-                            Text(expired ? "This request has expired" : "Your decision applies only to this request.")
+                            Text(LocalizedStringKey(expired ? "This request has expired" : "Your decision applies only to this request."))
                                 .font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Button("Reject", role: .destructive) { decision = false }.buttonStyle(.bordered).frame(maxWidth: .infinity)
@@ -121,9 +121,9 @@ struct ApprovalDetailView: View {
                 }
             }
             .task(id: request.id + ":\(model.epoch):\(model.concealed)") { await load() }
-            .confirmationDialog(decision == true ? "Approve the reviewed request?" : "Reject this request?",
+            .confirmationDialog(LocalizedStringKey(decision == true ? "Approve the reviewed request?" : "Reject this request?"),
                 isPresented: Binding(get: { decision != nil }, set: { if !$0 { decision = nil } })) {
-                Button(decision == true ? "Approve this request" : "Reject", role: decision == true ? nil : .destructive) {
+                Button(LocalizedStringKey(decision == true ? "Approve this request" : "Reject"), role: decision == true ? nil : .destructive) {
                     if let approve = decision { decisionTask = Task { await decide(approve) } }
                 }
             }

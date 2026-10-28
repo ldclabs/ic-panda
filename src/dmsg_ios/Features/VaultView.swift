@@ -141,7 +141,7 @@ struct VaultDetailView: View {
                     ObjectIcon(glyph: .vaultItem(item.kind))
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title).font(.title2.bold()).accessibilityIdentifier("vault.detail.title")
-                        Text(item.synced ? "Synced" : "Saved on this device").font(.caption).foregroundStyle(.secondary)
+                        Text(LocalizedStringKey(item.synced ? "Synced" : "Saved on this device")).font(.caption).foregroundStyle(.secondary)
                     }
                 }.padding(.vertical, 6).listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section {
@@ -153,7 +153,7 @@ struct VaultDetailView: View {
                                     .textSelection(.disabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 if field.concealed {
-                                    Button(revealed[field.id] == nil ? "Reveal" : "Hide", systemImage: revealed[field.id] == nil ? "eye" : "eye.slash") {
+                                    Button(LocalizedStringKey(revealed[field.id] == nil ? "Reveal" : "Hide"), systemImage: revealed[field.id] == nil ? "eye" : "eye.slash") {
                                         if revealed[field.id] != nil { revealed.removeValue(forKey: field.id) }
                                         else { pendingField = field; copyPending = false }
                                     }.labelStyle(.iconOnly).font(.system(size: 20)).frame(minWidth: 44, minHeight: 44).disabled(item.reserved)
@@ -185,7 +185,7 @@ struct VaultDetailView: View {
                 NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
                 Button("Retry") { reload &+= 1 }.accessibilityIdentifier("vault.detail.retry")
             } else { ProgressView().accessibilityIdentifier("vault.detail.loading") }
-        }.privateScreen().navigationTitle(revision == nil ? "Secret" : "Historical version").navigationBarTitleDisplayMode(.inline)
+        }.privateScreen().navigationTitle(LocalizedStringKey(revision == nil ? "Secret" : "Historical version")).navigationBarTitleDisplayMode(.inline)
             .task(id: "\(id):\(revision ?? "head"):\(model.epoch):\(model.concealed):\(reload)") {
                 // Background suspension invalidates in-flight reads without
                 // destroying the navigation column. Resume with a fresh handle.
@@ -199,8 +199,8 @@ struct VaultDetailView: View {
             .navigationDestination(item: $referenceTarget) { target in
                 SecretFieldReferenceView(itemID: target.itemID, fieldID: target.fieldID)
             }
-            .confirmationDialog(copyPending ? "Copy this field?" : "Reveal this field?", isPresented: Binding(get: { pendingField != nil }, set: { if !$0 { pendingField = nil } })) {
-                Button(copyPending ? "Copy for 30 seconds" : "Reveal") { if let field = pendingField { revealTask?.cancel(); revealTask = Task { await reveal(field) } } }
+            .confirmationDialog(LocalizedStringKey(copyPending ? "Copy this field?" : "Reveal this field?"), isPresented: Binding(get: { pendingField != nil }, set: { if !$0 { pendingField = nil } })) {
+                Button(LocalizedStringKey(copyPending ? "Copy for 30 seconds" : "Reveal")) { if let field = pendingField { revealTask?.cancel(); revealTask = Task { await reveal(field) } } }
             } message: { Text("Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.") }
     }
 
@@ -301,7 +301,7 @@ struct VaultEditor: View {
                 ForEach($fields) { $field in
                     VStack(alignment: .leading) {
                         Text(field.label.isEmpty ? (field.kind == "otp" ? String(localized: "One-time code") : vaultFieldName(field.id)) : field.label).font(.caption).foregroundStyle(.secondary)
-                        if field.concealed { SecureField(target.item == nil ? "Value" : "Leave empty to keep existing value", text: $field.value) }
+                        if field.concealed { SecureField(LocalizedStringKey(target.item == nil ? "Value" : "Leave empty to keep existing value"), text: $field.value) }
                         else { TextField("Value", text: $field.value).textInputAutocapitalization(.never) }
                         DisclosureGroup("Field settings") {
                             TextField("Field name", text: $field.label)
@@ -340,7 +340,7 @@ struct VaultEditor: View {
             }
             NoticeBar(text: String(localized: "Saved locally first. Sync status is shown separately."))
             if target.item != nil { Button("Move to Trash", role: .destructive) { deleting = true } }
-        }.privateScreen().navigationTitle(target.item == nil ? "New secret" : "Edit secret")
+        }.privateScreen().navigationTitle(LocalizedStringKey(target.item == nil ? "New secret" : "Edit secret"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving) }

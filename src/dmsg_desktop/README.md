@@ -8,18 +8,17 @@ desktop is one of its clients, like the CLI.
   when none runs) and gets the daemon's address and owner credential from
   `dmsg app-token`, keeps one `/ws/app/v1` connection, forwards its events,
   owns the tray, notifications, file dialogs, the clipboard, `dmsg://` links
-  and updates. Its text (`src/main/text.ts`) is in the interface language.
+  and updates. `src/main/text.ts` selects its interface text from the per-language
+  catalogs in `src/main/messages`; `messages/en.ts` defines their `Text` contract.
   While it is not connected, the main window shows why: the error `dmsg`
   reported, such as a `config.toml` it refused. Without a `config.toml` the
   daemon uses the production deployment built into `dmsg`.
-- **Languages** (`src/shared/locales.ts`): English, Simplified Chinese,
-  Russian, Arabic, French and Spanish, as on the website. The main process
-  resolves one (the person's choice, kept in the profile's `locale` file,
-  else the system's preferred languages, else English) and passes it to
-  each window; the language picker in Settings changes it for the tray,
-  dialogs and both windows at once. Arabic lays the windows out right to
-  left: panes, menus and directional icons mirror, while IDs, code and
-  numbers keep their left-to-right order.
+- **Languages** (`src/shared/locales.ts`): English, Simplified and Traditional
+  Chinese, Russian, Arabic, French, Spanish, Hindi, Indonesian, Brazilian
+  Portuguese, Japanese, German, Korean, Italian and Turkish. The saved choice
+  takes precedence over system preferences and updates both windows, the tray,
+  notifications and native dialogs. TW/HK/MO share one Traditional catalog;
+  Portuguese preferences use the Brazilian catalog. Arabic uses RTL layout.
 - **Appearance** (`src/shared/appearance.ts`): the system's, light or dark,
   kept in the profile's `appearance` file. The main process sets Electron's
   `nativeTheme` from it, so both windows, their menus and dialogs follow it
@@ -38,6 +37,12 @@ desktop is one of its clients, like the CLI.
   licenses ship in `public/licenses`. Motion stops when the system asks
   for reduced motion. The text is in `i18n/messages`, one catalog per
   language, each checked against the English one.
+
+  Native catalogs contain strings and typed formatting functions for Electron
+  APIs; renderer catalogs contain page strings with named placeholders, used by
+  the reactive Svelte translation layer. Both share `src/shared/locales.ts`.
+  The catalogs themselves are pure modules; reusable text shared by both processes
+  belongs in `src/shared`, while the renderer's runtime depends on Svelte and DOM APIs.
 
   The main window's shell (`shell/`) has a sidebar with the account
   switcher (this device's accounts, another login), the views in three
@@ -678,3 +683,24 @@ mask portalled dialogs and make the document inert while preserving same-session
 edits. Each queued display read carries its own mode, so unrelated completions
 cannot turn a cache-event local reread into an entitlement refresh. Visible
 windows periodically reread profile/name snapshots; the daemon alone owns TTLs.
+
+## Localization verification (2026-10-28)
+
+All 23 locales include the main window, approval window, tray, notifications,
+updates and native dialogs. Wallet and credential workflow copy lives in the
+same checked catalogs as other interface text. Existing translations were
+preserved. A window reload receives the main process's current language instead
+of reverting to its original process argument.
+
+`pnpm check`, `pnpm test` (130 tests), and `pnpm build` passed. With the built
+app, `DMSG_DESKTOP_SMOKE=languages node scripts/smoke.mjs` verifies all 23
+choices through keyboard navigation, persistence and reloading both windows.
+It captures both themes at the minimum main/approval sizes (760×540/400×560).
+`DMSG_DESKTOP_SMOKE=settings node scripts/smoke.mjs` covers all nine settings
+routes, editor focus, drafts, retry and late replies, including German,
+Traditional Chinese, Hindi, French, all eight second-stage languages,
+and Arabic/Urdu RTL screenshots.
+
+The translations received terminology and representative screenshot review.
+Native-speaker review, Windows/Linux UI runs and production OS identity/file
+dialogs were not performed for this change.

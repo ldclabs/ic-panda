@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 gün</string>
+	<key>1 hour</key>
+	<string>1 saat</string>
+	<key>7 days</key>
+	<string>7 gün</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>Arka plan aktarımı başka bir hesaba ait. Bitirmek veya iptal etmek için o hesaba geçin.</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>Daha sonraki geçmiş izinleri de dahil olmak üzere, bu döneme erişimi olan üyelere bir kanal anlık görüntüsü sunulur. Bağlantının sona ermesi, indirme oturumu sınırı veya geri çağırma yoktur.</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>Bir indirme oturumu, dosya okumalarının sayısı değil, bir alma iznidir. Sürenin sona ermesi veya iptal edilmesi, önceden kaydedilmiş kopyaları silemez.</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>Bir kayıt veya cihaz anahtarı doğrulanamadı. Çalışma alanınız silinmedi.</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>Referans bir alanı tanımlar; gizli değerini içermez veya okunmasına izin vermez.</string>
+	<key>A snapshot contains an older credential</key>
+	<string>Anlık görüntü daha eski bir kimlik bilgisi içeriyor</string>
+	<key>A snapshot link is still active</key>
+	<string>Anlık görüntü bağlantısı hâlâ etkin</string>
+	<key>API credential</key>
+	<string>API kimlik bilgisi</string>
+	<key>About</key>
+	<string>Hakkında</string>
+	<key>Accept approved binding</key>
+	<string>Onaylanmış bağlamayı kabul et</string>
+	<key>Access granted</key>
+	<string>Erişim verildi</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>dMsg'dan açıkça dışa aktardığınız kopyalara erişin</string>
+	<key>Account</key>
+	<string>Hesap</string>
+	<key>Account ID</key>
+	<string>Hesap Kimliği</string>
+	<key>Account recovery</key>
+	<string>Hesap kurtarma</string>
+	<key>Account recovery is pending</key>
+	<string>Hesap kurtarma işlemi bekleniyor</string>
+	<key>Account security</key>
+	<string>Hesap güvenliği</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>Hesap, cihaz ve kimlik koruması birlikte değişir. Gerekli bir onay sıradan bir onay diyaloğuna dönüşemez.</string>
+	<key>Account, devices and identities</key>
+	<string>Hesap, cihazlar ve kimlikler</string>
+	<key>Accounts</key>
+	<string>Hesaplar</string>
+	<key>Active conversations</key>
+	<string>Aktif konuşmalar</string>
+	<key>Activity on this device</key>
+	<string>Bu cihazdaki etkinlik</string>
+	<key>Add device</key>
+	<string>Cihaz ekle</string>
+	<key>Add field</key>
+	<string>Alan ekle</string>
+	<key>Add item</key>
+	<string>Öğe ekle</string>
+	<key>Add message to demo</key>
+	<string>Demoya mesaj ekle</string>
+	<key>Add one-time code</key>
+	<string>Tek kullanımlık kod ekle</string>
+	<key>Add receiving address</key>
+	<string>Alıcı adresi ekle</string>
+	<key>Add sample login</key>
+	<string>Örnek giriş ekle</string>
+	<key>Added</key>
+	<string>Eklendi</string>
+	<key>Address</key>
+	<string>Adres</string>
+	<key>Address label</key>
+	<string>Adres etiketi</string>
+	<key>Address verification failed</key>
+	<string>Adres doğrulaması başarısız oldu</string>
+	<key>Administrative approvals %u</key>
+	<string>İdari onaylar %u</string>
+	<key>Administrator</key>
+	<string>Yönetici</string>
+	<key>Agent ID</key>
+	<string>Temsilci Kimliği</string>
+	<key>Agents</key>
+	<string>Temsilciler</string>
+	<key>All</key>
+	<string>Hepsi</string>
+	<key>All caught up</key>
+	<string>Hepsi yakalandı</string>
+	<key>All devices lost?</key>
+	<string>Tüm cihazlar mı kayboldu?</string>
+	<key>All files</key>
+	<string>Tüm dosyalar</string>
+	<key>Allow key rotation</key>
+	<string>Anahtar rotasyonuna izin ver</string>
+	<key>Allowed</key>
+	<string>İzin verildi</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>İzin verilen hesap kimlikleri, her satıra bir tane</string>
+	<key>Already imported</key>
+	<string>Zaten içe aktarıldı</string>
+	<key>Already present</key>
+	<string>Zaten mevcut</string>
+	<key>Amount in base units</key>
+	<string>Temel birim cinsinden tutar</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>Hesap kurtarma işlemi bekleniyor. Bunu Hesap güvenliği bölümünde inceleyin.</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>Bağlantının tamamına ve gerekli parolaya sahip olan herkes, kendi sınırları dahilinde bu bağlantıyı geri alabilir.</string>
+	<key>Anyone, free of charge</key>
+	<string>Herkes ücretsiz</string>
+	<key>App Store subscriptions</key>
+	<string>App Store abonelikleri</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>Uygulama doğrulaması bu cihazda kullanılamıyor. Kaydedilen içeriğiniz kullanılabilir durumda kalır.</string>
+	<key>Apply these receiving rules?</key>
+	<string>Bu alma kuralları uygulansın mı?</string>
+	<key>Apply this conversation change?</key>
+	<string>Bu görüşme değişikliği uygulansın mı?</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>Onay, yalnızca seçtiğiniz alanları ve ekleri yeni bağımsız öğeler olarak içe aktarır. Dosyalar yerel kalır ve hedef klasörün erişim izinlerini devralır.</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>Onay, incelenen alanları ve ekleri tam olarak bağımsız bir anlık görüntü olarak yayınlar. Hedefi ve sınırları doğrulayın; alıcılar kopyaları saklayabilir.</string>
+	<key>Approval thresholds</key>
+	<string>Onay eşikleri</string>
+	<key>Approvals</key>
+	<string>Onaylar</string>
+	<key>Approve</key>
+	<string>Onayla</string>
+	<key>Approve a binding request</key>
+	<string>Bağlayıcı bir isteği onaylama</string>
+	<key>Approve the reviewed request?</key>
+	<string>İncelenen istek onaylansın mı?</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>İncelediğiniz cüzdan işlem planını onaylayın</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>Bu cihazı onaylayın ve yeni içerik anahtarlarını dağıtın</string>
+	<key>Approve this request</key>
+	<string>Bu isteği onayla</string>
+	<key>Approved by</key>
+	<string>Onaylayan:</string>
+	<key>Approver</key>
+	<string>Onaylayan</string>
+	<key>Archive</key>
+	<string>Arşiv</string>
+	<key>Archive conversation</key>
+	<string>Konuşmayı arşivle</string>
+	<key>Archived</key>
+	<string>Arşivlendi</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>Bir yöneticiden bu girişi mevcut hesabınıza bağlamasını isteyin. Cihaz yetkilendirmesi ayrı bir adımdır.</string>
+	<key>Asset identifier</key>
+	<string>Varlık tanımlayıcı</string>
+	<key>Attach</key>
+	<string>Ekle</string>
+	<key>Attach a file</key>
+	<string>Dosya ekle</string>
+	<key>Attach file</key>
+	<string>Dosya ekle</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>Ek yedeklemesi onaylanmadı</string>
+	<key>Attachment unavailable on this device</key>
+	<string>Bu cihazda eklenti kullanılamıyor</string>
+	<key>Attestations</key>
+	<string>Onaylar</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>Kitle kaynakları veya Temsilci Kimlikleri, her satıra bir tane gelecek şekilde</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>dMsg'dan dışa aktardığınız dosya kopyalarına erişmek için kimlik doğrulaması yapın. Erişim beş dakika sürer; anlık görüntünün süresi 24 saat sonra dolar.</string>
+	<key>Authenticate to continue</key>
+	<string>Devam etmek için kimlik doğrulaması yapın</string>
+	<key>Authorize a new device</key>
+	<string>Yeni bir cihazı yetkilendirin</string>
+	<key>Authorize another device</key>
+	<string>Başka bir cihazı yetkilendirin</string>
+	<key>Authorize this device</key>
+	<string>Bu cihazı yetkilendir</string>
+	<key>Authorize this device's approval key</key>
+	<string>Bu cihazın onay anahtarını yetkilendirin</string>
+	<key>Authorize this iPhone</key>
+	<string>Bu iPhone'u yetkilendirin</string>
+	<key>Authorized device</key>
+	<string>Yetkili cihaz</string>
+	<key>Authorized devices</key>
+	<string>Yetkili cihazlar</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Otomatik Doldurma yalnızca seçtiğiniz oturum açma öğelerini alır. Anlık görüntünün süresi 24 saat sonra dolar ve çalışma alanından bağımsız olarak sistem kimlik doğrulaması gerektirir. Kullanıcı adları ve web sitesi adları sistem önerilerinde görünebilir.</string>
+	<key>AutoFill snapshot updated</key>
+	<string>Otomatik Doldurma anlık görüntüsü güncellendi</string>
+	<key>Automatic foreground sync</key>
+	<string>Otomatik ön plan senkronizasyonu</string>
+	<key>Back</key>
+	<string>Geri</string>
+	<key>Back up encrypted copy</key>
+	<string>Şifrelenmiş kopyayı yedekle</string>
+	<key>Back up this file?</key>
+	<string>Bu dosya yedeklensin mi?</string>
+	<key>Back up to cloud</key>
+	<string>Buluta yedekle</string>
+	<key>Backed up</key>
+	<string>Yedeklendi</string>
+	<key>Background ciphertext transfer</key>
+	<string>Arka planda şifreli metin aktarımı</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>Arka planda imzalama ve yerleşik aracı özellikleri bu çalışma alanı kilidinden ayrıdır.</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>Arka plan aktarımı başladı. Transferler'deki ilerleme durumunu inceleyin.</string>
+	<key>Backing up…</key>
+	<string>Yedekleniyor…</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>Yedekleme ilerlemesi kaydedildi. Tamamlanmak üzere dosya durumunu kontrol edin.</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>Yedekleme sıraya alındı. Yüklemeyi tamamlamak için dMsg'yu açık tutun.</string>
+	<key>Bind another Internet Identity</key>
+	<string>Başka bir Internet Identity bağlayın</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>Bu çalışma alanı bu iPhone'a bağlansın mı?</string>
+	<key>Bind workspace</key>
+	<string>Çalışma alanını bağla</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>Binding, bu yerel çalışma alanını yeni bir oturum açma sonrasında bile korur. Değiştirmeden önce başka bir yetkili cihazı veya kurtarma yolunu saklayın.</string>
+	<key>Biometrics only</key>
+	<string>Yalnızca biyometri</string>
+	<key>Biometrics only for exported copies</key>
+	<string>Yalnızca dışa aktarılan kopyalar için biyometri</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>Yalnızca biyometri anahtarları cihazın şifresini kullanamaz ve kayıtlı biyometri bilgileri değiştiğinde çalışmayı durdurabilir.</string>
+	<key>Birthday</key>
+	<string>Doğum günü</string>
+	<key>Bitcoin</key>
+	<string>bitcoin</string>
+	<key>Block this account</key>
+	<string>Bu hesabı engelle</string>
+	<key>Blocked accounts</key>
+	<string>Engellenen hesaplar</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>Engellenen gönderenler bu cihazda gizlenir. Çevrimiçi engellemeler aynı zamanda yeni doğrudan iletişim ve davetleri de engeller; mevcut paylaşılan kopyalar geri çağrılmaz.</string>
+	<key>Broadcast original signed transaction</key>
+	<string>Orijinal imzalı işlemi yayınla</string>
+	<key>Browser request</key>
+	<string>Tarayıcı isteği</string>
+	<key>Cancel</key>
+	<string>İptal</string>
+	<key>Cancel background transfer</key>
+	<string>Arka plan aktarımını iptal et</string>
+	<key>Cancel pending request</key>
+	<string>Bekleyen isteği iptal et</string>
+	<key>Cancel proposal</key>
+	<string>Teklifi iptal et</string>
+	<key>Cancel reply</key>
+	<string>Cevabı iptal et</string>
+	<key>Cancel request</key>
+	<string>İsteği iptal et</string>
+	<key>Cancel this pending request?</key>
+	<string>Bekleyen bu istek iptal edilsin mi?</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>İptal, karara bağlanmamış bu talep için geçerlidir. Tamamlanmış bir teslimatı geri almaz.</string>
+	<key>Cancelled</key>
+	<string>İptal edildi</string>
+	<key>Capabilities, one per line</key>
+	<string>Yetenekler, satır başına bir tane</string>
+	<key>Cardholder</key>
+	<string>Kart sahibi</string>
+	<key>Chain</key>
+	<string>Zincir</string>
+	<key>Change a device secret policy</key>
+	<string>Cihazın gizli politikasını değiştirme</string>
+	<key>Change account security</key>
+	<string>Hesap güvenliğini değiştir</string>
+	<key>Change device permissions</key>
+	<string>Cihaz izinlerini değiştir</string>
+	<key>Change hardware approval policy</key>
+	<string>Donanım onay politikasını değiştirin</string>
+	<key>Change identity settings</key>
+	<string>Kimlik ayarlarını değiştir</string>
+	<key>Change role</key>
+	<string>Rolü değiştir</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>Değişiklikler teklif oluşturur ve yine de cüzdanın mevcut onaylarını gerektirir. Mevcut politika alanları ve üye aracısı izinleri korunur.</string>
+	<key>Channel</key>
+	<string>Kanal</string>
+	<key>Channel ID</key>
+	<string>Kanal kimliği</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>Kanal kopyalarının geçerlilik süresi, geri alma sınırı veya geri çağırma sınırı yoktur. Alıcılar bağımsız kopyaları saklayabilir.</string>
+	<key>Channel snapshot</key>
+	<string>Kanal anlık görüntüsü</string>
+	<key>Channels</key>
+	<string>Kanallar</string>
+	<key>Check authorization</key>
+	<string>Yetkilendirmeyi kontrol edin</string>
+	<key>Check deletion status</key>
+	<string>Silme durumunu kontrol edin</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>Proje referanslarını ve halihazırda teslim edilmiş olan kopyaları kontrol edin.</string>
+	<key>Check recovery status</key>
+	<string>Kurtarma durumunu kontrol edin</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>Erişimin hâlâ gerekli olup olmadığına karar vermeden önce bu cihazın etkinliğini kontrol edin.</string>
+	<key>Checking permission…</key>
+	<string>İzin kontrol ediliyor…</string>
+	<key>Checklist completed</key>
+	<string>Kontrol listesi tamamlandı</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>İfadelerinizden tamamlanan kontrol listesi. Yukarı akış durumu yalnızca sağlayıcı tarafından bağımsız olarak doğrulanabilir durumda kalır.</string>
+	<key>Choose a credential for:</key>
+	<string>Aşağıdakiler için bir kimlik bilgisi seçin:</string>
+	<key>Choose a secret</key>
+	<string>Bir sır seç</string>
+	<key>Choose a version</key>
+	<string>Bir sürüm seçin</string>
+	<key>Choose an attachment</key>
+	<string>Bir ek seçin</string>
+	<key>Choose avatar</key>
+	<string>Avatar seç</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>Bu bağımsız anlık görüntünün tam olarak ne içerdiğini seçin. Kaynak düzenlemeleri önceden gönderilmiş olan kopyaları değiştirmeyecektir.</string>
+	<key>Choose password export</key>
+	<string>Şifre dışa aktarmayı seçin</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>iOS Ayarlarında dMsg dilini seçin.</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>Hangi sürümün tutulacağını seçin. Mevcut geçmiş korunur; sırların üzerine asla sessizce yazılmaz.</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>Size kimin ücretsiz mektup gönderebileceğini seçin. Engellenen hesaplar siz engellemeyi kaldırıncaya kadar engellenmiş olarak kalır.</string>
+	<key>Closed</key>
+	<string>Kapalı</string>
+	<key>Cloud backups</key>
+	<string>Bulut yedeklemeleri</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>Bulut yedekleri tutulur. Bu yalnızca bu cihazdaki kopyayı değiştirir.</string>
+	<key>Cloud deletion completed</key>
+	<string>Bulut silme işlemi tamamlandı</string>
+	<key>Cloud storage</key>
+	<string>Bulut depolama</string>
+	<key>Complete recovery after waiting period</key>
+	<string>Bekleme süresinden sonra tam iyileşme</string>
+	<key>Completed</key>
+	<string>Tamamlandı</string>
+	<key>Configure a desktop file mapping</key>
+	<string>Masaüstü dosya eşlemesini yapılandırma</string>
+	<key>Configured on this device</key>
+	<string>Bu cihazda yapılandırılmış</string>
+	<key>Confirm change</key>
+	<string>Değişikliği onayla</string>
+	<key>Confirm completed step</key>
+	<string>Tamamlanan adımı onaylayın</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>Yalnızca gerçekten tamamladığınız işleri onaylayın. Bu, beyanınızı kaydeder; sağlayıcı eylemini yürütmez.</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>İncelediğiniz dMsg isteğini onaylayın</string>
+	<key>Confirm this account security change</key>
+	<string>Bu hesap güvenliği değişikliğini onaylayın</string>
+	<key>Confirm your completed steps</key>
+	<string>Tamamlanan adımlarınızı onaylayın</string>
+	<key>Conflicting version</key>
+	<string>Çakışan sürüm</string>
+	<key>Connect</key>
+	<string>Bağlan</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>Yalnızca kontrol ettiğiniz bir tarayıcıyı bağlayın. Bağlı bir tarayıcı istek gönderebilir; her imza yine de dMsg'da onayınızı gerektirir.</string>
+	<key>Connect this browser</key>
+	<string>Bu tarayıcıyı bağla</string>
+	<key>Connect this browser?</key>
+	<string>Bu tarayıcı bağlansın mı?</string>
+	<key>Connected browsers</key>
+	<string>Bağlı tarayıcılar</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>Bağlantı kullanılamıyor. Kaydedilen içeriğiniz bu cihazda kalır.</string>
+	<key>Contact invitation, if provided</key>
+	<string>Sağlanmışsa iletişim davetiyesi</string>
+	<key>Contact support</key>
+	<string>Desteğe başvurun</string>
+	<key>Continue import</key>
+	<string>İçe aktarmaya devam et</string>
+	<key>Continue password import</key>
+	<string>Şifreyi içe aktarmaya devam et</string>
+	<key>Continue selected backups</key>
+	<string>Seçilen yedeklemelere devam et</string>
+	<key>Continue this backup in background</key>
+	<string>Bu yedeklemeye arka planda devam et</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>Bu içe aktarma işlemine başlangıçta seçtiğiniz hesapta devam edin.</string>
+	<key>Continue with Internet Identity</key>
+	<string>Internet Identity ile devam edin</string>
+	<key>Controller ID</key>
+	<string>Denetleyici Kimliği</string>
+	<key>Controller name</key>
+	<string>Denetleyici adı</string>
+	<key>Controllers</key>
+	<string>Kontrolörler</string>
+	<key>Controllers and delegations</key>
+	<string>Kontrolörler ve delegasyonlar</string>
+	<key>Conversation</key>
+	<string>Konuşma</string>
+	<key>Conversation name</key>
+	<string>Görüşme adı</string>
+	<key>Conversation settings</key>
+	<string>Konuşma ayarları</string>
+	<key>Copied for 30 seconds</key>
+	<string>30 saniye boyunca kopyalandı</string>
+	<key>Copy</key>
+	<string>Kopyala</string>
+	<key>Copy address</key>
+	<string>Adresi kopyala</string>
+	<key>Copy binding request</key>
+	<string>Bağlama isteğini kopyala</string>
+	<key>Copy enrollment request</key>
+	<string>Kayıt isteğini kopyala</string>
+	<key>Copy for 30 seconds</key>
+	<string>30 saniye boyunca kopyala</string>
+	<key>Copy link</key>
+	<string>Bağlantıyı kopyala</string>
+	<key>Copy pairing request</key>
+	<string>Eşleştirme isteğini kopyala</string>
+	<key>Copy reference</key>
+	<string>Referansı kopyala</string>
+	<key>Copy this field?</key>
+	<string>Bu alan kopyalansın mı?</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>Önerilen adres politikası için ortak imzacılar</string>
+	<key>Create</key>
+	<string>Oluştur</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>Sağlayıcısında yeni bir kimlik bilgisi oluşturun ve bunu kasaya kaydedin</string>
+	<key>Create a new pairing request</key>
+	<string>Yeni bir eşleştirme isteği oluştur</string>
+	<key>Create a revocation request?</key>
+	<string>İptal talebi oluşturulsun mu?</string>
+	<key>Create agent</key>
+	<string>Temsilci oluştur</string>
+	<key>Create an administrator enrollment request</key>
+	<string>Yönetici kayıt isteği oluşturma</string>
+	<key>Create an agent identity</key>
+	<string>Temsilci kimliği oluşturma</string>
+	<key>Create binding request</key>
+	<string>Bağlama isteği oluştur</string>
+	<key>Create conversation</key>
+	<string>Görüşme oluştur</string>
+	<key>Create hardware cosigner</key>
+	<string>Donanım ortak imzalayıcısı oluşturun</string>
+	<key>Create invitation</key>
+	<string>Davetiye oluştur</string>
+	<key>Create proposal</key>
+	<string>Teklif oluştur</string>
+	<key>Create this wallet proposal?</key>
+	<string>Bu cüzdan teklifi oluşturulsun mu?</string>
+	<key>Create transfer proposal</key>
+	<string>Transfer teklifi oluştur</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>Şifreleri, notları ve dosyaları kaydetmeye başlamak için şifrelenmiş çalışma alanınızı oluşturun.</string>
+	<key>Credential</key>
+	<string>Kimlik bilgisi</string>
+	<key>Credential ID</key>
+	<string>Kimlik bilgisi kimliği</string>
+	<key>Credential expired</key>
+	<string>Kimlik bilgisinin süresi doldu</string>
+	<key>Credential reused</key>
+	<string>Kimlik bilgileri yeniden kullanıldı</string>
+	<key>Credential rotation</key>
+	<string>Kimlik bilgisi rotasyonu</string>
+	<key>Current</key>
+	<string>Mevcut</string>
+	<key>Current local dependencies</key>
+	<string>Mevcut yerel bağımlılıklar</string>
+	<key>Current login</key>
+	<string>Mevcut giriş</string>
+	<key>Current plan and limits</key>
+	<string>Mevcut plan ve sınırlar</string>
+	<key>Current policy requires payment</key>
+	<string>Mevcut politika ödeme gerektiriyor</string>
+	<key>Current term ends</key>
+	<string>Mevcut dönem sona eriyor</string>
+	<key>Current version</key>
+	<string>Güncel sürüm</string>
+	<key>Cvv</key>
+	<string>Özgeçmiş</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>dMsg'da yeni aktivite.</string>
+	<key>Database</key>
+	<string>Veritabanı</string>
+	<key>Date</key>
+	<string>Tarih</string>
+	<key>Delegations</key>
+	<string>Heyetler</string>
+	<key>Delete account</key>
+	<string>Hesabı sil</string>
+	<key>Delete cloud backup</key>
+	<string>Bulut yedeklemesini sil</string>
+	<key>Delete this cloud backup?</key>
+	<string>Bu bulut yedeklemesi silinsin mi?</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>dMsg hesabınızı silmek Apple aboneliğinizi iptal etmez. Yenilemeyi durdurmak için Apple hesap ayarlarınızdan iptal edin.</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>dMsg hizmet hesabınızı sildiğinizde, bulut şifre metni, özel hizmet verileri, cihaz bildirim kayıtları ve genel avatar kaynak kopyaları kalıcı olarak kaldırılır. Blockchain kayıtlarını, diğer alıcıların kopyalarını veya diğer hizmetler tarafından tutulan verileri silemez.</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>Silme işlemi fon aktarımı sağlamaz. Yerel anahtarların ve bulut kopyalarının kaldırılması, bu cihazın cüzdanlara ve harici kimlik bilgilerine erişimini kalıcı olarak kaldırabilir.</string>
+	<key>Deletion is in progress</key>
+	<string>Silme işlemi devam ediyor</string>
+	<key>Deletion status</key>
+	<string>Silme durumu</string>
+	<key>Deliver a secret to a local process</key>
+	<string>Yerel bir sürece bir sır teslim etme</string>
+	<key>Demo approved · No signature created</key>
+	<string>Demo onaylandı · İmza oluşturulmadı</string>
+	<key>Demo rejected · No signature created</key>
+	<string>Demo reddedildi · İmza oluşturulmadı</string>
+	<key>Demo section</key>
+	<string>Demo bölümü</string>
+	<key>Dependencies on this device</key>
+	<string>Bu cihazdaki bağımlılıklar</string>
+	<key>Describe the issue</key>
+	<string>Sorunu açıklayın</string>
+	<key>Desktop file mapping</key>
+	<string>Masaüstü dosya eşleme</string>
+	<key>Desktop file mapping needs review</key>
+	<string>Masaüstü dosya eşlemesinin incelenmesi gerekiyor</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>Masaüstü-yerel komut onayları o masaüstünde kalır. Burada yalnızca bu cihaza sunulan istekler görünür.</string>
+	<key>Destination</key>
+	<string>Hedef</string>
+	<key>Destination folder</key>
+	<string>Hedef klasör</string>
+	<key>Device</key>
+	<string>Cihaz</string>
+	<key>Device ID</key>
+	<string>Cihaz Kimliği</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>Cihaz kimlik doğrulaması geçici olarak kullanılamıyor. Anahtarlarınız saklanır; Bu cihazın kilidi açıldığında tekrar deneyin.</string>
+	<key>Device pairing request QR code</key>
+	<string>Cihaz eşleştirme isteği QR kodu</string>
+	<key>Device permissions</key>
+	<string>Cihaz izinleri</string>
+	<key>Device policy</key>
+	<string>Cihaz politikası</string>
+	<key>Device policy needs review</key>
+	<string>Cihaz politikasının incelenmesi gerekiyor</string>
+	<key>Device request</key>
+	<string>Cihaz isteği</string>
+	<key>Device-bound workspace</key>
+	<string>Cihaza bağlı çalışma alanı</string>
+	<key>Devices</key>
+	<string>Cihazlar</string>
+	<key>Disabled</key>
+	<string>Devre dışı</string>
+	<key>Discard</key>
+	<string>At</string>
+	<key>Discard staged copy</key>
+	<string>Aşamalı kopyayı sil</string>
+	<key>Discard this staged copy?</key>
+	<string>Bu aşamalı kopya silinsin mi?</string>
+	<key>Dismiss this observation</key>
+	<string>Bu gözlemi reddet</string>
+	<key>Dismiss this observation?</key>
+	<string>Bu gözlem reddedilsin mi?</string>
+	<key>Dispute pending recovery</key>
+	<string>Uyuşmazlığın iyileşmesi bekleniyor</string>
+	<key>Done</key>
+	<string>Bitti</string>
+	<key>Download encrypted copy in background</key>
+	<string>Arka planda şifrelenmiş kopyayı indirin</string>
+	<key>Download sessions</key>
+	<string>Oturumları indir</string>
+	<key>Downloading encrypted backup</key>
+	<string>Şifrelenmiş yedekleme indiriliyor</string>
+	<key>Draft: </key>
+	<string>Taslak: </string>
+	<key>EVM</key>
+	<string>EVM</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>Her mobil paket, seçilen eklentiler de dahil olmak üzere 8 MiB ile sınırlıdır. Nihai onay, kesin değişmez seçimi ve hedefi gösterir.</string>
+	<key>Edit item</key>
+	<string>Öğeyi düzenle</string>
+	<key>Edit member</key>
+	<string>Üyeyi düzenle</string>
+	<key>Edit message</key>
+	<string>Mesajı düzenle</string>
+	<key>Edit secret</key>
+	<string>Sırrı düzenle</string>
+	<key>Edited</key>
+	<string>Düzenlendi</string>
+	<key>Email</key>
+	<string>E-posta</string>
+	<key>Enable automatic sync</key>
+	<string>Otomatik senkronizasyonu etkinleştir</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>Bu hesap için otomatik senkronizasyon etkinleştirilsin mi?</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>Otomatik Doldurma ayarlarında dMsg'yu etkinleştirin</string>
+	<key>Encrypted backup</key>
+	<string>Şifreli yedekleme</string>
+	<key>Encrypting</key>
+	<string>Şifreleme</string>
+	<key>Engine</key>
+	<string>Motor</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>Kayıtlı biyometri değişti. Bu anahtara güvenmeden önce bir yedek anahtar kaydedin.</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>Her satıra bir tane olmak üzere geçerli hesap kimliklerini girin.</string>
+	<key>Error details</key>
+	<string>Hata ayrıntıları</string>
+	<key>Example document</key>
+	<string>Örnek belge</string>
+	<key>Example login</key>
+	<string>Örnek giriş</string>
+	<key>Execute</key>
+	<string>Yürüt</string>
+	<key>Execute approved proposal</key>
+	<string>Onaylanan teklifi yürüt</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>Bu onaylanmış cüzdan teklifi yürütülsün mü?</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>Mevcut engelleme kuralları, davetiyeler ve gelen kutusu kapasitesi korunur. Ücretsiz veya kapalı bir politikanın seçilmesi, daha önceki ücretli iletişim ayarlarının yerine geçer.</string>
+	<key>Expired</key>
+	<string>Süresi dolmuş</string>
+	<key>Expires</key>
+	<string>Süresi doluyor</string>
+	<key>Expires after</key>
+	<string>Şu tarihten sonra sona erer:</string>
+	<key>Expiry</key>
+	<string>Son kullanma tarihi</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>Bulut kopyasını istiyorsanız seçilen dosya sürümünü açıkça yedekleyin.</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>Seçilen oturum açma öğelerini Parola Otomatik Doldurma'ya aktarın</string>
+	<key>Failed</key>
+	<string>Başarısız</string>
+	<key>Favorite</key>
+	<string>Favori</string>
+	<key>Favorites</key>
+	<string>Favoriler</string>
+	<key>Field</key>
+	<string>Alan</string>
+	<key>Field name</key>
+	<string>Alan adı</string>
+	<key>Field reference</key>
+	<string>Alan referansı</string>
+	<key>Field reference and dependencies</key>
+	<string>Alan referansı ve bağımlılıklar</string>
+	<key>Field settings</key>
+	<string>Saha ayarları</string>
+	<key>Fields</key>
+	<string>Alanlar</string>
+	<key>File</key>
+	<string>Dosya</string>
+	<key>File name</key>
+	<string>Dosya adı</string>
+	<key>File not available on this device</key>
+	<string>Dosya bu cihazda kullanılamıyor</string>
+	<key>File versions</key>
+	<string>Dosya sürümleri</string>
+	<key>Files</key>
+	<string>Dosyalar</string>
+	<key>Files app copies</key>
+	<string>Dosyalar uygulaması kopyaları</string>
+	<key>Files app snapshot updated</key>
+	<string>Dosyalar uygulamasının anlık görüntüsü güncellendi</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>Dosyalar yalnızca açıkça bunu yapmayı seçtiğinizde yedeklenir.</string>
+	<key>Files in this folder</key>
+	<string>Bu klasördeki dosyalar</string>
+	<key>Fingerprint</key>
+	<string>Parmak izi</string>
+	<key>Folder name</key>
+	<string>Klasör adı</string>
+	<key>Freeze this wallet?</key>
+	<string>Bu cüzdan dondurulsun mu?</string>
+	<key>Freeze wallet</key>
+	<string>Cüzdanı dondur</string>
+	<key>Grant delegation</key>
+	<string>Yetki heyeti</string>
+	<key>Handled on another device</key>
+	<string>Başka bir cihazda işlendi</string>
+	<key>Harassment</key>
+	<string>Taciz</string>
+	<key>Hardware approval key</key>
+	<string>Donanım onay anahtarı</string>
+	<key>Hardware cosigners</key>
+	<string>Donanım ortak imzacıları</string>
+	<key>Hardware keys on this device</key>
+	<string>Bu cihazdaki donanım anahtarları</string>
+	<key>Hardware security</key>
+	<string>Donanım güvenliği</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>Eksik sonucu incelediniz mi?</string>
+	<key>Hidden fields differ: </key>
+	<string>Gizli alanlar farklılık gösterir: </string>
+	<key>Hidden value</key>
+	<string>Gizli değer</string>
+	<key>Hide</key>
+	<string>Gizle</string>
+	<key>Hide sample sender</key>
+	<string>Örnek göndereni gizle</string>
+	<key>Historical version</key>
+	<string>Tarihsel versiyon</string>
+	<key>Host</key>
+	<string>Sunucu</string>
+	<key>I completed this step</key>
+	<string>Bu adımı tamamladım</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>Cüzdan erişimimi ve harici kimlik bilgilerimi güvence altına aldım</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>Kimlik Numarası</string>
+	<key>Identity</key>
+	<string>Kimlik</string>
+	<key>Illegal content</key>
+	<string>Yasa dışı içerik</string>
+	<key>Import</key>
+	<string>İthalat</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>Bu cihazda şifrelemek için bir belgeyi içe aktarın. Bulut yedekleme ayrı bir işlemdir.</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>Bir dosyayı eklemeden önce Dosyalar'a aktarın.</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>Şifrelenmemiş bir 1Password, Bitwarden veya tarayıcı şifresi aktarımını içe aktarın. Kaynak bu cihazda kalır; yalnızca seçilen kayıtlar eklenir.</string>
+	<key>Import completed</key>
+	<string>İçe aktarma tamamlandı</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>İçe aktarma yeni bağımsız öğeler oluşturur. Dosyalar bu cihazda kalır ve seçilen klasörün erişim izinlerini devralır. Hiçbir şey otomatik olarak seçilmez.</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>Masaüstünde keşfedilen gizli dizileri içe aktar</string>
+	<key>Import file</key>
+	<string>Dosyayı içe aktar</string>
+	<key>Import files</key>
+	<string>Dosyaları içe aktar</string>
+	<key>Import into dMsg</key>
+	<string>dMsg'ya aktar</string>
+	<key>Import into this account</key>
+	<string>Bu hesaba aktar</string>
+	<key>Import passwords</key>
+	<string>Şifreleri içe aktar</string>
+	<key>Import photo</key>
+	<string>Fotoğrafı içe aktar</string>
+	<key>Import secret package</key>
+	<string>Gizli paketi içe aktar</string>
+	<key>Import selected records</key>
+	<string>Seçilen kayıtları içe aktar</string>
+	<key>Import selected secrets</key>
+	<string>Seçilen gizli dizileri içe aktar</string>
+	<key>In Trash</key>
+	<string>Çöp Kutusunda</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>Gerçek bir raporda hizmet, nedeninizi ve hesap/kaynak tanımlayıcılarını alır. Mesaj metni yalnızca açıkça ifşa etmeyi seçmeniz durumunda eklenir.</string>
+	<key>In progress</key>
+	<string>Devam ediyor</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>Bu yapıda uygulama içi satın almalar devre dışı bırakıldı. Mevcut planınız ve kullanımınız kullanılabilir durumda kalır.</string>
+	<key>Inbox</key>
+	<string>Gelen kutusu</string>
+	<key>Inbox settings</key>
+	<string>Gelen kutusu ayarları</string>
+	<key>Include notes</key>
+	<string>Notları dahil et</string>
+	<key>Include this message's text</key>
+	<string>Bu mesajın metnini ekle</string>
+	<key>Inspect pairing request</key>
+	<string>Eşleştirme isteğini inceleyin</string>
+	<key>Inspect this version</key>
+	<string>Bu sürümü inceleyin</string>
+	<key>Integrity</key>
+	<string>Dürüstlük</string>
+	<key>Interrupted</key>
+	<string>Kesintiye uğradı</string>
+	<key>Inventory fingerprint</key>
+	<string>Envanter parmak izi</string>
+	<key>Invite member</key>
+	<string>Üyeyi davet et</string>
+	<key>Issued credentials</key>
+	<string>Verilen kimlik bilgileri</string>
+	<key>Item attachments</key>
+	<string>Öğe ekleri</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>Öğe referansları dosyalarından önce senkronize edilebilir. Yeni bir anlık görüntüye yalnızca bu cihazda bulunan dosyalar eklenebilir.</string>
+	<key>Join</key>
+	<string>Katıl</string>
+	<key>Join account</key>
+	<string>Hesaba katıl</string>
+	<key>Join an existing account</key>
+	<string>Mevcut bir hesaba katılın</string>
+	<key>Join an existing wallet</key>
+	<string>Mevcut bir cüzdana katılın</string>
+	<key>Join conversation</key>
+	<string>Konuşmaya katıl</string>
+	<key>Keep current version</key>
+	<string>Mevcut sürümü koru</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>Sırlarınızı, konuşmalarınızı ve dosyalarınızı bir arada tutun. Bunları yalnızca yetkili cihazlarınız açabilir.</string>
+	<key>Key</key>
+	<string>Anahtar</string>
+	<key>Key fingerprint</key>
+	<string>Anahtar parmak izi</string>
+	<key>Key label</key>
+	<string>Anahtar etiketi</string>
+	<key>Keys</key>
+	<string>Anahtarlar</string>
+	<key>Language</key>
+	<string>Dil</string>
+	<key>Last known cloud state</key>
+	<string>Bilinen son bulut durumu</string>
+	<key>Leave conversation</key>
+	<string>Görüşmeden ayrıl</string>
+	<key>Leave empty to keep existing value</key>
+	<string>Mevcut değeri korumak için boş bırakın</string>
+	<key>License Key</key>
+	<string>Lisans Anahtarı</string>
+	<key>Licensed To</key>
+	<string>Lisanslı</string>
+	<key>Link limits</key>
+	<string>Bağlantı sınırları</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>Canlı istekler, doğrulanmış kökenleri ve tam yüklerini gösterir ve yapılandırılmış sistem veya donanım onayını gerektirir.</string>
+	<key>Load earlier activity</key>
+	<string>Önceki etkinliği yükle</string>
+	<key>Load earlier messages</key>
+	<string>Önceki mesajları yükle</string>
+	<key>Load earlier proposals</key>
+	<string>Önceki teklifleri yükle</string>
+	<key>Load more</key>
+	<string>Daha fazlasını yükle</string>
+	<key>Loading the verified request…</key>
+	<string>Doğrulanan istek yükleniyor…</string>
+	<key>Local</key>
+	<string>Yerel</string>
+	<key>Local delivery record</key>
+	<string>Yerel teslimat kaydı</string>
+	<key>Local demo</key>
+	<string>Yerel demo</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>Yerel demo · Hayali veriler · Kapatıldığında sıfırlanır</string>
+	<key>Local dependencies</key>
+	<string>Yerel bağımlılıklar</string>
+	<key>Local dependency</key>
+	<string>Yerel bağımlılık</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>Yerel dosyalar otomatik olarak yedeklenmez. dMsg'nun kaldırılması, bulut yedeği olmayan dosyaları da kaldırır.</string>
+	<key>Local findings</key>
+	<string>Yerel bulgular</string>
+	<key>Local label</key>
+	<string>Yerel etiket</string>
+	<key>Local security review</key>
+	<string>Yerel güvenlik incelemesi</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>Yerel depolama kullanılamıyor. Bu cihazın kilidini açın ve tekrar deneyin; Kesintiye uğramış bir işlemi kurtarmak için çalışma alanını sıfırlamayın.</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>Yerel çöpler 30 gün boyunca saklanır. Bulut yedeklemeleri ayrı olarak yönetilir.</string>
+	<key>Lock immediately in background</key>
+	<string>Arka planda hemen kilitle</string>
+	<key>Lock workspace</key>
+	<string>Çalışma alanını kilitle</string>
+	<key>Login identities</key>
+	<string>Giriş kimlikleri</string>
+	<key>Manage Apple subscriptions</key>
+	<string>Apple aboneliklerini yönetin</string>
+	<key>Manage file</key>
+	<string>Dosyayı yönet</string>
+	<key>Manage subscriptions</key>
+	<string>Abonelikleri yönet</string>
+	<key>Mark as read</key>
+	<string>Okundu olarak işaretle</string>
+	<key>Maximum fee in base units</key>
+	<string>Temel birim cinsinden maksimum ücret</string>
+	<key>Member account ID</key>
+	<string>Üye hesap kimliği</string>
+	<key>Member account or Principal</key>
+	<string>Üye hesabı veya Principal</string>
+	<key>Member label</key>
+	<string>Üye etiketi</string>
+	<key>Members</key>
+	<string>Üyeler</string>
+	<key>Message</key>
+	<string>Mesaj</string>
+	<key>Message withdrawn</key>
+	<string>Mesaj geri çekildi</string>
+	<key>Messages</key>
+	<string>Mesajlar</string>
+	<key>Month</key>
+	<string>Ay</string>
+	<key>Monthly execution units</key>
+	<string>Aylık yürütme birimleri</string>
+	<key>Move this local file to Trash?</key>
+	<string>Bu yerel dosya Çöp Kutusu'na taşınsın mı?</string>
+	<key>Move this secret to Trash?</key>
+	<string>Bu sır Çöp Kutusu'na taşınsın mı?</string>
+	<key>Move to Trash</key>
+	<string>Çöp Kutusuna Taşı</string>
+	<key>Move to another folder</key>
+	<string>Başka bir klasöre taşı</string>
+	<key>Mute notifications</key>
+	<string>Bildirimleri yoksay</string>
+	<key>My account</key>
+	<string>Hesabım</string>
+	<key>Name</key>
+	<string>İsim</string>
+	<key>Needs a fresh review</key>
+	<string>Yeni bir incelemeye ihtiyaç var</string>
+	<key>Network</key>
+	<string>Ağ</string>
+	<key>New controller</key>
+	<string>Yeni denetleyici</string>
+	<key>New conversation</key>
+	<string>Yeni görüşme</string>
+	<key>New field type</key>
+	<string>Yeni alan türü</string>
+	<key>New folder</key>
+	<string>Yeni klasör</string>
+	<key>New free letter</key>
+	<string>Yeni ücretsiz mektup</string>
+	<key>New revision</key>
+	<string>Yeni revizyon</string>
+	<key>New secret</key>
+	<string>Yeni sır</string>
+	<key>No</key>
+	<string>Hayır</string>
+	<key>No activity on this device</key>
+	<string>Bu cihazda etkinlik yok</string>
+	<key>No background transfer</key>
+	<string>Arka plan aktarımı yok</string>
+	<key>No blocked accounts</key>
+	<string>Engellenen hesap yok</string>
+	<key>No cloud backups</key>
+	<string>Bulut yedeklemesi yok</string>
+	<key>No connected browsers</key>
+	<string>Bağlı tarayıcı yok</string>
+	<key>No conversations yet</key>
+	<string>Henüz görüşme yok</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>Bu cihazda kayıtlı bağımlılık yok.</string>
+	<key>No findings from this device's checks.</key>
+	<string>Bu cihazın kontrollerinde bulgu yok.</string>
+	<key>No interrupted imports</key>
+	<string>Kesintisiz ithalat yok</string>
+	<key>No item attachments</key>
+	<string>Öğe eki yok</string>
+	<key>No letters yet</key>
+	<string>Henüz mektup yok</string>
+	<key>No pending backups</key>
+	<string>Bekleyen yedekleme yok</string>
+	<key>No recent use observed on this device</key>
+	<string>Bu cihazda yakın zamanda kullanım gözlenmedi</string>
+	<key>No registered approval key</key>
+	<string>Kayıtlı onay anahtarı yok</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>Seçilen ortak imzacının olmaması, ek ortak imza politikasının olmadığı anlamına gelir. Onaylamadan önce teklifin tamamını inceleyin.</string>
+	<key>No shared items waiting</key>
+	<string>Bekleyen paylaşılan öğe yok</string>
+	<key>No snapshots on this device</key>
+	<string>Bu cihazda anlık görüntü yok</string>
+	<key>No team wallets</key>
+	<string>Takım cüzdanı yok</string>
+	<key>Not enabled</key>
+	<string>Etkin değil</string>
+	<key>Not enough storage on this device.</key>
+	<string>Bu cihazda yeterli depolama alanı yok.</string>
+	<key>Not registered</key>
+	<string>Kayıtlı değil</string>
+	<key>Note</key>
+	<string>Not</string>
+	<key>Notes</key>
+	<string>Notlar</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>Bildirim kaydının yeniden denenmesi gerekiyor. Ön plan senkronizasyonu kullanılabilir durumda kalır.</string>
+	<key>Notifications</key>
+	<string>Bildirimler</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>Sistem ayarlarında bildirimler devre dışı bırakıldı.</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>Bildirimler mesaj metni, gönderen, dosya adı veya onay yükünü içermez. dMsg'nun açılması her zaman gerçek durumu yeniler.</string>
+	<key>Notifications enabled</key>
+	<string>Bildirimler etkinleştirildi</string>
+	<key>Notify this account on this device</key>
+	<string>Bu cihazdaki bu hesabı bilgilendir</string>
+	<key>Number</key>
+	<string>Sayı</string>
+	<key>OK</key>
+	<string>tamam</string>
+	<key>Observed on this device</key>
+	<string>Bu cihazda gözlemlendi</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>Yetkili cihazda Onaylar'ı açın ve bu cihazın tam parmak izini, rolünü ve izinlerini inceleyin. Tarama hiçbir zaman otomatik olarak onaylanmaz.</string>
+	<key>On this device</key>
+	<string>Bu cihazda</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>İlk ziyaretinizde oturum açın ve şifreli çalışma alanınızı oluşturmak için adımları izleyin.</string>
+	<key>One-time code</key>
+	<string>Tek kullanımlık kod</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>Bunu yalnızca kullanmaya hazır olduğunuzda yapın. Kopyalar bu cihazda kalır ve 30 saniye sonra sona erer.</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>Burada yalnızca ücretsiz iletişim desteklenmektedir. Bu işlem, alıcının ücretini ödeyemez veya onaylayamaz.</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>Dosyalar uygulamasında yalnızca seçilen, değiştirilemez kopyalar görünür. Erişim, sistem kimlik doğrulamasını gerektirir; dMsg'nun kilitlenmesi mevcut erişim oturumunu sonlandırır. Dosyalar, dMsg'nun hatırlayamadığı indirilen kopyaları ve dosya adlarını saklayabilir.</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>dMsg kilitliyken yalnızca seçilen şifrelenmiş dosya aktarılabilir. iOS planlamayı kontrol eder; zorla bırakma, siz uygulamayı tekrar açana kadar dağıtımı durdurur. Doğrulamak ve tamamlamak için orijinal hesabı açın.</string>
+	<key>Open approval record</key>
+	<string>Onay kaydını aç</string>
+	<key>Open approvals</key>
+	<string>Onayları aç</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>Ana Ekranda özel içeriği göstermeden dMsg'yu açın.</string>
+	<key>Open dMsg workspace</key>
+	<string>dMsg çalışma alanını açın</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>dMsg'yu açın. Kilit açma ve onaylar yine de uygulamadaki etkileşiminizi gerektirir.</string>
+	<key>Open invitation in browser</key>
+	<string>Davetiyeyi tarayıcıda aç</string>
+	<key>Open notification settings</key>
+	<string>Bildirim ayarlarını aç</string>
+	<key>Open private workspace</key>
+	<string>Özel çalışma alanını aç</string>
+	<key>Open secret</key>
+	<string>Sırrı aç</string>
+	<key>Open workspace</key>
+	<string>Çalışma alanını aç</string>
+	<key>Optional password</key>
+	<string>İsteğe bağlı şifre</string>
+	<key>Original revision</key>
+	<string>Orijinal revizyon</string>
+	<key>Other</key>
+	<string>Diğer</string>
+	<key>Other devices</key>
+	<string>Diğer cihazlar</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>Aksi halde dMsg 3 dakika uzakta kaldıktan sonra kilitlenir. Cihaz kilidi çalışma alanınızı her zaman hemen kilitler.</string>
+	<key>Outcome no longer available</key>
+	<string>Sonuç artık mevcut değil</string>
+	<key>Package size</key>
+	<string>Paket boyutu</string>
+	<key>Parent folder</key>
+	<string>Ana klasör</string>
+	<key>Password</key>
+	<string>Şifre</string>
+	<key>Password AutoFill</key>
+	<string>Şifre Otomatik Doldurma</string>
+	<key>Password protected</key>
+	<string>Şifre korumalı</string>
+	<key>Password, if required</key>
+	<string>Gerekirse şifre</string>
+	<key>Passwords</key>
+	<string>Şifreler</string>
+	<key>Paste binding request</key>
+	<string>Bağlama isteğini yapıştır</string>
+	<key>Paste enrollment request</key>
+	<string>Kayıt isteğini yapıştır</string>
+	<key>Paste invitation</key>
+	<string>Davetiyeyi yapıştır</string>
+	<key>Paste pairing request</key>
+	<string>Eşleştirme isteğini yapıştır</string>
+	<key>Paste secret package link</key>
+	<string>Gizli paket bağlantısını yapıştır</string>
+	<key>Pause this agent</key>
+	<string>Bu temsilciyi duraklat</string>
+	<key>Pause transfer</key>
+	<string>Aktarımı duraklat</string>
+	<key>Payment card</key>
+	<string>Ödeme kartı</string>
+	<key>Payments</key>
+	<string>Ödemeler</string>
+	<key>Pending backups</key>
+	<string>Bekleyen yedeklemeler</string>
+	<key>Pending imports</key>
+	<string>Bekleyen içe aktarmalar</string>
+	<key>Pending letters</key>
+	<string>Bekleyen mektuplar</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>İncelediğiniz dMsg hizmet hesabını kalıcı olarak silin</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>Bu dMsg hizmet hesabı kalıcı olarak silinsin mi?</string>
+	<key>Permissions</key>
+	<string>İzinler</string>
+	<key>Phone</key>
+	<string>Telefon</string>
+	<key>Phrase</key>
+	<string>İfade</string>
+	<key>Pin</key>
+	<string>Sabitle</string>
+	<key>Plan</key>
+	<string>Plan</string>
+	<key>Plan and usage</key>
+	<string>Plan ve kullanım</string>
+	<key>Policy points to an unavailable field</key>
+	<string>Politika kullanılamayan bir alanı işaret ediyor</string>
+	<key>Port</key>
+	<string>Port</string>
+	<key>Prepare selected snapshot</key>
+	<string>Seçilen anlık görüntüyü hazırla</string>
+	<key>Prepared on this device</key>
+	<string>Bu cihazda hazırlandı</string>
+	<key>Preview and choose what to import</key>
+	<string>Neyin içe aktarılacağını önizleyin ve seçin</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>Önizleme, bu cihazdaki paketi indirip doğrular ve bir indirme oturumu kullanır. Devam etmeden önce alıcı cihazı seçin.</string>
+	<key>Preview file</key>
+	<string>Dosyayı önizleyin</string>
+	<key>Preview package</key>
+	<string>Paketi önizleyin</string>
+	<key>Preview reporting disclosure</key>
+	<string>Raporlama açıklamasını önizleyin</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>Daha önce teslim edilen kimlik bilgileri ve kopyalar bağımsızdır. Gerektiğinde yetkilendirmeleri ayrı ayrı iptal edin.</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>Gizlilik</string>
+	<key>Privacy policy</key>
+	<string>Gizlilik politikası</string>
+	<key>Private Key</key>
+	<string>Özel Anahtar</string>
+	<key>Private workspace hidden</key>
+	<string>Özel çalışma alanı gizlendi</string>
+	<key>Proposal %llu</key>
+	<string>Teklif %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>Teklif oluşturuldu. Bunu cüzdanın teklif listesinde inceleyin.</string>
+	<key>Proposals</key>
+	<string>Teklifler</string>
+	<key>Propose address</key>
+	<string>Adres öner</string>
+	<key>Propose member change</key>
+	<string>Üye değişikliği öner</string>
+	<key>Propose registering this key</key>
+	<string>Bu anahtarın kaydedilmesini öner</string>
+	<key>Propose removing cosigner</key>
+	<string>Müşteriyi kaldırmayı önerin</string>
+	<key>Propose removing member</key>
+	<string>Üyenin çıkarılmasını öner</string>
+	<key>Propose thresholds</key>
+	<string>Eşikleri öner</string>
+	<key>Propose transfer</key>
+	<string>Transfer öner</string>
+	<key>Propose unfreezing</key>
+	<string>Donmayı çözmeyi öner</string>
+	<key>Proposer</key>
+	<string>Teklif sahibi</string>
+	<key>Public Key</key>
+	<string>Genel Anahtar</string>
+	<key>Public avatar</key>
+	<string>Herkese açık avatar</string>
+	<key>Public profile</key>
+	<string>Herkese açık profil</string>
+	<key>Publication pending</key>
+	<string>Yayınlanma bekleniyor</string>
+	<key>Publish</key>
+	<string>Yayınla</string>
+	<key>Publish a secret snapshot</key>
+	<string>Gizli bir anlık görüntü yayınlayın</string>
+	<key>Publish profile</key>
+	<string>Profili yayınla</string>
+	<key>Publish these details publicly?</key>
+	<string>Bu ayrıntılar herkese açık olarak yayınlansın mı?</string>
+	<key>Published</key>
+	<string>Yayınlandı</string>
+	<key>Purchased</key>
+	<string>Satın alındı</string>
+	<key>Purchases are not currently available.</key>
+	<string>Şu anda satın alma işlemi yapılamıyor.</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>Bu yapıda anında bildirimler etkin değil. Senkronize etmek için dMsg'yu açın.</string>
+	<key>Quick unlock with system authentication</key>
+	<string>Sistem kimlik doğrulamasıyla hızlı kilit açma</string>
+	<key>Read from a desktop file mapping</key>
+	<string>Masaüstü dosya eşlemesinden okuyun</string>
+	<key>Read the published policy</key>
+	<string>Yayınlanan politikayı okuyun</string>
+	<key>Reason</key>
+	<string>Sebep</string>
+	<key>Received for review</key>
+	<string>İncelenmek üzere alındı</string>
+	<key>Receiving addresses</key>
+	<string>Adresler alınıyor</string>
+	<key>Receiving policy</key>
+	<string>Alma politikası</string>
+	<key>Recipient</key>
+	<string>Alıcı</string>
+	<key>Recipient account ID</key>
+	<string>Alıcı hesap kimliği</string>
+	<key>Recipient address</key>
+	<string>Alıcı adresi</string>
+	<key>Reconcile original execution</key>
+	<string>Orijinal yürütmeyi uzlaştırın</string>
+	<key>Reconcile original operation</key>
+	<string>Orijinal işlemi uzlaştır</string>
+	<key>Reconcile original proposal</key>
+	<string>Orijinal teklifi uzlaştırın</string>
+	<key>Reconcile original send</key>
+	<string>Orijinal gönderimi uzlaştır</string>
+	<key>Reconcile original snapshot</key>
+	<string>Orijinal anlık görüntüyü uzlaştır</string>
+	<key>Record manual review</key>
+	<string>Manuel incelemeyi kaydedin</string>
+	<key>Record this step as completed?</key>
+	<string>Bu adım tamamlanmış olarak kaydedilsin mi?</string>
+	<key>Recovery</key>
+	<string>Kurtarma</string>
+	<key>Recovery status</key>
+	<string>Kurtarma durumu</string>
+	<key>Recovery status needs checking</key>
+	<string>Kurtarma durumunun kontrol edilmesi gerekiyor</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>Kurtarma, bağlı oturum açma bilgilerinizi ve bir bekleme süresini kullanır. Yetkili bir cihaz buna itiraz edebilir. Senkronize edilmemiş yerel içerik kurtarılamaz.</string>
+	<key>Recovery waiting period</key>
+	<string>İyileşme bekleme süresi</string>
+	<key>Refresh</key>
+	<string>Yenile</string>
+	<key>Refresh balances</key>
+	<string>Bakiyeleri yenile</string>
+	<key>Refresh dependencies</key>
+	<string>Bağımlılıkları yenile</string>
+	<key>Register a hardware approval key</key>
+	<string>Donanım onay anahtarını kaydetme</string>
+	<key>Register an SSH binding</key>
+	<string>SSH bağlamasını kaydedin</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>Bu genel anahtarı bir cüzdan teklifi aracılığıyla kaydedin</string>
+	<key>Registered on this device</key>
+	<string>Bu cihazda kayıtlı</string>
+	<key>Reject</key>
+	<string>Reddet</string>
+	<key>Reject this request?</key>
+	<string>Bu istek reddedilsin mi?</string>
+	<key>Rejected</key>
+	<string>Reddedildi</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>Sürüm 1.0 incelemeye hazır.</string>
+	<key>Remove</key>
+	<string>Kaldır</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>Otomatik Doldur anlık görüntüsünü kaldır</string>
+	<key>Remove Files app snapshot</key>
+	<string>Dosyalar uygulamasının anlık görüntüsünü kaldır</string>
+	<key>Remove attachment reference</key>
+	<string>Ek referansını kaldır</string>
+	<key>Remove device binding</key>
+	<string>Cihaz bağlamayı kaldır</string>
+	<key>Remove device binding?</key>
+	<string>Cihaz bağlaması kaldırılsın mı?</string>
+	<key>Remove field</key>
+	<string>Alanı kaldır</string>
+	<key>Remove local data</key>
+	<string>Yerel verileri kaldır</string>
+	<key>Remove member</key>
+	<string>Üyeyi kaldır</string>
+	<key>Remove this account's data from this device?</key>
+	<string>Bu hesabın verileri bu cihazdan kaldırılsın mı?</string>
+	<key>Remove this account's local data</key>
+	<string>Bu hesabın yerel verilerini kaldır</string>
+	<key>Remove this local agent</key>
+	<string>Bu yerel temsilciyi kaldır</string>
+	<key>Remove this local agent?</key>
+	<string>Bu yerel temsilci kaldırılsın mı?</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>Bir referansın kaldırılması dosyayı silmez. Mevcut referanslar, dosyaları bu cihazda eksik olsa bile tutulur.</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>Kaynak cihazındaki kullanılamayan alan referansını onarın.</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>Otomatik Doldur anlık görüntüsünü değiştir</string>
+	<key>Replace Files app snapshot</key>
+	<string>Dosyalar uygulamasının anlık görüntüsünü değiştirin</string>
+	<key>Replace cosignature policy</key>
+	<string>Ortak imza politikasını değiştirin</string>
+	<key>Reply</key>
+	<string>Yanıtla</string>
+	<key>Reply to message %llu</key>
+	<string>%llu mesajını yanıtla</string>
+	<key>Report content</key>
+	<string>İçeriği bildir</string>
+	<key>Report received for review</key>
+	<string>Rapor incelenmek üzere alındı</string>
+	<key>Reported account</key>
+	<string>Bildirilen hesap</string>
+	<key>Reporting disclosure</key>
+	<string>Raporlama açıklaması</string>
+	<key>Request ID</key>
+	<string>Talep Kimliği</string>
+	<key>Request account deletion</key>
+	<string>Hesabın silinmesini talep edin</string>
+	<key>Request account recovery</key>
+	<string>Hesap kurtarma isteğinde bulunun</string>
+	<key>Request recovery</key>
+	<string>Kurtarma iste</string>
+	<key>Request source</key>
+	<string>Kaynak iste</string>
+	<key>Requested permissions</key>
+	<string>İstenen izinler</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>Karar vermenizi gerektiren istekler burada görünür.</string>
+	<key>Require hardware approval</key>
+	<string>Donanım onayı gerektir</string>
+	<key>Require this device to unlock</key>
+	<string>Bu cihazın kilidinin açılmasını zorunlu kılın</string>
+	<key>Required cosignatures %u</key>
+	<string>Gerekli ortak imzalar %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>Bu hesabı silmeden önce bekleyen hesap işlemini çözümleyin.</string>
+	<key>Restore</key>
+	<string>Geri yükle</string>
+	<key>Restore purchases</key>
+	<string>Satın alınanları geri yükle</string>
+	<key>Restore this version</key>
+	<string>Bu sürümü geri yükle</string>
+	<key>Restore this version as a new current version?</key>
+	<string>Bu sürüm yeni ve güncel bir sürüm olarak geri yüklensin mi?</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>Bu sürümü açmadan önce bulut yedeklemelerinden geri yükleyin.</string>
+	<key>Restore to this device</key>
+	<string>Bu cihaza geri yükle</string>
+	<key>Restoring…</key>
+	<string>Geri yükleniyor…</string>
+	<key>Result</key>
+	<string>Sonuç</string>
+	<key>Result unconfirmed</key>
+	<string>Sonuç onaylanmadı</string>
+	<key>Retire a hardware approval key</key>
+	<string>Donanım onay anahtarını kullanımdan kaldırma</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>Bir anahtarın kullanımdan kaldırılması, korunan eylemleri onaylama yeteneğini ortadan kaldırır. Başka bir yetkili onay yolunun mevcut olup olmadığını kontrol edin.</string>
+	<key>Retry</key>
+	<string>Yeniden dene</string>
+	<key>Retry loading activity</key>
+	<string>Etkinliği yüklemeyi yeniden deneyin</string>
+	<key>Retry loading hardware security</key>
+	<string>Donanım güvenliğini yüklemeyi yeniden deneyin</string>
+	<key>Retry loading profile</key>
+	<string>Profili yüklemeyi yeniden dene</string>
+	<key>Retry original change</key>
+	<string>Orijinal değişikliği yeniden dene</string>
+	<key>Retry original letter</key>
+	<string>Orijinal mektubu yeniden dene</string>
+	<key>Retry preview</key>
+	<string>Önizlemeyi yeniden dene</string>
+	<key>Retry publication</key>
+	<string>Yayını yeniden dene</string>
+	<key>Retry registration</key>
+	<string>Kaydı yeniden dene</string>
+	<key>Retry this report</key>
+	<string>Bu raporu yeniden deneyin</string>
+	<key>Reveal</key>
+	<string>Açıkla</string>
+	<key>Reveal this field?</key>
+	<string>Bu alan gösterilsin mi?</string>
+	<key>Review</key>
+	<string>İncele</string>
+	<key>Review a web connection request</key>
+	<string>Web bağlantısı isteğini inceleme</string>
+	<key>Review agent delegation</key>
+	<string>Temsilci yetkilendirmesini inceleyin</string>
+	<key>Review agent permissions</key>
+	<string>Temsilci izinlerini inceleyin</string>
+	<key>Review an enrollment request</key>
+	<string>Kayıt isteğini inceleme</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>Kaynak cihazdaki masaüstü dosya eşlemesini inceleyin ve yeniden başlatın.</string>
+	<key>Review approval</key>
+	<string>Onayı inceleyin</string>
+	<key>Review binding</key>
+	<string>Bağlamayı gözden geçir</string>
+	<key>Review controller registration</key>
+	<string>Denetleyici kaydını inceleyin</string>
+	<key>Review delegation grant</key>
+	<string>Yetki yetkisini inceleyin</string>
+	<key>Review deletion</key>
+	<string>Silme işlemini inceleyin</string>
+	<key>Review enabling a principal</key>
+	<string>principal etkinleştirmeyi inceleyin</string>
+	<key>Review field and dependencies</key>
+	<string>Alanı ve bağımlılıkları inceleyin</string>
+	<key>Review hardware policy changes</key>
+	<string>Donanım politikası değişikliklerini gözden geçirin</string>
+	<key>Review in approval center</key>
+	<string>Onay merkezinde inceleme</string>
+	<key>Review joining wallet</key>
+	<string>Cüzdana katılmayı inceleyin</string>
+	<key>Review key enrollment</key>
+	<string>Anahtar kaydını inceleyin</string>
+	<key>Review key registration</key>
+	<string>Anahtar kaydını inceleyin</string>
+	<key>Review local finding</key>
+	<string>Yerel bulguları inceleyin</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>Eski anlık görüntüleri inceleyin ve uygunsa kalan bağlantıları iptal edin.</string>
+	<key>Review permissions</key>
+	<string>İzinleri inceleyin</string>
+	<key>Review publication or resume</key>
+	<string>Yayını inceleyin veya özgeçmişi inceleyin</string>
+	<key>Review rejection</key>
+	<string>Reddi inceleyin</string>
+	<key>Review removing this login</key>
+	<string>Bu girişin kaldırılmasını inceleyin</string>
+	<key>Review replacement key</key>
+	<string>Yedek anahtarı inceleyin</string>
+	<key>Review request</key>
+	<string>İsteği inceleyin</string>
+	<key>Review retiring controller</key>
+	<string>Kullanımdan kaldırılan denetleyiciyi inceleyin</string>
+	<key>Review retiring this approval key</key>
+	<string>Bu onay anahtarının kullanımdan kaldırılmasını inceleyin</string>
+	<key>Review revocation</key>
+	<string>İptali inceleyin</string>
+	<key>Review selected import</key>
+	<string>Seçilen içe aktarmayı inceleyin</string>
+	<key>Review sync conflicts</key>
+	<string>Senkronizasyon çakışmalarını inceleyin</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>Aracının kaynak cihazındaki yetkilendirmesini inceleyin.</string>
+	<key>Review the complete request</key>
+	<string>İsteğin tamamını inceleyin</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>Geçerli anahtarı inceleyin ve kaynak cihazdaki SSH bağlamasını yenileyin.</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>Talebi inceleyin ve size ait değilse itiraz edin.</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>Anlık görüntünün alıcılarını ve geçerlilik süresini inceleyin.</string>
+	<key>Review this device's current dependencies</key>
+	<string>Bu cihazın mevcut bağımlılıklarını inceleyin</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>Bu cihazın politikasını ve erişim izinlerini inceleyin.</string>
+	<key>Review this local record before making changes.</key>
+	<string>Değişiklik yapmadan önce bu yerel kaydı inceleyin.</string>
+	<key>Review waiting-period change</key>
+	<string>Bekleme süresi değişikliğini inceleyin</string>
+	<key>Review wallet action</key>
+	<string>Cüzdan işlemini inceleyin</string>
+	<key>Reviewed</key>
+	<string>İncelendi</string>
+	<key>Revocation pending</key>
+	<string>İptal bekleniyor</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>İptal, güvenlik durumu yenilendikten ve anahtarlar değiştirildikten sonra yeni erişimi durdurur. Daha önce kopyalanan içerik geri çağrılamaz.</string>
+	<key>Revoke</key>
+	<string>Yetkiyi kaldır</string>
+	<key>Revoke a device</key>
+	<string>Bir cihazı iptal etme</string>
+	<key>Revoke browser</key>
+	<string>Tarayıcıyı iptal et</string>
+	<key>Revoke delegation</key>
+	<string>Yetkiyi iptal et</string>
+	<key>Revoke grant</key>
+	<string>Yetkiyi iptal et</string>
+	<key>Revoke or cancel</key>
+	<string>İptal et veya iptal et</string>
+	<key>Revoke or cancel this link</key>
+	<string>Bu bağlantıyı iptal edin veya iptal edin</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>Sağlayıcıdaki eski kimlik bilgisini iptal edin</string>
+	<key>Revoke this browser?</key>
+	<string>Bu tarayıcı iptal edilsin mi?</string>
+	<key>Revoke this device</key>
+	<string>Bu cihazı iptal et</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>Bu cihazı iptal edin ve içerik anahtarlarını döndürün</string>
+	<key>Revoke this snapshot link?</key>
+	<string>Bu anlık görüntü bağlantısı iptal edilsin mi?</string>
+	<key>Revoked</key>
+	<string>İptal edildi</string>
+	<key>Role</key>
+	<string>Rol</string>
+	<key>Rotate conversation keys</key>
+	<string>Konuşma tuşlarını döndür</string>
+	<key>Rotation checklists</key>
+	<string>Rotasyon kontrol listeleri</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>SSH bağlama</string>
+	<key>SSH binding needs review</key>
+	<string>SSH bağlamanın gözden geçirilmesi gerekiyor</string>
+	<key>SSH key</key>
+	<string>SSH anahtarı</string>
+	<key>Safety and support</key>
+	<string>Güvenlik ve destek</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>Örnek eylem: bir sürüm duyurusunu imzalamak</string>
+	<key>Sample login</key>
+	<string>Örnek giriş</string>
+	<key>Sample password</key>
+	<string>Örnek şifre</string>
+	<key>Save</key>
+	<string>Kaydet</string>
+	<key>Save name</key>
+	<string>Adı kaydet</string>
+	<key>Save receiving policy</key>
+	<string>Alma politikasını kaydet</string>
+	<key>Save selected version</key>
+	<string>Seçilen sürümü kaydet</string>
+	<key>Save settings</key>
+	<string>Ayarları kaydet</string>
+	<key>Save the selected version?</key>
+	<string>Seçilen sürüm kaydedilsin mi?</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>Bu öğeleri dMsg için kaydedin. Bir hesap seçin ve uygulamayı açıp kilidini açtıktan sonra bunları içe aktarın.</string>
+	<key>Save to dMsg</key>
+	<string>dMsg'ya kaydet</string>
+	<key>Saved</key>
+	<string>Kaydedildi</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>Ayrı bir sürüm olarak kaydedildi. Senkronizasyon çakışmalarını inceleyin.</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>dMsg için kaydedildi. Bu öğeleri incelemek ve içe aktarmak için uygulamayı açın.</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>Önce yerel olarak kaydedildi. Senkronizasyon durumu ayrı olarak gösterilir.</string>
+	<key>Saved on this device</key>
+	<string>Bu cihaza kaydedildi</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>Bu cihaza kaydedildi. Değişiklikler senkronize edilmeyi bekliyor.</string>
+	<key>Saved. Publication is pending.</key>
+	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
+	<key>Scan device request</key>
+	<string>Cihaz isteğini tarayın</string>
+	<key>Scopes, one per line</key>
+	<string>Kapsamlar, her satıra bir tane</string>
+	<key>Screenshots may contain private information.</key>
+	<string>Ekran görüntüleri özel bilgiler içerebilir.</string>
+	<key>Search files</key>
+	<string>Dosyaları arayın</string>
+	<key>Search messages</key>
+	<string>Mesajlarda ara</string>
+	<key>Search your vault</key>
+	<string>Kasanızı arayın</string>
+	<key>Secret</key>
+	<string>Gizli</string>
+	<key>Secret package link</key>
+	<string>Gizli paket bağlantısı</string>
+	<key>Section</key>
+	<string>Bölüm</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave bu cihazda kullanılamıyor.</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>Güvenlik gereksinimleri değişti. İsteği onaylamadan önce tekrar inceleyin.</string>
+	<key>Select a conversation</key>
+	<string>Bir görüşme seçin</string>
+	<key>Select a file</key>
+	<string>Bir dosya seçin</string>
+	<key>Select a secret</key>
+	<string>Bir sır seçin</string>
+	<key>Select attachments to import</key>
+	<string>İçe aktarılacak ekleri seçin</string>
+	<key>Select attachments to share</key>
+	<string>Paylaşılacak ekleri seçin</string>
+	<key>Select fields to import</key>
+	<string>İçe aktarılacak alanları seçin</string>
+	<key>Select fields to share</key>
+	<string>Paylaşılacak alanları seçin</string>
+	<key>Select login items</key>
+	<string>Oturum açma öğelerini seçin</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>Seçilen OTP alanları yalnızca geçerli kodu değil, yeniden kullanılabilir çekirdeği içerir.</string>
+	<key>Selected accounts</key>
+	<string>Seçilen hesaplar</string>
+	<key>Send free letter</key>
+	<string>Ücretsiz mektup gönder</string>
+	<key>Send message</key>
+	<string>Mesaj gönder</string>
+	<key>Send queued message</key>
+	<string>Sıraya alınmış mesajı gönder</string>
+	<key>Send to an administrator</key>
+	<string>Bir yöneticiye gönder</string>
+	<key>Sender</key>
+	<string>Gönderen</string>
+	<key>Sender account</key>
+	<string>Gönderen hesabı</string>
+	<key>Server</key>
+	<string>Sunucu</string>
+	<key>Set up this account</key>
+	<string>Bu hesabı kur</string>
+	<key>Share a copy</key>
+	<string>Bir kopyayı paylaşın</string>
+	<key>Share binding request</key>
+	<string>Bağlama isteğini paylaş</string>
+	<key>Share enrollment request</key>
+	<string>Kayıt isteğini paylaşın</string>
+	<key>Share invitation</key>
+	<string>Daveti paylaş</string>
+	<key>Share link</key>
+	<string>Bağlantıyı paylaş</string>
+	<key>Share pairing request</key>
+	<string>Eşleştirme isteğini paylaş</string>
+	<key>Share secret snapshot</key>
+	<string>Gizli anlık görüntüyü paylaşın</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>Bu isteği yetkili bir yöneticiyle paylaşın. Anahtarı tek başına kaydetmez veya onaylamaz.</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>Paylaşılan kopyalar dMsg korumasından çıkar ve geri çağırılamaz.</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>Paylaşılan öğeler kullanılamıyor. Bu cihazın kilidini açtıktan sonra uygulamayı tekrar açın.</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>Paylaşılan öğeler bu cihazda bekliyor. İçe aktarma, bunları seçili olan hesaba şifreler.</string>
+	<key>Shared snapshots</key>
+	<string>Paylaşılan anlık görüntüler</string>
+	<key>Shared with dMsg</key>
+	<string>dMsg ile paylaşıldı</string>
+	<key>Show dismissed findings</key>
+	<string>Reddedilen bulguları göster</string>
+	<key>Show sample password</key>
+	<string>Örnek şifreyi göster</string>
+	<key>Show share link</key>
+	<string>Paylaşım bağlantısını göster</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>Kaydedilen içerik gösteriliyor. En son senkronizasyon tamamlanmadı.</string>
+	<key>Sign a statement</key>
+	<string>Bir bildiri imzala</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>Bu iPhone'da şifrelenmiş çalışma alanınızın kilidini açmak için tekrar oturum açın.</string>
+	<key>Sign in to another account</key>
+	<string>Başka bir hesapta oturum açın</string>
+	<key>Sign out</key>
+	<string>Oturumu kapat</string>
+	<key>Sign out of this account?</key>
+	<string>Bu hesaptaki oturum kapatılsın mı?</string>
+	<key>Sign the statement you reviewed</key>
+	<string>İncelediğiniz beyanı imzalayın</string>
+	<key>Simulate approval</key>
+	<string>Onay simülasyonu</string>
+	<key>Simulate rejection</key>
+	<string>Reddetmeyi simüle et</string>
+	<key>Simulate this approval?</key>
+	<string>Bu onay simüle edilsin mi?</string>
+	<key>Snapshot</key>
+	<string>Anlık Görüntü</string>
+	<key>Snapshot link</key>
+	<string>Anlık görüntü bağlantısı</string>
+	<key>Software license</key>
+	<string>Yazılım lisansı</string>
+	<key>Solana</key>
+	<string>Solana</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>Bazı kaynak kayıtları veya özellikler desteklenmiyor. Bu içe aktarma yalnızca seçilen alanları kopyalar; arşiv ekleri, şifreler ve geçmiş buraya aktarılmaz.</string>
+	<key>Source address %u</key>
+	<string>Kaynak adresi %u</string>
+	<key>Spam</key>
+	<string>Spam</string>
+	<key>Spending approvals %u</key>
+	<string>Harcama onayları %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>Seçilen dosyaları hazırlayın, ardından bir hesap seçin ve bunları dMsg'ya aktarın.</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>Bir alanın referans sayfasından bir kontrol listesi başlatın.</string>
+	<key>Start a rotation checklist</key>
+	<string>Bir rotasyon kontrol listesi başlatın</string>
+	<key>Start a rotation checklist?</key>
+	<string>Rotasyon kontrol listesi başlatılsın mı?</string>
+	<key>Start account recovery?</key>
+	<string>Hesap kurtarma başlatılsın mı?</string>
+	<key>Start checklist</key>
+	<string>Kontrol listesini başlat</string>
+	<key>Status</key>
+	<string>Durum</string>
+	<key>Stop this device's transfer</key>
+	<string>Bu cihazın aktarımını durdur</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>Depolama, geçerli abonelik süresi boyunca tek seferlik satın alınır ve otomatik olarak yenilenmez.</string>
+	<key>Storage packs</key>
+	<string>Depolama paketleri</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>Depolama alanı satın alımları etkin bir App Store aboneliği gerektirir.</string>
+	<key>Subject Agent ID</key>
+	<string>Konu Temsilcisi Kimliği</string>
+	<key>Submit report</key>
+	<string>Raporu gönder</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>Abonelikler, Apple hesap ayarlarınızda iptal edilmediği sürece otomatik olarak yenilenir. dMsg hesabınızı silmek Apple aboneliğinizi iptal etmez.</string>
+	<key>Switch account</key>
+	<string>Hesap değiştir</string>
+	<key>Switch to this account</key>
+	<string>Bu hesaba geç</string>
+	<key>Sync conflicts</key>
+	<string>Çakışmaları senkronize et</string>
+	<key>Sync now</key>
+	<string>Şimdi senkronize et</string>
+	<key>Synced</key>
+	<string>Senkronize edildi</string>
+	<key>Syncing…</key>
+	<string>Senkronize ediliyor…</string>
+	<key>System authentication</key>
+	<string>Sistem kimlik doğrulaması</string>
+	<key>System integrations</key>
+	<string>Sistem entegrasyonları</string>
+	<key>System permission</key>
+	<string>Sistem izni</string>
+	<key>Tags, separated by commas</key>
+	<string>Virgülle ayrılmış etiketler</string>
+	<key>Team wallets</key>
+	<string>Takım cüzdanları</string>
+	<key>Terms of service</key>
+	<string>Hizmet şartları</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>Test ortamı · Ayrı hesaplar ve test satın alımları</string>
+	<key>Test the new credential at its provider</key>
+	<string>Yeni kimlik bilgisini sağlayıcısında test edin</string>
+	<key>Text</key>
+	<string>Metin</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>Şifrelenmiş sürüm bulut depolamayı kullanacak. Yerel kopyanız bu cihazda kalır.</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>Yukarıdaki açık kapsamlar ve hedef kitleler bu kimlik bilgisi için de geçerlidir. Kısıtlanmamış denetleyici yetkisi hiçbir zaman bir kimlik bilgisini sınırsız hale getirmez.</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>Dışa aktarılan kimlik bilgileri kullanılamıyor veya süresi dolmuş. Yeni bir anlık görüntü oluşturmak için dMsg'yu açın.</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>Dosya kopyaları kullanılamıyor veya süresi dolmuş. Yeni bir anlık görüntü oluşturmak için dMsg'yu açın ve ardından yeniden deneyin.</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>Davetiye bu hesaba bağlıdır. Bağlantının paylaşılması başka bir hesaba erişim izni vermez.</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>Son doğrulanan gözlem saklanır. Mevcut durum doğrulanamadı.</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>Yerel bağlama anahtarı kullanılamıyor. Bu çalışma alanını koruyun ve kilitlemeden önce kurtarma seçeneklerinizi gözden geçirin.</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>Yerel tur herkese açıktır. Hesap oluşturmayı, senkronizasyonu, satın almaları, bildirimleri ve donanım yetkilendirmesini test etmek için turdan ayrılın ve Internet Identity aracılığıyla oturum açın.</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>Mobil paket limiti 8 MiB'dur. Önizleme, neyin içe aktarılacağını seçmeden önce paketi kontrol eder.</string>
+	<key>The operation could not be completed.</key>
+	<string>İşlem tamamlanamadı.</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>İşlem tamamlanamadı. Lütfen tekrar deneyin.</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>İşlem iptal edildi veya izin verilmiyor.</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>Sonuç belirsiz. Tekrar bir şey denemeden önce orijinal işi kontrol edin.</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>Kayıt değişti. Tekrar kaydetmeden önce düzenlemelerinizi yenileyin ve inceleyin.</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>İstek bu cihazda kullanılamıyor. Süresi dolmuş veya zaten işlenmiş olabilir.</string>
+	<key>The required content key is not available yet.</key>
+	<string>Gerekli içerik anahtarı henüz mevcut değil.</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>Sonuç doğrulanmadı. Yeniden denemeden önce bu isteği uzlaştırın.</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>Seçilen resim siz yayınlayana kadar bu cihazda kalır. Yayınlanan avatarlar herkese açıktır ve kopyaları dMsg dışında kalabilir.</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>Seçilen öğeler aşamalandırılamadı. dMsg'yu açın ve bunları oraya aktarmayı deneyin.</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>Kaynak kopya kesildi. Atın ve kaynağı tekrar seçin.</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>Test dağıtımı yapılandırılmadı. Yerel demo ve gizlilik politikası mevcut olmaya devam edecek.</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>Aktarım yetkisinin süresi doldu. Bu görevi iptal edin, ardından orijinal yedeklemeye ön planda devam edin veya yeni bir indirme işlemi başlatın.</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>Aktarım duraklatıldı. Orijinal şifreli blokları yeniden deneyin.</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>M-cüzdan mevcut politikasını ve onaylarını kontrol eder. Tam olarak bu plan için gerekli donanım imzası isteniyor.</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>Bunlar yerel gözlemlerdir; bir ihlal taraması veya bir sağlayıcının kimlik bilgisini iptal ettiğinin kanıtı değildir. Diğer cihazların farklı kayıtları olabilir.</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>Bunlar, bu cihazda oluşturulan anlık görüntü işleridir. Masaüstü-yerel onay istekleri burada senkronize edilmez.</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>Bunlar, hesabınızın cihazlarından alınan doğrulanmış yedeklemelerdir. Bir kopyasını bu cihazda tutmak için açıkça geri yükleyin.</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>Bu dışa aktarmalar hiçbir zaman hesap kök anahtarlarını veya cihaz imzalama anahtarlarını içermez. Kaynak öğelerde yapılan değişiklikler yeni bir anlık görüntü gerektirir.</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>Bu hesap kayıtlı bir onay anahtarı gerektiriyor. Bu cihazı Donanım güvenliğinde kurun veya başka bir yetkili cihaza sorun.</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>Bu işlem bu cihazda desteklenmiyor. Gizli anlık yedeklerin özel içe aktarma akışlarını kullanması gerekir.</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>Bu tarayıcı isteği başka bir hesaba ait. Geçiş, mevcut çalışma alanını kilitler ve taslağını korur.</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>Bu geri alınamaz. Tek başına çıkış yapmak hesabı silmez.</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>Bu, yerel kilit açma korumasını değiştirir. Sistem kimlik doğrulaması gerekebilir. Hiçbir hesap kurtarma işlemi veya başka bir cihaz değiştirilmez.</string>
+	<key>This changes only the local sample.</key>
+	<string>Bu yalnızca yerel örneği değiştirir.</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>Bu, hangi hesap eylemlerinin donanım imzası gerektirdiğini değiştirir. Korumanın devre dışı bırakılması, donanım kanıtı olmadan bu eylemlere izin verir.</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>Bu, bekleyen bir istek oluşturur. Cihaza yetki vermez.</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>Bu bir teklif yaratır. Cüzdanın onay ve yürütme gereksinimleri karşılanana kadar para transferi yapmaz. Tutarlar tam temel birim tam sayılarıdır.</string>
+	<key>This device</key>
+	<string>Bu cihaz</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>Bu cihazda senkronize edilmemiş değişiklikler var. Hesabı silmeden önce ihtiyacınız olan her şeyi kaydedin.</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>Bu cihaz kendi şifreli çalışma alanını korur. Senkronize edilmemiş içerik başka bir cihazdan kurtarılamaz.</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>Bu cihaz anahtarı artık kullanılamıyor. Başka bir yetkili cihaz kullanın veya hesap kurtarma yapın. Çalışma alanınız silinmedi.</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>Bu cihaz özel içeriğinizi alabilir. İçerik kökü onaylandıktan sonra yeniden dağıtılmalıdır.</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>Bu dosya 100 MiB sınırını aşıyor.</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>Bu geçmiş bu cihaza aittir. Başka bir cihazdan masaüstü yerel CLI, SSH veya dosya bağlama onaylarını yansıtmaz.</string>
+	<key>This iPhone</key>
+	<string>Bu iPhone</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>Bu iPhone, temsilci kimliklerini ve izinlerini yönetir. iOS uygulamayı askıya alırken aracıların çalışır durumda kalmasını sağlamaz.</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>Bu envanter, bu cihazdaki referansları ve teslimat kayıtlarını kapsar. Diğer cihazları veya rastgele proje dosyalarını aramaz.</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>Bu yerel tur için hayali bir belgedir. Hesabınızda, seçilen dosyalar yedeklemeden önce cihazda şifrelenir. Arka plan aktarımları yalnızca şifrelenmiş blokları işler; bitirme, orijinal kilidi açılmış hesabı gerektirir.</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>Bu anahtar dMsg tarafından yönetilir ve kopyalanamaz veya düzenlenemez.</string>
+	<key>This letter was withdrawn.</key>
+	<string>Bu mektup geri çekildi.</string>
+	<key>This message could not be verified.</key>
+	<string>Bu mesaj doğrulanamadı.</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>Bu yalnızca bu cihazdaki kesin bulguyu ve revizyonu gizler. Bir kimlik bilgisini onarmaz veya gelecekteki değişiklikleri göz ardı etmez.</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>Bu işlem, boyutunu veya kapasite sınırını aşıyor. Bu cihazdaki gizli anlık görüntüler 8 MiB ile sınırlıdır.</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>Bu işlem geçici olarak kullanılamıyor. Kaydedilen verileriniz saklanır.</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>Bu paket zaten bu cihaza aktarıldı. Mevcut kopyalar bağımsız kalır.</string>
+	<key>This preview sends nothing.</key>
+	<string>Bu önizleme hiçbir şey göndermez.</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>Bu profil herkese açıktır. Sırları veya özel iletişim bilgilerini eklemeyin.</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>Bu, sonucu manuel olarak kontrol ettiğinizi kaydeder. İşlemi başarılı olarak işaretlemez veya yeniden çalıştırmaz.</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>Bu yalnızca seçilen bulut kopyasını kaldırır. Yerel dosyalar cihazlarında kalır.</string>
+	<key>This request has expired</key>
+	<string>Bu isteğin süresi doldu</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>Bu istek, desteklenen bir masaüstü istemcisi gerektirir.</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>Bu, gelecekteki geri alma işlemlerinin sona erdirilmesini talep eder. Zaten kaydedilmiş kopyalar kullanılabilir durumda kalır. Belirsiz bir yayının yine de uzlaştırılması gerekir.</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>Bu anlık görüntünün dikkat edilmesi gerekiyor. Devam etmeden önce durumunu kontrol edin.</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>Bu tur dosya yüklemez veya sistem entegrasyonlarını kaydetmez.</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>Bu, bu cihazdaki çalışmanızı izler. Sağlayıcılarında kimlik bilgileri oluşturmaz, test etmez veya iptal etmez.</string>
+	<key>Title</key>
+	<string>Başlık</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>Mevcut hesabınızı bu iPhone'da kullanmak için bu cihazı yetkili cihazlarınızdan birinden onaylayın.</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>Önce sahip olunan konuşmaları aktarın veya arşivleyin</string>
+	<key>Transfer proposal</key>
+	<string>Transfer teklifi</string>
+	<key>Transfers</key>
+	<string>Transferler</string>
+	<key>Trash</key>
+	<string>Çöp kutusu</string>
+	<key>Trash is empty</key>
+	<string>Çöp kutusu boş</string>
+	<key>Try the local demo</key>
+	<string>Yerel demoyu deneyin</string>
+	<key>Two versions need your decision</key>
+	<string>İki versiyonun kararınıza ihtiyacı var</string>
+	<key>Type</key>
+	<string>Tür</string>
+	<key>Type this account ID to confirm</key>
+	<string>Onaylamak için bu hesap kimliğini yazın</string>
+	<key>Unblock</key>
+	<string>Engellemeyi kaldır</string>
+	<key>Unconfirmed proposals</key>
+	<string>Onaylanmamış teklifler</string>
+	<key>Unknown state</key>
+	<string>Bilinmeyen durum</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>Bu isteği incelemek için dMsg'nun kilidini açın.</string>
+	<key>Unlock policy</key>
+	<string>Kilit açma politikası</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>dMsg'yu açmak için bu iPhone'un kilidini açın.</string>
+	<key>Unlock with system authentication</key>
+	<string>Sistem kimlik doğrulamasıyla kilidi açın</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>dMsg çalışma alanınızın kilidini açın</string>
+	<key>Unrestricted delegation authority</key>
+	<string>Sınırsız delegasyon yetkisi</string>
+	<key>Uploading</key>
+	<string>Yükleniyor</string>
+	<key>Uploading encrypted backup</key>
+	<string>Şifrelenmiş yedekleme yükleniyor</string>
+	<key>Url</key>
+	<string>URL</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>dMsg'da açıkça dışa aktardığınız anlık görüntüden bir parola kullanın.</string>
+	<key>Use a secret through a device policy</key>
+	<string>Cihaz politikası aracılığıyla bir gizli dizi kullanma</string>
+	<key>Use an SSH signing key</key>
+	<string>SSH imzalama anahtarı kullanın</string>
+	<key>Use conflicting version</key>
+	<string>Çakışan sürümü kullan</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>Burada hayali verileri kullanın. Turun kapatılması değişikliklerinizi iptal eder.</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol veya sol:mint kullanın.</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>Bu iPhone'daki şifrelenmiş çalışma alanının kilidini açmak için sistem kimlik doğrulamasını kullanın.</string>
+	<key>Use this folder</key>
+	<string>Bu klasörü kullan</string>
+	<key>Use this password for:</key>
+	<string>Bu şifreyi şunun için kullanın:</string>
+	<key>Username</key>
+	<string>Kullanıcı adı</string>
+	<key>Value</key>
+	<string>Değer</string>
+	<key>Vault</key>
+	<string>Kasa</string>
+	<key>Vault tools</key>
+	<string>Kasa araçları</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>Doğrulanmış ek, Dosyalar'a kaydedildi.</string>
+	<key>Verified package fingerprint</key>
+	<string>Doğrulanmış paket parmak izi</string>
+	<key>Verify and finish</key>
+	<string>Doğrulayın ve tamamlayın</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>Tam cihazı ve anahtar parmak izlerini doğrulayın. Bu anahtar, bu hesabın korunan eylemleri için donanım onayını kanıtlayacaktır.</string>
+	<key>Verify the full device fingerprint</key>
+	<string>Tam cihaz parmak izini doğrulayın</string>
+	<key>Version history</key>
+	<string>Sürüm geçmişi</string>
+	<key>Versions</key>
+	<string>Sürümler</string>
+	<key>Viewer</key>
+	<string>Görüntüleyici</string>
+	<key>Waiting for approval</key>
+	<string>Onay bekleniyor</string>
+	<key>Waiting for browser confirmation</key>
+	<string>Tarayıcı onayı bekleniyor</string>
+	<key>Waiting for confirmation: </key>
+	<string>Onay bekleniyor: </string>
+	<key>Waiting for notification registration…</key>
+	<string>Bildirim kaydı bekleniyor…</string>
+	<key>Waiting for your decision</key>
+	<string>Kararınızı bekliyorum</string>
+	<key>Waiting to submit</key>
+	<string>Gönderilmeyi bekliyorum</string>
+	<key>Waiting to sync</key>
+	<string>Senkronize edilme bekleniyor</string>
+	<key>Wallet</key>
+	<string>Cüzdan</string>
+	<key>Wallet access</key>
+	<string>Cüzdan erişimi</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>Cüzdan erişimi kontrol edilemedi. Silmeden önce bağımsız olarak doğrulayın.</string>
+	<key>Wallet canister ID</key>
+	<string>Cüzdan canister Kimliği</string>
+	<key>Wallet controls</key>
+	<string>Cüzdan kontrolleri</string>
+	<key>Wallet details and policy</key>
+	<string>Cüzdan ayrıntıları ve politikası</string>
+	<key>Wallet secret</key>
+	<string>Cüzdan sırrı</string>
+	<key>Wallets</key>
+	<string>Cüzdanlar</string>
+	<key>Weak credential</key>
+	<string>Zayıf kimlik bilgisi</string>
+	<key>Website</key>
+	<string>Web sitesi</string>
+	<key>Welcome back.</key>
+	<string>Tekrar hoş geldiniz.</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>Yerel demoya hoş geldiniz. Bu mesajlar bu ekranda kalır.</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg açık ve kilidi açıkken, şifrelenmiş düzenlemeler yüklenecek ve mesajlar ile onaylar yenilenecektir. Dosya yedeklemeleri yine de ayrı bir onay gerektirir. Bunu istediğiniz zaman kapatabilirsiniz.</string>
+	<key>Who may contact you</key>
+	<string>Sizinle kim iletişime geçebilir?</string>
+	<key>Withdraw</key>
+	<string>Çekilme</string>
+	<key>Withdraw message</key>
+	<string>Mesajı geri çek</string>
+	<key>Withdraw this message?</key>
+	<string>Bu mesaj geri çekilsin mi?</string>
+	<key>Workspace destination</key>
+	<string>Çalışma alanı hedefi</string>
+	<key>Write a demo message</key>
+	<string>Bir demo mesajı yazın</string>
+	<key>Write a letter</key>
+	<string>Bir mektup yaz</string>
+	<key>Write a message</key>
+	<string>Bir mesaj yaz</string>
+	<key>Yes</key>
+	<string>Evet</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>Değişmez bir tarihsel versiyonu görüntülüyorsunuz.</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>Sağlayıcı değişikliklerini kendiniz gerçekleştirirsiniz. dMsg ekstrelerinizi kaydeder ve yerel revizyonları kontrol eder; yukarı akış oluşturmayı, test etmeyi veya iptal etmeyi doğrulayamaz.</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>Yetkili kanallarınız senkronizasyondan sonra görünür.</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>Mevcut hakkınız yenilenemedi. Doğrulama hizmeti mevcut olduğunda yeniden deneyin.</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>Mevcut planınız App Store dışında yönetiliyor. App Store aboneliğini başlatmadan önce aboneliğin bitmesini bekleyin.</string>
+	<key>Your decision applies only to this request.</key>
+	<string>Kararınız yalnızca bu talep için geçerlidir.</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>Şifrelenmiş dosyalarınız burada kalır. Kaydedilmiş oturum açma ve hızlı kilit açma kaldırılır.</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>Mevcut cihazınız nihai kararı verir.</string>
+	<key>Your files stay private</key>
+	<string>Dosyalarınız gizli kalır</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>Gizli alanlarınız, siz onları açığa çıkarmayı seçene kadar gizli kalır.</string>
+	<key>Your private workspace.</key>
+	<string>Özel çalışma alanınız.</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>Satın alma işleminiz onay bekliyor. Tekrar ödeme yapmadan yeniden denemek için satın alma işlemlerini geri yükleyin.</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>Raporunuz ve açıkça eklediğiniz metinler moderasyon ekibine gönderilecektir. Diğer özel içerik ve anahtarlar dahil değildir.</string>
+	<key>Your reports</key>
+	<string>Raporlarınız</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>dMsg çalışma alanı</string>
+</dict>
+</plist>

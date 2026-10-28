@@ -197,7 +197,7 @@ struct DeviceDetail: View {
                 Button("Revoke this device", role: .destructive) { confirming = true }
             }
             NoticeBar(text: String(localized: "Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled."))
-        }.privateScreen().navigationTitle(device.current ? "This iPhone" : "Device")
+        }.privateScreen().navigationTitle(LocalizedStringKey(device.current ? "This iPhone" : "Device"))
             .confirmationDialog("Create a revocation request?", isPresented: $confirming) {
                 Button("Review revocation", role: .destructive) { Task {
                     do { if let result = try await model.engine?.revokeDevice(device: device.deviceId) { request = try model.decode(result) } }

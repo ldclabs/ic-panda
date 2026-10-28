@@ -32,6 +32,7 @@
 // in place when it collapses the sidebar, and that closing the main window
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
+import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { securityFlow } from './security-flow.mjs'
@@ -1564,6 +1565,16 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'languages') {
+    const opened = app.waitForEvent('window')
+    await main.evaluate(id => window.dmsg.openApproval(id), request.id)
+    const approval = await opened
+    approval.on('pageerror', error => pageErrors.push(error.message))
+    await approval.getByTestId('approval-origin').waitFor()
+    await languagesFlow({ app, main, approval, shots, profile })
+    assert.deepEqual(pageErrors, [])
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'files') {
     await filesFlow({ app, main, shots, methods, hold, waitFor, calls, emit, setSession: value => { session = value } })
     if (process.env.DMSG_DESKTOP_TEST_TRAY === '1') await trayFlow({ app, methods, emit, waitFor, shots, setSession: value => { session = value } })
@@ -4278,6 +4289,7 @@ smoke: try {
   await approval.waitForSelector('html[lang="fr"][dir="ltr"]')
   await main.waitForSelector('nav >> text=Paramètres')
   await main.screenshot({ path: join(shots, 'locale-fr.png') })
+  await languagesFlow({ app, main, approval, shots, profile })
 
   // The appearance is picked in the main window's Settings only and kept in
   // the profile; both windows follow it through nativeTheme.

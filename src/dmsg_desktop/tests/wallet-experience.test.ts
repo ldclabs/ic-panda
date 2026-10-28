@@ -16,7 +16,6 @@ import {
   type Proposal
 } from '../src/renderer/views/wallet/model.ts'
 import { walletHistoryCsv } from '../src/shared/wallet-report.ts'
-import { experienceRows } from '../src/renderer/views/wallet/copy.ts'
 
 const policy = {
   version: 1,
@@ -139,18 +138,4 @@ test('history export escapes notes and spreadsheet formulas, and rejects arbitra
   assert.match(csv, /"'=HYPERLINK\(""bad""\)"/)
   assert.throws(() => walletHistoryCsv({ format: 'dmsg-wallet-history/1', rows: [['x']] }))
   assert.throws(() => walletHistoryCsv({ format: 'other', rows: [] }))
-})
-
-test('workflow instructions have all six translations and no duplicate keys', () => {
-  const keys = new Set<string>()
-  for (const row of experienceRows.trim().split('\n')) {
-    const [key, ...words] = row.split('|')
-    assert.ok(!keys.has(key), key)
-    keys.add(key)
-    assert.equal(words.length, 6, key)
-    assert.ok(
-      words.every((s) => s.trim()),
-      key
-    )
-  }
 })

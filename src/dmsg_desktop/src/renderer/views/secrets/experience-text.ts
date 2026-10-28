@@ -1,16 +1,8 @@
-import { locale } from '../../i18n/index.svelte'
+import { hasLabel, t } from '../../i18n/index.svelte'
 
-// UI copy only: protocol identifiers stay in the expandable technical details.
-import { rows } from './experience-catalog'
-
-const dictionary = Object.fromEntries(
-  rows.map(([key, ...values]) => [key, values])
-)
-export function ux(key: string) {
-  return (
-    dictionary[key]?.[['en', 'zh', 'ru', 'ar', 'fr', 'es'].indexOf(locale())] ??
-    dictionary.unknown[['en', 'zh', 'ru', 'ar', 'fr', 'es'].indexOf(locale())]
-  )
+export function ux(key: string): string {
+  const label = `experience.${key}`
+  return t(hasLabel(label) ? label : 'experience.unknown')
 }
 export function term(key: string) {
   const aliases: Record<string, string> = {

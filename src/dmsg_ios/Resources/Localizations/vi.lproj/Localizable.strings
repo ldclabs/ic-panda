@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 ngày</string>
+	<key>1 hour</key>
+	<string>1 giờ</string>
+	<key>7 days</key>
+	<string>7 ngày</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>Chuyển nền thuộc về một tài khoản khác. Chuyển sang tài khoản đó để hoàn tất hoặc hủy nó.</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>Ảnh chụp nhanh kênh có sẵn cho các thành viên có quyền truy cập vào kỷ nguyên này, bao gồm cả quyền truy cập lịch sử sau này. Nó không có hạn sử dụng liên kết, giới hạn phiên tải xuống hoặc thu hồi.</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>Phiên tải xuống là mức cho phép truy xuất chứ không phải số lần đọc tệp. Hết hạn hoặc thu hồi không thể xóa các bản sao đã được lưu.</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>Không thể xác minh bản ghi hoặc khóa thiết bị. Không gian làm việc của bạn chưa bị xóa.</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>Một tham chiếu xác định một trường; nó không chứa giá trị bí mật của nó hoặc Cho phép đọc nó.</string>
+	<key>A snapshot contains an older credential</key>
+	<string>Ảnh chụp nhanh chứa thông tin xác thực cũ hơn</string>
+	<key>A snapshot link is still active</key>
+	<string>Liên kết ảnh chụp nhanh vẫn đang hoạt động</string>
+	<key>API credential</key>
+	<string>Thông tin xác thực API</string>
+	<key>About</key>
+	<string>Giới thiệu</string>
+	<key>Accept approved binding</key>
+	<string>Chấp nhận ràng buộc đã được phê duyệt</string>
+	<key>Access granted</key>
+	<string>Đã cấp quyền truy cập</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>Truy cập các bản sao bạn đã xuất rõ ràng từ dMsg</string>
+	<key>Account</key>
+	<string>Tài khoản</string>
+	<key>Account ID</key>
+	<string>ID tài khoản</string>
+	<key>Account recovery</key>
+	<string>Khôi phục tài khoản</string>
+	<key>Account recovery is pending</key>
+	<string>Việc khôi phục tài khoản đang chờ xử lý</string>
+	<key>Account security</key>
+	<string>Bảo mật tài khoản</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>Bảo vệ tài khoản, thiết bị và danh tính thay đổi cùng nhau. Sự phê duyệt bắt buộc không thể quay trở lại hộp thoại xác nhận thông thường.</string>
+	<key>Account, devices and identities</key>
+	<string>Tài khoản, thiết bị và danh tính</string>
+	<key>Accounts</key>
+	<string>Tài khoản</string>
+	<key>Active conversations</key>
+	<string>Cuộc trò chuyện hiện hoạt</string>
+	<key>Activity on this device</key>
+	<string>Hoạt động trên thiết bị này</string>
+	<key>Add device</key>
+	<string>Thêm thiết bị</string>
+	<key>Add field</key>
+	<string>Thêm trường</string>
+	<key>Add item</key>
+	<string>Thêm mục</string>
+	<key>Add message to demo</key>
+	<string>Thêm tin nhắn vào bản demo</string>
+	<key>Add one-time code</key>
+	<string>Thêm mã một lần</string>
+	<key>Add receiving address</key>
+	<string>Thêm địa chỉ nhận</string>
+	<key>Add sample login</key>
+	<string>Thêm thông tin đăng nhập mẫu</string>
+	<key>Added</key>
+	<string>Đã thêm</string>
+	<key>Address</key>
+	<string>Địa chỉ</string>
+	<key>Address label</key>
+	<string>Nhãn địa chỉ</string>
+	<key>Address verification failed</key>
+	<string>Xác minh địa chỉ không thành công</string>
+	<key>Administrative approvals %u</key>
+	<string>Phê duyệt hành chính %u</string>
+	<key>Administrator</key>
+	<string>Quản trị viên</string>
+	<key>Agent ID</key>
+	<string>ID tác tử</string>
+	<key>Agents</key>
+	<string>Tác tử</string>
+	<key>All</key>
+	<string>Tất cả</string>
+	<key>All caught up</key>
+	<string>Tất cả đã bắt kịp</string>
+	<key>All devices lost?</key>
+	<string>Tất cả các thiết bị bị mất?</string>
+	<key>All files</key>
+	<string>Tất cả các tập tin</string>
+	<key>Allow key rotation</key>
+	<string>Cho phép xoay phím</string>
+	<key>Allowed</key>
+	<string>Được phép</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>ID tài khoản được phép, mỗi ID một dòng</string>
+	<key>Already imported</key>
+	<string>Đã nhập</string>
+	<key>Already present</key>
+	<string>Đã có mặt</string>
+	<key>Amount in base units</key>
+	<string>Số lượng theo đơn vị cơ sở</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>Việc khôi phục tài khoản đang chờ xử lý. Xem lại nó trong Bảo mật tài khoản.</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>Bất kỳ ai có liên kết đầy đủ và mật khẩu được yêu cầu đều có thể truy xuất nó trong giới hạn của nó.</string>
+	<key>Anyone, free of charge</key>
+	<string>Bất cứ ai, miễn phí</string>
+	<key>App Store subscriptions</key>
+	<string>Đăng ký App Store</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>Xác minh ứng dụng không khả dụng trên thiết bị này. Nội dung đã lưu của bạn vẫn có sẵn.</string>
+	<key>Apply these receiving rules?</key>
+	<string>Áp dụng các quy tắc nhận này?</string>
+	<key>Apply this conversation change?</key>
+	<string>Áp dụng thay đổi cuộc trò chuyện này?</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>Phê duyệt chỉ nhập các trường đã chọn và tệp đính kèm của bạn dưới dạng các mục độc lập mới. Các tệp vẫn cục bộ và kế thừa quyền truy cập của thư mục đích.</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>Phê duyệt xuất bản chính xác các trường đã xem xét và tệp đính kèm dưới dạng ảnh chụp nhanh độc lập. Xác minh điểm đến và giới hạn; người nhận có thể giữ lại các bản sao.</string>
+	<key>Approval thresholds</key>
+	<string>Ngưỡng phê duyệt</string>
+	<key>Approvals</key>
+	<string>Phê duyệt</string>
+	<key>Approve</key>
+	<string>Phê duyệt</string>
+	<key>Approve a binding request</key>
+	<string>Phê duyệt yêu cầu ràng buộc</string>
+	<key>Approve the reviewed request?</key>
+	<string>Phê duyệt yêu cầu đã xem xét?</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>Phê duyệt kế hoạch giao dịch ví mà bạn đã xem xét</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>Phê duyệt thiết bị này và phân phối khóa nội dung mới</string>
+	<key>Approve this request</key>
+	<string>Phê duyệt yêu cầu này</string>
+	<key>Approved by</key>
+	<string>Được phê duyệt bởi</string>
+	<key>Approver</key>
+	<string>Người phê duyệt</string>
+	<key>Archive</key>
+	<string>Lưu trữ</string>
+	<key>Archive conversation</key>
+	<string>Lưu trữ cuộc trò chuyện</string>
+	<key>Archived</key>
+	<string>Đã lưu trữ</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>Yêu cầu quản trị viên liên kết thông tin đăng nhập này với tài khoản hiện tại của bạn. Ủy quyền thiết bị là một bước riêng biệt.</string>
+	<key>Asset identifier</key>
+	<string>Mã định danh tài sản</string>
+	<key>Attach</key>
+	<string>Đính kèm</string>
+	<key>Attach a file</key>
+	<string>Đính kèm tập tin</string>
+	<key>Attach file</key>
+	<string>Đính kèm tập tin</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>Bản sao lưu tệp đính kèm chưa được xác nhận</string>
+	<key>Attachment unavailable on this device</key>
+	<string>Tệp đính kèm không có sẵn trên thiết bị này</string>
+	<key>Attestations</key>
+	<string>Chứng thực</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>Nguồn gốc đối tượng hoặc ID tác tử, mỗi mã một dòng</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>Xác thực để truy cập vào các bản sao tệp bạn đã xuất từ dMsg. Truy cập kéo dài năm phút; ảnh chụp nhanh sẽ hết hạn sau 24 giờ.</string>
+	<key>Authenticate to continue</key>
+	<string>Xác thực để tiếp tục</string>
+	<key>Authorize a new device</key>
+	<string>Ủy quyền cho một thiết bị mới</string>
+	<key>Authorize another device</key>
+	<string>Ủy quyền cho thiết bị khác</string>
+	<key>Authorize this device</key>
+	<string>Cấp quyền cho thiết bị này</string>
+	<key>Authorize this device's approval key</key>
+	<string>Cấp phép khóa phê duyệt của thiết bị này</string>
+	<key>Authorize this iPhone</key>
+	<string>Ủy quyền cho iPhone này</string>
+	<key>Authorized device</key>
+	<string>Thiết bị được ủy quyền</string>
+	<key>Authorized devices</key>
+	<string>Thiết bị được ủy quyền</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Tự động điền chỉ nhận các mục đăng nhập bạn chọn. Ảnh chụp nhanh sẽ hết hạn sau 24 giờ và yêu cầu xác thực hệ thống độc lập với không gian làm việc. Tên người dùng và tên trang web có thể xuất hiện trong đề xuất của hệ thống.</string>
+	<key>AutoFill snapshot updated</key>
+	<string>Đã cập nhật ảnh chụp nhanh Tự động điền</string>
+	<key>Automatic foreground sync</key>
+	<string>Đồng bộ hóa tiền cảnh tự động</string>
+	<key>Back</key>
+	<string>Quay lại</string>
+	<key>Back up encrypted copy</key>
+	<string>Sao lưu bản sao được mã hóa</string>
+	<key>Back up this file?</key>
+	<string>Sao lưu tập tin này?</string>
+	<key>Back up to cloud</key>
+	<string>Sao lưu lên đám mây</string>
+	<key>Backed up</key>
+	<string>Đã sao lưu</string>
+	<key>Background ciphertext transfer</key>
+	<string>Truyền bản mã nền</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>Khả năng ký nền và tác tử thường trú tách biệt với khóa không gian làm việc này.</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>Quá trình chuyển nền đã bắt đầu. Xem lại tiến trình của nó trong Chuyển khoản.</string>
+	<key>Backing up…</key>
+	<string>Đang sao lưu…</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>Đã lưu tiến trình sao lưu. Kiểm tra trạng thái tập tin để hoàn thành.</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>Đã xếp hàng đợi sao lưu. Giữ dMsg mở để hoàn tất quá trình tải lên.</string>
+	<key>Bind another Internet Identity</key>
+	<string>Liên kết một Internet Identity khác</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>Liên kết không gian làm việc này với iPhone này?</string>
+	<key>Bind workspace</key>
+	<string>Ràng buộc không gian làm việc</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>Ràng buộc bảo vệ không gian làm việc cục bộ này ngay cả sau khi đăng nhập mới. Giữ một thiết bị được ủy quyền khác hoặc đường dẫn khôi phục trước khi thay đổi nó.</string>
+	<key>Biometrics only</key>
+	<string>Chỉ sinh trắc học</string>
+	<key>Biometrics only for exported copies</key>
+	<string>Sinh trắc học chỉ dành cho bản sao được xuất</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>Các khóa chỉ dành cho sinh trắc học không thể sử dụng mật mã của thiết bị và có thể ngừng hoạt động khi sinh trắc học đã đăng ký thay đổi.</string>
+	<key>Birthday</key>
+	<string>Sinh nhật</string>
+	<key>Bitcoin</key>
+	<string>bitcoin</string>
+	<key>Block this account</key>
+	<string>Chặn tài khoản này</string>
+	<key>Blocked accounts</key>
+	<string>Tài khoản bị chặn</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>Người gửi bị chặn sẽ bị ẩn trên thiết bị này. Việc chặn trực tuyến cũng ngăn chặn những lời mời và liên hệ trực tiếp mới; bản sao chia sẻ hiện có không được thu hồi.</string>
+	<key>Broadcast original signed transaction</key>
+	<string>Phát sóng giao dịch đã ký ban đầu</string>
+	<key>Browser request</key>
+	<string>Yêu cầu trình duyệt</string>
+	<key>Cancel</key>
+	<string>Hủy</string>
+	<key>Cancel background transfer</key>
+	<string>Hủy chuyển nền</string>
+	<key>Cancel pending request</key>
+	<string>Hủy yêu cầu đang chờ xử lý</string>
+	<key>Cancel proposal</key>
+	<string>Hủy đề xuất</string>
+	<key>Cancel reply</key>
+	<string>Hủy trả lời</string>
+	<key>Cancel request</key>
+	<string>Hủy yêu cầu</string>
+	<key>Cancel this pending request?</key>
+	<string>Hủy yêu cầu đang chờ xử lý này?</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>Việc hủy bỏ áp dụng cho yêu cầu chưa quyết định này. Nó không hoàn tác việc giao hàng đã hoàn thành.</string>
+	<key>Cancelled</key>
+	<string>Đã hủy</string>
+	<key>Capabilities, one per line</key>
+	<string>Khả năng, một trên mỗi dòng</string>
+	<key>Cardholder</key>
+	<string>Chủ thẻ</string>
+	<key>Chain</key>
+	<string>Chuỗi</string>
+	<key>Change a device secret policy</key>
+	<string>Thay đổi chính sách bí mật của thiết bị</string>
+	<key>Change account security</key>
+	<string>Thay đổi bảo mật tài khoản</string>
+	<key>Change device permissions</key>
+	<string>Thay đổi quyền của thiết bị</string>
+	<key>Change hardware approval policy</key>
+	<string>Thay đổi chính sách phê duyệt phần cứng</string>
+	<key>Change identity settings</key>
+	<string>Thay đổi cài đặt nhận dạng</string>
+	<key>Change role</key>
+	<string>Thay đổi vai trò</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>Các thay đổi tạo ra đề xuất và vẫn yêu cầu phê duyệt hiện có của ví. Các trường chính sách hiện có và quyền của tác tử thành viên được giữ nguyên.</string>
+	<key>Channel</key>
+	<string>Kênh</string>
+	<key>Channel ID</key>
+	<string>Mã kênh</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>Bản sao kênh không có thời hạn sử dụng, giới hạn truy xuất hoặc thu hồi. Người nhận có thể giữ các bản sao độc lập.</string>
+	<key>Channel snapshot</key>
+	<string>Ảnh chụp nhanh kênh</string>
+	<key>Channels</key>
+	<string>Kênh</string>
+	<key>Check authorization</key>
+	<string>Kiểm tra ủy quyền</string>
+	<key>Check deletion status</key>
+	<string>Kiểm tra trạng thái xóa</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>Kiểm tra tài liệu tham khảo dự án và bất kỳ bản sao nào đã được gửi.</string>
+	<key>Check recovery status</key>
+	<string>Kiểm tra trạng thái khôi phục</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>Kiểm tra hoạt động của thiết bị này trước khi quyết định xem có còn cần quyền truy cập hay không.</string>
+	<key>Checking permission…</key>
+	<string>Đang kiểm tra quyền…</string>
+	<key>Checklist completed</key>
+	<string>Danh sách kiểm tra đã hoàn thành</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>Danh sách kiểm tra được hoàn thành từ báo cáo của bạn. Trạng thái ngược dòng vẫn có thể được xác minh độc lập chỉ với nhà cung cấp.</string>
+	<key>Choose a credential for:</key>
+	<string>Chọn thông tin xác thực cho:</string>
+	<key>Choose a secret</key>
+	<string>Chọn một bí mật</string>
+	<key>Choose a version</key>
+	<string>Chọn một phiên bản</string>
+	<key>Choose an attachment</key>
+	<string>Chọn tệp đính kèm</string>
+	<key>Choose avatar</key>
+	<string>Chọn hình đại diện</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>Chọn chính xác những gì ảnh chụp nhanh độc lập này chứa. Chỉnh sửa nguồn sẽ không thay đổi các bản sao đã được gửi.</string>
+	<key>Choose password export</key>
+	<string>Chọn xuất mật khẩu</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>Chọn ngôn ngữ cho dMsg trong Cài đặt iOS.</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>Chọn phiên bản nào để giữ. Lịch sử hiện tại được giữ lại; bí mật không bao giờ được ghi đè âm thầm.</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>Chọn người có thể gửi thư miễn phí cho bạn. Các tài khoản bị chặn vẫn bị chặn cho đến khi bạn bỏ chặn chúng.</string>
+	<key>Closed</key>
+	<string>Đã đóng</string>
+	<key>Cloud backups</key>
+	<string>Sao lưu đám mây</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>Sao lưu đám mây được lưu giữ. Điều này chỉ thay đổi bản sao trên thiết bị này.</string>
+	<key>Cloud deletion completed</key>
+	<string>Việc xóa đám mây đã hoàn tất</string>
+	<key>Cloud storage</key>
+	<string>Lưu trữ đám mây</string>
+	<key>Complete recovery after waiting period</key>
+	<string>Phục hồi hoàn toàn sau thời gian chờ đợi</string>
+	<key>Completed</key>
+	<string>Đã hoàn thành</string>
+	<key>Configure a desktop file mapping</key>
+	<string>Định cấu hình ánh xạ tệp trên máy tính để bàn</string>
+	<key>Configured on this device</key>
+	<string>Đã định cấu hình trên thiết bị này</string>
+	<key>Confirm change</key>
+	<string>Xác nhận thay đổi</string>
+	<key>Confirm completed step</key>
+	<string>Xác nhận bước hoàn thành</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>Chỉ xác nhận công việc bạn đã thực sự hoàn thành. Điều này ghi lại tuyên bố của bạn; nó không thực hiện hành động của nhà cung cấp.</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>Xác nhận yêu cầu dMsg mà bạn đã xem xét</string>
+	<key>Confirm this account security change</key>
+	<string>Xác nhận thay đổi bảo mật tài khoản này</string>
+	<key>Confirm your completed steps</key>
+	<string>Xác nhận các bước đã hoàn thành của bạn</string>
+	<key>Conflicting version</key>
+	<string>Phiên bản xung đột</string>
+	<key>Connect</key>
+	<string>Kết nối</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>Chỉ kết nối trình duyệt mà bạn kiểm soát. Trình duyệt được kết nối có thể gửi yêu cầu; mỗi chữ ký vẫn cần có sự chấp thuận của bạn trong dMsg.</string>
+	<key>Connect this browser</key>
+	<string>Kết nối trình duyệt này</string>
+	<key>Connect this browser?</key>
+	<string>Kết nối trình duyệt này?</string>
+	<key>Connected browsers</key>
+	<string>Trình duyệt được kết nối</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>Kết nối không có sẵn. Nội dung đã lưu của bạn vẫn còn trên thiết bị này.</string>
+	<key>Contact invitation, if provided</key>
+	<string>Lời mời liên hệ, nếu được cung cấp</string>
+	<key>Contact support</key>
+	<string>Liên hệ hỗ trợ</string>
+	<key>Continue import</key>
+	<string>Tiếp tục nhập</string>
+	<key>Continue password import</key>
+	<string>Tiếp tục nhập mật khẩu</string>
+	<key>Continue selected backups</key>
+	<string>Tiếp tục sao lưu đã chọn</string>
+	<key>Continue this backup in background</key>
+	<string>Tiếp tục sao lưu này trong nền</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>Tiếp tục quá trình nhập này vào tài khoản bạn đã chọn ban đầu.</string>
+	<key>Continue with Internet Identity</key>
+	<string>Tiếp tục với Internet Identity</string>
+	<key>Controller ID</key>
+	<string>ID Controller</string>
+	<key>Controller name</key>
+	<string>Tên Controller</string>
+	<key>Controllers</key>
+	<string>Controllers</string>
+	<key>Controllers and delegations</key>
+	<string>Controllers và các đoàn</string>
+	<key>Conversation</key>
+	<string>Cuộc trò chuyện</string>
+	<key>Conversation name</key>
+	<string>Tên cuộc trò chuyện</string>
+	<key>Conversation settings</key>
+	<string>Cài đặt cuộc trò chuyện</string>
+	<key>Copied for 30 seconds</key>
+	<string>Sao chép trong 30 giây</string>
+	<key>Copy</key>
+	<string>Sao chép</string>
+	<key>Copy address</key>
+	<string>Sao chép địa chỉ</string>
+	<key>Copy binding request</key>
+	<string>Sao chép yêu cầu ràng buộc</string>
+	<key>Copy enrollment request</key>
+	<string>Sao chép yêu cầu đăng ký</string>
+	<key>Copy for 30 seconds</key>
+	<string>Sao chép trong 30 giây</string>
+	<key>Copy link</key>
+	<string>Sao chép liên kết</string>
+	<key>Copy pairing request</key>
+	<string>Sao chép yêu cầu ghép nối</string>
+	<key>Copy reference</key>
+	<string>Sao chép tài liệu tham khảo</string>
+	<key>Copy this field?</key>
+	<string>Sao chép trường này?</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>Người đồng ký tên cho chính sách địa chỉ được đề xuất</string>
+	<key>Create</key>
+	<string>Tạo</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>Tạo thông tin xác thực mới tại nhà cung cấp và lưu nó vào vault</string>
+	<key>Create a new pairing request</key>
+	<string>Tạo yêu cầu ghép nối mới</string>
+	<key>Create a revocation request?</key>
+	<string>Tạo yêu cầu thu hồi?</string>
+	<key>Create agent</key>
+	<string>Tạo tác tử</string>
+	<key>Create an administrator enrollment request</key>
+	<string>Tạo yêu cầu đăng ký quản trị viên</string>
+	<key>Create an agent identity</key>
+	<string>Tạo danh tính tác tử</string>
+	<key>Create binding request</key>
+	<string>Tạo yêu cầu ràng buộc</string>
+	<key>Create conversation</key>
+	<string>Tạo cuộc trò chuyện</string>
+	<key>Create hardware cosigner</key>
+	<string>Tạo cosigner phần cứng</string>
+	<key>Create invitation</key>
+	<string>Tạo lời mời</string>
+	<key>Create proposal</key>
+	<string>Tạo đề xuất</string>
+	<key>Create this wallet proposal?</key>
+	<string>Tạo đề xuất ví này?</string>
+	<key>Create transfer proposal</key>
+	<string>Tạo đề xuất chuyển nhượng</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>Tạo không gian làm việc được mã hóa của bạn để bắt đầu lưu mật khẩu, ghi chú và tệp.</string>
+	<key>Credential</key>
+	<string>Thông tin xác thực</string>
+	<key>Credential ID</key>
+	<string>ID thông tin xác thực</string>
+	<key>Credential expired</key>
+	<string>Thông tin xác thực đã hết hạn</string>
+	<key>Credential reused</key>
+	<string>Thông tin xác thực được sử dụng lại</string>
+	<key>Credential rotation</key>
+	<string>Xoay vòng thông tin xác thực</string>
+	<key>Current</key>
+	<string>hiện tại</string>
+	<key>Current local dependencies</key>
+	<string>Sự phụ thuộc cục bộ hiện tại</string>
+	<key>Current login</key>
+	<string>Đăng nhập hiện tại</string>
+	<key>Current plan and limits</key>
+	<string>Kế hoạch và giới hạn hiện tại</string>
+	<key>Current policy requires payment</key>
+	<string>Chính sách hiện tại yêu cầu thanh toán</string>
+	<key>Current term ends</key>
+	<string>Nhiệm kỳ hiện tại kết thúc</string>
+	<key>Current version</key>
+	<string>Phiên bản hiện tại</string>
+	<key>Cvv</key>
+	<string>cvv</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>Hoạt động mới trong dMsg.</string>
+	<key>Database</key>
+	<string>Cơ sở dữ liệu</string>
+	<key>Date</key>
+	<string>Ngày</string>
+	<key>Delegations</key>
+	<string>Đoàn đại biểu</string>
+	<key>Delete account</key>
+	<string>Xóa tài khoản</string>
+	<key>Delete cloud backup</key>
+	<string>Xóa bản sao lưu đám mây</string>
+	<key>Delete this cloud backup?</key>
+	<string>Xóa bản sao lưu đám mây này?</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>Việc xóa tài khoản dMsg của bạn sẽ không hủy đăng ký Apple. Hãy hủy nó trong cài đặt tài khoản Apple của bạn để ngừng gia hạn.</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>Xóa tài khoản dịch vụ dMsg của bạn sẽ xóa vĩnh viễn văn bản mã hóa đám mây, dữ liệu dịch vụ riêng tư, đăng ký thông báo thiết bị và bản sao gốc hình đại diện công khai. Nó không thể xóa các bản ghi blockchain, bản sao của người nhận khác hoặc dữ liệu do các dịch vụ khác nắm giữ.</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>Việc xóa không chuyển tiền. Việc xóa khóa cục bộ và bản sao trên đám mây có thể xóa vĩnh viễn quyền truy cập của thiết bị này vào ví và thông tin xác thực bên ngoài.</string>
+	<key>Deletion is in progress</key>
+	<string>Đang xóa</string>
+	<key>Deletion status</key>
+	<string>Trạng thái xóa</string>
+	<key>Deliver a secret to a local process</key>
+	<string>Cung cấp bí mật cho một quy trình cục bộ</string>
+	<key>Demo approved · No signature created</key>
+	<string>Bản demo đã được phê duyệt · Không có chữ ký nào được tạo</string>
+	<key>Demo rejected · No signature created</key>
+	<string>Bản demo bị từ chối · Không có chữ ký nào được tạo</string>
+	<key>Demo section</key>
+	<string>Phần demo</string>
+	<key>Dependencies on this device</key>
+	<string>Sự phụ thuộc vào thiết bị này</string>
+	<key>Describe the issue</key>
+	<string>Mô tả vấn đề</string>
+	<key>Desktop file mapping</key>
+	<string>Ánh xạ tập tin máy tính để bàn</string>
+	<key>Desktop file mapping needs review</key>
+	<string>Cần xem xét lại nhu cầu ánh xạ tệp trên máy tính để bàn</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>Phê duyệt lệnh cục bộ trên máy tính để bàn vẫn ở trên máy tính để bàn đó. Chỉ những yêu cầu có sẵn cho thiết bị này mới xuất hiện ở đây.</string>
+	<key>Destination</key>
+	<string>Điểm đến</string>
+	<key>Destination folder</key>
+	<string>Thư mục đích</string>
+	<key>Device</key>
+	<string>Thiết bị</string>
+	<key>Device ID</key>
+	<string>ID thiết bị</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>Xác thực thiết bị tạm thời không khả dụng. Chìa khóa của bạn được giữ; hãy thử lại khi thiết bị này được mở khóa.</string>
+	<key>Device pairing request QR code</key>
+	<string>Yêu cầu ghép nối thiết bị Mã QR</string>
+	<key>Device permissions</key>
+	<string>Quyền của thiết bị</string>
+	<key>Device policy</key>
+	<string>Chính sách thiết bị</string>
+	<key>Device policy needs review</key>
+	<string>Chính sách thiết bị cần xem xét</string>
+	<key>Device request</key>
+	<string>Yêu cầu thiết bị</string>
+	<key>Device-bound workspace</key>
+	<string>Không gian làm việc gắn với thiết bị</string>
+	<key>Devices</key>
+	<string>Thiết bị</string>
+	<key>Disabled</key>
+	<string>Đã tắt</string>
+	<key>Discard</key>
+	<string>Loại bỏ</string>
+	<key>Discard staged copy</key>
+	<string>Loại bỏ bản sao theo giai đoạn</string>
+	<key>Discard this staged copy?</key>
+	<string>Hủy bản sao dàn dựng này?</string>
+	<key>Dismiss this observation</key>
+	<string>Loại bỏ quan sát này</string>
+	<key>Dismiss this observation?</key>
+	<string>Loại bỏ quan sát này?</string>
+	<key>Dispute pending recovery</key>
+	<string>Tranh chấp đang chờ giải quyết</string>
+	<key>Done</key>
+	<string>Xong</string>
+	<key>Download encrypted copy in background</key>
+	<string>Tải xuống bản sao được mã hóa ở chế độ nền</string>
+	<key>Download sessions</key>
+	<string>Phiên tải xuống</string>
+	<key>Downloading encrypted backup</key>
+	<string>Đang tải xuống bản sao lưu được mã hóa</string>
+	<key>Draft: </key>
+	<string>Bản nháp: </string>
+	<key>EVM</key>
+	<string>EVM</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>Mỗi gói di động được giới hạn ở 8 MiB, bao gồm các tệp đính kèm được chọn. Sự phê duyệt cuối cùng cho thấy sự lựa chọn và đích đến chính xác không thể thay đổi.</string>
+	<key>Edit item</key>
+	<string>Chỉnh sửa mục</string>
+	<key>Edit member</key>
+	<string>Chỉnh sửa thành viên</string>
+	<key>Edit message</key>
+	<string>Chỉnh sửa tin nhắn</string>
+	<key>Edit secret</key>
+	<string>Chỉnh sửa bí mật</string>
+	<key>Edited</key>
+	<string>Đã chỉnh sửa</string>
+	<key>Email</key>
+	<string>Email</string>
+	<key>Enable automatic sync</key>
+	<string>Bật đồng bộ hóa tự động</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>Bật đồng bộ hóa tự động cho tài khoản này?</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>Bật dMsg trong cài đặt Tự động điền</string>
+	<key>Encrypted backup</key>
+	<string>Sao lưu được mã hóa</string>
+	<key>Encrypting</key>
+	<string>Mã hóa</string>
+	<key>Engine</key>
+	<string>Động cơ</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>Sinh trắc học đã đăng ký đã thay đổi. Đăng ký khóa thay thế trước khi dựa vào khóa này.</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>Nhập ID tài khoản hợp lệ, mỗi ID một dòng.</string>
+	<key>Error details</key>
+	<string>Chi tiết lỗi</string>
+	<key>Example document</key>
+	<string>Tài liệu mẫu</string>
+	<key>Example login</key>
+	<string>Ví dụ đăng nhập</string>
+	<key>Execute</key>
+	<string>Thực thi</string>
+	<key>Execute approved proposal</key>
+	<string>Thực hiện đề xuất đã được phê duyệt</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>Thực hiện đề xuất ví đã được phê duyệt này?</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>Các quy tắc chặn, lời mời và dung lượng hộp thư đến hiện tại vẫn được giữ nguyên. Việc chọn chính sách miễn phí hoặc đóng sẽ thay thế mọi cài đặt liên hệ trả phí trước đó.</string>
+	<key>Expired</key>
+	<string>Đã hết hạn</string>
+	<key>Expires</key>
+	<string>Hết hạn</string>
+	<key>Expires after</key>
+	<string>Hết hạn sau</string>
+	<key>Expiry</key>
+	<string>Hết hạn</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>Sao lưu rõ ràng phiên bản tệp đã chọn nếu bạn muốn có bản sao trên đám mây.</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>Xuất các mục đăng nhập đã chọn sang Tự động điền mật khẩu</string>
+	<key>Failed</key>
+	<string>Thất bại</string>
+	<key>Favorite</key>
+	<string>yêu thích</string>
+	<key>Favorites</key>
+	<string>Yêu thích</string>
+	<key>Field</key>
+	<string>trường</string>
+	<key>Field name</key>
+	<string>Tên trường</string>
+	<key>Field reference</key>
+	<string>Tham chiếu trường</string>
+	<key>Field reference and dependencies</key>
+	<string>Tham chiếu trường và phụ thuộc</string>
+	<key>Field settings</key>
+	<string>Cài đặt trường</string>
+	<key>Fields</key>
+	<string>Trường</string>
+	<key>File</key>
+	<string>Tệp</string>
+	<key>File name</key>
+	<string>Tên tập tin</string>
+	<key>File not available on this device</key>
+	<string>Tệp không có sẵn trên thiết bị này</string>
+	<key>File versions</key>
+	<string>Phiên bản tệp</string>
+	<key>Files</key>
+	<string>Tệp</string>
+	<key>Files app copies</key>
+	<string>Bản sao ứng dụng tập tin</string>
+	<key>Files app snapshot updated</key>
+	<string>Đã cập nhật ảnh chụp nhanh ứng dụng Files</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>Các tập tin chỉ được sao lưu khi bạn chọn làm như vậy một cách rõ ràng.</string>
+	<key>Files in this folder</key>
+	<string>Các tập tin trong thư mục này</string>
+	<key>Fingerprint</key>
+	<string>Dấu vân tay</string>
+	<key>Folder name</key>
+	<string>Tên thư mục</string>
+	<key>Freeze this wallet?</key>
+	<string>Đóng băng ví này?</string>
+	<key>Freeze wallet</key>
+	<string>Đóng băng ví</string>
+	<key>Grant delegation</key>
+	<string>Ủy quyền ủy quyền</string>
+	<key>Handled on another device</key>
+	<string>Được xử lý trên thiết bị khác</string>
+	<key>Harassment</key>
+	<string>Quấy rối</string>
+	<key>Hardware approval key</key>
+	<string>Khóa phê duyệt phần cứng</string>
+	<key>Hardware cosigners</key>
+	<string>cosigner phần cứng</string>
+	<key>Hardware keys on this device</key>
+	<string>Các phím cứng trên thiết bị này</string>
+	<key>Hardware security</key>
+	<string>Bảo mật phần cứng</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>Bạn đã xem lại kết quả còn thiếu chưa?</string>
+	<key>Hidden fields differ: </key>
+	<string>Các trường ẩn khác nhau: </string>
+	<key>Hidden value</key>
+	<string>Giá trị ẩn</string>
+	<key>Hide</key>
+	<string>Ẩn</string>
+	<key>Hide sample sender</key>
+	<string>Ẩn người gửi mẫu</string>
+	<key>Historical version</key>
+	<string>Phiên bản lịch sử</string>
+	<key>Host</key>
+	<string>Máy chủ</string>
+	<key>I completed this step</key>
+	<string>Tôi đã hoàn thành bước này</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>Tôi đã bảo đảm quyền truy cập vào ví của mình và thông tin xác thực bên ngoài</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>Số ID</string>
+	<key>Identity</key>
+	<string>Danh tính</string>
+	<key>Illegal content</key>
+	<string>nội dung bất hợp pháp</string>
+	<key>Import</key>
+	<string>Nhập</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>Nhập tài liệu để mã hóa nó trên thiết bị này. Sao lưu đám mây là một hành động riêng biệt.</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>Nhập tệp vào Tệp trước khi đính kèm.</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>Nhập bản xuất mật khẩu 1Password, Bitwarden hoặc trình duyệt không được mã hóa. Nguồn vẫn ở trên thiết bị này; chỉ những bản ghi đã chọn mới được thêm vào.</string>
+	<key>Import completed</key>
+	<string>Đã nhập xong</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>Nhập khẩu tạo ra các mặt hàng độc lập mới. Các tệp vẫn ở trên thiết bị này và kế thừa quyền truy cập của thư mục đã chọn. Không có gì được chọn tự động.</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>Nhập các bí mật được khám phá trên máy tính để bàn</string>
+	<key>Import file</key>
+	<string>Nhập tập tin</string>
+	<key>Import files</key>
+	<string>Nhập tập tin</string>
+	<key>Import into dMsg</key>
+	<string>Nhập vào dMsg</string>
+	<key>Import into this account</key>
+	<string>Nhập vào tài khoản này</string>
+	<key>Import passwords</key>
+	<string>Nhập mật khẩu</string>
+	<key>Import photo</key>
+	<string>Nhập ảnh</string>
+	<key>Import secret package</key>
+	<string>Nhập gói bí mật</string>
+	<key>Import selected records</key>
+	<string>Nhập bản ghi đã chọn</string>
+	<key>Import selected secrets</key>
+	<string>Nhập các bí mật đã chọn</string>
+	<key>In Trash</key>
+	<string>Trong thùng rác</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>Trong một báo cáo thực tế, dịch vụ sẽ nhận được lý do của bạn và số nhận dạng tài khoản/tài nguyên. Nội dung tin nhắn chỉ được đưa vào nếu bạn chọn tiết lộ nó một cách rõ ràng.</string>
+	<key>In progress</key>
+	<string>Đang tiến hành</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>Mua hàng trong ứng dụng bị vô hiệu hóa trong bản dựng này. Gói và mức sử dụng hiện tại của bạn vẫn có sẵn.</string>
+	<key>Inbox</key>
+	<string>Hộp thư đến</string>
+	<key>Inbox settings</key>
+	<string>Cài đặt hộp thư đến</string>
+	<key>Include notes</key>
+	<string>Bao gồm ghi chú</string>
+	<key>Include this message's text</key>
+	<string>Bao gồm nội dung của tin nhắn này</string>
+	<key>Inspect pairing request</key>
+	<string>Kiểm tra yêu cầu ghép nối</string>
+	<key>Inspect this version</key>
+	<string>Kiểm tra phiên bản này</string>
+	<key>Integrity</key>
+	<string>Tính chính trực</string>
+	<key>Interrupted</key>
+	<string>Bị gián đoạn</string>
+	<key>Inventory fingerprint</key>
+	<string>Dấu vân tay hàng tồn kho</string>
+	<key>Invite member</key>
+	<string>Mời thành viên</string>
+	<key>Issued credentials</key>
+	<string>Thông tin xác thực đã được cấp</string>
+	<key>Item attachments</key>
+	<string>Tệp đính kèm mục</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>Tham chiếu mục có thể đồng bộ hóa trước tệp của chúng. Chỉ những tệp có sẵn trên thiết bị này mới có thể được thêm vào ảnh chụp nhanh mới.</string>
+	<key>Join</key>
+	<string>Tham gia</string>
+	<key>Join account</key>
+	<string>Tham gia tài khoản</string>
+	<key>Join an existing account</key>
+	<string>Tham gia tài khoản hiện có</string>
+	<key>Join an existing wallet</key>
+	<string>Tham gia ví hiện có</string>
+	<key>Join conversation</key>
+	<string>Tham gia cuộc trò chuyện</string>
+	<key>Keep current version</key>
+	<string>Giữ phiên bản hiện tại</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>Giữ bí mật, cuộc trò chuyện và tập tin của bạn cùng nhau. Chỉ những thiết bị được ủy quyền của bạn mới có thể mở chúng.</string>
+	<key>Key</key>
+	<string>Chìa khóa</string>
+	<key>Key fingerprint</key>
+	<string>Vân tay chìa khóa</string>
+	<key>Key label</key>
+	<string>Nhãn chìa khóa</string>
+	<key>Keys</key>
+	<string>Phím</string>
+	<key>Language</key>
+	<string>Ngôn ngữ</string>
+	<key>Last known cloud state</key>
+	<string>Trạng thái đám mây được biết đến lần cuối</string>
+	<key>Leave conversation</key>
+	<string>Rời khỏi cuộc trò chuyện</string>
+	<key>Leave empty to keep existing value</key>
+	<string>Để trống để giữ giá trị hiện có</string>
+	<key>License Key</key>
+	<string>Khóa cấp phép</string>
+	<key>Licensed To</key>
+	<string>Được cấp phép</string>
+	<key>Link limits</key>
+	<string>Giới hạn liên kết</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>Các yêu cầu trực tiếp hiển thị nguồn gốc đã được xác minh và tải trọng đầy đủ, đồng thời yêu cầu phê duyệt phần cứng hoặc hệ thống đã định cấu hình.</string>
+	<key>Load earlier activity</key>
+	<string>Tải hoạt động trước đó</string>
+	<key>Load earlier messages</key>
+	<string>Tải tin nhắn trước đó</string>
+	<key>Load earlier proposals</key>
+	<string>Tải đề xuất trước đó</string>
+	<key>Load more</key>
+	<string>Tải thêm</string>
+	<key>Loading the verified request…</key>
+	<string>Đang tải yêu cầu đã được xác minh…</string>
+	<key>Local</key>
+	<string>Địa phương</string>
+	<key>Local delivery record</key>
+	<string>Hồ sơ giao hàng tận nơi</string>
+	<key>Local demo</key>
+	<string>Bản trình diễn cục bộ</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>Bản demo cục bộ · Dữ liệu hư cấu · Đặt lại khi đóng</string>
+	<key>Local dependencies</key>
+	<string>Phụ thuộc cục bộ</string>
+	<key>Local dependency</key>
+	<string>Sự phụ thuộc cục bộ</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>Các tập tin cục bộ không được sao lưu tự động. Gỡ cài đặt dMsg sẽ xóa các tệp không có bản sao lưu đám mây.</string>
+	<key>Local findings</key>
+	<string>Phát hiện địa phương</string>
+	<key>Local label</key>
+	<string>Nhãn địa phương</string>
+	<key>Local security review</key>
+	<string>Đánh giá an ninh địa phương</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>Bộ nhớ cục bộ không có sẵn. Mở khóa thiết bị này và thử lại; không đặt lại không gian làm việc để khôi phục hoạt động bị gián đoạn.</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>Thùng rác địa phương được giữ lại trong 30 ngày. Sao lưu đám mây được quản lý riêng.</string>
+	<key>Lock immediately in background</key>
+	<string>Khóa ngay lập tức ở chế độ nền</string>
+	<key>Lock workspace</key>
+	<string>Khóa không gian làm việc</string>
+	<key>Login identities</key>
+	<string>Danh tính đăng nhập</string>
+	<key>Manage Apple subscriptions</key>
+	<string>Quản lý đăng ký Apple</string>
+	<key>Manage file</key>
+	<string>Quản lý tập tin</string>
+	<key>Manage subscriptions</key>
+	<string>Quản lý đăng ký</string>
+	<key>Mark as read</key>
+	<string>Đánh dấu là đã đọc</string>
+	<key>Maximum fee in base units</key>
+	<string>Phí tối đa tính theo đơn vị cơ sở</string>
+	<key>Member account ID</key>
+	<string>ID tài khoản thành viên</string>
+	<key>Member account or Principal</key>
+	<string>Tài khoản thành viên hoặc Principal</string>
+	<key>Member label</key>
+	<string>Nhãn thành viên</string>
+	<key>Members</key>
+	<string>Thành viên</string>
+	<key>Message</key>
+	<string>Tin nhắn</string>
+	<key>Message withdrawn</key>
+	<string>Đã rút tin nhắn</string>
+	<key>Messages</key>
+	<string>Tin nhắn</string>
+	<key>Month</key>
+	<string>Tháng</string>
+	<key>Monthly execution units</key>
+	<string>Đơn vị hoạt động hàng tháng</string>
+	<key>Move this local file to Trash?</key>
+	<string>Chuyển tệp cục bộ này vào Thùng rác?</string>
+	<key>Move this secret to Trash?</key>
+	<string>Chuyển bí mật này vào Thùng rác?</string>
+	<key>Move to Trash</key>
+	<string>Chuyển vào Thùng rác</string>
+	<key>Move to another folder</key>
+	<string>Di chuyển đến thư mục khác</string>
+	<key>Mute notifications</key>
+	<string>Tắt tiếng thông báo</string>
+	<key>My account</key>
+	<string>Tài khoản của tôi</string>
+	<key>Name</key>
+	<string>Tên</string>
+	<key>Needs a fresh review</key>
+	<string>Cần một đánh giá mới</string>
+	<key>Network</key>
+	<string>Mạng</string>
+	<key>New controller</key>
+	<string>Controller mới</string>
+	<key>New conversation</key>
+	<string>Cuộc trò chuyện mới</string>
+	<key>New field type</key>
+	<string>Loại trường mới</string>
+	<key>New folder</key>
+	<string>Thư mục mới</string>
+	<key>New free letter</key>
+	<string>Thư tự do mới</string>
+	<key>New revision</key>
+	<string>Bản sửa đổi mới</string>
+	<key>New secret</key>
+	<string>Bí mật mới</string>
+	<key>No</key>
+	<string>Không</string>
+	<key>No activity on this device</key>
+	<string>Không có hoạt động nào trên thiết bị này</string>
+	<key>No background transfer</key>
+	<string>Không chuyển nền</string>
+	<key>No blocked accounts</key>
+	<string>Không có tài khoản bị chặn</string>
+	<key>No cloud backups</key>
+	<string>Không có bản sao lưu đám mây</string>
+	<key>No connected browsers</key>
+	<string>Không có trình duyệt được kết nối</string>
+	<key>No conversations yet</key>
+	<string>Chưa có cuộc trò chuyện nào</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>Không có sự phụ thuộc nào được ghi lại trên thiết bị này.</string>
+	<key>No findings from this device's checks.</key>
+	<string>Không có kết quả nào từ quá trình kiểm tra thiết bị này.</string>
+	<key>No interrupted imports</key>
+	<string>Không bị gián đoạn nhập khẩu</string>
+	<key>No item attachments</key>
+	<string>Không có mục đính kèm</string>
+	<key>No letters yet</key>
+	<string>Chưa có chữ cái nào</string>
+	<key>No pending backups</key>
+	<string>Không có bản sao lưu đang chờ xử lý</string>
+	<key>No recent use observed on this device</key>
+	<string>Gần đây không thấy có hoạt động sử dụng nào trên thiết bị này</string>
+	<key>No registered approval key</key>
+	<string>Không có khóa phê duyệt đã đăng ký</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>Không có người đồng ký được chọn có nghĩa là không có chính sách đồng ký bổ sung. Xem xét đề xuất hoàn chỉnh trước khi phê duyệt.</string>
+	<key>No shared items waiting</key>
+	<string>Không có mục chia sẻ nào đang chờ</string>
+	<key>No snapshots on this device</key>
+	<string>Không có ảnh chụp nhanh trên thiết bị này</string>
+	<key>No team wallets</key>
+	<string>Không có ví nhóm</string>
+	<key>Not enabled</key>
+	<string>Chưa bật</string>
+	<key>Not enough storage on this device.</key>
+	<string>Không đủ bộ nhớ trên thiết bị này.</string>
+	<key>Not registered</key>
+	<string>Chưa đăng ký</string>
+	<key>Note</key>
+	<string>Lưu ý</string>
+	<key>Notes</key>
+	<string>Ghi chú</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>Đăng ký thông báo cần thử lại. Đồng bộ hóa tiền cảnh vẫn có sẵn.</string>
+	<key>Notifications</key>
+	<string>Thông báo</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>Thông báo bị tắt trong cài đặt hệ thống.</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>Thông báo không chứa nội dung tin nhắn, người gửi, tên tệp hoặc tải trọng phê duyệt. Việc mở dMsg luôn làm mới trạng thái thực tế.</string>
+	<key>Notifications enabled</key>
+	<string>Đã bật thông báo</string>
+	<key>Notify this account on this device</key>
+	<string>Thông báo tài khoản này trên thiết bị này</string>
+	<key>Number</key>
+	<string>Số</string>
+	<key>OK</key>
+	<string>được rồi</string>
+	<key>Observed on this device</key>
+	<string>Đã quan sát trên thiết bị này</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>Trên thiết bị được ủy quyền, hãy mở Phê duyệt và xem lại toàn bộ dấu vân tay, vai trò và quyền của thiết bị này. Quá trình quét không bao giờ tự động phê duyệt.</string>
+	<key>On this device</key>
+	<string>Trên thiết bị này</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>Trong lần truy cập đầu tiên, hãy đăng nhập và làm theo các bước để tạo không gian làm việc được mã hóa của bạn.</string>
+	<key>One-time code</key>
+	<string>Mã một lần</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>Chỉ làm điều này khi bạn đã sẵn sàng sử dụng nó. Bản sao vẫn còn trên thiết bị này và hết hạn sau 30 giây.</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>Chỉ có liên hệ miễn phí được hỗ trợ ở đây. Hành động này không thể thanh toán hoặc phê duyệt phí của người nhận.</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>Chỉ các bản sao được chọn, không thể thay đổi mới xuất hiện trong ứng dụng Tệp. Quyền truy cập yêu cầu xác thực hệ thống; khóa dMsg kết thúc phiên truy cập hiện tại. Các tệp có thể giữ lại các bản sao và tên tệp đã tải xuống mà dMsg không thể nhớ lại.</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>Chỉ tệp được mã hóa đã chọn mới có thể chuyển trong khi dMsg bị khóa. Lập kế hoạch kiểm soát iOS; buộc thoát sẽ dừng phân phối cho đến khi bạn mở lại ứng dụng. Mở tài khoản gốc để xác minh và hoàn tất.</string>
+	<key>Open approval record</key>
+	<string>Mở hồ sơ phê duyệt</string>
+	<key>Open approvals</key>
+	<string>Mở phê duyệt</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>Mở dMsg mà không để lộ nội dung riêng tư trên Màn hình chính.</string>
+	<key>Open dMsg workspace</key>
+	<string>Mở không gian làm việc dMsg</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>Mở dMsg. Việc mở khóa và phê duyệt vẫn yêu cầu sự tương tác của bạn trong ứng dụng.</string>
+	<key>Open invitation in browser</key>
+	<string>Mở lời mời trong trình duyệt</string>
+	<key>Open notification settings</key>
+	<string>Mở cài đặt thông báo</string>
+	<key>Open private workspace</key>
+	<string>Mở không gian làm việc riêng tư</string>
+	<key>Open secret</key>
+	<string>Mở bí mật</string>
+	<key>Open workspace</key>
+	<string>Mở không gian làm việc</string>
+	<key>Optional password</key>
+	<string>Mật khẩu tùy chọn</string>
+	<key>Original revision</key>
+	<string>Bản sửa đổi gốc</string>
+	<key>Other</key>
+	<string>Khác</string>
+	<key>Other devices</key>
+	<string>Các thiết bị khác</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>Nếu không, dMsg sẽ khóa sau 3 phút. Khóa thiết bị luôn khóa không gian làm việc của bạn ngay lập tức.</string>
+	<key>Outcome no longer available</key>
+	<string>Kết quả không còn nữa</string>
+	<key>Package size</key>
+	<string>Kích thước gói</string>
+	<key>Parent folder</key>
+	<string>Thư mục mẹ</string>
+	<key>Password</key>
+	<string>Mật khẩu</string>
+	<key>Password AutoFill</key>
+	<string>Tự động điền mật khẩu</string>
+	<key>Password protected</key>
+	<string>Mật khẩu được bảo vệ</string>
+	<key>Password, if required</key>
+	<string>Mật khẩu, nếu được yêu cầu</string>
+	<key>Passwords</key>
+	<string>Mật khẩu</string>
+	<key>Paste binding request</key>
+	<string>Dán yêu cầu ràng buộc</string>
+	<key>Paste enrollment request</key>
+	<string>Dán yêu cầu đăng ký</string>
+	<key>Paste invitation</key>
+	<string>Dán lời mời</string>
+	<key>Paste pairing request</key>
+	<string>Dán yêu cầu ghép nối</string>
+	<key>Paste secret package link</key>
+	<string>Dán liên kết gói bí mật</string>
+	<key>Pause this agent</key>
+	<string>Tạm dừng tác nhân này</string>
+	<key>Pause transfer</key>
+	<string>Tạm dừng chuyển</string>
+	<key>Payment card</key>
+	<string>Thẻ thanh toán</string>
+	<key>Payments</key>
+	<string>Thanh toán</string>
+	<key>Pending backups</key>
+	<string>Đang chờ sao lưu</string>
+	<key>Pending imports</key>
+	<string>Đang chờ nhập</string>
+	<key>Pending letters</key>
+	<string>Thư đang chờ xử lý</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>Xóa vĩnh viễn tài khoản dịch vụ dMsg mà bạn đã đánh giá</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>Xóa vĩnh viễn tài khoản dịch vụ dMsg này?</string>
+	<key>Permissions</key>
+	<string>Quyền</string>
+	<key>Phone</key>
+	<string>Điện thoại</string>
+	<key>Phrase</key>
+	<string>cụm từ</string>
+	<key>Pin</key>
+	<string>Ghim</string>
+	<key>Plan</key>
+	<string>kế hoạch</string>
+	<key>Plan and usage</key>
+	<string>Kế hoạch và cách sử dụng</string>
+	<key>Policy points to an unavailable field</key>
+	<string>Chính sách trỏ đến một trường không có sẵn</string>
+	<key>Port</key>
+	<string>Cổng</string>
+	<key>Prepare selected snapshot</key>
+	<string>Chuẩn bị ảnh chụp nhanh đã chọn</string>
+	<key>Prepared on this device</key>
+	<string>Được chuẩn bị trên thiết bị này</string>
+	<key>Preview and choose what to import</key>
+	<string>Xem trước và chọn nội dung cần nhập</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>Xem trước các bản tải xuống và xác minh gói trên thiết bị này và sử dụng phiên tải xuống. Chọn thiết bị nhận trước khi tiếp tục.</string>
+	<key>Preview file</key>
+	<string>Xem trước tập tin</string>
+	<key>Preview package</key>
+	<string>Gói xem trước</string>
+	<key>Preview reporting disclosure</key>
+	<string>Xem trước tiết lộ báo cáo</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>Thông tin đăng nhập và bản sao được gửi trước đó là độc lập. Thu hồi các ủy quyền riêng biệt nếu cần thiết.</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>Quyền riêng tư</string>
+	<key>Privacy policy</key>
+	<string>Chính sách bảo mật</string>
+	<key>Private Key</key>
+	<string>Khóa riêng</string>
+	<key>Private workspace hidden</key>
+	<string>Không gian làm việc riêng tư bị ẩn</string>
+	<key>Proposal %llu</key>
+	<string>Đề xuất %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>Đã tạo đề xuất. Xem lại nó trong danh sách đề xuất của ví.</string>
+	<key>Proposals</key>
+	<string>Đề xuất</string>
+	<key>Propose address</key>
+	<string>Đề xuất địa chỉ</string>
+	<key>Propose member change</key>
+	<string>Đề xuất thay đổi thành viên</string>
+	<key>Propose registering this key</key>
+	<string>Đề xuất đăng ký key này</string>
+	<key>Propose removing cosigner</key>
+	<string>Đề xuất loại bỏ cosigner</string>
+	<key>Propose removing member</key>
+	<string>Đề nghị loại bỏ thành viên</string>
+	<key>Propose thresholds</key>
+	<string>Đề xuất ngưỡng</string>
+	<key>Propose transfer</key>
+	<string>Đề xuất chuyển khoản</string>
+	<key>Propose unfreezing</key>
+	<string>Đề xuất giải tỏa</string>
+	<key>Proposer</key>
+	<string>người đề xuất</string>
+	<key>Public Key</key>
+	<string>Khóa công khai</string>
+	<key>Public avatar</key>
+	<string>Hình đại diện công khai</string>
+	<key>Public profile</key>
+	<string>Hồ sơ công khai</string>
+	<key>Publication pending</key>
+	<string>Đang chờ xuất bản</string>
+	<key>Publish</key>
+	<string>Xuất bản</string>
+	<key>Publish a secret snapshot</key>
+	<string>Xuất bản ảnh chụp nhanh bí mật</string>
+	<key>Publish profile</key>
+	<string>Xuất bản hồ sơ</string>
+	<key>Publish these details publicly?</key>
+	<string>Xuất bản những chi tiết này một cách công khai?</string>
+	<key>Published</key>
+	<string>Đã xuất bản</string>
+	<key>Purchased</key>
+	<string>Đã mua</string>
+	<key>Purchases are not currently available.</key>
+	<string>Giao dịch mua hiện không có sẵn.</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>Thông báo đẩy không được bật trong bản dựng này. Mở dMsg để đồng bộ hóa.</string>
+	<key>Quick unlock with system authentication</key>
+	<string>Mở khóa nhanh bằng xác thực hệ thống</string>
+	<key>Read from a desktop file mapping</key>
+	<string>Đọc từ ánh xạ tệp trên máy tính để bàn</string>
+	<key>Read the published policy</key>
+	<string>Đọc chính sách đã công bố</string>
+	<key>Reason</key>
+	<string>Lý do</string>
+	<key>Received for review</key>
+	<string>Đã nhận được để xem xét</string>
+	<key>Receiving addresses</key>
+	<string>Địa chỉ nhận</string>
+	<key>Receiving policy</key>
+	<string>Chính sách tiếp nhận</string>
+	<key>Recipient</key>
+	<string>Người nhận</string>
+	<key>Recipient account ID</key>
+	<string>ID tài khoản người nhận</string>
+	<key>Recipient address</key>
+	<string>Địa chỉ người nhận</string>
+	<key>Reconcile original execution</key>
+	<string>Xác nhận kết quả thực thi ban đầu</string>
+	<key>Reconcile original operation</key>
+	<string>Xác nhận kết quả của hoạt động ban đầu</string>
+	<key>Reconcile original proposal</key>
+	<string>Điều chỉnh đề xuất ban đầu</string>
+	<key>Reconcile original send</key>
+	<string>Đối chiếu bản gửi ban đầu</string>
+	<key>Reconcile original snapshot</key>
+	<string>Điều chỉnh ảnh chụp nhanh gốc</string>
+	<key>Record manual review</key>
+	<string>Ghi lại đánh giá thủ công</string>
+	<key>Record this step as completed?</key>
+	<string>Ghi lại bước này là đã hoàn thành?</string>
+	<key>Recovery</key>
+	<string>Khôi phục</string>
+	<key>Recovery status</key>
+	<string>Trạng thái khôi phục</string>
+	<key>Recovery status needs checking</key>
+	<string>Cần kiểm tra trạng thái khôi phục</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>Recovery sử dụng thông tin đăng nhập bị ràng buộc của bạn và thời gian chờ đợi. Một thiết bị được ủy quyền có thể tranh chấp nó. Không thể khôi phục nội dung cục bộ chưa được đồng bộ hóa.</string>
+	<key>Recovery waiting period</key>
+	<string>Thời gian chờ phục hồi</string>
+	<key>Refresh</key>
+	<string>Làm mới</string>
+	<key>Refresh balances</key>
+	<string>Làm mới số dư</string>
+	<key>Refresh dependencies</key>
+	<string>Làm mới phần phụ thuộc</string>
+	<key>Register a hardware approval key</key>
+	<string>Đăng ký khóa phê duyệt phần cứng</string>
+	<key>Register an SSH binding</key>
+	<string>Đăng ký liên kết SSH</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>Đăng ký khóa công khai này thông qua đề xuất ví</string>
+	<key>Registered on this device</key>
+	<string>Đã đăng ký trên thiết bị này</string>
+	<key>Reject</key>
+	<string>Từ chối</string>
+	<key>Reject this request?</key>
+	<string>Từ chối yêu cầu này?</string>
+	<key>Rejected</key>
+	<string>Bị từ chối</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>Phiên bản 1.0 đã sẵn sàng để xem xét.</string>
+	<key>Remove</key>
+	<string>Gỡ bỏ</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>Xóa ảnh chụp nhanh Tự động điền</string>
+	<key>Remove Files app snapshot</key>
+	<string>Xóa ảnh chụp nhanh ứng dụng Tệp</string>
+	<key>Remove attachment reference</key>
+	<string>Xóa tham chiếu tệp đính kèm</string>
+	<key>Remove device binding</key>
+	<string>Xóa ràng buộc thiết bị</string>
+	<key>Remove device binding?</key>
+	<string>Xóa ràng buộc thiết bị?</string>
+	<key>Remove field</key>
+	<string>Xóa trường</string>
+	<key>Remove local data</key>
+	<string>Xóa dữ liệu cục bộ</string>
+	<key>Remove member</key>
+	<string>Xóa thành viên</string>
+	<key>Remove this account's data from this device?</key>
+	<string>Xóa dữ liệu của tài khoản này khỏi thiết bị này?</string>
+	<key>Remove this account's local data</key>
+	<string>Xóa dữ liệu cục bộ của tài khoản này</string>
+	<key>Remove this local agent</key>
+	<string>Xóa tác tử địa phương này</string>
+	<key>Remove this local agent?</key>
+	<string>Xóa tác tử địa phương này?</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>Việc xóa tham chiếu sẽ không xóa tệp. Các tài liệu tham khảo hiện có được lưu giữ ngay cả khi tệp của chúng bị thiếu trên thiết bị này.</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>Sửa chữa tham chiếu trường không có sẵn trên thiết bị gốc của nó.</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>Thay thế ảnh chụp nhanh Tự động điền</string>
+	<key>Replace Files app snapshot</key>
+	<string>Thay thế ảnh chụp nhanh ứng dụng Tệp</string>
+	<key>Replace cosignature policy</key>
+	<string>Thay thế chính sách đồng chữ ký</string>
+	<key>Reply</key>
+	<string>trả lời</string>
+	<key>Reply to message %llu</key>
+	<string>Trả lời tin nhắn %llu</string>
+	<key>Report content</key>
+	<string>Báo cáo nội dung</string>
+	<key>Report received for review</key>
+	<string>Đã nhận được báo cáo để xem xét</string>
+	<key>Reported account</key>
+	<string>Tài khoản được báo cáo</string>
+	<key>Reporting disclosure</key>
+	<string>Báo cáo tiết lộ</string>
+	<key>Request ID</key>
+	<string>ID yêu cầu</string>
+	<key>Request account deletion</key>
+	<string>Yêu cầu xóa tài khoản</string>
+	<key>Request account recovery</key>
+	<string>Yêu cầu khôi phục tài khoản</string>
+	<key>Request recovery</key>
+	<string>Yêu cầu khôi phục</string>
+	<key>Request source</key>
+	<string>Nguồn yêu cầu</string>
+	<key>Requested permissions</key>
+	<string>Quyền được yêu cầu</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>Các yêu cầu cần bạn quyết định sẽ xuất hiện ở đây.</string>
+	<key>Require hardware approval</key>
+	<string>Yêu cầu phê duyệt phần cứng</string>
+	<key>Require this device to unlock</key>
+	<string>Yêu cầu thiết bị này mở khóa</string>
+	<key>Required cosignatures %u</key>
+	<string>Chữ ký bắt buộc %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>Giải quyết thao tác tài khoản đang chờ xử lý trước khi xóa tài khoản này.</string>
+	<key>Restore</key>
+	<string>Khôi phục</string>
+	<key>Restore purchases</key>
+	<string>Khôi phục mua hàng</string>
+	<key>Restore this version</key>
+	<string>Khôi phục phiên bản này</string>
+	<key>Restore this version as a new current version?</key>
+	<string>Khôi phục phiên bản này thành phiên bản mới hiện tại?</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>Khôi phục phiên bản này từ bản sao lưu đám mây trước khi mở nó.</string>
+	<key>Restore to this device</key>
+	<string>Khôi phục về thiết bị này</string>
+	<key>Restoring…</key>
+	<string>Đang khôi phục…</string>
+	<key>Result</key>
+	<string>kết quả</string>
+	<key>Result unconfirmed</key>
+	<string>Kết quả chưa được xác nhận</string>
+	<key>Retire a hardware approval key</key>
+	<string>Hủy bỏ khóa phê duyệt phần cứng</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>Việc gỡ bỏ một khóa sẽ loại bỏ khả năng phê duyệt các hành động được bảo vệ. Kiểm tra xem đường dẫn phê duyệt được ủy quyền khác có sẵn không.</string>
+	<key>Retry</key>
+	<string>Thử lại</string>
+	<key>Retry loading activity</key>
+	<string>Thử lại hoạt động tải</string>
+	<key>Retry loading hardware security</key>
+	<string>Thử tải lại bảo mật phần cứng</string>
+	<key>Retry loading profile</key>
+	<string>Thử tải lại hồ sơ</string>
+	<key>Retry original change</key>
+	<string>Thử lại thay đổi ban đầu</string>
+	<key>Retry original letter</key>
+	<string>Thử lại lá thư gốc</string>
+	<key>Retry preview</key>
+	<string>Thử xem trước lại</string>
+	<key>Retry publication</key>
+	<string>Thử xuất bản lại</string>
+	<key>Retry registration</key>
+	<string>Thử lại đăng ký</string>
+	<key>Retry this report</key>
+	<string>Thử lại báo cáo này</string>
+	<key>Reveal</key>
+	<string>Hiện</string>
+	<key>Reveal this field?</key>
+	<string>Tiết lộ lĩnh vực này?</string>
+	<key>Review</key>
+	<string>Xem lại</string>
+	<key>Review a web connection request</key>
+	<string>Xem lại yêu cầu kết nối web</string>
+	<key>Review agent delegation</key>
+	<string>Xem xét ủy quyền tác tử</string>
+	<key>Review agent permissions</key>
+	<string>Xem lại quyền của tác tử</string>
+	<key>Review an enrollment request</key>
+	<string>Xem xét yêu cầu đăng ký</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>Xem lại và khởi động lại ánh xạ tệp trên máy tính để bàn trên thiết bị gốc của nó.</string>
+	<key>Review approval</key>
+	<string>Xem xét phê duyệt</string>
+	<key>Review binding</key>
+	<string>Xem xét ràng buộc</string>
+	<key>Review controller registration</key>
+	<string>Xem lại đăng ký Controller</string>
+	<key>Review delegation grant</key>
+	<string>Xem lại quyền truy cập ủy quyền</string>
+	<key>Review deletion</key>
+	<string>Đánh giá xóa</string>
+	<key>Review enabling a principal</key>
+	<string>Xem lại việc kích hoạt principal</string>
+	<key>Review field and dependencies</key>
+	<string>Xem lại trường và các phần phụ thuộc</string>
+	<key>Review hardware policy changes</key>
+	<string>Xem lại các thay đổi chính sách phần cứng</string>
+	<key>Review in approval center</key>
+	<string>Đánh giá tại trung tâm phê duyệt</string>
+	<key>Review joining wallet</key>
+	<string>Xem xét việc tham gia ví</string>
+	<key>Review key enrollment</key>
+	<string>Xem lại đăng ký khóa</string>
+	<key>Review key registration</key>
+	<string>Xem lại đăng ký khóa</string>
+	<key>Review local finding</key>
+	<string>Xem lại phát hiện địa phương</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>Xem lại ảnh chụp nhanh cũ và thu hồi các liên kết còn lại nếu thích hợp.</string>
+	<key>Review permissions</key>
+	<string>Xem lại quyền</string>
+	<key>Review publication or resume</key>
+	<string>Xem lại ấn phẩm hoặc sơ yếu lý lịch</string>
+	<key>Review rejection</key>
+	<string>Xem xét từ chối</string>
+	<key>Review removing this login</key>
+	<string>Xem xét việc xóa thông tin đăng nhập này</string>
+	<key>Review replacement key</key>
+	<string>Xem lại chìa khóa thay thế</string>
+	<key>Review request</key>
+	<string>Yêu cầu xem xét</string>
+	<key>Review retiring controller</key>
+	<string>Xem xét việc nghỉ hưu Controller</string>
+	<key>Review retiring this approval key</key>
+	<string>Xem xét việc gỡ bỏ khóa phê duyệt này</string>
+	<key>Review revocation</key>
+	<string>Xem xét thu hồi</string>
+	<key>Review selected import</key>
+	<string>Xem lại mục nhập đã chọn</string>
+	<key>Review sync conflicts</key>
+	<string>Xem lại xung đột đồng bộ hóa</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>Xem lại ủy quyền của tác tử trên thiết bị gốc của nó.</string>
+	<key>Review the complete request</key>
+	<string>Xem lại yêu cầu đầy đủ</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>Xem lại khóa hiện tại và gia hạn liên kết SSH trên thiết bị gốc của nó.</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>Xem lại yêu cầu và tranh chấp nếu nó không phải của bạn.</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>Xem lại người nhận và ngày hết hạn của ảnh chụp nhanh.</string>
+	<key>Review this device's current dependencies</key>
+	<string>Xem lại các phần phụ thuộc hiện tại của thiết bị này</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>Xem lại chính sách của thiết bị này và quyền truy cập truy cập.</string>
+	<key>Review this local record before making changes.</key>
+	<string>Xem lại bản ghi cục bộ này trước khi thực hiện thay đổi.</string>
+	<key>Review waiting-period change</key>
+	<string>Xem xét thay đổi thời gian chờ</string>
+	<key>Review wallet action</key>
+	<string>Xem lại hành động của ví</string>
+	<key>Reviewed</key>
+	<string>Đã đánh giá</string>
+	<key>Revocation pending</key>
+	<string>Đang chờ thu hồi</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>Việc thu hồi sẽ dừng quyền truy cập mới sau khi trạng thái bảo mật được làm mới và các phím được xoay. Không thể thu hồi nội dung đã sao chép trước đó.</string>
+	<key>Revoke</key>
+	<string>Thu hồi quyền</string>
+	<key>Revoke a device</key>
+	<string>Thu hồi một thiết bị</string>
+	<key>Revoke browser</key>
+	<string>Thu hồi trình duyệt</string>
+	<key>Revoke delegation</key>
+	<string>Thu hồi ủy quyền</string>
+	<key>Revoke grant</key>
+	<string>Thu hồi quyền truy cập</string>
+	<key>Revoke or cancel</key>
+	<string>Thu hồi hoặc hủy bỏ</string>
+	<key>Revoke or cancel this link</key>
+	<string>Thu hồi hoặc hủy liên kết này</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>Thu hồi thông tin xác thực cũ tại nhà cung cấp của nó</string>
+	<key>Revoke this browser?</key>
+	<string>Thu hồi trình duyệt này?</string>
+	<key>Revoke this device</key>
+	<string>Thu hồi thiết bị này</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>Thu hồi thiết bị này và xoay phím nội dung</string>
+	<key>Revoke this snapshot link?</key>
+	<string>Thu hồi liên kết ảnh chụp nhanh này?</string>
+	<key>Revoked</key>
+	<string>Đã thu hồi</string>
+	<key>Role</key>
+	<string>Vai trò</string>
+	<key>Rotate conversation keys</key>
+	<string>Xoay phím hội thoại</string>
+	<key>Rotation checklists</key>
+	<string>Danh sách kiểm tra luân chuyển</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>Liên kết SSH</string>
+	<key>SSH binding needs review</key>
+	<string>Xem xét nhu cầu ràng buộc SSH</string>
+	<key>SSH key</key>
+	<string>Phím SSH</string>
+	<key>Safety and support</key>
+	<string>An toàn và hỗ trợ</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>Hành động mẫu: ký thông báo phát hành</string>
+	<key>Sample login</key>
+	<string>Đăng nhập mẫu</string>
+	<key>Sample password</key>
+	<string>Mật khẩu mẫu</string>
+	<key>Save</key>
+	<string>Lưu</string>
+	<key>Save name</key>
+	<string>Lưu tên</string>
+	<key>Save receiving policy</key>
+	<string>Lưu chính sách nhận</string>
+	<key>Save selected version</key>
+	<string>Lưu phiên bản đã chọn</string>
+	<key>Save settings</key>
+	<string>Lưu cài đặt</string>
+	<key>Save the selected version?</key>
+	<string>Lưu phiên bản đã chọn?</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>Lưu các mục này cho dMsg. Chọn một tài khoản và nhập chúng sau khi mở và mở khóa ứng dụng.</string>
+	<key>Save to dMsg</key>
+	<string>Lưu vào dMsg</string>
+	<key>Saved</key>
+	<string>Đã lưu</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>Được lưu dưới dạng phiên bản riêng biệt. Xem lại xung đột đồng bộ hóa.</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>Đã lưu cho dMsg. Mở ứng dụng để xem lại và nhập các mục này.</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>Được lưu cục bộ trước tiên. Trạng thái đồng bộ hóa được hiển thị riêng.</string>
+	<key>Saved on this device</key>
+	<string>Đã lưu trên thiết bị này</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>Đã lưu trên thiết bị này. Các thay đổi đang chờ đồng bộ hóa.</string>
+	<key>Saved. Publication is pending.</key>
+	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
+	<key>Scan device request</key>
+	<string>Yêu cầu thiết bị quét</string>
+	<key>Scopes, one per line</key>
+	<string>Phạm vi, một phạm vi trên mỗi dòng</string>
+	<key>Screenshots may contain private information.</key>
+	<string>Ảnh chụp màn hình có thể chứa thông tin cá nhân.</string>
+	<key>Search files</key>
+	<string>Tìm kiếm tập tin</string>
+	<key>Search messages</key>
+	<string>Tìm kiếm tin nhắn</string>
+	<key>Search your vault</key>
+	<string>Tìm kiếm kho tiền của bạn</string>
+	<key>Secret</key>
+	<string>Thông tin bí mật</string>
+	<key>Secret package link</key>
+	<string>Liên kết gói bí mật</string>
+	<key>Section</key>
+	<string>Phần</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave không khả dụng trên thiết bị này.</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>Yêu cầu bảo mật đã thay đổi. Xem lại yêu cầu một lần nữa trước khi phê duyệt nó.</string>
+	<key>Select a conversation</key>
+	<string>Chọn một cuộc trò chuyện</string>
+	<key>Select a file</key>
+	<string>Chọn một tập tin</string>
+	<key>Select a secret</key>
+	<string>Chọn một bí mật</string>
+	<key>Select attachments to import</key>
+	<string>Chọn tệp đính kèm để nhập</string>
+	<key>Select attachments to share</key>
+	<string>Chọn tệp đính kèm để chia sẻ</string>
+	<key>Select fields to import</key>
+	<string>Chọn các trường để nhập</string>
+	<key>Select fields to share</key>
+	<string>Chọn trường để chia sẻ</string>
+	<key>Select login items</key>
+	<string>Chọn mục đăng nhập</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>Các trường OTP đã chọn bao gồm hạt giống có thể tái sử dụng chứ không chỉ là mã hiện tại.</string>
+	<key>Selected accounts</key>
+	<string>Tài khoản đã chọn</string>
+	<key>Send free letter</key>
+	<string>Gửi thư miễn phí</string>
+	<key>Send message</key>
+	<string>Gửi tin nhắn</string>
+	<key>Send queued message</key>
+	<string>Gửi tin nhắn xếp hàng đợi</string>
+	<key>Send to an administrator</key>
+	<string>Gửi cho quản trị viên</string>
+	<key>Sender</key>
+	<string>Người gửi</string>
+	<key>Sender account</key>
+	<string>Tài khoản người gửi</string>
+	<key>Server</key>
+	<string>Máy chủ</string>
+	<key>Set up this account</key>
+	<string>Thiết lập tài khoản này</string>
+	<key>Share a copy</key>
+	<string>Chia sẻ một bản sao</string>
+	<key>Share binding request</key>
+	<string>Chia sẻ yêu cầu ràng buộc</string>
+	<key>Share enrollment request</key>
+	<string>Chia sẻ yêu cầu đăng ký</string>
+	<key>Share invitation</key>
+	<string>Chia sẻ lời mời</string>
+	<key>Share link</key>
+	<string>Chia sẻ liên kết</string>
+	<key>Share pairing request</key>
+	<string>Chia sẻ yêu cầu ghép nối</string>
+	<key>Share secret snapshot</key>
+	<string>Chia sẻ ảnh chụp nhanh bí mật</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>Chia sẻ yêu cầu này với quản trị viên được ủy quyền. Nó không tự đăng ký hoặc phê duyệt khóa.</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>Các bản sao được chia sẻ để lại sự bảo vệ của dMsg và không thể thu hồi được.</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>Các mục được chia sẻ không có sẵn. Mở lại ứng dụng sau khi mở khóa thiết bị này.</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>Các mục được chia sẻ đang chờ trên thiết bị này. Việc nhập sẽ mã hóa chúng vào tài khoản hiện được chọn.</string>
+	<key>Shared snapshots</key>
+	<string>Ảnh chụp nhanh được chia sẻ</string>
+	<key>Shared with dMsg</key>
+	<string>Đã chia sẻ với dMsg</string>
+	<key>Show dismissed findings</key>
+	<string>Hiển thị các phát hiện bị loại bỏ</string>
+	<key>Show sample password</key>
+	<string>Hiển thị mật khẩu mẫu</string>
+	<key>Show share link</key>
+	<string>Hiển thị liên kết chia sẻ</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>Hiển thị nội dung đã lưu. Đồng bộ hóa mới nhất chưa hoàn tất.</string>
+	<key>Sign a statement</key>
+	<string>Ký tuyên bố</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>Đăng nhập lại để mở khóa không gian làm việc được mã hóa của bạn trên iPhone này.</string>
+	<key>Sign in to another account</key>
+	<string>Đăng nhập vào tài khoản khác</string>
+	<key>Sign out</key>
+	<string>Đăng xuất</string>
+	<key>Sign out of this account?</key>
+	<string>Đăng xuất khỏi tài khoản này?</string>
+	<key>Sign the statement you reviewed</key>
+	<string>Ký vào bản tuyên bố bạn đã xem xét</string>
+	<key>Simulate approval</key>
+	<string>Mô phỏng phê duyệt</string>
+	<key>Simulate rejection</key>
+	<string>Mô phỏng từ chối</string>
+	<key>Simulate this approval?</key>
+	<string>Mô phỏng sự chấp thuận này?</string>
+	<key>Snapshot</key>
+	<string>Ảnh chụp nhanh</string>
+	<key>Snapshot link</key>
+	<string>Liên kết ảnh chụp nhanh</string>
+	<key>Software license</key>
+	<string>Giấy phép phần mềm</string>
+	<key>Solana</key>
+	<string>Solana</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>Một số bản ghi nguồn hoặc thuộc tính không được hỗ trợ. Việc nhập này chỉ sao chép các trường đã chọn; tệp đính kèm lưu trữ, mật mã và lịch sử không được nhập vào đây.</string>
+	<key>Source address %u</key>
+	<string>Địa chỉ nguồn %u</string>
+	<key>Spam</key>
+	<string>Thư rác</string>
+	<key>Spending approvals %u</key>
+	<string>Phê duyệt chi tiêu %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>Sắp xếp các tệp đã chọn, sau đó chọn tài khoản và nhập chúng vào dMsg.</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>Bắt đầu danh sách kiểm tra từ trang tham khảo của trường.</string>
+	<key>Start a rotation checklist</key>
+	<string>Bắt đầu danh sách kiểm tra luân chuyển</string>
+	<key>Start a rotation checklist?</key>
+	<string>Bắt đầu một danh sách kiểm tra luân chuyển?</string>
+	<key>Start account recovery?</key>
+	<string>Bắt đầu khôi phục tài khoản?</string>
+	<key>Start checklist</key>
+	<string>Bắt đầu danh sách kiểm tra</string>
+	<key>Status</key>
+	<string>Trạng thái</string>
+	<key>Stop this device's transfer</key>
+	<string>Dừng quá trình truyền thiết bị này</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>Dung lượng lưu trữ là giao dịch mua một lần cho thời hạn đăng ký hiện tại và không tự động gia hạn.</string>
+	<key>Storage packs</key>
+	<string>Gói lưu trữ</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>Việc mua dung lượng yêu cầu đăng ký App Store đang hoạt động.</string>
+	<key>Subject Agent ID</key>
+	<string>ID tác tử chủ đề</string>
+	<key>Submit report</key>
+	<string>Gửi báo cáo</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>Đăng ký tự động gia hạn trừ khi bị hủy trong cài đặt tài khoản Apple của bạn. Việc xóa tài khoản dMsg của bạn sẽ không hủy đăng ký Apple.</string>
+	<key>Switch account</key>
+	<string>Chuyển đổi tài khoản</string>
+	<key>Switch to this account</key>
+	<string>Chuyển sang tài khoản này</string>
+	<key>Sync conflicts</key>
+	<string>Xung đột đồng bộ hóa</string>
+	<key>Sync now</key>
+	<string>Đồng bộ hóa ngay bây giờ</string>
+	<key>Synced</key>
+	<string>Đã đồng bộ hóa</string>
+	<key>Syncing…</key>
+	<string>Đang đồng bộ hóa…</string>
+	<key>System authentication</key>
+	<string>Xác thực hệ thống</string>
+	<key>System integrations</key>
+	<string>Tích hợp hệ thống</string>
+	<key>System permission</key>
+	<string>Quyền hệ thống</string>
+	<key>Tags, separated by commas</key>
+	<string>Thẻ, cách nhau bằng dấu phẩy</string>
+	<key>Team wallets</key>
+	<string>Ví nhóm</string>
+	<key>Terms of service</key>
+	<string>Điều khoản dịch vụ</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>Môi trường thử nghiệm · Tách biệt các tài khoản và mua hàng thử nghiệm</string>
+	<key>Test the new credential at its provider</key>
+	<string>Kiểm tra thông tin xác thực mới tại nhà cung cấp của nó</string>
+	<key>Text</key>
+	<string>văn bản</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>Phiên bản được mã hóa sẽ sử dụng bộ nhớ đám mây. Bản sao cục bộ của bạn vẫn còn trên thiết bị này.</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>Phạm vi và đối tượng rõ ràng ở trên cũng áp dụng cho thông tin xác thực này. Cơ quan Controller không hạn chế không bao giờ tạo ra thông tin xác thực không bị hạn chế.</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>Thông tin đăng nhập đã xuất không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới.</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>Các bản sao tập tin không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới, sau đó thử lại.</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>Lời mời được ràng buộc với tài khoản này. Chia sẻ liên kết không cho phép truy cập vào tài khoản khác.</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>Quan sát được xác minh cuối cùng được lưu giữ. Trạng thái hiện tại không thể được xác nhận.</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>Khóa liên kết cục bộ không có sẵn. Giữ không gian làm việc này và xem xét các tùy chọn khôi phục của bạn trước khi khóa nó.</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>Các tour du lịch địa phương có sẵn cho tất cả mọi người. Để kiểm tra việc tạo tài khoản, đồng bộ hóa, mua hàng, thông báo và ủy quyền phần cứng, hãy rời khỏi chuyến tham quan và đăng nhập qua Internet Identity.</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>Giới hạn gói di động là 8 MiB. Xem trước sẽ kiểm tra gói trước khi bạn chọn nội dung cần nhập.</string>
+	<key>The operation could not be completed.</key>
+	<string>Hoạt động không thể hoàn thành.</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>Hoạt động không thể hoàn thành. Vui lòng thử lại.</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>Hoạt động đã bị hủy hoặc không được phép.</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>Kết quả là không chắc chắn. Kiểm tra công việc ban đầu trước khi thử lại bất cứ điều gì.</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>Kỷ lục đã thay đổi. Làm mới và xem lại các chỉnh sửa của bạn trước khi lưu lại.</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>Yêu cầu không có sẵn cho thiết bị này. Nó có thể đã hết hạn hoặc đã được xử lý.</string>
+	<key>The required content key is not available yet.</key>
+	<string>Khóa nội dung được yêu cầu chưa có sẵn.</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>Kết quả không được xác nhận. Hãy điều chỉnh yêu cầu này trước khi thử lại.</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>Hình ảnh đã chọn vẫn ở trên thiết bị này cho đến khi bạn xuất bản. Hình đại diện đã xuất bản là công khai và các bản sao có thể vẫn nằm ngoài dMsg.</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>Không thể sắp xếp các mục đã chọn. Mở dMsg và thử nhập chúng vào đó.</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>Bản sao nguồn bị gián đoạn. Loại bỏ nó và chọn lại nguồn.</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>Triển khai thử nghiệm không được cấu hình. Bản demo cục bộ và chính sách quyền riêng tư vẫn có sẵn.</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>Ủy quyền chuyển nhượng đã hết hạn. Hãy hủy tác vụ này, sau đó tiếp tục sao lưu ban đầu ở nền trước hoặc bắt đầu tải xuống mới.</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>Quá trình chuyển đã tạm dừng. Thử lại các khối được mã hóa ban đầu.</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>Ví kiểm tra chính sách và phê duyệt hiện tại của nó. Một chữ ký phần cứng bắt buộc được yêu cầu cho kế hoạch chính xác này.</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>Đây là những quan sát cục bộ, không phải là bản quét vi phạm hay bằng chứng cho thấy nhà cung cấp đã thu hồi thông tin xác thực. Các thiết bị khác có thể có các bản ghi khác nhau.</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>Đây là những công việc chụp nhanh được tạo trên thiết bị này. Yêu cầu phê duyệt cục bộ trên máy tính để bàn không được đồng bộ hóa ở đây.</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>Đây là những bản sao lưu đã được xác minh từ thiết bị trong tài khoản của bạn. Khôi phục rõ ràng để giữ một bản sao trên thiết bị này.</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>Những bản xuất này không bao giờ chứa khóa gốc của tài khoản hoặc khóa ký thiết bị. Những thay đổi đối với các mục nguồn yêu cầu một ảnh chụp nhanh mới.</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>Tài khoản này yêu cầu khóa phê duyệt đã đăng ký. Thiết lập thiết bị này trong Bảo mật phần cứng hoặc yêu cầu một thiết bị được ủy quyền khác.</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>Hành động này không được hỗ trợ trên thiết bị này. Ảnh chụp nhanh bí mật phải sử dụng luồng nhập chuyên dụng của chúng.</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>Yêu cầu trình duyệt này thuộc về một tài khoản khác. Việc chuyển đổi sẽ khóa không gian làm việc hiện tại và giữ nguyên bản nháp của nó.</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>Điều này không thể hoàn tác được. Việc đăng xuất một mình sẽ không xóa tài khoản.</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>Điều này thay đổi bảo vệ mở khóa cục bộ. Xác thực hệ thống có thể được yêu cầu. Không có phục hồi tài khoản hoặc thiết bị khác được thay đổi.</string>
+	<key>This changes only the local sample.</key>
+	<string>Điều này chỉ thay đổi mẫu cục bộ.</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>Điều này thay đổi những hành động tài khoản nào yêu cầu chữ ký phần cứng. Việc tắt tính năng bảo vệ sẽ cho phép những hành động đó mà không cần bằng chứng phần cứng đó.</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>Điều này tạo ra một yêu cầu đang chờ xử lý. Nó không ủy quyền cho thiết bị.</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>Điều này tạo ra một đề xuất. Nó không chuyển tiền cho đến khi đáp ứng được các yêu cầu vận hành và phê duyệt của ví. Số lượng là số nguyên đơn vị cơ sở chính xác.</string>
+	<key>This device</key>
+	<string>Thiết bị này</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>Thiết bị này có những thay đổi chưa được đồng bộ hóa. Lưu mọi thứ bạn cần trước khi xóa tài khoản.</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>Thiết bị này giữ không gian làm việc được mã hóa riêng. Không thể khôi phục nội dung chưa được đồng bộ hóa từ thiết bị khác.</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>Khóa thiết bị này không còn sử dụng được nữa. Sử dụng một thiết bị được ủy quyền khác hoặc khôi phục tài khoản. Không gian làm việc của bạn chưa bị xóa.</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>Thiết bị này có thể nhận được nội dung riêng tư của bạn. Khóa mã hóa nội dung chính phải được phân phối lại sau khi được phê duyệt.</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>Tệp này vượt quá giới hạn 100 MiB.</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>Lịch sử này thuộc về thiết bị này. Nó không phản ánh phê duyệt CLI, SSH trên máy tính để bàn cục bộ hoặc phê duyệt gắn tệp từ thiết bị khác.</string>
+	<key>This iPhone</key>
+	<string>Chiếc iPhone này</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>IPhone này quản lý danh tính và quyền của tác nhân. Nó không giúp các tác nhân tiếp tục hoạt động trong khi iOS tạm dừng ứng dụng.</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>Khoảng không quảng cáo này bao gồm các tài liệu tham khảo và hồ sơ giao hàng trên thiết bị này. Nó không tìm kiếm các thiết bị khác hoặc các tập tin dự án tùy ý.</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>Đây là một tài liệu hư cấu cho các chuyến tham quan địa phương. Trong tài khoản của bạn, các tệp đã chọn sẽ được mã hóa trên thiết bị trước khi sao lưu. Nền chỉ chuyển tên người dùng các khối được mã hóa; hoàn thiện yêu cầu tài khoản đã mở khóa ban đầu.</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>Khóa này được quản lý bởi dMsg và không thể sao chép hoặc chỉnh sửa.</string>
+	<key>This letter was withdrawn.</key>
+	<string>Bức thư này đã được rút lại.</string>
+	<key>This message could not be verified.</key>
+	<string>Không thể xác minh tin nhắn này.</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>Điều này chỉ ẩn việc phát hiện và sửa đổi chính xác này trên thiết bị này. Nó không sửa chữa thông tin xác thực hoặc loại bỏ những thay đổi trong tương lai.</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>Hoạt động này vượt quá giới hạn kích thước hoặc dung lượng của nó. Ảnh chụp nhanh bí mật trên thiết bị này được giới hạn ở 8 MiB.</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>Thao tác này tạm thời không khả dụng. Dữ liệu đã lưu của bạn được lưu giữ.</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>Gói này đã được nhập trên thiết bị này. Các bản sao hiện có vẫn độc lập.</string>
+	<key>This preview sends nothing.</key>
+	<string>Bản xem trước này không gửi gì cả.</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>Hồ sơ này là công khai. Không bao gồm bí mật hoặc thông tin liên hệ riêng tư.</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>Điều này ghi lại rằng bạn đã kiểm tra kết quả theo cách thủ công. Nó không đánh dấu hoạt động thành công hoặc chạy lại.</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>Thao tác này chỉ xóa bản sao đám mây đã chọn. Các tập tin cục bộ vẫn còn trên thiết bị của họ.</string>
+	<key>This request has expired</key>
+	<string>Yêu cầu này đã hết hạn</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>Yêu cầu này yêu cầu một máy khách để bàn được hỗ trợ.</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>Điều này yêu cầu kết thúc việc truy xuất trong tương lai. Các bản sao đã lưu vẫn có thể sử dụng được. Một ấn phẩm không chắc chắn vẫn phải được đối chiếu.</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>Ảnh chụp nhanh này cần được chú ý. Kiểm tra trạng thái của nó trước khi tiếp tục.</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>Chuyến tham quan này không tải lên tập tin hoặc đăng ký tích hợp hệ thống.</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>Điều này theo dõi công việc của bạn trên thiết bị này. Nó không tạo, kiểm tra hoặc thu hồi thông tin đăng nhập từ nhà cung cấp của họ.</string>
+	<key>Title</key>
+	<string>Tiêu đề</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>Để sử dụng tài khoản hiện có của bạn trên iPhone này, hãy phê duyệt thiết bị này từ một trong các thiết bị được ủy quyền của bạn.</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>Chuyển hoặc lưu trữ các cuộc hội thoại thuộc sở hữu trước</string>
+	<key>Transfer proposal</key>
+	<string>Đề xuất chuyển nhượng</string>
+	<key>Transfers</key>
+	<string>chuyển nhượng</string>
+	<key>Trash</key>
+	<string>Thùng rác</string>
+	<key>Trash is empty</key>
+	<string>Thùng rác trống rỗng</string>
+	<key>Try the local demo</key>
+	<string>Hãy thử bản demo địa phương</string>
+	<key>Two versions need your decision</key>
+	<string>Hai phiên bản cần sự quyết định của bạn</string>
+	<key>Type</key>
+	<string>Loại</string>
+	<key>Type this account ID to confirm</key>
+	<string>Nhập ID tài khoản này để xác nhận</string>
+	<key>Unblock</key>
+	<string>Bỏ chặn</string>
+	<key>Unconfirmed proposals</key>
+	<string>Đề xuất chưa được xác nhận</string>
+	<key>Unknown state</key>
+	<string>Trạng thái không xác định</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>Mở khóa dMsg để xem xét yêu cầu này.</string>
+	<key>Unlock policy</key>
+	<string>Chính sách mở khóa</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>Mở khóa iPhone này để mở dMsg.</string>
+	<key>Unlock with system authentication</key>
+	<string>Mở khóa bằng xác thực hệ thống</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>Mở khóa không gian làm việc dMsg của bạn</string>
+	<key>Unrestricted delegation authority</key>
+	<string>Quyền ủy quyền không hạn chế</string>
+	<key>Uploading</key>
+	<string>Đang tải lên</string>
+	<key>Uploading encrypted backup</key>
+	<string>Đang tải lên bản sao lưu được mã hóa</string>
+	<key>Url</key>
+	<string>Url</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>Sử dụng mật khẩu từ ảnh chụp nhanh mà bạn đã xuất rõ ràng trong dMsg.</string>
+	<key>Use a secret through a device policy</key>
+	<string>Sử dụng bí mật thông qua chính sách thiết bị</string>
+	<key>Use an SSH signing key</key>
+	<string>Sử dụng khóa ký SSH</string>
+	<key>Use conflicting version</key>
+	<string>Sử dụng phiên bản xung đột</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>Sử dụng dữ liệu hư cấu ở đây. Việc đóng chuyến tham quan sẽ loại bỏ các thay đổi của bạn.</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>Sử dụng icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol hoặc sol:mint.</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>Sử dụng xác thực hệ thống để mở khóa không gian làm việc được mã hóa trên iPhone này.</string>
+	<key>Use this folder</key>
+	<string>Sử dụng thư mục này</string>
+	<key>Use this password for:</key>
+	<string>Sử dụng mật khẩu này cho:</string>
+	<key>Username</key>
+	<string>Tên người dùng</string>
+	<key>Value</key>
+	<string>Giá trị</string>
+	<key>Vault</key>
+	<string>Kho bảo mật</string>
+	<key>Vault tools</key>
+	<string>Công cụ Vault</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>Đã lưu tệp đính kèm đã được xác minh vào Tệp.</string>
+	<key>Verified package fingerprint</key>
+	<string>Dấu vân tay gói đã được xác minh</string>
+	<key>Verify and finish</key>
+	<string>Xác minh và hoàn tất</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>Xác minh đầy đủ dấu vân tay của thiết bị và chìa khóa. Khóa này sẽ chứng minh sự chấp thuận phần cứng đối với các hành động được bảo vệ của tài khoản này.</string>
+	<key>Verify the full device fingerprint</key>
+	<string>Xác minh đầy đủ dấu vân tay của thiết bị</string>
+	<key>Version history</key>
+	<string>Lịch sử phiên bản</string>
+	<key>Versions</key>
+	<string>Phiên bản</string>
+	<key>Viewer</key>
+	<string>Người xem</string>
+	<key>Waiting for approval</key>
+	<string>Đang chờ phê duyệt</string>
+	<key>Waiting for browser confirmation</key>
+	<string>Đang chờ xác nhận trình duyệt</string>
+	<key>Waiting for confirmation: </key>
+	<string>Đang chờ xác nhận: </string>
+	<key>Waiting for notification registration…</key>
+	<string>Đang chờ đăng ký thông báo…</string>
+	<key>Waiting for your decision</key>
+	<string>Chờ đợi quyết định của bạn</string>
+	<key>Waiting to submit</key>
+	<string>Đang chờ nộp</string>
+	<key>Waiting to sync</key>
+	<string>Đang chờ đồng bộ hóa</string>
+	<key>Wallet</key>
+	<string>Ví</string>
+	<key>Wallet access</key>
+	<string>Truy cập ví</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>Không thể kiểm tra quyền truy cập ví. Xác minh nó một cách độc lập trước khi xóa.</string>
+	<key>Wallet canister ID</key>
+	<string>ID Ví canister</string>
+	<key>Wallet controls</key>
+	<string>Kiểm soát ví</string>
+	<key>Wallet details and policy</key>
+	<string>Chi tiết và chính sách ví</string>
+	<key>Wallet secret</key>
+	<string>Bí mật ví</string>
+	<key>Wallets</key>
+	<string>Ví</string>
+	<key>Weak credential</key>
+	<string>thông tin xác thực yếu</string>
+	<key>Website</key>
+	<string>Trang web</string>
+	<key>Welcome back.</key>
+	<string>Chào mừng trở lại.</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>Chào mừng bạn đến với bản demo địa phương. Những tin nhắn này vẫn ở màn hình này.</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Trong khi dMsg được mở và mở khóa, các chỉnh sửa được mã hóa sẽ tải lên và các thông báo cũng như phê duyệt sẽ được làm mới. Sao lưu tập tin vẫn yêu cầu xác nhận riêng. Bạn có thể tắt tính năng này bất cứ lúc nào.</string>
+	<key>Who may contact you</key>
+	<string>Ai có thể liên hệ với bạn</string>
+	<key>Withdraw</key>
+	<string>Rút tiền</string>
+	<key>Withdraw message</key>
+	<string>Rút tin nhắn</string>
+	<key>Withdraw this message?</key>
+	<string>Rút lại tin nhắn này?</string>
+	<key>Workspace destination</key>
+	<string>Đích đến của không gian làm việc</string>
+	<key>Write a demo message</key>
+	<string>Viết tin nhắn demo</string>
+	<key>Write a letter</key>
+	<string>Viết một lá thư</string>
+	<key>Write a message</key>
+	<string>Viết tin nhắn</string>
+	<key>Yes</key>
+	<string>Có</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>Bạn đang xem một phiên bản lịch sử bất biến.</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>Bạn tự thực hiện thay đổi nhà cung cấp. dMsg ghi lại các tuyên bố của bạn và kiểm tra các sửa đổi cục bộ; nó không thể xác minh việc tạo, kiểm tra hoặc thu hồi ngược dòng.</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>Các kênh được ủy quyền của bạn sẽ xuất hiện sau khi đồng bộ hóa.</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>Không thể làm mới quyền hiện tại của bạn. Hãy thử lại khi có dịch vụ xác minh.</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>Gói hiện tại của bạn được quản lý bên ngoài App Store. Đợi cho đến khi quá trình kết thúc trước khi bắt đầu đăng ký App Store.</string>
+	<key>Your decision applies only to this request.</key>
+	<string>Quyết định của bạn chỉ áp dụng cho yêu cầu này.</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>Các tập tin được mã hóa của bạn vẫn ở đây. Đăng nhập đã lưu và mở khóa nhanh sẽ bị xóa.</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>Thiết bị hiện tại của bạn đưa ra quyết định cuối cùng.</string>
+	<key>Your files stay private</key>
+	<string>Các tập tin của bạn luôn ở chế độ riêng tư</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>Các trường ẩn của bạn sẽ được ẩn cho đến khi bạn chọn tiết lộ chúng.</string>
+	<key>Your private workspace.</key>
+	<string>Không gian làm việc riêng tư của bạn.</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>Việc mua hàng của bạn đang chờ xác nhận. Khôi phục mua hàng để thử lại mà không phải trả tiền lại.</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>Báo cáo của bạn và bất kỳ văn bản nào bạn đưa vào một cách rõ ràng sẽ được gửi đến nhóm kiểm duyệt. Nội dung và khóa riêng tư khác không được bao gồm.</string>
+	<key>Your reports</key>
+	<string>Báo cáo của bạn</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>Không gian làm việc dMsg</string>
+</dict>
+</plist>

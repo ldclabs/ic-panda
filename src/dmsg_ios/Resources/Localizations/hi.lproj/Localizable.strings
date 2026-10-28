@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 दिन</string>
+	<key>1 hour</key>
+	<string>1 घंटा</string>
+	<key>7 days</key>
+	<string>7 दिन</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>पृष्ठभूमि स्थानांतरण दूसरे खाते से संबंधित है. इसे समाप्त करने या रद्द करने के लिए उस खाते पर स्विच करें।</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>इस युग तक पहुंच रखने वाले सदस्यों के लिए एक चैनल स्नैपशॉट उपलब्ध है, जिसमें बाद के इतिहास अनुमति भी शामिल हैं। इसमें कोई लिंक समाप्ति, डाउनलोड-सत्र सीमा या रिकॉल नहीं है।</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>एक डाउनलोड सत्र एक पुनर्प्राप्ति भत्ता है, फ़ाइल पढ़ने की गिनती नहीं। समाप्ति या निरस्तीकरण पहले से सहेजी गई प्रतियों को नहीं मिटा सकता।</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>किसी रिकॉर्ड या डिवाइस कुंजी को सत्यापित नहीं किया जा सका. आपका कार्यक्षेत्र मिटाया नहीं गया है.</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>एक संदर्भ एक फ़ील्ड की पहचान करता है; इसमें इसका गुप्त मूल्य नहीं है या इसे पढ़ने की अनुमति नहीं है।</string>
+	<key>A snapshot contains an older credential</key>
+	<string>स्नैपशॉट में एक पुराना क्रेडेंशियल होता है</string>
+	<key>A snapshot link is still active</key>
+	<string>एक स्नैपशॉट लिंक अभी भी सक्रिय है</string>
+	<key>API credential</key>
+	<string>API क्रेडेंशियल</string>
+	<key>About</key>
+	<string>के बारे में</string>
+	<key>Accept approved binding</key>
+	<string>अनुमोदित बंधन स्वीकार करें</string>
+	<key>Access granted</key>
+	<string>प्रवेश दिया गया</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>dMsg से आपके द्वारा स्पष्ट रूप से निर्यात की गई प्रतियों तक पहुँचें</string>
+	<key>Account</key>
+	<string>खाता</string>
+	<key>Account ID</key>
+	<string>खाता आईडी</string>
+	<key>Account recovery</key>
+	<string>खाता पुनर्प्राप्ति</string>
+	<key>Account recovery is pending</key>
+	<string>खाता पुनर्प्राप्ति लंबित है</string>
+	<key>Account security</key>
+	<string>खाता सुरक्षा</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>खाता, डिवाइस और पहचान सुरक्षा एक साथ बदलती है। एक आवश्यक अनुमोदन सामान्य पुष्टि संवाद पर वापस नहीं आ सकता है।</string>
+	<key>Account, devices and identities</key>
+	<string>खाता, उपकरण और पहचान</string>
+	<key>Accounts</key>
+	<string>लेखा</string>
+	<key>Active conversations</key>
+	<string>सक्रिय वार्तालाप</string>
+	<key>Activity on this device</key>
+	<string>इस डिवाइस पर गतिविधि</string>
+	<key>Add device</key>
+	<string>डिवाइस जोड़ें</string>
+	<key>Add field</key>
+	<string>फ़ील्ड जोड़ें</string>
+	<key>Add item</key>
+	<string>आइटम जोड़ें</string>
+	<key>Add message to demo</key>
+	<string>डेमो में संदेश जोड़ें</string>
+	<key>Add one-time code</key>
+	<string>एक बार का कोड जोड़ें</string>
+	<key>Add receiving address</key>
+	<string>प्राप्तकर्ता पता जोड़ें</string>
+	<key>Add sample login</key>
+	<string>नमूना लॉगिन जोड़ें</string>
+	<key>Added</key>
+	<string>जोड़ा गया</string>
+	<key>Address</key>
+	<string>पता</string>
+	<key>Address label</key>
+	<string>पता लेबल</string>
+	<key>Address verification failed</key>
+	<string>पते का सत्यापन विफल रहा</string>
+	<key>Administrative approvals %u</key>
+	<string>प्रशासनिक स्वीकृतियाँ %u</string>
+	<key>Administrator</key>
+	<string>प्रशासक</string>
+	<key>Agent ID</key>
+	<string>एजेंट आईडी</string>
+	<key>Agents</key>
+	<string>एजेंट</string>
+	<key>All</key>
+	<string>सब</string>
+	<key>All caught up</key>
+	<string>सभी को पकड़ लिया गया</string>
+	<key>All devices lost?</key>
+	<string>सभी उपकरण खो गए?</string>
+	<key>All files</key>
+	<string>सभी फ़ाइलें</string>
+	<key>Allow key rotation</key>
+	<string>कुंजी घुमाने की अनुमति दें</string>
+	<key>Allowed</key>
+	<string>अनुमति है</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>अनुमत खाता आईडी, प्रति पंक्ति एक</string>
+	<key>Already imported</key>
+	<string>पहले ही आयात किया जा चुका है</string>
+	<key>Already present</key>
+	<string>पहले से ही मौजूद है</string>
+	<key>Amount in base units</key>
+	<string>मूल इकाइयों में राशि</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>एक खाता पुनर्प्राप्ति लंबित है. खाता सुरक्षा में इसकी समीक्षा करें.</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>पूर्ण लिंक और आवश्यक पासवर्ड वाला कोई भी व्यक्ति इसकी सीमा के भीतर इसे पुनः प्राप्त कर सकता है।</string>
+	<key>Anyone, free of charge</key>
+	<string>कोई भी, नि:शुल्क</string>
+	<key>App Store subscriptions</key>
+	<string>App Store सदस्यताएँ</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>इस डिवाइस पर ऐप सत्यापन उपलब्ध नहीं है. आपकी सहेजी गई सामग्री उपलब्ध रहती है.</string>
+	<key>Apply these receiving rules?</key>
+	<string>इन प्राप्ति नियमों को लागू करें?</string>
+	<key>Apply this conversation change?</key>
+	<string>यह वार्तालाप परिवर्तन लागू करें?</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>अनुमोदन केवल आपके चयनित फ़ील्ड और अनुलग्नकों को नए स्वतंत्र आइटम के रूप में आयात करता है। फ़ाइलें स्थानीय रहती हैं और गंतव्य फ़ोल्डर की पहुंच अनुमति प्राप्त करती हैं।</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>अनुमोदन बिल्कुल समीक्षा किए गए फ़ील्ड और अनुलग्नकों को एक स्वतंत्र स्नैपशॉट के रूप में प्रकाशित करता है। गंतव्य और सीमा सत्यापित करें; प्राप्तकर्ता प्रतियां अपने पास रख सकते हैं।</string>
+	<key>Approval thresholds</key>
+	<string>अनुमोदन सीमाएँ</string>
+	<key>Approvals</key>
+	<string>स्वीकृतियाँ</string>
+	<key>Approve</key>
+	<string>स्वीकृत करें</string>
+	<key>Approve a binding request</key>
+	<string>बाध्यकारी अनुरोध स्वीकृत करें</string>
+	<key>Approve the reviewed request?</key>
+	<string>समीक्षा किए गए अनुरोध को स्वीकृत करें?</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>आपके द्वारा समीक्षा की गई वॉलेट लेनदेन योजना को स्वीकृत करें</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>इस उपकरण को स्वीकृत करें और नई सामग्री कुंजियाँ वितरित करें</string>
+	<key>Approve this request</key>
+	<string>इस अनुरोध को स्वीकार करें</string>
+	<key>Approved by</key>
+	<string>द्वारा अनुमोदित</string>
+	<key>Approver</key>
+	<string>अनुमोदनकर्ता</string>
+	<key>Archive</key>
+	<string>पुरालेख</string>
+	<key>Archive conversation</key>
+	<string>वार्तालाप संग्रहित करें</string>
+	<key>Archived</key>
+	<string>संग्रहीत</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>किसी व्यवस्थापक से इस लॉगिन को अपने मौजूदा खाते से जोड़ने के लिए कहें। डिवाइस प्राधिकरण एक अलग चरण है.</string>
+	<key>Asset identifier</key>
+	<string>संपत्ति पहचानकर्ता</string>
+	<key>Attach</key>
+	<string>संलग्न करें</string>
+	<key>Attach a file</key>
+	<string>एक फ़ाइल संलग्न करें</string>
+	<key>Attach file</key>
+	<string>फ़ाइल संलग्न करें</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>अनुलग्नक बैकअप अपुष्ट है</string>
+	<key>Attachment unavailable on this device</key>
+	<string>इस डिवाइस पर अनुलग्नक उपलब्ध नहीं है</string>
+	<key>Attestations</key>
+	<string>सत्यापन</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>श्रोता मूल या एजेंट आईडी, प्रति पंक्ति एक</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>आपके द्वारा dMsg से निर्यात की गई फ़ाइल प्रतियों तक पहुँचने के लिए प्रमाणित करें। पहुंच पांच मिनट तक चलती है; स्नैपशॉट 24 घंटे के बाद समाप्त हो जाता है.</string>
+	<key>Authenticate to continue</key>
+	<string>जारी रखने के लिए प्रमाणित करें</string>
+	<key>Authorize a new device</key>
+	<string>किसी नये उपकरण को अधिकृत करें</string>
+	<key>Authorize another device</key>
+	<string>किसी अन्य डिवाइस को अधिकृत करें</string>
+	<key>Authorize this device</key>
+	<string>इस उपकरण को अधिकृत करें</string>
+	<key>Authorize this device's approval key</key>
+	<string>इस डिवाइस की अनुमोदन कुंजी को अधिकृत करें</string>
+	<key>Authorize this iPhone</key>
+	<string>इस iPhone को अधिकृत करें</string>
+	<key>Authorized device</key>
+	<string>अधिकृत उपकरण</string>
+	<key>Authorized devices</key>
+	<string>अधिकृत उपकरण</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>स्वतः भरण केवल आपके द्वारा चयनित लॉगिन आइटम प्राप्त करता है। स्नैपशॉट 24 घंटों के बाद समाप्त हो जाता है और कार्यस्थान से स्वतंत्र रूप से सिस्टम प्रमाणीकरण की आवश्यकता होती है। उपयोगकर्ता नाम और वेबसाइट नाम सिस्टम सुझावों में दिखाई दे सकते हैं।</string>
+	<key>AutoFill snapshot updated</key>
+	<string>स्वतः भरण स्नैपशॉट अद्यतन किया गया</string>
+	<key>Automatic foreground sync</key>
+	<string>स्वचालित अग्रभूमि समन्वयन</string>
+	<key>Back</key>
+	<string>वापस</string>
+	<key>Back up encrypted copy</key>
+	<string>एन्क्रिप्टेड प्रति का बैकअप लें</string>
+	<key>Back up this file?</key>
+	<string>इस फ़ाइल का बैकअप लें?</string>
+	<key>Back up to cloud</key>
+	<string>बादल पर वापस जाएं</string>
+	<key>Backed up</key>
+	<string>बैकअप लिया गया</string>
+	<key>Background ciphertext transfer</key>
+	<string>पृष्ठभूमि सिफरटेक्स्ट स्थानांतरण</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>पृष्ठभूमि हस्ताक्षर और निवासी एजेंट क्षमताएं इस कार्यक्षेत्र लॉक से अलग हैं।</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>पृष्ठभूमि स्थानांतरण प्रारंभ हुआ. स्थानान्तरण में इसकी प्रगति की समीक्षा करें।</string>
+	<key>Backing up…</key>
+	<string>बैकअप लिया जा रहा है...</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>बैकअप प्रगति सहेजी गई. पूर्णता के लिए फ़ाइल की स्थिति जांचें.</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>बैकअप कतारबद्ध. अपलोडिंग समाप्त करने के लिए dMsg को खुला रखें।</string>
+	<key>Bind another Internet Identity</key>
+	<string>एक और Internet Identity बाइंड करें</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>इस कार्यस्थान को इस iPhone से बांधें?</string>
+	<key>Bind workspace</key>
+	<string>कार्यक्षेत्र को बांधें</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>नए लॉगिन के बाद भी बाइंडिंग इस स्थानीय कार्यक्षेत्र की सुरक्षा करती है। इसे बदलने से पहले कोई अन्य अधिकृत डिवाइस या पुनर्प्राप्ति पथ रखें।</string>
+	<key>Biometrics only</key>
+	<string>केवल बायोमेट्रिक्स</string>
+	<key>Biometrics only for exported copies</key>
+	<string>बायोमेट्रिक्स केवल निर्यातित प्रतियों के लिए</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>केवल-बायोमेट्रिक्स कुंजियाँ डिवाइस पासकोड का उपयोग नहीं कर सकती हैं और नामांकित बायोमेट्रिक्स बदलने पर काम करना बंद कर सकती हैं।</string>
+	<key>Birthday</key>
+	<string>जन्मदिन</string>
+	<key>Bitcoin</key>
+	<string>बिटकॉइन</string>
+	<key>Block this account</key>
+	<string>इस खाते को ब्लॉक करें</string>
+	<key>Blocked accounts</key>
+	<string>ब्लॉक किए गए खाते</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>अवरोधित प्रेषक इस डिवाइस पर छिपे हुए हैं. ऑनलाइन ब्लॉक नए सीधे संपर्क और निमंत्रण को भी रोकते हैं; मौजूदा साझा प्रतियों को वापस नहीं लिया जाता है.</string>
+	<key>Broadcast original signed transaction</key>
+	<string>मूल हस्ताक्षरित लेनदेन प्रसारित करें</string>
+	<key>Browser request</key>
+	<string>ब्राउज़र अनुरोध</string>
+	<key>Cancel</key>
+	<string>रद्द करें</string>
+	<key>Cancel background transfer</key>
+	<string>पृष्ठभूमि स्थानांतरण रद्द करें</string>
+	<key>Cancel pending request</key>
+	<string>लंबित अनुरोध रद्द करें</string>
+	<key>Cancel proposal</key>
+	<string>प्रस्ताव रद्द करें</string>
+	<key>Cancel reply</key>
+	<string>उत्तर रद्द करें</string>
+	<key>Cancel request</key>
+	<string>अनुरोध रद्द करें</string>
+	<key>Cancel this pending request?</key>
+	<string>क्या यह लंबित अनुरोध रद्द करें?</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>रद्दीकरण इस अनिर्णीत अनुरोध पर लागू होता है। यह पूर्ण डिलीवरी को पूर्ववत नहीं करता है।</string>
+	<key>Cancelled</key>
+	<string>रद्द कर दिया गया</string>
+	<key>Capabilities, one per line</key>
+	<string>क्षमताएँ, प्रति पंक्ति एक</string>
+	<key>Cardholder</key>
+	<string>कार्डधारक</string>
+	<key>Chain</key>
+	<string>ब्लॉकचेन</string>
+	<key>Change a device secret policy</key>
+	<string>डिवाइस गुप्त नीति बदलें</string>
+	<key>Change account security</key>
+	<string>खाता सुरक्षा बदलें</string>
+	<key>Change device permissions</key>
+	<string>डिवाइस अनुमतियाँ बदलें</string>
+	<key>Change hardware approval policy</key>
+	<string>हार्डवेयर अनुमोदन नीति बदलें</string>
+	<key>Change identity settings</key>
+	<string>पहचान सेटिंग बदलें</string>
+	<key>Change role</key>
+	<string>भूमिका बदलें</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>परिवर्तन प्रस्ताव बनाते हैं और फिर भी वॉलेट की मौजूदा मंजूरी की आवश्यकता होती है। मौजूदा नीति फ़ील्ड और सदस्य एजेंट अनुमतियाँ संरक्षित हैं।</string>
+	<key>Channel</key>
+	<string>चैनल</string>
+	<key>Channel ID</key>
+	<string>चैनल आईडी</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>चैनल प्रतियों की कोई समाप्ति, पुनर्प्राप्ति सीमा या रिकॉल नहीं है। प्राप्तकर्ता स्वतंत्र प्रतियां रख सकते हैं।</string>
+	<key>Channel snapshot</key>
+	<string>चैनल स्नैपशॉट</string>
+	<key>Channels</key>
+	<string>चैनल</string>
+	<key>Check authorization</key>
+	<string>प्राधिकरण की जाँच करें</string>
+	<key>Check deletion status</key>
+	<string>हटाने की स्थिति जांचें</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>प्रोजेक्ट संदर्भ और पहले से वितरित किसी भी प्रति की जाँच करें।</string>
+	<key>Check recovery status</key>
+	<string>पुनर्प्राप्ति स्थिति जांचें</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>यह तय करने से पहले कि क्या एक्सेस की अभी भी आवश्यकता है, इस डिवाइस की गतिविधि की जाँच करें।</string>
+	<key>Checking permission…</key>
+	<string>अनुमति की जाँच की जा रही है...</string>
+	<key>Checklist completed</key>
+	<string>चेकलिस्ट पूरी हो गई</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>आपके बयानों से चेकलिस्ट पूरी हो गई। अपस्ट्रीम स्थिति केवल प्रदाता के साथ स्वतंत्र रूप से सत्यापन योग्य रहती है।</string>
+	<key>Choose a credential for:</key>
+	<string>इसके लिए एक क्रेडेंशियल चुनें:</string>
+	<key>Choose a secret</key>
+	<string>एक रहस्य चुनें</string>
+	<key>Choose a version</key>
+	<string>एक संस्करण चुनें</string>
+	<key>Choose an attachment</key>
+	<string>एक अनुलग्नक चुनें</string>
+	<key>Choose avatar</key>
+	<string>अवतार चुनें</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>चुनें कि इस स्वतंत्र स्नैपशॉट में वास्तव में क्या है। स्रोत संपादन पहले से भेजी गई प्रतियों को नहीं बदलेगा।</string>
+	<key>Choose password export</key>
+	<string>पासवर्ड निर्यात चुनें</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>iOS सेटिंग्स में dMsg के लिए भाषा चुनें।</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>चुनें कि कौन सा संस्करण रखना है. मौजूदा इतिहास बरकरार रखा गया है; रहस्य कभी चुपचाप नहीं लिखे जाते।</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>चुनें कि आपको निःशुल्क पत्र कौन भेज सकता है। ब्लॉक किए गए खाते तब तक ब्लॉक रहते हैं जब तक आप उन्हें अनब्लॉक नहीं करते।</string>
+	<key>Closed</key>
+	<string>बंद</string>
+	<key>Cloud backups</key>
+	<string>क्लाउड बैकअप</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>क्लाउड बैकअप रखा जाता है. यह केवल इस डिवाइस पर कॉपी को बदलता है।</string>
+	<key>Cloud deletion completed</key>
+	<string>बादल हटाना पूरा हुआ</string>
+	<key>Cloud storage</key>
+	<string>क्लाउड स्टोरेज</string>
+	<key>Complete recovery after waiting period</key>
+	<string>प्रतीक्षा अवधि के बाद पूर्ण पुनर्प्राप्ति</string>
+	<key>Completed</key>
+	<string>पूरा हुआ</string>
+	<key>Configure a desktop file mapping</key>
+	<string>डेस्कटॉप फ़ाइल मैपिंग कॉन्फ़िगर करें</string>
+	<key>Configured on this device</key>
+	<string>इस डिवाइस पर कॉन्फ़िगर किया गया</string>
+	<key>Confirm change</key>
+	<string>परिवर्तन की पुष्टि करें</string>
+	<key>Confirm completed step</key>
+	<string>पूर्ण चरण की पुष्टि करें</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>केवल उस कार्य की पुष्टि करें जिसे आपने वास्तव में पूरा कर लिया है। यह आपका बयान दर्ज करता है; यह प्रदाता कार्रवाई निष्पादित नहीं करता है।</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>आपके द्वारा समीक्षा किए गए dMsg अनुरोध की पुष्टि करें</string>
+	<key>Confirm this account security change</key>
+	<string>इस खाता सुरक्षा परिवर्तन की पुष्टि करें</string>
+	<key>Confirm your completed steps</key>
+	<string>अपने पूर्ण किए गए चरणों की पुष्टि करें</string>
+	<key>Conflicting version</key>
+	<string>विरोधाभासी संस्करण</string>
+	<key>Connect</key>
+	<string>कनेक्ट करें</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>केवल वही ब्राउज़र कनेक्ट करें जिसे आप नियंत्रित करते हैं. एक कनेक्टेड ब्राउज़र अनुरोध सबमिट कर सकता है; प्रत्येक हस्ताक्षर के लिए अभी भी dMsg में आपकी स्वीकृति की आवश्यकता है।</string>
+	<key>Connect this browser</key>
+	<string>इस ब्राउज़र को कनेक्ट करें</string>
+	<key>Connect this browser?</key>
+	<string>इस ब्राउज़र को कनेक्ट करें?</string>
+	<key>Connected browsers</key>
+	<string>कनेक्टेड ब्राउज़र</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>कनेक्शन अनुपलब्ध. आपकी सहेजी गई सामग्री इस डिवाइस पर रहती है.</string>
+	<key>Contact invitation, if provided</key>
+	<string>यदि प्रदान किया गया हो तो संपर्क निमंत्रण</string>
+	<key>Contact support</key>
+	<string>समर्थन से संपर्क करें</string>
+	<key>Continue import</key>
+	<string>आयात जारी रखें</string>
+	<key>Continue password import</key>
+	<string>पासवर्ड आयात जारी रखें</string>
+	<key>Continue selected backups</key>
+	<string>चयनित बैकअप जारी रखें</string>
+	<key>Continue this backup in background</key>
+	<string>इस बैकअप को पृष्ठभूमि में जारी रखें</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>इस आयात को आपके द्वारा मूल रूप से चयनित खाते में जारी रखें।</string>
+	<key>Continue with Internet Identity</key>
+	<string>Internet Identity के साथ जारी रखें</string>
+	<key>Controller ID</key>
+	<string>नियंत्रक आईडी</string>
+	<key>Controller name</key>
+	<string>नियंत्रक का नाम</string>
+	<key>Controllers</key>
+	<string>नियंत्रक</string>
+	<key>Controllers and delegations</key>
+	<string>नियंत्रक और प्रतिनिधिमंडल</string>
+	<key>Conversation</key>
+	<string>बातचीत</string>
+	<key>Conversation name</key>
+	<string>बातचीत का नाम</string>
+	<key>Conversation settings</key>
+	<string>वार्तालाप सेटिंग</string>
+	<key>Copied for 30 seconds</key>
+	<string>30 सेकंड के लिए कॉपी किया गया</string>
+	<key>Copy</key>
+	<string>कॉपी करें</string>
+	<key>Copy address</key>
+	<string>पता कॉपी करें</string>
+	<key>Copy binding request</key>
+	<string>बाइंडिंग अनुरोध की प्रतिलिपि बनाएँ</string>
+	<key>Copy enrollment request</key>
+	<string>नामांकन अनुरोध की प्रतिलिपि बनाएँ</string>
+	<key>Copy for 30 seconds</key>
+	<string>30 सेकंड के लिए कॉपी करें</string>
+	<key>Copy link</key>
+	<string>लिंक कॉपी करें</string>
+	<key>Copy pairing request</key>
+	<string>युग्मन अनुरोध कॉपी करें</string>
+	<key>Copy reference</key>
+	<string>संदर्भ कॉपी करें</string>
+	<key>Copy this field?</key>
+	<string>इस फ़ील्ड की प्रतिलिपि बनाएँ?</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>प्रस्तावित पता नीति के लिए सहहस्ताक्षरकर्ता</string>
+	<key>Create</key>
+	<string>बनाएँ</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>इसके प्रदाता पर एक नया क्रेडेंशियल बनाएं और इसे वॉल्ट में सहेजें</string>
+	<key>Create a new pairing request</key>
+	<string>एक नया युग्मन अनुरोध बनाएँ</string>
+	<key>Create a revocation request?</key>
+	<string>निरस्तीकरण अनुरोध बनाएं?</string>
+	<key>Create agent</key>
+	<string>एजेंट बनाएं</string>
+	<key>Create an administrator enrollment request</key>
+	<string>एक व्यवस्थापक नामांकन अनुरोध बनाएँ</string>
+	<key>Create an agent identity</key>
+	<string>एक एजेंट पहचान बनाएं</string>
+	<key>Create binding request</key>
+	<string>बाइंडिंग अनुरोध बनाएं</string>
+	<key>Create conversation</key>
+	<string>वार्तालाप बनाएँ</string>
+	<key>Create hardware cosigner</key>
+	<string>हार्डवेयर कोसिग्नर बनाएं</string>
+	<key>Create invitation</key>
+	<string>आमंत्रण बनाएँ</string>
+	<key>Create proposal</key>
+	<string>प्रस्ताव बनाएं</string>
+	<key>Create this wallet proposal?</key>
+	<string>यह वॉलेट प्रस्ताव बनाएं?</string>
+	<key>Create transfer proposal</key>
+	<string>स्थानांतरण प्रस्ताव बनाएं</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>पासवर्ड, नोट्स और फ़ाइलों को सहेजना शुरू करने के लिए अपना एन्क्रिप्टेड कार्यक्षेत्र बनाएं।</string>
+	<key>Credential</key>
+	<string>साख</string>
+	<key>Credential ID</key>
+	<string>क्रेडेंशियल आईडी</string>
+	<key>Credential expired</key>
+	<string>क्रेडेंशियल समाप्त हो गया</string>
+	<key>Credential reused</key>
+	<string>क्रेडेंशियल का पुन: उपयोग किया गया</string>
+	<key>Credential rotation</key>
+	<string>क्रेडेंशियल रोटेशन</string>
+	<key>Current</key>
+	<string>वर्तमान</string>
+	<key>Current local dependencies</key>
+	<string>वर्तमान स्थानीय निर्भरताएँ</string>
+	<key>Current login</key>
+	<string>वर्तमान लॉगिन</string>
+	<key>Current plan and limits</key>
+	<string>वर्तमान योजना और सीमाएँ</string>
+	<key>Current policy requires payment</key>
+	<string>वर्तमान पॉलिसी के लिए भुगतान की आवश्यकता है</string>
+	<key>Current term ends</key>
+	<string>वर्तमान कार्यकाल समाप्त</string>
+	<key>Current version</key>
+	<string>वर्तमान संस्करण</string>
+	<key>Cvv</key>
+	<string>सी.वी.वी</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>dMsg में नई गतिविधि।</string>
+	<key>Database</key>
+	<string>डेटाबेस</string>
+	<key>Date</key>
+	<string>दिनांक</string>
+	<key>Delegations</key>
+	<string>प्रतिनिधिमंडल</string>
+	<key>Delete account</key>
+	<string>खाता हटाएँ</string>
+	<key>Delete cloud backup</key>
+	<string>क्लाउड बैकअप हटाएँ</string>
+	<key>Delete this cloud backup?</key>
+	<string>यह क्लाउड बैकअप हटाएं?</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>अपना dMsg खाता हटाने से Apple सदस्यता रद्द नहीं होती है। नवीनीकरण रोकने के लिए इसे अपने Apple खाते की सेटिंग में रद्द करें।</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>आपके dMsg सेवा खाते को हटाने से इसके क्लाउड सिफरटेक्स्ट, निजी सेवा डेटा, डिवाइस अधिसूचना पंजीकरण और सार्वजनिक अवतार मूल प्रतियां स्थायी रूप से हटा दी जाती हैं। यह ब्लॉकचेन रिकॉर्ड, अन्य प्राप्तकर्ताओं की प्रतियां, या अन्य सेवाओं द्वारा रखे गए डेटा को मिटा नहीं सकता है।</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>हटाने से धनराशि स्थानांतरित नहीं होती. स्थानीय कुंजियाँ और क्लाउड प्रतियाँ हटाने से इस डिवाइस की वॉलेट और बाहरी क्रेडेंशियल्स तक पहुंच स्थायी रूप से समाप्त हो सकती है।</string>
+	<key>Deletion is in progress</key>
+	<string>हटाने का कार्य प्रगति पर है</string>
+	<key>Deletion status</key>
+	<string>हटाने की स्थिति</string>
+	<key>Deliver a secret to a local process</key>
+	<string>किसी स्थानीय प्रक्रिया को रहस्य प्रदान करें</string>
+	<key>Demo approved · No signature created</key>
+	<string>डेमो स्वीकृत · कोई हस्ताक्षर नहीं बनाया गया</string>
+	<key>Demo rejected · No signature created</key>
+	<string>डेमो अस्वीकृत · कोई हस्ताक्षर नहीं बनाया गया</string>
+	<key>Demo section</key>
+	<string>डेमो अनुभाग</string>
+	<key>Dependencies on this device</key>
+	<string>इस डिवाइस पर निर्भरता</string>
+	<key>Describe the issue</key>
+	<string>मुद्दे का वर्णन करें</string>
+	<key>Desktop file mapping</key>
+	<string>डेस्कटॉप फ़ाइल मैपिंग</string>
+	<key>Desktop file mapping needs review</key>
+	<string>डेस्कटॉप फ़ाइल मैपिंग की समीक्षा की आवश्यकता है</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>डेस्कटॉप-स्थानीय कमांड अनुमोदन उस डेस्कटॉप पर रहते हैं। केवल इस डिवाइस के लिए उपलब्ध अनुरोध ही यहां दिखाई देते हैं।</string>
+	<key>Destination</key>
+	<string>गंतव्य</string>
+	<key>Destination folder</key>
+	<string>गंतव्य फ़ोल्डर</string>
+	<key>Device</key>
+	<string>युक्ति</string>
+	<key>Device ID</key>
+	<string>डिवाइस आईडी</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>डिवाइस प्रमाणीकरण अस्थायी रूप से अनुपलब्ध है. आपकी चाबियाँ रखी हुई हैं; जब यह उपकरण अनलॉक हो जाए तो पुनः प्रयास करें।</string>
+	<key>Device pairing request QR code</key>
+	<string>डिवाइस पेयरिंग अनुरोध QR कोड</string>
+	<key>Device permissions</key>
+	<string>डिवाइस अनुमतियाँ</string>
+	<key>Device policy</key>
+	<string>डिवाइस नीति</string>
+	<key>Device policy needs review</key>
+	<string>डिवाइस नीति की समीक्षा की आवश्यकता है</string>
+	<key>Device request</key>
+	<string>डिवाइस अनुरोध</string>
+	<key>Device-bound workspace</key>
+	<string>डिवाइस-बाउंड कार्यक्षेत्र</string>
+	<key>Devices</key>
+	<string>उपकरण</string>
+	<key>Disabled</key>
+	<string>निष्क्रिय</string>
+	<key>Discard</key>
+	<string>त्यागें</string>
+	<key>Discard staged copy</key>
+	<string>चरणबद्ध प्रति त्यागें</string>
+	<key>Discard this staged copy?</key>
+	<string>इस चरणबद्ध प्रतिलिपि को त्यागें?</string>
+	<key>Dismiss this observation</key>
+	<string>इस अवलोकन को खारिज करें</string>
+	<key>Dismiss this observation?</key>
+	<string>इस अवलोकन को ख़ारिज करें?</string>
+	<key>Dispute pending recovery</key>
+	<string>विवाद की वसूली लंबित है</string>
+	<key>Done</key>
+	<string>हो गया</string>
+	<key>Download encrypted copy in background</key>
+	<string>पृष्ठभूमि में एन्क्रिप्टेड प्रति डाउनलोड करें</string>
+	<key>Download sessions</key>
+	<string>सत्र डाउनलोड करें</string>
+	<key>Downloading encrypted backup</key>
+	<string>एन्क्रिप्टेड बैकअप डाउनलोड हो रहा है</string>
+	<key>Draft: </key>
+	<string>ड्राफ्ट: </string>
+	<key>EVM</key>
+	<string>ईवीएम</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>प्रत्येक मोबाइल पैकेज चयनित अनुलग्नकों सहित 8 MiB तक सीमित है। अंतिम अनुमोदन सटीक अपरिवर्तनीय चयन और गंतव्य को दर्शाता है।</string>
+	<key>Edit item</key>
+	<string>आइटम संपादित करें</string>
+	<key>Edit member</key>
+	<string>सदस्य संपादित करें</string>
+	<key>Edit message</key>
+	<string>संदेश संपादित करें</string>
+	<key>Edit secret</key>
+	<string>रहस्य संपादित करें</string>
+	<key>Edited</key>
+	<string>संपादित</string>
+	<key>Email</key>
+	<string>ईमेल</string>
+	<key>Enable automatic sync</key>
+	<string>स्वचालित सिंक सक्षम करें</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>इस खाते के लिए स्वचालित सिंक सक्षम करें?</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>ऑटोफ़िल सेटिंग में dMsg सक्षम करें</string>
+	<key>Encrypted backup</key>
+	<string>एन्क्रिप्टेड बैकअप</string>
+	<key>Encrypting</key>
+	<string>एन्क्रिप्ट करना</string>
+	<key>Engine</key>
+	<string>इंजन</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>नामांकित बायोमेट्रिक्स बदल गए। इस कुंजी पर भरोसा करने से पहले एक प्रतिस्थापन कुंजी पंजीकृत करें।</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>वैध खाता आईडी दर्ज करें, प्रति पंक्ति एक।</string>
+	<key>Error details</key>
+	<string>त्रुटि विवरण</string>
+	<key>Example document</key>
+	<string>उदाहरण दस्तावेज़</string>
+	<key>Example login</key>
+	<string>उदाहरण लॉगिन</string>
+	<key>Execute</key>
+	<string>निष्पादित करें</string>
+	<key>Execute approved proposal</key>
+	<string>स्वीकृत प्रस्ताव का निष्पादन करें</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>इस स्वीकृत वॉलेट प्रस्ताव को क्रियान्वित करें?</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>मौजूदा ब्लॉक नियम, निमंत्रण और इनबॉक्स क्षमता संरक्षित हैं। मुफ़्त या बंद पॉलिसी चुनने से कोई भी पिछली भुगतान संपर्क सेटिंग बदल जाती है।</string>
+	<key>Expired</key>
+	<string>समाप्त हो गया</string>
+	<key>Expires</key>
+	<string>समाप्त हो रहा है</string>
+	<key>Expires after</key>
+	<string>के बाद समाप्त हो जाता है</string>
+	<key>Expiry</key>
+	<string>समाप्ति</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>यदि आप क्लाउड कॉपी चाहते हैं तो चयनित फ़ाइल संस्करण का स्पष्ट रूप से बैकअप लें।</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>चयनित लॉगिन आइटम को पासवर्ड ऑटोफ़िल में निर्यात करें</string>
+	<key>Failed</key>
+	<string>असफल</string>
+	<key>Favorite</key>
+	<string>पसंदीदा</string>
+	<key>Favorites</key>
+	<string>पसंदीदा</string>
+	<key>Field</key>
+	<string>फ़ील्ड</string>
+	<key>Field name</key>
+	<string>फ़ील्ड का नाम</string>
+	<key>Field reference</key>
+	<string>फ़ील्ड संदर्भ</string>
+	<key>Field reference and dependencies</key>
+	<string>फ़ील्ड संदर्भ और निर्भरताएँ</string>
+	<key>Field settings</key>
+	<string>फ़ील्ड सेटिंग</string>
+	<key>Fields</key>
+	<string>खेत</string>
+	<key>File</key>
+	<string>फ़ाइल</string>
+	<key>File name</key>
+	<string>फ़ाइल का नाम</string>
+	<key>File not available on this device</key>
+	<string>फ़ाइल इस डिवाइस पर उपलब्ध नहीं है</string>
+	<key>File versions</key>
+	<string>फ़ाइल संस्करण</string>
+	<key>Files</key>
+	<string>फ़ाइलें</string>
+	<key>Files app copies</key>
+	<string>फ़ाइलें ऐप प्रतिलिपियाँ</string>
+	<key>Files app snapshot updated</key>
+	<string>फ़ाइलें ऐप स्नैपशॉट अपडेट किया गया</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>फ़ाइलों का बैकअप तभी लिया जाता है जब आप स्पष्ट रूप से ऐसा करना चुनते हैं।</string>
+	<key>Files in this folder</key>
+	<string>इस फ़ोल्डर में फ़ाइलें</string>
+	<key>Fingerprint</key>
+	<string>फ़िंगरप्रिंट</string>
+	<key>Folder name</key>
+	<string>फ़ोल्डर का नाम</string>
+	<key>Freeze this wallet?</key>
+	<string>इस बटुए को फ़्रीज़ करें?</string>
+	<key>Freeze wallet</key>
+	<string>बटुआ फ़्रीज़ करें</string>
+	<key>Grant delegation</key>
+	<string>अनुमति प्रतिनिधिमंडल</string>
+	<key>Handled on another device</key>
+	<string>किसी अन्य डिवाइस पर संभाला गया</string>
+	<key>Harassment</key>
+	<string>उत्पीड़न</string>
+	<key>Hardware approval key</key>
+	<string>हार्डवेयर अनुमोदन कुंजी</string>
+	<key>Hardware cosigners</key>
+	<string>हार्डवेयर सहहस्ताक्षरकर्ता</string>
+	<key>Hardware keys on this device</key>
+	<string>इस डिवाइस पर हार्डवेयर कुंजियाँ</string>
+	<key>Hardware security</key>
+	<string>हार्डवेयर सुरक्षा</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>क्या आपने लुप्त परिणाम की समीक्षा की है?</string>
+	<key>Hidden fields differ: </key>
+	<string>छिपे हुए फ़ील्ड भिन्न हैं: </string>
+	<key>Hidden value</key>
+	<string>छिपा हुआ मूल्य</string>
+	<key>Hide</key>
+	<string>छिपाओ</string>
+	<key>Hide sample sender</key>
+	<string>नमूना प्रेषक छिपाएँ</string>
+	<key>Historical version</key>
+	<string>ऐतिहासिक संस्करण</string>
+	<key>Host</key>
+	<string>होस्ट</string>
+	<key>I completed this step</key>
+	<string>मैंने यह चरण पूरा कर लिया</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>मैंने अपना वॉलेट एक्सेस और बाहरी क्रेडेंशियल सुरक्षित कर लिया है</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>आईडी नंबर</string>
+	<key>Identity</key>
+	<string>पहचान</string>
+	<key>Illegal content</key>
+	<string>अवैध सामग्री</string>
+	<key>Import</key>
+	<string>आयात करें</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>किसी दस्तावेज़ को इस डिवाइस पर एन्क्रिप्ट करने के लिए उसे आयात करें। क्लाउड बैकअप एक अलग क्रिया है.</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>किसी फ़ाइल को संलग्न करने से पहले उसे फ़ाइलों में आयात करें।</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>एक अनएन्क्रिप्टेड 1 पासवर्ड, बिटवर्डन या ब्राउज़र पासवर्ड निर्यात आयात करें। स्रोत इस उपकरण पर रहता है; केवल चयनित रिकॉर्ड ही जोड़े जाते हैं।</string>
+	<key>Import completed</key>
+	<string>आयात पूरा हुआ</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>आयात से नई स्वतंत्र वस्तुएँ बनती हैं। फ़ाइलें इस डिवाइस पर रहती हैं और चयनित फ़ोल्डर की एक्सेस ग्रांट प्राप्त करती हैं। कुछ भी स्वचालित रूप से चयनित नहीं होता है.</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>डेस्कटॉप पर खोजे गए रहस्यों को आयात करें</string>
+	<key>Import file</key>
+	<string>फ़ाइल आयात करें</string>
+	<key>Import files</key>
+	<string>फ़ाइलें आयात करें</string>
+	<key>Import into dMsg</key>
+	<string>dMsg में आयात करें</string>
+	<key>Import into this account</key>
+	<string>इस खाते में आयात करें</string>
+	<key>Import passwords</key>
+	<string>पासवर्ड आयात करें</string>
+	<key>Import photo</key>
+	<string>फ़ोटो आयात करें</string>
+	<key>Import secret package</key>
+	<string>गुप्त पैकेज आयात करें</string>
+	<key>Import selected records</key>
+	<string>चयनित रिकॉर्ड आयात करें</string>
+	<key>Import selected secrets</key>
+	<string>चयनित रहस्य आयात करें</string>
+	<key>In Trash</key>
+	<string>कूड़ेदान में</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>एक वास्तविक रिपोर्ट में, सेवा आपका कारण और खाता/संसाधन पहचानकर्ता प्राप्त करती है। संदेश पाठ केवल तभी शामिल किया जाता है जब आप स्पष्ट रूप से इसका खुलासा करना चुनते हैं।</string>
+	<key>In progress</key>
+	<string>प्रगति पर है</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>इस बिल्ड में इन-ऐप खरीदारी अक्षम है। आपकी वर्तमान योजना और उपयोग उपलब्ध रहेगा।</string>
+	<key>Inbox</key>
+	<string>इनबॉक्स</string>
+	<key>Inbox settings</key>
+	<string>इनबॉक्स सेटिंग्स</string>
+	<key>Include notes</key>
+	<string>नोट्स शामिल करें</string>
+	<key>Include this message's text</key>
+	<string>इस संदेश का पाठ शामिल करें</string>
+	<key>Inspect pairing request</key>
+	<string>युग्मन अनुरोध का निरीक्षण करें</string>
+	<key>Inspect this version</key>
+	<string>इस संस्करण का निरीक्षण करें</string>
+	<key>Integrity</key>
+	<string>ईमानदारी</string>
+	<key>Interrupted</key>
+	<string>बाधित</string>
+	<key>Inventory fingerprint</key>
+	<string>इन्वेंटरी फ़िंगरप्रिंट</string>
+	<key>Invite member</key>
+	<string>सदस्य को आमंत्रित करें</string>
+	<key>Issued credentials</key>
+	<string>प्रमाण पत्र जारी किये</string>
+	<key>Item attachments</key>
+	<string>आइटम अनुलग्नक</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>आइटम संदर्भ उनकी फ़ाइलों से पहले सिंक हो सकते हैं। केवल इस डिवाइस पर उपलब्ध फ़ाइलें ही नए स्नैपशॉट में जोड़ी जा सकती हैं।</string>
+	<key>Join</key>
+	<string>सम्मिलित हों</string>
+	<key>Join account</key>
+	<string>खाते से जुड़ें</string>
+	<key>Join an existing account</key>
+	<string>किसी मौजूदा खाते से जुड़ें</string>
+	<key>Join an existing wallet</key>
+	<string>किसी मौजूदा वॉलेट से जुड़ें</string>
+	<key>Join conversation</key>
+	<string>बातचीत में शामिल हों</string>
+	<key>Keep current version</key>
+	<string>वर्तमान संस्करण रखें</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>अपने रहस्य, बातचीत और फ़ाइलें एक साथ रखें। केवल आपके अधिकृत उपकरण ही उन्हें खोल सकते हैं।</string>
+	<key>Key</key>
+	<string>कुंजी</string>
+	<key>Key fingerprint</key>
+	<string>कुंजी फ़िंगरप्रिंट</string>
+	<key>Key label</key>
+	<string>कुंजी लेबल</string>
+	<key>Keys</key>
+	<string>कुंजियाँ</string>
+	<key>Language</key>
+	<string>भाषा</string>
+	<key>Last known cloud state</key>
+	<string>अंतिम ज्ञात बादल अवस्था</string>
+	<key>Leave conversation</key>
+	<string>बातचीत छोड़ो</string>
+	<key>Leave empty to keep existing value</key>
+	<string>मौजूदा मान बनाए रखने के लिए खाली छोड़ें</string>
+	<key>License Key</key>
+	<string>लाइसेंस कुंजी</string>
+	<key>Licensed To</key>
+	<string>को लाइसेंस दिया गया</string>
+	<key>Link limits</key>
+	<string>लिंक सीमा</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>लाइव अनुरोध उनकी सत्यापित उत्पत्ति और पूर्ण पेलोड दिखाते हैं और कॉन्फ़िगर सिस्टम या हार्डवेयर अनुमोदन की आवश्यकता होती है।</string>
+	<key>Load earlier activity</key>
+	<string>पिछली गतिविधि लोड करें</string>
+	<key>Load earlier messages</key>
+	<string>पहले के संदेश लोड करें</string>
+	<key>Load earlier proposals</key>
+	<string>पहले के प्रस्ताव लोड करें</string>
+	<key>Load more</key>
+	<string>और अधिक लोड करें</string>
+	<key>Loading the verified request…</key>
+	<string>सत्यापित अनुरोध लोड हो रहा है...</string>
+	<key>Local</key>
+	<string>स्थानीय</string>
+	<key>Local delivery record</key>
+	<string>स्थानीय डिलीवरी रिकॉर्ड</string>
+	<key>Local demo</key>
+	<string>स्थानीय डेमो</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>स्थानीय डेमो · काल्पनिक डेटा · बंद होने पर रीसेट हो जाता है</string>
+	<key>Local dependencies</key>
+	<string>स्थानीय निर्भरताएँ</string>
+	<key>Local dependency</key>
+	<string>स्थानीय निर्भरता</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>स्थानीय फ़ाइलों का स्वचालित रूप से बैकअप नहीं लिया जाता है. dMsg को अनइंस्टॉल करने से वे फ़ाइलें हट जाती हैं जिनमें कोई क्लाउड बैकअप नहीं है।</string>
+	<key>Local findings</key>
+	<string>स्थानीय निष्कर्ष</string>
+	<key>Local label</key>
+	<string>स्थानीय लेबल</string>
+	<key>Local security review</key>
+	<string>स्थानीय सुरक्षा समीक्षा</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>स्थानीय भंडारण अनुपलब्ध है. इस डिवाइस को अनलॉक करें और पुनः प्रयास करें; किसी बाधित ऑपरेशन को पुनर्प्राप्त करने के लिए कार्यस्थान को रीसेट न करें।</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>स्थानीय कचरा 30 दिनों तक रखा जाता है। क्लाउड बैकअप अलग से प्रबंधित किए जाते हैं.</string>
+	<key>Lock immediately in background</key>
+	<string>तुरंत बैकग्राउंड में लॉक करें</string>
+	<key>Lock workspace</key>
+	<string>कार्यस्थल को लॉक करें</string>
+	<key>Login identities</key>
+	<string>लॉगिन पहचान</string>
+	<key>Manage Apple subscriptions</key>
+	<string>Apple सदस्यताएँ प्रबंधित करें</string>
+	<key>Manage file</key>
+	<string>फ़ाइल प्रबंधित करें</string>
+	<key>Manage subscriptions</key>
+	<string>सदस्यताएँ प्रबंधित करें</string>
+	<key>Mark as read</key>
+	<string>पढ़ा गया के रूप में चिह्नित करें</string>
+	<key>Maximum fee in base units</key>
+	<string>आधार इकाइयों में अधिकतम शुल्क</string>
+	<key>Member account ID</key>
+	<string>सदस्य खाता आईडी</string>
+	<key>Member account or Principal</key>
+	<string>सदस्य खाता या Principal</string>
+	<key>Member label</key>
+	<string>सदस्य लेबल</string>
+	<key>Members</key>
+	<string>सदस्य</string>
+	<key>Message</key>
+	<string>संदेश</string>
+	<key>Message withdrawn</key>
+	<string>संदेश वापस ले लिया गया</string>
+	<key>Messages</key>
+	<string>संदेश</string>
+	<key>Month</key>
+	<string>महीना</string>
+	<key>Monthly execution units</key>
+	<string>मासिक निष्पादन इकाइयाँ</string>
+	<key>Move this local file to Trash?</key>
+	<string>इस स्थानीय फ़ाइल को ट्रैश में ले जाएँ?</string>
+	<key>Move this secret to Trash?</key>
+	<string>इस रहस्य को कूड़ेदान में ले जाएं?</string>
+	<key>Move to Trash</key>
+	<string>कूड़ेदान में ले जाएँ</string>
+	<key>Move to another folder</key>
+	<string>दूसरे फ़ोल्डर में ले जाएँ</string>
+	<key>Mute notifications</key>
+	<string>सूचनाएं म्यूट करें</string>
+	<key>My account</key>
+	<string>मेरा खाता</string>
+	<key>Name</key>
+	<string>नाम</string>
+	<key>Needs a fresh review</key>
+	<string>नये सिरे से समीक्षा की जरूरत है</string>
+	<key>Network</key>
+	<string>नेटवर्क</string>
+	<key>New controller</key>
+	<string>नया नियंत्रक</string>
+	<key>New conversation</key>
+	<string>नई बातचीत</string>
+	<key>New field type</key>
+	<string>नया फ़ील्ड प्रकार</string>
+	<key>New folder</key>
+	<string>नया फ़ोल्डर</string>
+	<key>New free letter</key>
+	<string>नया निःशुल्क पत्र</string>
+	<key>New revision</key>
+	<string>नया संशोधन</string>
+	<key>New secret</key>
+	<string>नया रहस्य</string>
+	<key>No</key>
+	<string>नहीं</string>
+	<key>No activity on this device</key>
+	<string>इस डिवाइस पर कोई गतिविधि नहीं</string>
+	<key>No background transfer</key>
+	<string>कोई पृष्ठभूमि स्थानांतरण नहीं</string>
+	<key>No blocked accounts</key>
+	<string>कोई अवरुद्ध खाता नहीं</string>
+	<key>No cloud backups</key>
+	<string>कोई क्लाउड बैकअप नहीं</string>
+	<key>No connected browsers</key>
+	<string>कोई कनेक्टेड ब्राउज़र नहीं</string>
+	<key>No conversations yet</key>
+	<string>अभी तक कोई बातचीत नहीं</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>इस डिवाइस पर कोई निर्भरता दर्ज नहीं की गई.</string>
+	<key>No findings from this device's checks.</key>
+	<string>इस उपकरण की जाँच से कोई निष्कर्ष नहीं निकला।</string>
+	<key>No interrupted imports</key>
+	<string>कोई बाधित आयात नहीं</string>
+	<key>No item attachments</key>
+	<string>कोई आइटम अनुलग्नक नहीं</string>
+	<key>No letters yet</key>
+	<string>अभी तक कोई पत्र नहीं</string>
+	<key>No pending backups</key>
+	<string>कोई लंबित बैकअप नहीं</string>
+	<key>No recent use observed on this device</key>
+	<string>इस उपकरण पर कोई हालिया उपयोग नहीं देखा गया</string>
+	<key>No registered approval key</key>
+	<string>कोई पंजीकृत अनुमोदन कुंजी नहीं</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>कोई चयनित सहहस्ताक्षरकर्ता नहीं होने का मतलब कोई अतिरिक्त सहहस्ताक्षरकर्ता नीति नहीं है। मंजूरी देने से पहले पूरे प्रस्ताव की समीक्षा करें.</string>
+	<key>No shared items waiting</key>
+	<string>कोई साझा आइटम प्रतीक्षा में नहीं है</string>
+	<key>No snapshots on this device</key>
+	<string>इस डिवाइस पर कोई स्नैपशॉट नहीं</string>
+	<key>No team wallets</key>
+	<string>कोई टीम वॉलेट नहीं</string>
+	<key>Not enabled</key>
+	<string>सक्षम नहीं</string>
+	<key>Not enough storage on this device.</key>
+	<string>इस डिवाइस पर पर्याप्त संग्रहण नहीं है.</string>
+	<key>Not registered</key>
+	<string>पंजीकृत नहीं है</string>
+	<key>Note</key>
+	<string>नोट</string>
+	<key>Notes</key>
+	<string>टिप्पणियाँ</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>अधिसूचना पंजीकरण को पुनः प्रयास करने की आवश्यकता है। फ़ोरग्राउंड सिंक उपलब्ध रहता है.</string>
+	<key>Notifications</key>
+	<string>सूचनाएं</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>सिस्टम सेटिंग्स में सूचनाएं अक्षम हैं.</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>सूचनाओं में कोई संदेश पाठ, प्रेषक, फ़ाइल नाम या अनुमोदन पेलोड नहीं होता है। dMsg को खोलने से हमेशा वास्तविक स्थिति ताज़ा होती है।</string>
+	<key>Notifications enabled</key>
+	<string>सूचनाएं सक्षम की गईं</string>
+	<key>Notify this account on this device</key>
+	<string>इस उपकरण पर इस खाते को सूचित करें</string>
+	<key>Number</key>
+	<string>संख्या</string>
+	<key>OK</key>
+	<string>ठीक है</string>
+	<key>Observed on this device</key>
+	<string>इस डिवाइस पर देखा गया</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>अधिकृत डिवाइस पर, स्वीकृतियाँ खोलें और इस डिवाइस की पूर्ण फ़िंगरप्रिंट, भूमिका और अनुमतियों की समीक्षा करें। स्कैनिंग कभी भी स्वतः स्वीकृत नहीं होती।</string>
+	<key>On this device</key>
+	<string>इस डिवाइस पर</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>अपनी पहली यात्रा पर, साइन इन करें और अपना एन्क्रिप्टेड कार्यक्षेत्र बनाने के लिए चरणों का पालन करें।</string>
+	<key>One-time code</key>
+	<string>एक बार का कोड</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>ऐसा तभी करें जब आप इसका उपयोग करने के लिए तैयार हों। प्रतिलिपियाँ इस उपकरण पर रहती हैं और 30 सेकंड के बाद समाप्त हो जाती हैं।</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>यहां केवल निःशुल्क संपर्क समर्थित है. यह क्रिया किसी प्राप्तकर्ता के शुल्क का भुगतान या अनुमोदन नहीं कर सकती है।</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>फ़ाइलें ऐप में केवल चयनित, अपरिवर्तनीय प्रतियां ही दिखाई देती हैं। एक्सेस के लिए सिस्टम प्रमाणीकरण की आवश्यकता होती है; dMsg को लॉक करने से वर्तमान एक्सेस सत्र समाप्त हो जाता है। फ़ाइलें डाउनलोड की गई प्रतियां और फ़ाइल नाम बनाए रख सकती हैं, जिन्हें dMsg याद नहीं रख सकता है।</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>dMsg लॉक होने पर केवल चयनित एन्क्रिप्टेड फ़ाइल ही स्थानांतरित हो सकती है। iOS शेड्यूलिंग को नियंत्रित करता है; फोर्स क्विटिंग से डिलीवरी तब तक रुक जाती है जब तक आप ऐप को दोबारा नहीं खोलते। सत्यापित करने और समाप्त करने के लिए मूल खाता खोलें।</string>
+	<key>Open approval record</key>
+	<string>अनुमोदन रिकॉर्ड खोलें</string>
+	<key>Open approvals</key>
+	<string>स्वीकृतियां खोलें</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>होम स्क्रीन पर निजी सामग्री को उजागर किए बिना dMsg खोलें।</string>
+	<key>Open dMsg workspace</key>
+	<string>dMsg कार्यक्षेत्र खोलें</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>dMsg खोलें। अनलॉक और अनुमोदन के लिए अभी भी ऐप में आपकी सहभागिता की आवश्यकता होती है।</string>
+	<key>Open invitation in browser</key>
+	<string>ब्राउज़र में आमंत्रण खोलें</string>
+	<key>Open notification settings</key>
+	<string>अधिसूचना सेटिंग खोलें</string>
+	<key>Open private workspace</key>
+	<string>निजी कार्यक्षेत्र खोलें</string>
+	<key>Open secret</key>
+	<string>खुला राज</string>
+	<key>Open workspace</key>
+	<string>कार्यक्षेत्र खोलें</string>
+	<key>Optional password</key>
+	<string>वैकल्पिक पासवर्ड</string>
+	<key>Original revision</key>
+	<string>मूल संशोधन</string>
+	<key>Other</key>
+	<string>अन्य</string>
+	<key>Other devices</key>
+	<string>अन्य उपकरण</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>अन्यथा, dMsg 3 मिनट की दूरी के बाद लॉक हो जाता है। डिवाइस लॉक हमेशा आपके कार्यक्षेत्र को तुरंत लॉक कर देता है।</string>
+	<key>Outcome no longer available</key>
+	<string>परिणाम अब उपलब्ध नहीं है</string>
+	<key>Package size</key>
+	<string>पैकेज का आकार</string>
+	<key>Parent folder</key>
+	<string>मूल फ़ोल्डर</string>
+	<key>Password</key>
+	<string>पासवर्ड</string>
+	<key>Password AutoFill</key>
+	<string>पासवर्ड स्वतः भरण</string>
+	<key>Password protected</key>
+	<string>पासवर्ड सुरक्षित</string>
+	<key>Password, if required</key>
+	<string>पासवर्ड, यदि आवश्यक हो</string>
+	<key>Passwords</key>
+	<string>पासवर्ड</string>
+	<key>Paste binding request</key>
+	<string>बाइंडिंग अनुरोध चिपकाएँ</string>
+	<key>Paste enrollment request</key>
+	<string>नामांकन अनुरोध चिपकाएँ</string>
+	<key>Paste invitation</key>
+	<string>निमंत्रण चिपकाएँ</string>
+	<key>Paste pairing request</key>
+	<string>युग्मन अनुरोध चिपकाएँ</string>
+	<key>Paste secret package link</key>
+	<string>गुप्त पैकेज लिंक चिपकाएँ</string>
+	<key>Pause this agent</key>
+	<string>इस एजेंट को रोकें</string>
+	<key>Pause transfer</key>
+	<string>स्थानांतरण रोकें</string>
+	<key>Payment card</key>
+	<string>भुगतान कार्ड</string>
+	<key>Payments</key>
+	<string>भुगतान</string>
+	<key>Pending backups</key>
+	<string>लंबित बैकअप</string>
+	<key>Pending imports</key>
+	<string>लंबित आयात</string>
+	<key>Pending letters</key>
+	<string>लंबित पत्र</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>आपके द्वारा समीक्षा किए गए dMsg सेवा खाते को स्थायी रूप से हटा दें</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>इस dMsg सेवा खाते को स्थायी रूप से हटाएं?</string>
+	<key>Permissions</key>
+	<string>अनुमतियाँ</string>
+	<key>Phone</key>
+	<string>फ़ोन</string>
+	<key>Phrase</key>
+	<string>मुहावरा</string>
+	<key>Pin</key>
+	<string>पिन</string>
+	<key>Plan</key>
+	<string>प्लान</string>
+	<key>Plan and usage</key>
+	<string>योजना एवं उपयोग</string>
+	<key>Policy points to an unavailable field</key>
+	<string>नीति एक अनुपलब्ध फ़ील्ड की ओर इशारा करती है</string>
+	<key>Port</key>
+	<string>पोर्ट</string>
+	<key>Prepare selected snapshot</key>
+	<string>चयनित स्नैपशॉट तैयार करें</string>
+	<key>Prepared on this device</key>
+	<string>इस डिवाइस पर तैयार किया गया</string>
+	<key>Preview and choose what to import</key>
+	<string>पूर्वावलोकन करें और चुनें कि क्या आयात करना है</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>डाउनलोड का पूर्वावलोकन करें और इस डिवाइस पर पैकेज का सत्यापन करें और एक डाउनलोड सत्र का उपयोग करें। जारी रखने से पहले प्राप्तकर्ता उपकरण चुनें।</string>
+	<key>Preview file</key>
+	<string>फ़ाइल का पूर्वावलोकन करें</string>
+	<key>Preview package</key>
+	<string>पूर्वावलोकन पैकेज</string>
+	<key>Preview reporting disclosure</key>
+	<string>पूर्वावलोकन रिपोर्टिंग प्रकटीकरण</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>पहले दिए गए क्रेडेंशियल और प्रतियां स्वतंत्र हैं। जहां आवश्यक हो वहां प्रतिनिधिमंडलों को अलग से रद्द करें।</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>गोपनीयता</string>
+	<key>Privacy policy</key>
+	<string>गोपनीयता नीति</string>
+	<key>Private Key</key>
+	<string>निजी कुंजी</string>
+	<key>Private workspace hidden</key>
+	<string>निजी कार्यस्थान छिपा हुआ</string>
+	<key>Proposal %llu</key>
+	<string>प्रस्ताव %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>प्रस्ताव बनाया गया. वॉलेट की प्रस्ताव सूची में इसकी समीक्षा करें।</string>
+	<key>Proposals</key>
+	<string>प्रस्ताव</string>
+	<key>Propose address</key>
+	<string>पता प्रस्तावित करें</string>
+	<key>Propose member change</key>
+	<string>सदस्य परिवर्तन का प्रस्ताव रखें</string>
+	<key>Propose registering this key</key>
+	<string>इस कुंजी को पंजीकृत करने का प्रस्ताव रखें</string>
+	<key>Propose removing cosigner</key>
+	<string>सहहस्ताक्षरकर्ता को हटाने का प्रस्ताव</string>
+	<key>Propose removing member</key>
+	<string>सदस्य को हटाने का प्रस्ताव</string>
+	<key>Propose thresholds</key>
+	<string>सीमाएँ प्रस्तावित करें</string>
+	<key>Propose transfer</key>
+	<string>स्थानांतरण का प्रस्ताव रखें</string>
+	<key>Propose unfreezing</key>
+	<string>अनफ़्रीज़िंग का प्रस्ताव रखें</string>
+	<key>Proposer</key>
+	<string>प्रस्तावक</string>
+	<key>Public Key</key>
+	<string>सार्वजनिक कुंजी</string>
+	<key>Public avatar</key>
+	<string>सार्वजनिक अवतार</string>
+	<key>Public profile</key>
+	<string>सार्वजनिक प्रोफ़ाइल</string>
+	<key>Publication pending</key>
+	<string>प्रकाशन लंबित है</string>
+	<key>Publish</key>
+	<string>प्रकाशित करें</string>
+	<key>Publish a secret snapshot</key>
+	<string>एक गुप्त स्नैपशॉट प्रकाशित करें</string>
+	<key>Publish profile</key>
+	<string>प्रोफ़ाइल प्रकाशित करें</string>
+	<key>Publish these details publicly?</key>
+	<string>इन विवरणों को सार्वजनिक रूप से प्रकाशित करें?</string>
+	<key>Published</key>
+	<string>प्रकाशित</string>
+	<key>Purchased</key>
+	<string>खरीदा गया</string>
+	<key>Purchases are not currently available.</key>
+	<string>खरीदारी फिलहाल उपलब्ध नहीं है.</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>इस बिल्ड में पुश सूचनाएँ सक्षम नहीं हैं. सिंक्रोनाइज़ करने के लिए dMsg खोलें।</string>
+	<key>Quick unlock with system authentication</key>
+	<string>सिस्टम प्रमाणीकरण के साथ त्वरित अनलॉक</string>
+	<key>Read from a desktop file mapping</key>
+	<string>डेस्कटॉप फ़ाइल मैपिंग से पढ़ें</string>
+	<key>Read the published policy</key>
+	<string>प्रकाशित नीति पढ़ें</string>
+	<key>Reason</key>
+	<string>कारण</string>
+	<key>Received for review</key>
+	<string>समीक्षा हेतु प्राप्त हुआ</string>
+	<key>Receiving addresses</key>
+	<string>पते प्राप्त हो रहे हैं</string>
+	<key>Receiving policy</key>
+	<string>पॉलिसी प्राप्त करना</string>
+	<key>Recipient</key>
+	<string>प्राप्तकर्ता</string>
+	<key>Recipient account ID</key>
+	<string>प्राप्तकर्ता खाता आईडी</string>
+	<key>Recipient address</key>
+	<string>प्राप्तकर्ता का पता</string>
+	<key>Reconcile original execution</key>
+	<string>मूल निष्पादन का मिलान करें</string>
+	<key>Reconcile original operation</key>
+	<string>मूल ऑपरेशन का मिलान करें</string>
+	<key>Reconcile original proposal</key>
+	<string>मूल प्रस्ताव का मिलान करें</string>
+	<key>Reconcile original send</key>
+	<string>मूल प्रेषण का मिलान करें</string>
+	<key>Reconcile original snapshot</key>
+	<string>मूल स्नैपशॉट का मिलान करें</string>
+	<key>Record manual review</key>
+	<string>रिकॉर्ड मैन्युअल समीक्षा</string>
+	<key>Record this step as completed?</key>
+	<string>इस चरण को पूर्ण के रूप में रिकॉर्ड करें?</string>
+	<key>Recovery</key>
+	<string>खाता पुनर्प्राप्ति</string>
+	<key>Recovery status</key>
+	<string>पुनर्प्राप्ति स्थिति</string>
+	<key>Recovery status needs checking</key>
+	<string>पुनर्प्राप्ति स्थिति की जाँच की आवश्यकता है</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>पुनर्प्राप्ति आपके बाध्य लॉगिन और प्रतीक्षा अवधि का उपयोग करती है। एक अधिकृत उपकरण इस पर विवाद कर सकता है। असिंचित स्थानीय सामग्री को पुनर्प्राप्त नहीं किया जा सकता.</string>
+	<key>Recovery waiting period</key>
+	<string>पुनर्प्राप्ति प्रतीक्षा अवधि</string>
+	<key>Refresh</key>
+	<string>ताज़ा करें</string>
+	<key>Refresh balances</key>
+	<string>शेष ताज़ा करें</string>
+	<key>Refresh dependencies</key>
+	<string>निर्भरताएँ ताज़ा करें</string>
+	<key>Register a hardware approval key</key>
+	<string>हार्डवेयर अनुमोदन कुंजी पंजीकृत करें</string>
+	<key>Register an SSH binding</key>
+	<string>एक SSH बाइंडिंग पंजीकृत करें</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>इस सार्वजनिक कुंजी को वॉलेट प्रस्ताव के माध्यम से पंजीकृत करें</string>
+	<key>Registered on this device</key>
+	<string>इस डिवाइस पर पंजीकृत</string>
+	<key>Reject</key>
+	<string>अस्वीकार करें</string>
+	<key>Reject this request?</key>
+	<string>इस अनुरोध को अस्वीकार करें?</string>
+	<key>Rejected</key>
+	<string>अस्वीकृत</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>रिलीज़ 1.0 समीक्षा के लिए तैयार है।</string>
+	<key>Remove</key>
+	<string>हटाओ</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>स्वतः भरण स्नैपशॉट निकालें</string>
+	<key>Remove Files app snapshot</key>
+	<string>फ़ाइलें हटाएँ ऐप स्नैपशॉट</string>
+	<key>Remove attachment reference</key>
+	<string>अनुलग्नक संदर्भ हटाएँ</string>
+	<key>Remove device binding</key>
+	<string>डिवाइस बाइंडिंग हटाएँ</string>
+	<key>Remove device binding?</key>
+	<string>डिवाइस बाइंडिंग हटाएं?</string>
+	<key>Remove field</key>
+	<string>फ़ील्ड हटाएँ</string>
+	<key>Remove local data</key>
+	<string>स्थानीय डेटा हटाएँ</string>
+	<key>Remove member</key>
+	<string>सदस्य हटाएँ</string>
+	<key>Remove this account's data from this device?</key>
+	<string>इस डिवाइस से इस खाते का डेटा हटाएं?</string>
+	<key>Remove this account's local data</key>
+	<string>इस खाते का स्थानीय डेटा हटाएँ</string>
+	<key>Remove this local agent</key>
+	<string>इस स्थानीय एजेंट को हटाएँ</string>
+	<key>Remove this local agent?</key>
+	<string>इस स्थानीय एजेंट को हटाएं?</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>किसी संदर्भ को हटाने से फ़ाइल नहीं हटती. मौजूदा संदर्भ तब भी रखे जाते हैं जब उनकी फ़ाइलें इस डिवाइस पर गायब होती हैं।</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>इसके मूल उपकरण पर अनुपलब्ध फ़ील्ड संदर्भ को सुधारें।</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>स्वतः भरण स्नैपशॉट बदलें</string>
+	<key>Replace Files app snapshot</key>
+	<string>फ़ाइलें ऐप स्नैपशॉट बदलें</string>
+	<key>Replace cosignature policy</key>
+	<string>सहहस्ताक्षर नीति बदलें</string>
+	<key>Reply</key>
+	<string>उत्तर</string>
+	<key>Reply to message %llu</key>
+	<string>संदेश का उत्तर दें %llu</string>
+	<key>Report content</key>
+	<string>सामग्री की रिपोर्ट करें</string>
+	<key>Report received for review</key>
+	<string>समीक्षा हेतु रिपोर्ट प्राप्त हुई</string>
+	<key>Reported account</key>
+	<string>रिपोर्ट किया गया खाता</string>
+	<key>Reporting disclosure</key>
+	<string>रिपोर्टिंग का खुलासा</string>
+	<key>Request ID</key>
+	<string>आईडी का अनुरोध करें</string>
+	<key>Request account deletion</key>
+	<string>खाता हटाने का अनुरोध करें</string>
+	<key>Request account recovery</key>
+	<string>खाता पुनर्प्राप्ति का अनुरोध करें</string>
+	<key>Request recovery</key>
+	<string>पुनर्प्राप्ति का अनुरोध करें</string>
+	<key>Request source</key>
+	<string>स्रोत का अनुरोध करें</string>
+	<key>Requested permissions</key>
+	<string>अनुरोधित अनुमतियाँ</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>जिन अनुरोधों पर आपके निर्णय की आवश्यकता है वे यहां दिखाई देंगे।</string>
+	<key>Require hardware approval</key>
+	<string>हार्डवेयर अनुमोदन की आवश्यकता है</string>
+	<key>Require this device to unlock</key>
+	<string>इस डिवाइस को अनलॉक करना आवश्यक है</string>
+	<key>Required cosignatures %u</key>
+	<string>आवश्यक सहहस्ताक्षर %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>इस खाते को हटाने से पहले लंबित खाता संचालन का समाधान करें।</string>
+	<key>Restore</key>
+	<string>पुनर्स्थापित करें</string>
+	<key>Restore purchases</key>
+	<string>खरीदारी बहाल करें</string>
+	<key>Restore this version</key>
+	<string>इस संस्करण को पुनर्स्थापित करें</string>
+	<key>Restore this version as a new current version?</key>
+	<string>इस संस्करण को नये वर्तमान संस्करण के रूप में पुनर्स्थापित करें?</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>इस संस्करण को खोलने से पहले क्लाउड बैकअप से पुनर्स्थापित करें।</string>
+	<key>Restore to this device</key>
+	<string>इस डिवाइस पर पुनर्स्थापित करें</string>
+	<key>Restoring…</key>
+	<string>पुनर्स्थापित किया जा रहा है...</string>
+	<key>Result</key>
+	<string>नतीजा</string>
+	<key>Result unconfirmed</key>
+	<string>परिणाम अपुष्ट</string>
+	<key>Retire a hardware approval key</key>
+	<string>हार्डवेयर अनुमोदन कुंजी को रिटायर करें</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>किसी कुंजी को सेवानिवृत्त करने से संरक्षित कार्यों को स्वीकृत करने की उसकी क्षमता समाप्त हो जाती है। जांचें कि कोई अन्य अधिकृत अनुमोदन पथ उपलब्ध है।</string>
+	<key>Retry</key>
+	<string>पुनः प्रयास करें</string>
+	<key>Retry loading activity</key>
+	<string>गतिविधि लोड करने का पुनः प्रयास करें</string>
+	<key>Retry loading hardware security</key>
+	<string>हार्डवेयर सुरक्षा लोड करने का पुनः प्रयास करें</string>
+	<key>Retry loading profile</key>
+	<string>प्रोफ़ाइल लोड करने का पुनः प्रयास करें</string>
+	<key>Retry original change</key>
+	<string>मूल परिवर्तन पुनः प्रयास करें</string>
+	<key>Retry original letter</key>
+	<string>मूल पत्र पुनः प्रयास करें</string>
+	<key>Retry preview</key>
+	<string>पूर्वावलोकन पुनः प्रयास करें</string>
+	<key>Retry publication</key>
+	<string>प्रकाशन का पुनः प्रयास करें</string>
+	<key>Retry registration</key>
+	<string>पंजीकरण पुनः प्रयास करें</string>
+	<key>Retry this report</key>
+	<string>इस रिपोर्ट का पुनः प्रयास करें</string>
+	<key>Reveal</key>
+	<string>खुलासा</string>
+	<key>Reveal this field?</key>
+	<string>इस फ़ील्ड का खुलासा करें?</string>
+	<key>Review</key>
+	<string>समीक्षा</string>
+	<key>Review a web connection request</key>
+	<string>वेब कनेक्शन अनुरोध की समीक्षा करें</string>
+	<key>Review agent delegation</key>
+	<string>एजेंट प्रतिनिधिमंडल की समीक्षा करें</string>
+	<key>Review agent permissions</key>
+	<string>एजेंट अनुमतियों की समीक्षा करें</string>
+	<key>Review an enrollment request</key>
+	<string>नामांकन अनुरोध की समीक्षा करें</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>डेस्कटॉप फ़ाइल मैपिंग की उसके मूल डिवाइस पर समीक्षा करें और पुनरारंभ करें।</string>
+	<key>Review approval</key>
+	<string>अनुमोदन की समीक्षा करें</string>
+	<key>Review binding</key>
+	<string>समीक्षा बाइंडिंग</string>
+	<key>Review controller registration</key>
+	<string>नियंत्रक पंजीकरण की समीक्षा करें</string>
+	<key>Review delegation grant</key>
+	<string>प्रतिनिधिमंडल अनुमति की समीक्षा करें</string>
+	<key>Review deletion</key>
+	<string>हटाने की समीक्षा करें</string>
+	<key>Review enabling a principal</key>
+	<string>principal को सक्षम करने की समीक्षा करें</string>
+	<key>Review field and dependencies</key>
+	<string>समीक्षा फ़ील्ड और निर्भरताएँ</string>
+	<key>Review hardware policy changes</key>
+	<string>हार्डवेयर नीति परिवर्तनों की समीक्षा करें</string>
+	<key>Review in approval center</key>
+	<string>अनुमोदन केंद्र में समीक्षा करें</string>
+	<key>Review joining wallet</key>
+	<string>जॉइनिंग वॉलेट की समीक्षा करें</string>
+	<key>Review key enrollment</key>
+	<string>कुंजी नामांकन की समीक्षा करें</string>
+	<key>Review key registration</key>
+	<string>कुंजी पंजीकरण की समीक्षा करें</string>
+	<key>Review local finding</key>
+	<string>स्थानीय खोज की समीक्षा करें</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>पुराने स्नैपशॉट की समीक्षा करें और यदि उपयुक्त हो तो शेष लिंक रद्द करें।</string>
+	<key>Review permissions</key>
+	<string>अनुमतियों की समीक्षा करें</string>
+	<key>Review publication or resume</key>
+	<string>प्रकाशन या बायोडाटा की समीक्षा करें</string>
+	<key>Review rejection</key>
+	<string>अस्वीकृति की समीक्षा करें</string>
+	<key>Review removing this login</key>
+	<string>इस लॉगिन को हटाने की समीक्षा करें</string>
+	<key>Review replacement key</key>
+	<string>प्रतिस्थापन कुंजी की समीक्षा करें</string>
+	<key>Review request</key>
+	<string>समीक्षा अनुरोध</string>
+	<key>Review retiring controller</key>
+	<string>सेवानिवृत्त नियंत्रक की समीक्षा करें</string>
+	<key>Review retiring this approval key</key>
+	<string>इस अनुमोदन कुंजी को सेवानिवृत्त करने की समीक्षा करें</string>
+	<key>Review revocation</key>
+	<string>निरसन की समीक्षा करें</string>
+	<key>Review selected import</key>
+	<string>चयनित आयात की समीक्षा करें</string>
+	<key>Review sync conflicts</key>
+	<string>समन्वयन विरोधों की समीक्षा करें</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>अपने मूल उपकरण पर एजेंट के प्राधिकरण की समीक्षा करें।</string>
+	<key>Review the complete request</key>
+	<string>संपूर्ण अनुरोध की समीक्षा करें</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>वर्तमान कुंजी की समीक्षा करें और उसके मूल डिवाइस पर SSH बाइंडिंग को नवीनीकृत करें।</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>अनुरोध की समीक्षा करें और यदि यह आपका नहीं है तो इस पर विवाद करें।</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>स्नैपशॉट के प्राप्तकर्ताओं और समाप्ति की समीक्षा करें।</string>
+	<key>Review this device's current dependencies</key>
+	<string>इस डिवाइस की वर्तमान निर्भरता की समीक्षा करें</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>इस डिवाइस की नीति और एक्सेस अनुमति की समीक्षा करें।</string>
+	<key>Review this local record before making changes.</key>
+	<string>परिवर्तन करने से पहले इस स्थानीय रिकॉर्ड की समीक्षा करें.</string>
+	<key>Review waiting-period change</key>
+	<string>प्रतीक्षा-अवधि परिवर्तन की समीक्षा करें</string>
+	<key>Review wallet action</key>
+	<string>वॉलेट कार्रवाई की समीक्षा करें</string>
+	<key>Reviewed</key>
+	<string>समीक्षा की गई</string>
+	<key>Revocation pending</key>
+	<string>निरसन लंबित है</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>सुरक्षा स्थिति ताज़ा होने और कुंजियाँ घुमाने के बाद निरस्तीकरण नई पहुँच को रोक देता है। पहले कॉपी की गई सामग्री को वापस नहीं लिया जा सकता.</string>
+	<key>Revoke</key>
+	<string>निरस्त करें</string>
+	<key>Revoke a device</key>
+	<string>किसी डिवाइस को निरस्त करें</string>
+	<key>Revoke browser</key>
+	<string>ब्राउज़र निरस्त करें</string>
+	<key>Revoke delegation</key>
+	<string>प्रतिनिधिमंडल निरस्त करें</string>
+	<key>Revoke grant</key>
+	<string>अनुमति निरस्त करें</string>
+	<key>Revoke or cancel</key>
+	<string>रद्द करें या रद्द करें</string>
+	<key>Revoke or cancel this link</key>
+	<string>इस लिंक को निरस्त या रद्द करें</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>इसके प्रदाता के पुराने क्रेडेंशियल को निरस्त करें</string>
+	<key>Revoke this browser?</key>
+	<string>इस ब्राउज़र को निरस्त करें?</string>
+	<key>Revoke this device</key>
+	<string>इस उपकरण को निरस्त करें</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>इस डिवाइस को निरस्त करें और सामग्री कुंजियाँ घुमाएँ</string>
+	<key>Revoke this snapshot link?</key>
+	<string>इस स्नैपशॉट लिंक को निरस्त करें?</string>
+	<key>Revoked</key>
+	<string>निरस्त किया गया</string>
+	<key>Role</key>
+	<string>भूमिका</string>
+	<key>Rotate conversation keys</key>
+	<string>वार्तालाप कुंजियाँ घुमाएँ</string>
+	<key>Rotation checklists</key>
+	<string>रोटेशन चेकलिस्ट</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>SSH बाइंडिंग</string>
+	<key>SSH binding needs review</key>
+	<string>SSH बाइंडिंग की समीक्षा की आवश्यकता है</string>
+	<key>SSH key</key>
+	<string>SSH कुंजी</string>
+	<key>Safety and support</key>
+	<string>सुरक्षा और समर्थन</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>नमूना कार्रवाई: रिलीज़ घोषणा पर हस्ताक्षर करें</string>
+	<key>Sample login</key>
+	<string>नमूना लॉगिन</string>
+	<key>Sample password</key>
+	<string>नमूना पासवर्ड</string>
+	<key>Save</key>
+	<string>सहेजें</string>
+	<key>Save name</key>
+	<string>नाम सहेजें</string>
+	<key>Save receiving policy</key>
+	<string>प्राप्त नीति सहेजें</string>
+	<key>Save selected version</key>
+	<string>चयनित संस्करण सहेजें</string>
+	<key>Save settings</key>
+	<string>सेटिंग्स सहेजें</string>
+	<key>Save the selected version?</key>
+	<string>चयनित संस्करण सहेजें?</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>इन आइटमों को dMsg के लिए सहेजें। एक खाता चुनें और ऐप खोलने और अनलॉक करने के बाद उन्हें आयात करें।</string>
+	<key>Save to dMsg</key>
+	<string>dMsg में सहेजें</string>
+	<key>Saved</key>
+	<string>सहेजा गया</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>एक अलग संस्करण के रूप में सहेजा गया. समन्वयन विरोधों की समीक्षा करें.</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>dMsg के लिए सहेजा गया। इन वस्तुओं की समीक्षा और आयात करने के लिए ऐप खोलें।</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>पहले स्थानीय स्तर पर सहेजा गया. सिंक स्थिति अलग से दिखाई गई है.</string>
+	<key>Saved on this device</key>
+	<string>इस डिवाइस पर सहेजा गया</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>इस डिवाइस पर सहेजा गया. परिवर्तन सिंक होने की प्रतीक्षा कर रहे हैं.</string>
+	<key>Saved. Publication is pending.</key>
+	<string>सहेजा गया. प्रकाशन लंबित है.</string>
+	<key>Scan device request</key>
+	<string>डिवाइस अनुरोध स्कैन करें</string>
+	<key>Scopes, one per line</key>
+	<string>स्कोप, प्रति पंक्ति एक</string>
+	<key>Screenshots may contain private information.</key>
+	<string>स्क्रीनशॉट में निजी जानकारी हो सकती है.</string>
+	<key>Search files</key>
+	<string>फ़ाइलें खोजें</string>
+	<key>Search messages</key>
+	<string>संदेश खोजें</string>
+	<key>Search your vault</key>
+	<string>अपनी तिजोरी खोजो</string>
+	<key>Secret</key>
+	<string>गोपनीय जानकारी</string>
+	<key>Secret package link</key>
+	<string>गुप्त पैकेज लिंक</string>
+	<key>Section</key>
+	<string>धारा</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave इस डिवाइस पर उपलब्ध नहीं है।</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>सुरक्षा आवश्यकताएँ बदल गईं. अनुरोध को स्वीकृत करने से पहले उसकी दोबारा समीक्षा करें.</string>
+	<key>Select a conversation</key>
+	<string>एक वार्तालाप चुनें</string>
+	<key>Select a file</key>
+	<string>एक फ़ाइल चुनें</string>
+	<key>Select a secret</key>
+	<string>एक रहस्य चुनें</string>
+	<key>Select attachments to import</key>
+	<string>आयात करने के लिए अनुलग्नक चुनें</string>
+	<key>Select attachments to share</key>
+	<string>साझा करने के लिए अनुलग्नक चुनें</string>
+	<key>Select fields to import</key>
+	<string>आयात करने के लिए फ़ील्ड चुनें</string>
+	<key>Select fields to share</key>
+	<string>साझा करने के लिए फ़ील्ड चुनें</string>
+	<key>Select login items</key>
+	<string>लॉगिन आइटम चुनें</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>चयनित OTP फ़ील्ड में पुन: प्रयोज्य बीज शामिल है, न कि केवल वर्तमान कोड।</string>
+	<key>Selected accounts</key>
+	<string>चयनित खाते</string>
+	<key>Send free letter</key>
+	<string>निःशुल्क पत्र भेजें</string>
+	<key>Send message</key>
+	<string>संदेश भेजें</string>
+	<key>Send queued message</key>
+	<string>पंक्तिबद्ध संदेश भेजें</string>
+	<key>Send to an administrator</key>
+	<string>किसी व्यवस्थापक को भेजें</string>
+	<key>Sender</key>
+	<string>प्रेषक</string>
+	<key>Sender account</key>
+	<string>प्रेषक खाता</string>
+	<key>Server</key>
+	<string>सर्वर</string>
+	<key>Set up this account</key>
+	<string>यह खाता सेट करें</string>
+	<key>Share a copy</key>
+	<string>एक प्रति साझा करें</string>
+	<key>Share binding request</key>
+	<string>बाइंडिंग अनुरोध साझा करें</string>
+	<key>Share enrollment request</key>
+	<string>नामांकन अनुरोध साझा करें</string>
+	<key>Share invitation</key>
+	<string>आमंत्रण साझा करें</string>
+	<key>Share link</key>
+	<string>लिंक साझा करें</string>
+	<key>Share pairing request</key>
+	<string>जोड़ी बनाने का अनुरोध साझा करें</string>
+	<key>Share secret snapshot</key>
+	<string>गुप्त स्नैपशॉट साझा करें</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>इस अनुरोध को किसी अधिकृत व्यवस्थापक के साथ साझा करें. यह कुंजी को स्वयं पंजीकृत या अनुमोदित नहीं करता है।</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>साझा की गई प्रतियां dMsg की सुरक्षा छोड़ देती हैं और उन्हें वापस नहीं लिया जा सकता है।</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>साझा आइटम अनुपलब्ध हैं. इस डिवाइस को अनलॉक करने के बाद ऐप को दोबारा खोलें।</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>साझा आइटम इस डिवाइस पर प्रतीक्षा कर रहे हैं. आयात करने से वे वर्तमान में चयनित खाते में एन्क्रिप्ट हो जाते हैं।</string>
+	<key>Shared snapshots</key>
+	<string>साझा किए गए स्नैपशॉट</string>
+	<key>Shared with dMsg</key>
+	<string>dMsg के साथ साझा किया गया</string>
+	<key>Show dismissed findings</key>
+	<string>खारिज किए गए निष्कर्ष दिखाएँ</string>
+	<key>Show sample password</key>
+	<string>नमूना पासवर्ड दिखाएँ</string>
+	<key>Show share link</key>
+	<string>शेयर लिंक दिखाएँ</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>सहेजी गई सामग्री दिखा रहा है. नवीनतम सिंक समाप्त नहीं हुआ.</string>
+	<key>Sign a statement</key>
+	<string>एक बयान पर हस्ताक्षर करें</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>इस iPhone पर अपने एन्क्रिप्टेड कार्यक्षेत्र को अनलॉक करने के लिए फिर से साइन इन करें।</string>
+	<key>Sign in to another account</key>
+	<string>दूसरे खाते में साइन इन करें</string>
+	<key>Sign out</key>
+	<string>साइन आउट करें</string>
+	<key>Sign out of this account?</key>
+	<string>इस खाते से साइन आउट करें?</string>
+	<key>Sign the statement you reviewed</key>
+	<string>आपके द्वारा समीक्षा किए गए कथन पर हस्ताक्षर करें</string>
+	<key>Simulate approval</key>
+	<string>अनुमोदन का अनुकरण करें</string>
+	<key>Simulate rejection</key>
+	<string>अस्वीकृति का अनुकरण करें</string>
+	<key>Simulate this approval?</key>
+	<string>इस अनुमोदन का अनुकरण करें?</string>
+	<key>Snapshot</key>
+	<string>स्नैपशॉट</string>
+	<key>Snapshot link</key>
+	<string>स्नैपशॉट लिंक</string>
+	<key>Software license</key>
+	<string>सॉफ्टवेयर लाइसेंस</string>
+	<key>Solana</key>
+	<string>सोलाना</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>कुछ स्रोत रिकॉर्ड या गुण समर्थित नहीं हैं. यह आयात केवल चयनित फ़ील्ड की प्रतिलिपि बनाता है; पुरालेख अनुलग्नक, पासकी और इतिहास यहां आयात नहीं किए जाते हैं।</string>
+	<key>Source address %u</key>
+	<string>स्रोत पता %u</string>
+	<key>Spam</key>
+	<string>स्पैम</string>
+	<key>Spending approvals %u</key>
+	<string>व्यय अनुमोदन %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>चयनित फ़ाइलों को चरणबद्ध करें, फिर एक खाता चुनें और उन्हें dMsg में आयात करें।</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>किसी फ़ील्ड के संदर्भ पृष्ठ से एक चेकलिस्ट प्रारंभ करें।</string>
+	<key>Start a rotation checklist</key>
+	<string>एक रोटेशन चेकलिस्ट प्रारंभ करें</string>
+	<key>Start a rotation checklist?</key>
+	<string>एक रोटेशन चेकलिस्ट प्रारंभ करें?</string>
+	<key>Start account recovery?</key>
+	<string>खाता पुनर्प्राप्ति प्रारंभ करें?</string>
+	<key>Start checklist</key>
+	<string>चेकलिस्ट प्रारंभ करें</string>
+	<key>Status</key>
+	<string>स्थिति</string>
+	<key>Stop this device's transfer</key>
+	<string>इस डिवाइस का स्थानांतरण रोकें</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>संग्रहण वर्तमान सदस्यता अवधि के लिए एक बार की खरीदारी है और स्वचालित रूप से नवीनीकृत नहीं होती है।</string>
+	<key>Storage packs</key>
+	<string>भंडारण पैक</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>भंडारण खरीदारी के लिए सक्रिय App Store सदस्यता की आवश्यकता होती है।</string>
+	<key>Subject Agent ID</key>
+	<string>विषय एजेंट आईडी</string>
+	<key>Submit report</key>
+	<string>रिपोर्ट प्रस्तुत करें</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>जब तक आपकी Apple खाता सेटिंग में रद्द नहीं किया जाता, सदस्यताएँ स्वचालित रूप से नवीनीकृत हो जाती हैं। अपना dMsg खाता हटाने से Apple सदस्यता रद्द नहीं होती है।</string>
+	<key>Switch account</key>
+	<string>खाता बदलें</string>
+	<key>Switch to this account</key>
+	<string>इस खाते पर स्विच करें</string>
+	<key>Sync conflicts</key>
+	<string>सिंक विरोध</string>
+	<key>Sync now</key>
+	<string>अभी सिंक करें</string>
+	<key>Synced</key>
+	<string>समन्वयित</string>
+	<key>Syncing…</key>
+	<string>सिंक हो रहा है...</string>
+	<key>System authentication</key>
+	<string>सिस्टम प्रमाणीकरण</string>
+	<key>System integrations</key>
+	<string>सिस्टम एकीकरण</string>
+	<key>System permission</key>
+	<string>सिस्टम अनुमति</string>
+	<key>Tags, separated by commas</key>
+	<string>टैग, अल्पविराम द्वारा अलग किए गए</string>
+	<key>Team wallets</key>
+	<string>टीम बटुए</string>
+	<key>Terms of service</key>
+	<string>सेवा की शर्तें</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>परीक्षण वातावरण · अलग खाते और परीक्षण खरीदारी</string>
+	<key>Test the new credential at its provider</key>
+	<string>अपने प्रदाता पर नए क्रेडेंशियल का परीक्षण करें</string>
+	<key>Text</key>
+	<string>पाठ</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>एन्क्रिप्टेड संस्करण क्लाउड स्टोरेज का उपयोग करेगा। आपकी स्थानीय प्रतिलिपि इस डिवाइस पर रहती है.</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>उपरोक्त स्पष्ट दायरे और दर्शक इस क्रेडेंशियल पर भी लागू होते हैं। अप्रतिबंधित नियंत्रक प्राधिकरण कभी भी क्रेडेंशियल को अप्रतिबंधित नहीं बनाता है।</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>निर्यातित क्रेडेंशियल अनुपलब्ध हैं या समाप्त हो चुके हैं। नया स्नैपशॉट बनाने के लिए dMsg खोलें।</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>फ़ाइल प्रतियां अनुपलब्ध हैं या समाप्त हो गई हैं। नया स्नैपशॉट बनाने के लिए dMsg खोलें, फिर पुनः प्रयास करें।</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>निमंत्रण इस खाते से जुड़ा हुआ है. लिंक साझा करने से दूसरे खाते तक पहुंच नहीं मिलती है.</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>अंतिम सत्यापित अवलोकन रखा गया है। वर्तमान स्थिति की पुष्टि नहीं की जा सकी.</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>स्थानीय बाइंडिंग कुंजी अनुपलब्ध है. इस कार्यक्षेत्र को रखें और इसे लॉक करने से पहले अपने पुनर्प्राप्ति विकल्पों की समीक्षा करें।</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>स्थानीय दौरा सभी के लिए उपलब्ध है। खाता निर्माण, सिंक्रनाइज़ेशन, खरीदारी, सूचनाएं और हार्डवेयर प्राधिकरण का परीक्षण करने के लिए, टूर छोड़ें और Internet Identity के माध्यम से साइन इन करें।</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>मोबाइल पैकेज की सीमा 8 MiB है। क्या आयात करना है यह चुनने से पहले पूर्वावलोकन पैकेज की जाँच करता है।</string>
+	<key>The operation could not be completed.</key>
+	<string>ऑपरेशन पूरा नहीं हो सका.</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>ऑपरेशन पूरा नहीं हो सका. कृपया पुन: प्रयास करें।</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>ऑपरेशन रद्द कर दिया गया था या इसकी अनुमति नहीं है.</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>परिणाम अनिश्चित है. दोबारा कुछ भी प्रयास करने से पहले मूल कार्य की जाँच करें।</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>रिकार्ड बदल गया. पुनः सहेजने से पहले अपने संपादनों को ताज़ा करें और उनकी समीक्षा करें।</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>अनुरोध इस डिवाइस के लिए उपलब्ध नहीं है. हो सकता है कि इसकी समय सीमा समाप्त हो गई हो या पहले ही इसे संभाला जा चुका हो।</string>
+	<key>The required content key is not available yet.</key>
+	<string>आवश्यक सामग्री कुंजी अभी तक उपलब्ध नहीं है.</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>परिणाम की पुष्टि नहीं हुई है. पुनः प्रयास करने से पहले इस अनुरोध का समाधान कर लें।</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>चयनित छवि आपके प्रकाशित होने तक इस डिवाइस पर रहती है। प्रकाशित अवतार सार्वजनिक हैं और प्रतियां dMsg के बाहर रह सकती हैं।</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>चयनित आइटम का मंचन नहीं किया जा सका. dMsg खोलें और उन्हें वहां आयात करने का प्रयास करें।</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>स्रोत प्रतिलिपि बाधित हो गई थी. इसे त्यागें और फिर से स्रोत का चयन करें।</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>परीक्षण परिनियोजन कॉन्फ़िगर नहीं किया गया है. स्थानीय डेमो और गोपनीयता नीति उपलब्ध रहती है।</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>स्थानांतरण प्राधिकरण समाप्त हो गया. इस कार्य को रद्द करें, फिर मूल बैकअप को अग्रभूमि में जारी रखें या एक नया डाउनलोड शुरू करें।</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>स्थानांतरण रोक दिया गया. मूल एन्क्रिप्टेड ब्लॉक पुनः प्रयास करें।</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>वॉलेट अपनी वर्तमान नीति और स्वीकृतियों की जाँच करता है। इस सटीक योजना के लिए एक आवश्यक हार्डवेयर हस्ताक्षर का अनुरोध किया गया है।</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>ये स्थानीय टिप्पणियाँ हैं, उल्लंघन स्कैन या सबूत नहीं कि किसी प्रदाता ने क्रेडेंशियल रद्द कर दिया है। अन्य डिवाइस के अलग-अलग रिकॉर्ड हो सकते हैं.</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>ये इस डिवाइस पर बनाए गए स्नैपशॉट कार्य हैं। डेस्कटॉप-स्थानीय अनुमोदन अनुरोध यहां सिंक्रनाइज़ नहीं हैं।</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>ये आपके खाते के उपकरणों से सत्यापित बैकअप हैं। इस डिवाइस पर एक प्रति रखने के लिए स्पष्ट रूप से पुनर्स्थापित करें।</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>इन निर्यातों में कभी भी खाता रूट कुंजियाँ या डिवाइस हस्ताक्षर कुंजियाँ शामिल नहीं होती हैं। स्रोत आइटम में परिवर्तन के लिए एक नए स्नैपशॉट की आवश्यकता होती है।</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>इस खाते के लिए एक पंजीकृत अनुमोदन कुंजी की आवश्यकता है। इस डिवाइस को हार्डवेयर सुरक्षा में सेट करें, या किसी अन्य अधिकृत डिवाइस से पूछें।</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>यह क्रिया इस डिवाइस पर समर्थित नहीं है. गुप्त स्नैपशॉट को उनके समर्पित आयात प्रवाह का उपयोग करना चाहिए।</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>यह ब्राउज़र अनुरोध किसी अन्य खाते से संबंधित है. स्विचिंग वर्तमान कार्यक्षेत्र को लॉक कर देता है और इसके ड्राफ्ट को सुरक्षित रखता है।</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>इसे पूर्ववत नहीं किया जा सकता. अकेले साइन आउट करने से कोई खाता नहीं हटता।</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>इससे स्थानीय अनलॉक सुरक्षा बदल जाती है. सिस्टम प्रमाणीकरण की आवश्यकता हो सकती है. कोई खाता पुनर्प्राप्ति या अन्य उपकरण नहीं बदला गया है.</string>
+	<key>This changes only the local sample.</key>
+	<string>इससे केवल स्थानीय नमूना बदलता है।</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>यह बदलता है कि किन खाता क्रियाओं के लिए हार्डवेयर हस्ताक्षर की आवश्यकता होती है। सुरक्षा को अक्षम करना उस हार्डवेयर प्रमाण के बिना उन कार्यों की अनुमति देता है।</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>यह एक लंबित अनुरोध बनाता है. यह डिवाइस को अधिकृत नहीं करता है.</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>यह एक प्रस्ताव बनाता है. यह तब तक फंड ट्रांसफर नहीं करता जब तक वॉलेट की मंजूरी और निष्पादन आवश्यकताएं पूरी नहीं हो जातीं। राशियाँ सटीक आधार-इकाई पूर्णांक हैं।</string>
+	<key>This device</key>
+	<string>यह उपकरण</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>इस डिवाइस में ऐसे परिवर्तन हैं जो समन्वयित नहीं हुए हैं. खाता हटाने से पहले आपको जो कुछ भी चाहिए उसे सहेज लें।</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>यह डिवाइस अपना स्वयं का एन्क्रिप्टेड कार्यस्थान रखता है. जो सामग्री समन्वयित नहीं हुई है उसे किसी अन्य डिवाइस से पुनर्प्राप्त नहीं किया जा सकता है।</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>यह डिवाइस कुंजी अब उपयोग योग्य नहीं है. किसी अन्य अधिकृत डिवाइस या खाता पुनर्प्राप्ति का उपयोग करें। आपका कार्यक्षेत्र मिटाया नहीं गया है.</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>यह उपकरण आपकी निजी सामग्री प्राप्त कर सकता है. अनुमोदन के बाद सामग्री रूट को पुनर्वितरित किया जाना चाहिए।</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>यह फ़ाइल 100 MiB सीमा से अधिक है।</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>ये इतिहास इसी डिवाइस का है. यह डेस्कटॉप-स्थानीय CLI, SSH या किसी अन्य डिवाइस से फ़ाइल-माउंट अनुमोदन को प्रतिबिंबित नहीं करता है।</string>
+	<key>This iPhone</key>
+	<string>यह आईफोन</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>यह iPhone एजेंट की पहचान और अनुमतियाँ प्रबंधित करता है। यह एजेंटों को चालू नहीं रखता जबकि iOS ऐप को निलंबित कर देता है।</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>यह सूची इस उपकरण पर संदर्भ और वितरण रिकॉर्ड को कवर करती है। यह अन्य डिवाइस या मनमानी प्रोजेक्ट फ़ाइलों की खोज नहीं करता है।</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>यह स्थानीय दौरे के लिए एक काल्पनिक दस्तावेज़ है. आपके खाते में, चयनित फ़ाइलें बैकअप से पहले डिवाइस पर एन्क्रिप्ट की जाती हैं। बैकग्राउंड ट्रांसफर केवल एन्क्रिप्टेड ब्लॉक को संभालता है; परिष्करण के लिए मूल अनलॉक किए गए खाते की आवश्यकता होती है।</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>यह कुंजी dMsg द्वारा प्रबंधित की जाती है और इसे कॉपी या संपादित नहीं किया जा सकता है।</string>
+	<key>This letter was withdrawn.</key>
+	<string>यह पत्र वापस ले लिया गया.</string>
+	<key>This message could not be verified.</key>
+	<string>इस संदेश को सत्यापित नहीं किया जा सका.</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>यह केवल इस डिवाइस पर सटीक खोज और संशोधन को छुपाता है। यह किसी क्रेडेंशियल की मरम्मत नहीं करता है या भविष्य में होने वाले परिवर्तनों को ख़ारिज नहीं करता है।</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>यह ऑपरेशन अपने आकार या क्षमता सीमा से अधिक है। इस डिवाइस पर गुप्त स्नैपशॉट 8 MiB तक सीमित हैं।</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>यह ऑपरेशन अस्थायी रूप से अनुपलब्ध है. आपका सहेजा गया डेटा रखा जाता है.</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>यह पैकेज इस डिवाइस पर पहले ही आयात किया जा चुका है. मौजूदा प्रतियां स्वतंत्र रहती हैं।</string>
+	<key>This preview sends nothing.</key>
+	<string>यह पूर्वावलोकन कुछ नहीं भेजता.</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>यह प्रोफ़ाइल सार्वजनिक है. रहस्य या निजी संपर्क जानकारी शामिल न करें.</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>यह रिकॉर्ड करता है कि आपने परिणाम को मैन्युअल रूप से जांचा है। यह ऑपरेशन को सफल के रूप में चिह्नित नहीं करता है या इसे दोबारा नहीं चलाता है।</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>यह केवल चयनित क्लाउड कॉपी को हटाता है। स्थानीय फ़ाइलें उनके डिवाइस पर रहती हैं।</string>
+	<key>This request has expired</key>
+	<string>यह अनुरोध समाप्त हो गया है</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>इस अनुरोध के लिए एक समर्थित डेस्कटॉप क्लाइंट की आवश्यकता है।</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>यह भविष्य की पुनर्प्राप्ति को समाप्त करने का अनुरोध करता है। पहले से सहेजी गई प्रतियाँ उपयोग योग्य रहती हैं। एक अनिश्चित प्रकाशन को अभी भी सुलझाया जाना चाहिए।</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>इस स्नैपशॉट पर ध्यान देने की जरूरत है. जारी रखने से पहले इसकी स्थिति जांचें.</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>यह टूर फ़ाइलें अपलोड नहीं करता है या सिस्टम एकीकरण पंजीकृत नहीं करता है।</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>यह इस डिवाइस पर आपके काम को ट्रैक करता है। यह उनके प्रदाता पर क्रेडेंशियल बनाता, परीक्षण या निरस्त नहीं करता है।</string>
+	<key>Title</key>
+	<string>शीर्षक</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>इस iPhone पर अपने मौजूदा खाते का उपयोग करने के लिए, अपने किसी अधिकृत डिवाइस से इस डिवाइस को स्वीकृत करें।</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>पहले स्वामित्व वाली बातचीत को स्थानांतरित या संग्रहित करें</string>
+	<key>Transfer proposal</key>
+	<string>स्थानांतरण प्रस्ताव</string>
+	<key>Transfers</key>
+	<string>स्थानान्तरण</string>
+	<key>Trash</key>
+	<string>कचरा</string>
+	<key>Trash is empty</key>
+	<string>कचरा खाली है</string>
+	<key>Try the local demo</key>
+	<string>स्थानीय डेमो आज़माएं</string>
+	<key>Two versions need your decision</key>
+	<string>दो संस्करणों को आपके निर्णय की आवश्यकता है</string>
+	<key>Type</key>
+	<string>प्रकार</string>
+	<key>Type this account ID to confirm</key>
+	<string>पुष्टि करने के लिए यह खाता आईडी टाइप करें</string>
+	<key>Unblock</key>
+	<string>अनब्लॉक करें</string>
+	<key>Unconfirmed proposals</key>
+	<string>अपुष्ट प्रस्ताव</string>
+	<key>Unknown state</key>
+	<string>अज्ञात अवस्था</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>इस अनुरोध की समीक्षा करने के लिए dMsg को अनलॉक करें।</string>
+	<key>Unlock policy</key>
+	<string>अनलॉक नीति</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>dMsg खोलने के लिए इस iPhone को अनलॉक करें।</string>
+	<key>Unlock with system authentication</key>
+	<string>सिस्टम प्रमाणीकरण के साथ अनलॉक करें</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>अपने dMsg कार्यक्षेत्र को अनलॉक करें</string>
+	<key>Unrestricted delegation authority</key>
+	<string>अप्रतिबंधित प्रत्यायोजन प्राधिकार</string>
+	<key>Uploading</key>
+	<string>अपलोड हो रहा है</string>
+	<key>Uploading encrypted backup</key>
+	<string>एन्क्रिप्टेड बैकअप अपलोड किया जा रहा है</string>
+	<key>Url</key>
+	<string>यूआरएल</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>आपके द्वारा dMsg में स्पष्ट रूप से निर्यात किए गए स्नैपशॉट से पासवर्ड का उपयोग करें।</string>
+	<key>Use a secret through a device policy</key>
+	<string>डिवाइस नीति के माध्यम से एक रहस्य का प्रयोग करें</string>
+	<key>Use an SSH signing key</key>
+	<string>SSH हस्ताक्षर कुंजी का उपयोग करें</string>
+	<key>Use conflicting version</key>
+	<string>विरोधाभासी संस्करण का प्रयोग करें</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>यहां काल्पनिक डेटा का उपयोग करें। दौरे को बंद करने से आपके परिवर्तन खारिज हो जाते हैं।</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>आईसीपी, आईसीआरसी:लेजर, बीटीसी, ईवीएम:चेन, ईवीएम:चेन:टोकन, सोल या सोल:मिंट का उपयोग करें।</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>इस iPhone पर एन्क्रिप्टेड कार्यक्षेत्र को अनलॉक करने के लिए सिस्टम प्रमाणीकरण का उपयोग करें।</string>
+	<key>Use this folder</key>
+	<string>इस फ़ोल्डर का उपयोग करें</string>
+	<key>Use this password for:</key>
+	<string>इस पासवर्ड का उपयोग इसके लिए करें:</string>
+	<key>Username</key>
+	<string>उपयोगकर्ता नाम</string>
+	<key>Value</key>
+	<string>मूल्य</string>
+	<key>Vault</key>
+	<string>तिजोरी</string>
+	<key>Vault tools</key>
+	<string>तिजोरी उपकरण</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>सत्यापित अनुलग्नक फ़ाइलों में सहेजा गया।</string>
+	<key>Verified package fingerprint</key>
+	<string>सत्यापित पैकेज फ़िंगरप्रिंट</string>
+	<key>Verify and finish</key>
+	<string>सत्यापित करें और समाप्त करें</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>संपूर्ण डिवाइस और कुंजी फ़िंगरप्रिंट सत्यापित करें। यह कुंजी इस खाते की संरक्षित गतिविधियों के लिए हार्डवेयर अनुमोदन सिद्ध करेगी.</string>
+	<key>Verify the full device fingerprint</key>
+	<string>संपूर्ण डिवाइस फ़िंगरप्रिंट सत्यापित करें</string>
+	<key>Version history</key>
+	<string>संस्करण इतिहास</string>
+	<key>Versions</key>
+	<string>संस्करण</string>
+	<key>Viewer</key>
+	<string>दर्शक</string>
+	<key>Waiting for approval</key>
+	<string>मंजूरी का इंतजार है</string>
+	<key>Waiting for browser confirmation</key>
+	<string>ब्राउज़र पुष्टिकरण की प्रतीक्षा कर रहा है</string>
+	<key>Waiting for confirmation: </key>
+	<string>पुष्टि की प्रतीक्षा में: </string>
+	<key>Waiting for notification registration…</key>
+	<string>अधिसूचना पंजीकरण की प्रतीक्षा की जा रही है...</string>
+	<key>Waiting for your decision</key>
+	<string>आपके फैसले का इंतजार है</string>
+	<key>Waiting to submit</key>
+	<string>सबमिट करने की प्रतीक्षा की जा रही है</string>
+	<key>Waiting to sync</key>
+	<string>सिंक होने की प्रतीक्षा की जा रही है</string>
+	<key>Wallet</key>
+	<string>वॉलेट</string>
+	<key>Wallet access</key>
+	<string>वॉलेट पहुंच</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>वॉलेट पहुंच की जाँच नहीं की जा सकी. हटाने से पहले इसे स्वतंत्र रूप से सत्यापित करें।</string>
+	<key>Wallet canister ID</key>
+	<string>वॉलेट canister आईडी</string>
+	<key>Wallet controls</key>
+	<string>वॉलेट नियंत्रण</string>
+	<key>Wallet details and policy</key>
+	<string>वॉलेट विवरण और नीति</string>
+	<key>Wallet secret</key>
+	<string>बटुआ रहस्य</string>
+	<key>Wallets</key>
+	<string>बटुए</string>
+	<key>Weak credential</key>
+	<string>कमजोर साख</string>
+	<key>Website</key>
+	<string>वेबसाइट</string>
+	<key>Welcome back.</key>
+	<string>पुनः स्वागत है.</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>स्थानीय डेमो में आपका स्वागत है. ये संदेश इसी स्क्रीन में रहते हैं.</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>जबकि dMsg खुला और अनलॉक है, एन्क्रिप्टेड संपादन अपलोड होंगे और संदेश और अनुमोदन ताज़ा हो जाएंगे। फ़ाइल बैकअप के लिए अभी भी एक अलग पुष्टि की आवश्यकता होती है। आप इसे किसी भी समय बंद कर सकते हैं.</string>
+	<key>Who may contact you</key>
+	<string>आपसे कौन संपर्क कर सकता है</string>
+	<key>Withdraw</key>
+	<string>वापस लेना</string>
+	<key>Withdraw message</key>
+	<string>संदेश वापस लें</string>
+	<key>Withdraw this message?</key>
+	<string>यह संदेश वापस लें?</string>
+	<key>Workspace destination</key>
+	<string>कार्यस्थल गंतव्य</string>
+	<key>Write a demo message</key>
+	<string>एक डेमो संदेश लिखें</string>
+	<key>Write a letter</key>
+	<string>एक पत्र लिखें</string>
+	<key>Write a message</key>
+	<string>एक संदेश लिखें</string>
+	<key>Yes</key>
+	<string>हाँ</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>आप एक अपरिवर्तनीय ऐतिहासिक संस्करण देख रहे हैं।</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>आप प्रदाता परिवर्तन स्वयं करते हैं. dMsg आपके बयान रिकॉर्ड करता है और स्थानीय संशोधनों की जाँच करता है; यह अपस्ट्रीम निर्माण, परीक्षण या निरस्तीकरण को सत्यापित नहीं कर सकता।</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>आपके अधिकृत चैनल सिंक्रनाइज़ेशन के बाद दिखाई देते हैं।</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>आपकी वर्तमान पात्रता ताज़ा नहीं की जा सकी. सत्यापन सेवा उपलब्ध होने पर पुनः प्रयास करें।</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>आपकी वर्तमान योजना App Store के बाहर प्रबंधित की जाती है। App Store सदस्यता शुरू करने से पहले इसके समाप्त होने तक प्रतीक्षा करें।</string>
+	<key>Your decision applies only to this request.</key>
+	<string>आपका निर्णय केवल इस अनुरोध पर लागू होता है।</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>आपकी एन्क्रिप्टेड फ़ाइलें यहीं रहती हैं. सहेजे गए लॉगिन और त्वरित अनलॉक हटा दिए गए हैं।</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>आपका मौजूदा उपकरण अंतिम निर्णय लेता है.</string>
+	<key>Your files stay private</key>
+	<string>आपकी फ़ाइलें निजी रहती हैं</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>आपके छिपे हुए फ़ील्ड तब तक छिपे रहते हैं जब तक आप उन्हें प्रकट करना नहीं चुनते।</string>
+	<key>Your private workspace.</key>
+	<string>आपका निजी कार्यक्षेत्र.</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>आपकी खरीदारी पुष्टि की प्रतीक्षा कर रही है. दोबारा भुगतान किए बिना पुनः प्रयास करने के लिए खरीदारी बहाल करें।</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>आपकी रिपोर्ट और आपके द्वारा स्पष्ट रूप से शामिल कोई भी पाठ मॉडरेशन टीम को भेजा जाएगा। अन्य निजी सामग्री और कुंजियाँ शामिल नहीं हैं।</string>
+	<key>Your reports</key>
+	<string>आपकी रिपोर्ट</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>dMsg कार्यक्षेत्र</string>
+</dict>
+</plist>

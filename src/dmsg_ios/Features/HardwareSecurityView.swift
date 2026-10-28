@@ -57,7 +57,7 @@ struct HardwareSecurityView: View {
                     Toggle("Biometrics only", isOn: $biometryOnly).disabled(!status.biometry || busy)
                     Text("Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.")
                         .font(.footnote).foregroundStyle(.secondary)
-                    Button(status.key?.here == true ? "Review replacement key" : "Review key registration") { Task { await register() } }
+                    Button(LocalizedStringKey(status.key?.here == true ? "Review replacement key" : "Review key registration")) { Task { await register() } }
                         .disabled(!status.available || busy)
                     Button("Create an administrator enrollment request") { Task { await enrollment() } }
                         .disabled(!status.available || busy)
@@ -102,7 +102,7 @@ struct HardwareSecurityView: View {
                 Section("Other devices") {
                     ForEach(status.devices) { device in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(device.thisDevice ? "This iPhone" : "Authorized device").font(.headline)
+                            Text(LocalizedStringKey(device.thisDevice ? "This iPhone" : "Authorized device")).font(.headline)
                             FingerprintRow(title: "Device ID", value: device.deviceId)
                             if let key = device.keyId {
                                 FingerprintRow(title: "Key fingerprint", value: key)
@@ -124,9 +124,9 @@ struct HardwareSecurityView: View {
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }
             }
-            .confirmationDialog(bindingChange == true ? "Bind this workspace to this iPhone?" : "Remove device binding?",
+            .confirmationDialog(LocalizedStringKey(bindingChange == true ? "Bind this workspace to this iPhone?" : "Remove device binding?"),
                 isPresented: Binding(get: { bindingChange != nil }, set: { if !$0 { bindingChange = nil } })) {
-                Button(bindingChange == true ? "Bind workspace" : "Remove device binding", role: bindingChange == true ? nil : .destructive) {
+                Button(LocalizedStringKey(bindingChange == true ? "Bind workspace" : "Remove device binding"), role: bindingChange == true ? nil : .destructive) {
                     if let enabled = bindingChange { Task { await bindWorkspace(enabled) } }
                 }
             } message: { Text("This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.") }

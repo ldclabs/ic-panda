@@ -119,7 +119,7 @@ struct ConnectLandingView: View {
             else {
                 VStack(spacing: 20) {
                     if loading { ProgressView() }
-                    Text(missing ? "The request is not available to this device. It may have expired or already been handled." : "Loading the verified request…")
+                    Text(LocalizedStringKey(missing ? "The request is not available to this device. It may have expired or already been handled." : "Loading the verified request…"))
                     Button("Retry") { Task { await locate() } }.disabled(loading)
                     NavigationLink("Open approvals") { ApprovalsView() }
                 }.padding()

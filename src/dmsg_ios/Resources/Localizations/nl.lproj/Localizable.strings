@@ -1,0 +1,2000 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1 day</key>
+	<string>1 dag</string>
+	<key>1 hour</key>
+	<string>1 uur</string>
+	<key>7 days</key>
+	<string>7 dagen</string>
+	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
+	<string>Een achtergrondoverdracht hoort bij een ander account. Schakel over naar dat account om het te voltooien of te annuleren.</string>
+	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
+	<string>Er is een kanaalmomentopname beschikbaar voor leden met toegang tot dit tijdperk, inclusief toegangsrechten voor latere geschiedenis. Er is geen vervaldatum van de link, geen downloadsessielimiet of terugroepactie.</string>
+	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
+	<string>Een downloadsessie is een ophaalvergoeding, geen telling van het aantal gelezen bestanden. Bij het verlopen of intrekken kunnen reeds opgeslagen kopieën niet worden gewist.</string>
+	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
+	<string>Een record- of apparaatsleutel kan niet worden geverifieerd. Je werkruimte is niet gewist.</string>
+	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
+	<string>Een referentie identificeert een veld; het bevat geen geheime waarde en geeft geen toestemming om het te lezen.</string>
+	<key>A snapshot contains an older credential</key>
+	<string>Een momentopname bevat een oudere referentie</string>
+	<key>A snapshot link is still active</key>
+	<string>Er is nog steeds een snapshot-link actief</string>
+	<key>API credential</key>
+	<string>API-referentie</string>
+	<key>About</key>
+	<string>Over</string>
+	<key>Accept approved binding</key>
+	<string>Accepteer goedgekeurde binding</string>
+	<key>Access granted</key>
+	<string>Toegang verleend</string>
+	<key>Access the copies you explicitly exported from dMsg</key>
+	<string>Toegang tot de kopieën die je expliciet hebt geëxporteerd vanuit dMsg</string>
+	<key>Account</key>
+	<string>Account</string>
+	<key>Account ID</key>
+	<string>Account-ID</string>
+	<key>Account recovery</key>
+	<string>Accountherstel</string>
+	<key>Account recovery is pending</key>
+	<string>Accountherstel is in behandeling</string>
+	<key>Account security</key>
+	<string>Accountbeveiliging</string>
+	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
+	<string>Account-, apparaat- en identiteitsbescherming veranderen samen. Een vereiste goedkeuring kan niet terugvallen op een gewoon bevestigingsdialoogvenster.</string>
+	<key>Account, devices and identities</key>
+	<string>Account, apparaten en identiteiten</string>
+	<key>Accounts</key>
+	<string>Accounts</string>
+	<key>Active conversations</key>
+	<string>Actieve gesprekken</string>
+	<key>Activity on this device</key>
+	<string>Activiteit op dit apparaat</string>
+	<key>Add device</key>
+	<string>Apparaat toevoegen</string>
+	<key>Add field</key>
+	<string>Veld toevoegen</string>
+	<key>Add item</key>
+	<string>Artikel toevoegen</string>
+	<key>Add message to demo</key>
+	<string>Voeg bericht toe aan demo</string>
+	<key>Add one-time code</key>
+	<string>Voeg eenmalige code toe</string>
+	<key>Add receiving address</key>
+	<string>Ontvangstadres toevoegen</string>
+	<key>Add sample login</key>
+	<string>Voorbeeld-login toevoegen</string>
+	<key>Added</key>
+	<string>Toegevoegd</string>
+	<key>Address</key>
+	<string>Adres</string>
+	<key>Address label</key>
+	<string>Adreslabel</string>
+	<key>Address verification failed</key>
+	<string>Adresverificatie mislukt</string>
+	<key>Administrative approvals %u</key>
+	<string>Administratieve goedkeuringen %u</string>
+	<key>Administrator</key>
+	<string>Beheerder</string>
+	<key>Agent ID</key>
+	<string>Agent-ID</string>
+	<key>Agents</key>
+	<string>Agents</string>
+	<key>All</key>
+	<string>Alles</string>
+	<key>All caught up</key>
+	<string>Allemaal ingehaald</string>
+	<key>All devices lost?</key>
+	<string>Alle apparaten verloren?</string>
+	<key>All files</key>
+	<string>Alle bestanden</string>
+	<key>Allow key rotation</key>
+	<string>Sleutelrotatie toestaan</string>
+	<key>Allowed</key>
+	<string>Toegestaan</string>
+	<key>Allowed account IDs, one per line</key>
+	<string>Toegestane account-ID's, één per regel</string>
+	<key>Already imported</key>
+	<string>Al geïmporteerd</string>
+	<key>Already present</key>
+	<string>Reeds aanwezig</string>
+	<key>Amount in base units</key>
+	<string>Bedrag in basiseenheden</string>
+	<key>An account recovery is pending. Review it in Account security.</key>
+	<string>Er is een accountherstel in behandeling. Bekijk het in Accountbeveiliging.</string>
+	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
+	<string>Iedereen met de volledige link en het vereiste wachtwoord kan deze binnen zijn grenzen ophalen.</string>
+	<key>Anyone, free of charge</key>
+	<string>Iedereen, gratis</string>
+	<key>App Store subscriptions</key>
+	<string>App Store-abonnementen</string>
+	<key>App verification is unavailable on this device. Your saved content remains available.</key>
+	<string>App-verificatie is niet beschikbaar op dit apparaat. Je opgeslagen inhoud blijft beschikbaar.</string>
+	<key>Apply these receiving rules?</key>
+	<string>Deze ontvangstregels toepassen?</string>
+	<key>Apply this conversation change?</key>
+	<string>Deze gesprekswijziging toepassen?</string>
+	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
+	<string>Goedkeuring importeert alleen je geselecteerde velden en bijlagen als nieuwe, onafhankelijke items. Bestanden blijven lokaal en nemen de toegangsrechten van de doelmap over.</string>
+	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
+	<string>Approval publiceert exact de beoordeelde velden en bijlagen als een onafhankelijke momentopname. Controleer de bestemming en limieten; ontvangers kunnen kopieën behouden.</string>
+	<key>Approval thresholds</key>
+	<string>Goedkeuringsdrempels</string>
+	<key>Approvals</key>
+	<string>Goedkeuringen</string>
+	<key>Approve</key>
+	<string>Goedkeuren</string>
+	<key>Approve a binding request</key>
+	<string>Een bindend verzoek goedkeuren</string>
+	<key>Approve the reviewed request?</key>
+	<string>Het beoordeelde verzoek goedkeuren?</string>
+	<key>Approve the wallet transaction plan you reviewed</key>
+	<string>Keur het portemonneetransactieplan goed dat je hebt beoordeeld</string>
+	<key>Approve this device and distribute new content keys</key>
+	<string>Keur dit apparaat goed en distribueer nieuwe inhoudssleutels</string>
+	<key>Approve this request</key>
+	<string>Keur dit verzoek goed</string>
+	<key>Approved by</key>
+	<string>Goedgekeurd door</string>
+	<key>Approver</key>
+	<string>Goedkeurder</string>
+	<key>Archive</key>
+	<string>Archief</string>
+	<key>Archive conversation</key>
+	<string>Gesprek archiveren</string>
+	<key>Archived</key>
+	<string>Gearchiveerd</string>
+	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
+	<string>Vraag een beheerder om deze login aan je bestaande account te koppelen. Apparaatautorisatie is een aparte stap.</string>
+	<key>Asset identifier</key>
+	<string>Item-ID</string>
+	<key>Attach</key>
+	<string>Bevestig</string>
+	<key>Attach a file</key>
+	<string>Voeg een bestand toe</string>
+	<key>Attach file</key>
+	<string>Bestand bijvoegen</string>
+	<key>Attachment backup is unconfirmed</key>
+	<string>De back-up van de bijlage is niet bevestigd</string>
+	<key>Attachment unavailable on this device</key>
+	<string>Bijlage niet beschikbaar op dit apparaat</string>
+	<key>Attestations</key>
+	<string>Attesten</string>
+	<key>Audience origins or Agent IDs, one per line</key>
+	<string>Doelgroepoorsprong of agent-ID's, één per regel</string>
+	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
+	<string>Verifieer om toegang te krijgen tot de bestandskopieën die je hebt geëxporteerd vanuit dMsg. Toegang duurt vijf minuten; de momentopname vervalt na 24 uur.</string>
+	<key>Authenticate to continue</key>
+	<string>Verifieer om door te gaan</string>
+	<key>Authorize a new device</key>
+	<string>Autoriseer een nieuw apparaat</string>
+	<key>Authorize another device</key>
+	<string>Autoriseer een ander apparaat</string>
+	<key>Authorize this device</key>
+	<string>Dit apparaat machtigen</string>
+	<key>Authorize this device's approval key</key>
+	<string>Autoriseer de goedkeuringssleutel van dit apparaat</string>
+	<key>Authorize this iPhone</key>
+	<string>Autoriseer deze iPhone</string>
+	<key>Authorized device</key>
+	<string>Geautoriseerd apparaat</string>
+	<key>Authorized devices</key>
+	<string>Geautoriseerde apparaten</string>
+	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
+	<string>Automatisch aanvullen ontvangt alleen de inlogitems die je selecteert. De momentopname verloopt na 24 uur en vereist systeemauthenticatie, onafhankelijk van de werkruimte. Gebruikersnamen en websitenamen kunnen verschijnen in systeemsuggesties.</string>
+	<key>AutoFill snapshot updated</key>
+	<string>Momentopname van Automatisch aanvullen bijgewerkt</string>
+	<key>Automatic foreground sync</key>
+	<string>Automatische voorgrondsynchronisatie</string>
+	<key>Back</key>
+	<string>Terug</string>
+	<key>Back up encrypted copy</key>
+	<string>Maak een back-up van een gecodeerde kopie</string>
+	<key>Back up this file?</key>
+	<string>Een back-up maken van dit bestand?</string>
+	<key>Back up to cloud</key>
+	<string>Maak een back-up naar de cloud</string>
+	<key>Backed up</key>
+	<string>Er is een back-up gemaakt</string>
+	<key>Background ciphertext transfer</key>
+	<string>Achtergrondcijfertekstoverdracht</string>
+	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
+	<string>De mogelijkheden voor ondertekening op de achtergrond en de mogelijkheden voor residente agenten staan los van deze werkruimtevergrendeling.</string>
+	<key>Background transfer started. Review its progress in Transfers.</key>
+	<string>Achtergrondoverdracht gestart. Bekijk de voortgang in Overdrachten.</string>
+	<key>Backing up…</key>
+	<string>Een back-up maken…</string>
+	<key>Backup progress saved. Check the file status for completion.</key>
+	<string>Back-upvoortgang opgeslagen. Controleer de bestandsstatus op voltooiing.</string>
+	<key>Backup queued. Keep dMsg open to finish uploading.</key>
+	<string>Back-up in wachtrij. Houd dMsg open om het uploaden te voltooien.</string>
+	<key>Bind another Internet Identity</key>
+	<string>Bind nog een Internet Identity</string>
+	<key>Bind this workspace to this iPhone?</key>
+	<string>Deze werkruimte aan deze iPhone koppelen?</string>
+	<key>Bind workspace</key>
+	<string>Werkruimte binden</string>
+	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
+	<string>Binding beschermt deze lokale werkruimte, zelfs na een nieuwe login. Bewaar een ander geautoriseerd apparaat of een herstelpad voordat je dit wijzigt.</string>
+	<key>Biometrics only</key>
+	<string>Alleen biometrie</string>
+	<key>Biometrics only for exported copies</key>
+	<string>Biometrie alleen voor geëxporteerde kopieën</string>
+	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
+	<string>Sleutels voor alleen biometrie kunnen de toegangscode van het apparaat niet gebruiken en werken mogelijk niet meer als de geregistreerde biometrie verandert.</string>
+	<key>Birthday</key>
+	<string>Verjaardag</string>
+	<key>Bitcoin</key>
+	<string>Bitcoin</string>
+	<key>Block this account</key>
+	<string>Blokkeer dit account</string>
+	<key>Blocked accounts</key>
+	<string>Geblokkeerde accounts</string>
+	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
+	<string>Geblokkeerde afzenders zijn verborgen op dit apparaat. Online blokkades verhinderen ook nieuw direct contact en uitnodigingen; bestaande gedeelde kopieën worden niet teruggehaald.</string>
+	<key>Broadcast original signed transaction</key>
+	<string>Oorspronkelijke ondertekende transactie uitzenden</string>
+	<key>Browser request</key>
+	<string>Browserverzoek</string>
+	<key>Cancel</key>
+	<string>Annuleren</string>
+	<key>Cancel background transfer</key>
+	<string>Achtergrondoverdracht annuleren</string>
+	<key>Cancel pending request</key>
+	<string>Annuleer het lopende verzoek</string>
+	<key>Cancel proposal</key>
+	<string>Voorstel annuleren</string>
+	<key>Cancel reply</key>
+	<string>Antwoord annuleren</string>
+	<key>Cancel request</key>
+	<string>Aanvraag annuleren</string>
+	<key>Cancel this pending request?</key>
+	<string>Dit openstaande verzoek annuleren?</string>
+	<key>Cancellation applies to this undecided request. It does not undo a completed delivery.</key>
+	<string>Voor dit onbesliste verzoek geldt annulering. Het maakt een voltooide levering niet ongedaan.</string>
+	<key>Cancelled</key>
+	<string>Geannuleerd</string>
+	<key>Capabilities, one per line</key>
+	<string>Mogelijkheden, één per regel</string>
+	<key>Cardholder</key>
+	<string>Kaarthouder</string>
+	<key>Chain</key>
+	<string>Ketting</string>
+	<key>Change a device secret policy</key>
+	<string>Wijzig een apparaatgeheimbeleid</string>
+	<key>Change account security</key>
+	<string>Wijzig de accountbeveiliging</string>
+	<key>Change device permissions</key>
+	<string>Wijzig apparaatmachtigingen</string>
+	<key>Change hardware approval policy</key>
+	<string>Wijzig het hardwaregoedkeuringsbeleid</string>
+	<key>Change identity settings</key>
+	<string>Wijzig identiteitsinstellingen</string>
+	<key>Change role</key>
+	<string>Verander de rol</string>
+	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
+	<string>Wijzigingen creëren voorstellen en vereisen nog steeds de bestaande goedkeuringen van de portemonnee. Bestaande beleidsvelden en machtigingen voor ledenagenten blijven behouden.</string>
+	<key>Channel</key>
+	<string>Kanaal</string>
+	<key>Channel ID</key>
+	<string>Kanaal-ID</string>
+	<key>Channel copies have no expiry, retrieval limit or recall. Recipients can keep independent copies.</key>
+	<string>Kanaalkopieën hebben geen vervaldatum, terughaallimiet of terugroepactie. Ontvangers kunnen onafhankelijke kopieën bewaren.</string>
+	<key>Channel snapshot</key>
+	<string>Kanaalmomentopname</string>
+	<key>Channels</key>
+	<string>Kanalen</string>
+	<key>Check authorization</key>
+	<string>Controleer autorisatie</string>
+	<key>Check deletion status</key>
+	<string>Controleer de verwijderstatus</string>
+	<key>Check project references and any copies already delivered.</key>
+	<string>Controleer projectreferenties en eventueel reeds geleverde exemplaren.</string>
+	<key>Check recovery status</key>
+	<string>Controleer de herstelstatus</string>
+	<key>Check this device's activity before deciding whether access is still needed.</key>
+	<string>Controleer de activiteit van dit apparaat voordat je beslist of er nog steeds toegang nodig is.</string>
+	<key>Checking permission…</key>
+	<string>Toestemming controleren...</string>
+	<key>Checklist completed</key>
+	<string>Controlelijst voltooid</string>
+	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
+	<string>Checklist ingevuld op basis van je afschriften. De upstreamstatus blijft alleen onafhankelijk verifieerbaar bij de provider.</string>
+	<key>Choose a credential for:</key>
+	<string>Kies een referentie voor:</string>
+	<key>Choose a secret</key>
+	<string>Kies een geheim</string>
+	<key>Choose a version</key>
+	<string>Kies een versie</string>
+	<key>Choose an attachment</key>
+	<string>Kies een bijlage</string>
+	<key>Choose avatar</key>
+	<string>Kies avatar</string>
+	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
+	<string>Kies precies wat deze onafhankelijke momentopname bevat. Bronbewerkingen hebben geen invloed op reeds verzonden kopieën.</string>
+	<key>Choose password export</key>
+	<string>Kies voor wachtwoordexport</string>
+	<key>Choose the language for dMsg in iOS Settings.</key>
+	<string>Kies de taal voor dMsg in iOS-instellingen.</string>
+	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
+	<string>Kies welke versie je wilt behouden. Bestaande historie blijft behouden; geheimen worden nooit stilletjes overschreven.</string>
+	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
+	<string>Kies wie je gratis brieven mag sturen. Geblokkeerde accounts blijven geblokkeerd totdat je ze deblokkeert.</string>
+	<key>Closed</key>
+	<string>Gesloten</string>
+	<key>Cloud backups</key>
+	<string>Cloud-back-ups</string>
+	<key>Cloud backups are kept. This only changes the copy on this device.</key>
+	<string>Er worden cloudback-ups bewaard. Hierdoor verandert alleen de kopie op dit apparaat.</string>
+	<key>Cloud deletion completed</key>
+	<string>Cloudverwijdering voltooid</string>
+	<key>Cloud storage</key>
+	<string>Cloudopslag</string>
+	<key>Complete recovery after waiting period</key>
+	<string>Volledig herstel na wachttijd</string>
+	<key>Completed</key>
+	<string>Voltooid</string>
+	<key>Configure a desktop file mapping</key>
+	<string>Configureer een bureaubladbestandstoewijzing</string>
+	<key>Configured on this device</key>
+	<string>Geconfigureerd op dit apparaat</string>
+	<key>Confirm change</key>
+	<string>Wijziging bevestigen</string>
+	<key>Confirm completed step</key>
+	<string>Bevestig de voltooide stap</string>
+	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
+	<string>Bevestig alleen het werk dat je daadwerkelijk hebt voltooid. Hierin wordt je verklaring vastgelegd; het voert de provideractie niet uit.</string>
+	<key>Confirm the dMsg request you reviewed</key>
+	<string>Bevestig het dMsg-verzoek dat je hebt beoordeeld</string>
+	<key>Confirm this account security change</key>
+	<string>Bevestig deze wijziging in de accountbeveiliging</string>
+	<key>Confirm your completed steps</key>
+	<string>Bevestig je voltooide stappen</string>
+	<key>Conflicting version</key>
+	<string>Conflicterende versie</string>
+	<key>Connect</key>
+	<string>Verbinden</string>
+	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
+	<string>Sluit alleen een browser aan die je beheert. Een verbonden browser kan verzoeken indienen; voor elke handtekening is nog steeds je goedkeuring vereist in dMsg.</string>
+	<key>Connect this browser</key>
+	<string>Sluit deze browser aan</string>
+	<key>Connect this browser?</key>
+	<string>Deze browser verbinden?</string>
+	<key>Connected browsers</key>
+	<string>Verbonden browsers</string>
+	<key>Connection unavailable. Your saved content stays on this device.</key>
+	<string>Verbinding niet beschikbaar. Je opgeslagen inhoud blijft op dit apparaat staan.</string>
+	<key>Contact invitation, if provided</key>
+	<string>Contactuitnodiging, indien verstrekt</string>
+	<key>Contact support</key>
+	<string>Neem contact op met ondersteuning</string>
+	<key>Continue import</key>
+	<string>Ga door met importeren</string>
+	<key>Continue password import</key>
+	<string>Ga door met het importeren van wachtwoorden</string>
+	<key>Continue selected backups</key>
+	<string>Ga door met geselecteerde back-ups</string>
+	<key>Continue this backup in background</key>
+	<string>Ga door met deze back-up op de achtergrond</string>
+	<key>Continue this import in the account you originally selected.</key>
+	<string>Ga door met deze import in het account dat je oorspronkelijk hebt geselecteerd.</string>
+	<key>Continue with Internet Identity</key>
+	<string>Ga verder met Internet Identity</string>
+	<key>Controller ID</key>
+	<string>Controller-ID</string>
+	<key>Controller name</key>
+	<string>Controller-naam</string>
+	<key>Controllers</key>
+	<string>Controllers</string>
+	<key>Controllers and delegations</key>
+	<string>Controllers en delegaties</string>
+	<key>Conversation</key>
+	<string>Gesprek</string>
+	<key>Conversation name</key>
+	<string>Naam van gesprek</string>
+	<key>Conversation settings</key>
+	<string>Gespreksinstellingen</string>
+	<key>Copied for 30 seconds</key>
+	<string>Gekopieerd gedurende 30 seconden</string>
+	<key>Copy</key>
+	<string>Kopiëren</string>
+	<key>Copy address</key>
+	<string>Kopieer adres</string>
+	<key>Copy binding request</key>
+	<string>Kopieer bindend verzoek</string>
+	<key>Copy enrollment request</key>
+	<string>Kopieer het inschrijvingsverzoek</string>
+	<key>Copy for 30 seconds</key>
+	<string>Kopieer gedurende 30 seconden</string>
+	<key>Copy link</key>
+	<string>Kopieer link</string>
+	<key>Copy pairing request</key>
+	<string>Koppelingsverzoek kopiëren</string>
+	<key>Copy reference</key>
+	<string>Kopieer referentie</string>
+	<key>Copy this field?</key>
+	<string>Dit veld kopiëren?</string>
+	<key>Cosigners for the proposed address policy</key>
+	<string>Medeondertekenaars voor het voorgestelde adresbeleid</string>
+	<key>Create</key>
+	<string>Creëer</string>
+	<key>Create a new credential at its provider and save it in the vault</key>
+	<string>Maak een nieuwe referentie aan bij de provider en sla deze op in de kluis</string>
+	<key>Create a new pairing request</key>
+	<string>Maak een nieuw koppelingsverzoek aan</string>
+	<key>Create a revocation request?</key>
+	<string>Een intrekkingsverzoek aanmaken?</string>
+	<key>Create agent</key>
+	<string>Agent maken</string>
+	<key>Create an administrator enrollment request</key>
+	<string>Maak een beheerdersinschrijvingsverzoek</string>
+	<key>Create an agent identity</key>
+	<string>Maak een agentidentiteit</string>
+	<key>Create binding request</key>
+	<string>Bindend verzoek maken</string>
+	<key>Create conversation</key>
+	<string>Creëer een gesprek</string>
+	<key>Create hardware cosigner</key>
+	<string>Hardware-medeondertekenaar maken</string>
+	<key>Create invitation</key>
+	<string>Uitnodiging maken</string>
+	<key>Create proposal</key>
+	<string>Voorstel maken</string>
+	<key>Create this wallet proposal?</key>
+	<string>Dit portefeuillevoorstel maken?</string>
+	<key>Create transfer proposal</key>
+	<string>Overdrachtsvoorstel maken</string>
+	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
+	<string>Creëer je gecodeerde werkruimte om wachtwoorden, notities en bestanden op te slaan.</string>
+	<key>Credential</key>
+	<string>Referentie</string>
+	<key>Credential ID</key>
+	<string>Referentie-ID</string>
+	<key>Credential expired</key>
+	<string>Referentie verlopen</string>
+	<key>Credential reused</key>
+	<string>Referentie hergebruikt</string>
+	<key>Credential rotation</key>
+	<string>Rotatie van legitimatiegegevens</string>
+	<key>Current</key>
+	<string>Huidig</string>
+	<key>Current local dependencies</key>
+	<string>Huidige lokale afhankelijkheden</string>
+	<key>Current login</key>
+	<string>Huidige login</string>
+	<key>Current plan and limits</key>
+	<string>Huidig plan en limieten</string>
+	<key>Current policy requires payment</key>
+	<string>Het huidige beleid vereist betaling</string>
+	<key>Current term ends</key>
+	<string>De huidige termijn eindigt</string>
+	<key>Current version</key>
+	<string>Huidige versie</string>
+	<key>Cvv</key>
+	<string>CVV</string>
+	<key>DMSG_NOTIFICATION_GENERIC</key>
+	<string>Nieuwe activiteit in dMsg.</string>
+	<key>Database</key>
+	<string>Database</string>
+	<key>Date</key>
+	<string>Datum</string>
+	<key>Delegations</key>
+	<string>delegaties</string>
+	<key>Delete account</key>
+	<string>Account verwijderen</string>
+	<key>Delete cloud backup</key>
+	<string>Cloudback-up verwijderen</string>
+	<key>Delete this cloud backup?</key>
+	<string>Deze cloudback-up verwijderen?</string>
+	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
+	<string>Als je je dMsg-account verwijdert, wordt een Apple-abonnement niet opgezegd. Annuleer het in je Apple-accountinstellingen om de verlenging te stoppen.</string>
+	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
+	<string>Als je je dMsg-serviceaccount verwijdert, worden de cloudcijfertekst, privéservicegegevens, registraties van apparaatmeldingen en kopieën van de openbare avataroorsprong permanent verwijderd. Het kan geen blockchain-records, kopieën van andere ontvangers of gegevens van andere diensten wissen.</string>
+	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
+	<string>Bij verwijdering wordt geen geld overgemaakt. Als je lokale sleutels en cloudkopieën verwijdert, kan de toegang van dit apparaat tot portemonnees en externe inloggegevens permanent worden verwijderd.</string>
+	<key>Deletion is in progress</key>
+	<string>Het verwijderen is bezig</string>
+	<key>Deletion status</key>
+	<string>Verwijderingsstatus</string>
+	<key>Deliver a secret to a local process</key>
+	<string>Lever een geheim aan een lokaal proces</string>
+	<key>Demo approved · No signature created</key>
+	<string>Demo goedgekeurd · Geen handtekening aangemaakt</string>
+	<key>Demo rejected · No signature created</key>
+	<string>Demo afgewezen · Geen handtekening aangemaakt</string>
+	<key>Demo section</key>
+	<string>Demo-sectie</string>
+	<key>Dependencies on this device</key>
+	<string>Afhankelijkheden van dit apparaat</string>
+	<key>Describe the issue</key>
+	<string>Beschrijf het probleem</string>
+	<key>Desktop file mapping</key>
+	<string>Bestandstoewijzing op het bureaublad</string>
+	<key>Desktop file mapping needs review</key>
+	<string>Bestandstoewijzing op desktop moet worden beoordeeld</string>
+	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
+	<string>Goedkeuringen voor lokale opdrachten op het bureaublad blijven op dat bureaublad staan. Hier worden alleen verzoeken weergegeven die beschikbaar zijn voor dit apparaat.</string>
+	<key>Destination</key>
+	<string>Bestemming</string>
+	<key>Destination folder</key>
+	<string>Bestemmingsmap</string>
+	<key>Device</key>
+	<string>Apparaat</string>
+	<key>Device ID</key>
+	<string>Apparaat-ID</string>
+	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
+	<string>Apparaatverificatie is tijdelijk niet beschikbaar. Je sleutels worden bewaard; probeer het opnieuw wanneer dit apparaat is ontgrendeld.</string>
+	<key>Device pairing request QR code</key>
+	<string>Apparaatkoppelingsverzoek QR-code</string>
+	<key>Device permissions</key>
+	<string>Apparaatmachtigingen</string>
+	<key>Device policy</key>
+	<string>Apparaatbeleid</string>
+	<key>Device policy needs review</key>
+	<string>Apparaatbeleid moet worden herzien</string>
+	<key>Device request</key>
+	<string>Apparaatverzoek</string>
+	<key>Device-bound workspace</key>
+	<string>Apparaatgebonden werkruimte</string>
+	<key>Devices</key>
+	<string>Apparaten</string>
+	<key>Disabled</key>
+	<string>Uitgeschakeld</string>
+	<key>Discard</key>
+	<string>Gooi weg</string>
+	<key>Discard staged copy</key>
+	<string>Gooi de geënsceneerde kopie weg</string>
+	<key>Discard this staged copy?</key>
+	<string>Deze geënsceneerde kopie weggooien?</string>
+	<key>Dismiss this observation</key>
+	<string>Negeer deze observatie</string>
+	<key>Dismiss this observation?</key>
+	<string>Deze observatie afwijzen?</string>
+	<key>Dispute pending recovery</key>
+	<string>Geschil in afwachting van herstel</string>
+	<key>Done</key>
+	<string>Gereed</string>
+	<key>Download encrypted copy in background</key>
+	<string>Download gecodeerde kopie op de achtergrond</string>
+	<key>Download sessions</key>
+	<string>Sessies downloaden</string>
+	<key>Downloading encrypted backup</key>
+	<string>Gecodeerde back-up downloaden</string>
+	<key>Draft: </key>
+	<string>Diepgang: </string>
+	<key>EVM</key>
+	<string>EVM</string>
+	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
+	<string>Elk mobiel pakket is beperkt tot 8 MiB, inclusief geselecteerde bijlagen. De definitieve goedkeuring toont de exacte onveranderlijke selectie en bestemming.</string>
+	<key>Edit item</key>
+	<string>Artikel bewerken</string>
+	<key>Edit member</key>
+	<string>Lid bewerken</string>
+	<key>Edit message</key>
+	<string>Bericht bewerken</string>
+	<key>Edit secret</key>
+	<string>Bewerk geheim</string>
+	<key>Edited</key>
+	<string>Bewerkt</string>
+	<key>Email</key>
+	<string>E-mail</string>
+	<key>Enable automatic sync</key>
+	<string>Schakel automatische synchronisatie in</string>
+	<key>Enable automatic sync for this account?</key>
+	<string>Automatische synchronisatie aanzetten voor dit account?</string>
+	<key>Enable dMsg in AutoFill settings</key>
+	<string>Schakel dMsg in in de instellingen voor Automatisch aanvullen</string>
+	<key>Encrypted backup</key>
+	<string>Gecodeerde back-up</string>
+	<key>Encrypting</key>
+	<string>Versleutelen</string>
+	<key>Engine</key>
+	<string>Motor</string>
+	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
+	<string>Ingeschreven biometrie is gewijzigd. Registreer een vervangende sleutel voordat je op deze sleutel vertrouwt.</string>
+	<key>Enter valid account IDs, one per line.</key>
+	<string>Voer geldige account-ID's in, één per regel.</string>
+	<key>Error details</key>
+	<string>Foutdetails</string>
+	<key>Example document</key>
+	<string>Voorbeelddocument</string>
+	<key>Example login</key>
+	<string>Voorbeeld inloggen</string>
+	<key>Execute</key>
+	<string>Uitvoeren</string>
+	<key>Execute approved proposal</key>
+	<string>Goedgekeurd voorstel uitvoeren</string>
+	<key>Execute this approved wallet proposal?</key>
+	<string>Dit goedgekeurde portefeuillevoorstel uitvoeren?</string>
+	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
+	<string>Bestaande blokkeerregels, uitnodigingen en inboxcapaciteit blijven behouden. Als je een gratis of gesloten polis kiest, vervangt je alle eerdere betaalde contactinstellingen.</string>
+	<key>Expired</key>
+	<string>Verlopen</string>
+	<key>Expires</key>
+	<string>Verloopt</string>
+	<key>Expires after</key>
+	<string>Verloopt na</string>
+	<key>Expiry</key>
+	<string>Vervaldatum</string>
+	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
+	<string>Maak expliciet een back-up van de geselecteerde bestandsversie als je een cloudkopie wilt.</string>
+	<key>Export the selected login items to Password AutoFill</key>
+	<string>Exporteer de geselecteerde login-items naar Wachtwoord automatisch aanvullen</string>
+	<key>Failed</key>
+	<string>Mislukt</string>
+	<key>Favorite</key>
+	<string>Favoriet</string>
+	<key>Favorites</key>
+	<string>Favorieten</string>
+	<key>Field</key>
+	<string>Veld</string>
+	<key>Field name</key>
+	<string>Veldnaam</string>
+	<key>Field reference</key>
+	<string>Veldreferentie</string>
+	<key>Field reference and dependencies</key>
+	<string>Veldreferentie en afhankelijkheden</string>
+	<key>Field settings</key>
+	<string>Lokale instellingen</string>
+	<key>Fields</key>
+	<string>Velden</string>
+	<key>File</key>
+	<string>Bestand</string>
+	<key>File name</key>
+	<string>Bestandsnaam</string>
+	<key>File not available on this device</key>
+	<string>Bestand niet beschikbaar op dit apparaat</string>
+	<key>File versions</key>
+	<string>Bestandsversies</string>
+	<key>Files</key>
+	<string>Bestanden</string>
+	<key>Files app copies</key>
+	<string>Kopieën van bestanden-apps</string>
+	<key>Files app snapshot updated</key>
+	<string>Momentopname van de app Bestanden bijgewerkt</string>
+	<key>Files are backed up only when you explicitly choose to do so.</key>
+	<string>Er wordt alleen een back-up van bestanden gemaakt als je daar expliciet voor kiest.</string>
+	<key>Files in this folder</key>
+	<string>Bestanden in deze map</string>
+	<key>Fingerprint</key>
+	<string>Vingerafdruk</string>
+	<key>Folder name</key>
+	<string>Mapnaam</string>
+	<key>Freeze this wallet?</key>
+	<string>Deze portemonnee bevriezen?</string>
+	<key>Freeze wallet</key>
+	<string>Bevries portemonnee</string>
+	<key>Grant delegation</key>
+	<string>Delegatie autoriseren</string>
+	<key>Handled on another device</key>
+	<string>Afgewerkt op een ander apparaat</string>
+	<key>Harassment</key>
+	<string>Intimidatie</string>
+	<key>Hardware approval key</key>
+	<string>Hardware-goedkeuringssleutel</string>
+	<key>Hardware cosigners</key>
+	<string>Medeondertekenaars van hardware</string>
+	<key>Hardware keys on this device</key>
+	<string>Hardwaresleutels op dit apparaat</string>
+	<key>Hardware security</key>
+	<string>Hardware-beveiliging</string>
+	<key>Have you reviewed the missing outcome?</key>
+	<string>Heeft je de ontbrekende uitkomst beoordeeld?</string>
+	<key>Hidden fields differ: </key>
+	<string>Verborgen velden verschillen: </string>
+	<key>Hidden value</key>
+	<string>Verborgen waarde</string>
+	<key>Hide</key>
+	<string>Verbergen</string>
+	<key>Hide sample sender</key>
+	<string>Voorbeeldafzender verbergen</string>
+	<key>Historical version</key>
+	<string>Historische versie</string>
+	<key>Host</key>
+	<string>Host</string>
+	<key>I completed this step</key>
+	<string>Ik heb deze stap voltooid</string>
+	<key>I have secured my wallet access and external credentials</key>
+	<string>Ik heb de toegang tot mijn portemonnee en externe inloggegevens beveiligd</string>
+	<key>ICP</key>
+	<string>ICP</string>
+	<key>Id Number</key>
+	<string>ID-nummer</string>
+	<key>Identity</key>
+	<string>Identiteit</string>
+	<key>Illegal content</key>
+	<string>Illegale inhoud</string>
+	<key>Import</key>
+	<string>Importeren</string>
+	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
+	<string>Importeer een document om het op dit apparaat te coderen. Cloudback-up is een aparte actie.</string>
+	<key>Import a file in Files before attaching it.</key>
+	<string>Importeer een bestand in Bestanden voordat je het bijvoegt.</string>
+	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
+	<string>Importeer een ongecodeerde 1Password-, Bitwarden- of browserwachtwoordexport. De bron blijft op dit apparaat; alleen geselecteerde records worden toegevoegd.</string>
+	<key>Import completed</key>
+	<string>Importeren voltooid</string>
+	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
+	<string>Importeren creëert nieuwe onafhankelijke items. Bestanden blijven op dit apparaat staan ​​en nemen de toegangsrechten van de geselecteerde map over. Er wordt niets automatisch geselecteerd.</string>
+	<key>Import desktop-discovered secrets</key>
+	<string>Importeer op het bureaublad ontdekte geheimen</string>
+	<key>Import file</key>
+	<string>Bestand importeren</string>
+	<key>Import files</key>
+	<string>Importeer bestanden</string>
+	<key>Import into dMsg</key>
+	<string>Importeren in dMsg</string>
+	<key>Import into this account</key>
+	<string>Importeer in dit account</string>
+	<key>Import passwords</key>
+	<string>Wachtwoorden importeren</string>
+	<key>Import photo</key>
+	<string>Foto importeren</string>
+	<key>Import secret package</key>
+	<string>Geheim pakket importeren</string>
+	<key>Import selected records</key>
+	<string>Geselecteerde records importeren</string>
+	<key>Import selected secrets</key>
+	<string>Importeer geselecteerde geheimen</string>
+	<key>In Trash</key>
+	<string>In de prullenbak</string>
+	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
+	<string>In een echt rapport ontvangt de service je reden en de account-/bron-ID's. Berichttekst wordt alleen opgenomen als je er expliciet voor kiest deze openbaar te maken.</string>
+	<key>In progress</key>
+	<string>In uitvoering</string>
+	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
+	<string>In-app-aankopen zijn uitgeschakeld in deze build. Je huidige abonnement en gebruik blijven beschikbaar.</string>
+	<key>Inbox</key>
+	<string>Postvak IN</string>
+	<key>Inbox settings</key>
+	<string>Instellingen voor Postvak IN</string>
+	<key>Include notes</key>
+	<string>Voeg notities toe</string>
+	<key>Include this message's text</key>
+	<string>Voeg de tekst van dit bericht toe</string>
+	<key>Inspect pairing request</key>
+	<string>Koppelingsverzoek controleren</string>
+	<key>Inspect this version</key>
+	<string>Inspecteer deze versie</string>
+	<key>Integrity</key>
+	<string>Integriteit</string>
+	<key>Interrupted</key>
+	<string>Onderbroken</string>
+	<key>Inventory fingerprint</key>
+	<string>Inventaris vingerafdruk</string>
+	<key>Invite member</key>
+	<string>Nodig lid uit</string>
+	<key>Issued credentials</key>
+	<string>Uitgegeven legitimatiegegevens</string>
+	<key>Item attachments</key>
+	<string>Artikelbijlagen</string>
+	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
+	<string>Artikelreferenties kunnen vóór hun bestanden worden gesynchroniseerd. Alleen bestanden die op dit apparaat beschikbaar zijn, kunnen aan een nieuwe momentopname worden toegevoegd.</string>
+	<key>Join</key>
+	<string>Doe mee</string>
+	<key>Join account</key>
+	<string>Sluit je aan bij een account</string>
+	<key>Join an existing account</key>
+	<string>Sluit je aan bij een bestaand account</string>
+	<key>Join an existing wallet</key>
+	<string>Sluit je aan bij een bestaande portemonnee</string>
+	<key>Join conversation</key>
+	<string>Neem deel aan het gesprek</string>
+	<key>Keep current version</key>
+	<string>Behoud de huidige versie</string>
+	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
+	<string>Houd je geheimen, gesprekken en bestanden bij elkaar. Alleen je geautoriseerde apparaten kunnen ze openen.</string>
+	<key>Key</key>
+	<string>Sleutel</string>
+	<key>Key fingerprint</key>
+	<string>Sleutel vingerafdruk</string>
+	<key>Key label</key>
+	<string>Sleutellabel</string>
+	<key>Keys</key>
+	<string>Sleutels</string>
+	<key>Language</key>
+	<string>Taal</string>
+	<key>Last known cloud state</key>
+	<string>Laatst bekende cloudstatus</string>
+	<key>Leave conversation</key>
+	<string>Verlaat het gesprek</string>
+	<key>Leave empty to keep existing value</key>
+	<string>Laat leeg om de bestaande waarde te behouden</string>
+	<key>License Key</key>
+	<string>Licentiesleutel</string>
+	<key>Licensed To</key>
+	<string>Gelicentieerd aan</string>
+	<key>Link limits</key>
+	<string>Linklimieten</string>
+	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
+	<string>Live-aanvragen tonen hun geverifieerde oorsprong en volledige payload en vereisen goedkeuring van het geconfigureerde systeem of de hardware.</string>
+	<key>Load earlier activity</key>
+	<string>Laad eerdere activiteit</string>
+	<key>Load earlier messages</key>
+	<string>Laad eerdere berichten</string>
+	<key>Load earlier proposals</key>
+	<string>Laad eerdere voorstellen</string>
+	<key>Load more</key>
+	<string>Laad meer</string>
+	<key>Loading the verified request…</key>
+	<string>Het geverifieerde verzoek laden…</string>
+	<key>Local</key>
+	<string>Lokaal</string>
+	<key>Local delivery record</key>
+	<string>Lokaal leveringsbewijs</string>
+	<key>Local demo</key>
+	<string>Lokale demo</string>
+	<key>Local demo · Fictitious data · Resets when closed</key>
+	<string>Lokale demo · Fictieve gegevens · Reset bij sluiten</string>
+	<key>Local dependencies</key>
+	<string>Lokale afhankelijkheden</string>
+	<key>Local dependency</key>
+	<string>Lokale afhankelijkheid</string>
+	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
+	<string>Van lokale bestanden wordt niet automatisch een back-up gemaakt. Als je dMsg verwijdert, worden bestanden verwijderd die geen cloudback-up hebben.</string>
+	<key>Local findings</key>
+	<string>Lokale bevindingen</string>
+	<key>Local label</key>
+	<string>Lokaal etiket</string>
+	<key>Local security review</key>
+	<string>Lokale veiligheidsbeoordeling</string>
+	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
+	<string>Lokale opslag is niet beschikbaar. Ontgrendel dit apparaat en probeer het opnieuw; reset de werkruimte niet om een ​​onderbroken bewerking te herstellen.</string>
+	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
+	<string>Lokaal afval wordt 30 dagen bewaard. Cloudback-ups worden afzonderlijk beheerd.</string>
+	<key>Lock immediately in background</key>
+	<string>Vergrendel onmiddellijk op de achtergrond</string>
+	<key>Lock workspace</key>
+	<string>Werkruimte vergrendelen</string>
+	<key>Login identities</key>
+	<string>Login-identiteiten</string>
+	<key>Manage Apple subscriptions</key>
+	<string>Beheer Apple-abonnementen</string>
+	<key>Manage file</key>
+	<string>Beheer bestand</string>
+	<key>Manage subscriptions</key>
+	<string>Beheer abonnementen</string>
+	<key>Mark as read</key>
+	<string>Markeer als gelezen</string>
+	<key>Maximum fee in base units</key>
+	<string>Maximaal tarief in basiseenheden</string>
+	<key>Member account ID</key>
+	<string>Account-ID van lid</string>
+	<key>Member account or Principal</key>
+	<string>Lidaccount of Principal</string>
+	<key>Member label</key>
+	<string>Lidmaatschapslabel</string>
+	<key>Members</key>
+	<string>Leden</string>
+	<key>Message</key>
+	<string>Bericht</string>
+	<key>Message withdrawn</key>
+	<string>Bericht ingetrokken</string>
+	<key>Messages</key>
+	<string>Berichten</string>
+	<key>Month</key>
+	<string>Maand</string>
+	<key>Monthly execution units</key>
+	<string>Maandelijkse bedrijfseenheden</string>
+	<key>Move this local file to Trash?</key>
+	<string>Dit lokale bestand naar de prullenbak verplaatsen?</string>
+	<key>Move this secret to Trash?</key>
+	<string>Dit geheim naar de prullenbak verplaatsen?</string>
+	<key>Move to Trash</key>
+	<string>Verplaatsen naar prullenbak</string>
+	<key>Move to another folder</key>
+	<string>Verplaats naar een andere map</string>
+	<key>Mute notifications</key>
+	<string>Meldingen dempen</string>
+	<key>My account</key>
+	<string>Mijn rekening</string>
+	<key>Name</key>
+	<string>Naam</string>
+	<key>Needs a fresh review</key>
+	<string>Heeft een nieuwe beoordeling nodig</string>
+	<key>Network</key>
+	<string>Netwerk</string>
+	<key>New controller</key>
+	<string>Nieuwe Controller</string>
+	<key>New conversation</key>
+	<string>Nieuw gesprek</string>
+	<key>New field type</key>
+	<string>Nieuw veldtype</string>
+	<key>New folder</key>
+	<string>Nieuwe map</string>
+	<key>New free letter</key>
+	<string>Nieuwe gratis brief</string>
+	<key>New revision</key>
+	<string>Nieuwe revisie</string>
+	<key>New secret</key>
+	<string>Nieuw geheim</string>
+	<key>No</key>
+	<string>Nee</string>
+	<key>No activity on this device</key>
+	<string>Geen activiteit op dit apparaat</string>
+	<key>No background transfer</key>
+	<string>Geen achtergrondoverdracht</string>
+	<key>No blocked accounts</key>
+	<string>Geen geblokkeerde accounts</string>
+	<key>No cloud backups</key>
+	<string>Geen cloudback-ups</string>
+	<key>No connected browsers</key>
+	<string>Geen verbonden browsers</string>
+	<key>No conversations yet</key>
+	<string>Nog geen gesprekken</string>
+	<key>No dependencies recorded on this device.</key>
+	<string>Er zijn geen afhankelijkheden geregistreerd op dit apparaat.</string>
+	<key>No findings from this device's checks.</key>
+	<string>Geen bevindingen uit de controles van dit apparaat.</string>
+	<key>No interrupted imports</key>
+	<string>Geen onderbroken import</string>
+	<key>No item attachments</key>
+	<string>Geen itembijlagen</string>
+	<key>No letters yet</key>
+	<string>Nog geen brieven</string>
+	<key>No pending backups</key>
+	<string>Geen lopende back-ups</string>
+	<key>No recent use observed on this device</key>
+	<string>Er is geen recent gebruik waargenomen op dit apparaat</string>
+	<key>No registered approval key</key>
+	<string>Geen geregistreerde goedkeuringssleutel</string>
+	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
+	<string>Geen geselecteerde medeondertekenaars betekent geen aanvullend beleid voor medeondertekenaars. Controleer het volledige voorstel voordat je het goedkeurt.</string>
+	<key>No shared items waiting</key>
+	<string>Er wachten geen gedeelde items</string>
+	<key>No snapshots on this device</key>
+	<string>Geen momentopnamen op dit apparaat</string>
+	<key>No team wallets</key>
+	<string>Geen teamportefeuilles</string>
+	<key>Not enabled</key>
+	<string>Niet ingeschakeld</string>
+	<key>Not enough storage on this device.</key>
+	<string>Onvoldoende opslagruimte op dit apparaat.</string>
+	<key>Not registered</key>
+	<string>Niet geregistreerd</string>
+	<key>Note</key>
+	<string>Let op</string>
+	<key>Notes</key>
+	<string>Notities</string>
+	<key>Notification registration needs retrying. Foreground sync remains available.</key>
+	<string>Meldingsregistratie moet opnieuw worden geprobeerd. Voorgrondsynchronisatie blijft beschikbaar.</string>
+	<key>Notifications</key>
+	<string>Meldingen</string>
+	<key>Notifications are disabled in system settings.</key>
+	<string>Meldingen zijn uitgeschakeld in de systeeminstellingen.</string>
+	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
+	<string>Meldingen bevatten geen berichttekst, afzender, bestandsnaam of goedkeuringspayload. Als je dMsg opent, wordt altijd de werkelijke status vernieuwd.</string>
+	<key>Notifications enabled</key>
+	<string>Meldingen ingeschakeld</string>
+	<key>Notify this account on this device</key>
+	<string>Breng dit account op dit apparaat op de hoogte</string>
+	<key>Number</key>
+	<string>Nummer</string>
+	<key>OK</key>
+	<string>Oké</string>
+	<key>Observed on this device</key>
+	<string>Waargenomen op dit apparaat</string>
+	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
+	<string>Open Goedkeuringen op het geautoriseerde apparaat en bekijk de volledige vingerafdruk, rol en machtigingen van dit apparaat. Scannen wordt nooit automatisch goedgekeurd.</string>
+	<key>On this device</key>
+	<string>Op dit apparaat</string>
+	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
+	<string>Bij je eerste bezoek logt je in en volgt je de stappen om je gecodeerde werkruimte te creëren.</string>
+	<key>One-time code</key>
+	<string>Eenmalige code</string>
+	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
+	<string>Doe dit alleen als je klaar bent om het te gebruiken. Kopieën blijven op dit apparaat staan ​​en vervallen na 30 seconden.</string>
+	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
+	<string>Hier wordt alleen gratis contact ondersteund. Met deze actie kan de vergoeding van een ontvanger niet worden betaald of goedgekeurd.</string>
+	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
+	<string>Alleen geselecteerde, onveranderlijke kopieën verschijnen in de Bestanden-app. Voor toegang is systeemverificatie vereist; vergrendelen dMsg beëindigt de huidige toegangssessie. Bestanden kunnen gedownloade kopieën en bestandsnamen behouden, die dMsg zich niet kan herinneren.</string>
+	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
+	<string>Alleen het geselecteerde gecodeerde bestand kan worden overgedragen terwijl dMsg is vergrendeld. iOS bestuurt de planning; force quit stopt de bezorging totdat je de app opnieuw opent. Open het oorspronkelijke account om te verifiëren en af ​​te ronden.</string>
+	<key>Open approval record</key>
+	<string>Goedkeuringsrecord openen</string>
+	<key>Open approvals</key>
+	<string>Goedkeuringen openen</string>
+	<key>Open dMsg without exposing private content on the Home Screen.</key>
+	<string>Open dMsg zonder privé-inhoud op het startscherm weer te geven.</string>
+	<key>Open dMsg workspace</key>
+	<string>Open de dMsg-werkruimte</string>
+	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
+	<string>Open dMsg. Voor het ontgrendelen en goedkeuren is nog steeds je interactie in de app vereist.</string>
+	<key>Open invitation in browser</key>
+	<string>Uitnodiging openen in browser</string>
+	<key>Open notification settings</key>
+	<string>Meldingsinstellingen openen</string>
+	<key>Open private workspace</key>
+	<string>Open privéwerkruimte</string>
+	<key>Open secret</key>
+	<string>Open geheim</string>
+	<key>Open workspace</key>
+	<string>Open werkruimte</string>
+	<key>Optional password</key>
+	<string>Optioneel wachtwoord</string>
+	<key>Original revision</key>
+	<string>Originele herziening</string>
+	<key>Other</key>
+	<string>Anders</string>
+	<key>Other devices</key>
+	<string>Andere apparaten</string>
+	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
+	<string>Anders wordt de dMsg na 3 minuten vergrendeld. Apparaatvergrendeling vergrendelt je werkruimte altijd onmiddellijk.</string>
+	<key>Outcome no longer available</key>
+	<string>Uitslag niet meer beschikbaar</string>
+	<key>Package size</key>
+	<string>Pakketgrootte</string>
+	<key>Parent folder</key>
+	<string>Bovenliggende map</string>
+	<key>Password</key>
+	<string>Wachtwoord</string>
+	<key>Password AutoFill</key>
+	<string>Wachtwoord automatisch aanvullen</string>
+	<key>Password protected</key>
+	<string>Wachtwoord beveiligd</string>
+	<key>Password, if required</key>
+	<string>Wachtwoord, indien vereist</string>
+	<key>Passwords</key>
+	<string>Wachtwoorden</string>
+	<key>Paste binding request</key>
+	<string>Bindend verzoek plakken</string>
+	<key>Paste enrollment request</key>
+	<string>Inschrijvingsverzoek plakken</string>
+	<key>Paste invitation</key>
+	<string>Uitnodiging plakken</string>
+	<key>Paste pairing request</key>
+	<string>Koppelingsverzoek plakken</string>
+	<key>Paste secret package link</key>
+	<string>Plak de geheime pakketlink</string>
+	<key>Pause this agent</key>
+	<string>Pauzeer deze agent</string>
+	<key>Pause transfer</key>
+	<string>Pauzeer de overdracht</string>
+	<key>Payment card</key>
+	<string>Betaalkaart</string>
+	<key>Payments</key>
+	<string>Betalingen</string>
+	<key>Pending backups</key>
+	<string>Back-ups in behandeling</string>
+	<key>Pending imports</key>
+	<string>In afwachting van import</string>
+	<key>Pending letters</key>
+	<string>Brieven in behandeling</string>
+	<key>Permanently delete the dMsg service account you reviewed</key>
+	<string>Verwijder definitief het dMsg-serviceaccount dat je hebt beoordeeld</string>
+	<key>Permanently delete this dMsg service account?</key>
+	<string>Dit dMsg-serviceaccount definitief verwijderen?</string>
+	<key>Permissions</key>
+	<string>Toestemmingen</string>
+	<key>Phone</key>
+	<string>Telefoon</string>
+	<key>Phrase</key>
+	<string>Zin</string>
+	<key>Pin</key>
+	<string>Vastzetten</string>
+	<key>Plan</key>
+	<string>Plannen</string>
+	<key>Plan and usage</key>
+	<string>Plan en gebruik</string>
+	<key>Policy points to an unavailable field</key>
+	<string>Het beleid wijst naar een niet-beschikbaar veld</string>
+	<key>Port</key>
+	<string>Poort</string>
+	<key>Prepare selected snapshot</key>
+	<string>Bereid de geselecteerde momentopname voor</string>
+	<key>Prepared on this device</key>
+	<string>Voorbereid op dit apparaat</string>
+	<key>Preview and choose what to import</key>
+	<string>Bekijk een voorbeeld en kies wat je wilt importeren</string>
+	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
+	<string>Preview downloadt en verifieert het pakket op dit apparaat en maakt gebruik van een downloadsessie. Kies het ontvangende apparaat voordat je doorgaat.</string>
+	<key>Preview file</key>
+	<string>Voorbeeldbestand</string>
+	<key>Preview package</key>
+	<string>Voorbeeldpakket</string>
+	<key>Preview reporting disclosure</key>
+	<string>Voorbeeld van openbaarmaking van rapportage</string>
+	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
+	<string>Eerder aangeleverde inloggegevens en kopieën zijn onafhankelijk. Indien nodig delegaties afzonderlijk intrekken.</string>
+	<key>Principal</key>
+	<string>Principal</string>
+	<key>Privacy</key>
+	<string>Privacy</string>
+	<key>Privacy policy</key>
+	<string>Privacybeleid</string>
+	<key>Private Key</key>
+	<string>Privésleutel</string>
+	<key>Private workspace hidden</key>
+	<string>Privéwerkruimte verborgen</string>
+	<key>Proposal %llu</key>
+	<string>Voorstel %llu</string>
+	<key>Proposal created. Review it in the wallet's proposal list.</key>
+	<string>Voorstel gemaakt. Bekijk het in de lijst met voorstellen van de portemonnee.</string>
+	<key>Proposals</key>
+	<string>Voorstellen</string>
+	<key>Propose address</key>
+	<string>Adres voorstellen</string>
+	<key>Propose member change</key>
+	<string>Lidwijziging voorstellen</string>
+	<key>Propose registering this key</key>
+	<string>Stel voor om deze sleutel te registreren</string>
+	<key>Propose removing cosigner</key>
+	<string>Stel voor om medeondertekenaar te verwijderen</string>
+	<key>Propose removing member</key>
+	<string>Voorstellen lid te verwijderen</string>
+	<key>Propose thresholds</key>
+	<string>Drempels voorstellen</string>
+	<key>Propose transfer</key>
+	<string>Overdracht voorstellen</string>
+	<key>Propose unfreezing</key>
+	<string>Stel voor om de bevriezing op te heffen</string>
+	<key>Proposer</key>
+	<string>Indiener</string>
+	<key>Public Key</key>
+	<string>Openbare sleutel</string>
+	<key>Public avatar</key>
+	<string>Openbare avatar</string>
+	<key>Public profile</key>
+	<string>Openbaar profiel</string>
+	<key>Publication pending</key>
+	<string>Publicatie in behandeling</string>
+	<key>Publish</key>
+	<string>Publiceren</string>
+	<key>Publish a secret snapshot</key>
+	<string>Publiceer een geheime momentopname</string>
+	<key>Publish profile</key>
+	<string>Profiel publiceren</string>
+	<key>Publish these details publicly?</key>
+	<string>Deze gegevens openbaar publiceren?</string>
+	<key>Published</key>
+	<string>Gepubliceerd</string>
+	<key>Purchased</key>
+	<string>Gekocht</string>
+	<key>Purchases are not currently available.</key>
+	<string>Aankopen zijn momenteel niet beschikbaar.</string>
+	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
+	<string>Pushmeldingen zijn niet ingeschakeld in deze build. Open dMsg om te synchroniseren.</string>
+	<key>Quick unlock with system authentication</key>
+	<string>Snel ontgrendelen met systeemauthenticatie</string>
+	<key>Read from a desktop file mapping</key>
+	<string>Lezen van een desktopbestandstoewijzing</string>
+	<key>Read the published policy</key>
+	<string>Lees het gepubliceerde beleid</string>
+	<key>Reason</key>
+	<string>Reden</string>
+	<key>Received for review</key>
+	<string>Ter beoordeling ontvangen</string>
+	<key>Receiving addresses</key>
+	<string>Adressen ontvangen</string>
+	<key>Receiving policy</key>
+	<string>Ontvangstbeleid</string>
+	<key>Recipient</key>
+	<string>Ontvanger</string>
+	<key>Recipient account ID</key>
+	<string>Account-ID van ontvanger</string>
+	<key>Recipient address</key>
+	<string>Adres van ontvanger</string>
+	<key>Reconcile original execution</key>
+	<string>Oorspronkelijk uitvoeringsresultaat controleren</string>
+	<key>Reconcile original operation</key>
+	<string>Bevestig het resultaat van de oorspronkelijke bewerking</string>
+	<key>Reconcile original proposal</key>
+	<string>Origineel voorstel afstemmen</string>
+	<key>Reconcile original send</key>
+	<string>Oorspronkelijke verzending afstemmen</string>
+	<key>Reconcile original snapshot</key>
+	<string>Originele momentopname afstemmen</string>
+	<key>Record manual review</key>
+	<string>Handmatige beoordeling opnemen</string>
+	<key>Record this step as completed?</key>
+	<string>Deze stap als voltooid registreren?</string>
+	<key>Recovery</key>
+	<string>Herstel</string>
+	<key>Recovery status</key>
+	<string>Herstelstatus</string>
+	<key>Recovery status needs checking</key>
+	<string>De herstelstatus moet worden gecontroleerd</string>
+	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
+	<string>Recovery maakt gebruik van je gebonden login en een wachtperiode. Een geautoriseerd apparaat kan dit betwisten. Niet-gesynchroniseerde lokale inhoud kan niet worden hersteld.</string>
+	<key>Recovery waiting period</key>
+	<string>Wachttijd voor herstel</string>
+	<key>Refresh</key>
+	<string>Vernieuwen</string>
+	<key>Refresh balances</key>
+	<string>Ververs saldi</string>
+	<key>Refresh dependencies</key>
+	<string>Afhankelijkheden vernieuwen</string>
+	<key>Register a hardware approval key</key>
+	<string>Registreer een hardwaregoedkeuringssleutel</string>
+	<key>Register an SSH binding</key>
+	<string>Registreer een SSH-binding</string>
+	<key>Register this public key through a wallet proposal</key>
+	<string>Registreer deze publieke sleutel via een portefeuillevoorstel</string>
+	<key>Registered on this device</key>
+	<string>Geregistreerd op dit apparaat</string>
+	<key>Reject</key>
+	<string>Afwijzen</string>
+	<key>Reject this request?</key>
+	<string>Dit verzoek afwijzen?</string>
+	<key>Rejected</key>
+	<string>Afgewezen</string>
+	<key>Release 1.0 is ready for review.</key>
+	<string>Release 1.0 is klaar voor beoordeling.</string>
+	<key>Remove</key>
+	<string>Verwijderen</string>
+	<key>Remove AutoFill snapshot</key>
+	<string>Verwijder de AutoFill-momentopname</string>
+	<key>Remove Files app snapshot</key>
+	<string>Momentopname van de Bestanden-app verwijderen</string>
+	<key>Remove attachment reference</key>
+	<string>Bijlagereferentie verwijderen</string>
+	<key>Remove device binding</key>
+	<string>Apparaatbinding verwijderen</string>
+	<key>Remove device binding?</key>
+	<string>Apparaatbinding verwijderen?</string>
+	<key>Remove field</key>
+	<string>Veld verwijderen</string>
+	<key>Remove local data</key>
+	<string>Verwijder lokale gegevens</string>
+	<key>Remove member</key>
+	<string>Lid verwijderen</string>
+	<key>Remove this account's data from this device?</key>
+	<string>De gegevens van dit account van dit apparaat verwijderen?</string>
+	<key>Remove this account's local data</key>
+	<string>Verwijder de lokale gegevens van dit account</string>
+	<key>Remove this local agent</key>
+	<string>Verwijder deze lokale agent</string>
+	<key>Remove this local agent?</key>
+	<string>Deze lokale agent verwijderen?</string>
+	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
+	<string>Als je een referentie verwijdert, wordt het bestand niet verwijderd. Bestaande referenties blijven behouden, zelfs als hun bestanden ontbreken op dit apparaat.</string>
+	<key>Repair the unavailable field reference on its originating device.</key>
+	<string>Herstel de niet-beschikbare veldreferentie op het oorspronkelijke apparaat.</string>
+	<key>Replace AutoFill snapshot</key>
+	<string>Vervang de momentopname van Automatisch aanvullen</string>
+	<key>Replace Files app snapshot</key>
+	<string>Vervang de app-momentopname van Bestanden</string>
+	<key>Replace cosignature policy</key>
+	<string>Vervang medehandtekeningsbeleid</string>
+	<key>Reply</key>
+	<string>Antwoord</string>
+	<key>Reply to message %llu</key>
+	<string>Bericht beantwoorden %llu</string>
+	<key>Report content</key>
+	<string>Inhoud melden</string>
+	<key>Report received for review</key>
+	<string>Rapport ontvangen ter beoordeling</string>
+	<key>Reported account</key>
+	<string>Gerapporteerde rekening</string>
+	<key>Reporting disclosure</key>
+	<string>Openbaarmaking van rapportage</string>
+	<key>Request ID</key>
+	<string>ID aanvragen</string>
+	<key>Request account deletion</key>
+	<string>Verzoek om accountverwijdering</string>
+	<key>Request account recovery</key>
+	<string>Accountherstel aanvragen</string>
+	<key>Request recovery</key>
+	<string>Vraag herstel aan</string>
+	<key>Request source</key>
+	<string>Bron opvragen</string>
+	<key>Requested permissions</key>
+	<string>Toestemmingen aangevraagd</string>
+	<key>Requests that need your decision appear here.</key>
+	<string>Verzoeken waarvoor je beslissing nodig is, worden hier weergegeven.</string>
+	<key>Require hardware approval</key>
+	<string>Hardwaregoedkeuring vereisen</string>
+	<key>Require this device to unlock</key>
+	<string>Vereist dat dit apparaat wordt ontgrendeld</string>
+	<key>Required cosignatures %u</key>
+	<string>Vereiste medehandtekeningen %u</string>
+	<key>Resolve the pending account operation before deleting this account.</key>
+	<string>Los de lopende accountbewerking op voordat je dit account verwijdert.</string>
+	<key>Restore</key>
+	<string>Herstellen</string>
+	<key>Restore purchases</key>
+	<string>Aankopen herstellen</string>
+	<key>Restore this version</key>
+	<string>Herstel deze versie</string>
+	<key>Restore this version as a new current version?</key>
+	<string>Deze versie herstellen als een nieuwe huidige versie?</string>
+	<key>Restore this version from cloud backups before opening it.</key>
+	<string>Herstel deze versie vanaf cloudback-ups voordat je deze opent.</string>
+	<key>Restore to this device</key>
+	<string>Herstel naar dit apparaat</string>
+	<key>Restoring…</key>
+	<string>Herstellen…</string>
+	<key>Result</key>
+	<string>Resultaat</string>
+	<key>Result unconfirmed</key>
+	<string>Resultaat onbevestigd</string>
+	<key>Retire a hardware approval key</key>
+	<string>Een hardwaregoedkeuringssleutel intrekken</string>
+	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
+	<string>Als je een sleutel buiten gebruik stelt, wordt de mogelijkheid om beschermde acties goed te keuren verwijderd. Controleer of er nog een ander geautoriseerd goedkeuringspad beschikbaar blijft.</string>
+	<key>Retry</key>
+	<string>Opnieuw proberen</string>
+	<key>Retry loading activity</key>
+	<string>Probeer de activiteit opnieuw te laden</string>
+	<key>Retry loading hardware security</key>
+	<string>Probeer hardwarebeveiliging opnieuw te laden</string>
+	<key>Retry loading profile</key>
+	<string>Probeer het profiel opnieuw te laden</string>
+	<key>Retry original change</key>
+	<string>Probeer de oorspronkelijke wijziging opnieuw</string>
+	<key>Retry original letter</key>
+	<string>Probeer de originele brief opnieuw</string>
+	<key>Retry preview</key>
+	<string>Voorbeeld opnieuw proberen</string>
+	<key>Retry publication</key>
+	<string>Probeer de publicatie opnieuw</string>
+	<key>Retry registration</key>
+	<string>Probeer de registratie opnieuw</string>
+	<key>Retry this report</key>
+	<string>Probeer dit rapport opnieuw</string>
+	<key>Reveal</key>
+	<string>Tonen</string>
+	<key>Reveal this field?</key>
+	<string>Dit veld onthullen?</string>
+	<key>Review</key>
+	<string>Beoordeling</string>
+	<key>Review a web connection request</key>
+	<string>Een internetverbindingsverzoek beoordelen</string>
+	<key>Review agent delegation</key>
+	<string>Delegatie van reviewagenten</string>
+	<key>Review agent permissions</key>
+	<string>Controleer agentmachtigingen</string>
+	<key>Review an enrollment request</key>
+	<string>Een inschrijvingsverzoek beoordelen</string>
+	<key>Review and restart the desktop file mapping on its originating device.</key>
+	<string>Controleer de bestandstoewijzing op het bureaublad en start deze opnieuw op het oorspronkelijke apparaat.</string>
+	<key>Review approval</key>
+	<string>Goedkeuring beoordelen</string>
+	<key>Review binding</key>
+	<string>Beoordelingsbinding</string>
+	<key>Review controller registration</key>
+	<string>Controleer de Controller-registratie</string>
+	<key>Review delegation grant</key>
+	<string>Controleer de machtiging voor delegatietoegang</string>
+	<key>Review deletion</key>
+	<string>Verwijdering controleren</string>
+	<key>Review enabling a principal</key>
+	<string>Bekijk het inschakelen van een principal</string>
+	<key>Review field and dependencies</key>
+	<string>Controleer veld en afhankelijkheden</string>
+	<key>Review hardware policy changes</key>
+	<string>Bekijk wijzigingen in het hardwarebeleid</string>
+	<key>Review in approval center</key>
+	<string>Beoordeling in goedkeuringscentrum</string>
+	<key>Review joining wallet</key>
+	<string>Bekijk de deelnameportemonnee</string>
+	<key>Review key enrollment</key>
+	<string>Controleer de sleutelinschrijving</string>
+	<key>Review key registration</key>
+	<string>Controleer de sleutelregistratie</string>
+	<key>Review local finding</key>
+	<string>Controleer lokale bevindingen</string>
+	<key>Review old snapshots and revoke remaining links if appropriate.</key>
+	<string>Bekijk oude snapshots en trek indien nodig de resterende links in.</string>
+	<key>Review permissions</key>
+	<string>Machtigingen controleren</string>
+	<key>Review publication or resume</key>
+	<string>Beoordeel publicatie of CV</string>
+	<key>Review rejection</key>
+	<string>Afwijzing beoordelen</string>
+	<key>Review removing this login</key>
+	<string>Bekijk het verwijderen van deze login</string>
+	<key>Review replacement key</key>
+	<string>Controleer de vervangende sleutel</string>
+	<key>Review request</key>
+	<string>Beoordelingsverzoek</string>
+	<key>Review retiring controller</key>
+	<string>Bekijk de buiten gebruik gestelde Controller</string>
+	<key>Review retiring this approval key</key>
+	<string>Controleer het intrekken van deze goedkeuringssleutel</string>
+	<key>Review revocation</key>
+	<string>Intrekking beoordelen</string>
+	<key>Review selected import</key>
+	<string>Controleer de geselecteerde import</string>
+	<key>Review sync conflicts</key>
+	<string>Controleer synchronisatieconflicten</string>
+	<key>Review the agent's authorization on its originating device.</key>
+	<string>Controleer de autorisatie van de agent op het oorspronkelijke apparaat.</string>
+	<key>Review the complete request</key>
+	<string>Controleer het volledige verzoek</string>
+	<key>Review the current key and renew the SSH binding on its originating device.</key>
+	<string>Controleer de huidige sleutel en vernieuw de SSH-binding op het oorspronkelijke apparaat.</string>
+	<key>Review the request and dispute it if it is not yours.</key>
+	<string>Controleer het verzoek en betwist het als het niet van je is.</string>
+	<key>Review the snapshot's recipients and expiry.</key>
+	<string>Controleer de ontvangers en de vervaldatum van de momentopname.</string>
+	<key>Review this device's current dependencies</key>
+	<string>Bekijk de huidige afhankelijkheden van dit apparaat</string>
+	<key>Review this device's policy and access grants.</key>
+	<string>Bekijk het beleid van dit apparaat en de toegangsrechten.</string>
+	<key>Review this local record before making changes.</key>
+	<string>Controleer dit lokale record voordat je wijzigingen aanbrengt.</string>
+	<key>Review waiting-period change</key>
+	<string>Wijziging wachtperiode bekijken</string>
+	<key>Review wallet action</key>
+	<string>Bekijk de portemonnee-actie</string>
+	<key>Reviewed</key>
+	<string>Beoordeeld</string>
+	<key>Revocation pending</key>
+	<string>Intrekking in behandeling</string>
+	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
+	<string>Intrekking stopt nieuwe toegang nadat de beveiligingsstatus is vernieuwd en sleutels zijn gerouleerd. Eerder gekopieerde inhoud kan niet worden teruggehaald.</string>
+	<key>Revoke</key>
+	<string>Intrekken</string>
+	<key>Revoke a device</key>
+	<string>Een apparaat intrekken</string>
+	<key>Revoke browser</key>
+	<string>Browser intrekken</string>
+	<key>Revoke delegation</key>
+	<string>Delegatie intrekken</string>
+	<key>Revoke grant</key>
+	<string>Toegangsmachtiging intrekken</string>
+	<key>Revoke or cancel</key>
+	<string>Intrekken of annuleren</string>
+	<key>Revoke or cancel this link</key>
+	<string>Trek deze link in of annuleer deze</string>
+	<key>Revoke the old credential at its provider</key>
+	<string>Trek de oude inloggegevens bij de provider in</string>
+	<key>Revoke this browser?</key>
+	<string>Deze browser intrekken?</string>
+	<key>Revoke this device</key>
+	<string>Dit apparaat intrekken</string>
+	<key>Revoke this device and rotate content keys</key>
+	<string>Trek dit apparaat in en roteer de inhoudssleutels</string>
+	<key>Revoke this snapshot link?</key>
+	<string>Deze link naar snapshot intrekken?</string>
+	<key>Revoked</key>
+	<string>Ingetrokken</string>
+	<key>Role</key>
+	<string>Rol</string>
+	<key>Rotate conversation keys</key>
+	<string>Gesprekstoetsen draaien</string>
+	<key>Rotation checklists</key>
+	<string>Controlelijsten voor rotatie</string>
+	<key>SHA-256</key>
+	<string>SHA-256</string>
+	<key>SSH binding</key>
+	<string>SSH-binding</string>
+	<key>SSH binding needs review</key>
+	<string>SSH-binding moet worden beoordeeld</string>
+	<key>SSH key</key>
+	<string>SSH-sleutel</string>
+	<key>Safety and support</key>
+	<string>Veiligheid en ondersteuning</string>
+	<key>Sample action: sign a release announcement</key>
+	<string>Voorbeeldactie: teken een vrijgaveaankondiging</string>
+	<key>Sample login</key>
+	<string>Voorbeeld login</string>
+	<key>Sample password</key>
+	<string>Voorbeeldwachtwoord</string>
+	<key>Save</key>
+	<string>Opslaan</string>
+	<key>Save name</key>
+	<string>Naam opslaan</string>
+	<key>Save receiving policy</key>
+	<string>Bewaar het ontvangstbeleid</string>
+	<key>Save selected version</key>
+	<string>Bewaar de geselecteerde versie</string>
+	<key>Save settings</key>
+	<string>Instellingen opslaan</string>
+	<key>Save the selected version?</key>
+	<string>De geselecteerde versie opslaan?</string>
+	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
+	<string>Bewaar deze items voor dMsg. Kies een account en importeer deze na het openen en ontgrendelen van de app.</string>
+	<key>Save to dMsg</key>
+	<string>Opslaan in dMsg</string>
+	<key>Saved</key>
+	<string>Opgeslagen</string>
+	<key>Saved as a separate version. Review sync conflicts.</key>
+	<string>Opgeslagen als een aparte versie. Controleer synchronisatieconflicten.</string>
+	<key>Saved for dMsg. Open the app to review and import these items.</key>
+	<string>Opgeslagen voor dMsg. Open de app om deze items te bekijken en te importeren.</string>
+	<key>Saved locally first. Sync status is shown separately.</key>
+	<string>Eerst lokaal opgeslagen. De synchronisatiestatus wordt afzonderlijk weergegeven.</string>
+	<key>Saved on this device</key>
+	<string>Opgeslagen op dit apparaat</string>
+	<key>Saved on this device. Changes are waiting to sync.</key>
+	<string>Opgeslagen op dit apparaat. Wijzigingen wachten op synchronisatie.</string>
+	<key>Saved. Publication is pending.</key>
+	<string>Opgeslagen. Publicatie is in behandeling.</string>
+	<key>Scan device request</key>
+	<string>Verzoek om scanapparaat</string>
+	<key>Scopes, one per line</key>
+	<string>Scopes, één per regel</string>
+	<key>Screenshots may contain private information.</key>
+	<string>Schermafbeeldingen kunnen privégegevens bevatten.</string>
+	<key>Search files</key>
+	<string>Zoek bestanden</string>
+	<key>Search messages</key>
+	<string>Zoek berichten</string>
+	<key>Search your vault</key>
+	<string>Doorzoek je kluis</string>
+	<key>Secret</key>
+	<string>Geheim</string>
+	<key>Secret package link</key>
+	<string>Geheime pakketlink</string>
+	<key>Section</key>
+	<string>Sectie</string>
+	<key>Secure Enclave is unavailable on this device.</key>
+	<string>Secure Enclave is niet beschikbaar op dit apparaat.</string>
+	<key>Security requirements changed. Review the request again before approving it.</key>
+	<string>Beveiligingseisen zijn gewijzigd. Controleer het verzoek opnieuw voordat je het goedkeurt.</string>
+	<key>Select a conversation</key>
+	<string>Selecteer een gesprek</string>
+	<key>Select a file</key>
+	<string>Selecteer een bestand</string>
+	<key>Select a secret</key>
+	<string>Selecteer een geheim</string>
+	<key>Select attachments to import</key>
+	<string>Selecteer bijlagen om te importeren</string>
+	<key>Select attachments to share</key>
+	<string>Selecteer bijlagen om te delen</string>
+	<key>Select fields to import</key>
+	<string>Selecteer velden om te importeren</string>
+	<key>Select fields to share</key>
+	<string>Selecteer velden om te delen</string>
+	<key>Select login items</key>
+	<string>Selecteer inlogitems</string>
+	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
+	<string>Geselecteerde OTP-velden bevatten het herbruikbare zaad, niet alleen een huidige code.</string>
+	<key>Selected accounts</key>
+	<string>Geselecteerde rekeningen</string>
+	<key>Send free letter</key>
+	<string>Gratis brief versturen</string>
+	<key>Send message</key>
+	<string>Bericht verzenden</string>
+	<key>Send queued message</key>
+	<string>Bericht in wachtrij verzenden</string>
+	<key>Send to an administrator</key>
+	<string>Stuur naar een beheerder</string>
+	<key>Sender</key>
+	<string>Afzender</string>
+	<key>Sender account</key>
+	<string>Afzenderaccount</string>
+	<key>Server</key>
+	<string>Server</string>
+	<key>Set up this account</key>
+	<string>Stel dit account in</string>
+	<key>Share a copy</key>
+	<string>Deel een kopie</string>
+	<key>Share binding request</key>
+	<string>Bindend verzoek delen</string>
+	<key>Share enrollment request</key>
+	<string>Deel inschrijvingsverzoek</string>
+	<key>Share invitation</key>
+	<string>Deel uitnodiging</string>
+	<key>Share link</key>
+	<string>Deel link</string>
+	<key>Share pairing request</key>
+	<string>Koppelingsverzoek delen</string>
+	<key>Share secret snapshot</key>
+	<string>Deel geheime momentopname</string>
+	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
+	<string>Deel dit verzoek met een geautoriseerde beheerder. Het registreert of keurt de sleutel niet zelf goed.</string>
+	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
+	<string>Gedeelde kopieën verlaten de bescherming van dMsg en kunnen niet worden ingetrokken.</string>
+	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
+	<string>Gedeelde items zijn niet beschikbaar. Open de app opnieuw nadat je dit apparaat heeft ontgrendeld.</string>
+	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
+	<string>Gedeelde items wachten op dit apparaat. Door te importeren worden ze gecodeerd in het momenteel geselecteerde account.</string>
+	<key>Shared snapshots</key>
+	<string>Gedeelde momentopnamen</string>
+	<key>Shared with dMsg</key>
+	<string>Gedeeld met dMsg</string>
+	<key>Show dismissed findings</key>
+	<string>Toon afgewezen bevindingen</string>
+	<key>Show sample password</key>
+	<string>Voorbeeldwachtwoord weergeven</string>
+	<key>Show share link</key>
+	<string>Deellink tonen</string>
+	<key>Showing saved content. The latest sync did not finish.</key>
+	<string>Opgeslagen inhoud weergeven. De laatste synchronisatie is niet voltooid.</string>
+	<key>Sign a statement</key>
+	<string>Teken een verklaring</string>
+	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
+	<string>Meld je opnieuw aan om je gecodeerde werkruimte op deze iPhone te ontgrendelen.</string>
+	<key>Sign in to another account</key>
+	<string>Log in op een ander account</string>
+	<key>Sign out</key>
+	<string>Meld je af</string>
+	<key>Sign out of this account?</key>
+	<string>Uitloggen bij dit account?</string>
+	<key>Sign the statement you reviewed</key>
+	<string>Onderteken de verklaring die je hebt beoordeeld</string>
+	<key>Simulate approval</key>
+	<string>Simuleer goedkeuring</string>
+	<key>Simulate rejection</key>
+	<string>Simuleer afwijzing</string>
+	<key>Simulate this approval?</key>
+	<string>Deze goedkeuring simuleren?</string>
+	<key>Snapshot</key>
+	<string>Momentopname</string>
+	<key>Snapshot link</key>
+	<string>Momentopname-link</string>
+	<key>Software license</key>
+	<string>Softwarelicentie</string>
+	<key>Solana</key>
+	<string>Solana</string>
+	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
+	<string>Sommige bronrecords of eigenschappen worden niet ondersteund. Met deze import worden alleen geselecteerde velden gekopieerd; archiefbijlagen, wachtwoordsleutels en geschiedenis worden hier niet geïmporteerd.</string>
+	<key>Source address %u</key>
+	<string>Bronadres %u</string>
+	<key>Spam</key>
+	<string>Spam</string>
+	<key>Spending approvals %u</key>
+	<string>Goedkeuringen van uitgaven %u</string>
+	<key>Stage selected files, then choose an account and import them in dMsg.</key>
+	<string>Stage geselecteerde bestanden, kies vervolgens een account en importeer ze in dMsg.</string>
+	<key>Start a checklist from a field's reference page.</key>
+	<string>Start een checklist vanaf de referentiepagina van een veld.</string>
+	<key>Start a rotation checklist</key>
+	<string>Start een rotatiechecklist</string>
+	<key>Start a rotation checklist?</key>
+	<string>Een rotatiechecklist starten?</string>
+	<key>Start account recovery?</key>
+	<string>Accountherstel starten?</string>
+	<key>Start checklist</key>
+	<string>Controlelijst starten</string>
+	<key>Status</key>
+	<string>Status</string>
+	<key>Stop this device's transfer</key>
+	<string>Stop de overdracht van dit apparaat</string>
+	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
+	<string>Opslag is een eenmalige aankoop voor de huidige abonnementstermijn en wordt niet automatisch verlengd.</string>
+	<key>Storage packs</key>
+	<string>Opbergpakketten</string>
+	<key>Storage purchases require an active App Store subscription.</key>
+	<string>Voor opslagaankopen is een actief App Store-abonnement vereist.</string>
+	<key>Subject Agent ID</key>
+	<string>Onderwerp Agent-ID</string>
+	<key>Submit report</key>
+	<string>Rapport indienen</string>
+	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
+	<string>Abonnementen worden automatisch verlengd, tenzij je ze opzegt in je Apple-accountinstellingen. Als je je dMsg-account verwijdert, wordt een Apple-abonnement niet opgezegd.</string>
+	<key>Switch account</key>
+	<string>Van account wisselen</string>
+	<key>Switch to this account</key>
+	<string>Schakel over naar dit account</string>
+	<key>Sync conflicts</key>
+	<string>Synchronisatieconflicten</string>
+	<key>Sync now</key>
+	<string>Synchroniseer nu</string>
+	<key>Synced</key>
+	<string>Gesynchroniseerd</string>
+	<key>Syncing…</key>
+	<string>Synchroniseren...</string>
+	<key>System authentication</key>
+	<string>Systeemverificatie</string>
+	<key>System integrations</key>
+	<string>Systeemintegraties</string>
+	<key>System permission</key>
+	<string>Systeemtoestemming</string>
+	<key>Tags, separated by commas</key>
+	<string>Tags, gescheiden door komma's</string>
+	<key>Team wallets</key>
+	<string>Team portemonnees</string>
+	<key>Terms of service</key>
+	<string>Servicevoorwaarden</string>
+	<key>Test environment · Separate accounts and test purchases</key>
+	<string>Testomgeving · Aparte accounts en testaankopen</string>
+	<key>Test the new credential at its provider</key>
+	<string>Test de nieuwe referentie bij de provider</string>
+	<key>Text</key>
+	<string>Tekst</string>
+	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
+	<string>De gecodeerde versie maakt gebruik van cloudopslag. Je lokale kopie blijft op dit apparaat staan.</string>
+	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
+	<string>De expliciete scopes en doelgroepen hierboven zijn ook van toepassing op deze referentie. Onbeperkt Controller-machtiging maakt een referentie nooit onbeperkt.</string>
+	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
+	<string>De geëxporteerde inloggegevens zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken.</string>
+	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
+	<string>De bestandskopieën zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken en probeer het opnieuw.</string>
+	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
+	<string>De uitnodiging is gebonden aan dit account. Het delen van de link geeft geen toegang tot een ander account.</string>
+	<key>The last verified observation is kept. Current status could not be confirmed.</key>
+	<string>De laatste geverifieerde waarneming wordt bewaard. De huidige status kan niet worden bevestigd.</string>
+	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
+	<string>De lokale bindingssleutel is niet beschikbaar. Bewaar deze werkruimte en bekijk je herstelopties voordat je deze vergrendelt.</string>
+	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
+	<string>De lokale tour is voor iedereen beschikbaar. Om het aanmaken van accounts, synchronisatie, aankopen, meldingen en hardwareautorisatie te testen, verlaat je de rondleiding en logt je in via Internet Identity.</string>
+	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
+	<string>De mobiele pakketlimiet is 8 MiB. Preview controleert het pakket voordat je kiest wat je wilt importeren.</string>
+	<key>The operation could not be completed.</key>
+	<string>De operatie kon niet worden voltooid.</string>
+	<key>The operation could not be completed. Please try again.</key>
+	<string>De operatie kon niet worden voltooid. Probeer het opnieuw.</string>
+	<key>The operation was cancelled or is not permitted.</key>
+	<string>De bewerking is geannuleerd of is niet toegestaan.</string>
+	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
+	<string>De uitkomst is onzeker. Controleer de oorspronkelijke taak voordat je opnieuw iets probeert.</string>
+	<key>The record changed. Refresh and review your edits before saving again.</key>
+	<string>Het record is gewijzigd. Vernieuw en controleer je bewerkingen voordat je ze opnieuw opslaat.</string>
+	<key>The request is not available to this device. It may have expired or already been handled.</key>
+	<string>Het verzoek is niet beschikbaar voor dit apparaat. Mogelijk is de aanvraag verlopen of al afgehandeld.</string>
+	<key>The required content key is not available yet.</key>
+	<string>De vereiste inhoudssleutel is nog niet beschikbaar.</string>
+	<key>The result is not confirmed. Reconcile this request before retrying.</key>
+	<string>Het resultaat is niet bevestigd. Stem dit verzoek af voordat je het opnieuw probeert.</string>
+	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
+	<string>De geselecteerde afbeelding blijft op dit apparaat staan totdat je deze publiceert. Gepubliceerde avatars zijn openbaar en kopieën kunnen buiten dMsg blijven.</string>
+	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
+	<string>De geselecteerde items konden niet worden geënsceneerd. Open dMsg en probeer ze daar te importeren.</string>
+	<key>The source copy was interrupted. Discard it and select the source again.</key>
+	<string>De bronkopie werd onderbroken. Gooi het weg en selecteer de bron opnieuw.</string>
+	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
+	<string>De testimplementatie is niet geconfigureerd. De lokale demo en het privacybeleid blijven beschikbaar.</string>
+	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
+	<string>De overdrachtsmachtiging is verlopen. Annuleer deze taak en zet de oorspronkelijke back-up op de voorgrond voort of start een nieuwe download.</string>
+	<key>The transfer paused. Retry the original encrypted blocks.</key>
+	<string>De overdracht is onderbroken. Probeer de originele gecodeerde blokken opnieuw.</string>
+	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
+	<string>De portemonnee controleert het huidige beleid en goedkeuringen. Voor dit exacte plan wordt een vereiste hardwarehandtekening gevraagd.</string>
+	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
+	<string>Dit zijn lokale observaties, geen inbreukscan of bewijs dat een provider een inloggegevens heeft ingetrokken. Andere apparaten kunnen andere records hebben.</string>
+	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
+	<string>Dit zijn momentopnametaken die op dit apparaat zijn gemaakt. Desktop-lokale goedkeuringsverzoeken worden hier niet gesynchroniseerd.</string>
+	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
+	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een ​​kopie op dit apparaat te bewaren.</string>
+	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
+	<string>Deze exports bevatten nooit accounthoofdsleutels of apparaatondertekeningssleutels. Wijzigingen in de bronitems vereisen een nieuwe momentopname.</string>
+	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
+	<string>Voor dit account is een geregistreerde goedkeuringssleutel vereist. Stel dit apparaat in Hardwarebeveiliging in, of vraag een ander geautoriseerd apparaat.</string>
+	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
+	<string>Deze actie wordt niet ondersteund op dit apparaat. Geheime momentopnamen moeten hun speciale importstroom gebruiken.</string>
+	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
+	<string>Dit browserverzoek hoort bij een ander account. Als je overschakelt, wordt de huidige werkruimte vergrendeld en blijft de diepgang behouden.</string>
+	<key>This cannot be undone. Signing out alone does not delete an account.</key>
+	<string>Dit kan niet ongedaan worden gemaakt. Alleen uitloggen verwijdert geen account.</string>
+	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
+	<string>Dit verandert de lokale ontgrendelingsbeveiliging. Systeemverificatie kan vereist zijn. Er wordt geen accountherstel of ander apparaat gewijzigd.</string>
+	<key>This changes only the local sample.</key>
+	<string>Hierdoor verandert alleen de lokale steekproef.</string>
+	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
+	<string>Dit verandert welke accountacties een hardwarehandtekening vereisen. Als je de bescherming uitschakelt, zijn deze acties mogelijk zonder dat hardwarebewijs.</string>
+	<key>This creates a pending request. It does not authorize the device.</key>
+	<string>Hierdoor wordt een aanvraag in behandeling gemaakt. Het autoriseert het apparaat niet.</string>
+	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
+	<string>Hierdoor ontstaat een voorstel. Het maakt geen geld over totdat aan de goedkeurings- en werkingsvereisten van de portemonnee is voldaan. Bedragen zijn exacte gehele getallen op grondtalbasis.</string>
+	<key>This device</key>
+	<string>Dit apparaat</string>
+	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
+	<string>Dit apparaat heeft wijzigingen die niet zijn gesynchroniseerd. Bewaar alles wat je nodig heeft voordat je het account verwijdert.</string>
+	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
+	<string>Dit apparaat behoudt zijn eigen gecodeerde werkruimte. Inhoud die niet is gesynchroniseerd, kan niet worden hersteld vanaf een ander apparaat.</string>
+	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
+	<string>Deze apparaatsleutel is niet meer bruikbaar. Gebruik een ander geautoriseerd apparaat of accountherstel. Je werkruimte is niet gewist.</string>
+	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
+	<string>Dit apparaat kan je privé-inhoud ontvangen. De hoofdsleutel voor inhoudsversleuteling moet na goedkeuring opnieuw worden gedistribueerd.</string>
+	<key>This file exceeds the 100 MiB limit.</key>
+	<string>Dit bestand overschrijdt de limiet van 100 MiB.</string>
+	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
+	<string>Deze geschiedenis hoort bij dit apparaat. Het weerspiegelt geen desktop-lokale CLI, SSH of goedkeuringen voor het koppelen van bestanden vanaf een ander apparaat.</string>
+	<key>This iPhone</key>
+	<string>Deze iPhone</string>
+	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
+	<string>Deze iPhone beheert de identiteit en machtigingen van agenten. Het zorgt er niet voor dat agenten actief blijven terwijl iOS de app opschort.</string>
+	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
+	<string>Deze inventaris omvat referenties en leveringsgegevens op dit apparaat. Er wordt niet gezocht naar andere apparaten of willekeurige projectbestanden.</string>
+	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
+	<string>Dit is een fictief document voor de lokale rondleiding. In je account worden geselecteerde bestanden op het apparaat gecodeerd voordat er een back-up van wordt gemaakt. Achtergrond draagt ​​gebruikersnaam alleen de gecodeerde blokken over; Voor de afwerking is het originele, ontgrendelde account vereist.</string>
+	<key>This key is managed by dMsg and cannot be copied or edited.</key>
+	<string>Deze sleutel wordt beheerd door dMsg en kan niet worden gekopieerd of bewerkt.</string>
+	<key>This letter was withdrawn.</key>
+	<string>Deze brief is ingetrokken.</string>
+	<key>This message could not be verified.</key>
+	<string>Dit bericht kon niet worden geverifieerd.</string>
+	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
+	<string>Hierdoor wordt alleen deze exacte vondst en revisie op dit apparaat verborgen. Het repareert geen referenties en wijst toekomstige wijzigingen niet af.</string>
+	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
+	<string>Deze bewerking overschrijdt de grootte- of capaciteitslimiet. Geheime snapshots op dit apparaat zijn beperkt tot 8 MiB.</string>
+	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
+	<string>Deze bewerking is tijdelijk niet beschikbaar. Je opgeslagen gegevens blijven bewaard.</string>
+	<key>This package has already been imported on this device. Existing copies remain independent.</key>
+	<string>Dit pakket is al geïmporteerd op dit apparaat. Bestaande kopieën blijven onafhankelijk.</string>
+	<key>This preview sends nothing.</key>
+	<string>Dit voorbeeld verzendt niets.</string>
+	<key>This profile is public. Do not include secrets or private contact information.</key>
+	<string>Dit profiel is openbaar. Voeg geen geheimen of privécontactinformatie toe.</string>
+	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
+	<string>Hierin wordt vastgelegd dat je de uitkomst handmatig hebt gecontroleerd. Het markeert de bewerking niet als succesvol en voert deze ook niet opnieuw uit.</string>
+	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
+	<string>Hierdoor wordt alleen de geselecteerde cloudkopie verwijderd. Lokale bestanden blijven op hun apparaten staan.</string>
+	<key>This request has expired</key>
+	<string>Dit verzoek is verlopen</string>
+	<key>This request requires a supported desktop client.</key>
+	<string>Voor dit verzoek is een ondersteunde desktopclient vereist.</string>
+	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
+	<string>Dit vraagt om een einde aan het toekomstige ophalen. Reeds opgeslagen kopieën blijven bruikbaar. Een onzekere publicatie moet nog verzoend worden.</string>
+	<key>This snapshot needs attention. Check its status before continuing.</key>
+	<string>Deze momentopname heeft aandacht nodig. Controleer de status voordat je doorgaat.</string>
+	<key>This tour does not upload files or register system integrations.</key>
+	<string>Bij deze rondleiding worden geen bestanden geüpload of systeemintegraties geregistreerd.</string>
+	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
+	<string>Hiermee wordt je werk op dit apparaat bijgehouden. Er worden geen inloggegevens aangemaakt, getest of ingetrokken bij hun provider.</string>
+	<key>Title</key>
+	<string>Titel</string>
+	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
+	<string>Als je je bestaande account op deze iPhone wilt gebruiken, moet je dit apparaat goedkeuren vanaf een van je geautoriseerde apparaten.</string>
+	<key>Transfer or archive owned conversations first</key>
+	<string>Draag eerst eigen gesprekken over of archiveer ze</string>
+	<key>Transfer proposal</key>
+	<string>Overdrachtsvoorstel</string>
+	<key>Transfers</key>
+	<string>Overdrachten</string>
+	<key>Trash</key>
+	<string>Prullenbak</string>
+	<key>Trash is empty</key>
+	<string>Prullenbak is leeg</string>
+	<key>Try the local demo</key>
+	<string>Probeer de lokale demo</string>
+	<key>Two versions need your decision</key>
+	<string>Twee versies hebben je beslissing nodig</string>
+	<key>Type</key>
+	<string>Type</string>
+	<key>Type this account ID to confirm</key>
+	<string>Typ deze account-ID om te bevestigen</string>
+	<key>Unblock</key>
+	<string>Deblokkeren</string>
+	<key>Unconfirmed proposals</key>
+	<string>Onbevestigde voorstellen</string>
+	<key>Unknown state</key>
+	<string>Onbekende staat</string>
+	<key>Unlock dMsg to review this request.</key>
+	<string>Ontgrendel dMsg om dit verzoek te beoordelen.</string>
+	<key>Unlock policy</key>
+	<string>Beleid ontgrendelen</string>
+	<key>Unlock this iPhone to open dMsg.</key>
+	<string>Ontgrendel deze iPhone om dMsg te openen.</string>
+	<key>Unlock with system authentication</key>
+	<string>Ontgrendel met systeemverificatie</string>
+	<key>Unlock your dMsg workspace</key>
+	<string>Ontgrendel je dMsg-werkruimte</string>
+	<key>Unrestricted delegation authority</key>
+	<string>Onbeperkte delegatiebevoegdheid</string>
+	<key>Uploading</key>
+	<string>Uploaden</string>
+	<key>Uploading encrypted backup</key>
+	<string>Versleutelde back-up uploaden</string>
+	<key>Url</key>
+	<string>URL</string>
+	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
+	<string>Gebruik een wachtwoord uit de momentopname die je expliciet hebt geëxporteerd in dMsg.</string>
+	<key>Use a secret through a device policy</key>
+	<string>Gebruik een geheim via een apparaatbeleid</string>
+	<key>Use an SSH signing key</key>
+	<string>Gebruik een SSH-ondertekeningssleutel</string>
+	<key>Use conflicting version</key>
+	<string>Conflicterende versie gebruiken</string>
+	<key>Use fictitious data here. Closing the tour discards your changes.</key>
+	<string>Gebruik hier fictieve gegevens. Als je de tour sluit, worden je wijzigingen verwijderd.</string>
+	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
+	<string>Gebruik icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol of sol:mint.</string>
+	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
+	<string>Gebruik systeemauthenticatie om de gecodeerde werkruimte op deze iPhone te ontgrendelen.</string>
+	<key>Use this folder</key>
+	<string>Gebruik deze map</string>
+	<key>Use this password for:</key>
+	<string>Gebruik dit wachtwoord voor:</string>
+	<key>Username</key>
+	<string>Gebruikersnaam</string>
+	<key>Value</key>
+	<string>Waarde</string>
+	<key>Vault</key>
+	<string>Kluis</string>
+	<key>Vault tools</key>
+	<string>Kluishulpmiddelen</string>
+	<key>Verified attachment saved to Files.</key>
+	<string>Geverifieerde bijlage opgeslagen in Bestanden.</string>
+	<key>Verified package fingerprint</key>
+	<string>Geverifieerde pakketvingerafdruk</string>
+	<key>Verify and finish</key>
+	<string>Verifieer en voltooi</string>
+	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
+	<string>Controleer het volledige apparaat en de sleutelvingerafdrukken. Deze sleutel bewijst de hardwaregoedkeuring voor de beschermde acties van dit account.</string>
+	<key>Verify the full device fingerprint</key>
+	<string>Controleer de volledige vingerafdruk van het apparaat</string>
+	<key>Version history</key>
+	<string>Versiegeschiedenis</string>
+	<key>Versions</key>
+	<string>Versies</string>
+	<key>Viewer</key>
+	<string>Kijker</string>
+	<key>Waiting for approval</key>
+	<string>Wachten op goedkeuring</string>
+	<key>Waiting for browser confirmation</key>
+	<string>Wachten op browserbevestiging</string>
+	<key>Waiting for confirmation: </key>
+	<string>Wachten op bevestiging: </string>
+	<key>Waiting for notification registration…</key>
+	<string>Wachten op meldingsregistratie…</string>
+	<key>Waiting for your decision</key>
+	<string>Wachten op je beslissing</string>
+	<key>Waiting to submit</key>
+	<string>Wachten op indiening</string>
+	<key>Waiting to sync</key>
+	<string>Wachten op synchroniseren</string>
+	<key>Wallet</key>
+	<string>Wallet</string>
+	<key>Wallet access</key>
+	<string>Toegang tot portemonnee</string>
+	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
+	<string>Toegang tot portemonnee kan niet worden gecontroleerd. Controleer het onafhankelijk voordat je het verwijdert.</string>
+	<key>Wallet canister ID</key>
+	<string>Portemonnee canister ID</string>
+	<key>Wallet controls</key>
+	<string>Portefeuillecontroles</string>
+	<key>Wallet details and policy</key>
+	<string>Portemonneegegevens en beleid</string>
+	<key>Wallet secret</key>
+	<string>Portemonnee geheim</string>
+	<key>Wallets</key>
+	<string>Portefeuilles</string>
+	<key>Weak credential</key>
+	<string>Zwakke referentie</string>
+	<key>Website</key>
+	<string>Website</string>
+	<key>Welcome back.</key>
+	<string>Welkom terug.</string>
+	<key>Welcome to the local demo. These messages stay in this screen.</key>
+	<string>Welkom bij de lokale demo. Deze berichten blijven in dit scherm staan.</string>
+	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Terwijl dMsg open en ontgrendeld is, worden gecodeerde bewerkingen geüpload en worden berichten en goedkeuringen vernieuwd. Bestandsback-ups vereisen nog steeds een afzonderlijke bevestiging. Je kunt dit op elk gewenst moment uitschakelen.</string>
+	<key>Who may contact you</key>
+	<string>Wie kan contact met je opnemen</string>
+	<key>Withdraw</key>
+	<string>Intrekken</string>
+	<key>Withdraw message</key>
+	<string>Bericht intrekken</string>
+	<key>Withdraw this message?</key>
+	<string>Dit bericht intrekken?</string>
+	<key>Workspace destination</key>
+	<string>Bestemming van de werkruimte</string>
+	<key>Write a demo message</key>
+	<string>Schrijf een demobericht</string>
+	<key>Write a letter</key>
+	<string>Schrijf een brief</string>
+	<key>Write a message</key>
+	<string>Schrijf een bericht</string>
+	<key>Yes</key>
+	<string>Ja</string>
+	<key>You are viewing an immutable historical version.</key>
+	<string>Je bekijkt een onveranderlijke historische versie.</string>
+	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
+	<string>Providerwijzigingen voer je zelf door. dMsg registreert je afschriften en controleert lokale revisies; het kan de creatie, het testen of de intrekking upstream niet verifiëren.</string>
+	<key>Your authorized channels appear after synchronization.</key>
+	<string>Je geautoriseerde kanalen verschijnen na synchronisatie.</string>
+	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
+	<string>Je huidige recht kan niet worden vernieuwd. Probeer het opnieuw wanneer de verificatieservice beschikbaar is.</string>
+	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
+	<string>Je huidige abonnement wordt beheerd buiten de App Store. Wacht tot het eindigt voordat je een App Store-abonnement start.</string>
+	<key>Your decision applies only to this request.</key>
+	<string>Je beslissing geldt alleen voor dit verzoek.</string>
+	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
+	<string>Je gecodeerde bestanden blijven hier. Opgeslagen login en snelle ontgrendeling zijn verwijderd.</string>
+	<key>Your existing device makes the final decision.</key>
+	<string>Je bestaande apparaat neemt de uiteindelijke beslissing.</string>
+	<key>Your files stay private</key>
+	<string>Je bestanden blijven privé</string>
+	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
+	<string>Je verborgen velden blijven verborgen totdat je ervoor kiest ze te onthullen.</string>
+	<key>Your private workspace.</key>
+	<string>Jouw privéwerkplek.</string>
+	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
+	<string>Je aankoop wacht op bevestiging. Herstel aankopen om het opnieuw te proberen zonder opnieuw te betalen.</string>
+	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
+	<string>Je rapport en eventuele tekst die je expliciet vermeldt, worden naar het moderatieteam gestuurd. Andere privé-inhoud en sleutels zijn niet inbegrepen.</string>
+	<key>Your reports</key>
+	<string>Je rapporten</string>
+	<key>dMsg</key>
+	<string>dMsg</string>
+	<key>dMsg workspace</key>
+	<string>dMsg-werkruimte</string>
+</dict>
+</plist>

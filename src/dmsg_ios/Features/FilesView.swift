@@ -157,7 +157,7 @@ struct FileDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(file.name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                     Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file)).font(.subheadline).foregroundStyle(.secondary)
-                    Text(file.status == "backed_up" ? "Backed up" : "On this device").font(.caption).foregroundStyle(Theme.forest)
+                    Text(LocalizedStringKey(file.status == "backed_up" ? "Backed up" : "On this device")).font(.caption).foregroundStyle(Theme.forest)
                 }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {

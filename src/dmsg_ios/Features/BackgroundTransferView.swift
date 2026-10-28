@@ -10,7 +10,7 @@ struct BackgroundTransferSection: View {
             Text("Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.").font(.footnote).foregroundStyle(.secondary)
             if let state {
                 if state.transfer.account == model.session?.account {
-                    Text(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup")
+                    Text(LocalizedStringKey(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup"))
                     ProgressView(value: Double(state.completed.count), total: Double(state.transfer.parts.count))
                     if state.ready { Button("Verify and finish") { Task { await finish(state) } }.disabled(working) }
                     else if Double(state.transfer.expiresAt) <= Date.now.timeIntervalSince1970 * 1000 {

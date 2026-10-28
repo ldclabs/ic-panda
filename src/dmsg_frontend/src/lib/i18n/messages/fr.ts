@@ -1230,7 +1230,7 @@ export default {
   'Light or dark': 'Clair ou sombre',
   'Follows your system, or keeps the look you pick.':
     'Suit votre système, ou garde l’apparence choisie.',
-  'Six languages': 'Six langues',
+  'Your language': 'Votre langue',
   'Arabic lays the windows out right to left; IDs and code keep their order.':
     'En arabe, les fenêtres se lisent de droite à gauche ; les ID et le code gardent leur ordre.',
   'Stays in the tray': 'Reste dans la barre système',

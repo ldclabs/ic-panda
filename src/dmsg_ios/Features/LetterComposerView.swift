@@ -19,7 +19,7 @@ struct LetterComposerView: View {
                 TextField("Message", text: $text, axis: .vertical).lineLimit(5...12)
             }.disabled(prepared || working)
             NoticeBar(text: String(localized: "Only free contact is supported here. This action cannot pay or approve a recipient's fee."))
-            Button(prepared ? "Retry original letter" : "Send free letter") { Task { await send() } }
+            Button(LocalizedStringKey(prepared ? "Retry original letter" : "Send free letter")) { Task { await send() } }
                 .disabled(working || result != nil || recipient.count != 20 || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             if let result { CanonicalDetails(value: result) }
             if !pending.isEmpty {

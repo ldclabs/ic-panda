@@ -21,7 +21,7 @@ struct IncomingSharesView: View {
                     Button("Discard staged copy", role: .destructive) { discarding = entry }.disabled(working)
                 }
             }
-            if entries.isEmpty { Text(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting").foregroundStyle(.secondary) }
+            if entries.isEmpty { Text(LocalizedStringKey(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting")).foregroundStyle(.secondary) }
         }.privateScreen().navigationTitle("Shared with dMsg").task { await load() }.refreshable { await load() }
             .confirmationDialog("Discard this staged copy?", isPresented: Binding(get: { discarding != nil }, set: { if !$0 { discarding = nil } })) {
                 Button("Discard", role: .destructive) { if let discarding { Task { do { try IncomingShares().remove(discarding); await load() } catch { model.report(error) } } } }

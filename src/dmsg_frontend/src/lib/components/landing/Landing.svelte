@@ -129,7 +129,7 @@
     },
     {
       glyph: 'language',
-      title: 'Six languages',
+      title: 'Your language',
       text: 'Arabic lays the windows out right to left; IDs and code keep their order.'
     },
     {

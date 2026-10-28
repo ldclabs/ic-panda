@@ -1,5 +1,78 @@
 # iOS implementation validation
 
+## Second-stage languages (2026-10-28)
+
+Added Vietnamese, Thai, Filipino, Malay, Bengali, Urdu, Polish and Dutch using
+per-language native resources. The app and all five extensions now contain
+23 locales. The existing 15 locales are unchanged. Permissions, shortcuts and
+offline privacy policies include the eight additions. System language matching
+covers regional preferences and `tl-PH` → `fil`; Urdu follows native RTL.
+
+- `scripts/ios/localizations.py --derived-data ...` and all 12 Python tests passed.
+  This checks complete keys, format arguments, plural forms, Swift extraction
+  and parity with the website's privacy policies.
+- Debug simulator build and five targeted tests passed on iPhone 16 Pro / iOS 18.4:
+  all locale bundles, regional matching, native plural formatting (including
+  Polish 1/2/5/12/22, Dutch and the new Asian languages), 19 access-screen locales,
+  and the language entry before login and in Account.
+- All 276 compiled `Localizable.strings` / `Localizable.stringsdict` tables
+  (six bundles × 23 locales × two tables) match source after property-list decoding.
+- Reviewed screenshots of all eight new access-screen languages across light
+  and dark appearances. Result bundle: `.build/LocalizationPhase2Final-20261028.xcresult`.
+
+Copy review focused on concise actions, software/security terminology, counts,
+placeholder integrity and avoiding literal English metaphors. Native-speaker
+proofreading, physical devices, the full iOS test suite and Release/TestFlight
+packaging were not run for this expansion.
+
+## Per-language localization resources (2026-10-28)
+
+Replaced the large application `Localizable.xcstrings` with 15 language folders
+under `Resources/Localizations`. Each contains `Localizable.strings` (997 plain
+messages) and `Localizable.stringsdict` (three plural entries), exported with
+Apple's String Catalog compiler. No translated values or production Swift
+lookup calls changed. InfoPlist and AppShortcuts keep their existing catalogs.
+
+- All 180 compiled resource tables in the app and five embedded extensions
+  match the pre-migration compiler output after property-list decoding.
+- Twelve Python tests passed, including new checks for missing translations,
+  format arguments, plural fallback forms and numeric types. The 15-language
+  resource check, Swift compiler-extraction check and offline privacy parity
+  check passed.
+- Debug simulator build/launch and five targeted tests passed on iPhone 16 Pro
+  / iOS 18.4: resource availability, language matching, native plural formatting
+  (including Russian and Arabic), localized access screens, and language settings.
+  The Traditional Chinese launch screenshot was inspected.
+
+The files are maintained as native UTF-8 XML property lists; no generated
+combined catalog or runtime loader is needed. New keys must be added to the
+language files; compiler-extraction validation detects omitted Swift keys.
+Physical-device tests, the full iOS suite and Release/TestFlight packaging were
+not repeated for this resource-only refactor.
+
+## Fifteen localizations (2026-10-28)
+
+Added Hindi, Indonesian, Brazilian Portuguese, Japanese, German, Korean,
+Italian, Turkish and one Traditional Chinese catalog (`zh-Hant`). Native
+per-app language settings remain authoritative. String Catalog entries marked
+stale are also checked: custom views still use many of them at runtime.
+Conditional labels, dialog titles and secure-field prompts now use localized
+keys instead of the verbatim String overload.
+
+- Simulator build and four targeted tests passed on iPhone 16 Pro / iOS 18.4:
+  bundled resources, regional/script matching, 11 localized access screens,
+  and language settings before login and within the account screen.
+- Catalog/compiler-extraction checks cover all 15 locales, application and
+  extension permissions, shortcut placeholders and matching offline privacy
+  policies. Original translations and catalog metadata were preserved.
+- Light/dark screenshots were inspected, including Traditional Chinese,
+  Devanagari, Japanese, Korean, long labels and Arabic RTL.
+
+Translations were drafted with machine translation and reviewed for core
+terminology, placeholders and representative interfaces. Native-speaker review,
+physical devices, the full iOS test suite and Release/TestFlight packaging were
+not part of this localization validation.
+
 ## One-command TestFlight packaging (2026-10-27)
 
 `python3 scripts/ios/testflight.py` increments all app/extension build numbers

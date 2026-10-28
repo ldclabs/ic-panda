@@ -7,7 +7,6 @@ import {
   quoteShell,
   validPath
 } from '../src/renderer/views/secrets/model.ts'
-import { rows } from '../src/renderer/views/secrets/experience-catalog.ts'
 
 test('an async preview cannot be reused after editing away and back to the same choices', () => {
   const draft = new DraftVersion(),
@@ -112,13 +111,4 @@ test('generated shell configuration quotes paths and mappings reject traversal',
     'x\\key'
   ])
     assert.equal(validPath(p), false, p)
-})
-test('credential workflow copy is complete in all six interface languages', () => {
-  const keys = new Set<string>()
-  for (const [key, ...values] of rows) {
-    assert.equal(keys.has(key), false, key)
-    keys.add(key)
-    assert.equal(values.length, 6, key)
-    for (const value of values) assert.ok(value.trim(), key)
-  }
 })

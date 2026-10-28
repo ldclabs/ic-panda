@@ -23,7 +23,7 @@ struct CloudBackupSection: View {
                         Button { Task { await restore(backup) } } label: {
                             HStack {
                                 if restoring == backup.id { ProgressView().controlSize(.small) }
-                                Text(restoring == backup.id ? "Restoring…" : "Restore to this device")
+                                Text(LocalizedStringKey(restoring == backup.id ? "Restoring…" : "Restore to this device"))
                             }
                         }.buttonStyle(.bordered).disabled(restoring != nil)
                             .accessibilityIdentifier("backup.restore.\(backup.id)")

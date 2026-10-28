@@ -1,44 +1,68 @@
-/**
- * The desktop's interface languages, those of the website
- * (`src/dmsg_frontend/src/lib/i18n/locales.ts`): English, Simplified
- * Chinese, Russian, Arabic, French and Spanish. The main process resolves
- * one for the tray, notifications, file dialogs and both windows: the
- * person's choice first, then the system's preferred languages, then English.
- */
-
-export const locales = ['en', 'zh', 'ru', 'ar', 'fr', 'es'] as const
+/** Interface language shared by both windows and the native desktop menus. */
+export const locales = ['en', 'zh', 'zh-Hant', 'ru', 'ar', 'fr', 'es', 'hi', 'id', 'pt-BR', 'ja', 'de', 'ko', 'it', 'tr', 'vi', 'th', 'fil', 'ms', 'bn', 'ur', 'pl', 'nl'] as const
 
 export type Locale = (typeof locales)[number]
 
 export const defaultLocale: Locale = 'en'
 
-/** Each language's name in itself, as the language picker shows it. */
+/** Native names let people find their language regardless of the current UI. */
 export const localeNames: Record<Locale, string> = {
   en: 'English',
-  zh: '中文',
+  zh: '简体中文',
+  'zh-Hant': '繁體中文',
   ru: 'Русский',
   ar: 'العربية',
   fr: 'Français',
-  es: 'Español'
+  es: 'Español',
+  hi: 'हिन्दी',
+  id: 'Bahasa Indonesia',
+  'pt-BR': 'Português (Brasil)',
+  ja: '日本語',
+  de: 'Deutsch',
+  ko: '한국어',
+  it: 'Italiano',
+  tr: 'Türkçe',
+  vi: 'Tiếng Việt',
+  th: 'ไทย',
+  fil: 'Filipino',
+  ms: 'Bahasa Melayu',
+  bn: 'বাংলা',
+  ur: 'اردو',
+  pl: 'Polski',
+  nl: 'Nederlands'
 }
 
 export function localeDir(locale: Locale): 'ltr' | 'rtl' {
-  return locale === 'ar' ? 'rtl' : 'ltr'
+  return (locale === 'ar' || locale === 'ur') ? 'rtl' : 'ltr'
 }
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (locales as readonly string[]).includes(value)
 }
 
-/** The language for a tag such as `fr-CA` or `zh-Hant-TW`; every Chinese variant is Simplified Chinese. */
+/**
+ * Explicit Chinese script wins over region. TW/HK/MO share one Traditional
+ * catalog; unqualified Chinese stays Simplified for existing saved choices.
+ * All Portuguese preferences use the Brazilian catalog. `in` is the legacy
+ * Indonesian language code still found in some system preferences.
+ * Legacy Tagalog `tl` preferences use the Filipino catalog.
+ */
 export function matchLocale(value: string | null | undefined): Locale | null {
-  const tag = value?.trim().toLowerCase()
+  const tag = value?.trim().toLowerCase().replaceAll('_', '-')
   if (!tag) return null
-  const primary = tag.split(/[-_]/)[0]
+  const [primary, ...subtags] = tag.split('-')
+  if (primary === 'zh') {
+    if (subtags.includes('hans')) return 'zh'
+    if (subtags.includes('hant')) return 'zh-Hant'
+    return subtags.some((part) => ['tw', 'hk', 'mo'].includes(part)) ? 'zh-Hant' : 'zh'
+  }
+  if (primary === 'pt') return 'pt-BR'
+  if (primary === 'in') return 'id'
+  if (primary === 'tl') return 'fil'
   return isLocale(primary) ? primary : null
 }
 
-/** The person's stored choice, else the first preferred language offered here, else English. */
+/** Saved choice, then the first supported system preference, then English. */
 export function resolveLocale(stored: string | null | undefined, preferred: readonly string[]): Locale {
   for (const tag of [stored, ...preferred]) {
     const match = matchLocale(tag)

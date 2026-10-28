@@ -62,7 +62,7 @@ struct InboxDetail: View {
             Section {
                 Button("Report content") { reporting = true }
                 Button("Block this account", role: .destructive) { Task { await model.blockAccount(letter.sender, blocked: true) } }
-                Button(letter.archived ? "Restore" : "Archive", systemImage: "archivebox") {
+                Button(LocalizedStringKey(letter.archived ? "Restore" : "Archive"), systemImage: "archivebox") {
                     Task { await mark(read: letter.read, archived: !letter.archived) }
                 }.disabled(working)
                 if !letter.read {

@@ -1205,7 +1205,7 @@ const en = {
   'Light or dark': 'Light or dark',
   'Follows your system, or keeps the look you pick.':
     'Follows your system, or keeps the look you pick.',
-  'Six languages': 'Six languages',
+  'Your language': 'Your language',
   'Arabic lays the windows out right to left; IDs and code keep their order.':
     'Arabic lays the windows out right to left; IDs and code keep their order.',
   'Stays in the tray': 'Stays in the tray',

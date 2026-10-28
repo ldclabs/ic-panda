@@ -178,7 +178,7 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
 
   // Overview and editor screenshots at the normal and smallest supported sizes.
   const window = await app.browserWindow(main)
-  for (const [locale, appearance, width, height] of [['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540], ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540]]) {
+  for (const [locale, appearance, width, height] of [['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540], ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540], ['de', 'light', 760, 540], ['zh-Hant', 'dark', 760, 540], ['hi', 'light', 760, 540], ['vi', 'light', 760, 540], ['th', 'dark', 760, 540], ['fil', 'light', 760, 540], ['ms', 'dark', 760, 540], ['bn', 'light', 760, 540], ['ur', 'dark', 760, 540], ['pl', 'light', 760, 540], ['nl', 'dark', 760, 540]]) {
     await window.evaluate((window, [w, h]) => window.setContentSize(w, h), [width, height])
     await main.evaluate(async ({ locale, appearance }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(appearance) }, { locale, appearance })
     await main.waitForSelector(`html[lang|="${locale}"]`)
@@ -226,5 +226,5 @@ export async function settingsFlow({ app, main, shots, methods, requests, emit, 
   await main.getByTestId('recovery-pending').waitFor()
   assert.equal(await main.getByTestId('recovery-complete').isDisabled(), true)
   assert.equal(await main.getByTestId('recovery-request').isDisabled(), true)
-  console.log('Settings: all 9 routes, profile drafts/retry, device permissions, OS mount cancellation, empty cache, browser cancellation, late errors, setup/recovery, keyboard and 48 screenshots passed')
+  console.log('Settings: all 9 routes, profile drafts/retry, device permissions, OS mount cancellation, empty cache, browser cancellation, late errors, setup/recovery, keyboard and overview/editor screenshots passed')
 }

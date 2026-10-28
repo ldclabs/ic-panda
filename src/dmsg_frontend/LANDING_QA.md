@@ -62,3 +62,43 @@ In the Claude desktop browser pane, before Fig. 1 was redrawn: approving and exp
 Not run: Firefox and WebKit, real devices, and screen readers. The legal pages were checked only for unchanged class usage after the shared stylesheet was split (`site.css` for site chrome, `home.css` for the landing page).
 
 Local legacy service calls require a running replica. Without one, the entry page still renders; authenticated history and real attachment recovery cannot be verified in that environment.
+
+## Localization expansion (2026-10-28)
+
+The website now offers 15 locales, adding `hi`, `id`, `pt-BR`, `ja`, `de`, `ko`,
+`it`, `tr` and one `zh-Hant` catalog. Published legal translations and localized
+social cards accompany the interface catalogs. The English terms and their
+published digest are unchanged.
+
+- `pnpm check`, `pnpm test` (four signer tests and 99 Vitest tests passed,
+  one existing skip), and the production build passed. The local installed
+  signer packages needed the repository's already-declared heartbeat patch;
+  no dependency or lockfile changes were made.
+- Headless Chrome verified all 15 menu choices, reload persistence, keyboard
+  selection and regional startup preferences. All locales fit at 1280 and
+  390 pixels without horizontal page overflow or uncaught page errors.
+- Screenshots and the nine new social cards were inspected. The social-card
+  generator now measures text with the renderer's font engine and keeps
+  punctuation with its word when wrapping.
+
+Machine translations received terminology and representative UI review;
+native-speaker review, Firefox, WebKit and physical devices were not tested
+in this pass.
+
+## Second-stage languages (2026-10-28)
+
+The site now offers 23 locales, adding Vietnamese (`vi`), Thai (`th`), Filipino
+(`fil`), Malay (`ms`), Bengali (`bn`), Urdu (`ur`), Polish (`pl`) and Dutch (`nl`).
+Every catalog has the English catalog's 960 messages and interpolation arguments.
+Privacy, support, terms and SVG/PNG social cards also include all eight languages.
+Regional preferences resolve to these catalogs; legacy `tl` selects Filipino.
+Urdu uses RTL for the document, menus and hero illustration. Thai/Bengali/Urdu
+have system font fallbacks and script-appropriate heading spacing.
+
+Validation: `pnpm check`, four signer checks, 99 Vitest tests (one existing skip),
+`pnpm build`, and generation/inspection of the eight new social cards passed.
+Chrome checks covered all 23 selections, reload persistence, menu keyboard access,
+regional startup, and screenshots at 1280 and 390 CSS pixels. Reviewed all eight
+new mobile screenshots, including Urdu RTL. Translation review corrected key
+software terms, approval gestures, storage actions and quantity labels; it did
+not include native-speaker proofreading of every sentence.
