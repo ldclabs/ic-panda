@@ -1,6 +1,28 @@
 import type { Messages } from './en'
 
 export default {
+  "Pricing": "Precios",
+  "Membership": "Membresía",
+  "Start free.": "Empieza gratis.",
+  "Room to do more.": "Espacio para hacer más.",
+  "One private workspace, with more capacity when you need it.": "Un espacio privado, con más capacidad cuando la necesites.",
+  "For everyday essentials.": "Para lo esencial del día a día.",
+  "For a growing personal workspace.": "Para un espacio personal que crece.",
+  "For work and collaboration.": "Para trabajar y colaborar.",
+  "For larger teams and workloads.": "Para equipos y cargas de trabajo mayores.",
+  "USD / year": "USD / año",
+  "Encrypted cloud storage": "Almacenamiento cifrado en la nube",
+  "Active devices": "Dispositivos activos",
+  "Active channels": "Canales activos",
+  "Formal signatures / month": "Firmas formales / mes",
+  "Team wallet slots": "Cupos de carteras de equipo",
+  "Privacy comes with every plan.": "Privacidad en todos los planes.",
+  "Encryption, device revocation and account recovery are included at every tier.": "Todos los niveles incluyen cifrado, revocación de dispositivos y recuperación de cuenta.",
+  "Choose your plan in the app.": "Elige tu plan en la aplicación.",
+  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "Paga con ckUSDC o ckUSDT, o usa una neurona PANDA que cumpla los requisitos para la membresía anual.",
+  "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "Los límites se aplican a los canales que creas o patrocinas. Las firmas habituales de los dispositivos no consumen el cupo mensual.",
+  "Wallet activation is charged separately; check availability in the app.": "La activación de carteras se cobra por separado; consulta su disponibilidad en la aplicación.",
+  "Prices and limits checked on {date}. Confirm current terms in the app.": "Precios y límites verificados el {date}. Confirma las condiciones actuales en la aplicación.",
   "Sign in to dMsg": "Iniciar sesión en dMsg",
   "Return to the dMsg iOS app after signing in.": "Vuelve a dMsg para iOS después de iniciar sesión.",
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity permite que dMsg actúe por ti. Esta página no conserva ninguna sesión.",
@@ -638,8 +660,8 @@ export default {
   'New address-book entries': 'Entradas nuevas de la libreta',
   'Next step': 'Siguiente paso',
   'Not audited yet.': 'Aún sin auditar.',
-  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
-    'Todavía no. El núcleo está escrito para que una app móvil pueda reutilizarlo más adelante. Por ahora el espacio completo es la app de escritorio y la línea de comandos; este sitio es ligero a propósito.',
+  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
+    "Las aplicaciones móviles están en desarrollo. La versión para iOS ya está en beta privada y se espera que el desarrollo de la versión para Android termine pronto.",
   'Note': 'Nota',
   'Nothing recorded yet.': 'Aún no hay registros.',
   'Nothing to review yet. The request appears here when it reaches this device.':

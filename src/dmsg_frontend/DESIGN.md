@@ -338,15 +338,21 @@ The landing rhythm is:
 5. 04 Agent network: the three protocols, three notes, and the agent demo.
 6. 05 Privacy & trust (Ink band): boundaries, the privacy demo, public code,
    recovery, the signature verifier, and the statement that no audit exists.
-7. 06 Start with your own space: platforms, downloads and install commands
-   that follow the latest release; then 07 FAQ, the closing action with the
+7. 06 Membership: a four-tier comparison of annual price, encrypted cloud
+   storage, active devices and channels, formal signatures and team wallets.
+   Use aligned columns and rules, stacking on phones; one download action
+   leads to choosing a plan in the app. Keep the public configuration check
+   date, payment options, quota scope and separate wallet activation fee visible.
+8. 07 Start with your own space: platforms, downloads and install commands
+   that follow the latest release; then 08 FAQ, the closing action with the
    mark, and a restrained footer.
 
 Do not compress all capabilities into the first fold. The page should establish
 what dMsg does before asking the reader to interpret its infrastructure.
 
+At 1280px, collapse the landing navigation so all six translated links fit.
 At approximately 1180px, the agent and wallet figures move their audit record
-below. At 1000px, collapse navigation and two-column headers, stack the hero,
+below. At 1000px, collapse two-column headers, stack the hero,
 and stack the file figure's device and cloud panes. Below 900px the desktop
 window and terminal stack, and the tour's sidebar collapses to icons as the
 app's does. At 560px the gatehouse switches to its narrow scene (the agent

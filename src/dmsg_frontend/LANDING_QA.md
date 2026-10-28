@@ -102,3 +102,45 @@ regional startup, and screenshots at 1280 and 390 CSS pixels. Reviewed all eight
 new mobile screenshots, including Urdu RTL. Translation review corrected key
 software terms, approval gestures, storage actions and quantity labels; it did
 not include native-speaker proofreading of every sentence.
+
+## Membership benefits (2026-10-28)
+
+The landing page now compares Free, Plus, Pro and Max, with annual prices,
+encrypted cloud storage, active devices and channels, monthly formal signatures
+and team-wallet creation slots. It links to installation and explains payment
+options, quota scope and the separate wallet activation fee. All 23 locales
+include the new copy; numbers, prices and the configuration check date follow
+the selected locale. The header labels the section Pricing; the section itself
+keeps Membership. The landing navigation folds into its menu at 1280px.
+
+The displayed figures are a dated public configuration snapshot, not a live
+quote. Anonymous mainnet queries on this date checked commerce
+`uwist-sqaaa-aaaaj-qsjyq-cai` (`list_catalogs`, effective version 2) and wallet hub
+`ghcje-dyaaa-aaaas-qg7va-cai` (`get_hub_config`). Annual USD prices are
+0/10/50/200, storage is 100 MiB/1 GiB/10 GiB/100 GiB, channels and monthly
+formal signatures are both 5/20/100/10,000, and wallet slots are 0/1/3/10.
+Device limits 2/3/5/10 follow the public `PlanId::device_limit` implementation.
+Recheck these sources when updating the snapshot; the Rust default catalog
+differs from the current production catalog. The app confirms current terms.
+
+Validation: `pnpm check`, four signer tests, 99 Vitest tests (one existing skip)
+and the production build passed. The Codex in-app browser checked the production
+build in all 23 locales at 320, 390, 760, 1000, 1100, 1280, 1281 and 1440 CSS
+pixels: all four plans remained present, no horizontal page/header/benefit
+overflow occurred, and benefit rows aligned across adjacent columns. No browser
+errors occurred during this final matrix. Representative desktop and mobile
+screenshots and keyboard navigation were checked separately.
+
+The three trust-section icons now sit inside their headings, beside the text
+instead of on a separate line. Checks across all 23 locales at 320, 390, 760,
+1100, 1281 and 1440px confirmed the 10px inline gap, first-line alignment and
+absence of overflow, including Arabic and Urdu RTL. The Chinese mobile
+rendering was inspected with all three headings visible together.
+
+The mobile-app FAQ now states that iOS is in private beta and Android development
+is expected to finish soon, consistently across all 23 locales. Its English,
+Chinese, French and Arabic answers were checked at 390 and 1280px with no text
+or page overflow; the updated Chinese answer was inspected in the preview.
+
+Not run: Firefox, WebKit, physical devices, screen readers, native-speaker
+proofreading, or checkout/payment against production. No site was deployed.

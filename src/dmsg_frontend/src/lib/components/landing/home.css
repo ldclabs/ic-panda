@@ -121,6 +121,30 @@
   width: 22px;
   height: 22px;
 }
+/* Six translated links need the compact menu before the content stacks. */
+@media (1000px < width <= 1280px) {
+  .home .header-action {
+    margin-inline-start: auto;
+  }
+  .home .icon-button.menu-toggle {
+    display: flex;
+  }
+  .home .site-header nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    background: var(--canvas);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 24px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .home .site-header nav.open {
+    display: flex;
+  }
+}
 
 /* ——— Hero ——— */
 /* Sized so the headline and all of Fig. 1 fit a 16-inch MacBook's first
@@ -2416,8 +2440,15 @@ html[dir='rtl'] .home .switch-row input:checked + .switch::after {
   color: var(--forest);
 }
 .home .trust-grid h3 {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-bottom: 12px;
   font-size: 21px;
+  line-height: 1.35;
+}
+.home .trust-grid h3 .glyph {
+  margin-block-start: 3px;
 }
 .home .trust-grid p {
   flex: 1;

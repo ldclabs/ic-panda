@@ -1,6 +1,28 @@
 import type { Messages } from './en'
 
 export default {
+  "Pricing": "Цены",
+  "Membership": "Подписка",
+  "Start free.": "Начните бесплатно.",
+  "Room to do more.": "Больше места для ваших задач.",
+  "One private workspace, with more capacity when you need it.": "Приватное рабочее пространство с дополнительными ресурсами по мере необходимости.",
+  "For everyday essentials.": "Для повседневных задач.",
+  "For a growing personal workspace.": "Для растущего личного пространства.",
+  "For work and collaboration.": "Для работы и совместных проектов.",
+  "For larger teams and workloads.": "Для больших команд и объёмов работы.",
+  "USD / year": "USD / год",
+  "Encrypted cloud storage": "Зашифрованное облачное хранилище",
+  "Active devices": "Активные устройства",
+  "Active channels": "Активные каналы",
+  "Formal signatures / month": "Формальные подписи / месяц",
+  "Team wallet slots": "Лимит командных кошельков",
+  "Privacy comes with every plan.": "Приватность в каждом тарифе.",
+  "Encryption, device revocation and account recovery are included at every tier.": "Шифрование, отзыв доступа устройств и восстановление аккаунта доступны на каждом уровне.",
+  "Choose your plan in the app.": "Выберите тариф в приложении.",
+  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "Оплатите годовую подписку в ckUSDC или ckUSDT либо используйте подходящий нейрон PANDA.",
+  "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "Лимиты относятся к каналам, которые вы создаёте или финансируете. Обычные подписи устройств не расходуют месячный лимит.",
+  "Wallet activation is charged separately; check availability in the app.": "Активация кошельков оплачивается отдельно; доступность проверяйте в приложении.",
+  "Prices and limits checked on {date}. Confirm current terms in the app.": "Цены и лимиты проверены {date}. Подтвердите актуальные условия в приложении.",
   "Sign in to dMsg": "Войти в dMsg",
   "Return to the dMsg iOS app after signing in.": "После входа вернитесь в приложение dMsg для iOS.",
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity разрешает dMsg действовать от вашего имени. Эта страница не сохраняет сеанс.",
@@ -628,8 +650,8 @@ export default {
   'New address-book entries': 'Новые записи адресной книги',
   'Next step': 'Следующий шаг',
   'Not audited yet.': 'Аудита пока не было.',
-  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
-    'Пока нет. Ядро написано так, чтобы позже его могло использовать мобильное приложение. Сейчас полное пространство — это десктоп-приложение и командная строка; сайт намеренно остаётся лёгким.',
+  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
+    "Мобильные приложения находятся в разработке. Версия для iOS уже проходит закрытое бета-тестирование, а разработку версии для Android планируется завершить в ближайшее время.",
   'Note': 'Заметка',
   'Nothing recorded yet.': 'Пока ничего не записано.',
   'Nothing to review yet. The request appears here when it reaches this device.':

@@ -1,6 +1,28 @@
 import type { Messages } from './en'
 
 export default {
+  "Pricing": "价格",
+  "Membership": "会员权益",
+  "Start free.": "免费开始。",
+  "Room to do more.": "为更多可能留出空间。",
+  "One private workspace, with more capacity when you need it.": "从个人私密工作区起步，需要时再增加容量。",
+  "For everyday essentials.": "满足日常所需。",
+  "For a growing personal workspace.": "为不断丰富的个人工作区。",
+  "For work and collaboration.": "为专业工作与协作。",
+  "For larger teams and workloads.": "为更大的团队与工作量。",
+  "USD / year": "美元 / 年",
+  "Encrypted cloud storage": "加密云存储",
+  "Active devices": "活跃设备",
+  "Active channels": "活跃频道",
+  "Formal signatures / month": "正式签名 / 月",
+  "Team wallet slots": "团队钱包名额",
+  "Privacy comes with every plan.": "每个档位，都保留隐私与控制。",
+  "Encryption, device revocation and account recovery are included at every tier.": "所有档位均包含加密保护、设备撤销与账户恢复。",
+  "Choose your plan in the app.": "在客户端选择会员方案。",
+  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "使用 ckUSDC、ckUSDT 支付，或通过符合条件的 PANDA 神经元抵扣年度会员费。",
+  "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "频道额度用于你创建或赞助的频道；普通设备签名不消耗每月正式签名额度。",
+  "Wallet activation is charged separately; check availability in the app.": "团队钱包另收开通费，开放情况请在客户端查看。",
+  "Prices and limits checked on {date}. Confirm current terms in the app.": "价格与额度核对日期：{date}。当前条款请在客户端确认。",
   "Sign in to dMsg": "登录 dMsg",
   "Return to the dMsg iOS app after signing in.": "登录后将返回 dMsg iOS 应用。",
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "Internet Identity 授权 dMsg 应用代表你操作，本页不保留登录会话。",
@@ -603,8 +625,8 @@ export default {
   'New address-book entries': '新加入地址簿的地址',
   'Next step': '下一步',
   'Not audited yet.': '尚未经过审计。',
-  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
-    '暂时没有。核心代码在设计上便于日后由手机应用复用。目前完整的工作空间是桌面应用和命令行；本网站有意保持轻量。',
+  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
+    "手机应用正在开发中。iOS 版已进入内测，Android 版也将很快完成开发。",
   'Note': '笔记',
   'Nothing recorded yet.': '尚无记录。',
   'Nothing to review yet. The request appears here when it reaches this device.':

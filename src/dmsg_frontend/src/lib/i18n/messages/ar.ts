@@ -1,6 +1,28 @@
 import type { Messages } from './en'
 
 export default {
+  "Pricing": "الأسعار",
+  "Membership": "العضوية",
+  "Start free.": "ابدأ مجانًا.",
+  "Room to do more.": "مساحة لإنجاز المزيد.",
+  "One private workspace, with more capacity when you need it.": "مساحة عمل خاصة، بسعة أكبر عندما تحتاج إليها.",
+  "For everyday essentials.": "للاحتياجات اليومية الأساسية.",
+  "For a growing personal workspace.": "لمساحة شخصية تنمو معك.",
+  "For work and collaboration.": "للعمل والتعاون.",
+  "For larger teams and workloads.": "للفرق الأكبر وأعباء العمل المتزايدة.",
+  "USD / year": "دولار أمريكي / سنة",
+  "Encrypted cloud storage": "تخزين سحابي مشفّر",
+  "Active devices": "الأجهزة النشطة",
+  "Active channels": "القنوات النشطة",
+  "Formal signatures / month": "التوقيعات الرسمية / شهر",
+  "Team wallet slots": "حصة محافظ الفريق",
+  "Privacy comes with every plan.": "الخصوصية في كل خطة.",
+  "Encryption, device revocation and account recovery are included at every tier.": "يشمل كل مستوى التشفير وإلغاء صلاحية الأجهزة واستعادة الحساب.",
+  "Choose your plan in the app.": "اختر خطتك في التطبيق.",
+  "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "ادفع باستخدام ckUSDC أو ckUSDT، أو استخدم عصبون PANDA مؤهّلًا للعضوية السنوية.",
+  "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "تسري الحدود على القنوات التي تنشئها أو ترعاها. لا تستهلك توقيعات الأجهزة العادية الحصة الشهرية.",
+  "Wallet activation is charged separately; check availability in the app.": "تُفرض رسوم منفصلة لتفعيل المحافظ؛ تحقّق من التوفر في التطبيق.",
+  "Prices and limits checked on {date}. Confirm current terms in the app.": "تم التحقق من الأسعار والحدود في {date}. أكّد الشروط الحالية في التطبيق.",
   "Sign in to dMsg": "تسجيل الدخول إلى dMsg",
   "Return to the dMsg iOS app after signing in.": "عُد إلى تطبيق dMsg على iOS بعد تسجيل الدخول.",
   "Internet Identity lets the dMsg app act for you. This page keeps no session.": "تسمح Internet Identity لتطبيق dMsg بالعمل نيابةً عنك. لا تحتفظ هذه الصفحة بأي جلسة.",
@@ -610,8 +632,8 @@ export default {
   'New address-book entries': 'إدخالات دفتر العناوين الجديدة',
   'Next step': 'الخطوة التالية',
   'Not audited yet.': 'لم يُدقَّق بعد.',
-  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
-    'ليس بعد. كُتبت النواة بحيث يمكن لتطبيق هاتف إعادة استخدامها لاحقًا. حاليًا مساحة العمل الكاملة هي تطبيق سطح المكتب وسطر الأوامر؛ ويبقى هذا الموقع خفيفًا عن قصد.',
+  "Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.":
+    "تطبيقات الهاتف قيد التطوير. دخل تطبيق iOS بالفعل مرحلة الاختبار التجريبي الخاص، ومن المتوقع اكتمال تطوير تطبيق Android قريبًا.",
   'Note': 'ملاحظة',
   'Nothing recorded yet.': 'لا شيء مسجّل بعد.',
   'Nothing to review yet. The request appears here when it reaches this device.':

@@ -15,6 +15,7 @@
   import HeroArt from './HeroArt.svelte'
   import AgentNetwork from './AgentNetwork.svelte'
   import TeamWallet from './TeamWallet.svelte'
+  import Membership from './Membership.svelte'
   import type { GlyphName } from './glyphs'
   import { MARK } from './hero-art.js'
   import { reveal } from './motion'
@@ -79,7 +80,8 @@
     { id: 'space', label: 'Private space' },
     { id: 'collaboration', label: 'Collaboration' },
     { id: 'agents', label: 'Agent network' },
-    { id: 'trust', label: 'Trust' }
+    { id: 'trust', label: 'Trust' },
+    { id: 'membership', label: 'Pricing' }
   ] as const
   const pillars = [
     {
@@ -185,7 +187,7 @@
     [
       $t('Is there a phone app?'),
       $t(
-        'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.'
+        'Mobile apps are in development. The iOS app is already in private beta, and Android development is expected to finish soon.'
       )
     ]
   ])
@@ -599,8 +601,9 @@
         >
         <div class="trust-grid">
           <article use:reveal style:--i={0}
-            ><Glyph name="github" size={22} /><h3
-              >{$t('Inspect the public code.')}</h3
+            ><h3><Glyph name="github" size={22} /><span
+                >{$t('Inspect the public code.')}</span
+              ></h3
             ><p
               >{$t(
                 'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.'
@@ -614,8 +617,9 @@
             ></article
           >
           <article use:reveal style:--i={1}
-            ><Glyph name="refresh" size={22} /><h3
-              >{$t('Prepare for a lost device.')}</h3
+            ><h3><Glyph name="refresh" size={22} /><span
+                >{$t('Prepare for a lost device.')}</span
+              ></h3
             ><p
               >{$t(
                 'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.'
@@ -625,8 +629,9 @@
             ></article
           >
           <article use:reveal style:--i={2}
-            ><Glyph name="badge" size={22} /><h3
-              >{$t('Check a signature yourself.')}</h3
+            ><h3><Glyph name="badge" size={22} /><span
+                >{$t('Check a signature yourself.')}</span
+              ></h3
             ><p
               >{$t(
                 'dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.'
@@ -645,6 +650,8 @@
       </div>
     </section>
 
+    <Membership />
+
     <section
       class="section release"
       id="release"
@@ -652,7 +659,7 @@
     >
       <div class="wrap release-grid">
         <div class="sec-head" use:reveal>
-          <p class="kicker"><b>06</b>{$t('Start with your own space')}</p>
+          <p class="kicker"><b>07</b>{$t('Start with your own space')}</p>
           <h2 id="release-title">{$t('Make your first private note.')}</h2>
           <p class="sec-lead"
             >{$t(
@@ -729,7 +736,7 @@
     <section class="section band" id="faq" aria-labelledby="faq-title">
       <div class="wrap two-col">
         <header class="sec-head" use:reveal
-          ><p class="kicker"><b>07</b>{$t('A few useful answers')}</p><h2
+          ><p class="kicker"><b>08</b>{$t('A few useful answers')}</p><h2
             id="faq-title">{$t('Before you begin.')}</h2
           ></header
         >
