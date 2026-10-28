@@ -5,6 +5,37 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.1.4] - 2026-10-28
+
+### Desktop
+
+- The desktop and approval windows now support 23 locales. New choices include
+  Traditional Chinese, Hindi, Indonesian, Brazilian Portuguese, Japanese,
+  German, Korean, Italian, Turkish, Vietnamese, Thai, Filipino, Malay,
+  Bengali, Urdu, Polish and Dutch. Urdu uses a right-to-left layout.
+- Translations use more natural wording and consistent terms for approvals,
+  cryptographic keys, wallets and storage.
+- The sidebar scrollbar sits beside the divider, with the same content
+  spacing in left-to-right and right-to-left layouts.
+- Closed output pipes from a terminal or launcher no longer cause a
+  main-process error when the app writes a log message.
+
+### Membership
+
+- Plan benefits show active-device allowances: Free 2, Plus 3, Pro 5 and
+  Max 10. Team-wallet creation quotas come from the wallet hub's configuration,
+  and plan cards adapt to narrow windows.
+- If wallet quotas cannot be read, other plan benefits remain visible and
+  wallet quotas show as unknown. Refresh retries the catalog immediately,
+  allowing the display to recover without waiting for a cached error to expire.
+
+### Upgrade notes
+
+- Enforcing the new-device limits requires the corresponding `dmsg_user`
+  upgrade. Revoked devices free a slot; existing devices remain usable after
+  expiry or downgrade, and revocation, recovery and root rotation remain
+  available. Previously committed enrollments retain their operation receipts.
+
 ## [1.1.3] - 2026-10-28
 
 ### Desktop
