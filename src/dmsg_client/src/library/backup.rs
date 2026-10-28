@@ -22,7 +22,7 @@ use crate::files::{BlobStore, FileManifest, MAX_FILE, Source};
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, cancel_upload, random_hex, upload};
-use dmsg_types::{DAY, Error, MINUTE, Result, ensure, user::VaultWriteState};
+use dmsg_types::{Error, MINUTE, Result, ensure, user::VaultWriteState};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -231,7 +231,7 @@ impl Client {
             chunks,
             manifest_digest: String::new(),
             manifest_size: 0,
-            expires_at: now + DAY,
+            expires_at: crate::upload::expires_at(now),
         };
         let record = BackupManifest {
             format: BACKUP_FORMAT.into(),

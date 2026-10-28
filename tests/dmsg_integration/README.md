@@ -75,7 +75,7 @@ DMSG_LEGACY_RELEASES=/path/to/releases pnpm --dir src/dmsg_legacy test
 
 ## 桌面客户端验收（W1–W10）
 
-`desktop_initial_root_setup_retries_without_replacing_the_account` 覆盖初始根上传确认丢失、daemon 重启后续跑、链上 CommitRoot 成功但响应丢失、重复创建不改变账户或已提交根，以及未批准设备不能通过重试创建接管账户。使用下面相同的 PocketIC、Wasm、daemon 和私有中继环境，按测试名显式运行。
+`desktop_initial_root_setup_retries_without_replacing_the_account` 覆盖上传期限预留 5 分钟余量、连续 `RESULT_EXPIRED` 时只自动更新上传计划一次、daemon 重启后复用持久保存的计划且保留原根包、初始根上传确认丢失、链上 CommitRoot 成功但响应丢失、重复创建不改变账户或已提交根，以及未批准设备不能通过重试创建接管账户。使用下面相同的 PocketIC、Wasm、daemon 和私有中继环境，按测试名显式运行。
 
 `tests/desktop.rs` 在同一个 PocketIC 部署（`tests/support`）和私有中继（workerd）上启动两个 `dmsg daemon`，各用一个 `--home`，配置为 `secure_storage = "file"`，不触碰系统凭据库（只有按需运行的 `desktop_system_credentials` 例外）。测试扮演 dmsg.net 登录页：从 URL fragment 读出请求，用生成的 Ed25519 登录身份签发 delegation 链，再经 daemon 的回调页提交；daemon 没有测试专用路径。
 

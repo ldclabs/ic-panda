@@ -83,6 +83,13 @@ struct UploadRef<'a> {
 /// remain resumable until their actual deadline; their leases may be shorter.
 const UPLOAD_MARGIN_MS: u64 = 300_000;
 
+/// Leave five minutes below the relay's 24-hour limit. This exceeds the
+/// clock skew permitted by the account certificates and request proofs;
+/// upload plans must not depend on network latency to fit below that limit.
+pub(crate) fn expires_at(now: u64) -> u64 {
+    now + dmsg_types::DAY - 5 * dmsg_types::MINUTE
+}
+
 /// A random nonzero ID as lowercase hex.
 pub fn random_hex() -> String {
     hex::encode(crate::crypto::random_id())

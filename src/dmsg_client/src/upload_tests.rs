@@ -2,6 +2,22 @@ use super::*;
 use serde_json::{Value, json};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[test]
+fn upload_deadline_fits_the_relay_limit_with_five_minutes_of_clock_skew() {
+    let server_now = 1_800_000_000_000_u64;
+    for skew in [-300_000_i64, -60_000, 0, 5_000, 60_000, 300_000] {
+        let client_now = server_now.checked_add_signed(skew).unwrap();
+        let deadline = expires_at(client_now);
+        for transit in [0, 2_000, 30_000] {
+            let received = server_now + transit;
+            // The relay enforces both ends of this interval, independently
+            // of authentication's tighter clock/freshness requirements.
+            assert!(deadline > received + UPLOAD_MARGIN_MS);
+            assert!(deadline <= received + dmsg_types::DAY, "skew={skew}");
+        }
+    }
+}
+
 struct Relay {
     status: Value,
     result: Value,

@@ -97,6 +97,8 @@ The local library (`dmsg_client::library`) defaults to 4 GiB, stores encrypted c
 
 Plaintext chunks are 1 MiB, ciphertext budget is `1 MiB + 64 bytes`, and manifests are at most 64 KiB. Actual ciphertext bytes count against quotas. Excess fails explicitly without truncation.
 
+Upload reservations accept a deadline up to 24 hours from relay time. Account upload plans use a 23-hour-55-minute lifetime to leave five minutes for clock skew; channel plans retain their one-hour lifetime. This margin does not relax request authentication or certificate freshness.
+
 After plan expiry/root rotation, query the original revision operation and each upload. Reuse committed objects. Explicitly cancel staging uploads that cannot continue before rewrapping manifests under the current root with a new upload_id. Preserve object/revision/request IDs and encrypted file chunks. Keep jobs available for retry while quota release remains pending.
 
 Pulls verify versions/gaps using complete export snapshots, checking/caching ciphertext chunk by chunk and reusing verified chunks. Heads/cursors advance atomically only after all manifests/files verify. Account pulls are no longer limited by a 256 MiB backup package, though individual file/chunk/manifest/evidence limits remain. Cached chunks from interruptions do not imply content commit. After unlocked sync, collection retains all chunks/manifests in the applied snapshot (otherwise next pull redownloads them), unsent-version jobs, unfinished imports and unexpired sealed upload plans for channel envelopes/attachments and rotation. Replaced versions, expired/abandoned uploads and cached channel downloads can be collected. Resolved conflict copies and history still in relay snapshots are retained.

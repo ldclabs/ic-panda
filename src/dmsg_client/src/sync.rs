@@ -219,7 +219,7 @@ fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u6
         chunks: vec![],
         manifest_digest: String::new(),
         manifest_size: 0,
-        expires_at: now + dmsg_types::DAY,
+        expires_at: crate::upload::expires_at(now),
     }
 }
 
@@ -347,7 +347,7 @@ impl Client {
                 chunks,
                 manifest_digest: String::new(),
                 manifest_size: 0,
-                expires_at: now + dmsg_types::DAY,
+                expires_at: crate::upload::expires_at(now),
             };
             let manifest = seal_manifest(root, &account, &mut plan, ManifestContent::File(file));
             job.file = Some(UploadJob {

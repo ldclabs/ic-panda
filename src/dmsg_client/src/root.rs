@@ -13,6 +13,7 @@ use crate::codec::{b64, base64url, canonical, decode, digest, sha256, unb64};
 use crate::crypto::{
     Key, derive, hpke_open, hpke_seal, open, random_key, seal, sign, signing_public,
 };
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
 use dmsg_protocol::{root_bundle_digest, root_recipients_digest, verify};
@@ -565,6 +566,38 @@ impl RootJob {
             })
         })
     }
+
+    /// After a definitive upload expiry, reconcile before replacing its
+    /// immutable plan. Keep the candidate, bundle and IC reservation intact.
+    /// An unknown read or cancellation leaves the saved job untouched.
+    async fn renew_upload<H: Hold>(&mut self, h: &H) -> Result<()> {
+        let plan = self.plan.as_ref().ok_or(Error::IntegrityFailed)?;
+        let base = h.with(|c| c.base()).await?;
+        match crate::upload::cancel_upload(h, &plan.upload_id).await {
+            // A finalize may have won the race with cancellation. Read it
+            // again below and reuse the committed upload in that case.
+            Ok(()) | Err(Error::VersionConflict) => {}
+            Err(error) => return Err(error),
+        }
+        if let Some(status) = h
+            .find(&format!("{base}/uploads/{}", plan.upload_id))
+            .await?
+        {
+            let stored: UploadPlan = serde_json::from_value(status["plan"].clone())
+                .map_err(|_| Error::IntegrityFailed)?;
+            ensure(stored == *plan, Error::IdempotencyConflict)?;
+            if status["status"] == "committed" {
+                return Ok(());
+            }
+            ensure(status["status"] == "aborted", Error::ExecutionUnknown)?;
+        }
+        let mut fresh = plan.clone();
+        fresh.upload_id = random_hex();
+        fresh.expires_at = crate::upload::expires_at(now_ms());
+        self.plan = Some(fresh);
+        h.with(|c| c.workspace.put_private(c.keys()?, ROOT_JOB, self))
+            .await
+    }
 }
 
 #[derive(Deserialize)]
@@ -968,22 +1001,38 @@ impl Client {
                 }],
                 manifest_digest: hex::encode(*sha256(&bytes)),
                 manifest_size: bytes.len() as u64,
-                expires_at: now_ms() + dmsg_types::DAY,
+                expires_at: crate::upload::expires_at(now_ms()),
             })
             .clone();
         save(self, &job)?;
         self.workspace
             .store
             .put_chunk(&plan.chunks[0].digest, &placeholder)?;
-        self.upload(
-            &self.base()?,
-            &plan,
-            &bytes,
-            0,
-            crate::files::Source::Store,
-            |_, _| Ok(()),
-        )
-        .await?;
+        let mut renewed = false;
+        loop {
+            let plan = job.plan.as_ref().ok_or(Error::IntegrityFailed)?;
+            match self
+                .upload(
+                    &self.base()?,
+                    plan,
+                    &bytes,
+                    0,
+                    crate::files::Source::Store,
+                    |_, _| Ok(()),
+                )
+                .await
+            {
+                Err(Error::ResultExpired) if !renewed => {
+                    job.renew_upload(&self.hold()).await?;
+                    renewed = true;
+                }
+                result => {
+                    result?;
+                    break;
+                }
+            }
+        }
+        let plan = job.plan.as_ref().ok_or(Error::IntegrityFailed)?;
         self.download(&plan.upload_id, "manifest", &plan.manifest_digest)
             .await?;
         self.mutate(

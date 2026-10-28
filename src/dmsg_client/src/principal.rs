@@ -417,7 +417,7 @@ impl Client {
             }],
             manifest_digest: hex::encode(*sha256(&manifest)),
             manifest_size: manifest.len() as u64,
-            expires_at: now_ms() + dmsg_types::DAY,
+            expires_at: crate::upload::expires_at(now_ms()),
         };
         self.workspace.store.set_meta(
             AVATAR_UPLOAD,

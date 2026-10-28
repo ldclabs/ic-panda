@@ -40,8 +40,6 @@ pub const PASSWORD_M_KIB: u32 = 19_456;
 pub const PASSWORD_T: u32 = 2;
 /// Argon2id lanes.
 pub const PASSWORD_P: u32 = 1;
-/// An unfinished link upload lapses after this.
-const PLAN_MS: u64 = DAY;
 
 /// What a share manifest carries, sealed under the edition's key.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -368,7 +366,7 @@ impl Client {
             chunks,
             manifest_digest: hex::encode(*crate::codec::sha256(&manifest_bytes)),
             manifest_size: manifest_bytes.len() as u64,
-            expires_at: now + PLAN_MS,
+            expires_at: crate::upload::expires_at(now),
         };
         Ok(Sharing {
             base: self.base()?,

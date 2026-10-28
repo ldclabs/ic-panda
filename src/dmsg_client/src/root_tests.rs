@@ -45,6 +45,220 @@ fn initial_setup_reuses_only_a_live_matching_reservation() {
     assert!(!job.reservation_current(Some(&slot), 1, 100));
 }
 
+// A saved job from a release that used the full 24-hour upload lifetime.
+fn old_initial_job() -> RootJob {
+    let bytes = ByteBuf::from(b"sealed initial root bundle".to_vec());
+    RootJob {
+        op_id: Hash::new([51; 32]),
+        expected_generation: 0,
+        context: Some(RootContext {
+            account: crate::testing::account().id.to_string(),
+            environment: "local".into(),
+            generation: 1,
+            op_id: "33".repeat(32),
+            security_epoch: 0,
+        }),
+        candidate: Some(ByteArray::new([52; 32])),
+        plan: Some(UploadPlan {
+            management: None,
+            upload_id: "35".repeat(32),
+            object_id: "36".repeat(32),
+            version_id: "37".repeat(32),
+            root_generation: 1,
+            epoch: 0,
+            control_head: None,
+            kind: "root".into(),
+            chunks: vec![ChunkRef {
+                digest: "38".repeat(32),
+                size: 1,
+            }],
+            manifest_digest: hex::encode(*sha256(&bytes)),
+            manifest_size: bytes.len() as u64,
+            expires_at: now_ms() + dmsg_types::DAY + 5_000,
+        }),
+        bytes: Some(bytes),
+    }
+}
+
+struct RootUploadRelay {
+    client: std::sync::Mutex<Client>,
+    reads: std::sync::Mutex<std::collections::VecDeque<Result<Option<Json>>>>,
+    cancel: Result<Json>,
+    cancellations: std::sync::atomic::AtomicUsize,
+}
+
+impl Hold for RootUploadRelay {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        step(&mut self.client.lock().unwrap())
+    }
+
+    async fn find(&self, path: &str) -> Result<Option<Json>> {
+        assert!(path.ends_with(&format!("/uploads/{}", "35".repeat(32))));
+        self.reads
+            .lock()
+            .unwrap()
+            .pop_front()
+            .expect("unexpected read")
+    }
+
+    async fn post<P: Serialize + Sync>(
+        &self,
+        path: &str,
+        action: &str,
+        payload: &P,
+        _: &Hash,
+    ) -> Result<Json> {
+        assert!(path.ends_with("/uploads/cancel"));
+        assert_eq!(action, "dmsg/upload/cancel/v1");
+        assert_eq!(
+            serde_json::to_value(payload).unwrap()["upload_id"],
+            "35".repeat(32)
+        );
+        self.cancellations
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.cancel.clone()
+    }
+}
+
+fn root_relay(
+    dir: &std::path::Path,
+    job: &RootJob,
+    reads: Vec<Result<Option<Json>>>,
+    cancel: Result<Json>,
+) -> RootUploadRelay {
+    let mut client = crate::testing::unlocked(dir, false, None);
+    client.root = None;
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), ROOT_JOB, job)
+        .unwrap();
+    RootUploadRelay {
+        client: std::sync::Mutex::new(client),
+        reads: std::sync::Mutex::new(reads.into()),
+        cancel,
+        cancellations: 0.into(),
+    }
+}
+
+fn upload_status(job: &RootJob, status: &str) -> Result<Option<Json>> {
+    Ok(Some(serde_json::json!({"status":status, "plan":job.plan})))
+}
+
+#[tokio::test]
+async fn initial_root_retry_renews_only_the_uncommitted_upload_and_persists_it() {
+    for staged in [false, true] {
+        let dir = crate::testing::TempDir::new();
+        let mut job = old_initial_job();
+        let before = serde_json::to_value(&job).unwrap();
+        let reads = if staged {
+            vec![
+                upload_status(&job, "staging"),
+                upload_status(&job, "aborted"),
+            ]
+        } else {
+            vec![Ok(None), Ok(None)]
+        };
+        let relay = root_relay(
+            &dir.0,
+            &job,
+            reads,
+            Ok(serde_json::json!({"status":"aborted"})),
+        );
+        let started = now_ms();
+        job.renew_upload(&relay).await.unwrap();
+        let plan = job.plan.as_ref().unwrap();
+        assert_ne!(plan.upload_id, before["plan"]["upload_id"]);
+        assert!(plan.expires_at >= crate::upload::expires_at(started));
+        assert!(plan.expires_at <= crate::upload::expires_at(now_ms()));
+        let mut after = serde_json::to_value(&job).unwrap();
+        after["plan"]["upload_id"] = before["plan"]["upload_id"].clone();
+        after["plan"]["expires_at"] = before["plan"]["expires_at"].clone();
+        // Neither a second root key nor a second IC reservation is generated.
+        assert_eq!(after, before);
+        let client = relay.client.lock().unwrap();
+        let saved: RootJob = client
+            .workspace
+            .private(client.keys().unwrap(), ROOT_JOB)
+            .unwrap()
+            .unwrap();
+        assert_eq!(canonical(&saved), canonical(&job));
+        assert!(client.root.is_none());
+        assert_eq!(
+            relay
+                .cancellations
+                .load(std::sync::atomic::Ordering::SeqCst),
+            usize::from(staged)
+        );
+    }
+}
+
+#[tokio::test]
+async fn initial_root_retry_keeps_a_committed_upload_even_if_its_plan_is_old() {
+    for race in [false, true] {
+        let dir = crate::testing::TempDir::new();
+        let mut job = old_initial_job();
+        job.plan.as_mut().unwrap().expires_at = 1;
+        let before = canonical(&job);
+        let reads = vec![
+            upload_status(&job, if race { "staging" } else { "committed" }),
+            upload_status(&job, "committed"),
+        ];
+        let relay = root_relay(&dir.0, &job, reads, Err(Error::VersionConflict));
+        job.renew_upload(&relay).await.unwrap();
+        assert_eq!(canonical(&job), before);
+        assert_eq!(
+            relay
+                .cancellations
+                .load(std::sync::atomic::Ordering::SeqCst),
+            usize::from(race)
+        );
+    }
+}
+
+#[tokio::test]
+async fn initial_root_retry_preserves_the_job_when_reconciliation_is_unsettled() {
+    for case in 0..4 {
+        let dir = crate::testing::TempDir::new();
+        let mut job = old_initial_job();
+        let before = canonical(&job);
+        let (reads, cancel, error) = match case {
+            0 => (
+                vec![Err(Error::Unavailable("offline".into()))],
+                Ok(Json::Null),
+                Error::Unavailable("offline".into()),
+            ),
+            1 => (
+                vec![upload_status(&job, "staging")],
+                Err(Error::ExecutionUnknown),
+                Error::ExecutionUnknown,
+            ),
+            2 => (
+                vec![Ok(None), Err(Error::Unavailable("offline".into()))],
+                Ok(Json::Null),
+                Error::Unavailable("offline".into()),
+            ),
+            _ => (
+                vec![
+                    upload_status(&job, "staging"),
+                    upload_status(&job, "staging"),
+                ],
+                Ok(Json::Null),
+                Error::ExecutionUnknown,
+            ),
+        };
+        let relay = root_relay(&dir.0, &job, reads, cancel);
+        assert_eq!(job.renew_upload(&relay).await, Err(error));
+        assert_eq!(canonical(&job), before);
+        let client = relay.client.lock().unwrap();
+        let saved: RootJob = client
+            .workspace
+            .private(client.keys().unwrap(), ROOT_JOB)
+            .unwrap()
+            .unwrap();
+        assert_eq!(canonical(&saved), before);
+    }
+}
+
 #[test]
 fn opens_exported_bundles() {
     let v = load("root-v2.json");

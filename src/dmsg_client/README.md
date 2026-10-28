@@ -405,6 +405,15 @@ device whose last certified state has no content root; the operation always
 checks fresh state. Account creation alone (`create_account`) still only
 registers and binds the device.
 
+Root, vault, account-file, backup, share and avatar upload plans leave five
+minutes below the relay's 24-hour limit; channel plans retain their shorter
+one-hour lifetime. Authentication and certificate freshness remain unchanged.
+On `RESULT_EXPIRED`, root setup reconciles the old upload, cancels unfinished
+staging, and reuses a committed upload. Otherwise it persists a new upload ID
+and deadline while retaining the same root key, bundle bytes and IC reservation,
+then retries once. This also resumes saved plans from older releases. Unknown
+reads, cancellations and commits retain the original job for reconciliation.
+
 ## Locking
 
 `lock` drops the login and every key. With `background_online` the device

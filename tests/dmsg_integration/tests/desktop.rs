@@ -578,6 +578,14 @@ struct Proxy {
     nonces: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
     /// Lose one IC CommitRoot reply, after forwarding the signed mutation.
     root_commit: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    uploads: std::sync::Arc<std::sync::Mutex<UploadFaults>>,
+}
+
+#[derive(Default)]
+struct UploadFaults {
+    recording: bool,
+    expired: usize,
+    plans: Vec<dmsg_client::upload::UploadPlan>,
 }
 
 impl Proxy {
@@ -593,14 +601,17 @@ impl Proxy {
         let nonce_rules = nonces.clone();
         let root_commit = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let commit_rule = root_commit.clone();
+        let uploads = std::sync::Arc::new(std::sync::Mutex::new(UploadFaults::default()));
+        let upload_rules = uploads.clone();
         let shared = rules.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let (upstream, rules) = (upstream.clone(), shared.clone());
                 let nonces = nonce_rules.clone();
                 let root_commit = commit_rule.clone();
+                let uploads = upload_rules.clone();
                 std::thread::spawn(move || {
-                    let _ = Self::serve(stream, &upstream, &rules, &nonces, &root_commit);
+                    let _ = Self::serve(stream, &upstream, &rules, &nonces, &root_commit, &uploads);
                 });
             }
         });
@@ -609,6 +620,7 @@ impl Proxy {
             rules,
             nonces,
             root_commit,
+            uploads,
         }
     }
 
@@ -730,11 +742,41 @@ impl Proxy {
         rules: &std::sync::Mutex<Vec<(String, String)>>,
         nonces: &std::sync::Mutex<Vec<String>>,
         root_commit: &std::sync::atomic::AtomicBool,
+        uploads: &std::sync::Mutex<UploadFaults>,
     ) -> std::io::Result<()> {
         let mut reader = BufReader::new(client.try_clone()?);
         let Some((head, body)) = Self::read_message(&mut reader)? else {
             return Ok(());
         };
+        let mut line = head.lines().next().unwrap_or_default().split_whitespace();
+        if line.next() == Some("POST")
+            && line.next().is_some_and(|p| p.ends_with("/uploads"))
+            && uploads.lock().unwrap().recording
+        {
+            // Inspect the public signed plan; the real relay still verifies
+            // every forwarded command. Refusals happen before any reservation.
+            let wire: Value = cbor2::from_slice(&body).unwrap();
+            let cose = URL_SAFE_NO_PAD
+                .decode(wire["cose_sign1"].as_str().unwrap())
+                .unwrap();
+            let signed: cbor2::Value =
+                cbor2::from_slice(cose.strip_prefix(&[0xd2]).unwrap()).unwrap();
+            let command: dmsg_client::cloud::CommandBody<dmsg_client::upload::UploadPlan> =
+                cbor2::from_slice(signed.as_array().unwrap()[2].as_bytes().unwrap()).unwrap();
+            let mut faults = uploads.lock().unwrap();
+            faults.plans.push(command.payload);
+            if faults.expired > 0 {
+                faults.expired -= 1;
+                let reply =
+                    r#"{"ok":false,"error":{"code":"RESULT_EXPIRED","message":"RESULT_EXPIRED"}}"#;
+                let mut client = client;
+                return write!(
+                    client,
+                    "HTTP/1.1 410 Gone\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{reply}",
+                    reply.len()
+                );
+            }
+        }
         if head.starts_with("POST /v1/delegations HTTP/")
             && let Some(max) = nonces.lock().unwrap().pop()
         {
@@ -1834,6 +1876,53 @@ fn desktop_initial_root_setup_retries_without_replacing_the_account() {
             ..Options::default()
         },
     );
+    // A definitive expiry renews only the upload. A second refusal stops
+    // the bounded retry, and the saved replacement resumes after restart.
+    let (expired, daemon) = env.desktop("expired-setup");
+    assert_eq!(expired.login(&env.http, 53).unwrap()["state"], "no_account");
+    {
+        let mut uploads = env.relay_proxy.as_ref().unwrap().uploads.lock().unwrap();
+        uploads.recording = true;
+        uploads.expired = 2;
+    }
+    assert_eq!(expired.fail(&["account", "create"]), "RESULT_EXPIRED");
+    let pending = expired.run(&["status"]);
+    assert_eq!(pending["state"], "root_required");
+    assert_eq!(pending["setup_pending"], true);
+    let before = expired.run(&["account", "show"]);
+    assert_eq!(before["root_generation"], 0);
+    {
+        let uploads = env.relay_proxy.as_ref().unwrap().uploads.lock().unwrap();
+        assert_eq!(uploads.expired, 0);
+        assert_eq!(uploads.plans.len(), 2);
+        assert_ne!(uploads.plans[0].upload_id, uploads.plans[1].upload_id);
+        for plan in &uploads.plans {
+            assert!(plan.expires_at <= now_ms() + dmsg_types::DAY - 5 * dmsg_types::MINUTE);
+        }
+    }
+    env.relaunch(&expired, daemon);
+    assert_eq!(
+        expired.login(&env.http, 53).unwrap()["state"],
+        "root_required"
+    );
+    let finished = expired.run(&["account", "create"]);
+    assert_eq!(finished["account"], pending["account"]);
+    assert_eq!(finished["root_generation"], 1);
+    assert_eq!(expired.run(&["status"])["state"], "unlocked");
+    assert_eq!(expired.run(&["status"])["device_id"], pending["device_id"]);
+    assert_eq!(
+        expired.run(&["account", "show"])["account_version"].as_u64(),
+        before["account_version"].as_u64().map(|v| v + 1)
+    );
+    {
+        let uploads = env.relay_proxy.as_ref().unwrap().uploads.lock().unwrap();
+        assert_eq!(uploads.plans.len(), 3);
+        assert_eq!(uploads.plans[1], uploads.plans[2]);
+        let mut original = uploads.plans[0].clone();
+        original.upload_id = uploads.plans[1].upload_id.clone();
+        original.expires_at = uploads.plans[1].expires_at;
+        assert_eq!(original, uploads.plans[1]);
+    }
     let (a, daemon) = env.desktop("setup");
     assert_eq!(a.login(&env.http, 51).unwrap()["state"], "no_account");
     assert_eq!(
