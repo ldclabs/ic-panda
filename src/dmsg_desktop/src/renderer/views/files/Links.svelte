@@ -47,6 +47,14 @@
     finally { if (current(at)) busy = false }
   }
 
+  /** Library changes, background backups included, re-read the saved links; only opening or refreshing the page reads the relay. */
+  async function reload() {
+    if (busy || !unlocked) return
+    const at = ++revision
+    const saved = await call<any[]>('files/share_links').catch(() => null)
+    if (saved && current(at)) { links = saved; loaded = true }
+  }
+
   async function revoke() {
     if (!confirmation || busy || !unlocked) return
     busy = true; error = ''
@@ -60,7 +68,7 @@
   }
 
   onMount(() => {
-    const off = onChange(['files/changed'], () => void refresh())
+    const off = onChange(['files/changed'], () => void reload())
     return () => { alive = false; revision++; off() }
   })
 </script>

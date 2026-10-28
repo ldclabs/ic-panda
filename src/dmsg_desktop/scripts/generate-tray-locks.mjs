@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const resources = new URL('../resources/', import.meta.url)
-// Filled lock body, open shackle and a transparent keyhole, in an 18px canvas.
+// Filled lock body, closed shackle and a transparent keyhole, in an 18px canvas.
 const lock = 'M12 12V10.5a2.5 2.5 0 0 1 5 0V12h.25a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 1 .75-.75Zm1.25 0h2.5v-1.5a1.25 1.25 0 0 0-2.5 0Zm.5 2v2h1.5v-2Z'
 for (const template of [false, true]) {
   for (const waiting of [false, true]) {

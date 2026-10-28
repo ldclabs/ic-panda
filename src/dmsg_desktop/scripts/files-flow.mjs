@@ -28,6 +28,13 @@ export async function filesFlow({ app, main, shots, methods, hold, waitFor, call
   await main.getByTestId('links-copy').waitFor()
   await waitFor(() => main.getByTestId('links-refresh').isEnabled())
   assert.ok(calls.some(call => call.method === 'files/share_links' && call.params.refresh))
+  // Library changes, such as a background backup slice, re-read saved links without reaching the relay.
+  const linkReads = refresh => calls.filter(call => call.method === 'files/share_links' && !!call.params?.refresh === refresh).length
+  const [savedReads, relayReads] = [linkReads(false), linkReads(true)]
+  emit('files/changed', null)
+  await waitFor(() => linkReads(false) > savedReads)
+  await waitFor(() => main.getByTestId('links-refresh').isEnabled())
+  assert.equal(linkReads(true), relayReads)
   await main.evaluate(() => {
     window.__filesClipboardWrite = navigator.clipboard.writeText.bind(navigator.clipboard)
     navigator.clipboard.writeText = async value => { window.__filesCopied = value }
