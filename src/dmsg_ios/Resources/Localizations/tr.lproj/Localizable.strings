@@ -1447,7 +1447,7 @@
 	<key>Revoke this device</key>
 	<string>Bu cihazı iptal et</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>Bu cihazı iptal edin ve içerik anahtarlarını döndürün</string>
+	<string>Bu cihazı iptal edin ve içerik anahtarlarını yenileyin</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Bu anlık görüntü bağlantısı iptal edilsin mi?</string>
 	<key>Revoked</key>
@@ -1455,7 +1455,7 @@
 	<key>Role</key>
 	<string>Rol</string>
 	<key>Rotate conversation keys</key>
-	<string>Konuşma tuşlarını döndür</string>
+	<string>Konuşma anahtarlarını yenile</string>
 	<key>Rotation checklists</key>
 	<string>Rotasyon kontrol listeleri</string>
 	<key>SHA-256</key>

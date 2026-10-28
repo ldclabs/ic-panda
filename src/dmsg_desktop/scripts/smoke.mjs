@@ -4078,8 +4078,8 @@ smoke: try {
   await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Old Panda') && !document.querySelector('[data-testid="account-switcher"] img'))
   // A committed update whose reply was lost still needs the local journal
   // reconciled after leaving and reopening the editor.
-  const publishProfile = () => main.locator('[data-testid="profile"] button').filter({ hasText: /Publish|发布/ }).last().click()
-  const retryProfile = () => main.locator('[data-testid="profile"] button').filter({ hasText: /Retry|重试/ }).last().click()
+  const publishProfile = () => main.click('[data-testid="profile-publish"]')
+  const retryProfile = () => main.click('[data-testid="profile-publish"]')
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').disabled === false && !document.querySelector('[data-testid="profile"] fieldset').disabled)
   losePrincipalReply = true
   await main.fill('[data-testid="profile-name"]', 'Reply lost')
@@ -4121,6 +4121,8 @@ smoke: try {
   await publishProfile()
   await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Avatar removed') && !document.querySelector('[data-testid="account-switcher"] img'))
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="profile"]', { state: 'detached' })
   // A locked daemon's hints notify that something arrived, never from
   // whom, and each kind at most once a minute.
   const arrived = async () =>

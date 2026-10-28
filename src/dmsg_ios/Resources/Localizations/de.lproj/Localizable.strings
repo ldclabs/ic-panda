@@ -1455,7 +1455,7 @@
 	<key>Role</key>
 	<string>Rolle</string>
 	<key>Rotate conversation keys</key>
-	<string>Konversationstasten drehen</string>
+	<string>Konversationsschlüssel erneuern</string>
 	<key>Rotation checklists</key>
 	<string>Rotationschecklisten</string>
 	<key>SHA-256</key>

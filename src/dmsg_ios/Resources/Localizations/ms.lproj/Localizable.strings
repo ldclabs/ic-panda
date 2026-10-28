@@ -1447,7 +1447,7 @@
 	<key>Revoke this device</key>
 	<string>Batalkan peranti ini</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>Batalkan peranti ini dan putar kekunci kandungan</string>
+	<string>Batalkan peranti ini dan tukar kunci kandungan</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Batalkan pautan petikan ini?</string>
 	<key>Revoked</key>
@@ -1455,7 +1455,7 @@
 	<key>Role</key>
 	<string>Peranan</string>
 	<key>Rotate conversation keys</key>
-	<string>Putar kekunci perbualan</string>
+	<string>Tukar kunci perbualan</string>
 	<key>Rotation checklists</key>
 	<string>Senarai semak giliran</string>
 	<key>SHA-256</key>

@@ -402,7 +402,7 @@ export default {
   "Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.": "Internet Identity इस कंप्यूटर पर dMsg ऐप को आपके लिए काम करने देता है। यह पृष्ठ कोई सत्र नहीं रखता.",
   "1 of 2 approvals": "2 में से 1 अनुमोदन",
   "2 of 2, then 24 hours": "2 में से 2, फिर 24 घंटे",
-  "A commitment to your content root": "आपकी सामग्री की जड़ के प्रति प्रतिबद्धता",
+  "A commitment to your content root": "आपके कंटेंट रूट के प्रति प्रतिबद्धता",
   "A hint wakes your desktop, no content": "एक संकेत आपके डेस्कटॉप को जगाता है, कोई सामग्री नहीं",
   "A release is not an audit.": "रिलीज़ कोई ऑडिट नहीं है.",
   "API key": "API कुंजी",

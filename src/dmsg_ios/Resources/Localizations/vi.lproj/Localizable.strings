@@ -1447,7 +1447,7 @@
 	<key>Revoke this device</key>
 	<string>Thu hồi thiết bị này</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>Thu hồi thiết bị này và xoay phím nội dung</string>
+	<string>Thu hồi thiết bị này và đổi khóa nội dung</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Thu hồi liên kết ảnh chụp nhanh này?</string>
 	<key>Revoked</key>
@@ -1455,7 +1455,7 @@
 	<key>Role</key>
 	<string>Vai trò</string>
 	<key>Rotate conversation keys</key>
-	<string>Xoay phím hội thoại</string>
+	<string>Đổi khóa hội thoại</string>
 	<key>Rotation checklists</key>
 	<string>Danh sách kiểm tra luân chuyển</string>
 	<key>SHA-256</key>

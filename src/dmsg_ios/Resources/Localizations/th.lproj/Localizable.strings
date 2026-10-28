@@ -1447,7 +1447,7 @@
 	<key>Revoke this device</key>
 	<string>เพิกถอนอุปกรณ์นี้</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>เพิกถอนอุปกรณ์นี้และหมุนคีย์เนื้อหา</string>
+	<string>เพิกถอนอุปกรณ์นี้และหมุนเวียนคีย์เนื้อหา</string>
 	<key>Revoke this snapshot link?</key>
 	<string>เพิกถอนลิงก์สแนปชอตนี้หรือไม่</string>
 	<key>Revoked</key>
@@ -1455,7 +1455,7 @@
 	<key>Role</key>
 	<string>บทบาท</string>
 	<key>Rotate conversation keys</key>
-	<string>หมุนแป้นสนทนา</string>
+	<string>หมุนเวียนคีย์การสนทนา</string>
 	<key>Rotation checklists</key>
 	<string>รายการตรวจสอบการหมุน</string>
 	<key>SHA-256</key>

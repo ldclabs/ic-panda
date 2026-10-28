@@ -9,63 +9,63 @@
 	<key>7 days</key>
 	<string>7 天</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
-	<string>後臺傳輸屬於另一個賬號，請切換到該賬號完成或取消。</string>
+	<string>背景傳輸屬於另一個帳號，請切換到該帳號完成或取消。</string>
 	<key>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</key>
-	<string>頻道快照對有權訪問該時期的成員可見，包括之後獲授歷史訪問權的成員。它沒有鏈接到期時間、下載會話限制，也無法收回。</string>
+	<string>頻道快照對有權存取該時期的成員可見，包括之後獲授歷史存取權的成員。它沒有連結到期時間、下載會話限制，也無法收回。</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
-	<string>下載會話是一次取回授權，並非文件讀取次數。到期或撤銷不能刪除已保存的副本。</string>
+	<string>下載會話是一次取回授權，並非檔案讀取次數。到期或撤銷不能刪除已儲存的副本。</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
-	<string>無法驗證記錄或設備鑰匙。你的工作區並未被清除。</string>
+	<string>無法驗證記錄或裝置鑰匙。你的工作區並未被清除。</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
-	<string>引用用於定位字段，不包含字段的祕密值，也不授予讀取權限。</string>
+	<string>引用用於定位欄位，不包含欄位的秘密值，也不授予讀取權限。</string>
 	<key>A snapshot contains an older credential</key>
 	<string>快照包含舊憑據</string>
 	<key>A snapshot link is still active</key>
-	<string>快照鏈接仍有效</string>
+	<string>快照連結仍有效</string>
 	<key>API credential</key>
 	<string>API 憑據</string>
 	<key>About</key>
 	<string>針對的貢獻</string>
 	<key>Accept approved binding</key>
-	<string>接受已批准的綁定</string>
+	<string>接受已批准的繫結</string>
 	<key>Access granted</key>
-	<string>已授予訪問權</string>
+	<string>已授予存取權</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
-	<string>訪問你明確從 dMsg 導出的副本</string>
+	<string>存取你明確從 dMsg 匯出的副本</string>
 	<key>Account</key>
 	<string>我的</string>
 	<key>Account ID</key>
-	<string>賬戶 ID</string>
+	<string>帳戶 ID</string>
 	<key>Account recovery</key>
-	<string>賬戶恢復</string>
+	<string>帳戶恢復</string>
 	<key>Account recovery is pending</key>
-	<string>賬戶恢復正在等待執行</string>
+	<string>帳戶恢復正在等待執行</string>
 	<key>Account security</key>
-	<string>賬戶安全</string>
+	<string>帳戶安全</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
-	<string>賬戶、設備和身份的保護同時變更。必需的硬件批准不能降級爲普通確認對話框。</string>
+	<string>帳戶、裝置和身份的保護同時變更。必需的硬體批准不能降級為普通確認對話方塊。</string>
 	<key>Account, devices and identities</key>
-	<string>賬戶、設備與身份</string>
+	<string>帳戶、裝置與身份</string>
 	<key>Accounts</key>
-	<string>賬戶</string>
+	<string>帳戶</string>
 	<key>Active conversations</key>
 	<string>活動會話</string>
 	<key>Activity on this device</key>
-	<string>本設備活動</string>
+	<string>本裝置活動</string>
 	<key>Add device</key>
-	<string>添加設備</string>
+	<string>新增裝置</string>
 	<key>Add field</key>
-	<string>添加字段</string>
+	<string>新增欄位</string>
 	<key>Add item</key>
 	<string>新增條目</string>
 	<key>Add message to demo</key>
-	<string>添加演示消息</string>
+	<string>新增演示訊息</string>
 	<key>Add one-time code</key>
-	<string>添加一次性驗證碼</string>
+	<string>新增一次性驗證碼</string>
 	<key>Add receiving address</key>
-	<string>添加收款地址</string>
+	<string>新增收款地址</string>
 	<key>Add sample login</key>
-	<string>添加示例登錄項</string>
+	<string>新增示例登入項</string>
 	<key>Added</key>
 	<string>加入於</string>
 	<key>Address</key>
@@ -81,45 +81,45 @@
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>
-	<string>智能體</string>
+	<string>智慧代理</string>
 	<key>All</key>
 	<string>全部</string>
 	<key>All caught up</key>
 	<string>暫時沒有待處理請求</string>
 	<key>All devices lost?</key>
-	<string>所有設備都丟失了？</string>
+	<string>所有裝置都丟失了？</string>
 	<key>All files</key>
-	<string>全部文件</string>
+	<string>全部檔案</string>
 	<key>Allow key rotation</key>
-	<string>允許輪換密鑰</string>
+	<string>允許輪換金鑰</string>
 	<key>Allowed</key>
 	<string>已允許</string>
 	<key>Allowed account IDs, one per line</key>
-	<string>允許的賬號 ID，每行一個</string>
+	<string>允許的帳號 ID，每行一個</string>
 	<key>Already imported</key>
-	<string>已導入</string>
+	<string>已匯入</string>
 	<key>Already present</key>
 	<string>已存在</string>
 	<key>Amount in base units</key>
 	<string>金額（最小單位）</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
-	<string>有一個賬戶恢復請求正在等待執行，請到“賬戶安全”中審閱。</string>
+	<string>有一個帳戶恢復請求正在等待執行，請到「帳戶安全」中審閱。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
-	<string>持有完整鏈接及所需密碼的人，都可在限制範圍內取回內容。</string>
+	<string>持有完整連結及所需密碼的人，都可在限制範圍內取回內容。</string>
 	<key>Anyone, free of charge</key>
 	<string>所有人，免費</string>
 	<key>App Store subscriptions</key>
 	<string>App Store 訂閱</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
-	<string>此設備無法驗證應用，已保存的內容仍可使用。</string>
+	<string>此裝置無法驗證應用，已儲存的內容仍可使用。</string>
 	<key>Apply these receiving rules?</key>
 	<string>應用這些收信規則？</string>
 	<key>Apply this conversation change?</key>
 	<string>應用此會話更改？</string>
 	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
-	<string>批准後僅將所選字段與附件導入爲新的獨立條目。文件保存在本地，並繼承目標文件夾的訪問授權。</string>
+	<string>批准後僅將所選欄位與附件匯入為新的獨立條目。檔案儲存在本機，並繼承目標資料夾的存取授權。</string>
 	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
-	<string>批准後會將審閱過的確切字段和附件發佈爲獨立快照。請覈對目標位置與限制；接收者可以保留副本。</string>
+	<string>批准後會將審閱過的確切欄位和附件釋出為獨立快照。請核對目標位置與限制；接收者可以保留副本。</string>
 	<key>Approval thresholds</key>
 	<string>批准門檻</string>
 	<key>Approvals</key>
@@ -127,17 +127,17 @@
 	<key>Approve</key>
 	<string>批准</string>
 	<key>Approve a binding request</key>
-	<string>批准綁定請求</string>
+	<string>批准繫結請求</string>
 	<key>Approve the reviewed request?</key>
-	<string>批准已覈對的請求？</string>
+	<string>批准已核對的請求？</string>
 	<key>Approve the wallet transaction plan you reviewed</key>
-	<string>批准已覈對的錢包交易方案</string>
+	<string>批准已核對的錢包交易方案</string>
 	<key>Approve this device and distribute new content keys</key>
-	<string>批准這臺設備並分發新的內容密鑰</string>
+	<string>批准這台裝置並分發新的內容金鑰</string>
 	<key>Approve this request</key>
 	<string>批准本次請求</string>
 	<key>Approved by</key>
-	<string>批准設備</string>
+	<string>批准裝置</string>
 	<key>Approver</key>
 	<string>批准者</string>
 	<key>Archive</key>
@@ -147,43 +147,43 @@
 	<key>Archived</key>
 	<string>已歸檔</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
-	<string>請管理員將這個登錄身份綁定到已有賬戶。設備授權需要單獨完成。</string>
+	<string>請管理員將這個登入身份繫結到已有帳戶。裝置授權需要單獨完成。</string>
 	<key>Asset identifier</key>
 	<string>資產標識</string>
 	<key>Attach</key>
-	<string>添加附件</string>
+	<string>新增附件</string>
 	<key>Attach a file</key>
-	<string>添加文件附件</string>
+	<string>新增檔案附件</string>
 	<key>Attach file</key>
-	<string>添加附件</string>
+	<string>新增附件</string>
 	<key>Attachment backup is unconfirmed</key>
 	<string>附件備份尚未確認</string>
 	<key>Attachment unavailable on this device</key>
-	<string>此設備上沒有該附件</string>
+	<string>此裝置上沒有該附件</string>
 	<key>Attestations</key>
-	<string>聲明簽名</string>
+	<string>宣告簽名</string>
 	<key>Audience origins or Agent IDs, one per line</key>
 	<string>接收方來源或 Agent ID，每行一個</string>
 	<key>Authenticate to access the file copies you exported from dMsg. Access lasts five minutes; the snapshot expires after 24 hours.</key>
-	<string>通過系統認證後訪問從 dMsg 導出的文件副本。訪問持續五分鐘，快照在 24 小時後到期。</string>
+	<string>通過系統認證後存取從 dMsg 匯出的檔案副本。存取持續五分鐘，快照在 24 小時後到期。</string>
 	<key>Authenticate to continue</key>
 	<string>認證後繼續</string>
 	<key>Authorize a new device</key>
-	<string>授權新設備</string>
+	<string>授權新裝置</string>
 	<key>Authorize another device</key>
-	<string>授權另一臺設備</string>
+	<string>授權另一台裝置</string>
 	<key>Authorize this device</key>
-	<string>授權此設備</string>
+	<string>授權此裝置</string>
 	<key>Authorize this device's approval key</key>
-	<string>授權此設備的批准鑰匙</string>
+	<string>授權此裝置的批准鑰匙</string>
 	<key>Authorize this iPhone</key>
-	<string>授權這臺 iPhone</string>
+	<string>授權這台 iPhone</string>
 	<key>Authorized device</key>
-	<string>已授權設備</string>
+	<string>已授權裝置</string>
 	<key>Authorized devices</key>
-	<string>已授權設備</string>
+	<string>已授權裝置</string>
 	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>自動填充只接收你選擇的登錄項。快照在 24 小時後到期，並要求獨立於工作區的系統認證。用戶名和網站名可能出現在系統建議中。</string>
+	<string>自動填充只接收你選擇的登入項。快照在 24 小時後到期，並要求獨立於工作區的系統認證。使用者名稱和網站名可能出現在系統建議中。</string>
 	<key>AutoFill snapshot updated</key>
 	<string>自動填充快照已更新</string>
 	<key>Automatic foreground sync</key>
@@ -193,47 +193,47 @@
 	<key>Back up encrypted copy</key>
 	<string>備份加密副本</string>
 	<key>Back up this file?</key>
-	<string>備份這個文件？</string>
+	<string>備份這個檔案？</string>
 	<key>Back up to cloud</key>
 	<string>雲端備份</string>
 	<key>Backed up</key>
 	<string>已雲備份</string>
 	<key>Background ciphertext transfer</key>
-	<string>後臺密文傳輸</string>
+	<string>背景密文傳輸</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
-	<string>後臺簽名和常駐 Agent 能力不受此工作區鎖定控制。</string>
+	<string>背景簽名和常駐 Agent 能力不受此工作區鎖定控制。</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
-	<string>後臺傳輸已啓動，請在“傳輸”中查看進度。</string>
+	<string>背景傳輸已啟動，請在「傳輸」中檢視進度。</string>
 	<key>Backing up…</key>
 	<string>備份中…</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
-	<string>備份進度已保存，請在文件狀態中查看是否完成。</string>
+	<string>備份進度已儲存，請在檔案狀態中檢視是否完成。</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
-	<string>備份已加入隊列，請保持 dMsg 打開以完成上傳。</string>
+	<string>備份已加入佇列，請保持 dMsg 開啟以完成上傳。</string>
 	<key>Bind another Internet Identity</key>
-	<string>綁定另一個 Internet Identity</string>
+	<string>繫結另一個 Internet Identity</string>
 	<key>Bind this workspace to this iPhone?</key>
-	<string>將此工作區綁定到本 iPhone？</string>
+	<string>將此工作區繫結到本 iPhone？</string>
 	<key>Bind workspace</key>
-	<string>綁定工作區</string>
+	<string>繫結工作區</string>
 	<key>Binding protects this local workspace even after a new login. Keep another authorized device or a recovery path before changing it.</key>
-	<string>即使重新登錄，本機綁定仍會保護此本地工作區。變更前，請確保有其他已授權設備或可用的恢復途徑。</string>
+	<string>即使重新登入，本機繫結仍會保護此本機工作區。變更前，請確保有其他已授權裝置或可用的恢復途徑。</string>
 	<key>Biometrics only</key>
 	<string>僅限當前生物識別</string>
 	<key>Biometrics only for exported copies</key>
-	<string>導出副本僅限生物識別認證</string>
+	<string>匯出副本僅限生物識別認證</string>
 	<key>Biometrics-only keys cannot use the device passcode and may stop working when enrolled biometrics change.</key>
-	<string>僅限生物識別的鑰匙不能使用設備密碼，並可能在已錄入的生物識別信息變化後失效。</string>
+	<string>僅限生物識別的鑰匙不能使用裝置密碼，並可能在已錄入的生物識別資訊變化後失效。</string>
 	<key>Birthday</key>
 	<string>生日</string>
 	<key>Bitcoin</key>
 	<string>比特幣</string>
 	<key>Block this account</key>
-	<string>屏蔽此賬號</string>
+	<string>封鎖此帳號</string>
 	<key>Blocked accounts</key>
-	<string>已屏蔽的賬號</string>
+	<string>已封鎖的帳號</string>
 	<key>Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.</key>
-	<string>被屏蔽發送者的內容在本機隱藏。在線屏蔽也會阻止新的直接聯繫和邀請，已分享的副本無法收回。</string>
+	<string>被封鎖傳送者的內容在本機隱藏。線上封鎖也會阻止新的直接聯絡和邀請，已分享的副本無法收回。</string>
 	<key>Broadcast original signed transaction</key>
 	<string>廣播原已簽名交易</string>
 	<key>Browser request</key>
@@ -241,7 +241,7 @@
 	<key>Cancel</key>
 	<string>取消</string>
 	<key>Cancel background transfer</key>
-	<string>取消後臺傳輸</string>
+	<string>取消背景傳輸</string>
 	<key>Cancel pending request</key>
 	<string>取消待處理請求</string>
 	<key>Cancel proposal</key>
@@ -263,19 +263,19 @@
 	<key>Chain</key>
 	<string>區塊鏈</string>
 	<key>Change a device secret policy</key>
-	<string>變更設備祕密策略</string>
+	<string>變更裝置秘密策略</string>
 	<key>Change account security</key>
-	<string>變更賬戶安全設置</string>
+	<string>變更帳戶安全設定</string>
 	<key>Change device permissions</key>
-	<string>修改設備權限</string>
+	<string>修改裝置權限</string>
 	<key>Change hardware approval policy</key>
-	<string>變更硬件批准策略</string>
+	<string>變更硬體批准策略</string>
 	<key>Change identity settings</key>
-	<string>變更身份設置</string>
+	<string>變更身份設定</string>
 	<key>Change role</key>
 	<string>更改角色</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
-	<string>更改會創建提案，仍須滿足錢包現有批准要求。其他策略字段和成員 Agent 權限會保留。</string>
+	<string>更改會建立提案，仍須滿足錢包現有批准要求。其他策略欄位和成員 Agent 權限會保留。</string>
 	<key>Channel</key>
 	<string>頻道</string>
 	<key>Channel ID</key>
@@ -291,21 +291,21 @@
 	<key>Check deletion status</key>
 	<string>查詢刪除狀態</string>
 	<key>Check project references and any copies already delivered.</key>
-	<string>檢查項目引用及已經交付的副本。</string>
+	<string>檢查專案引用及已經交付的副本。</string>
 	<key>Check recovery status</key>
 	<string>檢查恢復狀態</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
-	<string>先檢查此設備的活動記錄，再決定是否仍需保留訪問權。</string>
+	<string>先檢查此裝置的活動記錄，再決定是否仍需保留存取權。</string>
 	<key>Checking permission…</key>
 	<string>正在檢查權限…</string>
 	<key>Checklist completed</key>
 	<string>清單已完成</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
-	<string>清單已根據你的聲明完成。上游狀態仍須獨立向服務提供方覈實。</string>
+	<string>清單已根據你的宣告完成。上游狀態仍須獨立向服務提供方核實。</string>
 	<key>Choose a credential for:</key>
-	<string>爲以下對象選擇登錄憑據：</string>
+	<string>為以下物件選擇登入憑據：</string>
 	<key>Choose a secret</key>
-	<string>選擇祕密條目</string>
+	<string>選擇秘密條目</string>
 	<key>Choose a version</key>
 	<string>選擇版本</string>
 	<key>Choose an attachment</key>
@@ -313,15 +313,15 @@
 	<key>Choose avatar</key>
 	<string>選擇頭像</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
-	<string>逐項選擇這份獨立快照的內容。之後修改源條目不會改變已發送的副本。</string>
+	<string>逐項選擇這份獨立快照的內容。之後修改源條目不會改變已傳送的副本。</string>
 	<key>Choose password export</key>
-	<string>選擇密碼導出文件</string>
+	<string>選擇密碼匯出檔案</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
-	<string>在 iOS 設置中選擇 dMsg 的顯示語言。</string>
+	<string>在 iOS 設定中選擇 dMsg 的顯示語言。</string>
 	<key>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</key>
-	<string>選擇要保留的版本。現有歷史會繼續保存，祕密不會被靜默覆蓋。</string>
+	<string>選擇要保留的版本。現有歷史會繼續儲存，秘密不會被靜默覆蓋。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
-	<string>選擇誰可以向你免費發送來信。已屏蔽賬號會保持屏蔽，直到你解除。</string>
+	<string>選擇誰可以向你免費傳送來信。已封鎖帳號會保持封鎖，直到你解除。</string>
 	<key>Closed</key>
 	<string>關閉</string>
 	<key>Cloud backups</key>
@@ -337,51 +337,51 @@
 	<key>Completed</key>
 	<string>已完成</string>
 	<key>Configure a desktop file mapping</key>
-	<string>配置桌面文件映射</string>
+	<string>配置桌面檔案對映</string>
 	<key>Configured on this device</key>
-	<string>已在此設備配置</string>
+	<string>已在此裝置配置</string>
 	<key>Confirm change</key>
 	<string>確認更改</string>
 	<key>Confirm completed step</key>
 	<string>確認步驟已完成</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
-	<string>只確認你實際完成的工作。這會記錄你的聲明，不會執行服務提供方的操作。</string>
+	<string>只確認你實際完成的工作。這會記錄你的宣告，不會執行服務提供方的操作。</string>
 	<key>Confirm the dMsg request you reviewed</key>
-	<string>確認你已覈對的 dMsg 請求</string>
+	<string>確認你已核對的 dMsg 請求</string>
 	<key>Confirm this account security change</key>
-	<string>確認這項賬戶安全變更</string>
+	<string>確認這項帳戶安全變更</string>
 	<key>Confirm your completed steps</key>
 	<string>確認已完成的步驟</string>
 	<key>Conflicting version</key>
 	<string>衝突版本</string>
 	<key>Connect</key>
-	<string>連接</string>
+	<string>連線</string>
 	<key>Connect only a browser you control. A connected browser can submit requests; each signature still requires your approval in dMsg.</key>
-	<string>請只連接你控制的瀏覽器。已連接瀏覽器可提交請求，每次簽名仍須在 dMsg 中由你批准。</string>
+	<string>請只連線你控制的瀏覽器。已連線瀏覽器可提交請求，每次簽名仍須在 dMsg 中由你批准。</string>
 	<key>Connect this browser</key>
-	<string>連接此瀏覽器</string>
+	<string>連線此瀏覽器</string>
 	<key>Connect this browser?</key>
-	<string>連接這個瀏覽器？</string>
+	<string>連線這個瀏覽器？</string>
 	<key>Connected browsers</key>
-	<string>已連接的瀏覽器</string>
+	<string>已連線的瀏覽器</string>
 	<key>Connection unavailable. Your saved content stays on this device.</key>
-	<string>暫時無法連接，已保存的內容仍保留在本機。</string>
+	<string>暫時無法連線，已儲存的內容仍保留在本機。</string>
 	<key>Contact invitation, if provided</key>
-	<string>聯繫邀請（如有）</string>
+	<string>聯絡邀請（如有）</string>
 	<key>Contact support</key>
-	<string>聯繫支持</string>
+	<string>聯絡支援</string>
 	<key>Continue import</key>
-	<string>繼續導入</string>
+	<string>繼續匯入</string>
 	<key>Continue password import</key>
-	<string>繼續導入密碼</string>
+	<string>繼續匯入密碼</string>
 	<key>Continue selected backups</key>
 	<string>繼續所選備份</string>
 	<key>Continue this backup in background</key>
-	<string>在後臺繼續此備份</string>
+	<string>在背景繼續此備份</string>
 	<key>Continue this import in the account you originally selected.</key>
-	<string>請在最初選擇的賬號中繼續此導入。</string>
+	<string>請在最初選擇的帳號中繼續此匯入。</string>
 	<key>Continue with Internet Identity</key>
-	<string>使用 Internet Identity 登錄</string>
+	<string>使用 Internet Identity 登入</string>
 	<key>Controller ID</key>
 	<string>控制器 ID</string>
 	<key>Controller name</key>
@@ -395,7 +395,7 @@
 	<key>Conversation name</key>
 	<string>對話名稱</string>
 	<key>Conversation settings</key>
-	<string>會話設置</string>
+	<string>會話設定</string>
 	<key>Copied for 30 seconds</key>
 	<string>已複製，30 秒後過期</string>
 	<key>Copy</key>
@@ -403,51 +403,51 @@
 	<key>Copy address</key>
 	<string>複製地址</string>
 	<key>Copy binding request</key>
-	<string>複製綁定請求</string>
+	<string>複製繫結請求</string>
 	<key>Copy enrollment request</key>
 	<string>複製登記請求</string>
 	<key>Copy for 30 seconds</key>
 	<string>複製，保留 30 秒</string>
 	<key>Copy link</key>
-	<string>複製鏈接</string>
+	<string>複製連結</string>
 	<key>Copy pairing request</key>
 	<string>複製配對請求</string>
 	<key>Copy reference</key>
 	<string>複製引用</string>
 	<key>Copy this field?</key>
-	<string>複製這個字段？</string>
+	<string>複製這個欄位？</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>擬定地址策略的聯合簽名者</string>
 	<key>Create</key>
-	<string>創建</string>
+	<string>建立</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
-	<string>在服務提供方創建新憑據，並保存到保險庫</string>
+	<string>在服務提供方建立新憑據，並儲存到保險庫</string>
 	<key>Create a new pairing request</key>
 	<string>生成新的配對請求</string>
 	<key>Create a revocation request?</key>
-	<string>創建撤銷請求？</string>
+	<string>建立撤銷請求？</string>
 	<key>Create agent</key>
-	<string>創建 Agent</string>
+	<string>建立 Agent</string>
 	<key>Create an administrator enrollment request</key>
-	<string>創建管理員登記請求</string>
+	<string>建立管理員登記請求</string>
 	<key>Create an agent identity</key>
-	<string>創建 Agent 身份</string>
+	<string>建立 Agent 身份</string>
 	<key>Create binding request</key>
-	<string>創建綁定請求</string>
+	<string>建立繫結請求</string>
 	<key>Create conversation</key>
-	<string>創建對話</string>
+	<string>建立對話</string>
 	<key>Create hardware cosigner</key>
-	<string>創建硬件聯合簽名者</string>
+	<string>建立硬體聯合簽名者</string>
 	<key>Create invitation</key>
-	<string>創建邀請</string>
+	<string>建立邀請</string>
 	<key>Create proposal</key>
-	<string>創建提案</string>
+	<string>建立提案</string>
 	<key>Create this wallet proposal?</key>
-	<string>創建此錢包提案？</string>
+	<string>建立此錢包提案？</string>
 	<key>Create transfer proposal</key>
-	<string>創建轉賬提案</string>
+	<string>建立轉帳提案</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
-	<string>創建你的加密工作區，即可開始保存密碼、筆記和文件。</string>
+	<string>建立你的加密工作區，即可開始儲存密碼、筆記和檔案。</string>
 	<key>Credential</key>
 	<string>憑據</string>
 	<key>Credential ID</key>
@@ -461,9 +461,9 @@
 	<key>Current</key>
 	<string>當前</string>
 	<key>Current local dependencies</key>
-	<string>當前本地依賴</string>
+	<string>當前本機依賴</string>
 	<key>Current login</key>
-	<string>當前登錄身份</string>
+	<string>當前登入身份</string>
 	<key>Current plan and limits</key>
 	<string>當前套餐與限額</string>
 	<key>Current policy requires payment</key>
@@ -477,69 +477,69 @@
 	<key>DMSG_NOTIFICATION_GENERIC</key>
 	<string>你在 dMsg 中有新動態。</string>
 	<key>Database</key>
-	<string>數據庫名</string>
+	<string>資料庫名</string>
 	<key>Date</key>
 	<string>日期</string>
 	<key>Delegations</key>
 	<string>委託</string>
 	<key>Delete account</key>
-	<string>刪除賬號</string>
+	<string>刪除帳號</string>
 	<key>Delete cloud backup</key>
 	<string>刪除雲備份</string>
 	<key>Delete this cloud backup?</key>
 	<string>刪除這份雲備份？</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
-	<string>刪除 dMsg 賬號不會取消 Apple 訂閱。請在 Apple 賬號設置中取消，以停止續費。</string>
+	<string>刪除 dMsg 帳號不會取消 Apple 訂閱。請在 Apple 帳號設定中取消，以停止續費。</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
-	<string>刪除 dMsg 服務賬號會永久清除其雲端密文、私有服務數據、設備通知登記和公開頭像來源副本。它無法刪除鏈上記錄、其他接收者的副本或其他服務持有的數據。</string>
+	<string>刪除 dMsg 服務帳號會永久清除其雲端密文、私有服務資料、裝置通知登記和公開頭像來源副本。它無法刪除鏈上記錄、其他接收者的副本或其他服務持有的資料。</string>
 	<key>Deletion does not transfer funds. Removing local keys and cloud copies can permanently remove this device's access to wallets and external credentials.</key>
-	<string>刪除不會轉移資金。移除本機密鑰和雲端副本可能使此設備永久失去錢包及外部憑證的訪問權限。</string>
+	<string>刪除不會轉移資金。移除本機金鑰和雲端副本可能使此裝置永久失去錢包及外部憑證的存取權限。</string>
 	<key>Deletion is in progress</key>
 	<string>正在刪除</string>
 	<key>Deletion status</key>
 	<string>刪除狀態</string>
 	<key>Deliver a secret to a local process</key>
-	<string>向本地進程交付祕密</string>
+	<string>向本機程序交付秘密</string>
 	<key>Demo approved · No signature created</key>
-	<string>演示已批准 · 未創建簽名</string>
+	<string>演示已批准 · 未建立簽名</string>
 	<key>Demo rejected · No signature created</key>
-	<string>演示已拒絕 · 未創建簽名</string>
+	<string>演示已拒絕 · 未建立簽名</string>
 	<key>Demo section</key>
 	<string>演示內容</string>
 	<key>Dependencies on this device</key>
-	<string>此設備上的依賴</string>
+	<string>此裝置上的依賴</string>
 	<key>Describe the issue</key>
 	<string>描述問題</string>
 	<key>Desktop file mapping</key>
-	<string>桌面文件映射</string>
+	<string>桌面檔案對映</string>
 	<key>Desktop file mapping needs review</key>
-	<string>桌面文件映射需要檢查</string>
+	<string>桌面檔案對映需要檢查</string>
 	<key>Desktop-local command approvals stay on that desktop. Only requests available to this device appear here.</key>
-	<string>桌面本地命令的審批留在對應桌面，只顯示此設備可用的請求。</string>
+	<string>桌面本機命令的審批留在對應桌面，只顯示此裝置可用的請求。</string>
 	<key>Destination</key>
 	<string>目標位置</string>
 	<key>Destination folder</key>
-	<string>目標文件夾</string>
+	<string>目標資料夾</string>
 	<key>Device</key>
-	<string>設備</string>
+	<string>裝置</string>
 	<key>Device ID</key>
-	<string>設備 ID</string>
+	<string>裝置 ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
-	<string>設備認證暫時不可用。鑰匙已保留，請在解鎖此設備後重試。</string>
+	<string>裝置認證暫時不可用。鑰匙已保留，請在解鎖此裝置後重試。</string>
 	<key>Device pairing request QR code</key>
-	<string>設備配對請求二維碼</string>
+	<string>裝置配對請求QR 碼</string>
 	<key>Device permissions</key>
-	<string>設備權限</string>
+	<string>裝置權限</string>
 	<key>Device policy</key>
-	<string>設備策略</string>
+	<string>裝置策略</string>
 	<key>Device policy needs review</key>
-	<string>設備策略需要檢查</string>
+	<string>裝置策略需要檢查</string>
 	<key>Device request</key>
-	<string>設備請求</string>
+	<string>裝置請求</string>
 	<key>Device-bound workspace</key>
-	<string>工作區本機綁定</string>
+	<string>工作區本機繫結</string>
 	<key>Devices</key>
-	<string>設備</string>
+	<string>裝置</string>
 	<key>Disabled</key>
 	<string>已停用</string>
 	<key>Discard</key>
@@ -557,7 +557,7 @@
 	<key>Done</key>
 	<string>完成</string>
 	<key>Download encrypted copy in background</key>
-	<string>在後臺下載加密副本</string>
+	<string>在背景下載加密副本</string>
 	<key>Download sessions</key>
 	<string>下載會話數</string>
 	<key>Downloading encrypted backup</key>
@@ -567,41 +567,41 @@
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
-	<string>每個移動端包上限爲 8 MiB，含所選附件。最終審批會顯示確切且不可變的內容選擇與目標位置。</string>
+	<string>每個移動端包上限為 8 MiB，含所選附件。最終審批會顯示確切且不可變的內容選擇與目標位置。</string>
 	<key>Edit item</key>
 	<string>編輯條目</string>
 	<key>Edit member</key>
 	<string>編輯成員</string>
 	<key>Edit message</key>
-	<string>編輯消息</string>
+	<string>編輯訊息</string>
 	<key>Edit secret</key>
-	<string>編輯祕密</string>
+	<string>編輯秘密</string>
 	<key>Edited</key>
 	<string>編輯</string>
 	<key>Email</key>
 	<string>郵箱</string>
 	<key>Enable automatic sync</key>
-	<string>開啓自動同步</string>
+	<string>開啟自動同步</string>
 	<key>Enable automatic sync for this account?</key>
-	<string>爲這個賬戶開啓自動同步？</string>
+	<string>為這個帳戶開啟自動同步？</string>
 	<key>Enable dMsg in AutoFill settings</key>
-	<string>在自動填充設置中啓用 dMsg</string>
+	<string>在自動填充設定中啟用 dMsg</string>
 	<key>Encrypted backup</key>
 	<string>加密備份</string>
 	<key>Encrypting</key>
 	<string>正在加密</string>
 	<key>Engine</key>
-	<string>數據庫引擎</string>
+	<string>資料庫引擎</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
-	<string>已錄入的生物識別信息發生變化。依賴此鑰匙前，請註冊替代鑰匙。</string>
+	<string>已錄入的生物識別資訊發生變化。依賴此鑰匙前，請註冊替代鑰匙。</string>
 	<key>Enter valid account IDs, one per line.</key>
-	<string>請輸入有效賬號 ID，每行一個。</string>
+	<string>請輸入有效帳號 ID，每行一個。</string>
 	<key>Error details</key>
 	<string>錯誤詳情</string>
 	<key>Example document</key>
-	<string>示例文檔</string>
+	<string>示例文件</string>
 	<key>Example login</key>
-	<string>示例登錄項</string>
+	<string>示例登入項</string>
 	<key>Execute</key>
 	<string>執行</string>
 	<key>Execute approved proposal</key>
@@ -609,7 +609,7 @@
 	<key>Execute this approved wallet proposal?</key>
 	<string>執行此已批准的錢包提案？</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
-	<string>現有屏蔽規則、邀請和收件箱容量會保留。選擇免費或關閉，會替換原有的付費聯繫設置。</string>
+	<string>現有封鎖規則、邀請和收件箱容量會保留。選擇免費或關閉，會替換原有的付費聯絡設定。</string>
 	<key>Expired</key>
 	<string>已過期</string>
 	<key>Expires</key>
@@ -619,9 +619,9 @@
 	<key>Expiry</key>
 	<string>有效期</string>
 	<key>Explicitly back up the selected file version if you want a cloud copy.</key>
-	<string>若需要雲端副本，請明確選擇備份該文件版本。</string>
+	<string>若需要雲端副本，請明確選擇備份該檔案版本。</string>
 	<key>Export the selected login items to Password AutoFill</key>
-	<string>將所選登錄項導出到密碼自動填充</string>
+	<string>將所選登入項匯出到密碼自動填充</string>
 	<key>Failed</key>
 	<string>失敗</string>
 	<key>Favorite</key>
@@ -629,39 +629,39 @@
 	<key>Favorites</key>
 	<string>常用</string>
 	<key>Field</key>
-	<string>字段</string>
+	<string>欄位</string>
 	<key>Field name</key>
-	<string>字段名稱</string>
+	<string>欄位名稱</string>
 	<key>Field reference</key>
-	<string>字段引用</string>
+	<string>欄位引用</string>
 	<key>Field reference and dependencies</key>
-	<string>字段引用與依賴</string>
+	<string>欄位引用與依賴</string>
 	<key>Field settings</key>
-	<string>字段設置</string>
+	<string>欄位設定</string>
 	<key>Fields</key>
-	<string>字段</string>
+	<string>欄位</string>
 	<key>File</key>
-	<string>文件詳情</string>
+	<string>檔案詳情</string>
 	<key>File name</key>
-	<string>文件名</string>
+	<string>檔名</string>
 	<key>File not available on this device</key>
-	<string>此設備上沒有該文件</string>
+	<string>此裝置上沒有該檔案</string>
 	<key>File versions</key>
-	<string>文件版本</string>
+	<string>檔案版本</string>
 	<key>Files</key>
-	<string>文件</string>
+	<string>檔案</string>
 	<key>Files app copies</key>
 	<string>Files 應用副本</string>
 	<key>Files app snapshot updated</key>
 	<string>Files 應用快照已更新</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
-	<string>只有你明確選擇時，纔會備份文件。</string>
+	<string>只有你明確選擇時，才會備份檔案。</string>
 	<key>Files in this folder</key>
-	<string>此文件夾中的文件</string>
+	<string>此資料夾中的檔案</string>
 	<key>Fingerprint</key>
 	<string>指紋</string>
 	<key>Folder name</key>
-	<string>文件夾名稱</string>
+	<string>資料夾名稱</string>
 	<key>Freeze this wallet?</key>
 	<string>凍結此錢包？</string>
 	<key>Freeze wallet</key>
@@ -669,27 +669,27 @@
 	<key>Grant delegation</key>
 	<string>授予委託</string>
 	<key>Handled on another device</key>
-	<string>已由其他設備處理</string>
+	<string>已由其他裝置處理</string>
 	<key>Harassment</key>
 	<string>騷擾</string>
 	<key>Hardware approval key</key>
-	<string>硬件批准鑰匙</string>
+	<string>硬體批准鑰匙</string>
 	<key>Hardware cosigners</key>
-	<string>硬件聯合簽名者</string>
+	<string>硬體聯合簽名者</string>
 	<key>Hardware keys on this device</key>
-	<string>此設備上的硬件密鑰</string>
+	<string>此裝置上的硬體金鑰</string>
 	<key>Hardware security</key>
-	<string>硬件安全</string>
+	<string>硬體安全</string>
 	<key>Have you reviewed the missing outcome?</key>
-	<string>你已覈查缺失的執行結果嗎？</string>
+	<string>你已核查缺失的執行結果嗎？</string>
 	<key>Hidden fields differ: </key>
-	<string>這些隱藏字段存在差異：</string>
+	<string>這些隱藏欄位存在差異：</string>
 	<key>Hidden value</key>
 	<string>隱藏值</string>
 	<key>Hide</key>
 	<string>隱藏</string>
 	<key>Hide sample sender</key>
-	<string>隱藏示例發送者</string>
+	<string>隱藏示例傳送者</string>
 	<key>Historical version</key>
 	<string>歷史版本</string>
 	<key>Host</key>
@@ -697,67 +697,67 @@
 	<key>I completed this step</key>
 	<string>我已完成此步驟</string>
 	<key>I have secured my wallet access and external credentials</key>
-	<string>我已妥善保存錢包訪問方式及外部憑證</string>
+	<string>我已妥善儲存錢包存取方式及外部憑證</string>
 	<key>ICP</key>
 	<string>ICP</string>
 	<key>Id Number</key>
 	<string>證件號碼</string>
 	<key>Identity</key>
-	<string>身份信息</string>
+	<string>身份資訊</string>
 	<key>Illegal content</key>
 	<string>違法內容</string>
 	<key>Import</key>
-	<string>導入</string>
+	<string>匯入</string>
 	<key>Import a document to encrypt it on this device. Cloud backup is a separate action.</key>
-	<string>導入文件後將在本機加密保存，雲端備份需要單獨操作。</string>
+	<string>匯入檔案後將在本機加密儲存，雲端備份需要單獨操作。</string>
 	<key>Import a file in Files before attaching it.</key>
-	<string>請先在文件庫中導入文件，再選擇附件。</string>
+	<string>請先在檔案庫中匯入檔案，再選擇附件。</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
-	<string>導入未加密的 1Password、Bitwarden 或瀏覽器密碼導出文件。源文件僅保留在本機，只添加你選擇的記錄。</string>
+	<string>匯入未加密的 1Password、Bitwarden 或瀏覽器密碼匯出檔案。原始檔僅保留在本機，只新增你選擇的記錄。</string>
 	<key>Import completed</key>
-	<string>導入完成</string>
+	<string>匯入完成</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
-	<string>導入會創建新的獨立條目。文件僅保存在本設備，並繼承所選文件夾的訪問授權。不會自動選擇任何內容。</string>
+	<string>匯入會建立新的獨立條目。檔案僅儲存在本裝置，並繼承所選資料夾的存取授權。不會自動選擇任何內容。</string>
 	<key>Import desktop-discovered secrets</key>
-	<string>導入桌面發現的祕密</string>
+	<string>匯入桌面發現的秘密</string>
 	<key>Import file</key>
-	<string>導入文件</string>
+	<string>匯入檔案</string>
 	<key>Import files</key>
-	<string>導入文件</string>
+	<string>匯入檔案</string>
 	<key>Import into dMsg</key>
-	<string>導入到 dMsg</string>
+	<string>匯入到 dMsg</string>
 	<key>Import into this account</key>
-	<string>導入到此賬號</string>
+	<string>匯入到此帳號</string>
 	<key>Import passwords</key>
-	<string>導入密碼</string>
+	<string>匯入密碼</string>
 	<key>Import photo</key>
-	<string>導入照片</string>
+	<string>匯入照片</string>
 	<key>Import secret package</key>
-	<string>導入祕密包</string>
+	<string>匯入秘密包</string>
 	<key>Import selected records</key>
-	<string>導入所選記錄</string>
+	<string>匯入所選記錄</string>
 	<key>Import selected secrets</key>
-	<string>導入所選祕密內容</string>
+	<string>匯入所選秘密內容</string>
 	<key>In Trash</key>
 	<string>已在回收站</string>
 	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>真實舉報會向服務發送舉報原因及賬號、資源標識。僅在你明確選擇披露時才包含消息正文。</string>
+	<string>真實舉報會向服務傳送舉報原因及帳號、資源標識。僅在你明確選擇披露時才包含訊息正文。</string>
 	<key>In progress</key>
 	<string>進行中</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
-	<string>此版本暫不開放內購，仍可查看當前套餐和用量。</string>
+	<string>此版本暫不開放內購，仍可檢視當前套餐和用量。</string>
 	<key>Inbox</key>
 	<string>來信</string>
 	<key>Inbox settings</key>
-	<string>收件箱設置</string>
+	<string>收件箱設定</string>
 	<key>Include notes</key>
 	<string>包含備註</string>
 	<key>Include this message's text</key>
-	<string>附上此消息正文</string>
+	<string>附上此訊息正文</string>
 	<key>Inspect pairing request</key>
-	<string>覈對配對請求</string>
+	<string>核對配對請求</string>
 	<key>Inspect this version</key>
-	<string>查看這個版本</string>
+	<string>檢視這個版本</string>
 	<key>Integrity</key>
 	<string>完整性</string>
 	<key>Interrupted</key>
@@ -771,13 +771,13 @@
 	<key>Item attachments</key>
 	<string>條目附件</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
-	<string>條目引用可能先於文件同步。只有此設備上可用的文件才能加入新快照。</string>
+	<string>條目引用可能先於檔案同步。只有此裝置上可用的檔案才能加入新快照。</string>
 	<key>Join</key>
 	<string>加入</string>
 	<key>Join account</key>
-	<string>加入賬戶</string>
+	<string>加入帳戶</string>
 	<key>Join an existing account</key>
-	<string>加入現有賬戶</string>
+	<string>加入現有帳戶</string>
 	<key>Join an existing wallet</key>
 	<string>加入已有錢包</string>
 	<key>Join conversation</key>
@@ -785,15 +785,15 @@
 	<key>Keep current version</key>
 	<string>保留當前版本</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
-	<string>把祕密、對話與文件放在一起，只有你授權的設備才能打開。</string>
+	<string>把秘密、對話與檔案放在一起，只有你授權的裝置才能開啟。</string>
 	<key>Key</key>
-	<string>密鑰</string>
+	<string>金鑰</string>
 	<key>Key fingerprint</key>
 	<string>鑰匙指紋</string>
 	<key>Key label</key>
-	<string>密鑰標籤</string>
+	<string>金鑰標籤</string>
 	<key>Keys</key>
-	<string>密鑰</string>
+	<string>金鑰</string>
 	<key>Language</key>
 	<string>語言</string>
 	<key>Last known cloud state</key>
@@ -803,133 +803,133 @@
 	<key>Leave empty to keep existing value</key>
 	<string>留空以保留現有內容</string>
 	<key>License Key</key>
-	<string>許可證密鑰</string>
+	<string>許可證金鑰</string>
 	<key>Licensed To</key>
 	<string>授權給</string>
 	<key>Link limits</key>
-	<string>鏈接限制</string>
+	<string>連結限制</string>
 	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>真實請求會顯示已驗證來源及完整載荷，並要求配置的系統或硬件批准。</string>
+	<string>真實請求會顯示已驗證來源及完整載荷，並要求配置的系統或硬體批准。</string>
 	<key>Load earlier activity</key>
-	<string>加載更早的活動</string>
+	<string>載入更早的活動</string>
 	<key>Load earlier messages</key>
-	<string>加載更早的消息</string>
+	<string>載入更早的訊息</string>
 	<key>Load earlier proposals</key>
-	<string>加載更早提案</string>
+	<string>載入更早提案</string>
 	<key>Load more</key>
-	<string>加載更多</string>
+	<string>載入更多</string>
 	<key>Loading the verified request…</key>
-	<string>正在加載已驗證的請求…</string>
+	<string>正在載入已驗證的請求…</string>
 	<key>Local</key>
 	<string>本機</string>
 	<key>Local delivery record</key>
-	<string>本地交付記錄</string>
+	<string>本機交付記錄</string>
 	<key>Local demo</key>
-	<string>本地演示</string>
+	<string>本機演示</string>
 	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>本地演示 · 虛構數據 · 關閉後重置</string>
+	<string>本機演示 · 虛構資料 · 關閉後重置</string>
 	<key>Local dependencies</key>
-	<string>本地依賴</string>
+	<string>本機依賴</string>
 	<key>Local dependency</key>
-	<string>本地依賴</string>
+	<string>本機依賴</string>
 	<key>Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.</key>
-	<string>本機文件不會自動備份。卸載 dMsg 會丟失尚未雲備份的文件。</string>
+	<string>本機檔案不會自動備份。解除安裝 dMsg 會丟失尚未雲備份的檔案。</string>
 	<key>Local findings</key>
-	<string>本地發現</string>
+	<string>本機發現</string>
 	<key>Local label</key>
 	<string>本機標籤</string>
 	<key>Local security review</key>
-	<string>本地安全檢查</string>
+	<string>本機安全檢查</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
-	<string>本地存儲不可用。請解鎖此設備後重試；不要通過重置工作區來恢復中斷的操作。</string>
+	<string>本機儲存不可用。請解鎖此裝置後重試；不要通過重置工作區來恢復中斷的操作。</string>
 	<key>Local trash is retained for 30 days. Cloud backups are managed separately.</key>
 	<string>本機回收站保留 30 天，雲備份單獨管理。</string>
 	<key>Lock immediately in background</key>
-	<string>進入後臺立即鎖定</string>
+	<string>進入背景立即鎖定</string>
 	<key>Lock workspace</key>
 	<string>鎖定保險庫</string>
 	<key>Login identities</key>
-	<string>登錄身份</string>
+	<string>登入身份</string>
 	<key>Manage Apple subscriptions</key>
 	<string>管理 Apple 訂閱</string>
 	<key>Manage file</key>
-	<string>管理文件</string>
+	<string>管理檔案</string>
 	<key>Manage subscriptions</key>
 	<string>管理訂閱</string>
 	<key>Mark as read</key>
-	<string>標記爲已讀</string>
+	<string>標記為已讀</string>
 	<key>Maximum fee in base units</key>
 	<string>最高費用（最小單位）</string>
 	<key>Member account ID</key>
-	<string>目標成員賬戶 ID</string>
+	<string>目標成員帳戶 ID</string>
 	<key>Member account or Principal</key>
-	<string>成員賬號或 Principal</string>
+	<string>成員帳號或 Principal</string>
 	<key>Member label</key>
 	<string>成員標籤</string>
 	<key>Members</key>
 	<string>成員列表</string>
 	<key>Message</key>
-	<string>發送私信</string>
+	<string>傳送私信</string>
 	<key>Message withdrawn</key>
-	<string>消息已撤回</string>
+	<string>訊息已撤回</string>
 	<key>Messages</key>
-	<string>消息</string>
+	<string>訊息</string>
 	<key>Month</key>
 	<string>年月</string>
 	<key>Monthly execution units</key>
 	<string>每月執行額度</string>
 	<key>Move this local file to Trash?</key>
-	<string>將這個本機文件移到回收站？</string>
+	<string>將這個本機檔案移到回收站？</string>
 	<key>Move this secret to Trash?</key>
-	<string>將這個祕密移到回收站？</string>
+	<string>將這個秘密移到回收站？</string>
 	<key>Move to Trash</key>
 	<string>移到回收站</string>
 	<key>Move to another folder</key>
-	<string>移到其他文件夾</string>
+	<string>移到其他資料夾</string>
 	<key>Mute notifications</key>
 	<string>靜音通知</string>
 	<key>My account</key>
-	<string>我的賬戶</string>
+	<string>我的帳戶</string>
 	<key>Name</key>
 	<string>名稱</string>
 	<key>Needs a fresh review</key>
 	<string>需要重新審閱</string>
 	<key>Network</key>
-	<string>網絡</string>
+	<string>網路</string>
 	<key>New controller</key>
 	<string>新建控制器</string>
 	<key>New conversation</key>
 	<string>新建對話</string>
 	<key>New field type</key>
-	<string>新字段類型</string>
+	<string>新欄位型別</string>
 	<key>New folder</key>
-	<string>新建文件夾</string>
+	<string>新建資料夾</string>
 	<key>New free letter</key>
 	<string>新建免費來信</string>
 	<key>New revision</key>
 	<string>新版本</string>
 	<key>New secret</key>
-	<string>新增祕密</string>
+	<string>新增秘密</string>
 	<key>No</key>
 	<string>否</string>
 	<key>No activity on this device</key>
-	<string>此設備暫無活動</string>
+	<string>此裝置暫無活動</string>
 	<key>No background transfer</key>
-	<string>沒有後臺傳輸</string>
+	<string>沒有背景傳輸</string>
 	<key>No blocked accounts</key>
-	<string>沒有屏蔽的賬號</string>
+	<string>沒有封鎖的帳號</string>
 	<key>No cloud backups</key>
 	<string>沒有云備份</string>
 	<key>No connected browsers</key>
-	<string>沒有已連接的瀏覽器</string>
+	<string>沒有已連線的瀏覽器</string>
 	<key>No conversations yet</key>
 	<string>還沒有對話</string>
 	<key>No dependencies recorded on this device.</key>
-	<string>此設備尚未記錄依賴。</string>
+	<string>此裝置尚未記錄依賴。</string>
 	<key>No findings from this device's checks.</key>
-	<string>此設備的檢查沒有發現問題。</string>
+	<string>此裝置的檢查沒有發現問題。</string>
 	<key>No interrupted imports</key>
-	<string>沒有中斷的導入</string>
+	<string>沒有中斷的匯入</string>
 	<key>No item attachments</key>
 	<string>條目暫無附件</string>
 	<key>No letters yet</key>
@@ -937,21 +937,21 @@
 	<key>No pending backups</key>
 	<string>沒有待處理備份</string>
 	<key>No recent use observed on this device</key>
-	<string>此設備近期未觀察到使用記錄</string>
+	<string>此裝置近期未觀察到使用記錄</string>
 	<key>No registered approval key</key>
 	<string>未註冊批准鑰匙</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
-	<string>不選擇聯合簽名者，表示不設置額外協籤策略。批准前請覈對完整提案。</string>
+	<string>不選擇聯合簽名者，表示不設定額外協籤策略。批准前請核對完整提案。</string>
 	<key>No shared items waiting</key>
 	<string>沒有待接收的分享內容</string>
 	<key>No snapshots on this device</key>
-	<string>此設備尚無快照</string>
+	<string>此裝置尚無快照</string>
 	<key>No team wallets</key>
 	<string>沒有團隊錢包</string>
 	<key>Not enabled</key>
-	<string>未開啓</string>
+	<string>未開啟</string>
 	<key>Not enough storage on this device.</key>
-	<string>本機存儲空間不足。</string>
+	<string>本機儲存空間不足。</string>
 	<key>Not registered</key>
 	<string>未註冊</string>
 	<key>Note</key>
@@ -963,55 +963,55 @@
 	<key>Notifications</key>
 	<string>通知</string>
 	<key>Notifications are disabled in system settings.</key>
-	<string>通知已在系統設置中關閉。</string>
+	<string>通知已在系統設定中關閉。</string>
 	<key>Notifications contain no message text, sender, filename or approval payload. Opening dMsg always refreshes the actual state.</key>
-	<string>通知不包含消息正文、發信人、文件名或審批內容。打開 dMsg 後會讀取實際狀態。</string>
+	<string>通知不包含訊息正文、發信人、檔名或審批內容。開啟 dMsg 後會讀取實際狀態。</string>
 	<key>Notifications enabled</key>
-	<string>通知已啓用</string>
+	<string>通知已啟用</string>
 	<key>Notify this account on this device</key>
-	<string>在此設備上通知該賬號</string>
+	<string>在此裝置上通知該帳號</string>
 	<key>Number</key>
 	<string>號碼</string>
 	<key>OK</key>
 	<string>好</string>
 	<key>Observed on this device</key>
-	<string>此設備上的觀察結果</string>
+	<string>此裝置上的觀察結果</string>
 	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
-	<string>在已授權設備上打開審批中心，覈對這臺設備的完整指紋、角色與權限。掃描不會自動批准。</string>
+	<string>在已授權裝置上開啟審批中心，核對這台裝置的完整指紋、角色與權限。掃描不會自動批准。</string>
 	<key>On this device</key>
-	<string>保存在本機</string>
+	<string>儲存在本機</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
-	<string>首次使用 dMsg 時，登錄後按引導創建你的加密工作區。</string>
+	<string>首次使用 dMsg 時，登入後按引導建立你的加密工作區。</string>
 	<key>One-time code</key>
 	<string>一次性驗證碼</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>請在準備使用時操作。複製內容僅保留在本機，30 秒後過期。</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
-	<string>此處僅支持免費聯繫，不能支付或批准收件人的費用。</string>
+	<string>此處僅支援免費聯絡，不能支付或批准收件人的費用。</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
-	<string>Files 應用中只顯示所選的不可變副本。訪問需要系統認證；鎖定 dMsg 會結束當前訪問會話。Files 可能保留已下載副本及文件名，dMsg 無法將其收回。</string>
+	<string>Files 應用中只顯示所選的不可變副本。存取需要系統認證；鎖定 dMsg 會結束當前存取會話。Files 可能保留已下載副本及檔名，dMsg 無法將其收回。</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
-	<string>鎖定 dMsg 後只傳輸所選文件的密文。調度由 iOS 控制；強制退出會停止傳輸，直到再次打開應用。請打開原賬號驗證並完成。</string>
+	<string>鎖定 dMsg 後只傳輸所選檔案的密文。排程由 iOS 控制；強制退出會停止傳輸，直到再次開啟應用。請開啟原帳號驗證並完成。</string>
 	<key>Open approval record</key>
-	<string>查看審批記錄</string>
+	<string>檢視審批記錄</string>
 	<key>Open approvals</key>
-	<string>打開審批中心</string>
+	<string>開啟審批中心</string>
 	<key>Open dMsg without exposing private content on the Home Screen.</key>
-	<string>打開 dMsg，不在主屏幕顯示私密內容。</string>
+	<string>開啟 dMsg，不在主螢幕顯示私密內容。</string>
 	<key>Open dMsg workspace</key>
-	<string>打開 dMsg 工作區</string>
+	<string>開啟 dMsg 工作區</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
-	<string>打開 dMsg。解鎖和批准仍需你在應用內操作。</string>
+	<string>開啟 dMsg。解鎖和批准仍需你在應用內操作。</string>
 	<key>Open invitation in browser</key>
-	<string>在瀏覽器打開邀請</string>
+	<string>在瀏覽器開啟邀請</string>
 	<key>Open notification settings</key>
-	<string>打開通知設置</string>
+	<string>開啟通知設定</string>
 	<key>Open private workspace</key>
-	<string>打開私密工作區</string>
+	<string>開啟私密工作區</string>
 	<key>Open secret</key>
-	<string>打開祕密條目</string>
+	<string>開啟秘密條目</string>
 	<key>Open workspace</key>
-	<string>打開工作區</string>
+	<string>開啟工作區</string>
 	<key>Optional password</key>
 	<string>密碼（可選）</string>
 	<key>Original revision</key>
@@ -1019,15 +1019,15 @@
 	<key>Other</key>
 	<string>其他</string>
 	<key>Other devices</key>
-	<string>其他設備</string>
+	<string>其他裝置</string>
 	<key>Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.</key>
-	<string>關閉後，離開應用 3 分鐘將鎖定。設備鎖屏時始終立即鎖定。</string>
+	<string>關閉後，離開應用 3 分鐘將鎖定。裝置鎖屏時始終立即鎖定。</string>
 	<key>Outcome no longer available</key>
 	<string>執行結果已不可用</string>
 	<key>Package size</key>
 	<string>包大小</string>
 	<key>Parent folder</key>
-	<string>上級文件夾</string>
+	<string>上級資料夾</string>
 	<key>Password</key>
 	<string>密碼</string>
 	<key>Password AutoFill</key>
@@ -1039,15 +1039,15 @@
 	<key>Passwords</key>
 	<string>密碼</string>
 	<key>Paste binding request</key>
-	<string>粘貼綁定請求</string>
+	<string>貼上繫結請求</string>
 	<key>Paste enrollment request</key>
-	<string>粘貼登記請求</string>
+	<string>貼上登記請求</string>
 	<key>Paste invitation</key>
-	<string>粘貼邀請</string>
+	<string>貼上邀請</string>
 	<key>Paste pairing request</key>
-	<string>粘貼配對請求</string>
+	<string>貼上配對請求</string>
 	<key>Paste secret package link</key>
-	<string>粘貼祕密包鏈接</string>
+	<string>貼上秘密包連結</string>
 	<key>Pause this agent</key>
 	<string>暫停此 Agent</string>
 	<key>Pause transfer</key>
@@ -1059,13 +1059,13 @@
 	<key>Pending backups</key>
 	<string>待處理備份</string>
 	<key>Pending imports</key>
-	<string>待處理導入</string>
+	<string>待處理匯入</string>
 	<key>Pending letters</key>
 	<string>待發送來信</string>
 	<key>Permanently delete the dMsg service account you reviewed</key>
-	<string>永久刪除你已覈對的 dMsg 服務賬號</string>
+	<string>永久刪除你已核對的 dMsg 服務帳號</string>
 	<key>Permanently delete this dMsg service account?</key>
-	<string>永久刪除此 dMsg 服務賬號？</string>
+	<string>永久刪除此 dMsg 服務帳號？</string>
 	<key>Permissions</key>
 	<string>權限</string>
 	<key>Phone</key>
@@ -1079,19 +1079,19 @@
 	<key>Plan and usage</key>
 	<string>套餐與用量</string>
 	<key>Policy points to an unavailable field</key>
-	<string>策略引用了不可用的字段</string>
+	<string>策略引用了不可用的欄位</string>
 	<key>Port</key>
-	<string>端口</string>
+	<string>埠</string>
 	<key>Prepare selected snapshot</key>
 	<string>準備所選快照</string>
 	<key>Prepared on this device</key>
-	<string>已在此設備準備</string>
+	<string>已在此裝置準備</string>
 	<key>Preview and choose what to import</key>
-	<string>預覽並選擇要導入的內容</string>
+	<string>預覽並選擇要匯入的內容</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
-	<string>預覽會在本設備下載並驗證祕密包，佔用一次下載會話。請先選定接收設備再繼續。</string>
+	<string>預覽會在本裝置下載並驗證秘密包，佔用一次下載會話。請先選定接收裝置再繼續。</string>
 	<key>Preview file</key>
-	<string>預覽文件</string>
+	<string>預覽檔案</string>
 	<key>Preview package</key>
 	<string>預覽包內容</string>
 	<key>Preview reporting disclosure</key>
@@ -1111,15 +1111,15 @@
 	<key>Proposal %llu</key>
 	<string>提案 %llu</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
-	<string>提案已創建，請在錢包提案列表中查看。</string>
+	<string>提案已建立，請在錢包提案列表中檢視。</string>
 	<key>Proposals</key>
 	<string>提案</string>
 	<key>Propose address</key>
-	<string>提議添加地址</string>
+	<string>提議新增地址</string>
 	<key>Propose member change</key>
 	<string>提議更改成員</string>
 	<key>Propose registering this key</key>
-	<string>提議註冊此密鑰</string>
+	<string>提議註冊此金鑰</string>
 	<key>Propose removing cosigner</key>
 	<string>提議移除聯合簽名者</string>
 	<key>Propose removing member</key>
@@ -1127,7 +1127,7 @@
 	<key>Propose thresholds</key>
 	<string>提議更改門檻</string>
 	<key>Propose transfer</key>
-	<string>提議轉賬</string>
+	<string>提議轉帳</string>
 	<key>Propose unfreezing</key>
 	<string>提議解凍</string>
 	<key>Proposer</key>
@@ -1139,29 +1139,29 @@
 	<key>Public profile</key>
 	<string>公開資料</string>
 	<key>Publication pending</key>
-	<string>發佈待確認</string>
+	<string>釋出待確認</string>
 	<key>Publish</key>
-	<string>發佈</string>
+	<string>釋出</string>
 	<key>Publish a secret snapshot</key>
-	<string>發佈祕密快照</string>
+	<string>釋出秘密快照</string>
 	<key>Publish profile</key>
-	<string>發佈資料</string>
+	<string>釋出資料</string>
 	<key>Publish these details publicly?</key>
 	<string>公開發布這些資料？</string>
 	<key>Published</key>
-	<string>已發佈</string>
+	<string>已釋出</string>
 	<key>Purchased</key>
 	<string>購買日期</string>
 	<key>Purchases are not currently available.</key>
 	<string>購買暫不可用。</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
-	<string>此版本尚未啓用推送通知，請打開 dMsg 同步。</string>
+	<string>此版本尚未啟用推送通知，請開啟 dMsg 同步。</string>
 	<key>Quick unlock with system authentication</key>
 	<string>使用系統驗證快速解鎖</string>
 	<key>Read from a desktop file mapping</key>
-	<string>讀取桌面文件映射</string>
+	<string>讀取桌面檔案對映</string>
 	<key>Read the published policy</key>
-	<string>閱讀已發佈的政策</string>
+	<string>閱讀已釋出的政策</string>
 	<key>Reason</key>
 	<string>原因</string>
 	<key>Received for review</key>
@@ -1173,43 +1173,43 @@
 	<key>Recipient</key>
 	<string>收件人</string>
 	<key>Recipient account ID</key>
-	<string>收件人賬號 ID</string>
+	<string>收件人帳號 ID</string>
 	<key>Recipient address</key>
 	<string>收款地址</string>
 	<key>Reconcile original execution</key>
-	<string>覈對原執行結果</string>
+	<string>核對原執行結果</string>
 	<key>Reconcile original operation</key>
-	<string>覈對原操作結果</string>
+	<string>核對原操作結果</string>
 	<key>Reconcile original proposal</key>
-	<string>覈對原提案結果</string>
+	<string>核對原提案結果</string>
 	<key>Reconcile original send</key>
-	<string>覈對原發送結果</string>
+	<string>核對原發送結果</string>
 	<key>Reconcile original snapshot</key>
-	<string>覈對原快照結果</string>
+	<string>核對原快照結果</string>
 	<key>Record manual review</key>
-	<string>記錄人工覈查</string>
+	<string>記錄人工核查</string>
 	<key>Record this step as completed?</key>
-	<string>將此步驟記錄爲已完成？</string>
+	<string>將此步驟記錄為已完成？</string>
 	<key>Recovery</key>
 	<string>恢復</string>
 	<key>Recovery status</key>
 	<string>恢復狀態</string>
 	<key>Recovery status needs checking</key>
-	<string>需要覈查恢復狀態</string>
+	<string>需要核查恢復狀態</string>
 	<key>Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered.</key>
-	<string>使用已綁定的登錄身份發起恢復，並經過等待期。已授權設備可提出爭議。未同步的本機內容無法恢復。</string>
+	<string>使用已繫結的登入身份發起恢復，並經過等待期。已授權裝置可提出爭議。未同步的本機內容無法恢復。</string>
 	<key>Recovery waiting period</key>
 	<string>恢復等待期</string>
 	<key>Refresh</key>
-	<string>刷新</string>
+	<string>重新整理</string>
 	<key>Refresh balances</key>
-	<string>刷新餘額</string>
+	<string>刷新余額</string>
 	<key>Refresh dependencies</key>
-	<string>刷新依賴</string>
+	<string>重新整理依賴</string>
 	<key>Register a hardware approval key</key>
-	<string>註冊硬件批准鑰匙</string>
+	<string>註冊硬體批准鑰匙</string>
 	<key>Register an SSH binding</key>
-	<string>註冊 SSH 綁定</string>
+	<string>註冊 SSH 繫結</string>
 	<key>Register this public key through a wallet proposal</key>
 	<string>通過錢包提案註冊此公鑰</string>
 	<key>Registered on this device</key>
@@ -1221,7 +1221,7 @@
 	<key>Rejected</key>
 	<string>已拒絕</string>
 	<key>Release 1.0 is ready for review.</key>
-	<string>1.0 版本已準備好供審覈。</string>
+	<string>1.0 版本已準備好供稽核。</string>
 	<key>Remove</key>
 	<string>移除成員</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1231,27 +1231,27 @@
 	<key>Remove attachment reference</key>
 	<string>移除附件引用</string>
 	<key>Remove device binding</key>
-	<string>移除本機綁定</string>
+	<string>移除本機繫結</string>
 	<key>Remove device binding?</key>
-	<string>移除本機綁定？</string>
+	<string>移除本機繫結？</string>
 	<key>Remove field</key>
-	<string>刪除字段</string>
+	<string>刪除欄位</string>
 	<key>Remove local data</key>
-	<string>移除本機數據</string>
+	<string>移除本機資料</string>
 	<key>Remove member</key>
 	<string>移除成員</string>
 	<key>Remove this account's data from this device?</key>
-	<string>從此設備移除此賬號的數據？</string>
+	<string>從此裝置移除此帳號的資料？</string>
 	<key>Remove this account's local data</key>
-	<string>移除此賬號的本機數據</string>
+	<string>移除此帳號的本機資料</string>
 	<key>Remove this local agent</key>
 	<string>移除此本機 Agent</string>
 	<key>Remove this local agent?</key>
 	<string>移除此本機 Agent？</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
-	<string>移除引用不會刪除文件。即使此設備上沒有對應文件，現有引用也會保留。</string>
+	<string>移除引用不會刪除檔案。即使此裝置上沒有對應檔案，現有引用也會保留。</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
-	<string>請在來源設備上修復不可用的字段引用。</string>
+	<string>請在來源裝置上修復不可用的欄位引用。</string>
 	<key>Replace AutoFill snapshot</key>
 	<string>替換自動填充快照</string>
 	<key>Replace Files app snapshot</key>
@@ -1261,21 +1261,21 @@
 	<key>Reply</key>
 	<string>回覆</string>
 	<key>Reply to message %llu</key>
-	<string>回覆消息 %llu</string>
+	<string>回覆訊息 %llu</string>
 	<key>Report content</key>
 	<string>舉報內容</string>
 	<key>Report received for review</key>
 	<string>舉報已收到，等待處理</string>
 	<key>Reported account</key>
-	<string>被舉報賬號</string>
+	<string>被舉報帳號</string>
 	<key>Reporting disclosure</key>
 	<string>舉報披露說明</string>
 	<key>Request ID</key>
 	<string>請求 ID</string>
 	<key>Request account deletion</key>
-	<string>請求刪除賬號</string>
+	<string>請求刪除帳號</string>
 	<key>Request account recovery</key>
-	<string>申請賬戶恢復</string>
+	<string>申請帳戶恢復</string>
 	<key>Request recovery</key>
 	<string>申請恢復</string>
 	<key>Request source</key>
@@ -1283,15 +1283,15 @@
 	<key>Requested permissions</key>
 	<string>申請的權限</string>
 	<key>Requests that need your decision appear here.</key>
-	<string>需要你決定的請求會顯示在這裏。</string>
+	<string>需要你決定的請求會顯示在這裡。</string>
 	<key>Require hardware approval</key>
-	<string>要求硬件批准</string>
+	<string>要求硬體批准</string>
 	<key>Require this device to unlock</key>
-	<string>解鎖必須使用此設備</string>
+	<string>解鎖必須使用此裝置</string>
 	<key>Required cosignatures %u</key>
 	<string>所需聯合簽名數 %u</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
-	<string>請先處理待定賬號操作，再刪除此賬號。</string>
+	<string>請先處理待定帳號操作，再刪除此帳號。</string>
 	<key>Restore</key>
 	<string>恢復</string>
 	<key>Restore purchases</key>
@@ -1299,9 +1299,9 @@
 	<key>Restore this version</key>
 	<string>恢復此版本</string>
 	<key>Restore this version as a new current version?</key>
-	<string>將此版本恢復爲新的當前版本？</string>
+	<string>將此版本恢復為新的當前版本？</string>
 	<key>Restore this version from cloud backups before opening it.</key>
-	<string>請先從雲端備份恢復此版本，再打開。</string>
+	<string>請先從雲端備份恢復此版本，再開啟。</string>
 	<key>Restore to this device</key>
 	<string>恢復到本機</string>
 	<key>Restoring…</key>
@@ -1311,17 +1311,17 @@
 	<key>Result unconfirmed</key>
 	<string>結果未確認</string>
 	<key>Retire a hardware approval key</key>
-	<string>退役硬件批准鑰匙</string>
+	<string>退役硬體批准鑰匙</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
 	<string>鑰匙退役後將無法再批准受保護的操作。請確認仍有其他可用且已授權的批准途徑。</string>
 	<key>Retry</key>
 	<string>重試</string>
 	<key>Retry loading activity</key>
-	<string>重新加載活動記錄</string>
+	<string>重新載入活動記錄</string>
 	<key>Retry loading hardware security</key>
-	<string>重新加載硬件安全狀態</string>
+	<string>重新載入硬體安全狀態</string>
 	<key>Retry loading profile</key>
-	<string>重新加載資料</string>
+	<string>重新載入資料</string>
 	<key>Retry original change</key>
 	<string>重試原更改</string>
 	<key>Retry original letter</key>
@@ -1329,7 +1329,7 @@
 	<key>Retry preview</key>
 	<string>重新預覽</string>
 	<key>Retry publication</key>
-	<string>重試發佈</string>
+	<string>重試釋出</string>
 	<key>Retry registration</key>
 	<string>重試註冊</string>
 	<key>Retry this report</key>
@@ -1337,11 +1337,11 @@
 	<key>Reveal</key>
 	<string>顯示</string>
 	<key>Reveal this field?</key>
-	<string>顯示這個字段？</string>
+	<string>顯示這個欄位？</string>
 	<key>Review</key>
 	<string>審閱</string>
 	<key>Review a web connection request</key>
-	<string>審閱網頁連接請求</string>
+	<string>審閱網頁連線請求</string>
 	<key>Review agent delegation</key>
 	<string>審查 Agent 委託</string>
 	<key>Review agent permissions</key>
@@ -1349,11 +1349,11 @@
 	<key>Review an enrollment request</key>
 	<string>審閱登記請求</string>
 	<key>Review and restart the desktop file mapping on its originating device.</key>
-	<string>請在來源設備上檢查並重啓桌面文件映射。</string>
+	<string>請在來源裝置上檢查並重啟桌面檔案對映。</string>
 	<key>Review approval</key>
 	<string>審查批准</string>
 	<key>Review binding</key>
-	<string>覈對綁定</string>
+	<string>核對繫結</string>
 	<key>Review controller registration</key>
 	<string>審查控制器註冊</string>
 	<key>Review delegation grant</key>
@@ -1361,13 +1361,13 @@
 	<key>Review deletion</key>
 	<string>審查刪除</string>
 	<key>Review enabling a principal</key>
-	<string>審查啓用主體</string>
+	<string>審查啟用主體</string>
 	<key>Review field and dependencies</key>
-	<string>檢查字段與依賴</string>
+	<string>檢查欄位與依賴</string>
 	<key>Review hardware policy changes</key>
-	<string>審閱硬件策略變更</string>
+	<string>審閱硬體策略變更</string>
 	<key>Review in approval center</key>
-	<string>前往審批中心覈對</string>
+	<string>前往審批中心核對</string>
 	<key>Review joining wallet</key>
 	<string>審查加入錢包</string>
 	<key>Review key enrollment</key>
@@ -1375,49 +1375,49 @@
 	<key>Review key registration</key>
 	<string>審閱鑰匙註冊</string>
 	<key>Review local finding</key>
-	<string>檢查本地發現</string>
+	<string>檢查本機發現</string>
 	<key>Review old snapshots and revoke remaining links if appropriate.</key>
-	<string>檢查舊快照，必要時撤銷仍有效的鏈接。</string>
+	<string>檢查舊快照，必要時撤銷仍有效的連結。</string>
 	<key>Review permissions</key>
 	<string>審查權限</string>
 	<key>Review publication or resume</key>
-	<string>審閱發佈或繼續任務</string>
+	<string>審閱釋出或繼續任務</string>
 	<key>Review rejection</key>
 	<string>審查拒絕</string>
 	<key>Review removing this login</key>
-	<string>覈對移除登錄身份</string>
+	<string>核對移除登入身份</string>
 	<key>Review replacement key</key>
 	<string>審閱替代鑰匙</string>
 	<key>Review request</key>
-	<string>覈對請求</string>
+	<string>核對請求</string>
 	<key>Review retiring controller</key>
 	<string>審查退役控制器</string>
 	<key>Review retiring this approval key</key>
 	<string>審閱退役此批准鑰匙</string>
 	<key>Review revocation</key>
-	<string>覈對撤銷</string>
+	<string>核對撤銷</string>
 	<key>Review selected import</key>
-	<string>審閱所選導入內容</string>
+	<string>審閱所選匯入內容</string>
 	<key>Review sync conflicts</key>
 	<string>處理同步衝突</string>
 	<key>Review the agent's authorization on its originating device.</key>
-	<string>請在 Agent 的來源設備上檢查其授權。</string>
+	<string>請在 Agent 的來源裝置上檢查其授權。</string>
 	<key>Review the complete request</key>
-	<string>覈對完整請求</string>
+	<string>核對完整請求</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
-	<string>請在來源設備上檢查當前鑰匙並更新 SSH 綁定。</string>
+	<string>請在來源裝置上檢查當前鑰匙並更新 SSH 繫結。</string>
 	<key>Review the request and dispute it if it is not yours.</key>
 	<string>請審閱請求；如非本人發起，請提出異議。</string>
 	<key>Review the snapshot's recipients and expiry.</key>
 	<string>檢查快照的接收者和到期時間。</string>
 	<key>Review this device's current dependencies</key>
-	<string>檢查此設備上的當前依賴</string>
+	<string>檢查此裝置上的當前依賴</string>
 	<key>Review this device's policy and access grants.</key>
-	<string>檢查此設備的策略和訪問授權。</string>
+	<string>檢查此裝置的策略和存取授權。</string>
 	<key>Review this local record before making changes.</key>
-	<string>變更前，請先檢查這條本地記錄。</string>
+	<string>變更前，請先檢查這條本機記錄。</string>
 	<key>Review waiting-period change</key>
-	<string>覈對等待期變更</string>
+	<string>核對等待期變更</string>
 	<key>Review wallet action</key>
 	<string>審查錢包操作</string>
 	<key>Reviewed</key>
@@ -1425,11 +1425,11 @@
 	<key>Revocation pending</key>
 	<string>撤銷待確認</string>
 	<key>Revocation stops new access after security state is refreshed and keys are rotated. Previously copied content cannot be recalled.</key>
-	<string>安全狀態更新並完成密鑰輪換後，撤銷會阻止新的訪問。已複製的內容無法收回。</string>
+	<string>安全狀態更新並完成金鑰輪換後，撤銷會阻止新的存取。已複製的內容無法收回。</string>
 	<key>Revoke</key>
 	<string>撤銷</string>
 	<key>Revoke a device</key>
-	<string>撤銷設備</string>
+	<string>撤銷裝置</string>
 	<key>Revoke browser</key>
 	<string>撤銷瀏覽器</string>
 	<key>Revoke delegation</key>
@@ -1439,151 +1439,151 @@
 	<key>Revoke or cancel</key>
 	<string>撤銷或取消</string>
 	<key>Revoke or cancel this link</key>
-	<string>撤銷或取消此鏈接</string>
+	<string>撤銷或取消此連結</string>
 	<key>Revoke the old credential at its provider</key>
 	<string>在服務提供方撤銷舊憑據</string>
 	<key>Revoke this browser?</key>
 	<string>撤銷此瀏覽器？</string>
 	<key>Revoke this device</key>
-	<string>撤銷這臺設備</string>
+	<string>撤銷這台裝置</string>
 	<key>Revoke this device and rotate content keys</key>
-	<string>撤銷這臺設備並輪換內容密鑰</string>
+	<string>撤銷這台裝置並輪換內容金鑰</string>
 	<key>Revoke this snapshot link?</key>
-	<string>撤銷此快照鏈接？</string>
+	<string>撤銷此快照連結？</string>
 	<key>Revoked</key>
 	<string>已撤銷</string>
 	<key>Role</key>
 	<string>角色</string>
 	<key>Rotate conversation keys</key>
-	<string>輪換會話密鑰</string>
+	<string>輪換會話金鑰</string>
 	<key>Rotation checklists</key>
 	<string>輪換清單</string>
 	<key>SHA-256</key>
 	<string>SHA-256</string>
 	<key>SSH binding</key>
-	<string>SSH 綁定</string>
+	<string>SSH 繫結</string>
 	<key>SSH binding needs review</key>
-	<string>SSH 綁定需要檢查</string>
+	<string>SSH 繫結需要檢查</string>
 	<key>SSH key</key>
-	<string>SSH 密鑰</string>
+	<string>SSH 金鑰</string>
 	<key>Safety and support</key>
-	<string>安全與支持</string>
+	<string>安全與支援</string>
 	<key>Sample action: sign a release announcement</key>
-	<string>示例操作：簽署發佈公告</string>
+	<string>示例操作：簽署釋出公告</string>
 	<key>Sample login</key>
-	<string>示例登錄項</string>
+	<string>示例登入項</string>
 	<key>Sample password</key>
 	<string>示例密碼</string>
 	<key>Save</key>
-	<string>保存</string>
+	<string>儲存</string>
 	<key>Save name</key>
-	<string>保存名稱</string>
+	<string>儲存名稱</string>
 	<key>Save receiving policy</key>
-	<string>保存收信規則</string>
+	<string>儲存收信規則</string>
 	<key>Save selected version</key>
-	<string>保存所選版本</string>
+	<string>儲存所選版本</string>
 	<key>Save settings</key>
-	<string>保存設置</string>
+	<string>儲存設定</string>
 	<key>Save the selected version?</key>
-	<string>保存所選版本？</string>
+	<string>儲存所選版本？</string>
 	<key>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</key>
-	<string>爲 dMsg 暫存這些內容。打開並解鎖應用後，選擇賬號再導入。</string>
+	<string>為 dMsg 暫存這些內容。開啟並解鎖應用後，選擇帳號再匯入。</string>
 	<key>Save to dMsg</key>
-	<string>保存到 dMsg</string>
+	<string>儲存到 dMsg</string>
 	<key>Saved</key>
-	<string>已保存</string>
+	<string>已儲存</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
-	<string>已保存爲獨立版本，請處理同步衝突。</string>
+	<string>已儲存為獨立版本，請處理同步衝突。</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
-	<string>已爲 dMsg 暫存。請打開應用查看並導入。</string>
+	<string>已為 dMsg 暫存。請開啟應用檢視並匯入。</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
-	<string>先保存到本機，同步狀態將單獨顯示。</string>
+	<string>先儲存到本機，同步狀態將單獨顯示。</string>
 	<key>Saved on this device</key>
-	<string>已保存到本機</string>
+	<string>已儲存到本機</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
-	<string>已保存到本機，正在等待同步。</string>
+	<string>已儲存到本機，正在等待同步。</string>
 	<key>Saved. Publication is pending.</key>
-	<string>已保存，等待發布。</string>
+	<string>已儲存，等待發布。</string>
 	<key>Scan device request</key>
-	<string>掃描設備請求</string>
+	<string>掃描裝置請求</string>
 	<key>Scopes, one per line</key>
 	<string>範圍，每行一個</string>
 	<key>Screenshots may contain private information.</key>
-	<string>截圖可能包含私密信息。</string>
+	<string>截圖可能包含私密資訊。</string>
 	<key>Search files</key>
-	<string>搜索文件</string>
+	<string>搜尋檔案</string>
 	<key>Search messages</key>
-	<string>搜索消息</string>
+	<string>搜尋訊息</string>
 	<key>Search your vault</key>
-	<string>搜索保險庫</string>
+	<string>搜尋保險庫</string>
 	<key>Secret</key>
-	<string>祕密詳情</string>
+	<string>秘密詳情</string>
 	<key>Secret package link</key>
-	<string>祕密包鏈接</string>
+	<string>秘密包連結</string>
 	<key>Section</key>
 	<string>分組</string>
 	<key>Secure Enclave is unavailable on this device.</key>
-	<string>此設備無法使用 Secure Enclave。</string>
+	<string>此裝置無法使用 Secure Enclave。</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>安全要求已變更。請重新審閱請求後再批准。</string>
 	<key>Select a conversation</key>
 	<string>選擇一個對話</string>
 	<key>Select a file</key>
-	<string>選擇一個文件</string>
+	<string>選擇一個檔案</string>
 	<key>Select a secret</key>
-	<string>選擇一個祕密</string>
+	<string>選擇一個秘密</string>
 	<key>Select attachments to import</key>
-	<string>選擇要導入的附件</string>
+	<string>選擇要匯入的附件</string>
 	<key>Select attachments to share</key>
 	<string>選擇要分享的附件</string>
 	<key>Select fields to import</key>
-	<string>選擇要導入的字段</string>
+	<string>選擇要匯入的欄位</string>
 	<key>Select fields to share</key>
-	<string>選擇要分享的字段</string>
+	<string>選擇要分享的欄位</string>
 	<key>Select login items</key>
-	<string>選擇登錄項</string>
+	<string>選擇登入項</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
-	<string>所選一次性密碼字段包含可重複使用的種子密鑰，不僅是當前驗證碼。</string>
+	<string>所選一次性密碼欄位包含可重複使用的種子金鑰，不僅是當前驗證碼。</string>
 	<key>Selected accounts</key>
-	<string>指定賬號</string>
+	<string>指定帳號</string>
 	<key>Send free letter</key>
-	<string>發送免費來信</string>
+	<string>傳送免費來信</string>
 	<key>Send message</key>
-	<string>發送消息</string>
+	<string>傳送訊息</string>
 	<key>Send queued message</key>
-	<string>發送隊列中的消息</string>
+	<string>傳送佇列中的訊息</string>
 	<key>Send to an administrator</key>
-	<string>發送給管理員</string>
+	<string>傳送給管理員</string>
 	<key>Sender</key>
 	<string>發件人</string>
 	<key>Sender account</key>
-	<string>發送者賬戶</string>
+	<string>傳送者帳戶</string>
 	<key>Server</key>
-	<string>服務器</string>
+	<string>伺服器</string>
 	<key>Set up this account</key>
-	<string>初始化賬戶</string>
+	<string>初始化帳戶</string>
 	<key>Share a copy</key>
 	<string>分享副本</string>
 	<key>Share binding request</key>
-	<string>分享綁定請求</string>
+	<string>分享繫結請求</string>
 	<key>Share enrollment request</key>
 	<string>分享登記請求</string>
 	<key>Share invitation</key>
 	<string>分享邀請</string>
 	<key>Share link</key>
-	<string>分享鏈接</string>
+	<string>分享連結</string>
 	<key>Share pairing request</key>
 	<string>分享配對請求</string>
 	<key>Share secret snapshot</key>
-	<string>分享祕密快照</string>
+	<string>分享秘密快照</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>將此請求分享給已授權的管理員。請求本身不會註冊或批准鑰匙。</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
 	<string>分享的副本會離開 dMsg 的保護範圍，無法撤回。</string>
 	<key>Shared items are unavailable. Open the app again after unlocking this device.</key>
-	<string>分享內容暫不可用，請解鎖設備後重新打開應用。</string>
+	<string>分享內容暫不可用，請解鎖裝置後重新開啟應用。</string>
 	<key>Shared items are waiting on this device. Importing encrypts them into the currently selected account.</key>
-	<string>此設備有待處理的分享內容。導入時會將其加密保存到當前賬號。</string>
+	<string>此裝置有待處理的分享內容。匯入時會將其加密儲存到當前帳號。</string>
 	<key>Shared snapshots</key>
 	<string>已分享的快照</string>
 	<key>Shared with dMsg</key>
@@ -1593,21 +1593,21 @@
 	<key>Show sample password</key>
 	<string>顯示示例密碼</string>
 	<key>Show share link</key>
-	<string>顯示分享鏈接</string>
+	<string>顯示分享連結</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
-	<string>正在顯示已保存的內容，最近一次同步未完成。</string>
+	<string>正在顯示已儲存的內容，最近一次同步未完成。</string>
 	<key>Sign a statement</key>
-	<string>簽署聲明</string>
+	<string>簽署宣告</string>
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
-	<string>請重新登錄，解鎖這臺 iPhone 上的加密工作區。</string>
+	<string>請重新登入，解鎖這台 iPhone 上的加密工作區。</string>
 	<key>Sign in to another account</key>
-	<string>登錄其他賬戶</string>
+	<string>登入其他帳戶</string>
 	<key>Sign out</key>
-	<string>退出登錄</string>
+	<string>退出登入</string>
 	<key>Sign out of this account?</key>
-	<string>退出這個賬戶？</string>
+	<string>退出這個帳戶？</string>
 	<key>Sign the statement you reviewed</key>
-	<string>簽署你已覈對的聲明</string>
+	<string>簽署你已核對的宣告</string>
 	<key>Simulate approval</key>
 	<string>演練批准</string>
 	<key>Simulate rejection</key>
@@ -1617,51 +1617,51 @@
 	<key>Snapshot</key>
 	<string>快照</string>
 	<key>Snapshot link</key>
-	<string>快照鏈接</string>
+	<string>快照連結</string>
 	<key>Software license</key>
-	<string>軟件許可證</string>
+	<string>軟體許可證</string>
 	<key>Solana</key>
 	<string>Solana</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
-	<string>部分源記錄或屬性不受支持。此處只導入所選字段，不導入歸檔附件、通行密鑰和歷史記錄。</string>
+	<string>部分源記錄或屬性不受支援。此處只匯入所選欄位，不匯入歸檔附件、通行金鑰和歷史記錄。</string>
 	<key>Source address %u</key>
 	<string>來源地址 %u</string>
 	<key>Spam</key>
-	<string>垃圾信息</string>
+	<string>垃圾資訊</string>
 	<key>Spending approvals %u</key>
 	<string>支出批准數 %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
-	<string>暫存所選文件，然後在 dMsg 中選擇賬號導入。</string>
+	<string>暫存所選檔案，然後在 dMsg 中選擇帳號匯入。</string>
 	<key>Start a checklist from a field's reference page.</key>
-	<string>可在字段引用頁開始一份清單。</string>
+	<string>可在欄位引用頁開始一份清單。</string>
 	<key>Start a rotation checklist</key>
 	<string>開始輪換清單</string>
 	<key>Start a rotation checklist?</key>
 	<string>開始輪換清單？</string>
 	<key>Start account recovery?</key>
-	<string>開始賬戶恢復？</string>
+	<string>開始帳戶恢復？</string>
 	<key>Start checklist</key>
 	<string>開始清單</string>
 	<key>Status</key>
 	<string>狀態</string>
 	<key>Stop this device's transfer</key>
-	<string>停止此設備的傳輸</string>
+	<string>停止此裝置的傳輸</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
-	<string>存儲包爲當前訂閱週期的一次性購買，不會自動續費。</string>
+	<string>儲存包為當前訂閱週期的一次性購買，不會自動續費。</string>
 	<key>Storage packs</key>
-	<string>存儲包</string>
+	<string>儲存包</string>
 	<key>Storage purchases require an active App Store subscription.</key>
-	<string>購買存儲包需要有效的 App Store 訂閱。</string>
+	<string>購買儲存包需要有效的 App Store 訂閱。</string>
 	<key>Subject Agent ID</key>
 	<string>目標 Agent ID</string>
 	<key>Submit report</key>
 	<string>提交舉報</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
-	<string>訂閱會自動續費，除非你在 Apple 賬號設置中取消。刪除 dMsg 賬號不會取消 Apple 訂閱。</string>
+	<string>訂閱會自動續費，除非你在 Apple 帳號設定中取消。刪除 dMsg 帳號不會取消 Apple 訂閱。</string>
 	<key>Switch account</key>
-	<string>切換賬戶</string>
+	<string>切換帳戶</string>
 	<key>Switch to this account</key>
-	<string>切換到此賬號</string>
+	<string>切換到此帳號</string>
 	<key>Sync conflicts</key>
 	<string>同步衝突</string>
 	<key>Sync now</key>
@@ -1673,7 +1673,7 @@
 	<key>System authentication</key>
 	<string>系統認證</string>
 	<key>System integrations</key>
-	<string>系統集成</string>
+	<string>系統整合</string>
 	<key>System permission</key>
 	<string>系統權限</string>
 	<key>Tags, separated by commas</key>
@@ -1683,7 +1683,7 @@
 	<key>Terms of service</key>
 	<string>服務條款</string>
 	<key>Test environment · Separate accounts and test purchases</key>
-	<string>測試環境 · 獨立賬號與測試購買</string>
+	<string>測試環境 · 獨立帳號與測試購買</string>
 	<key>Test the new credential at its provider</key>
 	<string>在服務提供方測試新憑據</string>
 	<key>Text</key>
@@ -1693,19 +1693,19 @@
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
 	<string>上述明確範圍和接收方也適用於此憑證。控制器擁有不受限權限，並不代表憑證不受限制。</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
-	<string>導出的憑據不可用或已到期，請打開 dMsg 創建新快照。</string>
+	<string>匯出的憑據不可用或已到期，請開啟 dMsg 建立新快照。</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
-	<string>文件副本不可用或已到期，請打開 dMsg 創建新快照後重試。</string>
+	<string>檔案副本不可用或已到期，請開啟 dMsg 建立新快照後重試。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
-	<string>邀請與這個賬戶綁定，分享鏈接不會向其他賬戶授予權限。</string>
+	<string>邀請與這個帳戶繫結，分享連結不會向其他帳戶授予權限。</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>已保留最近一次驗證結果，當前狀態尚無法確認。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
-	<string>本機綁定鑰匙不可用。請保留此工作區，並在鎖定前檢查恢復方式。</string>
+	<string>本機繫結鑰匙不可用。請保留此工作區，並在鎖定前檢查恢復方式。</string>
 	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>所有人都可使用本地演示。要測試賬號創建、同步、購買、通知和硬件授權，請退出演示並通過 Internet Identity 登錄。</string>
+	<string>所有人都可使用本機演示。要測試帳號建立、同步、購買、通知和硬體授權，請退出演示並通過 Internet Identity 登入。</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
-	<string>移動端包大小上限爲 8 MiB。預覽會先驗證包，再由你選擇導入內容。</string>
+	<string>移動端包大小上限為 8 MiB。預覽會先驗證包，再由你選擇匯入內容。</string>
 	<key>The operation could not be completed.</key>
 	<string>操作未能完成。</string>
 	<key>The operation could not be completed. Please try again.</key>
@@ -1713,135 +1713,135 @@
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>操作已取消，或當前沒有權限。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
-	<string>結果尚不確定。再次嘗試前，請先覈對此原始任務。</string>
+	<string>結果尚不確定。再次嘗試前，請先核對此原始任務。</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
-	<string>記錄已更改，請刷新並覈對修改後再保存。</string>
+	<string>記錄已更改，請重新整理並核對修改後再儲存。</string>
 	<key>The request is not available to this device. It may have expired or already been handled.</key>
-	<string>此設備無法獲取該請求，它可能已到期或已處理。</string>
+	<string>此裝置無法獲取該請求，它可能已到期或已處理。</string>
 	<key>The required content key is not available yet.</key>
-	<string>所需的內容密鑰暫不可用。</string>
+	<string>所需的內容金鑰暫不可用。</string>
 	<key>The result is not confirmed. Reconcile this request before retrying.</key>
-	<string>結果尚未確認。請覈對原請求，不要重複提交。</string>
+	<string>結果尚未確認。請核對原請求，不要重複提交。</string>
 	<key>The selected image stays on this device until you publish. Published avatars are public and copies may remain outside dMsg.</key>
-	<string>所選圖片在發佈前僅保留在此設備。發佈的頭像是公開內容，副本可能保留在 dMsg 之外。</string>
+	<string>所選圖片在釋出前僅保留在此裝置。釋出的頭像是公開內容，副本可能保留在 dMsg 之外。</string>
 	<key>The selected items could not be staged. Open dMsg and try importing them there.</key>
-	<string>無法暫存所選內容，請打開 dMsg 後嘗試導入。</string>
+	<string>無法暫存所選內容，請開啟 dMsg 後嘗試匯入。</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
-	<string>源文件複製已中斷，請丟棄此副本並重新選擇來源。</string>
+	<string>原始檔複製已中斷，請丟棄此副本並重新選擇來源。</string>
 	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>測試環境尚未配置，仍可使用本地演示和隱私政策。</string>
+	<string>測試環境尚未配置，仍可使用本機演示和隱私政策。</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
-	<string>傳輸授權已到期。請取消此任務，再在前臺繼續原備份或啓動新下載。</string>
+	<string>傳輸授權已到期。請取消此任務，再在前臺繼續原備份或啟動新下載。</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>傳輸已暫停，請重試原密文塊。</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
-	<string>錢包會檢查當前策略和批准狀態。需要硬件簽名時，會爲此具體方案請求籤名。</string>
+	<string>錢包會檢查當前策略和批准狀態。需要硬體簽名時，會為此具體方案請求籤名。</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
-	<string>這些是本地觀察結果，並非泄露掃描，也不能證明服務提供方已撤銷憑據。其他設備的記錄可能不同。</string>
+	<string>這些是本機觀察結果，並非洩露掃描，也不能證明服務提供方已撤銷憑據。其他裝置的記錄可能不同。</string>
 	<key>These are snapshot jobs created on this device. Desktop-local approval requests are not synchronized here.</key>
-	<string>這裏只列出此設備創建的快照任務。桌面本地的審批請求不會同步到這裏。</string>
+	<string>這裡只列出此裝置建立的快照任務。桌面本機的審批請求不會同步到這裡。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
-	<string>這些是賬戶內設備的已驗證備份。請明確選擇恢復，將副本保存到本機。</string>
+	<string>這些是帳戶內裝置的已驗證備份。請明確選擇恢復，將副本儲存到本機。</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>這些導出不包含賬號根密鑰或設備簽名密鑰。源條目更改後，需要創建新快照。</string>
+	<string>這些匯出不包含帳號根金鑰或裝置簽名金鑰。源條目更改後，需要建立新快照。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
-	<string>此賬戶要求使用已註冊的批准鑰匙。請到“硬件安全”中設置本設備，或請其他已授權設備處理。</string>
+	<string>此帳戶要求使用已註冊的批准鑰匙。請到「硬體安全」中設定本裝置，或請其他已授權裝置處理。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
-	<string>此設備不支持此操作。祕密快照必須通過專用的導入流程處理。</string>
+	<string>此裝置不支援此操作。秘密快照必須通過專用的匯入流程處理。</string>
 	<key>This browser request belongs to another account. Switching locks the current workspace and preserves its draft.</key>
-	<string>此瀏覽器請求屬於另一個賬號。切換會鎖定當前工作區並保存草稿。</string>
+	<string>此瀏覽器請求屬於另一個帳號。切換會鎖定當前工作區並儲存草稿。</string>
 	<key>This cannot be undone. Signing out alone does not delete an account.</key>
-	<string>此操作無法撤銷。僅退出登錄不會刪除賬號。</string>
+	<string>此操作無法撤銷。僅退出登入不會刪除帳號。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
-	<string>這會改變本地解鎖保護，可能需要系統認證；不會變更賬戶恢復或其他設備。</string>
+	<string>這會改變本機解鎖保護，可能需要系統認證；不會變更帳戶恢復或其他裝置。</string>
 	<key>This changes only the local sample.</key>
-	<string>這隻會更改本地示例。</string>
+	<string>這隻會更改本機示例。</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
-	<string>這會改變哪些賬戶操作需要硬件簽名。關閉保護後，這些操作無需該硬件證明即可執行。</string>
+	<string>這會改變哪些帳戶操作需要硬體簽名。關閉保護後，這些操作無需該硬體證明即可執行。</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
-	<string>這一步僅創建待審批請求，不會授權設備。</string>
+	<string>這一步僅建立待審批請求，不會授權裝置。</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
-	<string>此操作會創建提案，滿足錢包批准和執行要求後纔會轉賬。金額以最小單位的精確整數填寫。</string>
+	<string>此操作會建立提案，滿足錢包批准和執行要求後才會轉帳。金額以最小單位的精確整數填寫。</string>
 	<key>This device</key>
-	<string>此設備</string>
+	<string>此裝置</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
-	<string>此設備有未同步的修改，請在刪除賬號前保存需要的內容。</string>
+	<string>此裝置有未同步的修改，請在刪除帳號前儲存需要的內容。</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
-	<string>這臺設備保存獨立的加密工作區，未同步內容無法從其他設備恢復。</string>
+	<string>這台裝置儲存獨立的加密工作區，未同步內容無法從其他裝置恢復。</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
-	<string>此設備鑰匙已無法使用。請使用其他已授權設備或賬戶恢復；工作區並未被清除。</string>
+	<string>此裝置鑰匙已無法使用。請使用其他已授權裝置或帳戶恢復；工作區並未被清除。</string>
 	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
-	<string>這臺設備可能獲得你的私密內容。批准後仍需完成內容根分發。</string>
+	<string>這台裝置可能獲得你的私密內容。批准後仍需完成內容根分發。</string>
 	<key>This file exceeds the 100 MiB limit.</key>
-	<string>文件超過 100 MiB 限制。</string>
+	<string>檔案超過 100 MiB 限制。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
-	<string>此歷史記錄僅屬於本設備，不會鏡像其他設備上的桌面本地 CLI、SSH 或文件掛載審批。</string>
+	<string>此歷史記錄僅屬於本裝置，不會映象其他裝置上的桌面本機 CLI、SSH 或檔案掛載審批。</string>
 	<key>This iPhone</key>
-	<string>這臺 iPhone</string>
+	<string>這台 iPhone</string>
 	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
-	<string>此 iPhone 用於管理 Agent 身份和權限。iOS 掛起應用時，不會維持 Agent 運行。</string>
+	<string>此 iPhone 用於管理 Agent 身份和權限。iOS 掛起應用時，不會維持 Agent 執行。</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
-	<string>此清單涵蓋本設備的引用和交付記錄，不會搜索其他設備或任意項目文件。</string>
+	<string>此清單涵蓋本裝置的引用和交付記錄，不會搜尋其他裝置或任意專案檔案。</string>
 	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>這是本地演示的虛構文檔。在真實賬號中，所選文件會在設備上加密後備份。後臺只傳輸密文塊，完成時需解鎖原賬號。</string>
+	<string>這是本機演示的虛構文件。在真實帳號中，所選檔案會在裝置上加密後備份。背景只傳輸密文塊，完成時需解鎖原帳號。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
-	<string>此密鑰由 dMsg 管理，不能複製或編輯。</string>
+	<string>此金鑰由 dMsg 管理，不能複製或編輯。</string>
 	<key>This letter was withdrawn.</key>
 	<string>這封來信已撤回。</string>
 	<key>This message could not be verified.</key>
-	<string>無法驗證這條消息。</string>
+	<string>無法驗證這條訊息。</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
-	<string>這只會在此設備隱藏本次發現及其對應版本，不會修復憑據，也不會忽略之後的變更。</string>
+	<string>這隻會在此裝置隱藏本次發現及其對應版本，不會修復憑據，也不會忽略之後的變更。</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
-	<string>此操作超出了大小或容量限制。此設備上的祕密快照上限爲 8 MiB。</string>
+	<string>此操作超出了大小或容量限制。此裝置上的秘密快照上限為 8 MiB。</string>
 	<key>This operation is temporarily unavailable. Your saved data is kept.</key>
-	<string>此操作暫時不可用，已保存的數據會保留。</string>
+	<string>此操作暫時不可用，已儲存的資料會保留。</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
-	<string>此包已經在本設備導入過。已有副本保持獨立。</string>
+	<string>此包已經在本裝置匯入過。已有副本保持獨立。</string>
 	<key>This preview sends nothing.</key>
 	<string>此預覽不會發送任何內容。</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
-	<string>這些資料將公開展示，請勿填寫祕密或私密聯繫方式。</string>
+	<string>這些資料將公開展示，請勿填寫秘密或私密聯絡方式。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
-	<string>這隻記錄你已人工覈查結果，不會將操作標記爲成功，也不會再次執行。</string>
+	<string>這隻記錄你已人工核查結果，不會將操作標記為成功，也不會再次執行。</string>
 	<key>This removes only the selected cloud copy. Local files remain on their devices.</key>
-	<string>只刪除所選的雲端副本，各設備上的本地文件會保留。</string>
+	<string>只刪除所選的雲端副本，各裝置上的本機檔案會保留。</string>
 	<key>This request has expired</key>
 	<string>請求已過期</string>
 	<key>This request requires a supported desktop client.</key>
-	<string>請使用支持此請求的桌面客戶端處理。</string>
+	<string>請使用支援此請求的桌面客戶端處理。</string>
 	<key>This requests an end to future retrieval. Already saved copies remain usable. An uncertain publication must still be reconciled.</key>
-	<string>這會請求停止之後的內容取回。已保存的副本仍可使用；結果不確定的發佈仍需對賬。</string>
+	<string>這會請求停止之後的內容取回。已儲存的副本仍可使用；結果不確定的釋出仍需對帳。</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
-	<string>此快照需要處理。繼續前，請先覈查其狀態。</string>
+	<string>此快照需要處理。繼續前，請先核查其狀態。</string>
 	<key>This tour does not upload files or register system integrations.</key>
-	<string>此演示不會上傳文件或註冊系統集成。</string>
+	<string>此演示不會上傳檔案或註冊系統整合。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
-	<string>這隻記錄你在此設備上的工作，不會替你在服務提供方創建、測試或撤銷憑據。</string>
+	<string>這隻記錄你在此裝置上的工作，不會替你在服務提供方建立、測試或撤銷憑據。</string>
 	<key>Title</key>
 	<string>標題</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
-	<string>要在這臺 iPhone 上使用已有賬號，請在一臺已授權設備上批准此設備。</string>
+	<string>要在這台 iPhone 上使用已有帳號，請在一台已授權裝置上批准此裝置。</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>請先轉移或歸檔你擁有的會話</string>
 	<key>Transfer proposal</key>
-	<string>轉賬提案</string>
+	<string>轉帳提案</string>
 	<key>Transfers</key>
-	<string>資金轉賬</string>
+	<string>資金轉帳</string>
 	<key>Trash</key>
 	<string>回收站</string>
 	<key>Trash is empty</key>
-	<string>回收站爲空</string>
+	<string>回收站為空</string>
 	<key>Try the local demo</key>
-	<string>體驗本地演示</string>
+	<string>體驗本機演示</string>
 	<key>Two versions need your decision</key>
 	<string>兩個版本等待你決定</string>
 	<key>Type</key>
-	<string>類型</string>
+	<string>型別</string>
 	<key>Type this account ID to confirm</key>
-	<string>輸入此賬號 ID 以確認</string>
+	<string>輸入此帳號 ID 以確認</string>
 	<key>Unblock</key>
-	<string>取消屏蔽</string>
+	<string>取消封鎖</string>
 	<key>Unconfirmed proposals</key>
 	<string>未確認提案</string>
 	<key>Unknown state</key>
@@ -1851,7 +1851,7 @@
 	<key>Unlock policy</key>
 	<string>解鎖策略</string>
 	<key>Unlock this iPhone to open dMsg.</key>
-	<string>請先解鎖 iPhone，再打開 dMsg。</string>
+	<string>請先解鎖 iPhone，再開啟 dMsg。</string>
 	<key>Unlock with system authentication</key>
 	<string>使用系統驗證解鎖</string>
 	<key>Unlock your dMsg workspace</key>
@@ -1865,25 +1865,25 @@
 	<key>Url</key>
 	<string>網址</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
-	<string>使用你在 dMsg 中明確導出的快照裏的密碼。</string>
+	<string>使用你在 dMsg 中明確匯出的快照裡的密碼。</string>
 	<key>Use a secret through a device policy</key>
-	<string>按設備策略使用祕密</string>
+	<string>按裝置策略使用秘密</string>
 	<key>Use an SSH signing key</key>
 	<string>使用 SSH 簽名鑰匙</string>
 	<key>Use conflicting version</key>
 	<string>採用衝突版本</string>
 	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>請在此使用虛構數據，關閉演示會丟棄修改。</string>
+	<string>請在此使用虛構資料，關閉演示會丟棄修改。</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>使用 icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol 或 sol:mint。</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
-	<string>使用系統驗證，即可解鎖這臺 iPhone 上的加密工作區。</string>
+	<string>使用系統驗證，即可解鎖這台 iPhone 上的加密工作區。</string>
 	<key>Use this folder</key>
-	<string>使用此文件夾</string>
+	<string>使用此資料夾</string>
 	<key>Use this password for:</key>
-	<string>爲以下對象使用此密碼：</string>
+	<string>為以下物件使用此密碼：</string>
 	<key>Username</key>
-	<string>用戶名</string>
+	<string>使用者名稱</string>
 	<key>Value</key>
 	<string>內容</string>
 	<key>Vault</key>
@@ -1891,21 +1891,21 @@
 	<key>Vault tools</key>
 	<string>保險庫工具</string>
 	<key>Verified attachment saved to Files.</key>
-	<string>附件驗證完成，已保存到文件庫。</string>
+	<string>附件驗證完成，已儲存到檔案庫。</string>
 	<key>Verified package fingerprint</key>
 	<string>已驗證的包指紋</string>
 	<key>Verify and finish</key>
 	<string>驗證並完成</string>
 	<key>Verify the full device and key fingerprints. This key will prove hardware approval for the protected actions of this account.</key>
-	<string>請覈對完整的設備和鑰匙指紋。此鑰匙將爲該賬戶受保護的操作提供硬件批准證明。</string>
+	<string>請核對完整的裝置和鑰匙指紋。此鑰匙將為該帳戶受保護的操作提供硬體批准證明。</string>
 	<key>Verify the full device fingerprint</key>
-	<string>覈對完整設備指紋</string>
+	<string>核對完整裝置指紋</string>
 	<key>Version history</key>
 	<string>版本歷史</string>
 	<key>Versions</key>
 	<string>版本</string>
 	<key>Viewer</key>
-	<string>查看者</string>
+	<string>檢視者</string>
 	<key>Waiting for approval</key>
 	<string>等待批准</string>
 	<key>Waiting for browser confirmation</key>
@@ -1923,9 +1923,9 @@
 	<key>Wallet</key>
 	<string>錢包</string>
 	<key>Wallet access</key>
-	<string>錢包訪問</string>
+	<string>錢包存取</string>
 	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
-	<string>無法覈對錢包訪問權限，請在刪除前自行確認已妥善保存。</string>
+	<string>無法核對錢包存取權限，請在刪除前自行確認已妥善儲存。</string>
 	<key>Wallet canister ID</key>
 	<string>錢包 canister ID</string>
 	<key>Wallet controls</key>
@@ -1933,7 +1933,7 @@
 	<key>Wallet details and policy</key>
 	<string>錢包詳情與策略</string>
 	<key>Wallet secret</key>
-	<string>錢包祕密</string>
+	<string>錢包秘密</string>
 	<key>Wallets</key>
 	<string>錢包</string>
 	<key>Weak credential</key>
@@ -1943,53 +1943,53 @@
 	<key>Welcome back.</key>
 	<string>歡迎回來。</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>歡迎體驗本地演示，這些消息僅保留在此頁面。</string>
+	<string>歡迎體驗本機演示，這些訊息僅保留在此頁面。</string>
 	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>dMsg 在前臺且已解鎖時，會上傳加密後的修改並更新消息和審批。文件備份仍須單獨確認。你可以隨時關閉。</string>
+	<string>dMsg 在前臺且已解鎖時，會上傳加密後的修改並更新訊息和審批。檔案備份仍須單獨確認。你可以隨時關閉。</string>
 	<key>Who may contact you</key>
-	<string>誰可以聯繫你</string>
+	<string>誰可以聯絡你</string>
 	<key>Withdraw</key>
 	<string>撤回</string>
 	<key>Withdraw message</key>
-	<string>撤回消息</string>
+	<string>撤回訊息</string>
 	<key>Withdraw this message?</key>
-	<string>撤回這條消息？</string>
+	<string>撤回這條訊息？</string>
 	<key>Workspace destination</key>
 	<string>工作區目標</string>
 	<key>Write a demo message</key>
-	<string>輸入演示消息</string>
+	<string>輸入演示訊息</string>
 	<key>Write a letter</key>
 	<string>寫信</string>
 	<key>Write a message</key>
-	<string>寫一條消息</string>
+	<string>寫一條訊息</string>
 	<key>Yes</key>
 	<string>是</string>
 	<key>You are viewing an immutable historical version.</key>
-	<string>正在查看不可變的歷史版本。</string>
+	<string>正在檢視不可變的歷史版本。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
-	<string>服務提供方的變更由你自行完成。dMsg 記錄你的聲明並檢查本地版本，無法覈實上游憑據是否已創建、測試或撤銷。</string>
+	<string>服務提供方的變更由你自行完成。dMsg 記錄你的宣告並檢查本機版本，無法核實上游憑據是否已建立、測試或撤銷。</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>同步後會顯示你已加入的頻道。</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
-	<string>無法刷新當前權益，請在驗證服務可用後重試。</string>
+	<string>無法重新整理當前權益，請在驗證服務可用後重試。</string>
 	<key>Your current plan is managed outside the App Store. Wait until it ends before starting an App Store subscription.</key>
 	<string>當前套餐由 App Store 之外的渠道管理，請待其到期後再開通 App Store 訂閱。</string>
 	<key>Your decision applies only to this request.</key>
 	<string>你的決定僅適用於本次請求。</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
-	<string>加密文件會繼續保留，保存的登錄與快速解鎖材料將被移除。</string>
+	<string>加密檔案會繼續保留，儲存的登入與快速解鎖材料將被移除。</string>
 	<key>Your existing device makes the final decision.</key>
-	<string>由已有設備完成最終批准。</string>
+	<string>由已有裝置完成最終批准。</string>
 	<key>Your files stay private</key>
-	<string>私密文件，安心保存</string>
+	<string>私密檔案，安心儲存</string>
 	<key>Your hidden fields stay concealed until you choose to reveal them.</key>
-	<string>隱藏字段將保持隱藏，直到你主動查看。</string>
+	<string>隱藏欄位將保持隱藏，直到你主動檢視。</string>
 	<key>Your private workspace.</key>
 	<string>你的私密工作臺。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>購買正在等待確認。請恢復購買以重試，無須再次付款。</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
-	<string>舉報及你明確附上的正文會發送給處理團隊，不包含其他私密內容或密鑰。</string>
+	<string>舉報及你明確附上的正文會發送給處理團隊，不包含其他私密內容或金鑰。</string>
 	<key>Your reports</key>
 	<string>你的舉報</string>
 	<key>dMsg</key>

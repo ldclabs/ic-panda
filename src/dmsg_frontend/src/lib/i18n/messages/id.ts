@@ -402,7 +402,7 @@ export default {
   "Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.": "Internet Identity memungkinkan aplikasi dMsg di komputer ini bertindak untuk Anda. Halaman ini tidak mengadakan sesi.",
   "1 of 2 approvals": "1 dari 2 persetujuan",
   "2 of 2, then 24 hours": "2 dari 2, lalu 24 jam",
-  "A commitment to your content root": "Komitmen terhadap akar konten Anda",
+  "A commitment to your content root": "Komitmen terhadap root konten Anda",
   "A hint wakes your desktop, no content": "Sebuah petunjuk membangunkan desktop Anda, tidak ada konten",
   "A release is not an audit.": "Rilis bukanlah audit.",
   "API key": "Kunci API",
