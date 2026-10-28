@@ -828,6 +828,8 @@ mod tests {
             active: 0.into(),
             peak: 0.into(),
         };
+
+        #[allow(deprecated)]
         let result = tokio::time::timeout(std::time::Duration::from_secs(3), refresh(&relay))
             .await
             .expect("independent channel inventories must not wait for each other")

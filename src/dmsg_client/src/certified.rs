@@ -5,7 +5,7 @@
 
 use candid::Principal;
 use dmsg_types::{CertifiedBatch, Error, Result, ensure};
-use ic_certification::{HashTree, LookupResult};
+use ic_certification_v3::{HashTree, LookupResult};
 
 /// The leaf of `entry_key` in `batch`, at `path` in the canister's tree
 /// (the key itself when `path` is empty): `None` for a proven absence.

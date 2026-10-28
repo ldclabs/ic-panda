@@ -6,8 +6,10 @@ use ic_agent::{
     hash_tree::{HashTree, HashTreeNode, Label, LookupResult, SubtreeLookupResult},
     Agent, Certificate,
 };
-use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, GetArchivesResult};
-use icrc_ledger_types::icrc3::blocks::{DataCertificate, GetBlocksRequest, GetBlocksResult};
+use icrc_ledger_types_airdrop::icrc3::archive::{GetArchivesArgs, GetArchivesResult};
+use icrc_ledger_types_airdrop::icrc3::blocks::{
+    DataCertificate, GetBlocksRequest, GetBlocksResult,
+};
 
 use super::{agent::query_call, format_error};
 

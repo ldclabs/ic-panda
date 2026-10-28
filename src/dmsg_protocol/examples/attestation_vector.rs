@@ -9,7 +9,7 @@ use dmsg_protocol::{
 };
 use dmsg_types::*;
 use ed25519_dalek::{Signer, SigningKey};
-use ic_certification::{Certificate, fork, labeled, leaf};
+use ic_certification_v3::{Certificate, fork, labeled, leaf};
 
 fn main() {
     let home = Principal::from_slice(&[1, 1]);

@@ -17,7 +17,7 @@ use crate::codec::{base64url, canonical, hex_sha256, principal, sha256};
 use crate::legacy::{Archive, js_len, js_order, observation_value};
 use candid::{CandidType, Principal};
 use dmsg_types::{Error, Result, ensure};
-use ic_certification::LookupResult;
+use ic_certification_v3::LookupResult;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::collections::{BTreeMap, BTreeSet};

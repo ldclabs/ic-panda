@@ -2,7 +2,7 @@
 use crate::{decode_canonical, integration::*};
 use candid::Principal;
 use dmsg_types::{integration::*, *};
-use ic_certification::{HashTree, LookupResult};
+use ic_certification_v3::{HashTree, LookupResult};
 
 fn timestamp(bytes: &[u8]) -> Result<u64> {
     let mut n = 0u64;

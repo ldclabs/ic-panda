@@ -16,7 +16,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 sha2 = { workspace = true }
-ic_message_types = { path = "../ic_message_types", version = "3" }
+ic_message_types.workspace = true
 candid = { workspace = true }
 cbor2 = { workspace = true }
 ic-cdk = { workspace = true }

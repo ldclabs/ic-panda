@@ -1,6 +1,6 @@
 use candid::{CandidType, Principal};
 use ic_agent::Agent;
-use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types_airdrop::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;

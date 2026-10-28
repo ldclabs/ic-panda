@@ -39,7 +39,7 @@ ic_message_types = { path = "../../src/ic_message_types" }
 dmsg_protocol = { path = "../../src/dmsg_protocol", features = ["cose-pins"] }
 dmsg_runtime = { path = "../../src/dmsg_runtime" }
 dmsg_types = { path = "../../src/dmsg_types" }
-pocket-ic = "=16"
+pocket-ic.workspace = true
 candid.workspace = true
 cbor2.workspace = true
 serde.workspace = true
@@ -49,19 +49,19 @@ ed25519-dalek.workspace = true
 bs58.workspace = true
 ic_auth_types.workspace = true
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
-flate2 = "1"
+flate2.workspace = true
 hmac.workspace = true
 sha2.workspace = true
 ic-certification.workspace = true
 ic-stable-structures.workspace = true
 icrc-ledger-types.workspace = true
-ic-vetkeys = "=0.9.0"
+ic-vetkeys.workspace = true
 k256 = { workspace = true, features = ["ecdsa"] }
 # The wallet tests check signed transactions with independent libraries.
-alloy-consensus = { version = "2", features = ["k256"] }
-alloy-eips = "2"
+alloy-consensus = { workspace = true, features = ["k256"] }
+alloy-eips.workspace = true
 dmsg_client = { path = "../../src/dmsg_client" }
-bitcoin = "0.32"
+bitcoin.workspace = true
 ic-ed25519.workspace = true
 ic-secp256k1.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
@@ -72,12 +72,12 @@ base64.workspace = true
 hex.workspace = true
 ic-agent.workspace = true
 # The desktop test plays the login page over loopback HTTP.
-reqwest = { version = "0.13", default-features = false, features = ["blocking"] }
+reqwest = { workspace = true, features = ["blocking"] }
 # The desktop test fronts the local Agent Discourse host with HTTPS.
-rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
+rustls = { workspace = true, features = ["aws_lc_rs", "std"] }
 # The desktop test reads the daemon's /ws/app/v1 events.
-tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
+tungstenite = { workspace = true, features = ["handshake"] }
 # The gateway-side verifier pairs with the workspace HTTP certification types.
 ic-http-certification.workspace = true
-ic-response-verification = "4"
+ic-response-verification.workspace = true
 dmsg_account_product = { path = "../../examples/dmsg-account-product" }

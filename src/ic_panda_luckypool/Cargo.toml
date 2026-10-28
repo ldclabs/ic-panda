@@ -14,7 +14,7 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-lib_panda = { path = "../lib_panda", version = "0.2" }
+lib_panda.workspace = true
 candid = { workspace = true }
 cbor2 = { workspace = true }
 hex = { workspace = true }
@@ -28,6 +28,6 @@ ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
 url = { workspace = true }
-once_cell = "1.21"
-scopeguard = "1.2"
-finl_unicode = "1.3"
+once_cell.workspace = true
+scopeguard.workspace = true
+finl_unicode.workspace = true

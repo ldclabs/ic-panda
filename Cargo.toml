@@ -23,8 +23,6 @@ members = [
   "tests/dmsg_test_cmc",
   "examples/dmsg-account-product",
   "tests/dmsg_test_legacy",
-  "src/cli_airdrop",
-  "src/cli_dmsg",
   "src/ic_delegation_store",
   "src/ic_dmsg_minter",
   "src/ic_message",
@@ -38,6 +36,10 @@ members = [
   "src/lib_panda",
 ]
 resolver = "2"
+
+# Keep the daemon's test unwind tables below Mach-O's 16 MiB compact-unwind limit.
+[profile.test.package.dmsg_cli]
+opt-level = 1
 
 [profile.release]
 debug = false
@@ -63,18 +65,35 @@ categories = ["web-programming"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
+# Local dependencies with version requirements for publication.
+dmsg_types = { path = "src/dmsg_types", version = "0.4" }
+ic_message_types = { path = "src/ic_message_types", version = "3" }
+lib_panda = { path = "src/lib_panda", version = "0.2" }
+
 aes-gcm = "0.11"
+alloy-consensus = "2"
+alloy-eips = "2"
+alloy-primitives = "1"
 argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
 agent-protocols = { version = "0.12.6", default-features = false }
+async-trait = "0.1"
 axum = { version = "0.8", default-features = false }
 bytes = "1"
 base64 = "0.23"
+bitcoin = "0.32"
 bs58 = "0.5"
 candid = "0.10"
+cap-std = "4.0.3"
+cap-fs-ext = "4.0.3"
 cbor2 = { version = "1", features = ["derive"] }
+core-foundation = "0.10"
 dav-server = { version = "0.11", default-features = false }
 cose2 = "0.5"
+finl_unicode = "1.3"
+flate2 = "1"
+fuse3 = { version = "0.9.0", default-features = false }
 futures = { version = "0.3", default-features = false }
+futures-timer = "3"
 futures-util = { version = "0.3", default-features = false }
 log = "0.4"
 serde = "1"
@@ -97,6 +116,12 @@ http = "1"
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
+signature = "2"
+solana-address = "2"
+solana-hash = "4"
+solana-instruction = "4"
+solana-message = "5"
+ssh-key = { version = "0.6.7", default-features = false }
 ripemd = { version = "0.2", default-features = false }
 k256 = { version = "0.14" }
 p256 = { version = "0.14", default-features = false }
@@ -116,15 +141,23 @@ ic_bls12_381 = "0.10"
 ic_cose_types = "0.11"
 ic_cose_chain_key = { version = "0.11" }
 ic-certification = "4"
+# ic_auth_verifier 0.10 and ic-agent 0.49 certificates use version 3.
+ic-certification-v3 = { package = "ic-certification", version = "3" }
 ic-oss-types = "1.3"
 ic-canister-sig-creation = "1.3"
 ic-ed25519 = "0.6"
 ic-secp256k1 = "0.3"
 ic-http-certification = "4"
-ic-vetkeys = { version = "0.9" }
+ic-response-verification = "4"
+# The integration suite pins this release for the workspace.
+ic-vetkeys = "=0.9.0"
+# ic-vetkeys names its key IDs with this release of the management types.
+vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1" }
 ic-verify-bls-signature = "0.6"
 lazy_static = "1.5"
+libc = "0.2"
 once_cell = "1.21"
+pocket-ic = "=16"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4.6", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
@@ -132,9 +165,17 @@ getrandom = "0.4"
 # Pinned as in anda-bot: credential-store initialization has regressed in
 # patch releases, so upgrades are validated explicitly.
 keyring = "=4.2.0"
+qrcode = { version = "0.14", default-features = false }
+rpassword = "7"
 rqrr = { version = "0.11", default-features = false }
 rusqlite = "0.40"
+scopeguard = "1.2"
+thiserror = "2"
 toml = "1"
+# Preserve the client's existing parser version.
+toml09 = { package = "toml", version = "0.9" }
+tungstenite = { version = "0.29", default-features = false }
+uniffi = "=0.32.2"
 url = "2.5"
 urlencoding = "2.1"
 zip = { version = "9", default-features = false, features = [

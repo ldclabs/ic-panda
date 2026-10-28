@@ -17,9 +17,8 @@ hmac.workspace = true
 serde_json.workspace = true
 serde_jcs.workspace = true
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
-# ic_auth_verifier 0.10 parses certificates with ic-certification 3.
-ic-certification = "3"
-dmsg_types = { path = "../dmsg_types", version = "0.4.0" }
+ic-certification-v3.workspace = true
+dmsg_types.workspace = true
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
@@ -40,8 +39,7 @@ chrono.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 ic-vetkeys = { workspace = true, optional = true }
-# ic-vetkeys names its key IDs with this release of the management types.
-vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1", optional = true }
+vetkd_key_id = { workspace = true, optional = true }
 
 [features]
 # Offline COSE master-key pins for deployment tooling.

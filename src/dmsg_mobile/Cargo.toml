@@ -12,14 +12,14 @@ crate-type = ["lib", "staticlib", "cdylib"]
 dmsg_client = { path = "../dmsg_client" }
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
-uniffi = "=0.32.2"
+uniffi.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 zeroize.workspace = true
 hex.workspace = true
 log.workspace = true
-thiserror = "2"
+thiserror.workspace = true
 
 [dev-dependencies]
 dmsg_client = { path = "../dmsg_client", features = ["testing"] }

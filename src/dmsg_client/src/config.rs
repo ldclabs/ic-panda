@@ -99,8 +99,8 @@ impl Config {
     /// # Errors
     /// Returns `InvalidInput` if the compiled configuration is malformed.
     pub fn production() -> Result<Self> {
-        let file: toml::Value =
-            toml::from_str(PRODUCTION).map_err(|_| dmsg_types::invalid("production config"))?;
+        let file: toml09::Value =
+            toml09::from_str(PRODUCTION).map_err(|_| dmsg_types::invalid("production config"))?;
         let value = |name: &str| file[name].as_str().ok_or_else(|| dmsg_types::invalid(name));
         let principal =
             |name: &str| Principal::from_text(value(name)?).map_err(|_| dmsg_types::invalid(name));

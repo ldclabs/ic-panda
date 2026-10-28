@@ -10,10 +10,10 @@ publish = false
 
 [dependencies]
 aes-gcm.workspace = true
-async-trait = "0.1"
+async-trait.workspace = true
 bytes.workspace = true
 http.workspace = true
-futures-timer = "3"
+futures-timer.workspace = true
 argon2.workspace = true
 agent-protocols = { workspace = true, features = ["http-client"] }
 base64.workspace = true
@@ -27,8 +27,7 @@ getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
 hkdf.workspace = true
 hmac.workspace = true
-# ic_auth_verifier 0.10 and ic-agent 0.49 certificates use ic-certification 3.
-ic-certification = "3"
+ic-certification-v3.workspace = true
 ic_auth_verifier.workspace = true
 hpke = { workspace = true, features = ["alloc", "aes", "x25519"] }
 ic-ed25519.workspace = true
@@ -41,7 +40,7 @@ icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 rqrr.workspace = true
-qrcode = { version = "0.14", default-features = false }
+qrcode.workspace = true
 reqwest = { workspace = true, features = ["rustls", "json"] }
 rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }
@@ -51,13 +50,13 @@ serde_jcs.workspace = true
 sha1.workspace = true
 sha2.workspace = true
 sha3.workspace = true
-ssh-key = { version = "0.6.7", default-features = false, features = ["std", "ed25519", "rsa", "ecdsa"] }
-signature = "2"
+ssh-key = { workspace = true, features = ["std", "ed25519", "rsa", "ecdsa"] }
+signature.workspace = true
 url.workspace = true
 zeroize.workspace = true
 zip.workspace = true
 tokio.workspace = true
-toml = "0.9"
+toml09.workspace = true
 
 [features]
 # Offline unlocked clients for the tests of crates built on this one.

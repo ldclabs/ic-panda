@@ -1,6 +1,6 @@
 use super::*;
 use crate::canonical;
-use ic_certification::{Certificate, fork, labeled, leaf};
+use ic_certification_v3::{Certificate, fork, labeled, leaf};
 
 fn fixture() -> (CertifiedBatch, AuthenticationRequest, Vec<u8>) {
     let home = Principal::from_slice(&[1, 1]);

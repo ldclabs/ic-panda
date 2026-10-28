@@ -3,7 +3,7 @@ use cbor2::from_slice;
 use ic_icrc1::{blocks::generic_block_to_encoded_block, Block};
 use ic_icrc1_tokens_u64::U64;
 use ic_ledger_core::block::{BlockType, EncodedBlock};
-use icrc_ledger_types::icrc3::blocks::{GenericBlock, GetBlocksRequest, ICRC3GenericBlock};
+use icrc_ledger_types_airdrop::icrc3::blocks::{GenericBlock, GetBlocksRequest, ICRC3GenericBlock};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
 use std::{collections::BTreeMap, path::PathBuf};

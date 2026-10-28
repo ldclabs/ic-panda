@@ -3,7 +3,7 @@ use cbor2::to_vec;
 use clap::{Parser, Subcommand};
 use ic_agent::identity::AnonymousIdentity;
 use ic_icrc1::Operation;
-use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types_airdrop::icrc1::account::Account;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
