@@ -23,7 +23,7 @@ export const READ_METHODS = new Set([
   'agent/principal', 'agent/credentials', 'agent/delegations', 'agent/ids', 'grants/list', 'ap/read',
   'mcp-events/status',
   'secrets/references', 'secrets/rotation/dependencies',
-  'wallet/list', 'wallet/show', 'wallet/balances', 'wallet/assets', 'wallet/proposals', 'wallet/proposal',
+  'wallet/list', 'wallet/show', 'wallet/bindings', 'wallet/balances', 'wallet/assets', 'wallet/proposals', 'wallet/proposal',
   'wallet/history', 'wallet/book',
   'legacy/pairs', 'legacy/channels', 'legacy/list',
 ])

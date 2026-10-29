@@ -1644,6 +1644,8 @@
 	<string>Tanda tangani pernyataan yang Anda ulas</string>
 	<key>Signatures collected</key>
 	<string>Tanda tangan terkumpul</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Tanda tangan dari cosigner %@ tidak lagi cocok dengan kunci mereka saat ini dan disisihkan; mereka perlu menandatangani lagi.</string>
 	<key>Simulate approval</key>
 	<string>Simulasikan persetujuan</string>
 	<key>Simulate rejection</key>

@@ -163,6 +163,7 @@ export function titleOf(request: any): Title {
     case 'wallet':
       if (d.action === 'create') return { label: 'twCreateTitle' }
       if (d.action === 'join') return { label: 'twJoinTitle' }
+      if (d.action === 'unbind') return { label: 'twUnbindTitle' }
       if (d.action === 'cosign') return { label: 'twCosignTitle' }
       return { label: d.decision === 'veto' ? 'twVetoTitle' : d.decision === 'reject' ? 'twRejectTitle' : 'twApproveTitle' }
     default:

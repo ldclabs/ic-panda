@@ -1644,6 +1644,8 @@
 	<string>ลงนามในคำชี้แจงที่คุณตรวจสอบ</string>
 	<key>Signatures collected</key>
 	<string>ลายเซ็นที่รวบรวมแล้ว</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>ลายเซ็นของผู้ลงนามร่วม %@ ไม่ตรงกับคีย์ปัจจุบันแล้วและถูกพักไว้ ต้องลงนามใหม่</string>
 	<key>Simulate approval</key>
 	<string>จำลองการอนุมัติ</string>
 	<key>Simulate rejection</key>

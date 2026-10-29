@@ -1644,6 +1644,8 @@
 	<string>검토한 명세서에 서명하세요.</string>
 	<key>Signatures collected</key>
 	<string>수집된 서명</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>공동 서명자 %@의 서명이 현재 키와 더 이상 일치하지 않아 보류되었습니다. 다시 서명해야 합니다.</string>
 	<key>Simulate approval</key>
 	<string>승인 시뮬레이션</string>
 	<key>Simulate rejection</key>

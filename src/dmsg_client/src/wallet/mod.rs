@@ -17,6 +17,7 @@ pub mod decode;
 pub mod desktop;
 pub mod ops;
 pub mod packets;
+pub mod rotate;
 pub mod rpc;
 
 use crate::client::Client;
@@ -69,6 +70,21 @@ pub enum JobKind {
         wallet: Principal,
         /// Its name.
         name: String,
+        /// Devices of this member whose bindings this device takes over.
+        #[serde(default)]
+        replaces: Vec<Hash>,
+        /// Take over the bindings of every other device.
+        #[serde(default)]
+        exclusive: bool,
+    },
+    /// Remove the bindings of this member's devices, such as lost ones.
+    Unbind {
+        /// The wallet.
+        wallet: Principal,
+        /// Its name.
+        name: String,
+        /// The devices, ascending.
+        devices: Vec<Hash>,
     },
     /// Decide on a proposal.
     Decide {
@@ -136,10 +152,27 @@ impl WalletJob {
                 "policy": policy_view(&spec.policy),
                 "expires_at": quote.expires_at_ms,
             }),
-            JobKind::Join { wallet, name } => json!({
+            JobKind::Join {
+                wallet,
+                name,
+                replaces,
+                exclusive,
+            } => json!({
                 "action": "join",
                 "wallet": wallet.to_text(),
                 "name": name,
+                "replaces": replaces.iter().map(|d| hex::encode(**d)).collect::<Vec<_>>(),
+                "exclusive": exclusive,
+            }),
+            JobKind::Unbind {
+                wallet,
+                name,
+                devices,
+            } => json!({
+                "action": "unbind",
+                "wallet": wallet.to_text(),
+                "name": name,
+                "devices": devices.iter().map(|d| hex::encode(**d)).collect::<Vec<_>>(),
             }),
             JobKind::Decide {
                 wallet,
@@ -556,6 +589,11 @@ pub fn wallet_view(view: &WalletView, me: Option<&MemberId>) -> Json {
             "label": m.label,
             "status": format!("{:?}", m.status),
             "principals": m.bindings.iter().map(|b| b.principal.to_text()).collect::<Vec<_>>(),
+            "bindings": m.bindings.iter().map(|b| json!({
+                "principal": b.principal.to_text(),
+                "device": b.device.map(|d| hex::encode(*d)),
+                "bound_at": b.bound_at_ms,
+            })).collect::<Vec<_>>(),
             "agent_ids": m.agent_ids,
         })).collect::<Vec<_>>(),
         "policy": policy_view(&view.policy),
@@ -725,13 +763,6 @@ impl Client {
         }
         paid.sort_by_key(|q| std::cmp::Reverse(q.issued_at_ms));
         Ok(paid)
-    }
-
-    /// Ask to join `wallet`, binding this device's wallet key. The hub first
-    /// refreshes its member index from the wallet, which lists members
-    /// added after creation only then.
-    pub async fn wallet_join_request(&mut self, source: &str, wallet: Principal) -> Result<Json> {
-        ops::join_request(&self.hold(), source, wallet).await
     }
 
     /// Ask to decide on proposal `id`.
@@ -1060,6 +1091,94 @@ pub async fn list<H: Hold>(h: &H) -> Result<Json> {
     ))
 }
 
+/// This member's bindings in a wallet, each with the account's view of its
+/// device: `current` for this device, `active`, `revoked`, or `unknown`, such
+/// as a device a login recovery removed or the one that created the wallet.
+/// `unbind` lists the revoked and unknown devices that an unbind can remove.
+///
+/// # Errors
+/// Returns `Error::Forbidden` when this account is not a member.
+pub async fn bindings<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
+    let view = state(h, wallet).await?;
+    let (me, this) = h
+        .with(|c| Ok((c.wallet_member()?, c.workspace.meta.device_id)))
+        .await?;
+    let member = view
+        .members
+        .iter()
+        .find(|m| m.id == me)
+        .ok_or(Error::Forbidden)?;
+    let account = crate::account::refreshed(h).await?;
+    let mut unbind = vec![];
+    let rows: Vec<Json> = member
+        .bindings
+        .iter()
+        .map(|b| {
+            let device = b.device.map(|d| (d, account.device(&d)));
+            let shown = match device {
+                Some((d, _)) if d == this => "current",
+                Some((_, Some(x))) if x.revoked_at.is_none() => "active",
+                Some((_, Some(_))) => "revoked",
+                _ => "unknown",
+            };
+            if let Some((d, _)) = device
+                && matches!(shown, "revoked" | "unknown")
+            {
+                unbind.push(hex::encode(*d));
+            }
+            json!({
+                "principal": b.principal.to_text(),
+                "device": b.device.map(|d| hex::encode(*d)),
+                "bound_at": b.bound_at_ms,
+                "state": shown,
+            })
+        })
+        .collect();
+    unbind.sort();
+    Ok(json!({"wallet": wallet.to_text(), "bindings": rows, "unbind": unbind}))
+}
+
+/// The proposal giving cosigner `id` of this member the key `label` of this
+/// device, after signing a local challenge with it, so a key that cannot sign
+/// is never proposed.
+///
+/// # Errors
+/// Returns `Error::NotFound` for an unknown cosigner or label and
+/// `Error::Forbidden` for another member's cosigner.
+pub async fn replacement<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    id: u32,
+    label: &str,
+) -> Result<Intent> {
+    let view = state(h, wallet).await?;
+    let current = view
+        .cosigners
+        .iter()
+        .find(|c| c.id == id)
+        .ok_or(Error::NotFound)?;
+    cosign::test_key(h, label).await?;
+    let input = h
+        .with(|c| {
+            let me = c.wallet_member()?;
+            ensure(current.input.member == me, Error::Forbidden)?;
+            let key = c
+                .wallet_cosigner_keys()?
+                .into_iter()
+                .find(|k| k.label == label)
+                .ok_or(Error::NotFound)?;
+            Ok(key.input(me))
+        })
+        .await?;
+    ensure(
+        view.cosigners
+            .iter()
+            .all(|c| c.input.public_key != input.public_key),
+        Error::IdempotencyConflict,
+    )?;
+    Ok(Intent::ReplaceCosigner { id, input })
+}
+
 /// A wallet with its addresses checked against its key roots.
 ///
 /// # Errors
@@ -1238,6 +1357,22 @@ pub async fn proposal<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Json
     .await?;
     let mut out = proposal_view(&p);
     out["plan_details"] = Json::Array(plans);
+    // The key a replacement is reviewed against: the one the cosigner holds
+    // now, which is the new one once it executed.
+    if let Intent::ReplaceCosigner { id, .. } = &p.intent {
+        let view = state(h, wallet).await?;
+        out["current_key"] = view
+            .cosigners
+            .iter()
+            .find(|c| c.id == *id)
+            .map_or(Json::Null, |c| {
+                json!({
+                    "label": c.input.label,
+                    "public_key": hex::encode(&c.input.public_key),
+                    "hardware": c.input.hardware,
+                })
+            });
+    }
     if let Intent::Transfer { from, asset, .. } | Intent::Batch { from, asset, .. } = &p.intent {
         let ledger = match asset {
             AssetKey::Icrc(ledger) => Some(*ledger),

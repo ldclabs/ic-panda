@@ -88,7 +88,7 @@ Ordinary CS key generation supports Secure Enclave P-256 on macOS and iOS, and s
 
 The two clients differ: the macOS Secure Enclave signs at most 32 digests per presence check and iOS at most 64; turning off the iPhone passcode invalidates its Secure Enclave keys, so the wallet needs another cosigner to stay usable. NC cosigner keys are BIP-340 Taproot keys; no dMsg client holds or signs with them yet, so dMsg clients cannot sign an L1 spend.
 
-Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. A cosigner key changes in place: its member rotates it with the old key at once, or an Admin proposal replaces it after 24 hours when the old key is lost, also while frozen; signatures collected with the old key must be made again. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
+Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. Before importing and executing, clients check collected signatures against the cosigners' current keys; those made with a key that has since changed are set aside and their cosigners asked to sign again. A cosigner key changes in place: its member rotates it with the old key at once, or an Admin proposal replaces it after 24 hours when the old key is lost, also while frozen; signatures collected with the old key must be made again. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
 
 ### 5.3 Policy semantics
 

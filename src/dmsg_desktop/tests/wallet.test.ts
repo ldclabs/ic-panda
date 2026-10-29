@@ -267,7 +267,7 @@ test('transaction links name a known production explorer only', () => {
   assert.equal(explorerUrl({ asset: 'BTC' }, '../../javascript:alert(1)', 'production'), null)
 })
 
-import { intentFields, utf8Length } from '../src/renderer/views/wallet/model.ts'
+import { intentFields, previousIntent, utf8Length } from '../src/renderer/views/wallet/model.ts'
 test('every supported management intent exposes all committed fields for review', () => {
   const member = { id: creator, role: 'Admin', label: 'Operator', agent_ids: ['did:agent:example'] }
   const intents = [
@@ -284,6 +284,16 @@ test('every supported management intent exposes all committed fields for review'
       label: 'Key'
     },
     { kind: 'remove_cosigner', cosigner: 2 },
+    {
+      kind: 'replace_cosigner',
+      cosigner: 2,
+      member: creator,
+      curve: 'P256',
+      public_key: '03' + '22'.repeat(32),
+      envelope: 'Raw',
+      hardware: true,
+      label: 'New Mac'
+    },
     { kind: 'add_member', member },
     { kind: 'update_member', member },
     { kind: 'remove_member', member: creator },
@@ -303,6 +313,13 @@ test('every supported management intent exposes all committed fields for review'
     for (const key of Object.keys(intent).filter((k) => k !== 'kind'))
       assert.ok(intentFields(intent).includes(key), `${intent.kind}.${key}`)
   }
+  // A replacement is reviewed against the key it replaces.
+  const before = sampleWallet('Admin')
+  before.cosigners = [{ id: 2, member: creator, curve: 'P256', public_key: '02' + '11'.repeat(32), envelope: 'Raw', hardware: true, label: 'Old Mac' }]
+  const replace = intents.find((i) => i.kind === 'replace_cosigner')
+  assert.equal(previousIntent(replace, before).public_key, '02' + '11'.repeat(32))
+  assert.equal(previousIntent(replace, before).label, 'Old Mac')
+  assert.deepEqual(previousIntent({ ...replace, cosigner: 9 }, before), {})
   assert.equal(utf8Length('中'.repeat(21)), 63)
   assert.equal(utf8Length('中'.repeat(22)), 66)
 })

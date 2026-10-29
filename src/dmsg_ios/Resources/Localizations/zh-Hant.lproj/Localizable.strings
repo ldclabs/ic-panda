@@ -1644,6 +1644,8 @@
 	<string>簽署你已核對的宣告</string>
 	<key>Signatures collected</key>
 	<string>已收集的簽名</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>協簽人 %@ 的簽名與其目前的金鑰不再相符，已被擱置，需要重新簽名。</string>
 	<key>Simulate approval</key>
 	<string>演練批准</string>
 	<key>Simulate rejection</key>

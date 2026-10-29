@@ -43,6 +43,25 @@ pub(crate) fn hash(params: &Value, name: &str) -> Result<Hash> {
         .ok_or_else(|| Error::InvalidInput(format!("{name}: hex identifier")))
 }
 
+/// 32-byte identifiers in hex; absent means none.
+pub(crate) fn hashes(params: &Value, name: &str) -> Result<Vec<Hash>> {
+    let invalid = || Error::InvalidInput(format!("{name}: hex identifiers"));
+    match &params[name] {
+        Value::Null => Ok(vec![]),
+        Value::Array(items) => items
+            .iter()
+            .map(|v| {
+                v.as_str()
+                    .and_then(|s| hex::decode(s).ok())
+                    .and_then(|b| b.try_into().ok())
+                    .map(Hash::new)
+                    .ok_or_else(invalid)
+            })
+            .collect(),
+        _ => Err(invalid()),
+    }
+}
+
 /// An absolute path: the daemon does not share the caller's directory.
 pub(crate) fn absolute(params: &Value, name: &str) -> Result<PathBuf> {
     let path = PathBuf::from(text(params, name)?);

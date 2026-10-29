@@ -55,7 +55,7 @@ test('windows never decide or grant, and never send human', () => {
     assert.equal(WINDOW_METHODS.has(method), !WALLET_CREATION_PAUSED, method)
     if (WALLET_CREATION_PAUSED) assert.throws(() => windowParams(method, {}), { code: 'FORBIDDEN' })
   }
-  for (const method of ['wallet/show', 'wallet/join', 'wallet/activation_continue', 'wallet/refund']) {
+  for (const method of ['wallet/show', 'wallet/join', 'wallet/unbind', 'wallet/bindings', 'wallet/activation_continue', 'wallet/refund']) {
     assert.equal(WINDOW_METHODS.has(method), true, method)
   }
   for (const method of [
@@ -85,6 +85,7 @@ test('windows never decide or grant, and never send human', () => {
     'device/revoke',
     ...(!WALLET_CREATION_PAUSED ? ['wallet/create'] : []),
     'wallet/join',
+    'wallet/unbind',
     'wallet/approve',
     'wallet/veto',
     'wallet/execute',

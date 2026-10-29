@@ -69,6 +69,12 @@ pub trait CosignProvider: Send + Sync {
     /// # Errors
     /// Returns `Error::Unavailable` when the key is gone or the person declines.
     fn sign(&self, handle: String, messages: Vec<Hash>) -> CosignFuture;
+
+    /// The most messages one batch signs, as the macOS Secure Enclave does;
+    /// more take several batches, each asking for presence.
+    fn batch_limit(&self) -> usize {
+        32
+    }
 }
 
 /// Where a local cosigner key lives.
@@ -271,7 +277,13 @@ impl PreparedSigner {
                     })
                     .collect())
             }
-            Self::Platform { provider, handle } => provider.sign(handle, messages).await,
+            Self::Platform { provider, handle } => {
+                let mut signatures = Vec::with_capacity(messages.len());
+                for batch in messages.chunks(provider.batch_limit().max(1)) {
+                    signatures.extend(provider.sign(handle.clone(), batch.to_vec()).await?);
+                }
+                Ok(signatures)
+            }
         }
     }
 }
@@ -333,6 +345,60 @@ mod tests {
             step: impl FnOnce(&mut Client) -> Result<T> + Send,
         ) -> Result<T> {
             step(&mut *self.0.lock().await)
+        }
+    }
+
+    /// Signs with one fixed key, two messages a batch.
+    #[derive(Default)]
+    struct SmallBatches(std::sync::Mutex<Vec<usize>>);
+
+    impl CosignProvider for SmallBatches {
+        fn name(&self) -> &'static str {
+            "test-hardware"
+        }
+
+        fn create(&self, _: &str) -> Result<(Vec<u8>, String)> {
+            let key = SigningKey::from_slice(&[7; 32]).unwrap();
+            Ok((
+                key.verifying_key().to_sec1_point(true).as_bytes().to_vec(),
+                "key".into(),
+            ))
+        }
+
+        fn sign(&self, _: String, messages: Vec<Hash>) -> CosignFuture {
+            self.0.lock().unwrap().push(messages.len());
+            Box::pin(async move {
+                let key = SigningKey::from_slice(&[7; 32]).unwrap();
+                Ok(messages
+                    .iter()
+                    .map(|m| {
+                        let s: Signature = key.sign(&m[..]);
+                        s.to_bytes().to_vec()
+                    })
+                    .collect())
+            })
+        }
+
+        fn batch_limit(&self) -> usize {
+            2
+        }
+    }
+
+    #[tokio::test]
+    async fn hardware_signing_splits_what_one_batch_cannot_hold() {
+        let provider = Arc::new(SmallBatches::default());
+        let signer = PreparedSigner::Platform {
+            provider: provider.clone(),
+            handle: "key".into(),
+        };
+        let messages: Vec<Hash> = (0..5u8).map(|i| Hash::new([i; 32])).collect();
+        let signatures = signer.sign(messages.clone()).await.unwrap();
+        assert_eq!(*provider.0.lock().unwrap(), [2, 2, 1]);
+        let key = SigningKey::from_slice(&[7; 32]).unwrap();
+        for (message, signature) in messages.iter().zip(&signatures) {
+            key.verifying_key()
+                .verify(&message[..], &Signature::from_slice(signature).unwrap())
+                .unwrap();
         }
     }
 

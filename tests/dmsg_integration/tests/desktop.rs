@@ -5233,6 +5233,27 @@ fn desktop_wallet() {
         .as_str()
         .unwrap()
         .to_string();
+    // One binding per device: B's names this device; the creator's names
+    // none until A joins from it.
+    let bindings = b.run(&["wallet", "bindings", &wallet]);
+    assert_eq!(bindings["bindings"][0]["principal"], principal_b.as_str());
+    assert_eq!(bindings["bindings"][0]["state"], "current");
+    assert_eq!(bindings["unbind"], json!([]));
+    let created_by = a.run(&["wallet", "bindings", &wallet]);
+    assert_eq!(created_by["bindings"][0]["state"], "unknown");
+    assert_eq!(created_by["bindings"][0]["device"], Value::Null);
+    // Taking over and unbinding a device that holds no binding pass the
+    // account approval of their own digests and change nothing.
+    let lost = "ab".repeat(32);
+    let rejoin = b.run(&["wallet", "join", &wallet, "--replaces", &lost]);
+    assert_eq!(rejoin["detail"]["replaces"], json!([lost]));
+    assert_eq!(b.decide(&http, &rejoin, true).unwrap()["state"], "done");
+    let unbind = b.run(&["wallet", "unbind", &wallet, &lost]);
+    assert_eq!(unbind["detail"]["action"], "unbind");
+    assert_eq!(unbind["detail"]["devices"], json!([lost]));
+    assert_eq!(b.decide(&http, &unbind, true).unwrap()["state"], "done");
+    let kept = b.run(&["wallet", "bindings", &wallet]);
+    assert_eq!(kept["bindings"], bindings["bindings"]);
 
     // The desktop app reads the wallet once the chain-key addresses exist,
     // each checked against the wallet's key roots.

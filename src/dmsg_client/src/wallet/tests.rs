@@ -157,6 +157,8 @@ fn job_digests_bind_the_decision() {
         kind: JobKind::Join {
             wallet,
             name: format!("{decision:?}"),
+            replaces: vec![],
+            exclusive: false,
         },
         approval: None,
         result: None,
@@ -166,6 +168,46 @@ fn job_digests_bind_the_decision() {
         job(Decision::Veto).digest()
     );
     assert_eq!(job(Decision::Approve).view()["action"], "join");
+    // What the approval window shows binds the devices taken over or
+    // removed.
+    let lost = Hash::new([9; 32]);
+    let takeover = WalletJob {
+        id: "a".into(),
+        kind: JobKind::Join {
+            wallet,
+            name: "team".into(),
+            replaces: vec![lost],
+            exclusive: false,
+        },
+        approval: None,
+        result: None,
+    };
+    assert_ne!(takeover.digest(), job(Decision::Approve).digest());
+    assert_eq!(takeover.view()["replaces"], json!([hex::encode(*lost)]));
+    let unbind = WalletJob {
+        id: "a".into(),
+        kind: JobKind::Unbind {
+            wallet,
+            name: "team".into(),
+            devices: vec![lost],
+        },
+        approval: None,
+        result: None,
+    };
+    assert_eq!(unbind.view()["action"], "unbind");
+    assert_eq!(unbind.view()["devices"], json!([hex::encode(*lost)]));
+    // A job journaled before the takeover fields reads as a plain join.
+    let old: JobKind =
+        serde_json::from_value(json!({"Join": {"wallet": wallet, "name": "team"}})).unwrap();
+    assert_eq!(
+        old,
+        JobKind::Join {
+            wallet,
+            name: "team".into(),
+            replaces: vec![],
+            exclusive: false,
+        }
+    );
     assert_eq!(
         external_source(&Intent::InitSolNonce {
             address: 3,

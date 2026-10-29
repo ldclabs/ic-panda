@@ -1644,6 +1644,8 @@
 	<string>Sign the statement you reviewed</string>
 	<key>Signatures collected</key>
 	<string>Signatures collected</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</string>
 	<key>Simulate approval</key>
 	<string>Simulate approval</string>
 	<key>Simulate rejection</key>

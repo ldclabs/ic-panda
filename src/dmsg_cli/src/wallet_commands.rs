@@ -63,6 +63,26 @@ pub enum WalletCommand {
     Join {
         /// Wallet canister ID.
         wallet: String,
+        /// A device of this account whose binding this device takes over (hex).
+        #[arg(long = "replaces")]
+        replaces: Vec<String>,
+        /// Take over the bindings of every other device, as after a login recovery.
+        #[arg(long, conflicts_with = "replaces")]
+        exclusive: bool,
+    },
+    /// Remove the bindings of this account's devices, such as lost ones; goes
+    /// through the approval center.
+    Unbind {
+        /// Wallet canister ID.
+        wallet: String,
+        /// Device IDs (hex).
+        #[arg(required = true)]
+        devices: Vec<String>,
+    },
+    /// This account's bindings in a wallet and what the account says of their devices.
+    Bindings {
+        /// Wallet canister ID.
+        wallet: String,
     },
     /// Proposals, newest first.
     Proposals {
@@ -413,8 +433,48 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                 )
             });
         }
-        WalletCommand::Join { wallet } => {
-            request(remote, json, "wallet/join", json!({"wallet": wallet})).await?;
+        WalletCommand::Join {
+            wallet,
+            replaces,
+            exclusive,
+        } => {
+            request(
+                remote,
+                json,
+                "wallet/join",
+                json!({"wallet": wallet, "replaces": replaces, "exclusive": exclusive}),
+            )
+            .await?;
+        }
+        WalletCommand::Unbind { wallet, devices } => {
+            request(
+                remote,
+                json,
+                "wallet/unbind",
+                json!({"wallet": wallet, "devices": devices}),
+            )
+            .await?;
+        }
+        WalletCommand::Bindings { wallet } => {
+            let r = remote
+                .call("wallet/bindings", json!({"wallet": wallet}))
+                .await?;
+            print(json, &r, |r| {
+                r["bindings"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|b| {
+                        format!(
+                            "{}  {}  {}",
+                            b["device"].as_str().unwrap_or("-"),
+                            b["state"].as_str().unwrap_or_default(),
+                            b["principal"].as_str().unwrap_or_default()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
         }
         WalletCommand::Proposals { wallet, before } => {
             let page = remote

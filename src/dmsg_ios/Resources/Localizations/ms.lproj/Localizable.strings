@@ -1644,6 +1644,8 @@
 	<string>Tandatangani penyata yang anda semak</string>
 	<key>Signatures collected</key>
 	<string>Tandatangan yang dikumpul</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Tandatangan daripada cosigner %@ tidak lagi sepadan dengan kunci semasa mereka dan diketepikan; mereka perlu menandatangani semula.</string>
 	<key>Simulate approval</key>
 	<string>Simulasikan kelulusan</string>
 	<key>Simulate rejection</key>

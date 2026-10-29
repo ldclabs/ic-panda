@@ -67,12 +67,46 @@ impl MobileEngine {
         .await
     }
 
-    pub async fn wallet_join(&self, wallet: String) -> Result<ObjectSnapshot> {
+    /// Ask to join `wallet`, binding this device and taking over the
+    /// bindings of the devices in `replaces` (hex), or of every other device
+    /// when `exclusive`.
+    pub async fn wallet_join(
+        &self,
+        wallet: String,
+        replaces: Vec<String>,
+        exclusive: bool,
+    ) -> Result<ObjectSnapshot> {
         let wallet = wallet::parse_wallet(&wallet)?;
+        let replaces = devices(&replaces)?;
         self.held_object(move |h| {
-            Box::pin(async move { wallet::ops::join_request(h, "gui", wallet).await })
+            Box::pin(async move {
+                wallet::ops::join_request(h, "gui", wallet, replaces, exclusive).await
+            })
         })
         .await
+    }
+
+    /// Ask to remove this account's bindings of `devices` (hex), such as
+    /// lost ones.
+    pub async fn wallet_unbind(
+        &self,
+        wallet: String,
+        devices: Vec<String>,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        let devices = self::devices(&devices)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::ops::unbind_request(h, "gui", wallet, devices).await })
+        })
+        .await
+    }
+
+    /// This account's bindings in `wallet`, with the state of their devices
+    /// and the ones an unbind can remove.
+    pub async fn wallet_bindings(&self, wallet: String) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| Box::pin(async move { wallet::bindings(h, wallet).await }))
+            .await
     }
 
     pub async fn wallet_transfer(&self, transfer: WalletTransfer) -> Result<ObjectSnapshot> {
@@ -202,6 +236,26 @@ impl MobileEngine {
         .await
     }
 
+    /// Propose giving cosigner `cosigner` of this account the key `label`
+    /// of this device, which first signs a local challenge.
+    pub async fn replace_wallet_cosigner(
+        &self,
+        wallet: String,
+        cosigner: u32,
+        label: String,
+        request_id: String,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        let id = dmsg_client::upload::hex_id(&request_id)?;
+        self.held_object(move |h| {
+            Box::pin(async move {
+                let intent = wallet::replacement(h, wallet, cosigner, &label).await?;
+                wallet::ops::propose_with_id(h, wallet, intent, None, id).await
+            })
+        })
+        .await
+    }
+
     pub async fn wallet_cosigners(&self) -> Result<ObjectSnapshot> {
         self.object(|c| Box::pin(async { c.wallet_cosigners_local() }))
             .await
@@ -321,6 +375,13 @@ pub enum WalletChange {
         administrators: u8,
     },
     Unfreeze,
+}
+
+/// Device IDs in hex.
+fn devices(ids: &[String]) -> dmsg_types::Result<Vec<dmsg_types::Hash>> {
+    ids.iter()
+        .map(|id| dmsg_client::upload::hex_id(id))
+        .collect()
 }
 
 fn member_id(text: &str) -> dmsg_types::Result<dmsg_types::wallet::MemberId> {

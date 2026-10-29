@@ -1,5 +1,6 @@
 //! Wallet operations wait on the network without holding the shared client.
 use super::*;
+use dmsg_types::ensure_valid;
 
 /// Check an unpaid activation's balance before creating its approval request.
 /// Confirmed or uncertain payments must continue through their original journal.
@@ -88,9 +89,71 @@ pub async fn refund<H: Hold>(h: &H, quote_id: &str) -> Result<Json> {
     Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block}))
 }
 
-/// Join request: the client is taken only for synchronous steps.
-#[allow(clippy::too_many_arguments)]
-pub async fn join_request<H: Hold>(h: &H, source: &str, wallet: Principal) -> Result<Json> {
+/// Join request, binding this device and taking over the bindings of
+/// `replaces`, or of every other device when `exclusive`: the client is
+/// taken only for synchronous steps.
+pub async fn join_request<H: Hold>(
+    h: &H,
+    source: &str,
+    wallet: Principal,
+    mut replaces: Vec<Hash>,
+    exclusive: bool,
+) -> Result<Json> {
+    replaces.sort();
+    replaces.dedup();
+    let device = h.with(|c| Ok(c.workspace.meta.device_id)).await?;
+    ensure_valid(
+        replaces.len() <= MAX_MEMBER_PRINCIPALS
+            && !replaces.contains(&device)
+            && !(exclusive && !replaces.is_empty()),
+        "join devices",
+    )?;
+    let name = member_wallet(h, wallet).await?;
+    h.with(|c| {
+        c.wallet_request(
+            source,
+            JobKind::Join {
+                wallet,
+                name,
+                replaces,
+                exclusive,
+            },
+        )
+    })
+    .await
+}
+
+/// Unbind request for `devices` of this member, such as lost ones: the
+/// client is taken only for synchronous steps.
+pub async fn unbind_request<H: Hold>(
+    h: &H,
+    source: &str,
+    wallet: Principal,
+    mut devices: Vec<Hash>,
+) -> Result<Json> {
+    devices.sort();
+    devices.dedup();
+    let device = h.with(|c| Ok(c.workspace.meta.device_id)).await?;
+    ensure_valid(
+        !devices.is_empty() && devices.len() <= MAX_MEMBER_PRINCIPALS && !devices.contains(&device),
+        "unbind devices",
+    )?;
+    let name = member_wallet(h, wallet).await?;
+    h.with(|c| {
+        c.wallet_request(
+            source,
+            JobKind::Unbind {
+                wallet,
+                name,
+                devices,
+            },
+        )
+    })
+    .await
+}
+
+/// The name of a wallet the hub lists this account in.
+async fn member_wallet<H: Hold>(h: &H, wallet: Principal) -> Result<String> {
     let hub = h.with(|c| c.wallet_hub()).await?;
     let (_, ic) = identity(h).await?;
     let record: Result<WalletRecord> = ic.update(hub, "sync_wallet", (wallet,)).await?;
@@ -101,16 +164,7 @@ pub async fn join_request<H: Hold>(h: &H, source: &str, wallet: Principal) -> Re
             .contains(&h.with(|c| c.wallet_member()).await?),
         Error::Forbidden,
     )?;
-    h.with(|c| {
-        c.wallet_request(
-            source,
-            JobKind::Join {
-                wallet,
-                name: record.name,
-            },
-        )
-    })
-    .await
+    Ok(record.name)
 }
 
 /// Decide request: the client is taken only for synchronous steps.
@@ -1098,7 +1152,12 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 "wallet": order.wallet.map(|w| w.to_text()),
             })
         }
-        JobKind::Join { wallet, .. } => {
+        JobKind::Join {
+            wallet,
+            replaces,
+            exclusive,
+            ..
+        } => {
             let hub = h.with(|c| c.wallet_hub()).await?;
             let (actor, _) = identity(h).await?;
             let (account, device) = h
@@ -1110,7 +1169,7 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 hub,
                 wallet,
                 ApprovalPurpose::WalletJoin,
-                join_digest(wallet, &account, actor, &device, &[], false),
+                join_digest(wallet, &account, actor, &device, &replaces, exclusive),
             )
             .await?;
             let (_, ic) = identity(h).await?;
@@ -1124,13 +1183,45 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                             approval,
                         },
                         device,
-                        replaces: vec![],
-                        exclusive: false,
+                        replaces,
+                        exclusive,
                     },),
                 )
                 .await?;
             let member = member?;
             json!({"joined": true, "role": format!("{:?}", member.role)})
+        }
+        JobKind::Unbind {
+            wallet, devices, ..
+        } => {
+            let hub = h.with(|c| c.wallet_hub()).await?;
+            let (actor, _) = identity(h).await?;
+            let account = h.with(|c| Ok(c.account()?.id)).await?;
+            let (approval_id, approval) = authorize(
+                h,
+                &mut job,
+                hub,
+                wallet,
+                ApprovalPurpose::WalletJoin,
+                unbind_digest(wallet, &account, actor, &devices),
+            )
+            .await?;
+            let (_, ic) = identity(h).await?;
+            let member: Result<Member> = ic
+                .update(
+                    wallet,
+                    "unbind",
+                    (UnbindArgs {
+                        evidence: MemberApproval::Account {
+                            approval_id,
+                            approval,
+                        },
+                        devices,
+                    },),
+                )
+                .await?;
+            let member = member?;
+            json!({"unbound": true, "bindings": member.bindings.len()})
         }
         JobKind::Decide {
             wallet,
@@ -1226,7 +1317,7 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
             .and_then(|r| r["wallet"].as_str())
             .and_then(|s| parse_wallet(s).ok())
             .map(|w| (w, None)),
-        JobKind::Join { wallet, .. } => Some((*wallet, None)),
+        JobKind::Join { wallet, .. } | JobKind::Unbind { wallet, .. } => Some((*wallet, None)),
         JobKind::Decide {
             wallet, proposal, ..
         }

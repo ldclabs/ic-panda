@@ -1,11 +1,11 @@
 //! The daemon methods of team wallets (`wallet/*`). Reading, proposing,
 //! executing approved proposals, broadcasting, reporting and returning an
 //! unused activation deposit to its payer run at once; creating a wallet,
-//! joining one, deciding on a proposal and cosigning become approval
-//! requests, which only a person answers.
+//! joining one, unbinding devices, deciding on a proposal and cosigning
+//! become approval requests, which only a person answers.
 
 use crate::daemon::Daemon;
-use crate::params::{number, optional, parse, source, text, to_json};
+use crate::params::{hashes, number, optional, parse, source, text, to_json};
 use dmsg_client::hold::Hold;
 use dmsg_client::wallet::{self as wallets, default_policy, parse_wallet};
 use dmsg_types::{
@@ -15,7 +15,7 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 62] = [
+pub(crate) const METHODS: [&str; 64] = [
     "wallet/cosigner_test",
     "wallet/queue",
     "wallet/history",
@@ -53,6 +53,8 @@ pub(crate) const METHODS: [&str; 62] = [
     "wallet/deposits",
     "wallet/refund",
     "wallet/join",
+    "wallet/unbind",
+    "wallet/bindings",
     "wallet/proposals",
     "wallet/proposal",
     "wallet/propose",
@@ -83,9 +85,8 @@ pub(crate) const METHODS: [&str; 62] = [
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "wallet/create" | "wallet/join" | "wallet/approve" | "wallet/reject" | "wallet/veto" => {
-            &["approval/changed"]
-        }
+        "wallet/create" | "wallet/join" | "wallet/unbind" | "wallet/approve" | "wallet/reject"
+        | "wallet/veto" => &["approval/changed"],
         "wallet/execute" | "wallet/cosign" | "wallet/activation_continue" => {
             &["approval/changed", "wallet/changed"]
         }
@@ -244,6 +245,7 @@ impl Daemon {
             }
             "wallet/list" => return wallets::list(&h).await,
             "wallet/show" => return wallets::show(&h, wallet()?).await,
+            "wallet/bindings" => return wallets::bindings(&h, wallet()?).await,
             "wallet/principal" => return wallets::principal(&h).await,
             "wallet/quote" => return wallets::quote(&h).await,
             "wallet/quote_preview" => return wallets::quote_preview(&h).await,
@@ -385,7 +387,25 @@ impl Daemon {
                 .await
             }
             "wallet/refund" => wallets::ops::refund(&h, &text(params, "quote")?).await,
-            "wallet/join" => wallets::ops::join_request(&h, source(params)?, wallet()?).await,
+            "wallet/join" => {
+                wallets::ops::join_request(
+                    &h,
+                    source(params)?,
+                    wallet()?,
+                    hashes(params, "replaces")?,
+                    params["exclusive"].as_bool().unwrap_or(false),
+                )
+                .await
+            }
+            "wallet/unbind" => {
+                wallets::ops::unbind_request(
+                    &h,
+                    source(params)?,
+                    wallet()?,
+                    hashes(params, "devices")?,
+                )
+                .await
+            }
             "wallet/propose" => {
                 let intent: Intent = parse(params, "intent")?;
                 wallets::ops::propose(&h, wallet()?, intent, None).await

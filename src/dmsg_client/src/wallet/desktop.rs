@@ -645,6 +645,8 @@ pub enum Change {
     Cosigner { label: String },
     /// Remove a registered cosigner.
     RemoveCosigner { id: u32 },
+    /// Give a cosigner of this member a key generated on this device.
+    ReplaceCosigner { id: u32, label: String },
     /// Unfreeze after the policy delay.
     Unfreeze,
     /// Top up from an ICP address.
@@ -748,6 +750,7 @@ pub async fn change<H: Hold>(h: &H, wallet: Principal, input: Change) -> Result<
             .await?
         }
         Change::RemoveCosigner { id } => Intent::RemoveCosigner(id),
+        Change::ReplaceCosigner { id, label } => replacement(h, wallet, id, &label).await?,
         Change::Unfreeze => Intent::Unfreeze,
         Change::Refuel { from, amount } => Intent::Refuel {
             from,

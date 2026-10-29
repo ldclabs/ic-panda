@@ -2811,6 +2811,45 @@ smoke: try {
   await approval.waitForSelector('text=This only collects your signatures.')
   assert.doesNotMatch(await approval.textContent('body'), /The wallet signs this transaction and this device broadcasts it/)
   await main.keyboard.press('Escape')
+  // Signatures made with a key that has changed since are set aside and named.
+  // A copy with the live plan: reopening the same route would not reopen it.
+  wallets.state.stale = [2]
+  wallets.proposals.unshift({...structuredClone(guarded), id:804})
+  await main.evaluate(([w,p])=>location.hash=`/wallet/${w}/${p}`, [wallets.a, 804])
+  await main.waitForSelector('[data-testid="wallet-cosign-stale"]')
+  assert.match(await main.textContent('[data-testid="wallet-cosign-stale"]'), /Bob key #2/)
+  await formMatrix(app, main, shots, 'cosign-stale', '[data-testid="wallet-cosign-stale"]')
+  wallets.state.stale = []
+  await main.keyboard.press('Escape')
+  // A key replacement is reviewed against the key it replaces.
+  wallets.proposals.unshift({...structuredClone(originalProposal), id:803, status:'Open', ready_at:null, plans:0, plan_details:[], signed:[],
+    intent:{kind:'replace_cosigner', cosigner:2, member:peer, curve:'P256', public_key:'02'+'33'.repeat(32), envelope:'Raw', hardware:true, label:'Bob new key'}})
+  await main.evaluate(([w,p])=>location.hash=`/wallet/${w}/${p}`, [wallets.a, 803])
+  const replacing = main.locator('[data-testid="wallet-proposal-detail"] [data-testid="wallet-intent"]')
+  await replacing.waitFor()
+  assert.match(await replacing.textContent(), /Replace cosigner key[\s\S]*(22){8}[\s\S]*(33){8}/)
+  assert.equal(await replacing.locator('del').filter({hasText:'2222'}).count(), 1)
+  await formMatrix(app, main, shots, 'replace-cosigner', '[data-testid="wallet-proposal-detail"] [data-testid="wallet-intent"]')
+  await main.keyboard.press('Escape')
+  // Unbinding a lost device names it in the approval window.
+  await main.evaluate(async (wallet) => { const r = await window.dmsg.call('wallet/unbind', {wallet, devices:['ab'.repeat(32)], source:'gui'}); await window.dmsg.openApproval(r.id) }, wallets.a)
+  await approval.waitForSelector('[data-testid="approval-wallet-devices"]')
+  assert.match(await approval.textContent('[data-testid="approval-wallet-devices"]'), /(ab){32}/)
+  assert.match(await approval.textContent('body'), /Unbind devices from a team wallet[\s\S]*can no longer act for your account in this wallet/)
+  // The approval window follows the language and theme the main window picks.
+  const approvalWindow = await app.browserWindow(approval)
+  for (const [locale, theme, width, height] of [['zh','light',460,720],['zh','dark',400,560],['fr','light',400,560],['ar','dark',400,560]]) {
+    await approvalWindow.evaluate((window, [width, height]) => window.setContentSize(width, height), [width, height])
+    await main.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
+    await approval.waitForSelector(`html[lang|="${locale}"]`)
+    await approval.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
+    await approval.locator('[data-testid="approval-wallet-devices"]').scrollIntoViewIfNeeded()
+    assert.ok(await approval.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `unbind approval fits ${locale} ${width}`)
+    await approval.screenshot({ path: join(shots, `approval-wallet-unbind-${locale}-${theme}-${width}.png`), animations: 'disabled' })
+  }
+  await approvalWindow.evaluate((window) => window.setContentSize(460, 720))
+  await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+  await approval.waitForSelector('html[lang="en"]')
   // Bound keys cannot be removed, and a hardware-only policy cannot strand an address.
   await main.click('[data-testid="wallet-tab-team"]')
   await main.click('[data-testid="wallet-tab-settings"]')

@@ -1644,6 +1644,8 @@
 	<string>Onderteken de verklaring die je hebt beoordeeld</string>
 	<key>Signatures collected</key>
 	<string>Verzamelde handtekeningen</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Handtekeningen van medeondertekenaars %@ passen niet meer bij hun huidige sleutels en zijn apart gezet; zij moeten opnieuw ondertekenen.</string>
 	<key>Simulate approval</key>
 	<string>Simuleer goedkeuring</string>
 	<key>Simulate rejection</key>

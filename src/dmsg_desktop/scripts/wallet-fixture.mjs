@@ -26,7 +26,7 @@ export function walletFixture(account, created) {
     public: false
   }
   const state = { enabled: false, role: 'Admin', frozen: false, failBalances: false, changed: null, transfer: null, approval: 900,
-    readinessError: false, blockers: [], replacement: false, executed: null, activation: 'unpaid', creation: null, cosigners: [], localKeys: [], btcCosign: null, collectionError: false }
+    readinessError: false, blockers: [], replacement: false, executed: null, activation: 'unpaid', creation: null, cosigners: [], localKeys: [], btcCosign: null, collectionError: false, stale: [] }
   const view = (id) => ({
     wallet: id,
     name: id === a ? 'Engineering' : 'Operations',
@@ -214,11 +214,14 @@ export function walletFixture(account, created) {
     }),
     'wallet/cosign_status': () => {
       if (state.collectionError) throw { code: 'UNAVAILABLE', message: 'cosign collection unavailable' }
-      return { collected: state.replacement ? 2 : 0, required: 2, ready: state.replacement, packet: '', can_cosign: true }
+      return { collected: state.replacement ? 2 : 0, required: 2, ready: state.replacement, packet: '', can_cosign: true, stale: state.stale }
     },
     'wallet/cosign': (p) => created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
       action: 'cosign', wallet: p.wallet, name: view(p.wallet).name, before: view(p.wallet),
       proposal: proposals.find((v) => v.id === p.proposal), plan: {seq:p.plan, chain:'Bitcoin', from:'bc1pfixture', fee:'10000', outputs:[], expires_at:Date.now()+600000}, collect_only: true
+    }),
+    'wallet/unbind': (p) => created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
+      action: 'unbind', wallet: p.wallet, name: view(p.wallet).name, devices: p.devices
     }),
     'wallet/cosign_execute': (p) => {
       state.executed = p

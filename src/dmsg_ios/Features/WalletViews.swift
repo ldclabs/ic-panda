@@ -47,7 +47,7 @@ struct WalletsView: View {
     }
     private func join() async {
         guard let engine = model.engine, !working else { return }; working = true; defer { working = false }
-        do { request = try model.decode(try await engine.walletJoin(wallet: walletID.trimmingCharacters(in: .whitespacesAndNewlines))) }
+        do { request = try model.decode(try await engine.walletJoin(wallet: walletID.trimmingCharacters(in: .whitespacesAndNewlines), replaces: [], exclusive: false)) }
         catch { model.report(error) }
     }
 }
@@ -100,13 +100,17 @@ struct WalletProposalView: View {
     @State private var packet = ""
     @State private var executeCollected = false
     struct Plans: Decodable { let plans: UInt32 }
-    struct Cosign: Decodable { let collected: UInt64; let required: UInt64; let ready: Bool; let packet: String; let canCosign: Bool? }
+    struct Cosign: Decodable { let collected: UInt64; let required: UInt64; let ready: Bool; let packet: String; let canCosign: Bool?; let stale: [UInt32]? }
     var body: some View {
         List {
             if let value { CanonicalDetails(value: value).reminderVisible(.wallet(wallet, String(proposal)), watermark: observedVersion, ready: observedVersion != nil) } else { ProgressView() }
             if let cosign {
                 Section {
                     LabeledContent("Signatures collected", value: "\(cosign.collected) / \(cosign.required)")
+                    if let stale = cosign.stale, !stale.isEmpty {
+                        Label("Signatures from cosigners \(stale.map { "#\($0)" }.joined(separator: ", ")) no longer match their current keys and were set aside; they need to sign again.", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
                     Button("Cosign on this device") { work = Task { await cosignHere() } }.disabled(cosign.canCosign != true)
                     if cosign.canCosign == false { Text("This device has no cosigner key for this proposal.").font(.caption).foregroundStyle(.secondary) }
                     if cosign.collected > 0 { ShareLink(item: cosign.packet) { Label("Share cosign packet", systemImage: "square.and.arrow.up") } }

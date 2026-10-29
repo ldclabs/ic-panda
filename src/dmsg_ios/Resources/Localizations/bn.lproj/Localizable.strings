@@ -1644,6 +1644,8 @@
 	<string>আপনি যে বিবৃতি পর্যালোচনা করেছেন তাতে স্বাক্ষর করুন</string>
 	<key>Signatures collected</key>
 	<string>সংগৃহীত স্বাক্ষর</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>সহ-স্বাক্ষরকারী %@-এর স্বাক্ষর আর তাঁদের বর্তমান কী-এর সঙ্গে মেলে না, তাই আলাদা রাখা হয়েছে; তাঁদের আবার স্বাক্ষর করতে হবে।</string>
 	<key>Simulate approval</key>
 	<string>অনুকরণ অনুমোদন</string>
 	<key>Simulate rejection</key>

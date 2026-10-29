@@ -3,7 +3,7 @@
 use super::*;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct Packet {
     version: u8,
     wallet: Principal,
@@ -84,14 +84,18 @@ pub(super) fn signing_requirements(
     Ok(requirements)
 }
 
+/// Check a packet's context, then keep only the signatures that verify
+/// against the cosigners' current keys. Returns the cosigners whose
+/// signatures were dropped, such as after their key changed: they sign again.
+/// Signatures of cosigners the policy does not name are dropped silently.
 fn validate(
-    packet: &Packet,
+    packet: &mut Packet,
     view: &WalletView,
     p: &Proposal,
     plan: Option<&ExecutionPlan>,
     digests: &[Hash],
     policy: &[CosignRequirement],
-) -> Result<()> {
+) -> Result<Vec<u32>> {
     let seq = plan.map_or(0, |p| p.seq);
     ensure(
         packet.version == 1
@@ -116,8 +120,19 @@ fn validate(
         .enumerate()
         .map(|(i, d)| cosign_message(view.wallet, p.id, seq, i as u32, d))
         .collect();
-    verify_cosignatures(&keys, &messages, &packet.signatures)?;
-    Ok(())
+    let mut groups = std::collections::BTreeMap::<u32, Vec<CosignerSig>>::new();
+    for sig in packet.signatures.drain(..) {
+        groups.entry(sig.cosigner).or_default().push(sig);
+    }
+    let mut stale = vec![];
+    for (id, group) in groups {
+        if verify_cosignatures(&keys, &messages, &group).is_ok() {
+            packet.signatures.extend(group);
+        } else if keys.iter().any(|k| k.id == id) {
+            stale.push(id);
+        }
+    }
+    Ok(stale)
 }
 
 fn merge(mut a: Packet, b: Packet) -> Packet {
@@ -129,7 +144,12 @@ fn merge(mut a: Packet, b: Packet) -> Packet {
     a
 }
 
-fn result(packet: &Packet, digests: &[Hash], policy: &[CosignRequirement]) -> Result<Json> {
+fn result(
+    packet: &Packet,
+    digests: &[Hash],
+    policy: &[CosignRequirement],
+    stale: &[u32],
+) -> Result<Json> {
     let requirements: Vec<_> = policy.iter().map(|r| {
         let collected = r.policy.cosigners.iter().filter(|id| {
             (0..digests.len()).all(|i| packet.signatures.iter().any(|s| s.cosigner == **id && s.digest_index as usize == i))
@@ -140,7 +160,7 @@ fn result(packet: &Packet, digests: &[Hash], policy: &[CosignRequirement]) -> Re
         json!({"wallet":packet.wallet.to_text(),"proposal":packet.proposal,"plan":packet.plan,
         "collected":requirements.iter().map(|r|r["collected"].as_u64().unwrap_or(0)).sum::<u64>(),
         "required":requirements.iter().map(|r|r["required"].as_u64().unwrap_or(0)).sum::<u64>(),
-        "ready":requirements.iter().all(|r|r["ready"]==true),"requirements":requirements,
+        "ready":requirements.iter().all(|r|r["ready"]==true),"requirements":requirements,"stale":stale,
         "packet":URL_SAFE_NO_PAD.encode(crate::codec::canonical(packet))}),
     )
 }
@@ -185,33 +205,49 @@ pub async fn import<H: Hold>(
     let bytes = URL_SAFE_NO_PAD
         .decode(text)
         .map_err(|_| Error::IntegrityFailed)?;
-    let incoming: Packet = crate::codec::decode(&bytes, 384_000)?;
+    let mut incoming: Packet = crate::codec::decode(&bytes, 384_000)?;
     let (view, p, plan, digests, policy) = context(h, wallet, id, seq).await?;
-    validate(&incoming, &view, &p, plan.as_ref(), &digests, &policy)?;
+    let mut stale = validate(&mut incoming, &view, &p, plan.as_ref(), &digests, &policy)?;
     let packet = h
         .with(|c| {
             let stored: Option<Packet> = c.workspace.private(c.keys()?, &key(wallet, id, seq))?;
-            let packet = match stored {
-                Some(old)
-                    if validate(&old, &view, &p, plan.as_ref(), &digests, &policy).is_ok() =>
-                {
-                    merge(old, incoming)
+            let mut packet = match stored {
+                Some(mut old) => {
+                    match validate(&mut old, &view, &p, plan.as_ref(), &digests, &policy) {
+                        Ok(dropped) => {
+                            stale.extend(dropped);
+                            merge(old, incoming)
+                        }
+                        Err(_) => incoming,
+                    }
                 }
-                _ => incoming,
+                None => incoming,
             };
-            validate(&packet, &view, &p, plan.as_ref(), &digests, &policy)?;
+            // Halves of one cosigner from both packets must verify together.
+            stale.extend(validate(
+                &mut packet,
+                &view,
+                &p,
+                plan.as_ref(),
+                &digests,
+                &policy,
+            )?);
             c.workspace
                 .put_private(c.keys()?, &key(wallet, id, seq), &packet)?;
             Ok(packet)
         })
         .await?;
-    result(&packet, &digests, &policy)
+    // A cosigner that signed again is no longer stale.
+    stale.retain(|id| packet.signatures.iter().all(|s| s.cosigner != *id));
+    stale.sort();
+    stale.dedup();
+    result(&packet, &digests, &policy, &stale)
 }
 
 /// Inspect collected signatures for a plan, without signing or executing it.
 pub async fn status<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Result<Json> {
     let (view, p, plan, digests, policy) = context(h, wallet, id, seq).await?;
-    let packet = h
+    let mut packet = h
         .with(|c| {
             c.workspace
                 .private::<Packet>(c.keys()?, &key(wallet, id, seq))
@@ -226,7 +262,7 @@ pub async fn status<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Res
             plan_hash: digest("dmsg/wallet-cosign-packet/v1", &plan),
             signatures: vec![],
         });
-    validate(&packet, &view, &p, plan.as_ref(), &digests, &policy)?;
+    let stale = validate(&mut packet, &view, &p, plan.as_ref(), &digests, &policy)?;
     let can_cosign = h
         .with(|c| {
             let me = c.wallet_member()?;
@@ -237,7 +273,7 @@ pub async fn status<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Res
                 && !c.local_cosigners_for(&view, &policy)?.is_empty())
         })
         .await?;
-    let mut out = result(&packet, &digests, &policy)?;
+    let mut out = result(&packet, &digests, &policy, &stale)?;
     out["can_cosign"] = json!(can_cosign);
     Ok(out)
 }
@@ -294,16 +330,17 @@ pub async fn request<H: Hold>(
 /// Execute collected signatures only after an independent explicit user action.
 pub async fn execute<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Result<Json> {
     let (view, p, plan, digests, policy) = context(h, wallet, id, seq).await?;
-    let packet = h
+    let mut packet = h
         .with(|c| {
             c.workspace
                 .private::<Packet>(c.keys()?, &key(wallet, id, seq))
         })
         .await?
         .ok_or(Error::NotFound)?;
-    validate(&packet, &view, &p, plan.as_ref(), &digests, &policy)?;
+    // Only signatures that still verify; the rest must be made again.
+    let stale = validate(&mut packet, &view, &p, plan.as_ref(), &digests, &policy)?;
     ensure(
-        result(&packet, &digests, &policy)?["ready"] == true,
+        result(&packet, &digests, &policy, &stale)?["ready"] == true,
         Error::Forbidden,
     )?;
     match plan {
@@ -449,27 +486,56 @@ mod tests {
                 }],
             }
         };
+        let check = |packet: &Packet, view: &WalletView| {
+            let mut kept = packet.clone();
+            validate(&mut kept, view, &p, None, &[p.digest], &policy).map(|stale| (kept, stale))
+        };
         let a = packet(0);
         let b = packet(1);
-        validate(&a, &view, &p, None, &[p.digest], &policy).unwrap();
-        assert_eq!(result(&a, &[p.digest], &policy).unwrap()["ready"], false);
+        assert_eq!(check(&a, &view).unwrap(), (a.clone(), vec![]));
+        assert_eq!(
+            result(&a, &[p.digest], &policy, &[]).unwrap()["ready"],
+            false
+        );
         let both = merge(a.clone(), b.clone());
-        validate(&both, &view, &p, None, &[p.digest], &policy).unwrap();
-        assert_eq!(result(&both, &[p.digest], &policy).unwrap()["ready"], true);
-        assert_eq!(merge(both.clone(), b).signatures.len(), 2);
+        assert_eq!(check(&both, &view).unwrap().1, Vec::<u32>::new());
+        assert_eq!(
+            result(&both, &[p.digest], &policy, &[]).unwrap()["ready"],
+            true
+        );
+        assert_eq!(merge(both.clone(), b.clone()).signatures.len(), 2);
         let mut wrong = both.clone();
         wrong.proposal += 1;
-        assert!(validate(&wrong, &view, &p, None, &[p.digest], &policy).is_err());
+        assert!(check(&wrong, &view).is_err());
         wrong = both.clone();
         wrong.plan_hash = Hash::new([9; 32]);
-        assert!(validate(&wrong, &view, &p, None, &[p.digest], &policy).is_err());
+        assert!(check(&wrong, &view).is_err());
+        // A signature that does not verify is dropped and its cosigner
+        // signs again; the others stay.
         wrong = both.clone();
         wrong.signatures[0].signature = vec![0; 64].into();
-        assert!(validate(&wrong, &view, &p, None, &[p.digest], &policy).is_err());
+        assert_eq!(check(&wrong, &view).unwrap(), (b.clone(), vec![1]));
         wrong = both.clone();
         wrong.signatures.push(wrong.signatures[0].clone());
-        assert!(validate(&wrong, &view, &p, None, &[p.digest], &policy).is_err());
+        assert_eq!(check(&wrong, &view).unwrap(), (b.clone(), vec![1]));
+        // After cosigner 1 takes a new key, its collected signature is stale.
+        let mut rotated = view.clone();
+        rotated.cosigners[0].input.public_key = SigningKey::from_slice(&[3; 32])
+            .unwrap()
+            .verifying_key()
+            .to_sec1_point(true)
+            .as_bytes()
+            .to_vec()
+            .into();
+        let (kept, stale) = check(&both, &rotated).unwrap();
+        assert_eq!((kept.signatures, stale), (b.signatures.clone(), vec![1]));
+        assert_eq!(
+            result(&b, &[p.digest], &policy, &[1]).unwrap()["stale"],
+            json!([1])
+        );
+        // Keys the policy cannot use are dropped without asking them again.
         view.policy.hardware_cosigners = true;
-        assert!(validate(&both, &view, &p, None, &[p.digest], &policy).is_err());
+        let (kept, stale) = check(&both, &view).unwrap();
+        assert!(kept.signatures.is_empty() && stale.is_empty());
     }
 }

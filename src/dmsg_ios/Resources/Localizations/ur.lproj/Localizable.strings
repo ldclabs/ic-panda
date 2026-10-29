@@ -1644,6 +1644,8 @@
 	<string>اس بیان پر دستخط کریں جس کا آپ نے جائزہ لیا ہے</string>
 	<key>Signatures collected</key>
 	<string>جمع شدہ دستخط</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>مشترکہ دستخط کنندگان %@ کے دستخط اب ان کی موجودہ کلیدوں سے مطابقت نہیں رکھتے اس لیے الگ رکھ دیے گئے؛ انہیں دوبارہ دستخط کرنا ہوں گے۔</string>
 	<key>Simulate approval</key>
 	<string>منظوری کی تقلید کریں</string>
 	<key>Simulate rejection</key>

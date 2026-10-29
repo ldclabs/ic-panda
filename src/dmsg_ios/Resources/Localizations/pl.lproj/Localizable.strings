@@ -1644,6 +1644,8 @@
 	<string>Podpisz oświadczenie, które sprawdziłeś</string>
 	<key>Signatures collected</key>
 	<string>Zebrane podpisy</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Podpisy współpodpisujących %@ nie pasują już do ich bieżących kluczy i zostały odłożone; muszą podpisać ponownie.</string>
 	<key>Simulate approval</key>
 	<string>Symuluj akceptację</string>
 	<key>Simulate rejection</key>

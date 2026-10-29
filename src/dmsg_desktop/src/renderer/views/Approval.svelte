@@ -491,7 +491,9 @@
           : [[t('afterStopRequiring'), true]]
       case 'wallet':
         if (d.action === 'create') return [[t('twAfterCreate'), false], final]
-        if (d.action === 'join') return [[t('twAfterJoin'), false]]
+        if (d.action === 'join')
+          return [[t('twAfterJoin'), false], ...(d.exclusive || d.replaces?.length ? [[t('twAfterTakeover'), true] as [string, boolean]] : [])]
+        if (d.action === 'unbind') return [[t('twAfterUnbind'), true]]
         if (d.action === 'cosign') return d.collect_only ? [[w('collectOnlyAfter'), false]] : [[t('twAfterCosign'), false], final]
         return [[t('twAfterDecide'), false]]
       default:
@@ -819,7 +821,11 @@
               {@render nameRows()}
             {:else if request.type === 'wallet'}
               {@render row(t('twWallet'), `${d.name}${d.wallet ? ` · ${d.wallet}` : ''}`, { testid: 'approval-wallet' })}
-              {#if d.action === 'create'}
+              {#if d.action === 'join' && (d.exclusive || d.replaces?.length)}
+                {@render row(t('twTakesOver'), d.exclusive ? t('twEveryOtherDevice') : d.replaces.join('\n'), { mono: !d.exclusive, multiline: true, testid: 'approval-wallet-devices' })}
+              {:else if d.action === 'unbind'}
+                {@render row(t('twUnbindDevices'), (d.devices ?? []).join('\n'), { mono: true, multiline: true, testid: 'approval-wallet-devices' })}
+              {:else if d.action === 'create'}
                 {@render row(t('price'), `${units(d.price_e8s, 8)} ICP + ${units(d.ledger_fee_e8s, 8)}`, { testid: 'approval-amount' })}
                 {@render row(t('twPolicy'), t('twPolicyLine', { approvals: d.policy.approver_threshold, admin: d.policy.admin_threshold, version: d.policy.version }))}
                 <div class="col-span-2"><WalletIntent intent={{kind:'set_policy',policy:d.policy}} /></div>

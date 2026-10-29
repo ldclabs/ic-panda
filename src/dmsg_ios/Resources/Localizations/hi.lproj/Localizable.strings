@@ -1644,6 +1644,8 @@
 	<string>आपके द्वारा समीक्षा किए गए कथन पर हस्ताक्षर करें</string>
 	<key>Signatures collected</key>
 	<string>एकत्र किए गए हस्ताक्षर</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>सह-हस्ताक्षरकर्ताओं %@ के हस्ताक्षर अब उनकी मौजूदा कुंजियों से मेल नहीं खाते और अलग रख दिए गए; उन्हें फिर से हस्ताक्षर करना होगा।</string>
 	<key>Simulate approval</key>
 	<string>अनुमोदन का अनुकरण करें</string>
 	<key>Simulate rejection</key>

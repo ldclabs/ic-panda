@@ -351,6 +351,7 @@ const fields: Record<string, string[]> = {
   set_cosign: ['address', 'cosign'],
   add_cosigner: ['member', 'curve', 'public_key', 'envelope', 'hardware', 'label'],
   remove_cosigner: ['cosigner'],
+  replace_cosigner: ['cosigner', 'member', 'curve', 'public_key', 'envelope', 'hardware', 'label'],
   add_member: ['member'],
   update_member: ['member'],
   remove_member: ['member'],
@@ -470,6 +471,11 @@ export function previousIntent(intent: any, before?: Wallet): any {
       return { cosign: before.addresses.find((a) => a.id === intent.address)?.cosign }
     case 'remove_cosigner':
       return { cosigner: before.cosigners.find((c) => c.id === intent.cosigner) }
+    case 'replace_cosigner': {
+      // The key it replaces, field by field, so the review shows old and new.
+      const c = before.cosigners.find((c) => c.id === intent.cosigner)
+      return c ? { member: c.member, curve: c.curve, public_key: c.public_key, envelope: c.envelope, hardware: c.hardware, label: c.label } : {}
+    }
     default:
       return {}
   }

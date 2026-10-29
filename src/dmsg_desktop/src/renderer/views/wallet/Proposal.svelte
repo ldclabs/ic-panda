@@ -348,6 +348,13 @@
               <p>#{r.address} · {w('collected')}: {r.collected} / {r.required}</p>
             {/each}
 
+            {#if collection.stale?.length}<Notice tone="warn" testid="wallet-cosign-stale"
+                >{t('wallet.cosignStale', {
+                  cosigners: collection.stale
+                    .map((id: number) => `${wallet.cosigners.find((c) => c.id === id)?.label ?? ''} #${id}`.trim())
+                    .join(', ')
+                })}</Notice
+              >{/if}
             {#if collection.can_cosign === false}<p class="text-muted text-[12px]">{w('cosignNoLocalKey')}</p>{/if}
           {/if}
           {#if collectionError}<Notice failure={collectionError} tone="danger"

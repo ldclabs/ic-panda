@@ -1644,6 +1644,8 @@
 	<string>Ký vào bản tuyên bố bạn đã xem xét</string>
 	<key>Signatures collected</key>
 	<string>Chữ ký đã thu thập</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Chữ ký của người đồng ký %@ không còn khớp với khóa hiện tại của họ và đã bị gác lại; họ cần ký lại.</string>
 	<key>Simulate approval</key>
 	<string>Mô phỏng phê duyệt</string>
 	<key>Simulate rejection</key>

@@ -401,7 +401,9 @@ This tree is development code, not an App Store release assertion. In particular
    and fold transitions, and App Store screenshots. Simulator layout evidence
    is not Duo hardware evidence.
 5. Wallet execution/management, cosign packets shared with the desktop (sign,
-   share, import, execute once enough are collected), agent management,
+   share, import, execute once enough are collected; signatures that no longer
+   match a cosigner's current key are set aside and their cosigners shown as
+   needing to sign again), agent management,
    Share/AutoFill/Files extensions,
    widgets, App Intents, browser app-hop navigation and bounded background ciphertext
    transfers are implemented. Existing product-level wallet creation pause and the

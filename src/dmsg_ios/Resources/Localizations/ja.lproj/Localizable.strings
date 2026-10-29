@@ -1644,6 +1644,8 @@
 	<string>確認した声明に署名します</string>
 	<key>Signatures collected</key>
 	<string>集まった署名</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>共同署名者 %@ の署名は現在のキーと一致しなくなったため保留されました。もう一度署名する必要があります。</string>
 	<key>Simulate approval</key>
 	<string>承認のシミュレーション</string>
 	<key>Simulate rejection</key>

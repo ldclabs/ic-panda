@@ -1644,6 +1644,8 @@
 	<string>Signer la déclaration examinée</string>
 	<key>Signatures collected</key>
 	<string>Signatures recueillies</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Les signatures des cosignataires %@ ne correspondent plus à leurs clés actuelles et ont été mises de côté ; ils doivent signer à nouveau.</string>
 	<key>Simulate approval</key>
 	<string>Simuler l’approbation</string>
 	<key>Simulate rejection</key>

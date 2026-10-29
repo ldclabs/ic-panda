@@ -249,6 +249,10 @@ impl dmsg_client::wallet::cosign::CosignProvider for Adapter {
                 .map_err(|_| Error::Unavailable("hardware: wallet signer".into()))?
         })
     }
+
+    fn batch_limit(&self) -> usize {
+        64
+    }
 }
 
 #[cfg(test)]

@@ -1644,6 +1644,8 @@
 	<string>İncelediğiniz beyanı imzalayın</string>
 	<key>Signatures collected</key>
 	<string>Toplanan imzalar</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Ortak imzacılar %@ imzaları artık geçerli anahtarlarıyla eşleşmiyor ve bir kenara ayrıldı; yeniden imzalamaları gerekiyor.</string>
 	<key>Simulate approval</key>
 	<string>Onay simülasyonu</string>
 	<key>Simulate rejection</key>

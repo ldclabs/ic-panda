@@ -1644,6 +1644,8 @@
 	<string>Подписать проверенное заявление</string>
 	<key>Signatures collected</key>
 	<string>Собрано подписей</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>Подписи соподписантов %@ больше не соответствуют их текущим ключам и отложены; им нужно подписать заново.</string>
 	<key>Simulate approval</key>
 	<string>Имитировать одобрение</string>
 	<key>Simulate rejection</key>

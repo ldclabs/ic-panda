@@ -323,7 +323,8 @@ dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order
 dmsg inbox list | mark <order> [--archive]
 dmsg payment transfers <escrow> | revise <escrow> <leg>
 dmsg payer use [pem] | balance <ledger>
-dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | refund <quote> | join <wallet>
+dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | refund <quote>
+dmsg wallet join <wallet> [--replaces <device>... | --exclusive] | unbind <wallet> <device>... | bindings <wallet>
 dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A --asset X --to T --amount N --max-fee F
 dmsg wallet propose <wallet> <intent.json> | member-agents <wallet> [--agent did:agent:…]... | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
 dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
@@ -743,14 +744,19 @@ no wallet left quotes `remaining` 0 instead of failing, and `create` refuses
 that quote. The desktop reads the stateless `wallet/quote_preview` for the
 fast price, fee and quota view. Proposing, executing what members approved,
 broadcasting and reporting run at once; `create`, `join`, `approve`,
-`reject`, `veto`, and a transaction this device must cosign, wait in the
+`reject`, `veto`, `unbind`, and a transaction this device must cosign, wait in the
 approval center. `refund <quote>` returns a
 quote's deposit, less the ledger fee, to the identity that paid it once the
 hub failed to create the wallet or the quote expired unused; the quote's ID
 is in the create request's approval details. The daemon calls wallets
 with a wallet key kept on this device (`wallet principal`), which `join`
-binds to the account with a device approval; deciding still needs a
-`WalletApprove` device every time. `execute` reads chain parameters from the
+binds to the account with a device approval, one binding per device;
+deciding still needs a `WalletApprove` device every time. A new device
+takes over a retired one's binding with `join --replaces <device>`, or
+every other device's after a login recovery with `--exclusive`; `unbind`
+removes the bindings of lost devices, and `bindings` shows which of this
+account's bindings belong to revoked or unknown devices. Neither changes
+the member's role or votes. `execute` reads chain parameters from the
 `[wallet]` endpoints, checks the wallet's plan with its own decoder, and
 broadcasts what the wallet signed; `settle` reports it final once the chain
 says so. `cosigner-new` keeps the key in the Secure Enclave and fails where

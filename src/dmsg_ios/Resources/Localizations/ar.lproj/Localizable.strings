@@ -1644,6 +1644,8 @@
 	<string>توقيع الإفادة التي راجعتها</string>
 	<key>Signatures collected</key>
 	<string>التوقيعات المجمَّعة</string>
+	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
+	<string>لم تعد توقيعات الموقّعين المشاركين %@ مطابقة لمفاتيحهم الحالية فتمت تنحيتها؛ يجب أن يوقّعوا مرة أخرى.</string>
 	<key>Simulate approval</key>
 	<string>محاكاة الموافقة</string>
 	<key>Simulate rejection</key>
