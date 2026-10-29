@@ -30,6 +30,13 @@ fn notifications_shared_policy_vectors() {
     ))
     .unwrap();
     assert_eq!(vectors["version"], VERSION);
+    for identity in vectors["identities"].as_array().unwrap() {
+        let target: Target = serde_json::from_value(identity["target"].clone()).unwrap();
+        assert_eq!(
+            item_id(identity["account"].as_str().unwrap(), &target),
+            identity["id"].as_str().unwrap()
+        );
+    }
     for vector in vectors["cases"].as_array().unwrap() {
         let (mut item, mut settings, mut runtime, mut ctx) = example();
         if let Some(value) = vector.get("item") {

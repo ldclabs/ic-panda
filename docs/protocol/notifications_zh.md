@@ -4,7 +4,7 @@
 
 ## 身份与状态
 
-类别固定为 `security`、`action`、`message`、`service`，由验证后的业务来源决定。Agent、消息作者不能任意声明优先级。事项 ID 为 `SHA256(canonical-CBOR(["dmsg/notification/item/v1", [account, target]]))`；`target` 使用核心枚举的序列化结构。系统分组同样绑定账户。安装 ID 不是认证凭据。
+类别固定为 `security`、`action`、`message`、`service`，由验证后的业务来源决定。Agent、消息作者不能任意声明优先级。事项 ID 为 `SHA256(canonical-CBOR([1, "dmsg/notification/item/v1", [account, target]]))`；`target` 使用核心枚举的序列化结构。系统分组同样绑定账户。安装 ID 不是认证凭据。
 
 投影仅携带账户范围、opaque 资源、业务版本、水位、可信截止时间、是否待处理、已知未读数和类型化目标。正文、名称、来源 URL、文件名、金额、密钥和审批载荷不进入投影。锁定可读的元数据不具有内容根加密的保密性。
 
@@ -41,6 +41,16 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 | `GET /v1/notifications/routes/:opaque` | 验证安装登记后返回原账户允许的目标；未知、注销路由拒绝 |
 
 游标绑定账户和协议版本；缺口返回 `gap: true` 并要求当前状态重建。只有完整成功快照才能结束不再存在的旧待办；未完分页和失败不能清空状态。源版本排序由领域决定，不能比较摘要大小。投递过期不结束业务事项。
+
+### v1 请求字段
+
+安装持有证明使用独立 Ed25519 密钥，私钥保存在宿主安全存储，`installation = SHA256(public_key)`。登记的 canonical CBOR 外层为 `{installation, public_key, proof, platform, language, apple}`：公钥为小写 hex，proof 为无 padding base64url，platform 为 `desktop/ios/android`，apple 为 `null` 或 `{installation: UUID, revision}`。iOS 的 apple 引用已通过 App Attest 验证的 APNs 登记，不接受绕过原平台证明的 token。Android 尚未启用时明确拒绝登记，不声明该平台可用。
+
+证明签名输入为 `SHA256(canonical-CBOR([1, "dmsg/notification/installation/v1", details]))`；details 为除 proof 外的登记字段，加上 `account`、`device`、HTTP PoP 的 `request_id`、服务的 `environment`（local/staging/production）及 `application: "dmsg"`。HTTP PoP 仍覆盖完整请求体。返回 `{protocol, installation, registration, revision, expires_at, receiver, scopes}`；租期 7 天，续期需要有效设备认证，不通过接收凭据续租。
+
+限定接收凭据在 `Authorization: Bearer <receiver>` 发送，仅可访问 feed、observed、revoke 与 routes。请求 query 同时包含 `account`、`installation`、`registration`，服务逐次校验有效设备和登记；不与 hint bearer 混用。feed 附加 `after`（十进制游标，初始 0）及 `limit`（1–100）；失效租约不当作空快照。路由是 128 字符的小写 hex 文本（安装摘要 64 字符加随机路由 ID 64 字符），不含账户或业务目标。
+
+设置写入 `{scope, installation, expected_revision, value}`；scope 是 `global`、`account` 或 `resource`。value 分别使用核心安装设置（不含 revision）、账户设置（不含 revision/remote_revision）或 `{resource, muted, until}`，返回已提交 `revision`。全局及账户开关首次默认关闭，resource 的版本按账户资源共享。观察请求是 `{installation, id, version}`，撤销是 `{installation, expected_revision}`。通知版本：频道用原日志水位；不可变来信事项用 `1`；恢复用认证账户版本。读、归档等终态不新增来信版本。
 
 偏好包括本安装总开关、暂停、IANA 时区每日免打扰、安全例外、四类开关/声音、账户登记、跨设备合并和资源静音/截止。服务在 provider 调用前过滤。本机未确认修改显示待同步，不保证撤回已经入 provider 队列的通知。
 

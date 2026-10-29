@@ -378,5 +378,34 @@
         "reason": "viewed"
       }
     }
+  ],
+  "identities": [
+    {
+      "account": "00000000000000000000",
+      "target": {
+        "kind": "channel",
+        "id": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "id": "cd35adbb3687cebbe220a8f16593769603958c82f3ce00172dca6eaac3635d0a"
+    },
+    {
+      "account": "00000000000000000000",
+      "target": {
+        "kind": "inbox",
+        "id": null
+      },
+      "id": "8900b5b0962977d58b6bf77641e4d8b89ec63d0883873fe9c634bf1136da24cd"
+    },
+    {
+      "account": "00000000000000000000",
+      "target": {
+        "kind": "wallet",
+        "id": {
+          "wallet": "aaaaa-aa",
+          "proposal": "9007199254740993"
+        }
+      },
+      "id": "ce4a7fbc354390061ab2a54acbe19d023fcb39b88f4cac45af2b93289e023f72"
+    }
   ]
 }
