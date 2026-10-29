@@ -2036,6 +2036,14 @@
 	<string>Bu saat son tarihten sonra</string>
 	<key>dmsg.noticeLater</key>
 	<string>Daha sonra hatırlat</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Bu cihazda zaten bildirim alan hesaplar</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Bildirim hizmeti ve anlık bildirim sağlayıcısı bu hesapların aynı cihazda olduğunu öğrenir. Hesap adlarını veya mesaj içeriğini almazlar.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Bu hesap için aç</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Başka bir hesap için bildirimler açılsın mı?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>İşletim sistemi tarafından yönetiliyor</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Hizmetler</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Bildirimler</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Bu cihazda bildirimler kapalı. dMsg arka plandayken de hesap kurtarma veya başka bir güvenlik değişikliğinden haberdar olmak için güvenlik uyarılarını açın.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Şimdi değil</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Bildirimleri ayarla</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Güvenlik uyarılarını açın</string>
 	<key>dmsg.noticeSound</key>
 	<string>Ses</string>
 	<key>dmsg.noticeSwitch</key>

@@ -2036,6 +2036,14 @@
 	<string>Lampas sa deadline ang oras na ito</string>
 	<key>dmsg.noticeLater</key>
 	<string>Paalalahanan ako mamaya</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Mga account na tumatanggap na ng notification sa device na ito</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Malalaman ng serbisyo ng notification at ng push provider na nasa iisang device ang mga account na ito. Hindi nila natatanggap ang mga pangalan ng account o ang nilalaman ng mga mensahe.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>I-on para sa account na ito</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>I-on ang mga notification para sa isa pang account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Pinamamahalaan ng operating system</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Mga serbisyo</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Mga notification</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Naka-off ang mga notification sa device na ito. I-on ang mga alertong panseguridad para maabisuhan ka sa pag-recover ng account o iba pang pagbabago sa seguridad kahit nasa background ang dMsg.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Hindi muna</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>I-set up ang mga notification</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>I-on ang mga alertong panseguridad</string>
 	<key>dmsg.noticeSound</key>
 	<string>Tunog</string>
 	<key>dmsg.noticeSwitch</key>

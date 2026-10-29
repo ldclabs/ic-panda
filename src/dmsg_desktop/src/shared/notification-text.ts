@@ -47,7 +47,15 @@ const en = {
   "noticeReadOnlyHint": "Viewing reminders does not complete actions or mark messages as read.",
   "noticePendingHint": "Your settings apply here immediately. Remote alerts may use earlier settings until the update is confirmed.",
   "noticeScopeHint": "Quiet hours and sounds apply to this device. Channel mutes follow your account.",
-  "noticeUpdatesBody": "Open dMsg to check for new activity."
+  "noticeUpdatesBody": "Open dMsg to check for new activity.",
+  "noticeLinkTitle": "Turn on notifications for another account?",
+  "noticeLinkBody": "The notification service and the push provider will know that these accounts are on the same device. They do not receive account names or message content.",
+  "noticeLinkAccounts": "Already receiving notifications on this device",
+  "noticeLinkConfirm": "Turn on for this account",
+  "noticeSetupTitle": "Turn on security alerts",
+  "noticeSetupBody": "Notifications are off on this device. Turn on security alerts so an account recovery or other security change reaches you when dMsg is in the background.",
+  "noticeSetupOpen": "Set up notifications",
+  "noticeSetupLater": "Not now"
 }
 
 export type NoticeLabel = keyof typeof en
@@ -99,7 +107,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "查看提醒列表不会完成事项，也不会将消息标为已读。",
     "noticePendingHint": "本机设置立即生效。远程更新确认前，推送可能仍使用先前的设置。",
     "noticeScopeHint": "免打扰和声音仅影响本设备；频道静音随账户同步。",
-    "noticeUpdatesBody": "请打开 dMsg 核对最新动态。"
+    "noticeUpdatesBody": "请打开 dMsg 核对最新动态。",
+    "noticeLinkTitle": "为另一个账户开启通知？",
+    "noticeLinkBody": "通知服务和推送提供者会知道这些账户在同一设备上。它们不会获得账户名称或消息内容。",
+    "noticeLinkAccounts": "已在本设备接收通知的账户",
+    "noticeLinkConfirm": "为此账户开启",
+    "noticeSetupTitle": "开启安全提醒",
+    "noticeSetupBody": "本设备尚未开启通知。开启安全提醒后，即使 dMsg 在后台，账户恢复等安全变化也能及时提醒你。",
+    "noticeSetupOpen": "设置通知",
+    "noticeSetupLater": "暂不"
   },
   "zh-Hant": {
     "noticeTitle": "提醒",
@@ -147,7 +163,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "查看提醒清單不會完成事項，也不會將訊息標為已讀。",
     "noticePendingHint": "此裝置設定立即生效。遠端更新確認前，推播可能仍使用先前設定。",
     "noticeScopeHint": "勿擾時段與聲音僅影響此裝置；頻道靜音隨帳戶同步。",
-    "noticeUpdatesBody": "請開啟 dMsg 核對最新動態。"
+    "noticeUpdatesBody": "請開啟 dMsg 核對最新動態。",
+    "noticeLinkTitle": "為另一個帳戶開啟通知？",
+    "noticeLinkBody": "通知服務和推播提供者會知道這些帳戶在同一裝置上。它們不會取得帳戶名稱或訊息內容。",
+    "noticeLinkAccounts": "已在此裝置接收通知的帳戶",
+    "noticeLinkConfirm": "為此帳戶開啟",
+    "noticeSetupTitle": "開啟安全提醒",
+    "noticeSetupBody": "此裝置尚未開啟通知。開啟安全提醒後，即使 dMsg 在背景執行，帳戶復原等安全變更也能及時提醒你。",
+    "noticeSetupOpen": "設定通知",
+    "noticeSetupLater": "暫不"
   },
   "ar": {
     "noticeTitle": "التذكيرات",
@@ -195,7 +219,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "عرض التذكيرات لا يُكمل الإجراءات ولا يضع علامة مقروء على الرسائل.",
     "noticePendingHint": "تسري إعداداتك هنا فورًا. قد تستخدم التنبيهات البعيدة الإعدادات السابقة حتى تأكيد التحديث.",
     "noticeScopeHint": "ساعات الهدوء والأصوات تخص هذا الجهاز. كتم القنوات يُزامن مع حسابك.",
-    "noticeUpdatesBody": "افتح dMsg للاطلاع على آخر المستجدات."
+    "noticeUpdatesBody": "افتح dMsg للاطلاع على آخر المستجدات.",
+    "noticeLinkTitle": "تفعيل الإشعارات لحساب آخر؟",
+    "noticeLinkBody": "ستعرف خدمة الإشعارات ومزوّد الإشعارات الفورية أن هذه الحسابات موجودة على الجهاز نفسه. ولا تتلقى أسماء الحسابات أو محتوى الرسائل.",
+    "noticeLinkAccounts": "حسابات تتلقى الإشعارات على هذا الجهاز بالفعل",
+    "noticeLinkConfirm": "تفعيل لهذا الحساب",
+    "noticeSetupTitle": "فعّل تنبيهات الأمان",
+    "noticeSetupBody": "الإشعارات متوقفة على هذا الجهاز. فعّل تنبيهات الأمان ليصلك أي استرداد للحساب أو تغيير أمني آخر حتى عندما يعمل dMsg في الخلفية.",
+    "noticeSetupOpen": "إعداد الإشعارات",
+    "noticeSetupLater": "ليس الآن"
   },
   "fr": {
     "noticeTitle": "Rappels",
@@ -243,7 +275,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Consulter les rappels ne termine aucune action et ne marque aucun message comme lu.",
     "noticePendingHint": "Vos réglages s’appliquent ici immédiatement. Les alertes distantes peuvent utiliser les anciens réglages jusqu’à confirmation.",
     "noticeScopeHint": "La plage silencieuse et les sons concernent cet appareil. Le mode silencieux des canaux suit votre compte.",
-    "noticeUpdatesBody": "Ouvrez dMsg pour consulter les dernières activités."
+    "noticeUpdatesBody": "Ouvrez dMsg pour consulter les dernières activités.",
+    "noticeLinkTitle": "Activer les notifications pour un autre compte ?",
+    "noticeLinkBody": "Le service de notification et le fournisseur de notifications push sauront que ces comptes se trouvent sur le même appareil. Ils ne reçoivent ni le nom des comptes ni le contenu des messages.",
+    "noticeLinkAccounts": "Comptes recevant déjà des notifications sur cet appareil",
+    "noticeLinkConfirm": "Activer pour ce compte",
+    "noticeSetupTitle": "Activer les alertes de sécurité",
+    "noticeSetupBody": "Les notifications sont désactivées sur cet appareil. Activez les alertes de sécurité pour être prévenu d’une récupération de compte ou d’un autre changement de sécurité lorsque dMsg est en arrière-plan.",
+    "noticeSetupOpen": "Configurer les notifications",
+    "noticeSetupLater": "Plus tard"
   },
   "de": {
     "noticeTitle": "Erinnerungen",
@@ -291,7 +331,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Das Anzeigen von Erinnerungen erledigt keine Aufgaben und markiert keine Nachrichten als gelesen.",
     "noticePendingHint": "Deine Einstellungen gelten hier sofort. Entfernte Hinweise können bis zur Bestätigung noch frühere Einstellungen verwenden.",
     "noticeScopeHint": "Ruhezeiten und Töne gelten für dieses Gerät. Stummgeschaltete Kanäle werden mit deinem Konto synchronisiert.",
-    "noticeUpdatesBody": "Öffne dMsg, um neue Aktivitäten zu prüfen."
+    "noticeUpdatesBody": "Öffne dMsg, um neue Aktivitäten zu prüfen.",
+    "noticeLinkTitle": "Benachrichtigungen für ein weiteres Konto aktivieren?",
+    "noticeLinkBody": "Der Benachrichtigungsdienst und der Push-Anbieter erfahren, dass diese Konten auf demselben Gerät verwendet werden. Sie erhalten keine Kontonamen und keine Nachrichteninhalte.",
+    "noticeLinkAccounts": "Konten, die auf diesem Gerät bereits Benachrichtigungen erhalten",
+    "noticeLinkConfirm": "Für dieses Konto aktivieren",
+    "noticeSetupTitle": "Sicherheitshinweise aktivieren",
+    "noticeSetupBody": "Benachrichtigungen sind auf diesem Gerät ausgeschaltet. Aktiviere Sicherheitshinweise, damit dich eine Kontowiederherstellung oder eine andere Sicherheitsänderung auch erreicht, wenn dMsg im Hintergrund läuft.",
+    "noticeSetupOpen": "Benachrichtigungen einrichten",
+    "noticeSetupLater": "Nicht jetzt"
   },
   "ru": {
     "noticeTitle": "Напоминания",
@@ -339,7 +387,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Просмотр напоминаний не завершает действия и не отмечает сообщения прочитанными.",
     "noticePendingHint": "Настройки на этом устройстве действуют сразу. До подтверждения обновления удалённые оповещения могут использовать прежние настройки.",
     "noticeScopeHint": "Тихие часы и звуки действуют на этом устройстве. Отключение уведомлений каналов синхронизируется с аккаунтом.",
-    "noticeUpdatesBody": "Откройте dMsg, чтобы проверить последние события."
+    "noticeUpdatesBody": "Откройте dMsg, чтобы проверить последние события.",
+    "noticeLinkTitle": "Включить уведомления для другого аккаунта?",
+    "noticeLinkBody": "Служба уведомлений и поставщик push-уведомлений узнают, что эти аккаунты используются на одном устройстве. Они не получают названия аккаунтов и содержимое сообщений.",
+    "noticeLinkAccounts": "Уже получают уведомления на этом устройстве",
+    "noticeLinkConfirm": "Включить для этого аккаунта",
+    "noticeSetupTitle": "Включите оповещения безопасности",
+    "noticeSetupBody": "Уведомления на этом устройстве выключены. Включите оповещения безопасности, чтобы узнавать о восстановлении аккаунта и других изменениях безопасности, даже когда dMsg работает в фоне.",
+    "noticeSetupOpen": "Настроить уведомления",
+    "noticeSetupLater": "Не сейчас"
   },
   "es": {
     "noticeTitle": "Recordatorios",
@@ -387,7 +443,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Ver los recordatorios no completa acciones ni marca los mensajes como leídos.",
     "noticePendingHint": "Tus ajustes se aplican aquí de inmediato. Las alertas remotas pueden usar los ajustes anteriores hasta que se confirme la actualización.",
     "noticeScopeHint": "El horario de silencio y los sonidos se aplican a este dispositivo. Los canales silenciados se sincronizan con tu cuenta.",
-    "noticeUpdatesBody": "Abre dMsg para consultar la actividad reciente."
+    "noticeUpdatesBody": "Abre dMsg para consultar la actividad reciente.",
+    "noticeLinkTitle": "¿Activar las notificaciones para otra cuenta?",
+    "noticeLinkBody": "El servicio de notificaciones y el proveedor de notificaciones push sabrán que estas cuentas están en el mismo dispositivo. No reciben nombres de cuentas ni el contenido de los mensajes.",
+    "noticeLinkAccounts": "Cuentas que ya reciben notificaciones en este dispositivo",
+    "noticeLinkConfirm": "Activar para esta cuenta",
+    "noticeSetupTitle": "Activa las alertas de seguridad",
+    "noticeSetupBody": "Las notificaciones están desactivadas en este dispositivo. Activa las alertas de seguridad para enterarte de una recuperación de cuenta u otro cambio de seguridad cuando dMsg esté en segundo plano.",
+    "noticeSetupOpen": "Configurar notificaciones",
+    "noticeSetupLater": "Ahora no"
   },
   "pt-BR": {
     "noticeTitle": "Lembretes",
@@ -435,7 +499,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Ver os lembretes não conclui ações nem marca mensagens como lidas.",
     "noticePendingHint": "Suas configurações são aplicadas aqui imediatamente. Alertas remotos podem usar as configurações anteriores até a confirmação da atualização.",
     "noticeScopeHint": "O horário de silêncio e os sons valem para este dispositivo. Os canais silenciados são sincronizados com sua conta.",
-    "noticeUpdatesBody": "Abra o dMsg para conferir as atividades recentes."
+    "noticeUpdatesBody": "Abra o dMsg para conferir as atividades recentes.",
+    "noticeLinkTitle": "Ativar notificações para outra conta?",
+    "noticeLinkBody": "O serviço de notificações e o provedor de push saberão que essas contas estão no mesmo dispositivo. Eles não recebem nomes de contas nem o conteúdo das mensagens.",
+    "noticeLinkAccounts": "Contas que já recebem notificações neste dispositivo",
+    "noticeLinkConfirm": "Ativar para esta conta",
+    "noticeSetupTitle": "Ative os alertas de segurança",
+    "noticeSetupBody": "As notificações estão desativadas neste dispositivo. Ative os alertas de segurança para saber de uma recuperação de conta ou outra alteração de segurança quando o dMsg estiver em segundo plano.",
+    "noticeSetupOpen": "Configurar notificações",
+    "noticeSetupLater": "Agora não"
   },
   "it": {
     "noticeTitle": "Promemoria",
@@ -483,7 +555,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Visualizzare i promemoria non completa le azioni e non segna i messaggi come letti.",
     "noticePendingHint": "Le impostazioni si applicano qui subito. Gli avvisi remoti potrebbero usare le impostazioni precedenti fino alla conferma dell’aggiornamento.",
     "noticeScopeHint": "La fascia silenziosa e i suoni valgono per questo dispositivo. I canali silenziati si sincronizzano con il tuo account.",
-    "noticeUpdatesBody": "Apri dMsg per controllare le attività recenti."
+    "noticeUpdatesBody": "Apri dMsg per controllare le attività recenti.",
+    "noticeLinkTitle": "Attivare le notifiche per un altro account?",
+    "noticeLinkBody": "Il servizio di notifica e il fornitore delle notifiche push sapranno che questi account si trovano sullo stesso dispositivo. Non ricevono i nomi degli account né il contenuto dei messaggi.",
+    "noticeLinkAccounts": "Account che ricevono già notifiche su questo dispositivo",
+    "noticeLinkConfirm": "Attiva per questo account",
+    "noticeSetupTitle": "Attiva gli avvisi di sicurezza",
+    "noticeSetupBody": "Le notifiche sono disattivate su questo dispositivo. Attiva gli avvisi di sicurezza per sapere di un recupero dell’account o di un’altra modifica di sicurezza quando dMsg è in background.",
+    "noticeSetupOpen": "Configura le notifiche",
+    "noticeSetupLater": "Non ora"
   },
   "ja": {
     "noticeTitle": "リマインダー",
@@ -531,7 +611,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "リマインダーを表示しても、操作は完了せず、メッセージは既読になりません。",
     "noticePendingHint": "設定はこのデバイスですぐに適用されます。更新が確認されるまで、リモート通知には以前の設定が使われる場合があります。",
     "noticeScopeHint": "通知停止時間とサウンドはこのデバイスに適用されます。チャンネルのミュートはアカウントで同期されます。",
-    "noticeUpdatesBody": "dMsgを開いて最新の動きを確認してください。"
+    "noticeUpdatesBody": "dMsgを開いて最新の動きを確認してください。",
+    "noticeLinkTitle": "別のアカウントの通知をオンにしますか？",
+    "noticeLinkBody": "通知サービスとプッシュ配信事業者は、これらのアカウントが同じデバイスにあることを知ることになります。アカウント名やメッセージの内容は渡りません。",
+    "noticeLinkAccounts": "このデバイスで既に通知を受け取っているアカウント",
+    "noticeLinkConfirm": "このアカウントでオンにする",
+    "noticeSetupTitle": "セキュリティ通知をオンにする",
+    "noticeSetupBody": "このデバイスでは通知がオフです。セキュリティ通知をオンにすると、dMsg がバックグラウンドにあってもアカウントの復旧などのセキュリティ変更を知らせます。",
+    "noticeSetupOpen": "通知を設定",
+    "noticeSetupLater": "後で"
   },
   "ko": {
     "noticeTitle": "알림 목록",
@@ -579,7 +667,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "알림 목록을 확인해도 작업이 완료되거나 메시지가 읽음으로 표시되지 않습니다.",
     "noticePendingHint": "설정은 이 기기에 즉시 적용됩니다. 업데이트가 확인되기 전까지 원격 알림에 이전 설정이 사용될 수 있습니다.",
     "noticeScopeHint": "방해 금지 시간과 소리는 이 기기에만 적용됩니다. 채널 음소거는 계정과 동기화됩니다.",
-    "noticeUpdatesBody": "dMsg를 열어 최근 활동을 확인하세요."
+    "noticeUpdatesBody": "dMsg를 열어 최근 활동을 확인하세요.",
+    "noticeLinkTitle": "다른 계정의 알림을 켤까요?",
+    "noticeLinkBody": "알림 서비스와 푸시 제공업체가 이 계정들이 같은 기기에 있다는 것을 알게 됩니다. 계정 이름이나 메시지 내용은 받지 않습니다.",
+    "noticeLinkAccounts": "이 기기에서 이미 알림을 받는 계정",
+    "noticeLinkConfirm": "이 계정에 켜기",
+    "noticeSetupTitle": "보안 알림 켜기",
+    "noticeSetupBody": "이 기기에서 알림이 꺼져 있습니다. 보안 알림을 켜면 dMsg가 백그라운드에 있을 때도 계정 복구 등 보안 변경 사항을 알려 드립니다.",
+    "noticeSetupOpen": "알림 설정하기",
+    "noticeSetupLater": "나중에"
   },
   "id": {
     "noticeTitle": "Pengingat",
@@ -627,7 +723,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Melihat pengingat tidak menyelesaikan tindakan atau menandai pesan sebagai dibaca.",
     "noticePendingHint": "Pengaturan Anda langsung berlaku di sini. Peringatan jarak jauh mungkin memakai pengaturan lama sampai pembaruan dikonfirmasi.",
     "noticeScopeHint": "Jam tenang dan suara berlaku untuk perangkat ini. Pembisuan kanal disinkronkan dengan akun Anda.",
-    "noticeUpdatesBody": "Buka dMsg untuk memeriksa aktivitas terbaru."
+    "noticeUpdatesBody": "Buka dMsg untuk memeriksa aktivitas terbaru.",
+    "noticeLinkTitle": "Aktifkan notifikasi untuk akun lain?",
+    "noticeLinkBody": "Layanan notifikasi dan penyedia push akan mengetahui bahwa akun-akun ini berada di perangkat yang sama. Mereka tidak menerima nama akun atau isi pesan.",
+    "noticeLinkAccounts": "Akun yang sudah menerima notifikasi di perangkat ini",
+    "noticeLinkConfirm": "Aktifkan untuk akun ini",
+    "noticeSetupTitle": "Aktifkan peringatan keamanan",
+    "noticeSetupBody": "Notifikasi nonaktif di perangkat ini. Aktifkan peringatan keamanan agar pemulihan akun atau perubahan keamanan lainnya tetap sampai kepada Anda saat dMsg berjalan di latar belakang.",
+    "noticeSetupOpen": "Atur notifikasi",
+    "noticeSetupLater": "Nanti saja"
   },
   "tr": {
     "noticeTitle": "Hatırlatıcılar",
@@ -675,7 +779,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Hatırlatıcıları görüntülemek işlemleri tamamlamaz veya mesajları okundu olarak işaretlemez.",
     "noticePendingHint": "Ayarlarınız burada hemen uygulanır. Güncelleme doğrulanana kadar uzak uyarılar önceki ayarları kullanabilir.",
     "noticeScopeHint": "Sessiz saatler ve sesler bu cihaz için geçerlidir. Kanal sessize alma tercihleri hesabınızla eşitlenir.",
-    "noticeUpdatesBody": "Son etkinlikleri kontrol etmek için dMsg’i açın."
+    "noticeUpdatesBody": "Son etkinlikleri kontrol etmek için dMsg’i açın.",
+    "noticeLinkTitle": "Başka bir hesap için bildirimler açılsın mı?",
+    "noticeLinkBody": "Bildirim hizmeti ve anlık bildirim sağlayıcısı bu hesapların aynı cihazda olduğunu öğrenir. Hesap adlarını veya mesaj içeriğini almazlar.",
+    "noticeLinkAccounts": "Bu cihazda zaten bildirim alan hesaplar",
+    "noticeLinkConfirm": "Bu hesap için aç",
+    "noticeSetupTitle": "Güvenlik uyarılarını açın",
+    "noticeSetupBody": "Bu cihazda bildirimler kapalı. dMsg arka plandayken de hesap kurtarma veya başka bir güvenlik değişikliğinden haberdar olmak için güvenlik uyarılarını açın.",
+    "noticeSetupOpen": "Bildirimleri ayarla",
+    "noticeSetupLater": "Şimdi değil"
   },
   "vi": {
     "noticeTitle": "Nhắc nhở",
@@ -723,7 +835,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Xem nhắc nhở không hoàn tất thao tác hoặc đánh dấu tin nhắn là đã đọc.",
     "noticePendingHint": "Cài đặt có hiệu lực ngay trên thiết bị này. Cảnh báo từ xa có thể dùng cài đặt cũ cho đến khi cập nhật được xác nhận.",
     "noticeScopeHint": "Giờ yên lặng và âm thanh áp dụng cho thiết bị này. Việc tắt thông báo kênh được đồng bộ theo tài khoản.",
-    "noticeUpdatesBody": "Mở dMsg để kiểm tra hoạt động mới nhất."
+    "noticeUpdatesBody": "Mở dMsg để kiểm tra hoạt động mới nhất.",
+    "noticeLinkTitle": "Bật thông báo cho một tài khoản khác?",
+    "noticeLinkBody": "Dịch vụ thông báo và nhà cung cấp thông báo đẩy sẽ biết các tài khoản này ở trên cùng một thiết bị. Họ không nhận được tên tài khoản hay nội dung tin nhắn.",
+    "noticeLinkAccounts": "Các tài khoản đã nhận thông báo trên thiết bị này",
+    "noticeLinkConfirm": "Bật cho tài khoản này",
+    "noticeSetupTitle": "Bật cảnh báo bảo mật",
+    "noticeSetupBody": "Thông báo đang tắt trên thiết bị này. Hãy bật cảnh báo bảo mật để biết khi có yêu cầu khôi phục tài khoản hoặc thay đổi bảo mật khác, kể cả khi dMsg chạy nền.",
+    "noticeSetupOpen": "Thiết lập thông báo",
+    "noticeSetupLater": "Để sau"
   },
   "th": {
     "noticeTitle": "รายการเตือน",
@@ -771,7 +891,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "การดูรายการเตือนไม่ได้ดำเนินการให้เสร็จหรือทำเครื่องหมายว่าข้อความอ่านแล้ว",
     "noticePendingHint": "การตั้งค่ามีผลบนอุปกรณ์นี้ทันที การเตือนระยะไกลอาจใช้การตั้งค่าเดิมจนกว่าการอัปเดตจะได้รับการยืนยัน",
     "noticeScopeHint": "ช่วงเวลางดแจ้งเตือนและเสียงมีผลกับอุปกรณ์นี้ การปิดเสียงช่องจะซิงค์ตามบัญชีของคุณ",
-    "noticeUpdatesBody": "เปิด dMsg เพื่อตรวจสอบกิจกรรมล่าสุด"
+    "noticeUpdatesBody": "เปิด dMsg เพื่อตรวจสอบกิจกรรมล่าสุด",
+    "noticeLinkTitle": "เปิดการแจ้งเตือนสำหรับบัญชีอื่นหรือไม่",
+    "noticeLinkBody": "บริการแจ้งเตือนและผู้ให้บริการพุชจะทราบว่าบัญชีเหล่านี้อยู่บนอุปกรณ์เดียวกัน โดยจะไม่ได้รับชื่อบัญชีหรือเนื้อหาข้อความ",
+    "noticeLinkAccounts": "บัญชีที่รับการแจ้งเตือนบนอุปกรณ์นี้อยู่แล้ว",
+    "noticeLinkConfirm": "เปิดสำหรับบัญชีนี้",
+    "noticeSetupTitle": "เปิดการเตือนความปลอดภัย",
+    "noticeSetupBody": "การแจ้งเตือนปิดอยู่บนอุปกรณ์นี้ เปิดการเตือนความปลอดภัยเพื่อให้คุณทราบเมื่อมีการกู้คืนบัญชีหรือการเปลี่ยนแปลงความปลอดภัยอื่น แม้ dMsg จะทำงานอยู่เบื้องหลัง",
+    "noticeSetupOpen": "ตั้งค่าการแจ้งเตือน",
+    "noticeSetupLater": "ไว้ทีหลัง"
   },
   "fil": {
     "noticeTitle": "Mga paalala",
@@ -819,7 +947,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Ang pagtingin sa mga paalala ay hindi nagtatapos ng mga gawain o nagmamarka sa mga mensahe bilang nabasa.",
     "noticePendingHint": "Agad na gagana rito ang iyong mga setting. Maaaring gamitin pa ng mga remote alerto ang lumang setting hanggang makumpirma ang update.",
     "noticeScopeHint": "Para sa device na ito ang tahimik na oras at mga tunog. Naka-sync sa account mo ang pag-mute ng mga channel.",
-    "noticeUpdatesBody": "Buksan ang dMsg para tingnan ang mga bagong aktibidad."
+    "noticeUpdatesBody": "Buksan ang dMsg para tingnan ang mga bagong aktibidad.",
+    "noticeLinkTitle": "I-on ang mga notification para sa isa pang account?",
+    "noticeLinkBody": "Malalaman ng serbisyo ng notification at ng push provider na nasa iisang device ang mga account na ito. Hindi nila natatanggap ang mga pangalan ng account o ang nilalaman ng mga mensahe.",
+    "noticeLinkAccounts": "Mga account na tumatanggap na ng notification sa device na ito",
+    "noticeLinkConfirm": "I-on para sa account na ito",
+    "noticeSetupTitle": "I-on ang mga alertong panseguridad",
+    "noticeSetupBody": "Naka-off ang mga notification sa device na ito. I-on ang mga alertong panseguridad para maabisuhan ka sa pag-recover ng account o iba pang pagbabago sa seguridad kahit nasa background ang dMsg.",
+    "noticeSetupOpen": "I-set up ang mga notification",
+    "noticeSetupLater": "Hindi muna"
   },
   "ms": {
     "noticeTitle": "Peringatan",
@@ -867,7 +1003,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Melihat peringatan tidak menyelesaikan tindakan atau menandakan mesej sebagai dibaca.",
     "noticePendingHint": "Tetapan anda berkuat kuasa di sini serta-merta. Amaran jauh mungkin menggunakan tetapan lama sehingga kemas kini disahkan.",
     "noticeScopeHint": "Waktu senyap dan bunyi terpakai pada peranti ini. Tetapan senyap saluran disegerakkan dengan akaun anda.",
-    "noticeUpdatesBody": "Buka dMsg untuk menyemak aktiviti terkini."
+    "noticeUpdatesBody": "Buka dMsg untuk menyemak aktiviti terkini.",
+    "noticeLinkTitle": "Hidupkan pemberitahuan untuk akaun lain?",
+    "noticeLinkBody": "Perkhidmatan pemberitahuan dan pembekal push akan mengetahui bahawa akaun-akaun ini berada pada peranti yang sama. Mereka tidak menerima nama akaun atau kandungan mesej.",
+    "noticeLinkAccounts": "Akaun yang sudah menerima pemberitahuan pada peranti ini",
+    "noticeLinkConfirm": "Hidupkan untuk akaun ini",
+    "noticeSetupTitle": "Hidupkan amaran keselamatan",
+    "noticeSetupBody": "Pemberitahuan dimatikan pada peranti ini. Hidupkan amaran keselamatan supaya pemulihan akaun atau perubahan keselamatan lain sampai kepada anda walaupun dMsg berjalan di latar belakang.",
+    "noticeSetupOpen": "Sediakan pemberitahuan",
+    "noticeSetupLater": "Bukan sekarang"
   },
   "hi": {
     "noticeTitle": "रिमाइंडर",
@@ -915,7 +1059,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "रिमाइंडर देखने से काम पूरे नहीं होते और संदेश पढ़े हुए चिह्नित नहीं होते।",
     "noticePendingHint": "आपकी सेटिंग यहाँ तुरंत लागू होती है। अपडेट की पुष्टि होने तक दूरस्थ अलर्ट पुरानी सेटिंग का उपयोग कर सकते हैं।",
     "noticeScopeHint": "शांत घंटे और ध्वनि इस डिवाइस पर लागू होते हैं। चैनल म्यूट की सेटिंग आपके खाते से सिंक होती है।",
-    "noticeUpdatesBody": "हाल की गतिविधियाँ देखने के लिए dMsg खोलें।"
+    "noticeUpdatesBody": "हाल की गतिविधियाँ देखने के लिए dMsg खोलें।",
+    "noticeLinkTitle": "किसी दूसरे खाते के लिए सूचनाएँ चालू करें?",
+    "noticeLinkBody": "सूचना सेवा और पुश प्रदाता को पता चलेगा कि ये खाते एक ही डिवाइस पर हैं। उन्हें खातों के नाम या संदेशों की सामग्री नहीं मिलती।",
+    "noticeLinkAccounts": "इस डिवाइस पर पहले से सूचनाएँ पाने वाले खाते",
+    "noticeLinkConfirm": "इस खाते के लिए चालू करें",
+    "noticeSetupTitle": "सुरक्षा अलर्ट चालू करें",
+    "noticeSetupBody": "इस डिवाइस पर सूचनाएँ बंद हैं। सुरक्षा अलर्ट चालू करें, ताकि dMsg के बैकग्राउंड में होने पर भी खाता पुनर्प्राप्ति या कोई अन्य सुरक्षा बदलाव आप तक पहुँचे।",
+    "noticeSetupOpen": "सूचनाएँ सेट करें",
+    "noticeSetupLater": "अभी नहीं"
   },
   "bn": {
     "noticeTitle": "রিমাইন্ডার",
@@ -963,7 +1115,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "রিমাইন্ডার দেখলে কাজ সম্পন্ন হয় না বা বার্তা পঠিত হিসেবে চিহ্নিত হয় না।",
     "noticePendingHint": "আপনার সেটিংস এখানে সঙ্গে সঙ্গে কার্যকর হয়। আপডেট নিশ্চিত না হওয়া পর্যন্ত দূরবর্তী সতর্কতায় পুরোনো সেটিংস ব্যবহার হতে পারে।",
     "noticeScopeHint": "নীরব সময় ও শব্দ এই ডিভাইসে প্রযোজ্য। চ্যানেল মিউটের সেটিংস আপনার অ্যাকাউন্টের সঙ্গে সিঙ্ক হয়।",
-    "noticeUpdatesBody": "সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।"
+    "noticeUpdatesBody": "সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।",
+    "noticeLinkTitle": "অন্য একটি অ্যাকাউন্টের জন্য বিজ্ঞপ্তি চালু করবেন?",
+    "noticeLinkBody": "বিজ্ঞপ্তি পরিষেবা ও পুশ প্রদানকারী জানতে পারবে যে এই অ্যাকাউন্টগুলো একই ডিভাইসে আছে। তারা অ্যাকাউন্টের নাম বা বার্তার বিষয়বস্তু পায় না।",
+    "noticeLinkAccounts": "এই ডিভাইসে ইতিমধ্যে বিজ্ঞপ্তি পাচ্ছে এমন অ্যাকাউন্ট",
+    "noticeLinkConfirm": "এই অ্যাকাউন্টের জন্য চালু করুন",
+    "noticeSetupTitle": "নিরাপত্তা সতর্কতা চালু করুন",
+    "noticeSetupBody": "এই ডিভাইসে বিজ্ঞপ্তি বন্ধ আছে। নিরাপত্তা সতর্কতা চালু করুন, যাতে dMsg ব্যাকগ্রাউন্ডে থাকলেও অ্যাকাউন্ট পুনরুদ্ধার বা অন্য কোনো নিরাপত্তা পরিবর্তনের খবর আপনি পান।",
+    "noticeSetupOpen": "বিজ্ঞপ্তি সেট আপ করুন",
+    "noticeSetupLater": "এখন নয়"
   },
   "ur": {
     "noticeTitle": "یاد دہانیاں",
@@ -1011,7 +1171,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "یاد دہانیاں دیکھنے سے کام مکمل نہیں ہوتے اور پیغامات پڑھے ہوئے نشان زد نہیں ہوتے۔",
     "noticePendingHint": "آپ کی ترتیبات یہاں فوراً لاگو ہوتی ہیں۔ تبدیلی کی تصدیق تک دور سے آنے والے انتباہات پر پرانی ترتیبات لاگو رہ سکتی ہیں۔",
     "noticeScopeHint": "خاموش اوقات اور آوازیں اس آلے پر لاگو ہوتی ہیں۔ چینل خاموش کرنے کی ترتیبات آپ کے اکاؤنٹ کے ساتھ ہم وقت ہوتی ہیں۔",
-    "noticeUpdatesBody": "حالیہ سرگرمی دیکھنے کے لیے dMsg کھولیں۔"
+    "noticeUpdatesBody": "حالیہ سرگرمی دیکھنے کے لیے dMsg کھولیں۔",
+    "noticeLinkTitle": "کسی دوسرے اکاؤنٹ کے لیے اطلاعات آن کریں؟",
+    "noticeLinkBody": "اطلاعات کی سروس اور پش فراہم کنندہ کو معلوم ہو جائے گا کہ یہ اکاؤنٹس ایک ہی آلے پر ہیں۔ انہیں اکاؤنٹس کے نام یا پیغامات کا مواد نہیں ملتا۔",
+    "noticeLinkAccounts": "اس آلے پر پہلے سے اطلاعات وصول کرنے والے اکاؤنٹس",
+    "noticeLinkConfirm": "اس اکاؤنٹ کے لیے آن کریں",
+    "noticeSetupTitle": "حفاظتی انتباہات آن کریں",
+    "noticeSetupBody": "اس آلے پر اطلاعات بند ہیں۔ حفاظتی انتباہات آن کریں تاکہ dMsg پس منظر میں ہو تب بھی اکاؤنٹ کی بازیابی یا کوئی دوسری حفاظتی تبدیلی آپ تک پہنچے۔",
+    "noticeSetupOpen": "اطلاعات ترتیب دیں",
+    "noticeSetupLater": "ابھی نہیں"
   },
   "pl": {
     "noticeTitle": "Przypomnienia",
@@ -1059,7 +1227,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Przeglądanie przypomnień nie kończy działań ani nie oznacza wiadomości jako przeczytanych.",
     "noticePendingHint": "Ustawienia działają tutaj od razu. Alerty zdalne mogą korzystać z poprzednich ustawień do czasu potwierdzenia aktualizacji.",
     "noticeScopeHint": "Godziny ciszy i dźwięki dotyczą tego urządzenia. Wyciszenie kanałów jest synchronizowane z kontem.",
-    "noticeUpdatesBody": "Otwórz dMsg, aby sprawdzić ostatnią aktywność."
+    "noticeUpdatesBody": "Otwórz dMsg, aby sprawdzić ostatnią aktywność.",
+    "noticeLinkTitle": "Włączyć powiadomienia dla innego konta?",
+    "noticeLinkBody": "Usługa powiadomień i dostawca powiadomień push będą wiedzieć, że te konta są na tym samym urządzeniu. Nie otrzymują nazw kont ani treści wiadomości.",
+    "noticeLinkAccounts": "Konta, które już otrzymują powiadomienia na tym urządzeniu",
+    "noticeLinkConfirm": "Włącz dla tego konta",
+    "noticeSetupTitle": "Włącz alerty bezpieczeństwa",
+    "noticeSetupBody": "Powiadomienia na tym urządzeniu są wyłączone. Włącz alerty bezpieczeństwa, aby informacja o odzyskiwaniu konta lub innej zmianie bezpieczeństwa docierała do Ciebie, gdy dMsg działa w tle.",
+    "noticeSetupOpen": "Skonfiguruj powiadomienia",
+    "noticeSetupLater": "Nie teraz"
   },
   "nl": {
     "noticeTitle": "Herinneringen",
@@ -1107,7 +1283,15 @@ export const notificationCatalogs: Record<Locale, Record<NoticeLabel, string>> =
     "noticeReadOnlyHint": "Herinneringen bekijken voltooit geen acties en markeert berichten niet als gelezen.",
     "noticePendingHint": "Je instellingen gelden hier direct. Externe meldingen kunnen eerdere instellingen gebruiken totdat de update is bevestigd.",
     "noticeScopeHint": "Stille uren en geluiden gelden voor dit apparaat. Gedempte kanalen worden met je account gesynchroniseerd.",
-    "noticeUpdatesBody": "Open dMsg om recente activiteit te bekijken."
+    "noticeUpdatesBody": "Open dMsg om recente activiteit te bekijken.",
+    "noticeLinkTitle": "Meldingen inschakelen voor een ander account?",
+    "noticeLinkBody": "De meldingsdienst en de pushprovider weten dan dat deze accounts op hetzelfde apparaat staan. Ze ontvangen geen accountnamen of berichtinhoud.",
+    "noticeLinkAccounts": "Accounts die op dit apparaat al meldingen ontvangen",
+    "noticeLinkConfirm": "Inschakelen voor dit account",
+    "noticeSetupTitle": "Beveiligingsmeldingen inschakelen",
+    "noticeSetupBody": "Meldingen staan uit op dit apparaat. Schakel beveiligingsmeldingen in zodat een accountherstel of andere beveiligingswijziging je bereikt wanneer dMsg op de achtergrond draait.",
+    "noticeSetupOpen": "Meldingen instellen",
+    "noticeSetupLater": "Niet nu"
   },
 }
 

@@ -2036,6 +2036,14 @@
 	<string>Waktu ini melewati tenggat</string>
 	<key>dmsg.noticeLater</key>
 	<string>Ingatkan nanti</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Akun yang sudah menerima notifikasi di perangkat ini</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Layanan notifikasi dan penyedia push akan mengetahui bahwa akun-akun ini berada di perangkat yang sama. Mereka tidak menerima nama akun atau isi pesan.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Aktifkan untuk akun ini</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Aktifkan notifikasi untuk akun lain?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Dikelola oleh sistem operasi</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Layanan</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Notifikasi</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Notifikasi nonaktif di perangkat ini. Aktifkan peringatan keamanan agar pemulihan akun atau perubahan keamanan lainnya tetap sampai kepada Anda saat dMsg berjalan di latar belakang.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Nanti saja</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Atur notifikasi</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Aktifkan peringatan keamanan</string>
 	<key>dmsg.noticeSound</key>
 	<string>Suara</string>
 	<key>dmsg.noticeSwitch</key>

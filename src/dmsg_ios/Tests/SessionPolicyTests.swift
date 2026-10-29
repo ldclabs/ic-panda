@@ -89,6 +89,16 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertTrue(try LocalPreferences.read(at: paths.root).automaticSyncAccounts.isEmpty)
     }
 
+    func testNotificationSetupDismissalSurvivesRestartAndOlderFilesDecode() throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let paths = try PrivateFiles(base: base)
+        try Data(#"{"immediateBackgroundLock":false,"automaticSyncAccounts":[]}"#.utf8).write(to: paths.root.appending(path: "privacy-preferences.json"))
+        XCTAssertNil(try LocalPreferences.read(at: paths.root).notificationSetupDismissed)
+        try LocalPreferences(notificationSetupDismissed: ["040g2081040g2081040g"]).write(at: paths.root)
+        XCTAssertEqual(try LocalPreferences.read(at: paths.root).notificationSetupDismissed, ["040g2081040g2081040g"])
+    }
+
     func testBackgroundInvalidatesRequestsWithoutResettingNavigationOrDrafts() async {
         let model = SessionModel()
         model.drafts["channel"] = "unsent text"

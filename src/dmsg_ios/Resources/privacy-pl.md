@@ -1,6 +1,6 @@
 # Polityka prywatności dMsg
 
-Ostatnia aktualizacja: 27.10.2026.
+Ostatnia aktualizacja: 29.10.2026.
 
 dMsg szyfruje prywatne treści na autoryzowanych urządzeniach. Niniejsza polityka obejmuje dmsg.net, starszą aplikację internetową tylko do odczytu, aplikacje komputerowe i iOS, connect.dmsg.net, usługę w chmurze i komputer internetowy (ICP) canisters. „My” oznacza zespół obsługujący dMsg pod nadzorem ICPanda DAO. Dostępność poszczególnych funkcji uzależniona jest od wersji aplikacji i konfiguracji usługi.
 
@@ -14,9 +14,11 @@ Elementy Vault, prywatne wiadomości i pliki są szyfrowane przed przesłaniem. 
 
 Usługa przetwarza identyfikatory kont i loginów, klucze publiczne urządzeń, członkostwo w kanałach, zasady kontaktu i blokowania, rozmiary obiektów, czas żądań, adresy IP i informacje dotyczące żądań operacyjnych. Certyfikowany stan konta, potwierdzenia podpisu i uprawnienia umożliwiają klientom i usługom weryfikację uprawnień. Transakcje księgowe oraz publiczne lub certyfikowane zapisy w łańcuchu zasadniczo nie mogą zostać usunięte.
 
+Jeśli włączysz powiadomienia, usługa powiadomień przetwarza także to, czego potrzebuje do filtrowania alertów przed wysłaniem: nieprzejrzyste identyfikatory zasobów, które kanały wyciszono lub ukryto, godziny ciszy i strefę czasową, potwierdzenia wyświetlenia (kiedy faktycznie wyświetlono przypomnienie i do której wiadomości) oraz to, które konta są zarejestrowane w tej samej instalacji. Na potrzeby przypomnień o terminie oczekującego odzyskiwania konta Twoje urządzenie przesyła rekord odzyskiwania, w tym nową tożsamość logowania i klucz publiczny urządzenia; usługa go weryfikuje i przechowuje tylko przypomnienie i czas wykonania. Usługa nie otrzymuje nazw kanałów, treści wiadomości ani kluczy do ich odszyfrowania. Cofnięcie rejestracji, usunięcie konta z urządzenia lub usunięcie konta usługi usuwa te preferencje, potwierdzenia wyświetlenia i powiązania z instalacją; rekordy dostarczenia i ponownych prób są przechowywane tylko do ich wygaśnięcia.
+
 ## 3. Usługi i płatności Apple
 
-W systemie iOS opcjonalne powiadomienia korzystają z usługi Apple Push Notification. Apple i nasza usługa dostawy przetwarzają identyfikator instalacji, token urządzenia i metadane dostawy. Powiadomienia zawierają ogólne przypomnienie i nieprzejrzystą trasę, a nie treść wiadomości, hasło czy nazwę pliku. Możesz wyłączyć powiadomienia w dMsg lub w ustawieniach systemu; nie zawsze można odwołać już dostarczone powiadomienia.
+W systemie iOS opcjonalne powiadomienia korzystają z usługi Apple Push Notification. Apple i nasza usługa dostawy przetwarzają identyfikator instalacji, token urządzenia i metadane dostawy. Powiadomienia zawierają ogólne przypomnienie i nieprzejrzystą trasę, a nie treść wiadomości, hasło czy nazwę pliku. Możesz wyłączyć powiadomienia w dMsg lub w ustawieniach systemu; nie zawsze można odwołać już dostarczone powiadomienia. Jeśli kilka kont otrzymuje powiadomienia w jednej instalacji, wspólny token urządzenia pozwala Apple i naszej usłudze dostawy powiązać je ze sobą; dMsg prosi o zgodę przed włączeniem powiadomień dla kolejnego konta.
 
 App Attest przetwarza wygenerowany przez aplikację kluczowy identyfikator, dowody zaświadczenia/potwierdzenia i wezwania, aby zweryfikować instalację aplikacji. Face ID, Touch ID i hasło urządzenia są obsługiwane przez system operacyjny; dMsg nie otrzymuje obrazów biometrycznych ani Twojego hasła.
 

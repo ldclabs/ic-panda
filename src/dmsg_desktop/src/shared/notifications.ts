@@ -92,6 +92,10 @@ export interface NoticePermission {
   last_result?: 'submitted' | 'shown' | 'failed'
 }
 
+/** Security alerts reach this device only with all three switches on. */
+export const securityAlertsOn = (preferences: NoticePreferences): boolean =>
+  preferences.global.enabled && !!preferences.account?.enabled && preferences.account.categories.security.enabled
+
 export const isNoticeHash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
 export const isNoticeAccount = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-v]{19}[0g]$/.test(value)
 export const isNoticeSequence = (value: unknown): value is string => {

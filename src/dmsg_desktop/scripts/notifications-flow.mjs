@@ -245,4 +245,73 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   methods['notifications/settings'] = oldSettings
   methods['notifications/status'] = oldNoticeStatus
   methods['daemon/status'] = status
+  emit('session/changed', { state: 'unlocked' })
+
+  // New installations start off. A set-up account is pointed to the settings,
+  // which opening never changes; registering a second account on this device
+  // explains the link and needs an explicit confirmation.
+  const second = methods['session/accounts']().find((entry) => !entry.current).account
+  const own = model.settings.get(account)
+  model.settings.set(account, { ...own, enabled: false })
+  model.settings.set(second, { ...own, enabled: true })
+  const writes = () => calls.filter((call) => call.method === 'notifications/settings_set').length
+  const looks = async (name, testid) => {
+    for (const [language, appearance] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['ar', 'dark']]) {
+      await native.evaluate((window) => window.setContentSize(760, 540))
+      await main.evaluate(async ([language, appearance]) => { await window.dmsg.setLocale(language); await window.dmsg.setAppearance(appearance) }, [language, appearance])
+      await main.waitForFunction(([language, appearance]) => document.documentElement.lang === language && matchMedia('(prefers-color-scheme: dark)').matches === (appearance === 'dark'), [language === 'zh' ? 'zh-Hans' : language, appearance])
+      await main.evaluate(() => document.fonts.ready.then(() => undefined))
+      await main.getByTestId(testid).scrollIntoViewIfNeeded()
+      await main.screenshot({ path: join(shots, `notifications-${name}-${language}-${appearance}.png`), animations: 'disabled' })
+      assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    }
+    await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+  }
+  emit('notifications/changed')
+  await route('/settings/security')
+  await main.getByTestId('notice-setup').waitFor()
+  await looks('setup', 'notice-setup')
+  const unchanged = writes()
+  await main.getByTestId('notice-setup-open').focus()
+  await main.keyboard.press('Enter')
+  await main.getByTestId('notifications-account-enabled').waitFor()
+  assert.equal(writes(), unchanged)
+  assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'false')
+  await main.getByTestId('notifications-account-enabled').click()
+  await main.getByTestId('notifications-save').click()
+  await main.getByTestId('notifications-link').waitFor()
+  assert.equal(await main.getByTestId('notifications-link-accounts').locator('li').count(), 1)
+  await looks('link', 'notifications-link')
+  // Escape cancels without registering and keeps the draft for later.
+  await main.keyboard.press('Escape')
+  await main.getByTestId('notifications-link').waitFor({ state: 'detached' })
+  assert.equal(writes(), unchanged)
+  assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'true')
+  await main.getByTestId('notifications-save').click()
+  await main.getByTestId('notifications-link-confirm').click()
+  await waitFor(() => model.settings.get(account).enabled === true)
+  assert.equal(latest('notifications/settings_set').params.scope, 'account')
+
+  // Not now hides the prompt on both pages; binding another login offers it again.
+  model.settings.set(account, { ...model.settings.get(account), enabled: false })
+  emit('notifications/changed')
+  await route('/reminders')
+  await main.getByTestId('notice-setup').waitFor()
+  await main.getByTestId('notice-setup-later').click()
+  await main.getByTestId('notice-setup').waitFor({ state: 'detached' })
+  await route('/settings/security')
+  await main.getByTestId('security').waitFor()
+  assert.equal(await main.getByTestId('notice-setup').count(), 0)
+  const readSecurity = methods['account/security']
+  methods['account/security'] = (...args) => {
+    const value = readSecurity(...args)
+    return { ...value, logins: [...value.logins, { principal: '2vxsx-fae', current: false }] }
+  }
+  emit('approval/changed')
+  await main.getByTestId('notice-setup').waitFor()
+  methods['account/security'] = readSecurity
+  model.settings.set(account, own)
+  model.settings.delete(second)
+  emit('notifications/changed')
+  await main.getByTestId('notice-setup').waitFor({ state: 'detached' })
 }

@@ -29,6 +29,27 @@ keep a retry action. The core provides only metadata for inactive accounts.
 Timed channel mutes retain their expiry when editing the channel name. Quiet
 hours use the saved IANA time zone, including DST transitions.
 
+New installations start with notifications off; an upgrade keeps the earlier
+default through the core migration. Once an account is set up, Reminders and
+Login identities show a non-modal prompt to turn on security alerts. It only
+opens notification settings; the system permission request still comes from
+saving the settings. "Not now" is kept per account in the private preferences
+file, and binding another login shows the prompt again. Turning on an account
+while another local account already receives notifications asks for native
+confirmation: the notification service and Apple can tell that these accounts
+share the device.
+
+Once enabled, the notification service processes opaque resource IDs, channel
+mute and hidden state, quiet hours and time zone, view receipt times and
+watermarks, which accounts share the installation, and recovery records uploaded
+for deadline reminders (with the new login identity and device public key). The
+offline privacy policy states this and that revoking the registration, removing
+the account or deleting the service account clears it. App Store Connect labels
+must match `PrivacyInfo.xcprivacy`: User ID and Device ID (identifiers, recovery
+records, accounts per installation) and Product Interaction (view receipts,
+mutes and quiet hours), all linked to the person, used for app functionality,
+and not used for tracking.
+
 See [validation](VALIDATION.md) for the tested build and simulator scope. APNs,
 App Attest, signed installation, physical-device lock/Focus/cold-start delivery
 are separate acceptance gates. Wallet proposals currently require authenticated

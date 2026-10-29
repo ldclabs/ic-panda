@@ -1,6 +1,6 @@
 # dMsg Política de Privacidade
 
-Última atualização: 27/10/2026.
+Última atualização: 29/10/2026.
 
 dMsg criptografa conteúdo privado em seus dispositivos autorizados. Esta política cobre dmsg.net, o aplicativo web legado somente leitura, os aplicativos para desktop e iOS, connect.dmsg.net, o serviço de nuvem e o Computador de Internet (ICP) canisters. “Nós” significa a equipe que opera dMsg sob a governança ICPanda DAO. A disponibilidade de recursos individuais depende da versão do aplicativo e da configuração do serviço.
 
@@ -14,9 +14,11 @@ Itens do Vault, mensagens privadas e arquivos são criptografados antes do uploa
 
 O serviço processa identificadores de conta e login, chaves públicas de dispositivos, associação de canal, regras de contato e bloqueio, tamanhos de objetos, tempo de solicitação, endereços IP e informações de solicitação operacional. O estado da conta certificada, os recibos de assinatura e os direitos permitem que clientes e serviços verifiquem a autoridade. As transações contábeis e os registros públicos ou certificados na rede geralmente não podem ser apagados.
 
+Se você ativar as notificações, o serviço de notificações também processa o necessário para filtrar os alertas antes do envio: identificadores opacos de recursos, quais canais você silenciou ou ocultou, seu horário de silêncio e fuso horário, confirmações de visualização (quando você realmente viu um lembrete e até qual mensagem) e quais contas estão registradas na mesma instalação. Para lembretes de prazo de uma recuperação de conta pendente, seu dispositivo envia o registro de recuperação, incluindo a nova identidade de login e a chave pública do dispositivo; o serviço o verifica e guarda apenas o lembrete e o horário de execução. O serviço não recebe nomes de canais, conteúdo de mensagens nem chaves para descriptografá-los. Revogar o registro, remover a conta do dispositivo ou excluir a conta do serviço apaga essas preferências, confirmações de visualização e vínculos de instalação; os registros de entrega e de nova tentativa são mantidos apenas até expirarem.
+
 ## 3. Serviços e pagamentos da Apple
 
-No iOS, as notificações opcionais usam o serviço Apple Push Notification. A Apple e o nosso serviço de entrega processam um identificador de instalação, um token de dispositivo e metadados de entrega. As notificações contêm um lembrete genérico e uma rota opaca, não um corpo de mensagem, senha ou nome de arquivo. Você pode desativar notificações em dMsg ou nas configurações do sistema; as notificações já entregues nem sempre podem ser recuperadas.
+No iOS, as notificações opcionais usam o serviço Apple Push Notification. A Apple e o nosso serviço de entrega processam um identificador de instalação, um token de dispositivo e metadados de entrega. As notificações contêm um lembrete genérico e uma rota opaca, não um corpo de mensagem, senha ou nome de arquivo. Você pode desativar notificações em dMsg ou nas configurações do sistema; as notificações já entregues nem sempre podem ser recuperadas. Se várias contas recebem notificações em uma mesma instalação, o token de dispositivo compartilhado permite que a Apple e o nosso serviço de entrega as relacionem; o dMsg pede sua permissão antes de ativar notificações para outra conta.
 
 O App Attest processa um identificador de chave gerado pelo aplicativo, evidências de atestado/declaração e desafios para verificar a instalação de um aplicativo. Face ID, Touch ID e a senha do dispositivo são gerenciados pelo sistema operacional; dMsg não recebe imagens biométricas ou sua senha.
 

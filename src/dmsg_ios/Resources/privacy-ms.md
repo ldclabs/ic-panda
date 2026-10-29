@@ -1,6 +1,6 @@
 # dMsg Dasar Privasi
 
-Kemas kini terakhir: 2026-10-27.
+Kemas kini terakhir: 2026-10-29.
 
 dMsg menyulitkan kandungan peribadi pada peranti anda yang dibenarkan. Dasar ini meliputi dmsg.net, apl web warisan baca sahaja, apl desktop dan iOS, connect.dmsg.net, perkhidmatan awan dan Komputer Internet (ICP) canisters. “Kami” bermaksud pasukan yang mengendalikan dMsg di bawah tadbir urus ICPanda DAO. Ketersediaan ciri individu bergantung pada versi apl dan konfigurasi perkhidmatan.
 
@@ -14,9 +14,11 @@ Item bilik kebal, mesej peribadi dan fail disulitkan sebelum dimuat naik. Kunci 
 
 Perkhidmatan ini memproses pengecam akaun dan log masuk, kunci awam peranti, keahlian saluran, peraturan hubungan dan penyekatan, saiz objek, masa permintaan, alamat IP dan maklumat permintaan operasi. Keadaan akaun yang diperakui, resit tandatangan dan kelayakan membolehkan pelanggan dan perkhidmatan mengesahkan kuasa. Urus niaga lejar dan rekod awam atau dalam rantaian yang diperakui secara amnya tidak boleh dipadamkan.
 
+Jika anda menghidupkan pemberitahuan, perkhidmatan pemberitahuan turut memproses perkara yang diperlukan untuk menapis amaran sebelum dihantar: pengecam sumber legap, saluran yang anda senyapkan atau sembunyikan, waktu senyap dan zon waktu anda, resit tontonan (bila anda benar-benar melihat peringatan dan sehingga mesej mana), serta akaun yang didaftarkan pada pemasangan yang sama. Untuk peringatan tarikh akhir bagi pemulihan akaun yang belum selesai, peranti anda memuat naik rekod pemulihan, termasuk identiti log masuk baharu dan kunci awam peranti; perkhidmatan mengesahkannya dan hanya menyimpan peringatan serta masa pelaksanaannya. Perkhidmatan tidak menerima nama saluran, kandungan mesej atau kunci untuk menyahsulitnya. Membatalkan pendaftaran, mengalih keluar akaun daripada peranti atau memadamkan akaun perkhidmatan akan mengosongkan pilihan, resit tontonan dan pautan pemasangan ini; rekod penghantaran dan cubaan semula hanya disimpan sehingga tamat tempoh.
+
 ## 3. Perkhidmatan dan pembayaran Apple
 
-Pada iOS, pemberitahuan pilihan menggunakan perkhidmatan Pemberitahuan Tekan Apple. Apple dan perkhidmatan penghantaran kami memproses pengecam pemasangan, token peranti dan metadata penghantaran. Pemberitahuan mengandungi peringatan generik dan laluan legap, bukan badan mesej, kata laluan atau nama fail. Anda boleh melumpuhkan pemberitahuan dalam dMsg atau tetapan sistem; pemberitahuan yang telah dihantar tidak boleh dipanggil semula sentiasa.
+Pada iOS, pemberitahuan pilihan menggunakan perkhidmatan Pemberitahuan Tekan Apple. Apple dan perkhidmatan penghantaran kami memproses pengecam pemasangan, token peranti dan metadata penghantaran. Pemberitahuan mengandungi peringatan generik dan laluan legap, bukan badan mesej, kata laluan atau nama fail. Anda boleh melumpuhkan pemberitahuan dalam dMsg atau tetapan sistem; pemberitahuan yang telah dihantar tidak boleh dipanggil semula sentiasa. Jika beberapa akaun menerima pemberitahuan pada satu pemasangan, token peranti yang dikongsi membolehkan Apple dan perkhidmatan penghantaran kami mengaitkannya; dMsg meminta persetujuan anda sebelum menghidupkan pemberitahuan untuk akaun lain.
 
 App Attest memproses pengecam kunci yang dijana apl, bukti pengesahan/penegasan dan cabaran untuk mengesahkan pemasangan apl. Face ID, Touch ID dan kod laluan peranti dikendalikan oleh sistem pengendalian; dMsg tidak menerima imej biometrik atau kod laluan anda.
 

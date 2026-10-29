@@ -49,10 +49,12 @@ final class SessionModel {
     var immediateBackgroundLock = false {
         didSet {
             guard let files else { return }
-            do { try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts).write(at: files.root) }
+            do { try writePreferences(at: files.root) }
             catch { report(error) }
         }
     }
+    /// Accounts whose security-alert prompt was set aside on this device.
+    private(set) var notificationSetupDismissed: Set<String> = []
     var search = ""
     var vaultHasMore = false
     let clipboard = PrivateClipboard()
@@ -127,6 +129,7 @@ final class SessionModel {
             let files = try await Task.detached { try PrivateFiles(environment: name) }.value
             let preferences = try LocalPreferences.read(at: files.root)
             automaticSyncAccounts = preferences.automaticSyncAccounts
+            notificationSetupDismissed = preferences.notificationSetupDismissed ?? []
             immediateBackgroundLock = preferences.immediateBackgroundLock
             let security = AppleSecurity(installation: files.installation, environment: deployment.name)
             let engine: MobileEngine
@@ -189,8 +192,8 @@ final class SessionModel {
             if let incoming = try? IncomingShares() {
                 for entry in try incoming.list() where entry.accountHash == IncomingShares.accountHash(account) { try incoming.remove(entry) }
             }
-            automaticSyncAccounts.remove(account)
-            try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts).write(at: files.root)
+            automaticSyncAccounts.remove(account); notificationSetupDismissed.remove(account)
+            try writePreferences(at: files.root)
             let staging = files.staging.appending(path: account)
             if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
             for suffix in [".json", ".development.json", ".production.json"] {
@@ -286,9 +289,24 @@ final class SessionModel {
         guard let account = session?.account else { return }
         if enabled { automaticSyncAccounts.insert(account) } else { automaticSyncAccounts.remove(account); automaticOperation?.cancel() }
         if let files {
-            do { try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts).write(at: files.root) }
+            do { try writePreferences(at: files.root) }
             catch { report(error) }
         }
+    }
+
+    /// "Not now" on the security-alert prompt; binding another login offers it again.
+    func setNotificationSetupDismissed(_ dismissed: Bool, account: String) {
+        guard notificationSetupDismissed.contains(account) != dismissed else { return }
+        if dismissed { notificationSetupDismissed.insert(account) } else { notificationSetupDismissed.remove(account) }
+        if let files {
+            do { try writePreferences(at: files.root) }
+            catch { report(error) }
+        }
+    }
+
+    private func writePreferences(at root: URL) throws {
+        try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts,
+                             notificationSetupDismissed: notificationSetupDismissed).write(at: root)
     }
 
     func optedInSyncPass() async {

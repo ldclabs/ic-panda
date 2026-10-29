@@ -2036,6 +2036,14 @@
 	<string>Cette heure dépasse l’échéance</string>
 	<key>dmsg.noticeLater</key>
 	<string>Me rappeler plus tard</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Comptes recevant déjà des notifications sur cet appareil</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Le service de notification et le fournisseur de notifications push sauront que ces comptes se trouvent sur le même appareil. Ils ne reçoivent ni le nom des comptes ni le contenu des messages.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Activer pour ce compte</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Activer les notifications pour un autre compte ?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Géré par le système d’exploitation</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Services</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Notifications</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Les notifications sont désactivées sur cet appareil. Activez les alertes de sécurité pour être prévenu d’une récupération de compte ou d’un autre changement de sécurité lorsque dMsg est en arrière-plan.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Plus tard</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Configurer les notifications</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Activer les alertes de sécurité</string>
 	<key>dmsg.noticeSound</key>
 	<string>Son</string>
 	<key>dmsg.noticeSwitch</key>

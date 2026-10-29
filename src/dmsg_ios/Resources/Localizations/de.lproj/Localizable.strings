@@ -2036,6 +2036,14 @@
 	<string>Dieser Zeitpunkt liegt nach der Frist</string>
 	<key>dmsg.noticeLater</key>
 	<string>Später erinnern</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Konten, die auf diesem Gerät bereits Benachrichtigungen erhalten</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Der Benachrichtigungsdienst und der Push-Anbieter erfahren, dass diese Konten auf demselben Gerät verwendet werden. Sie erhalten keine Kontonamen und keine Nachrichteninhalte.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Für dieses Konto aktivieren</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Benachrichtigungen für ein weiteres Konto aktivieren?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Vom Betriebssystem verwaltet</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Dienste</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Benachrichtigungen</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Benachrichtigungen sind auf diesem Gerät ausgeschaltet. Aktiviere Sicherheitshinweise, damit dich eine Kontowiederherstellung oder eine andere Sicherheitsänderung auch erreicht, wenn dMsg im Hintergrund läuft.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Nicht jetzt</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Benachrichtigungen einrichten</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Sicherheitshinweise aktivieren</string>
 	<key>dmsg.noticeSound</key>
 	<string>Ton</string>
 	<key>dmsg.noticeSwitch</key>

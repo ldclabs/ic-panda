@@ -2036,6 +2036,14 @@
 	<string>この時刻は期限を過ぎています</string>
 	<key>dmsg.noticeLater</key>
 	<string>後で通知</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>このデバイスで既に通知を受け取っているアカウント</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>通知サービスとプッシュ配信事業者は、これらのアカウントが同じデバイスにあることを知ることになります。アカウント名やメッセージの内容は渡りません。</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>このアカウントでオンにする</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>別のアカウントの通知をオンにしますか？</string>
 	<key>dmsg.noticeManaged</key>
 	<string>OSで管理されています</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>サービス</string>
 	<key>dmsg.noticeSettings</key>
 	<string>通知</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>このデバイスでは通知がオフです。セキュリティ通知をオンにすると、dMsg がバックグラウンドにあってもアカウントの復旧などのセキュリティ変更を知らせます。</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>後で</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>通知を設定</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>セキュリティ通知をオンにする</string>
 	<key>dmsg.noticeSound</key>
 	<string>サウンド</string>
 	<key>dmsg.noticeSwitch</key>

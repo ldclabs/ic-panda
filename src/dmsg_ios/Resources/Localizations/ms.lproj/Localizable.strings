@@ -2036,6 +2036,14 @@
 	<string>Waktu ini melepasi tarikh akhir</string>
 	<key>dmsg.noticeLater</key>
 	<string>Ingatkan saya kemudian</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Akaun yang sudah menerima pemberitahuan pada peranti ini</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Perkhidmatan pemberitahuan dan pembekal push akan mengetahui bahawa akaun-akaun ini berada pada peranti yang sama. Mereka tidak menerima nama akaun atau kandungan mesej.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Hidupkan untuk akaun ini</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Hidupkan pemberitahuan untuk akaun lain?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Diurus oleh sistem pengendalian</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Perkhidmatan</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Pemberitahuan</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Pemberitahuan dimatikan pada peranti ini. Hidupkan amaran keselamatan supaya pemulihan akaun atau perubahan keselamatan lain sampai kepada anda walaupun dMsg berjalan di latar belakang.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Bukan sekarang</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Sediakan pemberitahuan</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Hidupkan amaran keselamatan</string>
 	<key>dmsg.noticeSound</key>
 	<string>Bunyi</string>
 	<key>dmsg.noticeSwitch</key>

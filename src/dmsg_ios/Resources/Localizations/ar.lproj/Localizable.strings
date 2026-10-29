@@ -2036,6 +2036,14 @@
 	<string>هذا الوقت بعد الموعد النهائي</string>
 	<key>dmsg.noticeLater</key>
 	<string>ذكّرني لاحقًا</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>حسابات تتلقى الإشعارات على هذا الجهاز بالفعل</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>ستعرف خدمة الإشعارات ومزوّد الإشعارات الفورية أن هذه الحسابات موجودة على الجهاز نفسه. ولا تتلقى أسماء الحسابات أو محتوى الرسائل.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>تفعيل لهذا الحساب</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>تفعيل الإشعارات لحساب آخر؟</string>
 	<key>dmsg.noticeManaged</key>
 	<string>يديرها نظام التشغيل</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>الخدمات</string>
 	<key>dmsg.noticeSettings</key>
 	<string>الإشعارات</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>الإشعارات متوقفة على هذا الجهاز. فعّل تنبيهات الأمان ليصلك أي استرداد للحساب أو تغيير أمني آخر حتى عندما يعمل dMsg في الخلفية.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>ليس الآن</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>إعداد الإشعارات</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>فعّل تنبيهات الأمان</string>
 	<key>dmsg.noticeSound</key>
 	<string>الصوت</string>
 	<key>dmsg.noticeSwitch</key>

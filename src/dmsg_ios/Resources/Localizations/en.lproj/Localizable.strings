@@ -2036,6 +2036,14 @@
 	<string>This time is after the deadline</string>
 	<key>dmsg.noticeLater</key>
 	<string>Remind me later</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Already receiving notifications on this device</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>The notification service and the push provider will know that these accounts are on the same device. They do not receive account names or message content.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Turn on for this account</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Turn on notifications for another account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Managed by the operating system</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Services</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Notifications</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Notifications are off on this device. Turn on security alerts so an account recovery or other security change reaches you when dMsg is in the background.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Not now</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Set up notifications</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Turn on security alerts</string>
 	<key>dmsg.noticeSound</key>
 	<string>Sound</string>
 	<key>dmsg.noticeSwitch</key>

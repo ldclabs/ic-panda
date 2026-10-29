@@ -416,7 +416,7 @@
         {:else if !unlocked}
           <Notice icon="lock">{t('locked')}</Notice>
         {:else if part === 'security'}
-          <Security {status} />
+          <Security {status} {go} />
         {:else if part === 'devices'}
           <Devices {status} />
         {:else}

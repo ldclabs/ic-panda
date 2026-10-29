@@ -1,6 +1,6 @@
 # dMsg Chính sách bảo mật
 
-Cập nhật lần cuối: 27-10-2026.
+Cập nhật lần cuối: 29-10-2026.
 
 dMsg mã hóa nội dung riêng tư trên các thiết bị được ủy quyền của bạn. Chính sách này bao gồm dmsg.net, ứng dụng web cũ chỉ đọc, ứng dụng dành cho máy tính để bàn và iOS, connect.dmsg.net, dịch vụ đám mây và Máy tính Internet (ICP) canisters. “Chúng tôi” có nghĩa là nhóm vận hành dMsg dưới sự quản lý của ICPanda DAO. Tính sẵn có của từng tính năng tùy thuộc vào phiên bản ứng dụng và cấu hình dịch vụ.
 
@@ -14,9 +14,11 @@ Các mục trong Vault, tin nhắn và tập tin riêng tư đều được mã 
 
 Dịch vụ xử lý số nhận dạng tài khoản và thông tin đăng nhập, khóa chung của thiết bị, tư cách thành viên kênh, quy tắc liên hệ và chặn, kích thước đối tượng, thời gian yêu cầu, địa chỉ IP và thông tin yêu cầu hoạt động. Trạng thái tài khoản được chứng nhận, biên nhận chữ ký và quyền lợi cho phép khách hàng và dịch vụ xác minh thẩm quyền. Các giao dịch sổ cái và hồ sơ công khai hoặc được chứng nhận trên chuỗi thường không thể bị xóa.
 
+Nếu bạn bật thông báo, dịch vụ thông báo cũng xử lý những thông tin cần thiết để lọc cảnh báo trước khi gửi: mã định danh tài nguyên không rõ nghĩa, những kênh bạn đã tắt tiếng hoặc ẩn, giờ yên lặng và múi giờ, xác nhận đã xem (thời điểm bạn thực sự xem lời nhắc và đã đọc đến tin nhắn nào), và những tài khoản được đăng ký trên cùng một bản cài đặt. Để nhắc hạn cho một yêu cầu khôi phục tài khoản đang chờ, thiết bị của bạn tải lên bản ghi khôi phục, bao gồm danh tính đăng nhập mới và khóa công khai của thiết bị; dịch vụ xác minh và chỉ giữ lời nhắc cùng thời điểm thực hiện. Dịch vụ không nhận tên kênh, nội dung tin nhắn hay khóa để giải mã chúng. Thu hồi đăng ký, xóa tài khoản khỏi thiết bị hoặc xóa tài khoản dịch vụ sẽ xóa các tùy chọn, xác nhận đã xem và liên kết cài đặt này; bản ghi gửi và thử lại chỉ được giữ đến khi hết hạn.
+
 ## 3. Dịch vụ và thanh toán của Apple
 
-Trên iOS, thông báo tùy chọn sử dụng dịch vụ Thông báo đẩy của Apple. Apple và dịch vụ giao hàng của chúng tôi xử lý mã định danh cài đặt, mã thông báo thiết bị và siêu dữ liệu phân phối. Thông báo chứa lời nhắc chung và lộ trình không rõ ràng, không phải nội dung thư, mật khẩu hoặc tên tệp. Bạn có thể tắt thông báo trong dMsg hoặc cài đặt hệ thống; thông báo đã gửi không phải lúc nào cũng có thể được thu hồi.
+Trên iOS, thông báo tùy chọn sử dụng dịch vụ Thông báo đẩy của Apple. Apple và dịch vụ giao hàng của chúng tôi xử lý mã định danh cài đặt, mã thông báo thiết bị và siêu dữ liệu phân phối. Thông báo chứa lời nhắc chung và lộ trình không rõ ràng, không phải nội dung thư, mật khẩu hoặc tên tệp. Bạn có thể tắt thông báo trong dMsg hoặc cài đặt hệ thống; thông báo đã gửi không phải lúc nào cũng có thể được thu hồi. Nếu nhiều tài khoản nhận thông báo trên cùng một bản cài đặt, mã thông báo thiết bị dùng chung cho phép Apple và dịch vụ giao hàng của chúng tôi liên kết chúng; dMsg sẽ hỏi bạn trước khi bật thông báo cho một tài khoản khác.
 
 Chứng thực ứng dụng xử lý mã định danh khóa do ứng dụng tạo, bằng chứng chứng thực/xác nhận và các thách thức để xác minh cài đặt ứng dụng. Face ID, Touch ID và mật mã thiết bị được hệ điều hành xử lý; dMsg không nhận được hình ảnh sinh trắc học hoặc mật mã của bạn.
 

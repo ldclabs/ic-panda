@@ -1,6 +1,6 @@
 # dMsg Privacy Policy
 
-Last updated: 2026-10-27.
+Last updated: 2026-10-29.
 
 dMsg encrypts private content on your authorized devices. This policy covers dmsg.net, the read-only legacy web app, the desktop and iOS apps, connect.dmsg.net, the cloud service and the Internet Computer (ICP) canisters. “We” means the team operating dMsg under ICPanda DAO governance. Availability of individual features depends on the app version and service configuration.
 
@@ -14,9 +14,11 @@ Vault items, private messages and files are encrypted before upload. Content key
 
 The service processes account and login identifiers, device public keys, channel membership, contact and blocking rules, object sizes, request timing, IP addresses and operational request information. Certified account state, signature receipts and entitlements allow clients and services to verify authority. Ledger transactions and public or certified on-chain records generally cannot be erased.
 
+If you turn on notifications, the notification service also processes what it needs to filter alerts before they are sent: opaque resource identifiers, which channels you muted or hid, your quiet hours and time zone, view receipts (when you actually viewed a reminder and up to which message), and which accounts are registered on the same installation. For deadline reminders about a pending account recovery, your device uploads the recovery record, including the new login identity and device public key; the service verifies it and keeps only the reminder and its execution time. The service does not receive channel names, message content or keys to decrypt them. Revoking the registration, removing the account from the device or deleting the service account clears these preferences, view receipts and installation links; delivery and retry records are kept only until they expire.
+
 ## 3. Apple services and payments
 
-On iOS, optional notifications use Apple Push Notification service. Apple and our delivery service process an installation identifier, device token and delivery metadata. Notifications contain a generic reminder and an opaque route, not a message body, password or filename. You can disable notifications in dMsg or system settings; already delivered notifications cannot always be recalled.
+On iOS, optional notifications use Apple Push Notification service. Apple and our delivery service process an installation identifier, device token and delivery metadata. Notifications contain a generic reminder and an opaque route, not a message body, password or filename. You can disable notifications in dMsg or system settings; already delivered notifications cannot always be recalled. If several accounts receive notifications on one installation, the shared device token lets Apple and our delivery service link them; dMsg asks before you turn on notifications for another account.
 
 App Attest processes an app-generated key identifier, attestation/assertion evidence and challenges to verify an app installation. Face ID, Touch ID and the device passcode are handled by the operating system; dMsg does not receive biometric images or your passcode.
 

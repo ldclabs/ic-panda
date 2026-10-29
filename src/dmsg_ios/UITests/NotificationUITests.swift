@@ -5,6 +5,56 @@ import XCTest
     func testReminderSettingsDarkChinese() { check(language: "zh-Hans", locale: "zh_CN", dark: true) }
     func testReminderSettingsArabicRTL() { check(language: "ar", locale: "ar_SA", dark: false) }
 
+    func testSecondAccountConsentEnglish() { consent(language: "en", locale: "en_US", dark: false, confirm: "Turn on for this account") }
+    func testSecondAccountConsentArabicDark() { consent(language: "ar", locale: "ar_SA", dark: true, confirm: "تفعيل لهذا الحساب") }
+
+    func testSetupPromptCanBeSetAside() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-notification-setup", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let reminders = app.buttons["reminders.open"].firstMatch
+        XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
+        let later = app.buttons["notifications.setup.later"]
+        XCTAssertTrue(later.waitForExistence(timeout: 5))
+        capture(app, "Security alert prompt · zh-Hans")
+        later.tap()
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: later)
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 3), .completed)
+        app.terminate()
+    }
+
+    /// The prompt only opens settings; turning on a second account asks first.
+    private func consent(language: String, locale: String, dark: Bool, confirm: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-notification-setup", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        if dark { app.launchArguments.append("--ui-dark") }
+        app.launch()
+        let reminders = app.buttons["reminders.open"].firstMatch
+        XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
+        let open = app.buttons["notifications.setup.open"]
+        XCTAssertTrue(open.waitForExistence(timeout: 5))
+        capture(app, "Security alert prompt · \(language)")
+        open.tap()
+        let account = app.switches["notifications.account"]
+        for _ in 0..<8 where !account.exists || !account.isHittable { app.swipeUp() }
+        XCTAssertTrue(account.waitForExistence(timeout: 5))
+        XCTAssertEqual(account.value as? String, "0")
+        account.coordinate(withNormalizedOffset: CGVector(dx: language == "ar" ? 0.08 : 0.92, dy: 0.5)).tap()
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: account)
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
+        let save = app.buttons["notifications.save"]
+        for _ in 0..<8 where !save.isHittable { app.swipeUp() }
+        XCTAssertTrue(save.isEnabled); save.tap()
+        let accept = app.buttons[confirm]
+        XCTAssertTrue(accept.waitForExistence(timeout: 5))
+        capture(app, "Second account consent · \(language)")
+        accept.tap()
+        for _ in 0..<8 where !save.exists || !save.isHittable { app.swipeUp() }
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: save)
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 5), .completed)
+        app.terminate()
+    }
+
     private func check(language: String, locale: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
+  import Confirm from '../components/Confirm.svelte'
   import Select from '../components/Select.svelte'
   import SearchSelect from '../components/SearchSelect.svelte'
   import Field from '../components/page/Field.svelte'
+  import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
@@ -12,7 +14,7 @@
   import { t, stateLabel, type Label } from '../i18n/index.svelte'
   import { shortId } from '../shell/session'
   import { tomorrowMorning } from '../../shared/notification-time'
-  import { noticeCategories, type GlobalNoticeSettings, type NoticeCategory, type NoticePermission, type NoticePreferences, type NoticeSettings } from '../../shared/notifications'
+  import { noticeCategories, type GlobalNoticeSettings, type NoticeCategory, type NoticePermission, type NoticePreferences, type NoticeSettings, type NoticeStatus } from '../../shared/notifications'
 
   let { status }: { status: any } = $props()
   let preferences = $state<NoticePreferences | null>(null)
@@ -22,6 +24,9 @@
   let accounts = $state<{ account: string; bound: boolean }[]>([])
   let agents = $state<{ agent_id: string; label: string }[]>([])
   let permission = $state<NoticePermission | null>(null)
+  /** Other local accounts already receiving notifications on this device. */
+  let others = $state<string[]>([])
+  let linking = $state(false)
   let loading = $state(true), busy = $state(false), error = $state('')
   let alive = true, generation = 0
   const scope = $derived(`${status?.account ?? ''}:${status?.session ?? ''}`)
@@ -40,14 +45,16 @@
     loading = true
     error = ''
     try {
-      const [next, local, platform] = await Promise.all([
+      const [next, local, platform, counts] = await Promise.all([
         call<NoticePreferences>('notifications/settings', id ? { account: id } : {}),
         call<{ account: string; bound: boolean }[]>('session/accounts'),
-        window.dmsg.notificationPermission()
+        window.dmsg.notificationPermission(),
+        call<NoticeStatus>('notifications/status')
       ])
       if (!valid(turn)) return
       preferences = next
       accounts = local.filter((entry) => entry.bound)
+      others = counts.accounts.filter((entry) => entry.enabled && entry.account !== id).map((entry) => entry.account)
       permission = platform
       if (replace || !global) global = clone(next.global)
       if (replace || !account) account = clone(next.account)
@@ -92,8 +99,11 @@
     if (value && preferences?.global.revision === 0 && account?.revision === 0 && selected === status?.account) account.enabled = true
   }
 
-  async function save() {
+  async function save(linked = false) {
     if (!preferences || !global || busy) return
+    // Registering another account tells the notification service and the push
+    // provider that these accounts share this device; that needs consent.
+    if (!linked && account?.enabled && !preferences.account?.enabled && others.length) { linking = true; return }
     const turn = generation, id = selected
     busy = true
     error = ''
@@ -206,10 +216,19 @@
     {#if pending}<Notice icon="sync">{t('noticePending')}<p class="mt-1 text-xs">{t('noticePendingHint')}</p></Notice>{/if}
     {#if conflict}<Notice tone="warn" icon="info">{t('conflictItem')} {t('retry')}</Notice>{/if}
     <div class="flex flex-wrap gap-2 px-5 pb-5">
-      <button class={buttonClass('primary', 'sm')} disabled={(!dirty && !conflict) || busy || loading} onclick={save} data-testid="notifications-save">{busy ? t('loading') : conflict ? t('retry') : t('save')}</button>
+      <button class={buttonClass('primary', 'sm')} disabled={(!dirty && !conflict) || busy || loading} onclick={() => save()} data-testid="notifications-save">{busy ? t('loading') : conflict ? t('retry') : t('save')}</button>
       <button class={buttonClass('secondary', 'sm')} disabled={busy || loading} onclick={() => load(selected)}>{t('refresh')}</button>
     </div>
   {:else if !loading}
     <button class={buttonClass('secondary', 'sm')} onclick={() => load()}>{t('retry')}</button>
   {/if}
 </div>
+
+<Confirm bind:open={linking} title={t('noticeLinkTitle')} description={t('noticeLinkBody')} confirm={t('noticeLinkConfirm')} icon="members" tone="warn" {busy} testid="notifications-link" onConfirm={() => save(true)}>
+  {#snippet body()}
+    <p class="text-[12.5px] text-muted">{t('noticeLinkAccounts')}</p>
+    <ul class="mt-2 flex flex-wrap gap-2" data-testid="notifications-link-accounts">
+      {#each others as other (other)}<li><Id id={other} /></li>{/each}
+    </ul>
+  {/snippet}
+</Confirm>

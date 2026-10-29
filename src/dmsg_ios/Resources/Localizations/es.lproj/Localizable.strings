@@ -2036,6 +2036,14 @@
 	<string>Esta hora supera el plazo</string>
 	<key>dmsg.noticeLater</key>
 	<string>Recordármelo más tarde</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Cuentas que ya reciben notificaciones en este dispositivo</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>El servicio de notificaciones y el proveedor de notificaciones push sabrán que estas cuentas están en el mismo dispositivo. No reciben nombres de cuentas ni el contenido de los mensajes.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Activar para esta cuenta</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>¿Activar las notificaciones para otra cuenta?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Gestionado por el sistema operativo</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Servicios</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Notificaciones</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Las notificaciones están desactivadas en este dispositivo. Activa las alertas de seguridad para enterarte de una recuperación de cuenta u otro cambio de seguridad cuando dMsg esté en segundo plano.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Ahora no</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Configurar notificaciones</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Activa las alertas de seguridad</string>
 	<key>dmsg.noticeSound</key>
 	<string>Sonido</string>
 	<key>dmsg.noticeSwitch</key>

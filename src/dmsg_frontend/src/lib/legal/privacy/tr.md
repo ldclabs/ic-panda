@@ -1,6 +1,6 @@
 # dMsg Gizlilik Politikası
 
-Son güncelleme: 2026-10-27.
+Son güncelleme: 2026-10-29.
 
 dMsg, yetkili cihazlarınızdaki özel içeriği şifreler. Bu politika dmsg.net'i, salt okunur eski web uygulamasını, masaüstü ve iOS uygulamalarını, connect.dmsg.net'i, bulut hizmetini ve İnternet Bilgisayarını (ICP) canisters kapsar. “Biz”, ICPanda DAO yönetimi altında dMsg'yu çalıştıran ekip anlamına gelir. Bireysel özelliklerin kullanılabilirliği, uygulama sürümüne ve hizmet yapılandırmasına bağlıdır.
 
@@ -14,9 +14,11 @@ Kasa öğeleri, özel mesajlar ve dosyalar yüklemeden önce şifrelenir. İçer
 
 Hizmet, hesap ve oturum açma tanımlayıcılarını, cihazın genel anahtarlarını, kanal üyeliğini, iletişim ve engelleme kurallarını, nesne boyutlarını, istek zamanlamasını, IP adreslerini ve operasyonel istek bilgilerini işler. Sertifikalı hesap durumu, imza makbuzları ve yetkiler, müşterilerin ve hizmetlerin yetkiyi doğrulamasına olanak tanır. Defter işlemleri ve halka açık veya sertifikalı zincir içi kayıtlar genellikle silinemez.
 
+Bildirimleri açarsanız bildirim hizmeti, uyarıları gönderilmeden önce süzmek için gerekenleri de işler: opak kaynak tanımlayıcıları, sessize aldığınız veya gizlediğiniz kanallar, sessiz saatleriniz ve saat diliminiz, görüntüleme bilgileri (bir hatırlatıcıyı gerçekten ne zaman görüntülediğiniz ve hangi mesaja kadar okuduğunuz) ve aynı kurulumda hangi hesapların kayıtlı olduğu. Bekleyen bir hesap kurtarma işleminin süre hatırlatıcıları için cihazınız, yeni giriş kimliğini ve cihaz genel anahtarını içeren kurtarma kaydını yükler; hizmet bunu doğrular ve yalnızca hatırlatıcıyı ve yürütme zamanını saklar. Hizmet kanal adlarını, mesaj içeriğini veya bunları çözecek anahtarları almaz. Kaydı iptal etmek, hesabı cihazdan kaldırmak veya hizmet hesabını silmek bu tercihleri, görüntüleme bilgilerini ve kurulum bağlantılarını temizler; teslimat ve yeniden deneme kayıtları yalnızca süreleri dolana kadar tutulur.
+
 ## 3. Apple hizmetleri ve ödemeleri
 
-iOS'ta isteğe bağlı bildirimler Apple Anında Bildirim hizmetini kullanır. Apple ve teslimat hizmetimiz bir kurulum tanımlayıcısını, cihaz belirtecini ve teslimat meta verilerini işler. Bildirimler, mesaj gövdesi, parola veya dosya adı değil, genel bir hatırlatıcı ve opak bir yol içerir. Bildirimleri dMsg veya sistem ayarlarından devre dışı bırakabilirsiniz; Halihazırda iletilmiş olan bildirimler her zaman geri çağrılamaz.
+iOS'ta isteğe bağlı bildirimler Apple Anında Bildirim hizmetini kullanır. Apple ve teslimat hizmetimiz bir kurulum tanımlayıcısını, cihaz belirtecini ve teslimat meta verilerini işler. Bildirimler, mesaj gövdesi, parola veya dosya adı değil, genel bir hatırlatıcı ve opak bir yol içerir. Bildirimleri dMsg veya sistem ayarlarından devre dışı bırakabilirsiniz; Halihazırda iletilmiş olan bildirimler her zaman geri çağrılamaz. Birden fazla hesap aynı kurulumda bildirim alıyorsa ortak cihaz belirteci, Apple ve teslimat hizmetimizin bu hesapları ilişkilendirmesine olanak tanır; dMsg başka bir hesap için bildirimleri açmadan önce onayınızı ister.
 
 App Attest, bir uygulama kurulumunu doğrulamak için uygulama tarafından oluşturulan bir anahtar tanımlayıcıyı, doğrulama/iddia kanıtlarını ve sorgulamaları işler. Face ID, Touch ID ve aygıt parolası işletim sistemi tarafından yönetilir; dMsg biyometrik görüntüleri veya şifrenizi almaz.
 

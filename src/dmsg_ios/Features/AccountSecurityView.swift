@@ -7,11 +7,13 @@ struct AccountSecurityView: View {
     @State private var token = ""
     @State private var delay = 3
     @State private var busy = false
+    @State private var settingUp = false
     struct Login: Decodable, Identifiable { let principal: String; let current: Bool; var id: String { principal } }
     struct Recovery: Decodable { let opId: String; let executeAfter: UInt64 }
     struct SecurityInfo: Decodable { let logins: [Login]; let recoveryDelayMs: UInt64; let pendingRecovery: Recovery? }
     var body: some View {
         Form {
+            Section { NotificationSetupPrompt { settingUp = true } }
             Section("Login identities") {
                 ForEach(security?.logins ?? []) { login in
                     VStack(alignment: .leading, spacing: 8) {
@@ -48,14 +50,21 @@ struct AccountSecurityView: View {
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }
             }
+            .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
     }
     private func load() async {
         let epoch = model.epoch
         do {
             if let result = try await model.engine?.security() {
                 guard epoch == model.epoch, !Task.isCancelled else { return }
-                security = try model.decode(result); delay = Int((security?.recoveryDelayMs ?? 259_200_000) / 86_400_000)
+                let next: SecurityInfo = try model.decode(result)
+                // A newly bound login can start a recovery: offer security alerts again.
+                if let previous = security, next.logins.count > previous.logins.count, let account = model.session?.account {
+                    model.setNotificationSetupDismissed(false, account: account)
+                }
+                security = next; delay = Int(next.recoveryDelayMs / 86_400_000)
                 await model.refreshRecoveryWarning()
+                await model.notifications.refresh(model)
             }
         } catch { if epoch == model.epoch { model.report(error) } }
     }

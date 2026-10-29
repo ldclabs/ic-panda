@@ -1,6 +1,6 @@
 # dMsg Datenschutzrichtlinie
 
-Letzte Aktualisierung: 27.10.2026.
+Letzte Aktualisierung: 29.10.2026.
 
 dMsg verschlüsselt private Inhalte auf Ihren autorisierten Geräten. Diese Richtlinie gilt für dmsg.net, die schreibgeschützte Legacy-Web-App, die Desktop- und iOS-Apps, connect.dmsg.net, den Cloud-Dienst und den Internet-Computer (ICP) canisters. „Wir“ bezeichnet das Team, das dMsg unter der Leitung von ICPanda DAO betreibt. Die Verfügbarkeit einzelner Funktionen hängt von der App-Version und der Dienstkonfiguration ab.
 
@@ -14,9 +14,11 @@ Tresorelemente, private Nachrichten und Dateien werden vor dem Hochladen verschl
 
 Der Dienst verarbeitet Konto- und Anmeldekennungen, öffentliche Geräteschlüssel, Kanalmitgliedschaft, Kontakt- und Blockierungsregeln, Objektgrößen, Anforderungszeitpunkt, IP-Adressen und betriebliche Anforderungsinformationen. Beglaubigter Kontostatus, Unterschriftsbelege und Berechtigungen ermöglichen es Kunden und Diensten, die Berechtigung zu überprüfen. Ledger-Transaktionen und öffentliche oder zertifizierte On-Chain-Aufzeichnungen können im Allgemeinen nicht gelöscht werden.
 
+Wenn Sie Benachrichtigungen aktivieren, verarbeitet der Benachrichtigungsdienst zusätzlich, was er zum Filtern von Hinweisen vor dem Versand benötigt: undurchsichtige Ressourcenkennungen, welche Kanäle Sie stummgeschaltet oder ausgeblendet haben, Ruhezeiten und Zeitzone, Ansichtsbestätigungen (wann Sie eine Erinnerung tatsächlich angesehen haben und bis zu welcher Nachricht) sowie welche Konten auf derselben Installation registriert sind. Für Fristerinnerungen zu einer ausstehenden Kontowiederherstellung lädt Ihr Gerät den Wiederherstellungsdatensatz hoch, einschließlich der neuen Anmeldeidentität und des öffentlichen Geräteschlüssels; der Dienst prüft ihn und speichert nur die Erinnerung und ihren Ausführungszeitpunkt. Der Dienst erhält keine Kanalnamen, keine Nachrichteninhalte und keine Schlüssel zu deren Entschlüsselung. Das Widerrufen der Registrierung, das Entfernen des Kontos vom Gerät oder das Löschen des Dienstkontos löscht diese Einstellungen, Ansichtsbestätigungen und Installationsverknüpfungen; Zustell- und Wiederholungsdatensätze werden nur bis zu ihrem Ablauf aufbewahrt.
+
 ## 3. Apple-Dienste und Zahlungen
 
-Unter iOS nutzen optionale Benachrichtigungen den Apple Push Notification Service. Apple und unser Lieferservice verarbeiten eine Installationskennung, ein Geräte-Token und Liefermetadaten. Benachrichtigungen enthalten eine allgemeine Erinnerung und eine undurchsichtige Route, keinen Nachrichtentext, kein Passwort oder Dateinamen. Sie können Benachrichtigungen in dMsg oder in den Systemeinstellungen deaktivieren; Bereits zugestellte Benachrichtigungen können nicht immer zurückgerufen werden.
+Unter iOS nutzen optionale Benachrichtigungen den Apple Push Notification Service. Apple und unser Lieferservice verarbeiten eine Installationskennung, ein Geräte-Token und Liefermetadaten. Benachrichtigungen enthalten eine allgemeine Erinnerung und eine undurchsichtige Route, keinen Nachrichtentext, kein Passwort oder Dateinamen. Sie können Benachrichtigungen in dMsg oder in den Systemeinstellungen deaktivieren; Bereits zugestellte Benachrichtigungen können nicht immer zurückgerufen werden. Erhalten mehrere Konten Benachrichtigungen auf derselben Installation, können Apple und unser Zustelldienst sie über das gemeinsame Geräte-Token verknüpfen; dMsg fragt nach, bevor Benachrichtigungen für ein weiteres Konto aktiviert werden.
 
 App Attest verarbeitet eine von der App generierte Schlüsselkennung, Attestierungs-/Behauptungsnachweise und Herausforderungen, um eine App-Installation zu überprüfen. Face ID, Touch ID und der Gerätepasscode werden vom Betriebssystem verwaltet; dMsg empfängt keine biometrischen Bilder oder Ihren Passcode.
 

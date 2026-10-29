@@ -1,6 +1,6 @@
 # Politique de confidentialité de dMsg
 
-Dernière mise à jour : 2026-10-27.
+Dernière mise à jour : 2026-10-29.
 
 dMsg chiffre les contenus privés sur vos appareils autorisés. Cette politique couvre dmsg.net, l’ancienne application web en lecture seule, les applications de bureau et iOS, connect.dmsg.net, le service cloud et les canisters Internet Computer (ICP). « Nous » désigne l’équipe qui exploite dMsg sous la gouvernance d’ICPanda DAO. Les fonctionnalités disponibles dépendent de la version et de la configuration du service.
 
@@ -14,9 +14,11 @@ Les éléments du coffre, messages privés et fichiers sont chiffrés avant leur
 
 Le service traite les identifiants de compte et de connexion, clés publiques des appareils, membres des canaux, règles de contact et de blocage, tailles des objets, horaires, adresses IP et informations opérationnelles. Les états certifiés, reçus de signature et droits servent à vérifier les autorisations. Les transactions et autres données publiques ou certifiées inscrites sur la blockchain ne peuvent généralement pas être effacées.
 
+Si vous activez les notifications, le service de notification traite aussi ce dont il a besoin pour filtrer les alertes avant leur envoi : identifiants opaques de ressources, canaux que vous avez mis en sourdine ou masqués, plage silencieuse et fuseau horaire, accusés de consultation (quand vous avez réellement consulté un rappel et jusqu’à quel message) et comptes inscrits sur la même installation. Pour les rappels d’échéance d’une récupération de compte en attente, votre appareil envoie l’enregistrement de récupération, y compris la nouvelle identité de connexion et la clé publique de l’appareil ; le service le vérifie et ne conserve que le rappel et sa date d’exécution. Le service ne reçoit ni le nom des canaux, ni le contenu des messages, ni les clés permettant de les déchiffrer. La révocation de l’inscription, le retrait du compte de l’appareil ou la suppression du compte de service efface ces préférences, accusés de consultation et liens d’installation ; les enregistrements de livraison et de nouvelle tentative ne sont conservés que jusqu’à leur expiration.
+
 ## 3. Apple et paiements
 
-Les notifications iOS facultatives utilisent APNs. Apple et notre service de livraison traitent un identifiant d’installation, un jeton d’appareil et des métadonnées. Les notifications contiennent un rappel générique et une référence opaque, jamais un message, mot de passe ou nom de fichier. Vous pouvez les désactiver dans dMsg ou les réglages système ; les notifications déjà livrées ne sont pas toujours récupérables.
+Les notifications iOS facultatives utilisent APNs. Apple et notre service de livraison traitent un identifiant d’installation, un jeton d’appareil et des métadonnées. Les notifications contiennent un rappel générique et une référence opaque, jamais un message, mot de passe ou nom de fichier. Vous pouvez les désactiver dans dMsg ou les réglages système ; les notifications déjà livrées ne sont pas toujours récupérables. Si plusieurs comptes reçoivent des notifications sur une même installation, le jeton d’appareil partagé permet à Apple et à notre service de livraison de les relier ; dMsg vous demande votre accord avant d’activer les notifications pour un autre compte.
 
 App Attest vérifie l’installation avec un identifiant de clé, des preuves et des défis. Face ID, Touch ID et le code de l’appareil sont gérés par le système ; dMsg ne reçoit ni données biométriques ni code.
 

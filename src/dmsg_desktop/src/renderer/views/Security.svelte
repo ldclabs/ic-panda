@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
-  let { status }: { status: any } = $props()
+  import { offerSetupAgain } from '../notice-setup.svelte'
+  import NoticeSetup from './NoticeSetup.svelte'
+  let { status, go }: { status: any; go: (path: string) => void } = $props()
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Checkbox from '../components/Checkbox.svelte'
@@ -95,6 +97,8 @@
       if (!security || dailyLimit(daily) === security.policy.daily_executions) daily = String(next.policy.daily_executions)
       if (!security || sameSelection(purposes, security.policy.allowed_purposes)) purposes = [...next.policy.allowed_purposes]
       if (!security || Number(days) * 86_400_000 === security.recovery_delay_ms) days = String(next.recovery_delay_ms / 86_400_000)
+      // A newly bound login can start a recovery: offer security alerts again.
+      if (security && next.logins.length > security.logins.length && status?.account) offerSetupAgain(status.account)
       security = next
       needsLogin = false
       loadError = ''
@@ -240,6 +244,7 @@
   </Notice>
 {/if}
 {#if loading && !security}<p class="px-5 text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
+<NoticeSetup {status} {go} />
 {#if security}
   <Section title={t('logins')} description={t('bindLoginHint')} icon="login" flush testid="security">
     <ul class="divide-y divide-line" data-testid="logins">

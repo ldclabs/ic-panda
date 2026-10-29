@@ -2036,6 +2036,14 @@
 	<string>Ta godzina jest po terminie</string>
 	<key>dmsg.noticeLater</key>
 	<string>Przypomnij później</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Konta, które już otrzymują powiadomienia na tym urządzeniu</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Usługa powiadomień i dostawca powiadomień push będą wiedzieć, że te konta są na tym samym urządzeniu. Nie otrzymują nazw kont ani treści wiadomości.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Włącz dla tego konta</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Włączyć powiadomienia dla innego konta?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Zarządzane przez system operacyjny</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Usługi</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Powiadomienia</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Powiadomienia na tym urządzeniu są wyłączone. Włącz alerty bezpieczeństwa, aby informacja o odzyskiwaniu konta lub innej zmianie bezpieczeństwa docierała do Ciebie, gdy dMsg działa w tle.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Nie teraz</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Skonfiguruj powiadomienia</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Włącz alerty bezpieczeństwa</string>
 	<key>dmsg.noticeSound</key>
 	<string>Dźwięk</string>
 	<key>dmsg.noticeSwitch</key>

@@ -2036,6 +2036,14 @@
 	<string>এই সময়টি সময়সীমার পরে</string>
 	<key>dmsg.noticeLater</key>
 	<string>পরে মনে করিয়ে দিন</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>এই ডিভাইসে ইতিমধ্যে বিজ্ঞপ্তি পাচ্ছে এমন অ্যাকাউন্ট</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>বিজ্ঞপ্তি পরিষেবা ও পুশ প্রদানকারী জানতে পারবে যে এই অ্যাকাউন্টগুলো একই ডিভাইসে আছে। তারা অ্যাকাউন্টের নাম বা বার্তার বিষয়বস্তু পায় না।</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>এই অ্যাকাউন্টের জন্য চালু করুন</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>অন্য একটি অ্যাকাউন্টের জন্য বিজ্ঞপ্তি চালু করবেন?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>অপারেটিং সিস্টেম পরিচালনা করে</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>পরিষেবা</string>
 	<key>dmsg.noticeSettings</key>
 	<string>বিজ্ঞপ্তি</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>এই ডিভাইসে বিজ্ঞপ্তি বন্ধ আছে। নিরাপত্তা সতর্কতা চালু করুন, যাতে dMsg ব্যাকগ্রাউন্ডে থাকলেও অ্যাকাউন্ট পুনরুদ্ধার বা অন্য কোনো নিরাপত্তা পরিবর্তনের খবর আপনি পান।</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>এখন নয়</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>বিজ্ঞপ্তি সেট আপ করুন</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>নিরাপত্তা সতর্কতা চালু করুন</string>
 	<key>dmsg.noticeSound</key>
 	<string>শব্দ</string>
 	<key>dmsg.noticeSwitch</key>

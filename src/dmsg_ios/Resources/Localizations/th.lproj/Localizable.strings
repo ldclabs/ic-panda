@@ -2036,6 +2036,14 @@
 	<string>เวลานี้เลยกำหนดแล้ว</string>
 	<key>dmsg.noticeLater</key>
 	<string>เตือนฉันภายหลัง</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>บัญชีที่รับการแจ้งเตือนบนอุปกรณ์นี้อยู่แล้ว</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>บริการแจ้งเตือนและผู้ให้บริการพุชจะทราบว่าบัญชีเหล่านี้อยู่บนอุปกรณ์เดียวกัน โดยจะไม่ได้รับชื่อบัญชีหรือเนื้อหาข้อความ</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>เปิดสำหรับบัญชีนี้</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>เปิดการแจ้งเตือนสำหรับบัญชีอื่นหรือไม่</string>
 	<key>dmsg.noticeManaged</key>
 	<string>จัดการโดยระบบปฏิบัติการ</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>บริการ</string>
 	<key>dmsg.noticeSettings</key>
 	<string>การแจ้งเตือน</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>การแจ้งเตือนปิดอยู่บนอุปกรณ์นี้ เปิดการเตือนความปลอดภัยเพื่อให้คุณทราบเมื่อมีการกู้คืนบัญชีหรือการเปลี่ยนแปลงความปลอดภัยอื่น แม้ dMsg จะทำงานอยู่เบื้องหลัง</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>ไว้ทีหลัง</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>ตั้งค่าการแจ้งเตือน</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>เปิดการเตือนความปลอดภัย</string>
 	<key>dmsg.noticeSound</key>
 	<string>เสียง</string>
 	<key>dmsg.noticeSwitch</key>

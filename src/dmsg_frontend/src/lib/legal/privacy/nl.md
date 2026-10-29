@@ -1,6 +1,6 @@
 # dMsg Privacybeleid
 
-Laatst bijgewerkt: 27-10-2026.
+Laatst bijgewerkt: 29-10-2026.
 
 dMsg codeert privé-inhoud op je geautoriseerde apparaten. Dit beleid heeft betrekking op dmsg.net, de oude alleen-lezen webapp, de desktop- en iOS-apps, connect.dmsg.net, de cloudservice en de internetcomputer (ICP) canisters. “Wij” betekent het team dat dMsg opereert onder het bestuur van ICPanda DAO. De beschikbaarheid van individuele functies is afhankelijk van de app-versie en serviceconfiguratie.
 
@@ -14,9 +14,11 @@ Kluisitems, privéberichten en bestanden worden gecodeerd voordat ze worden geü
 
 De service verwerkt account- en login-ID's, openbare sleutels van apparaten, kanaallidmaatschap, contact- en blokkeringsregels, objectgroottes, verzoektiming, IP-adressen en operationele verzoekinformatie. Gecertificeerde accountstatus, handtekeningbewijzen en rechten stellen klanten en diensten in staat de autoriteit te verifiëren. Grootboektransacties en openbare of gecertificeerde gegevens in de keten kunnen over het algemeen niet worden gewist.
 
+Als je meldingen inschakelt, verwerkt de meldingsdienst ook wat nodig is om meldingen vóór verzending te filteren: ondoorzichtige resource-identificaties, welke kanalen je hebt gedempt of verborgen, je stille uren en tijdzone, weergavebevestigingen (wanneer je een herinnering daadwerkelijk hebt bekeken en tot welk bericht) en welke accounts op dezelfde installatie zijn geregistreerd. Voor deadlineherinneringen over een openstaand accountherstel uploadt je apparaat het herstelrecord, inclusief de nieuwe inlogidentiteit en de openbare sleutel van het apparaat; de dienst controleert het en bewaart alleen de herinnering en het uitvoeringstijdstip. De dienst ontvangt geen kanaalnamen, berichtinhoud of sleutels om die te ontsleutelen. Het intrekken van de registratie, het verwijderen van het account van het apparaat of het verwijderen van het serviceaccount wist deze voorkeuren, weergavebevestigingen en installatiekoppelingen; bezorg- en herhaalgegevens worden alleen bewaard tot ze verlopen.
+
 ## 3. Apple-services en -betalingen
 
-Op iOS maken optionele meldingen gebruik van de Apple Push Notification-service. Apple en onze bezorgservice verwerken een installatie-ID, apparaattoken en metagegevens van de levering. Meldingen bevatten een algemene herinnering en een ondoorzichtige route, geen berichttekst, wachtwoord of bestandsnaam. Je kunt meldingen uitschakelen in dMsg of systeeminstellingen; reeds afgeleverde meldingen kunnen niet altijd worden herroepen.
+Op iOS maken optionele meldingen gebruik van de Apple Push Notification-service. Apple en onze bezorgservice verwerken een installatie-ID, apparaattoken en metagegevens van de levering. Meldingen bevatten een algemene herinnering en een ondoorzichtige route, geen berichttekst, wachtwoord of bestandsnaam. Je kunt meldingen uitschakelen in dMsg of systeeminstellingen; reeds afgeleverde meldingen kunnen niet altijd worden herroepen. Als meerdere accounts meldingen ontvangen op één installatie, kunnen Apple en onze bezorgservice ze via het gedeelde apparaattoken aan elkaar koppelen; dMsg vraagt toestemming voordat meldingen voor een ander account worden ingeschakeld.
 
 App Attest verwerkt een door de app gegenereerde sleutelidentificatie, attest/beweringbewijs en uitdagingen om een app-installatie te verifiëren. Face ID, Touch ID en de toegangscode van het apparaat worden afgehandeld door het besturingssysteem; dMsg ontvangt geen biometrische afbeeldingen of je toegangscode.
 

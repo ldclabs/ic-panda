@@ -119,12 +119,15 @@ final class NativeNotifications {
     func hide(_ owner: UUID) { visible.removeValue(forKey: owner) }
 
     func installFixtures(account: String) {
+        // --ui-notification-setup: this account has not opted in; another local account has.
+        let setup = ProcessInfo.processInfo.arguments.contains("--ui-notification-setup")
         let categories = Dictionary(uniqueKeysWithValues: ReminderCategory.allCases.map { ($0.rawValue, NoticeCategoryPreference(enabled: true, sound: $0 == .security)) })
-        preferences = NoticePreferences(global: NoticeGlobalPreference(revision: 1, enabled: true, pausedUntil: nil, quietHours: nil, securityException: false, badge: "all"), account: NoticeAccountPreference(revision: 1, enabled: true, categories: categories, mergeDevices: true, agentMail: [:], remoteRevision: 1), accountId: account, remoteSupported: true)
+        preferences = NoticePreferences(global: NoticeGlobalPreference(revision: 1, enabled: true, pausedUntil: nil, quietHours: nil, securityException: false, badge: "all"), account: NoticeAccountPreference(revision: setup ? 0 : 1, enabled: !setup, categories: categories, mergeDevices: true, agentMail: [:], remoteRevision: setup ? 0 : 1), accountId: account, remoteSupported: true)
         let now = NotificationTime.now
         fixtureItems = [ReminderItem(id: String(repeating: "a", count: 64), account: account, target: .recovery(String(repeating: "b", count: 64)), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: now + 86_400_000, observed: "0", stage: 1, snoozedUntil: nil),
             ReminderItem(id: String(repeating: "c", count: 64), account: account, target: .task("conflicts:1"), version: "1", open: true, actionable: true, unread: nil, firstAt: now, updatedAt: now, deadline: nil, observed: "0", stage: 1, snoozedUntil: nil)]
-        status = ReminderStatus(counts: ReminderCounts(actionable: 2, unread: 0, unverified: false), accounts: [.init(account: account, enabled: true, counts: .init(actionable: 2, unread: 0, unverified: false))], badge: 2, enabled: true)
+        let other: [ReminderStatus.Account] = setup ? [.init(account: "040g2082040g2082040g", enabled: true, counts: .init(actionable: 0, unread: 0, unverified: false))] : []
+        status = ReminderStatus(counts: ReminderCounts(actionable: 2, unread: 0, unverified: false), accounts: [.init(account: account, enabled: !setup, counts: .init(actionable: 2, unread: 0, unverified: false))] + other, badge: 2, enabled: true)
     }
     func saveFixture(_ value: NoticePreferences) { preferences = value }
 

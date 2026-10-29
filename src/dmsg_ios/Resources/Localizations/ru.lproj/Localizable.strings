@@ -2036,6 +2036,14 @@
 	<string>Это время позже крайнего срока</string>
 	<key>dmsg.noticeLater</key>
 	<string>Напомнить позже</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Уже получают уведомления на этом устройстве</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Служба уведомлений и поставщик push-уведомлений узнают, что эти аккаунты используются на одном устройстве. Они не получают названия аккаунтов и содержимое сообщений.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Включить для этого аккаунта</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Включить уведомления для другого аккаунта?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Управляется операционной системой</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Сервисы</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Уведомления</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Уведомления на этом устройстве выключены. Включите оповещения безопасности, чтобы узнавать о восстановлении аккаунта и других изменениях безопасности, даже когда dMsg работает в фоне.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Не сейчас</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Настроить уведомления</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Включите оповещения безопасности</string>
 	<key>dmsg.noticeSound</key>
 	<string>Звук</string>
 	<key>dmsg.noticeSwitch</key>

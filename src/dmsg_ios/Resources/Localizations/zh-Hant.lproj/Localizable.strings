@@ -2036,6 +2036,14 @@
 	<string>此時間晚於事項截止時間</string>
 	<key>dmsg.noticeLater</key>
 	<string>稍後提醒</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>已在此裝置接收通知的帳戶</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>通知服務和推播提供者會知道這些帳戶在同一裝置上。它們不會取得帳戶名稱或訊息內容。</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>為此帳戶開啟</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>為另一個帳戶開啟通知？</string>
 	<key>dmsg.noticeManaged</key>
 	<string>由作業系統管理</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>服務</string>
 	<key>dmsg.noticeSettings</key>
 	<string>通知</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>此裝置尚未開啟通知。開啟安全提醒後，即使 dMsg 在背景執行，帳戶復原等安全變更也能及時提醒你。</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>暫不</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>設定通知</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>開啟安全提醒</string>
 	<key>dmsg.noticeSound</key>
 	<string>聲音</string>
 	<key>dmsg.noticeSwitch</key>

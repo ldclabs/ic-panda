@@ -2036,6 +2036,14 @@
 	<string>यह समय अंतिम समय के बाद है</string>
 	<key>dmsg.noticeLater</key>
 	<string>बाद में याद दिलाएँ</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>इस डिवाइस पर पहले से सूचनाएँ पाने वाले खाते</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>सूचना सेवा और पुश प्रदाता को पता चलेगा कि ये खाते एक ही डिवाइस पर हैं। उन्हें खातों के नाम या संदेशों की सामग्री नहीं मिलती।</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>इस खाते के लिए चालू करें</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>किसी दूसरे खाते के लिए सूचनाएँ चालू करें?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>ऑपरेटिंग सिस्टम द्वारा प्रबंधित</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>सेवाएँ</string>
 	<key>dmsg.noticeSettings</key>
 	<string>सूचनाएँ</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>इस डिवाइस पर सूचनाएँ बंद हैं। सुरक्षा अलर्ट चालू करें, ताकि dMsg के बैकग्राउंड में होने पर भी खाता पुनर्प्राप्ति या कोई अन्य सुरक्षा बदलाव आप तक पहुँचे।</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>अभी नहीं</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>सूचनाएँ सेट करें</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>सुरक्षा अलर्ट चालू करें</string>
 	<key>dmsg.noticeSound</key>
 	<string>ध्वनि</string>
 	<key>dmsg.noticeSwitch</key>

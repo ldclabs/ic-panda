@@ -17,6 +17,7 @@ struct RemindersView: View {
     @State private var openedEntry = false
     @State private var request: UUID?
     @State private var itemScope = ""
+    @State private var settingUp = false
     private var accounts: [ReminderStatus.Account] { model.notifications.status?.accounts ?? [] }
     private var scope: String { "\(model.epoch):\(selected):\(recent):\(started)" }
     private var category: ReminderCategory? {
@@ -25,6 +26,7 @@ struct RemindersView: View {
     }
     var body: some View {
         List {
+            NotificationSetupPrompt { settingUp = true }
             if entry.ended { NoticeBar(text: NoticeCopy.text("noticeEnded")) }
             if let route = entry.retryRoute {
                 NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
@@ -100,6 +102,7 @@ struct RemindersView: View {
         }
         .refreshable { await model.notifications.refresh(model, receive: true); await load() }
         .navigationDestination(item: $destination) { destination in ReminderDestinationView(destination: destination) }
+        .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
         .sheet(item: $snoozing) { item in NavigationStack { SnoozeReminderView(item: item) } }
         .accessibilityIdentifier("reminders.page")
     }

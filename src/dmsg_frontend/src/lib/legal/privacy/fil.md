@@ -1,6 +1,6 @@
 # dMsg Patakaran sa Privacy
 
-Huling na-update: 2026-10-27.
+Huling na-update: 2026-10-29.
 
 Ini-encrypt ng dMsg ang pribadong nilalaman sa iyong mga awtorisadong device. Sinasaklaw ng patakarang ito ang dmsg.net, ang read-only na legacy na web app, ang desktop at iOS app, connect.dmsg.net, ang cloud service at ang Internet Computer (ICP) canisters. Ang ibig sabihin ng "Kami" ay ang team na nagpapatakbo ng dMsg sa ilalim ng ICPanda DAO na pamamahala. Ang availability ng mga indibidwal na feature ay depende sa bersyon ng app at configuration ng serbisyo.
 
@@ -14,9 +14,11 @@ Ang mga item sa Vault, pribadong mensahe at mga file ay naka-encrypt bago i-uplo
 
 Pinoproseso ng serbisyo ang account at login identifiers, device public key, channel membership, contact at blocking rules, object sizes, request timing, IP addresses at operational request information. Ang sertipikadong estado ng account, mga resibo ng lagda at mga karapatan ay nagbibigay-daan sa mga kliyente at serbisyo na i-verify ang awtoridad. Ang mga transaksyon sa ledger at pampubliko o sertipikadong on-chain na mga tala sa pangkalahatan ay hindi mabubura.
 
+Kung io-on mo ang mga notification, pinoproseso rin ng serbisyo ng notification ang kailangan nito para salain ang mga alerto bago ipadala: mga opaque na identifier ng resource, kung aling mga channel ang na-mute o itinago mo, ang iyong tahimik na oras at time zone, mga resibo ng pagtingin (kung kailan mo talaga tiningnan ang isang paalala at hanggang saang mensahe), at kung aling mga account ang nakarehistro sa iisang installation. Para sa mga paalala ng deadline ng isang nakabinbing pag-recover ng account, ina-upload ng iyong device ang record ng pag-recover, kasama ang bagong login identity at public key ng device; bine-verify ito ng serbisyo at ang paalala at oras ng pagpapatupad lang ang itinatago nito. Hindi natatanggap ng serbisyo ang mga pangalan ng channel, nilalaman ng mensahe o mga key para i-decrypt ang mga ito. Ang pagbawi ng rehistro, pag-alis ng account sa device o pagbura ng service account ay nag-aalis sa mga kagustuhang ito, mga resibo ng pagtingin at mga link ng installation; ang mga record ng paghahatid at muling pagsubok ay itinatago lang hanggang mag-expire ang mga ito.
+
 ## 3. Mga serbisyo at pagbabayad ng Apple
 
-Sa iOS, ang mga opsyonal na notification ay gumagamit ng serbisyo ng Apple Push Notification. Ang Apple at ang aming serbisyo sa paghahatid ay nagpoproseso ng pagkakakilanlan ng pag-install, token ng device at metadata ng paghahatid. Naglalaman ang mga notification ng generic na paalala at isang opaque na ruta, hindi katawan ng mensahe, password o filename. Maaari mong i-disable ang mga notification sa dMsg o mga setting ng system; Ang naihatid na mga abiso ay hindi palaging maaalala.
+Sa iOS, ang mga opsyonal na notification ay gumagamit ng serbisyo ng Apple Push Notification. Ang Apple at ang aming serbisyo sa paghahatid ay nagpoproseso ng pagkakakilanlan ng pag-install, token ng device at metadata ng paghahatid. Naglalaman ang mga notification ng generic na paalala at isang opaque na ruta, hindi katawan ng mensahe, password o filename. Maaari mong i-disable ang mga notification sa dMsg o mga setting ng system; Ang naihatid na mga abiso ay hindi palaging maaalala. Kung maraming account ang tumatanggap ng notification sa iisang installation, ang pinagsasaluhang device token ay nagbibigay-daan sa Apple at sa aming serbisyo sa paghahatid na iugnay ang mga ito; nagtatanong muna ang dMsg bago i-on ang mga notification para sa isa pang account.
 
 Pinoproseso ng App Attest ang isang key identifier na binuo ng app, ebidensya ng pagpapatotoo/pagpapahayag at mga hamon para ma-verify ang pag-install ng app. Ang Face ID, Touch ID at ang passcode ng device ay pinangangasiwaan ng operating system; Ang dMsg ay hindi tumatanggap ng mga biometric na larawan o ang iyong passcode.
 

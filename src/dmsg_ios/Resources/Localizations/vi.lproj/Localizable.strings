@@ -2036,6 +2036,14 @@
 	<string>Thời điểm này đã quá hạn</string>
 	<key>dmsg.noticeLater</key>
 	<string>Nhắc lại sau</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Các tài khoản đã nhận thông báo trên thiết bị này</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>Dịch vụ thông báo và nhà cung cấp thông báo đẩy sẽ biết các tài khoản này ở trên cùng một thiết bị. Họ không nhận được tên tài khoản hay nội dung tin nhắn.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Bật cho tài khoản này</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Bật thông báo cho một tài khoản khác?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Do hệ điều hành quản lý</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Dịch vụ</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Thông báo</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Thông báo đang tắt trên thiết bị này. Hãy bật cảnh báo bảo mật để biết khi có yêu cầu khôi phục tài khoản hoặc thay đổi bảo mật khác, kể cả khi dMsg chạy nền.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Để sau</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Thiết lập thông báo</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Bật cảnh báo bảo mật</string>
 	<key>dmsg.noticeSound</key>
 	<string>Âm thanh</string>
 	<key>dmsg.noticeSwitch</key>

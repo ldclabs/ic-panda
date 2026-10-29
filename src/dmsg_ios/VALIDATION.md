@@ -1,5 +1,30 @@
 # iOS implementation validation
 
+## Notification consent, setup prompt and privacy text (2026-10-29)
+
+Closes three client gaps before remote notifications are enabled publicly; the
+notification policy itself is unchanged. The offline privacy policies (23
+languages, byte-identical to the website) now list what the notification service
+processes and when it is cleared. `PrivacyInfo.xcprivacy` adds Product Interaction
+for view receipts; the README maps the App Store Connect labels. Turning on an
+account while another local account already receives notifications shows a native
+confirmation that names the other accounts. Reminders and Login identities show a
+non-modal security-alert prompt that only opens settings; "Not now" persists per
+account in the private preferences file, and a newly bound login shows it again.
+
+Rust core unchanged; both ARM64 slices and bindings were rebuilt in a clean
+worktree and the source fingerprint verified. On iPhone 16 Pro / iOS 18.4,
+`xcodebuild test` with `dMsgTests` and `NotificationUITests` passed: 41 unit tests
+(new: alert-state rule, dismissal persistence with older preference files) and
+6 UI tests (new: consent in English and in Arabic dark, prompt set aside in
+Chinese), 0 failures. Screenshots of the Chinese prompt and the Arabic RTL
+confirmation were inspected. 23 localizations with offline privacy parity and
+notification copy parity passed. Not covered: the prompt in Login identities
+(fixture mode has no security engine), a real second-account registration
+against the service, and anything on a physical device.
+
+Implementation and validation: Claude Opus 5.5.
+
 ## Notification review fixes (2026-10-29)
 
 Reviewed the inclusive public range `29b37f46..4e93a9af`. Notification navigation

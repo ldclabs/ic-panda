@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
 import { Notifications, nativeNoticeId } from '../src/main/notifications.ts'
-import { isNoticePlan, isNoticeSequence, isNoticeTarget, noticeRoute, type GlobalNoticeSettings, type NoticePlan } from '../src/shared/notifications.ts'
+import { isNoticePlan, isNoticeSequence, isNoticeTarget, noticeRoute, securityAlertsOn, type GlobalNoticeSettings, type NoticePlan, type NoticePreferences } from '../src/shared/notifications.ts'
 import { quietUntil, tomorrowMorning, validTimeZone } from '../src/shared/notification-time.ts'
 import { notificationCatalogs, notificationText } from '../src/shared/notification-text.ts'
 import { locales } from '../src/shared/locales.ts'
@@ -117,4 +117,21 @@ test('notification settings and native text cover every supported interface loca
     assert.deepEqual(Object.keys(notificationText(locale)).sort(), keys)
     assert.ok(Object.values(notificationText(locale)).every((value) => typeof value === 'string' && value.length > 0))
   }
+})
+
+test('security alerts need the device, account and security category all on', () => {
+  const categories = { security: { enabled: true, sound: true }, action: { enabled: true, sound: false }, message: { enabled: true, sound: false }, service: { enabled: true, sound: false } }
+  const preferences: NoticePreferences = {
+    global: { revision: 0, enabled: false, paused_until: null, quiet_hours: null, security_exception: false, badge: 'all' },
+    account: { revision: 0, enabled: false, categories, merge_devices: true, agent_mail: {}, remote_revision: 0 },
+    account_id: '040g2081040g2081040g', remote_supported: false
+  }
+  assert.equal(securityAlertsOn(preferences), false)
+  preferences.global.enabled = true
+  assert.equal(securityAlertsOn(preferences), false)
+  preferences.account!.enabled = true
+  assert.equal(securityAlertsOn(preferences), true)
+  preferences.account!.categories.security.enabled = false
+  assert.equal(securityAlertsOn(preferences), false)
+  assert.equal(securityAlertsOn({ ...preferences, account: null }), false)
 })

@@ -2036,6 +2036,14 @@
 	<string>یہ وقت آخری مہلت کے بعد ہے</string>
 	<key>dmsg.noticeLater</key>
 	<string>بعد میں یاد دلائیں</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>اس آلے پر پہلے سے اطلاعات وصول کرنے والے اکاؤنٹس</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>اطلاعات کی سروس اور پش فراہم کنندہ کو معلوم ہو جائے گا کہ یہ اکاؤنٹس ایک ہی آلے پر ہیں۔ انہیں اکاؤنٹس کے نام یا پیغامات کا مواد نہیں ملتا۔</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>اس اکاؤنٹ کے لیے آن کریں</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>کسی دوسرے اکاؤنٹ کے لیے اطلاعات آن کریں؟</string>
 	<key>dmsg.noticeManaged</key>
 	<string>آپریٹنگ سسٹم کے زیرِ انتظام</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>خدمات</string>
 	<key>dmsg.noticeSettings</key>
 	<string>اطلاعات</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>اس آلے پر اطلاعات بند ہیں۔ حفاظتی انتباہات آن کریں تاکہ dMsg پس منظر میں ہو تب بھی اکاؤنٹ کی بازیابی یا کوئی دوسری حفاظتی تبدیلی آپ تک پہنچے۔</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>ابھی نہیں</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>اطلاعات ترتیب دیں</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>حفاظتی انتباہات آن کریں</string>
 	<key>dmsg.noticeSound</key>
 	<string>آواز</string>
 	<key>dmsg.noticeSwitch</key>

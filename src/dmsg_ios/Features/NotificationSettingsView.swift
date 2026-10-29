@@ -11,6 +11,9 @@ struct NotificationSettingsView: View {
     @State private var working = false
     @State private var failed = false
     @State private var request: UUID?
+    /// Other local accounts already receiving notifications on this device.
+    @State private var others: [String] = []
+    @State private var linking = false
     private var dirty: Bool { draft?.global != saved?.global || draft?.account != saved?.account }
     private var scope: String { "\(model.epoch):\(model.session?.account ?? "")" }
     var body: some View {
@@ -81,6 +84,11 @@ struct NotificationSettingsView: View {
             if failed { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")) }
         }
         .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings"))
+        .confirmationDialog(NoticeCopy.text("noticeLinkTitle"), isPresented: $linking, titleVisibility: .visible) {
+            Button(NoticeCopy.text("noticeLinkConfirm")) { Task { await save(linked: true) } }
+        } message: {
+            Text(NoticeCopy.text("noticeLinkBody") + "\n\n" + NoticeCopy.text("noticeLinkAccounts") + "\n" + others.joined(separator: "\n"))
+        }
         .task(id: scope) { await load() }
         .refreshable { await model.notifications.refresh(model, receive: true); await load(preserve: dirty) }
         .accessibilityIdentifier("notifications.settings")
@@ -107,15 +115,23 @@ struct NotificationSettingsView: View {
         guard current == scope, request == token, !Task.isCancelled else { return }
         status = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) ? String(localized: "Allowed") : String(localized: "Not enabled")
         do {
-            let next: NoticePreferences
-            if model.uiTesting, let fixture = model.notifications.preferences { next = fixture }
-            else { guard let engine = model.engine else { return }; next = try model.decode(try await engine.notificationPreferences(selected: model.session?.account)) }
+            let next: NoticePreferences, counts: ReminderStatus?
+            if model.uiTesting, let fixture = model.notifications.preferences { next = fixture; counts = model.notifications.status }
+            else {
+                guard let engine = model.engine else { return }
+                next = try model.decode(try await engine.notificationPreferences(selected: model.session?.account))
+                counts = try model.decode(try await engine.notificationStatus())
+            }
             guard current == scope, request == token, !Task.isCancelled else { return }
             saved = next; if !preserve || draft == nil { draft = next }
+            others = (counts?.accounts ?? []).filter { $0.enabled && $0.account != next.accountId }.map(\.account)
         } catch { if current == scope { failed = true } }
     }
-    private func save() async {
+    private func save(linked: Bool = false) async {
         guard let saved, var value = draft, !working else { return }
+        // Registering another account tells the notification service and the push
+        // provider that these accounts share this device; that needs consent.
+        if !linked, value.account?.enabled == true, saved.account?.enabled != true, !others.isEmpty { linking = true; return }
         let current = scope; working = true; defer { working = false }
         do {
             if let hours = value.global.quietHours, hours.start == hours.end { throw MobileError.Failure(code: "INVALID_INPUT") }
@@ -144,5 +160,26 @@ struct NotificationSettingsView: View {
         do { if try await model.push.requestPermission() { try await model.notifications.test() } }
         catch { model.report(error) }
         await load(preserve: dirty)
+    }
+}
+
+/// New installations start with notifications off. Once the account is set up,
+/// this points to the settings; it never asks the system for permission.
+struct NotificationSetupPrompt: View {
+    @Environment(SessionModel.self) private var model
+    let open: () -> Void
+    var body: some View {
+        if let account = model.session?.account, model.unlocked, let preferences = model.notifications.preferences,
+           preferences.accountId == account, !preferences.securityAlertsOn, !model.notificationSetupDismissed.contains(account) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(NoticeCopy.text("noticeSetupTitle"), systemImage: "shield").font(.subheadline.weight(.semibold))
+                Text(NoticeCopy.text("noticeSetupBody")).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button(NoticeCopy.text("noticeSetupOpen"), action: open).buttonStyle(.bordered).accessibilityIdentifier("notifications.setup.open")
+                    Button(NoticeCopy.text("noticeSetupLater")) { model.setNotificationSetupDismissed(true, account: account) }
+                        .buttonStyle(.borderless).accessibilityIdentifier("notifications.setup.later")
+                }
+            }.padding(.vertical, 4).accessibilityElement(children: .contain).accessibilityIdentifier("notifications.setup")
+        }
     }
 }

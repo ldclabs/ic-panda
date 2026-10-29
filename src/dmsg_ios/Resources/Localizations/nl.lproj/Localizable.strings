@@ -2036,6 +2036,14 @@
 	<string>Dit tijdstip ligt na de deadline</string>
 	<key>dmsg.noticeLater</key>
 	<string>Later herinneren</string>
+	<key>dmsg.noticeLinkAccounts</key>
+	<string>Accounts die op dit apparaat al meldingen ontvangen</string>
+	<key>dmsg.noticeLinkBody</key>
+	<string>De meldingsdienst en de pushprovider weten dan dat deze accounts op hetzelfde apparaat staan. Ze ontvangen geen accountnamen of berichtinhoud.</string>
+	<key>dmsg.noticeLinkConfirm</key>
+	<string>Inschakelen voor dit account</string>
+	<key>dmsg.noticeLinkTitle</key>
+	<string>Meldingen inschakelen voor een ander account?</string>
 	<key>dmsg.noticeManaged</key>
 	<string>Beheerd door het besturingssysteem</string>
 	<key>dmsg.noticeMerge</key>
@@ -2078,6 +2086,14 @@
 	<string>Diensten</string>
 	<key>dmsg.noticeSettings</key>
 	<string>Meldingen</string>
+	<key>dmsg.noticeSetupBody</key>
+	<string>Meldingen staan uit op dit apparaat. Schakel beveiligingsmeldingen in zodat een accountherstel of andere beveiligingswijziging je bereikt wanneer dMsg op de achtergrond draait.</string>
+	<key>dmsg.noticeSetupLater</key>
+	<string>Niet nu</string>
+	<key>dmsg.noticeSetupOpen</key>
+	<string>Meldingen instellen</string>
+	<key>dmsg.noticeSetupTitle</key>
+	<string>Beveiligingsmeldingen inschakelen</string>
 	<key>dmsg.noticeSound</key>
 	<string>Geluid</string>
 	<key>dmsg.noticeSwitch</key>

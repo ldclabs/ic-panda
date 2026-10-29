@@ -8,6 +8,7 @@
   import Select from '../components/Select.svelte'
   import Segmented from '../components/Segmented.svelte'
   import Dialog from '../components/Dialog.svelte'
+  import NoticeSetup from './NoticeSetup.svelte'
   import { buttonClass } from '../components/ui'
   import { call, errorText, single, when } from '../rpc'
   import { locale, t } from '../i18n/index.svelte'
@@ -141,6 +142,7 @@
       <Select bind:value={selected} options={accounts.map((account) => ({value:account.account,label:shortId(account.account)}))} label={t('account')} disabled={busy || !accounts.length} testid="reminders-account" />
       <Segmented bind:value={scope} options={[{value:'open',label:t('noticeNeedsAction')},{value:'recent',label:t('noticeRecent')}]} label={t('noticeTitle')} disabled={busy} testid="reminders-scope" />
     </div>
+    <NoticeSetup {status} {go} class="mt-4" />
     {#if error}<div class="mt-4"><Notice failure={error} tone="danger">{error}</Notice></div>{/if}
     {#if query.has('ended')}<div class="mt-4"><Notice>{t('noticeEnded')}</Notice></div>{/if}
     {#if wrongAccount}

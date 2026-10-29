@@ -1,6 +1,6 @@
 # Kebijakan Privasi dMsg
 
-Terakhir diperbarui: 27-10-2026.
+Terakhir diperbarui: 29-10-2026.
 
 dMsg mengenkripsi konten pribadi di perangkat resmi Anda. Kebijakan ini mencakup dmsg.net, aplikasi web lama yang hanya dapat dibaca, aplikasi desktop dan iOS, connect.dmsg.net, layanan cloud, dan Komputer Internet (ICP) canisters. “Kami” berarti tim yang mengoperasikan dMsg di bawah tata kelola ICPanda DAO. Ketersediaan fitur individual bergantung pada versi aplikasi dan konfigurasi layanan.
 
@@ -14,9 +14,11 @@ Item brankas, pesan pribadi, dan file dienkripsi sebelum diunggah. Kunci konten 
 
 Layanan ini memproses pengidentifikasi akun dan login, kunci publik perangkat, keanggotaan saluran, aturan kontak dan pemblokiran, ukuran objek, waktu permintaan, alamat IP, dan informasi permintaan operasional. Status akun tersertifikasi, tanda terima tanda tangan, dan hak memungkinkan klien dan layanan memverifikasi otoritas. Transaksi buku besar dan catatan on-chain publik atau tersertifikasi umumnya tidak dapat dihapus.
 
+Jika Anda mengaktifkan notifikasi, layanan notifikasi juga memproses hal yang diperlukan untuk menyaring peringatan sebelum dikirim: pengidentifikasi sumber daya yang buram, saluran yang Anda bisukan atau sembunyikan, jam tenang dan zona waktu, tanda terima tampilan (kapan Anda benar-benar melihat pengingat dan sampai pesan mana), serta akun mana yang terdaftar pada instalasi yang sama. Untuk pengingat tenggat pemulihan akun yang tertunda, perangkat Anda mengunggah catatan pemulihan, termasuk identitas login baru dan kunci publik perangkat; layanan memverifikasinya dan hanya menyimpan pengingat serta waktu pelaksanaannya. Layanan tidak menerima nama saluran, isi pesan, atau kunci untuk mendekripsinya. Mencabut pendaftaran, menghapus akun dari perangkat, atau menghapus akun layanan akan menghapus preferensi, tanda terima tampilan, dan tautan instalasi tersebut; catatan pengiriman dan percobaan ulang hanya disimpan sampai kedaluwarsa.
+
 ## 3. Layanan dan pembayaran Apple
 
-Di iOS, notifikasi opsional menggunakan layanan Notifikasi Apple Push. Apple dan layanan pengiriman kami memproses pengidentifikasi instalasi, token perangkat, dan metadata pengiriman. Pemberitahuan berisi pengingat umum dan rute buram, bukan isi pesan, kata sandi, atau nama file. Anda dapat menonaktifkan notifikasi di dMsg atau pengaturan sistem; pemberitahuan yang sudah terkirim tidak selalu dapat ditarik kembali.
+Di iOS, notifikasi opsional menggunakan layanan Notifikasi Apple Push. Apple dan layanan pengiriman kami memproses pengidentifikasi instalasi, token perangkat, dan metadata pengiriman. Pemberitahuan berisi pengingat umum dan rute buram, bukan isi pesan, kata sandi, atau nama file. Anda dapat menonaktifkan notifikasi di dMsg atau pengaturan sistem; pemberitahuan yang sudah terkirim tidak selalu dapat ditarik kembali. Jika beberapa akun menerima notifikasi pada satu instalasi, token perangkat yang sama memungkinkan Apple dan layanan pengiriman kami menghubungkannya; dMsg meminta persetujuan Anda sebelum mengaktifkan notifikasi untuk akun lain.
 
 App Attest memproses pengidentifikasi kunci, bukti pengesahan/pernyataan, dan tantangan yang dihasilkan aplikasi untuk memverifikasi instalasi aplikasi. Face ID, Touch ID dan kode sandi perangkat ditangani oleh sistem operasi; dMsg tidak menerima gambar biometrik atau kode sandi Anda.
 

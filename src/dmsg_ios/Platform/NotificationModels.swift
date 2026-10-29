@@ -129,6 +129,8 @@ struct NoticePreferences: Decodable, Equatable {
     var remoteSupported: Bool; var globalPendingSync: Bool?; var globalConflict: Bool?; var accountConflict: Bool?
     var pending: Bool { globalPendingSync == true || (account.map { $0.revision > $0.remoteRevision } ?? false) }
     var conflict: Bool { globalConflict == true || accountConflict == true }
+    /// Security alerts reach this device only with all three switches on.
+    var securityAlertsOn: Bool { global.enabled && account?.enabled == true && account?.categories[ReminderCategory.security.rawValue]?.enabled == true }
 }
 
 enum NoticeEncoding {
@@ -213,6 +215,14 @@ enum NoticeCopy {
         "noticeReadOnlyHint": "Viewing reminders does not complete actions or mark messages as read.",
         "noticePendingHint": "Your settings apply here immediately. Remote alerts may use earlier settings until the update is confirmed.",
         "noticeScopeHint": "Quiet hours and sounds apply to this device. Channel mutes follow your account.",
-        "noticeUpdatesBody": "Open dMsg to check for new activity."
+        "noticeUpdatesBody": "Open dMsg to check for new activity.",
+        "noticeLinkTitle": "Turn on notifications for another account?",
+        "noticeLinkBody": "The notification service and the push provider will know that these accounts are on the same device. They do not receive account names or message content.",
+        "noticeLinkAccounts": "Already receiving notifications on this device",
+        "noticeLinkConfirm": "Turn on for this account",
+        "noticeSetupTitle": "Turn on security alerts",
+        "noticeSetupBody": "Notifications are off on this device. Turn on security alerts so an account recovery or other security change reaches you when dMsg is in the background.",
+        "noticeSetupOpen": "Set up notifications",
+        "noticeSetupLater": "Not now"
     ]
 }

@@ -19,6 +19,19 @@ final class NotificationTests: XCTestCase {
         ] { XCTAssertThrowsError(try decode(json, as: ReminderTarget.self)) }
     }
 
+    func testSecurityAlertsNeedDeviceAccountAndCategory() {
+        let categories = Dictionary(uniqueKeysWithValues: ReminderCategory.allCases.map { ($0.rawValue, NoticeCategoryPreference(enabled: true, sound: false)) })
+        var preferences = NoticePreferences(global: .init(revision: 0, enabled: false, pausedUntil: nil, quietHours: nil, securityException: false, badge: "all"),
+            account: .init(revision: 0, enabled: false, categories: categories, mergeDevices: true, agentMail: [:], remoteRevision: 0), accountId: "a", remoteSupported: true)
+        XCTAssertFalse(preferences.securityAlertsOn)
+        preferences.global.enabled = true
+        XCTAssertFalse(preferences.securityAlertsOn)
+        preferences.account?.enabled = true
+        XCTAssertTrue(preferences.securityAlertsOn)
+        preferences.account?.categories["security"]?.enabled = false
+        XCTAssertFalse(preferences.securityAlertsOn)
+    }
+
     func testPushRoutesAllowOnlyVersionedOpaqueIdentity() {
         let route = String(repeating: "a", count: 128), local = String(repeating: "b", count: 64)
         XCTAssertEqual(NotificationRoute.parse(["version": 1, "route": route]), route)
