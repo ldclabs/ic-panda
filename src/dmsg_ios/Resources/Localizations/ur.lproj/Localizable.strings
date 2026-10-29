@@ -420,6 +420,12 @@
 	<string>حوالہ کاپی کریں</string>
 	<key>Copy this field?</key>
 	<string>اس فیلڈ کو کاپی کریں؟</string>
+	<key>Cosign on this device</key>
+	<string>اس آلے پر مشترکہ دستخط کریں</string>
+	<key>Cosign packet from another device</key>
+	<string>دوسرے آلے سے مشترکہ دستخط پیکٹ</string>
+	<key>Cosignatures</key>
+	<string>مشترکہ دستخط</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>مجوزہ ایڈریس پالیسی کے لیے کازائنرز</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>منظور شدہ تجویز پر عمل کریں</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>اس منظور شدہ بٹوے کی تجویز پر عمل کریں؟</string>
+	<key>Execute with collected signatures</key>
+	<string>جمع شدہ دستخطوں سے عمل کریں</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>موجودہ بلاک رولز، دعوت نامے اور ان باکس کی گنجائش محفوظ ہے۔ مفت یا بند پالیسی کا انتخاب کسی بھی پچھلی بامعاوضہ رابطے کی ترتیب کو بدل دیتا ہے۔</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>ایک غیر خفیہ کردہ 1 پاس ورڈ، بٹ وارڈن یا براؤزر پاس ورڈ برآمد درآمد کریں۔ ماخذ اس آلہ پر رہتا ہے؛ صرف منتخب ریکارڈز شامل کیے جاتے ہیں۔</string>
 	<key>Import completed</key>
 	<string>درآمد مکمل</string>
+	<key>Import cosign packet</key>
+	<string>مشترکہ دستخط پیکٹ درآمد کریں</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>درآمد سے نئی آزاد اشیاء تخلیق ہوتی ہیں۔ فائلیں اس ڈیوائس پر رہتی ہیں اور منتخب فولڈر کی رسائی کی اجازتوں کو وراثت میں حاصل کرتی ہیں۔ کچھ بھی خود بخود منتخب نہیں ہوتا ہے۔</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>ایک کاپی شیئر کریں</string>
 	<key>Share binding request</key>
 	<string>بانٹنے کی درخواست</string>
+	<key>Share cosign packet</key>
+	<string>مشترکہ دستخط پیکٹ شیئر کریں</string>
 	<key>Share enrollment request</key>
 	<string>اندراج کی درخواست کا اشتراک کریں</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>جوڑا بنانے کی درخواست کا اشتراک کریں</string>
 	<key>Share secret snapshot</key>
 	<string>خفیہ اسنیپ شاٹ کا اشتراک کریں</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>اس آلے کے دستخط دوسرے مشترکہ دستخط کنندگان کے ساتھ شیئر کریں، یا ان کے دستخط درآمد کریں۔ درآمد صرف دستخط جمع کرتی ہے؛ عمل درآمد ایک الگ مرحلہ ہے۔</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>اس درخواست کو کسی مجاز منتظم کے ساتھ شیئر کریں۔ یہ خود سے کلید کو رجسٹر یا منظور نہیں کرتا ہے۔</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>اس اکاؤنٹ سے سائن آؤٹ کریں؟</string>
 	<key>Sign the statement you reviewed</key>
 	<string>اس بیان پر دستخط کریں جس کا آپ نے جائزہ لیا ہے</string>
+	<key>Signatures collected</key>
+	<string>جمع شدہ دستخط</string>
 	<key>Simulate approval</key>
 	<string>منظوری کی تقلید کریں</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>یہ ڈیوائس</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>اس ڈیوائس میں ایسی تبدیلیاں ہیں جو مطابقت پذیر نہیں ہوئی ہیں۔ اکاؤنٹ کو حذف کرنے سے پہلے اپنی ضرورت کی ہر چیز کو محفوظ کریں۔</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>اس آلے میں اس تجویز کے لیے کوئی مشترکہ دستخطی کلید نہیں ہے۔</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>یہ آلہ اپنی انکرپٹڈ ورک اسپیس رکھتا ہے۔ جو مواد مطابقت پذیر نہیں ہوا ہے اسے کسی دوسرے آلے سے بازیافت نہیں کیا جا سکتا۔</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

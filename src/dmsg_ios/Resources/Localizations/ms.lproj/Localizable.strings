@@ -420,6 +420,12 @@
 	<string>Salin rujukan</string>
 	<key>Copy this field?</key>
 	<string>Salin medan ini?</string>
+	<key>Cosign on this device</key>
+	<string>Tandatangan bersama pada peranti ini</string>
+	<key>Cosign packet from another device</key>
+	<string>Paket tandatangan bersama daripada peranti lain</string>
+	<key>Cosignatures</key>
+	<string>Tandatangan bersama</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners untuk dasar alamat yang dicadangkan</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Melaksanakan cadangan yang diluluskan</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Laksanakan cadangan dompet yang diluluskan ini?</string>
+	<key>Execute with collected signatures</key>
+	<string>Laksanakan dengan tandatangan yang dikumpul</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Peraturan blok sedia ada, jemputan dan kapasiti peti masuk dikekalkan. Memilih dasar percuma atau tertutup menggantikan sebarang tetapan hubungan berbayar sebelumnya.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Import 1Password, Bitwarden atau eksport kata laluan penyemak imbas yang tidak disulitkan. Sumber kekal pada peranti ini; hanya rekod terpilih ditambah.</string>
 	<key>Import completed</key>
 	<string>Import selesai</string>
+	<key>Import cosign packet</key>
+	<string>Import paket tandatangan bersama</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Import mencipta item bebas baharu. Fail kekal pada peranti ini dan mewarisi kebenaran akses akses folder yang dipilih. Tiada apa-apa yang dipilih secara automatik.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Kongsi salinan</string>
 	<key>Share binding request</key>
 	<string>Kongsi permintaan yang mengikat</string>
+	<key>Share cosign packet</key>
+	<string>Kongsi paket tandatangan bersama</string>
 	<key>Share enrollment request</key>
 	<string>Kongsi permintaan pendaftaran</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Kongsi permintaan pasangan</string>
 	<key>Share secret snapshot</key>
 	<string>Kongsi gambar rahsia</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Kongsi tandatangan peranti ini dengan cosigner lain, atau import tandatangan mereka. Import hanya mengumpul tandatangan; pelaksanaan ialah langkah berasingan.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Kongsi permintaan ini dengan pentadbir yang diberi kuasa. Ia tidak mendaftar atau meluluskan kunci dengan sendirinya.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Log keluar daripada akaun ini?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Tandatangani penyata yang anda semak</string>
+	<key>Signatures collected</key>
+	<string>Tandatangan yang dikumpul</string>
 	<key>Simulate approval</key>
 	<string>Simulasikan kelulusan</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Peranti ini</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Peranti ini mempunyai perubahan yang belum disegerakkan. Simpan apa sahaja yang anda perlukan sebelum memadamkan akaun.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>Peranti ini tiada kunci cosigner untuk cadangan ini.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Peranti ini menyimpan ruang kerja yang disulitkan sendiri. Kandungan yang belum disegerakkan tidak boleh dipulihkan daripada peranti lain.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

@@ -420,6 +420,12 @@
 	<string>คัดลอกการอ้างอิง</string>
 	<key>Copy this field?</key>
 	<string>คัดลอกช่องนี้ใช่ไหม</string>
+	<key>Cosign on this device</key>
+	<string>ลงนามร่วมบนอุปกรณ์นี้</string>
+	<key>Cosign packet from another device</key>
+	<string>แพ็กเก็ตการลงนามร่วมจากอุปกรณ์อื่น</string>
+	<key>Cosignatures</key>
+	<string>การลงนามร่วม</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners สำหรับนโยบายที่อยู่ที่นำเสนอ</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>ดำเนินการข้อเสนอที่ได้รับอนุมัติ</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>ดำเนินการข้อเสนอกระเป๋าเงินที่ได้รับอนุมัตินี้หรือไม่</string>
+	<key>Execute with collected signatures</key>
+	<string>ดำเนินการด้วยลายเซ็นที่รวบรวมแล้ว</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>กฎการบล็อก คำเชิญ และความจุของกล่องจดหมายที่มีอยู่จะยังคงอยู่ การเลือกนโยบายแบบฟรีหรือแบบปิดจะแทนที่การตั้งค่าการติดต่อแบบชำระเงินก่อนหน้านี้</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>นำเข้าการส่งออก 1Password, Bitwarden หรือรหัสผ่านเบราว์เซอร์ที่ไม่ได้เข้ารหัส แหล่งที่มาจะยังคงอยู่ในอุปกรณ์นี้ เพิ่มเฉพาะบันทึกที่เลือกเท่านั้น</string>
 	<key>Import completed</key>
 	<string>การนำเข้าเสร็จสมบูรณ์</string>
+	<key>Import cosign packet</key>
+	<string>นำเข้าแพ็กเก็ตการลงนามร่วม</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>การนำเข้าจะสร้างรายการอิสระใหม่ ไฟล์จะยังคงอยู่ในอุปกรณ์นี้และสืบทอดสิทธิ์การเข้าถึงของโฟลเดอร์ที่เลือก ไม่มีสิ่งใดถูกเลือกโดยอัตโนมัติ</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>แบ่งปันสำเนา</string>
 	<key>Share binding request</key>
 	<string>แบ่งปันคำขอผูกพัน</string>
+	<key>Share cosign packet</key>
+	<string>แชร์แพ็กเก็ตการลงนามร่วม</string>
 	<key>Share enrollment request</key>
 	<string>แบ่งปันคำขอลงทะเบียน</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>แบ่งปันคำขอจับคู่</string>
 	<key>Share secret snapshot</key>
 	<string>แบ่งปันภาพรวมความลับ</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>แชร์ลายเซ็นของอุปกรณ์นี้กับผู้ลงนามร่วมคนอื่น หรือนำเข้าลายเซ็นของพวกเขา การนำเข้าเป็นเพียงการรวบรวมลายเซ็น ส่วนการดำเนินการเป็นอีกขั้นตอนหนึ่ง</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>แบ่งปันคำขอนี้กับผู้ดูแลระบบที่ได้รับอนุญาต มันไม่ได้ลงทะเบียนหรืออนุมัติคีย์ด้วยตัวเอง</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>ออกจากระบบบัญชีนี้ใช่ไหม</string>
 	<key>Sign the statement you reviewed</key>
 	<string>ลงนามในคำชี้แจงที่คุณตรวจสอบ</string>
+	<key>Signatures collected</key>
+	<string>ลายเซ็นที่รวบรวมแล้ว</string>
 	<key>Simulate approval</key>
 	<string>จำลองการอนุมัติ</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>อุปกรณ์นี้</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>อุปกรณ์นี้มีการเปลี่ยนแปลงที่ยังไม่ได้ซิงค์ บันทึกสิ่งที่คุณต้องการก่อนที่จะลบบัญชี</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>อุปกรณ์นี้ไม่มีคีย์ผู้ลงนามร่วมสำหรับข้อเสนอนี้</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>อุปกรณ์นี้จะเก็บพื้นที่ทำงานที่เข้ารหัสไว้ของตัวเอง เนื้อหาที่ไม่ได้ซิงค์จะไม่สามารถกู้คืนจากอุปกรณ์อื่นได้</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

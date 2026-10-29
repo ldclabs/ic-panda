@@ -420,6 +420,12 @@
 	<string>复制引用</string>
 	<key>Copy this field?</key>
 	<string>复制这个字段？</string>
+	<key>Cosign on this device</key>
+	<string>在本机联合签名</string>
+	<key>Cosign packet from another device</key>
+	<string>来自其他设备的联合签名包</string>
+	<key>Cosignatures</key>
+	<string>联合签名</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>拟定地址策略的联合签名者</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>执行已批准提案</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>执行此已批准的钱包提案？</string>
+	<key>Execute with collected signatures</key>
+	<string>用已收集的签名执行</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>现有屏蔽规则、邀请和收件箱容量会保留。选择免费或关闭，会替换原有的付费联系设置。</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>导入未加密的 1Password、Bitwarden 或浏览器密码导出文件。源文件仅保留在本机，只添加你选择的记录。</string>
 	<key>Import completed</key>
 	<string>导入完成</string>
+	<key>Import cosign packet</key>
+	<string>导入联合签名包</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>导入会创建新的独立条目。文件仅保存在本设备，并继承所选文件夹的访问授权。不会自动选择任何内容。</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>分享副本</string>
 	<key>Share binding request</key>
 	<string>分享绑定请求</string>
+	<key>Share cosign packet</key>
+	<string>分享联合签名包</string>
 	<key>Share enrollment request</key>
 	<string>分享登记请求</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>分享配对请求</string>
 	<key>Share secret snapshot</key>
 	<string>分享秘密快照</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>将本机的签名分享给其他联合签名者，或导入他们的签名。导入只收集签名，执行是单独的一步。</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>将此请求分享给已授权的管理员。请求本身不会注册或批准钥匙。</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>退出这个账户？</string>
 	<key>Sign the statement you reviewed</key>
 	<string>签署你已核对的声明</string>
+	<key>Signatures collected</key>
+	<string>已收集的签名</string>
 	<key>Simulate approval</key>
 	<string>演练批准</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>此设备</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>此设备有未同步的修改，请在删除账号前保存需要的内容。</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>本机没有此提案可用的联合签名密钥。</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>这台设备保存独立的加密工作区，未同步内容无法从其他设备恢复。</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

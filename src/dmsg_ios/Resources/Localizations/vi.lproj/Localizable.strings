@@ -420,6 +420,12 @@
 	<string>Sao chép tài liệu tham khảo</string>
 	<key>Copy this field?</key>
 	<string>Sao chép trường này?</string>
+	<key>Cosign on this device</key>
+	<string>Đồng ký trên thiết bị này</string>
+	<key>Cosign packet from another device</key>
+	<string>Gói đồng ký từ thiết bị khác</string>
+	<key>Cosignatures</key>
+	<string>Đồng ký</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Người đồng ký tên cho chính sách địa chỉ được đề xuất</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Thực hiện đề xuất đã được phê duyệt</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Thực hiện đề xuất ví đã được phê duyệt này?</string>
+	<key>Execute with collected signatures</key>
+	<string>Thực hiện bằng chữ ký đã thu thập</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Các quy tắc chặn, lời mời và dung lượng hộp thư đến hiện tại vẫn được giữ nguyên. Việc chọn chính sách miễn phí hoặc đóng sẽ thay thế mọi cài đặt liên hệ trả phí trước đó.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Nhập bản xuất mật khẩu 1Password, Bitwarden hoặc trình duyệt không được mã hóa. Nguồn vẫn ở trên thiết bị này; chỉ những bản ghi đã chọn mới được thêm vào.</string>
 	<key>Import completed</key>
 	<string>Đã nhập xong</string>
+	<key>Import cosign packet</key>
+	<string>Nhập gói đồng ký</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Nhập khẩu tạo ra các mặt hàng độc lập mới. Các tệp vẫn ở trên thiết bị này và kế thừa quyền truy cập của thư mục đã chọn. Không có gì được chọn tự động.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Chia sẻ một bản sao</string>
 	<key>Share binding request</key>
 	<string>Chia sẻ yêu cầu ràng buộc</string>
+	<key>Share cosign packet</key>
+	<string>Chia sẻ gói đồng ký</string>
 	<key>Share enrollment request</key>
 	<string>Chia sẻ yêu cầu đăng ký</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Chia sẻ yêu cầu ghép nối</string>
 	<key>Share secret snapshot</key>
 	<string>Chia sẻ ảnh chụp nhanh bí mật</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Chia sẻ chữ ký của thiết bị này với những người đồng ký khác, hoặc nhập chữ ký của họ. Việc nhập chỉ thu thập chữ ký; thực hiện là một bước riêng.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Chia sẻ yêu cầu này với quản trị viên được ủy quyền. Nó không tự đăng ký hoặc phê duyệt khóa.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Đăng xuất khỏi tài khoản này?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Ký vào bản tuyên bố bạn đã xem xét</string>
+	<key>Signatures collected</key>
+	<string>Chữ ký đã thu thập</string>
 	<key>Simulate approval</key>
 	<string>Mô phỏng phê duyệt</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Thiết bị này</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Thiết bị này có những thay đổi chưa được đồng bộ hóa. Lưu mọi thứ bạn cần trước khi xóa tài khoản.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>Thiết bị này không có khóa đồng ký cho đề xuất này.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Thiết bị này giữ không gian làm việc được mã hóa riêng. Không thể khôi phục nội dung chưa được đồng bộ hóa từ thiết bị khác.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

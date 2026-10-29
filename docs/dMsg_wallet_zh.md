@@ -38,7 +38,7 @@
 | Bitcoin | P2TR、P2WPKH、同输入替换、Taproot 双控及时间锁路径 | 尚未完成 Bitcoin regtest 广播验收与硬件钱包接线 |
 | EVM | EIP-1559 原生币和 ERC-20 转账、同 nonce 替换、取消与释放待处理 nonce | 不支持通用 EVM calldata、EVM 批量或 Safe 双控 |
 | Solana | SOL、SPL、可选 ATA 创建、批量、显式初始化持久 nonce | 默认地址没有持久 nonce；普通已签交易只能重广播原字节 |
-| 设备协签 | canister 的 Raw/FIDO2/WebAuthn 验签；客户端的 macOS Secure Enclave 与软件 P-256；同计划多设备收集 | TPM、CTAP2、桥接页 WebAuthn 和链硬件钱包适配尚未实现 |
+| 设备协签 | canister 的 Raw/FIDO2/WebAuthn 验签；客户端的 macOS 与 iOS Secure Enclave、软件 P-256；同计划多设备收集，桌面与 iOS 之间可交换协签包 | TPM、CTAP2、桥接页 WebAuthn 和链硬件钱包适配尚未实现；客户端尚不能生成 Taproot L1 所需的 BIP-340 签名 |
 | 桌面与协作 | 四主区工作台、独立审批、认证读取、收款核对、审计页、加密频道提示、RPC 配置 | 频道只通知与导航；公开透明页和链上 `attest_*` 尚未实现 |
 
 ## 3. 产品原则
@@ -84,7 +84,9 @@
 | CS 协签 | 在成员批准之外，钱包要求指定密钥对精确计划摘要满足协签阈值；ICP 类操作绑定提案摘要 | 由钱包代码强制；Admin 阈值 + 24 小时可调整或移除普通地址协签，不防恶意升级绕过 |
 | NC 链上双控 | 当前仅 Bitcoin Taproot：L1 同时要求链密钥与 BIP-340 协签密钥 | L2 在 UTXO 达到设定区块年龄后允许链密钥单独花费；可选 L3 由恢复密钥在另一时间锁后花费；不能宣称所有路径永久 2-of-2 |
 
-普通 CS 密钥生成目前支持 macOS Secure Enclave P-256 和本机 LDK 加密保存的软件 P-256。明确要求硬件时，硬件不可用会失败；不能静默降级。canister 的 `hardware` 标记来自登记声明，没有硬件远程证明。硬件私钥不可导出也不等于有可信交易显示。
+普通 CS 密钥生成目前支持 macOS 与 iOS 的 Secure Enclave P-256，以及本机 LDK 加密保存的软件 P-256。要求硬件而硬件不可用时直接失败，不静默降级：桌面随后询问是否改建软件密钥，CLI 只有加 `--software` 才建软件密钥，iOS 只建 Secure Enclave 密钥。canister 的 `hardware` 标记来自登记声明，没有硬件远程证明。硬件私钥不可导出也不等于有可信交易显示。
+
+两端的差异：macOS Secure Enclave 每次在场确认最多签 32 个摘要，iOS 最多 64 个；关闭 iPhone 锁屏密码会使其 Secure Enclave 密钥失效，钱包需要另有协签人才能继续使用。NC 协签密钥是 BIP-340 Taproot 密钥，目前没有 dMsg 客户端能持有或用它签名，因此 dMsg 客户端还不能签 L1 花费。
 
 多设备协签必须针对同一计划。导入签名包只收集，不自动执行；每个协签人须覆盖全部待签摘要，重复导入不增加人数。删除被普通地址策略引用的密钥或成员前，须先调整协签策略。Taproot 脚本承诺的密钥不会因移除所属成员而消失。
 

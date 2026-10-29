@@ -217,9 +217,9 @@ pub enum WalletCommand {
     CosignerNew {
         /// Local label.
         label: String,
-        /// Refuse a software key.
+        /// Keep the key in software, outside the Secure Enclave.
         #[arg(long)]
-        hardware: bool,
+        software: bool,
     },
 }
 
@@ -616,11 +616,11 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             let c = remote.call("wallet/cosigners", Value::Null).await?;
             print(json, &c, pretty);
         }
-        WalletCommand::CosignerNew { label, hardware } => {
+        WalletCommand::CosignerNew { label, software } => {
             let c = remote
                 .call(
                     "wallet/cosigner_new",
-                    json!({"label": label, "hardware": hardware}),
+                    json!({"label": label, "hardware": !software}),
                 )
                 .await?;
             print(json, &c, pretty);

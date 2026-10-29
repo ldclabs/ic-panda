@@ -400,7 +400,9 @@ This tree is development code, not an App Store release assertion. In particular
    Touch ID, system reserved regions with live activities/camera, real keyboard
    and fold transitions, and App Store screenshots. Simulator layout evidence
    is not Duo hardware evidence.
-5. Wallet execution/management, agent management, Share/AutoFill/Files extensions,
+5. Wallet execution/management, cosign packets shared with the desktop (sign,
+   share, import, execute once enough are collected), agent management,
+   Share/AutoFill/Files extensions,
    widgets, App Intents, browser app-hop navigation and bounded background ciphertext
    transfers are implemented. Existing product-level wallet creation pause and the
    paid-letter sending gate remain. iOS is not a persistent agent daemon.

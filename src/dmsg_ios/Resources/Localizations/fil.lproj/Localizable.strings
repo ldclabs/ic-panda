@@ -420,6 +420,12 @@
 	<string>Kopyahin ang sanggunian</string>
 	<key>Copy this field?</key>
 	<string>Kopyahin ang field na ito?</string>
+	<key>Cosign on this device</key>
+	<string>Mag-cosign sa device na ito</string>
+	<key>Cosign packet from another device</key>
+	<string>Cosign packet mula sa ibang device</string>
+	<key>Cosignatures</key>
+	<string>Mga cosignature</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Mga cosigner para sa iminungkahing patakaran sa address</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Isagawa ang naaprubahang panukala</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Isagawa ang naaprubahang panukalang wallet na ito?</string>
+	<key>Execute with collected signatures</key>
+	<string>Isagawa gamit ang mga nakolektang lagda</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Ang mga kasalukuyang panuntunan sa pag-block, mga imbitasyon at kapasidad ng inbox ay pinapanatili. Papalitan ng pagpili ng libre o saradong patakaran ang anumang dating binabayarang setting ng contact.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Mag-import ng hindi naka-encrypt na 1Password, Bitwarden o pag-export ng password ng browser. Ang pinagmulan ay nananatili sa device na ito; tanging mga napiling tala ang idinaragdag.</string>
 	<key>Import completed</key>
 	<string>Nakumpleto ang pag-import</string>
+	<key>Import cosign packet</key>
+	<string>I-import ang cosign packet</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Lumilikha ang pag-import ng mga bagong independiyenteng item. Mananatili ang mga file sa device na ito at mamanahin ang mga pahintulot sa pag-access sa napiling folder. Walang awtomatikong pinipili.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Magbahagi ng kopya</string>
 	<key>Share binding request</key>
 	<string>Ibahagi ang may-bisang kahilingan</string>
+	<key>Share cosign packet</key>
+	<string>Ibahagi ang cosign packet</string>
 	<key>Share enrollment request</key>
 	<string>Ibahagi ang kahilingan sa pagpapatala</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Ibahagi ang kahilingan sa pagpapares</string>
 	<key>Share secret snapshot</key>
 	<string>Ibahagi ang lihim na snapshot</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Ibahagi ang mga lagda ng device na ito sa ibang mga cosigner, o i-import ang sa kanila. Kinokolekta lang ng pag-import ang mga lagda; hiwalay na hakbang ang pagsasagawa.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Ibahagi ang kahilingang ito sa isang awtorisadong administrator. Hindi nito nirerehistro o inaprubahan ang susi nang mag-isa.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Mag-sign out sa account na ito?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Lagdaan ang pahayag na iyong sinuri</string>
+	<key>Signatures collected</key>
+	<string>Mga nakolektang lagda</string>
 	<key>Simulate approval</key>
 	<string>Gayahin ang pag-apruba</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Ang device na ito</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Ang device na ito ay may mga pagbabagong hindi naka-sync. I-save ang anumang kailangan mo bago tanggalin ang account.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>Walang cosigner key ang device na ito para sa panukalang ito.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Pinapanatili ng device na ito ang sarili nitong naka-encrypt na workspace. Hindi ma-recover ang content na hindi naka-sync mula sa ibang device.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

@@ -420,6 +420,12 @@
 	<string>Copier la référence</string>
 	<key>Copy this field?</key>
 	<string>Copier ce champ ?</string>
+	<key>Cosign on this device</key>
+	<string>Cosigner sur cet appareil</string>
+	<key>Cosign packet from another device</key>
+	<string>Paquet de cosignature d’un autre appareil</string>
+	<key>Cosignatures</key>
+	<string>Cosignatures</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosignataires de la politique proposée</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Exécuter la proposition approuvée</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Exécuter cette proposition de portefeuille approuvée ?</string>
+	<key>Execute with collected signatures</key>
+	<string>Exécuter avec les signatures recueillies</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Les blocages, invitations et capacités sont conservés. Choisir Gratuit ou Fermé remplace tout ancien réglage de contact payant.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Importez un export non chiffré de 1Password, Bitwarden ou du navigateur. La source reste sur cet appareil ; seuls les éléments choisis sont ajoutés.</string>
 	<key>Import completed</key>
 	<string>Importation terminée</string>
+	<key>Import cosign packet</key>
+	<string>Importer le paquet de cosignature</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>L’importation crée de nouveaux éléments indépendants. Les fichiers restent sur cet appareil et héritent des droits d’accès du dossier choisi. Rien n’est sélectionné automatiquement.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Partager une copie</string>
 	<key>Share binding request</key>
 	<string>Partager la demande de rattachement</string>
+	<key>Share cosign packet</key>
+	<string>Partager le paquet de cosignature</string>
 	<key>Share enrollment request</key>
 	<string>Partager la demande d’inscription</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Partager la demande d’association</string>
 	<key>Share secret snapshot</key>
 	<string>Partager un instantané de secrets</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Partagez les signatures de cet appareil avec les autres cosignataires, ou importez les leurs. L’importation ne fait que recueillir les signatures ; l’exécution est une étape distincte.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Partagez cette demande avec un administrateur autorisé. Elle n’enregistre ni n’approuve la clé à elle seule.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Se déconnecter de ce compte ?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Signer la déclaration examinée</string>
+	<key>Signatures collected</key>
+	<string>Signatures recueillies</string>
 	<key>Simulate approval</key>
 	<string>Simuler l’approbation</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Cet appareil</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Cet appareil contient des modifications non synchronisées. Sauvegardez ce dont vous avez besoin avant de supprimer le compte.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>Cet appareil n’a pas de clé de cosignataire pour cette proposition.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Cet appareil conserve son propre espace chiffré. Le contenu non synchronisé ne peut pas être récupéré depuis un autre appareil.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

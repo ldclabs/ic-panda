@@ -420,6 +420,12 @@
 	<string>参照のコピー</string>
 	<key>Copy this field?</key>
 	<string>このフィールドをコピーしますか?</string>
+	<key>Cosign on this device</key>
+	<string>このデバイスで共同署名</string>
+	<key>Cosign packet from another device</key>
+	<string>ほかのデバイスからの共同署名パケット</string>
+	<key>Cosignatures</key>
+	<string>共同署名</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>提案されたアドレスポリシーの連帯保証人</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>承認された提案を実行する</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>この承認されたウォレットの提案を実行しますか?</string>
+	<key>Execute with collected signatures</key>
+	<string>集まった署名で実行</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>既存のブロック ルール、招待状、受信トレイの容量は維持されます。無料または非公開ポリシーを選択すると、以前の有料連絡先設定が置き換えられます。</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>暗号化されていない 1Password、Bitwarden、またはブラウザーのパスワード エクスポートをインポートします。ソースはこのデバイス上に残ります。選択したレコードのみが追加されます。</string>
 	<key>Import completed</key>
 	<string>インポートが完了しました</string>
+	<key>Import cosign packet</key>
+	<string>共同署名パケットを読み込む</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>インポートすると、新しい独立した項目が作成されます。ファイルはこのデバイス上に残り、選択したフォルダーのアクセス許可を継承します。自動的には何も選択されません。</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>コピーを共有する</string>
 	<key>Share binding request</key>
 	<string>共有バインディングリクエスト</string>
+	<key>Share cosign packet</key>
+	<string>共同署名パケットを共有</string>
 	<key>Share enrollment request</key>
 	<string>登録リクエストを共有する</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>ペアリングリクエストを共有する</string>
 	<key>Share secret snapshot</key>
 	<string>秘密のスナップショットを共有する</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>このデバイスの署名をほかの共同署名者と共有するか、相手の署名を読み込みます。読み込みは署名を集めるだけで、実行は別の操作です。</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>このリクエストを権限のある管理者と共有してください。単独でキーを登録または承認することはありません。</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>このアカウントからサインアウトしますか?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>確認した声明に署名します</string>
+	<key>Signatures collected</key>
+	<string>集まった署名</string>
 	<key>Simulate approval</key>
 	<string>承認のシミュレーション</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>このデバイス</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>このデバイスには同期されていない変更があります。アカウントを削除する前に、必要なものをすべて保存してください。</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>このデバイスには、この提案に使える共同署名キーがありません。</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>このデバイスは独自の暗号化されたワークスペースを保持します。同期されていないコンテンツは、別のデバイスから復元できません。</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

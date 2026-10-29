@@ -420,6 +420,12 @@
 	<string>참조 복사</string>
 	<key>Copy this field?</key>
 	<string>이 필드를 복사하시겠습니까?</string>
+	<key>Cosign on this device</key>
+	<string>이 기기에서 공동 서명</string>
+	<key>Cosign packet from another device</key>
+	<string>다른 기기의 공동 서명 패킷</string>
+	<key>Cosignatures</key>
+	<string>공동 서명</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>제안된 주소 정책의 공동 서명자</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>승인된 제안 실행</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>승인된 지갑 제안을 실행하시겠습니까?</string>
+	<key>Execute with collected signatures</key>
+	<string>수집된 서명으로 실행</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>기존 차단 규칙, 초대 및 받은 편지함 용량은 유지됩니다. 무료 또는 비공개 정책을 선택하면 이전의 유료 연락처 설정이 대체됩니다.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>암호화되지 않은 1Password, Bitwarden 또는 브라우저 비밀번호 내보내기를 가져옵니다. 소스는 이 장치에 유지됩니다. 선택한 레코드만 추가됩니다.</string>
 	<key>Import completed</key>
 	<string>가져오기 완료</string>
+	<key>Import cosign packet</key>
+	<string>공동 서명 패킷 가져오기</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>가져오기는 새로운 독립 항목을 생성합니다. 파일은 이 장치에 유지되며 선택한 폴더의 액세스 권한을 상속받습니다. 아무것도 자동으로 선택되지 않습니다.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>사본 공유</string>
 	<key>Share binding request</key>
 	<string>공유 바인딩 요청</string>
+	<key>Share cosign packet</key>
+	<string>공동 서명 패킷 공유</string>
 	<key>Share enrollment request</key>
 	<string>등록 요청 공유</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>페어링 요청 공유</string>
 	<key>Share secret snapshot</key>
 	<string>비밀 스냅샷 공유</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>이 기기의 서명을 다른 공동 서명자와 공유하거나 그들의 서명을 가져옵니다. 가져오기는 서명만 수집하며 실행은 별도의 단계입니다.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>이 요청을 승인된 관리자와 공유하세요. 자체적으로 키를 등록하거나 승인하지 않습니다.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>이 계정에서 로그아웃하시겠습니까?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>검토한 명세서에 서명하세요.</string>
+	<key>Signatures collected</key>
+	<string>수집된 서명</string>
 	<key>Simulate approval</key>
 	<string>승인 시뮬레이션</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>이 장치</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>이 기기에는 동기화되지 않은 변경사항이 있습니다. 계정을 삭제하기 전에 필요한 모든 것을 저장하세요.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>이 기기에는 이 제안에 사용할 공동 서명 키가 없습니다.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>이 장치는 자체적으로 암호화된 작업 공간을 유지합니다. 동기화되지 않은 콘텐츠는 다른 기기에서 복구할 수 없습니다.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

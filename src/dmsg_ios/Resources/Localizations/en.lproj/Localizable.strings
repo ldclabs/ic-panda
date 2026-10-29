@@ -420,6 +420,12 @@
 	<string>Copy reference</string>
 	<key>Copy this field?</key>
 	<string>Copy this field?</string>
+	<key>Cosign on this device</key>
+	<string>Cosign on this device</string>
+	<key>Cosign packet from another device</key>
+	<string>Cosign packet from another device</string>
+	<key>Cosignatures</key>
+	<string>Cosignatures</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners for the proposed address policy</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Execute approved proposal</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Execute this approved wallet proposal?</string>
+	<key>Execute with collected signatures</key>
+	<string>Execute with collected signatures</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</string>
 	<key>Import completed</key>
 	<string>Import completed</string>
+	<key>Import cosign packet</key>
+	<string>Import cosign packet</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Share a copy</string>
 	<key>Share binding request</key>
 	<string>Share binding request</string>
+	<key>Share cosign packet</key>
+	<string>Share cosign packet</string>
 	<key>Share enrollment request</key>
 	<string>Share enrollment request</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Share pairing request</string>
 	<key>Share secret snapshot</key>
 	<string>Share secret snapshot</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Share this request with an authorized administrator. It does not register or approve the key by itself.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Sign out of this account?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Sign the statement you reviewed</string>
+	<key>Signatures collected</key>
+	<string>Signatures collected</string>
 	<key>Simulate approval</key>
 	<string>Simulate approval</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>This device</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>This device has changes that have not synced. Save anything you need before deleting the account.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>This device has no cosigner key for this proposal.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

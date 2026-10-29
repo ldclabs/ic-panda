@@ -164,12 +164,14 @@ impl Client {
         ))
     }
 
-    /// Create a cosigner key: in the platform keystore when one is set and
-    /// works, else in software unless `hardware` is required.
+    /// Create a cosigner key in the platform keystore when `hardware`, else
+    /// in software. A hardware key that cannot be made is an error, never a
+    /// software key in its place: only the caller chooses software.
     ///
     /// # Errors
     /// Returns `Error::IdempotencyConflict` for a label in use and
-    /// `Error::Unavailable` when hardware is required but missing.
+    /// `Error::Unavailable` when this device has no hardware keystore, or the
+    /// keystore's error when it cannot make the key.
     pub fn wallet_cosigner_create(&mut self, label: &str, hardware: bool) -> Result<LocalCosigner> {
         ensure(
             !label.is_empty() && label.len() <= 64,
@@ -180,36 +182,33 @@ impl Client {
             keys.iter().all(|k| k.label != label),
             Error::IdempotencyConflict,
         )?;
-        let platform = self.cosign.as_ref().map(|p| (p.name(), p.create(label)));
-        let (public_key, backend) = match platform {
-            Some((name, Ok((public_key, handle)))) => (
+        let (public_key, backend) = if hardware {
+            let platform = self.cosign.as_ref().ok_or_else(|| {
+                Error::Unavailable("no hardware cosigner key on this device".into())
+            })?;
+            let (public_key, handle) = platform.create(label)?;
+            (
                 public_key,
                 Backend::Platform {
-                    provider: name.into(),
+                    provider: platform.name().into(),
                     handle,
                 },
-            ),
-            _ if hardware => {
-                return Err(Error::Unavailable(
-                    "no hardware cosigner key on this device".into(),
-                ));
-            }
-            _ => {
-                let secret = loop {
-                    let candidate = Zeroizing::new(crate::crypto::random_key());
-                    if SigningKey::from_slice(candidate.as_slice()).is_ok() {
-                        break candidate;
-                    }
-                };
-                let key = SigningKey::from_slice(secret.as_slice()).expect("valid scalar");
-                let public_key = key.verifying_key().to_sec1_point(true).as_bytes().to_vec();
-                (
-                    public_key,
-                    Backend::Software {
-                        secret: serde_bytes::ByteBuf::from(secret.to_vec()),
-                    },
-                )
-            }
+            )
+        } else {
+            let secret = loop {
+                let candidate = Zeroizing::new(crate::crypto::random_key());
+                if SigningKey::from_slice(candidate.as_slice()).is_ok() {
+                    break candidate;
+                }
+            };
+            let key = SigningKey::from_slice(secret.as_slice()).expect("valid scalar");
+            let public_key = key.verifying_key().to_sec1_point(true).as_bytes().to_vec();
+            (
+                public_key,
+                Backend::Software {
+                    secret: serde_bytes::ByteBuf::from(secret.to_vec()),
+                },
+            )
         };
         let cosigner = LocalCosigner {
             label: label.into(),
@@ -335,6 +334,36 @@ mod tests {
         ) -> Result<T> {
             step(&mut *self.0.lock().await)
         }
+    }
+
+    #[test]
+    fn only_the_caller_chooses_a_software_key() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        assert!(matches!(
+            client.wallet_cosigner_create("missing", true),
+            Err(Error::Unavailable(_))
+        ));
+        client.set_cosign_provider(Arc::new(WaitingProvider::default()));
+        assert!(
+            client
+                .wallet_cosigner_create("hardware", true)
+                .unwrap()
+                .hardware()
+        );
+        assert!(
+            !client
+                .wallet_cosigner_create("software", false)
+                .unwrap()
+                .hardware()
+        );
+        let labels: Vec<_> = client
+            .wallet_cosigner_keys()
+            .unwrap()
+            .into_iter()
+            .map(|k| k.label)
+            .collect();
+        assert_eq!(labels, ["hardware", "software"]);
     }
 
     #[tokio::test]

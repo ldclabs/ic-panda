@@ -7,8 +7,9 @@
   import Select from '../../components/Select.svelte'
   import Collapsible from '../../components/Collapsible.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
+  import Confirm from '../../components/Confirm.svelte'
   import { buttonClass } from '../../components/ui'
-  import { call, single, when } from '../../rpc'
+  import { CallError, call, single, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import { cyclesText, decimal, utf8Length, type Wallet } from './model'
@@ -27,7 +28,8 @@
     channel = $state('')
   let keys = $state<any[]>([]),
     keyLabel = $state(''),
-    hardware = $state(true),
+    // Without a Secure Enclave the person decides on a software key.
+    softwareKey = $state(false),
     busy = $state(false),
     error = $state(''),
     notice = $state(''),
@@ -144,7 +146,8 @@
       if (result.notification_error) notice = w('notificationFailed')
     } catch (e) {
       if (!alive) return
-      error = errorText(e)
+      if (method === 'wallet/cosigner_new' && params.hardware && e instanceof CallError && e.code === 'UNAVAILABLE') softwareKey = true
+      else error = errorText(e)
     } finally {
       busy = false
     }
@@ -221,12 +224,10 @@
     </nav>
     {#if activeStep === 1}
       <Field label={w('label')}><input bind:value={keyLabel} maxlength="64" /></Field>
-      <Checkbox bind:checked={hardware}>{w('hardwareOnly')}</Checkbox>
-      {#if !hardware}<Notice tone="warn">{w('softwareWarning')}</Notice>{/if}
       <button
         class={buttonClass('primary', 'sm', 'mt-3')}
         disabled={busy || !keyLabel.trim() || utf8Length(keyLabel.trim()) > 64}
-        onclick={() => run('wallet/cosigner_new', { label: keyLabel.trim(), hardware })}>{t('twNewCosigner')}</button
+        onclick={() => run('wallet/cosigner_new', { label: keyLabel.trim(), hardware: true })}>{t('twNewCosigner')}</button
       >
     {:else if activeStep === 2}
       {#each keys as k (k.label)}<div class="border-line flex flex-wrap items-center gap-3 border-b py-3">
@@ -378,3 +379,14 @@
     {:else}<button class={buttonClass('secondary', 'sm')} onclick={load}>{w('retry')}</button>{/if}
   </Section>
 </div>
+<Confirm
+  bind:open={softwareKey}
+  title={w('softwareKeyTitle')}
+  description={w('softwareKeyBody')}
+  confirm={w('softwareKeyCreate')}
+  icon="key"
+  tone="warn"
+  {busy}
+  onConfirm={() => run('wallet/cosigner_new', { label: keyLabel.trim(), hardware: false })}
+  testid="wallet-software-key"
+/>

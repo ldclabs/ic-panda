@@ -38,7 +38,7 @@ It serves managers of team operating funds, bringing multichain receipts, roles,
 | Bitcoin | P2TR, P2WPKH, same-input replacement, Taproot dual control and timelock paths | Bitcoin regtest broadcast acceptance and hardware-wallet integration remain incomplete |
 | EVM | EIP-1559 native/ERC-20 transfers, same-nonce replacement, cancellation and release of pending nonces | No generic calldata, EVM batches or Safe dual control |
 | Solana | SOL, SPL, optional ATA creation, batching and explicit durable-nonce initialization | Default addresses have no durable nonce; ordinary signed transactions can only rebroadcast original bytes |
-| Device cosigning | Canister Raw/FIDO2/WebAuthn verification; client macOS Secure Enclave/software P-256; collection for the same plan across devices | TPM, CTAP2, bridge WebAuthn and chain hardware-wallet adapters are not implemented |
+| Device cosigning | Canister Raw/FIDO2/WebAuthn verification; client Secure Enclave P-256 on macOS and iOS, and software P-256; collection for the same plan across devices, with packets exchanged between the desktop and iOS | TPM, CTAP2, bridge WebAuthn and chain hardware-wallet adapters are not implemented; no client makes the BIP-340 signature of Taproot L1 yet |
 | Desktop and collaboration | Four main workspace areas, separate approvals, certified reads, receive checks, audit, encrypted channel hints and RPC configuration | Channels only notify/navigate; public transparency pages and on-chain `attest_*` are not implemented |
 
 ## 3. Product principles
@@ -84,7 +84,9 @@ Assets are identified by exact ledgers, EVM chain IDs/contracts and Solana mints
 | CS cosigning | Additional key threshold over exact plan digests; ICP operations bind proposal digest | Enforced by wallet code; Admin threshold plus 24 hours can change/remove ordinary address cosigning, and malicious upgrades may bypass it |
 | NC on-chain dual control | Currently Bitcoin Taproot only: L1 requires chain key plus BIP-340 cosigner | L2 permits chain-key-only spending after the UTXO's configured block age; optional L3 uses a recovery key after another timelock. Not every path is permanently 2-of-2 |
 
-Ordinary CS key generation supports macOS Secure Enclave P-256 and software P-256 encrypted under local LDK. An explicit hardware request fails when hardware is unavailable; it never silently downgrades. The canister's `hardware` flag is a registration claim, not remote attestation. A non-exportable private key is not a trusted transaction display.
+Ordinary CS key generation supports Secure Enclave P-256 on macOS and iOS, and software P-256 encrypted under local LDK. A hardware request fails when hardware is unavailable and never silently downgrades: the desktop then asks whether to make a software key, the CLI makes one only with `--software`, and iOS makes Secure Enclave keys only. The canister's `hardware` flag is a registration claim, not remote attestation. A non-exportable private key is not a trusted transaction display.
+
+The two clients differ: the macOS Secure Enclave signs at most 32 digests per presence check and iOS at most 64; turning off the iPhone passcode invalidates its Secure Enclave keys, so the wallet needs another cosigner to stay usable. NC cosigner keys are BIP-340 Taproot keys; no dMsg client holds or signs with them yet, so dMsg clients cannot sign an L1 spend.
 
 Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
 

@@ -1115,6 +1115,13 @@ const methods = {
   'wallet/list': wallets.list,
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => wallets.state.localKeys,
+  // This Mac has no Secure Enclave: only an explicit software key is made.
+  'wallet/cosigner_new': (p) => {
+    if (p.hardware) throw { code: 'UNAVAILABLE', message: 'no hardware cosigner key on this device' }
+    const key = { label: p.label, public_key: '03' + '22'.repeat(32), hardware: false, backend: 'software' }
+    wallets.state.localKeys.push(key)
+    return { key, intent: { kind: 'add_cosigner' } }
+  },
   'wallet/quote_preview': () => walletPreview,
   'wallet/quote': () => ({ ...walletPreview, quote_id: 'b3'.repeat(32) }),
   'wallet/deposits': () => deposits,
@@ -2894,6 +2901,23 @@ smoke: try {
   await main.screenshot({path:join(shots,'wallet-policy-human-units.png')})
   await main.keyboard.press('Escape')
   await main.click('[data-testid="wallet-tab-settings"]')
+  // A missing Secure Enclave asks before a software key; Escape makes none.
+  const newKeys=()=>calls.filter((c)=>c.method==='wallet/cosigner_new').map((c)=>c.params.hardware)
+  await main.getByRole('button',{name:'1. Create a device key',exact:true}).click()
+  await main.getByLabel('Label',{exact:true}).fill('Backup key')
+  await main.getByRole('button',{name:'New cosigner key',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-software-key"]')
+  assert.deepEqual(newKeys(),[true])
+  await formMatrix(app, main, shots, 'software-key', '[data-testid="wallet-software-key"]')
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="wallet-software-key"]',{state:'detached'})
+  assert.equal(wallets.state.localKeys.some((k)=>k.label==='Backup key'),false)
+  await main.getByRole('button',{name:'New cosigner key',exact:true}).click()
+  await main.focus('[data-testid="wallet-software-key-confirm"]')
+  await main.keyboard.press('Enter')
+  await waitFor(()=>wallets.state.localKeys.some((k)=>k.label==='Backup key'))
+  assert.deepEqual(newKeys(),[true,true,false])
+  await main.waitForSelector('[data-testid="wallet-software-key"]',{state:'detached'})
   await main.getByRole('button',{name:'4. Test this device’s key',exact:true}).click()
   const beforeKeyTest=calls.filter((c)=>c.method==='wallet/change').length
   await main.getByRole('button',{name:'Test key Alice key',exact:true}).click()

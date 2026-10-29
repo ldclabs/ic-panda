@@ -420,6 +420,12 @@
 	<string>Скопировать ссылку на поле</string>
 	<key>Copy this field?</key>
 	<string>Копировать это поле?</string>
+	<key>Cosign on this device</key>
+	<string>Соподписать на этом устройстве</string>
+	<key>Cosign packet from another device</key>
+	<string>Пакет соподписей с другого устройства</string>
+	<key>Cosignatures</key>
+	<string>Соподписи</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Соподписанты предлагаемой политики адреса</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Выполнить одобренное предложение</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Выполнить одобренное предложение кошелька?</string>
+	<key>Execute with collected signatures</key>
+	<string>Выполнить с собранными подписями</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Блокировки, приглашения и вместимость сохраняются. Бесплатный или закрытый режим заменяет прежние настройки платного общения.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Импортируйте незашифрованный экспорт 1Password, Bitwarden или браузера. Исходный файл остаётся на устройстве; добавляются только выбранные записи.</string>
 	<key>Import completed</key>
 	<string>Импорт завершён</string>
+	<key>Import cosign packet</key>
+	<string>Импортировать пакет соподписей</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Импорт создаёт новые независимые записи. Файлы остаются на этом устройстве и наследуют разрешения выбранной папки. Ничего не выбирается автоматически.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Поделиться копией</string>
 	<key>Share binding request</key>
 	<string>Поделиться запросом привязки</string>
+	<key>Share cosign packet</key>
+	<string>Поделиться пакетом соподписей</string>
 	<key>Share enrollment request</key>
 	<string>Поделиться запросом регистрации</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Поделиться запросом сопряжения</string>
 	<key>Share secret snapshot</key>
 	<string>Поделиться снимком секретов</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Поделитесь подписями этого устройства с другими соподписантами или импортируйте их подписи. Импорт только собирает подписи; выполнение — отдельный шаг.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Передайте запрос авторизованному администратору. Сам запрос не регистрирует и не подтверждает ключ.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Выйти из этого аккаунта?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Подписать проверенное заявление</string>
+	<key>Signatures collected</key>
+	<string>Собрано подписей</string>
 	<key>Simulate approval</key>
 	<string>Имитировать одобрение</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Это устройство</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>На устройстве есть несинхронизированные изменения. Сохраните нужное перед удалением аккаунта.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>На этом устройстве нет ключа соподписанта для этого предложения.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Это устройство хранит отдельное зашифрованное пространство. Несинхронизированные данные нельзя восстановить с другого устройства.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

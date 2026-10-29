@@ -93,9 +93,30 @@ struct WalletProposalView: View {
     @State private var working = false
     @State private var execute = false
     @State private var work: Task<Void, Never>?
+    /// The plan cosigned (0 for an ICP proposal), its collected signatures
+    /// and a packet pasted from another cosigner.
+    @State private var plan: UInt32 = 0
+    @State private var cosign: Cosign?
+    @State private var packet = ""
+    @State private var executeCollected = false
+    struct Plans: Decodable { let plans: UInt32 }
+    struct Cosign: Decodable { let collected: UInt64; let required: UInt64; let ready: Bool; let packet: String; let canCosign: Bool? }
     var body: some View {
         List {
             if let value { CanonicalDetails(value: value).reminderVisible(.wallet(wallet, String(proposal)), watermark: observedVersion, ready: observedVersion != nil) } else { ProgressView() }
+            if let cosign {
+                Section {
+                    LabeledContent("Signatures collected", value: "\(cosign.collected) / \(cosign.required)")
+                    Button("Cosign on this device") { work = Task { await cosignHere() } }.disabled(cosign.canCosign != true)
+                    if cosign.canCosign == false { Text("This device has no cosigner key for this proposal.").font(.caption).foregroundStyle(.secondary) }
+                    if cosign.collected > 0 { ShareLink(item: cosign.packet) { Label("Share cosign packet", systemImage: "square.and.arrow.up") } }
+                    TextField("Cosign packet from another device", text: $packet, axis: .vertical).lineLimit(2...6).font(.caption.monospaced()).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    Button("Import cosign packet") { work = Task { await importPacket() } }.disabled(packet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Execute with collected signatures") { executeCollected = true }.disabled(!cosign.ready)
+                } header: { Text("Cosignatures") } footer: {
+                    Text("Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.")
+                }.disabled(working)
+            }
             Section {
                 Button("Review approval") { work = Task { await decide(true) } }
                 Button("Review rejection", role: .destructive) { work = Task { await decide(false) } }
@@ -116,6 +137,9 @@ struct WalletProposalView: View {
             .confirmationDialog("Execute this approved wallet proposal?", isPresented: $execute) {
                 Button("Execute") { work = Task { await run(reconcile: false) } }
             } message: { Text("The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.") }
+            .confirmationDialog("Execute with collected signatures", isPresented: $executeCollected, titleVisibility: .visible) {
+                Button("Execute") { work = Task { await executeCollectedPlan() } }
+            }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) { if let request { ApprovalDetailView(request: request) } }
             .onDisappear { work?.cancel() }
     }
@@ -128,7 +152,27 @@ struct WalletProposalView: View {
             let snapshot = try await engine.walletProposal(wallet: wallet, proposal: proposal)
             guard epoch == model.epoch, !Task.isCancelled else { return }
             value = try model.decode(snapshot); observedVersion = before.flatMap { UInt64($0.version) }
+            // A proposal without cosigning, or a plan no longer live, has no status.
+            let plans: Plans = try model.decode(snapshot)
+            let status = try? await engine.walletCosignStatus(wallet: wallet, proposal: proposal, plan: plans.plans)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            plan = plans.plans; cosign = try status.map { try model.decode($0) }
         } catch { if epoch == model.epoch { model.report(error) } }
+    }
+    private func cosignHere() async {
+        guard let engine = model.engine, !working else { return }; working = true; defer { working = false }
+        do { request = try model.decode(try await engine.walletCosignRequest(wallet: wallet, proposal: proposal, plan: plan)) }
+        catch { model.report(error) }
+    }
+    private func importPacket() async {
+        guard let engine = model.engine, !working else { return }; working = true; defer { working = false }
+        do { _ = try await engine.walletCosignImport(wallet: wallet, proposal: proposal, plan: plan, packet: packet); packet = ""; await load() }
+        catch { model.report(error) }
+    }
+    private func executeCollectedPlan() async {
+        guard let engine = model.engine, !working else { return }; working = true; defer { working = false }; model.activity()
+        do { _ = try await coreOperation { try await engine.walletCosignExecute(wallet: wallet, proposal: proposal, plan: plan, operation: $0) }; await load() }
+        catch { model.report(error); await load() }
     }
     private func decide(_ approve: Bool) async {
         guard let engine = model.engine, !working else { return }; working = true; defer { working = false }

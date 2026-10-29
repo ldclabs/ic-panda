@@ -280,10 +280,12 @@ impl Daemon {
                         params["channel"].as_str(),
                     )),
                     "wallet/cosigners" => Some(client.wallet_cosigners_local()),
-                    "wallet/cosigner_new" => Some(client.wallet_cosigner_new(
-                        &text(params, "label")?,
-                        params["hardware"].as_bool().unwrap_or(false),
-                    )),
+                    "wallet/cosigner_new" => {
+                        Some(client.wallet_cosigner_new(
+                            &text(params, "label")?,
+                            parse(params, "hardware")?,
+                        ))
+                    }
                     "wallet/policy_default" => Some(Ok(to_json(&default_policy(
                         threshold(params, "approvals")?,
                         threshold(params, "admin_approvals")?,

@@ -420,6 +420,12 @@
 	<string>রেফারেন্স কপি করুন</string>
 	<key>Copy this field?</key>
 	<string>এই ক্ষেত্রটি অনুলিপি করবেন?</string>
+	<key>Cosign on this device</key>
+	<string>এই ডিভাইসে সহ-স্বাক্ষর করুন</string>
+	<key>Cosign packet from another device</key>
+	<string>অন্য ডিভাইস থেকে সহ-স্বাক্ষর প্যাকেট</string>
+	<key>Cosignatures</key>
+	<string>সহ-স্বাক্ষর</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>প্রস্তাবিত ঠিকানা নীতির জন্য cosigners</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>অনুমোদিত প্রস্তাব বাস্তবায়ন</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>এই অনুমোদিত ওয়ালেট প্রস্তাব কার্যকর করবেন?</string>
+	<key>Execute with collected signatures</key>
+	<string>সংগৃহীত স্বাক্ষর দিয়ে কার্যকর করুন</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>বিদ্যমান ব্লক নিয়ম, আমন্ত্রণ এবং ইনবক্স ক্ষমতা সংরক্ষিত হয়. একটি বিনামূল্যে বা বন্ধ নীতি নির্বাচন করা কোনো পূর্ববর্তী প্রদত্ত পরিচিতি সেটিং প্রতিস্থাপন করে৷</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>একটি এনক্রিপ্ট করা 1 পাসওয়ার্ড, বিটওয়ার্ডেন বা ব্রাউজার পাসওয়ার্ড রপ্তানি আমদানি করুন। উৎস এই ডিভাইসে থাকে; শুধুমাত্র নির্বাচিত রেকর্ড যোগ করা হয়.</string>
 	<key>Import completed</key>
 	<string>আমদানি সম্পন্ন হয়েছে</string>
+	<key>Import cosign packet</key>
+	<string>সহ-স্বাক্ষর প্যাকেট ইমপোর্ট করুন</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>আমদানি নতুন স্বাধীন আইটেম তৈরি করে। ফাইলগুলি এই ডিভাইসে থাকে এবং নির্বাচিত ফোল্ডারের অ্যাক্সেস অ্যাক্সেস অনুমতিগুলি উত্তরাধিকার সূত্রে পায়৷ কিছুই স্বয়ংক্রিয়ভাবে নির্বাচিত হয় না.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>একটি অনুলিপি শেয়ার করুন</string>
 	<key>Share binding request</key>
 	<string>শেয়ার বাঁধাই অনুরোধ</string>
+	<key>Share cosign packet</key>
+	<string>সহ-স্বাক্ষর প্যাকেট শেয়ার করুন</string>
 	<key>Share enrollment request</key>
 	<string>তালিকাভুক্তির অনুরোধ শেয়ার করুন</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>পেয়ারিং অনুরোধ শেয়ার করুন</string>
 	<key>Share secret snapshot</key>
 	<string>গোপন স্ন্যাপশট শেয়ার করুন</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>এই ডিভাইসের স্বাক্ষর অন্য সহ-স্বাক্ষরকারীদের সঙ্গে শেয়ার করুন, অথবা তাদের স্বাক্ষর ইমপোর্ট করুন। ইমপোর্ট শুধু স্বাক্ষর সংগ্রহ করে; কার্যকর করা আলাদা ধাপ।</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>এই অনুরোধটি একজন অনুমোদিত প্রশাসকের সাথে শেয়ার করুন। এটি নিজেই কী নিবন্ধন বা অনুমোদন করে না।</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>এই অ্যাকাউন্ট থেকে সাইন আউট করবেন?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>আপনি যে বিবৃতি পর্যালোচনা করেছেন তাতে স্বাক্ষর করুন</string>
+	<key>Signatures collected</key>
+	<string>সংগৃহীত স্বাক্ষর</string>
 	<key>Simulate approval</key>
 	<string>অনুকরণ অনুমোদন</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>এই ডিভাইস</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>এই ডিভাইসটিতে এমন পরিবর্তন রয়েছে যা সিঙ্ক হয়নি৷ অ্যাকাউন্ট মুছে ফেলার আগে আপনার প্রয়োজনীয় কিছু সংরক্ষণ করুন।</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>এই প্রস্তাবের জন্য এই ডিভাইসে কোনো সহ-স্বাক্ষর কী নেই।</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>এই ডিভাইসটি তার নিজস্ব এনক্রিপ্ট করা ওয়ার্কস্পেস রাখে। সিঙ্ক করা হয়নি এমন সামগ্রী অন্য ডিভাইস থেকে পুনরুদ্ধার করা যাবে না।</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

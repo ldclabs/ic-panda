@@ -420,6 +420,12 @@
 	<string>Salin referensi</string>
 	<key>Copy this field?</key>
 	<string>Salin bidang ini?</string>
+	<key>Cosign on this device</key>
+	<string>Tanda tangani bersama di perangkat ini</string>
+	<key>Cosign packet from another device</key>
+	<string>Paket tanda tangan bersama dari perangkat lain</string>
+	<key>Cosignatures</key>
+	<string>Tanda tangan bersama</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>Cosigners untuk kebijakan alamat yang diusulkan</string>
 	<key>Create</key>
@@ -622,6 +628,8 @@
 	<string>Jalankan proposal yang disetujui</string>
 	<key>Execute this approved wallet proposal?</key>
 	<string>Jalankan proposal dompet yang disetujui ini?</string>
+	<key>Execute with collected signatures</key>
+	<string>Jalankan dengan tanda tangan terkumpul</string>
 	<key>Existing block rules, invitations and inbox capacity are preserved. Choosing a free or closed policy replaces any previous paid contact setting.</key>
 	<string>Aturan pemblokiran, undangan, dan kapasitas kotak masuk yang ada tetap dipertahankan. Memilih kebijakan gratis atau tertutup akan menggantikan pengaturan kontak berbayar sebelumnya.</string>
 	<key>Expired</key>
@@ -730,6 +738,8 @@
 	<string>Impor ekspor kata sandi 1Password, Bitwarden, atau browser yang tidak terenkripsi. Sumbernya tetap ada di perangkat ini; hanya rekaman terpilih yang ditambahkan.</string>
 	<key>Import completed</key>
 	<string>Impor selesai</string>
+	<key>Import cosign packet</key>
+	<string>Impor paket tanda tangan bersama</string>
 	<key>Import creates new independent items. Files stay on this device and inherit the selected folder's access grants. Nothing is selected automatically.</key>
 	<string>Impor menciptakan item independen baru. File tetap berada di perangkat ini dan mewarisi pemberian akses folder yang dipilih. Tidak ada yang dipilih secara otomatis.</string>
 	<key>Import desktop-discovered secrets</key>
@@ -1586,6 +1596,8 @@
 	<string>Bagikan salinannya</string>
 	<key>Share binding request</key>
 	<string>Bagikan permintaan pengikatan</string>
+	<key>Share cosign packet</key>
+	<string>Bagikan paket tanda tangan bersama</string>
 	<key>Share enrollment request</key>
 	<string>Bagikan permintaan pendaftaran</string>
 	<key>Share invitation</key>
@@ -1596,6 +1608,8 @@
 	<string>Bagikan permintaan pemasangan</string>
 	<key>Share secret snapshot</key>
 	<string>Bagikan cuplikan rahasia</string>
+	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
+	<string>Bagikan tanda tangan perangkat ini kepada cosigner lain, atau impor tanda tangan mereka. Impor hanya mengumpulkan tanda tangan; menjalankan adalah langkah terpisah.</string>
 	<key>Share this request with an authorized administrator. It does not register or approve the key by itself.</key>
 	<string>Bagikan permintaan ini dengan administrator resmi. Itu tidak mendaftarkan atau menyetujui kunci itu sendiri.</string>
 	<key>Shared copies leave dMsg's protection and cannot be recalled.</key>
@@ -1628,6 +1642,8 @@
 	<string>Keluar dari akun ini?</string>
 	<key>Sign the statement you reviewed</key>
 	<string>Tanda tangani pernyataan yang Anda ulas</string>
+	<key>Signatures collected</key>
+	<string>Tanda tangan terkumpul</string>
 	<key>Simulate approval</key>
 	<string>Simulasikan persetujuan</string>
 	<key>Simulate rejection</key>
@@ -1788,6 +1804,8 @@
 	<string>Perangkat ini</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Perangkat ini memiliki perubahan yang belum disinkronkan. Simpan semua yang Anda perlukan sebelum menghapus akun.</string>
+	<key>This device has no cosigner key for this proposal.</key>
+	<string>Perangkat ini tidak memiliki kunci cosigner untuk proposal ini.</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>Perangkat ini mempertahankan ruang kerjanya yang terenkripsi. Konten yang belum disinkronkan tidak dapat dipulihkan dari perangkat lain.</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>

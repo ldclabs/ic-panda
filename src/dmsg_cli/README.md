@@ -327,7 +327,7 @@ dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [
 dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A --asset X --to T --amount N --max-fee F
 dmsg wallet propose <wallet> <intent.json> | member-agents <wallet> [--agent did:agent:…]... | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
 dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
-dmsg wallet balances|audit|refuel <wallet> | cosigners | cosigner-new <label> [--hardware]
+dmsg wallet balances|audit|refuel <wallet> | cosigners | cosigner-new <label> [--software]
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
 dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
 dmsg handle resolve <name> | price <name> | claim <name> | register <name>
@@ -753,9 +753,9 @@ binds to the account with a device approval; deciding still needs a
 `WalletApprove` device every time. `execute` reads chain parameters from the
 `[wallet]` endpoints, checks the wallet's plan with its own decoder, and
 broadcasts what the wallet signed; `settle` reports it final once the chain
-says so. Cosigner keys live in the Secure Enclave on macOS when the system
-credential store is in use, else in software, which a wallet requiring
-hardware cosigners refuses.
+says so. `cosigner-new` keeps the key in the Secure Enclave and fails where
+there is none; only `--software` makes a software key, which a wallet
+requiring hardware cosigners refuses.
 
 Names move between accounts in three steps, the last two within a minute:
 the owner's `handle transfer <name> <account>` prints a token, the target

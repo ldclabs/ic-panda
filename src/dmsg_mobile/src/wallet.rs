@@ -211,6 +211,80 @@ impl MobileEngine {
         self.object(move |c| Box::pin(async move { c.wallet_cosigner_new(&label, true) }))
             .await
     }
+
+    /// Sign a local challenge with the cosigner key `label`; nothing leaves
+    /// the device.
+    pub async fn wallet_cosigner_test(&self, label: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::cosign::test_key(h, &label).await })
+        })
+        .await
+    }
+
+    /// Ask this device to cosign an existing plan (0 for an ICP proposal):
+    /// once approved, its signatures join this device's packet.
+    pub async fn wallet_cosign_request(
+        &self,
+        wallet: String,
+        proposal: u64,
+        plan: u32,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(
+                async move { wallet::packets::request(h, "gui", wallet, proposal, plan).await },
+            )
+        })
+        .await
+    }
+
+    /// The signatures collected for a plan, per address, and the packet to
+    /// share with the other cosigners.
+    pub async fn wallet_cosign_status(
+        &self,
+        wallet: String,
+        proposal: u64,
+        plan: u32,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::packets::status(h, wallet, proposal, plan).await })
+        })
+        .await
+    }
+
+    /// Collect the signatures of another device's packet for the same plan.
+    pub async fn wallet_cosign_import(
+        &self,
+        wallet: String,
+        proposal: u64,
+        plan: u32,
+        packet: String,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move {
+                wallet::packets::import(h, wallet, proposal, plan, packet.trim()).await
+            })
+        })
+        .await
+    }
+
+    /// Execute a plan with the collected signatures once they are enough.
+    pub async fn wallet_cosign_execute(
+        &self,
+        wallet: String,
+        proposal: u64,
+        plan: u32,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move { wallet::packets::execute(h, wallet, proposal, plan).await })
+            }))
+            .await
+    }
 }
 
 #[derive(uniffi::Enum)]
