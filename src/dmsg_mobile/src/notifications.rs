@@ -165,29 +165,10 @@ impl MobileEngine {
             Box::pin(async {
                 let now = now_ms();
                 let runtime = notice::Runtime::load(&c.notification_runtime_path(), now)?;
-                let mut total = notice::Counts::default();
-                let mut accounts = Vec::new();
-                for local in c.accounts()?.into_iter().filter(|a| a.bound) {
-                    c.with_notification_store(&account(&local.account)?, |store| {
-                        let settings = notice::settings(store)?;
-                        let counts = notice::counts(&store.notification_items()?, now);
-                        if settings.enabled {
-                            total.actionable = total.actionable.saturating_add(counts.actionable);
-                            total.unread = total.unread.saturating_add(counts.unread);
-                            total.unverified |= counts.unverified;
-                        }
-                        accounts.push(json!({"account":local.account,"enabled":settings.enabled,"counts":counts}));
-                        Ok(())
-                    })?;
-                }
-                let badge = match runtime.settings.badge {
-                    notice::Badge::All => total.actionable.saturating_add(total.unread),
-                    notice::Badge::Actions => total.actionable,
-                    notice::Badge::Off => 0,
-                };
-                Ok(json!({"counts":total,"accounts":accounts,"badge":badge,"enabled":runtime.settings.enabled}))
+                c.notification_status(&runtime, now)
             })
-        }).await
+        })
+        .await
     }
 
     pub async fn notification_items(

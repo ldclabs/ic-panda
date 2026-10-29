@@ -33,6 +33,10 @@ pub(crate) const METHODS: [&str; 11] = [
     "notifications/result",
 ];
 
+/// Hints, reconnection and session changes wake the inbox and receive loops;
+/// this tick only covers a missed hint, like the channel loop's own read.
+const FALLBACK: Duration = Duration::from_secs(600);
+
 #[derive(Default)]
 pub(crate) struct Notifications {
     pub(crate) wake: Notify,
@@ -72,7 +76,7 @@ pub(crate) async fn run(d: Arc<Daemon>) {
 
 /// Ordinary inbox synchronization shares its verifier with foreground reads.
 pub(crate) async fn inbox_run(d: Arc<Daemon>) {
-    let mut tick = tokio::time::interval(Duration::from_secs(60));
+    let mut tick = tokio::time::interval(FALLBACK);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut seen = None;
     loop {
@@ -168,7 +172,7 @@ pub(crate) async fn services_run(d: Arc<Daemon>) {
 /// One bounded metadata receive pass per account. No active-workspace switch,
 /// background signing renewal or client lock is held over a network wait.
 pub(crate) async fn receive_run(d: Arc<Daemon>) {
-    let mut tick = tokio::time::interval(Duration::from_secs(60));
+    let mut tick = tokio::time::interval(FALLBACK);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! {_ = tick.tick() => {}, _ = d.notifications.receive.notified() => {}}
@@ -294,6 +298,24 @@ impl Daemon {
                             let stage = match days { 30 => 1, 7 => 2, 1 => 3, _ => return Err(Error::InvalidInput("reminder stage".into())) };
                             runtime.legacy_plans.insert(id, stage);
                         }
+                        // The previous desktop alerted its selected account by
+                        // default. An upgrade keeps that; a fresh install has no
+                        // bound account yet and stays opt-in.
+                        let upgraded = c.accounts()?.into_iter().find(|a| a.bound && selected.as_deref() == Some(a.account.as_str()));
+                        if let Some(local) = upgraded && runtime.settings.revision == 0 {
+                            let mut settings = runtime.settings.clone();
+                            settings.enabled = true;
+                            runtime.configure(0, settings)?;
+                            let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
+                            c.with_notification_store(&id, |store| {
+                                let mut settings = core::settings(store)?;
+                                if settings.revision == 0 {
+                                    settings.enabled = true;
+                                    core::configure(store, 0, settings)?;
+                                }
+                                Ok(())
+                            })?;
+                        }
                         runtime.reminders_imported = true;
                         runtime.save(&path)?;
                     }
@@ -315,27 +337,7 @@ impl Daemon {
                     runtime.save(&path)?;
                     Ok(json!({"imported":true,"awaiting_account":runtime.legacy_plans.len()}))
                 }
-                "notifications/status" => {
-                    let mut total = core::Counts::default();
-                    let mut accounts = Vec::new();
-                    for local in c.accounts()?.into_iter().filter(|a| a.bound) {
-                        let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
-                        c.with_notification_store(&id, |store| {
-                            let settings = core::settings(store)?;
-                            let counts = core::counts(&store.notification_items()?, now);
-                            if settings.enabled {
-                                total.actionable = total.actionable.saturating_add(counts.actionable);
-                                total.unread = total.unread.saturating_add(counts.unread);
-                                total.unverified |= counts.unverified;
-                            }
-                            accounts.push(json!({"account":local.account,"enabled":settings.enabled,"counts":counts,
-                                "pending_sync":settings.revision > settings.remote_revision}));
-                            Ok(())
-                        })?;
-                    }
-                    let badge = match runtime.settings.badge { core::Badge::All => total.actionable.saturating_add(total.unread), core::Badge::Actions => total.actionable, core::Badge::Off => 0 };
-                    Ok(json!({"counts":total,"accounts":accounts,"badge":badge,"enabled":runtime.settings.enabled}))
-                }
+                "notifications/status" => c.notification_status(&runtime, now),
                 "notifications/settings" => {
                     let settings = account.as_ref().map(|id| c.with_notification_store(id, core::settings)).transpose()?;
                     let remote_supported = account.as_ref().map(|id|c.notification_remote_supported(id)).transpose()?.unwrap_or(false);
@@ -446,7 +448,7 @@ impl Daemon {
             self.notifications.wake.notify_one();
             if matches!(
                 method,
-                "notifications/settings_set" | "notifications/observed"
+                "notifications/settings_set" | "notifications/observed" | "notifications/snooze"
             ) {
                 self.notifications.receive.notify_one();
             }

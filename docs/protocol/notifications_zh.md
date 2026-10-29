@@ -54,7 +54,7 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 
 限定接收凭据在 `Authorization: Bearer <receiver>` 发送，仅可访问 feed、observed、revoke 与 routes。请求 query 同时包含 `account`、`installation`、`registration`，服务逐次校验有效设备和登记；不与 hint bearer 混用。feed 附加 `after`（十进制游标，初始 0）及 `limit`（1–100）；失效租约不当作空快照。路由是 128 字符的小写 hex 文本（安装摘要 64 字符加随机路由 ID 64 字符），不含账户或业务目标。
 
-设置写入 `{scope, installation, expected_revision, value}`；scope 是 `global`、`account` 或 `resource`。value 分别使用核心安装设置（不含 revision）、账户设置（不含 revision/remote_revision）或 `{resource, muted, hidden?, until}`，返回已提交 `revision`。全局及账户开关首次默认关闭，resource 的版本按账户资源共享。观察请求是 `{installation, id, version}`，撤销是 `{installation, expected_revision}`。通知版本：频道用原日志水位；不可变来信事项用 `1`；恢复用认证账户版本。读、归档等终态不新增来信版本。
+设置写入 `{scope, installation, expected_revision, value}`；scope 是 `global`、`account` 或 `resource`。value 分别使用核心安装设置（不含 revision）、账户设置（不含 revision/remote_revision）或 `{resource, muted, hidden?, until}`，返回已提交 `revision`。全局及账户开关首次默认关闭；桌面从没有通知设置的旧版本升级时，为所选账户沿用旧版的默认开启。resource 的版本按账户资源共享。观察请求是 `{installation, id, version}`，撤销是 `{installation, expected_revision}`。通知版本：频道用原日志水位；不可变来信事项用 `1`；恢复用认证账户版本。读、归档等终态不新增来信版本。
 
 偏好包括本安装总开关、暂停、IANA 时区每日免打扰、安全例外、四类开关/声音、账户登记、跨设备合并和资源静音/截止。服务在 provider 调用前过滤。本机未确认修改显示待同步，不保证撤回已经入 provider 队列的通知。
 

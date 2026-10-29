@@ -392,15 +392,27 @@ impl Store {
         self.delete("notification_deliveries", id)
     }
 
-    /// Trim expired resolved tombstones. Domain cursors and unresolved items stay.
+    /// Trim expired resolved tombstones and their per-item receive, view and
+    /// snooze markers. Domain cursors and unresolved items stay.
     pub fn prune_notifications(&self, before: u64) -> Result<()> {
-        self.conn()
-            .execute(
+        let before = before.min(i64::MAX as u64) as i64;
+        self.atomic(|store| {
+            let conn = store.conn();
+            conn.execute(
+                "DELETE FROM meta WHERE key IN (SELECT 'notification:' || kind || ':' || i.key \
+                 FROM notification_items AS i, (SELECT 'seen' AS kind UNION ALL SELECT 'remote-observed' \
+                 UNION ALL SELECT 'observed-ack' UNION ALL SELECT 'snooze') \
+                 WHERE i.open = 0 AND i.updated_at < ?1)",
+                [before],
+            )
+            .map_err(storage)?;
+            conn.execute(
                 "DELETE FROM notification_items WHERE open = 0 AND updated_at < ?1",
-                [before.min(i64::MAX as u64) as i64],
+                [before],
             )
             .map(|_| ())
             .map_err(storage)
+        })
     }
 
     /// A sync job: ciphertext, signatures and progress, never a key.

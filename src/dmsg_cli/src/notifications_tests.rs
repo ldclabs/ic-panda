@@ -29,18 +29,21 @@ fn fixture(dir: &testing::TempDir) -> (Daemon, String) {
     let mut runtime = notice::Runtime::load(&path, now).unwrap();
     runtime.settings.enabled = true;
     runtime.save(&path).unwrap();
+    (daemon(dir, c), item.id)
+}
+
+fn daemon(dir: &testing::TempDir, c: dmsg_client::Client) -> Daemon {
     let home = Home {
         dir: dir.path("home"),
     };
-    let daemon = Daemon::new(
+    Daemon::new(
         "owner".into(),
         0,
         home.settings().unwrap(),
         c,
         dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
         crate::mcp_events::McpEvents::new(&[]).unwrap(),
-    );
-    (daemon, item.id)
+    )
 }
 
 #[tokio::test]
@@ -209,4 +212,53 @@ async fn notifications_legacy_stages_are_imported_once_without_guessing_the_acco
             .iter()
             .all(|item| item["target"]["kind"] != "plan")
     );
+}
+
+#[tokio::test]
+async fn notifications_upgrade_keeps_the_selected_accounts_alerts_once() {
+    let dir = testing::TempDir::new();
+    let d = daemon(&dir, testing::unlocked(&dir.path("workspace"), false, None));
+    d.call_notifications("notifications/migrate", &json!({"plans":{}}))
+        .await
+        .unwrap();
+    let read = d
+        .call_notifications("notifications/settings", &json!({}))
+        .await
+        .unwrap();
+    assert_eq!(read["global"]["enabled"], true);
+    assert_eq!(read["account"]["enabled"], true);
+    // A later opt-out is the owner's choice; the next launch does not undo it.
+    let mut global = read["global"].clone();
+    global["enabled"] = false.into();
+    d.call_notifications(
+        "notifications/settings_set",
+        &json!({"scope":"installation","expected_revision":1,"settings":global}),
+    )
+    .await
+    .unwrap();
+    d.call_notifications("notifications/migrate", &json!({"plans":{}}))
+        .await
+        .unwrap();
+    let read = d
+        .call_notifications("notifications/settings", &json!({}))
+        .await
+        .unwrap();
+    assert_eq!(read["global"]["enabled"], false);
+}
+
+#[tokio::test]
+async fn notifications_fresh_install_stays_opt_in() {
+    let dir = testing::TempDir::new();
+    let c =
+        dmsg_client::Client::open(testing::config(false), &dir.path("workspace"), None).unwrap();
+    let d = daemon(&dir, c);
+    d.call_notifications("notifications/migrate", &json!({"plans":{}}))
+        .await
+        .unwrap();
+    let read = d
+        .call_notifications("notifications/settings", &json!({}))
+        .await
+        .unwrap();
+    assert_eq!(read["global"]["enabled"], false);
+    assert!(read["account"].is_null());
 }

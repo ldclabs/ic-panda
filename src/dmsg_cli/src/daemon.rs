@@ -717,7 +717,9 @@ impl Daemon {
         ) {
             self.notifications.wake.notify_one();
         }
-        if kind == "channel/changed" {
+        // A mute or hide uploads its preference now. Ordinary channel reads do
+        // not poll the remote feed; its own hints wake that.
+        if kind == "channel/changed" && data["method"] == "channel/settings" {
             self.notifications.receive.notify_one();
         }
         if matches!(

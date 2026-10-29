@@ -738,3 +738,111 @@ fn notifications_recent_limit_and_clear_never_hide_unfinished_work() {
     assert_eq!(page.items[0].id, pending.id);
     assert!(page.items[0].open);
 }
+
+#[test]
+fn notifications_unlocking_ends_placeholders_so_a_later_locked_hint_alerts_again() {
+    let dir = crate::testing::TempDir::new();
+    let client = crate::testing::unlocked(&dir.0, false, None);
+    let account = crate::testing::account().id.to_string();
+    let store = &client.workspace.store;
+    let (_, settings, runtime, ctx) = example();
+    for category in [Category::Action, Category::Message] {
+        let mut hint = Item::new(account.clone(), Target::Summary(category), 1_000, 1_000);
+        hint.unread = None;
+        hint.quiet = true;
+        upsert(store, hint.clone()).unwrap();
+        let mut shown = store.notification_item(&hint.id).unwrap().unwrap();
+        shown.stage = 1;
+        shown.notified = shown.version;
+        shown.attempted_at = Some(1_000);
+        store.set_notification_item(&shown).unwrap();
+    }
+    assert!(counts(&store.notification_items().unwrap(), 2_000).unverified);
+    client.reconcile_notifications(5_000).unwrap();
+    let items = store.notification_items().unwrap();
+    assert!(items.iter().all(|item| !item.open));
+    assert!(!counts(&items, 5_000).unverified);
+    let mut again = Item::new(account, Target::Summary(Category::Action), 9_000, 9_000);
+    again.unread = None;
+    again.quiet = true;
+    upsert(store, again.clone()).unwrap();
+    let item = store.notification_item(&again.id).unwrap().unwrap();
+    let ctx = Context { now: 70_000, ..ctx };
+    assert_eq!(
+        evaluate(&item, &settings, &runtime, &ctx),
+        Decision::Present {
+            stage: 1,
+            sound: false,
+            in_app: false,
+            update: false
+        }
+    );
+}
+
+#[test]
+fn notifications_badge_counts_the_selected_account_before_any_opt_in() {
+    let dir = crate::testing::TempDir::new();
+    let client = crate::testing::unlocked(&dir.0, false, None);
+    let mut pending = Item::new(
+        crate::testing::account().id.to_string(),
+        Target::Approval("request".into()),
+        1,
+        1_000,
+    );
+    pending.actionable = true;
+    upsert(&client.workspace.store, pending).unwrap();
+    let status = client
+        .notification_status(&Runtime::default(), 2_000)
+        .unwrap();
+    assert_eq!(status["accounts"][0]["enabled"], false);
+    assert_eq!(status["counts"]["actionable"], 1);
+    assert_eq!(status["badge"], 1);
+}
+
+#[test]
+fn notifications_pruning_a_tombstone_drops_its_item_markers() {
+    let store = Store::memory().unwrap();
+    let mut ended = Item::new("a".into(), Target::Inbox(Some("ended".into())), 1, 1_000);
+    ended.open = false;
+    upsert(&store, ended.clone()).unwrap();
+    let mut unread = Item::new("a".into(), Target::Inbox(Some("unread".into())), 1, 1_000);
+    unread.unread = Some(1);
+    upsert(&store, unread.clone()).unwrap();
+    let kinds = ["seen", "remote-observed", "observed-ack", "snooze"];
+    for id in [&ended.id, &unread.id] {
+        for kind in kinds {
+            store
+                .set_meta(&format!("notification:{kind}:{id}"), &1_u64)
+                .unwrap();
+        }
+    }
+    store.prune_notifications(2_000).unwrap();
+    assert!(store.notification_item(&ended.id).unwrap().is_none());
+    assert!(store.notification_item(&unread.id).unwrap().is_some());
+    for kind in kinds {
+        let marker = |id: &str| {
+            store
+                .meta::<u64>(&format!("notification:{kind}:{id}"))
+                .unwrap()
+        };
+        assert_eq!(marker(&ended.id), None);
+        assert_eq!(marker(&unread.id), Some(1));
+    }
+}
+
+#[tokio::test]
+async fn notifications_failed_capability_probe_keeps_the_last_answer() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    for key in ["notification:publish_v1", "notification:remote_v1"] {
+        client.workspace.store.set_meta(key, &true).unwrap();
+    }
+    // The test relay refuses connections: a transport error, not a missing endpoint.
+    assert!(refresh_capabilities(&client.hold()).await.is_err());
+    for key in ["notification:publish_v1", "notification:remote_v1"] {
+        assert_eq!(
+            client.workspace.store.meta::<bool>(key).unwrap(),
+            Some(true)
+        );
+    }
+}

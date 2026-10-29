@@ -327,6 +327,10 @@ Rules (`src/main/policy.ts`):
   opt-in per Agent after verified local receipt. MCP events and relay hints only
   wake synchronization. The global Reminders view keeps unresolved work and
   recent history separate from business unread state.
+- A new installation starts with system notifications off. An installation
+  upgraded from a version without these settings keeps alerting its selected
+  account, as before. The app badge, tray and Reminders count include the
+  selected account whether or not it alerts.
 - Recovery notices retain their incident identity and phases across restarts.
   Certified public observation works while locked; a verified execution time
   enables the 24-hour and one-hour phases. Missing time never prevents the first

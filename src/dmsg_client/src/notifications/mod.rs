@@ -576,9 +576,57 @@ impl crate::Client {
         for letter in self.inbox_cached()? {
             self.project_inbox_notification(&letter, letter.created_at.max(1), now, true)?;
         }
+        // Unlocked reads now own these states; a later locked hint opens a new
+        // placeholder rather than finding this one still open or covered.
+        for mut item in self.workspace.store.notification_items()? {
+            if matches!(item.target, Target::Summary(_)) && item.open {
+                item.open = false;
+                item.unread = Some(0);
+                item.unverified = false;
+                item.notified = item.version;
+                item.stage = 0;
+                item.updated_at = now;
+                self.workspace.store.set_notification_item(&item)?;
+            }
+        }
         self.workspace
             .store
             .prune_notifications(now.saturating_sub(RETENTION_MS))
+    }
+
+    /// Installation counts for the app badge and reminder entry. The selected
+    /// account counts whether or not it alerts, as the badge did before system
+    /// notifications; another local account counts once its owner opted in.
+    pub fn notification_status(&self, runtime: &Runtime, now: u64) -> Result<serde_json::Value> {
+        let selected = self.session_state().account;
+        let mut total = Counts::default();
+        let mut accounts = Vec::new();
+        for local in self.accounts()?.into_iter().filter(|a| a.bound) {
+            let id = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
+            self.with_notification_store(&id, |store| {
+                let settings = settings(store)?;
+                let counts = counts(&store.notification_items()?, now);
+                if settings.enabled || selected.as_deref() == Some(local.account.as_str()) {
+                    total.actionable = total.actionable.saturating_add(counts.actionable);
+                    total.unread = total.unread.saturating_add(counts.unread);
+                    total.unverified |= counts.unverified;
+                }
+                accounts.push(serde_json::json!({"account": local.account, "enabled": settings.enabled,
+                    "counts": counts, "pending_sync": settings.revision > settings.remote_revision}));
+                Ok(())
+            })?;
+        }
+        let badge = match runtime.settings.badge {
+            Badge::All => total.actionable.saturating_add(total.unread),
+            Badge::Actions => total.actionable,
+            Badge::Off => 0,
+        };
+        Ok(serde_json::json!({
+            "counts": total,
+            "accounts": accounts,
+            "badge": badge,
+            "enabled": runtime.settings.enabled,
+        }))
     }
 
     /// Project local user work requiring intervention. A transient failed sync
@@ -717,32 +765,23 @@ impl crate::Client {
 }
 
 /// Refresh the small capability declaration without borrowing Client during I/O.
-/// Unsupported/temporarily unavailable services keep original message bodies.
+/// Unsupported services keep original message bodies. A failed request keeps
+/// the last answer instead of turning a transient error into "unsupported".
 pub async fn refresh_capabilities(h: &impl crate::hold::Hold) -> Result<()> {
     use crate::hold::{Hold, Unlocked};
     let h = Unlocked::new(h).await?;
     let cloud = h.with(|c| Ok(c.relay())).await?;
-    let capabilities = cloud.public("/public/notifications/capabilities").await;
+    let capabilities = cloud.public("/public/notifications/capabilities").await?;
     h.with(|c| {
-        let enabled = capabilities
-            .as_ref()
-            .ok()
-            .and_then(|c| c.as_ref())
-            .is_some_and(|value| {
-                value["protocol"] == "dmsg-notifications/1" && value["publish_metadata"] == true
-            });
+        let enabled = capabilities.as_ref().is_some_and(|value| {
+            value["protocol"] == "dmsg-notifications/1" && value["publish_metadata"] == true
+        });
         c.workspace
             .store
             .set_meta("notification:publish_v1", &enabled)?;
-        let receive = capabilities
-            .as_ref()
-            .ok()
-            .and_then(|v| v.as_ref())
-            .is_some_and(|v| {
-                v["protocol"] == "dmsg-notifications/1"
-                    && v["feed"] == true
-                    && v["preferences"] == true
-            });
+        let receive = capabilities.as_ref().is_some_and(|v| {
+            v["protocol"] == "dmsg-notifications/1" && v["feed"] == true && v["preferences"] == true
+        });
         c.workspace
             .store
             .set_meta("notification:remote_v1", &receive)
