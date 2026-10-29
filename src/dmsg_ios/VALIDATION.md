@@ -1,5 +1,43 @@
 # iOS implementation validation
 
+## Unified notifications (2026-10-29)
+
+Continues public `main@00dbfdf7` and the existing uncommitted notification work.
+No remote repository or production environment was fetched or changed.
+The native settings/reminder views now use named Rust APIs, shared durable policy,
+versioned settings and original-account navigation. Foreground callbacks do not
+schedule another local copy of shared APNs events. Actual loaded business views
+report visible versions; a reminder list or push click does not mark business read.
+Channel read cursors advance only on the visible latest message, and changing a
+channel name preserves a timed mute. Offline route resolution retains retry.
+
+- Both ARM64 Rust slices and Swift bindings rebuilt; debug artifact/source
+  fingerprints verified. Swift simulator build succeeded on iPhone 16 Pro / iOS 18.4.
+- Rust: client 417 passed / 5 existing ignored, daemon 96 passed / 6 existing ignored,
+  mobile 10 passed. Formatting and all-targets Clippy with warnings denied passed.
+- 39 native unit tests passed, including real UniFFI settings/CAS/session fences,
+  opaque route and exact version decoding, cross-midnight quiet hours and DST.
+- All 23 notification catalogs match the desktop vocabulary and APNs keys.
+  Existing translations were preserved except the intentional generic notification
+  wording update. Localization extraction, icon parity and 12 Python tests passed.
+- The first three UI tests reached the settings but tapped the SwiftUI switch row's
+  label center. The test now taps the native thumb (leading in RTL), and finds
+  Save again after the pending-sync explanation changes the scroll layout.
+  All three UI flows then passed: English light, Chinese dark and Arabic RTL.
+  Screenshot review caught a missing generic Open translation; all 23 catalogs
+  now include it and Swift extraction passes. Final screenshots are retained in
+  `.build/notification-shots-localized/`.
+
+These tests use local presentation fixtures and a real local Rust bridge without
+an authenticated live account. Real App Attest/APNs, physical-device permissions,
+Focus, lock screen, token replacement, revoked-account cold starts and multiple
+registered accounts remain unverified. Wallet reminders require member-authenticated
+reads; an independent remote wallet source is not implemented. Android is deferred
+until its host is merged into main. No signed archive, upload or deployment was run.
+
+See the [shared acceptance matrix](../dmsg_desktop/docs/notifications-validation.md)
+for N01–N32 evidence and remaining platform gates.
+
 ## Second-stage languages (2026-10-28)
 
 Added Vietnamese, Thai, Filipino, Malay, Bengali, Urdu, Polish and Dutch using

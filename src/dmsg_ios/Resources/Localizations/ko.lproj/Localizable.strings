@@ -474,8 +474,16 @@
 	<string>현재 버전</string>
 	<key>Cvv</key>
 	<string>이력서</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>처리가 필요한 항목이 있습니다.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>dMsg의 새로운 활동.</string>
+	<string>dMsg를 열어 최근 활동을 확인하세요.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>새 메시지가 있습니다.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>계정 보안 변경 사항을 확인해 주세요.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>확인이 필요한 서비스 항목이 있습니다.</string>
 	<key>Database</key>
 	<string>데이터베이스</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>선택한 변경 불가능한 복사본만 파일 앱에 표시됩니다. 액세스하려면 시스템 인증이 필요합니다. dMsg를 잠그면 현재 액세스 세션이 종료됩니다. 파일에는 dMsg가 기억할 수 없는 다운로드된 복사본과 파일 이름이 남아 있을 수 있습니다.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg가 잠겨 있는 동안에는 선택한 암호화된 파일만 전송할 수 있습니다. iOS는 일정을 제어합니다. 강제 종료는 앱을 다시 열 때까지 전달을 중지합니다. 원래 계정을 열어 확인하고 완료하세요.</string>
+	<key>Open</key>
+	<string>열기</string>
 	<key>Open approval record</key>
 	<string>승인 기록 열기</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg 작업 공간</string>
+	<key>dmsg.noticeAccount</key>
+	<string>이 계정의 알림 받기</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>처리가 필요한 항목이 있습니다.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail 알림</string>
+	<key>dmsg.noticeBadge</key>
+	<string>앱 아이콘 배지</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>처리할 항목만</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>처리할 항목 및 읽지 않은 메시지</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>끔</string>
+	<key>dmsg.noticeClear</key>
+	<string>완료된 알림 지우기</string>
+	<key>dmsg.noticeDetail</key>
+	<string>처리가 필요한 항목과 최근 소식</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>알림이 없습니다</string>
+	<key>dmsg.noticeEnable</key>
+	<string>이 기기에서 시스템 알림 표시</string>
+	<key>dmsg.noticeEnded</key>
+	<string>종료되었거나 사용할 수 없는 항목입니다</string>
+	<key>dmsg.noticeFrom</key>
+	<string>시작</string>
+	<key>dmsg.noticeLate</key>
+	<string>이 시간은 마감 이후입니다</string>
+	<key>dmsg.noticeLater</key>
+	<string>나중에 다시 알림</string>
+	<key>dmsg.noticeManaged</key>
+	<string>운영체제에서 관리</string>
+	<key>dmsg.noticeMerge</key>
+	<string>여러 기기의 중복 알림 합치기</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>새 메시지가 있습니다.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>메시지</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>처리 필요</string>
+	<key>dmsg.noticePause15</key>
+	<string>15분 동안 일시 중지</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>1시간 동안 일시 중지</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>내일 08:00까지 일시 중지</string>
+	<key>dmsg.noticePending</key>
+	<string>이 기기에 저장됨 · 원격 설정 동기화 대기 중</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>설정은 이 기기에 즉시 적용됩니다. 업데이트가 확인되기 전까지 원격 알림에 이전 설정이 사용될 수 있습니다.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>매일 방해 금지 시간</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>알림 목록을 확인해도 작업이 완료되거나 메시지가 읽음으로 표시되지 않습니다.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>최근 알림</string>
+	<key>dmsg.noticeRemote</key>
+	<string>원격 알림 필터링은 아직 사용할 수 없습니다</string>
+	<key>dmsg.noticeResume</key>
+	<string>알림 다시 받기</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>방해 금지 시간과 소리는 이 기기에만 적용됩니다. 채널 음소거는 계정과 동기화됩니다.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>계정 보안 변경 사항을 확인해 주세요.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>방해 금지 시간에도 보안 알림 허용</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>확인이 필요한 서비스 항목이 있습니다.</string>
+	<key>dmsg.noticeServices</key>
+	<string>서비스</string>
+	<key>dmsg.noticeSettings</key>
+	<string>알림 설정</string>
+	<key>dmsg.noticeSound</key>
+	<string>소리</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>이 계정으로 전환하여 항목 열기</string>
+	<key>dmsg.noticeSystem</key>
+	<string>시스템 설정 열기</string>
+	<key>dmsg.noticeTest</key>
+	<string>알림 테스트</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>테스트 알림을 시스템에 전송했습니다</string>
+	<key>dmsg.noticeTitle</key>
+	<string>알림 목록</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>이 시스템에서 사용할 수 없음</string>
+	<key>dmsg.noticeUntil</key>
+	<string>종료</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>dMsg를 열어 최근 활동을 확인하세요.</string>
+	<key>dmsg.noticeZone</key>
+	<string>시간대</string>
 </dict>
 </plist>

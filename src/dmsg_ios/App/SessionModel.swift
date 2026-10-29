@@ -18,6 +18,7 @@ final class SessionModel {
     private(set) var synchronizing = false
     var error: String?
     var notice: String?
+    var reminderEntry: ReminderEntry?
     var vault: [VaultItem] = []
     var channels: [ChannelItem] = []
     private(set) var blockedAccounts: Set<String> = []
@@ -58,6 +59,7 @@ final class SessionModel {
     let transfer = TransferModel()
     let apple = NativeApple()
     let push = NativePush()
+    let notifications = NativeNotifications()
     let purchases = PurchaseModel()
     let webLogin = WebLogin()
     private let privacyShield = PrivacyShield()
@@ -93,6 +95,7 @@ final class SessionModel {
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
         session = state; vault = items; favorites = Array(items.filter(\.favorite).prefix(4))
         if let account = state.account {
+            notifications.installFixtures(account: account)
             recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
                 observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
         }
@@ -211,17 +214,26 @@ final class SessionModel {
     }
 
     func openPushRoute(_ route: String) async {
-        guard let files, engine != nil else { DMsgAppDelegate.pendingRoute = route; return }
+        automaticUnlock.suppress()
+        guard let files, let engine else { DMsgAppDelegate.pendingRoute = route; return }
+        let current = epoch
         try? push.load(files)
         DMsgAppDelegate.pendingRoute = nil
-        guard let account = push.account(for: route) else { return }
-        if session?.account != account {
-            await lock()
-            do { _ = try await engine?.switchAccount(account: account); await updateSession() }
-            catch { report(error); return }
+        do {
+            let destination: ReminderRoute = try decode(try await engine.notificationResolve(route: route))
+            guard current == epoch else { return }
+            reminderEntry = ReminderEntry(account: destination.account, target: destination.target, ended: destination.ended)
+        } catch {
+            guard current == epoch else { return }
+            // Legacy routes identify only an original account; they never select
+            // another pending request or silently switch the active workspace.
+            if let failure = error as? MobileError, case .Failure(let code) = failure,
+               ["NOT_FOUND", "FORBIDDEN", "AUTH_REQUIRED", "DEVICE_NOT_APPROVED", "INVALID_INPUT"].contains(code) {
+                reminderEntry = ReminderEntry(account: push.account(for: route), ended: true)
+            } else {
+                reminderEntry = ReminderEntry(account: push.account(for: route), retryRoute: route)
+            }
         }
-        selectedTab = .messages
-        if unlocked { await synchronize() }
     }
 
     func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
@@ -467,6 +479,7 @@ final class SessionModel {
     }
 
     private func clearContent(clearClipboard: Bool) {
+        notifications.clearVisibility()
         (try? SystemExports(.files))?.lockFiles()
         transfer.cancel()
         recoveryOperation?.cancel()

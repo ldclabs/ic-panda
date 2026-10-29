@@ -30,6 +30,16 @@ fn notifications_shared_policy_vectors() {
     ))
     .unwrap();
     assert_eq!(vectors["version"], VERSION);
+    for lifetime in vectors["lifetimes"].as_array().unwrap() {
+        assert_eq!(
+            policy::expires_at(
+                serde_json::from_value(lifetime["category"].clone()).unwrap(),
+                lifetime["now"].as_u64().unwrap(),
+                lifetime["deadline"].as_u64()
+            ),
+            lifetime["expires"].as_u64().unwrap()
+        );
+    }
     for identity in vectors["identities"].as_array().unwrap() {
         let target: Target = serde_json::from_value(identity["target"].clone()).unwrap();
         assert_eq!(
@@ -229,6 +239,31 @@ fn notifications_provider_retry_and_ttl_are_bounded() {
         policy::expires_at(Category::Security, 1_000, None),
         86_401_000
     );
+}
+
+#[test]
+fn notifications_unverified_updates_keep_last_known_counts_without_claiming_a_new_count() {
+    let store = Store::memory().unwrap();
+    let (mut item, settings, mut runtime, mut ctx) = example();
+    configure(&store, 0, settings).unwrap();
+    upsert(&store, item.clone()).unwrap();
+    item.version += 1;
+    item.unread = None;
+    upsert(&store, item.clone()).unwrap();
+    let stored = store.notification_item(&item.id).unwrap().unwrap();
+    assert_eq!(stored.unread, Some(2));
+    assert!(stored.unverified);
+    let count = counts(std::slice::from_ref(&stored), ctx.now);
+    assert_eq!(count.actionable, 0);
+    assert_eq!(count.unread, 2);
+    assert!(count.unverified);
+    ctx.now = 5000;
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert_eq!(batch.plans.len(), 1);
+    assert_eq!(batch.plans[0].count, None);
+    item.unread = Some(3);
+    upsert(&store, item).unwrap();
+    assert!(!store.notification_items().unwrap()[0].unverified);
 }
 
 #[test]
@@ -537,4 +572,33 @@ fn notifications_verified_contract_claims_only_its_legacy_phase() {
     let runtime = Runtime::load(&path, 2_000).unwrap();
     assert!(!runtime.legacy_plans.contains_key(&contract));
     assert_eq!(runtime.legacy_plans.get(&unknown), Some(&3));
+}
+
+#[test]
+fn notifications_recent_limit_and_clear_never_hide_unfinished_work() {
+    let store = Store::memory().unwrap();
+    for index in 1..=1001 {
+        let mut item = Item::new(
+            "a".into(),
+            Target::Inbox(Some(index.to_string())),
+            1,
+            1000 + index,
+        );
+        item.open = false;
+        upsert(&store, item).unwrap();
+    }
+    let mut pending = Item::new("a".into(), Target::Recovery("pending".into()), 1, 1);
+    pending.actionable = true;
+    upsert(&store, pending.clone()).unwrap();
+    let page = list(&store, false, 1000, 100, 3000).unwrap();
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].id, pending.id);
+    assert_eq!(page.next, None);
+    store
+        .set_meta("notification:cleared_at", &3000_u64)
+        .unwrap();
+    let page = list(&store, false, 0, 100, RETENTION_MS + 3001).unwrap();
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].id, pending.id);
+    assert!(page.items[0].open);
 }

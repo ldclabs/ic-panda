@@ -474,8 +474,16 @@
 	<string>Aktualna wersja</string>
 	<key>Cvv</key>
 	<string>Cvv</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>Jest sprawa wymagająca Twojego działania.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>Nowa aktywność w dMsg.</string>
+	<string>Otwórz dMsg, aby sprawdzić ostatnią aktywność.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>Masz nowe wiadomości.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Zmiana bezpieczeństwa konta wymaga sprawdzenia.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Usługa wymaga Twojej uwagi.</string>
 	<key>Database</key>
 	<string>Baza danych</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>W aplikacji Pliki pojawiają się tylko wybrane, niezmienne kopie. Dostęp wymaga uwierzytelnienia systemu; zablokowanie dMsg kończy bieżącą sesję dostępu. Pliki mogą zawierać pobrane kopie i nazwy plików, których dMsg nie może zapamiętać.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Gdy dMsg jest zablokowany, można przesłać tylko wybrany zaszyfrowany plik. iOS kontroluje planowanie; wymuszenie wyjścia zatrzymuje wyświetlanie do czasu ponownego otwarcia aplikacji. Otwórz oryginalne konto, aby je zweryfikować i zakończyć.</string>
+	<key>Open</key>
+	<string>Otwórz</string>
 	<key>Open approval record</key>
 	<string>Otwórz rekord zatwierdzenia</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>Obszar roboczy dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Odbieraj powiadomienia tego konta</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>Jest sprawa wymagająca Twojego działania.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Alerty Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Znacznik ikony aplikacji</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Tylko działania</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Działania i nieprzeczytane wiadomości</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Wyłączony</string>
+	<key>dmsg.noticeClear</key>
+	<string>Wyczyść zakończone przypomnienia</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Oczekujące działania i ostatnie aktualizacje</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Brak przypomnień</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Powiadomienia systemowe na tym urządzeniu</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Ten element został zakończony lub jest niedostępny</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Od</string>
+	<key>dmsg.noticeLate</key>
+	<string>Ta godzina jest po terminie</string>
+	<key>dmsg.noticeLater</key>
+	<string>Przypomnij później</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Zarządzane przez system operacyjny</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Łącz powtarzające się alerty na różnych urządzeniach</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>Masz nowe wiadomości.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Wiadomości</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Wymaga działania</string>
+	<key>dmsg.noticePause15</key>
+	<string>Wstrzymaj na 15 minut</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>Wstrzymaj na godzinę</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Wstrzymaj do jutra do 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>Zapisano tutaj; ustawienia zdalne czekają na synchronizację</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Ustawienia działają tutaj od razu. Alerty zdalne mogą korzystać z poprzednich ustawień do czasu potwierdzenia aktualizacji.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Codzienne godziny ciszy</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Przeglądanie przypomnień nie kończy działań ani nie oznacza wiadomości jako przeczytanych.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Ostatnie przypomnienia</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Zdalne filtrowanie powiadomień nie jest jeszcze dostępne</string>
+	<key>dmsg.noticeResume</key>
+	<string>Wznów powiadomienia</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Godziny ciszy i dźwięki dotyczą tego urządzenia. Wyciszenie kanałów jest synchronizowane z kontem.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Zmiana bezpieczeństwa konta wymaga sprawdzenia.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Zezwalaj na alerty bezpieczeństwa w godzinach ciszy</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Usługa wymaga Twojej uwagi.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Usługi</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Powiadomienia</string>
+	<key>dmsg.noticeSound</key>
+	<string>Dźwięk</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Przełącz się na to konto, aby otworzyć element</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Otwórz ustawienia systemowe</string>
+	<key>dmsg.noticeTest</key>
+	<string>Test powiadomienia</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Powiadomienie testowe przekazano do systemu</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Przypomnienia</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Niedostępne w tym systemie</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Do</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Otwórz dMsg, aby sprawdzić ostatnią aktywność.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Strefa czasowa</string>
 </dict>
 </plist>

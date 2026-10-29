@@ -283,9 +283,12 @@ impl MobileEngine {
         hidden: bool,
     ) -> Result<ObjectSnapshot> {
         self.object(move |c| {
-            Box::pin(
-                async move { c.channel_settings(&channel, Some(&name), Some(muted), Some(hidden)) },
-            )
+            Box::pin(async move {
+                let current = c.channel_view(&channel)?;
+                let change_mute =
+                    (current.muted != muted || current.notification_conflict).then_some(muted);
+                c.channel_settings(&channel, Some(&name), change_mute, Some(hidden))
+            })
         })
         .await
     }

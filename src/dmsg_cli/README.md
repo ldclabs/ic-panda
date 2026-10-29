@@ -410,11 +410,15 @@ pending recovery and points to `dmsg recovery dispute`; `--json` includes
 not yet checked; after two minutes without a fresh observation the state is
 stale, and an existing warning remains. The observation survives daemon restarts.
 When the request changes, the daemon expires the account security display
-snapshot, then `recovery/changed` tells the desktop to reread status and notify
-once per request per desktop run. A stopped daemon, sleeping/offline device or
-disabled OS notifications cannot provide timely alerts. Other local accounts are
-not polled until selected. The warning is informational; cancelling still uses the existing
-authenticated device approval flow.
+snapshot, then `recovery/changed` wakes the shared notification policy. Incident
+identity and phase coverage persist across daemon or desktop restarts. Other
+explicitly registered local accounts receive minimal notification projections
+through scoped credentials without switching the selected workspace or loading
+content roots. A stopped presenter, sleeping/offline device or disabled OS
+permission cannot provide timely local alerts. The warning is informational;
+cancelling still uses the existing authenticated device approval flow. The
+[notification contract](../../docs/protocol/notifications_zh.md) describes remote
+capability negotiation, preferences and provider limits.
 
 Unlocking opens the root and returns as soon as local content is readable;
 the daemon then syncs once in the background, even with periodic sync disabled.

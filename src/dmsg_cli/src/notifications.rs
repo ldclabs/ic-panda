@@ -186,6 +186,10 @@ pub(crate) async fn receive_run(d: Arc<Daemon>) {
                 d.note_result("notifications/settings", &result);
                 let result = core::preferences::sync(&h, &context).await;
                 d.note_result("notifications/resources", &result);
+                let result = core::remote::sync_snoozes(&h, &context).await;
+                d.note_result("notifications/snooze", &result);
+                let result = core::remote::sync_recovery(&h, &context).await;
+                d.note_result("notifications/recovery", &result);
                 d.hints_changed().notify_one();
             }
         }
@@ -397,26 +401,15 @@ impl Daemon {
                             }
                             let scope = params["scope"].as_str().unwrap_or("open");
                             ensure(matches!(scope, "open" | "recent"), Error::InvalidInput("scope".into()))?;
-                            let cleared = store.meta::<u64>("notification:cleared_at")?.unwrap_or(0);
-                            let mut items = store.notification_items()?;
-                            items.retain(|item| {
-                                let actionable = item.open && item.actionable && !(item.category() == core::Category::Action && item.deadline.is_some_and(|at| at <= now));
-                                if scope == "open" { actionable } else {
-                                    actionable || (item.updated_at >= now.saturating_sub(core::RETENTION_MS)
-                                        && (item.open || item.updated_at > cleared))
-                                }
-                            });
-                            if scope == "open" { items.sort_by_key(|item| (item.category() != core::Category::Security, item.deadline.unwrap_or(u64::MAX), std::cmp::Reverse(item.first_at))); }
-                            else { items.truncate(1000); }
                             let prefix = format!("{account}:{scope}:");
                             let offset = match params["cursor"].as_str() {
                                 Some(cursor) => cursor.strip_prefix(&prefix).and_then(|p| p.parse::<usize>().ok()).ok_or(Error::InvalidInput("cursor".into()))?,
                                 None => 0,
                             };
                             let limit = params["limit"].as_u64().unwrap_or(50).clamp(1,100) as usize;
-                            let next = offset.saturating_add(limit);
-                            let cursor = (next < items.len()).then(|| format!("{prefix}{next}"));
-                            Ok(json!({"items":items.into_iter().skip(offset).take(limit).collect::<Vec<_>>(),"next_cursor":cursor}))
+                            let page = core::list(store, scope == "open", offset, limit, now)?;
+                            let cursor = page.next.map(|next| format!("{prefix}{next}"));
+                            Ok(json!({"items":page.items,"next_cursor":cursor}))
                         }
                         "notifications/observed" => {
                             let target = params.get("target").map(|target| serde_json::from_value::<Target>(target.clone()).map_err(|_| Error::InvalidInput("target".into()))).transpose()?;

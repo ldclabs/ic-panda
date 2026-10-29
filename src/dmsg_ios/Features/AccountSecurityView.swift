@@ -37,6 +37,7 @@ struct AccountSecurityView: View {
                 } }
                 if let recovery = security?.pendingRecovery {
                     Text(Date(timeIntervalSince1970: Double(recovery.executeAfter) / 1000), style: .date)
+                        .reminderVisible(.recovery(model.recoveryWarning?.digest ?? ""), ready: model.recoveryWarning != nil)
                     Button("Dispute pending recovery", role: .destructive) { Task {
                         do { if let result = try await model.engine?.disputeRecovery(operation: recovery.opId) { request = try model.decode(result) } }
                         catch { model.report(error) }
@@ -49,8 +50,14 @@ struct AccountSecurityView: View {
             }
     }
     private func load() async {
-        do { if let result = try await model.engine?.security() { security = try model.decode(result); delay = Int((security?.recoveryDelayMs ?? 259_200_000) / 86_400_000) } }
-        catch { model.report(error) }
+        let epoch = model.epoch
+        do {
+            if let result = try await model.engine?.security() {
+                guard epoch == model.epoch, !Task.isCancelled else { return }
+                security = try model.decode(result); delay = Int((security?.recoveryDelayMs ?? 259_200_000) / 86_400_000)
+                await model.refreshRecoveryWarning()
+            }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
     private func remove(_ principal: String) async {
         do { if let result = try await model.engine?.removeLogin(principal: principal) { request = try model.decode(result) } }

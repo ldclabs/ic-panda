@@ -88,13 +88,14 @@ struct WalletProposalView: View {
     let wallet: String; let proposal: UInt64
     @Environment(SessionModel.self) private var model
     @State private var value: DisplayValue?
+    @State private var observedVersion: UInt64?
     @State private var request: ApprovalView?
     @State private var working = false
     @State private var execute = false
     @State private var work: Task<Void, Never>?
     var body: some View {
         List {
-            if let value { CanonicalDetails(value: value) } else { ProgressView() }
+            if let value { CanonicalDetails(value: value).reminderVisible(.wallet(wallet, String(proposal)), watermark: observedVersion, ready: observedVersion != nil) } else { ProgressView() }
             Section {
                 Button("Review approval") { work = Task { await decide(true) } }
                 Button("Review rejection", role: .destructive) { work = Task { await decide(false) } }
@@ -119,8 +120,15 @@ struct WalletProposalView: View {
             .onDisappear { work?.cancel() }
     }
     private func load() async {
-        do { if let snapshot = try await model.engine?.walletProposal(wallet: wallet, proposal: proposal) { value = try model.decode(snapshot) } }
-        catch { model.report(error) }
+        let epoch = model.epoch
+        observedVersion = nil
+        do {
+            guard let engine = model.engine, let account = model.session?.account else { return }
+            let before: ReminderItem? = try model.decode(try await engine.notificationReference(selected: account, targetJson: NoticeEncoding.json(ReminderTarget.wallet(wallet, String(proposal)))))
+            let snapshot = try await engine.walletProposal(wallet: wallet, proposal: proposal)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            value = try model.decode(snapshot); observedVersion = before.flatMap { UInt64($0.version) }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
     private func decide(_ approve: Bool) async {
         guard let engine = model.engine, !working else { return }; working = true; defer { working = false }

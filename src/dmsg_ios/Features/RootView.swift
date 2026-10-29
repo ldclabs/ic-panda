@@ -38,6 +38,21 @@ struct RootView: View {
                         if model.notice == notice { model.notice = nil }
                     }
             }
+            if let plan = model.notifications.presented, !model.concealed {
+                VStack {
+                    Spacer()
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: plan.category == .security ? "shield" : "bell").foregroundStyle(Theme.forest)
+                        Text(plan.body).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Open") { model.reminderEntry = ReminderEntry(account: plan.account, target: plan.target); model.notifications.presented = nil }
+                    }.padding(14).background(Theme.surface, in: RoundedRectangle(cornerRadius: 14)).padding(.horizontal, 16).padding(.bottom, 82)
+                }
+                .accessibilityIdentifier("notifications.toast")
+                .task(id: plan.id) {
+                    try? await Task.sleep(for: .seconds(6))
+                    if model.notifications.presented?.id == plan.id { model.notifications.presented = nil }
+                }
+            }
             if model.concealed {
                 Theme.paper.ignoresSafeArea()
                 Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)
@@ -48,6 +63,7 @@ struct RootView: View {
             Button("OK", role: .cancel) { model.error = nil }
         } message: { Text(model.error ?? "") }
         .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
+        .sheet(item: $model.reminderEntry) { entry in NavigationStack { RemindersView(entry: entry) } }
         .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
         .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
         .task { routeIntent() }
@@ -79,12 +95,29 @@ struct ApprovalButton: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.openApprovals) private var open
     var body: some View {
+        HStack {
+        ReminderButton()
         Button(action: open) {
             Label("Approvals", glyph: .approvals)
                 .overlay(alignment: .topTrailing) {
                     if (model.session?.approvalsWaiting ?? 0) > 0 { Circle().fill(.orange).frame(width: 7, height: 7) }
                 }
         }.accessibilityIdentifier("approvals.open")
+        }
+    }
+}
+
+struct ReminderButton: View {
+    @Environment(SessionModel.self) private var model
+    var body: some View {
+        Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: {
+            Label(NoticeCopy.text("noticeTitle"), systemImage: "clock")
+                .overlay(alignment: .topTrailing) {
+                    if (model.notifications.status?.counts.actionable ?? 0) > 0 || model.notifications.status?.counts.unverified == true {
+                        Circle().fill(.orange).frame(width: 7, height: 7)
+                    }
+                }
+        }.accessibilityIdentifier("reminders.open")
     }
 }
 
@@ -154,6 +187,7 @@ struct AccessView: View {
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .primaryAction) { ReminderButton() } }
     }
 
     private func initialize() async {

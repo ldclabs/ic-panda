@@ -474,8 +474,16 @@
 	<string>当前版本</string>
 	<key>Cvv</key>
 	<string>安全码（CVV）</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>有事项需要你处理。</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>你在 dMsg 中有新动态。</string>
+	<string>请打开 dMsg 核对最新动态。</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>你有新消息。</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>账户安全状态发生变化，请打开 dMsg 核对。</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>有服务事项需要你查看。</string>
 	<key>Database</key>
 	<string>数据库名</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Files 应用中只显示所选的不可变副本。访问需要系统认证；锁定 dMsg 会结束当前访问会话。Files 可能保留已下载副本及文件名，dMsg 无法将其收回。</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>锁定 dMsg 后只传输所选文件的密文。调度由 iOS 控制；强制退出会停止传输，直到再次打开应用。请打开原账号验证并完成。</string>
+	<key>Open</key>
+	<string>打开</string>
 	<key>Open approval record</key>
 	<string>查看审批记录</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg 工作区</string>
+	<key>dmsg.noticeAccount</key>
+	<string>在本设备接收此账户的通知</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>有事项需要你处理。</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail 提醒</string>
+	<key>dmsg.noticeBadge</key>
+	<string>应用图标角标</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>仅待办</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>待办和普通未读</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>关闭</string>
+	<key>dmsg.noticeClear</key>
+	<string>清理已结束的提醒</string>
+	<key>dmsg.noticeDetail</key>
+	<string>需要处理的事项与近期动态</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>暂无提醒</string>
+	<key>dmsg.noticeEnable</key>
+	<string>在本设备显示系统通知</string>
+	<key>dmsg.noticeEnded</key>
+	<string>事项已结束或暂不可用</string>
+	<key>dmsg.noticeFrom</key>
+	<string>开始</string>
+	<key>dmsg.noticeLate</key>
+	<string>此时间晚于事项截止时间</string>
+	<key>dmsg.noticeLater</key>
+	<string>稍后提醒</string>
+	<key>dmsg.noticeManaged</key>
+	<string>由操作系统管理</string>
+	<key>dmsg.noticeMerge</key>
+	<string>合并多设备重复提醒</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>你有新消息。</string>
+	<key>dmsg.noticeMessages</key>
+	<string>消息</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>需要处理</string>
+	<key>dmsg.noticePause15</key>
+	<string>暂停 15 分钟</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>暂停 1 小时</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>暂停至明日 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>本机已生效，远程设置待同步</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>本机设置立即生效。远程更新确认前，推送可能仍使用先前的设置。</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>每日免打扰</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>查看提醒列表不会完成事项，也不会将消息标为已读。</string>
+	<key>dmsg.noticeRecent</key>
+	<string>近期提醒</string>
+	<key>dmsg.noticeRemote</key>
+	<string>远程通知过滤暂不可用</string>
+	<key>dmsg.noticeResume</key>
+	<string>恢复通知</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>免打扰和声音仅影响本设备；频道静音随账户同步。</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>账户安全状态发生变化，请打开 dMsg 核对。</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>免打扰期间允许安全提醒</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>有服务事项需要你查看。</string>
+	<key>dmsg.noticeServices</key>
+	<string>服务</string>
+	<key>dmsg.noticeSettings</key>
+	<string>通知</string>
+	<key>dmsg.noticeSound</key>
+	<string>声音</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>切换至此账户以打开事项</string>
+	<key>dmsg.noticeSystem</key>
+	<string>打开系统设置</string>
+	<key>dmsg.noticeTest</key>
+	<string>测试通知</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>测试通知已提交给系统</string>
+	<key>dmsg.noticeTitle</key>
+	<string>提醒</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>本系统不支持</string>
+	<key>dmsg.noticeUntil</key>
+	<string>结束</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>请打开 dMsg 核对最新动态。</string>
+	<key>dmsg.noticeZone</key>
+	<string>时区</string>
 </dict>
 </plist>

@@ -14,7 +14,10 @@ struct ChannelSettingsView: View {
     @State private var operationID: String?
     struct Member: Decodable { let role: String; let canRotate: Bool }
     struct Ledger: Decodable { let members: [String: Member] }
-    struct Details: Decodable { let name: String; let muted: Bool; let hidden: Bool; let ledger: Ledger? }
+    struct Details: Decodable {
+        let name: String; let muted: Bool; let hidden: Bool; let ledger: Ledger?
+        let mutedUntil: UInt64?; let notificationPending: Bool?; let notificationConflict: Bool?
+    }
     struct Pending: Decodable, Identifiable { let key: String; let action: String; var id: String { key } }
     struct Change: Equatable { let action: String; let account: String?; let role: String?; var canRotate: Bool = false }
     private var myRole: String? { details?.ledger?.members[model.session?.account ?? ""]?.role }
@@ -23,6 +26,20 @@ struct ChannelSettingsView: View {
             Section("Conversation") {
                 TextField("Conversation name", text: $name)
                 Toggle("Mute notifications", isOn: $muted)
+                Menu(NoticeCopy.text("noticeLater")) {
+                    Button(NoticeCopy.text("noticePause15")) { Task { await mute(until: NotificationTime.now + 900_000) } }
+                    Button(NoticeCopy.text("noticePauseHour")) { Task { await mute(until: NotificationTime.now + 3_600_000) } }
+                    Button(NoticeCopy.text("noticePauseTomorrow")) { Task { await mute(until: NotificationTime.tomorrow()) } }
+                }.disabled(working || details == nil)
+                if let until = details?.mutedUntil, until > NotificationTime.now {
+                    Text(Date(timeIntervalSince1970: Double(until) / 1000), style: .relative).foregroundStyle(.secondary)
+                }
+                if details?.notificationPending == true { NoticeBar(text: NoticeCopy.text("noticePending")) }
+                if details?.notificationConflict == true {
+                    Button("Retry") { Task {
+                        if muted { await mute(until: details?.mutedUntil) } else { await save() }
+                    } }.disabled(working)
+                }
                 Button("Save settings") { Task { await save() } }.disabled(name.isEmpty || working)
             }
             Section("Members") {
@@ -67,12 +84,23 @@ struct ChannelSettingsView: View {
             }
     }
     private func load() async {
+        let epoch = model.epoch
         do {
             if let result = try await model.engine?.channelDetails(channel: channel) {
+                guard epoch == model.epoch, !Task.isCancelled else { return }
                 let next: Details = try model.decode(result); details = next; name = next.name; muted = next.muted
-                if let jobs = try await model.engine?.pendingChannelOperations(channel: channel) { pending = try model.decode(jobs) }
+                if let jobs = try await model.engine?.pendingChannelOperations(channel: channel), epoch == model.epoch, !Task.isCancelled { pending = try model.decode(jobs) }
             }
-        } catch { model.report(error) }
+        } catch { if epoch == model.epoch { model.report(error) } }
+    }
+    private func mute(until: UInt64?) async {
+        guard let engine = model.engine, !working else { return }
+        let epoch = model.epoch; working = true; defer { working = false }
+        do {
+            _ = try await engine.channelMuteUntil(channel: channel, until: until)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            await load(); await model.notifications.refresh(model, receive: true)
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
     private func save() async {
         guard let engine = model.engine, !working else { return }; let epoch = model.epoch

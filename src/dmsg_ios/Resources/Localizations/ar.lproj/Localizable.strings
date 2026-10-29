@@ -474,8 +474,16 @@
 	<string>النسخة الحالية</string>
 	<key>Cvv</key>
 	<string>رمز CVV</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>هناك أمر يحتاج إلى تدخلك.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>لديك نشاط جديد في dMsg.</string>
+	<string>افتح dMsg للاطلاع على آخر المستجدات.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>لديك رسائل جديدة.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>هناك تغيير في أمان الحساب يحتاج إلى مراجعتك.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>هناك خدمة تحتاج إلى انتباهك.</string>
 	<key>Database</key>
 	<string>قاعدة البيانات</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>تظهر النسخ الثابتة المختارة فقط في تطبيق الملفات. يتطلب الوصول مصادقة النظام وينتهي بقفل dMsg. قد تحتفظ الملفات بنسخ وأسماء لا يستطيع dMsg سحبها.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>يمكن نقل الملف المشفّر المختار فقط أثناء قفل dMsg. يتحكم iOS في الجدولة، ويوقف الإغلاق القسري التسليم حتى إعادة فتح التطبيق. افتح الحساب الأصلي للتحقق والإتمام.</string>
+	<key>Open</key>
+	<string>فتح</string>
 	<key>Open approval record</key>
 	<string>فتح سجل الموافقة</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>مساحة عمل dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>تلقي إشعارات هذا الحساب</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>هناك أمر يحتاج إلى تدخلك.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>تنبيهات Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>شارة أيقونة التطبيق</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>الإجراءات فقط</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>الإجراءات والرسائل غير المقروءة</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>إيقاف</string>
+	<key>dmsg.noticeClear</key>
+	<string>مسح التذكيرات المنتهية</string>
+	<key>dmsg.noticeDetail</key>
+	<string>الإجراءات المعلّقة وآخر المستجدات</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>لا توجد تذكيرات</string>
+	<key>dmsg.noticeEnable</key>
+	<string>إشعارات النظام على هذا الجهاز</string>
+	<key>dmsg.noticeEnded</key>
+	<string>انتهى هذا العنصر أو لم يعد متاحًا</string>
+	<key>dmsg.noticeFrom</key>
+	<string>من</string>
+	<key>dmsg.noticeLate</key>
+	<string>هذا الوقت بعد الموعد النهائي</string>
+	<key>dmsg.noticeLater</key>
+	<string>ذكّرني لاحقًا</string>
+	<key>dmsg.noticeManaged</key>
+	<string>يديرها نظام التشغيل</string>
+	<key>dmsg.noticeMerge</key>
+	<string>دمج التنبيهات المكررة عبر الأجهزة</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>لديك رسائل جديدة.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>الرسائل</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>يتطلب إجراءً</string>
+	<key>dmsg.noticePause15</key>
+	<string>إيقاف لمدة 15 دقيقة</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>إيقاف لمدة ساعة</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>إيقاف حتى الغد الساعة 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>تم الحفظ هنا؛ إعدادات الأجهزة الأخرى بانتظار المزامنة</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>تسري إعداداتك هنا فورًا. قد تستخدم التنبيهات البعيدة الإعدادات السابقة حتى تأكيد التحديث.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>ساعات الهدوء اليومية</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>عرض التذكيرات لا يُكمل الإجراءات ولا يضع علامة مقروء على الرسائل.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>التذكيرات الأخيرة</string>
+	<key>dmsg.noticeRemote</key>
+	<string>تصفية الإشعارات عن بُعد غير متاحة بعد</string>
+	<key>dmsg.noticeResume</key>
+	<string>استئناف الإشعارات</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>ساعات الهدوء والأصوات تخص هذا الجهاز. كتم القنوات يُزامن مع حسابك.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>هناك تغيير في أمان الحساب يحتاج إلى مراجعتك.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>السماح بتنبيهات الأمان خلال ساعات الهدوء</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>هناك خدمة تحتاج إلى انتباهك.</string>
+	<key>dmsg.noticeServices</key>
+	<string>الخدمات</string>
+	<key>dmsg.noticeSettings</key>
+	<string>الإشعارات</string>
+	<key>dmsg.noticeSound</key>
+	<string>الصوت</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>بدّل إلى هذا الحساب لفتح العنصر</string>
+	<key>dmsg.noticeSystem</key>
+	<string>فتح إعدادات النظام</string>
+	<key>dmsg.noticeTest</key>
+	<string>اختبار الإشعارات</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>أُرسل إشعار الاختبار إلى النظام</string>
+	<key>dmsg.noticeTitle</key>
+	<string>التذكيرات</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>غير متاح على هذا النظام</string>
+	<key>dmsg.noticeUntil</key>
+	<string>حتى</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>افتح dMsg للاطلاع على آخر المستجدات.</string>
+	<key>dmsg.noticeZone</key>
+	<string>المنطقة الزمنية</string>
 </dict>
 </plist>

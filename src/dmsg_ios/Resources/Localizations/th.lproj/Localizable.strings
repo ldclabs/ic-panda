@@ -474,8 +474,16 @@
 	<string>รุ่นปัจจุบัน</string>
 	<key>Cvv</key>
 	<string>ประวัติย่อ</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>มีรายการที่ต้องให้คุณดำเนินการ</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>กิจกรรมใหม่ใน dMsg</string>
+	<string>เปิด dMsg เพื่อตรวจสอบกิจกรรมล่าสุด</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>คุณมีข้อความใหม่</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>มีการเปลี่ยนแปลงความปลอดภัยของบัญชีที่คุณควรตรวจสอบ</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>มีบริการที่ต้องให้คุณตรวจสอบ</string>
 	<key>Database</key>
 	<string>ฐานข้อมูล</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>เฉพาะสำเนาที่เลือกและไม่เปลี่ยนรูปเท่านั้นที่จะปรากฏในแอพไฟล์ การเข้าถึงจำเป็นต้องมีการรับรองความถูกต้องของระบบ การล็อก dMsg จะสิ้นสุดเซสชันการเข้าถึงปัจจุบัน ไฟล์อาจเก็บสำเนาและชื่อไฟล์ที่ดาวน์โหลดไว้ ซึ่ง dMsg ไม่สามารถจำได้</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>เฉพาะไฟล์ที่เข้ารหัสที่เลือกเท่านั้นที่สามารถถ่ายโอนได้ในขณะที่ dMsg ถูกล็อค iOS ควบคุมการตั้งเวลา บังคับให้เลิกหยุดการส่งจนกว่าคุณจะเปิดแอปอีกครั้ง เปิดบัญชีเดิมเพื่อตรวจสอบและเสร็จสิ้น</string>
+	<key>Open</key>
+	<string>เปิด</string>
 	<key>Open approval record</key>
 	<string>เปิดบันทึกการอนุมัติ</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>พื้นที่ทำงาน dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>รับการแจ้งเตือนสำหรับบัญชีนี้</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>มีรายการที่ต้องให้คุณดำเนินการ</string>
+	<key>dmsg.noticeAgent</key>
+	<string>การเตือน Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>ป้ายบนไอคอนแอป</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>เฉพาะรายการที่ต้องทำ</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>รายการที่ต้องทำและข้อความที่ยังไม่อ่าน</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>ปิด</string>
+	<key>dmsg.noticeClear</key>
+	<string>ล้างรายการเตือนที่เสร็จแล้ว</string>
+	<key>dmsg.noticeDetail</key>
+	<string>รายการที่รอดำเนินการและความคืบหน้าล่าสุด</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>ไม่มีรายการเตือน</string>
+	<key>dmsg.noticeEnable</key>
+	<string>การแจ้งเตือนของระบบบนอุปกรณ์นี้</string>
+	<key>dmsg.noticeEnded</key>
+	<string>รายการนี้สิ้นสุดแล้วหรือไม่พร้อมใช้งาน</string>
+	<key>dmsg.noticeFrom</key>
+	<string>ตั้งแต่</string>
+	<key>dmsg.noticeLate</key>
+	<string>เวลานี้เลยกำหนดแล้ว</string>
+	<key>dmsg.noticeLater</key>
+	<string>เตือนฉันภายหลัง</string>
+	<key>dmsg.noticeManaged</key>
+	<string>จัดการโดยระบบปฏิบัติการ</string>
+	<key>dmsg.noticeMerge</key>
+	<string>รวมการเตือนซ้ำจากหลายอุปกรณ์</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>คุณมีข้อความใหม่</string>
+	<key>dmsg.noticeMessages</key>
+	<string>ข้อความ</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>ต้องดำเนินการ</string>
+	<key>dmsg.noticePause15</key>
+	<string>พัก 15 นาที</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>พัก 1 ชั่วโมง</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>พักจนถึงพรุ่งนี้เวลา 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>บันทึกบนอุปกรณ์แล้ว กำลังรอซิงค์การตั้งค่าระยะไกล</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>การตั้งค่ามีผลบนอุปกรณ์นี้ทันที การเตือนระยะไกลอาจใช้การตั้งค่าเดิมจนกว่าการอัปเดตจะได้รับการยืนยัน</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>ช่วงเวลางดแจ้งเตือนรายวัน</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>การดูรายการเตือนไม่ได้ดำเนินการให้เสร็จหรือทำเครื่องหมายว่าข้อความอ่านแล้ว</string>
+	<key>dmsg.noticeRecent</key>
+	<string>รายการเตือนล่าสุด</string>
+	<key>dmsg.noticeRemote</key>
+	<string>การกรองการแจ้งเตือนระยะไกลยังไม่พร้อมใช้งาน</string>
+	<key>dmsg.noticeResume</key>
+	<string>รับการแจ้งเตือนต่อ</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>ช่วงเวลางดแจ้งเตือนและเสียงมีผลกับอุปกรณ์นี้ การปิดเสียงช่องจะซิงค์ตามบัญชีของคุณ</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>มีการเปลี่ยนแปลงความปลอดภัยของบัญชีที่คุณควรตรวจสอบ</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>อนุญาตการเตือนความปลอดภัยในช่วงงดแจ้งเตือน</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>มีบริการที่ต้องให้คุณตรวจสอบ</string>
+	<key>dmsg.noticeServices</key>
+	<string>บริการ</string>
+	<key>dmsg.noticeSettings</key>
+	<string>การแจ้งเตือน</string>
+	<key>dmsg.noticeSound</key>
+	<string>เสียง</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>สลับไปยังบัญชีนี้เพื่อเปิดรายการ</string>
+	<key>dmsg.noticeSystem</key>
+	<string>เปิดการตั้งค่าระบบ</string>
+	<key>dmsg.noticeTest</key>
+	<string>ทดสอบการแจ้งเตือน</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>ส่งการแจ้งเตือนทดสอบไปยังระบบแล้ว</string>
+	<key>dmsg.noticeTitle</key>
+	<string>รายการเตือน</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>ไม่พร้อมใช้งานบนระบบนี้</string>
+	<key>dmsg.noticeUntil</key>
+	<string>จนถึง</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>เปิด dMsg เพื่อตรวจสอบกิจกรรมล่าสุด</string>
+	<key>dmsg.noticeZone</key>
+	<string>เขตเวลา</string>
 </dict>
 </plist>

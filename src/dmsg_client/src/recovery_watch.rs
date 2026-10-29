@@ -38,6 +38,29 @@ impl Client {
         if state.security.snapshot.pending_recovery_digest != Some(hash) {
             return Ok(());
         }
+        if self
+            .workspace
+            .store
+            .meta::<String>("notification:recovery-ack")?
+            .as_deref()
+            != Some(hex::encode(*hash).as_str())
+            && let Ok(keys) = self.keys()
+        {
+            let proof = crate::notifications::remote::RecoveryProof {
+                digest: hex::encode(*hash),
+                pending: crate::codec::b64(&crate::codec::canonical(pending)),
+            };
+            let previous = self
+                .workspace
+                .private::<crate::notifications::remote::RecoveryProof>(
+                    keys,
+                    "notification:recovery-proof",
+                )?;
+            if previous.as_ref() != Some(&proof) {
+                self.workspace
+                    .put_private(keys, "notification:recovery-proof", &proof)?;
+            }
+        }
         let target = Target::Recovery(hex::encode(*hash));
         if let Some(mut item) = self
             .workspace
@@ -81,6 +104,10 @@ impl Client {
             .snapshot
             .pending_recovery_digest
             .map(|hash| hex::encode(*hash));
+        if digest.is_none() {
+            self.workspace
+                .delete_private("notification:recovery-proof")?;
+        }
         // Only a fresh authenticated observation can resolve an old incident.
         for mut item in self.workspace.store.notification_items()? {
             if let Target::Recovery(old) = &item.target

@@ -162,7 +162,7 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
     let now = ctx.now;
     let category = item.category();
     if !item.open
-        || (category == Category::Message && item.unread == Some(0))
+        || (category == Category::Message && item.unread == Some(0) && !item.unverified)
         || (category == Category::Action && item.deadline.is_some_and(|at| at <= now))
     {
         return Decision::Remove;
@@ -316,5 +316,11 @@ pub fn expires_at(category: Category, now: u64, deadline: Option<u64>) -> u64 {
     } else {
         86_400_000
     };
-    deadline.unwrap_or(u64::MAX).min(now.saturating_add(ttl))
+    // Recovery's execute-after and a service term are reminder anchors, not
+    // expiry of the unresolved business item. Only an approval has this TTL cap.
+    if category == Category::Action {
+        deadline.unwrap_or(u64::MAX).min(now.saturating_add(ttl))
+    } else {
+        now.saturating_add(ttl)
+    }
 }

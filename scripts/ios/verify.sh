@@ -11,6 +11,7 @@ cargo fmt --check -p dmsg_client -p dmsg_protocol -p dmsg_mobile -p dmsg_cli -p 
 cargo test --locked -p dmsg_client -p dmsg_protocol -p dmsg_mobile -p dmsg_cli -p dmsg_commerce -p dmsg_types
 cargo clippy --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli -p dmsg_commerce -p dmsg_types --all-targets -- -D warnings
 python3 scripts/ios/localizations.py
+node scripts/ios/sync-notifications.mjs --check
 python3 scripts/ios/sync-icons.py --check
 bash scripts/ios/build-core.sh
 result="src/dmsg_ios/.build/Tests-$(date -u +%Y%m%dT%H%M%SZ).xcresult"

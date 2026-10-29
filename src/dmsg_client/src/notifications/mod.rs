@@ -139,6 +139,9 @@ pub struct Item {
     pub actionable: bool,
     /// Known ordinary unread count; None means awaiting verification.
     pub unread: Option<u64>,
+    /// Last trusted count is retained while newer metadata awaits decryption.
+    #[serde(default)]
+    pub unverified: bool,
     /// First observation of this incident, in UTC milliseconds.
     pub first_at: u64,
     /// Last domain change in UTC milliseconds.
@@ -180,6 +183,7 @@ impl Item {
             open: true,
             actionable: false,
             unread: Some(0),
+            unverified: false,
             first_at: now,
             updated_at: now,
             deadline: None,
@@ -343,6 +347,9 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         item.id == item_id(&item.account, &item.target) && item.version > 0,
         Error::InvalidInput("notification identity".into()),
     )?;
+    if item.category() == Category::Message && item.unread.is_none() {
+        item.unverified = true;
+    }
     if let Some(old) = store.notification_item(&item.id)? {
         if item.version < old.version {
             return Ok(false);
@@ -353,6 +360,9 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         item.stage = old.stage.max(item.stage);
         item.attempted_at = old.attempted_at;
         item.snoozed_until = old.snoozed_until;
+        if item.category() == Category::Message && item.unread.is_none() {
+            item.unread = old.unread;
+        }
         if matches!(item.target, Target::Recovery(_)) && item.deadline.is_none() {
             item.deadline = old.deadline;
         }
@@ -370,6 +380,7 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
             && item.open == old.open
             && item.actionable == old.actionable
             && item.unread == old.unread
+            && item.unverified == old.unverified
             && item.deadline == old.deadline
             && item.muted == old.muted
             && item.muted_until == old.muted_until
@@ -384,7 +395,7 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
     // Muted arrivals advance the presentation watermark, never the business read
     // cursor. Expiring the mute must not replay these messages.
     if item.category() == Category::Message {
-        if item.unread == Some(0) {
+        if item.unread == Some(0) && !item.unverified {
             item.open = false;
         }
         if item.is_muted(item.updated_at) || !item.open {
@@ -409,10 +420,58 @@ pub fn counts(items: &[Item], now: u64) -> Counts {
             && !matches!(item.target, Target::AgentMail(_))
         {
             result.unread = result.unread.saturating_add(item.unread.unwrap_or(0));
-            result.unverified |= item.unread.is_none();
+            result.unverified |= item.unread.is_none() || item.unverified;
         }
     }
     result
+}
+
+/// Page of local reminders; unfinished work is never evicted by history limits.
+#[derive(Serialize)]
+pub struct Page {
+    /// Content-free reminders in display order.
+    pub items: Vec<Item>,
+    /// Offset of the next bounded page.
+    pub next: Option<usize>,
+}
+
+/// Shared desktop/mobile history filtering, independent of business storage.
+pub fn list(store: &Store, open_only: bool, offset: usize, limit: usize, now: u64) -> Result<Page> {
+    let cleared = store.meta::<u64>("notification:cleared_at")?.unwrap_or(0);
+    let mut items = store.notification_items()?;
+    let mut recent = 0;
+    items.retain(|item| {
+        let actionable = item.open
+            && item.actionable
+            && !(item.category() == Category::Action && item.deadline.is_some_and(|at| at <= now));
+        if actionable {
+            return true;
+        }
+        if open_only
+            || item.updated_at < now.saturating_sub(RETENTION_MS)
+            || (!item.open && item.updated_at <= cleared)
+        {
+            return false;
+        }
+        recent += 1;
+        recent <= 1000
+    });
+    if open_only {
+        items.sort_by_key(|i| {
+            (
+                i.category() != Category::Security,
+                i.deadline.unwrap_or(u64::MAX),
+                std::cmp::Reverse(i.first_at),
+            )
+        });
+    }
+    let limit = limit.clamp(1, 100);
+    let end = offset.saturating_add(limit);
+    let next = (end < items.len()).then_some(end);
+    Ok(Page {
+        items: items.into_iter().skip(offset).take(limit).collect(),
+        next,
+    })
 }
 
 /// Record actual visibility; this does not call any business read/ack API.
@@ -435,7 +494,16 @@ pub fn snooze(store: &Store, id: &str, version: u64, until: u64, now: u64) -> Re
         Error::InvalidInput("notification snooze".into()),
     )?;
     item.snoozed_until = Some(until);
-    store.set_notification_item(&item)
+    store.atomic(|store| {
+        store.set_notification_item(&item)?;
+        if !item.target.local_only() {
+            store.set_meta(
+                &format!("notification:snooze:{}", item.id),
+                &(version, until),
+            )?;
+        }
+        Ok(())
+    })
 }
 
 /// Read local account/device preferences without decrypting content.
@@ -600,6 +668,7 @@ impl crate::Client {
             return Ok(());
         };
         let current = &status["current"];
+        let revision = status["notification_revision"].as_u64().unwrap_or(1).max(1);
         let active = current["contract"]
             .as_str()
             .filter(|_| status["next"].is_null() && current["terminated_at_ms"].is_null());
@@ -610,7 +679,7 @@ impl crate::Client {
             {
                 item.open = false;
                 item.actionable = false;
-                item.version = item.version.saturating_add(1);
+                item.version = item.version.max(revision);
                 item.updated_at = now;
                 upsert(&self.workspace.store, item)?;
             }
@@ -618,7 +687,7 @@ impl crate::Client {
         if let Some(id) = active
             && let Some(deadline) = current["ends_at_ms"].as_u64()
         {
-            let mut item = Item::new(account, Target::Plan(id.into()), 1, now);
+            let mut item = Item::new(account, Target::Plan(id.into()), revision, now);
             item.deadline = Some(deadline);
             let path = self.notification_runtime_path();
             let mut runtime = Runtime::load(&path, now)?;

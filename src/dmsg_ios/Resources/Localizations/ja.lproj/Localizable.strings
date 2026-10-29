@@ -474,8 +474,16 @@
 	<string>現在のバージョン</string>
 	<key>Cvv</key>
 	<string>履歴書</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>対応が必要な項目があります。</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>dMsg の新しいアクティビティ。</string>
+	<string>dMsgを開いて最新の動きを確認してください。</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>新しいメッセージがあります。</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>アカウントのセキュリティ変更を確認してください。</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>確認が必要なサービス項目があります。</string>
 	<key>Database</key>
 	<string>データベース</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>ファイル アプリには、選択された不変のコピーのみが表示されます。アクセスにはシステム認証が必要です。 dMsg をロックすると、現在のアクセス セッションが終了します。ファイルにはダウンロードされたコピーとファイル名が保持される場合がありますが、dMsg はそれを呼び出すことができません。</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg がロックされている間は、選択した暗号化ファイルのみを転送できます。 iOS はスケジュールを制御します。強制終了すると、アプリを再度開くまで配信が停止します。元のアカウントを開いて確認し、完了します。</string>
+	<key>Open</key>
+	<string>開く</string>
 	<key>Open approval record</key>
 	<string>承認レコードを開く</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg ワークスペース</string>
+	<key>dmsg.noticeAccount</key>
+	<string>このアカウントの通知を受け取る</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>対応が必要な項目があります。</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail の通知</string>
+	<key>dmsg.noticeBadge</key>
+	<string>アプリアイコンのバッジ</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>対応待ちのみ</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>対応待ちと未読メッセージ</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>オフ</string>
+	<key>dmsg.noticeClear</key>
+	<string>完了済みのリマインダーを消去</string>
+	<key>dmsg.noticeDetail</key>
+	<string>対応待ちの項目と最近の更新</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>リマインダーはありません</string>
+	<key>dmsg.noticeEnable</key>
+	<string>このデバイスでシステム通知を表示</string>
+	<key>dmsg.noticeEnded</key>
+	<string>この項目は終了したか、利用できません</string>
+	<key>dmsg.noticeFrom</key>
+	<string>開始</string>
+	<key>dmsg.noticeLate</key>
+	<string>この時刻は期限を過ぎています</string>
+	<key>dmsg.noticeLater</key>
+	<string>後で通知</string>
+	<key>dmsg.noticeManaged</key>
+	<string>OSで管理されています</string>
+	<key>dmsg.noticeMerge</key>
+	<string>デバイス間で重複する通知をまとめる</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>新しいメッセージがあります。</string>
+	<key>dmsg.noticeMessages</key>
+	<string>メッセージ</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>対応が必要</string>
+	<key>dmsg.noticePause15</key>
+	<string>15分間停止</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>1時間停止</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>明日の08:00まで停止</string>
+	<key>dmsg.noticePending</key>
+	<string>このデバイスに保存済み・リモート設定は同期待ち</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>設定はこのデバイスですぐに適用されます。更新が確認されるまで、リモート通知には以前の設定が使われる場合があります。</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>毎日の通知停止時間</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>リマインダーを表示しても、操作は完了せず、メッセージは既読になりません。</string>
+	<key>dmsg.noticeRecent</key>
+	<string>最近のリマインダー</string>
+	<key>dmsg.noticeRemote</key>
+	<string>リモート通知のフィルタリングはまだ利用できません</string>
+	<key>dmsg.noticeResume</key>
+	<string>通知を再開</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>通知停止時間とサウンドはこのデバイスに適用されます。チャンネルのミュートはアカウントで同期されます。</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>アカウントのセキュリティ変更を確認してください。</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>通知停止時間中もセキュリティ通知を許可</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>確認が必要なサービス項目があります。</string>
+	<key>dmsg.noticeServices</key>
+	<string>サービス</string>
+	<key>dmsg.noticeSettings</key>
+	<string>通知</string>
+	<key>dmsg.noticeSound</key>
+	<string>サウンド</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>このアカウントに切り替えて項目を開く</string>
+	<key>dmsg.noticeSystem</key>
+	<string>システム設定を開く</string>
+	<key>dmsg.noticeTest</key>
+	<string>通知をテスト</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>テスト通知をシステムに送信しました</string>
+	<key>dmsg.noticeTitle</key>
+	<string>リマインダー</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>このシステムでは利用できません</string>
+	<key>dmsg.noticeUntil</key>
+	<string>終了</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>dMsgを開いて最新の動きを確認してください。</string>
+	<key>dmsg.noticeZone</key>
+	<string>タイムゾーン</string>
 </dict>
 </plist>

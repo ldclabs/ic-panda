@@ -286,7 +286,11 @@ pub fn next(
             covered,
             count: if category == Category::Message {
                 candidates.iter().try_fold(0_u64, |count, (item, _, _, _)| {
-                    item.unread.map(|n| count.saturating_add(n))
+                    if item.unverified {
+                        None
+                    } else {
+                        item.unread.map(|n| count.saturating_add(n))
+                    }
                 })
             } else {
                 Some(candidates.len() as u64)

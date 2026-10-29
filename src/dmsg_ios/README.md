@@ -6,6 +6,34 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## Notifications
+
+The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's
+settings, durable reminder records, version checks, budgets and snooze policy.
+The global bell opens pending/recent reminders and notification settings. The
+old per-account push toggle is imported once; core preferences then own it.
+Fixed notification copy and APNs localization keys follow all 23 desktop catalogs;
+`node scripts/ios/sync-notifications.mjs --check` checks their parity.
+
+APNs owns background presentation of shared account events. Foreground callbacks
+wake reconciliation; they do not create a duplicate local notification. Native
+local notifications are reserved for device-local work. Real, loaded business
+views report their visible version; opening the reminder list never marks a
+message read or completes an approval. Channel reads advance only when the
+latest loaded message is actually visible. Network reconciliation runs separately
+from local presentation so a slow source does not delay an existing reminder.
+
+Clicks resolve an opaque original-account route. Account switching and unlock
+remain explicit; an invalid route shows an unavailable state and network failures
+keep a retry action. The core provides only metadata for inactive accounts.
+Timed channel mutes retain their expiry when editing the channel name. Quiet
+hours use the saved IANA time zone, including DST transitions.
+
+See [validation](VALIDATION.md) for the tested build and simulator scope. APNs,
+App Attest, signed installation, physical-device lock/Focus/cold-start delivery
+are separate acceptance gates. Wallet proposals currently require authenticated
+member reads; no independent remote wallet notification source is claimed.
+
 ## Build
 
 Validated toolchain: Xcode 27.1, Rust 1.98.1, UniFFI 0.32.2, XcodeGen 2.46.0.

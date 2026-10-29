@@ -17,6 +17,7 @@ export interface NoticeItem {
   open: boolean
   actionable: boolean
   unread: number | null
+  unverified?: boolean
   first_at: number
   updated_at: number
   deadline: number | null

@@ -474,8 +474,16 @@
 	<string>Versi semasa</string>
 	<key>Cvv</key>
 	<string>Cvv</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>Ada perkara yang perlu anda uruskan.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>Aktiviti baharu dalam dMsg.</string>
+	<string>Buka dMsg untuk menyemak aktiviti terkini.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>Anda mempunyai mesej baharu.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Perubahan keselamatan akaun memerlukan semakan anda.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Ada perkhidmatan yang memerlukan perhatian anda.</string>
 	<key>Database</key>
 	<string>Pangkalan data</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Hanya salinan yang terpilih dan tidak berubah muncul dalam apl Fail. Akses memerlukan pengesahan sistem; mengunci dMsg menamatkan sesi akses semasa. Fail mungkin menyimpan salinan dan nama fail yang dimuat turun, yang tidak dapat diingati oleh dMsg.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Hanya fail yang disulitkan yang dipilih boleh dipindahkan semasa dMsg dikunci. iOS mengawal penjadualan; paksa berhenti menghentikan penghantaran sehingga anda membuka apl semula. Buka akaun asal untuk mengesahkan dan menyelesaikannya.</string>
+	<key>Open</key>
+	<string>Buka</string>
 	<key>Open approval record</key>
 	<string>Buka rekod kelulusan</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>Ruang kerja dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Terima pemberitahuan untuk akaun ini</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>Ada perkara yang perlu anda uruskan.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Amaran Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Lencana ikon aplikasi</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Tindakan sahaja</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Tindakan dan mesej belum dibaca</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Dimatikan</string>
+	<key>dmsg.noticeClear</key>
+	<string>Kosongkan peringatan yang selesai</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Tindakan tertunda dan kemas kini terkini</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Tiada peringatan</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Pemberitahuan sistem pada peranti ini</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Item ini telah tamat atau tidak tersedia</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Dari</string>
+	<key>dmsg.noticeLate</key>
+	<string>Waktu ini melepasi tarikh akhir</string>
+	<key>dmsg.noticeLater</key>
+	<string>Ingatkan saya kemudian</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Diurus oleh sistem pengendalian</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Gabungkan amaran pendua antara peranti</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>Anda mempunyai mesej baharu.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Mesej</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Perlu tindakan</string>
+	<key>dmsg.noticePause15</key>
+	<string>Jeda 15 minit</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>Jeda 1 jam</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Jeda hingga esok pada 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>Disimpan di sini; tetapan jauh menunggu penyegerakan</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Tetapan anda berkuat kuasa di sini serta-merta. Amaran jauh mungkin menggunakan tetapan lama sehingga kemas kini disahkan.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Waktu senyap harian</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Melihat peringatan tidak menyelesaikan tindakan atau menandakan mesej sebagai dibaca.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Peringatan terkini</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Penapisan pemberitahuan jauh belum tersedia</string>
+	<key>dmsg.noticeResume</key>
+	<string>Sambung pemberitahuan</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Waktu senyap dan bunyi terpakai pada peranti ini. Tetapan senyap saluran disegerakkan dengan akaun anda.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Perubahan keselamatan akaun memerlukan semakan anda.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Benarkan amaran keselamatan semasa waktu senyap</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Ada perkhidmatan yang memerlukan perhatian anda.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Perkhidmatan</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Pemberitahuan</string>
+	<key>dmsg.noticeSound</key>
+	<string>Bunyi</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Beralih ke akaun ini untuk membuka item</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Buka tetapan sistem</string>
+	<key>dmsg.noticeTest</key>
+	<string>Uji pemberitahuan</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Pemberitahuan ujian telah dihantar kepada sistem</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Peringatan</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Tidak tersedia pada sistem ini</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Hingga</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Buka dMsg untuk menyemak aktiviti terkini.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Zon waktu</string>
 </dict>
 </plist>

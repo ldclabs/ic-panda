@@ -321,21 +321,22 @@ Rules (`src/main/policy.ts`):
   refresh, never keep the device unlocked. Windows call neither method.
   The daemon records the unlock itself: the Touch ID the main window asks
   for as it comes to the front has no input in a window.
-- Notifications say that something happened, never what or from whom: a web
-  request waiting, deliveries to agents, and, while the daemon is locked, a
-  channel's new messages or a new letter (the relay's `channel` and `inbox`
-  hints), each kind at most once a minute.
-- Pending account recovery also produces a system notification, even while the
-  selected workspace is locked. It contains no login, account ID or request
-  details. Clicking opens Settings → Account security, which rereads the
-  account snapshot the daemon expired for the change and offers the existing
-  cancellation approval; after an account switch it opens account
-  selection instead. A request notifies once per desktop run, including after
-  reconnecting to a daemon that already observed it; a different request notifies
-  again. A fresh cancellation closes its notification. The daemon checks public
-  certified security about once a minute, independently of this page. Desktop
-  and daemon must be running, the device online, and OS notifications allowed;
-  this is not a remote push service or a guaranteed delivery deadline.
+- System notifications use fixed, content-free text and the shared Rust policy.
+  Messages and approvals aggregate for three seconds, with persistent per-source
+  and installation budgets; ordinary sounds default off. Agent Mail alerts are
+  opt-in per Agent after verified local receipt. MCP events and relay hints only
+  wake synchronization. The global Reminders view keeps unresolved work and
+  recent history separate from business unread state.
+- Recovery notices retain their incident identity and phases across restarts.
+  Certified public observation works while locked; a verified execution time
+  enables the 24-hour and one-hour phases. Missing time never prevents the first
+  warning. Registered inactive accounts receive minimal metadata with scoped
+  credentials; no content roots are loaded. Clicks resolve the original account
+  and item, require explicit account switching/unlock, and reread business state.
+  Closing the window retains the tray presenter; fully quitting stops local
+  system presentation while the daemon may continue synchronization. See the
+  [notification validation record](docs/notifications-validation.md) for native
+  OS and remote-provider limits.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
   `https://panda.fans/legacy`) only with an offer (`#pair=`). Pairing and archive
   reads wait for an unlocked account. Before then, the page explains whether
@@ -441,10 +442,9 @@ Rules (`src/main/policy.ts`):
   screen the window leaves full screen before it hides, since a window
   hidden there leaves its Space behind, black.
 
-Notifications say only that a request waits, never from where; clicking one
-opens the approval window. For agents' MCP Events they say how many
-deliveries arrived, or that a subscription needs renewing, never what or
-from where; clicking one opens the Agents view. The tray icon is the dMsg
+Notifications never approve, read, sign for or complete business work. Clicking
+opens the original account's item or filtered reminder list. System submission,
+actual viewing and business completion remain separate. The tray icon is the dMsg
 mark with its diamond. A confirmed locked session adds a small padlock at the
 bottom right; unlocking removes it. The top-right approval badge remains visible
 independently, including while locked. Unknown/connecting states do not claim a

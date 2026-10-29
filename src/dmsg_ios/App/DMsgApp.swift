@@ -24,6 +24,18 @@ struct DMsgApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .dmsgPushOpen)) { notification in
                     if let route = notification.object as? String { Task { await model.openPushRoute(route) } }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .dmsgPushReceived)) { _ in
+                    Task { await model.notifications.refresh(model, receive: true) }
+                }
+                .task(id: "notifications:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
+                    guard scenePhase == .active else { return }
+                    while !Task.isCancelled {
+                        await model.notifications.refresh(model, receive: true)
+                        do { try await Task.sleep(for: .seconds(60)) } catch { break }
+                    }
+                }
+                .onChange(of: model.contentRevision) { _, _ in Task { await model.notifications.refresh(model) } }
+                .onChange(of: model.epoch) { _, _ in model.notifications.clearVisibility() }
                 .task(id: "store:\(model.session?.account ?? ""):\(model.unlocked)") {
                     if model.unlocked && model.purchases.enabled { await model.purchases.listen(model) }
                 }
@@ -42,6 +54,7 @@ struct DMsgApp: App {
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in
+                    if phase != .active { model.notifications.clearVisibility() }
                     switch phase {
                     case .inactive: model.inactive()
                     case .background: model.background()

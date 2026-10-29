@@ -1044,6 +1044,9 @@ fn addon_view(a: &StorageAddon) -> Json {
 /// # Errors
 /// Returns `Error::IntegrityFailed` for an uncertified answer.
 pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
+    let scope = h
+        .with(|c| Ok((c.session_state().account, c.session_generation())))
+        .await?;
     let beneficiary = h.with(|c| c.beneficiary()).await?;
     let commerce = services(h).await?.commerce;
     let ic = h.anonymous().await?;
@@ -1074,6 +1077,7 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     let terms = terms?;
     let mut status = match view {
         Some(view) => json!({
+            "notification_revision":view.business_revision,
             "plan": format!("{:?}", view.plan_snapshot.plan_id),
             "source": format!("{:?}", view.source_status),
             "eligibility": format!("{:?}", view.eligibility_status),
@@ -1134,8 +1138,14 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     if refresh {
         status["synced"] = relay_refresh(h).await.is_ok().into();
     }
-    h.with(|c| c.project_plan_notification(&status, now_ms()))
-        .await?;
+    h.with(|c| {
+        ensure(
+            (c.session_state().account, c.session_generation()) == scope,
+            Error::Locked,
+        )?;
+        c.project_plan_notification(&status, now_ms())
+    })
+    .await?;
     Ok(status)
 }
 

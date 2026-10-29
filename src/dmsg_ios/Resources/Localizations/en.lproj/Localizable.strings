@@ -474,8 +474,16 @@
 	<string>Current version</string>
 	<key>Cvv</key>
 	<string>Cvv</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>An item needs your attention.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>New activity in dMsg.</string>
+	<string>Open dMsg to check for new activity.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>You have new messages.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>An account security change needs your review.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>A service needs your attention.</string>
 	<key>Database</key>
 	<string>Database</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</string>
+	<key>Open</key>
+	<string>Open</string>
 	<key>Open approval record</key>
 	<string>Open approval record</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg workspace</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Receive notifications for this account</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>An item needs your attention.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail alerts</string>
+	<key>dmsg.noticeBadge</key>
+	<string>App icon badge</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Actions only</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Actions and unread messages</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Off</string>
+	<key>dmsg.noticeClear</key>
+	<string>Clear finished reminders</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Pending actions and recent updates</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>No reminders</string>
+	<key>dmsg.noticeEnable</key>
+	<string>System notifications on this device</string>
+	<key>dmsg.noticeEnded</key>
+	<string>This item has ended or is unavailable</string>
+	<key>dmsg.noticeFrom</key>
+	<string>From</string>
+	<key>dmsg.noticeLate</key>
+	<string>This time is after the deadline</string>
+	<key>dmsg.noticeLater</key>
+	<string>Remind me later</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Managed by the operating system</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Merge duplicate alerts across devices</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>You have new messages.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Messages</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Needs action</string>
+	<key>dmsg.noticePause15</key>
+	<string>Pause for 15 minutes</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>Pause for 1 hour</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Pause until tomorrow at 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>Saved here; remote settings pending</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Your settings apply here immediately. Remote alerts may use earlier settings until the update is confirmed.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Daily quiet hours</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Viewing reminders does not complete actions or mark messages as read.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Recent reminders</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Remote notification filtering is not available yet</string>
+	<key>dmsg.noticeResume</key>
+	<string>Resume notifications</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Quiet hours and sounds apply to this device. Channel mutes follow your account.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>An account security change needs your review.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Allow security alerts during quiet hours</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>A service needs your attention.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Services</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Notifications</string>
+	<key>dmsg.noticeSound</key>
+	<string>Sound</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Switch to this account to open the item</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Open system settings</string>
+	<key>dmsg.noticeTest</key>
+	<string>Test notification</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Test notification submitted to the system</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Reminders</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Unavailable on this system</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Until</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Open dMsg to check for new activity.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Time zone</string>
 </dict>
 </plist>

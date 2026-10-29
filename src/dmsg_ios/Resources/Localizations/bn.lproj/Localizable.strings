@@ -474,8 +474,16 @@
 	<string>বর্তমান সংস্করণ</string>
 	<key>Cvv</key>
 	<string>সিভিভি</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>একটি বিষয়ে আপনার পদক্ষেপ প্রয়োজন।</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>dMsg-এ নতুন কার্যকলাপ।</string>
+	<string>সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>আপনার নতুন বার্তা আছে।</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>অ্যাকাউন্টের নিরাপত্তায় একটি পরিবর্তন পর্যালোচনা করুন।</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>একটি পরিষেবায় আপনার মনোযোগ প্রয়োজন।</string>
 	<key>Database</key>
 	<string>ডাটাবেস</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>শুধুমাত্র নির্বাচিত, অপরিবর্তনীয় অনুলিপি ফাইল অ্যাপে উপস্থিত হয়। অ্যাক্সেস সিস্টেম প্রমাণীকরণ প্রয়োজন; dMsg লক করা বর্তমান অ্যাক্সেস সেশন শেষ করে। ফাইলগুলি ডাউনলোড করা কপি এবং ফাইলের নামগুলি ধরে রাখতে পারে, যা dMsg স্মরণ করতে পারে না৷</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg লক থাকা অবস্থায় শুধুমাত্র নির্বাচিত এনক্রিপ্ট করা ফাইল স্থানান্তর করতে পারে৷ iOS সময়সূচী নিয়ন্ত্রণ করে; আপনি আবার অ্যাপ না খোলা পর্যন্ত ফোর্স প্রস্থান ডেলিভারি বন্ধ করে দেয়। যাচাই এবং শেষ করতে আসল অ্যাকাউন্ট খুলুন।</string>
+	<key>Open</key>
+	<string>খুলুন</string>
 	<key>Open approval record</key>
 	<string>অনুমোদন রেকর্ড খুলুন</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg ওয়ার্কস্পেস</string>
+	<key>dmsg.noticeAccount</key>
+	<string>এই অ্যাকাউন্টের বিজ্ঞপ্তি গ্রহণ করুন</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>একটি বিষয়ে আপনার পদক্ষেপ প্রয়োজন।</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail সতর্কতা</string>
+	<key>dmsg.noticeBadge</key>
+	<string>অ্যাপ আইকন ব্যাজ</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>শুধু কাজ</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>কাজ ও অপঠিত বার্তা</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>বন্ধ</string>
+	<key>dmsg.noticeClear</key>
+	<string>সম্পন্ন রিমাইন্ডার মুছুন</string>
+	<key>dmsg.noticeDetail</key>
+	<string>অপেক্ষমাণ কাজ ও সাম্প্রতিক আপডেট</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>কোনো রিমাইন্ডার নেই</string>
+	<key>dmsg.noticeEnable</key>
+	<string>এই ডিভাইসে সিস্টেম বিজ্ঞপ্তি</string>
+	<key>dmsg.noticeEnded</key>
+	<string>এই আইটেমটি শেষ হয়েছে বা উপলভ্য নয়</string>
+	<key>dmsg.noticeFrom</key>
+	<string>শুরু</string>
+	<key>dmsg.noticeLate</key>
+	<string>এই সময়টি সময়সীমার পরে</string>
+	<key>dmsg.noticeLater</key>
+	<string>পরে মনে করিয়ে দিন</string>
+	<key>dmsg.noticeManaged</key>
+	<string>অপারেটিং সিস্টেম পরিচালনা করে</string>
+	<key>dmsg.noticeMerge</key>
+	<string>একাধিক ডিভাইসের একই সতর্কতা একত্র করুন</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>আপনার নতুন বার্তা আছে।</string>
+	<key>dmsg.noticeMessages</key>
+	<string>বার্তা</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>পদক্ষেপ প্রয়োজন</string>
+	<key>dmsg.noticePause15</key>
+	<string>১৫ মিনিট বিরতি</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>১ ঘণ্টা বিরতি</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>আগামীকাল 08:00 পর্যন্ত বিরতি</string>
+	<key>dmsg.noticePending</key>
+	<string>এখানে সংরক্ষিত; দূরবর্তী সেটিংস সিঙ্কের অপেক্ষায়</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>আপনার সেটিংস এখানে সঙ্গে সঙ্গে কার্যকর হয়। আপডেট নিশ্চিত না হওয়া পর্যন্ত দূরবর্তী সতর্কতায় পুরোনো সেটিংস ব্যবহার হতে পারে।</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>প্রতিদিনের নীরব সময়</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>রিমাইন্ডার দেখলে কাজ সম্পন্ন হয় না বা বার্তা পঠিত হিসেবে চিহ্নিত হয় না।</string>
+	<key>dmsg.noticeRecent</key>
+	<string>সাম্প্রতিক রিমাইন্ডার</string>
+	<key>dmsg.noticeRemote</key>
+	<string>দূরবর্তী বিজ্ঞপ্তি ফিল্টার করা এখনো উপলভ্য নয়</string>
+	<key>dmsg.noticeResume</key>
+	<string>বিজ্ঞপ্তি আবার চালু করুন</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>নীরব সময় ও শব্দ এই ডিভাইসে প্রযোজ্য। চ্যানেল মিউটের সেটিংস আপনার অ্যাকাউন্টের সঙ্গে সিঙ্ক হয়।</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>অ্যাকাউন্টের নিরাপত্তায় একটি পরিবর্তন পর্যালোচনা করুন।</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>নীরব সময়ে নিরাপত্তা সতর্কতা অনুমোদন করুন</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>একটি পরিষেবায় আপনার মনোযোগ প্রয়োজন।</string>
+	<key>dmsg.noticeServices</key>
+	<string>পরিষেবা</string>
+	<key>dmsg.noticeSettings</key>
+	<string>বিজ্ঞপ্তি</string>
+	<key>dmsg.noticeSound</key>
+	<string>শব্দ</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>আইটেম খুলতে এই অ্যাকাউন্টে যান</string>
+	<key>dmsg.noticeSystem</key>
+	<string>সিস্টেম সেটিংস খুলুন</string>
+	<key>dmsg.noticeTest</key>
+	<string>বিজ্ঞপ্তি পরীক্ষা করুন</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>পরীক্ষার বিজ্ঞপ্তি সিস্টেমে পাঠানো হয়েছে</string>
+	<key>dmsg.noticeTitle</key>
+	<string>রিমাইন্ডার</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>এই সিস্টেমে উপলভ্য নয়</string>
+	<key>dmsg.noticeUntil</key>
+	<string>শেষ</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।</string>
+	<key>dmsg.noticeZone</key>
+	<string>সময় অঞ্চল</string>
 </dict>
 </plist>

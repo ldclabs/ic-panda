@@ -108,7 +108,12 @@ struct ConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     if hasEarlier && query.isEmpty { Button("Load earlier messages") { actionTask = Task { await loadEarlier() } }.disabled(loadingEarlier) }
                     ForEach(messages.filter { !model.blockedAccounts.contains($0.account) }, id: \.id) { message in
-                        messageBubble(message)                            .id(message.id).contextMenu {
+                        messageBubble(message)
+                            .reminderVisible(.channel(channel.id), watermark: message.sequence,
+                                ready: query.isEmpty && !message.unreadable && message.id == messages.last?.id) {
+                                try? await model.engine?.markRead(channel: channel.id, through: message.sequence)
+                            }
+                            .id(message.id).contextMenu {
                             if message.account != model.session?.account {
                                 Button("Report content") { reporting = ReportTarget(kind: "channel", account: message.account, resource: channel.id, sequence: message.sequence) }
                                 Button("Block this account", role: .destructive) { Task { await model.blockAccount(message.account, blocked: true) } }
@@ -255,7 +260,6 @@ struct ConversationView: View {
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
             messages = fresh; hasEarlier = page.hasMore; loadedQuery = query
-            if query.isEmpty, let last = fresh.last { try await engine.markRead(channel: channel.id, through: last.sequence) }
             let pending = try await engine.outbox(channel: channel.id)
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }; outbox = pending.items
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }

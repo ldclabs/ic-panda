@@ -57,7 +57,7 @@ struct InboxDetail: View {
                 if letter.state == "aborted" {
                     NoticeBar(text: String(localized: "This letter was withdrawn."))
                     if let reason = letter.abortReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
-                } else { Text(letter.text).textSelection(.enabled) }
+                } else { Text(letter.text).textSelection(.enabled).reminderVisible(.inbox(letter.id), watermark: 1) }
             }
             Section {
                 Button("Report content") { reporting = true }

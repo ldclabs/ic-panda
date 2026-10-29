@@ -56,6 +56,75 @@ struct SyncState {
     blocked: Option<u64>,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub(crate) struct RecoveryProof {
+    pub digest: String,
+    pub pending: String,
+}
+
+/// The existing public recovery commitment verifies the owner's disclosed
+/// execute-after. The proof is transient on the service and has no content keys.
+pub async fn sync_recovery(h: &impl Hold, context: &ReceiveContext) -> Result<()> {
+    let h = Unlocked::new(h).await?;
+    let proof = h
+        .with(|c| {
+            ensure(
+                c.account()?.id.to_string() == context.account,
+                Error::Locked,
+            )?;
+            let settings = settings(&c.workspace.store)?;
+            if !settings.enabled || !settings.categories[&Category::Security].enabled {
+                return Ok(None);
+            }
+            let proof = c
+                .workspace
+                .private::<RecoveryProof>(c.keys()?, "notification:recovery-proof")?;
+            let Some(proof) = proof else {
+                return Ok(None);
+            };
+            let id = super::item_id(&context.account, &Target::Recovery(proof.digest.clone()));
+            Ok(c.workspace
+                .store
+                .notification_item(&id)?
+                .is_some_and(|i| i.open)
+                .then_some(proof))
+        })
+        .await?;
+    let Some(proof) = proof else {
+        return Ok(());
+    };
+    let body = json!({"installation":context.installation,"pending":proof.pending});
+    let reply = h
+        .send(|c| {
+            let state = c.fresh_state().ok_or(Error::PolicyStale)?;
+            c.relay().prepare_raw(
+                &c.signer(state)?,
+                "/v1/notifications/recovery",
+                &body,
+                now_ms(),
+            )
+        })
+        .await?;
+    ensure(
+        reply["id"] == super::item_id(&context.account, &Target::Recovery(proof.digest.clone())),
+        Error::IntegrityFailed,
+    )?;
+    h.with(|c| {
+        if c.workspace
+            .private::<RecoveryProof>(c.keys()?, "notification:recovery-proof")?
+            .as_ref()
+            == Some(&proof)
+        {
+            c.workspace
+                .store
+                .set_meta("notification:recovery-ack", &proof.digest)?;
+            c.workspace.delete_private("notification:recovery-proof")?;
+        }
+        Ok(())
+    })
+    .await
+}
+
 impl Client {
     fn notification_secret_name(&self, account: &str) -> String {
         format!(
@@ -798,6 +867,54 @@ pub async fn sync_settings(h: &impl Hold, context: &ReceiveContext) -> Result<()
         if !acknowledged {
             return Err(Error::VersionConflict);
         }
+    }
+    Ok(())
+}
+
+/// Apply an explicit device-local snooze to this installation's remote owner.
+pub async fn sync_snoozes(h: &impl Hold, context: &ReceiveContext) -> Result<()> {
+    let h = Unlocked::new(h).await?;
+    let pending = h
+        .with(|c| {
+            ensure(
+                c.account()?.id.to_string() == context.account,
+                Error::Locked,
+            )?;
+            let mut pending = Vec::new();
+            let now = now_ms();
+            for item in c.workspace.store.notification_items()? {
+                let key = format!("notification:snooze:{}", item.id);
+                if let Some((version, until)) = c.workspace.store.meta::<(u64, u64)>(&key)? {
+                    if item.open && item.version == version && until > now {
+                        pending.push((item.id, version, until));
+                    } else {
+                        c.workspace.store.delete_meta(&key)?;
+                    }
+                }
+            }
+            Ok(pending)
+        })
+        .await?;
+    for (id, version, until) in pending {
+        let body = json!({"installation":context.installation,"id":id,"version":version.to_string(),"until":until});
+        h.send(|c| {
+            let state = c.fresh_state().ok_or(Error::PolicyStale)?;
+            c.relay().prepare_raw(
+                &c.signer(state)?,
+                "/v1/notifications/snooze",
+                &body,
+                now_ms(),
+            )
+        })
+        .await?;
+        h.with(|c| {
+            let key = format!("notification:snooze:{id}");
+            if c.workspace.store.meta::<(u64, u64)>(&key)? == Some((version, until)) {
+                c.workspace.store.delete_meta(&key)?;
+            }
+            Ok(())
+        })
+        .await?;
     }
     Ok(())
 }

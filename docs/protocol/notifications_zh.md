@@ -38,9 +38,13 @@ HTTP PoP 的 body digest 覆盖整个外层。服务同时校验原命令作者�
 | `POST /v1/notifications/settings` | 作用域、期望版本、允许字段 patch；冲突为 `VERSION_CONFLICT`，不按客户端时间覆盖 |
 | `GET /v1/notifications/feed?after=…&limit=…` | 当前账户的 `entries`、`next_cursor`、`complete`、`gap`，最多 100 项 |
 | `POST /v1/notifications/observed` | 本账户设备实际查看的 item/version 或 watermark；只用于通知去重 |
+| `POST /v1/notifications/snooze` | 设备认证的 `{installation, id, version, until}`；只推迟本安装仍有效的待办，不改变业务截止或其他设备 |
+| `POST /v1/notifications/recovery` | 设备认证的 `{installation, pending}`；pending 是 canonical CBOR 恢复记录的 base64url，须与当前认证安全快照的恢复摘要匹配，只补充经核验的执行时间 |
 | `GET /v1/notifications/routes/:opaque` | 验证安装登记后返回原账户允许的目标；未知、注销路由拒绝 |
 
 游标绑定账户和协议版本；缺口返回 `gap: true` 并要求当前状态重建。只有完整成功快照才能结束不再存在的旧待办；未完分页和失败不能清空状态。源版本排序由领域决定，不能比较摘要大小。投递过期不结束业务事项。
+
+`unverified` 缺省为 false；收到尚未解密的新水位时保留最后可信未读数并设置此标记，通用提醒不把旧计数当作新消息数量。未知状态不能清空未读或结束待办。恢复时间证明会向通知服务披露对应恢复记录的元数据，服务仅校验摘要并保留事项与时间，不进入系统通知载荷；未提供证明时仍可发出首次安全告警。
 
 ### v1 请求字段
 

@@ -474,8 +474,16 @@
 	<string>Текущая версия</string>
 	<key>Cvv</key>
 	<string>CVV</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>Есть вопрос, требующий вашего внимания.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>У вас новые события в dMsg.</string>
+	<string>Откройте dMsg, чтобы проверить последние события.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>У вас новые сообщения.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Изменение безопасности аккаунта требует проверки.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Сервис требует вашего внимания.</string>
 	<key>Database</key>
 	<string>База данных</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>В «Файлах» доступны только выбранные неизменяемые копии. Нужна системная аутентификация; блокировка dMsg завершает сеанс. «Файлы» может сохранить копии и имена, которые dMsg не сможет отозвать.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>При блокировке dMsg передаётся только выбранный зашифрованный файл. Расписание определяет iOS; принудительное закрытие останавливает доставку до повторного открытия. Откройте исходный аккаунт для проверки и завершения.</string>
+	<key>Open</key>
+	<string>Открыть</string>
 	<key>Open approval record</key>
 	<string>Открыть запись подтверждения</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>Рабочее пространство dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Получать уведомления этого аккаунта</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>Есть вопрос, требующий вашего внимания.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Оповещения Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Значок на иконке приложения</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Только действия</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Действия и непрочитанные сообщения</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Выключено</string>
+	<key>dmsg.noticeClear</key>
+	<string>Очистить завершённые напоминания</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Ожидающие действия и последние события</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Нет напоминаний</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Системные уведомления на этом устройстве</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Запись завершена или недоступна</string>
+	<key>dmsg.noticeFrom</key>
+	<string>С</string>
+	<key>dmsg.noticeLate</key>
+	<string>Это время позже крайнего срока</string>
+	<key>dmsg.noticeLater</key>
+	<string>Напомнить позже</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Управляется операционной системой</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Объединять повторные оповещения на разных устройствах</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>У вас новые сообщения.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Сообщения</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Требует действий</string>
+	<key>dmsg.noticePause15</key>
+	<string>Пауза на 15 минут</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>Пауза на 1 час</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Пауза до завтра, 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>Сохранено здесь; удалённые настройки ожидают синхронизации</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Настройки на этом устройстве действуют сразу. До подтверждения обновления удалённые оповещения могут использовать прежние настройки.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Ежедневные тихие часы</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Просмотр напоминаний не завершает действия и не отмечает сообщения прочитанными.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Недавние напоминания</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Удалённая фильтрация уведомлений пока недоступна</string>
+	<key>dmsg.noticeResume</key>
+	<string>Возобновить уведомления</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Тихие часы и звуки действуют на этом устройстве. Отключение уведомлений каналов синхронизируется с аккаунтом.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Изменение безопасности аккаунта требует проверки.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Разрешать оповещения безопасности в тихие часы</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Сервис требует вашего внимания.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Сервисы</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Уведомления</string>
+	<key>dmsg.noticeSound</key>
+	<string>Звук</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Переключитесь на этот аккаунт, чтобы открыть запись</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Открыть настройки системы</string>
+	<key>dmsg.noticeTest</key>
+	<string>Проверить уведомления</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Тестовое уведомление передано системе</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Напоминания</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Недоступно в этой системе</string>
+	<key>dmsg.noticeUntil</key>
+	<string>До</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Откройте dMsg, чтобы проверить последние события.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Часовой пояс</string>
 </dict>
 </plist>

@@ -474,8 +474,16 @@
 	<string>Güncel sürüm</string>
 	<key>Cvv</key>
 	<string>Özgeçmiş</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>İlginizi gerektiren bir işlem var.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>dMsg'da yeni aktivite.</string>
+	<string>Son etkinlikleri kontrol etmek için dMsg’i açın.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>Yeni mesajlarınız var.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Hesap güvenliğindeki bir değişikliği incelemeniz gerekiyor.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Bir hizmet ilginizi bekliyor.</string>
 	<key>Database</key>
 	<string>Veritabanı</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Dosyalar uygulamasında yalnızca seçilen, değiştirilemez kopyalar görünür. Erişim, sistem kimlik doğrulamasını gerektirir; dMsg'nun kilitlenmesi mevcut erişim oturumunu sonlandırır. Dosyalar, dMsg'nun hatırlayamadığı indirilen kopyaları ve dosya adlarını saklayabilir.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg kilitliyken yalnızca seçilen şifrelenmiş dosya aktarılabilir. iOS planlamayı kontrol eder; zorla bırakma, siz uygulamayı tekrar açana kadar dağıtımı durdurur. Doğrulamak ve tamamlamak için orijinal hesabı açın.</string>
+	<key>Open</key>
+	<string>Aç</string>
 	<key>Open approval record</key>
 	<string>Onay kaydını aç</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg çalışma alanı</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Bu hesabın bildirimlerini al</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>İlginizi gerektiren bir işlem var.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail uyarıları</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Uygulama simgesi rozeti</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Yalnızca işlemler</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>İşlemler ve okunmamış mesajlar</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Kapalı</string>
+	<key>dmsg.noticeClear</key>
+	<string>Tamamlanan hatırlatıcıları temizle</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Bekleyen işlemler ve son güncellemeler</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Hatırlatıcı yok</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Bu cihazda sistem bildirimleri</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Bu öğe sona erdi veya kullanılamıyor</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Başlangıç</string>
+	<key>dmsg.noticeLate</key>
+	<string>Bu saat son tarihten sonra</string>
+	<key>dmsg.noticeLater</key>
+	<string>Daha sonra hatırlat</string>
+	<key>dmsg.noticeManaged</key>
+	<string>İşletim sistemi tarafından yönetiliyor</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Cihazlar arasındaki yinelenen uyarıları birleştir</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>Yeni mesajlarınız var.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Mesajlar</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>İşlem gerekiyor</string>
+	<key>dmsg.noticePause15</key>
+	<string>15 dakika duraklat</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>1 saat duraklat</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Yarın 08:00’e kadar duraklat</string>
+	<key>dmsg.noticePending</key>
+	<string>Buraya kaydedildi; uzak ayarlar eşitlenmeyi bekliyor</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Ayarlarınız burada hemen uygulanır. Güncelleme doğrulanana kadar uzak uyarılar önceki ayarları kullanabilir.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Günlük sessiz saatler</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Hatırlatıcıları görüntülemek işlemleri tamamlamaz veya mesajları okundu olarak işaretlemez.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Son hatırlatıcılar</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Uzak bildirim filtreleme henüz kullanılamıyor</string>
+	<key>dmsg.noticeResume</key>
+	<string>Bildirimleri sürdür</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Sessiz saatler ve sesler bu cihaz için geçerlidir. Kanal sessize alma tercihleri hesabınızla eşitlenir.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Hesap güvenliğindeki bir değişikliği incelemeniz gerekiyor.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Sessiz saatlerde güvenlik uyarılarına izin ver</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Bir hizmet ilginizi bekliyor.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Hizmetler</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Bildirimler</string>
+	<key>dmsg.noticeSound</key>
+	<string>Ses</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Öğeyi açmak için bu hesaba geçin</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Sistem ayarlarını aç</string>
+	<key>dmsg.noticeTest</key>
+	<string>Test bildirimi</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Test bildirimi sisteme iletildi</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Hatırlatıcılar</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Bu sistemde kullanılamıyor</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Bitiş</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Son etkinlikleri kontrol etmek için dMsg’i açın.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Saat dilimi</string>
 </dict>
 </plist>

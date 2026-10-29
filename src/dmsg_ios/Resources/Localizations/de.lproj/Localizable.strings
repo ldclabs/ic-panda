@@ -474,8 +474,16 @@
 	<string>Aktuelle Version</string>
 	<key>Cvv</key>
 	<string>Lebenslauf</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>Ein Vorgang benötigt deine Aufmerksamkeit.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>Neue Aktivität in dMsg.</string>
+	<string>Öffne dMsg, um neue Aktivitäten zu prüfen.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>Du hast neue Nachrichten.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Eine Sicherheitsänderung am Konto muss geprüft werden.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Ein Dienst benötigt deine Aufmerksamkeit.</string>
 	<key>Database</key>
 	<string>Datenbank</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>In der Dateien-App werden nur ausgewählte, unveränderliche Kopien angezeigt. Für den Zugriff ist eine Systemauthentifizierung erforderlich. Mit der Sperre dMsg wird die aktuelle Zugriffssitzung beendet. Dateien können heruntergeladene Kopien und Dateinamen enthalten, an die sich dMsg nicht erinnern kann.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Während dMsg gesperrt ist, kann nur die ausgewählte verschlüsselte Datei übertragen werden. iOS steuert die Planung; Durch Erzwingen des Beendens wird die Zustellung gestoppt, bis Sie die App erneut öffnen. Öffnen Sie das ursprüngliche Konto, um es zu überprüfen und abzuschließen.</string>
+	<key>Open</key>
+	<string>Öffnen</string>
 	<key>Open approval record</key>
 	<string>Genehmigungsdatensatz öffnen</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg-Arbeitsbereich</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Benachrichtigungen für dieses Konto empfangen</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>Ein Vorgang benötigt deine Aufmerksamkeit.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent-Mail-Hinweise</string>
+	<key>dmsg.noticeBadge</key>
+	<string>App-Symbolkennzeichen</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Nur Aufgaben</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Aufgaben und ungelesene Nachrichten</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Aus</string>
+	<key>dmsg.noticeClear</key>
+	<string>Erledigte Erinnerungen löschen</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Offene Aufgaben und aktuelle Hinweise</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Keine Erinnerungen</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Systembenachrichtigungen auf diesem Gerät</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Dieser Eintrag ist erledigt oder nicht verfügbar</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Von</string>
+	<key>dmsg.noticeLate</key>
+	<string>Dieser Zeitpunkt liegt nach der Frist</string>
+	<key>dmsg.noticeLater</key>
+	<string>Später erinnern</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Vom Betriebssystem verwaltet</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Doppelte Hinweise geräteübergreifend zusammenfassen</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>Du hast neue Nachrichten.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Nachrichten</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Zu erledigen</string>
+	<key>dmsg.noticePause15</key>
+	<string>15 Minuten pausieren</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>1 Stunde pausieren</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Bis morgen um 08:00 pausieren</string>
+	<key>dmsg.noticePending</key>
+	<string>Hier gespeichert; Fernabgleich steht noch aus</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Deine Einstellungen gelten hier sofort. Entfernte Hinweise können bis zur Bestätigung noch frühere Einstellungen verwenden.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Tägliche Ruhezeit</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Das Anzeigen von Erinnerungen erledigt keine Aufgaben und markiert keine Nachrichten als gelesen.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Letzte Erinnerungen</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Die Filterung entfernter Benachrichtigungen ist noch nicht verfügbar</string>
+	<key>dmsg.noticeResume</key>
+	<string>Benachrichtigungen fortsetzen</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Ruhezeiten und Töne gelten für dieses Gerät. Stummgeschaltete Kanäle werden mit deinem Konto synchronisiert.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Eine Sicherheitsänderung am Konto muss geprüft werden.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Sicherheitshinweise während der Ruhezeit zulassen</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Ein Dienst benötigt deine Aufmerksamkeit.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Dienste</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Benachrichtigungen</string>
+	<key>dmsg.noticeSound</key>
+	<string>Ton</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Zum Öffnen zu diesem Konto wechseln</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Systemeinstellungen öffnen</string>
+	<key>dmsg.noticeTest</key>
+	<string>Testbenachrichtigung</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Testbenachrichtigung an das System übergeben</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Erinnerungen</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Auf diesem System nicht verfügbar</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Bis</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Öffne dMsg, um neue Aktivitäten zu prüfen.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Zeitzone</string>
 </dict>
 </plist>

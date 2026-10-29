@@ -377,6 +377,20 @@
         "decision": "keep",
         "reason": "viewed"
       }
+    },
+    {
+      "name": "unknown-new-watermark-with-last-known-zero",
+      "item": {
+        "unread": 0,
+        "unverified": true
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 1,
+        "sound": false,
+        "in_app": false,
+        "update": false
+      }
     }
   ],
   "identities": [
@@ -406,6 +420,32 @@
         }
       },
       "id": "ce4a7fbc354390061ab2a54acbe19d023fcb39b88f4cac45af2b93289e023f72"
+    }
+  ],
+  "lifetimes": [
+    {
+      "category": "security",
+      "now": 1000,
+      "deadline": 900,
+      "expires": 86401000
+    },
+    {
+      "category": "service",
+      "now": 1000,
+      "deadline": 900,
+      "expires": 86401000
+    },
+    {
+      "category": "message",
+      "now": 1000,
+      "deadline": 900,
+      "expires": 3601000
+    },
+    {
+      "category": "action",
+      "now": 1000,
+      "deadline": 900,
+      "expires": 900
     }
   ]
 }

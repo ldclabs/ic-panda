@@ -134,6 +134,9 @@ struct Local {
     unread: u64,
     /// Latest verified new message by another account, excluding edits/control.
     notification_seq: u64,
+    /// Older clients counted unreadable rows. Preserve their existing counts
+    /// while correcting each such row when its epoch is actually opened.
+    notification_count_cutover: Option<u64>,
     /// The latest message, for the channel list.
     last: Option<Preview>,
     /// The unsent text of the composer.
@@ -2357,9 +2360,24 @@ impl Client {
             .workspace
             .store
             .notification_item(&notifications::item_id(&account, &target))?;
+        let mut unknown = 0;
+        for (_, through) in local
+            .skipped
+            .values()
+            .filter(|(_, through)| *through > local.read)
+        {
+            if self
+                .workspace
+                .private::<Message>(self.keys()?, &format!("{INBOX}{channel}:{through:020}"))?
+                .is_none_or(|message| message.unreadable)
+            {
+                unknown = unknown.max(*through);
+            }
+        }
         let version = local
             .notification_seq
-            .max(old.as_ref().map_or(0, |item| item.version));
+            .max(old.as_ref().map_or(0, |item| item.version))
+            .max(unknown);
         // Import the existing unread state once as a quiet summary. Subsequent
         // own messages/control events cannot advance the notification watermark.
         let version = if version == 0 && local.unread > 0 {
@@ -2373,7 +2391,8 @@ impl Client {
         let mut item = Item::new(account.clone(), target, version, now);
         item.quiet = old.is_none();
         item.unread = Some(local.unread);
-        item.open = local.unread > 0;
+        item.unverified = unknown > 0 || local.message < version;
+        item.open = local.unread > 0 || item.unverified;
         let preference = self.channel_notification_preference(channel, ring.muted)?;
         let inactive = ring.hidden
             || preference.hidden
@@ -4102,35 +4121,50 @@ impl Client {
         self.workspace.store.atomic(|_| {
             let mut local = self.local(&channel)?;
             let cursor = local.message;
+            let count_cutover = *local.notification_count_cutover.get_or_insert(cursor);
             for (epoch, seq) in &unread_epochs {
                 extend(&mut local.skipped, *epoch, *seq);
             }
             for (key, message) in &opened {
+                let previous = self.workspace.private::<Message>(keys, key)?;
+                let counted_before = previous.as_ref().is_some_and(|m| {
+                    m.seq > local.read
+                        && m.account != me
+                        && !m.amends()
+                        && (!m.unreadable || m.seq <= count_cutover)
+                        && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
+                });
+                let counted_now = !message.unreadable
+                    && message.seq > local.read
+                    && message.account != me
+                    && !message.amends()
+                    && !background_packet(
+                        &message.text,
+                        message.file.is_some(),
+                        message.packet.as_ref(),
+                    );
+                if counted_now && !counted_before {
+                    local.unread = local.unread.saturating_add(1);
+                } else if counted_before && !counted_now {
+                    local.unread = local.unread.saturating_sub(1);
+                }
+                if counted_now {
+                    local.notification_seq = local.notification_seq.max(message.seq);
+                }
                 if message.unreadable {
                     extend(&mut local.skipped, message.epoch, message.seq);
                 }
                 self.workspace.put_private(keys, key, message)?;
                 self.amend(&channel, &mut local, message)?;
-                if !reread && !message.amends() && message.seq > cursor {
-                    if local
+                if !reread
+                    && !message.amends()
+                    && message.seq > cursor
+                    && local
                         .last
                         .as_ref()
                         .is_none_or(|last| last.seq < message.seq)
-                    {
-                        local.last = Some(preview(message));
-                    }
-                    if message.account != me
-                        && !background_packet(
-                            &message.text,
-                            message.file.is_some(),
-                            message.packet.as_ref(),
-                        )
-                    {
-                        local.unread += 1;
-                        if !message.unreadable {
-                            local.notification_seq = local.notification_seq.max(message.seq);
-                        }
-                    }
+                {
+                    local.last = Some(preview(message));
                 }
             }
             if !reread {
@@ -4387,7 +4421,8 @@ impl Client {
         local.unread = after
             .iter()
             .filter(|m| {
-                m.account != me
+                !m.unreadable
+                    && m.account != me
                     && !m.amends()
                     && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
             })

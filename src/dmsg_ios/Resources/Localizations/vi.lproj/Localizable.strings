@@ -474,8 +474,16 @@
 	<string>Phiên bản hiện tại</string>
 	<key>Cvv</key>
 	<string>cvv</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>Có việc cần bạn xử lý.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>Hoạt động mới trong dMsg.</string>
+	<string>Mở dMsg để kiểm tra hoạt động mới nhất.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>Bạn có tin nhắn mới.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>Có thay đổi bảo mật tài khoản cần bạn kiểm tra.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>Có dịch vụ cần bạn chú ý.</string>
 	<key>Database</key>
 	<string>Cơ sở dữ liệu</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Chỉ các bản sao được chọn, không thể thay đổi mới xuất hiện trong ứng dụng Tệp. Quyền truy cập yêu cầu xác thực hệ thống; khóa dMsg kết thúc phiên truy cập hiện tại. Các tệp có thể giữ lại các bản sao và tên tệp đã tải xuống mà dMsg không thể nhớ lại.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Chỉ tệp được mã hóa đã chọn mới có thể chuyển trong khi dMsg bị khóa. Lập kế hoạch kiểm soát iOS; buộc thoát sẽ dừng phân phối cho đến khi bạn mở lại ứng dụng. Mở tài khoản gốc để xác minh và hoàn tất.</string>
+	<key>Open</key>
+	<string>Mở</string>
 	<key>Open approval record</key>
 	<string>Mở hồ sơ phê duyệt</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>Không gian làm việc dMsg</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Nhận thông báo cho tài khoản này</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>Có việc cần bạn xử lý.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Cảnh báo Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Huy hiệu biểu tượng ứng dụng</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Chỉ việc cần xử lý</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Việc cần xử lý và tin chưa đọc</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Tắt</string>
+	<key>dmsg.noticeClear</key>
+	<string>Xóa nhắc nhở đã hoàn tất</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Việc cần xử lý và cập nhật gần đây</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Không có nhắc nhở</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Thông báo hệ thống trên thiết bị này</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Mục này đã kết thúc hoặc không khả dụng</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Từ</string>
+	<key>dmsg.noticeLate</key>
+	<string>Thời điểm này đã quá hạn</string>
+	<key>dmsg.noticeLater</key>
+	<string>Nhắc lại sau</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Do hệ điều hành quản lý</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Gộp cảnh báo trùng giữa các thiết bị</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>Bạn có tin nhắn mới.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Tin nhắn</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Cần xử lý</string>
+	<key>dmsg.noticePause15</key>
+	<string>Tạm dừng 15 phút</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>Tạm dừng 1 giờ</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>Tạm dừng đến 08:00 ngày mai</string>
+	<key>dmsg.noticePending</key>
+	<string>Đã lưu trên thiết bị; cài đặt từ xa đang chờ đồng bộ</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Cài đặt có hiệu lực ngay trên thiết bị này. Cảnh báo từ xa có thể dùng cài đặt cũ cho đến khi cập nhật được xác nhận.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Giờ yên lặng hằng ngày</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Xem nhắc nhở không hoàn tất thao tác hoặc đánh dấu tin nhắn là đã đọc.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Nhắc nhở gần đây</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Bộ lọc thông báo từ xa chưa khả dụng</string>
+	<key>dmsg.noticeResume</key>
+	<string>Tiếp tục thông báo</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Giờ yên lặng và âm thanh áp dụng cho thiết bị này. Việc tắt thông báo kênh được đồng bộ theo tài khoản.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>Có thay đổi bảo mật tài khoản cần bạn kiểm tra.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Cho phép cảnh báo bảo mật trong giờ yên lặng</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>Có dịch vụ cần bạn chú ý.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Dịch vụ</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Thông báo</string>
+	<key>dmsg.noticeSound</key>
+	<string>Âm thanh</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Chuyển sang tài khoản này để mở mục</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Mở cài đặt hệ thống</string>
+	<key>dmsg.noticeTest</key>
+	<string>Thử thông báo</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Đã gửi thông báo thử đến hệ thống</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Nhắc nhở</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Không khả dụng trên hệ thống này</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Đến</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Mở dMsg để kiểm tra hoạt động mới nhất.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Múi giờ</string>
 </dict>
 </plist>

@@ -10,6 +10,10 @@ pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
 mod error;
 mod models;
+mod notifications;
+pub use notifications::{
+    NotificationPresentationContext, NotificationPresentationResult, ReminderScope, VisibleReminder,
+};
 mod operation;
 mod platform;
 mod recovery;

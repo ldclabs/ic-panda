@@ -474,8 +474,16 @@
 	<string>موجودہ ورژن</string>
 	<key>Cvv</key>
 	<string>سی وی وی</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>ایک معاملے میں آپ کی کارروائی درکار ہے۔</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>dMsg میں نئی سرگرمی۔</string>
+	<string>حالیہ سرگرمی دیکھنے کے لیے dMsg کھولیں۔</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>آپ کے لیے نئے پیغامات ہیں۔</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>اکاؤنٹ کی حفاظت میں ایک تبدیلی کا جائزہ لیں۔</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>ایک خدمت پر آپ کی توجہ درکار ہے۔</string>
 	<key>Database</key>
 	<string>ڈیٹا بیس</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>فائلز ایپ میں صرف منتخب شدہ، ناقابل تغیر کاپیاں ظاہر ہوتی ہیں۔ رسائی کے لیے سسٹم کی توثیق کی ضرورت ہے۔ dMsg کو لاک کرنے سے موجودہ رسائی سیشن ختم ہو جاتا ہے۔ فائلیں ڈاؤن لوڈ کی گئی کاپیاں اور فائل نام رکھ سکتی ہیں، جنہیں dMsg یاد نہیں کر سکتا۔</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg لاک ہونے کے دوران صرف منتخب کردہ انکرپٹڈ فائل ہی منتقل ہو سکتی ہے۔ iOS نظام الاوقات کو کنٹرول کرتا ہے۔ جب تک آپ ایپ کو دوبارہ نہیں کھولتے تب تک زبردستی چھوڑنے سے ترسیل رک جاتی ہے۔ تصدیق اور ختم کرنے کے لیے اصل اکاؤنٹ کھولیں۔</string>
+	<key>Open</key>
+	<string>کھولیں</string>
 	<key>Open approval record</key>
 	<string>منظوری کا ریکارڈ کھولیں</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg ورک اسپیس</string>
+	<key>dmsg.noticeAccount</key>
+	<string>اس اکاؤنٹ کی اطلاعات موصول کریں</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>ایک معاملے میں آپ کی کارروائی درکار ہے۔</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Agent Mail کے انتباہات</string>
+	<key>dmsg.noticeBadge</key>
+	<string>ایپ آئیکن بیج</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>صرف کام</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>کام اور اَن پڑھے پیغامات</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>بند</string>
+	<key>dmsg.noticeClear</key>
+	<string>مکمل یاد دہانیاں صاف کریں</string>
+	<key>dmsg.noticeDetail</key>
+	<string>زیرِ التوا کام اور حالیہ تبدیلیاں</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>کوئی یاد دہانی نہیں</string>
+	<key>dmsg.noticeEnable</key>
+	<string>اس آلے پر سسٹم کی اطلاعات</string>
+	<key>dmsg.noticeEnded</key>
+	<string>یہ آئٹم ختم ہو چکا ہے یا دستیاب نہیں</string>
+	<key>dmsg.noticeFrom</key>
+	<string>سے</string>
+	<key>dmsg.noticeLate</key>
+	<string>یہ وقت آخری مہلت کے بعد ہے</string>
+	<key>dmsg.noticeLater</key>
+	<string>بعد میں یاد دلائیں</string>
+	<key>dmsg.noticeManaged</key>
+	<string>آپریٹنگ سسٹم کے زیرِ انتظام</string>
+	<key>dmsg.noticeMerge</key>
+	<string>مختلف آلات پر دہرائے گئے انتباہات یکجا کریں</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>آپ کے لیے نئے پیغامات ہیں۔</string>
+	<key>dmsg.noticeMessages</key>
+	<string>پیغامات</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>کارروائی درکار ہے</string>
+	<key>dmsg.noticePause15</key>
+	<string>15 منٹ کے لیے روکیں</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>1 گھنٹے کے لیے روکیں</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>کل 08:00 تک روکیں</string>
+	<key>dmsg.noticePending</key>
+	<string>یہاں محفوظ ہو گیا؛ دور کی ترتیبات کی ہم وقت سازی باقی ہے</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>آپ کی ترتیبات یہاں فوراً لاگو ہوتی ہیں۔ تبدیلی کی تصدیق تک دور سے آنے والے انتباہات پر پرانی ترتیبات لاگو رہ سکتی ہیں۔</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>روزانہ خاموش اوقات</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>یاد دہانیاں دیکھنے سے کام مکمل نہیں ہوتے اور پیغامات پڑھے ہوئے نشان زد نہیں ہوتے۔</string>
+	<key>dmsg.noticeRecent</key>
+	<string>حالیہ یاد دہانیاں</string>
+	<key>dmsg.noticeRemote</key>
+	<string>دور سے آنے والی اطلاعات کی فلٹرنگ ابھی دستیاب نہیں</string>
+	<key>dmsg.noticeResume</key>
+	<string>اطلاعات دوبارہ شروع کریں</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>خاموش اوقات اور آوازیں اس آلے پر لاگو ہوتی ہیں۔ چینل خاموش کرنے کی ترتیبات آپ کے اکاؤنٹ کے ساتھ ہم وقت ہوتی ہیں۔</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>اکاؤنٹ کی حفاظت میں ایک تبدیلی کا جائزہ لیں۔</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>خاموش اوقات میں حفاظتی انتباہات کی اجازت دیں</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>ایک خدمت پر آپ کی توجہ درکار ہے۔</string>
+	<key>dmsg.noticeServices</key>
+	<string>خدمات</string>
+	<key>dmsg.noticeSettings</key>
+	<string>اطلاعات</string>
+	<key>dmsg.noticeSound</key>
+	<string>آواز</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>آئٹم کھولنے کے لیے اس اکاؤنٹ پر جائیں</string>
+	<key>dmsg.noticeSystem</key>
+	<string>سسٹم کی ترتیبات کھولیں</string>
+	<key>dmsg.noticeTest</key>
+	<string>آزمائشی اطلاع</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>آزمائشی اطلاع سسٹم کو بھیج دی گئی</string>
+	<key>dmsg.noticeTitle</key>
+	<string>یاد دہانیاں</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>اس سسٹم پر دستیاب نہیں</string>
+	<key>dmsg.noticeUntil</key>
+	<string>تک</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>حالیہ سرگرمی دیکھنے کے لیے dMsg کھولیں۔</string>
+	<key>dmsg.noticeZone</key>
+	<string>ٹائم زون</string>
 </dict>
 </plist>

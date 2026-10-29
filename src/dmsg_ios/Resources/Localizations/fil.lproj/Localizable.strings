@@ -474,8 +474,16 @@
 	<string>Kasalukuyang bersyon</string>
 	<key>Cvv</key>
 	<string>Cvv</string>
+	<key>DMSG_NOTIFICATION_ACTION</key>
+	<string>May item na kailangan mong asikasuhin.</string>
 	<key>DMSG_NOTIFICATION_GENERIC</key>
-	<string>Bagong aktibidad sa dMsg.</string>
+	<string>Buksan ang dMsg para tingnan ang mga bagong aktibidad.</string>
+	<key>DMSG_NOTIFICATION_MESSAGE</key>
+	<string>May mga bago kang mensahe.</string>
+	<key>DMSG_NOTIFICATION_SECURITY</key>
+	<string>May pagbabago sa seguridad ng account na kailangan mong suriin.</string>
+	<key>DMSG_NOTIFICATION_SERVICE</key>
+	<string>May serbisyong nangangailangan ng iyong pansin.</string>
 	<key>Database</key>
 	<string>Database</string>
 	<key>Date</key>
@@ -992,6 +1000,8 @@
 	<string>Mga pinili at hindi nababagong kopya lang ang lalabas sa Files app. Ang pag-access ay nangangailangan ng pagpapatunay ng system; ang pag-lock ng dMsg ay nagtatapos sa kasalukuyang session ng pag-access. Maaaring panatilihin ng mga file ang mga na-download na kopya at mga filename, na hindi matandaan ng dMsg.</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>Ang napiling naka-encrypt na file lang ang maaaring ilipat habang naka-lock ang dMsg. Kinokontrol ng iOS ang pag-iiskedyul; pinipigilan ng puwersahang paghinto ang paghahatid hanggang sa muli mong buksan ang app. Buksan ang orihinal na account para i-verify at tapusin.</string>
+	<key>Open</key>
+	<string>Buksan</string>
 	<key>Open approval record</key>
 	<string>Buksan ang talaan ng pag-apruba</string>
 	<key>Open approvals</key>
@@ -1996,5 +2006,97 @@
 	<string>dMsg</string>
 	<key>dMsg workspace</key>
 	<string>dMsg workspace</string>
+	<key>dmsg.noticeAccount</key>
+	<string>Tumanggap ng mga notification para sa account na ito</string>
+	<key>dmsg.noticeActionBody</key>
+	<string>May item na kailangan mong asikasuhin.</string>
+	<key>dmsg.noticeAgent</key>
+	<string>Mga alerto ng Agent Mail</string>
+	<key>dmsg.noticeBadge</key>
+	<string>Badge sa icon ng app</string>
+	<key>dmsg.noticeBadgeActions</key>
+	<string>Mga gawain lang</string>
+	<key>dmsg.noticeBadgeAll</key>
+	<string>Mga gawain at hindi pa nababasang mensahe</string>
+	<key>dmsg.noticeBadgeOff</key>
+	<string>Naka-off</string>
+	<key>dmsg.noticeClear</key>
+	<string>Alisin ang mga tapos nang paalala</string>
+	<key>dmsg.noticeDetail</key>
+	<string>Mga nakabinbing gawain at pinakabagong update</string>
+	<key>dmsg.noticeEmpty</key>
+	<string>Walang mga paalala</string>
+	<key>dmsg.noticeEnable</key>
+	<string>Mga notification ng system sa device na ito</string>
+	<key>dmsg.noticeEnded</key>
+	<string>Tapos na o hindi available ang item na ito</string>
+	<key>dmsg.noticeFrom</key>
+	<string>Mula</string>
+	<key>dmsg.noticeLate</key>
+	<string>Lampas sa deadline ang oras na ito</string>
+	<key>dmsg.noticeLater</key>
+	<string>Paalalahanan ako mamaya</string>
+	<key>dmsg.noticeManaged</key>
+	<string>Pinamamahalaan ng operating system</string>
+	<key>dmsg.noticeMerge</key>
+	<string>Pagsamahin ang mga dobleng alerto sa iba’t ibang device</string>
+	<key>dmsg.noticeMessageBody</key>
+	<string>May mga bago kang mensahe.</string>
+	<key>dmsg.noticeMessages</key>
+	<string>Mga mensahe</string>
+	<key>dmsg.noticeNeedsAction</key>
+	<string>Kailangan ng aksiyon</string>
+	<key>dmsg.noticePause15</key>
+	<string>I-pause nang 15 minuto</string>
+	<key>dmsg.noticePauseHour</key>
+	<string>I-pause nang 1 oras</string>
+	<key>dmsg.noticePauseTomorrow</key>
+	<string>I-pause hanggang bukas nang 08:00</string>
+	<key>dmsg.noticePending</key>
+	<string>Naka-save dito; naghihintay ang mga remote setting</string>
+	<key>dmsg.noticePendingHint</key>
+	<string>Agad na gagana rito ang iyong mga setting. Maaaring gamitin pa ng mga remote alerto ang lumang setting hanggang makumpirma ang update.</string>
+	<key>dmsg.noticeQuiet</key>
+	<string>Tahimik na oras araw-araw</string>
+	<key>dmsg.noticeReadOnlyHint</key>
+	<string>Ang pagtingin sa mga paalala ay hindi nagtatapos ng mga gawain o nagmamarka sa mga mensahe bilang nabasa.</string>
+	<key>dmsg.noticeRecent</key>
+	<string>Mga kamakailang paalala</string>
+	<key>dmsg.noticeRemote</key>
+	<string>Hindi pa available ang remote na pag-filter ng mga notification</string>
+	<key>dmsg.noticeResume</key>
+	<string>Ipagpatuloy ang mga notification</string>
+	<key>dmsg.noticeScopeHint</key>
+	<string>Para sa device na ito ang tahimik na oras at mga tunog. Naka-sync sa account mo ang pag-mute ng mga channel.</string>
+	<key>dmsg.noticeSecurityBody</key>
+	<string>May pagbabago sa seguridad ng account na kailangan mong suriin.</string>
+	<key>dmsg.noticeSecurityException</key>
+	<string>Payagan ang mga alertong panseguridad sa tahimik na oras</string>
+	<key>dmsg.noticeServiceBody</key>
+	<string>May serbisyong nangangailangan ng iyong pansin.</string>
+	<key>dmsg.noticeServices</key>
+	<string>Mga serbisyo</string>
+	<key>dmsg.noticeSettings</key>
+	<string>Mga notification</string>
+	<key>dmsg.noticeSound</key>
+	<string>Tunog</string>
+	<key>dmsg.noticeSwitch</key>
+	<string>Lumipat sa account na ito para buksan ang item</string>
+	<key>dmsg.noticeSystem</key>
+	<string>Buksan ang mga setting ng system</string>
+	<key>dmsg.noticeTest</key>
+	<string>Subukan ang notification</string>
+	<key>dmsg.noticeTestSent</key>
+	<string>Naipadala na sa system ang test notification</string>
+	<key>dmsg.noticeTitle</key>
+	<string>Mga paalala</string>
+	<key>dmsg.noticeUnsupported</key>
+	<string>Hindi available sa system na ito</string>
+	<key>dmsg.noticeUntil</key>
+	<string>Hanggang</string>
+	<key>dmsg.noticeUpdatesBody</key>
+	<string>Buksan ang dMsg para tingnan ang mga bagong aktibidad.</string>
+	<key>dmsg.noticeZone</key>
+	<string>Time zone</string>
 </dict>
 </plist>

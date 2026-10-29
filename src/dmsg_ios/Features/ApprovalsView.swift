@@ -66,6 +66,7 @@ struct ApprovalDetailView: View {
     @State private var decision: Bool?
     @State private var result: DisplayValue?
     @State private var state: String?
+    @State private var observedVersion: UInt64?
     @State private var supported = false
     @State private var readyAt = Date.distantFuture
     @State private var decisionTask: Task<Void, Never>?
@@ -91,7 +92,7 @@ struct ApprovalDetailView: View {
                     .environment(\.layoutDirection, .leftToRight)
             }
             Section("Review the complete request") {
-                if let payload { CanonicalDetails(value: payload) }
+                if let payload { CanonicalDetails(value: payload).reminderVisible(.approval(request.id), watermark: observedVersion, ready: observedVersion != nil) }
                 else { ProgressView() }
             }
             if let result { Section("Result") { CanonicalDetails(value: result) } }
@@ -132,7 +133,7 @@ struct ApprovalDetailView: View {
 
     private func load() async {
         guard !working else { return }
-        supported = false; state = nil; payload = nil; readyAt = .distantFuture
+        supported = false; state = nil; payload = nil; observedVersion = nil; readyAt = .distantFuture
         guard !model.concealed else { return }
         let epoch = model.epoch
         do {
@@ -140,6 +141,7 @@ struct ApprovalDetailView: View {
             let fresh: ApprovalView = try model.decode(snapshot)
             guard fresh.digest == request.digest else { throw CocoaError(.coderInvalidValue) }
             state = fresh.state
+            observedVersion = fresh.updatedAt
             supported = fresh.mobileSupported == true
             payload = try model.decode(snapshot); readyAt = .now.addingTimeInterval(1)
         } catch { if epoch == model.epoch { model.report(error) } }

@@ -73,6 +73,7 @@ struct AccountView: View {
                     .accessibilityIdentifier("account.plan")
                 NavigationLink { InboxSettingsView() } label: { Label("Inbox settings", glyph: .inbox) }
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
+                Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: { Label(NoticeCopy.text("noticeTitle"), systemImage: "clock") }
             }
             Section {
                 LanguageSettingsLink()
