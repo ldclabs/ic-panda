@@ -363,6 +363,20 @@
         "in_app": false,
         "update": false
       }
+    },
+    {
+      "name": "security-read-locally-covers-initial-stage",
+      "item": {
+        "target": {
+          "kind": "recovery",
+          "id": "digest"
+        },
+        "observed": "9"
+      },
+      "expected": {
+        "decision": "keep",
+        "reason": "viewed"
+      }
     }
   ]
 }

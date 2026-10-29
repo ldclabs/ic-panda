@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('ms'),
     deviceSlots: 'Sehingga {n} peranti',
     teamWalletSlots: 'Sehingga {n} dompet pasukan',
     walletQuotasUnavailable: 'Had dompet pasukan tidak tersedia. Muat semula untuk mencuba lagi.',

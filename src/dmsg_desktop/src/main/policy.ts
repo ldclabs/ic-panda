@@ -37,6 +37,8 @@ import { DaemonError } from './error.ts'
  * declares at `app/initialize` that only a person's input is activity.
  */
 export const WINDOW_METHODS = new Set([
+  'notifications/list', 'notifications/status', 'notifications/settings',
+  'notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent',
   'secrets/ref',
   'secrets/mounts/list',
   'secrets/mounts/start',
@@ -526,21 +528,7 @@ export function externalAllowed(url: string, login: string[], pairing: string[])
   return login.includes(page) || pairing.some((p) => page === `${p}/v1/pair`)
 }
 
-/** The days before a term ends when the app reminds, once each. */
-export const REMIND_DAYS = [30, 7, 1]
-
 /** Exact destinations an approval window may open in the main window. */
 export const APPROVAL_MAIN_ROUTES = new Set([
-  '/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/plan', '/plan?tab=payments'
+  '/login', '/approvals', '/reminders', '/settings/session', '/settings/security', '/settings/devices', '/plan', '/plan?tab=payments'
 ])
-
-/**
- * The reminder due when `left` milliseconds of a term remain: the nearest
- * threshold reached, unless one as near was shown already (`shown`, in
- * days); null otherwise.
- */
-export function reminderDue(left: number, shown?: number): number | null {
-  if (left <= 0) return null
-  const due = REMIND_DAYS.filter((days) => left <= days * 86_400_000).pop()
-  return due !== undefined && (shown === undefined || due < shown) ? due : null
-}

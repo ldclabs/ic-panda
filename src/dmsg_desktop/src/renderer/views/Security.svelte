@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import { noticeVisibility } from '../notification-visibility'
+  let { status }: { status: any } = $props()
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import DisplayNotice from '../components/DisplayNotice.svelte'
   import Checkbox from '../components/Checkbox.svelte'
@@ -123,6 +125,10 @@
       } catch { /* retain the receipt when its result cannot yet be read */ }
     }
   })
+
+  const reportNotice = noticeVisibility(() => security?.notification && status?.state === 'unlocked'
+    ? { account: status.account, session: status.session, ...security.notification } : null, '[data-testid="pending-recovery"]')
+  $effect(() => { void security?.notification; void status?.session; reportNotice() })
 
   function begin(next: Editor) {
     if (blocked) return

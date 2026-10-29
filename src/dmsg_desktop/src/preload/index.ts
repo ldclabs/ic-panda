@@ -14,6 +14,11 @@ const locale = process.argv.find((a) => a.startsWith('--dmsg-locale='))?.slice('
 const appearance = process.argv.find((a) => a.startsWith('--dmsg-appearance='))?.slice('--dmsg-appearance='.length)
 
 const api: DesktopBridge = {
+  notificationPermission: () => unwrap(ipcRenderer.invoke('dmsg:notification-permission')),
+  notificationSettings: () => unwrap(ipcRenderer.invoke('dmsg:notification-settings')),
+  notificationTest: () => unwrap(ipcRenderer.invoke('dmsg:notification-test')),
+  notificationOpen: (account, id) => unwrap(ipcRenderer.invoke('dmsg:notification-open', account, id)),
+  notificationVisible: (value) => unwrap(ipcRenderer.invoke('dmsg:notification-visible', value)),
   role,
   platform: process.platform,
   locale: isLocale(locale) ? locale : defaultLocale,

@@ -208,6 +208,10 @@ impl Client {
             },
             "recovery_delay_ms": info.recovery_delay_ms,
             "pending_recovery": info.pending_recovery.as_ref().map(|p| recovery_view(p, &self.workspace.meta.device_id)),
+            "notification": state.security.snapshot.pending_recovery_digest.map(|hash| json!({
+                "id": crate::notifications::item_id(&info.account_id.to_string(), &crate::notifications::Target::Recovery(hex::encode(*hash))),
+                "version": state.security.snapshot.account_version.to_string(),
+            })),
             "recovered_device": info.recovered_device.map(|(d, g)| json!({"device_id": hex::encode(*d), "generation": g})),
         }))
     }

@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('bn'),
     deviceSlots: 'সর্বোচ্চ {n}টি ডিভাইস',
     teamWalletSlots: 'সর্বোচ্চ {n}টি টিম ওয়ালেট',
     walletQuotasUnavailable: 'টিম ওয়ালেটের সীমা পাওয়া যাচ্ছে না। আবার চেষ্টা করতে রিফ্রেশ করুন।',

@@ -1,9 +1,11 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 /**
  * English, the source catalog: each other language satisfies its type, so a
  * missing or extra label fails the type check. `{name}` in a label is filled
  * from the parameters `t` gets.
  */
 const messages = {
+    ...notificationText('en'),
   deviceSlots: 'Up to {n} devices',
   teamWalletSlots: 'Team wallet slots: {n}',
   walletQuotasUnavailable: 'Team wallet limits are unavailable. Refresh to retry.',

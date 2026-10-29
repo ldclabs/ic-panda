@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('ja'),
     deviceSlots: 'デバイス最大 {n} 台',
     teamWalletSlots: 'チームウォレット最大 {n} 個',
     walletQuotasUnavailable: 'チームウォレットの上限を取得できません。更新して再試行してください。',

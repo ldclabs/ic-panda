@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('th'),
     deviceSlots: 'อุปกรณ์สูงสุด {n} เครื่อง',
     teamWalletSlots: 'กระเป๋าเงินทีมสูงสุด {n} ใบ',
     walletQuotasUnavailable: 'ไม่สามารถโหลดขีดจำกัดกระเป๋าเงินทีมได้ โปรดรีเฟรชเพื่อลองอีกครั้ง',

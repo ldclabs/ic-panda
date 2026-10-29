@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   messages: {
+    ...notificationText('ru'),
     deviceSlots: 'До {n} устройств',
     teamWalletSlots: 'До {n} командных кошельков',
     walletQuotasUnavailable: 'Не удалось загрузить лимиты командных кошельков. Обновите страницу.',

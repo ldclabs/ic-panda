@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('ko'),
     deviceSlots: '최대 {n}개의 기기',
     teamWalletSlots: '최대 {n}개의 팀 지갑',
     walletQuotasUnavailable: '팀 지갑 한도를 불러올 수 없습니다. 새로고침하여 다시 시도하세요.',

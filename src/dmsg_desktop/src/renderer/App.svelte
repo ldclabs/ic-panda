@@ -8,6 +8,10 @@
   import Settings from './views/Settings.svelte'
   import Channels from './views/Channels.svelte'
   import Inbox from './views/Inbox.svelte'
+  import Reminders from './views/Reminders.svelte'
+  import { toast } from './components/toast.svelte'
+  import { notificationBody } from '../shared/notification-text'
+  import { isNoticePlan, type NoticeStatus } from '../shared/notifications'
   import Plan from './views/Plan.svelte'
   import Agents from './views/Agents.svelte'
   import Wallet from './views/Wallet.svelte'
@@ -23,12 +27,13 @@
   import { startLogin } from './shell/login.svelte'
   import { call, onChange, single } from './rpc'
   import { clearDisplays } from './display.svelte'
-  import { t } from './i18n/index.svelte'
+  import { locale, t } from './i18n/index.svelte'
   import { namesSession, namesChanged } from './views/channels/names.svelte'
 
   const opened = location.hash.slice(1) || views.channels.path
   let route = $state(opened)
   let status = $state<any>(null)
+  let reminders = $state(0)
   let connected = $state(true)
   let verifiedConnection = $state(false)
   let viewSession = $state<string | null>(null)
@@ -93,8 +98,16 @@
       verifiedConnection = false
     }
     settleOffer(status)
-    if (isMain && first && status && document.hasFocus()) offerUnlock(status)
+    if (isMain && first && status && document.hasFocus() && !route.startsWith('/reminders')) offerUnlock(status)
     first = !status
+  })
+
+  const loadReminders = single(async () => {
+    const revision = stateRevision
+    try {
+      const next = await call<NoticeStatus>('notifications/status')
+      if (revision === stateRevision && next.counts) reminders = next.counts.actionable + next.counts.unread
+    } catch { /* Keep the last verified count while disconnected/locked. */ }
   })
 
   // The offers change on unlock and with legacy state, never on a status refresh.
@@ -203,18 +216,26 @@
       } else if (event.type === 'resync') void refresh()
     }))
     if (isMain) {
+      void loadReminders()
       offs.push(
+        onChange(['notifications/changed', 'session/changed', 'resync'], loadReminders),
         onChange(['approval/changed', 'sync/changed', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
         onChange(['legacy/changed'], loadOffers),
         onChange(['names/changed'], namesChanged),
         window.dmsg.onEvent((event) => { if (event.type === 'cache/changed' && (event.data as any)?.kind === 'all') { namesSession(null); namesSession(status) } })
       )
     }
+    offs.push(window.dmsg.onEvent((event) => {
+      if (event.type !== 'notifications/present' || !isNoticePlan(event.data) || !document.hasFocus()) return
+      const plan = event.data
+      toast(() => notificationBody(locale(), plan.category, plan.count), { testid: 'notification-toast', ms: 6000,
+        action: { label: t('open'), run: () => plan.covered.length === 1 ? window.dmsg.notificationOpen(plan.account, plan.covered[0].id) : window.dmsg.showMain('/reminders') } })
+    }))
     return () => offs.forEach((off) => off())
   })
 </script>
 
-<svelte:window onkeydown={onKey} onfocus={() => isMain && offerUnlock(status)} />
+<svelte:window onkeydown={onKey} onfocus={() => isMain && !route.startsWith('/reminders') && offerUnlock(status)} />
 
 {#snippet windowNav()}
   <WindowNav
@@ -239,6 +260,7 @@
       {/key}
     {/if}
   </main>
+  <Toaster />
 {:else}
   <Tooltip.Provider delayDuration={350}>
     <div class="flex h-screen min-h-0" inert={!connected || !verifiedConnection} aria-hidden={!connected || !verifiedConnection}>
@@ -257,7 +279,7 @@
         {windowNav}
       />
       <div class="flex min-w-0 flex-1 flex-col bg-paper">
-        <Header {view} {mod} {collapsed} {windowNav} {go} onPalette={() => (palette = true)} />
+        <Header {view} {mod} {collapsed} {windowNav} {go} {reminders} onPalette={() => (palette = true)} />
         <RecoveryBanner />
         <main class="min-h-0 flex-1 overflow-hidden">
           {#if view === views.files}
@@ -265,7 +287,9 @@
           {:else if view === views.channels}
             <Channels {status} {route} {go} />
           {:else if view === views.inbox}
-            <Inbox {status} {mod} />
+            <Inbox {status} {mod} {route} />
+          {:else if view === views.reminders}
+            <Reminders {status} {route} {go} />
           {:else if view === views.plan}
             <Plan {status} {route} {go} />
           {:else if view === views.wallet}

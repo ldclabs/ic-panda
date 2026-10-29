@@ -174,3 +174,39 @@ async fn notifications_settings_revision_rejects_an_overwritten_ui_draft() {
     assert_eq!(read["account"]["revision"], 2);
     assert_eq!(read["account"]["remote_revision"], 0);
 }
+
+#[tokio::test]
+async fn notifications_legacy_stages_are_imported_once_without_guessing_the_account() {
+    let dir = testing::TempDir::new();
+    let (d, _) = fixture(&dir);
+    let contract = "a1".repeat(32);
+    let result = d
+        .call_notifications(
+            "notifications/migrate",
+            &json!({"plans":{contract.clone():7}}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(result["awaiting_account"], 1);
+    // Reopening the old file cannot become a second settings authority.
+    d.call_notifications(
+        "notifications/migrate",
+        &json!({"plans":{contract.clone():1}}),
+    )
+    .await
+    .unwrap();
+    let path = d.client().lock().await.notification_runtime_path();
+    let runtime = notice::Runtime::load(&path, now_ms()).unwrap();
+    assert_eq!(runtime.legacy_plans.get(&contract), Some(&2));
+    let rows = d
+        .call_notifications("notifications/list", &json!({"scope":"recent"}))
+        .await
+        .unwrap();
+    assert!(
+        rows["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|item| item["target"]["kind"] != "plan")
+    );
+}

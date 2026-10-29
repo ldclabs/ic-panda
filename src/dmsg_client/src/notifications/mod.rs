@@ -348,7 +348,7 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         item.first_at = old.first_at;
         item.observed = old.observed;
         item.notified = old.notified;
-        item.stage = old.stage;
+        item.stage = old.stage.max(item.stage);
         item.attempted_at = old.attempted_at;
         item.snoozed_until = old.snoozed_until;
         if matches!(item.target, Target::Recovery(_)) && item.deadline.is_none() {
@@ -614,7 +614,15 @@ impl crate::Client {
         {
             let mut item = Item::new(account, Target::Plan(id.into()), 1, now);
             item.deadline = Some(deadline);
+            let path = self.notification_runtime_path();
+            let mut runtime = Runtime::load(&path, now)?;
+            if let Some(stage) = runtime.legacy_plans.get(id) {
+                item.stage = *stage;
+            }
             upsert(&self.workspace.store, item)?;
+            if runtime.legacy_plans.remove(id).is_some() {
+                runtime.save(&path)?;
+            }
         }
         Ok(())
     }

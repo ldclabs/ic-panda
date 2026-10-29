@@ -11,6 +11,7 @@ export interface View {
 }
 
 export const views = {
+  reminders: { path: '/reminders', label: 'noticeTitle', detail: 'noticeDetail', icon: 'time' },
   vault: { path: '/vault', label: 'vault', detail: 'vaultDetail', icon: 'vault', key: '1' },
   files: { path: '/files', label: 'files', detail: 'filesDetail', icon: 'folder', key: '2' },
   channels: { path: '/channels', label: 'channels', detail: 'channelsDetail', icon: 'channels', key: '3' },
@@ -35,6 +36,7 @@ export const shortcuts: View[] = [...groups.flatMap((g) => g.views), views.setti
 
 /** The view a route shows; Settings' own pages keep Settings selected in the sidebar. */
 export function viewOf(route: string): View {
+  if (route.startsWith(views.reminders.path)) return views.reminders
   if (route.startsWith(views.legacy.path)) return views.legacy
   return shortcuts.find((view) => route.startsWith(view.path)) ?? views.channels
 }

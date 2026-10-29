@@ -1,6 +1,7 @@
 <script lang="ts">
   import Notice from '../components/page/Notice.svelte'
   import { onMount, tick, untrack } from 'svelte'
+  import { noticeVisibility } from '../notification-visibility'
   import { locale, t, stateLabel, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, size, units, when } from '../rpc'
   import {
@@ -116,6 +117,10 @@
   }
 
   const reload = single(load)
+  const reportNotice = noticeVisibility(() => request && status?.state === 'unlocked' && request.id === id
+    ? { account: status.account, session: status.session, target: { kind: 'approval', id }, version: String(request.updated_at) } : null,
+    '[data-testid="approval-title"]')
+  $effect(() => { void request?.updated_at; void status?.session; reportNotice() })
 
   /** Whether signing can happen now: the request's purpose, this device's approval right, the policy and the login. */
   const loadReadiness = single(async () => {

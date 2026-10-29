@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('vi'),
     deviceSlots: 'Tối đa {n} thiết bị',
     teamWalletSlots: 'Tối đa {n} ví nhóm',
     walletQuotasUnavailable: 'Chưa thể tải giới hạn ví nhóm. Hãy làm mới để thử lại.',

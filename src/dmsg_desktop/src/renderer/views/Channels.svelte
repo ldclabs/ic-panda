@@ -2,6 +2,7 @@
   import Notice from '../components/page/Notice.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
+  import { noticeVisibility } from '../notification-visibility'
   import { localeDir } from '../../shared/locales'
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
@@ -359,9 +360,15 @@
     })
 
   let marked = 0
+  let noticeRead = $state<{ channel: string; seq: number } | null>(null)
+  const reportNotice = noticeVisibility(() => unlocked && channel && noticeRead && noticeRead.channel === channel.id
+    ? { account: status.account, session: status.session, target: { kind: 'channel', id: channel.id }, watermark: String(noticeRead!.seq) } : null,
+    '[data-testid="channel-messages"]')
+  $effect(() => { void noticeRead; void channel?.id; void status?.session; reportNotice() })
   /** The messages shown through `seq` are read; a read receipt goes only when chosen (C04). */
   function markRead(seq: number) {
     seq = Math.min(seq, channel?.message_cursor ?? 0)
+    if (channel && Number.isSafeInteger(seq) && seq > 0) noticeRead = { channel: channel.id, seq }
     if (!channel || seq <= Math.max(channel.read ?? 0, marked)) return
     marked = seq
     const id = channel.id

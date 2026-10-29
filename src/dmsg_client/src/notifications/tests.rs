@@ -266,6 +266,14 @@ fn notifications_delivery_reserves_once_and_reconnects_silently_without_reading_
         &store,
         &plan.system_id,
         &plan.delivery_id,
+        DeliveryResult::Shown,
+        ctx.now,
+    )
+    .unwrap();
+    result(
+        &store,
+        &plan.system_id,
+        &plan.delivery_id,
         DeliveryResult::Failed,
         ctx.now,
     )
@@ -493,4 +501,33 @@ fn notifications_lock_keeps_opt_in_but_logout_disables_only_that_account() {
             Ok(())
         })
         .unwrap();
+}
+
+#[test]
+fn notifications_verified_contract_claims_only_its_legacy_phase() {
+    let dir = crate::testing::TempDir::new();
+    let client = crate::testing::unlocked(&dir.0, false, None);
+    let contract = "a1".repeat(32);
+    let unknown = "b1".repeat(32);
+    let path = client.notification_runtime_path();
+    let mut runtime = Runtime::load(&path, 1000).unwrap();
+    runtime.reminders_imported = true;
+    runtime.legacy_plans.insert(contract.clone(), 2);
+    runtime.legacy_plans.insert(unknown.clone(), 3);
+    runtime.save(&path).unwrap();
+    client.project_plan_notification(&serde_json::json!({
+        "current":{"contract":contract,"ends_at_ms":100_000,"terminated_at_ms":null},"next":null
+    }), 1_000).unwrap();
+    let item = client
+        .workspace
+        .store
+        .notification_items()
+        .unwrap()
+        .into_iter()
+        .find(|item| matches!(item.target, Target::Plan(_)))
+        .unwrap();
+    assert_eq!(item.stage, 2);
+    let runtime = Runtime::load(&path, 2_000).unwrap();
+    assert!(!runtime.legacy_plans.contains_key(&contract));
+    assert_eq!(runtime.legacy_plans.get(&unknown), Some(&3));
 }

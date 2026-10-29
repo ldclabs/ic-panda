@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
-  import { cn } from '../components/ui'
+  import { cn, iconButtonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { views, type View } from './nav'
 
@@ -18,8 +18,9 @@
     collapsed,
     windowNav,
     go,
-    onPalette
-  }: { view: View; mod: string; collapsed: boolean; windowNav: Snippet; go: (path: string) => void; onPalette: () => void } = $props()
+    onPalette,
+    reminders = 0
+  }: { view: View; mod: string; collapsed: boolean; windowNav: Snippet; go: (path: string) => void; onPalette: () => void; reminders?: number } = $props()
 
   const parent = $derived(view === views.legacy ? views.settings : null)
 </script>
@@ -42,6 +43,10 @@
     </div>
     <p class="mt-0.5 truncate text-xs text-faint">{t(view.detail)}</p>
   </div>
+  <button class={iconButtonClass('ghost', 'lg', 'relative shrink-0 [-webkit-app-region:no-drag]')} onclick={() => go('/reminders')} aria-label={`${t('noticeTitle')}${reminders ? ` (${reminders})` : ''}`} title={t('noticeTitle')} data-testid="reminders-open">
+    <Icon name="time" />
+    {#if reminders > 0}<span class="absolute -end-1 -top-1 rounded-full bg-gem-pale px-1 text-[9px] font-semibold leading-4 text-gem">{reminders > 99 ? '99+' : reminders}</span>{/if}
+  </button>
   <button
     class="flex h-8 w-64 max-w-[40%] shrink items-center gap-2 rounded-lg bg-wash ps-2.5 pe-1.5 text-[13px] text-muted outline-none transition-colors duration-150 hover:bg-pale focus-visible:ring-3 focus-visible:ring-focus/35 [-webkit-app-region:no-drag]"
     onclick={onPalette}

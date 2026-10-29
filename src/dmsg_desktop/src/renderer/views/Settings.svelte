@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import CacheSettings from './CacheSettings.svelte'
+  import NotificationSettings from './NotificationSettings.svelte'
   import { RadioGroup } from 'bits-ui'
   import { appearances, isAppearance } from '../../shared/appearance'
   import { isLocale, localeNames, locales } from '../../shared/locales'
@@ -39,7 +40,7 @@
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'appearance' | 'legacy' | 'about'
+  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'notifications' | 'appearance' | 'legacy' | 'about'
 
   const parts: { value: Part; label: Label; icon: Glyph; locked?: boolean }[] = [
     { value: 'session', label: 'sessionAccounts', icon: 'account' },
@@ -48,6 +49,7 @@
     { value: 'profile', label: 'publicProfile', icon: 'profile' },
     { value: 'browsers', label: 'browsers', icon: 'browser' },
     { value: 'files', label: 'files', icon: 'folder' },
+    { value: 'notifications', label: 'noticeSettings', icon: 'time' },
     { value: 'appearance', label: 'languageAppearance', icon: 'system' },
     { value: 'legacy', label: 'legacy', icon: 'legacy' },
     { value: 'about', label: 'aboutApp', icon: 'info' }
@@ -268,6 +270,8 @@
         {:else if part === 'files'}
           <FilesSettings />
           {#if unlocked}<CacheSettings />{/if}
+        {:else if part === 'notifications'}
+          <NotificationSettings {status} />
         {:else if part === 'appearance'}
           <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
             <dl>
@@ -412,7 +416,7 @@
         {:else if !unlocked}
           <Notice icon="lock">{t('locked')}</Notice>
         {:else if part === 'security'}
-          <Security />
+          <Security {status} />
         {:else if part === 'devices'}
           <Devices {status} />
         {:else}

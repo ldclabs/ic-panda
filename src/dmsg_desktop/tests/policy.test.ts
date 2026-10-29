@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { isRead } from '../src/shared/requests.ts'
 import { test } from 'node:test'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
-import { APPROVAL_MAIN_ROUTES, DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
+import { APPROVAL_MAIN_ROUTES, DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
   for (const method of [
@@ -10,6 +10,11 @@ test('windows never decide or grant, and never send human', () => {
     'connect/grant',
     'app/initialize',
     'app/activity',
+    'notifications/next',
+    'notifications/result',
+    'notifications/context',
+    'notifications/migrate',
+    'notifications/observed',
     'daemon/stop',
     'workspace/reset',
     'session/login',
@@ -177,18 +182,6 @@ test('only old-site migration links open from the legacy view', () => {
     'javascript:alert(1)'
   ])
     assert.equal(legacyAllowed(url), false, url)
-})
-
-test('a term ending reminds 30, 7 and 1 days before, each once', () => {
-  const day = 86_400_000
-  assert.equal(reminderDue(31 * day), null)
-  assert.equal(reminderDue(30 * day), 30)
-  assert.equal(reminderDue(20 * day, 30), null)
-  assert.equal(reminderDue(5 * day, 30), 7)
-  // Away for weeks, the nearest threshold reminds alone.
-  assert.equal(reminderDue(day / 2), 1)
-  assert.equal(reminderDue(day / 2, 1), null)
-  assert.equal(reminderDue(0), null)
 })
 
 test('approval recovery opens payments without permitting arbitrary routes', () => {

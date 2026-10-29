@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('fil'),
     deviceSlots: 'Hanggang {n} device',
     teamWalletSlots: 'Hanggang {n} team wallet',
     walletQuotasUnavailable: 'Hindi makuha ang mga limitasyon ng team wallet. I-refresh upang subukang muli.',

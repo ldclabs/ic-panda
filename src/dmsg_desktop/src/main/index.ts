@@ -18,6 +18,7 @@ import {
   nativeImage,
   nativeTheme,
   Notification,
+  powerMonitor,
   shell,
   Tray,
   type IpcMainInvokeEvent
@@ -33,9 +34,13 @@ import { single } from '../shared/single'
 import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
-import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
+import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
-import { RecoveryNotifications, type RecoveryWarning } from './recovery-notifications'
+import { Notifications } from './notifications'
+import { isNoticeAccount, isNoticeHash, isNoticeSequence, isNoticeTarget, noticeRoute, type NoticeBatch, type NoticeItem, type NoticePreferences, type NoticeStatus, type NoticeTarget } from '../shared/notifications'
+import { quietUntil, validTimeZone } from '../shared/notification-time'
+import { notificationBody, notificationText } from '../shared/notification-text'
+import type { NoticeVisibility } from '../shared/contract'
 import { textFor } from './text'
 import { trayVariant } from './tray-state'
 import { Updates } from './updater'
@@ -71,8 +76,14 @@ let tray: Tray | null = null
 let trayImages: Record<ReturnType<typeof trayVariant>, Electron.NativeImage> | null = null
 let quitting = false
 let waiting = 0
-/** When a waiting request last notified. */
-let requestNotifiedAt = 0
+let noticeEpoch = 0
+let noticeHistoryLoaded = false
+let noticeLegacyAttempted = false
+let noticeActivation: string | null = null
+let noticeLastResult: 'submitted' | 'shown' | 'failed' | undefined
+let screenLocked = false
+const noticeViewports = new Map<number, { id: string; version: string; stage: number }>()
+const noticeViewEpoch = new Map<number, number>()
 let pendingLink: string | null = null
 let trayState = 'connecting'
 /** English until the app is ready and knows its locale. */
@@ -116,6 +127,24 @@ function load(window: BrowserWindow, route: string) {
 function harden(window: BrowserWindow) {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
+  const clearViewport = () => {
+    const id = windowId
+    noticeViewports.delete(id)
+    noticeViewEpoch.set(id, (noticeViewEpoch.get(id) ?? 0) + 1)
+    noticeEpoch++
+    void refreshNotices()
+  }
+  const windowId = window.webContents.id
+  window.on('blur', clearViewport)
+  window.on('hide', clearViewport)
+  window.on('minimize', clearViewport)
+  window.on('focus', () => {
+    noticeEpoch++
+    window.webContents.send('dmsg:event', { type: 'notifications/focus' })
+    void refreshNotices()
+  })
+  window.on('show', () => void refreshNotices())
+  window.webContents.on('did-navigate-in-page', clearViewport)
 }
 
 /** The language the person picked in the main window, kept in the app's profile. */
@@ -292,7 +321,15 @@ async function pickSave(options: Electron.SaveDialogOptions): Promise<string | n
   return picked.canceled ? null : picked.filePath || null
 }
 
-handle('dmsg:call', 'any', (_event, method: string, params: unknown) => daemon.call(method, windowParams(method, params)))
+handle('dmsg:call', 'any', (event, method: string, params: unknown) => {
+  if (['notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent'].includes(method)) trust(event, 'main')
+  if (method === 'notifications/settings_set') {
+    const zone = (params as { settings?: { quiet_hours?: { timezone?: unknown } } })?.settings?.quiet_hours?.timezone
+    if (zone !== undefined && (typeof zone !== 'string' || !validTimeZone(zone))) throw new DaemonError('INVALID_INPUT', 'Time zone')
+  }
+  if (['notifications/settings_set', 'notifications/snooze', 'channel/settings'].includes(method)) noticeEpoch++
+  return daemon.call(method, windowParams(method, params))
+})
 handle('dmsg:decide', 'approval', (_event, id: string, digest: string, approve: boolean) =>
   daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
 )
@@ -708,75 +745,161 @@ function broadcast(channel: string, payload: unknown) {
   for (const window of [main, approval]) if (window && !window.isDestroyed()) window.webContents.send(channel, payload)
 }
 
-/** A `connect/hint` arrived since the last refresh: a web request waits at the relay. */
-let hinted = false
-
-const recoveryNotifications = new RecoveryNotifications((account) => {
-  const note = new Notification({ title: 'dMsg', body: text.recoveryPending, silent: false })
-  note.on('click', async () => {
-    // A notification may outlive an account switch; never cancel anything here.
-    const status = await daemon.call('daemon/status').catch(() => null) as { account?: string } | null
-    showMain(status?.account === account ? '/settings/security' : '/settings/session')
-  })
-  note.show()
-  return () => note.close()
-})
-
-/** Notify without saying from where; clicking opens the request, never decides it. */
-const refreshWaiting = single(async () => {
-  const hint = hinted
-  hinted = false
-  let status: { approvals_waiting?: number; channels_unread?: number; state?: string; account?: string; recovery?: RecoveryWarning | null } = {}
-  try {
-    status = (await daemon.call('daemon/status')) as typeof status
-  } catch {
-    return
-  }
-  if (status.state !== 'unlocked') void forgetCopied()
-  recoveryNotifications.update(status.account, status.recovery, Notification.isSupported())
-  const now = status.approvals_waiting ?? 0
-  // A burst of requests, such as an agent's, notifies once.
-  const quiet = Date.now() - requestNotifiedAt < 10_000
-  if ((now > waiting || hint) && !quiet && Notification.isSupported()) {
-    requestNotifiedAt = Date.now()
-    const note = new Notification({ title: 'dMsg', body: text.requestWaiting, silent: false })
-    note.on('click', async () => {
-      try {
-        const list = (await daemon.call('approval/list', {})) as { id: string; state: string }[]
-        const first = list.find((r) => r.state === 'awaiting_user')
-        if (first) return showApproval(first.id)
-      } catch {
-        /* locked */
-      }
-      showMain('/approvals')
-    })
-    note.show()
-  }
-  waiting = now
-  // The dock counts the requests waiting for a decision and what is unread
-  // in channels that are not muted.
-  app.setBadgeCount(now + (status.channels_unread ?? 0))
-  updateTray(status.state ?? 'unknown')
-})
-
-/** When each channel last notified, so a busy one notifies at most every ten seconds. */
-const channelNotifiedAt: Record<string, number> = {}
-
-/**
- * New messages in a channel that is not muted, while unlocked and the main
- * window is not in front: the channel's name and how many, never who wrote
- * what. Clicking opens the channel.
- */
-function notifyChannel(data: unknown) {
-  const { id, name, received = 0, muted } = (data ?? {}) as { id?: string; name?: string; received?: number; muted?: boolean }
-  if (!id || received <= 0 || muted || !Notification.isSupported()) return
-  if (main && !main.isDestroyed() && main.isVisible() && main.isFocused()) return
-  if (Date.now() - (channelNotifiedAt[id] ?? 0) < 10_000) return
-  channelNotifiedAt[id] = Date.now()
-  const note = new Notification({ title: name || 'dMsg', body: text.channelMessages(received) })
-  note.on('click', () => showMain(`/channels?open=${id}`))
-  note.show()
+/** Actual native focus is required; a hidden or locked screen is never a viewport. */
+function noticeForeground() {
+  return !screenLocked && [main, approval].some((window) => window && !window.isDestroyed() && window.isVisible() && window.isFocused() && !window.isMinimized())
 }
+
+const xmlText = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character]!)
+const nativeNotices = new Notifications({
+  create: (options) => new Notification({ ...options, ...(process.platform === 'win32' ? {
+    toastXml: `<toast launch="dmsg-notice:${options.id}"><visual><binding template="ToastGeneric"><text>dMsg</text><text>${xmlText(options.body)}</text></binding></visual>${options.silent ? '<audio silent="true"/>' : ''}</toast>`
+  } : {}) }),
+  body: (category, count) => notificationBody(locale, category, count),
+  foreground: noticeForeground,
+  inApp: (plan) => {
+    const window = [main, approval].find((window) => window && !window.isDestroyed() && window.isFocused() && window.isVisible())
+    window?.webContents.send('dmsg:event', { type: 'notifications/present', data: plan })
+  },
+  open: (plan) => openNotice(plan.account, plan.target, plan.covered.length === 1 ? plan.covered[0].id : undefined, true),
+  result: (plan, result) => {
+    if (!plan.in_app && result !== 'suppressed') noticePlatformResult(result)
+    return daemon.call('notifications/result', { account: plan.account, system_id: plan.system_id, delivery_id: plan.delivery_id, result })
+  },
+  remove: (id) => { if (process.platform === 'darwin') Notification.remove(id) },
+  activation: process.platform === 'win32'
+})
+
+function noticePlatformResult(result: 'submitted' | 'shown' | 'failed') {
+  noticeLastResult = result
+  broadcast('dmsg:event', { type: 'notifications/platform' })
+}
+
+async function openNotice(account: string, target: NoticeTarget, id?: string, native = false) {
+  if (!isNoticeAccount(account) || !isNoticeTarget(target)) throw new DaemonError('INVALID_INPUT', 'Notification target')
+  const entry = `/reminders?account=${account}${id ? `&item=${id}` : ''}`
+  const status = await daemon.call('daemon/status').catch(() => null) as { account?: string; state?: string; session?: string } | null
+  if (!status) return showMain(entry)
+  if (native) {
+    const prefs = await daemon.call('notifications/settings', { account }).catch(() => null) as NoticePreferences | null
+    if (!prefs?.account?.enabled) return showMain(`${entry}&ended=1`)
+  }
+  if (status.account !== account || status.state !== 'unlocked') return showMain(entry)
+  // Read through the original business interface before navigating. A completed
+  // approval still opens that approval's result, never another waiting request.
+  try {
+    switch (target.kind) {
+      case 'approval': await daemon.call('approval/show', { id: target.id }); break
+      case 'channel': await daemon.call('channel/show', { id: target.id }); break
+      case 'inbox': await daemon.call('inbox/list'); break
+      case 'recovery': await daemon.call('account/security'); break
+      case 'wallet': {
+        const proposal = Number(target.id.proposal)
+        if (!Number.isSafeInteger(proposal)) return showMain(`${entry}&ended=1`)
+        await daemon.call('wallet/proposal', { wallet: target.id.wallet, id: proposal })
+        break
+      }
+      case 'plan': await daemon.call('plan/status', { mode: 'fresh' }); break
+    }
+  } catch (error) {
+    if (error instanceof DaemonError && ['NOT_FOUND', 'FORBIDDEN', 'EXPIRED'].includes(error.code)) return showMain(`${entry}&ended=1`)
+    // The original view can show its last trusted state and offer a retry offline.
+  }
+  const current = await daemon.call('daemon/status').catch(() => null) as { account?: string; state?: string; session?: string } | null
+  if (!current || current.account !== account || current.state !== 'unlocked' || current.session !== status.session) return showMain(entry)
+  if (target.kind === 'approval') return showApproval(target.id)
+  showMain(target.kind === 'summary' ? `${noticeRoute(target)}&account=${account}` : noticeRoute(target))
+}
+
+/** One serialized native consumer; no renderer can call next/result/context. */
+const refreshNotices = single(async () => {
+  if (!daemon.connected || quitting) return
+  const epoch = noticeEpoch
+  try {
+    if (!noticeLegacyAttempted) {
+      noticeLegacyAttempted = true
+      try {
+        let plans = {}
+        try { plans = JSON.parse(await readFile(join(app.getPath('userData'), 'reminders.json'), 'utf8')) }
+        catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+        await daemon.call('notifications/migrate', { plans })
+      } catch { console.warn('Notification reminder migration is pending') }
+    }
+    const status = await daemon.call('daemon/status') as { account?: string; state?: string; session?: string }
+    if (status.state !== 'unlocked') void forgetCopied()
+    const preferences = await daemon.call('notifications/settings') as NoticePreferences
+    const counts = await daemon.call('notifications/status') as NoticeStatus
+    if (epoch !== noticeEpoch || !preferences.global || !counts.counts || !status.session) return
+    waiting = counts.counts.actionable
+    const badge = Math.max(0, Math.min(2_147_483_647, counts.badge || 0))
+    app.setBadgeCount(badge)
+    if (process.platform === 'darwin') app.dock?.setBadge(badge > 99 ? '99+' : badge ? String(badge) : preferences.global.badge !== 'off' && counts.counts.unverified ? '•' : '')
+    updateTray(status.state ?? 'unknown')
+    const visible = noticeForeground() ? [...noticeViewports.values()] : []
+    await daemon.call('notifications/context', { session: status.session, context: {
+      now: 0, allowed: Notification.isSupported() && preferences.global.enabled,
+      foreground: noticeForeground(), viewing: false, visible, remote_viewed: false,
+      quiet_until: quietUntil(preferences.global, Date.now()), can_update: false, remote_owner: false
+    } })
+    if (epoch !== noticeEpoch) return
+    const batch = await daemon.call('notifications/next', { restore: !noticeHistoryLoaded }) as NoticeBatch
+    if (epoch !== noticeEpoch) return
+    if (!noticeHistoryLoaded) {
+      const history = !testMode && process.platform === 'darwin' && Notification.isSupported() ? await Notification.getHistory().catch(() => []) : []
+      if (epoch !== noticeEpoch) return
+      nativeNotices.restore(history, batch.history ?? [])
+      noticeHistoryLoaded = true
+      if (noticeActivation) {
+        const id = noticeActivation
+        noticeActivation = null
+        if (!await nativeNotices.activate(id)) showMain('/reminders?ended=1')
+      }
+    }
+    nativeNotices.remove((batch.remove ?? []).filter(isNoticeHash))
+    for (const plan of batch.plans ?? []) nativeNotices.present(plan)
+  } catch {
+    // Durable projections remain queryable; reconnect/events retry presentation.
+  }
+})
+
+handle('dmsg:notification-permission', 'main', () => ({
+  supported: Notification.isSupported(), permission: Notification.isSupported() ? 'system_managed' : 'unsupported',
+  settings_available: ['darwin', 'win32'].includes(process.platform), last_result: noticeLastResult
+}))
+handle('dmsg:notification-settings', 'main', async () => {
+  if (process.platform === 'darwin') await shell.openExternal('x-apple.systempreferences:com.apple.Notifications-Settings.extension')
+  else if (process.platform === 'win32') await shell.openExternal('ms-settings:notifications')
+})
+handle('dmsg:notification-test', 'main', () => {
+  if (!Notification.isSupported()) throw new DaemonError('UNSUPPORTED_PROTOCOL', 'System notifications')
+  nativeNotices.test(notificationText(locale).noticeTest, noticePlatformResult)
+})
+handle('dmsg:notification-open', 'any', async (_event, account: string, id: string) => {
+  if (!isNoticeAccount(account) || !isNoticeHash(id)) throw new DaemonError('INVALID_INPUT', 'Notification identity')
+  const list = await daemon.call('notifications/list', { account, id }) as { items: NoticeItem[] }
+  const item = list.items.find((item) => item.id === id && item.account === account)
+  if (!item) return showMain(`/reminders?account=${account}&ended=1`)
+  await openNotice(account, item.target, id)
+})
+handle('dmsg:notification-visible', 'any', async (event, value: NoticeVisibility | null) => {
+  const sender = event.sender.id
+  const revision = (noticeViewEpoch.get(sender) ?? 0) + 1
+  noticeViewEpoch.set(sender, revision)
+  noticeViewports.delete(sender)
+  const window = BrowserWindow.fromWebContents(event.sender)
+  if (!value || !window?.isFocused() || !window.isVisible() || screenLocked) { void refreshNotices(); return false }
+  if (!isNoticeAccount(value.account) || typeof value.session !== 'string'
+    || (value.id !== undefined && !isNoticeHash(value.id))
+    || (value.target !== undefined && !isNoticeTarget(value.target))
+    || (value.version !== undefined && !isNoticeSequence(value.version))
+    || (value.watermark !== undefined && !isNoticeSequence(value.watermark))) throw new DaemonError('INVALID_INPUT', 'Notification visibility')
+  const seen = await daemon.call('notifications/observed', value) as { id: string; version: string; stage: number }
+  if (noticeViewEpoch.get(sender) !== revision || window.isDestroyed() || !window.isFocused() || !window.isVisible()) return false
+  noticeViewports.set(sender, seen)
+  void refreshNotices()
+  return true
+})
+
 
 /** Restart into a downloaded update, or open the release page of one this package cannot install. */
 function applyUpdate() {
@@ -855,7 +978,7 @@ function updateTray(state: string) {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: `dMsg: ${text.state(state)}`, enabled: false },
-      { label: text.waiting(waiting), click: () => showMain('/approvals') },
+      { label: `${notificationText(locale).noticeTitle} (${waiting})`, click: () => showMain('/reminders') },
       { type: 'separator' },
       { label: text.open, click: () => showMain() },
       { label: text.lock, click: () => void daemon.call('session/lock').catch(() => {}) },
@@ -879,96 +1002,23 @@ function updateTray(state: string) {
   )
 }
 
-/** Agents' MCP Events: how many arrived or need renewing, never from where or what. */
-function notifyEvents(data: unknown) {
-  const { stored = 0, refresh_due = 0 } = (data ?? {}) as { stored?: number; refresh_due?: number }
-  if (!(stored > 0 || refresh_due > 0) || !Notification.isSupported()) return
-  const note = new Notification({ title: 'dMsg', body: stored > 0 ? text.eventsArrived(stored) : text.refreshDue })
-  note.on('click', () => showMain('/agents'))
-  note.show()
-}
-
-/** A newly decrypted Agent letter; never disclose its sender or contents. */
-function notifyAgentMail(data: unknown) {
-  const { agent, received = 0 } = (data ?? {}) as { agent?: string; received?: number }
-  if (!agent || received <= 0 || !Notification.isSupported()) return
-  const note = new Notification({ title: 'dMsg', body: text.agentMailArrived(received) })
-  note.on('click', () => showMain(`/agents/mail/${encodeURIComponent(agent)}`))
-  note.show()
-}
-
-/** When each kind of hint last notified, so a busy channel notifies once a minute. */
-const hintedAt: Record<string, number> = {}
-
-/** A locked daemon's hint: something new arrived, never from whom or what. */
-function notifyHint(data: unknown) {
-  const kind = (data as { kind?: string } | null)?.kind
-  const body = kind === 'channel' ? text.newMessages : kind === 'inbox' ? text.newLetter : null
-  if (!kind || !body || !Notification.isSupported() || Date.now() - (hintedAt[kind] ?? 0) < 60_000) return
-  hintedAt[kind] = Date.now()
-  const note = new Notification({ title: 'dMsg', body })
-  note.on('click', () => showMain(kind === 'channel' ? '/channels' : '/inbox'))
-  note.show()
-}
-
-/** Which reminder each term showed last, in days before its end, so each shows once. */
-const remindersFile = () => join(app.getPath('userData'), 'reminders.json')
-/** When the plan was last read for a reminder: at most once an hour. */
-let remindedAt = 0
-
-/**
- * A term that ends without a renewal queued: 30, 7 and 1 days before its
- * end, once each, read while unlocked. Clicking opens the plan; paying is
- * the approval window's.
- */
-const remindPlan = single(async () => {
-  if (Date.now() - remindedAt < 3_600_000 || !Notification.isSupported()) return
-  type Term = { contract: string; plan: string; ends_at_ms: number; terminated_at_ms?: number | null }
-  let status: { current?: Term | null; next?: unknown }
-  try {
-    const snapshot = await daemon.call('plan/status', { mode: 'local' }) as { data: typeof status | null }
-    if (!snapshot.data) return
-    status = snapshot.data
-  } catch {
-    return
-  }
-  remindedAt = Date.now()
-  const current = status.current
-  if (!current || status.next || current.terminated_at_ms != null) return
-  let shown: Record<string, number> = {}
-  try {
-    shown = JSON.parse(await readFile(remindersFile(), 'utf8')) as Record<string, number>
-  } catch {
-    /* none shown yet */
-  }
-  const left = current.ends_at_ms - Date.now()
-  const due = reminderDue(left, shown[current.contract])
-  if (due === null) return
-  shown[current.contract] = due
-  await writeFile(remindersFile(), JSON.stringify(shown)).catch(() => undefined)
-  const note = new Notification({ title: 'dMsg', body: text.planEnds(Math.max(1, Math.ceil(left / 86_400_000)), current.plan) })
-  note.on('click', () => showMain('/plan'))
-  note.show()
-})
-
 daemon.on('event', (event: DaemonEvent) => {
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
   broadcast('dmsg:event', event)
-  if (event.type === 'session/changed') void remindPlan()
-  if (event.type === 'connect/hint') hinted = true
-  if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read', 'recovery/changed'].includes(event.type)) void refreshWaiting()
-  if (event.type === 'channel/changed') notifyChannel(event.data)
-  if (event.type === 'mcp-events/changed') notifyEvents(event.data)
-  if (event.type === 'agent/mail') notifyAgentMail(event.data)
-  if (event.type === 'hint') notifyHint(event.data)
+  if (['notifications/changed', 'session/changed', 'resync', 'sync/changed'].includes(event.type)) {
+    noticeEpoch++
+    if (event.type === 'session/changed' || event.type === 'resync') noticeViewports.clear()
+    void refreshNotices()
+  }
 })
 // The tray follows the connection: the daemon's state once connected, else connecting again.
 daemon.on('state', () => {
   if (!daemon.connected) cancelImport()
   broadcast('dmsg:event', { type: 'connection/changed' })
   if (daemon.connected) {
-    void refreshWaiting()
-    void remindPlan()
+    noticeHistoryLoaded = false
+    noticeEpoch++
+    void refreshNotices()
   } else updateTray('connecting')
 })
 
@@ -996,6 +1046,7 @@ app.on('web-contents-created', (_event, contents) => {
 })
 app.on('before-quit', (event) => {
   quitting = true
+  noticeEpoch++
   // Whether the clipboard still holds a copied secret is read
   // asynchronously, and Electron does not wait for that: without a window
   // the read finished only after `quit`. The quit waits for it instead.
@@ -1010,7 +1061,22 @@ app.on('window-all-closed', () => {
   if (testMode || quitting) app.quit()
 })
 
+app.on('ready', (_event, launchInfo) => {
+  const info = launchInfo as Partial<Electron.NotificationResponse>
+  if (typeof info?.identifier === 'string' && !info.actionIdentifier?.endsWith('DismissActionIdentifier'))
+    noticeActivation = /^[A-Za-z0-9_-]{16}$/.test(info.identifier) ? info.identifier : 'unknown'
+})
+
 app.whenReady().then(async () => {
+  powerMonitor.on('lock-screen', () => { screenLocked = true; noticeViewports.clear(); noticeEpoch++; void refreshNotices() })
+  powerMonitor.on('unlock-screen', () => { screenLocked = false; noticeEpoch++; void refreshNotices() })
+  powerMonitor.on('resume', () => { noticeEpoch++; void refreshNotices() })
+  if (process.platform === 'win32') Notification.handleActivation((details) => {
+    const match = /^dmsg-notice:([A-Za-z0-9_-]{16})$/.exec(details.arguments)
+    if (!match) { noticeActivation = 'unknown'; showMain('/reminders?ended=1'); return }
+    if (!noticeHistoryLoaded) noticeActivation = match[1]
+    else void nativeNotices.activate(match[1]).then((opened) => { if (!opened) showMain('/reminders?ended=1') })
+  })
   let stored: string | null = null
   try {
     stored = readFileSync(localeFile(), 'utf8').trim()
@@ -1034,7 +1100,7 @@ app.whenReady().then(async () => {
     updateTray('connecting')
   }
   // Opened at login, the app starts in the tray.
-  if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain()
+  if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain(noticeActivation ? '/reminders' : undefined)
   let installed = true
   if (!daemon.options.fixed) {
     try {
@@ -1048,8 +1114,6 @@ app.whenReady().then(async () => {
   }
   updates.start()
   if (installed) await daemon.connect()
-  // A running app checks again for a term about to end every six hours.
-  setInterval(() => void remindPlan(), 6 * 3_600_000)
   const link = pendingLink ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)
 })

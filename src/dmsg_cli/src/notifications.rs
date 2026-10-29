@@ -19,7 +19,8 @@ use std::{
 };
 use tokio::sync::Notify;
 
-pub(crate) const METHODS: [&str; 10] = [
+pub(crate) const METHODS: [&str; 11] = [
+    "notifications/migrate",
     "notifications/list",
     "notifications/status",
     "notifications/settings",
@@ -195,12 +196,20 @@ impl Daemon {
             context.now = 0; // The host never chooses the policy clock.
             context.viewing = false;
             context.remote_viewed = false;
-            *self
-                .notifications
-                .context
-                .lock()
-                .expect("notification context") = Some((generation, context));
-            self.notifications.wake.notify_one();
+            let changed = {
+                let mut previous = self
+                    .notifications
+                    .context
+                    .lock()
+                    .expect("notification context");
+                let next = Some((generation, context));
+                let changed = *previous != next;
+                *previous = next;
+                changed
+            };
+            if changed {
+                self.notifications.wake.notify_one();
+            }
             return Ok(Value::Null);
         }
         let result = h.with(|c| {
@@ -213,6 +222,36 @@ impl Daemon {
                 None => selected.as_deref().map(str::parse::<AccountId>).transpose().map_err(|_| Error::IntegrityFailed)?,
             };
             match method {
+                "notifications/migrate" => {
+                    if !runtime.reminders_imported {
+                        let plans: std::collections::BTreeMap<String, u8> = parse(params, "plans")?;
+                        ensure(plans.len() <= 1000, Error::QuotaExceeded)?;
+                        for (id, days) in plans {
+                            ensure(dmsg_client::channel_log::is_hash(&id), Error::InvalidInput("contract".into()))?;
+                            let stage = match days { 30 => 1, 7 => 2, 1 => 3, _ => return Err(Error::InvalidInput("reminder stage".into())) };
+                            runtime.legacy_plans.insert(id, stage);
+                        }
+                        runtime.reminders_imported = true;
+                        runtime.save(&path)?;
+                    }
+                    let mut claimed = std::collections::BTreeSet::new();
+                    for local in c.accounts()?.into_iter().filter(|a| a.bound) {
+                        let account = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
+                        c.with_notification_store(&account, |store| {
+                            for mut item in store.notification_items()? {
+                                if let Target::Plan(id) = &item.target && let Some(stage) = runtime.legacy_plans.get(id) {
+                                    item.stage = item.stage.max(*stage);
+                                    claimed.insert(id.clone());
+                                    store.set_notification_item(&item)?;
+                                }
+                            }
+                            Ok(())
+                        })?;
+                    }
+                    for id in claimed { runtime.legacy_plans.remove(&id); }
+                    runtime.save(&path)?;
+                    Ok(json!({"imported":true,"awaiting_account":runtime.legacy_plans.len()}))
+                }
                 "notifications/status" => {
                     let mut total = core::Counts::default();
                     let mut accounts = Vec::new();
@@ -253,7 +292,24 @@ impl Daemon {
                     let mut all = core::Batch::default();
                     for local in c.accounts()?.into_iter().filter(|a| a.bound) {
                         let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
-                        let batch = c.with_notification_store(&id, |store| core::next(store, &mut runtime, &context, |runtime| runtime.save(&path)))?;
+                        let batch = c.with_notification_store(&id, |store| {
+                            if params["restore"] == true {
+                                // Catch up quietly when a native owner returns. Never
+                                // replay covered versions or reset security phases.
+                                for mut item in store.notification_items()? {
+                                    if item.open && item.category() != core::Category::Security && item.notified < item.version {
+                                        item.quiet = true;
+                                        item.pending_since = now;
+                                        store.set_notification_item(&item)?;
+                                    }
+                                }
+                            }
+                            core::next(store, &mut runtime, &context, |runtime| runtime.save(&path))
+                        })?;
+                        if params["restore"] == true {
+                            let previous = c.with_notification_store(&id, |store| store.notification_deliveries())?;
+                            all.history.extend(previous.into_iter().filter(|plan| plan.result != core::DeliveryResult::Suppressed));
+                        }
                         all.plans.extend(batch.plans);
                         all.remove.extend(batch.remove);
                         if let Some(at) = batch.next_due { all.next_due = Some(all.next_due.map_or(at, |previous| previous.min(at))); }
@@ -275,6 +331,10 @@ impl Daemon {
                             Ok(json!({"settings":settings,"pending_sync":true}))
                         }
                         "notifications/list" => {
+                            if let Some(id) = params["id"].as_str() {
+                                let item = store.notification_item(id)?;
+                                return Ok(json!({"items":item.into_iter().collect::<Vec<_>>(),"next_cursor":null}));
+                            }
                             let scope = params["scope"].as_str().unwrap_or("open");
                             ensure(matches!(scope, "open" | "recent"), Error::InvalidInput("scope".into()))?;
                             let cleared = store.meta::<u64>("notification:cleared_at")?.unwrap_or(0);
@@ -298,7 +358,20 @@ impl Daemon {
                             let cursor = (next < items.len()).then(|| format!("{prefix}{next}"));
                             Ok(json!({"items":items.into_iter().skip(offset).take(limit).collect::<Vec<_>>(),"next_cursor":cursor}))
                         }
-                        "notifications/observed" => { core::observe(store, &text(params,"id")?, sequence(params,"version")?)?; Ok(Value::Null) }
+                        "notifications/observed" => {
+                            let target = params.get("target").map(|target| serde_json::from_value::<Target>(target.clone()).map_err(|_| Error::InvalidInput("target".into()))).transpose()?;
+                            let id = match &target { Some(target) => core::item_id(&account.to_string(), target), None => text(params,"id")? };
+                            let item = store.notification_item(&id)?.ok_or(Error::NotFound)?;
+                            let version = if matches!(target, Some(Target::Channel(_))) && params.get("watermark").is_some() {
+                                ensure(sequence(params,"watermark")? >= item.version, Error::VersionConflict)?;
+                                item.version
+                            } else if matches!(target, Some(Target::Inbox(Some(_)))) && params.get("version").is_none() {
+                                // An accepted letter is immutable under its order ID.
+                                item.version
+                            } else { sequence(params,"version")? };
+                            core::observe(store, &id, version)?;
+                            Ok(json!({"id":id,"version":version.to_string(),"stage":item.stage}))
+                        }
                         "notifications/snooze" => { core::snooze(store, &text(params,"id")?, sequence(params,"version")?, number(params,"until")?, now)?; Ok(Value::Null) }
                         "notifications/clear_recent" => { store.set_meta("notification:cleared_at", &now)?; Ok(Value::Null) }
                         "notifications/result" => { core::result(store, &text(params,"system_id")?, &text(params,"delivery_id")?, parse(params,"result")?, now)?; Ok(Value::Null) }

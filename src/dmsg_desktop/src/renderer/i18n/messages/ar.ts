@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   messages: {
+    ...notificationText('ar'),
     deviceSlots: 'ما يصل إلى {n} أجهزة',
     teamWalletSlots: 'ما يصل إلى {n} محافظ فريق',
     walletQuotasUnavailable: 'حدود محافظ الفريق غير متاحة. حدّث الصفحة لإعادة المحاولة.',

@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('tr'),
     deviceSlots: 'En fazla {n} cihaz',
     teamWalletSlots: 'En fazla {n} ekip cüzdanı',
     walletQuotasUnavailable: 'Ekip cüzdanı limitleri alınamıyor. Yeniden denemek için yenileyin.',

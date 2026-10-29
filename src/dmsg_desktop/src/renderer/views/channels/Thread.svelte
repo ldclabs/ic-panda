@@ -135,7 +135,7 @@
   /** The last message is read once the timeline shows it to someone looking. */
   function read() {
     const last = messages.at(-1)
-    if (last && document.hasFocus()) onRead(last.seq)
+    if (last && atEnd && document.hasFocus() && document.visibilityState === 'visible' && !document.querySelector('[aria-modal="true"]')) onRead(last.seq)
   }
 
   // New messages and sends keep the timeline at its end when it was there.

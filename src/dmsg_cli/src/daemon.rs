@@ -1856,7 +1856,10 @@ impl Daemon {
         }
         if matches!(
             method,
-            "notifications/next" | "notifications/context" | "notifications/result"
+            "notifications/next"
+                | "notifications/context"
+                | "notifications/result"
+                | "notifications/migrate"
         ) && !reports
         {
             return reply_failure(id, &Error::Forbidden);

@@ -10,11 +10,12 @@ pub const WINDOW_MS: u64 = 60_000;
 pub const BUDGET: usize = 3;
 
 /// Host-verified presentation context. The same timestamp is used for one turn.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Context {
     /// UTC milliseconds read once by the caller.
     pub now: u64,
-    /// Permission is known to permit submission (not merely API support).
+    /// Native permission permits a request, or the owner opted in on a platform
+    /// where permission is system-managed. This is never a delivery guarantee.
     pub allowed: bool,
     /// The application is actually visible and focused.
     pub foreground: bool,
@@ -213,6 +214,14 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
     }) else {
         return keep(Reason::Covered);
     };
+    // Actually reading the incident covers the initial alert on this device,
+    // while the verified 24-hour/one-hour phases remain independently eligible.
+    if category == Category::Security && stage == 1 && item.observed > 0 && !snoozed {
+        return item.deadline.map_or_else(
+            || keep(Reason::Viewed),
+            |deadline| wait(deadline.saturating_sub(86_400_000), Reason::Deadline),
+        );
+    }
     if due > now {
         return wait(
             due,

@@ -2,6 +2,7 @@
   import Notice from '../components/page/Notice.svelte'
   import { Tabs } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
+  import { noticeVisibility } from '../notification-visibility'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
@@ -20,7 +21,7 @@
    * Letters in two columns: the inbox, sent letters and the archive beside
    * the open one. Writing a letter and the contact rules open in dialogs.
    */
-  let { status, mod }: { status: any; mod: string } = $props()
+  let { status, mod, route = '/inbox' }: { status: any; mod: string; route?: string } = $props()
 
   type Box = 'inbox' | 'sent' | 'archive'
 
@@ -29,6 +30,7 @@
   let policy = $state<any>(null)
   let box = $state<Box>('inbox')
   let selected = $state<string | null>(null)
+  let openedNotice = $state(''), missingNotice = $state(false)
   let orders = $state<Record<string, any>>({})
   let escrows = $state<Record<string, any>>({})
   let error = $state('')
@@ -50,6 +52,11 @@
   const list = $derived(box === 'sent' ? outgoing : box === 'archive' ? archive : inbox)
   const letter = $derived(box === 'sent' ? null : list.find((l) => l.order_id === selected) ?? null)
   const order = $derived(box === 'sent' ? (outgoing.find((o) => o.order_id === selected) ?? null) : null)
+  const wanted = $derived(new URLSearchParams(route.split('?')[1] ?? '').get('open'))
+  const reportNotice = noticeVisibility(() => letter?.state === 'visible' && unlocked && loaded
+    ? { account: status.account, session: status.session, target: { kind: 'inbox', id: letter.order_id } } : null,
+    '[data-testid="letter"] > header')
+  $effect(() => { void selected; void letters; void loaded; void status?.session; reportNotice() })
 
   const modeLabel: Record<string, Label> = { closed: 'closed', contacts: 'contactsOnly', free: 'free', paid: 'paidOnly' }
 
@@ -138,7 +145,13 @@
 
   // Keep a letter open: the first one when the open one left the list.
   $effect(() => {
-    if (!list.some((l) => l.order_id === selected)) selected = list[0]?.order_id ?? null
+    if (wanted && loaded && wanted !== openedNotice) {
+      openedNotice = wanted
+      const found = letters.find((item) => item.order_id === wanted)
+      missingNotice = !found
+      if (found) { box = found.archived ? 'archive' : 'inbox'; selected = wanted }
+      else selected = null
+    } else if (!missingNotice && !list.some((l) => l.order_id === selected)) selected = list[0]?.order_id ?? null
   })
 
   /** The daemon's `inbox/changed` reloads the letters. */
@@ -235,7 +248,7 @@
                 selected === item.order_id ? 'bg-pale' : 'hover:bg-wash'
               )}
               aria-current={selected === item.order_id ? 'true' : undefined}
-              onclick={() => (selected = item.order_id)}
+              onclick={() => { missingNotice = false; selected = item.order_id }}
             >
               <Avatar id={account} />
               <span class="min-w-0">
@@ -270,6 +283,7 @@
     </section>
 
     <section class="min-w-0 flex-1 overflow-y-auto">
+      {#if missingNotice}<div class="p-5"><Notice>{t('noticeEnded')}</Notice></div>{/if}
       {#if letter}
         <article class="mx-auto max-w-2xl px-8 py-6" data-testid="letter">
           <header class="flex items-start gap-3">

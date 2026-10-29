@@ -1,6 +1,7 @@
 /** The narrow surface the renderer sees as `window.dmsg`; the daemon credential never crosses it. */
 import type { Appearance } from './appearance'
 import type { Locale } from './locales'
+import type { NoticePermission, NoticeTarget } from './notifications'
 
 /** A daemon event, as `/ws/app/v1` sends it. */
 export interface DaemonEvent {
@@ -33,7 +34,26 @@ export interface AppUpdates {
   state: UpdateState
 }
 
+export interface NoticeVisibility {
+  account: string
+  session: string
+  target?: NoticeTarget
+  id?: string
+  version?: string
+  watermark?: string
+}
+
 export interface DesktopBridge {
+  /** OS support is distinct from permission; unqueryable permission stays system-managed. */
+  notificationPermission(): Promise<NoticePermission>
+  /** Open the fixed OS notifications settings page. */
+  notificationSettings(): Promise<void>
+  /** A generic, silent local test; no business counters or watermarks change. */
+  notificationTest(): Promise<void>
+  /** Open an existing item under its original account, never execute it. */
+  notificationOpen(account: string, id: string): Promise<void>
+  /** Report only loaded, actually visible business data; null clears this window's context. */
+  notificationVisible(value: NoticeVisibility | null): Promise<boolean>
   /** Which window this is: the main window or the approval window. */
   role: 'main' | 'approval'
   /** The operating system, for the window chrome: `darwin`, `win32` or `linux`. */

@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   messages: {
+    ...notificationText('es'),
     deviceSlots: 'Hasta {n} dispositivos',
     teamWalletSlots: 'Hasta {n} carteras de equipo',
     walletQuotasUnavailable: 'Los límites de carteras de equipo no están disponibles. Actualiza para reintentar.',

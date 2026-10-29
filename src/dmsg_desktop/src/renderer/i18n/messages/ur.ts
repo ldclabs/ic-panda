@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   "messages": {
+    ...notificationText('ur'),
     deviceSlots: 'زیادہ سے زیادہ {n} آلات',
     teamWalletSlots: 'زیادہ سے زیادہ {n} ٹیم والیٹس',
     walletQuotasUnavailable: 'ٹیم والیٹس کی حدود دستیاب نہیں ہیں۔ دوبارہ کوشش کے لیے ریفریش کریں۔',

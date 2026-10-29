@@ -16,6 +16,8 @@ pub struct Batch {
     pub remove: Vec<String>,
     /// Earliest reevaluation; an event may wake the host earlier.
     pub next_due: Option<u64>,
+    /// Previous native groups, only populated for an explicit restore query.
+    pub history: Vec<Delivery>,
 }
 
 impl Batch {
@@ -320,9 +322,8 @@ pub fn result(
     }
     if matches!(
         delivery.result,
-        DeliveryResult::Submitted | DeliveryResult::Shown | DeliveryResult::Suppressed
-    ) && (delivery.result != DeliveryResult::Submitted || result != DeliveryResult::Shown)
-    {
+        DeliveryResult::Shown | DeliveryResult::Suppressed
+    ) {
         return Ok(());
     }
     delivery.result = result;

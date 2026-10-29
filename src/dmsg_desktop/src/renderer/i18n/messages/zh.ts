@@ -1,7 +1,9 @@
+import { notificationText } from '../../../shared/notification-text.ts'
 import type { Catalog } from './en'
 
 export default {
   messages: {
+    ...notificationText('zh'),
   deviceSlots: '最多 {n} 台设备',
   teamWalletSlots: '最多开通 {n} 个团队钱包',
   walletQuotasUnavailable: '暂时无法读取团队钱包额度，请刷新重试。',

@@ -35,6 +35,8 @@
 import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
+import { notificationsFixture } from './notifications-fixture.mjs'
+import { notificationsFlow } from './notifications-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
@@ -382,8 +384,10 @@ let legacyHolderLoggedIn = false
 let legacyNameClaimed = false
 const legacyHolder = '2vxsx-fae'
 let sessionEpoch = 0
+let notificationModel = null
 function emit(type, data) {
   if (type === 'session/changed') sessionEpoch++
+  if (type === 'recovery/changed') notificationModel?.recovery(recoveryWarning)
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type, data } }))
 }
 const legacyAvatarUrl = 'https://aaaaa-aa.icp0.io/f/0?inline&filename=legacy.webp'
@@ -434,6 +438,7 @@ function status() {
     idle_lock_ms: 15 * 60_000
   }
 }
+notificationModel = notificationsFixture(account, emit)
 const offer = {
   nonce: '77'.repeat(32),
   origin: 'https://dmsg.net',
@@ -483,6 +488,7 @@ const methods = {
     channel: legacyChannels.find((c) => c.source === p.channel) ?? null,
     frozen: { checked_channels: 0, matched: false, total_changes: 1, changes: [] }
   }),
+  ...notificationModel.methods,
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null,
   'daemon/status': status,
@@ -880,6 +886,7 @@ const methods = {
       policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
       recovery_delay_ms: 3 * 86_400_000,
       pending_recovery: pendingRecovery,
+      notification: recoveryWarning?.pending ? notificationModel.ref({kind:'recovery',id:recoveryWarning.digest}) : null,
       recovered_device: null
     }
   },
@@ -1558,6 +1565,9 @@ await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
   }
   clipboard.readText = async () => globalThis.__clip
   clipboard.clear = () => void (globalThis.__clip = '')
+  Notification.getHistory = async () => []
+  Notification.remove = () => {}
+  Notification.isSupported = () => true
   Notification.prototype.show = function () {
     globalThis.__notes.push(this.body)
     globalThis.__lastNotification = this
@@ -1597,6 +1607,12 @@ smoke: try {
     await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
     assert.deepEqual(pageErrors, [])
     console.log('desktop account security smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'notifications') {
+    await notificationsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, model: notificationModel, account, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop notifications smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'settings') {
@@ -1654,11 +1670,12 @@ smoke: try {
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   // Recovery alerts arrive off the security page, even while locked. They
   // expose no account/login IDs, and clicking only navigates to a fresh read.
-  const recoveryNotes = () => app.evaluate(() => globalThis.__notes.filter((body) => body.includes('Account recovery is pending.')))
+  const recoveryNotes = () => app.evaluate(() => globalThis.__notes.filter((body) => body.includes('An account security change needs your review.')))
   const recoveryBefore = (await recoveryNotes()).length
   session = 'locked'
   declineUnlock = true
   emit('session/changed', { state: session })
+  await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'))?.hide())
   pendingRecovery = { op_id: 'e1'.repeat(32), new_auth: login, execute_after: Date.now() + 3 * 86_400_000 }
   recoveryWarning = { account, pending: true, digest: 'e2'.repeat(32), observed_at_ms: Date.now(), stale: false }
   emit('recovery/changed')
@@ -3072,8 +3089,8 @@ smoke: try {
   emit('agent/mail', { agent: claude, received: 1 })
   await waitFor(() => calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_list').length > mailLists)
   assert.equal(calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync').length, mailSyncs)
-  assert.ok((await app.evaluate(() => globalThis.__notes)).includes('Your agents received 1 new letter(s).'))
-  await app.evaluate(() => globalThis.__lastNotification.emit('click'))
+  assert.equal((await app.evaluate(() => globalThis.__notes)).includes('Your agents received 1 new letter(s).'), false, 'Mail watch is not owner notification opt-in')
+  await main.evaluate((agent) => { location.hash = `/agents/mail/${encodeURIComponent(agent)}` }, claude)
   await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
   for (const tool of ['agent_protocols_room_send_message', 'agent_protocols_mail_send', 'agent_protocols_knowledge_submit']) {
     await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
