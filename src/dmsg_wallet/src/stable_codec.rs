@@ -184,7 +184,13 @@ mod tests {
                     label: format!("member {n}"),
                     agent_ids: vec![],
                     status: MemberStatus::Active,
-                    principals: (0..4).map(|i| p(n * 8 + i)).collect(),
+                    bindings: (0..4)
+                        .map(|i| Binding {
+                            principal: p(n * 8 + i),
+                            device: Some(Hash::new([i as u8; 32])),
+                            bound_at_ms: 1_790_000_000_000,
+                        })
+                        .collect(),
                     added_at_ms: 1_790_000_000_000,
                 })
                 .collect(),

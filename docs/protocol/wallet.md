@@ -28,7 +28,7 @@ Teams manage wallets through dMsg account members (`MemberId::Account`) or direc
 | Viewer | No | No | No |
 | Recovery | Membership changes only | None required for its own proposals; 7-day delay with Admin/Approver veto | No |
 
-Added members are Invited and must join before acting. Before joining, clients ask hub sync_wallet to refresh the member index, including post-creation invitees. Removing a member also removes its cosigners, except keys committed in dual-control Taproot scripts remain so addresses stay spendable. Account members bind calling Principals through WalletJoin device approval, at most 4 each. Bound Principals propose/execute/report for that account, but decisions still require fresh device approval. Each client device generates a local Ed25519 wallet key, LDK-encrypted in its workspace, since login delegations target fixed canisters. One Principal represents only one member; repeated join by an already joined/bound Principal returns its record. If a home is absent from wallet records, fetch hub get_user_homes once before verification.
+Added members are Invited and must join before acting. Before joining, clients ask hub sync_wallet to refresh the member index, including post-creation invitees. Removing a member also removes its cosigners, except keys committed in dual-control Taproot scripts remain so addresses stay spendable. Account members bind one calling Principal per device through WalletJoin device approval, at most 4 devices each. `join(JoinArgs { evidence, device, replaces, exclusive })` names the device and may take over the bindings of `replaces` (at most 4 device IDs, ascending) or, when `exclusive`, of every other device; joining again from a device rebinds it, and IDs bound to nothing are ignored, so a retry succeeds. `unbind(UnbindArgs { evidence, devices })` removes the bindings of 1 to 4 devices under an account approval whose actor need not be bound; the member stays active and may join again. Both are allowed while frozen and neither advances the authorization version; removed bindings are audited as `Unbound`, before `Joined` for a join. The Principal that created the wallet is bound without a device until it joins from one. A Principal member binds itself and names no devices. Bound Principals propose/execute/report for that account, but decisions still require fresh device approval. Each client device generates a local Ed25519 wallet key, LDK-encrypted in its workspace, since login delegations target fixed canisters. One Principal represents only one member; repeated join by an already joined/bound Principal returns its record. If a home is absent from wallet records, fetch hub get_user_homes once before verification.
 
 ## Digests and device approvals
 
@@ -38,7 +38,11 @@ All digests are `digest(domain, value) = SHA-256(CBOR([1, domain, value]))` usin
 | --- | --- | --- |
 | Proposal | `dmsg-wallet/proposal/v1` | `(environment, wallet, op_id, intent, policy_version, proposer, via_agent)` |
 | Decision | `dmsg-wallet/decision/v1` | `(proposal_digest, decision)`, decision ∈ Approve / Reject / Veto |
-| Join | `dmsg-wallet/join/v1` | `(wallet, account_id, actor)` |
+| Join | `dmsg-wallet/join/v2` | `(wallet, account_id, actor, device, replaces, exclusive)` |
+| Unbind | `dmsg-wallet/unbind/v1` | `(wallet, account_id, actor, devices)` |
+| Cosigner rotation | `dmsg-wallet/cosigner-rotate/v1` | `(wallet, cosigner_id, old_public_key, new_input, expires_at_ms)` |
+| Cosigner possession | `dmsg-wallet/cosigner-possession/v1` | `(member, new_public_key)` |
+| Cosigner key | `dmsg-wallet/cosigner-key/v1` | `public_key` |
 | Activation | `dmsg-wallet/activation/v1` | `(quote, spec)` |
 | Cosigner message | `dmsg-wallet/cosign/v1` | `(wallet, proposal_id, plan_seq, digest_index, digest)` |
 | Audit | `dmsg-wallet/audit/v1` | `(prev, seq, at_ms, actor, proposal, kind)` |
@@ -50,7 +54,7 @@ Account decisions use ApplicationApproval: `app_id = "dmsg-wallet"`; beneficiary
 | --- | --- | --- |
 | `WalletCreate` | Hub, equal to product registration adapter | Activation digest |
 | `WalletProposal` | Wallet | Decision digest |
-| `WalletJoin` | Wallet | Join digest |
+| `WalletJoin` | Wallet | Join or unbind digest |
 
 Devices require independent WalletApprove, separate from FormalApprove. Homes require subject_bytes == service for these purposes and verify_application_authorization accepts only caller == service; homes do not evaluate wallet policy. Wallet/hub check all fields with check_wallet_approval before home verification and reread proposal, members and time after the await.
 
@@ -68,9 +72,9 @@ Proposal creation computes `Requirement { approvals, admin, delay_ms, window_amo
 
 - **Spending** (Transfer/Batch/Refuel): asset must be in spendable_assets. window_amount is valid unexecuted reservations + amounts whose execution/signing began in the past 24 hours + this proposal. Choose the first tier with up_to ≥ window_amount, using approvals/delay_ms/book_only. Above the highest tier requires one more approver, capped by active approvers; exceeding daily_limits requires all active approvers. book_only requires each recipient in the address book past cooldown. No asset tier means approver_threshold without delay.
 - **Operations** (CanisterCall/CancelEvmNonce/InitSolNonce/AddressBook): approver_threshold without delay.
-- **Administration:** admin_threshold, counting only Admin. SetPolicy/RemoveMember/SetCosign/RemoveCosigner/AcceptUpgrade/LockCode/ReleaseEvmNonce wait 24 hours; Unfreeze uses unfreeze_delay_ms; others have no delay.
+- **Administration:** admin_threshold, counting only Admin. SetPolicy/RemoveMember/SetCosign/RemoveCosigner/ReplaceCosigner/AcceptUpgrade/LockCode/ReleaseEvmNonce wait 24 hours; Unfreeze uses unfreeze_delay_ms; others have no delay.
 - Meeting requirements enters Delayed, with veto during the wait, or Ready. Intents modifying only wallet records take effect at Ready; others require a member execute call.
-- Any Admin/Approver may freeze directly. While frozen only Unfreeze/membership changes may be proposed, approved or executed; reject/veto remain available. Batches stop before the next transfer and signing before the next signature.
+- Any Admin/Approver may freeze directly. While frozen only Unfreeze, membership changes and ReplaceCosigner may be proposed, approved or executed; reject/veto remain available. Batches stop before the next transfer and signing before the next signature.
 - Partially paid failed batches and signed transactions reported failed still count in the 24-hour window. Only definite no-spend failures release it.
 
 ## States
@@ -121,6 +125,8 @@ Plans last 10 minutes, at most 8 per proposal. daily_signatures counts plan dige
 
 Signatures are 64-byte r‖s; clients convert DER. hardware is client-declared and unverifiable by the wallet; hardware_cosigners policy rejects keys not declared hardware-backed.
 
+A cosigner's key changes in place, keeping its ID and every policy naming it. The cosigner's member calls `rotate_cosigner(RotateCosignerArgs { cosigner, input, expires_at_ms, authorization, possession })`: the current key signs the rotation digest and the new key the possession digest, and the deadline is at most ten minutes ahead. An Admin proposal `ReplaceCosigner { id, input }`, delayed 24 hours and allowed while frozen, does the same without the old key; rotation is refused while frozen. Either way the new input keeps the member, is new to the wallet, and is declared hardware when the old key or the policy requires it; keys a Taproot script commits to, and BIP-340 keys, do not change. A rotation retried with the current input returns the cosigner. The counter restarts and the audit records `CosignerRotated { id, old_key, new_key }` with cosigner-key digests, naming the proposal for a replacement. Signatures of the old key no longer verify, so packets collected with it are signed again.
+
 ## Hub activation
 
 1. quote_activation_preview(account_id), a query, reads hub pricing/current version/account creation usage and returns price, cycles, ledger and remaining quota per plan. It writes/reserves nothing. Clients separately read plan and ledger fee; quota 0 displays remaining 0 rather than an error.
@@ -141,7 +147,7 @@ Anyone may call refuel(): under policy, when below min_cycles and within daily c
 
 ## Vectors
 
-[Wallet vectors](../../tests/vectors/wallet/README.md) fix bytes: protocol-v1.json provides CBOR, complete preimages/digests for proposals, decisions, joins, activation, cosigner messages, deposits and audit, plus chain addresses, Taproot leaves/control blocks and receiving scripts. plans-v1.json provides external-chain plans, signatures and signed transactions; clients must accept all and reject tampered cases. Rust generates both files and tests compare every byte.
+[Wallet vectors](../../tests/vectors/wallet/README.md) fix bytes: protocol-v1.json provides CBOR, complete preimages/digests for proposals, decisions, joins, unbinds, activation, cosigner messages, cosigner rotation, possession and key digests, deposits and audit, plus chain addresses, Taproot leaves/control blocks and receiving scripts. plans-v1.json provides external-chain plans, signatures and signed transactions; clients must accept all and reject tampered cases. Rust generates both files and tests compare every byte.
 
 ## Desktop and local protocol
 

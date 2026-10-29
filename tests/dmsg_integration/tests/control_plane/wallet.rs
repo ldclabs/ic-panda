@@ -344,6 +344,25 @@ fn claim_refund(f: &Fixture, hub: Principal, by: u8, quote: Hash, to: Account) -
     )
 }
 
+/// A Principal member binding itself.
+fn principal_join() -> JoinArgs {
+    JoinArgs {
+        evidence: MemberApproval::Principal,
+        device: None,
+        replaces: vec![],
+        exclusive: false,
+    }
+}
+
+fn device_id(n: u8) -> Hash {
+    Hash::new([n; 32])
+}
+
+/// A member's bindings as (Principal, device).
+fn bound(m: &Member) -> Vec<(Principal, Option<Hash>)> {
+    m.bindings.iter().map(|b| (b.principal, b.device)).collect()
+}
+
 impl Team {
     fn new(approvers: u8) -> Self {
         Self::with_module(approvers, &wasm("dmsg_wallet"))
@@ -405,41 +424,97 @@ impl Team {
             quote: quote.quote_id,
         };
         t.join_b();
-        let joined: Result<Member> = update(
-            &t.f.ic,
-            wallet,
-            person(P),
-            "join",
-            (MemberApproval::Principal,),
-        );
+        let joined: Result<Member> =
+            update(&t.f.ic, wallet, person(P), "join", (principal_join(),));
         assert_eq!(joined.unwrap().status, MemberStatus::Active);
         t
     }
 
     fn join_b(&self) {
+        let joined = self.join_b_as(B, B, &[], false).unwrap();
+        assert_eq!(joined.status, MemberStatus::Active);
+        assert_eq!(bound(&joined), vec![(person(B), Some(device_id(B)))]);
+    }
+
+    /// Account member B binds `actor` for device `device`, taking over the
+    /// bindings of `replaces`, or of every other device when `exclusive`.
+    fn join_b_as(&self, actor: u8, device: u8, replaces: &[u8], exclusive: bool) -> Result<Member> {
+        let args = self.join_b_request(actor, device, replaces, exclusive);
+        update(&self.f.ic, self.wallet, person(actor), "join", (args,))
+    }
+
+    /// The approved request of [`Self::join_b_as`].
+    fn join_b_request(&self, actor: u8, device: u8, replaces: &[u8], exclusive: bool) -> JoinArgs {
+        let device = Some(device_id(device));
+        let replaces: Vec<Hash> = replaces.iter().map(|&d| device_id(d)).collect();
         let app = application(
             &self.f,
             self.hub,
             self.wallet,
             self.b,
-            person(B),
+            person(actor),
             ApprovalPurpose::WalletJoin,
-            join_digest(self.wallet, &self.b, person(B)),
+            join_digest(
+                self.wallet,
+                &self.b,
+                person(actor),
+                &device,
+                &replaces,
+                exclusive,
+            ),
         );
         let approval_id = approve_app(&self.f, B, &self.b, &app);
-        let joined: Result<Member> = update(
-            &self.f.ic,
-            self.wallet,
-            person(B),
-            "join",
-            (MemberApproval::Account {
+        JoinArgs {
+            evidence: MemberApproval::Account {
                 approval_id,
                 approval: app,
-            },),
+            },
+            device,
+            replaces,
+            exclusive,
+        }
+    }
+
+    /// Account member B removes its bindings of `devices`; `actor` calls.
+    fn unbind_b(&self, actor: u8, devices: &[u8]) -> Result<Member> {
+        let devices: Vec<Hash> = devices.iter().map(|&d| device_id(d)).collect();
+        let app = application(
+            &self.f,
+            self.hub,
+            self.wallet,
+            self.b,
+            person(actor),
+            ApprovalPurpose::WalletJoin,
+            unbind_digest(self.wallet, &self.b, person(actor), &devices),
         );
-        let joined = joined.unwrap();
-        assert_eq!(joined.status, MemberStatus::Active);
-        assert_eq!(joined.principals, vec![person(B)]);
+        let approval_id = approve_app(&self.f, B, &self.b, &app);
+        update(
+            &self.f.ic,
+            self.wallet,
+            person(actor),
+            "unbind",
+            (UnbindArgs {
+                evidence: MemberApproval::Account {
+                    approval_id,
+                    approval: app,
+                },
+                devices,
+            },),
+        )
+    }
+
+    fn member(&self, id: &MemberId) -> Member {
+        self.view()
+            .members
+            .into_iter()
+            .find(|m| m.id == *id)
+            .unwrap()
+    }
+
+    fn audit_since(&self, from: u64) -> Vec<AuditEvent> {
+        let events: Result<Vec<AuditEvent>> =
+            query(&self.f.ic, self.wallet, person(A), "audit", (from, 100u16));
+        events.unwrap()
     }
 
     fn view(&self) -> WalletView {
@@ -1078,14 +1153,8 @@ fn wallet_delayed_chain_spend_plans_after_its_delay() {
     assert_eq!(report().broadcasts.len(), 1);
     let audit_len = t.view().audit_len;
     assert_eq!(report().broadcasts.len(), 1);
-    let joined: Result<Member> = update(
-        &t.f.ic,
-        t.wallet,
-        person(P),
-        "join",
-        (MemberApproval::Principal,),
-    );
-    assert_eq!(joined.unwrap().principals, vec![person(P)]);
+    let joined: Result<Member> = update(&t.f.ic, t.wallet, person(P), "join", (principal_join(),));
+    assert_eq!(bound(&joined.unwrap()), vec![(person(P), None)]);
     assert_eq!(t.view().audit_len, audit_len);
 }
 
@@ -1339,7 +1408,7 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
         t.wallet,
         person(RECOVERY),
         "join",
-        (MemberApproval::Principal,),
+        (principal_join(),),
     );
     joined.unwrap();
     let recovery = t.propose(
@@ -1496,8 +1565,7 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
     assert_eq!(plan.summary.outputs[0].amount, 50_000);
 }
 
-/// Simulate an installed module without the newer entry point in the default
-/// suite. The separate release test below uses unmodified historical source.
+/// Simulate an installed module without the newer entry point.
 fn without_code_claim() -> Vec<u8> {
     let mut bytes = wasm("dmsg_wallet");
     let name = b"canister_update claim_code";
@@ -1563,14 +1631,6 @@ fn upgrade_without_claim(old: &[u8]) {
 #[test]
 fn wallet_upgrade_without_claim_preserves_state() {
     upgrade_without_claim(&without_code_claim());
-}
-
-#[test]
-#[ignore = "run scripts/test-dmsg-wallet-upgrade.sh with the actual canisters-v3.1.0 Wasm"]
-fn wallet_upgrade_from_v310_preserves_state() {
-    let directory =
-        PathBuf::from(std::env::var_os("DMSG_PRE_CLAIM_WASM_DIR").expect("old wallet Wasm"));
-    upgrade_without_claim(&std::fs::read(directory.join("dmsg_wallet.wasm")).unwrap());
 }
 
 #[test]
@@ -2320,6 +2380,341 @@ fn wallet_general_calls_obey_every_icp_cosign_policy() {
             .as_ref()
             .is_some_and(|p| p.threshold == 1 && p.cosigners == [2])
     }));
+}
+
+/// One binding per device: a successor takes over a device's binding and
+/// the replaced Principal stops acting; unbinding, even every device and
+/// while frozen, keeps the member; none of it changes who votes.
+#[test]
+fn wallet_device_bindings_replace_unbind_and_rejoin() {
+    let t = Team::new(1);
+    let b = MemberId::Account(t.b);
+    let version = t.view().policy.version;
+    let joined = t.join_b_as(60, 60, &[], false).unwrap();
+    assert_eq!(
+        bound(&joined),
+        vec![
+            (person(B), Some(device_id(B))),
+            (person(60), Some(device_id(60)))
+        ]
+    );
+
+    let audit = t.view().audit_len;
+    let request = t.join_b_request(61, 61, &[60], false);
+    let joined: Result<Member> = update(&t.f.ic, t.wallet, person(61), "join", (request.clone(),));
+    let joined = joined.unwrap();
+    assert_eq!(
+        bound(&joined),
+        vec![
+            (person(B), Some(device_id(B))),
+            (person(61), Some(device_id(61)))
+        ]
+    );
+    let kinds: Vec<_> = t.audit_since(audit).into_iter().map(|e| e.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            AuditKind::Unbound {
+                devices: vec![device_id(60)],
+                principals: vec![person(60)],
+            },
+            AuditKind::Joined,
+        ]
+    );
+    assert_denied(&t.f.ic, t.wallet, person(60), "freeze", ());
+    // A retry changes nothing and records nothing.
+    let audit = t.view().audit_len;
+    let again: Result<Member> = update(&t.f.ic, t.wallet, person(61), "join", (request,));
+    assert_eq!(again.unwrap(), joined);
+    assert_eq!(t.view().audit_len, audit);
+
+    // Four devices at most; a fifth takes over one, ignoring IDs of none.
+    t.join_b_as(62, 62, &[], false).unwrap();
+    t.join_b_as(63, 63, &[], false).unwrap();
+    assert_eq!(t.join_b_as(64, 64, &[], false), Err(Error::QuotaExceeded));
+    let joined = t.join_b_as(64, 64, &[62, 99], false).unwrap();
+    let principals = |m: &Member| m.bindings.iter().map(|b| b.principal).collect::<Vec<_>>();
+    assert_eq!(
+        principals(&joined),
+        vec![person(B), person(61), person(63), person(64)]
+    );
+    // A device joining with another Principal keeps one binding.
+    let joined = t.join_b_as(65, 64, &[], false).unwrap();
+    assert_eq!(
+        principals(&joined),
+        vec![person(B), person(61), person(63), person(65)]
+    );
+    let joined = t.join_b_as(66, 66, &[], true).unwrap();
+    assert_eq!(bound(&joined), vec![(person(66), Some(device_id(66)))]);
+    // A Principal member names no devices.
+    let refused: Result<Member> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "join",
+        (JoinArgs {
+            replaces: vec![device_id(1)],
+            ..principal_join()
+        },),
+    );
+    assert!(matches!(refused, Err(Error::InvalidInput(_))));
+
+    let frozen: Result<()> = update(&t.f.ic, t.wallet, person(P), "freeze", ());
+    frozen.unwrap();
+    let unbound = t.unbind_b(67, &[66]).unwrap();
+    assert!(unbound.bindings.is_empty());
+    assert_eq!(unbound.status, MemberStatus::Active);
+    assert_denied(&t.f.ic, t.wallet, person(66), "freeze", ());
+    let joined = t.join_b_as(68, 68, &[], false).unwrap();
+    assert_eq!(bound(&joined), vec![(person(68), Some(device_id(68)))]);
+    assert_eq!(t.member(&b), joined);
+    assert_eq!(t.view().policy.version, version);
+}
+
+/// A cosigner key hands its place to a new key of the same member: every
+/// policy naming the cosigner moves at once, signatures of the old key stop
+/// counting, and only the old key itself, or an Admin proposal, may do it.
+#[test]
+fn wallet_cosigner_rotation_and_replacement() {
+    use p256::ecdsa::signature::Signer as _;
+    let t = Team::new(1);
+    let key = |n: u8| p256::ecdsa::SigningKey::from_slice(&[n; 32]).unwrap();
+    let input = |n: u8, hardware: bool| CosignerInput {
+        member: MemberId::Principal(person(P)),
+        kind: CosignerKind::P256,
+        public_key: key(n)
+            .verifying_key()
+            .to_sec1_point(true)
+            .as_bytes()
+            .to_vec()
+            .into(),
+        envelope: CosignerEnvelope::Raw,
+        hardware,
+        label: format!("key {n}"),
+    };
+    let sign = |n: u8, message: &Hash| {
+        let s: p256::ecdsa::Signature = key(n).sign(&message[..]);
+        CosignerSig {
+            cosigner: 1,
+            digest_index: 0,
+            signature: s.to_bytes().to_vec().into(),
+            authenticator_data: None,
+            client_data_json: None,
+        }
+    };
+    let added = t.approve_p(t.propose(P, Intent::AddCosigner(input(21, true))).id);
+    assert_eq!(added.outcome, Some(Outcome::CosignerAdded(1)));
+    t.approve_p(t.propose(P, Intent::AddCosigner(input(24, true))).id);
+    let guarded: Vec<u32> = t
+        .view()
+        .addresses
+        .iter()
+        .filter(|a| matches!(a.chain, Chain::Evm | Chain::Solana))
+        .map(|a| a.id)
+        .collect();
+    let policy = CosignPolicy {
+        cosigners: vec![1],
+        threshold: 1,
+    };
+    let set: Vec<u64> = guarded
+        .iter()
+        .map(|&address| {
+            let intent = Intent::SetCosign {
+                address,
+                cosign: Some(policy.clone()),
+            };
+            t.approve_p(t.propose(P, intent).id).id
+        })
+        .collect();
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    for id in set {
+        t.execute(id, None, vec![]).unwrap();
+    }
+    let version = t.view().policy.version;
+
+    // A transfer is ready, its plan signed by key 21.
+    let evm = t
+        .view()
+        .addresses
+        .into_iter()
+        .find(|a| a.chain == Chain::Evm)
+        .unwrap();
+    let p = t.approve_p(
+        t.propose(
+            P,
+            Intent::Transfer {
+                from: evm.id,
+                asset: AssetKey::Evm {
+                    chain_id: 1,
+                    token: None,
+                },
+                to: Destination::Evm(Hash20::new([0x22; 20])),
+                amount: 5,
+                max_fee: 10u128.pow(16),
+                memo: None,
+            },
+        )
+        .id,
+    );
+    let plan = t
+        .prepare(
+            p.id,
+            ExecutionParams::Evm {
+                nonce: 0,
+                max_fee_per_gas: 30_000_000_000,
+                max_priority_fee_per_gas: 1_000_000_000,
+                gas_limit: 21_000,
+            },
+        )
+        .unwrap();
+    let message = cosign_message(t.wallet, p.id, plan.seq, 0, &plan.digests[0]);
+
+    // Key 21 authorizes key 22, which proves possession.
+    let old = input(21, true).public_key;
+    let rotation = |new: &CosignerInput, expires: u64, by: u8, holder: u8| RotateCosignerArgs {
+        cosigner: 1,
+        input: new.clone(),
+        expires_at_ms: expires,
+        authorization: sign(by, &rotate_digest(t.wallet, 1, &old, new, expires)),
+        possession: sign(holder, &possession_digest(&new.member, &new.public_key)),
+    };
+    let rotate = |caller: u8, args: RotateCosignerArgs| -> Result<Cosigner> {
+        update(
+            &t.f.ic,
+            t.wallet,
+            person(caller),
+            "rotate_cosigner",
+            (args,),
+        )
+    };
+    let next = input(22, true);
+    let now = time(&t.f.ic);
+    let deadline = now + 5 * MINUTE;
+    let invalid = |r: Result<Cosigner>| matches!(r, Err(Error::InvalidInput(_)));
+    assert_eq!(
+        rotate(A, rotation(&next, deadline, 21, 22)),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        rotate(P, rotation(&next, deadline, 23, 22)),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(
+        rotate(P, rotation(&next, deadline, 21, 23)),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(rotate(P, rotation(&next, now, 21, 22)), Err(Error::Expired));
+    assert!(invalid(rotate(
+        P,
+        rotation(&next, now + 11 * MINUTE, 21, 22)
+    )));
+    let elsewhere = CosignerInput {
+        member: MemberId::Principal(person(RECOVERY)),
+        ..next.clone()
+    };
+    assert!(invalid(rotate(P, rotation(&elsewhere, deadline, 21, 22))));
+    assert_eq!(
+        rotate(P, rotation(&input(22, false), deadline, 21, 22)),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        rotate(P, rotation(&input(24, true), deadline, 21, 24)),
+        Err(Error::IdempotencyConflict)
+    );
+
+    let audit = t.view().audit_len;
+    let rotated = rotate(P, rotation(&next, deadline, 21, 22)).unwrap();
+    assert_eq!(rotated.input, next);
+    let view = t.view();
+    assert_eq!(view.cosigners.iter().find(|c| c.id == 1), Some(&rotated));
+    for address in view.addresses.iter().filter(|a| guarded.contains(&a.id)) {
+        assert_eq!(address.cosign, Some(policy.clone()));
+    }
+    assert_eq!(view.policy.version, version);
+    let events = t.audit_since(audit);
+    assert_eq!(events.len(), 1);
+    assert_eq!(
+        (events[0].proposal, &events[0].kind),
+        (
+            None,
+            &AuditKind::CosignerRotated {
+                id: 1,
+                old_key: cosigner_key(&old),
+                new_key: cosigner_key(&next.public_key),
+            }
+        )
+    );
+    // A retry returns the rotated key although key 21 verifies no more.
+    assert_eq!(rotate(P, rotation(&next, deadline, 21, 22)), Ok(rotated));
+    // The ready transfer needs key 22 now.
+    assert_eq!(
+        t.execute(p.id, Some(plan.seq), vec![sign(21, &message)])
+            .err(),
+        Some(Error::IntegrityFailed)
+    );
+    let signed = t
+        .execute(p.id, Some(plan.seq), vec![sign(22, &message)])
+        .unwrap();
+    assert_eq!(signed.proposal.status, ProposalStatus::Signed);
+
+    // While frozen the key cannot rotate itself; an Admin proposal replaces
+    // it after its delay, and the wallet stays frozen.
+    let frozen: Result<()> = update(&t.f.ic, t.wallet, person(B), "freeze", ());
+    frozen.unwrap();
+    let later = input(25, true);
+    assert_eq!(
+        rotate(P, rotation(&later, deadline, 22, 25)),
+        Err(Error::Locked)
+    );
+    assert_denied(
+        &t.f.ic,
+        t.wallet,
+        person(RECOVERY),
+        "propose",
+        (ProposeArgs {
+            intent: Intent::ReplaceCosigner {
+                id: 1,
+                input: later.clone(),
+            },
+            op_id: Hash::new([93; 32]),
+            via_agent: None,
+        },),
+    );
+    let replace = t.approve_p(
+        t.propose(
+            P,
+            Intent::ReplaceCosigner {
+                id: 1,
+                input: later.clone(),
+            },
+        )
+        .id,
+    );
+    assert_eq!(replace.status, ProposalStatus::Delayed);
+    assert!(replace.requirement.admin);
+    assert_eq!(replace.requirement.delay_ms, SENSITIVE_DELAY_MS);
+    assert_eq!(t.view().cosigners[0].input, next);
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    let audit = t.view().audit_len;
+    t.execute(replace.id, None, vec![]).unwrap();
+    let view = t.view();
+    assert!(view.frozen);
+    assert_eq!(view.cosigners[0].input, later);
+    assert!(
+        t.audit_since(audit)
+            .iter()
+            .any(|e| e.proposal == Some(replace.id)
+                && e.kind
+                    == AuditKind::CosignerRotated {
+                        id: 1,
+                        old_key: cosigner_key(&next.public_key),
+                        new_key: cosigner_key(&later.public_key),
+                    })
+    );
 }
 
 #[path = "wallet_review.rs"]

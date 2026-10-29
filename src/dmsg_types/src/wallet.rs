@@ -121,10 +121,29 @@ pub struct Member {
     /// Whether the member joined.
     pub status: MemberStatus,
     /// Principals that act as this member: the Principal itself, or the
-    /// login Principals an account bound when joining.
-    pub principals: Vec<Principal>,
+    /// Principals an account bound when joining, one per device.
+    pub bindings: Vec<Binding>,
     /// Time the member was added.
     pub added_at_ms: u64,
+}
+
+impl Member {
+    /// Whether `principal` acts as this member.
+    pub fn binds(&self, principal: &Principal) -> bool {
+        self.bindings.iter().any(|b| b.principal == *principal)
+    }
+}
+
+/// A Principal acting as a member, and the account device that bound it.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Binding {
+    /// The Principal.
+    pub principal: Principal,
+    /// The account device whose approval bound it; none for a Principal
+    /// member and for the Principal that created the wallet.
+    pub device: Option<Hash>,
+    /// Time it was bound.
+    pub bound_at_ms: u64,
 }
 
 /// Asset identity; amounts and limits are in its native base units.
@@ -539,6 +558,14 @@ pub enum Intent {
     AddCosigner(CosignerInput),
     /// Remove a cosigner and every cosign policy naming it.
     RemoveCosigner(u32),
+    /// Give a cosigner a new key of the same member; its ID, and every
+    /// policy naming it, stay.
+    ReplaceCosigner {
+        /// Cosigner.
+        id: u32,
+        /// The new key.
+        input: CosignerInput,
+    },
     /// Invite a member.
     AddMember(MemberInput),
     /// Remove a member, its pending approvals and its cosigners, except one
@@ -687,6 +714,46 @@ pub enum MemberApproval {
     },
     /// The calling Principal is the member.
     Principal,
+}
+
+/// Arguments of `join`.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct JoinArgs {
+    /// Evidence that the member joins.
+    pub evidence: MemberApproval,
+    /// The account device binding the calling Principal; none for a
+    /// Principal member.
+    pub device: Option<Hash>,
+    /// Devices of the member whose bindings the caller takes over, at most
+    /// four, ascending.
+    pub replaces: Vec<Hash>,
+    /// Remove every other binding of the member.
+    pub exclusive: bool,
+}
+
+/// Arguments of `unbind`.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct UnbindArgs {
+    /// An account member's device approval.
+    pub evidence: MemberApproval,
+    /// Devices whose bindings to remove, one to four, ascending.
+    pub devices: Vec<Hash>,
+}
+
+/// Arguments of `rotate_cosigner`: a cosigner key hands its place to a new
+/// key of the same member.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RotateCosignerArgs {
+    /// Cosigner.
+    pub cosigner: u32,
+    /// The new key.
+    pub input: CosignerInput,
+    /// Exclusive deadline, at most ten minutes ahead.
+    pub expires_at_ms: u64,
+    /// The current key's signature over the rotation digest.
+    pub authorization: CosignerSig,
+    /// The new key's signature over the possession digest.
+    pub possession: CosignerSig,
 }
 
 /// Arguments of a new proposal.
@@ -1014,6 +1081,23 @@ pub enum AuditKind {
     Refueled {
         /// ICP ledger block.
         block: u64,
+    },
+    /// Bindings of the actor removed.
+    Unbound {
+        /// Their devices.
+        devices: Vec<Hash>,
+        /// Their Principals.
+        principals: Vec<Principal>,
+    },
+    /// A cosigner took a new key: rotated by the old key, or replaced by
+    /// the proposal of the event.
+    CosignerRotated {
+        /// Cosigner.
+        id: u32,
+        /// Digest of the old public key.
+        old_key: Hash,
+        /// Digest of the new public key.
+        new_key: Hash,
     },
 }
 

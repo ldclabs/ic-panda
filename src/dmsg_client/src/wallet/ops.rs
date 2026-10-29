@@ -1101,14 +1101,16 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
         JobKind::Join { wallet, .. } => {
             let hub = h.with(|c| c.wallet_hub()).await?;
             let (actor, _) = identity(h).await?;
-            let account = h.with(|c| Ok(c.account()?.id)).await?;
+            let (account, device) = h
+                .with(|c| Ok((c.account()?.id, Some(c.workspace.meta.device_id))))
+                .await?;
             let (approval_id, approval) = authorize(
                 h,
                 &mut job,
                 hub,
                 wallet,
                 ApprovalPurpose::WalletJoin,
-                join_digest(wallet, &account, actor),
+                join_digest(wallet, &account, actor, &device, &[], false),
             )
             .await?;
             let (_, ic) = identity(h).await?;
@@ -1116,9 +1118,14 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 .update(
                     wallet,
                     "join",
-                    (MemberApproval::Account {
-                        approval_id,
-                        approval,
+                    (JoinArgs {
+                        evidence: MemberApproval::Account {
+                            approval_id,
+                            approval,
+                        },
+                        device,
+                        replaces: vec![],
+                        exclusive: false,
                     },),
                 )
                 .await?;

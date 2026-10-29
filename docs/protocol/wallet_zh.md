@@ -28,7 +28,7 @@
 | Viewer | 否 | 否 | 否 |
 | Recovery | 仅成员变更 | 否；其提案无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | 否 |
 
-被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准绑定调用 Principal（每成员最多 4 个）；之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。一个 Principal 只能代表一个成员；已加入并已绑定的 Principal 再次 `join` 直接返回成员记录。账户所在的 user home 不在钱包记录中时，钱包向 hub `get_user_homes` 补取一次后再核验。
+被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准为每台设备绑定一个调用 Principal（每成员最多 4 台设备）。`join(JoinArgs { evidence, device, replaces, exclusive })` 写明设备，并可接管 `replaces`（至多 4 个设备 ID，升序）的绑定，`exclusive` 为真时接管其余全部设备的绑定；同一设备再次加入即重新绑定，不对应任何绑定的 ID 直接忽略，因此重试仍成功。`unbind(UnbindArgs { evidence, devices })` 凭账户批准移除 1 到 4 台设备的绑定，批准中的 actor 不必已绑定；成员保持 Active，可再次加入。二者冻结时可用，都不推进授权版本；被移除的绑定审计为 `Unbound`，加入时写在 `Joined` 之前。创建钱包的 Principal 绑定时没有设备，从某台设备加入后才记录。Principal 成员只绑定自身，不写设备。之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。一个 Principal 只能代表一个成员；已加入并已绑定的 Principal 再次 `join` 直接返回成员记录。账户所在的 user home 不在钱包记录中时，钱包向 hub `get_user_homes` 补取一次后再核验。
 
 ## 摘要与设备批准
 
@@ -38,7 +38,11 @@
 | --- | --- | --- |
 | 提案 | `dmsg-wallet/proposal/v1` | `(environment, wallet, op_id, intent, policy_version, proposer, via_agent)` |
 | 决定 | `dmsg-wallet/decision/v1` | `(proposal_digest, decision)`，decision ∈ `Approve` / `Reject` / `Veto` |
-| 加入 | `dmsg-wallet/join/v1` | `(wallet, account_id, actor)` |
+| 加入 | `dmsg-wallet/join/v2` | `(wallet, account_id, actor, device, replaces, exclusive)` |
+| 解绑 | `dmsg-wallet/unbind/v1` | `(wallet, account_id, actor, devices)` |
+| 协签钥匙轮换 | `dmsg-wallet/cosigner-rotate/v1` | `(wallet, cosigner_id, old_public_key, new_input, expires_at_ms)` |
+| 协签钥匙持有证明 | `dmsg-wallet/cosigner-possession/v1` | `(member, new_public_key)` |
+| 协签公钥摘要 | `dmsg-wallet/cosigner-key/v1` | `public_key` |
 | 激活 | `dmsg-wallet/activation/v1` | `(quote, spec)` |
 | 协签消息 | `dmsg-wallet/cosign/v1` | `(wallet, proposal_id, plan_seq, digest_index, digest)` |
 | 审计 | `dmsg-wallet/audit/v1` | `(prev, seq, at_ms, actor, proposal, kind)` |
@@ -50,7 +54,7 @@
 | --- | --- | --- |
 | `WalletCreate` | hub（必须等于产品登记的 `adapter`） | 激活摘要 |
 | `WalletProposal` | 钱包 | 决定摘要 |
-| `WalletJoin` | 钱包 | 加入摘要 |
+| `WalletJoin` | 钱包 | 加入或解绑摘要 |
 
 设备须持有新能力 `WalletApprove`（与 `FormalApprove` 分离）。user home 对这三种用途要求 `subject_bytes == service`，`verify_application_authorization` 只接受 caller 等于 `service`；home 不判断钱包策略。钱包与 hub 用 `check_wallet_approval` 核对全部字段后再请 home 核验，跨 canister 返回后重读提案、成员与时间。
 
@@ -68,9 +72,9 @@
 
 - **支出类**（`Transfer`、`Batch`、`Refuel`）：资产须在 `spendable_assets`。`window_amount` = 该资产所有尚有效的未执行预留 + 过去 24 小时开始执行/签名的金额 + 本提案金额；取第一个 `up_to ≥ window_amount` 的档（`approvals`、`delay_ms`、`book_only`）；超出最高档为最高档 + 1 人（不超过活跃批准人数）；超过 `daily_limits` 时需要全部活跃批准人。`book_only` 档要求每个收款方是冷却期已过的地址簿条目。没有该资产的档时用 `approver_threshold`、无延时。
 - **操作类**（`CanisterCall`、`CancelEvmNonce`、`InitSolNonce`、`AddressBook`）：`approver_threshold`，无延时。
-- **管理类**：`admin_threshold`，只计 Admin。`SetPolicy`、`RemoveMember`、`SetCosign`、`RemoveCosigner`、`AcceptUpgrade`、`LockCode`、`ReleaseEvmNonce` 延时 24 小时；`Unfreeze` 延时 `unfreeze_delay_ms`；其余无延时。
+- **管理类**：`admin_threshold`，只计 Admin。`SetPolicy`、`RemoveMember`、`SetCosign`、`RemoveCosigner`、`ReplaceCosigner`、`AcceptUpgrade`、`LockCode`、`ReleaseEvmNonce` 延时 24 小时；`Unfreeze` 延时 `unfreeze_delay_ms`；其余无延时。
 - 达到要求后进入 `Delayed`（有延时，期间可否决）或 `Ready`。只改钱包记录的意图在 `Ready` 时即生效；其余由成员调用 `execute`。
-- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案、批准与执行 `Unfreeze` 和成员变更（拒绝与否决不受限），进行中的批量转账停在下一笔之前，签名停在下一个签名之前。
+- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案、批准与执行 `Unfreeze`、成员变更和 `ReplaceCosigner`（拒绝与否决不受限），进行中的批量转账停在下一笔之前，签名停在下一个签名之前。
 - 部分转出后失败的批量转账、成员回报失败的已签交易仍计入 24 小时窗口；只有确定没有转出的失败才释放。
 
 ## 状态
@@ -121,6 +125,8 @@
 
 签名为 64 字节 `r‖s`（DER 由客户端转换）。`hardware` 由客户端声明，钱包无法核实；策略 `hardware_cosigners` 为真时不接受未声明硬件的协签人。
 
+协签人的钥匙可以原地更换，ID 和引用它的全部策略不变。协签人所属成员调用 `rotate_cosigner(RotateCosignerArgs { cosigner, input, expires_at_ms, authorization, possession })`：当前钥匙签轮换摘要，新钥匙签持有证明摘要，截止时间至多在 10 分钟后。Admin 提案 `ReplaceCosigner { id, input }` 不需要旧钥匙也能完成同样的更换，延时 24 小时，冻结时可用；轮换则在冻结时拒绝。两种方式下，新的 input 都保持原成员、在钱包内唯一，旧钥匙或策略要求硬件时必须声明硬件；Taproot 脚本承诺的钥匙和 BIP-340 钥匙不能更换。以当前 input 重试轮换会直接返回协签人。计数器归零，审计写入 `CosignerRotated { id, old_key, new_key }`（公钥摘要），替换时记录提案编号。旧钥匙的签名不再有效，用它收集的协签包须重新签名。
+
 ## hub 激活
 
 1. `quote_activation_preview(account_id)`（query）：hub 只读自己的定价、当前版本与该账户已占用的创建数，返回价格、cycles、账本和每个套餐的剩余额度；不写报价、不占配额。客户端另行读取自己的套餐与账本手续费，所以“获取报价”是快速查询，套餐额度为 0 时显示剩余 0 而不是报错。
@@ -141,7 +147,7 @@
 
 ## 向量
 
-[tests/vectors/wallet](../../tests/vectors/wallet/README.md) 固定本合同的字节：`protocol-v1.json` 给出每种承诺（提案、决定、加入、激活、协签消息、收款子账户、审计事件）的 CBOR 值、完整原像与摘要，以及各链地址、Taproot 叶与控制块和收款脚本；`plans-v1.json` 给出钱包为各类外链意图构建的计划、签名与已签交易，客户端解码器须全部接受，并拒绝其中的篡改样例。两份文件由 Rust 实现生成，每次测试逐字节比对。
+[tests/vectors/wallet](../../tests/vectors/wallet/README.md) 固定本合同的字节：`protocol-v1.json` 给出每种承诺（提案、决定、加入、解绑、激活、协签消息、协签钥匙轮换与持有证明、协签公钥摘要、收款子账户、审计事件）的 CBOR 值、完整原像与摘要，以及各链地址、Taproot 叶与控制块和收款脚本；`plans-v1.json` 给出钱包为各类外链意图构建的计划、签名与已签交易，客户端解码器须全部接受，并拒绝其中的篡改样例。两份文件由 Rust 实现生成，每次测试逐字节比对。
 
 ## 桌面与本地协议
 

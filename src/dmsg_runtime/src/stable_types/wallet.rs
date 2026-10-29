@@ -9,6 +9,13 @@ use cbor2::Cbor;
 use dmsg_types::{billing::PlanId, wallet::*, *};
 use serde_bytes::ByteBuf;
 
+stable_struct!(BindingRepr => Binding {
+    1 => principal: Principal,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    2 => device: Option<Hash>,
+    3 => bound_at_ms: u64,
+});
+
 stable_struct!(MemberRepr => Member {
     1 => id: MemberId,
     2 => role: Role,
@@ -18,7 +25,7 @@ stable_struct!(MemberRepr => Member {
     4 => agent_ids: Vec<String>,
     5 => status: MemberStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    6 => principals: Vec<Principal>,
+    6 => bindings: Vec<BindingRepr> as codec,
     7 => added_at_ms: u64,
 });
 
@@ -295,7 +302,18 @@ mod tests {
             label: String::new(),
             agent_ids: vec![],
             status: MemberStatus::Active,
-            principals: vec![Principal::from_slice(&[4; 29])],
+            bindings: vec![
+                Binding {
+                    principal: Principal::from_slice(&[4; 29]),
+                    device: Some(Hash::new([5; 32])),
+                    bound_at_ms: 1_790_000_000_000,
+                },
+                Binding {
+                    principal: Principal::from_slice(&[6; 29]),
+                    device: None,
+                    bound_at_ms: 1_790_000_000_000,
+                },
+            ],
             added_at_ms: 1_790_000_000_000,
         };
         assert_eq!(

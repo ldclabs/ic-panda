@@ -17,6 +17,7 @@ fn internal(intent: &Intent) -> bool {
         Intent::SetCosign { .. }
             | Intent::AddCosigner(_)
             | Intent::RemoveCosigner(_)
+            | Intent::ReplaceCosigner { .. }
             | Intent::AddMember(_)
             | Intent::RemoveMember(_)
             | Intent::UpdateMember(_)
@@ -62,7 +63,7 @@ pub(crate) fn apply_ready(w: &mut Wallet, p: &mut Proposal, at: u64) {
     if !internal(&p.intent) {
         return;
     }
-    match check_state(w, &p.intent).and_then(|()| apply(w, &p.intent, at)) {
+    match check_state(w, &p.intent).and_then(|()| apply(w, p.id, &p.intent, at)) {
         Ok(outcome) => settle(w, p, outcome, at),
         Err(e) => fail(w, p, e.to_string(), true, at),
     }
@@ -73,7 +74,7 @@ fn strip_cosigners(w: &mut Wallet, removed: &[u32]) {
     w.cosigners.retain(|c| !removed.contains(&c.id));
 }
 
-fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
+fn apply(w: &mut Wallet, proposal: u64, intent: &Intent, at: u64) -> Result<Outcome> {
     match intent {
         Intent::SetCosign { address, cosign } => {
             let a = w
@@ -95,6 +96,21 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
             return Ok(Outcome::CosignerAdded(id));
         }
         Intent::RemoveCosigner(id) => strip_cosigners(w, &[*id]),
+        Intent::ReplaceCosigner { id, input } => {
+            let c = w
+                .cosigners
+                .iter_mut()
+                .find(|c| c.id == *id)
+                .ok_or(Error::NotFound)?;
+            let kind = AuditKind::CosignerRotated {
+                id: *id,
+                old_key: cosigner_key(&c.input.public_key),
+                new_key: cosigner_key(&input.public_key),
+            };
+            c.input = input.clone();
+            c.counter = 0;
+            store::audit(w, at, None, Some(proposal), kind);
+        }
         Intent::AddMember(input) => {
             w.members.push(Member {
                 id: input.id.clone(),
@@ -102,7 +118,7 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
                 label: input.label.clone(),
                 agent_ids: input.agent_ids.clone(),
                 status: MemberStatus::Invited,
-                principals: vec![],
+                bindings: vec![],
                 added_at_ms: at,
             });
             w.policy.version += 1;

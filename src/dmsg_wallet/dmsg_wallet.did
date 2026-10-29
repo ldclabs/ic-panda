@@ -141,6 +141,13 @@ type AuditKind = variant {
   Executing;
   // Proposal approved; `Delayed` or `Ready` follows.
   Approved;
+  // Bindings of the actor removed.
+  Unbound : record {
+    // Their Principals.
+    principals : vec principal;
+    // Their devices.
+    devices : vec blob;
+  };
   // Broadcast reported.
   Broadcast : record {
     // Plan.
@@ -150,6 +157,16 @@ type AuditKind = variant {
   };
   // Proposal made.
   Proposed;
+  // A cosigner took a new key: rotated by the old key, or replaced by
+  // the proposal of the event.
+  CosignerRotated : record {
+    // Cosigner.
+    id : nat32;
+    // Digest of the new public key.
+    new_key : blob;
+    // Digest of the old public key.
+    old_key : blob;
+  };
   // Decision recorded.
   Decided : Decision;
   // Proposal cancelled.
@@ -187,6 +204,16 @@ type Beneficiary = record {
   subject_bytes : blob;
   // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
+};
+// A Principal acting as a member, and the account device that bound it.
+type Binding = record {
+  // The Principal.
+  "principal" : principal;
+  // Time it was bound.
+  bound_at_ms : nat64;
+  // The account device whose approval bound it; none for a Principal
+  // member and for the Principal that created the wallet.
+  device : opt blob;
 };
 // Address-book change.
 type BookChange = variant {
@@ -680,6 +707,14 @@ type Intent = variant {
     // New policy, or none.
     cosign : opt CosignPolicy;
   };
+  // Give a cosigner a new key of the same member; its ID, and every
+  // policy naming it, stay.
+  ReplaceCosigner : record {
+    // Cosigner.
+    id : nat32;
+    // The new key.
+    input : CosignerInput;
+  };
   // Call a canister in the policy's `call_targets`.
   CanisterCall : record {
     // Candid argument bytes.
@@ -708,6 +743,19 @@ type Intent = variant {
     // Cosigners required.
     cosign : opt CosignPolicy;
   };
+};
+// Arguments of `join`.
+type JoinArgs = record {
+  // Devices of the member whose bindings the caller takes over, at most
+  // four, ascending.
+  replaces : vec blob;
+  // The account device binding the calling Principal; none for a
+  // Principal member.
+  device : opt blob;
+  // Evidence that the member joins.
+  evidence : MemberApproval;
+  // Remove every other binding of the member.
+  exclusive : bool;
 };
 // Root public key and chain code of one chain-key algorithm for this
 // wallet: the key at the empty derivation path. Addresses derive from it
@@ -742,8 +790,8 @@ type Member = record {
   // Display label.
   label : text;
   // Principals that act as this member: the Principal itself, or the
-  // login Principals an account bound when joining.
-  principals : vec principal;
+  // Principals an account bound when joining, one per device.
+  bindings : vec Binding;
 };
 // Evidence that a member made a decision.
 type MemberApproval = variant {
@@ -977,6 +1025,7 @@ type Result_11 = variant { Ok : vec MemberId; Err : Error };
 type Result_12 = variant { Ok : vec SpendUsage; Err : Error };
 type Result_13 = variant { Ok : Requirement; Err : Error };
 type Result_14 = variant { Ok : opt nat; Err : Error };
+type Result_15 = variant { Ok : Cosigner; Err : Error };
 type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
 type Result_3 = variant { Ok : KeyRoots; Err : Error };
 type Result_4 = variant { Ok; Err : Error };
@@ -998,6 +1047,20 @@ type Role = variant {
   Proposer;
   // Approves admin proposals (policy, members, cosigners, code) and everything below.
   Admin;
+};
+// Arguments of `rotate_cosigner`: a cosigner key hands its place to a new
+// key of the same member.
+type RotateCosignerArgs = record {
+  // The new key.
+  input : CosignerInput;
+  // Cosigner.
+  cosigner : nat32;
+  // The new key's signature over the possession digest.
+  possession : CosignerSig;
+  // Exclusive deadline, at most ten minutes ahead.
+  expires_at_ms : nat64;
+  // The current key's signature over the rotation digest.
+  authorization : CosignerSig;
 };
 // A signed transaction.
 type SignedTx = record {
@@ -1054,6 +1117,13 @@ type Tier = record {
   up_to : nat;
   // Approver approvals required.
   approvals : nat8;
+};
+// Arguments of `unbind`.
+type UnbindArgs = record {
+  // An account member's device approval.
+  evidence : MemberApproval;
+  // Devices whose bindings to remove, one to four, ascending.
+  devices : vec blob;
 };
 // One unspent Bitcoin output to spend.
 type Utxo = record {
@@ -1185,9 +1255,11 @@ service : (WalletInit) -> {
   get_proposal_certified : (nat64) -> (Result_7) query;
   get_wallet : () -> (Result_8) query;
   get_wallet_certified : () -> (Result_7) query;
-  // Confirm an invitation and bind the calling Principal; an account member
-  // may call it again to bind another login Principal.
-  join : (MemberApproval) -> (Result_9);
+  // Confirm an invitation and bind the calling Principal. An account member
+  // binds one Principal per device: joining from a device again rebinds it,
+  // and the device may take over the bindings of `replaces`, or of every
+  // other device when `exclusive`, such as those of a device it succeeds.
+  join : (JoinArgs) -> (Result_9);
   list_proposals : (opt nat64, nat16) -> (Result_10) query;
   // Members for the hub's index.
   member_ids : () -> (Result_11) query;
@@ -1212,6 +1284,14 @@ service : (WalletInit) -> {
   release_code : () -> (Result_4);
   // Record a member's report of a signed transaction.
   report : (ChainReport) -> (Result_1);
+  // Hand a cosigner's place to a new key of the same member: the current key
+  // authorizes the new one, which proves possession. The ID stays, so every
+  // policy naming the cosigner takes the new key at once.
+  rotate_cosigner : (RotateCosignerArgs) -> (Result_15);
+  // Remove an account member's bindings of `devices`, such as those of a
+  // lost device; the member stays active and may join again. The caller is
+  // the approval's actor and need not be bound. Allowed while frozen.
+  unbind : (UnbindArgs) -> (Result_9);
   veto_proposal : (nat64, MemberApproval) -> (Result_1);
   wallet_stats : () -> (WalletStats) query;
 }

@@ -8,7 +8,7 @@ and test-only.
 
 | File | Content | Generator | Readers |
 | --- | --- | --- | --- |
-| `protocol-v1.json` | The commitments members and devices approve (proposal, decision, join, activation, cosign message), the activation deposit subaccount, a six-event audit chain, address encodings (ICP accounts, Bitcoin Taproot key path, P2WPKH and the native Taproot tree with leaves, control blocks and output scripts, EVM EIP-55, Solana base58) and recipient scripts | `dmsg_protocol` `wallet::vector_tests` | the same tests rebuild every preimage from its typed `value` |
+| `protocol-v1.json` | The commitments members and devices approve (proposal, decision, join, unbind, activation, cosign message, cosigner rotation, possession and key digests), the activation deposit subaccount, a six-event audit chain, address encodings (ICP accounts, Bitcoin Taproot key path, P2WPKH and the native Taproot tree with leaves, control blocks and output scripts, EVM EIP-55, Solana base58) and recipient scripts | `dmsg_protocol` `wallet::vector_tests` | the same tests rebuild every preimage from its typed `value` |
 | `plans-v1.json` | One plan per external-chain intent: Bitcoin Taproot key path, P2WPKH batch, Taproot cosigned and delayed script paths; EVM native, ERC-20 and nonce cancellation; Solana SOL batch, SPL with token-account creation, nonce-account creation and a durable-nonce transfer; with deterministic signatures, the signed transaction and its ID, and six tampered plans | `dmsg_wallet` `chains::tests::vectors` (the canister's own builders, as `prepare_execution` calls them) | `dmsg_client` `wallet::tests::decodes_the_wallet_plan_vectors` (the client's independent decoder) |
 
 ```sh

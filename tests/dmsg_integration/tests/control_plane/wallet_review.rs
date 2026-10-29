@@ -127,7 +127,7 @@ fn membership_changes_invalidate_votes_and_recovery_authority() {
         t.wallet,
         person(RECOVERY),
         "join",
-        (MemberApproval::Principal,),
+        (principal_join(),),
     );
     joined.unwrap();
     let recovery = t.propose(

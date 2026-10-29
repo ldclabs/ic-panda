@@ -248,11 +248,47 @@ fn commitments(wallet: Principal, hub: Principal) -> (Vec<Json>, Hash) {
             decision_digest(&proposal, decision),
         ));
     }
+    let device = Some(Hash::new([0x61; 32]));
+    let replaces = [Hash::new([0x62; 32])];
     out.push(commitment(
         "join",
         JOIN_DOMAIN,
-        &(wallet, &account, principal(11)),
-        join_digest(wallet, &account, principal(11)),
+        &(wallet, &account, principal(11), &device, &replaces, false),
+        join_digest(wallet, &account, principal(11), &device, &replaces, false),
+    ));
+    out.push(commitment(
+        "unbind",
+        UNBIND_DOMAIN,
+        &(wallet, &account, principal(11), &replaces),
+        unbind_digest(wallet, &account, principal(11), &replaces),
+    ));
+    let input = CosignerInput {
+        member: MemberId::Account(account),
+        kind: CosignerKind::P256,
+        public_key: ByteBuf::from(vec![2; 33]),
+        envelope: CosignerEnvelope::Raw,
+        hardware: true,
+        label: "iPhone".into(),
+    };
+    let old_key = ByteBuf::from(vec![3; 33]);
+    let expires = 1_790_000_600_000u64;
+    out.push(commitment(
+        "cosigner rotation",
+        ROTATE_DOMAIN,
+        &(wallet, 1u32, &old_key, &input, expires),
+        rotate_digest(wallet, 1, &old_key, &input, expires),
+    ));
+    out.push(commitment(
+        "cosigner possession",
+        POSSESSION_DOMAIN,
+        &(&input.member, &input.public_key),
+        possession_digest(&input.member, &input.public_key),
+    ));
+    out.push(commitment(
+        "cosigner key",
+        COSIGNER_KEY_DOMAIN,
+        &old_key,
+        cosigner_key(&old_key),
     ));
     let quote_id = Hash::new([0x51; 32]);
     let deposit = deposit_subaccount(hub, &quote_id);

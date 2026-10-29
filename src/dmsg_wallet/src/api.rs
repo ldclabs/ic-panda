@@ -57,7 +57,13 @@ fn init(args: WalletInit) {
         label: "creator".into(),
         agent_ids: vec![],
         status: MemberStatus::Active,
-        principals: vec![args.creator_principal],
+        // The hub does not learn the creating device; joining from it
+        // later names the device.
+        bindings: vec![Binding {
+            principal: args.creator_principal,
+            device: None,
+            bound_at_ms: at,
+        }],
         added_at_ms: at,
     }];
     for m in &args.members {
@@ -124,7 +130,7 @@ fn invited(m: &MemberInput, at: u64) -> Member {
         label: m.label.clone(),
         agent_ids: m.agent_ids.clone(),
         status: MemberStatus::Invited,
-        principals: vec![],
+        bindings: vec![],
         added_at_ms: at,
     }
 }
@@ -514,34 +520,38 @@ fn expected<'a>(
     }
 }
 
-/// Confirm an invitation and bind the calling Principal; an account member
-/// may call it again to bind another login Principal.
+/// Confirm an invitation and bind the calling Principal. An account member
+/// binds one Principal per device: joining from a device again rebinds it,
+/// and the device may take over the bindings of `replaces`, or of every
+/// other device when `exclusive`, such as those of a device it succeeds.
 #[ic_cdk::update]
-async fn join(evidence: MemberApproval) -> Result<Member> {
+async fn join(args: JoinArgs) -> Result<Member> {
     let caller = ic_cdk::api::msg_caller();
     let me = ic_cdk::api::canister_self();
     let mut at = now();
     authenticated(caller)?;
-    let id = match &evidence {
+    validate_join(&args)?;
+    let id = match &args.evidence {
         MemberApproval::Principal => MemberId::Principal(caller),
         MemberApproval::Account {
             approval_id,
             approval,
         } => {
             let account = approval.approving_account;
+            let digest = join_digest(
+                me,
+                &account,
+                caller,
+                &args.device,
+                &args.replaces,
+                args.exclusive,
+            );
             store::with(|w| {
                 w.member(&MemberId::Account(account))
                     .ok_or(Error::Forbidden)?;
                 check_wallet_approval(
                     approval,
-                    &expected(
-                        w,
-                        me,
-                        ApprovalPurpose::WalletJoin,
-                        join_digest(me, &account, caller),
-                        &account,
-                        caller,
-                    ),
+                    &expected(w, me, ApprovalPurpose::WalletJoin, digest, &account, caller),
                     at,
                 )
             })?;
@@ -552,34 +562,182 @@ async fn join(evidence: MemberApproval) -> Result<Member> {
         }
     };
     let mut w = store::wallet();
-    let member = w.member(&id).ok_or(Error::Forbidden)?;
-    if member.status == MemberStatus::Active && member.principals.contains(&caller) {
-        return Ok(member.clone());
-    }
     // A Principal acts as one member only.
     ensure(
-        w.members.iter().all(|m| {
-            m.id == id || (m.id != MemberId::Principal(caller) && !m.principals.contains(&caller))
-        }),
+        w.members
+            .iter()
+            .all(|m| m.id == id || (m.id != MemberId::Principal(caller) && !m.binds(&caller))),
         Error::IdempotencyConflict,
     )?;
-    let member = w.members.iter_mut().find(|m| m.id == id).expect("member");
-    if !member.principals.contains(&caller) {
-        ensure(
-            member.principals.len() < MAX_MEMBER_PRINCIPALS,
-            Error::QuotaExceeded,
-        )?;
-        member.principals.push(caller);
+    let member = w
+        .members
+        .iter_mut()
+        .find(|m| m.id == id)
+        .ok_or(Error::Forbidden)?;
+    // Bindings the caller takes over: those of its own device, of the
+    // devices it replaces, or all when exclusive. IDs of no binding are
+    // ignored, so a retry succeeds.
+    let replaced = |b: &Binding| {
+        b.principal != caller
+            && (args.exclusive
+                || b.device
+                    .is_some_and(|d| args.device == Some(d) || args.replaces.contains(&d)))
+    };
+    if member.status == MemberStatus::Active
+        && member
+            .bindings
+            .iter()
+            .any(|b| b.principal == caller && b.device == args.device)
+        && !member.bindings.iter().any(replaced)
+    {
+        return Ok(member.clone());
     }
+    let (removed, mut bindings): (Vec<Binding>, Vec<Binding>) =
+        member.bindings.drain(..).partition(replaced);
+    match bindings.iter_mut().find(|b| b.principal == caller) {
+        Some(b) => b.device = args.device,
+        None => bindings.push(Binding {
+            principal: caller,
+            device: args.device,
+            bound_at_ms: at,
+        }),
+    }
+    ensure(
+        bindings.len() <= MAX_MEMBER_PRINCIPALS,
+        Error::QuotaExceeded,
+    )?;
+    member.bindings = bindings;
     let activating = member.status != MemberStatus::Active;
     member.status = MemberStatus::Active;
     let member = member.clone();
+    // Votes count members; only a member that starts acting changes them.
     if activating {
         w.policy.version += 1;
+    }
+    if !removed.is_empty() {
+        store::audit(&mut w, at, Some(id.clone()), None, unbound(&removed));
     }
     store::audit(&mut w, at, Some(id), None, AuditKind::Joined);
     store::save(w);
     Ok(member)
+}
+
+fn unbound(removed: &[Binding]) -> AuditKind {
+    AuditKind::Unbound {
+        devices: removed.iter().filter_map(|b| b.device).collect(),
+        principals: removed.iter().map(|b| b.principal).collect(),
+    }
+}
+
+/// Remove an account member's bindings of `devices`, such as those of a
+/// lost device; the member stays active and may join again. The caller is
+/// the approval's actor and need not be bound. Allowed while frozen.
+#[ic_cdk::update]
+async fn unbind(args: UnbindArgs) -> Result<Member> {
+    let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
+    let at = now();
+    authenticated(caller)?;
+    validate_unbind(&args)?;
+    let MemberApproval::Account {
+        approval_id,
+        approval,
+    } = &args.evidence
+    else {
+        return Err(Error::Forbidden);
+    };
+    let account = approval.approving_account;
+    let id = MemberId::Account(account);
+    store::with(|w| {
+        w.member(&id).ok_or(Error::Forbidden)?;
+        check_wallet_approval(
+            approval,
+            &expected(
+                w,
+                me,
+                ApprovalPurpose::WalletJoin,
+                unbind_digest(me, &account, caller, &args.devices),
+                &account,
+                caller,
+            ),
+            at,
+        )
+    })?;
+    let home = member_home(&account).await?;
+    verify_account(home, *approval_id, approval).await?;
+    let at = now();
+    let mut w = store::wallet();
+    let member = w
+        .members
+        .iter_mut()
+        .find(|m| m.id == id)
+        .ok_or(Error::Forbidden)?;
+    let (removed, bindings): (Vec<Binding>, Vec<Binding>) = member
+        .bindings
+        .drain(..)
+        .partition(|b| b.device.is_some_and(|d| args.devices.contains(&d)));
+    member.bindings = bindings;
+    let member = member.clone();
+    if !removed.is_empty() {
+        store::audit(&mut w, at, Some(id), None, unbound(&removed));
+        store::save(w);
+    }
+    Ok(member)
+}
+
+/// Hand a cosigner's place to a new key of the same member: the current key
+/// authorizes the new one, which proves possession. The ID stays, so every
+/// policy naming the cosigner takes the new key at once.
+#[ic_cdk::update]
+fn rotate_cosigner(args: RotateCosignerArgs) -> Result<Cosigner> {
+    let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
+    let at = now();
+    let mut w = store::wallet();
+    ensure(!w.frozen, Error::Locked)?;
+    let member = w.acting(caller)?.id.clone();
+    let c = w.cosigner(args.cosigner)?.clone();
+    ensure(c.input.member == member, Error::Forbidden)?;
+    // Before the signatures: once rotated, the old key's signature no
+    // longer verifies.
+    if c.input == args.input {
+        return Ok(c);
+    }
+    check_replacement(&w, &c, &args.input)?;
+    ensure(at < args.expires_at_ms, Error::Expired)?;
+    ensure_valid(args.expires_at_ms <= at + 10 * MINUTE, "expires_at_ms")?;
+    verify_cosign(
+        &c,
+        &rotate_digest(
+            me,
+            c.id,
+            &c.input.public_key,
+            &args.input,
+            args.expires_at_ms,
+        ),
+        &args.authorization,
+    )?;
+    let mut rotated = Cosigner {
+        input: args.input.clone(),
+        counter: 0,
+        ..c.clone()
+    };
+    rotated.counter = verify_cosign(
+        &rotated,
+        &possession_digest(&member, &args.input.public_key),
+        &args.possession,
+    )?;
+    let kind = AuditKind::CosignerRotated {
+        id: c.id,
+        old_key: cosigner_key(&c.input.public_key),
+        new_key: cosigner_key(&rotated.input.public_key),
+    };
+    if let Some(slot) = w.cosigners.iter_mut().find(|x| x.id == c.id) {
+        *slot = rotated.clone();
+    }
+    store::audit(&mut w, at, Some(member), None, kind);
+    store::save(w);
+    Ok(rotated)
 }
 
 /// Stop executions at once. Any Admin or Approver may freeze; unfreezing
@@ -631,10 +789,13 @@ pub(crate) fn refresh(w: &mut Wallet, p: &mut Proposal, at: u64) -> Result<()> {
     )
 }
 
-/// Refuse what a freeze stops: only Unfreeze and membership changes proceed.
+/// Refuse what a freeze stops: only Unfreeze, membership changes and
+/// replacing a cosigner's key proceed.
 pub(crate) fn unlocked(w: &Wallet, intent: &Intent) -> Result<()> {
     ensure(
-        !w.frozen || matches!(intent, Intent::Unfreeze) || is_membership(intent),
+        !w.frozen
+            || matches!(intent, Intent::Unfreeze | Intent::ReplaceCosigner { .. })
+            || is_membership(intent),
         Error::Locked,
     )
 }
@@ -771,6 +932,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
             ensure_valid(!w.taproot_cosigner(*id), "cosigner of a native address")?;
             check_cosigner_removal(w, &[*id])?;
         }
+        Intent::ReplaceCosigner { id, input } => check_replacement(w, w.cosigner(*id)?, input)?,
         Intent::AddMember(input) => {
             ensure(w.members.len() < MAX_MEMBERS, Error::QuotaExceeded)?;
             ensure(w.member(&input.id).is_none(), Error::IdempotencyConflict)?;
@@ -886,6 +1048,30 @@ fn check_cosigner_removal(w: &Wallet, ids: &[u32]) -> Result<()> {
                 .is_some_and(|p| p.cosigners.iter().any(|id| ids.contains(id)))
         }),
         "cosigner still used by address",
+    )
+}
+
+/// A key that may take the place of cosigner `c`: of the same member, not
+/// committed to by a native Taproot address, new to the wallet, and
+/// declared hardware when the key it replaces or the policy is.
+fn check_replacement(w: &Wallet, c: &Cosigner, input: &CosignerInput) -> Result<()> {
+    ensure_valid(
+        !w.taproot_cosigner(c.id)
+            && c.input.kind != CosignerKind::Bip340
+            && input.kind != CosignerKind::Bip340,
+        "cosigner of a native address",
+    )?;
+    ensure_valid(input.member == c.input.member, "cosigner member")?;
+    validate_cosigner(input)?;
+    ensure(
+        w.cosigners
+            .iter()
+            .all(|o| o.id == c.id || o.input.public_key != input.public_key),
+        Error::IdempotencyConflict,
+    )?;
+    ensure(
+        input.hardware || !(c.input.hardware || w.policy.hardware_cosigners),
+        Error::Forbidden,
     )
 }
 
@@ -1174,7 +1360,7 @@ fn check_decision(
 ) -> Result<Role> {
     let m = w.member(member).ok_or(Error::Forbidden)?;
     ensure(
-        m.status == MemberStatus::Active && m.principals.contains(&caller),
+        m.status == MemberStatus::Active && m.binds(&caller),
         Error::Forbidden,
     )?;
     match decision {

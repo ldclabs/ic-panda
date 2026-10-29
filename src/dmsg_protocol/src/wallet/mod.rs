@@ -10,6 +10,7 @@ use dmsg_types::{
     wallet::*,
     *,
 };
+use serde_bytes::ByteBuf;
 
 pub mod address;
 pub mod cosign;
@@ -24,7 +25,15 @@ pub const PROPOSAL_DOMAIN: &str = "dmsg-wallet/proposal/v1";
 /// Domain of [`decision_digest`].
 pub const DECISION_DOMAIN: &str = "dmsg-wallet/decision/v1";
 /// Domain of [`join_digest`].
-pub const JOIN_DOMAIN: &str = "dmsg-wallet/join/v1";
+pub const JOIN_DOMAIN: &str = "dmsg-wallet/join/v2";
+/// Domain of [`unbind_digest`].
+pub const UNBIND_DOMAIN: &str = "dmsg-wallet/unbind/v1";
+/// Domain of [`rotate_digest`].
+pub const ROTATE_DOMAIN: &str = "dmsg-wallet/cosigner-rotate/v1";
+/// Domain of [`possession_digest`].
+pub const POSSESSION_DOMAIN: &str = "dmsg-wallet/cosigner-possession/v1";
+/// Domain of [`cosigner_key`].
+pub const COSIGNER_KEY_DOMAIN: &str = "dmsg-wallet/cosigner-key/v1";
 /// Domain of [`activation_digest`].
 pub const ACTIVATION_DOMAIN: &str = "dmsg-wallet/activation/v1";
 /// Domain of [`cosign_message`].
@@ -64,9 +73,57 @@ pub fn decision_digest(proposal: &Hash, decision: Decision) -> Hash {
     digest(DECISION_DOMAIN, &(proposal, decision))
 }
 
-/// The `action_digest` of an account member joining and binding `actor`.
-pub fn join_digest(wallet: Principal, account: &AccountId, actor: Principal) -> Hash {
-    digest(JOIN_DOMAIN, &(wallet, account, actor))
+/// The `action_digest` of an account member joining and binding `actor`
+/// for `device`, taking over the bindings of `replaces`, or of every other
+/// device when `exclusive`.
+pub fn join_digest(
+    wallet: Principal,
+    account: &AccountId,
+    actor: Principal,
+    device: &Option<Hash>,
+    replaces: &[Hash],
+    exclusive: bool,
+) -> Hash {
+    digest(
+        JOIN_DOMAIN,
+        &(wallet, account, actor, device, replaces, exclusive),
+    )
+}
+
+/// The `action_digest` of an account member removing its bindings of
+/// `devices`; `actor` calls.
+pub fn unbind_digest(
+    wallet: Principal,
+    account: &AccountId,
+    actor: Principal,
+    devices: &[Hash],
+) -> Hash {
+    digest(UNBIND_DOMAIN, &(wallet, account, actor, devices))
+}
+
+/// What a cosigner's current key signs to hand its place to `input` until
+/// `expires_at_ms`.
+pub fn rotate_digest(
+    wallet: Principal,
+    cosigner: u32,
+    old_key: &ByteBuf,
+    input: &CosignerInput,
+    expires_at_ms: u64,
+) -> Hash {
+    digest(
+        ROTATE_DOMAIN,
+        &(wallet, cosigner, old_key, input, expires_at_ms),
+    )
+}
+
+/// What a new cosigner key signs to prove its member holds it.
+pub fn possession_digest(member: &MemberId, public_key: &ByteBuf) -> Hash {
+    digest(POSSESSION_DOMAIN, &(member, public_key))
+}
+
+/// The digest of a cosigner public key, as the audit names it.
+pub fn cosigner_key(public_key: &ByteBuf) -> Hash {
+    digest(COSIGNER_KEY_DOMAIN, public_key)
 }
 
 /// The `action_digest` of creating the wallet `spec` under `quote`.

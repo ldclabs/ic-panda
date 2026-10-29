@@ -635,10 +635,87 @@ fn digests_bind_their_inputs() {
         decision_digest(&d(1, None), Decision::Veto)
     );
     let account = AccountId([1; 12]);
+    let device = Some(Hash::new([4; 32]));
+    let join = |actor: u8, device: &Option<Hash>, replaces: &[Hash], exclusive: bool| {
+        join_digest(
+            principal(1),
+            &account,
+            principal(actor),
+            device,
+            replaces,
+            exclusive,
+        )
+    };
+    let joined = join(2, &device, &[], false);
+    for other in [
+        join(3, &device, &[], false),
+        join(2, &None, &[], false),
+        join(2, &device, &[Hash::new([5; 32])], false),
+        join(2, &device, &[], true),
+        unbind_digest(principal(1), &account, principal(2), &[Hash::new([4; 32])]),
+    ] {
+        assert_ne!(joined, other);
+    }
+    let input = cosigner(CosignerKind::P256, vec![2; 33], CosignerEnvelope::Raw).input;
+    let old = ByteBuf::from(vec![3; 33]);
+    let rotate =
+        |cosigner: u32, expires: u64| rotate_digest(principal(1), cosigner, &old, &input, expires);
+    assert_ne!(rotate(1, 10), rotate(2, 10));
+    assert_ne!(rotate(1, 10), rotate(1, 11));
     assert_ne!(
-        join_digest(principal(1), &account, principal(2)),
-        join_digest(principal(1), &account, principal(3))
+        possession_digest(&input.member, &input.public_key),
+        possession_digest(&MemberId::Principal(principal(8)), &input.public_key)
     );
+    assert_ne!(cosigner_key(&old), cosigner_key(&input.public_key));
+}
+
+#[test]
+fn join_and_unbind_shapes() {
+    let account = MemberApproval::Account {
+        approval_id: Hash::new([1; 32]),
+        approval: approval(principal(1), principal(2)),
+    };
+    let ids = |n: &[u8]| n.iter().map(|&i| Hash::new([i; 32])).collect::<Vec<_>>();
+    let join = |evidence: &MemberApproval, device: Option<u8>, replaces: &[u8], exclusive: bool| {
+        validate_join(&JoinArgs {
+            evidence: evidence.clone(),
+            device: device.map(|d| Hash::new([d; 32])),
+            replaces: ids(replaces),
+            exclusive,
+        })
+    };
+    join(&account, Some(1), &[], false).unwrap();
+    join(&account, Some(1), &[1, 2, 3, 4], false).unwrap();
+    join(&account, Some(1), &[], true).unwrap();
+    join(&MemberApproval::Principal, None, &[], false).unwrap();
+    for refused in [
+        join(&account, None, &[], false),
+        join(&account, Some(1), &[2, 1], false),
+        join(&account, Some(1), &[2, 2], false),
+        join(&account, Some(1), &[1, 2, 3, 4, 5], false),
+        join(&account, Some(1), &[2], true),
+        join(&MemberApproval::Principal, Some(1), &[], false),
+        join(&MemberApproval::Principal, None, &[1], false),
+        join(&MemberApproval::Principal, None, &[], true),
+    ] {
+        assert!(matches!(refused, Err(Error::InvalidInput(_))));
+    }
+    let unbind = |evidence: &MemberApproval, devices: &[u8]| {
+        validate_unbind(&UnbindArgs {
+            evidence: evidence.clone(),
+            devices: ids(devices),
+        })
+    };
+    unbind(&account, &[1]).unwrap();
+    unbind(&account, &[1, 2, 3, 4]).unwrap();
+    for refused in [
+        unbind(&account, &[]),
+        unbind(&account, &[1, 2, 3, 4, 5]),
+        unbind(&account, &[2, 1]),
+        unbind(&MemberApproval::Principal, &[1]),
+    ] {
+        assert!(matches!(refused, Err(Error::InvalidInput(_))));
+    }
 }
 
 #[test]
@@ -669,18 +746,15 @@ fn audit_chain() {
     );
 }
 
-#[test]
-fn approvals_must_match_the_consumer() {
-    let hub = principal(1);
-    let wallet = principal(2);
-    let account = AccountId([3; 12]);
-    let approval = ApplicationApproval {
+/// A proposal approval of account `[3; 12]` for `wallet`, by `principal(4)`.
+fn approval(hub: Principal, wallet: Principal) -> ApplicationApproval {
+    ApplicationApproval {
         version: 1,
         environment: Environment::Local,
         app_id: WALLET_APP_ID.into(),
         app_config_version: 1,
         origin: "https://dmsg.net".into(),
-        approving_account: account,
+        approving_account: AccountId([3; 12]),
         service: wallet,
         beneficiary: wallet_beneficiary(hub, wallet),
         actor: principal(4),
@@ -689,7 +763,15 @@ fn approvals_must_match_the_consumer() {
         operation_id: Hash::new([6; 32]),
         nonce: Hash::new([7; 32]),
         expires_at_ms: 1_000 + MINUTE,
-    };
+    }
+}
+
+#[test]
+fn approvals_must_match_the_consumer() {
+    let hub = principal(1);
+    let wallet = principal(2);
+    let account = AccountId([3; 12]);
+    let approval = approval(hub, wallet);
     let expected = ExpectedApproval {
         environment: &Environment::Local,
         hub,

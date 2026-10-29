@@ -19,10 +19,12 @@ use dmsg_types::{wallet::*, *};
 fn inspect_message() {
     let caller = ic_cdk::api::msg_caller();
     let method = ic_cdk::api::msg_method_name();
-    let open = matches!(method.as_str(), "join" | "bootstrap" | "refuel" | "prune");
-    let member = store::with(|w| {
-        caller == w.settings.hub || w.members.iter().any(|m| m.principals.contains(&caller))
-    });
+    let open = matches!(
+        method.as_str(),
+        "join" | "unbind" | "bootstrap" | "refuel" | "prune"
+    );
+    let member =
+        store::with(|w| caller == w.settings.hub || w.members.iter().any(|m| m.binds(&caller)));
     if caller != Principal::anonymous() && (open || member) {
         ic_cdk::api::accept_message();
     }

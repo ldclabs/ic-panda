@@ -51,6 +51,7 @@ pub fn classify(intent: &Intent, policy: &Policy) -> IntentClass {
         | Intent::RemoveMember(_)
         | Intent::SetCosign { .. }
         | Intent::RemoveCosigner(_)
+        | Intent::ReplaceCosigner { .. }
         | Intent::AcceptUpgrade { .. }
         | Intent::LockCode
         | Intent::ReleaseEvmNonce { .. } => IntentClass::Admin {
@@ -266,6 +267,46 @@ pub fn validate_member(input: &MemberInput) -> Result<()> {
     Ok(())
 }
 
+/// Device IDs named at most four times, ascending.
+fn devices(ids: &[Hash]) -> bool {
+    ids.len() <= MAX_MEMBER_PRINCIPALS && ids.windows(2).all(|w| w[0] < w[1])
+}
+
+/// Check the shape of `join` arguments: an account member names its device
+/// and may take over other devices' bindings; a Principal member binds
+/// itself only.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for any other shape.
+pub fn validate_join(args: &JoinArgs) -> Result<()> {
+    match args.evidence {
+        MemberApproval::Account { .. } => ensure_valid(
+            args.device.is_some()
+                && devices(&args.replaces)
+                && !(args.exclusive && !args.replaces.is_empty()),
+            "join devices",
+        ),
+        MemberApproval::Principal => ensure_valid(
+            args.device.is_none() && args.replaces.is_empty() && !args.exclusive,
+            "join devices",
+        ),
+    }
+}
+
+/// Check the shape of `unbind` arguments: an account member's approval
+/// naming one to four devices.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for any other shape.
+pub fn validate_unbind(args: &UnbindArgs) -> Result<()> {
+    ensure_valid(
+        matches!(args.evidence, MemberApproval::Account { .. })
+            && !args.devices.is_empty()
+            && devices(&args.devices),
+        "unbind devices",
+    )
+}
+
 /// Check a policy; `admins` and `approvers` count every member, invited or
 /// active, with such a role, so thresholds can be met once all join.
 ///
@@ -430,7 +471,9 @@ pub fn validate_intent(intent: &Intent) -> Result<()> {
             cosign.as_ref().map_or(Ok(()), validate_cosign_policy)
         }
         Intent::SetCosign { cosign, .. } => cosign.as_ref().map_or(Ok(()), validate_cosign_policy),
-        Intent::AddCosigner(input) => crate::wallet::validate_cosigner(input),
+        Intent::AddCosigner(input) | Intent::ReplaceCosigner { input, .. } => {
+            crate::wallet::validate_cosigner(input)
+        }
         Intent::AddMember(input) | Intent::UpdateMember(input) => validate_member(input),
         Intent::AddressBook(BookChange::Add {
             destination,

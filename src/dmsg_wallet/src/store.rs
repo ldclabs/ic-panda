@@ -17,7 +17,7 @@ use std::cell::RefCell;
 // certification nodes=9.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 1;
+pub(crate) const STABLE_SCHEMA: u16 = 2;
 
 /// Job key of the policy's automatic top-up; proposal IDs start at 1.
 pub(crate) const REFUEL_JOB: u64 = 0;
@@ -124,7 +124,7 @@ impl Wallet {
         authenticated(caller)?;
         self.members
             .iter()
-            .find(|m| m.status == MemberStatus::Active && m.principals.contains(&caller))
+            .find(|m| m.status == MemberStatus::Active && m.binds(&caller))
             .ok_or(Error::Forbidden)
     }
 
@@ -154,7 +154,7 @@ impl Wallet {
         self.policy.public
             || caller == self.settings.hub
             || ic_cdk::api::is_controller(&caller)
-            || self.members.iter().any(|m| m.principals.contains(&caller))
+            || self.members.iter().any(|m| m.binds(&caller))
     }
 
     /// Reset the daily counters when the UTC day changes.

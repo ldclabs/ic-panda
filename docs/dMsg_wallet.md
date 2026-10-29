@@ -62,11 +62,11 @@ Members may be dMsg accounts or direct-calling Principals. The creator is an act
 | Viewer | Cannot propose | Does not count | No |
 | Recovery | Add, remove or update members only | Does not count; its own recovery proposals require no approval and wait 7 days | No; Admin/Approver may veto during the delay |
 
-Each account-member device has a locally encrypted Ed25519 wallet key; `WalletJoin` device approval binds its Principal, with at most 4 bindings per member. Login identity submits device approval at the user home; wallet identity calls dynamic wallet instances. They serve separate purposes.
+Each account-member device has a locally encrypted Ed25519 wallet key; `WalletJoin` device approval binds its Principal, one per device and at most 4 devices per member. A device joining may take over the bindings of devices it names, or of all others after a login recovery; an account approval also unbinds lost devices, while the member stays active. Login identity submits device approval at the user home; wallet identity calls dynamic wallet instances. They serve separate purposes.
 
 Creation, joining and approve/reject/veto go through the approval center and require `WalletApprove` on account devices. Principal members decide as the caller directly. Proposals do not include the proposer's approval automatically; voting is separate. Non-Viewer members may execute approved operations, but execution grants no new approval authority.
 
-Member additions/removals/updates and first joins advance the authorization version, making old unexecuted proposals `Stale`. Binding another device for an active member does not advance it again. Account-device revocation is distinct from wallet membership; recorded votes do not disappear merely because the home's security epoch changes. Freeze or membership changes must handle that situation.
+Member additions/removals/updates and first joins advance the authorization version, making old unexecuted proposals `Stale`. Binding, replacing or unbinding a device of an active member does not advance it again. Account-device revocation is distinct from wallet membership: a revoked device keeps its wallet binding until it is unbound, and recorded votes do not disappear merely because the home's security epoch changes. Freeze, unbinding or membership changes must handle that situation.
 
 ## 5. Addresses, cosigners and policy
 
@@ -88,7 +88,7 @@ Ordinary CS key generation supports Secure Enclave P-256 on macOS and iOS, and s
 
 The two clients differ: the macOS Secure Enclave signs at most 32 digests per presence check and iOS at most 64; turning off the iPhone passcode invalidates its Secure Enclave keys, so the wallet needs another cosigner to stay usable. NC cosigner keys are BIP-340 Taproot keys; no dMsg client holds or signs with them yet, so dMsg clients cannot sign an L1 spend.
 
-Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
+Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. A cosigner key changes in place: its member rotates it with the old key at once, or an Admin proposal replaces it after 24 hours when the old key is lost, also while frozen; signatures collected with the old key must be made again. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
 
 ### 5.3 Policy semantics
 
@@ -105,7 +105,7 @@ Devices must cosign the same plan. Package import only collects signatures, neve
 | Version/deadline | First execution rechecks current votes, authorization version, expiry and freeze; Recovery must still be an active recovery member |
 | Execution budget | `daily_signatures` bounds threshold signatures per UTC day, counted by digest before signing; it is not a ceiling on all wallet cycles consumption |
 
-`SetPolicy`, `RemoveMember`, `SetCosign`, `RemoveCosigner`, `AcceptUpgrade`, `LockCode` and `ReleaseEvmNonce` require Admin threshold plus 24 hours; unfreeze delay follows policy. Adding addresses, cosigners or members and updating members require Admin threshold without a fixed delay. Recovery membership changes always wait 7 days.
+`SetPolicy`, `RemoveMember`, `SetCosign`, `RemoveCosigner`, `ReplaceCosigner`, `AcceptUpgrade`, `LockCode` and `ReleaseEvmNonce` require Admin threshold plus 24 hours; unfreeze delay follows policy. Adding addresses, cosigners or members and updating members require Admin threshold without a fixed delay. Recovery membership changes always wait 7 days.
 
 ## 6. User flows
 
