@@ -99,10 +99,12 @@ pub(crate) fn complete_recovery(
     });
     s.account_version += 1;
     s.sensitive_policy.frozen = false;
-    // The replaced devices' approval keys go with them, and so does their
-    // policy: the recovered device registers a key and enables it again.
+    // The replaced devices' approval keys go with them, and so do their
+    // policy and any succession: the recovered device registers a key and
+    // enables it again.
     s.approval_keys.clear();
     s.hardware_policy.clear();
+    s.successions.clear();
     // Every replaced device may hold the root, so the recovered device rekeys
     // even if it reuses a device ID.
     changed(s, &[]);

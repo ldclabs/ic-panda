@@ -87,9 +87,10 @@ pub fn command_purpose(command: &AccountCommand) -> Option<HardwarePurpose> {
         | SetRecoveryDelay { .. }
         | BindAuth { .. }
         | RemoveAuth { .. } => Some(HardwarePurpose::AccountControl),
-        AddDevice { .. } | RevokeDevice { .. } | SetDeviceCapabilities { .. } => {
-            Some(HardwarePurpose::DeviceControl)
-        }
+        AddDevice { .. }
+        | AddSuccessor { .. }
+        | RevokeDevice { .. }
+        | SetDeviceCapabilities { .. } => Some(HardwarePurpose::DeviceControl),
         EnablePrincipal { .. } | RegisterController { .. } | RetireController { .. } => {
             Some(HardwarePurpose::PrincipalControl)
         }

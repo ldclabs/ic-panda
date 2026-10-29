@@ -1,6 +1,8 @@
-//! Approval keys on the real user home module, and the in-place upgrade of
-//! schema 15 accounts to them. The upgrade test needs the schema 15 module:
-//! run it through scripts/test-dmsg-hardware-upgrade.sh.
+//! Approval keys on the real user home module, and the in-place upgrades of
+//! schema 15 accounts to them and of schema 16 accounts to device
+//! successions. The upgrade tests need the old modules: run them through
+//! scripts/test-dmsg-hardware-upgrade.sh and
+//! scripts/test-dmsg-succession-upgrade.sh.
 use super::*;
 use serde::Serialize;
 
@@ -461,4 +463,149 @@ fn schema_15_upgrade_keeps_accounts_and_starts_without_approval_keys() {
     )
     .unwrap();
     assert_eq!(f.account_id(1, &id), keyed);
+}
+
+#[test]
+#[ignore = "requires the schema 16 Wasm; run scripts/test-dmsg-succession-upgrade.sh"]
+fn schema_16_upgrade_keeps_accounts_and_admits_successions() {
+    let directory = PathBuf::from(
+        std::env::var_os("DMSG_PRE_SUCCESSION_WASM_DIR")
+            .expect("run scripts/test-dmsg-succession-upgrade.sh"),
+    );
+    let f = Fixture::with_identity_modules(
+        false,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [
+            std::fs::read(directory.join("dmsg_user.wasm")).unwrap(),
+            wasm("dmsg_directory"),
+            wasm("dmsg_handle"),
+        ],
+    );
+    // A full Free account with an approval key, the hardware policy and a
+    // pending recovery, beside a plain one.
+    let id = f.create(1);
+    let other = f.create(2);
+    enroll(&f, &id, 2);
+    apply(
+        &f,
+        1,
+        &id,
+        AccountCommand::SetApprovalKey {
+            device_id: Hash::new([1; 32]),
+            key: Some(key_input(&f, &id, 1, 31)),
+        },
+        None,
+    )
+    .unwrap();
+    apply(&f, 1, &id, policy(&[]), Some(31)).unwrap();
+    let s = f.account_id(1, &id);
+    let request = RecoveryRequest {
+        op_id: digest("test-recovery", &(id, 9u8)),
+        new_auth: person(1),
+        device: device(9),
+        expires_at: time(&f.ic) + s.recovery_delay_ms + DAY,
+    };
+    let proof = ByteBuf::from(
+        key(9)
+            .sign(recovery_device_message(f.user, &id, &request).as_slice())
+            .to_bytes()
+            .to_vec(),
+    );
+    let begun: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "request_recovery",
+        (id, request.clone(), proof),
+    );
+    begun.unwrap();
+    let before = (f.account_id(1, &id), f.account_id(2, &other));
+    let security = (snapshot(&f, &id), snapshot(&f, &other));
+    let secrets = [
+        unlock(&f, 1, &id, 1),
+        unlock(&f, 1, &id, 2),
+        unlock(&f, 2, &other, 2),
+    ];
+
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!((f.account_id(1, &id), f.account_id(2, &other)), before);
+    assert_eq!((snapshot(&f, &id), snapshot(&f, &other)), security);
+    assert_eq!(
+        [
+            unlock(&f, 1, &id, 1),
+            unlock(&f, 1, &id, 2),
+            unlock(&f, 2, &other, 2)
+        ],
+        secrets
+    );
+    // Existing commands work as before.
+    apply(
+        &f,
+        2,
+        &id,
+        AccountCommand::DisputeRecovery {
+            op_id: request.op_id,
+        },
+        None,
+    )
+    .unwrap();
+    // The full account replaces device 1 with device 3, under its key.
+    let s = f.account_id(1, &id);
+    let request_id = digest("test-operation", &(id, s.account_version));
+    let proof = key(3)
+        .sign(
+            successor_device_message(
+                f.user,
+                &id,
+                &device(3),
+                s.account_version,
+                request_id,
+                Hash::new([1; 32]),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    let successor = AccountCommand::AddSuccessor {
+        device: device(3),
+        proof,
+    };
+    assert_eq!(
+        apply(&f, 1, &id, successor.clone(), None),
+        Err(Error::Forbidden)
+    );
+    apply(&f, 1, &id, successor, Some(31)).unwrap();
+    assert_eq!(apply(&f, 1, &id, delay(2), Some(31)), Err(Error::Forbidden));
+    // Another upgrade keeps the succession.
+    let handing_over = f.account_id(1, &id);
+    f.ic.advance_time(Duration::from_secs(600));
+    f.ic.tick();
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(f.account_id(1, &id), handing_over);
+    assert_eq!(apply(&f, 1, &id, delay(2), Some(31)), Err(Error::Forbidden));
+    apply(
+        &f,
+        1,
+        &id,
+        AccountCommand::SetApprovalKey {
+            device_id: Hash::new([3; 32]),
+            key: Some(key_input(&f, &id, 3, 33)),
+        },
+        Some(31),
+    )
+    .unwrap();
 }

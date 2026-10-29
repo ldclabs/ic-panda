@@ -1499,6 +1499,158 @@ fn device_admission_obeys_each_plan_without_changing_existing_devices() {
     }
 }
 
+/// The successor `input` of device `predecessor`, approved by device `by`.
+fn successor_mutation(
+    s: &AccountState,
+    input: DeviceInput,
+    by: u8,
+    predecessor: u8,
+    time: u64,
+) -> AccountMutation {
+    let request_id = digest("test", &(s.account_version, by));
+    let proof = SigningKey::from_bytes(&[input.device_id[0]; 32])
+        .sign(
+            successor_device_message(
+                s.home_user,
+                &s.account_id,
+                &input,
+                s.account_version,
+                request_id,
+                Hash::new([predecessor; 32]),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    mutation(
+        s,
+        AccountCommand::AddSuccessor {
+            device: input,
+            proof,
+        },
+        by,
+        time,
+    )
+}
+
+fn free(s: &mut AccountState, m: &AccountMutation, time: u64) -> Result<OperationReceipt> {
+    account::apply(s, p(1), m, time, p(7), &PlanId::Free)
+}
+
+fn revoke(n: u8) -> AccountCommand {
+    AccountCommand::RevokeDevice {
+        device_id: Hash::new([n; 32]),
+    }
+}
+
+#[test]
+fn a_successor_joins_a_full_account_and_its_predecessor_only_hands_over() {
+    let mut s = fixture();
+    add_device(&mut s, device(2, true), 2).unwrap();
+    let denied = add_device_mutation(&s, device(3, true), 3);
+    assert_eq!(free(&mut s, &denied, 3), Err(Error::QuotaExceeded));
+    // Only the device the proof names approves, and the successor holds
+    // nothing the predecessor lacks.
+    let wrong = successor_mutation(&s, device(3, true), 1, 2, 3);
+    assert_eq!(free(&mut s, &wrong, 3), Err(Error::IntegrityFailed));
+    let beyond = successor_mutation(&s, device(3, false), 2, 2, 3);
+    assert_eq!(free(&mut s, &beyond, 3), Err(Error::Forbidden));
+    let before = s.clone();
+    let m = successor_mutation(&s, device(3, true), 2, 2, 4);
+    let receipt = free(&mut s, &m, 4).unwrap();
+    assert_eq!(
+        s.successions,
+        BTreeMap::from([(Hash::new([2; 32]), Hash::new([3; 32]))])
+    );
+    assert_eq!(
+        s.devices[&Hash::new([3; 32])].added_by,
+        Some(Hash::new([2; 32]))
+    );
+    assert_eq!(s.security_epoch, before.security_epoch + 1);
+    assert_eq!(free(&mut s, &m, 5), Ok(receipt));
+    // One succession at a time.
+    let second = successor_mutation(&s, device(4, true), 1, 1, 5);
+    assert_eq!(free(&mut s, &second, 5), Err(Error::Pending));
+
+    // The predecessor approves the handover and nothing else; the
+    // successor is not limited.
+    let delay = AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY };
+    assert_eq!(
+        apply_as(&mut s, delay.clone(), 2, None, 6),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        apply_as(&mut s, revoke(1), 2, None, 6),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        apply_as(&mut s, set_key(1, Some(key_input(1, 31))), 2, None, 6),
+        Err(Error::Forbidden)
+    );
+    let r = attest_request(&s, 2, statement(&s), 6);
+    assert_eq!(attest(&mut s, p(1), &r, 6), Err(Error::Forbidden));
+    apply_as(&mut s, set_key(3, Some(key_input(3, 33))), 2, None, 7).unwrap();
+    let op_id = Hash::new([70; 32]);
+    let reserve = AccountCommand::ReserveRoot {
+        expected_generation: 0,
+        op_id,
+    };
+    apply_as(&mut s, reserve, 2, None, 8).unwrap();
+    let root = root_ref(&s, s.root_slot.as_ref().unwrap().generation);
+    let commit = AccountCommand::CommitRoot {
+        expected_generation: 0,
+        op_id,
+        root,
+    };
+    apply_as(&mut s, commit, 2, None, 9).unwrap();
+    apply_as(&mut s, delay, 3, None, 10).unwrap();
+
+    // Revoking the successor cancels; the account is full again.
+    apply_as(&mut s, revoke(3), 2, None, 11).unwrap();
+    assert!(s.successions.is_empty());
+    let denied = add_device_mutation(&s, device(4, true), 12);
+    assert_eq!(free(&mut s, &denied, 12), Err(Error::QuotaExceeded));
+    // Revoking itself completes the next one.
+    let m = successor_mutation(&s, device(4, true), 2, 2, 13);
+    free(&mut s, &m, 13).unwrap();
+    apply_as(&mut s, revoke(2), 2, None, 14).unwrap();
+    assert!(s.successions.is_empty());
+    assert!(s.devices[&Hash::new([2; 32])].revoked_at.is_some());
+    // A completed recovery clears one in progress.
+    let m = successor_mutation(&s, device(5, true), 1, 1, 15);
+    free(&mut s, &m, 15).unwrap();
+    recovered(&mut s, 6, 16);
+    assert!(s.successions.is_empty());
+}
+
+#[test]
+fn a_predecessor_unlocks_until_a_week_after_its_successor_joined() {
+    let mut s = fixture();
+    add_device(&mut s, device(2, true), 2).unwrap();
+    let m = successor_mutation(&s, device(3, true), 2, 2, 10);
+    free(&mut s, &m, 10).unwrap();
+    let old = Hash::new([2; 32]);
+    let end = 10 + SUCCESSION_UNLOCK_MS;
+    account::unlockable(&s, &old, end - 1).unwrap();
+    assert_eq!(
+        account::unlockable(&s, &old, end),
+        Err(Error::DeviceNotApproved)
+    );
+    account::unlockable(&s, &Hash::new([3; 32]), end + 30 * DAY).unwrap();
+    account::unlockable(&s, &Hash::new([1; 32]), end + 30 * DAY).unwrap();
+    assert_eq!(
+        account::unlockable(&s, &Hash::new([9; 32]), 11),
+        Err(Error::DeviceNotApproved)
+    );
+    // Cancelling the succession lifts the limit; revoking still locks.
+    apply_as(&mut s, revoke(3), 2, None, 11).unwrap();
+    account::unlockable(&s, &old, end).unwrap();
+    assert_eq!(
+        account::unlockable(&s, &Hash::new([3; 32]), 12),
+        Err(Error::DeviceNotApproved)
+    );
+}
+
 #[test]
 fn revoked_devices_free_plan_slots_and_old_records_remain_bounded() {
     let mut s = fixture();

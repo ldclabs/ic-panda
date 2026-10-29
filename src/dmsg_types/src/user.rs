@@ -23,6 +23,9 @@ pub const MAX_OPERATION_RECEIPTS: usize = 16;
 pub const MAX_PENDING_BINDINGS: usize = 4;
 /// Time a new login has to accept an approved binding (ten minutes).
 pub const BINDING_ACCEPT_MS: u64 = 10 * MINUTE;
+/// How long a device that approved its successor still receives its unlock
+/// secret, from the successor's enrollment (seven days).
+pub const SUCCESSION_UNLOCK_MS: u64 = 7 * DAY;
 /// Longest remaining lifetime of an account admission ticket (ten minutes).
 pub const MAX_ADMISSION_TTL_MS: u64 = 10 * MINUTE;
 /// Remote calls an account's logins may start per UTC hour (120).
@@ -515,6 +518,20 @@ pub enum AccountCommand {
     SetHardwarePolicy {
         /// The protected purposes, each once.
         purposes: Vec<HardwarePurpose>,
+    },
+    /// Enroll the approving device's successor, beyond the plan's device
+    /// limit; an account has one succession at a time. Until it ends, the
+    /// approving device approves only the successor's approval key, root
+    /// rotations, recovery disputes and revoking either device, and it
+    /// unlocks until `SUCCESSION_UNLOCK_MS` after the successor joined.
+    /// Revoking either device or completing a recovery ends it.
+    AddSuccessor {
+        /// New device identity, keys and permissions, with no capability
+        /// the approving device lacks.
+        device: DeviceInput,
+        /// New device Ed25519 proof of possession naming the approving
+        /// device; use the matching protocol digest helper.
+        proof: Ed25519Signature,
     },
 }
 

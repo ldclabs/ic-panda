@@ -299,6 +299,9 @@ pub struct AccountStateRepr {
     #[cbor(key = 31)]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hardware_policy: Vec<HardwarePurpose>,
+    #[cbor(key = 32)]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub successions: BTreeMap<Hash, Hash>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -381,6 +384,7 @@ impl StableCodec for AccountState {
                 .map(|(id, key)| (*id, approval_key_to_repr(key)))
                 .collect(),
             hardware_policy: self.hardware_policy.clone(),
+            successions: self.successions.clone(),
         }
     }
 
@@ -432,6 +436,7 @@ impl StableCodec for AccountState {
                 .map(|(id, key)| (id, approval_key_from_repr(key)))
                 .collect(),
             hardware_policy: repr.hardware_policy,
+            successions: repr.successions,
         }
     }
 }
@@ -623,6 +628,7 @@ mod tests {
             principal_updated_at: None,
             approval_keys: BTreeMap::new(),
             hardware_policy: vec![],
+            successions: BTreeMap::new(),
         };
         if !populated {
             return state;
@@ -813,6 +819,17 @@ mod tests {
             "{}",
             bytes.len() - compact.len()
         );
+
+        // A succession takes a key of its own too.
+        let mut handing_over = keyed;
+        handing_over.successions = BTreeMap::from([(Hash::new([2; 32]), Hash::new([16; 32]))]);
+        let succession = compact_bytes(&handing_over);
+        assert_eq!(
+            compact_from_bytes::<AccountState>(&succession),
+            handing_over
+        );
+        assert_eq!(top_keys(&succession).last(), Some(&32));
+        assert!(succession.len() - bytes.len() < 80);
     }
 
     fn hex(bytes: &[u8]) -> String {

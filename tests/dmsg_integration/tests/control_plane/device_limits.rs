@@ -51,6 +51,123 @@ fn enroll(f: &Fixture, m: &AccountMutation) -> Result<OperationReceipt> {
     update(&f.ic, f.user, person(1), "mutate_account", (m,))
 }
 
+/// Device `by` approves device `n` as its successor.
+fn succession(f: &Fixture, id: &AccountId, by: u8, n: u8) -> Result<OperationReceipt> {
+    let s = f.account_id(1, id);
+    let request_id = digest("test-operation", &(id, s.account_version));
+    let proof = key(n)
+        .sign(
+            successor_device_message(
+                f.user,
+                id,
+                &device(n),
+                s.account_version,
+                request_id,
+                Hash::new([by; 32]),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    f.mutate_by(
+        1,
+        by,
+        id,
+        AccountCommand::AddSuccessor {
+            device: device(n),
+            proof,
+        },
+    )
+}
+
+fn unlock(f: &Fixture, id: &AccountId, n: u8) -> Result<Hash> {
+    query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (id, Hash::new([n; 32])),
+    )
+}
+
+#[test]
+fn a_full_account_replaces_a_device_through_one_succession_at_a_time() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    enroll(&f, &enrollment(&f, &id, 2)).unwrap();
+    assert_eq!(
+        enroll(&f, &enrollment(&f, &id, 3)),
+        Err(Error::QuotaExceeded)
+    );
+    // The successor needs no commerce round trip.
+    f.ic.stop_canister(f.commerce, None).unwrap();
+    succession(&f, &id, 2, 3).unwrap();
+    f.ic.start_canister(f.commerce, None).unwrap();
+    let info = f.account_id(1, &id);
+    assert_eq!(
+        info.devices[&Hash::new([3; 32])].added_by,
+        Some(Hash::new([2; 32]))
+    );
+    assert_eq!(succession(&f, &id, 1, 4), Err(Error::Pending));
+
+    // The predecessor rotates the root and approves nothing beyond the handover.
+    f.rekey_by(1, 2, &id);
+    assert_eq!(
+        f.mutate_by(
+            1,
+            2,
+            &id,
+            AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY }
+        ),
+        Err(Error::Forbidden)
+    );
+    let statement = Statement {
+        issuer: account_issuer(NAMESPACE, &id),
+        subject: None,
+        issued_at: None,
+        content: StatementContent::Text("handover".into()),
+    };
+    assert_eq!(f.attest_by(1, 2, &id, statement), Err(Error::Forbidden));
+    // It unlocks for a week after its successor joined.
+    let secret = unlock(&f, &id, 2).unwrap();
+    // Queries read the time of the last round.
+    f.ic.advance_time(Duration::from_millis(SUCCESSION_UNLOCK_MS));
+    f.ic.tick();
+    assert_eq!(unlock(&f, &id, 2), Err(Error::DeviceNotApproved));
+    unlock(&f, &id, 3).unwrap();
+
+    // Revoking the successor cancels, and the limit applies again.
+    f.mutate_by(
+        1,
+        2,
+        &id,
+        AccountCommand::RevokeDevice {
+            device_id: Hash::new([3; 32]),
+        },
+    )
+    .unwrap();
+    assert_eq!(unlock(&f, &id, 2), Ok(secret));
+    assert_eq!(
+        enroll(&f, &enrollment(&f, &id, 4)),
+        Err(Error::QuotaExceeded)
+    );
+    // The successor completes the next one by revoking its predecessor.
+    succession(&f, &id, 2, 4).unwrap();
+    f.mutate_by(
+        1,
+        4,
+        &id,
+        AccountCommand::RevokeDevice {
+            device_id: Hash::new([2; 32]),
+        },
+    )
+    .unwrap();
+    succession(&f, &id, 1, 5).unwrap();
+    // A completed recovery clears the one in progress.
+    f.recover(1, 6, &id);
+    succession(&f, &id, 6, 7).unwrap();
+}
+
 #[test]
 fn device_limits_follow_membership_upgrade_expiry_and_revocation() {
     let f = Fixture::commercial();

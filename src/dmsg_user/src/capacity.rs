@@ -88,6 +88,7 @@ fn account(home: Principal, cose: Principal, i: u64, id: AccountId) -> AccountSt
         principal_updated_at: None,
         approval_keys: BTreeMap::new(),
         hardware_policy: vec![],
+        successions: BTreeMap::new(),
     };
     if !active {
         return s;

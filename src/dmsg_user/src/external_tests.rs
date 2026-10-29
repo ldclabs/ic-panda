@@ -200,6 +200,30 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
 }
 
 #[test]
+fn a_device_handing_over_approves_no_application_or_authentication() {
+    let mut account = account();
+    let request = fixtures::authentication();
+    let approval = signed(&account, &request);
+    account
+        .successions
+        .insert(Hash::new([7; 32]), Hash::new([8; 32]));
+    for domain in [AUTH_DOMAIN, APPLICATION_DOMAIN] {
+        assert_eq!(
+            precheck(
+                &account,
+                fixtures::principal(9),
+                &approval,
+                domain,
+                &request,
+                FORMAL,
+                fixtures::NOW,
+            ),
+            Err(Error::Forbidden)
+        );
+    }
+}
+
+#[test]
 fn failed_quota_does_not_consume_sequence_and_replay_does_not_charge_again() {
     let mut account = account();
     let mut state = ExternalState::default();

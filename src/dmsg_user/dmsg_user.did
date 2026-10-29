@@ -107,6 +107,20 @@ type AccountCommand = variant {
     // New device Ed25519 proof of possession; use the matching protocol digest helper.
     proof : blob;
   };
+  // Enroll the approving device's successor, beyond the plan's device
+  // limit; an account has one succession at a time. Until it ends, the
+  // approving device approves only the successor's approval key, root
+  // rotations, recovery disputes and revoking either device, and it
+  // unlocks until `SUCCESSION_UNLOCK_MS` after the successor joined.
+  // Revoking either device or completing a recovery ends it.
+  AddSuccessor : record {
+    // New device identity, keys and permissions, with no capability
+    // the approving device lacks.
+    device : DeviceInput;
+    // New device Ed25519 proof of possession naming the approving
+    // device; use the matching protocol digest helper.
+    proof : blob;
+  };
   // Commit the bundle reference for an active root reservation.
   CommitRoot : record {
     // Idempotency identifier; reuse only with identical operation parameters.
@@ -1356,7 +1370,8 @@ service : (UserInit) -> {
   request_recovery : (blob, RecoveryRequest, blob) -> (Result);
   security_snapshot_batch : (vec blob) -> (Result_4) query;
   // The secret a bound login fetches to unlock one device's local store. It is
-  // refused for revoked devices, so revocation also locks the device's copy.
+  // refused for revoked devices, so revocation also locks the device's copy,
+  // and for a device whose successor joined seven days ago.
   unlock_secret : (blob, blob) -> (Result_6) query;
   // Installed configuration with the current account limits. Services check it
   // before they list this home with `admin_add_user_home`.

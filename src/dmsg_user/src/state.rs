@@ -65,6 +65,9 @@ pub struct AccountState {
     pub approval_keys: BTreeMap<Hash, ApprovalKey>,
     // Purposes that need an approval-key proof; empty when off.
     pub hardware_policy: Vec<HardwarePurpose>,
+    // The successor of a device handing over, by the predecessor's ID; at
+    // most one, outside the certified device map.
+    pub successions: BTreeMap<Hash, Hash>,
 }
 
 impl AccountState {

@@ -248,7 +248,7 @@ Approval.hardware = { key_id, signature = P256(approval_key, H) }
 - 账户政策要求的用途必须带当前登记钥匙的有效证明；未要求时附带的证明同样核验。是否要求只看账户状态，开启后旧客户端（Candid 没有 `hardware` 字段）被拒绝。
 - 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（添加、撤销设备与修改能力）、`PrincipalControl`（启用 Agent 主体、登记与退役 controller）开启即必含；`Payment`（现金结账与 PANDA 订阅的应用批准、`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、第三方认证）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不受保护。
 - 登记时新钥匙要对 `digest("dmsg/approval-key/v1", (home, account, device_id, public_key))` 签持有证明，同一钥匙不能登记给两台设备。任何有效设备可管理自己的钥匙，为其他设备登记或退役需要管理员；撤销设备时其钥匙一并退役。开启政策需要批准设备自己的有效证明。
-- 批准钥匙与政策保存在账户状态，经 `AccountInfo` 返回，不进入 `Device`、`devices_root` 或安全叶，云端与 `dmsg_directory` 的安全证据不变。user home 稳定布局为 schema 16，从 14、15 原地升级。
+- 批准钥匙与政策保存在账户状态，经 `AccountInfo` 返回，不进入 `Device`、`devices_root` 或安全叶，云端与 `dmsg_directory` 的安全证据不变。user home 稳定布局为 schema 17（继任表同样只在账户状态中），从 14、15、16 原地升级。
 
 ## 10. 设备签名、正式认证与外部请求
 

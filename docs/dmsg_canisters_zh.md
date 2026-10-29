@@ -25,7 +25,7 @@
 
 ## 当前合同
 
-- **账户与设备**：`dmsg_user` 发放 12 字节 Xid 账户，管理登录绑定、设备能力、内容根承诺与延迟恢复。账户可登记每台设备的硬件批准钥匙（P-256），并按用途要求设备批准附带其签名；核验集中在 user home 的设备批准检查，消费方 canister 不变，登录恢复会退役全部钥匙并关闭要求，见[账户合同](protocol/account_root_zh.md)。客户端通过 `dmsg_handle` 发现 user homes，并行查询账户。按既定设计，不强制跨 home 的登录 Principal 唯一性。
+- **账户与设备**：`dmsg_user` 发放 12 字节 Xid 账户，管理登录绑定、设备能力、内容根承诺与延迟恢复。账户可登记每台设备的硬件批准钥匙（P-256），并按用途要求设备批准附带其签名；核验集中在 user home 的设备批准检查，消费方 canister 不变，登录恢复会退役全部钥匙并关闭要求。满额账户换设备时，由旧设备批准 `AddSuccessor`，继任结束前旧设备只能交接，见[账户合同](protocol/account_root_zh.md)。客户端通过 `dmsg_handle` 发现 user homes，并行查询账户。按既定设计，不强制跨 home 的登录 Principal 唯一性。
 - **内容与恢复**：设备生成内容根并为授权设备和恢复封装。`dmsg_cose` 只在全设备丢失恢复时执行 vetKD，不签署普通文档或 Agent Delegation 事件。
 - **签名**：设备在本机签署 COSE 声明和应用动作；`attest` / `attest_app_action` 核验签名与设备批准、扣减执行额度、发布认证回执。公钥本身不证明账户授权，见[声明与回执](protocol/README_zh.md)。
 - **公开身份**：user home 保存官方 PrincipalDocument 展示字段及 controller 记录，`dmsg_directory` 发布认证 JSON。展示资料更新写链，公开头像二进制留在云端。Agent controller 是客户端 vault 中自持的 Ed25519 key，见 [Agent Delegation](protocol/agent_zh.md)。
@@ -39,7 +39,7 @@
 
 公开 Candid/CBOR 与私有稳定编码分开。`dmsg_runtime::stable_types` 和各 canister 的 `stable_codec.rs` 使用整数键紧凑表示，不改变签名字节或认证值。当前 schema 常量与可接受的旧布局以存储及升级代码为准；版本号相同或递增本身不能证明兼容。
 
-**`dmsg_user` 和 `dmsg_directory` 已有线上用户数据。** 布局变化必须提供保留数据的原地升级，并验证旧版 Wasm 到新版 Wasm。现有 user 14 → 15 → 16、directory 6 → 7 升级保留原数据；directory 首次转换会构建新增的文档认证树；user 16 新增的批准钥匙与硬件批准政策对旧账户读为空，认证值不变。不得以重装代替迁移。[Principal 升级检查](../scripts/test-dmsg-principal-upgrade.sh)覆盖 14 → 当前、directory 转换及相关 handle 变化，[批准钥匙升级检查](../scripts/test-dmsg-hardware-upgrade.sh)从 schema 15 的实际模块升级并核对账户、认证叶、解锁秘密与操作回放。
+**`dmsg_user` 和 `dmsg_directory` 已有线上用户数据。** 布局变化必须提供保留数据的原地升级，并验证旧版 Wasm 到新版 Wasm。现有 user 14 → 15 → 16 → 17、directory 6 → 7 升级保留原数据；directory 首次转换会构建新增的文档认证树；user 16 新增的批准钥匙与硬件批准政策、user 17 新增的继任表对旧账户读为空，认证值不变。不得以重装代替迁移。[Principal 升级检查](../scripts/test-dmsg-principal-upgrade.sh)覆盖 14 → 当前、directory 转换及相关 handle 变化，[批准钥匙升级检查](../scripts/test-dmsg-hardware-upgrade.sh)从 schema 15 的实际模块升级并核对账户、认证叶、解锁秘密与操作回放，[继任升级检查](../scripts/test-dmsg-succession-upgrade.sh)从 schema 16 的实际模块升级并核对同样的内容与升级后的继任。
 
 其他 canister 遵循各自支持的布局与恢复流程。含账户、托管资金、账务或不可重建记录的实例，不得通过重装修复。跨 canister 结果未知时保留原请求与账本参数对账。目标部署的配置、模块哈希、controllers 和运行就绪状态须另外核验。
 

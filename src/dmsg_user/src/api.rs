@@ -96,7 +96,7 @@ fn init(args: UserInit) {
 fn post_upgrade() {
     let mut cfg = config();
     assert!(
-        matches!(cfg.schema, 14 | 15 | STABLE_SCHEMA),
+        matches!(cfg.schema, 14..=STABLE_SCHEMA),
         "unsupported user stable schema {}",
         cfg.schema,
     );
@@ -111,8 +111,9 @@ fn post_upgrade() {
     if cfg.schema < STABLE_SCHEMA {
         // The certification bytes are unchanged. Old principal records
         // acquire empty metadata (14), old accounts no approval keys and no
-        // hardware policy (15), in their stable decoders; the new schema
-        // keeps an older module from dropping those fields.
+        // hardware policy (15) and no successions (16), in their stable
+        // decoders; the new schema keeps an older module from dropping
+        // those fields.
         cfg.schema = STABLE_SCHEMA;
         save_config(&cfg);
     }
@@ -314,12 +315,12 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
 }
 
 /// The secret a bound login fetches to unlock one device's local store. It is
-/// refused for revoked devices, so revocation also locks the device's copy.
+/// refused for revoked devices, so revocation also locks the device's copy,
+/// and for a device whose successor joined seven days ago.
 #[ic_cdk::query]
 fn unlock_secret(account_id: AccountId, device_id: Hash) -> Result<Hash> {
     let s = own(&account_id, ic_cdk::api::msg_caller())?;
-    let device = s.devices.get(&device_id).ok_or(Error::DeviceNotApproved)?;
-    ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+    account::unlockable(&s, &device_id, now())?;
     crate::store::unlock_secret(&config(), &account_id, &device_id)
 }
 

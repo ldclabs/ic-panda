@@ -10,6 +10,9 @@ use dmsg_types::{
 };
 use std::collections::BTreeMap;
 
+/// The approval domain of account commands.
+const ACCOUNT_DOMAIN: &str = "dmsg/account/v2";
+
 pub(crate) fn create(
     id: Principal,
     cose: Principal,
@@ -70,6 +73,7 @@ pub(crate) fn create(
         principal_updated_at: None,
         approval_keys: BTreeMap::new(),
         hardware_policy: vec![],
+        successions: BTreeMap::new(),
     })
 }
 
@@ -115,6 +119,12 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
         .get(&approval.device_id)
         .ok_or(Error::DeviceNotApproved)?;
     ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+    // A device handing over to its successor approves account commands
+    // only, which `authorize_mutation` narrows to the handover.
+    ensure(
+        domain == ACCOUNT_DOMAIN || !s.successions.contains_key(&approval.device_id),
+        Error::Forbidden,
+    )?;
     ensure(
         capability
             .as_ref()
@@ -247,6 +257,23 @@ pub(crate) fn authorize_mutation(
         ensure(r.digest == fp, Error::IdempotencyConflict)?;
         return Ok(Authorized::Replay(r.clone()));
     }
+    // A device handing over approves its successor's approval key, root
+    // rotations, recovery disputes and revoking either of the two.
+    if let Some(successor) = s.successions.get(&m.approval.device_id) {
+        ensure(
+            match &m.command {
+                AccountCommand::SetApprovalKey { device_id, .. } => device_id == successor,
+                AccountCommand::RevokeDevice { device_id } => {
+                    device_id == successor || *device_id == m.approval.device_id
+                }
+                AccountCommand::ReserveRoot { .. }
+                | AccountCommand::CommitRoot { .. }
+                | AccountCommand::DisputeRecovery { .. } => true,
+                _ => false,
+            },
+            Error::Forbidden,
+        )?;
+    }
     let payload = (&m.expected_version, &m.command);
     // Any active device disputes a recovery and sets its own approval key.
     let anyone = match &m.command {
@@ -262,7 +289,7 @@ pub(crate) fn authorize_mutation(
         s,
         caller,
         &m.approval,
-        "dmsg/account/v2",
+        ACCOUNT_DOMAIN,
         &payload,
         (capability, admin, command_purpose(&m.command)),
         now,
@@ -272,6 +299,53 @@ pub(crate) fn authorize_mutation(
         Error::VersionConflict,
     )?;
     Ok(Authorized::Fresh(fp))
+}
+
+/// Add `device`, enrolled by device `by`. A full table drops its earliest
+/// revoked device, so sixteen lifetime enrollments never become a permanent
+/// account limit; old approvals still fail on the increasing security epoch.
+fn enroll(next: &mut AccountState, device: &DeviceInput, by: Hash, now: u64) -> Result<()> {
+    if next.devices.len() >= MAX_DEVICES {
+        let retired = next
+            .devices
+            .iter()
+            .filter_map(|(id, d)| d.revoked_at.map(|at| (*id, at)))
+            .min_by_key(|(_, at)| *at);
+        if let Some((id, _)) = retired {
+            next.devices.remove(&id);
+        }
+    }
+    ensure(
+        next.devices.len() < MAX_DEVICES && !next.devices.contains_key(&device.device_id),
+        Error::QuotaExceeded,
+    )?;
+    next.devices.insert(
+        device.device_id,
+        Device {
+            input: device.clone(),
+            added_at: now,
+            added_by: Some(by),
+            revoked_at: None,
+            next_sequence: 0,
+        },
+    );
+    Ok(())
+}
+
+/// Whether `device_id` may still fetch its unlock secret: not once it is
+/// revoked, nor when its successor joined `SUCCESSION_UNLOCK_MS` ago.
+pub(crate) fn unlockable(s: &AccountState, device_id: &Hash, now: u64) -> Result<()> {
+    let device = s.devices.get(device_id).ok_or(Error::DeviceNotApproved)?;
+    ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+    let joined = s
+        .successions
+        .get(device_id)
+        .and_then(|successor| s.devices.get(successor))
+        .map(|d| d.added_at);
+    ensure(
+        joined.is_none_or(|at| now < at.saturating_add(SUCCESSION_UNLOCK_MS)),
+        Error::DeviceNotApproved,
+    )
 }
 
 fn has_administrator(s: &AccountState) -> bool {
@@ -308,23 +382,6 @@ pub(crate) fn apply(
                     < plan.device_limit(),
                 Error::QuotaExceeded,
             )?;
-            // Bound the current device set without making sixteen lifetime
-            // enrollments a permanent account limit. Old approvals are still
-            // rejected by the monotonically increasing security epoch.
-            if next.devices.len() >= MAX_DEVICES {
-                let retired = next
-                    .devices
-                    .iter()
-                    .filter_map(|(id, d)| d.revoked_at.map(|at| (*id, at)))
-                    .min_by_key(|(_, at)| *at);
-                if let Some((id, _)) = retired {
-                    next.devices.remove(&id);
-                }
-            }
-            ensure(
-                next.devices.len() < MAX_DEVICES && !next.devices.contains_key(&device.device_id),
-                Error::QuotaExceeded,
-            )?;
             verify(
                 &device.signing_pub,
                 digest(
@@ -340,16 +397,35 @@ pub(crate) fn apply(
                 .as_slice(),
                 proof.as_slice(),
             )?;
-            next.devices.insert(
-                device.device_id,
-                Device {
-                    input: device.clone(),
-                    added_at: now,
-                    added_by: Some(m.approval.device_id),
-                    revoked_at: None,
-                    next_sequence: 0,
-                },
-            );
+            enroll(&mut next, device, m.approval.device_id, now)?;
+            changed(&mut next, &s.root_recipients());
+        }
+        AccountCommand::AddSuccessor { device, proof } => {
+            let predecessor = m.approval.device_id;
+            device.validate()?;
+            // One succession at a time, outside the plan's device limit.
+            ensure(s.successions.is_empty(), Error::Pending)?;
+            // The approver is an administrator, so any role is within its own.
+            let rights = &s.devices[&predecessor].input.capabilities;
+            ensure(
+                device.capabilities.iter().all(|c| rights.contains(c)),
+                Error::Forbidden,
+            )?;
+            verify(
+                &device.signing_pub,
+                successor_device_message(
+                    s.home_user,
+                    &s.account_id,
+                    device,
+                    m.expected_version,
+                    m.approval.request_id,
+                    predecessor,
+                )
+                .as_slice(),
+                proof.as_slice(),
+            )?;
+            enroll(&mut next, device, predecessor, now)?;
+            next.successions.insert(predecessor, device.device_id);
             changed(&mut next, &s.root_recipients());
         }
         AccountCommand::RevokeDevice { device_id } => {
@@ -357,6 +433,9 @@ pub(crate) fn apply(
             ensure(d.revoked_at.is_none(), Error::DeviceNotApproved)?;
             d.revoked_at = Some(now);
             next.approval_keys.remove(device_id);
+            // Revoking either device ends its succession.
+            next.successions
+                .retain(|old, new| old != device_id && new != device_id);
             ensure_valid(has_administrator(&next), "last administrator")?;
             changed(&mut next, &s.root_recipients());
         }

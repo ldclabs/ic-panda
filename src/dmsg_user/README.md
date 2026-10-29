@@ -74,7 +74,8 @@ flowchart LR
 | 命令                                                                            | 作用与约束                                                                                                 | `security_epoch` | 已有内容根时        |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | :--------------: | ------------------- |
 | `AddDevice`                                                                     | 新设备对 `dmsg/add-device/v1` 自签 PoP；活跃设备按 Free / Plus / Pro / Max 分别最多 2 / 3 / 5 / 10 台，含已撤销最多 16 台，满时淘汰最早撤销的一台      |        +1        | 新设备持有 `VaultUnlock` 时置 `RekeyRequired` |
-| `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备                                                                 |        +1        | 被撤销设备持有 `VaultUnlock` 时置 `RekeyRequired` |
+| `AddSuccessor`                                                                  | 批准设备为自己的继任设备登记：新设备对 `dmsg/add-successor/v1` 自签 PoP，绑定批准设备；能力不超出批准设备；不受档位上限约束，但同时只能有一次继任，16 条上限与淘汰规则不变 |        +1        | 新设备持有 `VaultUnlock` 时置 `RekeyRequired` |
+| `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备；撤销继任中的任一台设备即结束继任                                 |        +1        | 被撤销设备持有 `VaultUnlock` 时置 `RekeyRequired` |
 | `SetDeviceCapabilities`                                                         | 只替换能力集，不改角色和密钥；同样须保留一台管理员                                                         |        +1        | `VaultUnlock` 增减时置 `RekeyRequired` |
 | `BindAuth`                                                                      | 登记待接受的绑定，10 分钟内有效，每账户最多 4 条；新 Principal 用同一 nonce 调用 `accept_auth_binding` 才生效 |    接受时 +1     | 不变                |
 | `RemoveAuth`                                                                    | 不能移除最后一个登录；被移除者的路由与它发起的待处理恢复同时删除                                           |        +1        | 不变                |
@@ -89,6 +90,8 @@ flowchart LR
 | `SetHardwarePolicy`                                                             | 设置要求批准钥匙的用途：空集合关闭，非空须含三项控制用途；开启须附批准设备自己的有效证明                     |        +1        | 不变                |
 
 新增设备只统计未撤销设备。超出 Free 的 2 台额度时，user home 经已配置 commerce 的 `refresh_entitlement` 读取当前套餐；未购买会员的 `NotFound` 按 Free 处理，失效或不可核验的权益不放行新增设备。跨 canister 等待后重新读取时间、配置与账户，并重新核验设备批准、版本和数量。存量超额及会员到期不会自动撤销设备，撤销、换根和恢复仍可执行；已成功操作继续返回原回执。设备额度由现有 `PlanId` 推导，不向合同、资源投影、账户记录或签名载荷增加字段，稳定布局和 Candid 接口不变。
+
+满额账户换设备时用 `AddSuccessor`，不需要 commerce 往返。继任结束前，批准它的设备（前任）只能批准为继任设备 `SetApprovalKey`、`ReserveRoot`、`CommitRoot`、`DisputeRecovery`，以及撤销自己（完成）或继任设备（取消）的 `RevokeDevice`；其他账户命令和它的应用批准、第三方认证与证明返回 `Forbidden`。继任设备加入满 7 天（`SUCCESSION_UNLOCK_MS`）后，`unlock_secret` 对前任返回 `DeviceNotApproved`。完成登录恢复时清空继任。继任表只在账户状态中，不进入 `Device`、`devices_root`、安全叶或 `AccountInfo`。
 
 `RevokeDevice` 同时退役被撤销设备的批准钥匙。`security_epoch` 增加时，尚未接受的绑定批准一并撤回。换根只在根包接收者（持有 `VaultUnlock` 的活跃设备）变化时才需要：登录身份不是接收者，其他能力也不影响根包。`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
 
@@ -222,9 +225,9 @@ flowchart LR
 
 ### 存储
 
-稳定布局为 schema 16，支持从 schema 14、15 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变；schema 16 在 `AccountState` 增加批准钥匙（key 30）与硬件批准政策（key 31），旧账户读为空，安全叶不含它们。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段；新 schema 也使更旧的模块拒绝装回，避免丢弃新字段。schema 14–16 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+稳定布局为 schema 17，支持从 schema 14、15、16 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变；schema 16 在 `AccountState` 增加批准钥匙（key 30）与硬件批准政策（key 31），schema 17 增加继任表（key 32），旧账户读为空，安全叶不含它们。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段；新 schema 也使更旧的模块拒绝装回，避免丢弃新字段。schema 14–17 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
 
-发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`（提交 `70d67c86` 的 schema 14 原始 Wasm）与 `scripts/test-dmsg-hardware-upgrade.sh`（提交 `58197c35` 的 schema 15 原始 Wasm），各自写入数据后升级到当前代码。新客户端读取 `AccountInfo` 需要新字段，所以先升级 user home 再发布客户端；旧客户端读取新回复不受影响。
+发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`（提交 `70d67c86` 的 schema 14 原始 Wasm）、`scripts/test-dmsg-hardware-upgrade.sh`（提交 `58197c35` 的 schema 15 原始 Wasm）与 `scripts/test-dmsg-succession-upgrade.sh`（提交 `11064564` 的 schema 16 原始 Wasm），各自写入数据后升级到当前代码。新客户端读取 `AccountInfo` 需要新字段，所以先升级 user home 再发布客户端；旧客户端读取新回复不受影响。
 
 | Memory | 内容                                                                    |
 | -----: | ----------------------------------------------------------------------- |
@@ -389,7 +392,7 @@ flowchart LR
 
   `prune_executions` 一页最多 64 条执行记录，用掉 20B 指令后在账户边界提前结束；100 万账户时一页约 1.7 亿 cycles。它只删除保留期已过的终态结果，不改动未终结执行、设备序号和月账。
 
-- **升级**：支持 schema 14、15 → 16 及 schema 16 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
+- **升级**：支持 schema 14、15、16 → 17 及 schema 17 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
 
   ```sh
   icp canister stop dmsg_user -e ic
@@ -452,14 +455,15 @@ cargo test -p dmsg_user
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 
-单元测试覆盖：批准钥匙的持有证明、按账户政策强制、他设备钥匙与过期证明被拒、撤销与恢复后的钥匙和政策、根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口、home 执行汇总的累加与 12 个月滚动。
+单元测试覆盖：批准钥匙的持有证明、按账户政策强制、他设备钥匙与过期证明被拒、撤销与恢复后的钥匙和政策、根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、设备继任（满额加入、绑定前任的 PoP、能力上限、一次一个、前任只能交接且不能批准应用与认证、7 天解锁期限、取消/完成/恢复清空）、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口、home 执行汇总的累加与 12 个月滚动。
 
 PocketIC 回归覆盖：
 
 - [control_plane.rs](../../tests/dmsg_integration/tests/control_plane.rs) `identity_roots_certification_attestation_recovery_and_upgrade`：根 CAS、认证与回执、登录恢复、派生与 IBE 往返、升级。
 - [user.rs](../../tests/dmsg_integration/tests/control_plane/user.rs)：认证按月计费一次并重放产物、名称意图续期、政策变更、清理后按原月份结算、商业回调期间的并发变更、登录路由删除、对账传输失败、月账只保留当月与上月、home 月度汇总只累加成功的扣费。
 - [user_review.rs](../../tests/dmsg_integration/tests/control_plane/user_review.rs)、[review_regressions.rs](../../tests/dmsg_integration/tests/control_plane/review_regressions.rs)：inspect 拒绝非服务方与匿名 ingress、外部调用前拒绝非配置服务、恢复完成重试、登录绑定须管理员批准后由新登录接受、注册准入票据与治理轮换、跨账户分页清理、每小时调用上限、快照回滚、独立清理、文件声明认证、保留窗口与升级、登录恢复可见/争议/完成、无效传输公钥、已清理请求 ID 不可复用。
-- [hardware.rs](../../tests/dmsg_integration/tests/control_plane/hardware.rs)：真实 Wasm 上批准钥匙的登记、政策、旧 Candid 被拒、无钥匙设备受限、认证用途、撤销与恢复；schema 15 原始模块升级保留账户、认证叶、解锁秘密与操作回放（需 `scripts/test-dmsg-hardware-upgrade.sh`）。
+- [hardware.rs](../../tests/dmsg_integration/tests/control_plane/hardware.rs)：真实 Wasm 上批准钥匙的登记、政策、旧 Candid 被拒、无钥匙设备受限、认证用途、撤销与恢复；schema 15 原始模块升级保留账户、认证叶、解锁秘密与操作回放（需 `scripts/test-dmsg-hardware-upgrade.sh`）；schema 16 原始模块升级保留满额账户、待决恢复、批准钥匙与硬件政策、认证叶和解锁秘密，升级后可继任且再次升级保留继任（需 `scripts/test-dmsg-succession-upgrade.sh`）。
+- [device_limits.rs](../../tests/dmsg_integration/tests/control_plane/device_limits.rs)：各档位的设备上限、会员升级与到期、并发撤销；满额账户的继任不经 commerce、一次一个、前任受限且 7 天后不再解锁、撤销继任设备即取消、撤销前任即完成、恢复后清空。
 - [external_integration.rs](../../tests/dmsg_integration/tests/control_plane/external_integration.rs)、[agent.rs](../../tests/dmsg_integration/tests/control_plane/agent.rs)：外部批准的重试、暂停与升级，AppAction 准入与认证，自持 controller 的 PoP 注册、发布与本机签名。
 
 性能与容量 profile 默认忽略，需显式运行：

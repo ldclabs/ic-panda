@@ -282,7 +282,7 @@ fn derivation_approvals_bind_generation_transport_and_cycles() {
 }
 
 #[test]
-fn controller_and_recovery_proofs_bind_every_component() {
+fn controller_recovery_and_successor_proofs_bind_every_component() {
     use dmsg_types::agent::DelegationAuthority;
     let home = Principal::from_slice(&[1]);
     let account = AccountId([1; 12]);
@@ -331,6 +331,37 @@ fn controller_and_recovery_proofs_bind_every_component() {
     assert_ne!(recovery_device_message(home, &account, &changed), expected);
     assert_ne!(
         recovery_device_message(home, &AccountId([2; 12]), &request),
+        expected
+    );
+    // A successor's proof names the device it replaces.
+    let successor = |version, request_id, predecessor| {
+        successor_device_message(home, &account, &device(), version, request_id, predecessor)
+    };
+    let expected = successor(4, Hash::new([5; 32]), Hash::new([6; 32]));
+    assert_eq!(
+        expected,
+        digest(
+            "dmsg/add-successor/v1",
+            &(
+                home,
+                &account,
+                &device(),
+                4u64,
+                Hash::new([5; 32]),
+                Hash::new([6; 32])
+            )
+        )
+    );
+    assert_ne!(
+        successor(5, Hash::new([5; 32]), Hash::new([6; 32])),
+        expected
+    );
+    assert_ne!(
+        successor(4, Hash::new([7; 32]), Hash::new([6; 32])),
+        expected
+    );
+    assert_ne!(
+        successor(4, Hash::new([5; 32]), Hash::new([7; 32])),
         expected
     );
 }

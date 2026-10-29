@@ -24,6 +24,12 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 设备权益规则（2026-10-28）：Free / Plus / Pro / Max 最多分别有 2 / 3 / 5 / 10 台活跃设备；已撤销设备不占名额。存量超额或会员到期降级只限制继续新增，不撤销设备或阻止安全维护。`AddDevice` 超限返回现有 `QuotaExceeded`，会员状态失效返回 `MembershipStale`；已提交请求仍幂等返回原回执。额度由现有 commerce 投影的套餐标识推导，账户/设备结构、Candid、签名编码和安全叶格式均不变。
 
+### 设备继任
+
+已满额的账户换设备时不必先让出名额：由被替换的设备为继任设备批准 `AddSuccessor { device, proof }`。继任设备签 `successor_device_message = digest("dmsg/add-successor/v1", (home, account_id, device, expected_version, request_id, predecessor))`，其中 `predecessor` 是批准的设备，所以其他设备无法批准它。批准者需要的权限与 `AddDevice` 相同（持 `RootManage` 的管理员；启用硬件政策时还要它的批准钥匙），继任设备的能力不能超出批准者。继任不受档位的设备上限约束，但账户同时只能有一次继任；设备表 16 条上限与淘汰规则不变，因此降级后超额的账户也能逐台替换。与 `AddDevice` 一样，它递增 `security_epoch`，继任设备持有 `VaultUnlock` 时需要换根。
+
+继任结束前，批准的设备只能批准交接：为继任设备 `SetApprovalKey`、`ReserveRoot` 与 `CommitRoot`（与配对一样，批准后由它换根）、`DisputeRecovery`，以及撤销自己（继任完成）或撤销继任设备（继任取消）的 `RevokeDevice`。它批准的其他账户命令、应用批准、第三方认证与证明一律返回 `Forbidden`。继任设备加入满 7 天后，`unlock_secret` 以 `DeviceNotApproved` 拒绝批准的设备。撤销任一台设备即结束继任，完成登录恢复时清空。继任只记在 user home 的账户状态中，不进入 `Device`、`devices_root`、安全叶或 `AccountInfo`。
+
 ### 批准钥匙
 
 账户可以要求某些设备批准另带一把“批准钥匙”的签名。批准钥匙是设备硬件保管的 P-256 钥匙（macOS 上为 Secure Enclave，`.userPresence`，可选仅当前指纹 `.biometryCurrentSet`），每台设备至多一把，登记在 user home 的账户状态中，不进入 `Device`、`devices_root` 或安全叶，`dmsg_directory` 与云端的安全证据因此不变。
@@ -40,7 +46,7 @@ P-256 签名按 ECDSA-SHA256 处理 32 字节的 `H`（即 CryptoKit `signature(
 
 - `SetApprovalKey { device_id, key }`：登记、替换（`key` 带新公钥与持有证明）或退役（`None`）。任何有效设备可设自己的钥匙，为其他设备设钥匙需要管理员；同一把钥匙不能登记给两台设备。撤销设备时其钥匙一并退役。
 - `SetHardwarePolicy { purposes }`：空集合关闭；非空时必须包含三项控制用途。开启需要批准设备本身的有效证明。
-- 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不在其列。
+- 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`AddSuccessor`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不在其列。
 - 核验只在 user home 的设备批准检查中进行：账户政策要求的用途必须带有当前登记钥匙的有效证明；未要求时请求带来的证明同样核验。是否要求只由账户状态决定，旧 Candid（没有 `hardware` 字段）在启用后被拒绝。登记、替换、退役钥匙和修改政策都递增 `security_epoch`，在途的旧批准随之失效；commerce、membership 与团队钱包仍经 `verify_application_authorization` 复核记录与 epoch，不需改动。
 - 登录恢复不需要批准钥匙：`complete_recovery` 在同一提交点退役全部钥匙并清空政策，替换设备再登记、再启用。开启硬件批准后，账户控制从“设备软件钥匙与登录同时失窃即可立即接管”变为“只能经可被争议的延迟恢复接管”。
 

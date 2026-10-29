@@ -210,6 +210,34 @@ pub fn recovery_device_message(
     digest("dmsg/recovery-device/v1", &(home, account_id, request))
 }
 
+/// Build the proof-of-possession digest a successor device signs under
+/// `dmsg/add-successor/v1`.
+///
+/// Binds the user home, account, the new device, the expected account
+/// version, the approval's request ID and the predecessor: the device that
+/// approves the `AddSuccessor` and that the successor replaces. This
+/// constructs bytes only; it checks nothing.
+pub fn successor_device_message(
+    home: Principal,
+    account_id: &AccountId,
+    device: &DeviceInput,
+    expected_version: u64,
+    request_id: OpId,
+    predecessor: Hash,
+) -> Hash {
+    digest(
+        "dmsg/add-successor/v1",
+        &(
+            home,
+            account_id,
+            device,
+            expected_version,
+            request_id,
+            predecessor,
+        ),
+    )
+}
+
 /// Build the digest an admission issuer signs for one caller's account
 /// creation under `dmsg/account-admission/v1`.
 ///
