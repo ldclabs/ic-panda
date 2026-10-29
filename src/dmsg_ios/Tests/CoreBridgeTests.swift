@@ -14,6 +14,8 @@ final class CoreBridgeTests: XCTestCase {
         func authorize(reason: String, biometryOnly: Bool) throws -> UInt64 { throw MobileError.Failure(code: "CANCELLED") }
         func signAuthorized(authorization: UInt64, handle: Data, message: Data) throws -> Data { throw MobileError.Failure(code: "CANCELLED") }
         func releaseAuthorization(authorization: UInt64) {}
+        func createAnchor() throws -> SigningKey { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        func signAnchor(handle: Data, message: Data) throws -> Data { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
         func confirm(requestId: String, digest: String, reason: String) throws { throw MobileError.Failure(code: "CANCELLED") }
         func cancelPresence() {}
     }

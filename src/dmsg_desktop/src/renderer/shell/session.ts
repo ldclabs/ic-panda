@@ -93,6 +93,7 @@ export function nextStep(status: any): { label: Label; icon: Glyph; run: () => u
     return { label, icon: 'unlock', run: () => unlock(status) }
   }
   if (setupStates.includes(state)) return { label: 'continueSetup', icon: 'settings', run: () => (location.hash = '/settings/session') }
+  if (state === 'moved') return { label: 'movedReview', icon: 'device', run: () => (location.hash = '/settings/session') }
   return null
 }
 

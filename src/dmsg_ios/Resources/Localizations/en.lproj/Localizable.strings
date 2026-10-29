@@ -108,6 +108,8 @@
 	<string>Anyone with the complete link and required password can retrieve it within its limits.</string>
 	<key>Anyone, free of charge</key>
 	<string>Anyone, free of charge</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</string>
 	<key>App Store subscriptions</key>
 	<string>App Store subscriptions</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Conversation settings</string>
 	<key>Copied for 30 seconds</key>
 	<string>Copied for 30 seconds</string>
+	<key>Copies from other iPhones</key>
+	<string>Copies from other iPhones</string>
 	<key>Copy</key>
 	<string>Copy</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Delete account</string>
 	<key>Delete cloud backup</key>
 	<string>Delete cloud backup</string>
+	<key>Delete copy</key>
+	<string>Delete copy</string>
 	<key>Delete this cloud backup?</key>
 	<string>Delete this cloud backup?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Read from a desktop file mapping</string>
 	<key>Read the published policy</key>
 	<string>Read the published policy</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</string>
 	<key>Reason</key>
 	<string>Reason</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>Server</string>
 	<key>Set up this account</key>
 	<string>Set up this account</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Set up this iPhone as a new device</string>
 	<key>Share a copy</key>
 	<string>Share a copy</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Test the new credential at its provider</string>
 	<key>Text</key>
 	<string>Text</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>The encrypted version will use cloud storage. Your local copy stays on this device.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>This tour does not upload files or register system integrations.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</string>
 	<key>Title</key>
 	<string>Title</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Withdraw message</string>
 	<key>Withdraw this message?</key>
 	<string>Withdraw this message?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Workspace copied from another iPhone</string>
 	<key>Workspace destination</key>
 	<string>Workspace destination</string>
 	<key>Write a demo message</key>

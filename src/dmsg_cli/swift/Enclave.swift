@@ -192,6 +192,55 @@ public func dmsgSeSigningCreate(
     }
 }
 
+/// A new hardware anchor: a signing key that never asks for the person and
+/// works once the Mac has been unlocked after it started. It shows only that
+/// a workspace still runs on the Mac that made it: its handle and its X9.63
+/// public key (65 bytes).
+@_cdecl("dmsg_se_anchor_create")
+public func dmsgSeAnchorCreate(
+    _ handle: UnsafeMutablePointer<UInt8>, _ capacity: Int, _ length: UnsafeMutablePointer<Int>,
+    _ publicKey: UnsafeMutablePointer<UInt8>
+) -> Int32 {
+    guard SecureEnclave.isAvailable,
+        let access = SecAccessControlCreateWithFlags(
+            nil, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, [.privateKeyUsage], nil)
+    else { return unavailable }
+    do {
+        let key = try SecureEnclave.P256.Signing.PrivateKey(accessControl: access)
+        guard write(key.dataRepresentation, handle, capacity, length),
+            copy(key.publicKey.x963Representation, publicKey, 65)
+        else { return unavailable }
+        return done
+    } catch {
+        return systemFailure(error)
+    }
+}
+
+/// Sign one 32-byte message as `r || s` with an anchor, asking nothing: 3
+/// when this Mac's enclave cannot open the handle.
+@_cdecl("dmsg_se_anchor_sign")
+public func dmsgSeAnchorSign(
+    _ handle: UnsafePointer<UInt8>, _ length: Int, _ message: UnsafePointer<UInt8>,
+    _ signature: UnsafeMutablePointer<UInt8>
+) -> Int32 {
+    guard SecureEnclave.isAvailable else { return unavailable }
+    let context = LAContext()
+    context.interactionNotAllowed = true
+    let key: SecureEnclave.P256.Signing.PrivateKey
+    do {
+        key = try SecureEnclave.P256.Signing.PrivateKey(
+            dataRepresentation: Data(bytes: handle, count: length), authenticationContext: context)
+    } catch {
+        return unusable
+    }
+    do {
+        let signed = try key.signature(for: Data(bytes: message, count: 32))
+        return copy(signed.rawRepresentation, signature, 64) ? done : unavailable
+    } catch {
+        return systemFailure(error)
+    }
+}
+
 /// Sign a batch of 32-byte messages as `r || s` (64 bytes each), with one
 /// presence check and one key/context scoped to this batch.
 @_cdecl("dmsg_se_sign_batch")

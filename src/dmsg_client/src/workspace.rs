@@ -32,7 +32,7 @@ use dmsg_types::{
     user::{Capability, ControllerRole, DeviceInput},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use serde_bytes::ByteArray;
+use serde_bytes::{ByteArray, ByteBuf};
 use std::path::Path;
 use zeroize::Zeroizing;
 
@@ -72,6 +72,31 @@ pub struct Meta {
     /// The person turned fast unlock off; a login unlock leaves it off.
     #[serde(default)]
     pub fast_declined: bool,
+    /// The hardware anchor, once this hardware made one.
+    #[serde(default)]
+    pub anchor: Option<Anchor>,
+}
+
+/// A key the hardware running the workspace made for it
+/// ([`crate::secure::HardwareAnchor`]); it is kept in plain text because the
+/// check runs before any unlock. It guards against copies a migration or
+/// restore makes, not against a local user who rewrites this file.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Anchor {
+    /// The key's opaque handle.
+    pub handle: ByteBuf,
+    /// The key's SEC1 public key.
+    pub public: ByteBuf,
+    /// When it was made, in Unix milliseconds.
+    pub created_at: u64,
+    /// Made after the workspace already held hardware keys, which may come
+    /// from other hardware; the first of them that opens settles it.
+    #[serde(default)]
+    pub late: bool,
+    /// One of those keys failed on this hardware: the workspace came from
+    /// other hardware.
+    #[serde(default)]
+    pub foreign: bool,
 }
 
 /// The account a workspace belongs to.
@@ -150,6 +175,7 @@ impl Workspace {
             fast_unlock: None,
             fast_presence: false,
             fast_declined: false,
+            anchor: None,
         };
         let workspace = Self { store, meta };
         let keys = Keys { ldk, signing, hpke };
@@ -261,6 +287,15 @@ impl Workspace {
     /// Returns `Error::Unavailable` when storage fails.
     pub fn bound(&self) -> Result<bool> {
         Ok(self.store.sealed(BOUND_LDK)?.is_some())
+    }
+
+    /// Whether an unlock opens a hardware key of the workspace: the
+    /// device-bound slot or a fast-unlock key that asks for the person.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub(crate) fn holds_hardware(store: &Store, meta: &Meta) -> Result<bool> {
+        Ok(meta.fast_unlock.is_some() && meta.fast_presence || store.sealed(BOUND_LDK)?.is_some())
     }
 
     /// What the device-bound keys and wrappings commit to: the format, the

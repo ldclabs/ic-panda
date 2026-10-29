@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "當前有效",
     "experience.disabled": "已停用",
     "experience.configured": "已配置",
-    "experience.stale": "需要更新"
+    "experience.stale": "需要更新",
+    "movedHint": "此工作區是從另一台 Mac 複製來的，在本機為唯讀。請在設定中檢視並設定本機。",
+    "movedReview": "檢視複製來的工作區",
+    "movedTitle": "從另一台 Mac 複製來的工作區",
+    "movedBody": "此工作區建立於另一台 Mac，經由移轉輔助程式或回復備份等方式複製到這裡。為保護帳戶，它不會以舊裝置的身分執行任何操作：不會在本機解鎖，其中的內容也不會被刪除。",
+    "movedSetAside": "將本機設為新裝置",
+    "movedSetAsideHint": "副本以唯讀方式保留在本機，供匯入使用。之後本機會以新裝置加入帳戶：登入後，由另一台裝置核准，或復原帳戶。舊 Mac 仍可照常使用。",
+    "movedCopies": "來自其他 Mac 的副本",
+    "movedCopiesHint": "為匯入保留的唯讀副本。刪除副本不會影響舊 Mac 或帳戶。",
+    "movedDelete": "刪除副本",
+    "movedDeleteBody": "僅存在於此副本中的內容（例如從未備份的檔案）將永久遺失。"
   },
   "approvalStates": {
     "awaiting_user": "待確認",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "尚未建立帳戶",
     "locked": "已鎖定",
     "root_required": "需要內容根",
-    "unlocked": "已解鎖"
+    "unlocked": "已解鎖",
+    "moved": "從另一台 Mac 複製而來"
   }
 } satisfies Catalog

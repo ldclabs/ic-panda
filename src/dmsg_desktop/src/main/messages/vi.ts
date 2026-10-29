@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "Chưa có tài khoản",
   locked: "Đã khóa",
   root_required: "Cần khóa gốc nội dung",
-  unlocked: "Đã mở khóa"
+  unlocked: "Đã mở khóa",
+  moved: "sao chép từ máy Mac khác"
 }
 
 const text: Text = {

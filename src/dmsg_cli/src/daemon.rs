@@ -90,7 +90,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 56] = [
+const METHODS: [&str; 59] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -105,6 +105,9 @@ const METHODS: [&str; 56] = [
     "account/show",
     "device/pair_request",
     "device/approve",
+    "device/moved_list",
+    "device/moved_set_aside",
+    "device/moved_discard",
     "sync/run",
     "sync/status",
     "profile/show",
@@ -323,13 +326,15 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     )?;
     // With the system keystore, the Secure Enclave keeps cosigner keys,
     // approval keys and the fast-unlock and device-bound keys, and asks for
-    // Touch ID or the login password.
+    // Touch ID or the login password. Its anchors, which ask nothing, find
+    // the workspaces copied here from another Mac before anything listens.
     #[cfg(target_os = "macos")]
     if settings.storage == crate::home::Storage::System {
         let enclave = std::sync::Arc::new(crate::enclave::SecureEnclave);
         client.set_cosign_provider(enclave.clone());
         client.set_approval_keys(enclave.clone());
-        client.set_presence_key(enclave);
+        client.set_presence_key(enclave.clone());
+        client.set_hardware_anchor(enclave)?;
     }
     let local_roots = match &settings.agent_ca {
         Some(path) => {
@@ -1190,6 +1195,20 @@ impl Daemon {
                 }))
             }
             "session/accounts" => Ok(to_json(&self.client.lock().await.accounts()?)),
+            "device/moved_list" => Ok(to_json(&self.client.lock().await.moved_copies()?)),
+            "device/moved_set_aside" => {
+                self.stop_secret_mounts().await;
+                self.unmount_library().await?;
+                let status = self.client.lock().await.set_aside_moved()?;
+                self.sync_requested.store(false, Ordering::Relaxed);
+                *self.last_connect.lock().expect("connect report") = None;
+                Ok(to_json(&status))
+            }
+            "device/moved_discard" => {
+                let id = text(params, "id")?;
+                self.client.lock().await.discard_moved(&id)?;
+                Ok(Value::Null)
+            }
             "session/switch" => {
                 let account = account(params, "account")?;
                 let status = self.client.lock().await.switch_account(&account)?;
@@ -1707,8 +1726,12 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
     match module {
         Module::Daemon => match method {
             "session/logout" => &["session/changed", "approval/changed", "login/changed"],
-            "session/switch" | "session/unlock" | "session/lock" | "workspace/reset"
-            | "account/create" => &["session/changed", "approval/changed"],
+            "session/switch"
+            | "session/unlock"
+            | "session/lock"
+            | "workspace/reset"
+            | "account/create"
+            | "device/moved_set_aside" => &["session/changed", "approval/changed"],
             // sync_pass announces both progress and completion, including errors.
             "sync/run" => &[],
             "approval/respond"

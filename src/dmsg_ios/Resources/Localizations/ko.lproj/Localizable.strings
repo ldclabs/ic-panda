@@ -108,6 +108,8 @@
 	<string>전체 링크와 필수 비밀번호를 아는 사람은 누구나 한도 내에서 링크를 검색할 수 있습니다.</string>
 	<key>Anyone, free of charge</key>
 	<string>누구나 무료로</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>이 복사본에만 있는 항목(백업된 적 없는 파일 등)은 영구적으로 사라집니다.</string>
 	<key>App Store subscriptions</key>
 	<string>App Store 구독</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>대화 설정</string>
 	<key>Copied for 30 seconds</key>
 	<string>30초 동안 복사됨</string>
+	<key>Copies from other iPhones</key>
+	<string>다른 iPhone의 복사본</string>
 	<key>Copy</key>
 	<string>복사</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>계정 삭제</string>
 	<key>Delete cloud backup</key>
 	<string>클라우드 백업 삭제</string>
+	<key>Delete copy</key>
+	<string>복사본 삭제</string>
 	<key>Delete this cloud backup?</key>
 	<string>이 클라우드 백업을 삭제하시겠습니까?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>데스크톱 파일 매핑에서 읽기</string>
 	<key>Read the published policy</key>
 	<string>게시된 정책 읽기</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>가져오기용으로 보관된 읽기 전용 복사본입니다. 삭제해도 이전 iPhone이나 계정에는 영향이 없습니다.</string>
 	<key>Reason</key>
 	<string>이유</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>서버</string>
 	<key>Set up this account</key>
 	<string>이 계정을 설정하세요</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>이 iPhone을 새 기기로 설정</string>
 	<key>Share a copy</key>
 	<string>사본 공유</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>제공업체에서 새 자격 증명을 테스트하세요.</string>
 	<key>Text</key>
 	<string>텍스트</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>복사본은 가져오기에 쓸 수 있도록 이 iPhone에 읽기 전용으로 남습니다. 그런 다음 이 iPhone이 새 기기로 계정에 추가됩니다. 로그인한 뒤 다른 기기에서 승인하거나 계정을 복구하세요. 이전 iPhone은 계속 작동합니다.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>암호화된 버전은 클라우드 저장소를 사용합니다. 로컬 복사본은 이 장치에 유지됩니다.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>이 투어는 파일을 업로드하거나 시스템 통합을 등록하지 않습니다.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>이 장치에서의 작업을 추적합니다. 공급자에서는 자격 증명을 생성, 테스트 또는 취소하지 않습니다.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>이 작업 공간은 다른 iPhone에서 만들어져 백업 복원이나 기기 전송 등으로 여기에 복사되었습니다. 계정을 보호하기 위해 이전 기기로 동작하지 않습니다. 여기서 잠금 해제되지 않으며 그 안의 내용도 지워지지 않습니다.</string>
 	<key>Title</key>
 	<string>제목</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>메시지 철회</string>
 	<key>Withdraw this message?</key>
 	<string>이 메시지를 철회하시겠습니까?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>다른 iPhone에서 복사된 작업 공간</string>
 	<key>Workspace destination</key>
 	<string>작업공간 대상</string>
 	<key>Write a demo message</key>

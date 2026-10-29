@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "ยังไม่มีบัญชี",
   locked: "ล็อกอยู่",
   root_required: "ต้องใช้คีย์หลักของเนื้อหา",
-  unlocked: "ปลดล็อกแล้ว"
+  unlocked: "ปลดล็อกแล้ว",
+  moved: "คัดลอกมาจาก Mac เครื่องอื่น"
 }
 
 const text: Text = {

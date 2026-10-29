@@ -28,6 +28,7 @@
   import FilesSettings from './files/FilesSettings.svelte'
   import Legacy from './Legacy.svelte'
   import Onboarding from './Onboarding.svelte'
+  import Moved from './Moved.svelte'
   import Profile from './Profile.svelte'
   import Security from './Security.svelte'
 
@@ -300,6 +301,7 @@
         {:else if part === 'about'}
           <About />
         {:else if part === 'session'}
+          <Moved {status} {refresh} />
           <Onboarding {status} {refresh} />
           <Section title={t('status')} icon="account">
             <div class="mb-3 flex flex-wrap gap-2">

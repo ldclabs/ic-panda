@@ -61,3 +61,4 @@ serde_json.workspace = true
 
 [dev-dependencies]
 dmsg_client = { path = "../dmsg_client", features = ["testing"] }
+p256 = { workspace = true, features = ["ecdsa"] }

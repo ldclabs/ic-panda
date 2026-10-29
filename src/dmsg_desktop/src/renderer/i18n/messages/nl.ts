@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Huidig",
     "experience.disabled": "Uitgeschakeld",
     "experience.configured": "Geconfigureerd",
-    "experience.stale": "Moet worden bijgewerkt"
+    "experience.stale": "Moet worden bijgewerkt",
+    "movedHint": "Deze werkruimte is gekopieerd van een andere Mac en is hier alleen-lezen. Bekijk hem in Instellingen om deze Mac in te stellen.",
+    "movedReview": "Gekopieerde werkruimte bekijken",
+    "movedTitle": "Werkruimte gekopieerd van een andere Mac",
+    "movedBody": "Deze werkruimte is op een andere Mac gemaakt en hierheen gekopieerd, bijvoorbeeld met de Migratie-assistent of een teruggezette back-up. Om je account te beschermen treedt hij nooit op als het oude apparaat: hij wordt hier niet ontgrendeld en er wordt niets uit verwijderd.",
+    "movedSetAside": "Deze Mac instellen als nieuw apparaat",
+    "movedSetAsideHint": "De kopie blijft alleen-lezen op deze Mac staan om te importeren. Daarna sluit deze Mac zich als nieuw apparaat aan bij je account: log in en keur hem goed vanaf een ander apparaat, of herstel het account. De oude Mac blijft werken.",
+    "movedCopies": "Kopieën van andere Macs",
+    "movedCopiesHint": "Alleen-lezen kopieën die bewaard blijven om te importeren. Een kopie verwijderen heeft geen invloed op de oude Mac of je account.",
+    "movedDelete": "Kopie verwijderen",
+    "movedDeleteBody": "Alles wat alleen in deze kopie staat, zoals bestanden waarvan nooit een back-up is gemaakt, gaat definitief verloren."
   },
   "approvalStates": {
     "awaiting_user": "Wachten",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Nog geen account",
     "locked": "Vergrendeld",
     "root_required": "Hoofdsleutel voor inhoud nodig",
-    "unlocked": "Ontgrendeld"
+    "unlocked": "Ontgrendeld",
+    "moved": "Gekopieerd van een andere Mac"
   }
 } satisfies Catalog

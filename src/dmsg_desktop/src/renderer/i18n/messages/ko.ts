@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "현재",
     "experience.disabled": "비활성화됨",
     "experience.configured": "구성됨",
-    "experience.stale": "업데이트 필요"
+    "experience.stale": "업데이트 필요",
+    "movedHint": "이 작업 공간은 다른 Mac에서 복사되었으며 여기서는 읽기 전용입니다. 이 Mac을 설정하려면 설정에서 확인하세요.",
+    "movedReview": "복사된 작업 공간 확인",
+    "movedTitle": "다른 Mac에서 복사된 작업 공간",
+    "movedBody": "이 작업 공간은 다른 Mac에서 만들어져 마이그레이션 지원이나 백업 복원 등으로 여기에 복사되었습니다. 계정을 보호하기 위해 이전 기기로 동작하지 않습니다. 여기서 잠금 해제되지 않으며 그 안의 내용도 지워지지 않습니다.",
+    "movedSetAside": "이 Mac을 새 기기로 설정",
+    "movedSetAsideHint": "복사본은 가져오기에 쓸 수 있도록 이 Mac에 읽기 전용으로 남습니다. 그런 다음 이 Mac이 새 기기로 계정에 추가됩니다. 로그인한 뒤 다른 기기에서 승인하거나 계정을 복구하세요. 이전 Mac은 계속 작동합니다.",
+    "movedCopies": "다른 Mac의 복사본",
+    "movedCopiesHint": "가져오기용으로 보관된 읽기 전용 복사본입니다. 삭제해도 이전 Mac이나 계정에는 영향이 없습니다.",
+    "movedDelete": "복사본 삭제",
+    "movedDeleteBody": "이 복사본에만 있는 항목(백업된 적 없는 파일 등)은 영구적으로 사라집니다."
   },
   "approvalStates": {
     "awaiting_user": "대기 중",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "아직 계정이 없습니다",
     "locked": "잠김",
     "root_required": "콘텐츠 루트가 필요함",
-    "unlocked": "잠금 해제됨"
+    "unlocked": "잠금 해제됨",
+    "moved": "다른 Mac에서 복사됨"
   }
 } satisfies Catalog

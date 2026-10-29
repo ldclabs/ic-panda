@@ -108,6 +108,8 @@
 	<string>Bất kỳ ai có liên kết đầy đủ và mật khẩu được yêu cầu đều có thể truy xuất nó trong giới hạn của nó.</string>
 	<key>Anyone, free of charge</key>
 	<string>Bất cứ ai, miễn phí</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Mọi thứ chỉ có trong bản sao này, như tệp chưa từng được sao lưu, sẽ mất vĩnh viễn.</string>
 	<key>App Store subscriptions</key>
 	<string>Đăng ký App Store</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Cài đặt cuộc trò chuyện</string>
 	<key>Copied for 30 seconds</key>
 	<string>Sao chép trong 30 giây</string>
+	<key>Copies from other iPhones</key>
+	<string>Bản sao từ iPhone khác</string>
 	<key>Copy</key>
 	<string>Sao chép</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Xóa tài khoản</string>
 	<key>Delete cloud backup</key>
 	<string>Xóa bản sao lưu đám mây</string>
+	<key>Delete copy</key>
+	<string>Xóa bản sao</string>
 	<key>Delete this cloud backup?</key>
 	<string>Xóa bản sao lưu đám mây này?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Đọc từ ánh xạ tệp trên máy tính để bàn</string>
 	<key>Read the published policy</key>
 	<string>Đọc chính sách đã công bố</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Bản sao chỉ đọc được giữ để nhập. Xóa một bản không ảnh hưởng đến iPhone cũ hay tài khoản của bạn.</string>
 	<key>Reason</key>
 	<string>Lý do</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>Máy chủ</string>
 	<key>Set up this account</key>
 	<string>Thiết lập tài khoản này</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Thiết lập iPhone này làm thiết bị mới</string>
 	<key>Share a copy</key>
 	<string>Chia sẻ một bản sao</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Kiểm tra thông tin xác thực mới tại nhà cung cấp của nó</string>
 	<key>Text</key>
 	<string>văn bản</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>Bản sao được giữ trên iPhone này ở chế độ chỉ đọc để nhập. Sau đó iPhone này tham gia tài khoản như thiết bị mới: đăng nhập, rồi phê duyệt từ thiết bị khác hoặc khôi phục tài khoản. iPhone cũ vẫn hoạt động.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Phiên bản được mã hóa sẽ sử dụng bộ nhớ đám mây. Bản sao cục bộ của bạn vẫn còn trên thiết bị này.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Chuyến tham quan này không tải lên tập tin hoặc đăng ký tích hợp hệ thống.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Điều này theo dõi công việc của bạn trên thiết bị này. Nó không tạo, kiểm tra hoặc thu hồi thông tin đăng nhập từ nhà cung cấp của họ.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Không gian làm việc này được tạo trên iPhone khác rồi sao chép sang đây, ví dụ bằng bản sao lưu đã khôi phục hoặc khi chuyển thiết bị. Để bảo vệ tài khoản, nó không bao giờ hoạt động như thiết bị cũ: không mở khóa ở đây và không có gì trong đó bị xóa.</string>
 	<key>Title</key>
 	<string>Tiêu đề</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Rút tin nhắn</string>
 	<key>Withdraw this message?</key>
 	<string>Rút lại tin nhắn này?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Không gian làm việc sao chép từ iPhone khác</string>
 	<key>Workspace destination</key>
 	<string>Đích đến của không gian làm việc</string>
 	<key>Write a demo message</key>

@@ -108,6 +108,8 @@
 	<string>完全なリンクと必要なパスワードを持っている人は誰でも、制限内でそれを取得できます。</string>
 	<key>Anyone, free of charge</key>
 	<string>どなたでも無料</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>このコピーにしかないもの（バックアップされていないファイルなど）は完全に失われます。</string>
 	<key>App Store subscriptions</key>
 	<string>App Store サブスクリプション</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>会話設定</string>
 	<key>Copied for 30 seconds</key>
 	<string>30秒間コピーされました</string>
+	<key>Copies from other iPhones</key>
+	<string>他の iPhone からのコピー</string>
 	<key>Copy</key>
 	<string>コピー</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>アカウントを削除する</string>
 	<key>Delete cloud backup</key>
 	<string>クラウドバックアップを削除する</string>
+	<key>Delete copy</key>
+	<string>コピーを削除</string>
 	<key>Delete this cloud backup?</key>
 	<string>このクラウドバックアップを削除しますか?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>デスクトップファイルマッピングから読み取る</string>
 	<key>Read the published policy</key>
 	<string>公開されたポリシーを読む</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>読み込み用に保管された読み取り専用のコピーです。削除しても古い iPhone やアカウントには影響しません。</string>
 	<key>Reason</key>
 	<string>理由</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>サーバー</string>
 	<key>Set up this account</key>
 	<string>このアカウントを設定する</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>この iPhone を新しいデバイスとして設定</string>
 	<key>Share a copy</key>
 	<string>コピーを共有する</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>プロバイダーで新しい認証情報をテストする</string>
 	<key>Text</key>
 	<string>テキスト</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>コピーは読み取り専用のままこの iPhone に残り、読み込みに使えます。その後、この iPhone は新しいデバイスとしてアカウントに参加します。サインインしてから、別のデバイスで承認するか、アカウントを復旧してください。古い iPhone はそのまま使えます。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>暗号化されたバージョンではクラウド ストレージが使用されます。ローカル コピーはこのデバイス上に残ります。</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>このツアーでは、ファイルのアップロードやシステム統合の登録は行いません。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>これにより、このデバイスでの作業が追跡されます。プロバイダーで資格情報を作成、テスト、または取り消すことはありません。</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>このワークスペースは別の iPhone で作成され、バックアップの復元やデバイスの移行などでここにコピーされました。アカウントを保護するため、古いデバイスとして動作することはありません。ここではロック解除されず、中身も消去されません。</string>
 	<key>Title</key>
 	<string>タイトル</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>メッセージの撤回</string>
 	<key>Withdraw this message?</key>
 	<string>このメッセージを撤回しますか?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>別の iPhone からコピーされたワークスペース</string>
 	<key>Workspace destination</key>
 	<string>ワークスペースの宛先</string>
 	<key>Write a demo message</key>

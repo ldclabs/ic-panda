@@ -14,13 +14,15 @@
   const hint = $derived<Label>(
     status?.state === 'logged_out'
       ? 'loggedOutHint'
-      : step?.label === 'continueSetup'
-        ? 'setupHint'
-        : locked && !status.fast_unlock
-          ? 'lockedNeedsLogin'
-          : locked && status.fast_presence
-            ? 'lockedPresence'
-            : 'locked'
+      : status?.state === 'moved'
+        ? 'movedHint'
+        : step?.label === 'continueSetup'
+          ? 'setupHint'
+          : locked && !status.fast_unlock
+            ? 'lockedNeedsLogin'
+            : locked && status.fast_presence
+              ? 'lockedPresence'
+              : 'locked'
   )
 </script>
 

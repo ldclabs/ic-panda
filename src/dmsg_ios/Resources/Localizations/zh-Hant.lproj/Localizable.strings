@@ -108,6 +108,8 @@
 	<string>持有完整連結及所需密碼的人，都可在限制範圍內取回內容。</string>
 	<key>Anyone, free of charge</key>
 	<string>所有人，免費</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>僅存在於此副本中的內容（例如從未備份的檔案）將永久遺失。</string>
 	<key>App Store subscriptions</key>
 	<string>App Store 訂閱</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>會話設定</string>
 	<key>Copied for 30 seconds</key>
 	<string>已複製，30 秒後過期</string>
+	<key>Copies from other iPhones</key>
+	<string>來自其他 iPhone 的副本</string>
 	<key>Copy</key>
 	<string>複製</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>刪除帳號</string>
 	<key>Delete cloud backup</key>
 	<string>刪除雲備份</string>
+	<key>Delete copy</key>
+	<string>刪除副本</string>
 	<key>Delete this cloud backup?</key>
 	<string>刪除這份雲備份？</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>讀取桌面檔案對映</string>
 	<key>Read the published policy</key>
 	<string>閱讀已釋出的政策</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>為匯入保留的唯讀副本。刪除副本不會影響舊 iPhone 或帳號。</string>
 	<key>Reason</key>
 	<string>原因</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>伺服器</string>
 	<key>Set up this account</key>
 	<string>初始化帳戶</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>將這台 iPhone 設為新裝置</string>
 	<key>Share a copy</key>
 	<string>分享副本</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>在服務提供方測試新憑據</string>
 	<key>Text</key>
 	<string>文本</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>副本以唯讀方式保留在本機，供匯入使用。之後本機會以新裝置加入帳號：登入後，由另一台裝置批准，或復原帳號。舊 iPhone 仍可照常使用。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>加密版本將佔用雲端空間，本機副本會繼續保留。</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>此演示不會上傳檔案或註冊系統整合。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>這隻記錄你在此裝置上的工作，不會替你在服務提供方建立、測試或撤銷憑據。</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>此工作區建立於另一台 iPhone，經由回復備份或裝置移轉等方式複製到這裡。為保護帳號，它不會以舊裝置的身分執行任何操作：不會在本機解鎖，其中的內容也不會被刪除。</string>
 	<key>Title</key>
 	<string>標題</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>撤回訊息</string>
 	<key>Withdraw this message?</key>
 	<string>撤回這條訊息？</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>從另一台 iPhone 複製來的工作區</string>
 	<key>Workspace destination</key>
 	<string>工作區目標</string>
 	<key>Write a demo message</key>

@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "現在",
     "experience.disabled": "無効",
     "experience.configured": "設定済み",
-    "experience.stale": "更新が必要です"
+    "experience.stale": "更新が必要です",
+    "movedHint": "このワークスペースは別の Mac からコピーされたもので、ここでは読み取り専用です。この Mac を設定するには、設定で確認してください。",
+    "movedReview": "コピーされたワークスペースを確認",
+    "movedTitle": "別の Mac からコピーされたワークスペース",
+    "movedBody": "このワークスペースは別の Mac で作成され、移行アシスタントやバックアップの復元などでここにコピーされました。アカウントを保護するため、古いデバイスとして動作することはありません。ここではロック解除されず、中身も消去されません。",
+    "movedSetAside": "この Mac を新しいデバイスとして設定",
+    "movedSetAsideHint": "コピーは読み取り専用のままこの Mac に残り、読み込みに使えます。その後、この Mac は新しいデバイスとしてアカウントに参加します。ログインしてから、別のデバイスで承認するか、アカウントを復旧してください。古い Mac はそのまま使えます。",
+    "movedCopies": "他の Mac からのコピー",
+    "movedCopiesHint": "読み込み用に保管された読み取り専用のコピーです。削除しても古い Mac やアカウントには影響しません。",
+    "movedDelete": "コピーを削除",
+    "movedDeleteBody": "このコピーにしかないもの（バックアップされていないファイルなど）は完全に失われます。"
   },
   "approvalStates": {
     "awaiting_user": "待っています",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "まだアカウントがありません",
     "locked": "ロック中",
     "root_required": "コンテンツルートが必要です",
-    "unlocked": "ロック解除済み"
+    "unlocked": "ロック解除済み",
+    "moved": "別の Mac からコピー"
   }
 } satisfies Catalog

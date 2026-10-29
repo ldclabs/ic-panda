@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Aktualny",
     "experience.disabled": "Wyłączono",
     "experience.configured": "Skonfigurowane",
-    "experience.stale": "Wymaga aktualizacji"
+    "experience.stale": "Wymaga aktualizacji",
+    "movedHint": "Ten obszar roboczy skopiowano z innego Maca i tutaj jest tylko do odczytu. Sprawdź go w ustawieniach, aby skonfigurować tego Maca.",
+    "movedReview": "Sprawdź skopiowany obszar roboczy",
+    "movedTitle": "Obszar roboczy skopiowany z innego Maca",
+    "movedBody": "Ten obszar roboczy utworzono na innym Macu i skopiowano tutaj, na przykład Asystentem migracji lub z odtworzonej kopii zapasowej. Aby chronić Twoje konto, nigdy nie działa jako stare urządzenie: nie odblokowuje się tutaj i nic w nim nie jest usuwane.",
+    "movedSetAside": "Skonfiguruj tego Maca jako nowe urządzenie",
+    "movedSetAsideHint": "Kopia zostaje na tym Macu, tylko do odczytu, do importu. Następnie ten Mac dołącza do konta jako nowe urządzenie: zaloguj się, a potem zatwierdź go na innym urządzeniu lub odzyskaj konto. Stary Mac nadal działa.",
+    "movedCopies": "Kopie z innych Maców",
+    "movedCopiesHint": "Kopie tylko do odczytu zachowane do importu. Usunięcie jednej nie wpływa na starego Maca ani na konto.",
+    "movedDelete": "Usuń kopię",
+    "movedDeleteBody": "Wszystko, co istnieje tylko w tej kopii, na przykład pliki bez kopii zapasowej, zostanie bezpowrotnie utracone."
   },
   "approvalStates": {
     "awaiting_user": "Czekam",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Brak konta",
     "locked": "Zablokowano",
     "root_required": "Wymagany główny klucz treści",
-    "unlocked": "Odblokowano"
+    "unlocked": "Odblokowano",
+    "moved": "Skopiowano z innego Maca"
   }
 } satisfies Catalog

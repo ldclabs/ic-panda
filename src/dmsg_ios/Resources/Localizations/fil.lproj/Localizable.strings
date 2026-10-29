@@ -108,6 +108,8 @@
 	<string>Maaaring makuha ito ng sinumang may kumpletong link at kinakailangang password sa loob ng mga limitasyon nito.</string>
 	<key>Anyone, free of charge</key>
 	<string>Kahit sino, walang bayad</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Mawawala nang tuluyan ang anumang nasa kopyang ito lamang, gaya ng mga file na hindi kailanman na-back up.</string>
 	<key>App Store subscriptions</key>
 	<string>Mga subscription sa App Store</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Mga setting ng pag-uusap</string>
 	<key>Copied for 30 seconds</key>
 	<string>Kinopya sa loob ng 30 segundo</string>
+	<key>Copies from other iPhones</key>
+	<string>Mga kopya mula sa ibang iPhone</string>
 	<key>Copy</key>
 	<string>Kopyahin</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Tanggalin ang account</string>
 	<key>Delete cloud backup</key>
 	<string>Tanggalin ang cloud backup</string>
+	<key>Delete copy</key>
+	<string>Burahin ang kopya</string>
 	<key>Delete this cloud backup?</key>
 	<string>I-delete ang cloud backup na ito?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Magbasa mula sa isang desktop file mapping</string>
 	<key>Read the published policy</key>
 	<string>Basahin ang naka-publish na patakaran</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Mga read-only na kopyang itinabi para ma-import. Hindi apektado ang lumang iPhone o ang iyong account kapag binura ang isa.</string>
 	<key>Reason</key>
 	<string>Dahilan</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>server</string>
 	<key>Set up this account</key>
 	<string>I-set up ang account na ito</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>I-set up ang iPhone na ito bilang bagong device</string>
 	<key>Share a copy</key>
 	<string>Magbahagi ng kopya</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Subukan ang bagong kredensyal sa provider nito</string>
 	<key>Text</key>
 	<string>Text</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>Mananatili ang kopya sa iPhone na ito bilang read-only para ma-import. Pagkatapos, sasali ang iPhone na ito sa iyong account bilang bagong device: mag-sign in, saka aprubahan ito mula sa ibang device o i-recover ang account. Gagana pa rin ang lumang iPhone.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Ang naka-encrypt na bersyon ay gagamit ng cloud storage. Ang iyong lokal na kopya ay mananatili sa device na ito.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Ang tour na ito ay hindi nag-a-upload ng mga file o nagrerehistro ng mga pagsasama ng system.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Sinusubaybayan nito ang iyong trabaho sa device na ito. Hindi ito gumagawa, sumusubok o nagpapawalang-bisa ng mga kredensyal sa kanilang provider.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Ginawa ang workspace na ito sa ibang iPhone at kinopya rito, halimbawa ng na-restore na backup o paglilipat ng device. Para protektahan ang iyong account, hindi ito kailanman kumikilos bilang lumang device: hindi ito naa-unlock dito, at walang binubura rito.</string>
 	<key>Title</key>
 	<string>Pamagat</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Bawiin ang mensahe</string>
 	<key>Withdraw this message?</key>
 	<string>Bawiin ang mensaheng ito?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Workspace na kinopya mula sa ibang iPhone</string>
 	<key>Workspace destination</key>
 	<string>destinasyon ng workspace</string>
 	<key>Write a demo message</key>

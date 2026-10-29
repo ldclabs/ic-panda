@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Corrente",
     "experience.disabled": "Disabilitato",
     "experience.configured": "Configurato",
-    "experience.stale": "Necessita di aggiornamento"
+    "experience.stale": "Necessita di aggiornamento",
+    "movedHint": "Questo spazio di lavoro è stato copiato da un altro Mac e qui è di sola lettura. Controllalo nelle Impostazioni per configurare questo Mac.",
+    "movedReview": "Controlla lo spazio copiato",
+    "movedTitle": "Spazio di lavoro copiato da un altro Mac",
+    "movedBody": "Questo spazio di lavoro è stato creato su un altro Mac e copiato qui, ad esempio con Assistente Migrazione o ripristinando un backup. Per proteggere il tuo account non agisce mai come il vecchio dispositivo: qui non si sblocca e non viene cancellato nulla.",
+    "movedSetAside": "Configura questo Mac come nuovo dispositivo",
+    "movedSetAsideHint": "La copia resta su questo Mac, in sola lettura, per l’importazione. Poi questo Mac si unisce al tuo account come nuovo dispositivo: accedi, quindi approvalo da un altro dispositivo o recupera l’account. Il vecchio Mac continua a funzionare.",
+    "movedCopies": "Copie da altri Mac",
+    "movedCopiesHint": "Copie in sola lettura conservate per l’importazione. Eliminarne una non influisce sul vecchio Mac né sul tuo account.",
+    "movedDelete": "Elimina copia",
+    "movedDeleteBody": "Tutto ciò che esiste solo in questa copia, come i file mai salvati in un backup, andrà perso per sempre."
   },
   "approvalStates": {
     "awaiting_user": "In attesa",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Nessun account ancora",
     "locked": "Bloccato",
     "root_required": "Radice dei contenuti richiesta",
-    "unlocked": "Sbloccato"
+    "unlocked": "Sbloccato",
+    "moved": "Copiato da un altro Mac"
   }
 } satisfies Catalog

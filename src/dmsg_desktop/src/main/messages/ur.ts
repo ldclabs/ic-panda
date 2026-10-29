@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "ابھی کوئی اکاؤنٹ نہیں",
   locked: "لاک ہے",
   root_required: "مواد کی بنیادی کلید درکار ہے",
-  unlocked: "ان لاک ہے"
+  unlocked: "ان لاک ہے",
+  moved: "دوسرے Mac سے کاپی شدہ"
 }
 
 const text: Text = {

@@ -108,6 +108,8 @@
 	<string>Cualquiera con el enlace completo y la contraseña requerida puede recuperar el contenido dentro de sus límites.</string>
 	<key>Anyone, free of charge</key>
 	<string>Cualquiera, gratis</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Todo lo que solo existe en esta copia, como archivos que nunca se respaldaron, se perderá para siempre.</string>
 	<key>App Store subscriptions</key>
 	<string>Suscripciones de App Store</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Ajustes de conversación</string>
 	<key>Copied for 30 seconds</key>
 	<string>Copiado durante 30 segundos</string>
+	<key>Copies from other iPhones</key>
+	<string>Copias de otros iPhone</string>
 	<key>Copy</key>
 	<string>Copiar</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Eliminar cuenta</string>
 	<key>Delete cloud backup</key>
 	<string>Eliminar copia de la nube</string>
+	<key>Delete copy</key>
+	<string>Eliminar copia</string>
 	<key>Delete this cloud backup?</key>
 	<string>¿Eliminar esta copia de la nube?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Leer de una asignación de archivos del escritorio</string>
 	<key>Read the published policy</key>
 	<string>Leer la política publicada</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Copias de solo lectura guardadas para importar. Eliminar una no afecta al iPhone anterior ni a tu cuenta.</string>
 	<key>Reason</key>
 	<string>Motivo</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>Servidor</string>
 	<key>Set up this account</key>
 	<string>Configurar esta cuenta</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Configurar este iPhone como dispositivo nuevo</string>
 	<key>Share a copy</key>
 	<string>Compartir una copia</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Probar la credencial nueva en su proveedor</string>
 	<key>Text</key>
 	<string>Texto</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>La copia se conserva en este iPhone, de solo lectura, para importarla. Después este iPhone se une a tu cuenta como dispositivo nuevo: inicia sesión y apruébalo desde otro dispositivo o recupera la cuenta. El iPhone anterior sigue funcionando.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>La versión cifrada ocupará espacio en la nube. Tu copia local permanece en este dispositivo.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Esta visita no sube archivos ni registra integraciones del sistema.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Esto registra tu trabajo en este dispositivo. No crea, prueba ni revoca credenciales en su proveedor.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Este espacio de trabajo se creó en otro iPhone y se copió aquí, por ejemplo al restaurar una copia de seguridad o transferir el dispositivo. Para proteger tu cuenta nunca actúa como el dispositivo anterior: no se desbloquea aquí y no se borra nada de él.</string>
 	<key>Title</key>
 	<string>Título</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Retirar mensaje</string>
 	<key>Withdraw this message?</key>
 	<string>¿Retirar este mensaje?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Espacio de trabajo copiado desde otro iPhone</string>
 	<key>Workspace destination</key>
 	<string>Destino del espacio de trabajo</string>
 	<key>Write a demo message</key>

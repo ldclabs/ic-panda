@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "Noch kein Konto",
   locked: "gesperrt",
   root_required: "Inhaltsstamm erforderlich",
-  unlocked: "entsperrt"
+  unlocked: "entsperrt",
+  moved: "von einem anderen Mac kopiert"
 }
 
 const text: Text = {

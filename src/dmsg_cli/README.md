@@ -140,8 +140,22 @@ approval; a required approval on a device without one fails with
 runs `device key request`, which asks Touch ID there and prints a request,
 and an administrator device with a key runs `device key approve`.
 
-The hardware creation test runs without a prompt:
-`cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`.
+Every workspace also has a hardware anchor: a Secure Enclave key that never
+asks and works once the Mac has been unlocked after it started. The daemon
+signs with it when it starts and whenever it selects a workspace. A
+workspace copied to another Mac, by Migration Assistant or a restored
+backup, cannot sign there and is moved (`state: "moved"`): it never unlocks
+and receives no notifications with the old device's identity, and nothing in
+it is erased. `device/moved_set_aside` moves it whole to
+`moved/<account>-<device>/` and starts a new device of the account, which then
+pairs or recovers; `device/moved_list` lists the copies and
+`device/moved_discard {id}` deletes one. A workspace that already held
+Secure Enclave keys when its anchor was made counts as moved when the first of
+them fails on this Mac; the first that opens settles it.
+
+The hardware creation tests run without a prompt:
+`cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`
+and `enclave::tests::anchors_sign_without_asking` the same way.
 Run it in an active macOS login session with the device unlocked. Hardware and
 biometric capability checks do not guarantee that the security service will
 permit key creation at that instant. A native failure now keeps its negative
@@ -1115,6 +1129,7 @@ The daemon listens on `127.0.0.1` only.
   `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay`,
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
+  `device/moved_list|moved_set_aside|moved_discard {id}`,
   `vault/templates|create|edit|duplicate|delete|restore|tags|list|show|reveal|history|revert|conflicts|resolve|otp|ssh_keygen|health`,
   `vault/otp_scan {image|path}`, `vault/import_preview|import` (absolute paths),
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,

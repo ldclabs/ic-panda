@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "Wala pang account",
   locked: "Naka-lock",
   root_required: "Kailangan ang root key ng nilalaman",
-  unlocked: "Naka-unlock"
+  unlocked: "Naka-unlock",
+  moved: "kinopya mula sa ibang Mac"
 }
 
 const text: Text = {

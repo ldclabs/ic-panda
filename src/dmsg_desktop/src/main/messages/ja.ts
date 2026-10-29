@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: "アカウント未作成",
   locked: "ロック中",
   root_required: "コンテンツルートが必要",
-  unlocked: "ロック解除済み"
+  unlocked: "ロック解除済み",
+  moved: "別の Mac からコピー"
 }
 
 const text: Text = {

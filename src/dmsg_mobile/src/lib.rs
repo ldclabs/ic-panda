@@ -180,6 +180,7 @@ impl MobileEngine {
                 let mut client = Client::open(opened_config, &directory, Some(adapter.clone()))?;
                 client.set_presence_key(adapter.clone());
                 client.set_approval_keys(adapter.clone());
+                client.set_hardware_anchor(adapter.clone())?;
                 client.set_cosign_provider(adapter);
                 client.require_fast_presence();
                 client.use_read_only_previews();
@@ -366,6 +367,30 @@ impl MobileEngine {
             .await?;
         transition.finish()?;
         self.session_state().await
+    }
+
+    /// The workspaces set aside after they came from other hardware.
+    pub async fn moved_copies(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| Box::pin(async { c.moved_copies() })).await
+    }
+
+    /// Set the selected workspace, which came from other hardware, aside
+    /// and start a new device of its account in its place.
+    pub async fn set_aside_moved(&self) -> Result<SessionSnapshot> {
+        let transition = self.host.begin_transition()?;
+        self.platform.cancel_presence();
+        self.cancel_login();
+        transition
+            .run(|c| Box::pin(async { c.set_aside_moved() }))
+            .await?;
+        transition.finish()?;
+        self.session_state().await
+    }
+
+    /// Delete a copy set aside; the person confirmed it.
+    pub async fn discard_moved(&self, id: String) -> Result<ObjectSnapshot> {
+        self.object(move |c| Box::pin(async move { c.discard_moved(&id) }))
+            .await
     }
 
     pub async fn begin_login(&self) -> Result<LoginStart> {

@@ -2440,7 +2440,17 @@ export default {
     "experience.current": "当前有效",
     "experience.disabled": "已禁用",
     "experience.configured": "已配置",
-    "experience.stale": "需要更新"
+    "experience.stale": "需要更新",
+    "movedHint": "此工作区是从另一台 Mac 复制来的，在本机只读。请在设置中查看并设置本机。",
+    "movedReview": "查看复制来的工作区",
+    "movedTitle": "从另一台 Mac 复制来的工作区",
+    "movedBody": "此工作区创建于另一台 Mac，经迁移助理或恢复备份等方式复制到了这里。为保护账户，它不会以旧设备的身份做任何事：不会在本机解锁，其中的内容也不会被删除。",
+    "movedSetAside": "将本机设为新设备",
+    "movedSetAsideHint": "副本以只读方式保留在本机，供导入使用。随后本机作为新设备加入账户：登录后，由另一台设备批准，或恢复账户。旧 Mac 照常使用。",
+    "movedCopies": "来自其他 Mac 的副本",
+    "movedCopiesHint": "为导入保留的只读副本。删除副本不影响旧 Mac 和账户。",
+    "movedDelete": "删除副本",
+    "movedDeleteBody": "仅存在于此副本中的内容（例如从未备份的文件）将永久丢失。"
 },
   approvalStates: {
     awaiting_user: '待确认',
@@ -2460,6 +2470,7 @@ export default {
     no_account: '尚未创建账户',
     locked: '已锁定',
     root_required: '需要内容根',
-    unlocked: '已解锁'
+    unlocked: '已解锁',
+    moved: '从另一台 Mac 复制而来'
   }
 } satisfies Catalog

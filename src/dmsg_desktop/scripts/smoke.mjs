@@ -216,7 +216,6 @@ const backupJobs = []
 const version = (file) => ({ id: file.current, size: file.size, sha256: file.sha256, created_at: file.created_at, device: '11'.repeat(32), origin: { type: 'imported' }, local: true, backup: file.backup, current: true, status: file.status })
 const endpoints = []
 const grants = []
-const notes = []
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
 const claude = 'did:agent:' + 'Q'.repeat(43)
 const audit = [
@@ -3174,8 +3173,8 @@ smoke: try {
   await main.click('[data-testid="agent-remove-dialog-confirm"]')
   await waitFor(() => calls.some((c) => c.method === 'agent/remove'))
   assert.deepEqual(latest('agent/remove').params, { agent: claude, source: 'gui' })
-  // An MCP Events endpoint shows its secret once; a delivery notifies how
-  // many arrived, never what or from where.
+  // An MCP Events endpoint shows its secret once; a delivery is no owner
+  // notification and never shows what or from where.
   const finishEndpoints = hold('mcp-events/list')
   await main.click('[data-testid="agents-tab-events"]')
   await main.waitForSelector('[data-testid="events-status"]')
@@ -3186,13 +3185,11 @@ smoke: try {
   assert.equal(await main.textContent('[data-testid="endpoint-secret"]'), 'whsec_smoke')
   await finishEndpoints()
   assert.deepEqual(latest('mcp-events/create').params, { context: { label: 'Upstream' } })
+  const notesBefore = (await app.evaluate(() => globalThis.__notes)).length
   emit('mcp-events/changed', { stored: 2, refresh_due: 0 })
-  for (let i = 0; i < 50 && !notes.length; i++) {
-    notes.push(...(await app.evaluate(() => globalThis.__notes.filter((n) => /2/.test(n)))))
-    if (!notes.length) await new Promise((r) => setTimeout(r, 100))
-  }
-  assert.equal(notes.length, 1)
-  assert.ok(!notes[0].includes('Upstream'))
+  await new Promise((r) => setTimeout(r, 300))
+  const eventNotes = (await app.evaluate(() => globalThis.__notes)).slice(notesBefore)
+  assert.equal(eventNotes.some((n) => n.includes('Upstream')), false)
   // The audit record names who did what and through which way in.
   await main.click('[data-testid="agents-tab-audit"]')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
@@ -4203,16 +4200,13 @@ smoke: try {
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
   await main.keyboard.press('Escape')
   await main.waitForSelector('[data-testid="profile"]', { state: 'detached' })
-  // A locked daemon's hints notify that something arrived, never from
-  // whom, and each kind at most once a minute.
-  const arrived = async () =>
-    (await app.evaluate(() => globalThis.__notes)).filter((n) => /letter|来信|channel messages|频道消息/.test(n))
-  const hintsBefore = (await arrived()).length
-  emit('hint', { kind: 'inbox' })
+  // A daemon hint only refreshes; owner notifications come from the
+  // daemon's queue, so a hint never notifies by itself.
+  const notesBeforeHints = (await app.evaluate(() => globalThis.__notes)).length
   emit('hint', { kind: 'inbox' })
   emit('hint', { kind: 'channel' })
-  for (let i = 0; i < 50 && (await arrived()).length < hintsBefore + 2; i++) await new Promise((r) => setTimeout(r, 100))
-  assert.equal((await arrived()).length, hintsBefore + 2)
+  await new Promise((r) => setTimeout(r, 300))
+  assert.equal((await app.evaluate(() => globalThis.__notes)).length, notesBeforeHints)
   await main.click('[data-testid="settings-session"]')
   // Fast unlock turns on in Settings; the locked account then opens from the
   // keychain instead of a login.
@@ -4294,6 +4288,48 @@ smoke: try {
   await main.waitForSelector('[data-testid="gate-lock"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
   assert.equal(await main.textContent('[data-testid="fast-unlock-method"]'), 'Touch ID or the Mac password')
+  // A workspace copied from another Mac never unlocks: the gate leads to
+  // Settings, which sets it aside as a new device and keeps the copy until
+  // the person deletes it.
+  let movedCopies = []
+  methods['device/moved_list'] = () => movedCopies
+  methods['device/moved_set_aside'] = () => {
+    movedCopies = [{ id: `${account}-11111111`, account, device_id: '11'.repeat(32), moved_at: Date.now(), reason: 'anchor' }]
+    session = 'logged_out'
+    return status()
+  }
+  methods['device/moved_discard'] = (p) => {
+    movedCopies = movedCopies.filter((c) => c.id !== p.id)
+    return null
+  }
+  session = 'moved'
+  emit('session/changed', { state: 'moved' })
+  await main.waitForSelector('[data-testid="gate-unlock"] >> text=Review copied workspace')
+  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Copied from another Mac')
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('text=This workspace was copied from another Mac')
+  await main.click('[data-testid="gate-unlock"]')
+  await main.waitForSelector('[data-testid="moved"]')
+  await formMatrix(app, main, shots, 'moved', '[data-testid="moved"]')
+  await main.focus('[data-testid="moved-set-aside"]')
+  await main.keyboard.press('Enter')
+  await waitFor(() => latest('device/moved_set_aside'))
+  await main.waitForSelector('[data-testid="moved"]', { state: 'detached' })
+  await main.waitForSelector('[data-testid="moved-copies"]')
+  await main.click('[data-testid="moved-discard"]')
+  await main.waitForSelector('[data-testid="moved-discard-dialog"]')
+  await formMatrix(app, main, shots, 'moved-discard', '[data-testid="moved-discard-dialog"]')
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="moved-discard-dialog"]', { state: 'detached' })
+  assert.equal(calls.filter((c) => c.method === 'device/moved_discard').length, 0)
+  await main.click('[data-testid="moved-discard"]')
+  await main.click('[data-testid="moved-discard-dialog-confirm"]')
+  await waitFor(() => latest('device/moved_discard'))
+  assert.deepEqual(latest('device/moved_discard').params, { id: `${account}-11111111` })
+  await main.waitForSelector('[data-testid="moved-copies"]', { state: 'detached' })
+  session = 'unlocked'
+  emit('session/changed', { state: 'unlocked' })
+  await main.waitForSelector('[data-testid="gate-lock"]')
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })

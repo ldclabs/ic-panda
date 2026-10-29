@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Aktuell",
     "experience.disabled": "Deaktiviert",
     "experience.configured": "Konfiguriert",
-    "experience.stale": "Muss aktualisiert werden"
+    "experience.stale": "Muss aktualisiert werden",
+    "movedHint": "Dieser Arbeitsbereich wurde von einem anderen Mac kopiert und ist hier schreibgeschützt. Prüfen Sie ihn in den Einstellungen, um diesen Mac einzurichten.",
+    "movedReview": "Kopierten Arbeitsbereich prüfen",
+    "movedTitle": "Von einem anderen Mac kopierter Arbeitsbereich",
+    "movedBody": "Dieser Arbeitsbereich wurde auf einem anderen Mac erstellt und hierher kopiert, etwa mit dem Migrationsassistenten oder durch eine wiederhergestellte Sicherung. Zum Schutz Ihres Kontos tritt er nie als das alte Gerät auf: Er wird hier nicht entsperrt, und nichts darin wird gelöscht.",
+    "movedSetAside": "Diesen Mac als neues Gerät einrichten",
+    "movedSetAsideHint": "Die Kopie bleibt schreibgeschützt auf diesem Mac, damit Sie sie importieren können. Danach tritt dieser Mac Ihrem Konto als neues Gerät bei: Melden Sie sich an und bestätigen Sie ihn auf einem anderen Gerät, oder stellen Sie das Konto wieder her. Der alte Mac funktioniert weiter.",
+    "movedCopies": "Kopien von anderen Macs",
+    "movedCopiesHint": "Schreibgeschützte Kopien, die für den Import aufbewahrt werden. Das Löschen einer Kopie wirkt sich weder auf den alten Mac noch auf Ihr Konto aus.",
+    "movedDelete": "Kopie löschen",
+    "movedDeleteBody": "Alles, was nur in dieser Kopie existiert, etwa nie gesicherte Dateien, geht endgültig verloren."
   },
   "approvalStates": {
     "awaiting_user": "Warten",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Noch kein Konto",
     "locked": "Gesperrt",
     "root_required": "Inhaltsstamm erforderlich",
-    "unlocked": "Entsperrt"
+    "unlocked": "Entsperrt",
+    "moved": "Von einem anderen Mac kopiert"
   }
 } satisfies Catalog

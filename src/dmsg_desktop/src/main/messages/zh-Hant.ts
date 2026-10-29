@@ -8,7 +8,8 @@ const states: Record<string, string> = {
   no_account: '尚未建立帳戶',
   locked: '已鎖定',
   root_required: '需要內容根',
-  unlocked: '已解鎖'
+  unlocked: '已解鎖',
+  moved: '從另一台 Mac 複製而來'
 }
 
 const text: Text = {

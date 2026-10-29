@@ -6,7 +6,9 @@
 //! person present, such as the Secure Enclave behind Touch ID; fast unlock
 //! and the device-bound local key use it when the device has one.
 //! [`ApprovalKeys`] are hardware signing keys whose signature the user home
-//! requires for the approvals an account protects.
+//! requires for the approvals an account protects. A [`HardwareAnchor`]
+//! never asks for the person: it shows that a workspace still runs on the
+//! hardware that made it.
 
 use crate::crypto::Key;
 use dmsg_types::{Hash, Result};
@@ -118,5 +120,25 @@ pub trait Authorized: Send + Sync {
     /// # Errors
     /// Returns `Error::IntegrityFailed` for a key this hardware no longer
     /// opens and `Error::Unavailable` otherwise.
+    fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]>;
+}
+
+/// Hardware that keeps signing keys usable without the person, only on the
+/// hardware that made them: a workspace signs with its anchor to show it
+/// has not been copied to other hardware, such as by a system migration or
+/// a restored backup.
+pub trait HardwareAnchor: Send + Sync {
+    /// A new key: its opaque handle and its SEC1 public key. Asks nothing.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when the hardware refuses.
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>)>;
+
+    /// Sign a 32-byte message (P-256 ECDSA over its SHA-256) with the key
+    /// `handle`, as `r || s`, asking nothing.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` when this hardware cannot use
+    /// `handle` and `Error::Unavailable` when it may later.
     fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]>;
 }

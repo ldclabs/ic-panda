@@ -20,6 +20,9 @@
 //! with every key; with "background online" (`background_online`, plan D-7)
 //! only the device signing key stays, so presigned and already sealed
 //! versions keep moving while nothing can be read.
+//!
+//! A workspace copied from other hardware is moved ([`crate::hardware`]):
+//! it never unlocks.
 
 use crate::account::{Security, device_bundle, verify_security};
 use crate::cloud::{Cloud, Evidence, EvidenceEntry, Prepared, Signer};
@@ -27,6 +30,7 @@ use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::{Config, environment_name};
 use crate::content::VAULT;
 use crate::crypto::Key;
+use crate::hardware::Verdict;
 use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::library::blobs::Blobs;
@@ -34,7 +38,7 @@ use crate::library::catalog::Catalog;
 use crate::login::{Delegated, KeptLogin};
 use crate::now_ms;
 use crate::root::RootKeys;
-use crate::secure::{Presence, PresenceKey, SecureStorage};
+use crate::secure::{HardwareAnchor, Presence, PresenceKey, SecureStorage};
 use crate::storage;
 use crate::store::LOCAL;
 use crate::sync::LastSync;
@@ -47,7 +51,7 @@ use futures_util::future::try_join_all;
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
 use serde_json::Value as Json;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -61,7 +65,7 @@ const KEPT_LOGIN: &str = "login";
 /// The agent connectors' state file in the workspace directory.
 const AGENT_RUNTIME: &str = "agents.sqlite";
 /// The workspace file in its directory.
-const WORKSPACE: &str = "workspace.sqlite";
+pub(crate) const WORKSPACE: &str = "workspace.sqlite";
 /// The file library's chunk directory in the workspace directory.
 const BLOBS: &str = "blobs";
 /// The account selected last.
@@ -343,6 +347,8 @@ pub struct LocalAccount {
     pub login_unlocked_at: Option<u64>,
     /// The selected workspace.
     pub current: bool,
+    /// The workspace came from other hardware and never unlocks here.
+    pub moved: bool,
 }
 
 /// Work that started and has not settled. All of it is journaled and resumes
@@ -384,12 +390,18 @@ pub struct Client {
     pub(crate) secret_active: BTreeMap<String, crate::secrets::run::ActiveUse>,
     pub(crate) config: Config,
     /// The environment's directory.
-    dir: PathBuf,
+    pub(crate) dir: PathBuf,
     secure: Option<Arc<dyn SecureStorage>>,
     /// Hardware that keeps the fast-unlock key and asks for the person,
     /// also before a high-risk approval.
     pub(crate) presence: Option<Arc<dyn PresenceKey>>,
-    slot: Slot,
+    /// Hardware that makes the workspaces' anchors.
+    pub(crate) anchor: Option<Arc<dyn HardwareAnchor>>,
+    /// What the anchor says about the selected workspace.
+    pub(crate) hardware: Verdict,
+    /// The account workspaces that came from other hardware.
+    pub(crate) moved: BTreeSet<AccountId>,
+    pub(crate) slot: Slot,
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
     pub(crate) login: Option<Login>,
@@ -753,6 +765,9 @@ impl Client {
             dir: dir.to_path_buf(),
             secure,
             presence: None,
+            anchor: None,
+            hardware: Verdict::Native,
+            moved: BTreeSet::new(),
             running: BTreeMap::new(),
             slot: Slot::Idle,
             workspace,
@@ -823,6 +838,7 @@ impl Client {
     /// As [`Self::unlock_fast`]. Plain keys are removed under mobile policy.
     pub fn prepare_fast_unlock(&mut self) -> Result<FastUnlock> {
         let account = self.account()?.id;
+        self.hardware_ready()?;
         ensure(self.workspace.meta.fast_unlock.is_some(), Error::NotFound)?;
         let deadline = self
             .workspace
@@ -877,6 +893,8 @@ impl Client {
             Error::Locked,
         )?;
         ensure(now_ms() < prepared.deadline, Error::AuthRequired)?;
+        self.hardware_ready()?;
+        let key = self.hardware_key(key);
         let keys = match &prepared.source {
             FastUnlockSource::Bound(slot) => {
                 ensure(self.bound_slot()?.as_ref() == Some(slot), Error::Locked)?;
@@ -922,7 +940,7 @@ impl Client {
     }
 
     /// The directory of a workspace.
-    fn slot_dir(&self, slot: &Slot) -> PathBuf {
+    pub(crate) fn slot_dir(&self, slot: &Slot) -> PathBuf {
         match slot {
             Slot::Idle => self.dir.clone(),
             Slot::Account(account) => self.dir.join("accounts").join(account.to_string()),
@@ -967,7 +985,7 @@ impl Client {
         }
         self.blobs = (slot != Slot::Idle).then(|| Blobs::new(dir.join(BLOBS)));
         self.slot = slot;
-        Ok(())
+        self.check_hardware()
     }
 
     /// Move a login's workspace to the account it now belongs to.
@@ -1037,6 +1055,7 @@ impl Client {
                 fast_unlock: meta.fast_unlock.is_some(),
                 login_unlocked_at: meta.login_unlocked_at,
                 current,
+                moved: self.moved.contains(&account),
             });
         }
         list.sort_by_key(|a| std::cmp::Reverse(a.login_unlocked_at));
@@ -1125,6 +1144,7 @@ impl Client {
         let account = self.workspace.meta.account.as_ref();
         let login = self.login.as_ref().filter(|l| l.expires_at > now_ms());
         let state = match (account, login, &self.keys) {
+            _ if self.hardware == Verdict::Moved => "moved",
             (None, None, _) => "logged_out",
             (None, Some(_), _) if self.located.is_some() => "pairing_required",
             (None, Some(_), _) => "no_account",
@@ -1246,6 +1266,7 @@ impl Client {
     /// # Errors
     /// As [`Self::unlock`].
     pub async fn prepare_unlock(&mut self) -> Result<Option<LoginUnlock>> {
+        self.hardware_ready()?;
         self.session()?;
         if self.workspace.provisional() {
             self.keys = Some(self.workspace.unlock_provisional()?);
@@ -1299,7 +1320,8 @@ impl Client {
     ) -> Result<Status> {
         self.check_device_presence(&prepared.presence)?;
         self.session()?;
-        let device = device?;
+        self.hardware_ready()?;
+        let device = self.hardware_key(device)?;
         let account = self.account()?.clone();
         // The device may have been revoked while the system was asking.
         let security = self.refresh_security(account.home, &account.id).await?;
@@ -1804,6 +1826,8 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when files cannot be removed.
     pub fn reset(&mut self) -> Result<Status> {
+        // A moved workspace is set aside, never erased.
+        ensure(self.hardware != Verdict::Moved, Error::Forbidden)?;
         self.retire_notifications()?;
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
@@ -2249,7 +2273,7 @@ pub(crate) async fn peers_security<H: Hold>(
 type Peer = (AccountId, BTreeMap<Hash, Device>);
 
 /// The empty workspace of no selection.
-fn idle(environment: &Environment) -> Result<Workspace> {
+pub(crate) fn idle(environment: &Environment) -> Result<Workspace> {
     Workspace::load(crate::store::Store::memory()?, environment, now_ms())
 }
 

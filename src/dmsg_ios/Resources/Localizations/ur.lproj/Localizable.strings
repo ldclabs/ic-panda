@@ -108,6 +108,8 @@
 	<string>کوئی بھی شخص جس کے پاس مکمل لنک اور مطلوبہ پاس ورڈ ہے وہ اسے اپنی حدود میں حاصل کر سکتا ہے۔</string>
 	<key>Anyone, free of charge</key>
 	<string>کوئی بھی، بلا معاوضہ</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>جو کچھ صرف اسی کاپی میں ہے، جیسے کبھی بیک اپ نہ کی گئی فائلیں، ہمیشہ کے لیے ضائع ہو جائے گا۔</string>
 	<key>App Store subscriptions</key>
 	<string>App Store سبسکرپشنز</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>بات چیت کی ترتیبات</string>
 	<key>Copied for 30 seconds</key>
 	<string>30 سیکنڈ کے لیے کاپی کیا گیا</string>
+	<key>Copies from other iPhones</key>
+	<string>دوسرے iPhone سے کاپیاں</string>
 	<key>Copy</key>
 	<string>کاپی کریں</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>اکاؤنٹ حذف کریں</string>
 	<key>Delete cloud backup</key>
 	<string>کلاؤڈ بیک اپ کو حذف کریں</string>
+	<key>Delete copy</key>
+	<string>کاپی حذف کریں</string>
 	<key>Delete this cloud backup?</key>
 	<string>اس کلاؤڈ بیک اپ کو حذف کریں؟</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>ڈیسک ٹاپ فائل میپنگ سے پڑھیں</string>
 	<key>Read the published policy</key>
 	<string>شائع شدہ پالیسی پڑھیں</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>درآمد کے لیے رکھی گئی صرف پڑھنے والی کاپیاں۔ کسی ایک کو حذف کرنے سے پرانے iPhone یا آپ کے اکاؤنٹ پر کوئی اثر نہیں پڑتا۔</string>
 	<key>Reason</key>
 	<string>وجہ</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>سرور</string>
 	<key>Set up this account</key>
 	<string>اس اکاؤنٹ کو ترتیب دیں</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>اس iPhone کو نئے آلے کے طور پر سیٹ اپ کریں</string>
 	<key>Share a copy</key>
 	<string>ایک کاپی شیئر کریں</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>اس کے فراہم کنندہ پر نئی اسناد کی جانچ کریں</string>
 	<key>Text</key>
 	<string>متن</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>کاپی درآمد کے لیے اس iPhone پر صرف پڑھنے کے لیے رہتی ہے۔ پھر یہ iPhone نئے آلے کے طور پر آپ کے اکاؤنٹ میں شامل ہوتا ہے: سائن ان کریں، پھر کسی دوسرے آلے سے اسے منظور کریں یا اکاؤنٹ بحال کریں۔ پرانا iPhone کام کرتا رہتا ہے۔</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>انکرپٹڈ ورژن کلاؤڈ اسٹوریج کا استعمال کرے گا۔ آپ کی مقامی کاپی اس ڈیوائس پر رہتی ہے۔</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>یہ ٹور فائلیں اپ لوڈ نہیں کرتا ہے یا سسٹم انٹیگریشن کو رجسٹر نہیں کرتا ہے۔</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>یہ اس ڈیوائس پر آپ کے کام کو ٹریک کرتا ہے۔ یہ ان کے فراہم کنندہ پر اسناد تخلیق، جانچ یا منسوخ نہیں کرتا ہے۔</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>یہ ورک اسپیس دوسرے iPhone پر بنائی گئی اور یہاں کاپی کی گئی، مثلاً بحال کیے گئے بیک اپ یا آلے کی منتقلی کے ذریعے۔ آپ کے اکاؤنٹ کی حفاظت کے لیے یہ کبھی پرانے آلے کے طور پر کام نہیں کرتی: یہ یہاں ان لاک نہیں ہوتی، اور اس میں سے کچھ بھی مٹایا نہیں جاتا۔</string>
 	<key>Title</key>
 	<string>عنوان</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>پیغام واپس لیں</string>
 	<key>Withdraw this message?</key>
 	<string>اس پیغام کو واپس لیں؟</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>دوسرے iPhone سے کاپی شدہ ورک اسپیس</string>
 	<key>Workspace destination</key>
 	<string>کام کی جگہ کی منزل</string>
 	<key>Write a demo message</key>

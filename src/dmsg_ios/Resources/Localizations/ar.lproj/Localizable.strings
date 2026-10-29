@@ -108,6 +108,8 @@
 	<string>يمكن لأي شخص يملك الرابط الكامل وكلمة المرور المطلوبة استرجاع المحتوى ضمن الحدود المحددة.</string>
 	<key>Anyone, free of charge</key>
 	<string>أي شخص، مجانًا</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>كل ما يوجد في هذه النسخة وحدها، مثل الملفات التي لم يُنسخ احتياطيًا قط، سيُفقد نهائيًا.</string>
 	<key>App Store subscriptions</key>
 	<string>اشتراكات App Store</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>إعدادات المحادثة</string>
 	<key>Copied for 30 seconds</key>
 	<string>نُسخ لمدة 30 ثانية</string>
+	<key>Copies from other iPhones</key>
+	<string>نسخ من أجهزة iPhone أخرى</string>
 	<key>Copy</key>
 	<string>نسخ</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>حذف الحساب</string>
 	<key>Delete cloud backup</key>
 	<string>حذف النسخة السحابية</string>
+	<key>Delete copy</key>
+	<string>حذف النسخة</string>
 	<key>Delete this cloud backup?</key>
 	<string>هل تريد حذف هذه النسخة السحابية؟</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>القراءة من ربط ملفات الحاسوب</string>
 	<key>Read the published policy</key>
 	<string>قراءة السياسة المنشورة</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>نسخ للقراءة فقط محفوظة للاستيراد. حذف إحداها لا يؤثر في جهاز iPhone القديم ولا في حسابك.</string>
 	<key>Reason</key>
 	<string>السبب</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>خادم</string>
 	<key>Set up this account</key>
 	<string>إعداد هذا الحساب</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>إعداد جهاز iPhone هذا كجهاز جديد</string>
 	<key>Share a copy</key>
 	<string>مشاركة نسخة</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>اختبار بيانات الاعتماد الجديدة لدى مزودها</string>
 	<key>Text</key>
 	<string>نص</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>تبقى النسخة على جهاز iPhone هذا للقراءة فقط لاستيرادها. ثم ينضم جهاز iPhone هذا إلى حسابك كجهاز جديد: سجّل الدخول، ثم وافق عليه من جهاز آخر أو استعد الحساب. يستمر جهاز iPhone القديم في العمل.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>ستستخدم النسخة المشفّرة مساحة تخزين سحابية. تبقى نسختك المحلية على هذا الجهاز.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>لا ترفع هذه الجولة ملفات ولا تسجّل تكاملًا مع النظام.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>يتتبع هذا عملك على هذا الجهاز. ولا ينشئ بيانات اعتماد لدى مزودها أو يختبرها أو يبطلها.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>أُنشئت مساحة العمل هذه على جهاز iPhone آخر ونُسخت إلى هنا، مثلًا باستعادة نسخة احتياطية أو بنقل الجهاز. لحماية حسابك لا تعمل أبدًا بصفتها الجهاز القديم: لا يُفتح قفلها هنا، ولا يُحذف شيء منها.</string>
 	<key>Title</key>
 	<string>العنوان</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>سحب الرسالة</string>
 	<key>Withdraw this message?</key>
 	<string>سحب هذه الرسالة؟</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>مساحة عمل منسوخة من جهاز iPhone آخر</string>
 	<key>Workspace destination</key>
 	<string>وجهة مساحة العمل</string>
 	<key>Write a demo message</key>

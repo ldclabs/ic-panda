@@ -87,9 +87,12 @@
 {:else}
   <div class="grid grid-cols-1 gap-2 border-t border-line py-2.5 ps-3 pe-2 text-[12.5px]" data-testid="gate-rail">
     {#if step}
-      <div class="flex min-h-6 items-center gap-2">
-        <Icon name="lock" class="text-faint" />
-        <b class="font-semibold" data-testid="gate-state">{session ? sessionLabel(session) : '-'}</b>
+      <!-- A long state moves the step to its own line instead of squeezing both. -->
+      <div class="flex min-h-6 flex-wrap items-center gap-2">
+        <span class="flex min-w-0 items-center gap-2">
+          <Icon name="lock" class="shrink-0 text-faint" />
+          <b class="font-semibold" data-testid="gate-state">{session ? sessionLabel(session) : '-'}</b>
+        </span>
         <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'ms-auto')} disabled={$unlocking} aria-busy={$unlocking} onclick={step.run} data-testid="gate-unlock">
           {$unlocking ? t('unlocking') : t(step.label)}
         </button>

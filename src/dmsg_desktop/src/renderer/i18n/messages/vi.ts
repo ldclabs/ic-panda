@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "hiện tại",
     "experience.disabled": "Đã tắt",
     "experience.configured": "Đã định cấu hình",
-    "experience.stale": "Cần cập nhật"
+    "experience.stale": "Cần cập nhật",
+    "movedHint": "Không gian làm việc này được sao chép từ máy Mac khác và chỉ đọc ở đây. Hãy xem lại trong Cài đặt để thiết lập máy Mac này.",
+    "movedReview": "Xem không gian đã sao chép",
+    "movedTitle": "Không gian làm việc sao chép từ máy Mac khác",
+    "movedBody": "Không gian làm việc này được tạo trên máy Mac khác rồi sao chép sang đây, ví dụ bằng Trợ lý Di chuyển hoặc bản sao lưu đã khôi phục. Để bảo vệ tài khoản, nó không bao giờ hoạt động như thiết bị cũ: không mở khóa ở đây và không có gì trong đó bị xóa.",
+    "movedSetAside": "Thiết lập máy Mac này làm thiết bị mới",
+    "movedSetAsideHint": "Bản sao được giữ trên máy Mac này ở chế độ chỉ đọc để nhập. Sau đó máy Mac này tham gia tài khoản như thiết bị mới: đăng nhập, rồi phê duyệt từ thiết bị khác hoặc khôi phục tài khoản. Máy Mac cũ vẫn hoạt động.",
+    "movedCopies": "Bản sao từ máy Mac khác",
+    "movedCopiesHint": "Bản sao chỉ đọc được giữ để nhập. Xóa một bản không ảnh hưởng đến máy Mac cũ hay tài khoản của bạn.",
+    "movedDelete": "Xóa bản sao",
+    "movedDeleteBody": "Mọi thứ chỉ có trong bản sao này, như tệp chưa từng được sao lưu, sẽ mất vĩnh viễn."
   },
   "approvalStates": {
     "awaiting_user": "Đang chờ",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Chưa có tài khoản",
     "locked": "Đã khóa",
     "root_required": "Cần khóa gốc nội dung",
-    "unlocked": "Đã mở khóa"
+    "unlocked": "Đã mở khóa",
+    "moved": "Sao chép từ máy Mac khác"
   }
 } satisfies Catalog

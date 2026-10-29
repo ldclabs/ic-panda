@@ -108,6 +108,8 @@
 	<string>Siapa pun yang memiliki tautan lengkap dan kata sandi yang diperlukan dapat mengambilnya kembali dalam batasannya.</string>
 	<key>Anyone, free of charge</key>
 	<string>Siapa pun, gratis</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Apa pun yang hanya ada di salinan ini, seperti file yang tidak pernah dicadangkan, akan hilang selamanya.</string>
 	<key>App Store subscriptions</key>
 	<string>Langganan App Store</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Pengaturan percakapan</string>
 	<key>Copied for 30 seconds</key>
 	<string>Disalin selama 30 detik</string>
+	<key>Copies from other iPhones</key>
+	<string>Salinan dari iPhone lain</string>
 	<key>Copy</key>
 	<string>Salin</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Hapus akun</string>
 	<key>Delete cloud backup</key>
 	<string>Hapus cadangan cloud</string>
+	<key>Delete copy</key>
+	<string>Hapus salinan</string>
 	<key>Delete this cloud backup?</key>
 	<string>Hapus cadangan cloud ini?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Membaca dari pemetaan file desktop</string>
 	<key>Read the published policy</key>
 	<string>Baca kebijakan yang dipublikasikan</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Salinan hanya baca yang disimpan untuk diimpor. Menghapusnya tidak memengaruhi iPhone lama maupun akun Anda.</string>
 	<key>Reason</key>
 	<string>Alasan</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>pelayan</string>
 	<key>Set up this account</key>
 	<string>Siapkan akun ini</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Siapkan iPhone ini sebagai perangkat baru</string>
 	<key>Share a copy</key>
 	<string>Bagikan salinannya</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Uji kredensial baru di penyedianya</string>
 	<key>Text</key>
 	<string>Teks</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>Salinan tetap ada di iPhone ini, hanya baca, untuk diimpor. Lalu iPhone ini bergabung ke akun Anda sebagai perangkat baru: masuk, lalu setujui dari perangkat lain atau pulihkan akun. iPhone lama tetap berfungsi.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Versi terenkripsi akan menggunakan penyimpanan cloud. Salinan lokal Anda tetap ada di perangkat ini.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Tur ini tidak mengunggah file atau mendaftarkan integrasi sistem.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Ini melacak pekerjaan Anda di perangkat ini. Itu tidak membuat, menguji atau mencabut kredensial di penyedianya.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Ruang kerja ini dibuat di iPhone lain lalu disalin ke sini, misalnya dari cadangan yang dipulihkan atau transfer perangkat. Untuk melindungi akun Anda, ruang kerja ini tidak pernah bertindak sebagai perangkat lama: tidak dibuka di sini, dan tidak ada isinya yang dihapus.</string>
 	<key>Title</key>
 	<string>Judul</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Tarik pesan</string>
 	<key>Withdraw this message?</key>
 	<string>Tarik pesan ini?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Ruang kerja disalin dari iPhone lain</string>
 	<key>Workspace destination</key>
 	<string>Tujuan ruang kerja</string>
 	<key>Write a demo message</key>

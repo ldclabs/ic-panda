@@ -108,6 +108,8 @@
 	<string>Iedereen met de volledige link en het vereiste wachtwoord kan deze binnen zijn grenzen ophalen.</string>
 	<key>Anyone, free of charge</key>
 	<string>Iedereen, gratis</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Alles wat alleen in deze kopie staat, zoals bestanden waarvan nooit een back-up is gemaakt, gaat definitief verloren.</string>
 	<key>App Store subscriptions</key>
 	<string>App Store-abonnementen</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Gespreksinstellingen</string>
 	<key>Copied for 30 seconds</key>
 	<string>Gekopieerd gedurende 30 seconden</string>
+	<key>Copies from other iPhones</key>
+	<string>Kopieën van andere iPhones</string>
 	<key>Copy</key>
 	<string>Kopiëren</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Account verwijderen</string>
 	<key>Delete cloud backup</key>
 	<string>Cloudback-up verwijderen</string>
+	<key>Delete copy</key>
+	<string>Kopie verwijderen</string>
 	<key>Delete this cloud backup?</key>
 	<string>Deze cloudback-up verwijderen?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Lezen van een desktopbestandstoewijzing</string>
 	<key>Read the published policy</key>
 	<string>Lees het gepubliceerde beleid</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Alleen-lezen kopieën die bewaard blijven om te importeren. Een kopie verwijderen heeft geen invloed op de oude iPhone of je account.</string>
 	<key>Reason</key>
 	<string>Reden</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>Server</string>
 	<key>Set up this account</key>
 	<string>Stel dit account in</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Deze iPhone instellen als nieuw apparaat</string>
 	<key>Share a copy</key>
 	<string>Deel een kopie</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Test de nieuwe referentie bij de provider</string>
 	<key>Text</key>
 	<string>Tekst</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>De kopie blijft alleen-lezen op deze iPhone staan om te importeren. Daarna sluit deze iPhone zich als nieuw apparaat aan bij je account: log in en keur hem goed vanaf een ander apparaat, of herstel het account. De oude iPhone blijft werken.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>De gecodeerde versie maakt gebruik van cloudopslag. Je lokale kopie blijft op dit apparaat staan.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Bij deze rondleiding worden geen bestanden geüpload of systeemintegraties geregistreerd.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Hiermee wordt je werk op dit apparaat bijgehouden. Er worden geen inloggegevens aangemaakt, getest of ingetrokken bij hun provider.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Deze werkruimte is op een andere iPhone gemaakt en hierheen gekopieerd, bijvoorbeeld met een teruggezette back-up of een apparaatoverdracht. Om je account te beschermen treedt hij nooit op als het oude apparaat: hij wordt hier niet ontgrendeld en er wordt niets uit verwijderd.</string>
 	<key>Title</key>
 	<string>Titel</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Bericht intrekken</string>
 	<key>Withdraw this message?</key>
 	<string>Dit bericht intrekken?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Werkruimte gekopieerd van een andere iPhone</string>
 	<key>Workspace destination</key>
 	<string>Bestemming van de werkruimte</string>
 	<key>Write a demo message</key>

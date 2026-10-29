@@ -2441,7 +2441,17 @@ export default {
     "experience.current": "Actuel",
     "experience.disabled": "Désactivé",
     "experience.configured": "Configuré",
-    "experience.stale": "À actualiser"
+    "experience.stale": "À actualiser",
+    "movedHint": "Cet espace de travail a été copié depuis un autre Mac et reste en lecture seule ici. Examinez-le dans les réglages pour configurer ce Mac.",
+    "movedReview": "Examiner l’espace copié",
+    "movedTitle": "Espace de travail copié depuis un autre Mac",
+    "movedBody": "Cet espace de travail a été créé sur un autre Mac puis copié ici, par exemple par l’Assistant migration ou une sauvegarde restaurée. Pour protéger votre compte, il n’agit jamais comme l’ancien appareil : il ne se déverrouille pas ici et rien n’y est effacé.",
+    "movedSetAside": "Configurer ce Mac comme nouvel appareil",
+    "movedSetAsideHint": "La copie reste sur ce Mac, en lecture seule, pour l’importation. Ce Mac rejoint ensuite votre compte comme nouvel appareil : connectez-vous, puis approuvez-le depuis un autre appareil ou récupérez le compte. L’ancien Mac continue de fonctionner.",
+    "movedCopies": "Copies d’autres Mac",
+    "movedCopiesHint": "Copies en lecture seule conservées pour l’importation. En supprimer une n’affecte ni l’ancien Mac ni votre compte.",
+    "movedDelete": "Supprimer la copie",
+    "movedDeleteBody": "Tout ce qui n’existe que dans cette copie, comme les fichiers jamais sauvegardés, sera définitivement perdu."
 },
   approvalStates: {
     awaiting_user: 'En attente',
@@ -2461,6 +2471,7 @@ export default {
     no_account: 'Pas encore de compte',
     locked: 'Verrouillé',
     root_required: 'Racine de contenu requise',
-    unlocked: 'Déverrouillé'
+    unlocked: 'Déverrouillé',
+    moved: 'Copié depuis un autre Mac'
   }
 } satisfies Catalog

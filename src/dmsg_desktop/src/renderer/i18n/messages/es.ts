@@ -2441,7 +2441,17 @@ export default {
     "experience.current": "Actual",
     "experience.disabled": "Desactivado",
     "experience.configured": "Configurado",
-    "experience.stale": "Requiere actualización"
+    "experience.stale": "Requiere actualización",
+    "movedHint": "Este espacio de trabajo se copió desde otro Mac y aquí es de solo lectura. Revísalo en Ajustes para configurar este Mac.",
+    "movedReview": "Revisar el espacio copiado",
+    "movedTitle": "Espacio de trabajo copiado desde otro Mac",
+    "movedBody": "Este espacio de trabajo se creó en otro Mac y se copió aquí, por ejemplo con el Asistente de Migración o al restaurar una copia de seguridad. Para proteger tu cuenta nunca actúa como el dispositivo anterior: no se desbloquea aquí y no se borra nada de él.",
+    "movedSetAside": "Configurar este Mac como dispositivo nuevo",
+    "movedSetAsideHint": "La copia se conserva en este Mac, de solo lectura, para importarla. Después este Mac se une a tu cuenta como dispositivo nuevo: inicia sesión y apruébalo desde otro dispositivo o recupera la cuenta. El Mac anterior sigue funcionando.",
+    "movedCopies": "Copias de otros Mac",
+    "movedCopiesHint": "Copias de solo lectura guardadas para importar. Eliminar una no afecta al Mac anterior ni a tu cuenta.",
+    "movedDelete": "Eliminar copia",
+    "movedDeleteBody": "Todo lo que solo existe en esta copia, como archivos que nunca se respaldaron, se perderá para siempre."
 },
   approvalStates: {
     awaiting_user: 'En espera',
@@ -2461,6 +2471,7 @@ export default {
     no_account: 'Aún sin cuenta',
     locked: 'Bloqueado',
     root_required: 'Se necesita la raíz de contenido',
-    unlocked: 'Desbloqueado'
+    unlocked: 'Desbloqueado',
+    moved: 'Copiado desde otro Mac'
   }
 } satisfies Catalog

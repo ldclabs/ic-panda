@@ -4,13 +4,14 @@
 //! only as an opaque handle that just this Mac's enclave opens, so it needs
 //! no keychain item and no entitlement, and every use of it asks for Touch
 //! ID or the login password; a biometry-only key takes only the
-//! fingerprints enrolled when it was made.
+//! fingerprints enrolled when it was made. The workspaces' hardware anchors
+//! are the exception: they never ask.
 
 use crate::locale::tr;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use dmsg_client::crypto::Key;
-use dmsg_client::secure::{ApprovalKeys, Authorized, Presence, PresenceKey};
+use dmsg_client::secure::{ApprovalKeys, Authorized, HardwareAnchor, Presence, PresenceKey};
 use dmsg_client::wallet::cosign::{CosignFuture, CosignProvider};
 use dmsg_types::{Error, Hash, Result};
 use std::ffi::{CString, c_char, c_void};
@@ -56,6 +57,18 @@ unsafe extern "C" {
         signature: *mut u8,
     ) -> i32;
     fn dmsg_se_release(answer: *mut c_void);
+    fn dmsg_se_anchor_create(
+        handle: *mut u8,
+        capacity: isize,
+        length: *mut isize,
+        public_key: *mut u8,
+    ) -> i32;
+    fn dmsg_se_anchor_sign(
+        handle: *const u8,
+        length: isize,
+        message: *const u8,
+        signature: *mut u8,
+    ) -> i32;
     fn dmsg_se_sign_batch(
         handle: *const u8,
         length: isize,
@@ -257,6 +270,29 @@ impl ApprovalKeys for SecureEnclave {
     }
 }
 
+impl HardwareAnchor for SecureEnclave {
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        let mut point = [0u8; POINT];
+        let handle = handle(|handle, capacity, length| unsafe {
+            dmsg_se_anchor_create(handle, capacity, length, point.as_mut_ptr())
+        })?;
+        Ok((handle, compressed(&point)?))
+    }
+
+    fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]> {
+        let mut signature = [0u8; 64];
+        checked(unsafe {
+            dmsg_se_anchor_sign(
+                handle.as_ptr(),
+                handle.len() as isize,
+                message.as_ptr(),
+                signature.as_mut_ptr(),
+            )
+        })?;
+        Ok(signature)
+    }
+}
+
 /// The SEC1 compressed form of an X9.63 uncompressed P-256 point.
 fn compressed(point: &[u8; POINT]) -> Result<Vec<u8>> {
     if point[0] != 0x04 {
@@ -360,5 +396,34 @@ mod tests {
         let (public, handle) = ApprovalKeys::create(&enclave, false).unwrap();
         assert_eq!((public.len(), handle.is_empty()), (33, false));
         assert!(matches!(public[0], 2 | 3));
+    }
+
+    /// An anchor asks nothing to make or to use, and another key's handle
+    /// is unusable here.
+    #[test]
+    fn anchors_sign_without_asking() {
+        let enclave = SecureEnclave;
+        if enclave.presence().is_none() {
+            return;
+        }
+        let Ok((handle, public)) = HardwareAnchor::create(&enclave) else {
+            // The Mac has not been unlocked since it started.
+            return;
+        };
+        assert_eq!(public.len(), 33);
+        let message = Hash::new([7; 32]);
+        use p256::ecdsa::signature::Verifier;
+        let signature = HardwareAnchor::sign(&enclave, &handle, &message).unwrap();
+        p256::ecdsa::VerifyingKey::from_sec1_bytes(&public)
+            .unwrap()
+            .verify(
+                message.as_slice(),
+                &p256::ecdsa::Signature::from_slice(&signature).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            HardwareAnchor::sign(&enclave, &[1, 2, 3], &message).err(),
+            Some(Error::IntegrityFailed)
+        );
     }
 }

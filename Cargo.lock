@@ -2445,6 +2445,7 @@ dependencies = [
  "keyring",
  "libc",
  "log",
+ "p256 0.14.0",
  "reqwest",
  "rpassword",
  "rustls",

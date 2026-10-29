@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Kasalukuyan",
     "experience.disabled": "Naka-disable",
     "experience.configured": "Na-configure",
-    "experience.stale": "Kailangan ng pag-update"
+    "experience.stale": "Kailangan ng pag-update",
+    "movedHint": "Kinopya ang workspace na ito mula sa ibang Mac at read-only ito rito. Suriin ito sa Settings para i-set up ang Mac na ito.",
+    "movedReview": "Suriin ang kinopyang workspace",
+    "movedTitle": "Workspace na kinopya mula sa ibang Mac",
+    "movedBody": "Ginawa ang workspace na ito sa ibang Mac at kinopya rito, halimbawa ng Migration Assistant o ng na-restore na backup. Para protektahan ang iyong account, hindi ito kailanman kumikilos bilang lumang device: hindi ito naa-unlock dito, at walang binubura rito.",
+    "movedSetAside": "I-set up ang Mac na ito bilang bagong device",
+    "movedSetAsideHint": "Mananatili ang kopya sa Mac na ito bilang read-only para ma-import. Pagkatapos, sasali ang Mac na ito sa iyong account bilang bagong device: mag-log in, saka aprubahan ito mula sa ibang device o i-recover ang account. Gagana pa rin ang lumang Mac.",
+    "movedCopies": "Mga kopya mula sa ibang Mac",
+    "movedCopiesHint": "Mga read-only na kopyang itinabi para ma-import. Hindi apektado ang lumang Mac o ang iyong account kapag binura ang isa.",
+    "movedDelete": "Burahin ang kopya",
+    "movedDeleteBody": "Mawawala nang tuluyan ang anumang nasa kopyang ito lamang, gaya ng mga file na hindi kailanman na-back up."
   },
   "approvalStates": {
     "awaiting_user": "Naghihintay",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Wala pang account",
     "locked": "Naka-lock",
     "root_required": "Kailangan ang root key ng nilalaman",
-    "unlocked": "Naka-unlock"
+    "unlocked": "Naka-unlock",
+    "moved": "Kinopya mula sa ibang Mac"
   }
 } satisfies Catalog

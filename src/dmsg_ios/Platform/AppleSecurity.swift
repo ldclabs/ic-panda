@@ -108,6 +108,33 @@ final class AppleSecurity: Platform, @unchecked Sendable {
         } catch { throw mapped(error) }
     }
 
+    /// A key that never asks for the person and works once the iPhone has
+    /// been unlocked after it started: it shows only that a workspace still
+    /// runs on the iPhone that made it.
+    func createAnchor() throws -> SigningKey {
+        guard SecureEnclave.isAvailable,
+              let access = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, [.privateKeyUsage], nil)
+        else { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        do {
+            let key = try SecureEnclave.P256.Signing.PrivateKey(accessControl: access)
+            return SigningKey(publicKey: key.publicKey.x963Representation, handle: key.dataRepresentation)
+        } catch { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+    }
+
+    /// Sign with an anchor, asking nothing; a handle this iPhone's enclave
+    /// cannot open is another iPhone's.
+    func signAnchor(handle: Data, message: Data) throws -> Data {
+        guard SecureEnclave.isAvailable else { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+        guard !handle.isEmpty, message.count == 32 else { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        let key: SecureEnclave.P256.Signing.PrivateKey
+        do { key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: handle, authenticationContext: context) }
+        catch { throw MobileError.Failure(code: "INTEGRITY_FAILED") }
+        do { return try key.signature(for: message).rawRepresentation }
+        catch { throw MobileError.Failure(code: "HARDWARE_UNAVAILABLE") }
+    }
+
     /// The context belongs to exactly one Rust decision. It stays usable only
     /// until that decision drops its private authorization or the session ends.
     func authorize(reason: String, biometryOnly: Bool) throws -> UInt64 {

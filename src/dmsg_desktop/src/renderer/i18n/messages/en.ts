@@ -2443,7 +2443,17 @@ const messages = {
     "experience.current": "Current",
     "experience.disabled": "Disabled",
     "experience.configured": "Configured",
-    "experience.stale": "Needs updating"
+    "experience.stale": "Needs updating",
+    "movedHint": "This workspace was copied from another Mac and stays read-only here. Review it in Settings to set up this Mac.",
+    "movedReview": "Review copied workspace",
+    "movedTitle": "Workspace copied from another Mac",
+    "movedBody": "This workspace was made on another Mac and copied here, for example by Migration Assistant or a restored backup. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.",
+    "movedSetAside": "Set up this Mac as a new device",
+    "movedSetAsideHint": "The copy stays on this Mac, read-only, for importing. This Mac then joins your account as a new device: log in, then approve it from another device or recover the account. The old Mac keeps working.",
+    "movedCopies": "Copies from other Macs",
+    "movedCopiesHint": "Read-only copies kept for importing. Deleting one does not affect the old Mac or your account.",
+    "movedDelete": "Delete copy",
+    "movedDeleteBody": "Anything that exists only in this copy, such as files that were never backed up, is lost for good."
 }
 
 /** Approval states, as the approvals list and the approval window show them. */
@@ -2467,7 +2477,8 @@ const sessionStates = {
   no_account: 'No account yet',
   locked: 'Locked',
   root_required: 'Content root needed',
-  unlocked: 'Unlocked'
+  unlocked: 'Unlocked',
+  moved: 'Copied from another Mac'
 }
 
 const en = { messages, approvalStates, sessionStates }

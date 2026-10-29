@@ -108,6 +108,8 @@
 	<string>Jeder, der über den vollständigen Link und das erforderliche Passwort verfügt, kann es innerhalb seiner Grenzen abrufen.</string>
 	<key>Anyone, free of charge</key>
 	<string>Jedermann, kostenlos</string>
+	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
+	<string>Alles, was nur in dieser Kopie existiert, etwa nie gesicherte Dateien, geht endgültig verloren.</string>
 	<key>App Store subscriptions</key>
 	<string>App Store-Abonnements</string>
 	<key>App verification is unavailable on this device. Your saved content remains available.</key>
@@ -398,6 +400,8 @@
 	<string>Konversationseinstellungen</string>
 	<key>Copied for 30 seconds</key>
 	<string>30 Sekunden lang kopiert</string>
+	<key>Copies from other iPhones</key>
+	<string>Kopien von anderen iPhones</string>
 	<key>Copy</key>
 	<string>Kopieren</string>
 	<key>Copy address</key>
@@ -494,6 +498,8 @@
 	<string>Konto löschen</string>
 	<key>Delete cloud backup</key>
 	<string>Cloud-Backup löschen</string>
+	<key>Delete copy</key>
+	<string>Kopie löschen</string>
 	<key>Delete this cloud backup?</key>
 	<string>Dieses Cloud-Backup löschen?</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
@@ -1172,6 +1178,8 @@
 	<string>Lesen Sie aus einer Desktop-Dateizuordnung</string>
 	<key>Read the published policy</key>
 	<string>Lesen Sie die veröffentlichte Richtlinie</string>
+	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
+	<string>Schreibgeschützte Kopien, die für den Import aufbewahrt werden. Das Löschen einer Kopie wirkt sich weder auf das alte iPhone noch auf Ihr Konto aus.</string>
 	<key>Reason</key>
 	<string>Grund</string>
 	<key>Received for review</key>
@@ -1572,6 +1580,8 @@
 	<string>Server</string>
 	<key>Set up this account</key>
 	<string>Richten Sie dieses Konto ein</string>
+	<key>Set up this iPhone as a new device</key>
+	<string>Dieses iPhone als neues Gerät einrichten</string>
 	<key>Share a copy</key>
 	<string>Teilen Sie eine Kopie</string>
 	<key>Share binding request</key>
@@ -1698,6 +1708,8 @@
 	<string>Testen Sie den neuen Ausweis bei seinem Anbieter</string>
 	<key>Text</key>
 	<string>Text</string>
+	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
+	<string>Die Kopie bleibt schreibgeschützt auf diesem iPhone, damit Sie sie importieren können. Danach tritt dieses iPhone Ihrem Konto als neues Gerät bei: Melden Sie sich an und genehmigen Sie es auf einem anderen Gerät, oder stellen Sie das Konto wieder her. Das alte iPhone funktioniert weiter.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Die verschlüsselte Version nutzt Cloud-Speicher. Ihre lokale Kopie verbleibt auf diesem Gerät.</string>
 	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
@@ -1828,6 +1840,8 @@
 	<string>Bei dieser Tour werden keine Dateien hochgeladen oder Systemintegrationen registriert.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Dadurch wird Ihre Arbeit auf diesem Gerät verfolgt. Es werden keine Anmeldeinformationen bei ihrem Anbieter erstellt, getestet oder widerrufen.</string>
+	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
+	<string>Dieser Arbeitsbereich wurde auf einem anderen iPhone erstellt und hierher kopiert, etwa durch eine wiederhergestellte Sicherung oder eine Geräteübertragung. Zum Schutz Ihres Kontos tritt er nie als das alte Gerät auf: Er wird hier nicht entsperrt, und nichts darin wird gelöscht.</string>
 	<key>Title</key>
 	<string>Titel</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
@@ -1964,6 +1978,8 @@
 	<string>Nachricht zurückziehen</string>
 	<key>Withdraw this message?</key>
 	<string>Diese Nachricht zurückziehen?</string>
+	<key>Workspace copied from another iPhone</key>
+	<string>Von einem anderen iPhone kopierter Arbeitsbereich</string>
 	<key>Workspace destination</key>
 	<string>Arbeitsbereichsziel</string>
 	<key>Write a demo message</key>

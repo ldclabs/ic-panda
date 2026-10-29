@@ -267,10 +267,11 @@ impl Client {
         })
     }
 
-    /// Enumerate only locally bound account receivers, without switching accounts.
+    /// Enumerate only locally bound account receivers, without switching
+    /// accounts; a workspace from other hardware receives nothing.
     pub fn notification_receivers(&self) -> Result<Vec<ReceiveContext>> {
         let mut result = Vec::new();
-        for local in self.accounts()?.into_iter().filter(|a| a.bound) {
+        for local in self.accounts()?.into_iter().filter(|a| a.bound && !a.moved) {
             let id = account_id(&local.account)?;
             if let Some(context) =
                 self.with_notification_store(&id, |s| s.meta::<ReceiveContext>(RECEIVE))?

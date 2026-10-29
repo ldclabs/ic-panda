@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "Mevcut",
     "experience.disabled": "Devre dışı",
     "experience.configured": "Yapılandırılmış",
-    "experience.stale": "Güncellenmesi gerekiyor"
+    "experience.stale": "Güncellenmesi gerekiyor",
+    "movedHint": "Bu çalışma alanı başka bir Mac’ten kopyalandı ve burada salt okunur. Bu Mac’i kurmak için Ayarlar’da inceleyin.",
+    "movedReview": "Kopyalanan çalışma alanını incele",
+    "movedTitle": "Başka bir Mac’ten kopyalanan çalışma alanı",
+    "movedBody": "Bu çalışma alanı başka bir Mac’te oluşturuldu ve örneğin Geçiş Yardımcısı ya da geri yüklenen bir yedekle buraya kopyalandı. Hesabınızı korumak için asla eski cihaz gibi davranmaz: burada kilidi açılmaz ve içindeki hiçbir şey silinmez.",
+    "movedSetAside": "Bu Mac’i yeni cihaz olarak kur",
+    "movedSetAsideHint": "Kopya, içe aktarmak için bu Mac’te salt okunur olarak kalır. Ardından bu Mac hesabınıza yeni cihaz olarak katılır: giriş yapın, sonra başka bir cihazdan onaylayın ya da hesabı kurtarın. Eski Mac çalışmaya devam eder.",
+    "movedCopies": "Diğer Mac’lerden kopyalar",
+    "movedCopiesHint": "İçe aktarmak için saklanan salt okunur kopyalar. Birini silmek eski Mac’i veya hesabınızı etkilemez.",
+    "movedDelete": "Kopyayı sil",
+    "movedDeleteBody": "Yalnızca bu kopyada bulunan her şey, örneğin hiç yedeklenmemiş dosyalar, kalıcı olarak kaybolur."
   },
   "approvalStates": {
     "awaiting_user": "Bekliyor",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Henüz hesap yok",
     "locked": "Kilitli",
     "root_required": "İçerik kökü gerekli",
-    "unlocked": "Kilitli değil"
+    "unlocked": "Kilitli değil",
+    "moved": "Başka bir Mac’ten kopyalandı"
   }
 } satisfies Catalog

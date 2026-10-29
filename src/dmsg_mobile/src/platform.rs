@@ -1,7 +1,7 @@
 use crate::error::MobileError;
 use dmsg_client::{
     crypto::Key,
-    secure::{ApprovalKeys, Authorized, Presence, PresenceKey, SecureStorage},
+    secure::{ApprovalKeys, Authorized, HardwareAnchor, Presence, PresenceKey, SecureStorage},
 };
 use dmsg_types::{Error, Hash, Result, ensure};
 use std::sync::Arc;
@@ -50,6 +50,17 @@ pub trait Platform: Send + Sync {
         message: Vec<u8>,
     ) -> std::result::Result<Vec<u8>, MobileError>;
     fn release_authorization(&self, authorization: u64);
+    /// A Secure Enclave signing key that never asks for the person and
+    /// works after the first unlock since the device started; its public
+    /// key in SEC1 form.
+    fn create_anchor(&self) -> std::result::Result<SigningKey, MobileError>;
+    /// Sign a 32-byte message with an anchor, asking nothing:
+    /// `INTEGRITY_FAILED` when this device cannot use `handle`.
+    fn sign_anchor(
+        &self,
+        handle: Vec<u8>,
+        message: Vec<u8>,
+    ) -> std::result::Result<Vec<u8>, MobileError>;
     fn confirm(
         &self,
         request_id: String,
@@ -184,6 +195,22 @@ impl ApprovalKeys for Adapter {
     }
 }
 
+impl HardwareAnchor for Adapter {
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
+        let key = self.0.create_anchor().map_err(platform_error)?;
+        ensure(!key.handle.is_empty(), Error::IntegrityFailed)?;
+        Ok((key.handle, key.public_key))
+    }
+
+    fn sign(&self, handle: &[u8], message: &Hash) -> Result<[u8; 64]> {
+        self.0
+            .sign_anchor(handle.into(), message.as_slice().into())
+            .map_err(platform_error)?
+            .try_into()
+            .map_err(|_| Error::IntegrityFailed)
+    }
+}
+
 impl dmsg_client::wallet::cosign::CosignProvider for Adapter {
     fn name(&self) -> &'static str {
         "ios-secure-enclave"
@@ -315,6 +342,14 @@ mod tests {
             assert_eq!(token, 7);
             self.released
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        fn create_anchor(&self) -> std::result::Result<SigningKey, MobileError> {
+            unreachable!()
+        }
+
+        fn sign_anchor(&self, _: Vec<u8>, _: Vec<u8>) -> std::result::Result<Vec<u8>, MobileError> {
+            unreachable!()
         }
 
         fn confirm(&self, _: String, _: String, _: String) -> std::result::Result<(), MobileError> {

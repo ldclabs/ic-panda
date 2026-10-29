@@ -27,7 +27,8 @@ struct RootView: View {
                         .environment(\.openApprovals, { showApprovals = true })
                         .sheet(isPresented: $showApprovals) { NavigationStack { ApprovalsView() } }
                         .id(model.viewGeneration)
-                    } else { NavigationStack { AccessView() } }
+                    } else if model.session?.state == "moved" { NavigationStack { MovedView() } }
+                    else { NavigationStack { AccessView() } }
                 }.frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             if let notice = model.notice, !model.concealed {
@@ -183,6 +184,7 @@ struct AccessView: View {
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
                 NoticeBar(text: guidance)
+                MovedCopiesSection()
                 AccessFooter()
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
@@ -193,6 +195,93 @@ struct AccessView: View {
     private func initialize() async {
         do { _ = try await model.engine?.initializeAccount(); await model.updateSession() }
         catch { model.report(error) }
+    }
+}
+
+/// A workspace copied here from another iPhone never acts as the old device.
+/// Setting it aside keeps it, read-only, for import and makes this iPhone a
+/// new device of the account.
+struct MovedView: View {
+    @Environment(SessionModel.self) private var model
+    @State private var working = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Image(systemName: "iphone").font(.largeTitle).foregroundStyle(Theme.forest).accessibilityHidden(true)
+                    Text("Workspace copied from another iPhone").font(.title.bold()).fixedSize(horizontal: false, vertical: true)
+                    Text("This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Button { Task { await setAside() } } label: {
+                    AccessActionLabel("Set up this iPhone as a new device", symbol: "iphone", working: working)
+                }.modifier(AccessActionStyle(prominent: true)).disabled(working || model.busy).accessibilityIdentifier("moved.setAside")
+                NoticeBar(text: String(localized: "The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working."))
+            }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
+        }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func setAside() async {
+        working = true; defer { working = false }
+        do { _ = try await model.engine?.setAsideMoved(); await model.updateSession() }
+        catch { model.report(error) }
+    }
+}
+
+/// The copies set aside on this iPhone, kept for import until deleted.
+private struct MovedCopiesSection: View {
+    private struct Copy: Decodable, Identifiable {
+        let id: String
+        let account: String?
+        let deviceId: String
+        let movedAt: UInt64
+    }
+
+    @Environment(SessionModel.self) private var model
+    @State private var copies: [Copy] = []
+    @State private var deleting: Copy?
+
+    var body: some View {
+        Group {
+            if !copies.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Copies from other iPhones").font(.headline)
+                    Text("Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.")
+                        .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    ForEach(copies) { copy in
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let account = copy.account { Text(verbatim: account).font(.footnote.monospaced()) }
+                                Text(verbatim: String(copy.deviceId.prefix(8))).font(.caption.monospaced()).foregroundStyle(.secondary)
+                                Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Delete copy", role: .destructive) { deleting = copy }.accessibilityIdentifier("moved.delete")
+                        }
+                    }
+                }
+            }
+        }
+        .task(id: model.session?.generation) { await load() }
+        .confirmationDialog("Delete copy", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+            Button("Delete copy", role: .destructive) { if let copy = deleting { Task { await discard(copy) } } }
+            Button("Cancel", role: .cancel) { deleting = nil }
+        } message: { Text("Anything that exists only in this copy, such as files that were never backed up, is lost for good.") }
+    }
+
+    private func load() async {
+        guard let engine = model.engine else { return }
+        do { copies = try model.decode(try await engine.movedCopies()) }
+        catch { model.report(error) }
+    }
+
+    private func discard(_ copy: Copy) async {
+        deleting = nil
+        do { _ = try await model.engine?.discardMoved(id: copy.id) }
+        catch { model.report(error) }
+        await load()
     }
 }
 

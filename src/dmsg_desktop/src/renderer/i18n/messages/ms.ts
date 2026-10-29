@@ -2431,7 +2431,17 @@ export default {
     "experience.current": "semasa",
     "experience.disabled": "Dinyahaktifkan",
     "experience.configured": "Dikonfigurasikan",
-    "experience.stale": "Perlu dikemas kini"
+    "experience.stale": "Perlu dikemas kini",
+    "movedHint": "Ruang kerja ini disalin dari Mac lain dan baca sahaja di sini. Semaknya dalam Tetapan untuk menyediakan Mac ini.",
+    "movedReview": "Semak ruang kerja yang disalin",
+    "movedTitle": "Ruang kerja disalin dari Mac lain",
+    "movedBody": "Ruang kerja ini dibuat pada Mac lain dan disalin ke sini, contohnya oleh Pembantu Penghijrahan atau sandaran yang dipulihkan. Untuk melindungi akaun anda, ia tidak pernah bertindak sebagai peranti lama: ia tidak dibuka kunci di sini, dan tiada apa-apa di dalamnya dipadam.",
+    "movedSetAside": "Sediakan Mac ini sebagai peranti baharu",
+    "movedSetAsideHint": "Salinan kekal pada Mac ini, baca sahaja, untuk diimport. Kemudian Mac ini menyertai akaun anda sebagai peranti baharu: log masuk, kemudian luluskannya dari peranti lain atau pulihkan akaun. Mac lama terus berfungsi.",
+    "movedCopies": "Salinan dari Mac lain",
+    "movedCopiesHint": "Salinan baca sahaja yang disimpan untuk diimport. Memadam satu tidak menjejaskan Mac lama atau akaun anda.",
+    "movedDelete": "Padam salinan",
+    "movedDeleteBody": "Apa-apa yang hanya wujud dalam salinan ini, seperti fail yang tidak pernah disandarkan, akan hilang selama-lamanya."
   },
   "approvalStates": {
     "awaiting_user": "Menunggu",
@@ -2451,6 +2461,7 @@ export default {
     "no_account": "Belum ada akaun",
     "locked": "Dikunci",
     "root_required": "Kunci akar kandungan diperlukan",
-    "unlocked": "Dibuka kunci"
+    "unlocked": "Dibuka kunci",
+    "moved": "Disalin dari Mac lain"
   }
 } satisfies Catalog

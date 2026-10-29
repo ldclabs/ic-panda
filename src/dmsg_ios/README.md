@@ -298,6 +298,14 @@ are compiled out of Release builds.
 
 The adapter supports device-passcode fallback and an explicit current-biometry-only
 policy. A missing biometric-state observation is unknown, not a changed enrollment.
+
+Each workspace also has a hardware anchor (`createAnchor`/`signAnchor`): a
+Secure Enclave signing key with `AfterFirstUnlockThisDeviceOnly` access that
+never asks. A workspace a restored backup or device transfer copied from
+another iPhone cannot sign with it and opens moved (`state: "moved"`): it never
+unlocks, and the app offers only to set it aside (`setAsideMoved`) and start a
+new device of the account. Copies set aside stay for import until deleted
+(`movedCopies`, `discardMoved`).
 Hardware approval uses the core's purpose selection and canonical commitments;
 Swift signs Data(H), while Rust verifies and normalizes the signature. A private
 authorization token belongs to one decision and is released on completion or
@@ -369,7 +377,8 @@ This tree is development code, not an App Store release assertion. In particular
    fragment callback on a physical phone. The fixed callback page clears
    fragments and offers no forwarding target.
 2. Verify Secure Enclave, device-password fallback, lock-screen file protection,
-   current-biometry invalidation, real copy-to-another-app behavior and the
+   current-biometry invalidation, hardware anchors after a restore to another
+   iPhone, real copy-to-another-app behavior and the
    cross-device login/edit/revoke slice. Confirm user home supports the current
    AccountInfo/hardware-proof contract before testing real protected accounts.
    Simulator/software-vector checks do not establish native ACL or presence behavior.
