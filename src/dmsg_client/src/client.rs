@@ -1752,6 +1752,15 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when local storage cannot be updated.
     pub fn logout(&mut self) -> Result<Status> {
+        let mut notifications = crate::notifications::settings(&self.workspace.store)?;
+        if notifications.enabled {
+            notifications.enabled = false;
+            let revision = notifications.revision;
+            self.workspace.store.atomic(|store| {
+                crate::notifications::configure(store, revision, notifications)?;
+                store.set_meta("notification:revoke_pending", &true)
+            })?;
+        }
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
         }

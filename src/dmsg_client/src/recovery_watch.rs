@@ -18,6 +18,40 @@ struct Observation {
 }
 
 impl Client {
+    /// Enrich only the matching certified incident with authenticated details.
+    /// Subsequent public-only observations preserve this verified deadline.
+    pub(crate) fn observe_recovery_deadline(
+        &self,
+        state: &crate::account::AccountState,
+    ) -> Result<()> {
+        use crate::notifications::{self, Target};
+        let Some(pending) = &state.info.pending_recovery else {
+            return Ok(());
+        };
+        let Some(account) = &self.workspace.meta.account else {
+            return Ok(());
+        };
+        if account.id != state.info.account_id {
+            return Ok(());
+        }
+        let hash = crate::codec::digest("dmsg/pending-recovery/v1", pending);
+        if state.security.snapshot.pending_recovery_digest != Some(hash) {
+            return Ok(());
+        }
+        let target = Target::Recovery(hex::encode(*hash));
+        if let Some(mut item) = self
+            .workspace
+            .store
+            .notification_item(&notifications::item_id(&account.id.to_string(), &target))?
+            && item.open
+            && item.version <= state.security.snapshot.account_version
+        {
+            item.deadline = Some(pending.execute_after);
+            self.workspace.store.set_notification_item(&item)?;
+        }
+        Ok(())
+    }
+
     /// Record only this workspace's verified security, never a peer's.
     pub(crate) fn observe_recovery(&self, security: &Security) -> Result<()> {
         let Some(account) = &self.workspace.meta.account else {
@@ -41,7 +75,36 @@ impl Client {
                     .map(|h| hex::encode(*h)),
                 observed_at_ms: security.certified_at,
             },
-        )
+        )?;
+        use crate::notifications::{self, Item, Target};
+        let digest = security
+            .snapshot
+            .pending_recovery_digest
+            .map(|hash| hex::encode(*hash));
+        // Only a fresh authenticated observation can resolve an old incident.
+        for mut item in self.workspace.store.notification_items()? {
+            if let Target::Recovery(old) = &item.target
+                && item.open
+                && Some(old) != digest.as_ref()
+            {
+                item.open = false;
+                item.actionable = false;
+                item.version = security.snapshot.account_version.max(item.version);
+                item.updated_at = security.certified_at;
+                notifications::upsert(&self.workspace.store, item)?;
+            }
+        }
+        if let Some(digest) = digest {
+            let mut item = Item::new(
+                account.id.to_string(),
+                Target::Recovery(digest),
+                security.snapshot.account_version.max(1),
+                security.certified_at,
+            );
+            item.actionable = true;
+            notifications::upsert(&self.workspace.store, item)?;
+        }
+        Ok(())
     }
 
     /// Last verified recovery observation for the selected workspace. Null

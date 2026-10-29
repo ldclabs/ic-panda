@@ -858,11 +858,18 @@ impl Daemon {
                 )
                 .await?;
             let checkpoint = runtime.mail_checkpoint(&path, &agent.agent_id)?.is_some();
+            let mail_notice = runtime.mail_notification(&path, &agent.agent_id)?;
             h.with(|client| {
                 client.agent_find(&agent.agent_id)?;
                 if checkpoint || called.mail_keys != mail_keys {
                     client.agent_mail_keys_save(&agent.agent_id, &called.mail_keys)?;
                 }
+                client.project_agent_mail_notification(
+                    &agent.agent_id,
+                    mail_notice.0,
+                    mail_notice.1,
+                    dmsg_client::now_ms(),
+                )?;
                 Ok(())
             })
             .await?;

@@ -20,6 +20,9 @@ pub struct Context {
     pub foreground: bool,
     /// This exact account/item/version is in the loaded viewport.
     pub viewing: bool,
+    /// Exact loaded viewports reported through the native owner's session fence.
+    #[serde(default)]
+    pub visible: Vec<super::Covered>,
     /// Another authenticated device viewed this exact version/watermark.
     pub remote_viewed: bool,
     /// Current daily quiet interval's UTC end, resolved by the host time zone.
@@ -197,7 +200,7 @@ pub fn evaluate(item: &Item, settings: &Settings, runtime: &Runtime, ctx: &Conte
     if ctx.viewing {
         return keep(Reason::Viewed);
     }
-    if category != Category::Security
+    if matches!(category, Category::Message | Category::Action)
         && !snoozed
         && (item.observed >= item.version || (settings.merge_devices && ctx.remote_viewed))
     {

@@ -619,7 +619,31 @@ impl Client {
             expires_at: request.expires_at,
         })?;
         self.workspace
-            .put_private(self.keys()?, &Self::approval_key(&request.id), request)
+            .put_private(self.keys()?, &Self::approval_key(&request.id), request)?;
+        self.project_approval_notification(request)
+    }
+
+    pub(crate) fn project_approval_notification(&self, request: &Request) -> Result<()> {
+        use crate::notifications::{self, Item, Target};
+        let Some(account) = &self.workspace.meta.account else {
+            return Ok(());
+        };
+        let mut item = Item::new(
+            account.id.to_string(),
+            Target::Approval(request.id.clone()),
+            request.updated_at.max(1),
+            request.updated_at,
+        );
+        item.first_at = request.created_at;
+        item.group = hex::encode(*digest(
+            "dmsg/notification/source/v1",
+            &(&item.account, &request.source),
+        ));
+        item.open = request.state == State::AwaitingUser;
+        item.actionable = item.open;
+        item.deadline = Some(request.expires_at);
+        notifications::upsert(&self.workspace.store, item)?;
+        Ok(())
     }
 
     /// Add a request from `source`, waiting until `expires_at`.

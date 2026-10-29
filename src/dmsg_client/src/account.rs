@@ -491,6 +491,7 @@ impl Client {
         let ic = self.session()?.ic.clone();
         let state = read_account(&ic, home, account).await?;
         self.observe(account, &state.security)?;
+        self.observe_recovery_deadline(&state)?;
         self.observe_hardware(&state.info);
         Ok(state)
     }
@@ -1047,6 +1048,7 @@ pub(crate) async fn refreshed<H: Hold>(h: &H) -> Result<AccountState> {
     let state = read_account(&ic, account.home, &account.id).await?;
     h.with(|c| {
         c.observe(&account.id, &state.security)?;
+        c.observe_recovery_deadline(&state)?;
         c.observe_hardware(&state.info);
         Ok(())
     })

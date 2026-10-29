@@ -139,7 +139,11 @@ pub async fn mark<H: Hold>(h: &H, order: &str, read: bool, archived: bool) -> Re
         if let Some(mut letter) = c.workspace.private::<Letter>(c.keys()?, &name)? {
             letter.read = read;
             letter.archived = archived;
-            c.workspace.put_private(c.keys()?, &name, &letter)?;
+            let now = now_ms();
+            c.workspace.store.atomic(|_| {
+                c.workspace.put_private(c.keys()?, &name, &letter)?;
+                c.project_inbox_notification(&letter, letter.created_at.max(1), now, false)
+            })?;
         }
         Ok(())
     })

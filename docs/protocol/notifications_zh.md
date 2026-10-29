@@ -8,7 +8,7 @@
 
 投影仅携带账户范围、opaque 资源、业务版本、水位、可信截止时间、是否待处理、已知未读数和类型化目标。正文、名称、来源 URL、文件名、金额、密钥和审批载荷不进入投影。锁定可读的元数据不具有内容根加密的保密性。
 
-JSON u64 业务版本、水位和游标使用无前导零的十进制字符串，时间使用 UTC 毫秒。目标允许 `channel`、`inbox`、`approval`、`recovery`、`agent_mail`、`task`、`plan`、`summary`，不允许任意 URL、路径或 RPC。设备本地审批、任务及连接器 Agent Mail 不自动成为跨设备事项。
+JSON u64 业务版本、水位和游标使用无前导零的十进制字符串，时间使用 UTC 毫秒。目标允许 `channel`、`inbox`、`approval`、`recovery`、`agent_mail`、`task`、`plan`、`wallet`（钱包 Principal 与十进制提案 ID）、`service`（设备服务事项）、`summary`，不允许任意 URL、路径或 RPC。设备本地审批、任务、设备服务及连接器 Agent Mail 不自动成为跨设备事项。
 
 业务终态、实际查看和展示尝试相互独立。系统受理、点击、划掉横幅、清理近期历史均不能推进业务已读、商业通知签收或 Agent handled 状态。点击须验证原账户登记并重新读取原事项，不能打开当前账户的另一条待审批。
 

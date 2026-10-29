@@ -783,14 +783,22 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     }
     session
         .with(|c| {
+            let now = now_ms();
             c.workspace.store.set_meta(
                 LAST_SYNC,
                 &LastSync {
-                    at: now_ms(),
+                    at: now,
                     error: result.as_ref().err().map(crate::error_code),
                     stage: result.is_err().then_some(stage),
                 },
-            )
+            )?;
+            if c.session_state().state == "unlocked" {
+                // Synced encrypted channel preferences must also filter locked
+                // notifications; update the minimal projection while keys exist.
+                c.reconcile_channel_notifications(now)?;
+                c.notification_health(now)?;
+            }
+            Ok(())
         })
         .await?;
     result

@@ -852,16 +852,26 @@ impl Client {
                 }
             };
             if cached.as_ref() != Some(&letter) {
-                changed.push(letter.clone());
+                changed.push((letter.clone(), cursor));
             }
             after = cursor;
         }
         // Only what changed is written, in one go.
         let keys = self.keys()?;
         self.workspace.store.atomic(|_| {
-            for letter in &changed {
+            for (letter, cursor) in &changed {
                 let name = format!("{LETTER}{}", letter.order_id);
                 self.workspace.put_private(keys, &name, letter)?;
+                self.project_inbox_notification(
+                    letter,
+                    *cursor,
+                    now,
+                    !self
+                        .workspace
+                        .store
+                        .meta::<bool>("notification:inbox_initialized")?
+                        .unwrap_or(false),
+                )?;
             }
             self.workspace.store.set_meta(CURSOR, &next)
         })?;
@@ -869,6 +879,39 @@ impl Client {
             return Ok(None);
         }
         Ok(Some(next))
+    }
+
+    pub(crate) fn project_inbox_notification(
+        &self,
+        letter: &Letter,
+        cursor: u64,
+        now: u64,
+        baseline: bool,
+    ) -> Result<()> {
+        use crate::notifications::{self, Item, Target};
+        let account = self.account()?.id.to_string();
+        let target = Target::Inbox(Some(letter.order_id.clone()));
+        let old = self
+            .workspace
+            .store
+            .notification_item(&notifications::item_id(&account, &target))?;
+        // Inbox management changes do not create new letters. Preserve the first
+        // accepted cursor even if a later page reports read/archive metadata.
+        let mut item = Item::new(
+            account.clone(),
+            target,
+            old.as_ref().map_or(cursor.max(1), |item| item.version),
+            now,
+        );
+        item.group = notifications::item_id(&account, &Target::Inbox(None));
+        item.open = letter.state == "visible"
+            && !letter.read
+            && !letter.archived
+            && letter.sender != account;
+        item.unread = Some(u64::from(item.open));
+        item.quiet = baseline && old.is_none();
+        notifications::upsert(&self.workspace.store, item)?;
+        Ok(())
     }
 
     /// Previously verified letters on this device, available offline.
@@ -939,6 +982,31 @@ pub async fn policy<H: Hold>(h: &H) -> Result<Option<Json>> {
 /// page is retried on the next refresh without skipping any of its letters.
 pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
     let h = operations::Unlocked::new(h).await?;
+    let report = sync(&h, INBOX_PAGES).await?;
+    ensure(!report.more, Error::QuotaExceeded)?;
+    h.with(|c| c.inbox_cached()).await
+}
+
+/// One bounded background pass; each page retains the existing atomic verifier.
+#[derive(Clone, Debug, Serialize)]
+pub struct SyncReport {
+    /// Last committed cursor, lossless across JSON.
+    #[serde(with = "crate::notifications::decimal")]
+    pub cursor: u64,
+    /// Verified rows committed in this pass, deduplicated by order ID.
+    pub changed: Vec<String>,
+    /// The pass reached its page budget and should yield before continuing.
+    pub more: bool,
+}
+
+/// Synchronize at most `max_pages` without a client lock across network waits.
+/// Errors leave the failed page and its cursor uncommitted.
+pub async fn sync<H: Hold>(h: &H, max_pages: usize) -> Result<SyncReport> {
+    ensure(
+        max_pages > 0 && max_pages <= INBOX_PAGES,
+        Error::QuotaExceeded,
+    )?;
+    let h = operations::Unlocked::new(h).await?;
     let (me, mut after) = h
         .with(|c| {
             Ok((
@@ -948,7 +1016,8 @@ pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
         })
         .await?;
     let trust = h.trust().await?;
-    for _ in 0..INBOX_PAGES {
+    let mut changed = std::collections::BTreeSet::new();
+    for _ in 0..max_pages {
         let page = h
             .get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
             .await?;
@@ -956,11 +1025,34 @@ pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
             .with(|c| c.inbox_page_settle(after, &page, &trust))
             .await?
         {
-            Some(next) => after = next,
-            None => return h.with(|c| c.inbox_cached()).await,
+            Some(next) => {
+                after = next;
+                for row in page["entries"].as_array().ok_or(Error::IntegrityFailed)? {
+                    if let Some(id) = row["value"]["order_id"].as_str() {
+                        changed.insert(id.to_string());
+                    }
+                }
+            }
+            None => {
+                h.with(|c| {
+                    c.workspace
+                        .store
+                        .set_meta("notification:inbox_initialized", &true)
+                })
+                .await?;
+                return Ok(SyncReport {
+                    cursor: after,
+                    changed: changed.into_iter().collect(),
+                    more: false,
+                });
+            }
         }
     }
-    Err(Error::QuotaExceeded)
+    Ok(SyncReport {
+        cursor: after,
+        changed: changed.into_iter().collect(),
+        more: true,
+    })
 }
 
 #[cfg(test)]

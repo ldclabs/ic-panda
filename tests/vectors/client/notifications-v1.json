@@ -344,6 +344,25 @@
       "expected": {
         "decision": "remove"
       }
+    },
+    {
+      "name": "service-next-stage-survives-earlier-view",
+      "item": {
+        "target": {
+          "kind": "plan",
+          "id": "contract"
+        },
+        "deadline": 86400000,
+        "stage": 2,
+        "observed": "9"
+      },
+      "expected": {
+        "decision": "present",
+        "stage": 3,
+        "sound": false,
+        "in_app": false,
+        "update": false
+      }
     }
   ]
 }

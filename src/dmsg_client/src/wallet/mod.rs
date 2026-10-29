@@ -1131,7 +1131,83 @@ async fn proposal_raw<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Prop
             p.status = ProposalStatus::Ready;
         }
     }
+    h.with(|c| {
+        use crate::notifications::{self, Item, Target};
+        let me = c.wallet_member()?;
+        let now = now_ms();
+        let target = Target::Wallet {
+            wallet: wallet.to_text(),
+            proposal: p.id.to_string(),
+        };
+        let account = c.account()?.id.to_string();
+        let eligible = p.status == ProposalStatus::Open
+            && p.expires_at_ms > now
+            && !p.votes.iter().any(|vote| vote.member == me)
+            && view.members.iter().any(|member| {
+                member.id == me
+                    && member.status == MemberStatus::Active
+                    && dmsg_protocol::wallet::counts(member.role, &p.requirement)
+            });
+        if !eligible
+            && c.workspace
+                .store
+                .notification_item(&notifications::item_id(&account, &target))?
+                .is_none()
+        {
+            return Ok(());
+        }
+        let mut item = Item::new(account, target, view.audit_len.max(1), now);
+        item.first_at = p.created_at_ms;
+        item.deadline = Some(p.expires_at_ms);
+        item.group = hex::encode(*crate::codec::digest(
+            "dmsg/notification/wallet/v1",
+            &wallet.to_text(),
+        ));
+        item.open = eligible;
+        item.actionable = eligible;
+        notifications::upsert(&c.workspace.store, item)?;
+        Ok(())
+    })
+    .await?;
     Ok(p)
+}
+
+/// Refresh owner-actionable wallet proposals using the existing cached pending
+/// history for discovery and certified proposal reads for notification evidence.
+/// Partial reads never clear a wallet's old pending projections.
+pub async fn refresh_notifications<H: Hold>(h: &H) -> Result<()> {
+    let h = Unlocked::new(h).await?;
+    let wallets = list(&h).await?;
+    for row in wallets.as_array().ok_or(Error::IntegrityFailed)? {
+        let wallet =
+            crate::codec::principal(row["wallet"].as_str().ok_or(Error::IntegrityFailed)?)?;
+        let history = desktop::history(&h, wallet, true).await?;
+        let mut ids: std::collections::BTreeSet<u64> = history["proposals"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|row| row["id"].as_u64())
+            .collect();
+        h.with(|c| {
+            for item in c.workspace.store.notification_items()? {
+                if let crate::notifications::Target::Wallet {
+                    wallet: previous,
+                    proposal,
+                } = item.target
+                    && item.open
+                    && previous == wallet.to_text()
+                {
+                    ids.insert(proposal.parse().map_err(|_| Error::IntegrityFailed)?);
+                }
+            }
+            Ok(())
+        })
+        .await?;
+        for id in ids {
+            proposal_raw(&h, wallet, id).await?;
+        }
+    }
+    Ok(())
 }
 
 /// One proposal with its plans.

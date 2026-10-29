@@ -2,12 +2,14 @@
 //! Business adapters own authenticity and ordering; presentation never changes
 //! business read receipts, approval decisions or authorization.
 
+mod delivery;
 pub mod policy;
 mod runtime;
 #[cfg(test)]
 mod tests;
 
 use crate::{codec::digest, store::Store};
+pub use delivery::{Batch, next, result};
 use dmsg_types::{Error, Result, ensure};
 pub use runtime::{Badge, GlobalSettings, QuietHours, Runtime};
 use serde::{Deserialize, Serialize};
@@ -55,6 +57,15 @@ pub enum Target {
     Task(String),
     /// Service contract ID.
     Plan(String),
+    /// A fixed service issue and its persistent episode ID.
+    Service(String),
+    /// A verified team-wallet proposal, always re-read before any action.
+    Wallet {
+        /// Wallet canister Principal.
+        wallet: String,
+        /// Canonical decimal proposal ID.
+        proposal: String,
+    },
     /// A content-free category awaiting reconciliation.
     Summary(Category),
 }
@@ -64,8 +75,8 @@ impl Target {
     pub fn category(&self) -> Category {
         match self {
             Self::Recovery(_) => Category::Security,
-            Self::Approval(_) | Self::Task(_) => Category::Action,
-            Self::Plan(_) => Category::Service,
+            Self::Approval(_) | Self::Task(_) | Self::Wallet { .. } => Category::Action,
+            Self::Plan(_) | Self::Service(_) => Category::Service,
             Self::Summary(category) => *category,
             _ => Category::Message,
         }
@@ -73,7 +84,10 @@ impl Target {
 
     /// Agent mail remains local to the verified connector host.
     pub fn local_only(&self) -> bool {
-        matches!(self, Self::Approval(_) | Self::Task(_) | Self::AgentMail(_))
+        matches!(
+            self,
+            Self::Approval(_) | Self::Task(_) | Self::AgentMail(_) | Self::Service(_)
+        )
     }
 }
 
@@ -291,6 +305,8 @@ pub struct Delivery {
     pub sound: bool,
     /// Foreground plans update the application, never the OS.
     pub in_app: bool,
+    /// Replace the existing native group without requesting a new alert.
+    pub update: bool,
     /// UTC time of the first reservation.
     pub attempted_at: u64,
     /// Earliest retry, if the platform actually reported a failure.
@@ -335,16 +351,28 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
         item.stage = old.stage;
         item.attempted_at = old.attempted_at;
         item.snoozed_until = old.snoozed_until;
+        if matches!(item.target, Target::Recovery(_)) && item.deadline.is_none() {
+            item.deadline = old.deadline;
+        }
+        item.quiet |= old.quiet && old.notified < old.version;
         item.pending_since = if old.notified < old.version {
             old.pending_since
         } else {
             item.updated_at
         };
         // A trusted scope refresh may change counts or resolve the same version.
-        if !old.open && item.version == old.version {
+        if !old.open && item.version == old.version && item.category() != Category::Message {
             item.open = false;
         }
-        if item.version == old.version {
+        if item.version == old.version
+            && item.open == old.open
+            && item.actionable == old.actionable
+            && item.unread == old.unread
+            && item.deadline == old.deadline
+            && item.muted == old.muted
+            && item.muted_until == old.muted_until
+            && item.quiet == old.quiet
+        {
             item.updated_at = old.updated_at;
         }
         if item == old {
@@ -353,8 +381,13 @@ pub fn upsert(store: &Store, mut item: Item) -> Result<bool> {
     }
     // Muted arrivals advance the presentation watermark, never the business read
     // cursor. Expiring the mute must not replay these messages.
-    if item.category() == Category::Message && item.is_muted(item.updated_at) {
-        item.notified = item.version;
+    if item.category() == Category::Message {
+        if item.unread == Some(0) {
+            item.open = false;
+        }
+        if item.is_muted(item.updated_at) || !item.open {
+            item.notified = item.version;
+        }
     }
     store.set_notification_item(&item)?;
     Ok(true)
@@ -421,4 +454,190 @@ pub fn configure(store: &Store, expected: u64, mut draft: Settings) -> Result<Se
     draft.remote_revision = previous.remote_revision;
     store.set_meta("notification:settings", &draft)?;
     Ok(draft)
+}
+
+impl crate::Client {
+    /// Project the connector host's committed receive watermark. The Mail watch
+    /// does not opt the owner into system alerts; that is a separate preference.
+    pub fn project_agent_mail_notification(
+        &self,
+        agent: &str,
+        watermark: u64,
+        unread: u64,
+        now: u64,
+    ) -> Result<()> {
+        self.agent_find(agent)?;
+        if watermark == 0 {
+            return Ok(());
+        }
+        let mut item = Item::new(
+            self.account()?.id.to_string(),
+            Target::AgentMail(agent.into()),
+            watermark,
+            now,
+        );
+        item.unread = Some(unread);
+        item.open = unread > 0;
+        upsert(&self.workspace.store, item)?;
+        Ok(())
+    }
+
+    /// Rebuild the unlocked account's projections from local authoritative data.
+    /// This reads no network, executes no actions, and does not reserve display.
+    pub fn reconcile_notifications(&self, now: u64) -> Result<()> {
+        self.keys()?;
+        self.reconcile_channel_notifications(now)?;
+        for row in self.workspace.store.approvals(&[])? {
+            self.project_approval_notification(&self.approval_record(&row.id)?)?;
+        }
+        for letter in self.inbox_cached()? {
+            self.project_inbox_notification(&letter, letter.created_at.max(1), now, true)?;
+        }
+        self.workspace
+            .store
+            .prune_notifications(now.saturating_sub(RETENTION_MS))
+    }
+
+    /// Project local user work requiring intervention. A transient failed sync
+    /// is not a notification; an unfinished task blocked for 15 minutes is.
+    /// Returns the next health deadline without scheduling a native presentation.
+    pub fn notification_health(&self, now: u64) -> Result<Option<u64>> {
+        if self.keys.is_none() || self.root.is_none() {
+            return Ok(None);
+        }
+        let account = self.account()?.id.to_string();
+        let store = &self.workspace.store;
+        let last_sync = self.last_sync()?;
+        let failure = last_sync.as_ref().and_then(|sync| sync.error.as_deref());
+        let pending = store.count_in(crate::store::LOCAL)? > 0;
+        let conflicts = store.count_conflicts(crate::content::VAULT)?;
+        let temporary = pending && matches!(failure, Some("NETWORK_UNAVAILABLE" | "UNAVAILABLE"));
+        let since: Option<u64> = store.meta("notification:network_since")?;
+        let since = if temporary {
+            Some(since.unwrap_or_else(|| last_sync.as_ref().map_or(now, |s| s.at)))
+        } else {
+            None
+        };
+        match since {
+            Some(at) => store.set_meta("notification:network_since", &at)?,
+            None => store.delete_meta("notification:network_since")?,
+        }
+        let due = since.map(|at| at.saturating_add(900_000));
+        self.notification_health_episode(
+            &account,
+            "network",
+            due.is_some_and(|at| at <= now),
+            true,
+            now,
+        )?;
+        self.notification_health_episode(&account, "conflicts", conflicts > 0, false, now)?;
+        self.notification_health_episode(
+            &account,
+            "sync_failed",
+            pending
+                && matches!(
+                    failure,
+                    Some("INTEGRITY_FAILED" | "FORBIDDEN" | "QUOTA_EXCEEDED")
+                ),
+            false,
+            now,
+        )?;
+        Ok(due.filter(|at| *at > now))
+    }
+
+    fn notification_health_episode(
+        &self,
+        account: &str,
+        kind: &str,
+        active: bool,
+        service: bool,
+        now: u64,
+    ) -> Result<()> {
+        let store = &self.workspace.store;
+        let key = format!("notification:health:{kind}");
+        let (mut episode, before): (u64, bool) = store.meta(&key)?.unwrap_or((0, false));
+        if active == before {
+            return Ok(());
+        }
+        if active {
+            episode = episode.checked_add(1).ok_or(Error::VersionConflict)?;
+        }
+        let name = format!("{kind}:{episode}");
+        let target = if service {
+            Target::Service(name)
+        } else {
+            Target::Task(name)
+        };
+        let mut item = Item::new(account.into(), target, if active { 1 } else { 2 }, now);
+        item.open = active;
+        item.actionable = active;
+        store.atomic(|store| {
+            upsert(store, item)?;
+            store.set_meta(&key, &(episode, active))
+        })
+    }
+
+    /// Project a successfully authenticated service status. This function only
+    /// accepts status built by the commerce adapter, not renderer/provider input.
+    pub(crate) fn project_plan_notification(
+        &self,
+        status: &serde_json::Value,
+        now: u64,
+    ) -> Result<()> {
+        let Some(account) = self
+            .workspace
+            .meta
+            .account
+            .as_ref()
+            .map(|a| a.id.to_string())
+        else {
+            return Ok(());
+        };
+        let current = &status["current"];
+        let active = current["contract"]
+            .as_str()
+            .filter(|_| status["next"].is_null() && current["terminated_at_ms"].is_null());
+        for mut item in self.workspace.store.notification_items()? {
+            if let Target::Plan(id) = &item.target
+                && Some(id.as_str()) != active
+                && item.open
+            {
+                item.open = false;
+                item.actionable = false;
+                item.version = item.version.saturating_add(1);
+                item.updated_at = now;
+                upsert(&self.workspace.store, item)?;
+            }
+        }
+        if let Some(id) = active
+            && let Some(deadline) = current["ends_at_ms"].as_u64()
+        {
+            let mut item = Item::new(account, Target::Plan(id.into()), 1, now);
+            item.deadline = Some(deadline);
+            upsert(&self.workspace.store, item)?;
+        }
+        Ok(())
+    }
+}
+
+/// Refresh the small capability declaration without borrowing Client during I/O.
+/// Unsupported/temporarily unavailable services keep original message bodies.
+pub async fn refresh_capabilities(h: &impl crate::hold::Hold) -> Result<()> {
+    use crate::hold::{Hold, Unlocked};
+    let h = Unlocked::new(h).await?;
+    let cloud = h.with(|c| Ok(c.relay())).await?;
+    let capabilities = cloud.public("/public/notifications/capabilities").await;
+    h.with(|c| {
+        let enabled = capabilities
+            .as_ref()
+            .ok()
+            .and_then(|c| c.as_ref())
+            .is_some_and(|value| {
+                value["protocol"] == "dmsg-notifications/1" && value["publish_metadata"] == true
+            });
+        c.workspace
+            .store
+            .set_meta("notification:publish_v1", &enabled)
+    })
+    .await
 }

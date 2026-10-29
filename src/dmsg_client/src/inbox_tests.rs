@@ -123,6 +123,11 @@ async fn cached_inbox_survives_reopen_and_a_refresh_only_reads_new_pages() {
             socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
         }
     });
+    let slice = sync(&c.hold(), 1).await.unwrap();
+    assert!(slice.more);
+    assert_eq!(slice.cursor, 20);
+    assert_eq!(slice.changed.len(), 20);
+    assert_eq!(c.inbox_cached().unwrap().len(), 20);
     assert_eq!(list(&c.hold()).await.unwrap().len(), 21);
     assert_eq!(list(&c.hold()).await.unwrap().len(), 21);
     serve.await.unwrap();

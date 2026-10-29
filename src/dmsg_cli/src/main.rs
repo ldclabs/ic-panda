@@ -36,6 +36,7 @@ mod methods;
 mod mount;
 #[cfg(target_os = "macos")]
 mod mount_netfs;
+mod notifications;
 mod params;
 mod process_command;
 mod recovery_watch;

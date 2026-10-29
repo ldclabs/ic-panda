@@ -350,6 +350,36 @@ impl Runtime {
         .map_err(storage)
     }
 
+    /// Content-free owner reminder state: verified receive-event watermark and
+    /// current unread received mail. Reading never marks mail read or handled.
+    /// Uses the existing event head, which survives event-history pruning.
+    /// # Errors
+    /// Returns storage/corrupt snapshot errors, not an empty successful count.
+    pub fn mail_notification(&self, path: &Path, agent_id: &str) -> Result<(u64, u64)> {
+        let Some(conn) = open_existing(path)? else {
+            return Ok((0, 0));
+        };
+        let tx = conn.unchecked_transaction().map_err(storage)?;
+        let head = tx
+            .query_row(
+                "SELECT head FROM mail_event_heads WHERE agent=?1",
+                [agent_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()
+            .map_err(storage)?
+            .unwrap_or(0);
+        let snapshot = parse(load(&tx, agent_id)?.as_deref())?;
+        let unread = snapshot["mail"]["messages"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|item| item["direction"] == "received" && item["read"] != true)
+            .count() as u64;
+        tx.commit().map_err(storage)?;
+        Ok((head.max(0) as u64, unread))
+    }
+
     /// Clear a checkpoint only after the caller has durably saved its current keys.
     /// # Errors
     /// Returns storage errors.

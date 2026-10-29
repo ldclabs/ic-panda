@@ -165,11 +165,12 @@ enum Module {
     Wallet,
     Vault,
     Secrets,
+    Notifications,
 }
 
 /// The module that serves `method`; `None` for an unknown method.
 fn route(method: &str) -> Option<Module> {
-    let modules: [(Module, &[&str]); 12] = [
+    let modules: [(Module, &[&str]); 13] = [
         (Module::Daemon, &METHODS),
         (Module::More, &crate::methods::METHODS),
         (Module::Account, &crate::account_methods::METHODS),
@@ -182,6 +183,7 @@ fn route(method: &str) -> Option<Module> {
         (Module::Wallet, &crate::wallet_methods::METHODS),
         (Module::Vault, &crate::vault_methods::METHODS),
         (Module::Secrets, &crate::secret_methods::METHODS),
+        (Module::Notifications, &crate::notifications::METHODS),
     ];
     modules
         .into_iter()
@@ -274,6 +276,7 @@ pub(crate) struct Daemon {
     turns: crate::held::Turns,
     pub(crate) display: crate::display::Display,
     pub(crate) snapshots: crate::snapshots::Snapshots,
+    pub(crate) notifications: crate::notifications::Notifications,
 }
 
 /// Who presented a credential.
@@ -362,6 +365,9 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::display::run(daemon.clone()));
     tokio::spawn(crate::snapshots::run(daemon.clone()));
     tokio::spawn(crate::recovery_watch::run(daemon.clone()));
+    tokio::spawn(crate::notifications::run(daemon.clone()));
+    tokio::spawn(crate::notifications::inbox_run(daemon.clone()));
+    tokio::spawn(crate::notifications::services_run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
     tokio::spawn(crate::mail_push::run(daemon.clone()));
@@ -652,6 +658,7 @@ impl Daemon {
             turns: Default::default(),
             display: Default::default(),
             snapshots: Default::default(),
+            notifications: Default::default(),
         }
     }
 
@@ -691,6 +698,22 @@ impl Daemon {
             self.display.clear();
             self.snapshots.clear();
             self.hints_changed.notify_one();
+            self.notifications.inbox.notify_one();
+        }
+        if matches!(
+            kind,
+            "session/changed"
+                | "approval/changed"
+                | "channel/changed"
+                | "channel/read"
+                | "inbox/changed"
+                | "recovery/changed"
+                | "agent/mail"
+                | "wallet/changed"
+                | "cache/changed"
+                | "sync/changed"
+        ) {
+            self.notifications.wake.notify_one();
         }
         if matches!(
             kind,
@@ -702,6 +725,10 @@ impl Daemon {
         let _ = self
             .events
             .send(json!({"seq": seq, "type": kind, "data": data}));
+    }
+
+    pub(crate) fn session_token(&self, generation: u64) -> String {
+        format!("{}:{generation}", self.instance)
     }
 
     /// Whether a stop is deciding or decided.
@@ -1091,6 +1118,7 @@ impl Daemon {
             Module::Wallet => self.call_wallet(method, params).await,
             Module::Vault => self.call_vault(method, params).await,
             Module::Secrets => self.call_secrets(method, params).await,
+            Module::Notifications => self.call_notifications(method, params).await,
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Err(Error::Forbidden),
         };
@@ -1696,6 +1724,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Legacy => crate::legacy_methods::events_of(method),
         Module::Agents | Module::Agent => crate::agents::events_of(method),
         Module::McpEvents => &[],
+        Module::Notifications => &[],
         Module::Files => crate::files_methods::events_of(method),
         Module::Mount => crate::mount::events_of(method),
         Module::Wallet => crate::wallet_methods::events_of(method),
@@ -1789,6 +1818,9 @@ fn reply_failure(id: &Value, error: &Error) -> Value {
 /// resident Agent ID works while locked.
 fn is_activity(request: &RpcRequest, reports: bool) -> bool {
     let method = request.method.as_str();
+    if method.starts_with("notifications/") {
+        return false;
+    }
     if reports {
         return method == "app/activity";
     }
@@ -1820,6 +1852,13 @@ impl Daemon {
         };
         let agent_method = module == Module::Agent;
         if agent_method != matches!(session, Session::Agent(_)) {
+            return reply_failure(id, &Error::Forbidden);
+        }
+        if matches!(
+            method,
+            "notifications/next" | "notifications/context" | "notifications/result"
+        ) && !reports
+        {
             return reply_failure(id, &Error::Forbidden);
         }
         if !agent_method && is_activity(&request, reports) {
@@ -2109,6 +2148,10 @@ mod display_tests;
 #[cfg(test)]
 #[path = "recovery_watch_tests.rs"]
 mod recovery_watch_tests;
+
+#[cfg(test)]
+#[path = "notifications_tests.rs"]
+mod notifications_tests;
 
 #[cfg(test)]
 mod tests {

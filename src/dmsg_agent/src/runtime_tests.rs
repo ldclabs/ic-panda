@@ -46,6 +46,42 @@ fn keys() -> Value {
     json!({"version": 1, "agent_id": signer(1).agent_id(), "keys": {}})
 }
 
+#[test]
+fn notifications_mail_projection_uses_durable_receive_head_without_marking_or_acknowledging() {
+    let dir = Temp::new();
+    let Hosted(runtime, path) = runtime(&dir);
+    let agent = signer(1).agent_id().to_string();
+    let conn = crate::runtime::open(&path).unwrap();
+    let mut snapshot = json!({"mail":{"mailboxes":[],"messages":[
+        {"direction":"received","mailbox_id":"box","read":false,"message":{"from":"sender","message_id":"a"}},
+        {"direction":"received","mailbox_id":"box","read":true,"message":{"from":"sender","message_id":"b"}},
+        {"direction":"sent","mailbox_id":"box","read":false,"message":{"from":agent,"message_id":"c"}}
+    ]}});
+    crate::mail_events::record(&conn, &agent, &Value::Null, &snapshot, 1_000).unwrap();
+    conn.execute(
+        "INSERT INTO connectors(agent_id,snapshot,updated_at) VALUES(?1,?2,?3)",
+        rusqlite::params![agent, snapshot.to_string(), 1000],
+    )
+    .unwrap();
+    assert_eq!(runtime.mail_notification(&path, &agent).unwrap(), (2, 1));
+    assert_eq!(runtime.mail_notification(&path, &agent).unwrap(), (2, 1));
+    // Read-state changes are not new receive events; the event head survives
+    // pruning, so reopening cannot mistake old retained mail for new mail.
+    let before = snapshot.clone();
+    snapshot["mail"]["messages"][0]["read"] = true.into();
+    crate::mail_events::record(&conn, &agent, &before, &snapshot, 1_000_000_000).unwrap();
+    conn.execute(
+        "UPDATE connectors SET snapshot=?2 WHERE agent_id=?1",
+        rusqlite::params![agent, snapshot.to_string()],
+    )
+    .unwrap();
+    assert_eq!(runtime.mail_notification(&path, &agent).unwrap(), (2, 0));
+    assert_eq!(
+        runtime.mail_notification(&path, "unrelated").unwrap(),
+        (0, 0)
+    );
+}
+
 fn mail(keys: &Value) -> crate::DurableMail<'_> {
     crate::DurableMail {
         keys,

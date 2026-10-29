@@ -132,6 +132,8 @@ struct Local {
     read: u64,
     /// Others' messages after `read`.
     unread: u64,
+    /// Latest verified new message by another account, excluding edits/control.
+    notification_seq: u64,
     /// The latest message, for the channel list.
     last: Option<Preview>,
     /// The unsent text of the composer.
@@ -476,6 +478,14 @@ impl Message {
         }
         message
     }
+}
+
+/// A machine-only wallet wakeup. Ownership/sponsor handovers and messages
+/// carrying text or an attachment still need the recipient's attention.
+fn background_packet(text: &str, file: bool, packet: Option<&Json>) -> bool {
+    text.is_empty()
+        && !file
+        && packet.is_some_and(|packet| packet["format"] == "dmsg-wallet-event/1")
 }
 
 /// A channel as this device knows it.
@@ -2328,7 +2338,51 @@ impl Client {
 
     fn save_local(&self, channel: &str, local: &Local) -> Result<()> {
         self.workspace
-            .put_private(self.keys()?, &format!("{LOCAL}{channel}"), local)
+            .put_private(self.keys()?, &format!("{LOCAL}{channel}"), local)?;
+        self.project_channel_notification(channel, local, now_ms())
+    }
+
+    fn project_channel_notification(&self, channel: &str, local: &Local, now: u64) -> Result<()> {
+        use crate::notifications::{self, Item, Target};
+        let (_, ring) = self.keyring(channel)?;
+        let account = self.me()?;
+        let target = Target::Channel(channel.into());
+        let old = self
+            .workspace
+            .store
+            .notification_item(&notifications::item_id(&account, &target))?;
+        let version = local
+            .notification_seq
+            .max(old.as_ref().map_or(0, |item| item.version));
+        // Import the existing unread state once as a quiet summary. Subsequent
+        // own messages/control events cannot advance the notification watermark.
+        let version = if version == 0 && local.unread > 0 {
+            local.message
+        } else {
+            version
+        };
+        if version == 0 {
+            return Ok(());
+        }
+        let mut item = Item::new(account.clone(), target, version, now);
+        item.quiet = old.is_none();
+        item.unread = Some(local.unread);
+        item.open = local.unread > 0;
+        item.observed = local.read.min(version);
+        item.muted = ring.muted
+            || ring.hidden
+            || local.ledger.as_ref().is_some_and(|ledger| {
+                ledger.status != Status::Active || !ledger.members.contains_key(&account)
+            });
+        notifications::upsert(&self.workspace.store, item)?;
+        Ok(())
+    }
+
+    pub(crate) fn reconcile_channel_notifications(&self, now: u64) -> Result<()> {
+        for channel in self.channel_list()? {
+            self.project_channel_notification(&channel.id, &self.local(&channel.id)?, now)?;
+        }
+        Ok(())
     }
 
     fn stored(&self, channel: &str, seq: u64) -> Result<Stored> {
@@ -2483,7 +2537,11 @@ impl Client {
                             || outgoing.draft.retract.is_some()
                         {
                             PublishKind::Update
-                        } else if outgoing.draft.packet.is_some() {
+                        } else if background_packet(
+                            &outgoing.draft.text,
+                            outgoing.payload.attachment_upload.is_some(),
+                            outgoing.draft.packet.as_ref(),
+                        ) {
                             PublishKind::Silent
                         } else {
                             PublishKind::Message
@@ -4048,8 +4106,17 @@ impl Client {
                     {
                         local.last = Some(preview(message));
                     }
-                    if message.account != me {
+                    if message.account != me
+                        && !background_packet(
+                            &message.text,
+                            message.file.is_some(),
+                            message.packet.as_ref(),
+                        )
+                    {
                         local.unread += 1;
+                        if !message.unreadable {
+                            local.notification_seq = local.notification_seq.max(message.seq);
+                        }
                     }
                 }
             }
@@ -4306,7 +4373,11 @@ impl Client {
         )?;
         local.unread = after
             .iter()
-            .filter(|m| m.account != me && !m.amends())
+            .filter(|m| {
+                m.account != me
+                    && !m.amends()
+                    && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
+            })
             .count() as u64;
         self.save_local(channel, &local)?;
         self.channel_view(channel)
@@ -4349,6 +4420,7 @@ impl Client {
         ring.muted = muted.unwrap_or(ring.muted);
         ring.hidden = hidden.unwrap_or(ring.hidden);
         self.save_keyring(Some(revision), &ring)?;
+        self.project_channel_notification(channel, &self.local(channel)?, now_ms())?;
         self.channel_view(channel)
     }
 

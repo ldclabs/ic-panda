@@ -7,6 +7,21 @@ use crate::codec::decode_value;
 use crate::crypto::hpke_open;
 use crate::vectors::{bytes, field, key, load, text, value};
 
+#[test]
+fn notifications_silence_machine_wallet_hints_but_preserve_human_handovers() {
+    let wallet = json!({"format":"dmsg-wallet-event/1"});
+    assert!(background_packet("", false, Some(&wallet)));
+    assert!(!background_packet("Please review", false, Some(&wallet)));
+    assert!(!background_packet("", true, Some(&wallet)));
+    for format in ["dmsg-channel-owner-transfer/1", "dmsg-channel-sponsor/1"] {
+        assert!(!background_packet(
+            "",
+            false,
+            Some(&json!({"format":format}))
+        ));
+    }
+}
+
 #[tokio::test]
 async fn ordinary_attachment_import_rejects_a_refreshed_secret_package_before_fetch() {
     use std::sync::{

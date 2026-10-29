@@ -1134,6 +1134,8 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     if refresh {
         status["synced"] = relay_refresh(h).await.is_ok().into();
     }
+    h.with(|c| c.project_plan_notification(&status, now_ms()))
+        .await?;
     Ok(status)
 }
 

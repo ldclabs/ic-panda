@@ -108,6 +108,7 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Diagnostic> {
     daemon.note("hints", "connected");
     // Hints sent while it was down are lost: catch up authoritative state.
     daemon.hint_channel("*");
+    daemon.notifications.inbox.notify_one();
     daemon.mail_push().receive.notify_one();
     daemon.mcp().wake();
     let (mut sink, mut stream) = socket.split();
@@ -171,6 +172,12 @@ fn socket_failure(error: tokio_tungstenite::tungstenite::Error) -> Diagnostic {
 async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
     let kind = hint["kind"].as_str().unwrap_or_default();
     let session = daemon.client().lock().await.session_state();
+    if hint["account"]
+        .as_str()
+        .is_some_and(|account| session.account.as_deref() != Some(account))
+    {
+        return;
+    }
     let unlocked = session.state == "unlocked";
     let ready = unlocked || session.resident;
     match kind {
@@ -183,10 +190,17 @@ async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
             daemon.mail_push().receive.notify_one();
             daemon.emit("hint", json!({"kind": kind}));
         }
-        "inbox" if unlocked => daemon.emit("inbox/changed", json!({"hint": true})),
+        "inbox" if unlocked => daemon.notifications.inbox.notify_one(),
         "channel" if unlocked => daemon.hint_channel(hint["resource"].as_str().unwrap_or("*")),
         "channel" if hint["event"] == "control" => {}
-        "channel" | "inbox" => daemon.emit("hint", json!({"kind": kind})),
+        "channel" | "inbox" => {
+            if let Some(account) = session.account.as_deref() {
+                daemon
+                    .notification_hint(account, kind, hint["resource"].as_str())
+                    .await;
+            }
+            daemon.emit("hint", json!({"kind": kind}));
+        }
         _ => {}
     }
 }
