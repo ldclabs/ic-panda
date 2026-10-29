@@ -37,7 +37,7 @@ import { DaemonError } from './error'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { Notifications } from './notifications'
-import { isNoticeAccount, isNoticeHash, isNoticeSequence, isNoticeTarget, noticeRoute, type NoticeBatch, type NoticeItem, type NoticePreferences, type NoticeStatus, type NoticeTarget } from '../shared/notifications'
+import { isNoticeAccount, isNoticeHash, isNoticeSequence, isNoticeTarget, noticeCategories, noticeRoute, type NoticeCategory, type NoticeBatch, type NoticeItem, type NoticePreferences, type NoticeStatus, type NoticeTarget } from '../shared/notifications'
 import { quietUntil, validTimeZone } from '../shared/notification-time'
 import { notificationBody, notificationText } from '../shared/notification-text'
 import type { NoticeVisibility } from '../shared/contract'
@@ -875,7 +875,14 @@ handle('dmsg:notification-test', 'main', () => {
   nativeNotices.test(notificationText(locale).noticeTest, noticePlatformResult)
 })
 handle('dmsg:notification-open', 'any', async (_event, account: string, id: string) => {
-  if (!isNoticeAccount(account) || !isNoticeHash(id)) throw new DaemonError('INVALID_INPUT', 'Notification identity')
+  if (!isNoticeAccount(account)) throw new DaemonError('INVALID_INPUT', 'Notification identity')
+  if (noticeCategories.includes(id as NoticeCategory)) {
+    // Validate the original local account before opening its summary. This IPC
+    // is available in either window, without granting arbitrary navigation.
+    await daemon.call('notifications/settings', { account })
+    return openNotice(account, { kind: 'summary', id: id as NoticeCategory })
+  }
+  if (!isNoticeHash(id)) throw new DaemonError('INVALID_INPUT', 'Notification identity')
   const list = await daemon.call('notifications/list', { account, id }) as { items: NoticeItem[] }
   const item = list.items.find((item) => item.id === id && item.account === account)
   if (!item) return showMain(`/reminders?account=${account}&ended=1`)

@@ -405,6 +405,142 @@ fn notifications_same_source_new_requests_keep_distinct_todos_and_share_the_inte
 }
 
 #[test]
+fn notifications_source_interval_survives_a_cross_source_summary() {
+    let store = Store::memory().unwrap();
+    let (_, settings, mut runtime, mut ctx) = example();
+    configure(&store, 0, settings).unwrap();
+    for source in ["first-source", "second-source"] {
+        let mut item = Item::new(
+            "account-a".into(),
+            Target::Approval(source.into()),
+            1,
+            1_000,
+        );
+        item.group = source.into();
+        item.actionable = true;
+        upsert(&store, item).unwrap();
+    }
+    let plan = next(&store, &mut runtime, &ctx, |_| Ok(()))
+        .unwrap()
+        .plans
+        .remove(0);
+    assert_eq!(plan.covered.len(), 2);
+    result(
+        &store,
+        &plan.system_id,
+        &plan.delivery_id,
+        DeliveryResult::Submitted,
+        ctx.now,
+    )
+    .unwrap();
+    let mut item = Item::new(
+        "account-a".into(),
+        Target::Approval("new-request".into()),
+        1,
+        5_000,
+    );
+    item.group = "first-source".into();
+    item.actionable = true;
+    upsert(&store, item).unwrap();
+    ctx.now = 8_000;
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert!(
+        batch.plans.is_empty(),
+        "a summary must still reserve each source's interval"
+    );
+    assert_eq!(batch.next_due, Some(64_000));
+    ctx.now = 64_000;
+    assert_eq!(
+        next(&store, &mut runtime, &ctx, |_| Ok(()))
+            .unwrap()
+            .plans
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn notifications_retry_respects_a_disabled_agent_opt_in() {
+    let store = Store::memory().unwrap();
+    let (mut item, mut settings, mut runtime, mut ctx) = example();
+    item.target = Target::AgentMail("agent".into());
+    item.id = item_id(&item.account, &item.target);
+    settings.agent_mail.insert("agent".into(), true);
+    let mut settings = configure(&store, 0, settings).unwrap();
+    upsert(&store, item).unwrap();
+    let plan = next(&store, &mut runtime, &ctx, |_| Ok(()))
+        .unwrap()
+        .plans
+        .remove(0);
+    result(
+        &store,
+        &plan.system_id,
+        &plan.delivery_id,
+        DeliveryResult::Failed,
+        ctx.now,
+    )
+    .unwrap();
+    settings.agent_mail.insert("agent".into(), false);
+    configure(&store, settings.revision, settings).unwrap();
+    ctx.now += 5_000;
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert!(batch.plans.is_empty());
+    assert!(batch.remove.contains(&plan.system_id));
+}
+
+#[test]
+fn notifications_retry_does_not_repeat_a_visible_security_phase() {
+    let store = Store::memory().unwrap();
+    let (_, settings, mut runtime, mut ctx) = example();
+    configure(&store, 0, settings).unwrap();
+    let mut item = Item::new(
+        "account-a".into(),
+        Target::Recovery("incident".into()),
+        1,
+        1_000,
+    );
+    item.actionable = true;
+    item.deadline = Some(ctx.now + 3_600_000);
+    upsert(&store, item).unwrap();
+    ctx.foreground = true;
+    let plan = next(&store, &mut runtime, &ctx, |_| Ok(()))
+        .unwrap()
+        .plans
+        .remove(0);
+    assert_eq!(plan.covered[0].stage, 3);
+    ctx.visible = plan.covered.clone();
+    ctx.now += 5_000;
+    let batch = next(&store, &mut runtime, &ctx, |_| Ok(())).unwrap();
+    assert!(batch.plans.is_empty());
+}
+
+#[test]
+fn notifications_disabling_an_account_queues_revoke_while_locked() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let mut draft = configure(
+        &client.workspace.store,
+        0,
+        Settings {
+            enabled: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    client.lock();
+    draft.enabled = false;
+    configure(&client.workspace.store, draft.revision, draft).unwrap();
+    assert_eq!(
+        client
+            .workspace
+            .store
+            .meta::<bool>("notification:revoke_pending")
+            .unwrap(),
+        Some(true)
+    );
+}
+
+#[test]
 fn notifications_one_sound_budget_covers_different_categories_in_the_same_pass() {
     let store = Store::memory().unwrap();
     let (message, mut settings, mut runtime, ctx) = example();

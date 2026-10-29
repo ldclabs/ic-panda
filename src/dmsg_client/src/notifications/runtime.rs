@@ -82,6 +82,13 @@ pub struct Runtime {
     /// A conflicting draft requires another explicit local edit before retry.
     #[serde(default)]
     pub remote_blocked: Option<u64>,
+    /// Minimal receivers awaiting revocation after their workspace was removed.
+    /// Credentials remain in the dedicated protected credential storage.
+    #[serde(default)]
+    pub revocations: Vec<super::remote::ReceiveContext>,
+    /// Native groups to remove after account/workspace deletion.
+    #[serde(default)]
+    pub removals: Vec<String>,
 }
 
 impl Default for Runtime {
@@ -100,6 +107,8 @@ impl Default for Runtime {
             remote_revision: 0,
             remote_expected: 0,
             remote_blocked: None,
+            revocations: vec![],
+            removals: vec![],
         }
     }
 }

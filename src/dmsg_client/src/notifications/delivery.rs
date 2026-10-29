@@ -57,6 +57,17 @@ pub fn next(
         }
     }
     let now = context.now;
+    // A cross-source summary still consumes the interval of every source it
+    // covers. The native summary ID is not a substitute for those source keys.
+    let mut attempted: BTreeMap<(Category, &str), u64> = BTreeMap::new();
+    for item in &items {
+        if let Some(at) = item.attempted_at {
+            attempted
+                .entry((item.category(), &item.group))
+                .and_modify(|old| *old = (*old).max(at))
+                .or_insert(at);
+        }
+    }
     let mut retrying = std::collections::BTreeSet::new();
     for mut delivery in prior.iter().cloned() {
         let valid = runtime.settings.enabled
@@ -73,6 +84,13 @@ pub fn next(
                                 && item.version > covered.version))
                         && item.open
                         && !item.is_muted(now)
+                        && (!matches!(&item.target, Target::AgentMail(agent)
+                            if !settings.agent_mail.get(agent).copied().unwrap_or(false)))
+                        && !context.viewing
+                        && !context
+                            .visible
+                            .iter()
+                            .any(|seen| seen.id == item.id && seen.version == item.version)
                         && item.snoozed_until.is_none()
                         && (item.category() == Category::Security && covered.stage > 1
                             || (item.observed < covered.version
@@ -160,12 +178,15 @@ pub fn next(
     }
 
     let mut ready: BTreeMap<(Category, String), Vec<Candidate>> = BTreeMap::new();
-    for original in items {
+    for original in &items {
         if retrying.contains(&original.id) {
             continue;
         }
-        let mut item = original;
+        let mut item = original.clone();
         let category = item.category();
+        if let Some(at) = attempted.get(&(category, item.group.as_str())) {
+            item.attempted_at = Some(item.attempted_at.unwrap_or(0).max(*at));
+        }
         let group = if category == Category::Security {
             "security".to_string()
         } else {

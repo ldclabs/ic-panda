@@ -50,7 +50,7 @@ export interface DesktopBridge {
   notificationSettings(): Promise<void>
   /** A generic, silent local test; no business counters or watermarks change. */
   notificationTest(): Promise<void>
-  /** Open an existing item under its original account, never execute it. */
+  /** Open an item or category summary under its original local account. */
   notificationOpen(account: string, id: string): Promise<void>
   /** Report only loaded, actually visible business data; null clears this window's context. */
   notificationVisible(value: NoticeVisibility | null): Promise<boolean>

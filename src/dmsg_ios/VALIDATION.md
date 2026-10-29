@@ -1,5 +1,25 @@
 # iOS implementation validation
 
+## Notification review fixes (2026-10-29)
+
+Reviewed the inclusive public range `29b37f46..4e93a9af`. Notification navigation
+now reads the original business object when the local reminder has not arrived,
+has been read, or has completed. Original-account and unlock checks remain.
+Quiet hours use actual IANA timezone intervals through repeated and nonexistent
+wall-clock times. Shared receiver cleanup survives local account removal and
+rechecks replacement registrations before deleting credentials.
+
+Both ARM64 Rust slices and bindings were rebuilt and source fingerprints verified.
+XcodeBuildMCP built and launched the Debug fixture app on iPhone 16 Pro / iOS 18.4;
+39 native unit tests and the 3 notification UI tests passed, with no failures or
+skips. The quiet-hours test includes fall-back 01:45 before the second 01:30 and
+the spring-forward 02:30 boundary. All 23 localizations, 31 shared icons and 12
+Python tests passed. The tests do not exercise authenticated live-account push
+clicks; real APNs, lock-screen/cold-start delivery and multiple devices remain
+unverified. Full shared results are in the desktop notification validation record.
+
+Review and implementation: Codex <codex@openai.com>.
+
 ## Unified notifications (2026-10-29)
 
 Continues public `main@00dbfdf7` and the existing uncommitted notification work.
@@ -706,9 +726,10 @@ claim that every P0–P3 milestone or the App Store release is complete**.
   one-prompt behavior. Software vectors and macOS SE success do not establish
   iOS hardware behavior. Check that user home supports the current AccountInfo
   contract before protected-account validation.
-- APNs registration, its authenticated public wire contract and the private
-  provider service are not implemented or deployed. The settings page explicitly
-  reports this. Foreground synchronization is available without push permission.
+- APNs registration, the authenticated wire contract and provider adapter now
+  have local implementations as recorded above. Deployment, real provider delivery
+  and physical-device validation remain open. Foreground synchronization is
+  available without push permission.
 - Legacy account/control methods use the cancellable dedicated owner. The full
   shared-`Hold` conversion remains incomplete; local reads may queue behind a
   network operation. Lock/pause cancel it before clearing keys.

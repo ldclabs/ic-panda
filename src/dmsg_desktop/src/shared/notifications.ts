@@ -136,6 +136,6 @@ export function noticeRoute(target: NoticeTarget): string {
     case 'wallet': return `/wallet/${target.id.wallet}/${target.id.proposal}`
     case 'plan': return '/plan'
     case 'task': case 'service': return '/settings/session'
-    case 'summary': return `/reminders?scope=${target.id === 'message' ? 'recent' : 'open'}`
+    case 'summary': return `/reminders?scope=${['message', 'service'].includes(target.id) ? 'recent' : 'open'}`
   }
 }

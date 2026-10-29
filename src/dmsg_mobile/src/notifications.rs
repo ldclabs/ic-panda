@@ -322,6 +322,7 @@ impl MobileEngine {
     pub async fn notification_refresh(&self) -> Result<ObjectSnapshot> {
         self.held_object(|h| {
             Box::pin(async {
+                let _ = notice::remote::revoke_retired(h).await;
                 let session = h.with(|c| Ok(c.session_state())).await?;
                 if session.unlocked_account().is_some() {
                     let _ = notice::refresh_capabilities(h).await;
@@ -396,7 +397,13 @@ impl MobileEngine {
                     remote_owner: true,
                     ..Default::default()
                 };
-                let mut all = notice::Batch::default();
+                let mut all = notice::Batch {
+                    remove: std::mem::take(&mut runtime.removals),
+                    ..Default::default()
+                };
+                if !all.remove.is_empty() {
+                    runtime.save(&path)?;
+                }
                 for local in c.accounts()?.into_iter().filter(|a| a.bound) {
                     let batch = c.with_notification_store(&account(&local.account)?, |s| {
                         notice::next(s, &mut runtime, &context, |r| r.save(&path))

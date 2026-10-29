@@ -229,7 +229,7 @@
       if (event.type !== 'notifications/present' || !isNoticePlan(event.data) || !document.hasFocus()) return
       const plan = event.data
       toast(() => notificationBody(locale(), plan.category, plan.count), { testid: 'notification-toast', ms: 6000,
-        action: { label: t('open'), run: () => plan.covered.length === 1 ? window.dmsg.notificationOpen(plan.account, plan.covered[0].id) : window.dmsg.showMain('/reminders') } })
+        action: { label: t('open'), run: () => window.dmsg.notificationOpen(plan.account, plan.covered.length === 1 ? plan.covered[0].id : plan.category) } })
     }))
     return () => offs.forEach((off) => off())
   })

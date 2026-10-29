@@ -126,6 +126,67 @@ pub async fn sync_recovery(h: &impl Hold, context: &ReceiveContext) -> Result<()
 }
 
 impl Client {
+    fn retired_notification_name(&self, context: &ReceiveContext) -> String {
+        self.notification_secret_name(&format!(
+            "revoke:{}:{}",
+            context.registration, context.revision
+        ))
+    }
+
+    fn retired_notification_path(&self, context: &ReceiveContext) -> std::path::PathBuf {
+        self.notification_runtime_path().with_file_name(format!(
+            "notification-revoke-{}-{}",
+            context.registration, context.revision
+        ))
+    }
+
+    /// Preserve only the revocation capability before destructive workspace
+    /// cleanup. Removing a local account must work offline without losing the
+    /// ability to stop its remote lease on the next connection.
+    pub(crate) fn retire_notifications(&self) -> Result<()> {
+        if self.workspace.meta.account.is_none() {
+            return Ok(());
+        }
+        let path = self.notification_runtime_path();
+        let mut runtime = Runtime::load(&path, now_ms())?;
+        runtime.removals.extend(
+            self.workspace
+                .store
+                .notification_deliveries()?
+                .into_iter()
+                .map(|d| d.system_id),
+        );
+        runtime.removals.sort();
+        runtime.removals.dedup();
+        if let Some(context) = self.workspace.store.meta::<ReceiveContext>(RECEIVE)? {
+            let credential = self.notification_credential(&context)?;
+            let bytes = Zeroizing::new(
+                serde_json::to_vec(&credential).map_err(|_| Error::IntegrityFailed)?,
+            );
+            match self.secure() {
+                Some(secure) => secure.set(&self.retired_notification_name(&context), &bytes)?,
+                None => {
+                    let mut options = std::fs::OpenOptions::new();
+                    options.write(true).create(true).truncate(true);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::OpenOptionsExt;
+                        options.mode(0o600);
+                    }
+                    let mut file = options
+                        .open(self.retired_notification_path(&context))
+                        .map_err(crate::storage)?;
+                    file.write_all(&bytes).map_err(crate::storage)?;
+                    file.sync_all().map_err(crate::storage)?;
+                }
+            }
+            if !runtime.revocations.contains(&context) {
+                runtime.revocations.push(context);
+            }
+        }
+        runtime.save(&path)
+    }
+
     fn notification_secret_name(&self, account: &str) -> String {
         format!(
             "dmsg:notifications:{}:{account}",
@@ -307,14 +368,72 @@ impl Client {
         }
         self.with_notification_store(&account, |store| {
             store.atomic(|store| {
+                if store
+                    .meta::<ReceiveContext>(RECEIVE)?
+                    .is_none_or(|previous| previous.registration != credential.context.registration)
+                {
+                    // A revoked/removed registration starts a fresh account CAS
+                    // scope. Its old acknowledgement cannot enable the new lease.
+                    let mut preference = settings(store)?;
+                    preference.remote_revision = 0;
+                    store.set_meta("notification:settings", &preference)?;
+                    store.delete_meta(SYNC)?;
+                }
                 if self.secure().is_none() {
                     store.set_meta(CREDENTIAL, credential)?;
                 }
                 store.set_meta(RECEIVE, &credential.context)?;
-                store.set_meta("notification:revoke_pending", &false)
+                // An opt-out during the registration request must still revoke
+                // its result; saving the response never restores user consent.
+                store.set_meta("notification:revoke_pending", &!settings(store)?.enabled)
             })
         })
     }
+}
+
+/// Drain removed accounts' restricted revocations without opening a workspace,
+/// switching accounts, or retaining its signing/content keys.
+pub async fn revoke_retired(h: &impl Hold) -> Result<()> {
+    let contexts = h
+        .with(|c| Ok(Runtime::load(&c.notification_runtime_path(), now_ms())?.revocations))
+        .await?;
+    let mut failure = None;
+    for context in contexts {
+        let result = async {
+            if context.expires_at > now_ms() {
+                let (cloud, credential) = h.with(|c| {
+                    let bytes = match c.secure() {
+                        Some(secure) => secure.get(&c.retired_notification_name(&context))?.ok_or(Error::AuthRequired)?,
+                        None => Zeroizing::new(std::fs::read(c.retired_notification_path(&context)).map_err(crate::storage)?),
+                    };
+                    let credential: Credential = serde_json::from_slice(&bytes).map_err(|_| Error::IntegrityFailed)?;
+                    ensure(credential.context == context, Error::IntegrityFailed)?;
+                    Ok((c.relay(), credential))
+                }).await?;
+                let response = cloud.notification_receive(&path(&context, "revoke"), &credential.receiver,
+                    Some(&json!({"installation":context.installation,"expected_revision":context.revision}))).await;
+                if !matches!(response, Ok(_) | Err(Error::AuthRequired | Error::NotFound | Error::DeviceNotApproved)) { response?; }
+            }
+            h.with(|c| {
+                let path = c.notification_runtime_path();
+                let mut runtime = Runtime::load(&path, now_ms())?;
+                runtime.revocations.retain(|old| old != &context);
+                runtime.save(&path)?;
+                match c.secure() {
+                    Some(secure) => secure.delete(&c.retired_notification_name(&context))?,
+                    None => match std::fs::remove_file(c.retired_notification_path(&context)) {
+                        Err(error) if error.kind() != std::io::ErrorKind::NotFound => return Err(crate::storage(error)),
+                        _ => {}
+                    },
+                }
+                Ok(())
+            }).await
+        }.await;
+        if let Err(error) = result {
+            failure.get_or_insert(error);
+        }
+    }
+    failure.map_or(Ok(()), Err)
 }
 
 fn account_id(value: &str) -> Result<AccountId> {
@@ -357,8 +476,11 @@ pub async fn register(
         .with(|c| {
             let account = c.account()?.id;
             if !c.notification_remote_supported(&account)?
-                || (!settings(&c.workspace.store)?.enabled
-                    && c.workspace.store.meta::<ReceiveContext>(RECEIVE)?.is_none())
+                || !settings(&c.workspace.store)?.enabled
+                || c.workspace
+                    .store
+                    .meta::<bool>("notification:revoke_pending")?
+                    .unwrap_or(false)
             {
                 return Ok(None);
             }
@@ -721,13 +843,29 @@ pub async fn revoke_receiver(h: &impl Hold, context: &ReceiveContext) -> Result<
     }
     let account = account_id(&context.account)?;
     h.with(|c| {
+        // Errors such as AUTH_REQUIRED can race a successful replacement lease.
+        // Retire only the exact receiver this request tried to revoke.
+        ensure(
+            c.with_notification_store(&account, |s| s.meta::<ReceiveContext>(RECEIVE))?
+                .as_ref()
+                == Some(context),
+            Error::VersionConflict,
+        )?;
         if let Some(secure) = c.secure() {
             secure.delete(&c.notification_secret_name(&context.account))?;
         }
         c.with_notification_store(&account, |s| {
-            s.delete_meta(RECEIVE)?;
-            s.delete_meta(CREDENTIAL)?;
-            s.delete_meta("notification:revoke_pending")
+            s.atomic(|s| {
+                let mut preference = settings(s)?;
+                if !preference.enabled {
+                    preference.remote_revision = preference.revision;
+                    s.set_meta("notification:settings", &preference)?;
+                }
+                s.delete_meta(SYNC)?;
+                s.delete_meta(RECEIVE)?;
+                s.delete_meta(CREDENTIAL)?;
+                s.delete_meta("notification:revoke_pending")
+            })
         })
     })
     .await
@@ -937,6 +1075,11 @@ mod tests {
     }
 
     fn credential(c: &Client) -> Credential {
+        let mut preference = settings(&c.workspace.store).unwrap();
+        if !preference.enabled {
+            preference.enabled = true;
+            super::super::configure(&c.workspace.store, preference.revision, preference).unwrap();
+        }
         Credential {
             context: ReceiveContext {
                 account: c.account().unwrap().id.to_string(),
@@ -947,6 +1090,213 @@ mod tests {
                 expires_at: now_ms() + 60000,
             },
             receiver: "33".repeat(32),
+        }
+    }
+
+    #[test]
+    fn notifications_registration_recreation_resets_only_its_account_acknowledgement() {
+        let dir = crate::testing::TempDir::new();
+        let c = crate::testing::unlocked(&dir.0, false, None);
+        let mut credential = credential(&c);
+        c.save_notification_credential(&credential).unwrap();
+        let mut preference = settings(&c.workspace.store).unwrap();
+        preference.remote_revision = preference.revision;
+        c.workspace
+            .store
+            .set_meta("notification:settings", &preference)
+            .unwrap();
+        c.workspace
+            .store
+            .set_meta(
+                SYNC,
+                &SyncState {
+                    expected: 4,
+                    blocked: None,
+                },
+            )
+            .unwrap();
+        credential.context.revision += 1;
+        c.save_notification_credential(&credential).unwrap();
+        assert_eq!(
+            settings(&c.workspace.store).unwrap().remote_revision,
+            preference.revision
+        );
+        assert_eq!(
+            c.workspace
+                .store
+                .meta::<SyncState>(SYNC)
+                .unwrap()
+                .unwrap()
+                .expected,
+            4
+        );
+        credential.context.registration = "77".repeat(32);
+        credential.context.revision = 1;
+        c.save_notification_credential(&credential).unwrap();
+        assert_eq!(settings(&c.workspace.store).unwrap().remote_revision, 0);
+        assert!(c.workspace.store.meta::<SyncState>(SYNC).unwrap().is_none());
+        preference.enabled = false;
+        super::super::configure(&c.workspace.store, preference.revision, preference).unwrap();
+        c.save_notification_credential(&credential).unwrap();
+        assert_eq!(
+            c.workspace
+                .store
+                .meta::<bool>("notification:revoke_pending")
+                .unwrap(),
+            Some(true)
+        );
+    }
+
+    #[tokio::test]
+    async fn notifications_disabled_receiver_revokes_while_locked_then_can_register_again() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let credential = credential(&c);
+        let context = credential.context.clone();
+        c.save_notification_credential(&credential).unwrap();
+        let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        crate::testing::relay_to(&mut c, &format!("http://{}", server.local_addr().unwrap()));
+        c.lock();
+        let mut preference = settings(&c.workspace.store).unwrap();
+        preference.enabled = false;
+        super::super::configure(&c.workspace.store, preference.revision, preference).unwrap();
+        let task = tokio::spawn(async move {
+            let (mut socket, _) = server.accept().await.unwrap();
+            let mut bytes = vec![0; 8192];
+            let n = socket.read(&mut bytes).await.unwrap();
+            let request = String::from_utf8_lossy(&bytes[..n]);
+            assert!(request.starts_with("POST /v1/notifications/revoke?"));
+            assert!(request.contains(&format!("Bearer {}", credential.receiver)));
+            let body = json!({"ok":true,"data":{"removed":true}}).to_string();
+            socket
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .unwrap();
+        });
+        assert!(!refresh(&c.hold(), &context).await.unwrap());
+        task.await.unwrap();
+        assert!(c.notification_receivers().unwrap().is_empty());
+        let mut preference = settings(&c.workspace.store).unwrap();
+        assert_eq!(preference.remote_revision, preference.revision);
+        preference.enabled = true;
+        super::super::configure(&c.workspace.store, preference.revision, preference).unwrap();
+        assert!(
+            c.workspace
+                .store
+                .meta::<bool>("notification:revoke_pending")
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn notifications_late_revoke_failure_cannot_delete_a_replacement_credential() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let credential = credential(&c);
+        let context = credential.context.clone();
+        c.save_notification_credential(&credential).unwrap();
+        let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        crate::testing::relay_to(&mut c, &format!("http://{}", server.local_addr().unwrap()));
+        let shared = Arc::new(Shared(Mutex::new(c)));
+        let during = shared.clone();
+        let task = tokio::spawn(async move {
+            let (mut socket, _) = server.accept().await.unwrap();
+            let mut bytes = vec![0; 8192];
+            assert!(socket.read(&mut bytes).await.unwrap() > 0);
+            let mut replacement = credential;
+            replacement.context.revision += 1;
+            replacement.receiver = "99".repeat(32);
+            during
+                .0
+                .try_lock()
+                .unwrap()
+                .save_notification_credential(&replacement)
+                .unwrap();
+            let body =
+                json!({"ok":false,"error":{"code":"AUTH_REQUIRED","message":"Receiver replaced"}})
+                    .to_string();
+            socket.write_all(format!("HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            replacement
+        });
+        assert_eq!(
+            revoke_receiver(shared.as_ref(), &context).await,
+            Err(Error::VersionConflict)
+        );
+        let replacement = task.await.unwrap();
+        let c = shared.0.lock().unwrap();
+        assert_eq!(
+            c.notification_credential(&replacement.context)
+                .unwrap()
+                .receiver,
+            replacement.receiver
+        );
+    }
+
+    #[tokio::test]
+    async fn notifications_removed_account_keeps_an_offline_revocation_without_its_workspace() {
+        for secure in [false, true] {
+            let dir = crate::testing::TempDir::new();
+            let storage = secure.then(|| {
+                Arc::new(crate::testing::MemoryStorage::default())
+                    as Arc<dyn crate::secure::SecureStorage>
+            });
+            let mut c = crate::testing::unlocked(&dir.0, false, storage);
+            let credential = credential(&c);
+            let context = credential.context.clone();
+            c.save_notification_credential(&credential).unwrap();
+            let runtime_path = c.notification_runtime_path();
+            c.remove_local_account(&context.account).unwrap();
+            assert!(c.notification_receivers().unwrap().is_empty());
+            assert!(c.session_state().account.is_none());
+            assert_eq!(
+                Runtime::load(&runtime_path, now_ms()).unwrap().revocations,
+                vec![context.clone()]
+            );
+            assert!(
+                !std::fs::read_to_string(&runtime_path)
+                    .unwrap()
+                    .contains(&credential.receiver)
+            );
+
+            let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = server.local_addr().unwrap();
+            drop(server);
+            crate::testing::relay_to(&mut c, &format!("http://{address}"));
+            assert!(revoke_retired(&c.hold()).await.is_err());
+            assert_eq!(
+                Runtime::load(&runtime_path, now_ms())
+                    .unwrap()
+                    .revocations
+                    .len(),
+                1
+            );
+            let server = tokio::net::TcpListener::bind(address).await.unwrap();
+            let task = tokio::spawn(async move {
+                let (mut socket, _) = server.accept().await.unwrap();
+                let mut bytes = vec![0; 8192];
+                let n = socket.read(&mut bytes).await.unwrap();
+                let request = String::from_utf8_lossy(&bytes[..n]);
+                assert!(request.starts_with("POST /v1/notifications/revoke?"));
+                assert!(request.contains(&format!("Bearer {}", credential.receiver)));
+                let body = json!({"ok":true,"data":{"removed":true}}).to_string();
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            });
+            revoke_retired(&c.hold()).await.unwrap();
+            task.await.unwrap();
+            assert!(
+                Runtime::load(&runtime_path, now_ms())
+                    .unwrap()
+                    .revocations
+                    .is_empty()
+            );
+            assert!(!c.retired_notification_path(&context).exists());
         }
     }
 

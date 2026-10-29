@@ -1756,10 +1756,7 @@ impl Client {
         if notifications.enabled {
             notifications.enabled = false;
             let revision = notifications.revision;
-            self.workspace.store.atomic(|store| {
-                crate::notifications::configure(store, revision, notifications)?;
-                store.set_meta("notification:revoke_pending", &true)
-            })?;
+            crate::notifications::configure(&self.workspace.store, revision, notifications)?;
         }
         if self
             .workspace
@@ -1807,6 +1804,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when files cannot be removed.
     pub fn reset(&mut self) -> Result<Status> {
+        self.retire_notifications()?;
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
             secure.delete(&self.bound_name()?)?;

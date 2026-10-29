@@ -143,11 +143,19 @@ enum NotificationTime {
     static func quietUntil(_ preference: NoticeGlobalPreference, at now: Date = .now) -> UInt64? {
         guard let hours = preference.quietHours, let zone = TimeZone(identifier: hours.timezone), hours.start != hours.end else { return nil }
         var calendar = Calendar(identifier: .gregorian); calendar.timeZone = zone
-        let components = calendar.dateComponents([.hour, .minute], from: now)
-        let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
-        let inside = hours.start < hours.end ? minute >= hours.start && minute < hours.end : minute >= hours.start || minute < hours.end
-        guard inside, let end = calendar.nextDate(after: now, matching: DateComponents(hour: hours.end / 60, minute: hours.end % 60), matchingPolicy: .nextTime, repeatedTimePolicy: .last) else { return nil }
-        return UInt64(end.timeIntervalSince1970 * 1000)
+        // Compare real interval boundaries. During the repeated fall-back hour,
+        // wall-clock minutes alone can incorrectly end quiet hours an hour early.
+        let today = calendar.startOfDay(for: now)
+        for offset in [-1, 0] {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: today),
+                  let endDay = calendar.date(byAdding: .day, value: hours.end <= hours.start ? 1 : 0, to: day),
+                  let start = calendar.nextDate(after: day.addingTimeInterval(-1), matching: DateComponents(hour: hours.start / 60, minute: hours.start % 60, second: 0),
+                      matchingPolicy: .nextTimePreservingSmallerComponents, repeatedTimePolicy: .first),
+                  let end = calendar.nextDate(after: endDay.addingTimeInterval(-1), matching: DateComponents(hour: hours.end / 60, minute: hours.end % 60, second: 0),
+                      matchingPolicy: .nextTimePreservingSmallerComponents, repeatedTimePolicy: .last) else { continue }
+            if now >= start && now < end { return UInt64(end.timeIntervalSince1970 * 1000) }
+        }
+        return nil
     }
     static func tomorrow(_ now: Date = .now) -> UInt64 {
         let calendar = Calendar.current

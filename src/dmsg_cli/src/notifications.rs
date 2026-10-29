@@ -176,6 +176,8 @@ pub(crate) async fn receive_run(d: Arc<Daemon>) {
             continue;
         }
         let h = d.hold();
+        let retired = core::remote::revoke_retired(&h).await;
+        d.note_result("notifications/revoke", &retired);
         let Ok(session) = h.with(|c| Ok(c.session_state())).await else {
             continue;
         };
@@ -353,7 +355,8 @@ impl Daemon {
                     };
                     let _ = generation;
                     context.now = now;
-                    let mut all = core::Batch::default();
+                    let mut all = core::Batch { remove: std::mem::take(&mut runtime.removals), ..Default::default() };
+                    if !all.remove.is_empty() { runtime.save(&path)?; }
                     for local in c.accounts()?.into_iter().filter(|a| a.bound) {
                         let id: AccountId = local.account.parse().map_err(|_| Error::IntegrityFailed)?;
                         let batch = c.with_notification_store(&id, |store| {

@@ -190,6 +190,19 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   model.enqueue(foreground)
   await main.getByTestId('notification-toast').waitFor()
   assert.equal(await notes(), beforeForeground)
+  await main.locator('.pointer-events-auto button[aria-label="Dismiss"]').click()
+  // A merged hint is opened from the main window too, with its original
+  // account and recent-message scope instead of approval-only show-main IPC.
+  model.enqueue(foreground, { delivery_id: 'e'.repeat(64), covered: [
+    { id: foreground.id, version: foreground.version, stage: 1 },
+    { id: 'f'.repeat(64), version: '1', stage: 1 }
+  ] })
+  await main.getByTestId('notification-toast').getByRole('button', { name: 'Open', exact: true }).click()
+  await main.getByTestId('reminders-page').waitFor()
+  const summaryRoute = await main.evaluate(() => location.hash)
+  assert.ok(summaryRoute.includes(`account=${account}`))
+  assert.ok(summaryRoute.includes('scope=recent'))
+  await route('/vault')
   if (simulatedFocus) await app.evaluate(() => {globalThis.__notificationFocusAllowed = false})
   await native.evaluate((window) => {window.hide();window.emit('blur')})
   await waitFor(() => latest('notifications/context')?.params.context.foreground === false).catch(async error => {

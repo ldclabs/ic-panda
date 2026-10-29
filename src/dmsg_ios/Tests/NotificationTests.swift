@@ -41,6 +41,13 @@ final class NotificationTests: XCTestCase {
         let fall = try XCTUnwrap(parser.date(from: "2026-11-01T07:30:00Z"))
         let fallEnd = try XCTUnwrap(parser.date(from: "2026-11-01T09:30:00Z"))
         XCTAssertEqual(NotificationTime.quietUntil(preference, at: fall), UInt64(fallEnd.timeIntervalSince1970 * 1000))
+        let repeatedHour = try XCTUnwrap(parser.date(from: "2026-11-01T08:45:00Z"))
+        XCTAssertEqual(NotificationTime.quietUntil(preference, at: repeatedHour), UInt64(fallEnd.timeIntervalSince1970 * 1000))
+        XCTAssertNil(NotificationTime.quietUntil(preference, at: fallEnd))
+        preference.quietHours?.end = 150
+        let gapEnd = try XCTUnwrap(parser.date(from: "2026-03-08T10:30:00Z"))
+        let gap = try XCTUnwrap(parser.date(from: "2026-03-08T10:15:00Z"))
+        XCTAssertEqual(NotificationTime.quietUntil(preference, at: gap), UInt64(gapEnd.timeIntervalSince1970 * 1000))
     }
 
     func testNamedRustSettingsPersistConflictAndRejectForeignAccount() async throws {

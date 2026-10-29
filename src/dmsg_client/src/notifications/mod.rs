@@ -522,7 +522,20 @@ pub fn configure(store: &Store, expected: u64, mut draft: Settings) -> Result<Se
     )?;
     draft.revision = expected.checked_add(1).ok_or(Error::VersionConflict)?;
     draft.remote_revision = previous.remote_revision;
-    store.set_meta("notification:settings", &draft)?;
+    store.atomic(|store| {
+        store.set_meta("notification:settings", &draft)?;
+        // The restricted receiver can stop remote delivery even for a locked or
+        // inactive account, without waiting for device signing authority.
+        if !draft.enabled {
+            store.set_meta("notification:revoke_pending", &true)?;
+        } else if store
+            .meta::<serde_json::Value>("notification:receive")?
+            .is_none()
+        {
+            store.delete_meta("notification:revoke_pending")?;
+        }
+        Ok(())
+    })?;
     Ok(draft)
 }
 

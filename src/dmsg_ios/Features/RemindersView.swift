@@ -91,7 +91,7 @@ struct RemindersView: View {
             if started {
                 await load()
                 if !openedEntry, !Task.isCancelled, let target = entry.target, let account = entry.account,
-                   !entry.ended, selected == account, account == model.session?.account, model.unlocked {
+                   selected == account, account == model.session?.account, model.unlocked {
                     openedEntry = true
                     if case .summary = target { return }
                     destination = ReminderDestination(account: account, target: target)
@@ -167,9 +167,9 @@ private struct ReminderDestinationView: View {
         guard model.session?.account == destination.account, model.unlocked, let engine = model.engine else { ended = model.uiTesting; return }
         let epoch = model.epoch
         do {
-            let item: ReminderItem? = try model.decode(try await engine.notificationReference(selected: destination.account, targetJson: NoticeEncoding.json(destination.target)))
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            guard item?.open == true else { ended = true; return }
+            // A push can arrive before local catch-up, and a resolved reminder
+            // can still point to readable messages or an approval's result.
+            // The original business read determines availability, not the cache.
             var nextChannel: ChannelItem?, nextLetter: InboxLetter?, nextApproval: ApprovalView?
             var nextEnded = false
             switch destination.target {
