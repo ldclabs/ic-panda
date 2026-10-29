@@ -277,6 +277,8 @@ dmsg legacy import <file> --nonce N --fingerprint F --principal P | list | repor
 dmsg legacy file <id> <source> <out> | frozen <id> <file.cbor>
 dmsg device list | pair-request [--member] | approve <request> --device <id>
 dmsg device key status | register [--biometry-only] | request [--biometry-only] | approve <request> --device <id> | retire [--device <id>]
+dmsg device succession request <device> | review <request> | approve <request> --device <id> | list | status <id>
+dmsg device succession run <id> <step> | skip <id> content|native_addresses [--keep a,b] | cancel <id>
 dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
                 [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
 dmsg vault edit <id> [--title T] [--notes N] [--username U] [--url L] [--tag T]... [--clear-tags] [--favorite|--no-favorite]
@@ -354,7 +356,29 @@ daemon runs.
 A new device: `login`, then `account create` for a new account, or
 `device pair-request` and, on an administrator device,
 `device approve <request> --device <id>`, a high-risk approval request whose
-approval also rotates the content root to the new device; `unlock` on the new device then binds it. Hidden values
+approval also rotates the content root to the new device; `unlock` on the new device then binds it.
+
+On an account at its plan's device limit, a new device replaces an
+administrator device instead: after `login`, `device succession request
+<device>` names the device it replaces and prints a request with that
+device's role and capabilities and, where the Secure Enclave keeps them, new
+approval and cosigner keys (Touch ID asks once for each). On the old device,
+`device succession review <request>` shows it with the team wallets it
+covers, and `device succession approve <request> --device <id>` is a
+high-risk approval request that enrolls the new device beyond the limit and
+rotates the content root to it; `unlock` on the new device binds it. From
+then on the old device approves only the handover, and it stops unlocking
+seven days after the new device joined. Each device keeps the steps it saw
+done (`list`, `status <id>`) and runs its own with `run <id> <step>`: the old
+device registers the new approval key (`approval_key`) and rotates its
+cosigner keys in every wallet (`cosigners`); the new device confirms the
+rotation, takes over the old device's wallet bindings (`wallets`) and
+finally revokes it (`revoke`). Until devices can transfer content directly
+and move native addresses, `skip <id> content|native_addresses` leaves them,
+listing what stays with `--keep`. `cancel` stops a succession and keeps what
+was done; revoking the new device undoes its enrollment.
+
+Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one
 field at a time); file keys never do.
 
@@ -1118,7 +1142,7 @@ The daemon listens on `127.0.0.1` only.
   and assets, `account/show|security`, `connect/pairings|sync` and
   `attest/readiness|action|verify`; requests for account and device
   changes (`account/bind_approve|unbind|policy|recovery_delay`,
-  `device/approve|capabilities|formal_approve|revoke`); a high-risk approval's
+  `device/approve|capabilities|formal_approve|revoke|succession_*`); a high-risk approval's
   presence prompt, an approved attestation's reads, submission and receipt,
   and the reconciling of attestations whose outcome is unknown; and the
   content sync and flush passes, mailbox read, backup passes and MCP Events
@@ -1136,6 +1160,9 @@ The daemon listens on `127.0.0.1` only.
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
   `device/moved_list|moved_set_aside|moved_discard {id}`,
+  `device/succession_request {predecessor}|succession_review {token}|succession_approve {token, device}|successions`,
+  `device/succession_status|succession_cancel {id}`, `device/succession_run {id, step}`,
+  `device/succession_skip {id, step, skipped?}`,
   `vault/templates|create|edit|duplicate|delete|restore|tags|list|show|reveal|history|revert|conflicts|resolve|otp|ssh_keygen|health`,
   `vault/otp_scan {image|path}`, `vault/import_preview|import` (absolute paths),
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,

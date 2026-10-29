@@ -719,6 +719,68 @@ pub async fn complete_key_request<H: Hold>(h: &H, proved: ProvedKeyRequest) -> R
     .await
 }
 
+/// What making a successor's key needs. A struct, not a tuple: a trait
+/// object in a tuple the client returns would tie the futures that hold it
+/// to the client borrow, and they would no longer be `Send`.
+struct SuccessorTools {
+    hardware: Option<Arc<dyn ApprovalKeys>>,
+    device_id: Hash,
+    generation: u64,
+}
+
+/// A new approval key of this device, proved for `account` before the device
+/// joins it, for the device it succeeds to register; None without approval-key
+/// hardware. The person is asked once, and the key is kept as
+/// [`key_request`]'s.
+///
+/// # Errors
+/// Returns `Error::Locked` when the device locks meanwhile, and
+/// `Error::Forbidden` when the person declines.
+pub(crate) async fn successor_key<H: Hold>(
+    h: &H,
+    account: crate::workspace::AccountRef,
+) -> Result<Option<ApprovalKeyInput>> {
+    let SuccessorTools {
+        hardware,
+        device_id,
+        generation,
+    } = h
+        .with(|c| {
+            c.keys()?;
+            Ok(SuccessorTools {
+                hardware: c.approval_hardware().ok(),
+                device_id: c.workspace.meta.device_id,
+                generation: c.session_generation(),
+            })
+        })
+        .await?;
+    let Some(hardware) = hardware else {
+        return Ok(None);
+    };
+    let (public_key, handle) = hardware.create(false)?;
+    let ProvedKeyRequest { preparation, proof } = KeyRequestPreparation {
+        hardware,
+        account,
+        device_id,
+        generation,
+        key: LocalKey {
+            key_id: approval_key_id(&public_key)?,
+            public_key: public_key.into(),
+            handle: handle.into(),
+            biometry: None,
+            created_at: now_ms(),
+        },
+    }
+    .prove()?;
+    h.with(|c| {
+        ensure(c.session_generation() == generation, Error::Locked)?;
+        let public_key = preparation.key.public_key.clone();
+        c.keep_approval_key(preparation.key, None)?;
+        Ok(Some(ApprovalKeyInput { public_key, proof }))
+    })
+    .await
+}
+
 /// Ask to register the key another device of the account requested with
 /// `token`; `device` is the ID that device shows, which the person names.
 /// Only an administrator device approves it.

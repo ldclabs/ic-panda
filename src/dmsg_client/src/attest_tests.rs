@@ -574,6 +574,7 @@ fn high_risk_requests_are_the_ones_held() {
                     role: dmsg_types::user::ControllerRole::Administrator,
                     capabilities: vec![Capability::RootManage, Capability::VaultUnlock],
                 },
+                succession: false,
             },
             now_ms() + 60_000,
         )

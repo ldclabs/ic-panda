@@ -267,6 +267,10 @@ pub enum Action {
         token: String,
         /// The device it enrolls, as shown.
         device: dmsg_types::user::DeviceInput,
+        /// A succession token: the device succeeds this one, which then
+        /// approves only the handover.
+        #[serde(default)]
+        succession: bool,
     },
     /// A web request (dmsg-connect/1).
     Connect {
@@ -1233,8 +1237,15 @@ impl Client {
                 request.started = true;
                 self.rotate_root().await.map(|_| ())
             }
-            Action::DevicePair { token, device } => {
-                let pairing = self.inspect_pairing(&token)?;
+            Action::DevicePair {
+                token,
+                device,
+                succession,
+            } => {
+                let pairing = match succession {
+                    true => self.inspect_succession(&token)?.0,
+                    false => self.inspect_pairing(&token)?,
+                };
                 ensure(pairing.device == device, Error::IntegrityFailed)?;
                 self.approve_pairing(&pairing).await?;
                 // A new root the new device opens.
@@ -1654,7 +1665,10 @@ impl Client {
                 "device_id": hex::encode(**device_id),
                 "this_device": *device_id == self.workspace.meta.device_id,
             }),
-            Action::DevicePair { device, .. } => json!({
+            Action::DevicePair {
+                device, succession, ..
+            } => json!({
+                "succession": succession,
                 "device_id": hex::encode(*device.device_id),
                 "role": format!("{:?}", device.role),
                 "capabilities": device.capabilities.iter().map(|c| format!("{c:?}")).collect::<Vec<_>>(),
@@ -1953,6 +1967,7 @@ pub async fn add_device_request<H: Hold>(
             Action::DevicePair {
                 token: token.into(),
                 device: pairing.device,
+                succession: false,
             },
             expires_at,
         )?;

@@ -23,6 +23,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`hold`] | Where an operation finds the client: held by its one caller throughout (`Client::hold`), or taken for each synchronous step by a caller that shares it, as the daemon does. Relay requests are signed in a step and sent after it, and the agents for the IC and the user homes leave the client the same way, so a shared client never waits on the network |
 | [`account`] | Certified security (public, no login needed) and account state (with the login), the encrypted operation journal, account creation, device-approved mutations and pairing |
 | [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
+| [`succession`] | A planned device replacement: the new device's `dmsg-succession/1` request, the old device's review and approval, and each device's task of the handover steps it saw done |
 | [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |
 | [`root`] | RootBundle v2: wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
 | [`cloud`] | dmsg-cloud/1: security evidence, device commands and HTTP proof of possession, presigned commands, chunks, stored-command verification |
@@ -253,6 +254,34 @@ changed is reported lost (`INTEGRITY_FAILED`), and one that cannot ask now
 (no Touch ID keyboard) unavailable. An unreadable fingerprint state is
 unknown, not evidence that the fingerprints changed; device-bound unlock
 follows the same rule and keeps its hardware slot.
+
+### Device succession
+
+A new device replaces an administrator device of an account at its plan's
+device limit (`succession`, `AddSuccessor` in the
+[account contract](../../docs/protocol/account_root.md)). Before it joins, the
+new device signs its enrollment with the old device's role and capabilities
+(`request`) and, where its hardware keeps them, makes a new approval key and
+cosigner key and proves both; the person is asked once for each. The token
+(`dmsg-succession/1`, base64url, at most 8 KiB) lasts as long as a pairing
+request. The old device checks it (`inspect_succession`: its account, its own
+device ID as the one replaced, unexpired, every proof valid) and approves it
+as a `DevicePair` with `succession: true`: the user home enrolls the new
+device beyond the limit, and the old device rotates the content root to it.
+
+Each device keeps a task of the succession, sealed under the LDK as
+`succession:<request ID>`, with the steps it saw done: the enrollment, the
+new approval key (the old device registers the token's key), the cosigner
+keys (the old device rotates its keys in every wallet to the new one, before
+the bindings move, since rotating calls the wallets as the old device), local
+content, the wallet bindings (the new device joins each wallet replacing the
+old one), native addresses, and the old device's revocation by the new one,
+offered once content and native addresses are settled. `status` reads the
+account and records the enrollment, the key and the revocation on either
+device by itself. Until device-to-device transfer and native-address
+migration exist, those two steps can only be left, listing what stays.
+Cancelling keeps what was committed; revoking the new device undoes its
+enrollment.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

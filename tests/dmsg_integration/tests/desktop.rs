@@ -1740,6 +1740,155 @@ fn two_desktop_devices_share_an_account() {
     env.finish();
 }
 
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_device_succession() {
+    let mut env = Env::start("succession", "");
+    let http = env.http.clone();
+    let (c, _) = env.desktop("c");
+    let (a, b, c) = (&env.a, &env.b, &c);
+    // A Free account at its limit of two devices.
+    assert_eq!(a.login(&http, 41).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(&http, 41).unwrap()["state"], "pairing_required");
+    let request = b.run(&["device", "pair-request"]);
+    assert_eq!(a.approve_pairing(&http, &request)["state"], "done");
+    assert_eq!(b.run(&["unlock"])["state"], "unlocked");
+    let old = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    a.run(&["vault", "add", "--title", "kept"]);
+    assert_eq!(a.run(&["sync"])["sent"], 1);
+
+    // C, new, asks to replace B with B's role and capabilities. These homes
+    // keep no hardware keys, so the request carries none.
+    assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
+    let request = c.run(&["device", "succession", "request", &old]);
+    let (token, new, id) = (
+        request["token"].as_str().unwrap(),
+        request["device_id"].as_str().unwrap(),
+        request["id"].as_str().unwrap(),
+    );
+    assert_eq!(
+        (
+            request["approval_key"].as_bool(),
+            request["cosigner"].as_bool()
+        ),
+        (Some(false), Some(false))
+    );
+    // Only B approves it, naming the device C shows.
+    assert_eq!(
+        a.fail(&["device", "succession", "review", token]),
+        "INTEGRITY_FAILED"
+    );
+    let review = b.run(&["device", "succession", "review", token]);
+    assert_eq!(review["device_id"], new);
+    assert_eq!(review["wallets"], json!([]));
+    assert_eq!(
+        b.fail(&[
+            "device",
+            "succession",
+            "approve",
+            token,
+            "--device",
+            &"00".repeat(32)
+        ]),
+        "INVALID_INPUT"
+    );
+    let approval = b.run(&["device", "succession", "approve", token, "--device", new]);
+    assert_eq!(
+        (approval["type"].as_str(), approval["risk"].as_str()),
+        (Some("device_pair"), Some("high"))
+    );
+    assert_eq!(approval["detail"]["succession"], true);
+    assert_eq!(b.decide(&http, &approval, true).unwrap()["state"], "done");
+
+    // C joins beyond the limit and reads the account's content.
+    let status = c.run(&["unlock"]);
+    assert_eq!(status["state"], "unlocked");
+    assert_eq!(status["account"], account.as_str());
+    c.run(&["sync"]);
+    assert_eq!(titles(c), vec!["kept".to_string()]);
+    let active = |device: &Desktop| {
+        device
+            .run(&["device", "list"])
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|d| d["revoked_at"].is_null())
+            .count()
+    };
+    assert_eq!(active(a), 3);
+
+    // B approves nothing beyond the handover.
+    let a_id = a.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let revoke = b.run(&["device", "revoke", &a_id]);
+    assert_eq!(b.decide(&http, &revoke, true), Err("FORBIDDEN".into()));
+
+    // Each side settles its steps; revoking B waits for the rest.
+    let steps = |device: &Desktop| {
+        let status = device.run(&["device", "succession", "status", id]);
+        status["available"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s.as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(steps(b), ["approval_key", "cosigners", "content"]);
+    for step in ["approval_key", "cosigners"] {
+        b.run(&["device", "succession", "run", id, step]);
+    }
+    assert_eq!(steps(c), ["approval_key", "cosigners", "content"]);
+    assert_eq!(
+        c.fail(&["device", "succession", "run", id, "revoke"]),
+        "FORBIDDEN"
+    );
+    for step in ["approval_key", "cosigners", "wallets"] {
+        c.run(&["device", "succession", "run", id, step]);
+    }
+    c.run(&[
+        "device",
+        "succession",
+        "skip",
+        id,
+        "content",
+        "--keep",
+        "files",
+    ]);
+    c.run(&["device", "succession", "skip", id, "native_addresses"]);
+    assert_eq!(steps(c), ["revoke"]);
+    let revoke = c.run(&["device", "succession", "run", id, "revoke"]);
+    assert_eq!(revoke["type"], "device_revoke");
+    assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
+    let done = c.run(&["device", "succession", "status", id]);
+    assert!(
+        done["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s["settled"] == true)
+    );
+    assert_eq!(done["steps"][3]["skipped"], json!(["files"]));
+    assert_eq!(active(a), 2);
+    // C keeps its record of the succession.
+    assert_eq!(
+        c.run(&["device", "succession", "list"])
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    env.finish();
+}
+
 /// Deterministic bytes of a given length.
 fn pattern(len: usize, seed: u64) -> Vec<u8> {
     let mut state = seed;

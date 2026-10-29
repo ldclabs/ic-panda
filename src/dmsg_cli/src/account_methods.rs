@@ -5,19 +5,20 @@
 //! terminal.
 
 use crate::daemon::Daemon;
-use crate::params::{account, hash, number, optional, source, text, to_json};
+use crate::params::{account, hash, number, optional, parse, source, text, to_json};
 use dmsg_client::{
     approval_key,
     commerce::{self, Records},
     handle,
     hold::{Hold, Unlocked},
     security::{AccountChange, account_request},
+    succession,
 };
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 36] = [
+pub(crate) const METHODS: [&str; 44] = [
     "account/security",
     "account/hardware_policy",
     "device/key",
@@ -25,6 +26,14 @@ pub(crate) const METHODS: [&str; 36] = [
     "device/key_request",
     "device/key_approve",
     "device/key_retire",
+    "device/succession_request",
+    "device/succession_review",
+    "device/succession_approve",
+    "device/successions",
+    "device/succession_status",
+    "device/succession_run",
+    "device/succession_skip",
+    "device/succession_cancel",
     "account/bind_request",
     "account/bind_accept",
     "account/bind_approve",
@@ -73,7 +82,11 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "recovery/dispute"
         | "handle/transfer_commit"
         | "handle/accept"
-        | "approval/quote" => &["approval/changed"],
+        | "approval/quote"
+        | "device/succession_approve" => &["approval/changed"],
+        // Steps ask in the approval center or rotate cosigner keys.
+        "device/succession_run" => &["approval/changed", "wallet/changed"],
+        "device/succession_request" => &["wallet/changed"],
         _ => &[],
     }
 }
@@ -169,6 +182,40 @@ impl Daemon {
             "device/key_retire" => {
                 let device = optional(params, "device", hash)?;
                 return approval_key::retire_request(&self.hold(), source(params)?, device).await;
+            }
+            // The new device's keys prove themselves here, so the person is
+            // asked on this device, without the client.
+            "device/succession_request" => {
+                let mut made =
+                    succession::request(&self.hold(), hash(params, "predecessor")?).await?;
+                let qr = made["token"]
+                    .as_str()
+                    .and_then(|token| dmsg_client::qr::png_data(token).ok());
+                made["qr"] = json!(qr);
+                return Ok(made);
+            }
+            "device/succession_review" => {
+                return succession::review(&self.hold(), &text(params, "token")?).await;
+            }
+            "device/succession_approve" => {
+                let (token, device) = (text(params, "token")?, text(params, "device")?);
+                return succession::accept(&self.hold(), source(params)?, &token, &device).await;
+            }
+            "device/successions" => return succession::list(&self.hold()).await,
+            "device/succession_status" => {
+                return succession::status(&self.hold(), hash(params, "id")?).await;
+            }
+            "device/succession_run" => {
+                let (id, step) = (hash(params, "id")?, parse(params, "step")?);
+                return succession::run(&self.hold(), source(params)?, id, step).await;
+            }
+            "device/succession_skip" => {
+                let (id, step) = (hash(params, "id")?, parse(params, "step")?);
+                let skipped = optional(params, "skipped", parse)?.unwrap_or_default();
+                return succession::skip(&self.hold(), id, step, skipped).await;
+            }
+            "device/succession_cancel" => {
+                return succession::cancel(&self.hold(), hash(params, "id")?).await;
             }
             "account/hardware_policy" => {
                 let purposes = params["purposes"]

@@ -19,16 +19,39 @@ pub struct Successor {
     pub possession: CosignerSig,
 }
 
-/// Prove possession of this device's cosigner key `label`, for a device
-/// whose keys hand over to it.
+impl Successor {
+    /// Check that the key is a valid one of `member` that proves possession.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for another member's key, and
+    /// `Error::IntegrityFailed` for an invalid key or proof.
+    pub fn check(&self, member: &MemberId) -> Result<()> {
+        ensure(self.input.member == *member, Error::Forbidden)?;
+        validate_cosigner(&self.input)?;
+        let proof = Cosigner {
+            id: 0,
+            input: self.input.clone(),
+            counter: 0,
+            added_at_ms: 0,
+        };
+        verify_cosign(
+            &proof,
+            &possession_digest(member, &self.input.public_key),
+            &self.possession,
+        )
+        .map(|_| ())
+    }
+}
+
+/// Prove possession of this device's cosigner key `label` as `member`'s,
+/// for a device whose keys hand over to it. A device that has not joined its
+/// account yet names the account's member itself.
 ///
 /// # Errors
-/// Returns `Error::NotFound` for an unknown label, and the keystore's error
-/// when the person declines.
-pub async fn successor<H: Hold>(h: &H, label: &str) -> Result<Successor> {
-    let bound = Unlocked::new(h).await?;
-    let h = &bound;
-    let (input, signer) = h
+/// Returns `Error::NotFound` for an unknown label, `Error::Locked` when the
+/// device locks meanwhile, and the keystore's error when the person declines.
+pub async fn successor<H: Hold>(h: &H, member: MemberId, label: &str) -> Result<Successor> {
+    let (input, signer, generation) = h
         .with(|c| {
             let key = c
                 .wallet_cosigner_keys()?
@@ -36,14 +59,19 @@ pub async fn successor<H: Hold>(h: &H, label: &str) -> Result<Successor> {
                 .find(|k| k.label == label)
                 .ok_or(Error::NotFound)?;
             Ok((
-                key.input(c.wallet_member()?),
+                key.input(member),
                 c.prepare_cosign(&key.public_key)?,
+                c.session_generation(),
             ))
         })
         .await?;
     let digest = possession_digest(&input.member, &input.public_key);
     let signature = signer.sign(vec![digest]).await?;
-    h.with(|c| c.keys().map(|_| ())).await?;
+    h.with(|c| {
+        c.keys()?;
+        ensure(c.session_generation() == generation, Error::Locked)
+    })
+    .await?;
     let signature = signature.into_iter().next().ok_or(Error::IntegrityFailed)?;
     Ok(Successor {
         input,
@@ -87,20 +115,8 @@ pub async fn rotate<H: Hold>(h: &H, successor: &Successor) -> Result<Json> {
             ))
         })
         .await?;
+    successor.check(&me)?;
     let new = &successor.input;
-    ensure(new.member == me, Error::Forbidden)?;
-    validate_cosigner(new)?;
-    let proof = Cosigner {
-        id: 0,
-        input: new.clone(),
-        counter: 0,
-        added_at_ms: 0,
-    };
-    verify_cosign(
-        &proof,
-        &possession_digest(&me, &new.public_key),
-        &successor.possession,
-    )?;
     let ic = h.anonymous().await?;
     let records: Vec<WalletRecord> = ic.query(hub, "list_wallets_of", (me.clone(),)).await?;
     let mut outcomes = vec![];
@@ -205,7 +221,7 @@ mod tests {
         let old = client.wallet_cosigner_keys().unwrap()[0].input(me.clone());
         let h = Shared(tokio::sync::Mutex::new(client));
 
-        let successor = successor(&h, "new").await.unwrap();
+        let successor = successor(&h, me.clone(), "new").await.unwrap();
         assert_eq!(successor.input.member, me);
         let new = Cosigner {
             id: 0,

@@ -86,6 +86,68 @@ pub enum DeviceCommand {
     /// This device's approval key and which approvals need one.
     #[command(subcommand)]
     Key(KeyCommand),
+    /// Replace an administrator device with a new one, beyond the plan's
+    /// device limit: the old device hands over its keys and wallets.
+    #[command(subcommand)]
+    Succession(SuccessionCommand),
+}
+
+/// A planned device replacement. The new device asks, the device it
+/// replaces approves and hands over, and the new device revokes it.
+#[derive(Subcommand)]
+pub enum SuccessionCommand {
+    /// On the new device, signed in to the account's login: ask to replace
+    /// `predecessor`; prints a request for that device. Makes the new
+    /// device's approval and cosigner keys, asking for Touch ID here.
+    Request {
+        /// The ID of the device being replaced.
+        predecessor: String,
+    },
+    /// On the device being replaced: what a request asks, and the wallets
+    /// the handover covers.
+    Review {
+        /// The request printed by `dmsg device succession request`.
+        request: String,
+    },
+    /// On the device being replaced: ask to approve the new device; goes
+    /// through the approval center.
+    Approve {
+        /// The request printed by `dmsg device succession request`.
+        request: String,
+        /// The device ID shown on the new device.
+        #[arg(long)]
+        device: String,
+    },
+    /// This device's successions.
+    List,
+    /// A succession's steps, after reading what the account shows done.
+    Status {
+        /// Succession ID.
+        id: String,
+    },
+    /// Run a step on this device: authorize, approval_key, cosigners,
+    /// wallets or revoke.
+    Run {
+        /// Succession ID.
+        id: String,
+        /// The step.
+        step: String,
+    },
+    /// Leave local content or native addresses behind.
+    Skip {
+        /// Succession ID.
+        id: String,
+        /// content or native_addresses.
+        step: String,
+        /// What stays behind, comma separated.
+        #[arg(long, value_delimiter = ',')]
+        keep: Vec<String>,
+    },
+    /// Stop a succession; what was committed stays.
+    Cancel {
+        /// Succession ID.
+        id: String,
+    },
 }
 
 /// Approval keys: hardware keys whose signature the user home requires for
@@ -635,7 +697,70 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
             request(remote, json, "device/revoke", json!({"device": device})).await?
         }
         DeviceCommand::Key(command) => key(remote, json, command).await?,
+        DeviceCommand::Succession(command) => succession(remote, json, command).await?,
     }
+    Ok(())
+}
+
+/// `dmsg device succession`.
+async fn succession(
+    remote: &Remote,
+    json: bool,
+    command: SuccessionCommand,
+) -> Result<(), Failure> {
+    let (method, params) = match command {
+        SuccessionCommand::Request { predecessor } => {
+            let params = json!({"predecessor": predecessor});
+            let made = remote.call("device/succession_request", params).await?;
+            print(json, &made, |v| {
+                let (device, token) = (
+                    v["device_id"].as_str().unwrap_or_default(),
+                    v["token"].as_str().unwrap_or_default(),
+                );
+                tr!(
+                    "device: {device}\n\nOn the device being replaced run:\n  dmsg device succession approve {token} --device {device}",
+                    "设备：{device}\n\n在被替换的设备上运行：\n  dmsg device succession approve {token} --device {device}"
+                )
+            });
+            return Ok(());
+        }
+        SuccessionCommand::Approve {
+            request: token,
+            device,
+        } => {
+            let params = json!({"token": token, "device": device});
+            return request(remote, json, "device/succession_approve", params).await;
+        }
+        SuccessionCommand::Run { id, step } => {
+            let params = json!({"id": id, "step": step, "source": "cli"});
+            let made = remote.call("device/succession_run", params).await?;
+            // A step asks in the approval center, once per wallet when
+            // taking over bindings, or reports what it did.
+            if made["kind"].is_string() {
+                return created(remote, json, made).await;
+            }
+            if let Some(requests) = made["requests"].as_array() {
+                for made in requests.clone() {
+                    created(remote, json, made).await?;
+                }
+                return Ok(());
+            }
+            print(json, &made, pretty);
+            return Ok(());
+        }
+        SuccessionCommand::Review { request } => {
+            ("device/succession_review", json!({"token": request}))
+        }
+        SuccessionCommand::List => ("device/successions", Value::Null),
+        SuccessionCommand::Status { id } => ("device/succession_status", json!({"id": id})),
+        SuccessionCommand::Skip { id, step, keep } => (
+            "device/succession_skip",
+            json!({"id": id, "step": step, "skipped": keep}),
+        ),
+        SuccessionCommand::Cancel { id } => ("device/succession_cancel", json!({"id": id})),
+    };
+    let view = remote.call(method, params).await?;
+    print(json, &view, pretty);
     Ok(())
 }
 
