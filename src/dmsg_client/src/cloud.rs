@@ -589,6 +589,19 @@ impl Cloud {
         pop: Option<String>,
         binary: bool,
     ) -> Result<Reply> {
+        self.exchange_authorized(method, url, body, pop, None, binary)
+            .await
+    }
+
+    async fn exchange_authorized(
+        &self,
+        method: reqwest::Method,
+        url: Url,
+        body: Option<(Vec<u8>, &str)>,
+        pop: Option<String>,
+        receiver: Option<&str>,
+        binary: bool,
+    ) -> Result<Reply> {
         let mutation = method != reqwest::Method::GET;
         let mut request = self.http.request(method, url);
         if let Some((bytes, content_type)) = body {
@@ -598,6 +611,9 @@ impl Cloud {
         }
         if let Some(pop) = pop {
             request = request.header("x-dmsg-pop", pop);
+        }
+        if let Some(receiver) = receiver {
+            request = request.bearer_auth(receiver);
         }
         let request = request
             .build()
@@ -1042,18 +1058,71 @@ impl Cloud {
         body: &B,
         now: u64,
     ) -> Result<Prepared> {
+        self.prepare_raw_id(
+            signer,
+            path,
+            body,
+            &hex::encode(crate::crypto::random_id()),
+            now,
+        )
+    }
+
+    /// An installation proof binds the same request ID as the outer HTTP PoP.
+    pub(crate) fn prepare_raw_id<B: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        body: &B,
+        request_id: &str,
+        now: u64,
+    ) -> Result<Prepared> {
         let url = self.url(path)?;
         let body = canonical(body);
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
-        let request_id = hex::encode(crate::crypto::random_id());
         let deadline = signer.deadline(now)?;
-        let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
+        let pop = sign_http(signer, &url, "POST", &body, request_id, deadline)?;
         Ok(Prepared {
             method: reqwest::Method::POST,
             url,
             body: Some(body),
             pop,
         })
+    }
+
+    /// Purpose-limited metadata transport. Never accepts a content path or a
+    /// preference write; normal business calls still require device HTTP PoP.
+    pub(crate) async fn notification_receive(
+        &self,
+        path: &str,
+        receiver: &str,
+        body: Option<&Json>,
+    ) -> Result<Json> {
+        let action = path.split('?').next().unwrap_or("");
+        ensure(
+            matches!(
+                action,
+                "/v1/notifications/feed"
+                    | "/v1/notifications/observed"
+                    | "/v1/notifications/revoke"
+            ) || action.starts_with("/v1/notifications/routes/"),
+            Error::Forbidden,
+        )?;
+        let body = body.map(canonical);
+        let reply = self
+            .exchange_authorized(
+                if body.is_some() {
+                    reqwest::Method::POST
+                } else {
+                    reqwest::Method::GET
+                },
+                self.url(path)?,
+                body.map(|b| (b, "application/cbor")),
+                None,
+                Some(receiver),
+                false,
+            )
+            .await?;
+        reply.json()
     }
 
     /// Sign a command for `path` and the proofs to post it and to read its

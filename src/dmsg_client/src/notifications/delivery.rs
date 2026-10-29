@@ -48,6 +48,14 @@ pub fn next(
     let settings = settings(store)?;
     let items = store.notification_items()?;
     let prior = store.notification_deliveries()?;
+    let mut remote_observed = BTreeMap::new();
+    for item in &items {
+        if let Some(version) =
+            store.meta::<u64>(&format!("notification:remote-observed:{}", item.id))?
+        {
+            remote_observed.insert(item.id.clone(), version);
+        }
+    }
     let now = context.now;
     let mut retrying = std::collections::BTreeSet::new();
     for mut delivery in prior.iter().cloned() {
@@ -65,6 +73,14 @@ pub fn next(
                                 && item.version > covered.version))
                         && item.open
                         && !item.is_muted(now)
+                        && item.snoozed_until.is_none()
+                        && (item.category() == Category::Security && covered.stage > 1
+                            || (item.observed < covered.version
+                                && (item.category() == Category::Security
+                                    || !settings.merge_devices
+                                    || remote_observed
+                                        .get(&item.id)
+                                        .is_none_or(|v| *v < covered.version))))
                         && !(item.category() == Category::Action
                             && item.deadline.is_some_and(|at| at <= now))
                 })
@@ -160,6 +176,9 @@ pub fn next(
             item.attempted_at = Some(item.attempted_at.unwrap_or(0).max(previous.attempted_at));
         }
         let mut local_context = context.clone();
+        local_context.remote_viewed |= remote_observed
+            .get(&item.id)
+            .is_some_and(|version| *version >= item.version);
         local_context.viewing |= context
             .visible
             .iter()

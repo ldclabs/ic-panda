@@ -30,7 +30,8 @@
   const zones = [...new Set([zone, ...Intl.supportedValuesOf('timeZone')])].sort().map((value) => ({ value, label: value }))
   const times = Array.from({ length: 96 }, (_, index) => ({ value: String(index * 15), label: `${String(Math.floor(index / 4)).padStart(2, '0')}:${String(index % 4 * 15).padStart(2, '0')}` }))
   const dirty = $derived(!!preferences && (JSON.stringify(global) !== JSON.stringify(preferences.global) || JSON.stringify(account) !== JSON.stringify(preferences.account)))
-  const pending = $derived(!!account && account.revision > account.remote_revision)
+  const pending = $derived(!!preferences?.global_pending_sync || (!!account && account.revision > account.remote_revision))
+  const conflict = $derived(!!preferences?.global_conflict || !!preferences?.account_conflict)
   const valid = (turn: number) => alive && generation === turn
   function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T }
 
@@ -67,6 +68,16 @@
 
   onMount(() => {
     const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'notifications/changed' && !busy && !loading) {
+        const turn = generation, id = selected, keepDraft = dirty
+        void call<NoticePreferences>('notifications/settings', id ? { account: id } : {}).then((next) => {
+          if (!valid(turn) || busy) return
+          const preserve = keepDraft || dirty
+          preferences = next
+          if (!preserve) { global = clone(next.global); account = clone(next.account) }
+        }, () => {})
+        return
+      }
       if (event.type !== 'notifications/platform') return
       const turn = generation
       void window.dmsg.notificationPermission().then((value) => { if (valid(turn)) permission = value }, () => {})
@@ -87,13 +98,13 @@
     busy = true
     error = ''
     try {
-      if (JSON.stringify(global) !== JSON.stringify(preferences.global)) {
+      if (JSON.stringify(global) !== JSON.stringify(preferences.global) || preferences.global_conflict) {
         const result = await call<{ settings: GlobalNoticeSettings }>('notifications/settings_set', { scope: 'installation', expected_revision: preferences.global.revision, settings: clone(global) })
         if (!valid(turn)) return
         preferences.global = result.settings
         global = clone(result.settings)
       }
-      if (account && preferences.account && JSON.stringify(account) !== JSON.stringify(preferences.account)) {
+      if (account && preferences.account && (JSON.stringify(account) !== JSON.stringify(preferences.account) || preferences.account_conflict)) {
         const result = await call<{ settings: NoticeSettings }>('notifications/settings_set', { scope: 'account', account: id, expected_revision: preferences.account.revision, settings: clone(account) })
         if (!valid(turn)) return
         preferences.account = result.settings
@@ -193,8 +204,9 @@
     </Section>
     {#if !preferences.remote_supported}<Notice icon="info">{t('noticeRemote')}</Notice>{/if}
     {#if pending}<Notice icon="sync">{t('noticePending')}<p class="mt-1 text-xs">{t('noticePendingHint')}</p></Notice>{/if}
+    {#if conflict}<Notice tone="warn" icon="info">{t('conflictItem')} {t('retry')}</Notice>{/if}
     <div class="flex flex-wrap gap-2 px-5 pb-5">
-      <button class={buttonClass('primary', 'sm')} disabled={!dirty || busy || loading} onclick={save} data-testid="notifications-save">{busy ? t('loading') : t('save')}</button>
+      <button class={buttonClass('primary', 'sm')} disabled={(!dirty && !conflict) || busy || loading} onclick={save} data-testid="notifications-save">{busy ? t('loading') : conflict ? t('retry') : t('save')}</button>
       <button class={buttonClass('secondary', 'sm')} disabled={busy || loading} onclick={() => load(selected)}>{t('refresh')}</button>
     </div>
   {:else if !loading}

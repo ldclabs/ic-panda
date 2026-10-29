@@ -474,6 +474,18 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                 client.channel_draft(&id()?, params["text"].as_str().unwrap_or_default())?;
                 json!({"saved": true})
             }
+            "channel/settings" if params.get("muted_until").is_some() => {
+                let until = match params.get("muted_until") {
+                    Some(Value::Null) => None,
+                    Some(value) => Some(
+                        value
+                            .as_u64()
+                            .ok_or_else(|| dmsg_types::invalid("mute deadline"))?,
+                    ),
+                    None => None,
+                };
+                to_json(&client.channel_notification_mute(&id()?, until)?)
+            }
             "channel/settings" => to_json(&client.channel_settings(
                 &id()?,
                 params["name"].as_str(),

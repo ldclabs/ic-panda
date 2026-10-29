@@ -4,6 +4,8 @@
 
 mod delivery;
 pub mod policy;
+pub mod preferences;
+pub mod remote;
 mod runtime;
 #[cfg(test)]
 mod tests;
@@ -553,28 +555,32 @@ impl crate::Client {
         service: bool,
         now: u64,
     ) -> Result<()> {
-        let store = &self.workspace.store;
-        let key = format!("notification:health:{kind}");
-        let (mut episode, before): (u64, bool) = store.meta(&key)?.unwrap_or((0, false));
-        if active == before {
-            return Ok(());
-        }
-        if active {
-            episode = episode.checked_add(1).ok_or(Error::VersionConflict)?;
-        }
-        let name = format!("{kind}:{episode}");
-        let target = if service {
-            Target::Service(name)
-        } else {
-            Target::Task(name)
-        };
-        let mut item = Item::new(account.into(), target, if active { 1 } else { 2 }, now);
-        item.open = active;
-        item.actionable = active;
-        store.atomic(|store| {
-            upsert(store, item)?;
-            store.set_meta(&key, &(episode, active))
-        })
+        self.with_notification_store(
+            &account.parse().map_err(|_| Error::IntegrityFailed)?,
+            |store| {
+                let key = format!("notification:health:{kind}");
+                let (mut episode, before): (u64, bool) = store.meta(&key)?.unwrap_or((0, false));
+                if active == before {
+                    return Ok(());
+                }
+                if active {
+                    episode = episode.checked_add(1).ok_or(Error::VersionConflict)?;
+                }
+                let name = format!("{kind}:{episode}");
+                let target = if service {
+                    Target::Service(name)
+                } else {
+                    Target::Task(name)
+                };
+                let mut item = Item::new(account.into(), target, if active { 1 } else { 2 }, now);
+                item.open = active;
+                item.actionable = active;
+                store.atomic(|store| {
+                    upsert(store, item)?;
+                    store.set_meta(&key, &(episode, active))
+                })
+            },
+        )
     }
 
     /// Project a successfully authenticated service status. This function only
@@ -645,7 +651,19 @@ pub async fn refresh_capabilities(h: &impl crate::hold::Hold) -> Result<()> {
             });
         c.workspace
             .store
-            .set_meta("notification:publish_v1", &enabled)
+            .set_meta("notification:publish_v1", &enabled)?;
+        let receive = capabilities
+            .as_ref()
+            .ok()
+            .and_then(|v| v.as_ref())
+            .is_some_and(|v| {
+                v["protocol"] == "dmsg-notifications/1"
+                    && v["feed"] == true
+                    && v["preferences"] == true
+            });
+        c.workspace
+            .store
+            .set_meta("notification:remote_v1", &receive)
     })
     .await
 }

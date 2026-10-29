@@ -127,7 +127,7 @@ fn notifications_muted_arrivals_do_not_replay_when_mute_expires() {
     item.muted_until = Some(5_000);
     upsert(&store, item.clone()).unwrap();
     let stored = store.notification_item(&item.id).unwrap().unwrap();
-    assert_eq!(counts(&[stored.clone()], 4_000).unread, 0);
+    assert_eq!(counts(std::slice::from_ref(&stored), 4_000).unread, 0);
     ctx.now = 6_000;
     assert_eq!(
         evaluate(&stored, &settings, &runtime, &ctx),

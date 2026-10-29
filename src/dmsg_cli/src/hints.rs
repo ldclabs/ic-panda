@@ -19,23 +19,85 @@ const SILENCE: Duration = Duration::from_secs(60);
 
 /// Keep the hint channel connected for as long as the daemon runs.
 pub async fn run(daemon: Arc<Daemon>) {
-    let mut backoff = 1;
+    let mut tasks: std::collections::BTreeMap<String, (String, tokio::task::JoinHandle<()>)> =
+        Default::default();
     loop {
-        match connect(&daemon).await {
-            Ok(()) => backoff = 1,
-            Err(error) => {
-                error.emit();
-                daemon.note("hints", "disconnected");
-                daemon.set_hints(|h| {
-                    h.connected = false;
-                    h.last_error = Some(format!("{}: {}", error.source, error.reason));
-                });
-                backoff = (backoff * 2).min(60);
+        let mut endpoints = std::collections::BTreeMap::new();
+        if let Ok(Some((url, token, account))) = endpoint(&daemon).await {
+            endpoints.insert(account, (url, token));
+        }
+        {
+            let client = daemon.client().lock().await;
+            for context in client.notification_receivers().unwrap_or_default() {
+                if endpoints.contains_key(&context.account) {
+                    continue;
+                }
+                if let Ok(Some(token)) = client.notification_hint_token(&context) {
+                    let origin = daemon
+                        .settings()
+                        .config
+                        .relay_origin()
+                        .replacen("https://", "wss://", 1)
+                        .replacen("http://", "ws://", 1);
+                    endpoints.insert(
+                        context.account.clone(),
+                        (
+                            format!("{origin}/v1/hints/ws?account={}", context.account),
+                            token.token,
+                        ),
+                    );
+                }
             }
         }
-        daemon.set_hints(|h| h.connected = false);
+        tasks.retain(|account, (token, task)| {
+            if endpoints
+                .get(account)
+                .is_some_and(|(_, current)| current == token)
+                && !task.is_finished()
+            {
+                true
+            } else {
+                task.abort();
+                false
+            }
+        });
+        for (account, (url, token)) in endpoints {
+            if tasks.contains_key(&account) {
+                continue;
+            }
+            let d = daemon.clone();
+            let original = account.clone();
+            let saved = token.clone();
+            let task = tokio::spawn(async move {
+                let mut backoff = 1;
+                loop {
+                    let result = connect_account(&d, &url, &token, &original).await;
+                    if let Err(error) = &result {
+                        error.emit();
+                    }
+                    if d.client().lock().await.session_state().account.as_deref()
+                        == Some(original.as_str())
+                    {
+                        d.set_hints(|h| {
+                            h.connected = false;
+                            h.last_error = result
+                                .as_ref()
+                                .err()
+                                .map(|e| format!("{}: {}", e.source, e.reason));
+                        });
+                    }
+                    backoff = if result.is_ok() {
+                        1
+                    } else {
+                        (backoff * 2).min(60)
+                    };
+                    tokio::time::sleep(Duration::from_secs(backoff)).await;
+                }
+            });
+            tasks.insert(account, (saved, task));
+        }
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(backoff)) => {},
+            _ = tokio::time::sleep(Duration::from_secs(30)) => {},
             _ = daemon.hints_changed().notified() => {},
         }
     }
@@ -82,15 +144,12 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, D
 }
 
 /// One connection, until it drops.
-async fn connect(daemon: &Arc<Daemon>) -> Result<(), Diagnostic> {
-    let Some((url, token, account)) = endpoint(daemon).await? else {
-        // Login/unlock must not wait out the idle polling interval.
-        tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(20)) => {},
-            _ = daemon.hints_changed().notified() => {},
-        }
-        return Ok(());
-    };
+async fn connect_account(
+    daemon: &Arc<Daemon>,
+    url: &str,
+    token: &str,
+    account: &str,
+) -> Result<(), Diagnostic> {
     let mut request = url.into_client_request().map_err(socket_failure)?;
     request.headers_mut().insert(
         "authorization",
@@ -101,35 +160,45 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Diagnostic> {
     let (socket, _) = tokio_tungstenite::connect_async(request)
         .await
         .map_err(socket_failure)?;
-    daemon.set_hints(|h| {
-        h.connected = true;
-        h.last_error = None;
-    });
+    if daemon
+        .client()
+        .lock()
+        .await
+        .session_state()
+        .account
+        .as_deref()
+        == Some(account)
+    {
+        daemon.set_hints(|h| {
+            h.connected = true;
+            h.last_error = None;
+        });
+    }
     daemon.note("hints", "connected");
     // Hints sent while it was down are lost: catch up authoritative state.
-    daemon.hint_channel("*");
-    daemon.notifications.inbox.notify_one();
-    daemon.mail_push().receive.notify_one();
-    daemon.mcp().wake();
+    daemon.notifications.receive.notify_one();
+    if daemon
+        .client()
+        .lock()
+        .await
+        .session_state()
+        .account
+        .as_deref()
+        == Some(account)
+    {
+        daemon.hint_channel("*");
+        daemon.notifications.inbox.notify_one();
+        daemon.mail_push().receive.notify_one();
+        daemon.mcp().wake();
+    }
     let (mut sink, mut stream) = socket.split();
     let mut ping = tokio::time::interval(PING);
     let mut heard = tokio::time::Instant::now();
     loop {
         tokio::select! {
-            _ = daemon.hints_changed().notified() => {
-                let selected = daemon.client().lock().await.session_state().account;
-                if selected.as_deref() != Some(account.as_str()) {
-                    return Ok(());
-                }
-            }
             _ = ping.tick() => {
                 if heard.elapsed() > SILENCE {
                     return Err(Diagnostic::new("hints", "heartbeat_timeout"));
-                }
-                // Another account selected: its own channel replaces this one.
-                let selected = daemon.client().lock().await.session_state().account;
-                if selected.as_deref() != Some(account.as_str()) {
-                    return Ok(());
                 }
                 sink.send(Message::Text("ping".into())).await.map_err(socket_failure)?;
             }
@@ -141,7 +210,7 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Diagnostic> {
                 let Ok(hint) = serde_json::from_str::<Value>(&text) else { continue };
                 if hint["type"] == "hint" {
                     daemon.set_hints(|h| h.received += 1);
-                    handle(daemon, &hint).await;
+                    handle(daemon, account, &hint).await;
                 }
             }
         }
@@ -169,20 +238,30 @@ fn socket_failure(error: tokio_tungstenite::tungstenite::Error) -> Diagnostic {
 /// unlocked, the channel loop reads the channel the hint names; locked,
 /// the desktop notifies that messages arrived, never for a control.
 /// `inbox`: locked, the desktop notifies; unlocked, the inbox view reloads.
-async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
+async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Value) {
     let kind = hint["kind"].as_str().unwrap_or_default();
     let session = daemon.client().lock().await.session_state();
-    if hint["account"]
-        .as_str()
-        .is_some_and(|account| session.account.as_deref() != Some(account))
-    {
+    if hint["account"].as_str() != Some(expected_account) {
+        return;
+    }
+    if session.account.as_deref() != Some(expected_account) {
+        if matches!(kind, "channel" | "inbox" | "notification") {
+            daemon.notifications.receive.notify_one();
+        }
+        if kind == "connect" {
+            daemon.notification_hint(expected_account, kind, None).await;
+        }
         return;
     }
     let unlocked = session.state == "unlocked";
     let ready = unlocked || session.resident;
     match kind {
+        "notification" => daemon.notifications.receive.notify_one(),
         "connect" if ready => daemon.wake(),
-        "connect" => daemon.emit("connect/hint", json!({"locked": true})),
+        "connect" => {
+            daemon.notification_hint(expected_account, kind, None).await;
+            daemon.emit("connect/hint", json!({"locked": true}));
+        }
         "mcp-event" => {
             daemon.mcp().wake();
             // The hint is only a wakeup. A resident Agent can check its own
@@ -190,11 +269,26 @@ async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
             daemon.mail_push().receive.notify_one();
             daemon.emit("hint", json!({"kind": kind}));
         }
-        "inbox" if unlocked => daemon.notifications.inbox.notify_one(),
-        "channel" if unlocked => daemon.hint_channel(hint["resource"].as_str().unwrap_or("*")),
+        "inbox" if unlocked => {
+            daemon.notifications.inbox.notify_one();
+            daemon.notifications.receive.notify_one();
+        }
+        "channel" if unlocked => {
+            daemon.hint_channel(hint["resource"].as_str().unwrap_or("*"));
+            daemon.notifications.receive.notify_one();
+        }
         "channel" if hint["event"] == "control" => {}
         "channel" | "inbox" => {
-            if let Some(account) = session.account.as_deref() {
+            daemon.notifications.receive.notify_one();
+            let supported = daemon
+                .client()
+                .lock()
+                .await
+                .notification_receivers()
+                .unwrap_or_default()
+                .iter()
+                .any(|c| c.account == expected_account && c.expires_at > now_ms());
+            if !supported && let Some(account) = session.account.as_deref() {
                 daemon
                     .notification_hint(account, kind, hint["resource"].as_str())
                     .await;

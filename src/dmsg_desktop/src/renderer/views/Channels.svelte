@@ -3,6 +3,7 @@
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
   import { noticeVisibility } from '../notification-visibility'
+  import { tomorrowMorning } from '../../shared/notification-time'
   import { localeDir } from '../../shared/locales'
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
@@ -725,6 +726,17 @@
                       {#if checked}<Icon name="check" class="size-3.5" />{/if}
                     {/snippet}
                   </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: Date.now() + 3_600_000 })} data-testid="channel-mute-hour">
+                    <span class="whitespace-normal">{t('muteChannel')} · {t('noticePauseHour')}</span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item class={menuItemClass} onSelect={() => settings({ muted_until: tomorrowMorning(Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone) })} data-testid="channel-mute-tomorrow">
+                    <span class="whitespace-normal">{t('muteChannel')} · {t('noticePauseTomorrow')}</span>
+                  </DropdownMenu.Item>
+                  {#if channel.notification_pending}
+                    <DropdownMenu.Item class={menuItemClass} disabled={!channel.notification_conflict} onSelect={() => settings(channel.muted_until > Date.now() ? {muted_until:channel.muted_until} : {muted:channel.muted})}>
+                      <span class="whitespace-normal">{channel.notification_conflict ? t('retry') : t('noticePending')}</span>
+                    </DropdownMenu.Item>
+                  {/if}
                   <DropdownMenu.CheckboxItem checked={readReceipts} onCheckedChange={(on) => (readReceipts = on)} class={menuItemClass} data-testid="channel-receipts">
                     {#snippet children({ checked })}
                       <span class="flex items-center gap-2"><Icon name="delivered" class="text-faint" />{t('sendReadReceipts')}</span>

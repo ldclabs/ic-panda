@@ -505,6 +505,12 @@ pub struct ChannelView {
     pub readable_epochs: Vec<u64>,
     /// No notifications for it.
     pub muted: bool,
+    /// Optional notification mute expiry shared through encrypted preferences.
+    pub muted_until: Option<u64>,
+    /// Local mute draft is awaiting remote confirmation.
+    pub notification_pending: bool,
+    /// A remote preference conflict requires an explicit retry.
+    pub notification_conflict: bool,
     /// Kept out of the channel list.
     pub hidden: bool,
     /// An unactivated legacy draft that can be safely discarded.
@@ -2368,12 +2374,14 @@ impl Client {
         item.quiet = old.is_none();
         item.unread = Some(local.unread);
         item.open = local.unread > 0;
-        item.observed = local.read.min(version);
-        item.muted = ring.muted
-            || ring.hidden
+        let preference = self.channel_notification_preference(channel, ring.muted)?;
+        let inactive = ring.hidden
+            || preference.hidden
             || local.ledger.as_ref().is_some_and(|ledger| {
                 ledger.status != Status::Active || !ledger.members.contains_key(&account)
             });
+        item.muted = inactive || preference.muted;
+        item.muted_until = if inactive { None } else { preference.until };
         notifications::upsert(&self.workspace.store, item)?;
         Ok(())
     }
@@ -3131,13 +3139,15 @@ impl Client {
     /// Returns `Error::NotFound` for an unknown channel.
     pub fn channel_view(&self, channel: &str) -> Result<ChannelView> {
         let (_, ring) = self.keyring(channel)?;
+        let now = now_ms();
+        let preference = self.channel_notification_preference(channel, ring.muted)?;
         let local = self.local(channel)?;
         let deletable_legacy_draft = self.deletable_legacy_draft(channel, &ring, &local)?;
         let invites = local
             .invites
             .into_iter()
             .filter(|(id, invite)| {
-                invite.expires_at > now_ms()
+                invite.expires_at > now
                     && local
                         .ledger
                         .as_ref()
@@ -3151,7 +3161,10 @@ impl Client {
             ledger: local.ledger,
             message_cursor: local.message,
             readable_epochs: ring.keys.keys().copied().collect(),
-            muted: ring.muted,
+            muted: preference.muted && preference.until.is_none_or(|at| at > now),
+            muted_until: preference.until,
+            notification_pending: preference.revision > preference.acknowledged,
+            notification_conflict: preference.blocked == Some(preference.revision),
             hidden: ring.hidden,
             deletable_legacy_draft,
             read: local.read,
@@ -4420,6 +4433,12 @@ impl Client {
         ring.muted = muted.unwrap_or(ring.muted);
         ring.hidden = hidden.unwrap_or(ring.hidden);
         self.save_keyring(Some(revision), &ring)?;
+        if let Some(muted) = muted {
+            self.edit_notification_resource(channel, muted, None)?;
+        }
+        if hidden.is_some() {
+            self.edit_notification_hidden(channel, ring.hidden)?;
+        }
         self.project_channel_notification(channel, &self.local(channel)?, now_ms())?;
         self.channel_view(channel)
     }

@@ -37,6 +37,7 @@ pub(crate) const METHODS: [&str; 11] = [
 pub(crate) struct Notifications {
     pub(crate) wake: Notify,
     pub(crate) inbox: Notify,
+    pub(crate) receive: Notify,
     scheduled: Notify,
     deadline: AtomicU64,
     context: Mutex<Option<(u64, Context)>>,
@@ -111,6 +112,7 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
             }
             let result = core::refresh_capabilities(&h).await;
             d.note_result("notifications/capabilities", &result);
+            d.notifications.receive.notify_one();
         }
         let result = dmsg_client::inbox::sync(&h, 10).await;
         d.note_result("notifications/inbox", &result);
@@ -160,6 +162,61 @@ pub(crate) async fn services_run(d: Arc<Daemon>) {
         let result = dmsg_client::wallet::refresh_notifications(&h).await;
         d.note_result("notifications/wallet", &result);
         d.notifications.wake.notify_one();
+    }
+}
+
+/// One bounded metadata receive pass per account. No active-workspace switch,
+/// background signing renewal or client lock is held over a network wait.
+pub(crate) async fn receive_run(d: Arc<Daemon>) {
+    let mut tick = tokio::time::interval(Duration::from_secs(60));
+    tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        tokio::select! {_ = tick.tick() => {}, _ = d.notifications.receive.notified() => {}}
+        if d.stopping() {
+            continue;
+        }
+        let h = d.hold();
+        let Ok(session) = h.with(|c| Ok(c.session_state())).await else {
+            continue;
+        };
+        if session.unlocked_account().is_some() {
+            let registered = core::remote::register(&h, "en", None).await;
+            if let Ok(Some(context)) = registered {
+                let result = core::remote::sync_settings(&h, &context).await;
+                d.note_result("notifications/settings", &result);
+                let result = core::preferences::sync(&h, &context).await;
+                d.note_result("notifications/resources", &result);
+                d.hints_changed().notify_one();
+            }
+        }
+        let Ok(receivers) = h.with(|c| c.notification_receivers()).await else {
+            continue;
+        };
+        for context in receivers {
+            let Some(_turn) = d.try_turn(&format!("notifications:{}", context.account)) else {
+                continue;
+            };
+            // Actual view receipts are sent before catch-up, within the original merge window.
+            let _ = core::remote::send_observed(&h, &context).await;
+            let result = core::remote::refresh(&h, &context).await;
+            d.note_result("notifications/receive", &result);
+            if result.is_ok()
+                || matches!(result, Err(Error::AuthRequired | Error::DeviceNotApproved))
+            {
+                let needs_auth = result.is_err()
+                    || (context.expires_at <= now_ms().saturating_add(86_400_000)
+                        && session.unlocked_account() != Some(context.account.as_str()));
+                let _ = h
+                    .with(|c| c.notification_receiver_health(&context, needs_auth))
+                    .await;
+            }
+            if result == Ok(true) {
+                d.notifications.receive.notify_one();
+            }
+            if result.is_ok() {
+                d.notifications.wake.notify_one();
+            }
+        }
     }
 }
 
@@ -275,7 +332,10 @@ impl Daemon {
                 }
                 "notifications/settings" => {
                     let settings = account.as_ref().map(|id| c.with_notification_store(id, core::settings)).transpose()?;
-                    Ok(json!({"global":runtime.settings,"account":settings,"account_id":account.map(|id| id.to_string()),"remote_supported":false}))
+                    let remote_supported = account.as_ref().map(|id|c.notification_remote_supported(id)).transpose()?.unwrap_or(false);
+                    let account_conflict = account.as_ref().map(|id|c.notification_settings_conflict(id)).transpose()?.unwrap_or(false);
+                    Ok(json!({"global":runtime.settings,"account":settings,"account_id":account.map(|id| id.to_string()),"remote_supported":remote_supported,
+                        "global_pending_sync":runtime.settings.revision > runtime.remote_revision,"global_conflict":runtime.remote_blocked == Some(runtime.settings.revision),"account_conflict":account_conflict}))
                 }
                 "notifications/settings_set" if params["scope"] == "installation" => {
                     runtime.configure(number(params, "expected_revision")?, parse(params, "settings")?)?;
@@ -388,6 +448,12 @@ impl Daemon {
                 | "notifications/settings"
         ) {
             self.notifications.wake.notify_one();
+            if matches!(
+                method,
+                "notifications/settings_set" | "notifications/observed"
+            ) {
+                self.notifications.receive.notify_one();
+            }
         }
         Ok(result)
     }
@@ -402,10 +468,7 @@ impl Daemon {
         let _ = self
             .hold()
             .with(|c| {
-                let Some(account) = c.session_state().account else {
-                    return Ok(());
-                };
-                ensure(account == expected_account, Error::Locked)?;
+                let account = expected_account.to_string();
                 let id: AccountId = account.parse().map_err(|_| Error::IntegrityFailed)?;
                 let now = now_ms();
                 c.with_notification_store(&id, |store| {
@@ -418,10 +481,14 @@ impl Daemon {
                             return Ok(());
                         }
                     }
-                    if !matches!(kind, "channel" | "inbox") {
+                    if !matches!(kind, "channel" | "inbox" | "connect") {
                         return Ok(());
                     }
-                    let target = Target::Summary(core::Category::Message);
+                    let target = Target::Summary(if kind == "connect" {
+                        core::Category::Action
+                    } else {
+                        core::Category::Message
+                    });
                     let key = core::item_id(&account, &target);
                     if store.notification_item(&key)?.is_some_and(|i| i.open) {
                         return Ok(());

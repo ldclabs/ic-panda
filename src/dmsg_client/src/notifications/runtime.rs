@@ -73,6 +73,15 @@ pub struct Runtime {
     pub reminders_imported: bool,
     /// Old contract phases awaiting verified account ownership.
     pub legacy_plans: BTreeMap<String, u8>,
+    /// Last locally edited global revision acknowledged remotely.
+    #[serde(default)]
+    pub remote_revision: u64,
+    /// Server CAS revision for this installation, independent of local edits.
+    #[serde(default)]
+    pub remote_expected: u64,
+    /// A conflicting draft requires another explicit local edit before retry.
+    #[serde(default)]
+    pub remote_blocked: Option<u64>,
 }
 
 impl Default for Runtime {
@@ -88,6 +97,9 @@ impl Default for Runtime {
             quiet_until: 0,
             reminders_imported: false,
             legacy_plans: BTreeMap::new(),
+            remote_revision: 0,
+            remote_expected: 0,
+            remote_blocked: None,
         }
     }
 }

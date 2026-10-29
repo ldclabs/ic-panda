@@ -72,6 +72,9 @@ export interface NoticePreferences {
   account: NoticeSettings | null
   account_id: string | null
   remote_supported: boolean
+  global_pending_sync?: boolean
+  global_conflict?: boolean
+  account_conflict?: boolean
 }
 
 export interface NoticeStatus {

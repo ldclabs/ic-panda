@@ -884,25 +884,26 @@ impl Client {
     pub(crate) fn project_inbox_notification(
         &self,
         letter: &Letter,
-        cursor: u64,
+        _cursor: u64,
         now: u64,
         baseline: bool,
     ) -> Result<()> {
         use crate::notifications::{self, Item, Target};
         let account = self.account()?.id.to_string();
         let target = Target::Inbox(Some(letter.order_id.clone()));
-        let old = self
+        let mut old = self
             .workspace
             .store
             .notification_item(&notifications::item_id(&account, &target))?;
-        // Inbox management changes do not create new letters. Preserve the first
-        // accepted cursor even if a later page reports read/archive metadata.
-        let mut item = Item::new(
-            account.clone(),
-            target,
-            old.as_ref().map_or(cursor.max(1), |item| item.version),
-            now,
-        );
+        // The order is immutable. Device-specific first-fetch cursors cannot be
+        // shared viewing versions; normalize early local projections once.
+        if let Some(item) = old.as_mut().filter(|item| item.version != 1) {
+            item.version = 1;
+            item.observed = u64::from(item.observed > 0);
+            item.notified = u64::from(item.notified > 0);
+            self.workspace.store.set_notification_item(item)?;
+        }
+        let mut item = Item::new(account.clone(), target, 1, now);
         item.group = notifications::item_id(&account, &Target::Inbox(None));
         item.open = letter.state == "visible"
             && !letter.read

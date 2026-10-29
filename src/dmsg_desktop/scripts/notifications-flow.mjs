@@ -9,14 +9,19 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
     await app.evaluate(({ BrowserWindow }) => {
       globalThis.__notificationFocusAllowed = true
       BrowserWindow.prototype.isFocused = function () {
-        return globalThis.__notificationFocusAllowed && this.isVisible() && !this.isMinimized() && this.webContents.isFocused()
+        return globalThis.__notificationFocusAllowed && this.id === globalThis.__notificationFocusedWindow && this.isVisible() && !this.isMinimized()
       }
     })
+    // This runner has no guaranteed macOS foreground focus. Both focus inputs
+    // are explicit test doubles; the negative native-focus check below remains.
+    await main.evaluate(() => { Document.prototype.hasFocus = () => true })
   }
   const native = await app.browserWindow(main)
+  if (simulatedFocus) await native.evaluate((window) => {globalThis.__notificationFocusedWindow = window.id})
   const focus = async () => {
+    if (simulatedFocus) await app.evaluate(() => {globalThis.__notificationFocusAllowed = true})
     await app.evaluate(({ app }) => app.focus({ steal: true }))
-    await native.evaluate((window) => { window.show(); window.focus() })
+    await native.evaluate((window) => { window.show(); window.focus(); window.webContents.focus() })
     await waitFor(() => main.evaluate(() => document.hasFocus()))
     await waitFor(() => native.evaluate((window) => window.isVisible() && window.isFocused())).catch(async (error) => {
       console.log('native focus diagnostics', await native.evaluate((window) => ({ id:window.id, visible:window.isVisible(), focused:window.isFocused(), focusable:window.isFocusable(), enabled:window.isEnabled(), minimized:window.isMinimized(), bounds:window.getBounds() })), await app.evaluate(({app,BrowserWindow}) => ({ name:app.getName(), hidden:app.isHidden(), focused:BrowserWindow.getFocusedWindow()?.id })))
@@ -62,6 +67,24 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.getByTestId('notifications-save').click()
   await waitFor(() => model.methods['notifications/settings']().global.enabled === true)
   methods['notifications/settings_set'] = save
+  // A remote CAS conflict stays pending until an explicit Retry, then an ACK
+  // updates the status without making the untouched form dirty.
+  const readSettings = methods['notifications/settings']
+  let remoteConflict = true, remotePending = true
+  methods['notifications/settings'] = (p) => ({...readSettings(p),remote_supported:true,global_conflict:remoteConflict,global_pending_sync:remotePending})
+  emit('notifications/changed')
+  await waitFor(async () => await main.getByTestId('notifications-save').textContent() === 'Retry')
+  assert.equal(await main.getByTestId('notifications-save').isDisabled(), false)
+  const revision = readSettings().global.revision
+  await main.getByTestId('notifications-save').click()
+  await waitFor(() => latest('notifications/settings_set').params.expected_revision === revision)
+  await waitFor(async () => await main.getByTestId('notifications-save').isDisabled() === false)
+  remoteConflict = false; remotePending = false
+  model.settings.get(account).remote_revision = model.settings.get(account).revision
+  emit('notifications/changed')
+  await waitFor(async () => await main.getByTestId('notifications-save').isDisabled() === true)
+  assert.equal(await main.getByTestId('notifications-enabled').getAttribute('aria-checked'), 'true')
+  methods['notifications/settings'] = readSettings
   const beforeTest = await notes()
   await main.getByTestId('notifications-test').click()
   await waitFor(async () => await notes() === beforeTest + 1)
@@ -141,14 +164,38 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   }
 
   await route('/vault')
+  // Timed mute is a channel preference, with shared menu/keyboard behavior.
+  const channel = methods['channel/list']()[0]
+  await route(`/channels?open=${channel.id}`)
+  await main.getByTestId('channel-manage').waitFor()
+  const membersClose = main.locator('aside').getByRole('button', {name:'Close',exact:true})
+  if (await membersClose.count()) await membersClose.last().click()
+  await main.getByTestId('channel-manage').click()
+  await main.getByTestId('channel-mute-hour').click()
+  await waitFor(() => latest('channel/settings')?.params.muted_until > Date.now() + 3_500_000)
+  for (const [language, appearance] of [['zh','light'],['zh','dark'],['de','light'],['ar','dark']]) {
+    await main.evaluate(async ([language,appearance]) => {await window.dmsg.setLocale(language);await window.dmsg.setAppearance(appearance)},[language,appearance])
+    await main.waitForFunction((language) => document.documentElement.lang === language,language === 'zh' ? 'zh-Hans' : language)
+    await main.getByTestId('channel-manage').click()
+    await main.getByTestId('channel-manage-menu').waitFor()
+    await main.screenshot({path:join(shots,`notifications-mute-${language}-${appearance}.png`),animations:'disabled'})
+    assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth),false)
+    await main.keyboard.press('Escape')
+  }
+  await main.evaluate(async () => {await window.dmsg.setLocale('en');await window.dmsg.setAppearance('light')})
+  await route('/vault')
   await main.getByTestId('vault-item-title').filter({ hasText: 'Smoke note' }).waitFor()
   const foreground = model.row({ kind: 'summary', id: 'message' }, { version: '2', unread: 2 })
   const beforeForeground = await notes()
   model.enqueue(foreground)
   await main.getByTestId('notification-toast').waitFor()
   assert.equal(await notes(), beforeForeground)
-  await native.evaluate((window) => window.hide())
-  await waitFor(() => latest('notifications/context')?.params.context.foreground === false)
+  if (simulatedFocus) await app.evaluate(() => {globalThis.__notificationFocusAllowed = false})
+  await native.evaluate((window) => {window.hide();window.emit('blur')})
+  await waitFor(() => latest('notifications/context')?.params.context.foreground === false).catch(async error => {
+    console.log('notification background diagnostics',await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows().map(w => ({id:w.id,visible:w.isVisible(),focused:w.isFocused()}))),latest('notifications/context')?.params,calls.slice(-8).map(c => c.method))
+    throw error
+  })
   const background = model.row({ kind: 'summary', id: 'message' }, { version: '3', unread: 3 })
   model.enqueue(background)
   await waitFor(async () => await notes() === beforeForeground + 1)

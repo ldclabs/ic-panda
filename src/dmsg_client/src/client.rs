@@ -1761,6 +1761,16 @@ impl Client {
                 store.set_meta("notification:revoke_pending", &true)
             })?;
         }
+        if self
+            .workspace
+            .store
+            .meta::<serde_json::Value>("notification:receive")?
+            .is_some()
+        {
+            self.workspace
+                .store
+                .set_meta("notification:revoke_pending", &true)?;
+        }
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
         }

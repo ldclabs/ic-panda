@@ -1072,6 +1072,7 @@ const methods = {
   'channel/settings': (p) => {
     if (p.name) channel.name = p.name
     if (p.muted !== undefined) channel.muted = p.muted
+    if (p.muted_until !== undefined) { channel.muted = true; channel.muted_until = p.muted_until; channel.notification_pending = true }
     return channel
   },
   'channel/search': (p) => messages.filter((m) => m.text?.includes(p.query)),
@@ -1378,6 +1379,7 @@ const announced = {
   'files/save_shared': ['files/changed'],
   'files/backup_cancel': ['files/changed'],
   'channel/send': ['channel/changed'],
+  'channel/settings': ['channel/changed'],
   'channel/delete_legacy_draft': ['channel/changed'],
   'legacy/delete_channel': ['legacy/changed', 'sync/changed'],
   'channel/send_file': ['channel/changed'],

@@ -52,3 +52,13 @@ DMSG_DESKTOP_SHOW=1 DMSG_DESKTOP_NOTIFICATION_FOCUS=mock DMSG_DESKTOP_SMOKE=noti
 - 服务端最小投递、登记与偏好确认、多账户接收、多设备回执和移动端对接按后续批次交付；本地界面当前明确标出远端能力未就绪及设置待同步。
 - 完成真实签名安装包下的原生焦点、权限拒绝、通知展示、历史点击和冷启动验证。Electron 的 macOS 通知需要代码签名，API 支持不等于权限或投递成功。参见 [Electron Notification](https://www.electronjs.org/docs/latest/api/notification)。
 - Windows、Linux 与移动真机验证独立记录，不能由 macOS 的模拟通知结果替代。
+
+## 多账户与偏好同步增量（B5）
+
+新增安装持有证明、限用途接收凭据、非活动账户最小 feed、按账户提示连接、实际查看回执、远程偏好 CAS、完整快照缺口重建及退出撤销。频道定时静音保留旧 keyring 格式，确认版本另用现有根加密对象同步；迟到的旧偏好不会恢复通知。
+
+桌面 `pnpm check`（0 错误/警告）、`pnpm test`（136 项）和 `pnpm build` 通过。扩展的 notifications Electron 流程通过：远程冲突保留草稿且必须显式重试，远程确认不让表单变脏；频道定时静音使用共享菜单，并显示待同步状态。760×540 下生成并检查中文明暗、德文长翻译、阿拉伯语 RTL 菜单截图，菜单可滚动、文案换行，无横向溢出。
+
+该 Electron 环境无法可靠获得 macOS 原生焦点，`DMSG_DESKTOP_NOTIFICATION_FOCUS=mock` 明确模拟主窗口与 DOM 焦点，并保留“DOM 可见但原生焦点被拒绝时不能上报查看”的负例。菜单截图禁用动画后检查。此结果不代表真实原生焦点或 OS 横幅验收。
+
+B5 最终 Rust 验证：`cargo clippy -p dmsg_client -p dmsg_cli --all-targets -- -D warnings` 通过；客户端完整单元测试 415 项通过、5 项既有测试忽略；daemon 通知测试 4 项通过。完整快照测试验证失败页不推进游标，缺口重建必须等全部页成功后才能结束缺失的旧事项。

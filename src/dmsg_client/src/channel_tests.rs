@@ -160,6 +160,55 @@ fn only_empty_unactivated_legacy_drafts_can_be_deleted() {
 }
 
 #[test]
+fn notifications_timed_channel_mute_preserves_unread_and_never_replays_muted_arrivals() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let channel = "d1".repeat(32);
+    client
+        .save_keyring(
+            None,
+            &Keyring {
+                format: FORMAT.into(),
+                id: channel.clone(),
+                name: "private channel".into(),
+                genesis: "00".repeat(32),
+                keys: BTreeMap::new(),
+                muted: false,
+                hidden: false,
+            },
+        )
+        .unwrap();
+    let local = Local {
+        notification_seq: 1,
+        message: 1,
+        unread: 1,
+        ..Default::default()
+    };
+    client.save_local(&channel, &local).unwrap();
+    let now = now_ms();
+    let until = now + 60000;
+    let view = client
+        .channel_notification_mute(&channel, Some(until))
+        .unwrap();
+    assert!(view.muted && view.notification_pending);
+    assert_eq!(view.unread, 1);
+    assert_eq!(view.muted_until, Some(until));
+    let item = client
+        .workspace
+        .store
+        .notification_item(&crate::notifications::item_id(
+            &client.me().unwrap(),
+            &crate::notifications::Target::Channel(channel),
+        ))
+        .unwrap()
+        .unwrap();
+    assert_eq!(item.notified, item.version);
+    assert_eq!(item.observed, 0);
+    assert!(!item.is_muted(until + 1));
+    assert_eq!(crate::notifications::counts(&[item], until + 1).unread, 1);
+}
+
+#[test]
 fn epoch_envelopes_confirmation_and_manifest() {
     let v = load("channel-v1.json");
     let channel = text(&v["channel"]);

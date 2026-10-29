@@ -368,6 +368,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::notifications::run(daemon.clone()));
     tokio::spawn(crate::notifications::inbox_run(daemon.clone()));
     tokio::spawn(crate::notifications::services_run(daemon.clone()));
+    tokio::spawn(crate::notifications::receive_run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
     tokio::spawn(crate::mail_push::run(daemon.clone()));
@@ -699,6 +700,7 @@ impl Daemon {
             self.snapshots.clear();
             self.hints_changed.notify_one();
             self.notifications.inbox.notify_one();
+            self.notifications.receive.notify_one();
         }
         if matches!(
             kind,
@@ -714,6 +716,9 @@ impl Daemon {
                 | "sync/changed"
         ) {
             self.notifications.wake.notify_one();
+        }
+        if kind == "channel/changed" {
+            self.notifications.receive.notify_one();
         }
         if matches!(
             kind,
