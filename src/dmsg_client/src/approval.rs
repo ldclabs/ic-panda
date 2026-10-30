@@ -271,6 +271,10 @@ pub enum Action {
         /// approves only the handover.
         #[serde(default)]
         succession: bool,
+        /// The copy set aside under `moved/` whose device approves, in
+        /// place of this one ([`crate::moved::approve_successor`]).
+        #[serde(default)]
+        moved: Option<String>,
     },
     /// A web request (dmsg-connect/1).
     Connect {
@@ -1237,10 +1241,19 @@ impl Client {
                 request.started = true;
                 self.rotate_root().await.map(|_| ())
             }
+            // Boxed: the copy's client would otherwise sit inside every
+            // approval's future, on the runtime's small stacks.
+            Action::DevicePair {
+                token,
+                device,
+                moved: Some(id),
+                ..
+            } => Box::pin(self.moved_approve(&id, &token, &device, &mut request.started)).await,
             Action::DevicePair {
                 token,
                 device,
                 succession,
+                moved: None,
             } => {
                 let pairing = match succession {
                     true => self.inspect_succession(&token)?.0,
@@ -1496,6 +1509,9 @@ impl Client {
                 }
                 // Account changes reconcile through the account journal.
                 Action::DeviceCapabilities { .. } => self.resume().await.map(|_| ()),
+                Action::DevicePair {
+                    moved: Some(id), ..
+                } => Box::pin(self.moved_resume(&id)).await,
                 Action::DeviceRevoke { .. } | Action::DevicePair { .. } => {
                     match self.resume().await {
                         Ok(_) => self.rotate_root().await.map(|_| ()),
@@ -1666,9 +1682,13 @@ impl Client {
                 "this_device": *device_id == self.workspace.meta.device_id,
             }),
             Action::DevicePair {
-                device, succession, ..
+                device,
+                succession,
+                moved,
+                ..
             } => json!({
                 "succession": succession,
+                "moved": moved,
                 "device_id": hex::encode(*device.device_id),
                 "role": format!("{:?}", device.role),
                 "capabilities": device.capabilities.iter().map(|c| format!("{c:?}")).collect::<Vec<_>>(),
@@ -1968,6 +1988,7 @@ pub async fn add_device_request<H: Hold>(
                 token: token.into(),
                 device: pairing.device,
                 succession: false,
+                moved: None,
             },
             expires_at,
         )?;

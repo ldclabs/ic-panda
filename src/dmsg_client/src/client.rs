@@ -80,9 +80,12 @@ pub(crate) enum Slot {
     Account(AccountId),
     /// The workspace of a login that has no account.
     Login(Principal),
+    /// A copy set aside under `moved/`, opened as the device it was.
+    Moved(PathBuf),
 }
 
 /// An authenticated login: an agent with the delegated session identity.
+#[derive(Clone)]
 pub(crate) struct Login {
     pub(crate) ic: Ic,
     pub(crate) principal: Principal,
@@ -395,6 +398,8 @@ pub struct Client {
     /// Hardware that keeps the fast-unlock key and asks for the person,
     /// also before a high-risk approval.
     pub(crate) presence: Option<Arc<dyn PresenceKey>>,
+    /// Keeps a directory out of the system's backups, where the host can.
+    exclude_from_backup: Option<fn(&Path) -> Result<()>>,
     /// Hardware that makes the workspaces' anchors.
     pub(crate) anchor: Option<Arc<dyn HardwareAnchor>>,
     /// What the anchor says about the selected workspace.
@@ -765,6 +770,7 @@ impl Client {
             dir: dir.to_path_buf(),
             secure,
             presence: None,
+            exclude_from_backup: None,
             anchor: None,
             hardware: Verdict::Native,
             moved: BTreeSet::new(),
@@ -812,6 +818,23 @@ impl Client {
             client.select(Slot::Account(account))?;
         }
         Ok(client)
+    }
+
+    /// Keep the plain-text directories, opened copies and the mount's
+    /// uploads, out of the system's backups with `exclude`.
+    pub fn set_backup_exclusion(&mut self, exclude: fn(&Path) -> Result<()>) {
+        self.exclude_from_backup = Some(exclude);
+    }
+
+    /// Create `dir` for plain text: the owner's only, and out of the
+    /// system's backups where the host can say so. A backup that still
+    /// copies it does not stop the work.
+    pub(crate) fn plain_dir(&self, dir: &Path) -> Result<()> {
+        crate::library::blobs::create_private_dir(dir)?;
+        if let Some(exclude) = self.exclude_from_backup {
+            let _ = exclude(dir);
+        }
+        Ok(())
     }
 
     /// Keep the fast-unlock key in `key`, which asks for the person; fast
@@ -945,6 +968,7 @@ impl Client {
             Slot::Idle => self.dir.clone(),
             Slot::Account(account) => self.dir.join("accounts").join(account.to_string()),
             Slot::Login(principal) => self.dir.join("logins").join(principal.to_text()),
+            Slot::Moved(dir) => dir.clone(),
         }
     }
 
@@ -1609,7 +1633,7 @@ impl Client {
     }
 
     /// Load the root, fetching a newer committed one when needed.
-    async fn open_root(&mut self) -> Result<()> {
+    pub(crate) async fn open_root(&mut self) -> Result<()> {
         match self.load_root().await {
             // Approved, but no root is wrapped to this device yet.
             Err(Error::DeviceNotApproved) => {}

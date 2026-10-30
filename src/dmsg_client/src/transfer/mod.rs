@@ -16,7 +16,7 @@
 //!
 //! [docs/protocol/device_transfer.md]: ../../../../docs/protocol/device_transfer.md
 
-mod library;
+pub(crate) mod library;
 mod session;
 mod wire;
 

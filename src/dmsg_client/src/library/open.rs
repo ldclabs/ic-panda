@@ -141,7 +141,9 @@ impl Client {
     pub fn files_open(&mut self, id: &str, version: Option<&str>) -> Result<OpenView> {
         let (_, _, manifest) = self.library_manifest(id, version)?;
         let nonce = hex::encode(&crate::crypto::random_id()[..16]);
-        let dir = self.open_dir()?.join(&nonce);
+        let open = self.open_dir()?;
+        self.plain_dir(&open)?;
+        let dir = open.join(&nonce);
         super::blobs::create_private_dir(&dir)?;
         let path = dir.join(&manifest.name);
         let exported =
@@ -300,7 +302,9 @@ pub async fn open<H: crate::hold::Hold>(
         .with(|c| {
             let (_, _, manifest) = c.library_manifest(id, version)?;
             let nonce = hex::encode(&crate::crypto::random_id()[..16]);
-            let dir = c.open_dir()?.join(&nonce);
+            let open = c.open_dir()?;
+            c.plain_dir(&open)?;
+            let dir = open.join(&nonce);
             super::blobs::create_private_dir(&dir)?;
             Ok((
                 nonce,

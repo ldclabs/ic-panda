@@ -1,6 +1,7 @@
-//! On macOS, build `swift/Enclave.swift` into a static library: the
-//! daemon's Secure Enclave keys go through CryptoKit, which only Swift
-//! reaches (`src/enclave.rs`). Other targets build nothing.
+//! On macOS, build `swift/` into a static library: the daemon's Secure
+//! Enclave keys go through CryptoKit, which only Swift reaches
+//! (`src/enclave.rs`), and the backup flag through Foundation
+//! (`src/home.rs`). Other targets build nothing.
 
 use std::path::PathBuf;
 use std::process::Command;
@@ -18,6 +19,7 @@ fn output(command: &mut Command) -> String {
 fn main() {
     println!("cargo:rerun-if-changed=swift/Enclave.swift");
     println!("cargo:rerun-if-changed=swift/FSKitPeer.swift");
+    println!("cargo:rerun-if-changed=swift/Backup.swift");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }
@@ -36,6 +38,7 @@ fn main() {
             .args(["-emit-library", "-static", "-target", &target, "-sdk", sdk])
             .arg("swift/Enclave.swift")
             .arg("swift/FSKitPeer.swift")
+            .arg("swift/Backup.swift")
             .arg("-o")
             .arg(out.join("libdmsg_enclave.a")),
     );

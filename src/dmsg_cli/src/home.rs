@@ -218,6 +218,26 @@ fn legacy(file: LegacyFile) -> Result<LegacyConfig> {
     })
 }
 
+#[cfg(target_os = "macos")]
+unsafe extern "C" {
+    fn dmsg_exclude_from_backup(path: *const u8, length: usize) -> i32;
+}
+
+/// Keep `dir` out of Time Machine: the library's plain-text directories,
+/// opened copies and the mount's uploads, stay out of backups.
+///
+/// # Errors
+/// Returns `Error::Unavailable` when the file system refuses.
+#[cfg(target_os = "macos")]
+pub(crate) fn exclude_from_backup(dir: &Path) -> Result<()> {
+    let path = dir.to_string_lossy();
+    // SAFETY: the bytes stay alive for the call.
+    match unsafe { dmsg_exclude_from_backup(path.as_ptr(), path.len()) } {
+        0 => Ok(()),
+        code => Err(Error::Unavailable(format!("backup flag: {code}"))),
+    }
+}
+
 impl Home {
     /// `--home`, else `$DMSG_HOME`, else `~/.dmsg`.
     pub fn resolve(flag: Option<PathBuf>) -> Self {
@@ -422,6 +442,25 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn plain_text_directories_stay_out_of_time_machine() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let open = dir.0.join("open");
+        std::fs::create_dir_all(&open).unwrap();
+        super::exclude_from_backup(&open).unwrap();
+        let out = std::process::Command::new("tmutil")
+            .arg("isexcluded")
+            .arg(&open)
+            .output()
+            .unwrap();
+        assert!(
+            String::from_utf8_lossy(&out.stdout).contains("[Excluded]"),
+            "{}",
+            String::from_utf8_lossy(&out.stdout)
+        );
+    }
+
     use super::*;
 
     #[test]

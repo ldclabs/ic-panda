@@ -90,7 +90,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 59] = [
+const METHODS: [&str; 61] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -108,6 +108,8 @@ const METHODS: [&str; 59] = [
     "device/moved_list",
     "device/moved_set_aside",
     "device/moved_discard",
+    "device/moved_import",
+    "device/moved_approve_successor",
     "sync/run",
     "sync/status",
     "profile/show",
@@ -328,6 +330,8 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
+    #[cfg(target_os = "macos")]
+    client.set_backup_exclusion(crate::home::exclude_from_backup);
     // With the system keystore, the Secure Enclave keeps cosigner keys,
     // approval keys and the fast-unlock and device-bound keys, and asks for
     // Touch ID or the login password. Its anchors, which ask nothing, find
@@ -1216,6 +1220,25 @@ impl Daemon {
                 self.client.lock().await.discard_moved(&id)?;
                 Ok(Value::Null)
             }
+            // Boxed: each holds the copy's client, which would otherwise sit
+            // in every call's future.
+            "device/moved_import" => {
+                let id = text(params, "id")?;
+                let succession = optional(params, "succession", hash)?;
+                let report =
+                    Box::pin(dmsg_client::moved::import(&self.hold(), &id, succession)).await?;
+                Ok(to_json(&report))
+            }
+            "device/moved_approve_successor" => {
+                let id = text(params, "id")?;
+                let source = source(params)?;
+                Box::pin(dmsg_client::moved::approve_successor(
+                    &self.hold(),
+                    source,
+                    &id,
+                ))
+                .await
+            }
             "session/switch" => {
                 let account = account(params, "account")?;
                 let status = self.client.lock().await.switch_account(&account)?;
@@ -1751,7 +1774,9 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             | "device/formal_approve"
             | "device/approve"
             | "device/revoke"
+            | "device/moved_approve_successor"
             | "connect/sync" => &["approval/changed"],
+            "device/moved_import" => &["files/changed"],
             "connect/grant" | "connect/revoke" => &["connect/changed"],
             "session/fast_unlock" | "session/device_bound" => &["session/changed"],
             _ => &[],

@@ -1780,7 +1780,15 @@ fn desktop_device_succession() {
         open["to"].as_str().unwrap(),
     );
     let sent = b.run(&[
-        "device", "transfer", "send", session, "--to", to, "--address", &address, "--wait",
+        "device",
+        "transfer",
+        "send",
+        session,
+        "--to",
+        to,
+        "--address",
+        &address,
+        "--wait",
     ]);
     assert_eq!(sent["state"], "done", "{sent}");
     assert_eq!(sent["report"]["records"], 2);
@@ -1928,6 +1936,112 @@ fn desktop_device_succession() {
 }
 
 /// Deterministic bytes of a given length.
+/// Copy `from` to `to`, directories whole.
+fn copy_tree(from: &Path, to: &Path) {
+    if from.is_dir() {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            copy_tree(&entry.path(), &to.join(entry.file_name()));
+        }
+    } else {
+        std::fs::copy(from, to).unwrap();
+    }
+}
+
+#[test]
+#[ignore]
+fn desktop_moved_copy_succession() {
+    let mut env = Env::start("moved", "");
+    let http = env.http.clone();
+    let (c, _) = env.desktop("c");
+    let (a, b, c) = (&env.a, &env.b, &c);
+    // A Free account at its limit of two devices; B keeps a file.
+    assert_eq!(a.login(&http, 41).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(&http, 41).unwrap()["state"], "pairing_required");
+    let request = b.run(&["device", "pair-request"]);
+    assert_eq!(a.approve_pairing(&http, &request)["state"], "done");
+    assert_eq!(b.run(&["unlock"])["state"], "unlocked");
+    let old = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let bytes = pattern(2 * 1024 * 1024 + 11, 5);
+    let path = env.dir.join("kept.bin");
+    std::fs::write(&path, &bytes).unwrap();
+    let file = b.run(&["files", "add", path.to_str().unwrap()])[0]["file"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // B's workspace arrives on C as a migration leaves it, set aside.
+    b.run(&["stop"]);
+    let id = format!("{account}-{}", &old[..8]);
+    let copy = c.home.join("local/moved").join(&id);
+    copy_tree(&b.home.join("local/accounts").join(&account), &copy);
+    std::fs::write(
+        copy.join("moved.json"),
+        json!({"id": id, "account": account, "device_id": old, "moved_at": 1, "reason": "anchor"})
+            .to_string(),
+    )
+    .unwrap();
+    assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
+    assert_eq!(c.run(&["device", "moved", "list"])[0]["id"], id.as_str());
+
+    // The copy's device approves C as its successor, through C's approval
+    // center; C then joins beyond the limit.
+    let approval = c.run(&["device", "moved", "approve-successor", &id]);
+    assert_eq!(
+        (approval["type"].as_str(), approval["risk"].as_str()),
+        (Some("device_pair"), Some("high")),
+        "{approval}"
+    );
+    assert_eq!(approval["detail"]["moved"], id.as_str());
+    let task = approval["succession"].as_str().unwrap().to_string();
+    assert_eq!(c.decide(&http, &approval, true).unwrap()["state"], "done");
+    assert_eq!(c.run(&["unlock"])["state"], "unlocked");
+
+    // The library imports from the copy and settles the content step.
+    let imported = c.run(&["device", "moved", "import", &id, "--succession", &task]);
+    assert_eq!(
+        (imported["records"].as_u64(), imported["peer"].as_str()),
+        (Some(2), Some(old.as_str())),
+        "{imported}"
+    );
+    let out = env.dir.join("kept.out");
+    c.run(&["files", "get", &file, "-o", out.to_str().unwrap()]);
+    assert_eq!(std::fs::read(&out).unwrap(), bytes);
+    assert_eq!(
+        c.run(&["device", "moved", "import", &id])["kept"].as_u64(),
+        Some(2)
+    );
+
+    // C hands over the rest and revokes the copy's device; the copy no
+    // longer opens.
+    for step in ["approval_key", "cosigners", "wallets"] {
+        c.run(&["device", "succession", "run", &task, step]);
+    }
+    c.run(&["device", "succession", "skip", &task, "native_addresses"]);
+    let revoke = c.run(&["device", "succession", "run", &task, "revoke"]);
+    assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
+    let active = a
+        .run(&["device", "list"])
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|d| d["revoked_at"].is_null())
+        .count();
+    assert_eq!(active, 2);
+    assert_eq!(
+        c.fail(&["device", "moved", "import", &id]),
+        "DEVICE_NOT_APPROVED"
+    );
+}
+
 fn pattern(len: usize, seed: u64) -> Vec<u8> {
     let mut state = seed;
     (0..len)

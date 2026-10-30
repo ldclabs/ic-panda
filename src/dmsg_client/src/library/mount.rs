@@ -6,7 +6,6 @@
 //! daemon.
 
 use super::Client;
-use super::blobs::create_private_dir;
 use super::catalog::{FILE, FileRecord, FolderView, Origin, Version, VersionRef, validate_name};
 use super::catalog::{FileView, ROOT};
 use super::import::{Imported, thumb_aad};
@@ -165,7 +164,7 @@ impl Client {
             .parent()
             .ok_or(Error::AuthRequired)?
             .join(MOUNT_DIR);
-        create_private_dir(&dir)?;
+        self.plain_dir(&dir)?;
         Ok(dir)
     }
 

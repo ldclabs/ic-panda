@@ -95,6 +95,41 @@ pub enum DeviceCommand {
     /// encrypted.
     #[command(subcommand)]
     Transfer(TransferCommand),
+    /// Workspaces copied here from another Mac, set aside under `moved/`.
+    #[command(subcommand)]
+    Moved(MovedCommand),
+}
+
+/// A workspace copied from other hardware, such as by a system migration,
+/// never unlocks here; set aside, it stays for import until discarded.
+#[derive(Subcommand)]
+pub enum MovedCommand {
+    /// The copies set aside.
+    List,
+    /// Set the selected workspace aside, if it came from other hardware,
+    /// and start a new device of the account in its place.
+    SetAside,
+    /// Import a copy's file library into this device, as long as its
+    /// device is not revoked; only adds.
+    Import {
+        /// The copy's ID from `dmsg device moved list`.
+        id: String,
+        /// The succession whose content step it settles.
+        #[arg(long)]
+        succession: Option<String>,
+    },
+    /// On the new device, signed in to the account's login: have the
+    /// copy's device approve this device as its successor; goes through
+    /// the approval center.
+    ApproveSuccessor {
+        /// The copy's ID from `dmsg device moved list`.
+        id: String,
+    },
+    /// Delete a copy set aside.
+    Discard {
+        /// The copy's ID.
+        id: String,
+    },
 }
 
 /// A direct transfer between two devices of the account: the receiving
@@ -744,6 +779,7 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
         DeviceCommand::Key(command) => key(remote, json, command).await?,
         DeviceCommand::Succession(command) => succession(remote, json, command).await?,
         DeviceCommand::Transfer(command) => transfer(remote, json, command).await?,
+        DeviceCommand::Moved(command) => moved(remote, json, command).await?,
     }
     Ok(())
 }
@@ -968,4 +1004,23 @@ async fn transfer(remote: &Remote, json: bool, command: TransferCommand) -> Resu
         )),
         _ => Ok(()),
     }
+}
+
+async fn moved(remote: &Remote, json: bool, command: MovedCommand) -> Result<(), Failure> {
+    let (method, params) = match command {
+        MovedCommand::List => ("device/moved_list", Value::Null),
+        MovedCommand::SetAside => ("device/moved_set_aside", Value::Null),
+        MovedCommand::Import { id, succession } => (
+            "device/moved_import",
+            json!({"id": id, "succession": succession}),
+        ),
+        MovedCommand::ApproveSuccessor { id } => {
+            let params = json!({"id": id, "source": "cli"});
+            return request(remote, json, "device/moved_approve_successor", params).await;
+        }
+        MovedCommand::Discard { id } => ("device/moved_discard", json!({"id": id})),
+    };
+    let view = remote.call(method, params).await?;
+    print(json, &view, pretty);
+    Ok(())
 }

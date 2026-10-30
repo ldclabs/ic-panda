@@ -42,6 +42,7 @@ pub mod login;
 pub mod mail_push;
 pub mod mcp_events;
 pub mod migration;
+pub mod moved;
 pub mod notifications;
 pub mod outbox;
 pub mod payer;

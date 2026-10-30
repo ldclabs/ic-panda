@@ -25,6 +25,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
 | [`succession`] | A planned device replacement: the new device's `dmsg-succession/1` request, the old device's review and approval, and each device's task of the handover steps it saw done |
 | [`transfer`] | dmsg-device-transfer/1: local content from one active device of the account to another over a local connection. The signed hello with the session key sealed by HPKE, AES-256-GCM frames, the manifest of transferable record names, resumable sessions and the receiver's additive merge; the host supplies the connection |
+| [`moved`] | Workspaces copied from another computer and set aside under `moved/`, opened as the device each was with the user home's unlock secret for it: importing a copy's file library through the device transfer's merge, and having its device approve this one as its successor |
 | [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |
 | [`root`] | RootBundle v2: wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
 | [`cloud`] | dmsg-cloud/1: security evidence, device commands and HTTP proof of possession, presigned commands, chunks, stored-command verification |
@@ -218,6 +219,17 @@ checks without the device, check by check (content, signature, evidence,
 binding), against the deployment's user homes: any canister can certify a
 receipt.
 
+A web request (dmsg-connect/1) reaches the center only after the device
+opened it, checked the pairing grant against the certified devices, the
+request and page signatures, the certified application registration and the
+payload; anything else is refused at once with a code. Approving journals the
+decision, then authorizes the request on the relay: a compare-and-swap from
+`pending` that pins it to this device. If another device or a cancellation
+wins, nothing executes. Each state change is sealed to every page that asked
+for the operation, with HPKE in auth mode under the device key. Locked, the
+device only stores sealed envelopes, and the relay's hint channel, which needs
+no signing key, tells it that something waits.
+
 ### Approval keys
 
 An account may require an approval key's signature for some approvals
@@ -311,16 +323,32 @@ the report's `last_error` while it goes on listening, until a transfer
 completes or nothing connects for two minutes. The host closes it when the
 device locks.
 
-A web request (dmsg-connect/1) reaches the center only after the device
-opened it, checked the pairing grant against the certified devices, the
-request and page signatures, the certified application registration and the
-payload; anything else is refused at once with a code. Approving journals the
-decision, then authorizes the request on the relay: a compare-and-swap from
-`pending` that pins it to this device. If another device or a cancellation
-wins, nothing executes. Each state change is sealed to every page that asked
-for the operation, with HPKE in auth mode under the device key. Locked, the
-device only stores sealed envelopes, and the relay's hint channel, which needs
-no signing key, tells it that something waits.
+### Moved copies
+
+A workspace copied to another computer is set aside there under `moved/`,
+whole. While its device is active, [`moved`] opens such a copy as that
+device with the login: the user home gives the login the device's unlock
+secret, so it needs none of the old hardware, unless the device bound its
+workspace to that hardware (`Error::Forbidden`).
+
+On the new device, `approve_successor` asks to succeed the copy's device
+([`succession::request`]) and makes an approval request of its own, a
+high-risk `DevicePair` naming the copy (`moved`). Approving it signs the
+enrollment as the copy's device and rotates the content root to the new
+device, as the old device would have, journaled in the copy as it would have
+been there; the copy's device must be an active administrator with
+`RootManage`, and the account must not require approval keys for device
+control, which the copy cannot use away from its hardware. `import` then
+reads the copy's file library, changing nothing in it, and brings it in
+through the device transfer's merge: chunks first, each checked and copied
+once (`Blobs::copy_from`), then folders, versions and files, only adding.
+With a succession it settles the content step, as a transfer would. Once the
+new device revokes the old one, the copy no longer opens.
+
+Plaintext copies opened for other programs and files arriving over the
+mounted disk stay out of the platform's backups where the host can say so
+(`Client::set_backup_exclusion`; the macOS daemon marks the directories
+`isExcludedFromBackup`). The encrypted workspace itself is backed up.
 
 ## Channels
 

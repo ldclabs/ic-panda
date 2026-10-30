@@ -26,8 +26,8 @@ targets. The desktop exposes this action in the account menu as **Log out**.
 | `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync and backup jobs |
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 | `<environment>/accounts/<account>/blobs/<d0d1>/<digest>` | The file library's ciphertext chunks, one file per chunk named by its SHA-256; `blobs/tmp/` holds chunks being written |
-| `<environment>/accounts/<account>/open/<nonce>/<name>` | Plaintext copies of library files opened for another program (`dmsg files open`), owner-only, removed after 30 minutes, on lock and on exit |
-| `<environment>/accounts/<account>/mount/<random>` | A file arriving over the mounted disk, owner-only, until it is imported; removed on lock |
+| `<environment>/accounts/<account>/open/<nonce>/<name>` | Plaintext copies of library files opened for another program (`dmsg files open`), owner-only and kept out of Time Machine, removed after 30 minutes, on lock and on exit |
+| `<environment>/accounts/<account>/mount/<random>` | A file arriving over the mounted disk, owner-only and kept out of Time Machine, until it is imported; removed on lock |
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
 | `<environment>/current` | The account selected last, which a restart and fast unlock use |
 
@@ -152,6 +152,18 @@ pairs or recovers; `device/moved_list` lists the copies and
 `device/moved_discard {id}` deletes one. A workspace that already held
 Secure Enclave keys when its anchor was made counts as moved when the first of
 them fails on this Mac; the first that opens settles it.
+
+While the old device is still active, the new device can take over from a
+copy without the old Mac (`dmsg device moved`). After `login`,
+`approve-successor <id>` asks to succeed the copy's device and makes a
+high-risk approval request on this Mac; approving it enrolls the new device,
+signed as the copy's device, and rotates the content root to it, and `unlock`
+binds it. The copy's device must be an administrator, and the account must
+not require approval keys for device control. `import <id> --succession
+<task>` then brings in the copy's file library, only adding, and settles the
+succession's content step; the other steps run as in any succession, and the
+copy no longer opens once the old device is revoked. A copy whose device
+bound its workspace to its hardware does not open here (`FORBIDDEN`).
 
 The hardware creation tests run without a prompt:
 `cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`
@@ -281,6 +293,7 @@ dmsg device succession request <device> | review <request> | approve <request> -
 dmsg device succession run <id> <step> | skip <id> content|native_addresses [--keep a,b] | cancel <id>
 dmsg device transfer receive [--session S] [--succession ID] [--wait] | status | cancel
 dmsg device transfer send <session> [--to <device>] [--address host:port] [--succession ID] [--wait]
+dmsg device moved list | set-aside | import <id> [--succession ID] | approve-successor <id> | discard <id>
 dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
                 [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
 dmsg vault edit <id> [--title T] [--notes N] [--username U] [--url L] [--tag T]... [--clear-tags] [--favorite|--no-favorite]
@@ -1179,6 +1192,7 @@ The daemon listens on `127.0.0.1` only.
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
   `device/moved_list|moved_set_aside|moved_discard {id}`,
+  `device/moved_import {id, succession?}|moved_approve_successor {id}`,
   `device/succession_request {predecessor}|succession_review {token}|succession_approve {token, device}|successions`,
   `device/succession_status|succession_cancel {id}`, `device/succession_run {id, step}`,
   `device/succession_skip {id, step, skipped?}`,

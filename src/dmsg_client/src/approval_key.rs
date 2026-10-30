@@ -266,7 +266,11 @@ impl Client {
         let (Some(purpose), Some(seen)) = (purpose, &self.hardware_seen) else {
             return Ok(None);
         };
-        if seen.account != self.account()?.id || !(high || seen.policy.contains(&purpose)) {
+        // A device still waiting to join has no key the account registered.
+        let Ok(account) = self.account() else {
+            return Ok(None);
+        };
+        if seen.account != account.id || !(high || seen.policy.contains(&purpose)) {
             return Ok(None);
         }
         let key = self.registered_key(seen.key)?;

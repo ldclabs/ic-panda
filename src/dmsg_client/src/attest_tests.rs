@@ -575,6 +575,7 @@ fn high_risk_requests_are_the_ones_held() {
                     capabilities: vec![Capability::RootManage, Capability::VaultUnlock],
                 },
                 succession: false,
+                moved: None,
             },
             now_ms() + 60_000,
         )

@@ -14,7 +14,7 @@ use crate::workspace::MAX_PRIVATE;
 use dmsg_types::{Error, Result};
 
 /// The library's record prefixes, in the order the receiver commits them.
-pub(super) const PHASES: [&str; 3] = [FOLDER, VERSION, FILE];
+pub(crate) const PHASES: [&str; 3] = [FOLDER, VERSION, FILE];
 
 /// Every library record as an entry. A version lists its chunks and
 /// thumbnail when all of them are on this device; otherwise it is offered
@@ -22,7 +22,7 @@ pub(super) const PHASES: [&str; 3] = [FOLDER, VERSION, FILE];
 ///
 /// # Errors
 /// Returns `Error::Locked` while locked.
-pub(super) fn entries(c: &mut Client) -> Result<Vec<Entry>> {
+pub(crate) fn entries(c: &mut Client) -> Result<Vec<Entry>> {
     let blobs = c.blobs()?.clone();
     let mut entries = vec![];
     for prefix in PHASES {
@@ -64,7 +64,7 @@ pub(super) fn entries(c: &mut Client) -> Result<Vec<Entry>> {
 
 /// What committing a record did.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Outcome {
+pub(crate) enum Outcome {
     /// Added, or merged into this device's record.
     Added,
     /// This device had it and kept its own.
@@ -88,7 +88,7 @@ fn present(c: &Client, file: &str, version: &str) -> Result<bool> {
 /// # Errors
 /// Returns `Error::IntegrityFailed` for a record that is not the library's
 /// or does not decode as its type.
-pub(super) fn commit(c: &mut Client, key: &str, value: &[u8]) -> Result<Outcome> {
+pub(crate) fn commit(c: &mut Client, key: &str, value: &[u8]) -> Result<Outcome> {
     if let Some(id) = key.strip_prefix(FOLDER) {
         let folder: Folder = decode(value, MAX_PRIVATE)?;
         validate_name(&folder.name)?;
@@ -153,7 +153,7 @@ pub(super) fn commit(c: &mut Client, key: &str, value: &[u8]) -> Result<Outcome>
 }
 
 /// Whether record `key` is here already; a file always merges.
-pub(super) fn held(c: &mut Client, key: &str) -> Result<bool> {
+pub(crate) fn held(c: &mut Client, key: &str) -> Result<bool> {
     if let Some(id) = key.strip_prefix(FOLDER) {
         return Ok(c.catalog()?.folders.contains_key(id));
     }

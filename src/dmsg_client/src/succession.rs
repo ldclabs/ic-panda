@@ -527,6 +527,7 @@ pub async fn accept<H: Hold>(h: &H, source: &str, token: &str, device: &str) -> 
                 token: token.into(),
                 device: pairing.device,
                 succession: true,
+                moved: None,
             },
             expires_at,
         )?;

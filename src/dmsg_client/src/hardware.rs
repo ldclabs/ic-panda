@@ -26,7 +26,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 /// Copies set aside, each in a directory of its own.
-const MOVED: &str = "moved";
+pub(crate) const MOVED: &str = "moved";
 /// What a copy set aside says about itself.
 const MOVED_RECORD: &str = "moved.json";
 
@@ -100,7 +100,7 @@ fn verified(public: &[u8], message: &Hash, signature: &[u8; 64]) -> bool {
 }
 
 /// Whether `id` names a directory directly under `moved/`.
-fn plain_name(id: &str) -> bool {
+pub(crate) fn plain_name(id: &str) -> bool {
     !id.is_empty()
         && id != "."
         && id != ".."

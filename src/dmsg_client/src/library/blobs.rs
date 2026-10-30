@@ -64,6 +64,36 @@ impl Blobs {
         Ok(self.dir.join(&digest[..2]).join(digest))
     }
 
+    /// Copy chunk `digest` from `from` once its bytes match it: a clone
+    /// where the file system shares blocks (APFS), so a library imported
+    /// from a copy takes no space twice. Returns the bytes copied: none when
+    /// the chunk is here already or `from` lacks it.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a chunk that does not match its
+    /// digest and `Error::Unavailable` when the files cannot be copied.
+    pub fn copy_from(&self, from: &Blobs, digest: &str) -> Result<u64> {
+        let path = self.path(digest)?;
+        if path.is_file() {
+            return Ok(0);
+        }
+        let Some(bytes) = from.chunk(digest)? else {
+            return Ok(0);
+        };
+        let tmp = self.dir.join(TMP);
+        create_private_dir(&tmp)?;
+        let partial = tmp.join(hex::encode(&crate::crypto::random_id()[..16]));
+        let copied = (|| {
+            fs::copy(from.path(digest)?, &partial).map_err(storage)?;
+            create_private_dir(path.parent().expect("a shard directory"))?;
+            fs::rename(&partial, &path).map_err(storage)
+        })();
+        if copied.is_err() {
+            let _ = fs::remove_file(&partial);
+        }
+        copied.map(|()| bytes.len() as u64)
+    }
+
     /// A stored chunk's length, without reading it.
     ///
     /// # Errors

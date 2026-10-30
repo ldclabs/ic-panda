@@ -516,6 +516,11 @@ fn the_person_answers_a_registered_device_through_its_key() {
         client.approval_presence(&revoke.id).unwrap(),
         Some((Ask::Hardware(_, false), what)) if what == "device_revoke"
     ));
+    // A device still waiting to join has read the account but holds no key
+    // of it.
+    let account = client.workspace.meta.account.take();
+    assert!(client.approval_presence(&revoke.id).unwrap().is_none());
+    client.workspace.meta.account = account;
     assert!(client.approval_presence(&attest).unwrap().is_none());
     client.observe_hardware(&info(&client, Some(&key), &[HardwarePurpose::Attestation]));
     assert!(matches!(
