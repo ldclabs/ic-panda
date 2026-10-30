@@ -600,10 +600,6 @@
 	<string>編集済み</string>
 	<key>Email</key>
 	<string>電子メール</string>
-	<key>Enable automatic sync</key>
-	<string>自動同期を有効にする</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>このアカウントの自動同期を有効にしますか?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>自動入力設定で dMsg を有効にする</string>
 	<key>Encrypted backup</key>

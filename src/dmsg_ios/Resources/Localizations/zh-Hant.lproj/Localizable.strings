@@ -600,10 +600,6 @@
 	<string>編輯</string>
 	<key>Email</key>
 	<string>郵箱</string>
-	<key>Enable automatic sync</key>
-	<string>開啟自動同步</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>為這個帳戶開啟自動同步？</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>在自動填充設定中啟用 dMsg</string>
 	<key>Encrypted backup</key>

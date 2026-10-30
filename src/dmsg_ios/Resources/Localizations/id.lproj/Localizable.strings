@@ -600,10 +600,6 @@
 	<string>Diedit</string>
 	<key>Email</key>
 	<string>Surel</string>
-	<key>Enable automatic sync</key>
-	<string>Aktifkan sinkronisasi otomatis</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Aktifkan sinkronisasi otomatis untuk akun ini?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Aktifkan dMsg di pengaturan IsiOtomatis</string>
 	<key>Encrypted backup</key>

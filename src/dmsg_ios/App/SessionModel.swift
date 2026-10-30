@@ -78,7 +78,10 @@ final class SessionModel {
     private var busyOperation: UUID?
     private var lastSessionSequence: UInt64 = 0
     private var fixtureLoaded = false
-    private var automaticSyncAccounts: Set<String> = []
+    /// Accounts that turned automatic sync off; every other account syncs.
+    private var manualSyncAccounts: Set<String> = []
+    /// Accounts already told that they sync automatically.
+    private var syncIntroduced: Set<String> = []
     private var automaticPassRunning = false
     private var automaticOperation: OperationToken?
     private var automaticChannelCursor = 0
@@ -92,7 +95,7 @@ final class SessionModel {
     #endif
 
     var unlocked: Bool { session?.state == "unlocked" }
-    var automaticSyncEnabled: Bool { session?.account.map { automaticSyncAccounts.contains($0) } ?? false }
+    var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
 
     #if DEBUG
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
@@ -129,7 +132,8 @@ final class SessionModel {
             let name = deployment.name
             let files = try await Task.detached { try PrivateFiles(environment: name) }.value
             let preferences = try LocalPreferences.read(at: files.root)
-            automaticSyncAccounts = preferences.automaticSyncAccounts
+            manualSyncAccounts = preferences.manualSyncAccounts ?? []
+            syncIntroduced = preferences.syncIntroduced ?? []
             notificationSetupDismissed = preferences.notificationSetupDismissed ?? []
             immediateBackgroundLock = preferences.immediateBackgroundLock
             let security = AppleSecurity(installation: files.installation, environment: deployment.name)
@@ -193,7 +197,7 @@ final class SessionModel {
             if let incoming = try? IncomingShares() {
                 for entry in try incoming.list() where entry.accountHash == IncomingShares.accountHash(account) { try incoming.remove(entry) }
             }
-            automaticSyncAccounts.remove(account); notificationSetupDismissed.remove(account)
+            manualSyncAccounts.remove(account); syncIntroduced.remove(account); notificationSetupDismissed.remove(account)
             try writePreferences(at: files.root)
             let staging = files.staging.appending(path: account)
             if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
@@ -287,11 +291,11 @@ final class SessionModel {
         concealed = false; privacyShield.hide()
     }
 
-    /// Called only by the settings confirmation. Disabled by default and never
-    /// inferred from login, notification permission, or a restored UI snapshot.
+    /// On for every account until the person turns it off in settings,
+    /// which this device keeps for that account.
     func setAutomaticSync(_ enabled: Bool) {
         guard let account = session?.account else { return }
-        if enabled { automaticSyncAccounts.insert(account) } else { automaticSyncAccounts.remove(account); automaticOperation?.cancel() }
+        if enabled { manualSyncAccounts.remove(account) } else { manualSyncAccounts.insert(account); automaticOperation?.cancel() }
         if let files {
             do { try writePreferences(at: files.root) }
             catch { report(error) }
@@ -309,12 +313,22 @@ final class SessionModel {
     }
 
     private func writePreferences(at root: URL) throws {
-        try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, automaticSyncAccounts: automaticSyncAccounts,
-                             notificationSetupDismissed: notificationSetupDismissed).write(at: root)
+        try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, manualSyncAccounts: manualSyncAccounts,
+                             syncIntroduced: syncIntroduced, notificationSetupDismissed: notificationSetupDismissed).write(at: root)
     }
 
-    func optedInSyncPass() async {
-        guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning else { return }
+    func automaticSyncPass() async {
+        guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning,
+              let account = session?.account else { return }
+        if !syncIntroduced.contains(account) {
+            // Said once per account, where it first syncs by itself.
+            syncIntroduced.insert(account)
+            notice = String(localized: "While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.")
+            if let files {
+                do { try writePreferences(at: files.root) }
+                catch { report(error) }
+            }
+        }
         automaticPassRunning = true
         let operation = OperationToken(), current = epoch
         automaticOperation = operation

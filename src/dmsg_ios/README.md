@@ -346,21 +346,23 @@ from backup. Staged imports are account-bound and are removed only after
 successful import. Interrupted staging is preserved. Shared copies outside the
 app cannot be recalled. Swift strings do not promise forensic memory erasure.
 
-Automatic synchronization is **off by default** and enabled only by an explicit
-settings confirmation for the current account. It runs only while the app is
+Automatic synchronization is **on by default** for every account, as the
+product requires after login unlock, binding and recovery; the first automatic
+pass of an account says so once, and settings turn it off for that account
+(`manualSyncAccounts` in the local preferences). It runs only while the app is
 open and unlocked; interaction cancels it in favor of the user's operation.
 It does not select files for backup. Files require their own explicit selection
-and confirmation. This opt-in differs from the brief's automatic-sync default.
+and confirmation.
 
 Manual synchronization shows an activity indicator until completion or failure.
-Both manual and opted-in synchronization refresh the verified cloud-backup
+Both manual and automatic synchronization refresh the verified cloud-backup
 inventory. Files lists cloud backups directly alongside local content; restoring
 file bytes onto this device remains an explicit action. The Account header reads
 the official public name and avatar, with anonymous, bounded avatar downloads and
 an explicit retry when loading fails.
 
 Recovery checks use public certified metadata while the app is active, including
-when the content workspace is locked. They do not depend on content-sync opt-in,
+when the content workspace is locked. They do not depend on automatic sync,
 unlock keys or upload content. A previous pending warning survives a failed
 refresh and is marked stale; unknown never becomes a verified safe state. Checks
 stop on background/protected-data loss. This is not an always-on notification

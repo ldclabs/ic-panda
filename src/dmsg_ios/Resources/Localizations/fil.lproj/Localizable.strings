@@ -600,10 +600,6 @@
 	<string>Na-edit</string>
 	<key>Email</key>
 	<string>Email</string>
-	<key>Enable automatic sync</key>
-	<string>Paganahin ang awtomatikong pag-sync</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Paganahin ang awtomatikong pag-sync para sa account na ito?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>I-enable ang dMsg sa mga setting ng AutoFill</string>
 	<key>Encrypted backup</key>

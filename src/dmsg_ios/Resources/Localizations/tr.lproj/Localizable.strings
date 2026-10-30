@@ -600,10 +600,6 @@
 	<string>Düzenlendi</string>
 	<key>Email</key>
 	<string>E-posta</string>
-	<key>Enable automatic sync</key>
-	<string>Otomatik senkronizasyonu etkinleştir</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Bu hesap için otomatik senkronizasyon etkinleştirilsin mi?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Otomatik Doldurma ayarlarında dMsg'yu etkinleştirin</string>
 	<key>Encrypted backup</key>

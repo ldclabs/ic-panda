@@ -86,7 +86,17 @@ final class SessionPolicyTests: XCTestCase {
         let paths = try PrivateFiles(base: base)
         try LocalPreferences(immediateBackgroundLock: true).write(at: paths.root)
         XCTAssertTrue(try LocalPreferences.read(at: paths.root).immediateBackgroundLock)
-        XCTAssertTrue(try LocalPreferences.read(at: paths.root).automaticSyncAccounts.isEmpty)
+        XCTAssertNil(try LocalPreferences.read(at: paths.root).manualSyncAccounts)
+    }
+
+    func testAccountsThatTurnAutomaticSyncOffStayOffAfterRestart() throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let paths = try PrivateFiles(base: base)
+        try LocalPreferences(manualSyncAccounts: ["040g2081040g2081040g"], syncIntroduced: ["040g2081040g2081040g"]).write(at: paths.root)
+        let read = try LocalPreferences.read(at: paths.root)
+        XCTAssertEqual(read.manualSyncAccounts, ["040g2081040g2081040g"])
+        XCTAssertEqual(read.syncIntroduced, ["040g2081040g2081040g"])
     }
 
     func testNotificationSetupDismissalSurvivesRestartAndOlderFilesDecode() throws {
@@ -95,6 +105,8 @@ final class SessionPolicyTests: XCTestCase {
         let paths = try PrivateFiles(base: base)
         try Data(#"{"immediateBackgroundLock":false,"automaticSyncAccounts":[]}"#.utf8).write(to: paths.root.appending(path: "privacy-preferences.json"))
         XCTAssertNil(try LocalPreferences.read(at: paths.root).notificationSetupDismissed)
+        // The opt-in of older files gives way to automatic sync for every account.
+        XCTAssertNil(try LocalPreferences.read(at: paths.root).manualSyncAccounts)
         try LocalPreferences(notificationSetupDismissed: ["040g2081040g2081040g"]).write(at: paths.root)
         XCTAssertEqual(try LocalPreferences.read(at: paths.root).notificationSetupDismissed, ["040g2081040g2081040g"])
     }

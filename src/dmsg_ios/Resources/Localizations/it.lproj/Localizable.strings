@@ -600,10 +600,6 @@
 	<string>Modificato</string>
 	<key>Email</key>
 	<string>E-mail</string>
-	<key>Enable automatic sync</key>
-	<string>Abilita la sincronizzazione automatica</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Abilitare la sincronizzazione automatica per questo account?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Abilita dMsg nelle impostazioni di Compilazione automatica</string>
 	<key>Encrypted backup</key>

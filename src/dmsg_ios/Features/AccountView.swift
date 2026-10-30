@@ -6,7 +6,6 @@ import AVFoundation
 struct AccountView: View {
     @Environment(SessionModel.self) private var model
     @State private var signingOut = false
-    @State private var confirmAutomaticSync = false
     @State private var profile: AccountProfile?
     @State private var avatar: UIImage?
     @State private var loadingProfile = false
@@ -63,9 +62,7 @@ struct AccountView: View {
                 Toggle("Quick unlock with system authentication", isOn: Binding(get: { model.session?.fastUnlock ?? false }, set: { enabled in Task {
                     await model.setFastUnlock(enabled: enabled)
                 } })).disabled(model.busy)
-                Toggle("Automatic foreground sync", isOn: Binding(get: { model.automaticSyncEnabled }, set: { enabled in
-                    if enabled { confirmAutomaticSync = true } else { model.setAutomaticSync(false) }
-                }))
+                Toggle("Automatic foreground sync", isOn: Binding(get: { model.automaticSyncEnabled }, set: { model.setAutomaticSync($0) }))
                 Toggle("Lock immediately in background", isOn: $model.immediateBackgroundLock)
                 Text("Otherwise, dMsg locks after 3 minutes away. Device lock always locks your workspace immediately.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -93,11 +90,6 @@ struct AccountView: View {
                 .listRowBackground(Color.clear)
         }.privateScreen().navigationTitle("Account")
             .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
-            .confirmationDialog("Enable automatic sync for this account?", isPresented: $confirmAutomaticSync) {
-                Button("Enable automatic sync") { model.setAutomaticSync(true) }
-            } message: {
-                Text("While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.")
-            }
             .toolbar { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }
             .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }

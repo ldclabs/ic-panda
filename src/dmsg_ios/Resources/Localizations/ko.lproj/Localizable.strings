@@ -600,10 +600,6 @@
 	<string>편집됨</string>
 	<key>Email</key>
 	<string>이메일</string>
-	<key>Enable automatic sync</key>
-	<string>자동 동기화 활성화</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>이 계정에 대해 자동 동기화를 활성화하시겠습니까?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>자동완성 설정에서 dMsg 활성화</string>
 	<key>Encrypted backup</key>

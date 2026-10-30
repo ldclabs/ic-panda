@@ -600,10 +600,6 @@
 	<string>ترمیم شدہ</string>
 	<key>Email</key>
 	<string>ای میل</string>
-	<key>Enable automatic sync</key>
-	<string>خودکار مطابقت پذیری کو فعال کریں</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>اس اکاؤنٹ کے لیے خودکار مطابقت پذیری کو فعال کریں؟</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>آٹو فل سیٹنگز میں dMsg کو فعال کریں</string>
 	<key>Encrypted backup</key>

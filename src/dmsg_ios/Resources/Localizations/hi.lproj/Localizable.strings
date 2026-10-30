@@ -600,10 +600,6 @@
 	<string>संपादित</string>
 	<key>Email</key>
 	<string>ईमेल</string>
-	<key>Enable automatic sync</key>
-	<string>स्वचालित सिंक सक्षम करें</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>इस खाते के लिए स्वचालित सिंक सक्षम करें?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>ऑटोफ़िल सेटिंग में dMsg सक्षम करें</string>
 	<key>Encrypted backup</key>

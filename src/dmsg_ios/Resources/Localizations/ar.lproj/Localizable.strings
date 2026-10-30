@@ -600,10 +600,6 @@
 	<string>معدَّل</string>
 	<key>Email</key>
 	<string>البريد الإلكتروني</string>
-	<key>Enable automatic sync</key>
-	<string>تفعيل المزامنة التلقائية</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>هل تريد تفعيل المزامنة التلقائية لهذا الحساب؟</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>تفعيل dMsg في إعدادات الملء التلقائي</string>
 	<key>Encrypted backup</key>

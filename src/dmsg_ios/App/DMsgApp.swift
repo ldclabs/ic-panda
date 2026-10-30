@@ -49,7 +49,7 @@ struct DMsgApp: App {
                 .task(id: model.unlocked && model.automaticSyncEnabled && scenePhase == .active) {
                     guard model.automaticSyncEnabled, model.unlocked, scenePhase == .active else { return }
                     while !Task.isCancelled {
-                        await model.optedInSyncPass()
+                        await model.automaticSyncPass()
                         do { try await Task.sleep(for: .seconds(30)) } catch { break }
                     }
                 }

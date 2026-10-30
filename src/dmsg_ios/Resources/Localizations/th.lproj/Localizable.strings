@@ -600,10 +600,6 @@
 	<string>แก้ไขแล้ว</string>
 	<key>Email</key>
 	<string>อีเมล</string>
-	<key>Enable automatic sync</key>
-	<string>เปิดใช้งานการซิงค์อัตโนมัติ</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>เปิดใช้งานการซิงค์อัตโนมัติสำหรับบัญชีนี้หรือไม่</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>เปิดใช้งาน dMsg ในการตั้งค่าป้อนอัตโนมัติ</string>
 	<key>Encrypted backup</key>

@@ -600,10 +600,6 @@
 	<string>সম্পাদিত</string>
 	<key>Email</key>
 	<string>ইমেইল</string>
-	<key>Enable automatic sync</key>
-	<string>স্বয়ংক্রিয় সিঙ্ক সক্ষম করুন</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>এই অ্যাকাউন্টের জন্য স্বয়ংক্রিয় সিঙ্ক সক্ষম করবেন?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>স্বতঃপূর্ণ সেটিংসে dMsg সক্ষম করুন৷</string>
 	<key>Encrypted backup</key>

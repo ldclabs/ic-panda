@@ -600,10 +600,6 @@
 	<string>Đã chỉnh sửa</string>
 	<key>Email</key>
 	<string>Email</string>
-	<key>Enable automatic sync</key>
-	<string>Bật đồng bộ hóa tự động</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Bật đồng bộ hóa tự động cho tài khoản này?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Bật dMsg trong cài đặt Tự động điền</string>
 	<key>Encrypted backup</key>

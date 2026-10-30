@@ -600,10 +600,6 @@
 	<string>Изменена</string>
 	<key>Email</key>
 	<string>Эл. почта</string>
-	<key>Enable automatic sync</key>
-	<string>Включить автосинхронизацию</string>
-	<key>Enable automatic sync for this account?</key>
-	<string>Включить автосинхронизацию для этого аккаунта?</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Включить dMsg в настройках автозаполнения</string>
 	<key>Encrypted backup</key>
