@@ -24,6 +24,7 @@ pub use wallet::{WalletChange, WalletTransfer};
 mod secrets;
 mod security;
 mod session;
+mod transfer;
 
 use dmsg_client::hold::Hold;
 use dmsg_client::{Client, config::Config, host::Host, login::LoginSession};
@@ -91,6 +92,8 @@ pub struct MobileEngine {
     config: Config,
     staging: PathBuf,
     approval_turn: Arc<tokio::sync::Mutex<()>>,
+    /// The device transfer, shared by every view of the engine.
+    transfers: Arc<dmsg_client::transfer::Transfers>,
 }
 
 struct PendingLogin {
@@ -197,6 +200,7 @@ impl MobileEngine {
             config,
             staging,
             approval_turn: Arc::new(tokio::sync::Mutex::new(())),
+            transfers: Arc::default(),
         }))
     }
 }
@@ -259,6 +263,7 @@ impl MobileEngine {
             config: self.config.clone(),
             staging: self.staging.clone(),
             approval_turn: self.approval_turn.clone(),
+            transfers: self.transfers.clone(),
         }))
     }
 

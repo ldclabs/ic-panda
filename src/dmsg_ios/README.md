@@ -306,6 +306,19 @@ another iPhone cannot sign with it and opens moved (`state: "moved"`): it never
 unlocks, and the app offers only to set it aside (`setAsideMoved`) and start a
 new device of the account. Copies set aside stay for import until deleted
 (`movedCopies`, `discardMoved`).
+
+Device transfers move the file library between devices of the account over
+the local network (dmsg-device-transfer/1). The core runs the TCP listener or
+connection (`transferReceiveStart`, `transferSendStart`, `transferStatus`,
+`transferCancel`); the app advertises the receiving session with Bonjour
+(`_dmsg-xfer._tcp`, under the name `transferAdvert` gives) or finds it through
+DNS Service Discovery, and otherwise takes the address and port the receiver
+shows. The first use asks for local network access
+(`NSLocalNetworkUsageDescription`, `NSBonjourServices`); when it is off, the app
+says where to turn it on. While a transfer runs the screen stays on, and
+moving bytes keep the app from locking for idleness. Leaving the foreground
+stops it and returning starts it again with the same session, which resumes;
+locking forgets it.
 Hardware approval uses the core's purpose selection and canonical commitments;
 Swift signs Data(H), while Rust verifies and normalizes the signature. A private
 authorization token belongs to one decision and is released on completion or

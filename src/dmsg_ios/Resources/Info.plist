@@ -28,6 +28,12 @@
 	<string>Scan a dMsg device pairing request for review.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock your private workspace and confirm the request you reviewed.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Find your other device on this network to move your files to it directly, end-to-end encrypted.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dmsg-xfer._tcp</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

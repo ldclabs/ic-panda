@@ -9,3 +9,8 @@ and opaque-route resolution. It uses the same scoped host/session fence and
 `Hold` network steps as other mobile operations. No arbitrary daemon RPC is
 exported. Shared-account background notices are owned by the remote provider;
 local native plans cannot create a second background presentation for them.
+
+`transfer.rs` runs device transfers (dmsg-device-transfer/1) in the mobile
+runtime: a receiving session's listener or a sender's connection, one at a time
+in `dmsg_client::transfer::Transfers`, each ended once its session's generation
+ends. The app advertises or finds the session with Bonjour (`transfer_advert`).

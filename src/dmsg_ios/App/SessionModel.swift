@@ -59,6 +59,7 @@ final class SessionModel {
     var vaultHasMore = false
     let clipboard = PrivateClipboard()
     let transfer = TransferModel()
+    let deviceTransfer = DeviceTransferModel()
     let apple = NativeApple()
     let push = NativePush()
     let notifications = NativeNotifications()
@@ -241,6 +242,9 @@ final class SessionModel {
 
     func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
 
+    /// A device transfer moved bytes, which keeps the app from locking for idleness.
+    func transferMoved() { lastActivity = .now }
+
     func beginBusyOperation(synchronizing: Bool = false) -> UUID {
         let token = UUID(); busyOperation = token; busy = true
         unlocking = false
@@ -407,6 +411,7 @@ final class SessionModel {
         recoveryOperation?.cancel()
         epoch &+= 1
         transfer.cancel()
+        deviceTransfer.background()
         engine?.suspend()
         backgroundAt = .now
         if immediateBackgroundLock {
@@ -456,6 +461,7 @@ final class SessionModel {
                 for draft in pending { draftSaved(channel: draft.channel, text: draft.text) }
             } catch { report(error) }
             await refresh()
+            await deviceTransfer.foreground(self)
         } else {
             await unlockAutomaticallyIfNeeded()
         }
@@ -467,6 +473,7 @@ final class SessionModel {
         lifecycleGeneration &+= 1
         isForeground = false
         transfer.cancel()
+        deviceTransfer.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
         recoveryWarning = nil; recoveryRefreshFailed = false
         authenticationGeneration &+= 1; webLogin.cancel(); busy = false
@@ -486,6 +493,7 @@ final class SessionModel {
         let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
         let flush = clearClipboard && unlocked && account != nil && !drafts.isEmpty
         clearContent(clearClipboard: clearClipboard)
+        deviceTransfer.reset()
         let work = beginBusyOperation(); defer { finishBusyOperation(work) }
         do {
             if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts)) }

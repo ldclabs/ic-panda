@@ -1942,6 +1942,15 @@ impl Client {
             .ok_or(Error::RecoveryIncomplete)
     }
 
+    /// This device's ID in the selected workspace.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` without a selected workspace.
+    pub fn device_id(&self) -> Result<Hash> {
+        ensure(self.slot != Slot::Idle, Error::Locked)?;
+        Ok(self.workspace.meta.device_id)
+    }
+
     /// An agent for public queries: the login's, else an anonymous one.
     pub(crate) async fn reader(&mut self) -> Result<Ic> {
         if let Ok(login) = self.session() {

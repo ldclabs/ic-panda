@@ -10,15 +10,14 @@ use crate::bonjour;
 use crate::daemon::Daemon;
 use crate::params::{hash, optional, parse, text};
 use dmsg_client::hold::{Hold, Unlocked};
-use dmsg_client::transfer::{self, Category, Certified, Report, SessionId};
-use dmsg_client::{error_code, now_ms, succession};
+use dmsg_client::transfer::{self, Category, Certified, Report, SessionId, Start, Ticket};
+use dmsg_client::{error_code, succession};
 use dmsg_types::{Error, Hash, Result, ensure};
-use serde_json::{Value, json};
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError, Weak};
+use serde_json::Value;
+use std::sync::{Arc, OnceLock, Weak};
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
+use tokio::task::JoinHandle;
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 4] = [
@@ -46,60 +45,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
 #[derive(Default)]
 pub(crate) struct Transfers {
     host: OnceLock<Weak<Daemon>>,
-    started: AtomicU64,
-    current: Mutex<Option<Current>>,
-}
-
-struct Current {
-    /// Tells this transfer's task from a later one's.
-    id: u64,
-    /// `receive` or `send`.
-    role: &'static str,
-    session: SessionId,
-    /// The receiving device, in hex.
-    to: String,
-    succession: Option<Hash>,
-    /// Where the receiver listens, to type in where Bonjour cannot help.
-    port: Option<u16>,
-    addresses: Vec<String>,
-    /// Why Bonjour could not advertise the session.
-    bonjour: Option<String>,
-    report: Arc<Mutex<Report>>,
-    /// `running`, then `done`, `failed` or `cancelled`.
-    state: &'static str,
-    error: Option<Error>,
-    started_at: u64,
-    ended_at: Option<u64>,
-    task: Option<tokio::task::AbortHandle>,
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-impl Current {
-    fn view(&self) -> Value {
-        let report = lock(&self.report).clone();
-        let state = match self.state {
-            "running" if report.peer.is_none() => "waiting",
-            state => state,
-        };
-        json!({
-            "role": self.role,
-            "session": hex::encode(self.session),
-            "advert": transfer::advert(&self.session),
-            "to": self.to,
-            "succession": self.succession.map(|id| hex::encode(*id)),
-            "port": self.port,
-            "addresses": self.addresses,
-            "bonjour": self.bonjour,
-            "state": state,
-            "error": self.error.as_ref().map(|e| json!({"code": error_code(e), "message": e.to_string()})),
-            "report": report,
-            "started_at": self.started_at,
-            "ended_at": self.ended_at,
-        })
-    }
+    slot: transfer::Transfers,
 }
 
 /// A session ID in hex.
@@ -112,27 +58,6 @@ fn session(params: &Value, name: &str) -> Result<SessionId> {
 
 fn io(e: std::io::Error) -> Error {
     Error::Unavailable(format!("transfer: {e}"))
-}
-
-/// A listener on a random port of every interface: IPv6 and IPv4 together
-/// where the system allows, IPv4 otherwise.
-async fn listen() -> Result<TcpListener> {
-    match TcpListener::bind((Ipv6Addr::UNSPECIFIED, 0)).await {
-        Ok(listener) => Ok(listener),
-        Err(_) => TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0))
-            .await
-            .map_err(io),
-    }
-}
-
-/// This computer's address on the network its default route leaves by,
-/// to type in on the sender.
-fn local_address(port: u16) -> Option<String> {
-    let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).ok()?;
-    // Connecting a UDP socket only picks the route; nothing is sent.
-    socket.connect((Ipv4Addr::new(192, 0, 2, 1), 9)).ok()?;
-    let ip = socket.local_addr().ok()?.ip();
-    (!ip.is_unspecified()).then(|| SocketAddr::new(ip, port).to_string())
 }
 
 /// The receiver of session `id`, at `address` or found with Bonjour.
@@ -161,56 +86,24 @@ impl Transfers {
         let _ = self.host.set(host);
     }
 
-    fn view(&self) -> Value {
-        lock(&self.current)
-            .as_ref()
-            .map_or(Value::Null, Current::view)
+    pub(crate) fn view(&self) -> Value {
+        self.slot.view()
     }
 
-    /// Start `current` with the task `run` makes, unless a transfer is
+    /// Start `start` with the task `run` makes, unless a transfer is
     /// running.
-    fn begin(
-        &self,
-        mut current: Current,
-        run: impl FnOnce(Job) -> tokio::task::JoinHandle<()>,
-    ) -> Result<Value> {
+    fn begin(&self, start: Start, run: impl FnOnce(Job) -> JoinHandle<()>) -> Result<Value> {
         let daemon = self
             .host
             .get()
             .and_then(Weak::upgrade)
             .ok_or_else(|| Error::Unavailable("the daemon is stopping".into()))?;
-        let mut slot = lock(&self.current);
-        ensure(
-            slot.as_ref().is_none_or(|c| c.state != "running"),
-            Error::Pending,
-        )?;
-        current.id = self.started.fetch_add(1, Ordering::Relaxed) + 1;
-        let job = Job {
-            daemon,
-            id: current.id,
-            session: current.session,
-            task: current.succession,
-            report: current.report.clone(),
-        };
-        // The task waits for the slot before it reports.
-        current.task = Some(run(job).abort_handle());
-        crate::logs::write(
-            "transfer/start",
-            &[
-                ("role", &current.role),
-                ("advert", &transfer::advert(&current.session)),
-            ],
-        );
-        let view = current.view();
-        *slot = Some(current);
+        let (role, advert) = (start.role, transfer::advert(&start.session));
+        let view = self
+            .slot
+            .begin(start, |ticket| run(Job { daemon, ticket }))?;
+        crate::logs::write("transfer/start", &[("role", &role), ("advert", &advert)]);
         Ok(view)
-    }
-
-    fn report(&self, id: u64) -> Option<Report> {
-        lock(&self.current)
-            .as_ref()
-            .filter(|c| c.id == id)
-            .map(|c| lock(&c.report).clone())
     }
 
     /// Run `work`, announcing its progress each tick and noting it as
@@ -230,7 +123,7 @@ impl Transfers {
                 result = &mut work => return result,
                 _ = tick.tick() => {
                     h.with(|_| Ok(())).await?;
-                    let now = self.report(id);
+                    let now = self.slot.report(id);
                     if now != last {
                         if last.is_some() {
                             daemon.note_activity();
@@ -245,48 +138,29 @@ impl Transfers {
 
     /// Record how transfer `id` ended, unless it was cancelled.
     fn end(&self, daemon: &Daemon, id: u64, result: Result<Report>) {
-        {
-            let mut slot = lock(&self.current);
-            let Some(current) = slot.as_mut().filter(|c| c.id == id && c.state == "running") else {
-                return;
-            };
-            current.state = if result.is_ok() { "done" } else { "failed" };
-            current.error = result.err();
-            current.ended_at = Some(now_ms());
-            current.task = None;
-            let code = current.error.as_ref().map(error_code).unwrap_or_default();
-            crate::logs::write(
-                "transfer/end",
-                &[("state", &current.state), ("error", &code)],
-            );
+        let code = result.as_ref().err().map(error_code).unwrap_or_default();
+        if !self.slot.end(id, result) {
+            return;
         }
-        daemon.emit("transfer/changed", self.view());
+        let view = self.view();
+        let state = view["state"].as_str().unwrap_or_default();
+        crate::logs::write("transfer/end", &[("state", &state), ("error", &code)]);
+        daemon.emit("transfer/changed", view);
     }
 
     /// Stop the running transfer; its listener and advertisement close.
     fn cancel(&self) -> Value {
-        let mut slot = lock(&self.current);
-        if let Some(current) = slot.as_mut().filter(|c| c.state == "running") {
-            if let Some(task) = current.task.take() {
-                task.abort();
-            }
-            current.state = "cancelled";
-            current.ended_at = Some(now_ms());
-            crate::logs::write("transfer/end", &[("state", &current.state)]);
+        if self.slot.cancel() {
+            crate::logs::write("transfer/end", &[("state", &"cancelled")]);
         }
-        slot.as_ref().map_or(Value::Null, Current::view)
+        self.view()
     }
 }
 
 /// What a transfer's task carries.
 struct Job {
     daemon: Arc<Daemon>,
-    /// The transfer's ID among this daemon's.
-    id: u64,
-    session: SessionId,
-    /// The succession whose content step it settles.
-    task: Option<Hash>,
-    report: Arc<Mutex<Report>>,
+    ticket: Ticket,
 }
 
 impl Job {
@@ -296,19 +170,15 @@ impl Job {
         h: &H,
         work: impl Future<Output = Result<Report>>,
     ) -> Result<Report> {
-        let done = self
-            .daemon
-            .transfers
-            .drive(&self.daemon, self.id, h, work)
-            .await?;
-        if let Some(task) = self.task {
-            succession::transferred(h, task, &done).await?;
-        }
-        Ok(done)
+        let transfers = &self.daemon.transfers;
+        let work = transfers.drive(&self.daemon, self.ticket.id, h, work);
+        self.ticket.settle(h, work).await
     }
 
     fn end(&self, result: Result<Report>) {
-        self.daemon.transfers.end(&self.daemon, self.id, result);
+        self.daemon
+            .transfers
+            .end(&self.daemon, self.ticket.id, result);
     }
 }
 
@@ -323,13 +193,14 @@ async fn receiving(
     let result = async {
         let h = Unlocked::new(&shared).await?;
         let devices = Certified(&h);
+        let ticket = &job.ticket;
         let work = transfer::serve(
             &h,
             &devices,
             &listener,
-            job.session,
+            ticket.session,
             &categories,
-            &job.report,
+            &ticket.report,
         );
         job.settle(&h, work).await
     }
@@ -343,9 +214,10 @@ async fn sending(job: Job, to: Hash, address: Option<String>) {
     let shared = job.daemon.hold();
     let result = async {
         let h = Unlocked::new(&shared).await?;
-        let stream = connect(&job.session, address).await?;
+        let ticket = &job.ticket;
+        let stream = connect(&ticket.session, address).await?;
         let devices = Certified(&h);
-        let work = transfer::send(&h, &devices, stream, to, job.session, &job.report);
+        let work = transfer::send(&h, &devices, stream, to, ticket.session, &ticket.report);
         job.settle(&h, work).await
     }
     .await;
@@ -376,13 +248,11 @@ impl Daemon {
         let task = optional(params, "succession", hash)?;
         let shared = self.hold();
         let h = Unlocked::new(&shared).await?;
-        let me = h
-            .with(|c| c.status()?.device_id.ok_or(Error::Locked))
-            .await?;
+        let me = h.with(|c| c.device_id()).await?;
         if let Some(task) = task {
             succession::peer(&h, task).await?;
         }
-        let listener = listen().await?;
+        let listener = transfer::listen().await?;
         let port = listener.local_addr().map_err(io)?.port();
         let name = transfer::advert(&session);
         let advertised = tokio::task::spawn_blocking(move || bonjour::advertise(&name, port))
@@ -392,23 +262,16 @@ impl Daemon {
             Ok(advert) => (Some(advert), None),
             Err(error) => (None, Some(error.to_string())),
         };
-        let current = Current {
-            id: 0,
+        let start = Start {
             role: "receive",
             session,
             to: me,
             succession: task,
             port: Some(port),
-            addresses: local_address(port).into_iter().collect(),
+            addresses: transfer::local_address(port).into_iter().collect(),
             bonjour,
-            report: Arc::default(),
-            state: "running",
-            error: None,
-            started_at: now_ms(),
-            ended_at: None,
-            task: None,
         };
-        self.transfers.begin(current, |job| {
+        self.transfers.begin(start, |job| {
             tokio::spawn(receiving(job, listener, advert, categories))
         })
     }
@@ -433,24 +296,17 @@ impl Daemon {
             (Some(to), None) => to,
             (None, None) => return Err(Error::InvalidInput("missing to".into())),
         };
-        let current = Current {
-            id: 0,
+        let start = Start {
             role: "send",
             session,
-            to: hex::encode(*to),
+            to,
             succession: task,
             port: None,
             addresses: address.iter().cloned().collect(),
             bonjour: None,
-            report: Arc::default(),
-            state: "running",
-            error: None,
-            started_at: now_ms(),
-            ended_at: None,
-            task: None,
         };
         self.transfers
-            .begin(current, |job| tokio::spawn(sending(job, to, address)))
+            .begin(start, |job| tokio::spawn(sending(job, to, address)))
     }
 }
 
@@ -459,6 +315,8 @@ mod tests {
     use super::*;
     use crate::home::Home;
     use dmsg_client::testing::{TempDir, unlocked};
+    use serde_json::json;
+    use std::net::Ipv4Addr;
 
     fn daemon(dir: &TempDir) -> Arc<Daemon> {
         let home = Home {

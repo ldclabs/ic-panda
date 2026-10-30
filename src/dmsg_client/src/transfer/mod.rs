@@ -12,10 +12,12 @@
 //! a broken connection resumes with a new key. The sender changes nothing.
 //!
 //! The transport is the host's: any `AsyncRead + AsyncWrite`, a TCP
-//! connection found through Bonjour ([`SERVICE`], [`advert`]) in the apps.
+//! connection found through Bonjour ([`SERVICE`], [`advert`]) in the apps,
+//! which keep their one transfer at a time in [`Transfers`].
 //!
 //! [docs/protocol/device_transfer.md]: ../../../../docs/protocol/device_transfer.md
 
+mod hosted;
 pub(crate) mod library;
 mod session;
 mod wire;
@@ -29,6 +31,7 @@ use serde_bytes::{ByteBuf, Bytes};
 use std::collections::BTreeMap;
 use std::future::Future;
 
+pub use hosted::{Start, Ticket, Transfers, listen, local_address};
 pub use session::{HELLO_TIMEOUT, IDLE_TIMEOUT, receive, send, serve};
 pub use wire::{Body, Header, Hello, MAX_BODY};
 

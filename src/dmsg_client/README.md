@@ -321,7 +321,8 @@ A host serves a receiving session on a TCP listener with `serve`: one
 connection at a time, each failure (a stranger, a broken connection) kept in
 the report's `last_error` while it goes on listening, until a transfer
 completes or nothing connects for two minutes. The host closes it when the
-device locks.
+device locks. `Transfers` keeps a host's one transfer at a time with the view
+both apps show, and `listen` opens a receiver's port.
 
 ### Moved copies
 

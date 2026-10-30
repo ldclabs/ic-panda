@@ -312,6 +312,149 @@
           }
         }
       }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "comment": "Privacy - Local Network Usage Description",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابحث عن جهازك الآخر على هذه الشبكة لنقل ملفاتك إليه مباشرةً بتشفير تام بين الطرفين."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find your other device on this network to move your files to it directly, end-to-end encrypted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuentra tu otro dispositivo en esta red para transferirle tus archivos directamente, con cifrado de extremo a extremo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trouvez votre autre appareil sur ce réseau pour y transférer vos fichiers directement, chiffrés de bout en bout."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найдите другое своё устройство в этой сети, чтобы перенести на него файлы напрямую со сквозным шифрованием."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此网络中找到你的另一台设备，以端到端加密直接向它传输文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此網路中找到你的另一台設備，以端到端加密直接向它傳輸檔案。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस नेटवर्क पर अपना दूसरा डिवाइस ढूँढें और अपनी फ़ाइलें सीधे उस पर ले जाएँ, एंड-टू-एंड एन्क्रिप्टेड।"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temukan perangkat Anda yang lain di jaringan ini untuk memindahkan file langsung ke sana, terenkripsi ujung ke ujung."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontre seu outro dispositivo nesta rede para transferir seus arquivos diretamente para ele, com criptografia de ponta a ponta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このネットワーク上のもう一台のデバイスを見つけ、ファイルをエンドツーエンド暗号化で直接移します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finden Sie Ihr anderes Gerät in diesem Netzwerk, um Ihre Dateien direkt und Ende-zu-Ende-verschlüsselt darauf zu übertragen."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 네트워크에서 다른 기기를 찾아 파일을 종단 간 암호화로 직접 옮깁니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trova l’altro tuo dispositivo su questa rete per trasferirvi i file direttamente, con crittografia end-to-end."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosyalarınızı uçtan uca şifreli olarak doğrudan taşımak için bu ağdaki diğer cihazınızı bulun."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm thiết bị khác của bạn trên mạng này để chuyển tệp sang đó trực tiếp, được mã hóa đầu cuối."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ค้นหาอุปกรณ์อีกเครื่องของคุณในเครือข่ายนี้เพื่อย้ายไฟล์ไปยังเครื่องนั้นโดยตรง โดยเข้ารหัสตั้งแต่ต้นทางถึงปลายทาง"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Znajdź swoje drugie urządzenie w tej sieci, aby przenieść na nie pliki bezpośrednio, z szyfrowaniem end-to-end."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanapin ang iyong ibang device sa network na ito para direktang ilipat dito ang iyong mga file, naka-encrypt end-to-end."
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cari peranti anda yang lain pada rangkaian ini untuk memindahkan fail anda terus kepadanya, disulitkan hujung ke hujung."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "এই নেটওয়ার্কে আপনার অন্য ডিভাইসটি খুঁজুন এবং আপনার ফাইলগুলো সরাসরি সেখানে সরান, এন্ড-টু-এন্ড এনক্রিপ্টেড।"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vind je andere apparaat op dit netwerk om je bestanden er rechtstreeks naartoe te zetten, end-to-end versleuteld."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اپنی فائلیں براہِ راست اینڈ ٹو اینڈ انکرپٹڈ منتقل کرنے کے لیے اس نیٹ ورک پر اپنا دوسرا آلہ تلاش کریں۔"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
