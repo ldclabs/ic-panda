@@ -448,4 +448,53 @@ import XCTest
         policy.name = "Privacy available before login"; policy.lifetime = .keepAlways; add(policy)
     }
 
+    func testDeviceHandoverEntriesInEnglish() { handover(language: "en", locale: "en_US", account: "Account", dark: false) }
+
+    func testDeviceHandoverEntriesInDarkArabic() { handover(language: "ar", locale: "ar_SA", account: "الحساب", dark: true) }
+
+    /// Devices links to replacing a device and to device transfers; without
+    /// a core both show only what starts them.
+    private func handover(language: String, locale: String, account: String, dark: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + (dark ? ["--ui-dark"] : [])
+        app.launch()
+        tab(app, symbol: "Glyph-account", title: account).tap()
+        let devices = app.buttons["account.devices"]
+        XCTAssertTrue(devices.waitForExistence(timeout: 5))
+        for _ in 0..<4 where !devices.isHittable { app.swipeUp() }
+        devices.tap()
+        let succession = app.buttons["devices.succession"], transfer = app.buttons["devices.transfer"]
+        XCTAssertTrue(succession.waitForExistence(timeout: 5))
+        XCTAssertTrue(transfer.exists)
+        capture(app, name: "Devices with handover entries · \(language)")
+        succession.tap()
+        XCTAssertTrue(app.buttons["succession.review"].waitForExistence(timeout: 5))
+        capture(app, name: "Replace a device · \(language)")
+        back(app)
+        XCTAssertTrue(transfer.waitForExistence(timeout: 5))
+        transfer.tap()
+        XCTAssertTrue(app.buttons["transfer.receive"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["transfer.resume"].exists)
+        capture(app, name: "Transfer between devices · \(language)")
+    }
+
+    func testReplaceDeviceRequestBeforeJoiningInChinese() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-access", "--ui-pairing", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let replace = app.buttons["login.succession"]
+        XCTAssertTrue(replace.waitForExistence(timeout: 5))
+        for _ in 0..<4 where !replace.isHittable { app.swipeUp() }
+        replace.tap()
+        let fields = app.textFields.matching(identifier: "succession.predecessor")
+        let views = app.textViews.matching(identifier: "succession.predecessor")
+        XCTAssertTrue(fields.firstMatch.waitForExistence(timeout: 5) || views.firstMatch.exists)
+        let field = fields.firstMatch.exists ? fields.firstMatch : views.firstMatch
+        let create = app.buttons["succession.create"]
+        XCTAssertFalse(create.isEnabled)
+        field.tap()
+        field.typeText(String(repeating: "7", count: 64))
+        wait(for: [expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: create)], timeout: 5)
+        capture(app, name: "Chinese replace a device request")
+    }
 }

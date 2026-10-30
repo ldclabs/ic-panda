@@ -305,7 +305,26 @@ never asks. A workspace a restored backup or device transfer copied from
 another iPhone cannot sign with it and opens moved (`state: "moved"`): it never
 unlocks, and the app offers only to set it aside (`setAsideMoved`) and start a
 new device of the account. Copies set aside stay for import until deleted
-(`movedCopies`, `discardMoved`).
+(`movedCopies`, `discardMoved`). Before this iPhone joins, a copy of this
+account's administrator device can approve it in its place
+(`movedApproveSuccessor`, decided in the approval view); once it has joined,
+Devices imports a copy's file library (`movedImport`), which settles the content
+step of an open handover from the copy's device.
+
+Replacing a device hands an administrator device over to a new one. The new
+iPhone, before it joins, asks from the access screen (`successionRequest`: its
+approval and cosigner keys are made here) and shows the request as a QR code to
+scan or share. The old device reviews it in Devices → Replace a device
+(`successionReview`, with what only that device holds) and approves it once the
+person enters the new device's ID (`successionApprove`). Each side then runs
+its steps in order (`successions`, `successionRun`): steps that ask open the
+approval view, wallet bindings wait in Approvals, native addresses link to
+moving them, and local content moves with a device transfer or a copy import, or
+is left behind (`successionSkip`), which the revocation lists. Stopping
+(`successionCancel`) keeps what was done. What only this device holds
+(`localOnly`: versions without a cloud backup, unsynced changes, the last
+successful sync) shows in Devices and warns in Files and before binding the
+workspace to this device.
 
 Device transfers move the file library between devices of the account over
 the local network (dmsg-device-transfer/1). The core runs the TCP listener or
@@ -318,7 +337,8 @@ shows. The first use asks for local network access
 says where to turn it on. While a transfer runs the screen stays on, and
 moving bytes keep the app from locking for idleness. Leaving the foreground
 stops it and returning starts it again with the same session, which resumes;
-locking forgets it.
+locking forgets it. Devices → Transfer between devices receives, sends to a
+session code and device ID, and resumes a stopped transfer with its session.
 Hardware approval uses the core's purpose selection and canonical commitments;
 Swift signs Data(H), while Rust verifies and normalizes the signature. A private
 authorization token belongs to one decision and is released on completion or
@@ -418,7 +438,10 @@ This tree is development code, not an App Store release assertion. In particular
 5. Wallet execution/management, cosign packets shared with the desktop (sign,
    share, import, execute once enough are collected; signatures that no longer
    match a cosigner's current key are set aside and their cosigners shown as
-   needing to sign again), agent management,
+   needing to sign again), this iPhone's keys per wallet (the native Taproot
+   key root and its protectors, moving native addresses to this device through
+   L1 or L2, replacing a key this device does not hold with one it does, and
+   unbinding revoked devices), agent management,
    Share/AutoFill/Files extensions,
    widgets, App Intents, browser app-hop navigation and bounded background ciphertext
    transfers are implemented. Existing product-level wallet creation pause and the

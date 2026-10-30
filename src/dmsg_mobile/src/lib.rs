@@ -24,6 +24,7 @@ pub use wallet::{WalletChange, WalletTransfer};
 mod secrets;
 mod security;
 mod session;
+mod succession;
 mod transfer;
 
 use dmsg_client::hold::Hold;

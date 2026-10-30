@@ -19,7 +19,7 @@ fn supported(view: &Value) -> bool {
         ) => true,
         Some("wallet") => matches!(
             view["detail"]["action"].as_str(),
-            Some("join" | "decide" | "cosign")
+            Some("join" | "unbind" | "decide" | "cosign")
         ),
         Some("grant" | "delegation") => true,
         Some("connect") => matches!(
@@ -222,6 +222,9 @@ mod tests {
         assert!(!supported(&json!({"type":"connect"})));
         assert!(supported(
             &json!({"type":"connect","detail":{"method":"signDocument"}})
+        ));
+        assert!(supported(
+            &json!({"type":"wallet","detail":{"action":"unbind"}})
         ));
         assert!(supported(&json!({"type":"secret_package_import"})));
         assert!(supported(&json!({"type":"hardware_policy"})));

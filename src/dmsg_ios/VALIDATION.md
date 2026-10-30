@@ -1,5 +1,44 @@
 # iOS implementation validation
 
+## Device replacement, transfers and wallet keys (2026-10-30)
+
+Adds the iPhone screens for replacing a device and moving to a new one. Devices
+links to Replace a device (review a new device's request with what only this
+device holds, approve it once its device ID is entered, then run, leave or stop
+each side's steps) and to Transfer between devices (receive, send to a session
+code and device ID with an optional address, resume a stopped transfer). A new
+iPhone asks to replace an administrator device from the access screen (QR code,
+share, copy). A copy of this account's administrator device approves this iPhone
+before it joins, and its file library imports afterwards. Files and the
+device-bound setting warn when files exist only here. Each wallet gains This
+iPhone's keys: the native Taproot key root and its protectors, moving native
+addresses through L1 or L2, replacing a key this device does not hold, and
+unbinding revoked devices. `dmsg_mobile` adds `succession.rs`, and wallet unbind
+approvals become decidable on the phone.
+
+`cargo fmt --check`, `cargo clippy --all-targets -D warnings` and
+`cargo test -p dmsg_mobile` (11 tests; new: wallet unbinding is decidable on the
+phone) passed. Both ARM64 slices and bindings were rebuilt and the source
+fingerprint verified. On iPhone 16 Pro / iOS 18.4, the full `xcodebuild test`
+passed: 45 unit tests and 29 UI tests, 1 skipped (it needs a regular-width iPad),
+0 failures. Three new UI tests (Devices' handover entries in English and in dark
+Arabic, a replacement request before joining in Chinese) and the two access-action
+tests then passed after the six new screens moved to inline titles: the English
+large title of Transfer between devices was cut off, and several translations of
+the other titles are longer still. Screenshots of Devices, Replace a device and
+Transfer between devices in English and in dark Arabic RTL, and of the Chinese
+request with Create request enabled, were inspected. Each of the 23 localizations
+gained 137 keys; the catalogs, the Swift string extraction and 12 Python tests
+passed. Not covered: fixture mode has no core, so these screens show only their
+entry points. Creating, reviewing and approving a request, running, leaving and
+stopping steps, transfers, copy imports and the wallet key screens were not
+exercised on iOS; the mobile wrappers call the same `dmsg_client` operations as
+the desktop but were only compiled here. Nothing ran on a physical device: Face
+ID, the Secure Enclave, the local network prompt, Bonjour on a real network and a
+live two-device handover remain unverified.
+
+Implementation and validation: Claude Opus 5.5.
+
 ## Notification consent, setup prompt and privacy text (2026-10-29)
 
 Closes three client gaps before remote notifications are enabled publicly; the

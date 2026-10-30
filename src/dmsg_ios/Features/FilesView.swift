@@ -12,6 +12,7 @@ struct FilesView: View {
     @State private var folderName = ""
     @State private var trash = false
     @State private var removing: LibraryFile?
+    @State private var local: LocalOnly?
     var body: some View {
         WorkspaceNavigation(selection: $selected) { listSelection in
             List(selection: listSelection) {
@@ -23,6 +24,7 @@ struct FilesView: View {
                         Spacer()
                         Text(ByteCountFormatter.string(fromByteCount: Int64(model.library.files.reduce(0) { $0 + $1.size }), countStyle: .file)).foregroundStyle(.secondary)
                     }.font(.subheadline).padding(.vertical, 4)
+                    LocalOnlyWarning(value: local)
                     if !model.library.folders.isEmpty {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
                             ForEach(model.library.folders) { folder in
@@ -63,8 +65,8 @@ struct FilesView: View {
                             Button("Trash", systemImage: "trash") { trash = true }
                         }.disabled(model.filesFolder != (model.library.folder?.id ?? "root"))
                     }
-                }.task { await model.refresh(); await model.loadCloudBackups(refresh: true) }
-                .refreshable { await model.synchronize() }
+                }.task { await model.refresh(); await model.loadCloudBackups(refresh: true); local = await LocalOnly.load(model) }
+                .refreshable { await model.synchronize(); local = await LocalOnly.load(model) }
                 .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { result in
                     Task { await importFile(result) }
                 }

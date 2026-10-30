@@ -29,7 +29,7 @@ fn session_id(text: &str) -> Result<SessionId> {
         .ok_or_else(|| dmsg_types::invalid("session"))?)
 }
 
-fn hash(text: &str, name: &str) -> Result<Hash> {
+pub(crate) fn hash(text: &str, name: &str) -> Result<Hash> {
     Ok(hex::decode(text)
         .ok()
         .and_then(|b| <[u8; 32]>::try_from(b).ok())

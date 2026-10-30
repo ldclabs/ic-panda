@@ -125,6 +125,7 @@ struct ReminderButton: View {
 struct AccessView: View {
     @Environment(SessionModel.self) private var model
     @State private var signingIn = false
+    @State private var copies: [MovedCopy] = []
     private var fastUnlock: Bool { model.session?.fastUnlock == true }
     private var needsSetup: Bool { model.session?.state == "no_account" || model.session?.setupPending == true }
     private var needsAuthorization: Bool { model.session?.state == "pairing_required" || model.session?.state == "root_required" }
@@ -174,6 +175,11 @@ struct AccessView: View {
                         NavigationLink { PairView() } label: {
                             AccessActionLabel("Authorize this device", symbol: "checkmark.shield")
                         }.modifier(AccessActionStyle(prominent: !fastUnlock)).accessibilityIdentifier("login.authorize")
+                        if model.session?.state == "pairing_required" {
+                            NavigationLink { SuccessionRequestView() } label: {
+                                AccessActionLabel("Replace a device", symbol: "arrow.left.arrow.right")
+                            }.modifier(AccessActionStyle(prominent: false)).accessibilityIdentifier("login.succession")
+                        }
                     }
                     Button { Task {
                         signingIn = true; defer { signingIn = false }
@@ -184,16 +190,23 @@ struct AccessView: View {
                         .disabled(model.engine == nil && !model.uiTesting).accessibilityIdentifier("login.start")
                 }.disabled(model.busy)
                 NoticeBar(text: guidance)
-                MovedCopiesSection()
+                MovedCopiesSection(copies: copies) { await loadCopies() }
                 AccessFooter()
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .primaryAction) { ReminderButton() } }
+            .task(id: model.session?.generation) { await loadCopies() }
     }
 
     private func initialize() async {
         do { _ = try await model.engine?.initializeAccount(); await model.updateSession() }
+        catch { model.report(error) }
+    }
+
+    private func loadCopies() async {
+        guard let engine = model.engine else { return }
+        do { copies = try model.decode(try await engine.movedCopies()) }
         catch { model.report(error) }
     }
 }
@@ -218,6 +231,8 @@ struct MovedView: View {
                     AccessActionLabel("Set up this iPhone as a new device", symbol: "iphone", working: working)
                 }.modifier(AccessActionStyle(prominent: true)).disabled(working || model.busy).accessibilityIdentifier("moved.setAside")
                 NoticeBar(text: String(localized: "The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working."))
+                Text("To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.")
+                    .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }.padding(24).frame(maxWidth: 520).frame(maxWidth: .infinity)
         }.frame(maxWidth: .infinity).background(Theme.paper).navigationTitle("dMsg")
             .navigationBarTitleDisplayMode(.inline)
@@ -230,58 +245,64 @@ struct MovedView: View {
     }
 }
 
-/// The copies set aside on this iPhone, kept for import until deleted.
+/// The copies set aside on this iPhone, kept for import until deleted. A
+/// copy of this account's administrator device can approve this iPhone in
+/// its place before it joins.
 private struct MovedCopiesSection: View {
-    private struct Copy: Decodable, Identifiable {
-        let id: String
-        let account: String?
-        let deviceId: String
-        let movedAt: UInt64
-    }
-
+    let copies: [MovedCopy]
+    let reload: @MainActor () async -> Void
     @Environment(SessionModel.self) private var model
-    @State private var copies: [Copy] = []
-    @State private var deleting: Copy?
+    @State private var deleting: MovedCopy?
+    @State private var working = false
+    @State private var request: ApprovalView?
 
     var body: some View {
-        Group {
-            if !copies.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Copies from other iPhones").font(.headline)
-                    Text("Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.")
-                        .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    ForEach(copies) { copy in
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                if let account = copy.account { Text(verbatim: account).font(.footnote.monospaced()) }
-                                Text(verbatim: String(copy.deviceId.prefix(8))).font(.caption.monospaced()).foregroundStyle(.secondary)
-                                Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+        if !copies.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Copies from other iPhones").font(.headline)
+                Text("Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.")
+                    .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                ForEach(copies) { copy in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let account = copy.account { Text(verbatim: account).font(.footnote.monospaced()) }
+                            Text(verbatim: String(copy.deviceId.prefix(8))).font(.caption.monospaced()).foregroundStyle(.secondary)
+                            Text(Date(timeIntervalSince1970: TimeInterval(copy.movedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 8) {
+                            if copy.account != nil && copy.account == model.session?.account && model.session?.state == "pairing_required" {
+                                Button("Replace the old iPhone") { Task { await replace(copy) } }
+                                    .disabled(working).accessibilityIdentifier("moved.replace")
                             }
-                            Spacer()
                             Button("Delete copy", role: .destructive) { deleting = copy }.accessibilityIdentifier("moved.delete")
                         }
                     }
                 }
             }
+            .confirmationDialog("Delete copy", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+                Button("Delete copy", role: .destructive) { if let copy = deleting { Task { await discard(copy) } } }
+                Button("Cancel", role: .cancel) { deleting = nil }
+            } message: { Text("Anything that exists only in this copy, such as files that were never backed up, is lost for good.") }
+            .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
+                if let request { ApprovalDetailView(request: request) }
+            }
         }
-        .task(id: model.session?.generation) { await load() }
-        .confirmationDialog("Delete copy", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
-            Button("Delete copy", role: .destructive) { if let copy = deleting { Task { await discard(copy) } } }
-            Button("Cancel", role: .cancel) { deleting = nil }
-        } message: { Text("Anything that exists only in this copy, such as files that were never backed up, is lost for good.") }
     }
 
-    private func load() async {
-        guard let engine = model.engine else { return }
-        do { copies = try model.decode(try await engine.movedCopies()) }
+    /// The copy's device approves this iPhone as its successor, once the person approves here.
+    private func replace(_ copy: MovedCopy) async {
+        guard let engine = model.engine, !working else { return }
+        working = true; defer { working = false }
+        do { request = try model.decode(try await engine.movedApproveSuccessor(id: copy.id)) }
         catch { model.report(error) }
     }
 
-    private func discard(_ copy: Copy) async {
+    private func discard(_ copy: MovedCopy) async {
         deleting = nil
         do { _ = try await model.engine?.discardMoved(id: copy.id) }
         catch { model.report(error) }
-        await load()
+        await reload()
     }
 }
 

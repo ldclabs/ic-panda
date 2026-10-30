@@ -42,6 +42,7 @@ struct HardwareSecurityView: View {
     @State private var enrollmentToken: String?
     @State private var incomingToken = ""
     @State private var incomingDevice = ""
+    @State private var local: LocalOnly?
     private let controlPurposes: Set<String> = ["account_control", "device_control", "principal_control"]
 
     var body: some View {
@@ -76,6 +77,7 @@ struct HardwareSecurityView: View {
                 }
                 Section("Device-bound workspace") {
                     Toggle("Require this device to unlock", isOn: Binding(get: { status.deviceBound }, set: { bindingChange = $0 })).disabled(busy || !status.available)
+                    LocalOnlyWarning(value: local)
                     if status.deviceBound {
                         LabeledContent("Unlock policy", value: status.boundBiometryOnly == true ? String(localized: "Biometrics only") : String(localized: "System authentication"))
                         if status.boundKeyAvailable == false {
@@ -144,6 +146,7 @@ struct HardwareSecurityView: View {
             let next: HardwareSecurityStatus = try model.decode(value)
             status = next; policy = Set(next.policy); biometryOnly = next.key?.biometryOnly ?? next.boundBiometryOnly ?? false
         } catch { if epoch == model.epoch { model.report(error) } }
+        local = await LocalOnly.load(model)
     }
 
     private func approval(_ action: @MainActor (MobileEngine) async throws -> ObjectSnapshot) async {

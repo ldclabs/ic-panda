@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
+	<string>বাতিল করা বা আর আপনার অ্যাকাউন্টে না থাকা %lldটি ডিভাইস এখনো এই ওয়ালেটে বাঁধা।</string>
 	<key>1 day</key>
 	<string>1 দিন</string>
 	<key>1 hour</key>
@@ -14,6 +16,8 @@
 	<string>একটি চ্যানেল স্ন্যাপশট এই যুগে অ্যাক্সেস সহ সদস্যদের জন্য উপলব্ধ, পরবর্তী ইতিহাস অ্যাক্সেস অনুমতি সহ। এটির কোন লিংক এক্সপায়ারি, ডাউনলোড-সেশন লিমিট বা রিকল নেই।</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>একটি ডাউনলোড সেশন হল একটি পুনরুদ্ধার ভাতা, ফাইল পড়ার সংখ্যা নয়। মেয়াদ বা প্রত্যাহার ইতিমধ্যে সংরক্ষিত কপি মুছে ফেলতে পারে না।</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
+	<string>নেটিভ ঠিকানার L1 একটিমাত্র ডিভাইসের কীর সঙ্গে বাঁধা, তাই এই ডিভাইস নিজের ঠিকানা পায় এবং কয়েন সেখানে সরে যায়। প্রতিটি ধাপ দলের অনুমোদনসাপেক্ষ একটি প্রস্তাব।</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>একটি রেকর্ড বা ডিভাইস কী যাচাই করা যায়নি। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -56,16 +60,22 @@
 	<string>ডিভাইস যোগ করুন</string>
 	<key>Add field</key>
 	<string>ক্ষেত্র যোগ করুন</string>
+	<key>Add it to the address book</key>
+	<string>ঠিকানা বইয়ে যোগ করুন</string>
 	<key>Add item</key>
 	<string>আইটেম যোগ করুন</string>
 	<key>Add message to demo</key>
 	<string>ডেমোতে বার্তা যোগ করুন</string>
 	<key>Add one-time code</key>
 	<string>এক-কালীন কোড যোগ করুন</string>
+	<key>Add protector</key>
+	<string>সুরক্ষা কী যোগ করুন</string>
 	<key>Add receiving address</key>
 	<string>প্রাপ্তির ঠিকানা যোগ করুন</string>
 	<key>Add sample login</key>
 	<string>নমুনা লগইন যোগ করুন</string>
+	<key>Add the new address</key>
+	<string>নতুন ঠিকানা যোগ করুন</string>
 	<key>Added</key>
 	<string>যোগ করা হয়েছে</string>
 	<key>Address</key>
@@ -96,6 +106,8 @@
 	<string>অনুমোদিত</string>
 	<key>Allowed account IDs, one per line</key>
 	<string>অনুমোদিত অ্যাকাউন্ট আইডি, প্রতি লাইনে একটি</string>
+	<key>Already here</key>
+	<string>আগে থেকেই ছিল</string>
 	<key>Already imported</key>
 	<string>ইতিমধ্যে আমদানি করা হয়েছে</string>
 	<key>Already present</key>
@@ -120,6 +132,8 @@
 	<string>এই কথোপকথন পরিবর্তন প্রয়োগ করবেন?</string>
 	<key>Approval imports only your selected fields and attachments as new independent items. Files remain local and inherit the destination folder's access grants.</key>
 	<string>অনুমোদন নতুন স্বাধীন আইটেম হিসাবে শুধুমাত্র আপনার নির্বাচিত ক্ষেত্র এবং সংযুক্তি আমদানি করে। ফাইলগুলি স্থানীয় থাকে এবং গন্তব্য ফোল্ডারের অ্যাক্সেস অ্যাক্সেস অনুমতিগুলি উত্তরাধিকারী করে৷</string>
+	<key>Approval key</key>
+	<string>অনুমোদন কী</string>
 	<key>Approval publishes exactly the reviewed fields and attachments as an independent snapshot. Verify the destination and limits; recipients can retain copies.</key>
 	<string>অনুমোদন একটি স্বাধীন স্ন্যাপশট হিসাবে ঠিক পর্যালোচনা করা ক্ষেত্র এবং সংযুক্তি প্রকাশ করে। গন্তব্য এবং সীমা যাচাই; প্রাপকরা কপি রাখতে পারেন।</string>
 	<key>Approval thresholds</key>
@@ -130,6 +144,10 @@
 	<string>অনুমোদন দিন</string>
 	<key>Approve a binding request</key>
 	<string>একটি বাধ্যতামূলক অনুরোধ অনুমোদন</string>
+	<key>Approve replacement</key>
+	<string>প্রতিস্থাপন অনুমোদন করুন</string>
+	<key>Approve the new device</key>
+	<string>নতুন ডিভাইস অনুমোদন</string>
 	<key>Approve the reviewed request?</key>
 	<string>পর্যালোচনা করা অনুরোধ অনুমোদন করবেন?</string>
 	<key>Approve the wallet transaction plan you reviewed</key>
@@ -142,12 +160,20 @@
 	<string>দ্বারা অনুমোদিত</string>
 	<key>Approver</key>
 	<string>অনুমোদনকারী</string>
+	<key>Approving enrolls the new device and moves the content root to it.</key>
+	<string>অনুমোদন নতুন ডিভাইসকে যুক্ত করে এবং কনটেন্ট রুট তার কাছে সরায়।</string>
 	<key>Archive</key>
 	<string>সংরক্ষণাগার</string>
 	<key>Archive conversation</key>
 	<string>কথোপকথন সংরক্ষণাগার</string>
+	<key>Archive old address</key>
+	<string>পুরনো ঠিকানা আর্কাইভ করুন</string>
+	<key>Archive the old address</key>
+	<string>পুরনো ঠিকানা আর্কাইভ করুন</string>
 	<key>Archived</key>
 	<string>সংরক্ষণাগারভুক্ত</string>
+	<key>Arrives</key>
+	<string>পৌঁছাবে</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>আপনার বিদ্যমান অ্যাকাউন্টে এই লগইনটি আবদ্ধ করতে একজন প্রশাসককে বলুন। ডিভাইস অনুমোদন একটি পৃথক পদক্ষেপ।</string>
 	<key>Asset identifier</key>
@@ -264,6 +290,8 @@
 	<string>কার্ডধারী</string>
 	<key>Chain</key>
 	<string>চেইন</string>
+	<key>Chain tip: block %llu</key>
+	<string>সর্বশেষ ব্লক: %llu</string>
 	<key>Change a device secret policy</key>
 	<string>একটি ডিভাইস গোপন নীতি পরিবর্তন করুন</string>
 	<key>Change account security</key>
@@ -278,6 +306,8 @@
 	<string>ভূমিকা পরিবর্তন করুন</string>
 	<key>Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved.</key>
 	<string>পরিবর্তনগুলি প্রস্তাব তৈরি করে এবং এখনও ওয়ালেটের বিদ্যমান অনুমোদনের প্রয়োজন হয়৷ বিদ্যমান নীতি ক্ষেত্র এবং সদস্য এজেন্ট অনুমতি সংরক্ষণ করা হয়.</string>
+	<key>Changes not yet synced</key>
+	<string>সিঙ্ক না হওয়া পরিবর্তন</string>
 	<key>Channel</key>
 	<string>চ্যানেল</string>
 	<key>Channel ID</key>
@@ -288,6 +318,8 @@
 	<string>চ্যানেল স্ন্যাপশট</string>
 	<key>Channels</key>
 	<string>চ্যানেল</string>
+	<key>Check addresses</key>
+	<string>ঠিকানা যাচাই</string>
 	<key>Check authorization</key>
 	<string>অনুমোদন চেক করুন</string>
 	<key>Check deletion status</key>
@@ -296,6 +328,8 @@
 	<string>প্রকল্পের রেফারেন্স এবং ইতিমধ্যে বিতরণ করা কোনো কপি চেক করুন।</string>
 	<key>Check recovery status</key>
 	<string>পুনরুদ্ধারের স্থিতি পরীক্ষা করুন</string>
+	<key>Check request</key>
+	<string>অনুরোধ যাচাই</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>অ্যাক্সেস এখনও প্রয়োজন কিনা তা সিদ্ধান্ত নেওয়ার আগে এই ডিভাইসের কার্যকলাপ পরীক্ষা করুন৷</string>
 	<key>Checking permission…</key>
@@ -334,6 +368,8 @@
 	<string>ক্লাউড মোছা সম্পূর্ণ হয়েছে৷</string>
 	<key>Cloud storage</key>
 	<string>ক্লাউড স্টোরেজ</string>
+	<key>Complete</key>
+	<string>সম্পন্ন</string>
 	<key>Complete recovery after waiting period</key>
 	<string>অপেক্ষার সময় পরে সম্পূর্ণ পুনরুদ্ধার</string>
 	<key>Completed</key>
@@ -346,6 +382,8 @@
 	<string>পরিবর্তন নিশ্চিত করুন</string>
 	<key>Confirm completed step</key>
 	<string>সম্পূর্ণ পদক্ষেপ নিশ্চিত করুন</string>
+	<key>Confirm it is done</key>
+	<string>সম্পন্ন হয়েছে নিশ্চিত করুন</string>
 	<key>Confirm only work you have actually completed. This records your statement; it does not execute the provider action.</key>
 	<string>আপনি আসলে সম্পন্ন করেছেন শুধুমাত্র কাজ নিশ্চিত করুন. এটি আপনার বিবৃতি রেকর্ড করে; এটি প্রদানকারীর কর্ম সম্পাদন করে না।</string>
 	<key>Confirm the dMsg request you reviewed</key>
@@ -418,6 +456,8 @@
 	<string>পেয়ারিং অনুরোধ কপি করুন</string>
 	<key>Copy reference</key>
 	<string>রেফারেন্স কপি করুন</string>
+	<key>Copy request</key>
+	<string>অনুরোধ কপি করুন</string>
 	<key>Copy this field?</key>
 	<string>এই ক্ষেত্রটি অনুলিপি করবেন?</string>
 	<key>Cosign on this device</key>
@@ -426,6 +466,10 @@
 	<string>অন্য ডিভাইস থেকে সহ-স্বাক্ষর প্যাকেট</string>
 	<key>Cosignatures</key>
 	<string>সহ-স্বাক্ষর</string>
+	<key>Cosigner key</key>
+	<string>সহ-স্বাক্ষর কী</string>
+	<key>Cosigner keys</key>
+	<string>সহ-স্বাক্ষর কী</string>
 	<key>Cosigners for the proposed address policy</key>
 	<string>প্রস্তাবিত ঠিকানা নীতির জন্য cosigners</string>
 	<key>Create</key>
@@ -450,8 +494,16 @@
 	<string>হার্ডওয়্যার কসাইনার তৈরি করুন</string>
 	<key>Create invitation</key>
 	<string>আমন্ত্রণ তৈরি করুন</string>
+	<key>Create key root</key>
+	<string>কী রুট তৈরি করুন</string>
 	<key>Create proposal</key>
 	<string>প্রস্তাব তৈরি করুন</string>
+	<key>Create request</key>
+	<string>অনুরোধ তৈরি করুন</string>
+	<key>Create this device's key root</key>
+	<string>এই ডিভাইসের কী রুট তৈরি করুন</string>
+	<key>Create this device's native key root first, in this wallet's settings.</key>
+	<string>আগে এই ওয়ালেটের সেটিংসে এই ডিভাইসের নেটিভ কী রুট তৈরি করুন।</string>
 	<key>Create this wallet proposal?</key>
 	<string>এই ওয়ালেট প্রস্তাব তৈরি করুন?</string>
 	<key>Create transfer proposal</key>
@@ -544,6 +596,8 @@
 	<string>ডিভাইস</string>
 	<key>Device ID</key>
 	<string>ডিভাইস আইডি</string>
+	<key>Device ID shown on the new device</key>
+	<string>নতুন ডিভাইসে দেখানো ডিভাইস ID</string>
 	<key>Device authentication is temporarily unavailable. Your keys are kept; try again when this device is unlocked.</key>
 	<string>ডিভাইস প্রমাণীকরণ অস্থায়ীভাবে অনুপলব্ধ. আপনার চাবি রাখা হয়; এই ডিভাইসটি আনলক হলে আবার চেষ্টা করুন।</string>
 	<key>Device pairing request QR code</key>
@@ -554,6 +608,8 @@
 	<string>ডিভাইস নীতি</string>
 	<key>Device policy needs review</key>
 	<string>ডিভাইস নীতি পর্যালোচনা প্রয়োজন</string>
+	<key>Device replacement request QR code</key>
+	<string>ডিভাইস প্রতিস্থাপনের অনুরোধের QR কোড</string>
 	<key>Device request</key>
 	<string>ডিভাইস অনুরোধ</string>
 	<key>Device-bound workspace</key>
@@ -610,6 +666,8 @@
 	<string>ইঞ্জিন</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>নথিভুক্ত বায়োমেট্রিক্স পরিবর্তিত হয়েছে। এই কীটির উপর নির্ভর করার আগে একটি প্রতিস্থাপন কী নিবন্ধন করুন।</string>
+	<key>Enter the session code the receiving device shows.</key>
+	<string>গ্রহণকারী ডিভাইসে দেখানো সেশন কোড লিখুন।</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>বৈধ অ্যাকাউন্ট আইডি লিখুন, প্রতি লাইনে একটি।</string>
 	<key>Error details</key>
@@ -646,6 +704,8 @@
 	<string>প্রিয়</string>
 	<key>Favorites</key>
 	<string>প্রিয়</string>
+	<key>Fee</key>
+	<string>ফি</string>
 	<key>Field</key>
 	<string>মাঠ</string>
 	<key>Field name</key>
@@ -674,20 +734,28 @@
 	<string>ফাইল অ্যাপ স্ন্যাপশট আপডেট করা হয়েছে৷</string>
 	<key>Files are backed up only when you explicitly choose to do so.</key>
 	<string>ফাইলগুলি শুধুমাত্র তখনই ব্যাক আপ করা হয় যখন আপনি স্পষ্টভাবে এটি করতে চান৷</string>
+	<key>Files imported.</key>
+	<string>ফাইল আমদানি হয়েছে।</string>
 	<key>Files in this folder</key>
 	<string>এই ফোল্ডারে ফাইল</string>
 	<key>Fingerprint</key>
 	<string>আঙুলের ছাপ</string>
 	<key>Folder name</key>
 	<string>ফোল্ডারের নাম</string>
+	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
+	<string>এমন কীর জন্য যা এই ডিভাইসে নেই, যেমন হারানো ডিভাইসের কী। দল অনুমোদন দেওয়ার ২৪ ঘণ্টা পরে নতুন কী কার্যকর হয়।</string>
 	<key>Freeze this wallet?</key>
 	<string>এই মানিব্যাগ ফ্রিজ?</string>
 	<key>Freeze wallet</key>
 	<string>মানিব্যাগ ফ্রিজ করুন</string>
+	<key>From block %llu</key>
+	<string>ব্লক %llu থেকে</string>
 	<key>Grant delegation</key>
 	<string>প্রতিনিধি দল অনুমোদন করুন</string>
 	<key>Handled on another device</key>
 	<string>অন্য ডিভাইসে পরিচালনা করা হয়েছে</string>
+	<key>Handover complete. Consider registering an approval key and a cosigner key on a second device as well.</key>
+	<string>হস্তান্তর সম্পন্ন। দ্বিতীয় কোনো ডিভাইসেও একটি অনুমোদন কী ও একটি সহ-স্বাক্ষর কী নিবন্ধনের কথা ভাবুন।</string>
 	<key>Harassment</key>
 	<string>হয়রানি</string>
 	<key>Hardware approval key</key>
@@ -718,6 +786,8 @@
 	<string>আমি আমার ওয়ালেট অ্যাক্সেস এবং বাহ্যিক শংসাপত্রগুলি সুরক্ষিত করেছি৷</string>
 	<key>ICP</key>
 	<string>ICP</string>
+	<key>ID of the device to replace</key>
+	<string>যে ডিভাইস প্রতিস্থাপন হবে তার ID</string>
 	<key>Id Number</key>
 	<string>আইডি নম্বর</string>
 	<key>Identity</key>
@@ -744,6 +814,8 @@
 	<string>ফাইল আমদানি করুন</string>
 	<key>Import files</key>
 	<string>ফাইল আমদানি করুন</string>
+	<key>Import from copy</key>
+	<string>কপি থেকে আমদানি</string>
 	<key>Import into dMsg</key>
 	<string>dMsg এ আমদানি করুন</string>
 	<key>Import into this account</key>
@@ -814,14 +886,30 @@
 	<string>কী লেবেল</string>
 	<key>Keys</key>
 	<string>চাবি</string>
+	<key>L1 spends from native Taproot addresses need this device's BIP-340 key. One root on this device holds every wallet's key; using it asks for you.</key>
+	<string>নেটিভ Taproot ঠিকানা থেকে L1 খরচে এই ডিভাইসের BIP-340 কী লাগে। এই ডিভাইসের একটি রুট প্রতিটি ওয়ালেটের কী রাখে; এটি ব্যবহারে আপনার নিশ্চিতকরণ চাওয়া হয়।</string>
+	<key>L1 · old device cosigns</key>
+	<string>L1 · পুরনো ডিভাইস সহ-স্বাক্ষর করে</string>
+	<key>L2 · after the delay</key>
+	<string>L2 · অপেক্ষার পরে</string>
 	<key>Language</key>
 	<string>ভাষা</string>
 	<key>Last known cloud state</key>
 	<string>সর্বশেষ পরিচিত মেঘ রাষ্ট্র</string>
+	<key>Last successful sync</key>
+	<string>শেষ সফল সিঙ্ক</string>
+	<key>Leave behind</key>
+	<string>রেখে যান</string>
 	<key>Leave conversation</key>
 	<string>কথোপকথন ছেড়ে দিন</string>
 	<key>Leave empty to keep existing value</key>
 	<string>বিদ্যমান মান রাখতে খালি ছেড়ে দিন</string>
+	<key>Leave this step behind?</key>
+	<string>এই ধাপটি রেখে যাবেন?</string>
+	<key>Left behind</key>
+	<string>রেখে যাওয়া</string>
+	<key>Left out</key>
+	<string>বাদ গেছে</string>
 	<key>License Key</key>
 	<string>লাইসেন্স কী</string>
 	<key>Licensed To</key>
@@ -842,6 +930,8 @@
 	<string>যাচাইকৃত অনুরোধ লোড হচ্ছে...</string>
 	<key>Local</key>
 	<string>স্থানীয়</string>
+	<key>Local content</key>
+	<string>স্থানীয় কনটেন্ট</string>
 	<key>Local delivery record</key>
 	<string>স্থানীয় ডেলিভারি রেকর্ড</string>
 	<key>Local demo</key>
@@ -858,6 +948,8 @@
 	<string>স্থানীয় অনুসন্ধান</string>
 	<key>Local label</key>
 	<string>স্থানীয় লেবেল</string>
+	<key>Local network access is off for dMsg. Turn it on in Settings, or enter the other device's address.</key>
+	<string>dMsg-এর জন্য স্থানীয় নেটওয়ার্ক অ্যাক্সেস বন্ধ। সেটিংসে চালু করুন, অথবা অন্য ডিভাইসের ঠিকানা লিখুন।</string>
 	<key>Local security review</key>
 	<string>স্থানীয় নিরাপত্তা পর্যালোচনা</string>
 	<key>Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.</key>
@@ -898,6 +990,12 @@
 	<string>মাস</string>
 	<key>Monthly execution units</key>
 	<string>মাসিক অপারেশন ইউনিট</string>
+	<key>Move a native address</key>
+	<string>নেটিভ ঠিকানা সরান</string>
+	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
+	<string>প্রতিটি নেটিভ Taproot ঠিকানা এই ডিভাইসের কীতে সরান, বা পরে L2 দিয়ে সরানোর জন্য রেখে দিন।</string>
+	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
+	<string>ফাইল লাইব্রেরি স্থানীয় নেটওয়ার্কে পাঠান, কপি করা ওয়ার্কস্পেস থেকে আমদানি করুন, বা রেখে যান।</string>
 	<key>Move this local file to Trash?</key>
 	<string>এই স্থানীয় ফাইলটি ট্র্যাশে সরাতে চান?</string>
 	<key>Move this secret to Trash?</key>
@@ -906,16 +1004,34 @@
 	<string>ট্র্যাশে সরান</string>
 	<key>Move to another folder</key>
 	<string>অন্য ফোল্ডারে যান</string>
+	<key>Move to this device</key>
+	<string>এই ডিভাইসে সরান</string>
+	<key>Moved</key>
+	<string>সরানো হয়েছে</string>
+	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
+	<string>ফাইল লাইব্রেরি একই নেটওয়ার্কে এই অ্যাকাউন্টের অন্য ডিভাইসে এন্ড-টু-এন্ড এনক্রিপশনে সরায়। শেষ না হওয়া পর্যন্ত দুটো ডিভাইসই আনলক রাখুন।</string>
+	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
+	<string>পুরনো ডিভাইস থেকে আসছেন? এই ডিভাইস তার ভূমিকা, কী ও ওয়ালেট নেবে, তারপর পুরনোটি বাতিল হবে।</string>
+	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
+	<string>নতুন ডিভাইসে যাওয়া: নতুন ডিভাইস পুরনোটির জায়গা নেওয়ার অনুরোধ করে, পুরনোটি অনুমোদন দেয়, তারপর দুটো ধাপে ধাপে হস্তান্তর করে।</string>
 	<key>Mute notifications</key>
 	<string>বিজ্ঞপ্তিগুলি নিঃশব্দ করুন</string>
 	<key>My account</key>
 	<string>আমার অ্যাকাউন্ট</string>
 	<key>Name</key>
 	<string>নাম</string>
+	<key>Native Taproot key</key>
+	<string>নেটিভ Taproot কী</string>
+	<key>Native addresses</key>
+	<string>নেটিভ ঠিকানা</string>
 	<key>Needs a fresh review</key>
 	<string>একটি নতুন পর্যালোচনা প্রয়োজন</string>
 	<key>Network</key>
 	<string>নেটওয়ার্ক</string>
+	<key>Never</key>
+	<string>কখনো নয়</string>
+	<key>New address</key>
+	<string>নতুন ঠিকানা</string>
 	<key>New controller</key>
 	<string>নতুন Controller</string>
 	<key>New conversation</key>
@@ -930,6 +1046,8 @@
 	<string>নতুন রিভিশন</string>
 	<key>New secret</key>
 	<string>নতুন রহস্য</string>
+	<key>Next</key>
+	<string>পরবর্তী</string>
 	<key>No</key>
 	<string>না</string>
 	<key>No activity on this device</key>
@@ -948,6 +1066,8 @@
 	<string>এই ডিভাইসে কোনো নির্ভরতা রেকর্ড করা হয়নি।</string>
 	<key>No findings from this device's checks.</key>
 	<string>এই ডিভাইসের চেক থেকে কোন অনুসন্ধান.</string>
+	<key>No handovers on this device.</key>
+	<string>এই ডিভাইসে কোনো হস্তান্তর নেই।</string>
 	<key>No interrupted imports</key>
 	<string>কোন বিঘ্নিত আমদানি</string>
 	<key>No item attachments</key>
@@ -972,12 +1092,16 @@
 	<string>সক্রিয় করা হয়নি</string>
 	<key>Not enough storage on this device.</key>
 	<string>এই ডিভাইসে পর্যাপ্ত সঞ্চয়স্থান নেই৷</string>
+	<key>Not made yet; it is derived when this device registers its key.</key>
+	<string>এখনো তৈরি হয়নি; এই ডিভাইস কী নিবন্ধন করলে তা উদ্ভূত হবে।</string>
 	<key>Not registered</key>
 	<string>নিবন্ধিত নয়</string>
 	<key>Note</key>
 	<string>দ্রষ্টব্য</string>
 	<key>Notes</key>
 	<string>নোট</string>
+	<key>Nothing above the dust limit can move through this path yet.</key>
+	<string>এই পথে এখনো ডাস্ট সীমার ওপরে কিছু সরানো যায় না।</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>বিজ্ঞপ্তি নিবন্ধন পুনরায় চেষ্টা করা প্রয়োজন. ফোরগ্রাউন্ড সিঙ্ক উপলব্ধ থাকে।</string>
 	<key>Notifications</key>
@@ -996,24 +1120,36 @@
 	<string>ঠিক আছে</string>
 	<key>Observed on this device</key>
 	<string>এই ডিভাইসে পর্যবেক্ষণ করা হয়েছে</string>
+	<key>Old address</key>
+	<string>পুরনো ঠিকানা</string>
 	<key>On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically.</key>
 	<string>অনুমোদিত ডিভাইসে, অনুমোদনগুলি খুলুন এবং এই ডিভাইসের সম্পূর্ণ আঙ্গুলের ছাপ, ভূমিকা এবং অনুমতিগুলি পর্যালোচনা করুন৷ স্ক্যানিং কখনই স্বয়ংক্রিয়ভাবে অনুমোদন করে না।</string>
+	<key>On the device being replaced, open Devices → Replace a device → Review a request, scan or paste this request and enter this device's ID. Then check authorization here.</key>
+	<string>যে ডিভাইস প্রতিস্থাপিত হবে তাতে ডিভাইস → ডিভাইস প্রতিস্থাপন → অনুরোধ পর্যালোচনা খুলুন, এই অনুরোধ স্ক্যান বা পেস্ট করুন এবং এই ডিভাইসের ID লিখুন। তারপর এখানে অনুমোদন চেক করুন।</string>
 	<key>On this device</key>
 	<string>এই ডিভাইসে</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>আপনার প্রথম দর্শনে, সাইন ইন করুন এবং আপনার এনক্রিপ্ট করা ওয়ার্কস্পেস তৈরি করতে পদক্ষেপগুলি অনুসরণ করুন৷</string>
+	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
+	<string>অনুমোদনের পর নতুন ডিভাইস এই ডিভাইসের ভূমিকা নিয়ে যুক্ত হয় এবং কনটেন্ট রুট তার কাছে যায়; এরপর এই ডিভাইস কেবল হস্তান্তর শেষ করতে পারে।</string>
 	<key>One-time code</key>
 	<string>এককালীন কোড</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
 	<string>আপনি এটি ব্যবহার করার জন্য প্রস্তুত হলেই এটি করুন৷ অনুলিপিগুলি এই ডিভাইসে থাকে এবং 30 সেকেন্ড পরে মেয়াদ শেষ হয়৷</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>শুধুমাত্র বিনামূল্যে যোগাযোগ এখানে সমর্থিত. এই ক্রিয়াটি প্রাপকের ফি প্রদান বা অনুমোদন করতে পারে না।</string>
+	<key>Only on this device</key>
+	<string>শুধু এই ডিভাইসে</string>
+	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
+	<string>এখন শুধু অন্তত %lld ব্লক গভীর আউটপুট সরে; বাকিগুলো দেখায় কোন ব্লক থেকে সরানো যাবে।</string>
 	<key>Only selected, immutable copies appear in the Files app. Access requires system authentication; locking dMsg ends the current access session. Files may retain downloaded copies and filenames, which dMsg cannot recall.</key>
 	<string>শুধুমাত্র নির্বাচিত, অপরিবর্তনীয় অনুলিপি ফাইল অ্যাপে উপস্থিত হয়। অ্যাক্সেস সিস্টেম প্রমাণীকরণ প্রয়োজন; dMsg লক করা বর্তমান অ্যাক্সেস সেশন শেষ করে। ফাইলগুলি ডাউনলোড করা কপি এবং ফাইলের নামগুলি ধরে রাখতে পারে, যা dMsg স্মরণ করতে পারে না৷</string>
 	<key>Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.</key>
 	<string>dMsg লক থাকা অবস্থায় শুধুমাত্র নির্বাচিত এনক্রিপ্ট করা ফাইল স্থানান্তর করতে পারে৷ iOS সময়সূচী নিয়ন্ত্রণ করে; আপনি আবার অ্যাপ না খোলা পর্যন্ত ফোর্স প্রস্থান ডেলিভারি বন্ধ করে দেয়। যাচাই এবং শেষ করতে আসল অ্যাকাউন্ট খুলুন।</string>
 	<key>Open</key>
 	<string>খুলুন</string>
+	<key>Open Settings</key>
+	<string>সেটিংস খুলুন</string>
 	<key>Open approval record</key>
 	<string>অনুমোদন রেকর্ড খুলুন</string>
 	<key>Open approvals</key>
@@ -1036,6 +1172,8 @@
 	<string>কর্মক্ষেত্র খুলুন</string>
 	<key>Optional password</key>
 	<string>ঐচ্ছিক পাসওয়ার্ড</string>
+	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
+	<string>ঐচ্ছিক। শুধু অন্য ডিভাইস স্বয়ংক্রিয়ভাবে না পাওয়া গেলে, যেমন 192.168.1.20:52000।</string>
 	<key>Original revision</key>
 	<string>মূল সংশোধন</string>
 	<key>Other</key>
@@ -1046,6 +1184,8 @@
 	<string>অন্যথায়, 3 মিনিট দূরে dMsg লক হয়ে যাবে। ডিভাইস লক সবসময় আপনার কর্মক্ষেত্র অবিলম্বে লক করে।</string>
 	<key>Outcome no longer available</key>
 	<string>ফলাফল আর উপলব্ধ নেই</string>
+	<key>Outputs swept</key>
+	<string>সরানো আউটপুট</string>
 	<key>Package size</key>
 	<string>প্যাকেজের আকার</string>
 	<key>Parent folder</key>
@@ -1070,6 +1210,8 @@
 	<string>পেয়ার করার অনুরোধ</string>
 	<key>Paste secret package link</key>
 	<string>গোপন প্যাকেজ লিঙ্ক আটকান</string>
+	<key>Paste the request the new device shows, check what it asks for, then confirm its device ID.</key>
+	<string>নতুন ডিভাইসে দেখানো অনুরোধটি পেস্ট করুন, সেটি কী চায় দেখুন, তারপর তার ডিভাইস ID নিশ্চিত করুন।</string>
 	<key>Pause this agent</key>
 	<string>এই এজেন্ট থামান</string>
 	<key>Pause transfer</key>
@@ -1140,6 +1282,8 @@
 	<string>ঠিকানা প্রস্তাব করুন</string>
 	<key>Propose member change</key>
 	<string>সদস্য পরিবর্তন প্রস্তাব</string>
+	<key>Propose next step</key>
+	<string>পরের ধাপ প্রস্তাব করুন</string>
 	<key>Propose registering this key</key>
 	<string>এই কী নিবন্ধন প্রস্তাব</string>
 	<key>Propose removing cosigner</key>
@@ -1154,6 +1298,10 @@
 	<string>আনফ্রিজিং প্রস্তাব</string>
 	<key>Proposer</key>
 	<string>প্রস্তাবক</string>
+	<key>Protection</key>
+	<string>সুরক্ষা</string>
+	<key>Protector %lld</key>
+	<string>সুরক্ষা কী %lld</string>
 	<key>Public Key</key>
 	<string>সর্বজনীন কী</string>
 	<key>Public avatar</key>
@@ -1186,12 +1334,20 @@
 	<string>প্রকাশিত নীতি পড়ুন</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>ইমপোর্টের জন্য রাখা শুধু পড়ার কপি। একটি মুছলে পুরোনো iPhone বা আপনার অ্যাকাউন্টে কোনো প্রভাব পড়ে না।</string>
+	<key>Ready</key>
+	<string>প্রস্তুত</string>
 	<key>Reason</key>
 	<string>কারণ</string>
+	<key>Receive here</key>
+	<string>এখানে গ্রহণ করুন</string>
 	<key>Received for review</key>
 	<string>পর্যালোচনার জন্য প্রাপ্ত</string>
+	<key>Receiving</key>
+	<string>গ্রহণ</string>
 	<key>Receiving addresses</key>
 	<string>ঠিকানা গ্রহণ</string>
+	<key>Receiving device ID</key>
+	<string>গ্রহণকারী ডিভাইসের ID</string>
 	<key>Receiving policy</key>
 	<string>নীতি গ্রহণ</string>
 	<key>Recipient</key>
@@ -1214,6 +1370,8 @@
 	<string>ম্যানুয়াল পর্যালোচনা রেকর্ড করুন</string>
 	<key>Record this step as completed?</key>
 	<string>এই ধাপটি সম্পূর্ণ হিসাবে রেকর্ড করবেন?</string>
+	<key>Records added</key>
+	<string>যোগ হওয়া রেকর্ড</string>
 	<key>Recovery</key>
 	<string>পুনরুদ্ধার</string>
 	<key>Recovery status</key>
@@ -1234,10 +1392,14 @@
 	<string>একটি হার্ডওয়্যার অনুমোদন কী নিবন্ধন করুন</string>
 	<key>Register an SSH binding</key>
 	<string>একটি SSH বাইন্ডিং নিবন্ধন করুন৷</string>
+	<key>Register this device's key</key>
+	<string>এই ডিভাইসের কী নিবন্ধন করুন</string>
 	<key>Register this public key through a wallet proposal</key>
 	<string>একটি ওয়ালেট প্রস্তাবের মাধ্যমে এই সর্বজনীন কী নিবন্ধন করুন৷</string>
 	<key>Registered on this device</key>
 	<string>এই ডিভাইসে নিবন্ধিত</string>
+	<key>Registers the new device's approval key.</key>
+	<string>নতুন ডিভাইসের অনুমোদন কী নিবন্ধন করে।</string>
 	<key>Reject</key>
 	<string>প্রত্যাখ্যান করুন</string>
 	<key>Reject this request?</key>
@@ -1280,8 +1442,16 @@
 	<string>অটোফিল স্ন্যাপশট প্রতিস্থাপন করুন</string>
 	<key>Replace Files app snapshot</key>
 	<string>ফাইল অ্যাপ স্ন্যাপশট প্রতিস্থাপন করুন</string>
+	<key>Replace a device</key>
+	<string>ডিভাইস প্রতিস্থাপন</string>
 	<key>Replace cosignature policy</key>
 	<string>সহ-স্বাক্ষর নীতি প্রতিস্থাপন করুন</string>
+	<key>Replace key</key>
+	<string>কী প্রতিস্থাপন</string>
+	<key>Replace the old iPhone</key>
+	<string>পুরনো iPhone প্রতিস্থাপন করুন</string>
+	<key>Replacement key</key>
+	<string>প্রতিস্থাপক কী</string>
 	<key>Reply</key>
 	<string>উত্তর দিন</string>
 	<key>Reply to message %llu</key>
@@ -1300,6 +1470,10 @@
 	<string>অ্যাকাউন্ট মুছে ফেলার অনুরোধ করুন</string>
 	<key>Request account recovery</key>
 	<string>অ্যাকাউন্ট পুনরুদ্ধারের অনুরোধ করুন</string>
+	<key>Request expires</key>
+	<string>অনুরোধের মেয়াদ</string>
+	<key>Request from the new device</key>
+	<string>নতুন ডিভাইসের অনুরোধ</string>
 	<key>Request recovery</key>
 	<string>পুনরুদ্ধারের অনুরোধ করুন</string>
 	<key>Request source</key>
@@ -1334,6 +1508,8 @@
 	<string>ফলাফল</string>
 	<key>Result unconfirmed</key>
 	<string>ফলাফল অনিশ্চিত</string>
+	<key>Resume</key>
+	<string>আবার শুরু করুন</string>
 	<key>Retire a hardware approval key</key>
 	<string>একটি হার্ডওয়্যার অনুমোদন কী অবসর নিন</string>
 	<key>Retiring a key removes its ability to approve protected actions. Check that another authorized approval path remains available.</key>
@@ -1364,6 +1540,8 @@
 	<string>এই ক্ষেত্র প্রকাশ?</string>
 	<key>Review</key>
 	<string>পর্যালোচনা</string>
+	<key>Review a request</key>
+	<string>অনুরোধ পর্যালোচনা</string>
 	<key>Review a web connection request</key>
 	<string>একটি ওয়েব সংযোগ অনুরোধ পর্যালোচনা করুন</string>
 	<key>Review agent delegation</key>
@@ -1466,6 +1644,8 @@
 	<string>এই লিঙ্ক প্রত্যাহার বা বাতিল করুন</string>
 	<key>Revoke the old credential at its provider</key>
 	<string>এর প্রদানকারীতে পুরানো শংসাপত্র প্রত্যাহার করুন</string>
+	<key>Revoke the old device</key>
+	<string>পুরনো ডিভাইস বাতিল</string>
 	<key>Revoke this browser?</key>
 	<string>এই ব্রাউজারটি প্রত্যাহার করবেন?</string>
 	<key>Revoke this device</key>
@@ -1476,12 +1656,18 @@
 	<string>এই স্ন্যাপশট লিঙ্ক প্রত্যাহার করবেন?</string>
 	<key>Revoked</key>
 	<string>প্রত্যাহার করা হয়েছে</string>
+	<key>Revokes the old device once nothing is left behind unnoticed.</key>
+	<string>অজান্তে কিছু পেছনে না থাকলে পুরনো ডিভাইস বাতিল করে।</string>
+	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
+	<string>কোনো ডিভাইস বাতিল করলে শুধু তাতেই থাকা জিনিস হারিয়ে যায়, যেমন কখনো সিঙ্ক বা ব্যাকআপ না হওয়া ফাইল।</string>
 	<key>Role</key>
 	<string>ভূমিকা</string>
 	<key>Rotate conversation keys</key>
 	<string>কথোপকথনের কীগুলি ঘোরান</string>
 	<key>Rotation checklists</key>
 	<string>ঘূর্ণন চেকলিস্ট</string>
+	<key>Run</key>
+	<string>চালান</string>
 	<key>SHA-256</key>
 	<string>SHA-256</string>
 	<key>SSH binding</key>
@@ -1546,6 +1732,8 @@
 	<string>গোপন প্যাকেজ লিঙ্ক</string>
 	<key>Section</key>
 	<string>ধারা</string>
+	<key>Secure Enclave</key>
+	<string>Secure Enclave</string>
 	<key>Secure Enclave is unavailable on this device.</key>
 	<string>Secure Enclave এই ডিভাইসে অনুপলব্ধ৷</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
@@ -1576,14 +1764,20 @@
 	<string>বার্তা পাঠান</string>
 	<key>Send queued message</key>
 	<string>সারিবদ্ধ বার্তা পাঠান</string>
+	<key>Send to a device</key>
+	<string>কোনো ডিভাইসে পাঠান</string>
 	<key>Send to an administrator</key>
 	<string>একজন প্রশাসকের কাছে পাঠান</string>
 	<key>Sender</key>
 	<string>প্রেরক</string>
 	<key>Sender account</key>
 	<string>প্রেরকের অ্যাকাউন্ট</string>
+	<key>Sending</key>
+	<string>প্রেরণ</string>
 	<key>Server</key>
 	<string>সার্ভার</string>
+	<key>Session code</key>
+	<string>সেশন কোড</string>
 	<key>Set up this account</key>
 	<string>এই অ্যাকাউন্ট সেট আপ করুন</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1602,6 +1796,8 @@
 	<string>লিঙ্ক শেয়ার করুন</string>
 	<key>Share pairing request</key>
 	<string>পেয়ারিং অনুরোধ শেয়ার করুন</string>
+	<key>Share request</key>
+	<string>অনুরোধ শেয়ার করুন</string>
 	<key>Share secret snapshot</key>
 	<string>গোপন স্ন্যাপশট শেয়ার করুন</string>
 	<key>Share this device's signatures with the other cosigners, or import theirs. Importing only collects signatures; executing is a separate step.</key>
@@ -1626,6 +1822,8 @@
 	<string>শেয়ার লিঙ্ক দেখান</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
 	<string>সংরক্ষিত সামগ্রী দেখানো হচ্ছে। সর্বশেষ সিঙ্ক শেষ হয়নি.</string>
+	<key>Shown in Devices on that device, which must be an administrator.</key>
+	<string>ওই ডিভাইসের ডিভাইস বিভাগে দেখা যায়; সেটিকে প্রশাসক হতে হবে।</string>
 	<key>Sign a statement</key>
 	<string>একটি বিবৃতিতে স্বাক্ষর করুন</string>
 	<key>Sign in again to unlock your encrypted workspace on this iPhone.</key>
@@ -1652,16 +1850,24 @@
 	<string>স্ন্যাপশট</string>
 	<key>Snapshot link</key>
 	<string>স্ন্যাপশট লিঙ্ক</string>
+	<key>Software</key>
+	<string>সফটওয়্যার</string>
 	<key>Software license</key>
 	<string>সফটওয়্যার লাইসেন্স</string>
 	<key>Solana</key>
 	<string>সোলানা</string>
+	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
+	<string>কিছু ফাইল শুধু এই iPhone-এ আছে, ক্লাউড ব্যাকআপ বা সাম্প্রতিক সিঙ্ক ছাড়া।</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>কিছু উৎস রেকর্ড বা বৈশিষ্ট্য অসমর্থিত. এই আমদানি শুধুমাত্র নির্বাচিত ক্ষেত্র কপি; সংরক্ষণাগার সংযুক্তি, পাসকি এবং ইতিহাস এখানে আমদানি করা হয় না।</string>
+	<key>Some wallets are not done yet. Run the step again to finish.</key>
+	<string>কিছু ওয়ালেট এখনো শেষ হয়নি। শেষ করতে ধাপটি আবার চালান।</string>
 	<key>Source address %u</key>
 	<string>উৎস ঠিকানা %u</string>
 	<key>Spam</key>
 	<string>স্প্যাম</string>
+	<key>Spendable now</key>
+	<string>এখন খরচযোগ্য</string>
 	<key>Spending approvals %u</key>
 	<string>ব্যয়ের অনুমোদন %u</string>
 	<key>Stage selected files, then choose an account and import them in dMsg.</key>
@@ -1676,10 +1882,18 @@
 	<string>অ্যাকাউন্ট পুনরুদ্ধার শুরু করবেন?</string>
 	<key>Start checklist</key>
 	<string>চেকলিস্ট শুরু করুন</string>
+	<key>Start sending</key>
+	<string>পাঠানো শুরু করুন</string>
 	<key>Status</key>
 	<string>অবস্থা</string>
+	<key>Steps already taken stay. To undo the new device's enrollment, revoke it.</key>
+	<string>যে ধাপগুলো হয়ে গেছে সেগুলো থাকবে। নতুন ডিভাইসের যুক্ত হওয়া বাতিল করতে সেটিকে বাতিল করুন।</string>
+	<key>Stop handover</key>
+	<string>হস্তান্তর থামান</string>
 	<key>Stop this device's transfer</key>
 	<string>এই ডিভাইসের স্থানান্তর বন্ধ করুন</string>
+	<key>Stopped</key>
+	<string>থামানো হয়েছে</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>সঞ্চয়স্থান হল বর্তমান সাবস্ক্রিপশন মেয়াদের জন্য এককালীন ক্রয় এবং স্বয়ংক্রিয়ভাবে পুনর্নবীকরণ হয় না।</string>
 	<key>Storage packs</key>
@@ -1692,6 +1906,10 @@
 	<string>রিপোর্ট জমা দিন</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>আপনার Apple অ্যাকাউন্ট সেটিংসে বাতিল না হলে সদস্যতা স্বয়ংক্রিয়ভাবে পুনর্নবীকরণ হয়। আপনার dMsg অ্যাকাউন্ট মুছে ফেলা একটি Apple সদস্যতা বাতিল করে না।</string>
+	<key>Sweep path</key>
+	<string>স্থানান্তরের পথ</string>
+	<key>Sweep the old address</key>
+	<string>পুরনো ঠিকানা খালি করুন</string>
 	<key>Switch account</key>
 	<string>অ্যাকাউন্ট পরিবর্তন করুন</string>
 	<key>Switch to this account</key>
@@ -1732,6 +1950,8 @@
 	<string>রপ্তানিকৃত শংসাপত্রগুলি অনুপলব্ধ বা মেয়াদোত্তীর্ণ৷ একটি নতুন স্ন্যাপশট তৈরি করতে dMsg খুলুন৷</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>ফাইলের অনুলিপিগুলি অনুপলব্ধ বা মেয়াদোত্তীর্ণ। একটি নতুন স্ন্যাপশট তৈরি করতে dMsg খুলুন, তারপর আবার চেষ্টা করুন৷</string>
+	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
+	<string>ফাইল লাইব্রেরি শুধু পুরনো ডিভাইসে থাকবে। সেখানে যা কখনো সিঙ্ক বা ব্যাকআপ হয়নি, ডিভাইস বাতিল হলে তা হারিয়ে যাবে।</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>আমন্ত্রণ এই অ্যাকাউন্টে আবদ্ধ। লিঙ্ক শেয়ার করা অন্য অ্যাকাউন্টে অ্যাক্সেসের অনুমতি দেয় না।</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -1742,12 +1962,24 @@
 	<string>স্থানীয় সফর সবার জন্য উপলব্ধ। অ্যাকাউন্ট তৈরি, সিঙ্ক্রোনাইজেশন, ক্রয়, বিজ্ঞপ্তি এবং হার্ডওয়্যার অনুমোদন পরীক্ষা করতে, সফর ত্যাগ করুন এবং Internet Identity এর মাধ্যমে সাইন ইন করুন।</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>মোবাইল প্যাকেজের সীমা হল 8 MiB৷ আপনি কি আমদানি করবেন তা বেছে নেওয়ার আগে পূর্বরূপ প্যাকেজ পরীক্ষা করে।</string>
+	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
+	<string>নতুন ডিভাইস পুরনো ডিভাইসের ওয়ালেট বন্ধন নেয়, প্রতি ওয়ালেটে একটি অনুমোদন।</string>
+	<key>The old address holds nothing.</key>
+	<string>পুরনো ঠিকানায় কিছু নেই।</string>
+	<key>The old device moves its wallet cosigner keys to the new device's key; the new device confirms once that is done.</key>
+	<string>পুরনো ডিভাইস ওয়ালেটের সহ-স্বাক্ষর কী নতুন ডিভাইসের কীতে সরায়; তারপর নতুন ডিভাইস নিশ্চিত করে।</string>
+	<key>The old device must be online to cosign the sweep.</key>
+	<string>স্থানান্তরে সহ-স্বাক্ষরের জন্য পুরনো ডিভাইস অনলাইনে থাকতে হবে।</string>
+	<key>The old device stops working for this account, and anything only on it is lost.</key>
+	<string>পুরনো ডিভাইস এই অ্যাকাউন্টে আর কাজ করবে না, আর শুধু তাতে থাকা জিনিস হারিয়ে যাবে।</string>
 	<key>The operation could not be completed.</key>
 	<string>অপারেশন সম্পন্ন করা যায়নি।</string>
 	<key>The operation could not be completed. Please try again.</key>
 	<string>অপারেশন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>অপারেশন বাতিল করা হয়েছে বা অনুমোদিত নয়.</string>
+	<key>The other device was not found on the local network. Enter its address.</key>
+	<string>স্থানীয় নেটওয়ার্কে অন্য ডিভাইসটি পাওয়া যায়নি। এর ঠিকানা লিখুন।</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
 	<string>ফলাফল অনিশ্চিত. আবার কিছু করার আগে আসল কাজটি পরীক্ষা করে দেখুন।</string>
 	<key>The record changed. Refresh and review your edits before saving again.</key>
@@ -1780,6 +2012,8 @@
 	<string>এগুলি আপনার অ্যাকাউন্টের ডিভাইসগুলি থেকে যাচাইকৃত ব্যাকআপ৷ এই ডিভাইসে একটি অনুলিপি রাখতে স্পষ্টভাবে পুনরুদ্ধার করুন।</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>এই এক্সপোর্টগুলিতে কখনই অ্যাকাউন্ট রুট কী বা ডিভাইস সাইনিং কী থাকে না। উৎস আইটেম পরিবর্তন একটি নতুন স্ন্যাপশট প্রয়োজন.</string>
+	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
+	<string>এই নেটিভ ঠিকানাগুলোর L1-এর জন্য পুরনো ডিভাইস দরকার থাকবে। প্রতিটি আউটপুট যথেষ্ট পুরনো হলে দল এগুলো L2 দিয়ে সরাতে পারবে।</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>এই অ্যাকাউন্টের জন্য একটি নিবন্ধিত অনুমোদন কী প্রয়োজন৷ হার্ডওয়্যার নিরাপত্তায় এই ডিভাইসটি সেট আপ করুন, অথবা অন্য অনুমোদিত ডিভাইস জিজ্ঞাসা করুন।</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -1804,12 +2038,16 @@
 	<string>এই ডিভাইসটিতে এমন পরিবর্তন রয়েছে যা সিঙ্ক হয়নি৷ অ্যাকাউন্ট মুছে ফেলার আগে আপনার প্রয়োজনীয় কিছু সংরক্ষণ করুন।</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>এই প্রস্তাবের জন্য এই ডিভাইসে কোনো সহ-স্বাক্ষর কী নেই।</string>
+	<key>This device is replaced by</key>
+	<string>এই ডিভাইসের জায়গা নিচ্ছে</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
 	<string>এই ডিভাইসটি তার নিজস্ব এনক্রিপ্ট করা ওয়ার্কস্পেস রাখে। সিঙ্ক করা হয়নি এমন সামগ্রী অন্য ডিভাইস থেকে পুনরুদ্ধার করা যাবে না।</string>
 	<key>This device key is no longer usable. Use another authorized device or account recovery. Your workspace has not been erased.</key>
 	<string>এই ডিভাইস কী আর ব্যবহারযোগ্য নয়। অন্য অনুমোদিত ডিভাইস বা অ্যাকাউন্ট পুনরুদ্ধার ব্যবহার করুন। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি.</string>
 	<key>This device may receive your private content. The content root must be redistributed after approval.</key>
 	<string>এই ডিভাইসটি আপনার ব্যক্তিগত সামগ্রী পেতে পারে৷ অনুমোদনের পরে মাস্টার বিষয়বস্তু-এনক্রিপশন কী পুনরায় বিতরণ করা আবশ্যক।</string>
+	<key>This device replaces</key>
+	<string>এই ডিভাইস যার জায়গা নিচ্ছে</string>
 	<key>This file exceeds the 100 MiB limit.</key>
 	<string>এই ফাইলটি 100 MiB সীমা অতিক্রম করেছে৷</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -1818,10 +2056,14 @@
 	<string>এই আইফোন</string>
 	<key>This iPhone manages agent identities and permissions. It does not keep agents running while iOS suspends the app.</key>
 	<string>এই আইফোন এজেন্ট পরিচয় এবং অনুমতি পরিচালনা করে। iOS অ্যাপ স্থগিত করার সময় এটি এজেন্টদের চলমান রাখে না।</string>
+	<key>This iPhone's keys</key>
+	<string>এই iPhone-এর কী</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>এই ইনভেন্টরি এই ডিভাইসে রেফারেন্স এবং ডেলিভারি রেকর্ড কভার করে। এটি অন্যান্য ডিভাইস বা নির্বিচারে প্রকল্প ফাইল অনুসন্ধান করে না।</string>
 	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
 	<string>এটি স্থানীয় সফরের জন্য একটি কাল্পনিক দলিল। আপনার অ্যাকাউন্টে, নির্বাচিত ফাইলগুলি ব্যাকআপের আগে ডিভাইসে এনক্রিপ্ট করা হয়৷ ব্যাকগ্রাউন্ড ট্রান্সফার ইউজারনেম শুধুমাত্র এনক্রিপ্ট করা ব্লক; সমাপ্তির জন্য আসল আনলক করা অ্যাকাউন্ট প্রয়োজন।</string>
+	<key>This is not the device in the request.</key>
+	<string>এটি অনুরোধের ডিভাইস নয়।</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>এই কী dMsg দ্বারা পরিচালিত হয় এবং অনুলিপি বা সম্পাদনা করা যায় না।</string>
 	<key>This letter was withdrawn.</key>
@@ -1856,16 +2098,26 @@
 	<string>এই সফর ফাইল আপলোড বা সিস্টেম ইন্টিগ্রেশন নিবন্ধন না.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>এটি এই ডিভাইসে আপনার কাজ ট্র্যাক করে। এটি তাদের প্রদানকারীতে শংসাপত্র তৈরি, পরীক্ষা বা প্রত্যাহার করে না।</string>
+	<key>This wallet's key</key>
+	<string>এই ওয়ালেটের কী</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
 	<string>এই ওয়ার্কস্পেসটি অন্য iPhone-এ তৈরি হয়ে এখানে কপি হয়েছে, যেমন পুনরুদ্ধার করা ব্যাকআপ বা ডিভাইস স্থানান্তরের মাধ্যমে। আপনার অ্যাকাউন্ট সুরক্ষিত রাখতে এটি কখনো পুরোনো ডিভাইস হিসেবে কাজ করে না: এখানে আনলক হয় না, এবং এর কিছুই মুছে ফেলা হয় না।</string>
 	<key>Title</key>
 	<string>শিরোনাম</string>
+	<key>To replace the old iPhone instead, set the copy aside and sign in, then choose Replace the old iPhone on the copy; once this iPhone has joined, import the copy's files in Devices.</key>
+	<string>এর বদলে পুরনো iPhone প্রতিস্থাপন করতে কপিটি আলাদা রেখে সাইন ইন করুন, তারপর কপিতে «পুরনো iPhone প্রতিস্থাপন করুন» বেছে নিন; এই iPhone যুক্ত হলে ডিভাইসে গিয়ে কপির ফাইল আমদানি করুন।</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>এই iPhone এ আপনার বিদ্যমান অ্যাকাউন্ট ব্যবহার করতে, আপনার অনুমোদিত ডিভাইসগুলির একটি থেকে এই ডিভাইসটিকে অনুমোদন করুন৷</string>
+	<key>Transfer between devices</key>
+	<string>ডিভাইসের মধ্যে স্থানান্তর</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>প্রথমে মালিকানাধীন কথোপকথন স্থানান্তর বা সংরক্ষণাগার করুন</string>
 	<key>Transfer proposal</key>
 	<string>স্থানান্তরের প্রস্তাব</string>
+	<key>Transferred</key>
+	<string>স্থানান্তরিত</string>
+	<key>Transferring</key>
+	<string>স্থানান্তর চলছে</string>
 	<key>Transfers</key>
 	<string>স্থানান্তর</string>
 	<key>Trash</key>
@@ -1880,8 +2132,12 @@
 	<string>ধরন</string>
 	<key>Type this account ID to confirm</key>
 	<string>নিশ্চিত করতে এই অ্যাকাউন্ট আইডি টাইপ করুন</string>
+	<key>Unbind</key>
+	<string>বন্ধন সরান</string>
 	<key>Unblock</key>
 	<string>আনব্লক করুন</string>
+	<key>Unconfirmed</key>
+	<string>অনিশ্চিত</string>
 	<key>Unconfirmed proposals</key>
 	<string>অপ্রমাণিত প্রস্তাব</string>
 	<key>Unknown state</key>
@@ -1946,6 +2202,12 @@
 	<string>সংস্করণ</string>
 	<key>Viewer</key>
 	<string>দর্শক</string>
+	<key>Wait for the address book cooldown</key>
+	<string>ঠিকানা বইয়ের অপেক্ষার সময় শেষ হতে দিন</string>
+	<key>Wait for the proposal</key>
+	<string>প্রস্তাবের অপেক্ষা করুন</string>
+	<key>Waiting</key>
+	<string>অপেক্ষমাণ</string>
 	<key>Waiting for approval</key>
 	<string>অনুমোদনের অপেক্ষায়</string>
 	<key>Waiting for browser confirmation</key>
@@ -1954,6 +2216,8 @@
 	<string>নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে: </string>
 	<key>Waiting for notification registration…</key>
 	<string>বিজ্ঞপ্তি নিবন্ধনের জন্য অপেক্ষা করা হচ্ছে...</string>
+	<key>Waiting for the other device</key>
+	<string>অন্য ডিভাইসের অপেক্ষা</string>
 	<key>Waiting for your decision</key>
 	<string>আপনার সিদ্ধান্তের অপেক্ষায়</string>
 	<key>Waiting to submit</key>
@@ -1966,6 +2230,10 @@
 	<string>ওয়ালেট অ্যাক্সেস</string>
 	<key>Wallet access could not be checked. Verify it independently before deleting.</key>
 	<string>ওয়ালেট অ্যাক্সেস চেক করা যায়নি। মুছে ফেলার আগে এটি স্বাধীনভাবে যাচাই করুন।</string>
+	<key>Wallet approvals are waiting in Approvals.</key>
+	<string>ওয়ালেটের অনুমোদন «অনুমোদন» বিভাগে অপেক্ষা করছে।</string>
+	<key>Wallet bindings</key>
+	<string>ওয়ালেট বন্ধন</string>
 	<key>Wallet canister ID</key>
 	<string>ওয়ালেট canister আইডি</string>
 	<key>Wallet controls</key>
@@ -1994,6 +2262,8 @@
 	<string>বার্তা প্রত্যাহার করুন</string>
 	<key>Withdraw this message?</key>
 	<string>এই বার্তা প্রত্যাহার করবেন?</string>
+	<key>Without a cloud backup</key>
+	<string>ক্লাউড ব্যাকআপ ছাড়া</string>
 	<key>Workspace copied from another iPhone</key>
 	<string>অন্য iPhone থেকে কপি করা ওয়ার্কস্পেস</string>
 	<key>Workspace destination</key>
@@ -2146,5 +2416,9 @@
 	<string>সাম্প্রতিক কার্যকলাপ দেখতে dMsg খুলুন।</string>
 	<key>dmsg.noticeZone</key>
 	<string>সময় অঞ্চল</string>
+	<key>made</key>
+	<string>তৈরি হয়েছে</string>
+	<key>not available</key>
+	<string>উপলব্ধ নয়</string>
 </dict>
 </plist>

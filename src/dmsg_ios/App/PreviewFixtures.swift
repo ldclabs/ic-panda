@@ -7,10 +7,11 @@ extension SessionModel {
     /// writes a real workspace, or appears in a Release build.
     func loadFixtures() {
         let access = ProcessInfo.processInfo.arguments.contains("--ui-access")
+        let pairing = ProcessInfo.processInfo.arguments.contains("--ui-pairing")
         let storeScreens = ProcessInfo.processInfo.arguments.contains("--ui-store-screenshots")
         let chinese = storeScreens && Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
         installFixtures(
-            SessionSnapshot(generation: 0, sequence: 0, state: access ? "root_required" : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
+            SessionSnapshot(generation: 0, sequence: 0, state: access ? (pairing ? "pairing_required" : "root_required") : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
                             pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
                 VaultItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],

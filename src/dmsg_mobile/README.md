@@ -14,3 +14,10 @@ local native plans cannot create a second background presentation for them.
 runtime: a receiving session's listener or a sender's connection, one at a time
 in `dmsg_client::transfer::Transfers`, each ended once its session's generation
 ends. The app advertises or finds the session with Bonjour (`transfer_advert`).
+
+`succession.rs` exposes replacing a device: the new device's request, the old
+device's review and approval, listing, running, leaving and stopping each
+side's steps, and the copied-workspace import and successor approval. Every
+operation is a `Hold` function with source `gui`, so steps that ask create
+approval requests the app's approval view decides; wallet unbinding requests
+are decidable on the phone like joining.

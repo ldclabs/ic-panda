@@ -65,6 +65,7 @@ struct WalletDetailView: View {
         List {
             NavigationLink("Propose transfer") { WalletTransferView(wallet: wallet) }
             NavigationLink("Wallet controls") { WalletControlsView(wallet: wallet) }
+            NavigationLink("This iPhone's keys") { WalletDeviceKeysView(wallet: wallet) }
             Section("Proposals") {
                 ForEach(proposals) { proposal in NavigationLink { WalletProposalView(wallet: wallet, proposal: proposal.id) } label: {
                     VStack(alignment: .leading, spacing: 4) { Text("Proposal \(proposal.id)"); Text(proposal.status).font(.caption).foregroundStyle(.secondary) }

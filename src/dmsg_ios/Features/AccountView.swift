@@ -45,7 +45,7 @@ struct AccountView: View {
                 NavigationLink { ApprovalsView() } label: { Label("Approvals", glyph: .approvals) }
                 NavigationLink { AgentsView() } label: { Label("Agents", glyph: .agents) }
                 NavigationLink { WalletsView() } label: { Label("Team wallets", glyph: .coins) }
-                NavigationLink { DevicesView() } label: { Label("Authorized devices", glyph: .device) }
+                NavigationLink { DevicesView() } label: { Label("Authorized devices", glyph: .device) }.accessibilityIdentifier("account.devices")
                 NavigationLink { RecoveryView() } label: { Label("Account recovery", glyph: .recovery) }
                 NavigationLink { AccountSecurityView() } label: { Label("Login identities", glyph: .security) }
                 NavigationLink("Try the local demo") { LocalDemoView() }
@@ -141,10 +141,19 @@ struct AccountView: View {
 struct DevicesView: View {
     @Environment(SessionModel.self) private var model
     @State private var devices: [DeviceInfo] = []
+    @State private var local: LocalOnly?
+    @State private var copies: [MovedCopy] = []
+    @State private var handovers: [Succession] = []
     struct AccountDevices: Decodable { let devices: [DeviceInfo] }
     var body: some View {
         List {
-            Section { NavigationLink("Authorize another device") { PairApprovalView() } }
+            Section {
+                NavigationLink("Authorize another device") { PairApprovalView() }
+                NavigationLink("Replace a device") { SuccessionsView() }.accessibilityIdentifier("devices.succession")
+                NavigationLink("Transfer between devices") { DeviceTransferView() }.accessibilityIdentifier("devices.transfer")
+            }
+            LocalOnlySection(value: local, always: true)
+            MovedImportSection(copies: copies, handovers: handovers) { await load() }
             Section("Authorized devices") {
                 ForEach(devices) { device in
                     NavigationLink { DeviceDetail(device: device) } label: {
@@ -159,10 +168,18 @@ struct DevicesView: View {
                     }.compactObjectRow()
                 }
             }
-        }.privateScreen().navigationTitle("Devices").task {
-            do { if let result = try await model.engine?.devices() { let account: AccountDevices = try model.decode(result); devices = account.devices } }
-            catch { model.report(error) }
-        }
+        }.privateScreen().navigationTitle("Devices").task { await load() }
+    }
+
+    private func load() async {
+        guard let engine = model.engine else { return }
+        do { let account: AccountDevices = try model.decode(try await engine.devices()); devices = account.devices }
+        catch { model.report(error) }
+        local = await LocalOnly.load(model)
+        let account = model.session?.account
+        let moved: [MovedCopy] = (try? model.decode(try await engine.movedCopies())) ?? []
+        copies = moved.filter { $0.account != nil && $0.account == account }
+        handovers = (try? model.decode(try await engine.successions())) ?? []
     }
 }
 

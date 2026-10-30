@@ -69,6 +69,14 @@ final class DeviceTransferModel {
         await start(model, .send(session: session, to: to, address: address, succession: succession))
     }
 
+    /// Start a stopped transfer again with its session. A sender finds the
+    /// receiver again, whose port changes when it resumes.
+    func resume(_ model: SessionModel) async {
+        guard let status, !running else { return }
+        if status.role == "receive" { await start(model, .receive(session: status.session, succession: status.succession)) }
+        else { await start(model, .send(session: status.session, to: status.to, address: nil, succession: status.succession)) }
+    }
+
     func cancel(_ model: SessionModel) {
         plan = nil
         if let engine = model.engine { status = try? model.decode(engine.transferCancel()) }
