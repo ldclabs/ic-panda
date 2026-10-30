@@ -240,7 +240,7 @@ impl Client {
         self.library.as_mut().ok_or(Error::Locked)
     }
 
-    fn save_folder(&mut self, id: &str, folder: Folder) -> Result<()> {
+    pub(crate) fn save_folder(&mut self, id: &str, folder: Folder) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{FOLDER}{id}"), &folder)?;
         self.catalog()?.put_folder(id, folder);

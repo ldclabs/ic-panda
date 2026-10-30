@@ -24,6 +24,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`account`] | Certified security (public, no login needed) and account state (with the login), the encrypted operation journal, account creation, device-approved mutations and pairing |
 | [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
 | [`succession`] | A planned device replacement: the new device's `dmsg-succession/1` request, the old device's review and approval, and each device's task of the handover steps it saw done |
+| [`transfer`] | dmsg-device-transfer/1: local content from one active device of the account to another over a local connection. The signed hello with the session key sealed by HPKE, AES-256-GCM frames, the manifest of transferable record names, resumable sessions and the receiver's additive merge; the host supplies the connection |
 | [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |
 | [`root`] | RootBundle v2: wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
 | [`cloud`] | dmsg-cloud/1: security evidence, device commands and HTTP proof of possession, presigned commands, chunks, stored-command verification |
@@ -282,6 +283,26 @@ device by itself. Until device-to-device transfer and native-address
 migration exist, those two steps can only be left, listing what stays.
 Cancelling keeps what was committed; revoking the new device undoes its
 enrollment.
+
+### Device transfer
+
+`transfer` moves what the account's cloud does not hold, today the file
+library, from one active device to another over a connection the host opens
+([dmsg-device-transfer/1](../../docs/protocol/device_transfer.md)). The
+receiver opens a session with a random ID, and the sender's hello carries a
+new session key sealed to the receiver's HPKE key and signed by the sender's
+device key; both check each other against the certified account state at
+the start and again before the end. Every later frame is AES-256-GCM under
+that key, bound to the session, the direction and the sequence number.
+
+Only record names on the whitelist (`transfer::PREFIXES`, which classifies
+every prefix the client writes) move. The receiver keeps the manifest sealed
+as `transfer:<session>`, so a broken connection resumes with a new key and
+asks only for what it lacks. It asks for a record's chunks before the record
+and commits folders, versions and files in that order; a version is local
+only when all of its chunks arrived. The merge only adds: records already
+there stay as they are, files gain the versions that arrived, and nothing is
+restored from the trash or deleted. The sender changes nothing on its side.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

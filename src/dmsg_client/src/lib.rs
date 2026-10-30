@@ -58,6 +58,7 @@ pub mod security;
 pub mod store;
 pub mod succession;
 pub mod sync;
+pub mod transfer;
 mod transport;
 pub mod upload;
 pub mod vault;

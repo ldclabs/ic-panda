@@ -368,9 +368,8 @@ fn hpke_open_with(
     .map_err(|_| Error::IntegrityFailed)
 }
 
-/// AES-256-GCM of `plaintext` under a raw key and nonce, with `aad`, as the
-/// bridge page seals requests; for tests and vectors.
-#[cfg(test)]
+/// AES-256-GCM of `plaintext` under a raw key and nonce, with `aad`: the
+/// frames of a device transfer, and the bridge page's requests in tests.
 pub fn aes_gcm_seal(key: &Key, nonce: &[u8; 12], plaintext: &[u8], aad: &[u8]) -> Vec<u8> {
     Aes256Gcm::new(key.into())
         .encrypt(

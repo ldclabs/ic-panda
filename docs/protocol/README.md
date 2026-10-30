@@ -8,7 +8,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 
 | Area | Contract |
 | --- | --- |
-| Accounts, devices and recovery | [Account/root](account_root.md) · [Browser login](login-v1.md) |
+| Accounts, devices and recovery | [Account/root](account_root.md) · [Browser login](login-v1.md) · [Device transfer](device_transfer.md) |
 | Web application connection | [dmsg-connect/1](connect-v1.md) |
 | Authentication and typed actions | [Integration](integration.md) · [App actions](app-action.md) · [Generated CDDL](integration.cddl) |
 | Subscription checkout and PANDA membership | [Commerce 2](commerce.md) · [Resource CDDL](commerce.cddl) |

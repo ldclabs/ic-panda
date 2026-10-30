@@ -8,7 +8,7 @@
 
 | 领域 | 合同 |
 | --- | --- |
-| 账户、设备与恢复 | [账户与根](account_root_zh.md) · [浏览器登录](login-v1_zh.md) |
+| 账户、设备与恢复 | [账户与根](account_root_zh.md) · [浏览器登录](login-v1_zh.md) · [设备间直传](device_transfer_zh.md) |
 | 网页应用接入 | [dmsg-connect/1](connect-v1_zh.md) |
 | 认证与类型化动作 | [集成](integration_zh.md) · [应用动作](app-action_zh.md) · [生成的 CDDL](integration.cddl) |
 | 订阅结账与 PANDA 会员 | [Commerce 2](commerce_zh.md) · [资源 CDDL](commerce.cddl) |
