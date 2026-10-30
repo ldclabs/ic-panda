@@ -346,6 +346,8 @@ dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A
 dmsg wallet propose <wallet> <intent.json> | member-agents <wallet> [--agent did:agent:…]... | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
 dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
 dmsg wallet balances|audit|refuel <wallet> | cosigners | cosigner-new <label> [--software]
+dmsg wallet native-status [wallet] | native-create [--software] [--biometry-only] | native-protect [--biometry-only] | native-unprotect <index>
+dmsg wallet native-key <wallet> <label> | nc-migrate <wallet> <from> [--l2] [--start]
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
 dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
 dmsg handle resolve <name> | price <name> | claim <name> | register <name>
@@ -390,9 +392,10 @@ cosigner keys in every wallet (`cosigners`); the new device confirms the
 rotation, takes over the old device's wallet bindings (`wallets`) and
 finally revokes it (`revoke`). Local content moves with a device transfer
 for the succession (below), which settles the `content` step on both
-devices; until native addresses can move, `skip <id> native_addresses`
-leaves them, and `skip <id> content --keep a,b` leaves content, listing what
-stays. `cancel` stops a succession and keeps what was done; revoking the new
+devices. `run <id> native_addresses` lists the native addresses still bound
+to another device's key, each moved with `wallet nc-migrate`, and settles the
+step once none is left; `skip <id> native_addresses` leaves them, and
+`skip <id> content --keep a,b` leaves content, listing what stays. `cancel` stops a succession and keeps what was done; revoking the new
 device undoes its enrollment.
 
 `device transfer` moves the file library from one device of the account to
@@ -823,6 +826,16 @@ says so. `cosigner-new` keeps the key in the Secure Enclave and fails where
 there is none; only `--software` makes a software key, which a wallet
 requiring hardware cosigners refuses.
 
+`native-create` makes this device's root of native Taproot (BIP-340) keys,
+sealed for a new Secure Enclave key, or with `--software` under the local key;
+`native-protect` and `native-unprotect` add and remove such keys, one always
+staying. `native-key` derives this device's key for a wallet and prints its
+`AddCosigner` intent; it and every L1 signature ask for the person.
+`nc-migrate` shows how a native address moves to this device's key (register
+the key, add an address, the address book when the tier requires it, then a
+sweep through L1 or, with `--l2`, the chain key after the delay) and with
+`--start` proposes the next step.
+
 Names move between accounts in three steps, the last two within a minute:
 the owner's `handle transfer <name> <account>` prints a token, the target
 account's `handle accept <token>` authorizes receiving it, and the owner's
@@ -1228,6 +1241,8 @@ The daemon listens on `127.0.0.1` only.
   `payment/transfers|revise`, `payer/use|balance`,
   `wallet/list|show|principal|quote|quote_preview|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
   `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,
+  `wallet/native_status|native_create|native_protector_add|native_protector_remove|native_key`,
+  `wallet/nc_migrate_plan|nc_migrate_status|nc_migrate_start`,
   `wallet/activation|activation_continue|assets|book|readiness|preview|transfer|change|receive|versions|health|upgrade|lock_code`,
   `wallet/rpc|rpc_set|rpc_check|audit_page|cosign|cosign_status|cosign_import|cosign_execute|channel|notify`
   (structured desktop forms and explicit cosignature collection; see [wallet desktop](../../docs/dMsg_wallet.md)),

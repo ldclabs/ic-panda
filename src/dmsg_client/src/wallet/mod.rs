@@ -15,6 +15,8 @@ pub mod audit;
 pub mod cosign;
 pub mod decode;
 pub mod desktop;
+pub mod native;
+pub mod nc_migrate;
 pub mod ops;
 pub mod packets;
 pub mod rotate;
@@ -903,22 +905,41 @@ impl Client {
             .ok_or(Error::Unavailable("chains".into()))
     }
 
-    /// Eligible keys of this device used by any of the intent's address policies.
+    /// The wallet's cosigners whose keys this device holds.
+    fn held_cosigners(&self, view: &WalletView) -> Result<Vec<u32>> {
+        let local = self.wallet_cosigner_keys()?;
+        let mut ids = vec![];
+        for c in &view.cosigners {
+            let held = match c.input.kind {
+                CosignerKind::Bip340 => self.native_holds(view.wallet, &c.input.public_key)?,
+                _ => local.iter().any(|k| k.public_key == c.input.public_key),
+            };
+            if held {
+                ids.push(c.id);
+            }
+        }
+        Ok(ids)
+    }
+
+    /// Eligible keys of this device used by any of the requirements: the
+    /// address policies' keys, or the native key of an L1 spend, which no
+    /// hardware policy filters.
     fn local_cosigners_for(
         &self,
         view: &WalletView,
         requirements: &[CosignRequirement],
     ) -> Result<Vec<u32>> {
-        let local = self.wallet_cosigner_keys()?;
+        let native = packets::native(view, requirements);
+        let held = self.held_cosigners(view)?;
         Ok(view
             .cosigners
             .iter()
             .filter(|c| {
-                (!view.policy.hardware_cosigners || c.input.hardware)
+                held.contains(&c.id)
+                    && (native || !view.policy.hardware_cosigners || c.input.hardware)
                     && requirements
                         .iter()
                         .any(|r| r.policy.cosigners.contains(&c.id))
-                    && local.iter().any(|k| k.public_key == c.input.public_key)
             })
             .map(|c| c.id)
             .collect())
@@ -1191,6 +1212,25 @@ pub async fn show<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
     )?;
     let me = h.with(|c| Ok(c.wallet_member().ok())).await?;
     let mut out = wallet_view(&view, me.as_ref());
+    // What only this device knows: addresses it archived after moving
+    // their coins, and which cosigner keys it holds.
+    let (archived, local) = h
+        .with(|c| Ok((c.archived(wallet)?, c.held_cosigners(&view)?)))
+        .await?;
+    for a in out["addresses"].as_array_mut().into_iter().flatten() {
+        a["archived"] = json!(
+            a["id"]
+                .as_u64()
+                .is_some_and(|id| archived.contains(&(id as u32)))
+        );
+    }
+    for k in out["cosigners"].as_array_mut().into_iter().flatten() {
+        k["local"] = json!(
+            k["id"]
+                .as_u64()
+                .is_some_and(|id| local.contains(&(id as u32)))
+        );
+    }
     out["environment"] = h
         .with(|c| {
             Ok(json!(crate::config::environment_name(

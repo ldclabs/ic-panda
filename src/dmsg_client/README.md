@@ -47,7 +47,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`inbox`] | The contact policy and its synced inbox key, sealed letters, the paid-letter quote, escrow, admission and refund, and the recipient's letters checked against the sender's evidence |
 | [`payment`] | The `dmsg_payment` escrow: certified terms and escrows, funding checks, decisions, payouts and refunds |
 | [`payer`] | ICRC transfers and approvals by the login's Principal or a PEM identity, journaled before they are sent; a lost reply resends the same bytes |
-| [`wallet`] | Team wallets (`dmsg-wallet/1`): this device's wallet key that joins bind, the hub's quotes, the activation deposits that created no wallet and their refund to the payer, proposals, and approval-center jobs to create, join, decide and cosign; chain parameters read from Esplora, EVM and Solana JSON-RPC; an independent decoder that re-derives every plan's transaction and messages to sign before cosigning or broadcasting; addresses checked against the wallet's key roots; the audit chain; cosigner keys in a platform keystore (the daemon's Secure Enclave on macOS) or sealed in software |
+| [`wallet`] | Team wallets (`dmsg-wallet/1`): this device's wallet key that joins bind, the hub's quotes, the activation deposits that created no wallet and their refund to the payer, proposals, and approval-center jobs to create, join, decide and cosign; chain parameters read from Esplora, EVM and Solana JSON-RPC; an independent decoder that re-derives every plan's transaction and messages to sign before cosigning or broadcasting; addresses checked against the wallet's key roots; the audit chain; cosigner keys in a platform keystore (the daemon's Secure Enclave on macOS) or sealed in software; native Taproot keys derived from a root under hardware protectors, and moving native addresses to a new device |
 | [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the payer may read and repair as payer, merchant or operator |
 | [`handle`] | Names: certified resolution, legacy claims, registrations, transfers between accounts and charge reconciliation, as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
@@ -300,9 +300,11 @@ offered once content and native addresses are settled. `status` reads the
 account and records the enrollment, the key and the revocation on either
 device by itself. Local content moves with a device transfer between the
 two devices (`peer` names the other one, and `transferred` records the
-transfer's report as the step's evidence on the device it ran on); until
-native-address migration exists, that step can only be left, listing what
-stays, as content can. Cancelling keeps what was committed; revoking the
+transfer's report as the step's evidence on the device it ran on). The
+native-address step lists this account's native addresses whose key is
+another device's and that the new device has not archived; each moves with
+`wallet::nc_migrate`, and the step settles once none is left. It can also be
+left, listing what stays, as content can. Cancelling keeps what was committed; revoking the
 new device undoes its enrollment.
 
 ### Device transfer
@@ -553,6 +555,25 @@ The end-to-end checks against real canisters and the relay are in
 ### Wallet execution and desktop forms
 
 `wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [team-wallet guide](../../docs/dMsg_wallet.md) distinguishes these paths from future hardware and chain extensions.
+
+`wallet::native` keeps this device's native Taproot keys: a random root,
+sealed under the LDK for each protector, a dedicated `PresenceKey` key
+(`D(secret_i, ("dmsg-wallet/native-root-wrap/v1", account, device, i))`,
+AAD `("dmsg-wallet/native-root/v1", account, device, root_id, i)`), or kept
+in software only when the caller chooses so. A wallet's key is
+`D(R, ("dmsg-wallet/native-cosigner/v1", wallet, index, attempt))`, the first
+attempt in the curve's order; only its public key is kept, under
+`wallet-native:<wallet>`. Registering it (`AddCosigner` with `Bip340`, `Raw`,
+`hardware: false`) and signing an L1 spend open the root once, in
+`spawn_blocking` and never under the client lock. An L1 plan of a native
+address is its own requirement in `wallet::packets`: its cosigner signs each
+raw sighash, no hardware policy filters it, and its packets are version 2.
+`wallet::nc_migrate` takes a native address to this device's key one
+proposal at a time (`AddCosigner`, `AddAddress` with the old delay and
+recovery, the address book when the tier is book-only, then a sweep without
+change through L1 or L2) and keeps each sweep's inputs and fee rate, which
+`ops::params` builds its plan from; once the old address is empty, this
+device marks it archived.
 
 Wallet display reads certified state and statistics together. Transfer previews
 run independent fee, balance and token-metadata reads concurrently; explicit

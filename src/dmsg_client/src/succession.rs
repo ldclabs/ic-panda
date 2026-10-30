@@ -699,9 +699,22 @@ pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<J
         (_, Step::Content) => Err(Error::InvalidInput(
             "local content moves with a device transfer: receive on the new device, send from the old one; or leave it with skip".into(),
         )),
-        (_, Step::NativeAddresses) => Err(Error::Unavailable(
-            "this step is not available yet; leave it with skip".into(),
-        )),
+        // Each address moves with `wallet::nc_migrate`, one proposal at a
+        // time; the step settles once none is left to move.
+        (Side::Successor, Step::NativeAddresses) => {
+            let wallets = wallets(h).await?;
+            let mut addresses = vec![];
+            for record in wallets.as_array().into_iter().flatten() {
+                let wallet = crate::wallet::parse_wallet(record["wallet"].as_str().unwrap_or(""))?;
+                for from in crate::wallet::nc_migrate::to_move(h, wallet).await? {
+                    addresses.push(json!({"wallet": wallet.to_text(), "from": from}));
+                }
+            }
+            match addresses.is_empty() {
+                true => record(h, id, step, json!({"wallets": wallets})).await,
+                false => Ok(json!({"addresses": addresses})),
+            }
+        }
         _ => Err(Error::Forbidden),
     }
 }

@@ -241,6 +241,51 @@ pub enum WalletCommand {
         #[arg(long)]
         software: bool,
     },
+    /// This device's native Taproot key root and its key for a wallet.
+    NativeStatus {
+        /// Wallet canister ID.
+        wallet: Option<String>,
+    },
+    /// Create the native key root, protected by the Secure Enclave.
+    NativeCreate {
+        /// Keep the root in software instead, under the local key.
+        #[arg(long)]
+        software: bool,
+        /// Only the fingerprints enrolled now open it, never the password.
+        #[arg(long)]
+        biometry_only: bool,
+    },
+    /// Protect the native key root with another Secure Enclave key.
+    NativeProtect {
+        /// Only the fingerprints enrolled now open it, never the password.
+        #[arg(long)]
+        biometry_only: bool,
+    },
+    /// Remove one of the native key root's protectors; one always stays.
+    NativeUnprotect {
+        /// Protector index.
+        index: u32,
+    },
+    /// This device's native key for a wallet; prints the AddCosigner intent.
+    NativeKey {
+        /// Wallet canister ID.
+        wallet: String,
+        /// Cosigner label.
+        label: String,
+    },
+    /// Move a native Taproot address to this device's key, one step at a time.
+    NcMigrate {
+        /// Wallet canister ID.
+        wallet: String,
+        /// The old address ID.
+        from: u32,
+        /// Sweep with the chain key alone, once the coins are old enough.
+        #[arg(long)]
+        l2: bool,
+        /// Propose the next step instead of showing the plan.
+        #[arg(long)]
+        start: bool,
+    },
 }
 
 fn member(text: &str) -> Result<Value, Failure> {
@@ -681,6 +726,67 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                 .call(
                     "wallet/cosigner_new",
                     json!({"label": label, "hardware": !software}),
+                )
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NativeStatus { wallet } => {
+            let c = remote
+                .call("wallet/native_status", json!({"wallet": wallet}))
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NativeCreate {
+            software,
+            biometry_only,
+        } => {
+            let c = remote
+                .call(
+                    "wallet/native_create",
+                    json!({"software": software, "biometry_only": biometry_only}),
+                )
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NativeProtect { biometry_only } => {
+            let c = remote
+                .call(
+                    "wallet/native_protector_add",
+                    json!({"biometry_only": biometry_only}),
+                )
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NativeUnprotect { index } => {
+            let c = remote
+                .call("wallet/native_protector_remove", json!({"index": index}))
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NativeKey { wallet, label } => {
+            let c = remote
+                .call(
+                    "wallet/native_key",
+                    json!({"wallet": wallet, "label": label}),
+                )
+                .await?;
+            print(json, &c, pretty);
+        }
+        WalletCommand::NcMigrate {
+            wallet,
+            from,
+            l2,
+            start,
+        } => {
+            let method = match start {
+                true => "wallet/nc_migrate_start",
+                false => "wallet/nc_migrate_plan",
+            };
+            let path = if l2 { "l2" } else { "l1" };
+            let c = remote
+                .call(
+                    method,
+                    json!({"wallet": wallet, "from": from, "path": path}),
                 )
                 .await?;
             print(json, &c, pretty);

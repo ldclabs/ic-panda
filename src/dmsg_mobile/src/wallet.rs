@@ -266,6 +266,89 @@ impl MobileEngine {
             .await
     }
 
+    /// This device's native Taproot key root, how it is protected, and its
+    /// key for `wallet`.
+    pub async fn wallet_native_status(&self, wallet: Option<String>) -> Result<ObjectSnapshot> {
+        let wallet = wallet.map(|w| wallet::parse_wallet(&w)).transpose()?;
+        self.object(move |c| Box::pin(async move { c.wallet_native_status(wallet) }))
+            .await
+    }
+
+    /// Create the native key root behind Face ID or Touch ID; a
+    /// `biometry_only` root opens only for the faces or fingerprints
+    /// enrolled now, never the passcode. Asks nothing.
+    pub async fn wallet_native_create(&self, biometry_only: bool) -> Result<ObjectSnapshot> {
+        self.object(move |c| Box::pin(async move { c.wallet_native_create(false, biometry_only) }))
+            .await
+    }
+
+    /// Protect the native key root with another key; asks for the person.
+    pub async fn wallet_native_protector_add(&self, biometry_only: bool) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::native::add_protector(h, biometry_only).await })
+        })
+        .await
+    }
+
+    /// Remove protector `index` of the native key root; one always stays.
+    pub async fn wallet_native_protector_remove(&self, index: u32) -> Result<ObjectSnapshot> {
+        self.object(move |c| Box::pin(async move { c.wallet_native_remove_protector(index) }))
+            .await
+    }
+
+    /// This device's native key for `wallet` and the `AddCosigner` intent
+    /// registering it; deriving it the first time asks for the person.
+    pub async fn wallet_native_key(&self, wallet: String, label: String) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::native::key(h, wallet, &label).await })
+        })
+        .await
+    }
+
+    /// Moving native address `from` to this device: the steps and the
+    /// sweep through L1, or L2 when `l2`, as it would be proposed now.
+    pub async fn wallet_nc_migrate_plan(
+        &self,
+        wallet: String,
+        from: u32,
+        l2: bool,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::nc_migrate::status(h, wallet, from, Some(l2)).await })
+        })
+        .await
+    }
+
+    /// Moving native address `from` to this device: the steps, without
+    /// reading the chain.
+    pub async fn wallet_nc_migrate_status(
+        &self,
+        wallet: String,
+        from: u32,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::nc_migrate::status(h, wallet, from, None).await })
+        })
+        .await
+    }
+
+    /// Take the next step of moving native address `from` to this device.
+    pub async fn wallet_nc_migrate_start(
+        &self,
+        wallet: String,
+        from: u32,
+        l2: bool,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::nc_migrate::start(h, wallet, from, l2).await })
+        })
+        .await
+    }
+
     /// Sign a local challenge with the cosigner key `label`; nothing leaves
     /// the device.
     pub async fn wallet_cosigner_test(&self, label: String) -> Result<ObjectSnapshot> {

@@ -2719,3 +2719,196 @@ fn wallet_cosigner_rotation_and_replacement() {
 
 #[path = "wallet_review.rs"]
 mod review;
+
+/// A device's native key: a wallet that requires hardware cosigners refuses
+/// it; elsewhere it registers as a BIP-340 cosigner, and the L1 leaf of its
+/// Taproot address spends only with its signature over each input's
+/// script-path sighash, which the `bitcoin` library computes alike.
+#[test]
+fn wallet_spends_a_native_address_through_l1_with_the_device_key() {
+    use bitcoin::hashes::Hash as _;
+    use bitcoin::secp256k1::{Message, Secp256k1, XOnlyPublicKey, schnorr};
+    use bitcoin::sighash::{Prevouts, SighashCache, TapSighashType};
+    use bitcoin::taproot::{LeafVersion, TapLeafHash};
+    use k256::schnorr::signature::hazmat::PrehashSigner;
+    let t = Team::new(1);
+    let device = k256::schnorr::SigningKey::from_slice(&[7; 32]).unwrap();
+    let input = CosignerInput {
+        member: MemberId::Principal(person(P)),
+        kind: CosignerKind::Bip340,
+        public_key: device.verifying_key().to_bytes().to_vec().into(),
+        envelope: CosignerEnvelope::Raw,
+        hardware: false,
+        label: "dMsg device".into(),
+    };
+    let set_hardware = |required: bool| {
+        let mut policy = t.view().policy;
+        policy.version += 1;
+        policy.hardware_cosigners = required;
+        let set = t.approve_p(t.propose(P, Intent::SetPolicy(policy)).id);
+        t.f.ic
+            .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+        t.f.ic.tick();
+        assert_eq!(
+            t.execute(set.id, None, vec![]).unwrap().proposal.status,
+            ProposalStatus::Settled
+        );
+    };
+    set_hardware(true);
+    let refused: Result<Proposal> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "propose",
+        (ProposeArgs {
+            op_id: digest("native-key-test", &input),
+            intent: Intent::AddCosigner(input.clone()),
+            via_agent: None,
+        },),
+    );
+    assert_eq!(refused.err(), Some(Error::Forbidden));
+    set_hardware(false);
+    let added = t.approve_p(t.propose(P, Intent::AddCosigner(input)).id);
+    let Some(Outcome::CosignerAdded(cosigner)) = added.outcome else {
+        panic!("cosigner {added:?}")
+    };
+    let made = t.approve_p(
+        t.propose(
+            P,
+            Intent::AddAddress {
+                chain: Chain::Bitcoin,
+                kind: AddressKind::Taproot(TaprootControl {
+                    cosigner,
+                    chain_key_after: 144,
+                    recovery: None,
+                }),
+                label: "native".into(),
+                cosign: None,
+            },
+        )
+        .id,
+    );
+    let created = t.execute(made.id, None, vec![]).unwrap().proposal;
+    let Some(Outcome::AddressCreated(native)) = created.outcome else {
+        panic!("address {created:?}")
+    };
+    let v = t.view();
+    let address = v.addresses.iter().find(|a| a.id == native).unwrap().clone();
+    let other = v
+        .addresses
+        .iter()
+        .find(|a| a.chain == Chain::Bitcoin && a.id != native)
+        .unwrap()
+        .clone();
+    let spend = t.approve_p(
+        t.propose(
+            P,
+            Intent::Transfer {
+                from: native,
+                asset: AssetKey::Btc,
+                to: Destination::Bitcoin(other.text.clone()),
+                amount: 50_000,
+                max_fee: 20_000,
+                memo: None,
+            },
+        )
+        .id,
+    );
+    let utxos = vec![
+        Utxo {
+            txid: Hash::new([8; 32]),
+            vout: 0,
+            value: 60_000,
+            address: native,
+        },
+        Utxo {
+            txid: Hash::new([9; 32]),
+            vout: 1,
+            value: 40_000,
+            address: native,
+        },
+    ];
+    let plan = t
+        .prepare(
+            spend.id,
+            ExecutionParams::Bitcoin {
+                utxos: utxos.clone(),
+                fee_rate: 2,
+                locktime: 0,
+                timelock: false,
+            },
+        )
+        .unwrap();
+    let sign = |messages: Vec<Hash>| -> Vec<CosignerSig> {
+        messages
+            .iter()
+            .enumerate()
+            .map(|(i, m)| {
+                let signature: k256::schnorr::Signature = device.sign_prehash(&m[..]).unwrap();
+                CosignerSig {
+                    cosigner,
+                    digest_index: i as u32,
+                    signature: signature.to_bytes().to_vec().into(),
+                    authenticator_data: None,
+                    client_data_json: None,
+                }
+            })
+            .collect()
+    };
+    // Without the device's signature the wallet does not sign.
+    assert_eq!(
+        t.execute(spend.id, Some(plan.seq), vec![]).err(),
+        Some(Error::Forbidden)
+    );
+    // The leaf checks the sighash itself, not a cosign message over it.
+    let messages = plan
+        .digests
+        .iter()
+        .enumerate()
+        .map(|(i, d)| cosign_message(t.wallet, spend.id, plan.seq, i as u32, d))
+        .collect();
+    assert_eq!(
+        t.execute(spend.id, Some(plan.seq), sign(messages)).err(),
+        Some(Error::IntegrityFailed)
+    );
+    let signed = t
+        .execute(spend.id, Some(plan.seq), sign(plan.digests.clone()))
+        .unwrap()
+        .signed
+        .unwrap();
+    let tx: bitcoin::Transaction = bitcoin::consensus::deserialize(&signed.raw).unwrap();
+    let script = bitcoin::ScriptBuf::from_bytes(btc_script(v.btc_network, &address.text).unwrap());
+    let prevouts: Vec<bitcoin::TxOut> = utxos
+        .iter()
+        .map(|u| bitcoin::TxOut {
+            value: bitcoin::Amount::from_sat(u.value),
+            script_pubkey: script.clone(),
+        })
+        .collect();
+    let secp = Secp256k1::verification_only();
+    let device_key = XOnlyPublicKey::from_slice(&device.verifying_key().to_bytes()).unwrap();
+    let chain_key = XOnlyPublicKey::from_slice(&x_only(&address.public_key).unwrap()).unwrap();
+    let mut cache = SighashCache::new(&tx);
+    for (i, input) in tx.input.iter().enumerate() {
+        // Device signature, chain-key signature, leaf script, control block.
+        assert_eq!(input.witness.len(), 4);
+        let leaf = TapLeafHash::from_script(
+            bitcoin::Script::from_bytes(&input.witness[2]),
+            LeafVersion::TapScript,
+        );
+        let sighash = cache
+            .taproot_script_spend_signature_hash(
+                i,
+                &Prevouts::All(&prevouts),
+                leaf,
+                TapSighashType::Default,
+            )
+            .unwrap();
+        assert_eq!(sighash.to_byte_array(), plan.digests[i].into_array());
+        let message = Message::from_digest(sighash.to_byte_array());
+        for (item, key) in [(0, device_key), (1, chain_key)] {
+            let sig = schnorr::Signature::from_slice(&input.witness[item]).unwrap();
+            secp.verify_schnorr(&sig, &message, &key).unwrap();
+        }
+    }
+}

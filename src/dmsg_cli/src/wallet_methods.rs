@@ -15,8 +15,16 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 64] = [
+pub(crate) const METHODS: [&str; 72] = [
     "wallet/cosigner_test",
+    "wallet/native_status",
+    "wallet/native_create",
+    "wallet/native_protector_add",
+    "wallet/native_protector_remove",
+    "wallet/native_key",
+    "wallet/nc_migrate_plan",
+    "wallet/nc_migrate_status",
+    "wallet/nc_migrate_start",
     "wallet/queue",
     "wallet/history",
     "wallet/policy_usage",
@@ -110,8 +118,23 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "wallet/activation_abort"
         | "wallet/prepare"
         | "wallet/refuel"
-        | "wallet/cosigner_new" => &["wallet/changed"],
+        | "wallet/cosigner_new"
+        | "wallet/native_create"
+        | "wallet/native_protector_add"
+        | "wallet/native_protector_remove"
+        | "wallet/native_key"
+        | "wallet/nc_migrate_start" => &["wallet/changed"],
         _ => &[],
+    }
+}
+
+/// The path of a native address's sweep: `l1` with the old device's key,
+/// `l2` with the chain key alone after the delay.
+fn timelock(params: &Value) -> Result<bool> {
+    match params["path"].as_str().unwrap_or("l1") {
+        "l1" => Ok(false),
+        "l2" => Ok(true),
+        _ => Err(Error::InvalidInput("path".into())),
     }
 }
 
@@ -206,6 +229,25 @@ impl Daemon {
             "wallet/cosigner_test" => {
                 return wallets::cosign::test_key(&h, &text(params, "label")?).await;
             }
+            // Asks for the person without the client.
+            "wallet/native_protector_add" => {
+                return wallets::native::add_protector(
+                    &h,
+                    params["biometry_only"].as_bool().unwrap_or(false),
+                )
+                .await;
+            }
+            "wallet/native_key" => {
+                return wallets::native::key(&h, wallet()?, &text(params, "label")?).await;
+            }
+            "wallet/nc_migrate_plan" | "wallet/nc_migrate_status" => {
+                let path = match method {
+                    "wallet/nc_migrate_plan" => Some(timelock(params)?),
+                    _ => None,
+                };
+                return wallets::nc_migrate::status(&h, wallet()?, number(params, "from")?, path)
+                    .await;
+            }
             "wallet/activation" => {
                 return wallets::desktop::activation(&h, &text(params, "quote")?).await;
             }
@@ -282,6 +324,16 @@ impl Daemon {
                         params["channel"].as_str(),
                     )),
                     "wallet/cosigners" => Some(client.wallet_cosigners_local()),
+                    "wallet/native_status" => Some(client.wallet_native_status(
+                        params["wallet"].as_str().map(parse_wallet).transpose()?,
+                    )),
+                    "wallet/native_create" => Some(client.wallet_native_create(
+                        params["software"].as_bool().unwrap_or(false),
+                        params["biometry_only"].as_bool().unwrap_or(false),
+                    )),
+                    "wallet/native_protector_remove" => {
+                        Some(client.wallet_native_remove_protector(number(params, "index")?))
+                    }
                     "wallet/cosigner_new" => {
                         Some(client.wallet_cosigner_new(
                             &text(params, "label")?,
@@ -457,6 +509,15 @@ impl Daemon {
             }
             "wallet/reconcile" => wallets::ops::reconcile(&h, wallet()?, id()?).await,
             "wallet/refuel" => wallets::ops::refuel(&h, wallet()?).await,
+            "wallet/nc_migrate_start" => {
+                wallets::nc_migrate::start(
+                    &h,
+                    wallet()?,
+                    number(params, "from")?,
+                    timelock(params)?,
+                )
+                .await
+            }
             _ => Err(Error::NotFound),
         }?;
         if events_of(method).contains(&"wallet/changed") && params["wallet"].is_string() {

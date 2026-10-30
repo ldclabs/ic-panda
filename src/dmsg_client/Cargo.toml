@@ -38,6 +38,7 @@ log.workspace = true
 ic-agent.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
+k256 = { workspace = true, features = ["schnorr"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 rqrr.workspace = true
 qrcode.workspace = true

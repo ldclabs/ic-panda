@@ -113,6 +113,12 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("wallet-proposal:", Class::Stays),
     ("wallet-proposal-result:", Class::Stays),
     ("wallet-activation:", Class::Stays),
+    // Native Taproot keys derive from this device's own root; the moves to
+    // them, their sweeps and archived addresses are this device's record.
+    ("wallet-native:", Class::Stays),
+    ("wallet-nc-migrate:", Class::Stays),
+    ("wallet-sweep:", Class::Stays),
+    ("wallet-archived:", Class::Stays),
     ("payer:", Class::Stays),
     ("checkout:", Class::Stays),
     ("usage:", Class::Stays),

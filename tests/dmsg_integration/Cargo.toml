@@ -56,7 +56,7 @@ ic-certification.workspace = true
 ic-stable-structures.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
-k256 = { workspace = true, features = ["ecdsa"] }
+k256 = { workspace = true, features = ["ecdsa", "schnorr"] }
 # The wallet tests check signed transactions with independent libraries.
 alloy-consensus = { workspace = true, features = ["k256"] }
 alloy-eips.workspace = true

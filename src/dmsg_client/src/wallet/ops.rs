@@ -567,8 +567,9 @@ pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -
     } else {
         None
     };
-    let requirements = cosign_requirements(&proposal.intent, &view.addresses);
-    if !requirements.is_empty() {
+    let guarded = !cosign_requirements(&proposal.intent, &view.addresses).is_empty()
+        || packets::native_requirement(&view, &proposal.intent, plan.as_ref()).is_some();
+    if guarded {
         let (view, proposal, plan, _, requirements) =
             packets::context(h, wallet, id, plan.as_ref().map_or(0, |p| p.seq)).await?;
         let cosigners = h
@@ -812,6 +813,18 @@ pub async fn params<H: Hold>(
     a: &Address,
     chain: Chain,
 ) -> Result<ExecutionParams> {
+    // A sweep is built from the coins and rate its amount was set for.
+    if chain == Chain::Bitcoin
+        && p.signed.is_empty()
+        && let Some(sweep) = h.with(|c| c.sweep_params(view.wallet, p.id)).await?
+    {
+        return Ok(ExecutionParams::Bitcoin {
+            utxos: sweep.utxos,
+            fee_rate: sweep.fee_rate,
+            locktime: 0,
+            timelock: sweep.timelock,
+        });
+    }
     let chains = h.with(|c| c.chains()).await?;
     Ok(match chain {
         Chain::Bitcoin => {
@@ -1290,13 +1303,14 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 let seq = plan.as_ref().map_or(0, |p| p.seq);
                 let mut signatures = vec![];
                 for cosigner in &cosigners {
-                    let (fresh, digests) =
+                    let (fresh, digests, native) =
                         cosign_context(h, wallet, &proposal, plan.as_deref(), &cosigners).await?;
                     signatures.extend(
-                        local_cosigs(h, &fresh, *cosigner, proposal.id, seq, &digests).await?,
+                        local_cosigs(h, &fresh, *cosigner, (proposal.id, seq), &digests, native)
+                            .await?,
                     );
                 }
-                let (fresh, _) =
+                let (fresh, _, _) =
                     cosign_context(h, wallet, &proposal, plan.as_deref(), &cosigners).await?;
                 let collected =
                     packets::keep(h, &fresh, &proposal, plan.as_deref(), signatures).await?;
@@ -1377,14 +1391,15 @@ async fn home_config<H: Hold>(h: &H) -> Result<dmsg_types::user::UserInit> {
 
 /// Re-read state before and after user presence. A cancelled request, changed
 /// policy, removed key, frozen wallet or switched/locked account must not sign
-/// or publish a packet under an earlier snapshot.
+/// or publish a packet under an earlier snapshot. Also tells whether the
+/// keys sign the plan's raw digests, as the native key of an L1 spend does.
 async fn cosign_context<H: Hold>(
     h: &H,
     wallet: Principal,
     approved: &Proposal,
     plan: Option<&ExecutionPlan>,
     cosigners: &[u32],
-) -> Result<(WalletView, Vec<Hash>)> {
+) -> Result<(WalletView, Vec<Hash>, bool)> {
     let (view, p, current_plan, digests, requirements) =
         packets::context(h, wallet, approved.id, plan.map_or(0, |p| p.seq)).await?;
     ensure(
@@ -1403,39 +1418,51 @@ async fn cosign_context<H: Hold>(
             .any(|m| m.id == me && m.status == MemberStatus::Active && m.role != Role::Viewer),
         Error::Forbidden,
     )?;
+    let native = packets::native(&view, &requirements);
     for id in cosigners {
         ensure(
             requirements.iter().any(|r| r.policy.cosigners.contains(id))
-                && view
-                    .cosigners
-                    .iter()
-                    .any(|c| c.id == *id && (!view.policy.hardware_cosigners || c.input.hardware)),
+                && view.cosigners.iter().any(|c| {
+                    c.id == *id && (native || !view.policy.hardware_cosigners || c.input.hardware)
+                }),
             Error::Forbidden,
         )?;
     }
-    Ok((view, digests))
+    Ok((view, digests, native))
 }
 
+/// Sign the cosign messages of `digests`, or the digests themselves when
+/// `native`, with this device's key of `cosigner`.
 pub(super) async fn local_cosigs<H: Hold>(
     h: &H,
     view: &WalletView,
     cosigner: u32,
-    proposal: u64,
-    plan: u32,
+    (proposal, plan): (u64, u32),
     digests: &[Hash],
+    native: bool,
 ) -> Result<Vec<CosignerSig>> {
     let key = view
         .cosigners
         .iter()
         .find(|c| c.id == cosigner)
         .ok_or(Error::NotFound)?;
-    let signer = h.with(|c| c.prepare_cosign(&key.input.public_key)).await?;
-    let messages = digests
-        .iter()
-        .enumerate()
-        .map(|(i, d)| cosign_message(view.wallet, proposal, plan, i as u32, d))
-        .collect();
-    let signatures = signer.sign(messages).await?;
+    let messages = match native {
+        true => digests.to_vec(),
+        false => digests
+            .iter()
+            .enumerate()
+            .map(|(i, d)| cosign_message(view.wallet, proposal, plan, i as u32, d))
+            .collect(),
+    };
+    let signatures = match key.input.kind {
+        CosignerKind::Bip340 => {
+            super::native::sign(h, view.wallet, &key.input.public_key, messages).await?
+        }
+        _ => {
+            let signer = h.with(|c| c.prepare_cosign(&key.input.public_key)).await?;
+            signer.sign(messages).await?
+        }
+    };
     h.with(|c| c.keys().map(|_| ())).await?;
     ensure(signatures.len() == digests.len(), Error::IntegrityFailed)?;
     Ok(signatures

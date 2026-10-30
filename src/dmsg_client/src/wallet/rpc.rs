@@ -43,6 +43,19 @@ pub struct EsploraUtxo {
     pub vout: u32,
     /// Satoshis.
     pub value: u64,
+    /// Where it was confirmed.
+    #[serde(default)]
+    pub status: EsploraStatus,
+}
+
+/// The confirmation of a transaction.
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct EsploraStatus {
+    /// Whether a block holds it.
+    #[serde(default)]
+    pub confirmed: bool,
+    /// That block's height.
+    pub block_height: Option<u32>,
 }
 
 /// The chain endpoints of one deployment; clones share one HTTP client.
@@ -85,6 +98,19 @@ impl Chains {
     pub async fn btc_utxos(&self, address: &str) -> Result<Vec<EsploraUtxo>> {
         let url = format!("{}/address/{address}/utxo", self.settings.bitcoin_api);
         json_body(self.get(&url).await?).await
+    }
+
+    /// The height of the chain's tip.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when the API fails.
+    pub async fn btc_tip_height(&self) -> Result<u32> {
+        let url = format!("{}/blocks/tip/height", self.settings.bitcoin_api);
+        let text = body(self.get(&url).await?).await?;
+        std::str::from_utf8(&text)
+            .ok()
+            .and_then(|t| t.trim().parse().ok())
+            .ok_or_else(|| unavailable("tip height"))
     }
 
     /// A fee rate in satoshis per virtual byte for confirmation within a

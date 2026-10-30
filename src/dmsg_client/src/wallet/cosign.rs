@@ -480,9 +480,9 @@ mod tests {
                     h.as_ref(),
                     &view,
                     1,
-                    1,
-                    1,
+                    (1, 1),
                     &[Hash::new([1; 32]), Hash::new([2; 32])],
+                    false,
                 )
                 .await
             });
