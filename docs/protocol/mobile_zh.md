@@ -1,10 +1,10 @@
 # dMsg 原生 Apple 客户端接口
 
-版本：1；日期：2026-10-27。描述公开客户端实际使用的接口与边界，不表示服务已部署或 Apple 验收通过。账号、设备和内容权限继续遵守现有[云端合同](cloud_zh.md)、[账号合同](account_root_zh.md)及[钱包合同](wallet_zh.md)。
+版本：1；日期：2026-10-30。此次补充服务端通知接入，客户端签名字节与用途域不变。描述公开客户端实际使用的接口与边界，不表示服务已部署或 Apple 验收通过。账号、设备和内容权限继续遵守现有[云端合同](cloud_zh.md)、[账号合同](account_root_zh.md)及[钱包合同](wallet_zh.md)。
 
 ## 1. 基础授权
 
-普通移动端请求仍使用设备 HTTP PoP。修改操作还需对应用途的签名命令，绑定当前账号、设备、安全版本、请求编号及短期期限。App Attest 证明应用安装，不替代用户批准，不授予解密或付费权益。iOS 不提供任意 JSON RPC、任意路径读文件或通用签名入口。
+原生客户端统一调用账户所在的 Core API，不持有 Apple 服务端凭据，也不直接访问 Apple 验证服务。普通移动端请求仍使用设备 HTTP PoP。修改操作还需对应用途的签名命令，绑定当前账号、设备、安全版本、请求编号及短期期限。App Attest 证明应用安装，不替代用户批准，不授予解密或付费权益。iOS 不提供任意 JSON RPC、任意路径读文件或通用签名入口。
 
 原生界面持有按会话代次固定的句柄。锁定、暂停或切换账号使旧句柄失效；网络等待释放共享客户端。未决消息、提案、导入与备份沿用原编号恢复，不把超时当作未发生。
 
@@ -43,6 +43,25 @@ POST purchase 提交安装标识、Apple 交易 JWS 和对应断言。服务验�
 
 原生端只在权威服务应用成功后 finish StoreKit 交易，未完成交易留待恢复购买和更新监听重试。删除 dMsg 账号不会取消 Apple 自动续订。生产 commerce 拒绝 Sandbox 事实。
 
+### 3.1 App Store 服务端通知
+
+App Store Server Notifications V2 的接收入口是 Core 的 `POST /storekit/notifications`，供 Apple
+服务器回调；原生客户端继续使用上面的设备接口，不调用这个回调路径。
+
+| 环境 | App Store Connect 中的通知 URL |
+| --- | --- |
+| Production | `https://api.dmsg.net/storekit/notifications` |
+| Sandbox | `https://staging-api.dmsg.net/storekit/notifications` |
+
+请求为 `Content-Type: application/json` 和 `{ "signedPayload": "<Apple JWS>" }`，正文最多 96 KiB，
+不使用查询参数或设备 HTTP PoP。接收方必须验证 Apple 签名、证书状态、应用标识和环境；知道 URL 或
+传入自报的购买 JSON 不构成授权。只有通知已经被验证并可靠接收，才能返回 `200 {"accepted":true}`；
+服务或验证不可用时返回 503，不能提前确认成功。重复通知沿用原交易身份，不重复授予权益。
+
+这两个 URL 是部署接入合同，不表示已经配置 App Store Connect 或完成真实回调验收。
+当前 TestFlight 仍连接生产业务服务且关闭内购处理；Sandbox 通知地址不会切换客户端业务环境，
+也不会使 production commerce 接受 Sandbox 交易。重新启用购买前须独立完成环境隔离与验收。
+
 ## 4. 举报、屏蔽与账号删除
 
 POST report 仅发送举报原因、说明、目标账号／资源／消息定位，以及用户明确选择披露的正文。内容来自已验证的本地记录；不会发送账号内容密钥。原报告编号及内容在本机加密保存，重试不改变原举报。GET reports 返回本人举报状态和处理结果。
@@ -71,7 +90,7 @@ AutoFill 与 Files 使用不同 App Group 和 Keychain group，只有明确选�
 
 Widget 和 App Intents 仅提供通用导航及显式暂存，不返回秘密、不后台解锁或批准。浏览器唤起沿用[connect 合同](connect-v1_zh.md)的导航提示；页面结果仍由原操作恢复和验证。
 
-签名应用可附带只含公开端点、registry/user home/wallet hub 标识的 StagingDeployment.json。沙盒分发使用显式标识的 Staging 工作区，测试安装偏好和 Keychain 命名空间与生产隔离。配置没有自定义 IC 根密钥或任意登录回调选项。系统 receipt 路径只选择隔离环境，不能证明付款；普通网页链接不能选择环境。
+当前 TestFlight 和 App Store Release 固定连接生产业务服务，内购入口、恢复与交易监听/提交由构建开关关闭；receipt 路径不选择业务环境，也不能证明付款。只有显式启用 `DMSG_USE_STAGING=YES` 的 Debug 构建读取 `StagingDeployment.json`，该文件仅含公开端点和 canister ID，使用独立工作区、Keychain 与偏好设置。配置没有自定义 IC 根密钥或任意登录回调选项，普通网页链接不能选择环境。
 
 ## 7. 验证边界
 

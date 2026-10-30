@@ -398,6 +398,14 @@ Link limits apply to download sessions; channel snapshots have neither link
 expiry nor recall. Files imported with a snapshot stay local and inherit the
 selected folder's grants. OTP selection includes the reusable seed explicitly.
 
+## Apple 服务接入
+
+原生端继续通过 Core 的 `/v1/accounts/:account/mobile/*` 调用登记、配置和购买接口，不需要新增
+Apple 服务地址或凭据。App Store Server Notifications V2 配置到 Core 的 `/storekit/notifications`；
+生产与 Sandbox 地址、请求格式和确认语义见[公开移动合同](../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)，
+发布检查见[审核说明](Review/README_zh.md)。这项服务端入口调整不启用当前关闭的内购，也不改变
+TestFlight 固定连接生产的策略。
+
 ## Deployment gates
 
 This tree is development code, not an App Store release assertion. In particular:

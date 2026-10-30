@@ -43,7 +43,7 @@
 - [x] 完成本轮 Release 归档检查并记录实际结果。
 - [x] 按 [VALIDATION.md](VALIDATION.md) 记录运行过的测试，保留失败修复和未运行项。
 - [ ] 重新启用内购前创建真实 App Store 商品并核对服务与 canister 的映射；当前关闭内购的 TestFlight 构建不依赖此项。
-- [ ] 配置生产／测试服务、APNs、App Attest、Server API、通知 V2 和公开头像缓存清理。
+- [ ] 配置生产／测试服务、APNs、App Attest、Server API 和公开头像缓存清理；通知 V2 按[移动合同](../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)接入 Core 的 `/storekit/notifications`，验证重复通知与失败重试。当前 TestFlight 仍固定生产并关闭内购。
 - [ ] 配置签名、各扩展权限及线上 AASA；测试部署配置只用于开发者显式选择的 Debug staging。
 - [ ] 执行 [审核与真机验收](Review/README_zh.md)，验证 passkey 自助注册及新账号首台设备初始化，不要求预置共享测试账号。
 - [ ] 用两台真机验收设备替换与设备间传输（本地网络授权、Bonjour、Face ID 与 Secure Enclave）。

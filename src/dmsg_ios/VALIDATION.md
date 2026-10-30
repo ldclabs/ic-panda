@@ -1,5 +1,18 @@
 # iOS implementation validation
 
+## Apple 回调合同同步（2026-10-30）
+
+本次只更新公开接口与发布文档。基于本地 `c0a09dff`，静态核对
+[`dmsg_mobile::apple`](../dmsg_mobile/src/apple.rs)、[`PurchaseModel`](App/PurchaseModel.swift)、
+[`MobileDeployment`](Platform/MobileDeployment.swift) 和 [`project.yml`](project.yml)：原生端已经
+统一调用 Core 的设备接口，不需要更改 Rust/Swift 调用路径或引入 Apple 服务凭据。当前 TestFlight
+固定连接生产，内购加载、购买、恢复和交易监听/提交保持关闭；Debug staging 仍为显式选项。
+
+[公开移动合同](../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)补充由 Core 接收的 App Store
+Server Notifications V2 地址、签名验证和可靠接收语义，审核文档与清单同步。已检查文档相对链接、
+新锚点和 `git diff --check`。未重跑 Rust、Swift、模拟器或真机测试；未拉取远端，未部署，
+未更改 App Store Connect，也未执行真实购买、续订、退款或回调验收。
+
 ## Device replacement, transfers and wallet keys (2026-10-30)
 
 Adds the iPhone screens for replacing a device and moving to a new one. Devices

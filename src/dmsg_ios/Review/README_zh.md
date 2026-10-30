@@ -1,6 +1,6 @@
 # iOS 审核与服务验收
 
-记录日期：2026-10-27。这里描述提交审核前实际要执行的步骤，不表示 Apple 已批准该应用或服务已经部署。
+记录日期：2026-10-30（补充服务端通知入口；保留各构建的原验证范围）。这里描述提交审核前实际要执行的步骤，不表示 Apple 已批准该应用或服务已经部署。
 
 ## 应用标识
 
@@ -34,6 +34,7 @@
 
 - [ ] 重新启用内购前，在 App Store Connect 创建三个年度订阅及需要的存储包，填写本地化描述、价格、订阅组、等级和审核截图；存储包使用 consumable，套餐使用年度 auto-renewable subscription，保持 Family Sharing 关闭以匹配单一 dMsg 账号绑定；将**实际** ID 配入验证服务及商业 canister 的产品映射。此项不阻止当前关闭内购的 TestFlight 构建。
 - [ ] 部署 Apple 验证与投递服务，配置 Apple 根证书、App Attest 环境与允许版本、App Store Server API 凭据、通知 V2 地址及 canister 验证者 principal。凭据只放受保护的部署配置，不进入本仓库。
+- [ ] 将 App Store Server Notifications V2 配置到 Core：Production 为 `https://api.dmsg.net/storekit/notifications`，Sandbox 为 `https://staging-api.dmsg.net/storekit/notifications`。按[公开回调合同](../../../docs/protocol/mobile_zh.md#31-app-store-服务端通知)验收签名拒绝、重复通知及服务不可用重试；这不改变当前 TestFlight 固定生产、内购关闭的决定。
 - [ ] 配置 APNs topic、环境和密钥；验证撤销设备、关闭通知、无权限和 token 失效行为。通知只能显示通用提醒。
 - [ ] 注册 Share、AutoFill、File Provider、File Provider UI、Widget 标识与各自 entitlement；核对主应用私有 Keychain group 位于首位，扩展不能访问它。
 - [ ] 在 `dmsg.net` 和 `connect.dmsg.net` 部署正确 AASA；登录回调与 connect 导航规则分别验证。不要通过重定向返回 AASA。
