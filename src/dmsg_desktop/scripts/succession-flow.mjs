@@ -390,7 +390,7 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   methods['device/moved_approve_successor'] = p => request('device_pair', { device_id: me, role: 'Administrator', capabilities, moved: p.id })
   methods['device/succession_request'] = p => {
     assert.equal(p.predecessor, old)
-    return { id: 'b3'.repeat(32), token, device_id: me, approval_key: true, cosigner: false }
+    return { id: 'b3'.repeat(32), token, device_id: me, approval_key: true, cosigner: false, qr: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }
   }
   setSession('pairing_required')
   emit('session/changed', { state: 'pairing_required' })
@@ -404,6 +404,8 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   await main.getByTestId('succession-predecessor').fill(old)
   await main.getByTestId('succession-request-create').click()
   await main.getByTestId('succession-request-made').waitFor()
+  // The old device scans the request or pastes it.
+  await main.getByTestId('succession-qr').waitFor()
   assert.equal(await main.getByTestId('succession-token-made').inputValue(), token)
   assert.equal(await main.getByTestId('succession-token-made').evaluate(el => el.readOnly && el.labels.length === 1), true)
   await matrix('request', '[data-testid="succession-request"]')

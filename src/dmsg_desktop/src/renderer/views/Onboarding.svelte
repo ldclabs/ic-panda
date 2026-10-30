@@ -147,6 +147,9 @@
           {#if succession}
             <Notice testid="succession-request-made">
               <p>{t('successionRequestShown')}</p>
+              {#if succession.qr}
+                <img src={succession.qr} alt={t('requestToken')} width="224" height="224" class="mt-2 rounded-lg bg-white p-2" data-testid="succession-qr" />
+              {/if}
               <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{succession.device_id}</b></p>
               <p class="mt-1.5 flex flex-wrap gap-1">
                 <Pill tone={succession.approval_key ? 'ok' : 'neutral'}>{t('successionApprovalKey')}: {succession.approval_key ? t('successionMade') : t('successionNotMade')}</Pill>
