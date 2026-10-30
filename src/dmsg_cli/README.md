@@ -279,6 +279,8 @@ dmsg device list | pair-request [--member] | approve <request> --device <id>
 dmsg device key status | register [--biometry-only] | request [--biometry-only] | approve <request> --device <id> | retire [--device <id>]
 dmsg device succession request <device> | review <request> | approve <request> --device <id> | list | status <id>
 dmsg device succession run <id> <step> | skip <id> content|native_addresses [--keep a,b] | cancel <id>
+dmsg device transfer receive [--session S] [--succession ID] [--wait] | status | cancel
+dmsg device transfer send <session> [--to <device>] [--address host:port] [--succession ID] [--wait]
 dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
                 [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
 dmsg vault edit <id> [--title T] [--notes N] [--username U] [--url L] [--tag T]... [--clear-tags] [--favorite|--no-favorite]
@@ -373,10 +375,26 @@ done (`list`, `status <id>`) and runs its own with `run <id> <step>`: the old
 device registers the new approval key (`approval_key`) and rotates its
 cosigner keys in every wallet (`cosigners`); the new device confirms the
 rotation, takes over the old device's wallet bindings (`wallets`) and
-finally revokes it (`revoke`). Until devices can transfer content directly
-and move native addresses, `skip <id> content|native_addresses` leaves them,
-listing what stays with `--keep`. `cancel` stops a succession and keeps what
-was done; revoking the new device undoes its enrollment.
+finally revokes it (`revoke`). Local content moves with a device transfer
+for the succession (below), which settles the `content` step on both
+devices; until native addresses can move, `skip <id> native_addresses`
+leaves them, and `skip <id> content --keep a,b` leaves content, listing what
+stays. `cancel` stops a succession and keeps what was done; revoking the new
+device undoes its enrollment.
+
+`device transfer` moves the file library from one device of the account to
+another over the local network, end to end encrypted
+([dmsg-device-transfer/1](../../docs/protocol/device_transfer.md)). On the
+receiving device, `receive` opens a session on a random port, advertises it
+with Bonjour on macOS and prints the command for the sender: `send <session>
+--to <device>`, with `--address host:port` where Bonjour does not find the
+receiver. With `--succession <id>` on both devices the succession names the
+receiver. The receiver listens only during its session, one connection at a
+time, and closes it once the transfer completes, nothing connects for two
+minutes, `cancel` stops it or the device locks; a broken transfer resumes
+with `receive --session <session>`. It only adds: records already there stay
+as they are, and nothing is deleted. `status` shows the running or last
+transfer; `--wait` follows it to the end.
 
 Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one
@@ -1128,7 +1146,8 @@ The daemon listens on `127.0.0.1` only.
   `files/mount_changed`, `sync/changed`, `sync/progress`, `profile/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `channel/read`,
-  `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
+  `inbox/changed`, `legacy/changed`, `mcp-events/changed`,
+  `transfer/changed` (the transfer's view), `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. A request or WebSocket message may be up to 16 MiB.
   Errors carry `error.data.code` such as `AUTH_REQUIRED`, `LOCKED`,
@@ -1163,6 +1182,9 @@ The daemon listens on `127.0.0.1` only.
   `device/succession_request {predecessor}|succession_review {token}|succession_approve {token, device}|successions`,
   `device/succession_status|succession_cancel {id}`, `device/succession_run {id, step}`,
   `device/succession_skip {id, step, skipped?}`,
+  `transfer/receive_start {session?, categories?, succession?}`,
+  `transfer/send_start {session, to?, address?, succession?}`, `transfer/status`, `transfer/cancel`
+  (one transfer at a time; `transfer/changed` follows its progress),
   `vault/templates|create|edit|duplicate|delete|restore|tags|list|show|reveal|history|revert|conflicts|resolve|otp|ssh_keygen|health`,
   `vault/otp_scan {image|path}`, `vault/import_preview|import` (absolute paths),
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,

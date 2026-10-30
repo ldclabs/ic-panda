@@ -190,6 +190,43 @@ async fn the_library_moves_whole_and_reads_the_same() {
     assert_eq!(again.kept, 9);
 }
 
+#[tokio::test]
+async fn a_listening_session_outlasts_a_connection_that_fails() {
+    let mut p = pair();
+    let (from, to) = (id(&p.old), id(&p.new));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let session = session_id();
+    let (sent, got) = (Mutex::new(Report::default()), Mutex::new(Report::default()));
+    let (old, new) = (p.old.hold(), p.new.hold());
+    let sender = async {
+        // A connection that sends no hello fails on its own.
+        let mut stranger = tokio::net::TcpStream::connect(address).await.unwrap();
+        tokio::io::AsyncWriteExt::write_all(&mut stranger, &[0xff; 8])
+            .await
+            .unwrap();
+        while got.lock().unwrap().last_error.is_none() {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+        assert_eq!(
+            got.lock().unwrap().last_error.as_deref(),
+            Some("QUOTA_EXCEEDED")
+        );
+        let stream = tokio::net::TcpStream::connect(address).await.unwrap();
+        send(&old, &p.devices, stream, to, session, &sent).await
+    };
+    let (received, sent) = tokio::join!(
+        serve(&new, &p.devices, &listener, session, &Category::ALL, &got),
+        sender
+    );
+    let (received, sent) = (received.unwrap(), sent.unwrap());
+    assert_eq!((received.records, received.peer), (9, Some(from)));
+    assert_eq!((sent.records, sent.peer), (9, Some(to)));
+    assert_eq!(*got.lock().unwrap(), received);
+    let view = serde_json::to_value(&received).unwrap();
+    assert_eq!(view["peer"], hex::encode(*from));
+}
+
 #[test]
 fn frames_open_only_in_place() {
     let (key, session) = ([7; 32], [1; 16]);

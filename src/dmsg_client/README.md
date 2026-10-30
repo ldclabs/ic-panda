@@ -279,10 +279,12 @@ content, the wallet bindings (the new device joins each wallet replacing the
 old one), native addresses, and the old device's revocation by the new one,
 offered once content and native addresses are settled. `status` reads the
 account and records the enrollment, the key and the revocation on either
-device by itself. Until device-to-device transfer and native-address
-migration exist, those two steps can only be left, listing what stays.
-Cancelling keeps what was committed; revoking the new device undoes its
-enrollment.
+device by itself. Local content moves with a device transfer between the
+two devices (`peer` names the other one, and `transferred` records the
+transfer's report as the step's evidence on the device it ran on); until
+native-address migration exists, that step can only be left, listing what
+stays, as content can. Cancelling keeps what was committed; revoking the
+new device undoes its enrollment.
 
 ### Device transfer
 
@@ -303,6 +305,11 @@ and commits folders, versions and files in that order; a version is local
 only when all of its chunks arrived. The merge only adds: records already
 there stay as they are, files gain the versions that arrived, and nothing is
 restored from the trash or deleted. The sender changes nothing on its side.
+A host serves a receiving session on a TCP listener with `serve`: one
+connection at a time, each failure (a stranger, a broken connection) kept in
+the report's `last_error` while it goes on listening, until a transfer
+completes or nothing connects for two minutes. The host closes it when the
+device locks.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

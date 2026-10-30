@@ -298,3 +298,37 @@ fn a_task_reads_back_as_it_was_saved_to_continue_later() {
     assert_eq!(read.available(), vec![Step::ApprovalKey, Step::Content]);
     assert_eq!(client.succession(&hash(4)), Err(Error::NotFound));
 }
+
+#[tokio::test]
+async fn a_transfer_with_the_other_device_settles_content() {
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    let mut saved = task(Side::Successor);
+    client.save_succession(&saved).unwrap();
+    let h = Shared(tokio::sync::Mutex::new(client));
+    let report = |peer| Report {
+        peer: Some(hash(peer)),
+        records: 4,
+        ..Report::default()
+    };
+    // Not before the successor joined, and only with the predecessor.
+    assert_eq!(
+        transferred(&h, saved.id, &report(2)).await,
+        Err(Error::Forbidden)
+    );
+    saved.record(Step::Authorize, Json::Null, 2);
+    h.0.lock().await.save_succession(&saved).unwrap();
+    assert_eq!(
+        transferred(&h, saved.id, &report(9)).await,
+        Err(Error::Forbidden)
+    );
+    let view = transferred(&h, saved.id, &report(2)).await.unwrap();
+    assert_eq!(view["steps"][3]["step"], "content");
+    assert_eq!(view["steps"][3]["evidence"]["records"], 4);
+    assert_eq!(view["steps"][3]["evidence"]["peer"], hex::encode([2; 32]));
+    // Once.
+    assert_eq!(
+        transferred(&h, saved.id, &report(2)).await,
+        Err(Error::Forbidden)
+    );
+}

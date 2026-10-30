@@ -24,12 +24,12 @@ use crate::codec::digest;
 use crate::hold::Hold;
 use dmsg_types::user::DeviceInput;
 use dmsg_types::{AccountId, Hash, Result};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_bytes::{ByteBuf, Bytes};
 use std::collections::BTreeMap;
 use std::future::Future;
 
-pub use session::{HELLO_TIMEOUT, IDLE_TIMEOUT, receive, send};
+pub use session::{HELLO_TIMEOUT, IDLE_TIMEOUT, receive, send, serve};
 pub use wire::{Body, Header, Hello, MAX_BODY};
 
 /// The format a header names.
@@ -47,6 +47,16 @@ pub const MAX_ENTRIES: usize = 1_000_000;
 
 /// A receiving session's ID, random.
 pub type SessionId = [u8; 16];
+
+/// A new receiving session's ID.
+///
+/// # Panics
+/// Panics if the operating system has no random source.
+pub fn session_id() -> SessionId {
+    let mut id = [0; 16];
+    getrandom::fill(&mut id).expect("operating system random source");
+    id
+}
 
 /// The Bonjour instance name a receiver advertises session `id` under: the
 /// first 8 bytes of its tag, in hex. Only a device that knows the ID finds
@@ -186,6 +196,9 @@ pub(crate) fn info(account: &AccountId, from: &Hash, to: &Hash, id: &SessionId) 
 /// How far a transfer got, on either side.
 #[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Report {
+    /// The other device, once its hello named it.
+    #[serde(serialize_with = "hex_device")]
+    pub peer: Option<Hash>,
     /// Entries of the chosen categories.
     pub entries: usize,
     /// Records added or merged here, or sent from here.
@@ -201,6 +214,12 @@ pub struct Report {
     pub bytes: u64,
     /// The chunks' total bytes in the chosen categories.
     pub total_bytes: u64,
+    /// Why the last connection of a listening session failed.
+    pub last_error: Option<String>,
+}
+
+fn hex_device<S: Serializer>(peer: &Option<Hash>, s: S) -> std::result::Result<S::Ok, S::Error> {
+    peer.map(|p| hex::encode(*p)).serialize(s)
 }
 
 /// The account's certified devices, which each side reads when the session

@@ -13,6 +13,7 @@ use crate::codec::{b64, canonical, decode, unb64};
 use crate::crypto::{random_id, sign};
 use crate::hold::Hold;
 use crate::now_ms;
+use crate::transfer::Report;
 use crate::wallet::rotate::{self, Successor as SuccessorKey};
 use crate::workspace::AccountRef;
 use candid::Principal;
@@ -188,6 +189,14 @@ impl Task {
                     && s.after().iter().all(|p| self.steps.contains_key(p))
             })
             .collect()
+    }
+
+    /// The other device of the succession.
+    fn other(&self) -> Hash {
+        match self.side {
+            Side::Predecessor => self.successor,
+            Side::Successor => self.predecessor,
+        }
     }
 
     /// Record `step` done, once.
@@ -555,20 +564,27 @@ async fn account<H: Hold>(h: &H) -> Result<AccountInfo> {
     }
 }
 
+/// Task `id` after recording what the account shows done, and the account.
+async fn observed<H: Hold>(h: &H, id: Hash) -> Result<(Task, AccountInfo)> {
+    let info = account(h).await?;
+    let task = h
+        .with(|c| {
+            let mut task = c.succession(&id)?;
+            if task.observe(&info, now_ms()) {
+                c.save_succession(&task)?;
+            }
+            Ok(task)
+        })
+        .await?;
+    Ok((task, info))
+}
+
 /// The task `id`, after recording what the account shows done.
 ///
 /// # Errors
 /// Returns `Error::NotFound` for an unknown task.
 pub async fn status<H: Hold>(h: &H, id: Hash) -> Result<Json> {
-    let info = account(h).await?;
-    h.with(|c| {
-        let mut task = c.succession(&id)?;
-        if task.observe(&info, now_ms()) {
-            c.save_succession(&task)?;
-        }
-        Ok(task.view())
-    })
-    .await
+    Ok(observed(h, id).await?.0.view())
 }
 
 /// This device's successions, the newest last.
@@ -588,23 +604,15 @@ pub async fn list<H: Hold>(h: &H) -> Result<Json> {
 
 /// Run `step` of task `id` here: an approval for the steps the person
 /// approves, the cosigner rotation itself, or the successor's confirmation
-/// that the predecessor finished it. Local content and native addresses are
-/// left with [`skip`] until their own steps exist.
+/// that the predecessor finished it. Local content moves with a device
+/// transfer between the two devices ([`peer`], [`transferred`]); it and
+/// native addresses can also be left with [`skip`].
 ///
 /// # Errors
 /// Returns `Error::Forbidden` for a step this device cannot run now, and the
 /// step's own errors.
 pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<Json> {
-    let info = account(h).await?;
-    let task = h
-        .with(|c| {
-            let mut task = c.succession(&id)?;
-            if task.observe(&info, now_ms()) {
-                c.save_succession(&task)?;
-            }
-            Ok(task)
-        })
-        .await?;
+    let (task, info) = observed(h, id).await?;
     ensure(task.available().contains(&step), Error::Forbidden)?;
     let token: Token = decode(&unb64(&task.token)?, MAX_TOKEN)?;
     match (task.side, step) {
@@ -687,11 +695,45 @@ pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<J
         (Side::Successor, Step::Revoke) => {
             crate::approval::revoke_request(h, source, task.predecessor).await
         }
-        (_, Step::Content | Step::NativeAddresses) => Err(Error::Unavailable(
+        (_, Step::Content) => Err(Error::InvalidInput(
+            "local content moves with a device transfer: receive on the new device, send from the old one; or leave it with skip".into(),
+        )),
+        (_, Step::NativeAddresses) => Err(Error::Unavailable(
             "this step is not available yet; leave it with skip".into(),
         )),
         _ => Err(Error::Forbidden),
     }
+}
+
+/// The device that task `id` moves local content with: the successor on the
+/// predecessor and the other way round, while the content step is open here.
+///
+/// # Errors
+/// Returns `Error::Forbidden` when the content step cannot run now.
+pub async fn peer<H: Hold>(h: &H, id: Hash) -> Result<Hash> {
+    let (task, _) = observed(h, id).await?;
+    ensure(task.available().contains(&Step::Content), Error::Forbidden)?;
+    Ok(task.other())
+}
+
+/// Record the content step of task `id` done: a device transfer with the
+/// task's other device went through, as `report` shows.
+///
+/// # Errors
+/// Returns `Error::Forbidden` for a transfer with another device or a step
+/// that is no longer open.
+pub async fn transferred<H: Hold>(h: &H, id: Hash, report: &Report) -> Result<Json> {
+    h.with(|c| {
+        let mut task = c.succession(&id)?;
+        ensure(
+            report.peer == Some(task.other()) && task.available().contains(&Step::Content),
+            Error::Forbidden,
+        )?;
+        task.record(Step::Content, json!(report), now_ms());
+        c.save_succession(&task)?;
+        Ok(task.view())
+    })
+    .await
 }
 
 /// Record `step` of task `id` done with `evidence`.

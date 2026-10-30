@@ -90,6 +90,51 @@ pub enum DeviceCommand {
     /// device limit: the old device hands over its keys and wallets.
     #[command(subcommand)]
     Succession(SuccessionCommand),
+    /// Move this device's local content, today the file library, to
+    /// another device of the account over the local network, end to end
+    /// encrypted.
+    #[command(subcommand)]
+    Transfer(TransferCommand),
+}
+
+/// A direct transfer between two devices of the account: the receiving
+/// device opens a session, the sending device connects to it.
+#[derive(Subcommand)]
+pub enum TransferCommand {
+    /// On the receiving device: open a session and wait for the sender;
+    /// prints what to run there.
+    Receive {
+        /// Resume this session after a broken connection.
+        #[arg(long)]
+        session: Option<String>,
+        /// The succession whose content step it settles.
+        #[arg(long)]
+        succession: Option<String>,
+        /// Wait until the transfer ends.
+        #[arg(long)]
+        wait: bool,
+    },
+    /// On the sending device: send to the session the receiver shows.
+    Send {
+        /// The session the receiving device shows.
+        session: String,
+        /// The receiving device's ID; a succession names it.
+        #[arg(long)]
+        to: Option<String>,
+        /// The receiver's address and port, where Bonjour does not find it.
+        #[arg(long)]
+        address: Option<String>,
+        /// The succession whose content step it settles.
+        #[arg(long)]
+        succession: Option<String>,
+        /// Wait until the transfer ends.
+        #[arg(long)]
+        wait: bool,
+    },
+    /// The running transfer, or the last one.
+    Status,
+    /// Stop the running transfer.
+    Cancel,
 }
 
 /// A planned device replacement. The new device asks, the device it
@@ -698,6 +743,7 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
         }
         DeviceCommand::Key(command) => key(remote, json, command).await?,
         DeviceCommand::Succession(command) => succession(remote, json, command).await?,
+        DeviceCommand::Transfer(command) => transfer(remote, json, command).await?,
     }
     Ok(())
 }
@@ -868,4 +914,58 @@ pub async fn profile(remote: &Remote, json: bool, command: ProfileCommand) -> Re
     let profile = remote.call(method, params).await?;
     print(json, &profile, pretty);
     Ok(())
+}
+
+async fn transfer(remote: &Remote, json: bool, command: TransferCommand) -> Result<(), Failure> {
+    let (method, params, wait) = match command {
+        TransferCommand::Receive {
+            session,
+            succession,
+            wait,
+        } => (
+            "transfer/receive_start",
+            json!({"session": session, "succession": succession}),
+            wait,
+        ),
+        TransferCommand::Send {
+            session,
+            to,
+            address,
+            succession,
+            wait,
+        } => (
+            "transfer/send_start",
+            json!({"session": session, "to": to, "address": address, "succession": succession}),
+            wait,
+        ),
+        TransferCommand::Status => ("transfer/status", Value::Null, false),
+        TransferCommand::Cancel => ("transfer/cancel", Value::Null, false),
+    };
+    let mut view = remote.call(method, params).await?;
+    if method == "transfer/receive_start" && !json {
+        let (session, to) = (
+            view["session"].as_str().unwrap_or_default(),
+            view["to"].as_str().unwrap_or_default(),
+        );
+        let address = view["addresses"][0].as_str().unwrap_or("<address:port>");
+        println!(
+            "{}",
+            tr!(
+                "On the sending device run:\n  dmsg device transfer send {session} --to {to}\nwhere Bonjour does not find this device, add --address {address}\n",
+                "在发送的设备上运行：\n  dmsg device transfer send {session} --to {to}\n如果 Bonjour 找不到本设备，加上 --address {address}\n"
+            )
+        );
+    }
+    while wait && matches!(view["state"].as_str(), Some("waiting" | "running")) {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        view = remote.call("transfer/status", Value::Null).await?;
+    }
+    print(json, &view, pretty);
+    match view["state"].as_str() {
+        Some("failed") => Err(Failure::new(
+            view["error"]["code"].as_str().unwrap_or("UNAVAILABLE"),
+            view["error"]["message"].as_str().unwrap_or_default(),
+        )),
+        _ => Ok(()),
+    }
 }

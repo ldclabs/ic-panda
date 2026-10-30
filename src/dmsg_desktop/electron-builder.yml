@@ -33,6 +33,12 @@ mac:
   hardenedRuntime: true
   entitlements: resources/entitlements.local.plist
   entitlementsInherit: resources/entitlements.local.plist
+  # The daemon's device transfers listen on and browse the local network,
+  # which macOS asks the person about once.
+  extendInfo:
+    NSLocalNetworkUsageDescription: dMsg finds your other devices on the local network to move your files between them directly.
+    NSBonjourServices:
+      - _dmsg-xfer._tcp
 win:
   target: [nsis]
 nsis:

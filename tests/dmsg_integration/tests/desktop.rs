@@ -1764,6 +1764,30 @@ fn desktop_device_succession() {
     a.run(&["vault", "add", "--title", "kept"]);
     assert_eq!(a.run(&["sync"])["sent"], 1);
 
+    // B's library reaches A directly, at the address A shows.
+    let bytes = pattern(3 * 1024 * 1024 + 7, 9);
+    let path = env.dir.join("moved.bin");
+    std::fs::write(&path, &bytes).unwrap();
+    let file = b.run(&["files", "add", path.to_str().unwrap()])[0]["file"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let open = a.run(&["device", "transfer", "receive"]);
+    assert_eq!(open["state"], "waiting");
+    let address = format!("127.0.0.1:{}", open["port"]);
+    let (session, to) = (
+        open["session"].as_str().unwrap(),
+        open["to"].as_str().unwrap(),
+    );
+    let sent = b.run(&[
+        "device", "transfer", "send", session, "--to", to, "--address", &address, "--wait",
+    ]);
+    assert_eq!(sent["state"], "done", "{sent}");
+    assert_eq!(sent["report"]["records"], 2);
+    let shown = a.run(&["files", "show", &file]);
+    assert_eq!(shown["file"]["sha256"], sha256_hex(&bytes).as_str());
+    assert_eq!(a.run(&["device", "transfer", "status"])["state"], "done");
+
     // C, new, asks to replace B with B's role and capabilities. These homes
     // keep no hardware keys, so the request carries none.
     assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
@@ -1854,15 +1878,29 @@ fn desktop_device_succession() {
     for step in ["approval_key", "cosigners", "wallets"] {
         c.run(&["device", "succession", "run", id, step]);
     }
-    c.run(&[
+    // B's library moves to C, found with Bonjour; the transfer settles the
+    // content step on both.
+    let open = c.run(&["device", "transfer", "receive", "--succession", id]);
+    let session = open["session"].as_str().unwrap();
+    let sent = b.run(&[
         "device",
-        "succession",
-        "skip",
+        "transfer",
+        "send",
+        session,
+        "--succession",
         id,
-        "content",
-        "--keep",
-        "files",
+        "--wait",
     ]);
+    assert_eq!(sent["state"], "done", "{sent}");
+    let received = eventually(30, || {
+        let view = c.run(&["device", "transfer", "status"]);
+        (view["state"] == "done").then_some(view)
+    });
+    assert_eq!(received["report"]["peer"], old.as_str());
+    let out = env.dir.join("moved.out");
+    c.run(&["files", "get", &file, "-o", out.to_str().unwrap()]);
+    assert_eq!(std::fs::read(&out).unwrap(), bytes);
+    assert!(!steps(b).contains(&"content".to_string()));
     c.run(&["device", "succession", "skip", id, "native_addresses"]);
     assert_eq!(steps(c), ["revoke"]);
     let revoke = c.run(&["device", "succession", "run", id, "revoke"]);
@@ -1876,7 +1914,7 @@ fn desktop_device_succession() {
             .iter()
             .all(|s| s["settled"] == true)
     );
-    assert_eq!(done["steps"][3]["skipped"], json!(["files"]));
+    assert_eq!(done["steps"][3]["evidence"]["records"], 2);
     assert_eq!(active(a), 2);
     // C keeps its record of the succession.
     assert_eq!(

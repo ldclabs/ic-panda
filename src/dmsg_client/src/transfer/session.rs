@@ -24,6 +24,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Mutex, PoisonError};
 use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpListener;
 use zeroize::Zeroizing;
 
 /// How long a receiver waits for the hello once connected.
@@ -241,10 +242,12 @@ where
         let index: BTreeMap<&str, &Entry> = entries.iter().map(|e| (e.key.as_str(), e)).collect();
         let referenced: BTreeSet<Hash> = entries.iter().flat_map(Entry::digests).collect();
         let mut sent = Report {
+            peer: Some(to),
             entries: entries.len(),
             total_bytes: entries.iter().map(|e| e.blob_bytes).sum(),
             ..Report::default()
         };
+        publish(report, &sent);
         match channel.recv().await? {
             Body::Have { manifest } if manifest == Some(hello.header.manifest) => {}
             Body::Have { .. } => {
@@ -442,10 +445,12 @@ where
             .filter(|e| e.category().is_some_and(|c| categories.contains(&c)))
             .collect();
         let mut got = Report {
+            peer: Some(header.from),
             entries: chosen.len(),
             total_bytes: chosen.iter().map(|e| e.blob_bytes).sum(),
             ..Report::default()
         };
+        publish(report, &got);
         let blobs = h.with(|c| Ok(c.blobs()?.clone())).await?;
         for phase in PHASES {
             let named: Vec<&Entry> = chosen
@@ -534,4 +539,45 @@ where
     .await;
     abort(&mut channel, &result).await;
     result
+}
+
+/// Receive on `listener` for session `id`, one connection at a time, each
+/// as [`receive`] does, until one completes. A connection that fails, from
+/// a device that is not the sender or one that broke, leaves the session
+/// listening with its error in the report; the session ends when no
+/// connection comes for [`IDLE_TIMEOUT`]. The host stops it when the device
+/// locks.
+///
+/// # Errors
+/// Returns `Error::Unavailable` when no sender came in time or the
+/// listener fails, and `Error::Locked` or `Error::AuthRequired` once the
+/// session's account is no longer unlocked.
+pub async fn serve<H, D>(
+    h: &H,
+    devices: &D,
+    listener: &TcpListener,
+    id: SessionId,
+    categories: &[Category],
+    report: &Mutex<Report>,
+) -> Result<Report>
+where
+    H: Hold,
+    D: Devices,
+{
+    loop {
+        let (stream, _) = tokio::time::timeout(IDLE_TIMEOUT, listener.accept())
+            .await
+            .map_err(|_| Error::Unavailable("transfer: no sender came in time".into()))?
+            .map_err(|e| Error::Unavailable(format!("transfer: {e}")))?;
+        match receive(h, devices, stream, id, categories, report).await {
+            Ok(done) => return Ok(done),
+            Err(error @ (Error::Locked | Error::AuthRequired)) => return Err(error),
+            Err(error) => {
+                report
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .last_error = Some(error_code(&error));
+            }
+        }
+    }
 }

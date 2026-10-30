@@ -169,11 +169,12 @@ enum Module {
     Vault,
     Secrets,
     Notifications,
+    Transfer,
 }
 
 /// The module that serves `method`; `None` for an unknown method.
 fn route(method: &str) -> Option<Module> {
-    let modules: [(Module, &[&str]); 13] = [
+    let modules: [(Module, &[&str]); 14] = [
         (Module::Daemon, &METHODS),
         (Module::More, &crate::methods::METHODS),
         (Module::Account, &crate::account_methods::METHODS),
@@ -187,6 +188,7 @@ fn route(method: &str) -> Option<Module> {
         (Module::Vault, &crate::vault_methods::METHODS),
         (Module::Secrets, &crate::secret_methods::METHODS),
         (Module::Notifications, &crate::notifications::METHODS),
+        (Module::Transfer, &crate::transfer::METHODS),
     ];
     modules
         .into_iter()
@@ -280,6 +282,8 @@ pub(crate) struct Daemon {
     pub(crate) display: crate::display::Display,
     pub(crate) snapshots: crate::snapshots::Snapshots,
     pub(crate) notifications: crate::notifications::Notifications,
+    /// The device transfer, running or last.
+    pub(crate) transfers: crate::transfer::Transfers,
 }
 
 /// Who presented a credential.
@@ -358,6 +362,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .port();
     let daemon = Arc::new(Daemon::new(token, port, settings, client, agents, mcp));
     daemon.secret_mounts.bind(Arc::downgrade(&daemon));
+    daemon.transfers.bind(Arc::downgrade(&daemon));
     daemon.read_preferences().await?;
     home.publish(&Discovery {
         port,
@@ -665,6 +670,7 @@ impl Daemon {
             display: Default::default(),
             snapshots: Default::default(),
             notifications: Default::default(),
+            transfers: Default::default(),
         }
     }
 
@@ -1131,6 +1137,7 @@ impl Daemon {
             Module::Vault => self.call_vault(method, params).await,
             Module::Secrets => self.call_secrets(method, params).await,
             Module::Notifications => self.call_notifications(method, params).await,
+            Module::Transfer => self.call_transfer(method, params).await,
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Err(Error::Forbidden),
         };
@@ -1755,6 +1762,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Agents | Module::Agent => crate::agents::events_of(method),
         Module::McpEvents => &[],
         Module::Notifications => &[],
+        Module::Transfer => crate::transfer::events_of(method),
         Module::Files => crate::files_methods::events_of(method),
         Module::Mount => crate::mount::events_of(method),
         Module::Wallet => crate::wallet_methods::events_of(method),
@@ -2309,6 +2317,7 @@ mod tests {
             &crate::wallet_methods::METHODS,
             &crate::vault_methods::METHODS,
             &crate::secret_methods::METHODS,
+            &crate::transfer::METHODS,
         ];
         let mut seen = std::collections::BTreeSet::new();
         for method in modules.into_iter().flatten() {

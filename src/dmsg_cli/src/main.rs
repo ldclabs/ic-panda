@@ -11,6 +11,7 @@ mod agent_commands;
 mod agents;
 mod approval_commands;
 mod autostart;
+mod bonjour;
 mod channels;
 mod commands;
 mod daemon;
@@ -54,6 +55,7 @@ mod secure;
 mod snapshots;
 #[cfg(unix)]
 mod ssh_agent;
+mod transfer;
 mod vault_commands;
 mod vault_methods;
 mod wallet_commands;
