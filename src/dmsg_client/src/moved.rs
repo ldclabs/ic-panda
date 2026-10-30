@@ -312,7 +312,7 @@ pub async fn approve_successor<H: Hold>(h: &H, source: &str, id: &str) -> Result
                 .contains(&HardwarePurpose::DeviceControl),
         Error::Forbidden,
     )?;
-    let made = crate::succession::request(h, predecessor).await?;
+    let made = crate::succession::request_moved(h, predecessor, copy.wallet_principal()?).await?;
     let token = made["token"].as_str().ok_or(Error::IntegrityFailed)?;
     let (pairing, _) = copy.inspect_succession(token)?;
     h.with(|c| {

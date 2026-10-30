@@ -315,10 +315,14 @@ another device's and that the new device has not archived; each moves with
 `wallet::nc_migrate`, and the step settles once none is left. It can also be
 left, listing what stays, as content can. Cancelling keeps what was committed; revoking the
 new device undoes its enrollment.
-An untagged creator binding from a moved copy cannot be retired by device ID;
-the owner must explicitly take over the wallet's bindings (`join --exclusive`)
-before revocation can complete. This removes the other bindings of that
-account, as the wallet approval shows, so it is never selected silently.
+The old device names its own untagged creator bindings before approving, so
+the revocation step leaves those of other devices, which created other
+wallets, as they are. A moved copy approves without naming its own, which no
+device ID retires: where no other device is bound to that wallet, the
+revocation step asks to take over the wallet's bindings (an exclusive join);
+otherwise the owner must explicitly take them over (`join --exclusive`)
+before revocation can complete. Taking over removes the other bindings of
+that account, as the wallet approval shows, so it is never selected silently.
 
 ### Device transfer
 

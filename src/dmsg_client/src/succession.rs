@@ -155,6 +155,11 @@ pub struct Task {
     pub cancelled_at_ms: Option<u64>,
     /// When this device started it.
     pub created_at_ms: u64,
+    /// The predecessor's wallet Principal, when a moved copy of it
+    /// approved: unlike [`accept`], the copy does not name its creator
+    /// bindings.
+    #[serde(default)]
+    pub moved_actor: Option<String>,
 }
 
 impl Task {
@@ -172,6 +177,7 @@ impl Task {
             steps: BTreeMap::new(),
             cancelled_at_ms: None,
             created_at_ms: now,
+            moved_actor: None,
         })
     }
 
@@ -385,6 +391,16 @@ impl Client {
 /// for a predecessor that cannot approve enrollments, and `Error::NotFound`
 /// when the login has no account.
 pub async fn request<H: Hold>(h: &H, predecessor: Hash) -> Result<Json> {
+    request_moved(h, predecessor, None).await
+}
+
+/// [`request`] for a moved copy of `predecessor` to approve, keeping the
+/// copy's wallet Principal `moved_actor`.
+pub(crate) async fn request_moved<H: Hold>(
+    h: &H,
+    predecessor: Hash,
+    moved_actor: Option<Principal>,
+) -> Result<Json> {
     let bound = crate::hold::Session::new(h).await?;
     let h = &bound;
     let (ic, located, device_id) = h
@@ -461,7 +477,8 @@ pub async fn request<H: Hold>(h: &H, predecessor: Hash) -> Result<Json> {
     };
     let text = b64(&canonical(&token));
     ensure(text.len() <= MAX_TOKEN, Error::QuotaExceeded)?;
-    let task = Task::new(Side::Successor, &token, text.clone(), predecessor, now_ms())?;
+    let mut task = Task::new(Side::Successor, &token, text.clone(), predecessor, now_ms())?;
+    task.moved_actor = moved_actor.map(|p| p.to_text());
     h.with(|c| {
         let previous: Vec<Task> = c.workspace.private_after(c.keys()?, TASK, "", MAX_TASKS)?;
         c.workspace.store.atomic(|_| {
@@ -817,11 +834,29 @@ pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<J
             for record in records.as_array().into_iter().flatten() {
                 let wallet = crate::wallet::parse_wallet(record["wallet"].as_str().unwrap_or(""))?;
                 let view = crate::wallet::bindings(h, wallet).await?;
-                // A migrated creator binding may still have no device
-                // tag. It cannot be proven retired by replacing an ID;
-                // the owner must explicitly take over those bindings.
-                ensure(!view["bindings"].as_array().into_iter().flatten().any(|b| b["device"].is_null()), Error::RecoveryIncomplete)?;
-                let old_bound = view["bindings"].as_array().into_iter().flatten().any(|b| b["device"] == predecessor);
+                let bindings = view["bindings"].as_array().map_or(&[][..], Vec::as_slice);
+                // A binding without a device tag is its wallet creator's.
+                // The predecessor named its own before approving
+                // (`accept`), so such a binding is another device's; only a
+                // moved copy's stays untagged, and no device ID retires it.
+                // Taking over the wallet's bindings, which the approval
+                // shows, does where no other device is bound; otherwise the
+                // owner takes them over explicitly.
+                let copied = |b: &Json| {
+                    b["device"].is_null()
+                        && task.moved_actor.as_deref().is_some_and(|p| b["principal"] == p)
+                };
+                if bindings.iter().any(copied) {
+                    ensure(
+                        bindings.iter().all(|b| copied(b) || b["state"] == "current"),
+                        Error::RecoveryIncomplete,
+                    )?;
+                    requests.push(
+                        crate::wallet::ops::join_request(h, source, wallet, vec![], true).await?,
+                    );
+                    continue;
+                }
+                let old_bound = bindings.iter().any(|b| b["device"] == predecessor);
                 if old_bound || view["bound"] != true {
                     requests.push(crate::wallet::ops::join_request(h, source, wallet, vec![task.predecessor], false).await?);
                 }

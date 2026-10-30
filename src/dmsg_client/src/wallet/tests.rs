@@ -32,6 +32,18 @@ fn bookkeeping_notes_are_local_wallet_scoped_and_bounded() {
 }
 
 #[tokio::test]
+async fn the_wallet_principal_is_the_one_wallet_calls_use() {
+    use crate::testing::{TempDir, unlocked};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    // Reading it makes no wallet key.
+    assert_eq!(client.wallet_principal().unwrap(), None);
+    assert_eq!(client.wallet_principal().unwrap(), None);
+    let (actor, _) = identity(&client.hold()).await.unwrap();
+    assert_eq!(client.wallet_principal().unwrap(), Some(actor));
+}
+
+#[tokio::test]
 async fn an_activation_already_sent_can_be_reviewed_without_funding_it_again() {
     use crate::payer::{Call, Payment};
     use crate::testing::{TempDir, unlocked};

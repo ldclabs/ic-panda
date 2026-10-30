@@ -168,8 +168,12 @@ binds it. The copy's device must be an administrator, and the account must
 not require approval keys for device control. `import <id> --succession
 <task>` then brings in the copy's file library, only adding, and settles the
 succession's content step; the other steps run as in any succession, and the
-copy no longer opens once the old device is revoked. A copy whose device
-bound its workspace to its hardware does not open here (`FORBIDDEN`).
+copy no longer opens once the old device is revoked. A wallet the copy's
+device created still binds it without a device ID: where no other device is
+bound to it, `run <task> revoke` first asks to take over that wallet's
+bindings; otherwise take them over with `wallet join <id> --exclusive`,
+which removes this account's other bindings, before revoking. A copy whose
+device bound its workspace to its hardware does not open here (`FORBIDDEN`).
 The import source is opened read-only. The permitted local succession keeps
 its mutable journals in `moved-operations/<copy>/`, separately from that source;
 discarding the copy also removes those journals.

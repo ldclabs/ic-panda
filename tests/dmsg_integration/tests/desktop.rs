@@ -1848,6 +1848,34 @@ fn desktop_device_succession() {
         .unwrap()
         .to_string();
     assert!(b.run(&["wallet", "bindings", &wallet])["bindings"][0]["device"].is_null());
+    // A, which stays, created another wallet that B joined. A's creator
+    // binding has no device tag either; the handover leaves it alone.
+    add_capabilities(a, &http, &["WalletApprove"]);
+    let quote = a.run(&["wallet", "quote"]);
+    let create = a.run(&[
+        "wallet",
+        "create",
+        quote["quote_id"].as_str().unwrap(),
+        "--name",
+        "Shared",
+    ]);
+    assert_eq!(a.decide(&http, &create, true).unwrap()["state"], "done");
+    let created = a.run(&["approvals", "show", create["id"].as_str().unwrap()]);
+    let shared = created["detail"]["result"]["wallet"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let join = b.run(&["wallet", "join", &shared]);
+    assert_eq!(b.decide(&http, &join, true).unwrap()["state"], "done");
+    let untagged = |view: &Value| {
+        view["bindings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|b| b["device"].is_null())
+            .count()
+    };
+    assert_eq!(untagged(&b.run(&["wallet", "bindings", &shared])), 1);
 
     // C, new, asks to replace B with B's role and capabilities. These homes
     // keep no hardware keys, so the request carries none.
@@ -1871,7 +1899,16 @@ fn desktop_device_succession() {
     );
     let review = b.run(&["device", "succession", "review", token]);
     assert_eq!(review["device_id"], new);
-    assert_eq!(review["wallets"][0]["wallet"], wallet);
+    let mut covered: Vec<&str> = review["wallets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["wallet"].as_str().unwrap())
+        .collect();
+    covered.sort();
+    let mut both = [wallet.as_str(), shared.as_str()];
+    both.sort();
+    assert_eq!(covered, both);
     assert_eq!(
         b.fail(&[
             "device",
@@ -1973,13 +2010,29 @@ fn desktop_device_succession() {
     for step in ["approval_key", "cosigners"] {
         c.run(&["device", "succession", "run", id, step]);
     }
-    let join = c.run(&["device", "succession", "run", id, "wallets"]);
-    assert_eq!(join["detail"]["replaces"], json!([]));
-    assert_eq!(c.decide(&http, &join, true).unwrap()["state"], "done");
+    // A step asks once per wallet.
+    let requests = |step: &str| {
+        let made = c
+            .rpc(
+                &http,
+                "device/succession_run",
+                json!({"id": id, "step": step, "source": "cli"}),
+            )
+            .unwrap();
+        made["requests"].as_array().unwrap().clone()
+    };
+    let joins = requests("wallets");
+    assert_eq!(joins.len(), 2);
+    for join in &joins {
+        assert_eq!(join["detail"]["replaces"], json!([]));
+        assert_eq!(c.decide(&http, join, true).unwrap()["state"], "done");
+    }
     c.run(&["device", "succession", "run", id, "wallets"]);
     // Both devices can still read a private plan while L1 needs the old key.
-    assert_eq!(b.run(&["wallet", "bindings", &wallet])["bound"], true);
-    assert_eq!(c.run(&["wallet", "bindings", &wallet])["bound"], true);
+    for w in [&wallet, &shared] {
+        assert_eq!(b.run(&["wallet", "bindings", w])["bound"], true);
+        assert_eq!(c.run(&["wallet", "bindings", w])["bound"], true);
+    }
     // B's library moves to C, found with Bonjour; the transfer settles the
     // content step on both.
     let open = c.run(&["device", "transfer", "receive", "--succession", id]);
@@ -2009,10 +2062,19 @@ fn desktop_device_succession() {
     assert!(!steps(b).contains(&"content".to_string()));
     c.run(&["device", "succession", "skip", id, "native_addresses"]);
     assert_eq!(steps(c), ["revoke"]);
-    let retire = c.run(&["device", "succession", "run", id, "revoke"]);
-    assert_eq!(retire["detail"]["replaces"], json!([old]));
-    assert_eq!(c.decide(&http, &retire, true).unwrap()["state"], "done");
-    assert_eq!(b.fail(&["wallet", "show", &wallet]), "FORBIDDEN");
+    // B's bindings retire from both wallets; A's untagged one stays.
+    let retire = requests("revoke");
+    assert_eq!(retire.len(), 2);
+    for request in &retire {
+        assert_eq!(request["detail"]["replaces"], json!([old]));
+        assert_eq!(c.decide(&http, request, true).unwrap()["state"], "done");
+    }
+    for w in [&wallet, &shared] {
+        assert_eq!(b.fail(&["wallet", "show", w]), "FORBIDDEN");
+    }
+    let kept = c.run(&["wallet", "bindings", &shared]);
+    assert_eq!(kept["bindings"].as_array().unwrap().len(), 2);
+    assert_eq!(untagged(&kept), 1);
     let revoke = c.run(&["device", "succession", "run", id, "revoke"]);
     assert_eq!(revoke["type"], "device_revoke");
     assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
@@ -2069,7 +2131,13 @@ fn copy_tree(from: &Path, to: &Path) {
 #[test]
 #[ignore]
 fn desktop_moved_copy_succession() {
-    let mut env = Env::start("moved", "");
+    let mut env = Env::launch(
+        "moved",
+        Options {
+            wallet: true,
+            ..Options::default()
+        },
+    );
     let http = env.http.clone();
     let (c, _) = env.desktop("c");
     let (a, b, c) = (&env.a, &env.b, &c);
@@ -2091,6 +2159,34 @@ fn desktop_moved_copy_succession() {
     let path = env.dir.join("kept.bin");
     std::fs::write(&path, &bytes).unwrap();
     let file = b.run(&["files", "add", path.to_str().unwrap()])[0]["file"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    // B created a wallet: its creator binding has no device tag.
+    add_capabilities(b, &http, &["WalletApprove"]);
+    let readiness = b
+        .rpc(&http, "wallet/readiness", json!({"funding": true}))
+        .unwrap();
+    let ledger = Principal::from_text(readiness["balance"]["ledger"].as_str().unwrap()).unwrap();
+    mint(
+        &env.deployment,
+        ledger,
+        icrc_ledger_types::icrc1::account::Account::from(
+            login_principal(41).parse::<Principal>().unwrap(),
+        ),
+        10_000_000_000,
+    );
+    let quote = b.run(&["wallet", "quote"]);
+    let create = b.run(&[
+        "wallet",
+        "create",
+        quote["quote_id"].as_str().unwrap(),
+        "--name",
+        "Moved",
+    ]);
+    assert_eq!(b.decide(&http, &create, true).unwrap()["state"], "done");
+    let created = b.run(&["approvals", "show", create["id"].as_str().unwrap()]);
+    let wallet = created["detail"]["result"]["wallet"]
         .as_str()
         .unwrap()
         .to_string();
@@ -2139,10 +2235,33 @@ fn desktop_moved_copy_succession() {
 
     // C hands over the rest and revokes the copy's device; the copy no
     // longer opens.
-    for step in ["approval_key", "cosigners", "wallets"] {
+    for step in ["approval_key", "cosigners"] {
         c.run(&["device", "succession", "run", &task, step]);
     }
+    let join = c.run(&["device", "succession", "run", &task, "wallets"]);
+    assert_eq!(c.decide(&http, &join, true).unwrap()["state"], "done");
+    c.run(&["device", "succession", "run", &task, "wallets"]);
     c.run(&["device", "succession", "skip", &task, "native_addresses"]);
+    // The copy never named its creator binding, which no device ID
+    // retires. No other device is bound, so revoking first asks to take
+    // over the wallet's bindings.
+    let takeover = c.run(&["device", "succession", "run", &task, "revoke"]);
+    assert_eq!(
+        (
+            takeover["type"].as_str(),
+            takeover["detail"]["exclusive"].as_bool()
+        ),
+        (Some("wallet"), Some(true)),
+        "{takeover}"
+    );
+    assert_eq!(c.decide(&http, &takeover, true).unwrap()["state"], "done");
+    assert_eq!(
+        c.run(&["wallet", "bindings", &wallet])["bindings"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
     let revoke = c.run(&["device", "succession", "run", &task, "revoke"]);
     assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
     let active = a

@@ -681,3 +681,41 @@ fn a_fingerprint_only_key_is_lost_once_the_fingerprints_change() {
         })
     );
 }
+
+#[test]
+fn new_fingerprints_on_this_mac_do_not_settle_a_late_anchor_as_moved() {
+    let dir = TempDir::new();
+    let software = Arc::new(Software::default());
+    let fingerprints = Arc::new(Fingerprints::default());
+    let (mut client, key) = client(&dir, &software, Some(Hash::new([0; 32])));
+    client.set_presence_key(fingerprints.clone());
+    let required = info(&client, Some(&key), &[HardwarePurpose::Payment]);
+    // The key predates the anchor, as after updating from an older release.
+    client.workspace.meta.anchor = Some(crate::workspace::Anchor {
+        handle: vec![1].into(),
+        public: vec![2].into(),
+        created_at: 10,
+        late: true,
+        foreign: false,
+    });
+    let message = Hash::new([3; 32]);
+    let payment = Some(HardwarePurpose::Payment);
+    // New fingerprints retire the key, on the same hardware.
+    software.away.store(true, SeqCst);
+    fingerprints.state.store(1, SeqCst);
+    assert_eq!(
+        client.hardware_proof(&required, payment, message),
+        Err(Error::IntegrityFailed)
+    );
+    let anchor = client.workspace.meta.anchor.clone().unwrap();
+    assert!(anchor.late && !anchor.foreign);
+    // A key the enclave cannot open here still settles it as moved.
+    software.away.store(false, SeqCst);
+    software.lost_handle.store(key.handle[0], SeqCst);
+    assert_eq!(
+        client.hardware_proof(&required, payment, message),
+        Err(Error::Forbidden)
+    );
+    let anchor = client.workspace.meta.anchor.clone().unwrap();
+    assert!(!anchor.late && anchor.foreign);
+}

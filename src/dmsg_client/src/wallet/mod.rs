@@ -660,6 +660,18 @@ impl Client {
         })
     }
 
+    /// The Principal of this device's wallet key, if it made one; it calls
+    /// the wallets as [`identity`] does.
+    pub(crate) fn wallet_principal(&self) -> Result<Option<Principal>> {
+        let seed: Option<serde_bytes::ByteArray<32>> =
+            self.workspace.private(self.keys()?, WALLET_KEY)?;
+        seed.map(|seed| {
+            let key = ic_agent::identity::BasicIdentity::from_raw_key(&seed.into_array());
+            ic_agent::Identity::sender(&key).map_err(|_| Error::AuthRequired)
+        })
+        .transpose()
+    }
+
     fn wallet_member(&self) -> Result<MemberId> {
         Ok(MemberId::Account(self.account()?.id))
     }

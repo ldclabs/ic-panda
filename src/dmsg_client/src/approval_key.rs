@@ -415,9 +415,10 @@ impl Client {
                 .authorize(what, key.biometry.is_some())
                 .and_then(|answer| answer.sign(&key.handle, message)),
         };
-        let signed = self.lost(key, signed);
         // A key made after a late anchor says nothing about the old keys
-        // copied here before it. Only those may settle that anchor.
+        // copied here before it. Only those may settle that anchor, by what
+        // the enclave answered: a key it cannot open here, not a
+        // fingerprint-only key that this Mac's new fingerprints retired.
         let signed = if self
             .workspace
             .meta
@@ -429,6 +430,7 @@ impl Client {
         } else {
             self.hardware_key(signed)
         };
+        let signed = self.lost(key, signed);
         low_s(&key.public_key, message, &signed?)
     }
 

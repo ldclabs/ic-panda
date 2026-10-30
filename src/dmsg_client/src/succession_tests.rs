@@ -26,6 +26,7 @@ fn task(side: Side) -> Task {
         steps: BTreeMap::new(),
         cancelled_at_ms: None,
         created_at_ms: 1,
+        moved_actor: None,
     }
 }
 
