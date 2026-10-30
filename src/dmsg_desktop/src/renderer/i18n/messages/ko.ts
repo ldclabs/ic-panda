@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "파일 보관함은 이전 장치에만 남습니다. 이전 장치를 해지하면 동기화나 백업되지 않은 내용은 사라집니다.",
     "successionLeaveNative": "이 네이티브 주소들의 L1에는 계속 이전 장치가 필요합니다. 각 출력이 충분히 오래되면 팀은 L2로 옮길 수 있습니다.",
     "successionRevokeBody": "이전 장치는 이 계정에서 더 이상 작동하지 않으며, 그 장치에만 있는 내용은 사라집니다.",
+    "successionRefreshRequest": "지갑 요청을 승인한 후 새 기기에서 교체 요청을 다시 생성하세요.",
     "successionApprovals": "지갑 승인 {n}개가 대기 중입니다. 첫 번째는 승인 창에 열려 있습니다.",
     "successionPartial": "아직 끝나지 않은 지갑이 있습니다. 이 단계를 다시 실행하세요.",
     "successionFinished": "인계가 완료되었습니다. 다른 장치에도 승인 키와 공동 서명 키를 등록해 두는 것이 좋습니다.",

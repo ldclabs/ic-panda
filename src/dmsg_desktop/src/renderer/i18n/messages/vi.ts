@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Thư viện tệp chỉ còn trên thiết bị cũ. Mọi thứ ở đó chưa từng được đồng bộ hay sao lưu sẽ mất khi thiết bị bị thu hồi.",
     "successionLeaveNative": "Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Nhóm vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.",
     "successionRevokeBody": "Thiết bị cũ ngừng hoạt động với tài khoản này, và mọi thứ chỉ có trên đó sẽ mất.",
+    "successionRefreshRequest": "Sau khi phê duyệt các yêu cầu ví, hãy tạo lại yêu cầu thay thế trên thiết bị mới.",
     "successionApprovals": "{n} phê duyệt ví đang chờ; phê duyệt đầu tiên đang mở trong cửa sổ phê duyệt.",
     "successionPartial": "Một số ví chưa xong. Chạy lại bước này để hoàn tất.",
     "successionFinished": "Đã bàn giao xong. Hãy cân nhắc đăng ký thêm một khóa phê duyệt và một khóa đồng ký trên thiết bị thứ hai.",

@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "A biblioteca de arquivos fica só no dispositivo antigo. O que nunca foi sincronizado nem copiado lá se perde quando ele for revogado.",
     "successionLeaveNative": "Estes endereços nativos continuam precisando do dispositivo antigo para L1. A equipe ainda pode varrê-los por L2 quando cada saída for antiga o bastante.",
     "successionRevokeBody": "O dispositivo antigo deixa de funcionar nesta conta, e o que só existe nele se perde.",
+    "successionRefreshRequest": "Após aprovar as solicitações das carteiras, gere uma nova solicitação de substituição no novo dispositivo.",
     "successionApprovals": "{n} aprovações de carteira aguardam; a primeira está aberta na janela de aprovação.",
     "successionPartial": "Algumas carteiras ainda não terminaram. Execute a etapa de novo para concluir.",
     "successionFinished": "Transição concluída. Considere registrar também uma chave de aprovação e uma chave de coassinatura em um segundo dispositivo.",

@@ -42,6 +42,31 @@ fn a_copy_opens_as_its_device_and_reads_its_library() {
     let entries = library::entries(&mut copy).unwrap();
     assert_eq!(entries.len(), 2);
     assert!(entries.iter().any(|e| e.key.contains(&id)));
+    assert!(
+        copy.workspace
+            .store
+            .set_meta("source-must-not-change", &true)
+            .is_err()
+    );
+    assert_eq!(copy.reset().err(), Some(Error::Forbidden));
+    assert!(moved.join(crate::client::WORKSPACE).exists());
+    // Signing has its own durable journal, without importing old work.
+    let working = here.moved_signing_client("old", &SECRET).unwrap();
+    working
+        .workspace
+        .put_private(working.keys().unwrap(), "journal", &"handover")
+        .unwrap();
+    assert!(copy.workspace.store.sealed("journal").unwrap().is_none());
+    drop(working);
+    let working = here.moved_signing_client("old", &SECRET).unwrap();
+    assert_eq!(
+        working
+            .workspace
+            .private::<String>(working.keys().unwrap(), "journal")
+            .unwrap()
+            .as_deref(),
+        Some("handover")
+    );
     // Another secret does not open it, nor does a name outside moved/.
     assert_eq!(
         here.moved_client("old", &[8; 32]).err(),

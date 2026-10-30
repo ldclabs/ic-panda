@@ -88,6 +88,8 @@
 	<string>管理操作批准数 %u</string>
 	<key>Administrator</key>
 	<string>管理员</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>批准钱包请求后，请在新设备上重新生成替换请求。</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

@@ -327,6 +327,7 @@ struct SuccessionsView: View {
 /// permissions, the keys made there and the team wallets the handover
 /// covers, then approves it once the person confirms its device ID.
 struct SuccessionReviewView: View {
+    private struct PendingBindings: Decodable { let requests: [ApprovalView]? }
     private struct Review: Decodable {
         struct Wallet: Decodable { let wallet: String; let name: String? }
         let deviceId: String
@@ -346,6 +347,7 @@ struct SuccessionReviewView: View {
     @State private var scanning = false
     @State private var working = false
     @State private var created: ApprovalView?
+    @State private var refreshRequest = false
 
     private var device: String { shown.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
 
@@ -353,6 +355,9 @@ struct SuccessionReviewView: View {
         Form {
             Text("Paste the request the new device shows, check what it asks for, then confirm its device ID.")
                 .font(.footnote).foregroundStyle(.secondary)
+            if refreshRequest {
+                NoticeBar(text: String(localized: "After approving the wallet requests, generate a new replacement request on the new device."))
+            }
             Section("Request from the new device") {
                 TextField("Request from the new device", text: $token, axis: .vertical).lineLimit(3...6)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().onChange(of: token) { review = nil }
@@ -397,14 +402,27 @@ struct SuccessionReviewView: View {
     private func check() async {
         guard let engine = model.engine, !working else { return }
         working = true; defer { working = false }
-        do { review = try model.decode(try await engine.successionReview(token: token.trimmingCharacters(in: .whitespacesAndNewlines))) }
+        let checked = token
+        do {
+            let value: Review = try model.decode(try await engine.successionReview(token: checked.trimmingCharacters(in: .whitespacesAndNewlines)))
+            guard token == checked, !Task.isCancelled else { return }
+            review = value; refreshRequest = false
+        }
         catch { review = nil; model.report(error) }
     }
 
     private func approve() async {
         guard let engine = model.engine, !working else { return }
         working = true; defer { working = false }
-        do { created = try model.decode(try await engine.successionApprove(token: token.trimmingCharacters(in: .whitespacesAndNewlines), device: device)) }
+        do {
+            let result = try await engine.successionApprove(token: token.trimmingCharacters(in: .whitespacesAndNewlines), device: device)
+            let bindings: PendingBindings = try model.decode(result)
+            if let requests = bindings.requests {
+                refreshRequest = true; review = nil; token = ""
+                created = requests.first
+            }
+            else { created = try model.decode(result) }
+        }
         catch { model.report(error) }
     }
 }
@@ -458,8 +476,10 @@ struct SuccessionRequestView: View {
     private func create() async {
         guard let engine = model.engine, !working else { return }
         working = true; defer { working = false }
+        let chosen = device
         do {
-            let next: Made = try model.decode(try await engine.successionRequest(predecessor: device))
+            let next: Made = try model.decode(try await engine.successionRequest(predecessor: chosen))
+            guard chosen == device, !Task.isCancelled else { return }
             made = next; image = QRCode.image(next.token)
         } catch { model.report(error) }
     }
@@ -532,6 +552,9 @@ struct DeviceTransferView: View {
                 }
             }
         }.privateScreen().navigationTitle("Transfer between devices").navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: Binding(get: { transfer.approval != nil }, set: { if !$0 { Task { await transfer.approved(model) } } })) {
+                if let request = transfer.approval { ApprovalDetailView(request: request) }
+            }
     }
 
     @ViewBuilder private func statusSection(_ status: DeviceTransferModel.Status, transfer: DeviceTransferModel) -> some View {

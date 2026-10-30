@@ -556,8 +556,9 @@ async fn join(args: JoinArgs) -> Result<Member> {
                 )
             })?;
             let home = member_home(&account).await?;
-            verify_account(home, *approval_id, approval).await?;
+            let authorization = verify_account(home, *approval_id, approval).await?;
             at = now();
+            ensure(at < authorization.valid_until_ms, Error::Expired)?;
             MemberId::Account(account)
         }
     };
@@ -664,8 +665,9 @@ async fn unbind(args: UnbindArgs) -> Result<Member> {
         )
     })?;
     let home = member_home(&account).await?;
-    verify_account(home, *approval_id, approval).await?;
+    let authorization = verify_account(home, *approval_id, approval).await?;
     let at = now();
+    ensure(at < authorization.valid_until_ms, Error::Expired)?;
     let mut w = store::wallet();
     let member = w
         .members

@@ -396,7 +396,7 @@ let deferPrincipal = true
 function created(id, type, detail) {
   // The daemon rates the risk: payments, adding, changing or revoking devices, control of the account and moving a name are held.
   const named = type === 'handle' && (detail.total != null || detail.action === 'Transfer')
-  const risk = named || ['checkout', 'letter', 'device_pair', 'device_capabilities', 'device_revoke', 'account', 'principal', 'approval_key', 'approval_key_retire', 'hardware_policy'].includes(type) ? 'high' : 'normal'
+  const risk = named || ['checkout', 'letter', 'device_pair', 'device_transfer', 'device_capabilities', 'device_revoke', 'account', 'principal', 'approval_key', 'approval_key_retire', 'hardware_policy'].includes(type) ? 'high' : 'normal'
   const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, risk, digest: 'f0'.repeat(32), detail }
   requests.set(id, r)
   return r

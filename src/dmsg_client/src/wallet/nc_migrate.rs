@@ -25,6 +25,18 @@ struct Migration {
     sweep: Option<u64>,
     /// Proposals made again after one ended without effect.
     attempt: u32,
+    /// Persisted before submitting a proposal; a lost reply resumes these
+    /// exact arguments, even if coins or fees change meanwhile.
+    #[serde(default)]
+    pending: Option<PendingStep>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct PendingStep {
+    step: String,
+    op_id: Hash,
+    intent: Intent,
+    sweep: Option<Sweep>,
 }
 
 /// How a sweep's plan is built, kept until its proposal executes.
@@ -300,6 +312,19 @@ async fn next<H: Hold>(
     amount: Option<u128>,
 ) -> Result<(&'static str, Option<Proposal>, Option<u64>)> {
     let wallet = s.view.wallet;
+    if let Some(pending) = &s.migration.pending {
+        return Ok((
+            match pending.step.as_str() {
+                "register" => "register",
+                "address" => "address",
+                "book" => "book",
+                "sweep" => "sweep",
+                _ => return Err(Error::IntegrityFailed),
+            },
+            None,
+            None,
+        ));
+    }
     if s.archived {
         return Ok(("done", None, None));
     }
@@ -404,6 +429,8 @@ pub async fn status<H: Hold>(
     from: u32,
     timelock: Option<bool>,
 ) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let s = situation(h, wallet, from).await?;
     let Some(timelock) = timelock else {
         let (step, pending, until) = next(h, &s, None).await?;
@@ -453,11 +480,33 @@ pub async fn status<H: Hold>(
 /// `Error::Pending` while a step waits and `Error::FeeBlocked` when nothing
 /// above dust can move through `timelock` yet.
 pub async fn start<H: Hold>(h: &H, wallet: Principal, from: u32, timelock: bool) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let s = situation(h, wallet, from).await?;
     let mut migration = s.migration.clone();
-    let (step, _, _) = next(h, &s, None).await?;
-    let proposed = |p: &Json| p["id"].as_u64().ok_or(Error::IntegrityFailed);
-    match step {
+    if migration.pending.is_some() {
+        submit_pending(h, wallet, from, &mut migration).await?;
+        return status(h, wallet, from, Some(timelock)).await;
+    }
+    // Use the same amount as the preview when deciding the address-book
+    // tier. The highest tier need not apply to this sweep.
+    let coins = if s.to.is_some() && !s.archived {
+        Some(coins(h, &s.old, &s.control, timelock).await?)
+    } else {
+        None
+    };
+    let swept = match (&coins, &s.to) {
+        (Some(coins), Some(to)) => sweep_amount(
+            coins.spendable.iter().map(|u| u.value).sum(),
+            coins.spendable.len(),
+            btc_script(s.view.btc_network, &to.text)?.len(),
+            witness(&s.view, &s.old, &s.control, timelock)?,
+            coins.fee_rate,
+        ),
+        _ => None,
+    };
+    let (step, _, _) = next(h, &s, swept.map(|(_, amount)| u128::from(amount))).await?;
+    let (intent, sweep) = match step {
         "done" => return status(h, wallet, from, Some(timelock)).await,
         "root" => return Err(Error::NotFound),
         "wait" | "cooldown" => return Err(Error::Pending),
@@ -467,13 +516,9 @@ pub async fn start<H: Hold>(h: &H, wallet: Principal, from: u32, timelock: bool)
             let made = native::key(h, wallet, &label).await?;
             let intent: Intent = serde_json::from_value(made["intent"].clone())
                 .map_err(|e| Error::InvalidInput(e.to_string()))?;
-            migration.attempt += u32::from(migration.register.is_some());
-            let id = op_id(wallet, from, "register", migration.attempt, &());
-            let p = ops::propose_with_id(h, wallet, intent, None, id).await?;
-            migration.register = Some(proposed(&p)?);
+            (intent, None)
         }
         "address" => {
-            migration.attempt += u32::from(migration.address.is_some());
             let intent = Intent::AddAddress {
                 chain: Chain::Bitcoin,
                 kind: AddressKind::Taproot(TaprootControl {
@@ -484,24 +529,19 @@ pub async fn start<H: Hold>(h: &H, wallet: Principal, from: u32, timelock: bool)
                 label: s.old.label.clone(),
                 cosign: None,
             };
-            let id = op_id(wallet, from, "address", migration.attempt, &());
-            let p = ops::propose_with_id(h, wallet, intent, None, id).await?;
-            migration.address = Some(proposed(&p)?);
+            (intent, None)
         }
         "book" => {
-            migration.attempt += u32::from(migration.book.is_some());
             let to = s.to.as_ref().ok_or(Error::NotFound)?;
             let intent = Intent::AddressBook(BookChange::Add {
                 destination: Destination::Bitcoin(to.text.clone()),
                 label: to.label.clone(),
             });
-            let id = op_id(wallet, from, "book", migration.attempt, &());
-            let p = ops::propose_with_id(h, wallet, intent, None, id).await?;
-            migration.book = Some(proposed(&p)?);
+            (intent, None)
         }
         _ => {
             let to = s.to.as_ref().ok_or(Error::NotFound)?;
-            let coins = coins(h, &s.old, &s.control, timelock).await?;
+            let coins = coins.ok_or(Error::NotFound)?;
             if coins.listed.is_empty() {
                 // Nothing left: the old address is done on this device.
                 h.with(|c| {
@@ -515,16 +555,7 @@ pub async fn start<H: Hold>(h: &H, wallet: Principal, from: u32, timelock: bool)
                 .await?;
                 return status(h, wallet, from, Some(timelock)).await;
             }
-            let total: u64 = coins.spendable.iter().map(|u| u.value).sum();
-            let (fee, amount) = sweep_amount(
-                total,
-                coins.spendable.len(),
-                btc_script(s.view.btc_network, &to.text)?.len(),
-                witness(&s.view, &s.old, &s.control, timelock)?,
-                coins.fee_rate,
-            )
-            .ok_or(Error::FeeBlocked)?;
-            migration.attempt += u32::from(migration.sweep.is_some());
+            let (fee, amount) = swept.ok_or(Error::FeeBlocked)?;
             let intent = Intent::Transfer {
                 from,
                 asset: AssetKey::Btc,
@@ -538,21 +569,67 @@ pub async fn start<H: Hold>(h: &H, wallet: Principal, from: u32, timelock: bool)
                 fee_rate: coins.fee_rate,
                 timelock,
             };
-            // Another set of coins or rate is another proposal.
-            let id = op_id(wallet, from, "sweep", migration.attempt, &sweep);
-            let p = ops::propose_with_id(h, wallet, intent, None, id).await?;
-            let proposal = proposed(&p)?;
-            h.with(|c| {
-                c.workspace
-                    .put_private(c.keys()?, &format!("{SWEEP}{wallet}:{proposal}"), &sweep)
-            })
-            .await?;
-            migration.sweep = Some(proposal);
+            (intent, Some(sweep))
         }
-    }
+    };
+    migration.attempt += 1;
+    migration.pending = Some(PendingStep {
+        step: step.into(),
+        op_id: op_id(wallet, from, step, migration.attempt, &intent),
+        intent,
+        sweep,
+    });
     h.with(|c| c.save_migration(wallet, from, &migration))
         .await?;
+    submit_pending(h, wallet, from, &mut migration).await?;
     status(h, wallet, from, Some(timelock)).await
+}
+
+/// Reconcile the saved step before considering another proposal or rate.
+async fn submit_pending<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    from: u32,
+    migration: &mut Migration,
+) -> Result<()> {
+    let pending = migration.pending.clone().ok_or(Error::NotFound)?;
+    let result = ops::propose_with_id(h, wallet, pending.intent, None, pending.op_id).await;
+    let proposed = match result {
+        Ok(proposed) => proposed,
+        Err(error) => {
+            // Only a definite rejection permits different arguments next
+            // time. Transport uncertainty retains the original step.
+            if h.with(
+                |c| Ok(c.wallet_proposal_attempt(&hex::encode(*pending.op_id))? == "rejected"),
+            )
+            .await?
+            {
+                migration.pending = None;
+                h.with(|c| c.save_migration(wallet, from, migration))
+                    .await?;
+            }
+            return Err(error);
+        }
+    };
+    let id = proposed["id"].as_u64().ok_or(Error::IntegrityFailed)?;
+    match pending.step.as_str() {
+        "register" => migration.register = Some(id),
+        "address" => migration.address = Some(id),
+        "book" => migration.book = Some(id),
+        "sweep" => migration.sweep = Some(id),
+        _ => return Err(Error::IntegrityFailed),
+    }
+    migration.pending = None;
+    h.with(|c| {
+        c.workspace.store.atomic(|_| {
+            if let Some(sweep) = pending.sweep {
+                c.workspace
+                    .put_private(c.keys()?, &format!("{SWEEP}{wallet}:{id}"), &sweep)?;
+            }
+            c.save_migration(wallet, from, migration)
+        })
+    })
+    .await
 }
 
 /// The operation ID of a migration step: the same while it is retried, a
@@ -567,6 +644,63 @@ fn op_id<T: Serialize>(wallet: Principal, from: u32, step: &str, attempt: u32, d
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn an_unknown_submission_keeps_its_sweep_and_operation_id() {
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let (view, plans) = vectors();
+        let (_, intent, plan) = plans
+            .into_iter()
+            .find(|(name, _, _)| name == "bitcoin taproot cosigned script path")
+            .unwrap();
+        let ExecutionParams::Bitcoin {
+            utxos,
+            fee_rate,
+            timelock,
+            ..
+        } = plan.params
+        else {
+            unreachable!()
+        };
+        let pending = PendingStep {
+            step: "sweep".into(),
+            op_id: Hash::new([9; 32]),
+            intent,
+            sweep: Some(Sweep {
+                utxos,
+                fee_rate,
+                timelock,
+            }),
+        };
+        let original = crate::codec::canonical(&pending);
+        let mut migration = Migration {
+            pending: Some(pending),
+            ..Migration::default()
+        };
+        client.save_migration(view.wallet, 0, &migration).unwrap();
+        let h = client.hold();
+        for _ in 0..2 {
+            assert!(
+                submit_pending(&h, view.wallet, 0, &mut migration)
+                    .await
+                    .is_err()
+            );
+            migration = h.with(|c| c.migration(view.wallet, 0)).await.unwrap();
+            assert_eq!(
+                crate::codec::canonical(migration.pending.as_ref().unwrap()),
+                original
+            );
+        }
+        let drafts = h
+            .with(|c| c.workspace.store.sealed_keys("wallet-proposal:"))
+            .await
+            .unwrap();
+        assert_eq!(
+            drafts,
+            vec![format!("wallet-proposal:{}", hex::encode([9; 32]))]
+        );
+    }
 
     fn vectors() -> (WalletView, Vec<(String, Intent, ExecutionPlan)>) {
         let vectors: Json = serde_json::from_str(include_str!(

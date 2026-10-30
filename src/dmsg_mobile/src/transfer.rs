@@ -73,7 +73,7 @@ async fn sending(
     host: ScopedHost,
     transfers: Arc<Transfers>,
     ticket: Ticket,
-    to: Hash,
+    permit: transfer::Permit,
     address: (String, u16),
 ) {
     let work = async {
@@ -83,7 +83,7 @@ async fn sending(
             .map_err(|_| Error::Unavailable("transfer: the other device did not answer".into()))?
             .map_err(io)?;
         let devices = Certified(&host);
-        let work = transfer::send(&host, &devices, stream, to, ticket.session, &ticket.report);
+        let work = transfer::send_approved(&host, &devices, stream, permit, &ticket.report);
         ticket.settle(&host, work).await
     };
     let result = host.inner.while_current(host.generation(), work).await;
@@ -148,6 +148,7 @@ impl MobileEngine {
         host: String,
         port: u16,
         succession: Option<String>,
+        approval: Option<String>,
     ) -> Result<ObjectSnapshot> {
         let session = session_id(&session)?;
         let named = to.map(|to| hash(&to, "to")).transpose()?;
@@ -169,6 +170,11 @@ impl MobileEngine {
                         (Some(to), None) => to,
                         (None, None) => return Err(Error::InvalidInput("missing to".into())),
                     };
+                    ensure(!matches!(transfers.view()["state"].as_str(), Some("waiting" | "running")), Error::Pending)?;
+                    let Some(approval) = approval else {
+                        return Ok(serde_json::json!({"approval": transfer::request(h, "gui", to, session).await?}));
+                    };
+                    let permit = transfer::claim(h, &approval, to, session).await?;
                     let start = Start {
                         role: "send",
                         session,
@@ -182,7 +188,7 @@ impl MobileEngine {
                     let slot = transfers.clone();
                     slot.begin(start, |ticket| {
                         let address = (host, port);
-                        runtime().spawn(sending(scoped, transfers, ticket, to, address))
+                        runtime().spawn(sending(scoped, transfers, ticket, permit, address))
                     })
                 })
             })

@@ -88,6 +88,8 @@
 	<string>Verwaltungsgenehmigungen %u</string>
 	<key>Administrator</key>
 	<string>Administrator</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Erstellen Sie nach der Genehmigung der Wallet-Anfragen auf dem neuen Gerät eine neue Ersatzanfrage.</string>
 	<key>Agent ID</key>
 	<string>Agenten-ID</string>
 	<key>Agents</key>

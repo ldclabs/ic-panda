@@ -12,6 +12,7 @@
 
 import CryptoKit
 import Foundation
+import IOKit
 import LocalAuthentication
 import Security
 
@@ -20,6 +21,19 @@ private let unavailable: Int32 = 1
 private let declined: Int32 = 2
 private let unusable: Int32 = 3
 private let notNow: Int32 = 4
+
+/// The platform UUID is stable across a normal system migration and is
+/// different on the destination Mac, including Macs without an enclave.
+@_cdecl("dmsg_platform_identity")
+public func dmsgPlatformIdentity(_ output: UnsafeMutablePointer<UInt8>) -> Int32 {
+    // The default IOKit port (also supported by the macOS 11 deployment).
+    let service = IOServiceGetMatchingService(0, IOServiceMatching("IOPlatformExpertDevice"))
+    guard service != 0 else { return unavailable }
+    defer { IOObjectRelease(service) }
+    guard let property = IORegistryEntryCreateCFProperty(service, "IOPlatformUUID" as CFString, kCFAllocatorDefault, 0),
+          let uuid = property.takeRetainedValue() as? String else { return unavailable }
+    return copy(Data(SHA256.hash(data: Data(uuid.utf8))), output, 32) ? done : unavailable
+}
 
 /// LAError codes of a person who cannot answer now, as raw values: passcode
 /// not set, biometry not available, not enrolled, locked out, not paired,

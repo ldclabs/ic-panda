@@ -8,12 +8,12 @@
 
 use crate::bonjour;
 use crate::daemon::Daemon;
-use crate::params::{hash, optional, parse, text};
+use crate::params::{hash, optional, parse, source, text};
 use dmsg_client::hold::{Hold, Unlocked};
 use dmsg_client::transfer::{self, Category, Certified, Report, SessionId, Start, Ticket};
 use dmsg_client::{error_code, succession};
-use dmsg_types::{Error, Hash, Result, ensure};
-use serde_json::Value;
+use dmsg_types::{Error, Result, ensure};
+use serde_json::{Value, json};
 use std::sync::{Arc, OnceLock, Weak};
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
@@ -36,6 +36,7 @@ const TICK: Duration = Duration::from_secs(1);
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
         "transfer/status" => &[],
+        "transfer/send_start" => &["transfer/changed", "approval/changed"],
         _ => &["transfer/changed"],
     }
 }
@@ -210,14 +211,14 @@ async fn receiving(
 }
 
 /// The sending side.
-async fn sending(job: Job, to: Hash, address: Option<String>) {
+async fn sending(job: Job, permit: transfer::Permit, address: Option<String>) {
     let shared = job.daemon.hold();
     let result = async {
         let h = Unlocked::new(&shared).await?;
         let ticket = &job.ticket;
         let stream = connect(&ticket.session, address).await?;
         let devices = Certified(&h);
-        let work = transfer::send(&h, &devices, stream, to, ticket.session, &ticket.report);
+        let work = transfer::send_approved(&h, &devices, stream, permit, &ticket.report);
         job.settle(&h, work).await
     }
     .await;
@@ -296,6 +297,19 @@ impl Daemon {
             (Some(to), None) => to,
             (None, None) => return Err(Error::InvalidInput("missing to".into())),
         };
+        ensure(
+            !matches!(
+                self.transfers.view()["state"].as_str(),
+                Some("waiting" | "running")
+            ),
+            Error::Pending,
+        )?;
+        let Some(approval) = optional(params, "approval", text)? else {
+            return Ok(
+                json!({"approval": transfer::request(&h, source(params)?, to, session).await?}),
+            );
+        };
+        let permit = transfer::claim(&h, &approval, to, session).await?;
         let start = Start {
             role: "send",
             session,
@@ -306,7 +320,7 @@ impl Daemon {
             bonjour: None,
         };
         self.transfers
-            .begin(start, |job| tokio::spawn(sending(job, to, address)))
+            .begin(start, |job| tokio::spawn(sending(job, permit, address)))
     }
 }
 

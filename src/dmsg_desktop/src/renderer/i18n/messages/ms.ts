@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Pustaka fail kekal hanya pada peranti lama. Apa sahaja di sana yang tidak pernah disegerakkan atau disandarkan akan hilang setelah peranti itu ditarik balik.",
     "successionLeaveNative": "Alamat native ini terus memerlukan peranti lama untuk L1. Pasukan masih boleh menyapunya melalui L2 setelah setiap output cukup lama.",
     "successionRevokeBody": "Peranti lama berhenti berfungsi untuk akaun ini, dan apa sahaja yang hanya ada padanya akan hilang.",
+    "successionRefreshRequest": "Selepas meluluskan permintaan dompet, jana permintaan penggantian baharu pada peranti baharu.",
     "successionApprovals": "{n} kelulusan dompet sedang menunggu; yang pertama dibuka dalam tetingkap kelulusan.",
     "successionPartial": "Sesetengah dompet belum selesai. Jalankan langkah ini sekali lagi untuk menyelesaikannya.",
     "successionFinished": "Penyerahan selesai. Pertimbangkan juga untuk mendaftarkan kunci kelulusan dan kunci kosigner pada peranti kedua.",

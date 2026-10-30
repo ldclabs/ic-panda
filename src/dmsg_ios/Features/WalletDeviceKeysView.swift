@@ -336,7 +336,12 @@ struct WalletNativeMoveView: View {
 
     private func load() async {
         guard let engine = model.engine else { return }
-        do { plan = try model.decode(try await engine.walletNcMigratePlan(wallet: wallet, from: from, l2: l2)) }
+        let chosen = l2
+        do {
+            let value: Plan = try model.decode(try await engine.walletNcMigratePlan(wallet: wallet, from: from, l2: chosen))
+            guard chosen == l2, !Task.isCancelled else { return }
+            plan = value
+        }
         catch { model.report(error) }
     }
 

@@ -370,7 +370,7 @@ impl Client {
     /// the person declines and `Error::IntegrityFailed` for a key the
     /// hardware lost.
     pub(crate) fn hardware_proof(
-        &self,
+        &mut self,
         info: &AccountInfo,
         purpose: Option<HardwarePurpose>,
         message: Hash,
@@ -399,7 +399,12 @@ impl Client {
 
     /// Sign `message` with `key`: with the person's answer for this
     /// decision, or by asking about `what` now.
-    fn approval_sign(&self, key: &LocalKey, what: &str, message: &Hash) -> Result<P256Signature> {
+    fn approval_sign(
+        &mut self,
+        key: &LocalKey,
+        what: &str,
+        message: &Hash,
+    ) -> Result<P256Signature> {
         let signed = match &self.authorized {
             Some(answer) => answer.sign(&key.handle, message),
             None if self.require_prepared_approval => {
@@ -410,7 +415,21 @@ impl Client {
                 .authorize(what, key.biometry.is_some())
                 .and_then(|answer| answer.sign(&key.handle, message)),
         };
-        low_s(&key.public_key, message, &self.lost(key, signed)?)
+        let signed = self.lost(key, signed);
+        // A key made after a late anchor says nothing about the old keys
+        // copied here before it. Only those may settle that anchor.
+        let signed = if self
+            .workspace
+            .meta
+            .anchor
+            .as_ref()
+            .is_some_and(|a| key.created_at > a.created_at)
+        {
+            signed
+        } else {
+            self.hardware_key(signed)
+        };
+        low_s(&key.public_key, message, &signed?)
     }
 
     /// A failure of a fingerprint-only key after the fingerprints changed:
@@ -762,7 +781,7 @@ pub(crate) async fn successor_key<H: Hold>(
         return Ok(None);
     };
     let (public_key, handle) = hardware.create(false)?;
-    let ProvedKeyRequest { preparation, proof } = KeyRequestPreparation {
+    let preparation = KeyRequestPreparation {
         hardware,
         account,
         device_id,
@@ -774,8 +793,11 @@ pub(crate) async fn successor_key<H: Hold>(
             biometry: None,
             created_at: now_ms(),
         },
-    }
-    .prove()?;
+    };
+    let ProvedKeyRequest { preparation, proof } =
+        tokio::task::spawn_blocking(move || preparation.prove())
+            .await
+            .map_err(|_| Error::Unavailable("hardware: the request stopped".into()))??;
     h.with(|c| {
         ensure(c.session_generation() == generation, Error::Locked)?;
         let public_key = preparation.key.public_key.clone();

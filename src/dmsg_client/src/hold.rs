@@ -196,6 +196,46 @@ pub trait Hold: Sync {
     }
 }
 
+/// An unlocked workspace's session, including a device waiting to join.
+/// Locking or replacing the workspace invalidates subsequent local steps.
+pub(crate) struct Session<'a, H> {
+    inner: &'a H,
+    generation: u64,
+    device: Hash,
+}
+
+impl<'a, H: Hold> Session<'a, H> {
+    pub(crate) async fn new(inner: &'a H) -> Result<Self> {
+        let (generation, device) = inner
+            .with(|c| {
+                c.keys()?;
+                Ok((c.session_generation, c.workspace.meta.device_id))
+            })
+            .await?;
+        Ok(Self {
+            inner,
+            generation,
+            device,
+        })
+    }
+}
+
+impl<H: Hold> Hold for Session<'_, H> {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        self.inner
+            .with(|c| {
+                c.keys()?;
+                ensure(
+                    c.session_generation == self.generation
+                        && c.workspace.meta.device_id == self.device,
+                    Error::Locked,
+                )?;
+                step(c)
+            })
+            .await
+    }
+}
+
 /// A shared client bound to the current unlocked account and session.
 /// Locking (even followed by unlock) prevents subsequent local steps.
 pub struct Unlocked<'a, H> {

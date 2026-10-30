@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "De bestandsbibliotheek blijft alleen op het oude apparaat. Wat daar nooit is gesynchroniseerd of geback-upt, gaat verloren zodra het wordt ingetrokken.",
     "successionLeaveNative": "Deze native adressen blijven het oude apparaat nodig hebben voor L1. Het team kan ze nog via L2 overhevelen zodra elke output oud genoeg is.",
     "successionRevokeBody": "Het oude apparaat werkt niet meer voor dit account, en wat alleen daarop staat, gaat verloren.",
+    "successionRefreshRequest": "Maak na het goedkeuren van de walletverzoeken een nieuw vervangingsverzoek op het nieuwe apparaat.",
     "successionApprovals": "{n} walletgoedkeuringen wachten; de eerste is geopend in het goedkeuringsvenster.",
     "successionPartial": "Sommige wallets zijn nog niet klaar. Voer de stap opnieuw uit om af te ronden.",
     "successionFinished": "Overdracht voltooid. Registreer bij voorkeur ook een goedkeuringssleutel en een medeondertekeningssleutel op een tweede apparaat.",

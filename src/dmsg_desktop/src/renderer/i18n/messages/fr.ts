@@ -2508,6 +2508,7 @@ export default {
     "successionLeaveContent": "La bibliothèque de fichiers ne reste que sur l’ancien appareil. Ce qui n’y a jamais été synchronisé ni sauvegardé sera perdu une fois l’appareil révoqué.",
     "successionLeaveNative": "Ces adresses natives auront toujours besoin de l’ancien appareil pour L1. L’équipe pourra les balayer par L2 lorsque chaque sortie sera assez ancienne.",
     "successionRevokeBody": "L’ancien appareil cesse de fonctionner pour ce compte, et ce qui n’existe que sur lui est perdu.",
+    "successionRefreshRequest": "Après avoir approuvé les demandes des portefeuilles, générez une nouvelle demande de remplacement sur le nouvel appareil.",
     "successionApprovals": "{n} approbations de portefeuille attendent ; la première est ouverte dans la fenêtre d’approbation.",
     "successionPartial": "Certains portefeuilles ne sont pas encore traités. Relancez l’étape pour terminer.",
     "successionFinished": "Passation terminée. Pensez à enregistrer aussi une clé d’approbation et une clé de cosignature sur un deuxième appareil.",

@@ -88,6 +88,8 @@
 	<string>প্রশাসনিক অনুমোদন %u</string>
 	<key>Administrator</key>
 	<string>প্রশাসক</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>ওয়ালেটের অনুরোধগুলি অনুমোদন করার পরে, নতুন ডিভাইসে একটি নতুন প্রতিস্থাপন অনুরোধ তৈরি করুন।</string>
 	<key>Agent ID</key>
 	<string>এজেন্ট আইডি</string>
 	<key>Agents</key>

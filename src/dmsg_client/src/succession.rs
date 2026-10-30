@@ -11,7 +11,7 @@ use crate::approval::{Action, HIGH_RISK_TTL_MS};
 use crate::client::Client;
 use crate::codec::{b64, canonical, decode, unb64};
 use crate::crypto::{random_id, sign};
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::transfer::Report;
 use crate::wallet::rotate::{self, Successor as SuccessorKey};
@@ -22,7 +22,7 @@ use dmsg_protocol::{
 };
 use dmsg_types::user::{
     AccountCommand, AccountInfo, AccountMutation, ApprovalKeyInput, Capability, ControllerRole,
-    HardwarePurpose,
+    HardwarePurpose, VaultWriteState,
 };
 use dmsg_types::wallet::MemberId;
 use dmsg_types::{AccountId, Approval, Ed25519Signature, Error, Hash, Result, ensure};
@@ -237,6 +237,9 @@ impl Task {
     /// approval key and the predecessor's revocation. A revoked successor
     /// cancels the task. Returns whether anything changed.
     fn observe(&mut self, info: &AccountInfo, now: u64) -> bool {
+        if self.cancelled_at_ms.is_some() {
+            return false;
+        }
         let mut changed = false;
         if let Some(d) = info.devices.get(&self.successor)
             && d.added_by == Some(self.predecessor)
@@ -262,6 +265,8 @@ impl Task {
             .devices
             .get(&self.predecessor)
             .and_then(|d| d.revoked_at)
+            && info.vault_write_state == VaultWriteState::Ready
+            && info.root_slot.is_none()
         {
             changed |= self.record(
                 Step::Revoke,
@@ -380,6 +385,8 @@ impl Client {
 /// for a predecessor that cannot approve enrollments, and `Error::NotFound`
 /// when the login has no account.
 pub async fn request<H: Hold>(h: &H, predecessor: Hash) -> Result<Json> {
+    let bound = crate::hold::Session::new(h).await?;
+    let h = &bound;
     let (ic, located, device_id) = h
         .with(|c| {
             ensure(c.workspace.provisional(), Error::Forbidden)?;
@@ -455,7 +462,24 @@ pub async fn request<H: Hold>(h: &H, predecessor: Hash) -> Result<Json> {
     let text = b64(&canonical(&token));
     ensure(text.len() <= MAX_TOKEN, Error::QuotaExceeded)?;
     let task = Task::new(Side::Successor, &token, text.clone(), predecessor, now_ms())?;
-    h.with(|c| c.save_succession(&task)).await?;
+    h.with(|c| {
+        let previous: Vec<Task> = c.workspace.private_after(c.keys()?, TASK, "", MAX_TASKS)?;
+        c.workspace.store.atomic(|_| {
+            for mut previous in previous {
+                if previous.side == Side::Successor
+                    && previous.successor == task.successor
+                    && previous.predecessor == task.predecessor
+                    && previous.steps.is_empty()
+                    && previous.cancelled_at_ms.is_none()
+                {
+                    previous.cancelled_at_ms = Some(task.created_at_ms);
+                    c.save_succession(&previous)?;
+                }
+            }
+            c.save_succession(&task)
+        })
+    })
+    .await?;
     Ok(json!({
         "id": hex::encode(*request_id),
         "token": text,
@@ -471,6 +495,8 @@ pub async fn request<H: Hold>(h: &H, predecessor: Hash) -> Result<Json> {
 /// # Errors
 /// As [`accept`], without creating anything.
 pub async fn review<H: Hold>(h: &H, token: &str) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (pairing, token) = h.with(|c| c.inspect_succession(token)).await?;
     let wallets = wallets(h).await?;
     Ok(json!({
@@ -496,8 +522,72 @@ pub async fn review<H: Hold>(h: &H, token: &str) -> Result<Json> {
 /// refuses a token of another account, for another device, an expired one or
 /// a bad proof of possession.
 pub async fn accept<H: Hold>(h: &H, source: &str, token: &str, device: &str) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     h.with(|c| c.keys().map(|_| ())).await?;
     let security = crate::account::refreshed_security(h).await?;
+    // A wallet's creator is initially bound without a device tag. Name it
+    // while this device can still approve WalletJoin, before AddSuccessor
+    // limits it to handover commands; otherwise the successor cannot remove
+    // that binding by device ID. These are ordinary reviewed approvals.
+    h.with(|c| {
+        let (pairing, _) = c.inspect_succession(token)?;
+        ensure(
+            hex::encode(*pairing.device.device_id) == device,
+            Error::InvalidInput("device does not match the request".into()),
+        )
+    })
+    .await?;
+    let records = wallets(h).await?;
+    let (actor, _) = if records.as_array().is_some_and(|r| !r.is_empty()) {
+        crate::wallet::identity(h).await?
+    } else {
+        // No wallet identity is needed when wallets are disabled.
+        return accept_pairing(h, source, token, device, &security).await;
+    };
+    let (member, own) = h
+        .with(|c| Ok((MemberId::Account(c.account()?.id), c.device_id()?)))
+        .await?;
+    let mut requests = vec![];
+    for record in records.as_array().into_iter().flatten() {
+        let wallet = crate::wallet::parse_wallet(record["wallet"].as_str().unwrap_or(""))?;
+        let view = match crate::wallet::state(h, wallet).await {
+            Ok(view) => view,
+            Err(Error::Forbidden) => continue,
+            Err(error) => return Err(error),
+        };
+        if let Some(member) = view.members.iter().find(|m| m.id == member) {
+            // Keep room for both signers before restricting the old device
+            // to handover commands. A full wallet must free a slot first.
+            ensure(
+                member.bindings.len() < dmsg_types::wallet::MAX_MEMBER_PRINCIPALS,
+                Error::QuotaExceeded,
+            )?;
+        }
+        if view
+            .members
+            .iter()
+            .filter(|m| m.id == member)
+            .flat_map(|m| &m.bindings)
+            .any(|b| b.principal == actor && b.device != Some(own))
+        {
+            requests
+                .push(crate::wallet::ops::join_request(h, source, wallet, vec![], false).await?);
+        }
+    }
+    if !requests.is_empty() {
+        return Ok(json!({"requests": requests, "refresh_request": true}));
+    }
+    accept_pairing(h, source, token, device, &security).await
+}
+
+async fn accept_pairing<H: Hold>(
+    h: &H,
+    source: &str,
+    token: &str,
+    device: &str,
+    security: &crate::account::Security,
+) -> Result<Json> {
     h.with(|c| {
         let own = security.active(&c.workspace.meta.device_id)?;
         ensure(
@@ -506,6 +596,10 @@ pub async fn accept<H: Hold>(h: &H, source: &str, token: &str, device: &str) -> 
             Error::Forbidden,
         )?;
         let (pairing, parsed) = c.inspect_succession(token)?;
+        ensure(
+            pairing.mutation.expected_version == security.snapshot.account_version,
+            Error::VersionConflict,
+        )?;
         ensure(
             hex::encode(*pairing.device.device_id) == device,
             Error::InvalidInput("device does not match the request".into()),
@@ -540,10 +634,10 @@ pub async fn accept<H: Hold>(h: &H, source: &str, token: &str, device: &str) -> 
 
 /// The account's team wallets; none where team wallets are not configured.
 async fn wallets<H: Hold>(h: &H) -> Result<Json> {
-    match crate::wallet::list(h).await {
-        Err(Error::Unavailable(_)) => Ok(json!([])),
-        wallets => wallets,
+    if h.with(|c| Ok(c.config.wallet.hub.is_none())).await? {
+        return Ok(json!([]));
     }
+    crate::wallet::list(h).await
 }
 
 /// The account as this device reads it: through its login before it joins,
@@ -567,6 +661,8 @@ async fn account<H: Hold>(h: &H) -> Result<AccountInfo> {
 
 /// Task `id` after recording what the account shows done, and the account.
 async fn observed<H: Hold>(h: &H, id: Hash) -> Result<(Task, AccountInfo)> {
+    let bound = crate::hold::Session::new(h).await?;
+    let h = &bound;
     let info = account(h).await?;
     let task = h
         .with(|c| {
@@ -593,8 +689,25 @@ pub async fn status<H: Hold>(h: &H, id: Hash) -> Result<Json> {
 /// # Errors
 /// Returns `Error::Locked` while locked.
 pub async fn list<H: Hold>(h: &H) -> Result<Json> {
+    let bound = crate::hold::Session::new(h).await?;
+    let h = &bound;
+    let tasks: Vec<Task> = h
+        .with(|c| c.workspace.private_after(c.keys()?, TASK, "", MAX_TASKS))
+        .await?;
+    if tasks.is_empty() {
+        return Ok(json!([]));
+    }
+    let info = account(h).await?;
     h.with(|c| {
-        let tasks: Vec<Task> = c.workspace.private_after(c.keys()?, TASK, "", MAX_TASKS)?;
+        // Read again after the network wait: another step may have settled
+        // meanwhile. Both apps use this list to decide which step to offer.
+        let mut tasks: Vec<Task> = c.workspace.private_after(c.keys()?, TASK, "", MAX_TASKS)?;
+        let now = now_ms();
+        for task in &mut tasks {
+            if task.observe(&info, now) {
+                c.save_succession(task)?;
+            }
+        }
         let mut views: Vec<(u64, Json)> =
             tasks.iter().map(|t| (t.created_at_ms, t.view())).collect();
         views.sort_by_key(|(at, _)| *at);
@@ -613,6 +726,8 @@ pub async fn list<H: Hold>(h: &H) -> Result<Json> {
 /// Returns `Error::Forbidden` for a step this device cannot run now, and the
 /// step's own errors.
 pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (task, info) = observed(h, id).await?;
     ensure(task.available().contains(&step), Error::Forbidden)?;
     let token: Token = decode(&unb64(&task.token)?, MAX_TOKEN)?;
@@ -665,25 +780,19 @@ pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<J
         (Side::Successor, Step::Cosigners) => record(h, id, step, json!({"confirmed": true})).await,
         (Side::Successor, Step::Wallets) => {
             let wallets = wallets(h).await?;
-            let predecessor = json!(hex::encode(*task.predecessor));
             let mut requests = vec![];
             for record in wallets.as_array().into_iter().flatten() {
                 let wallet = crate::wallet::parse_wallet(record["wallet"].as_str().unwrap_or(""))?;
-                // Done where this device is bound and the predecessor is
-                // not; a wallet reads only for bound devices.
+                // Keep the predecessor bound until native sweeps finish:
+                // it still needs to read private plans to cosign L1.
                 let done = match crate::wallet::bindings(h, wallet).await {
-                    Ok(view) => !view["bindings"]
-                        .as_array()
-                        .into_iter()
-                        .flatten()
-                        .any(|b| b["device"] == predecessor),
+                    Ok(view) => view["bound"] == true,
                     Err(Error::Forbidden) => false,
                     Err(error) => return Err(error),
                 };
                 if !done {
-                    let replaces = vec![task.predecessor];
                     requests.push(
-                        crate::wallet::ops::join_request(h, source, wallet, replaces, false)
+                        crate::wallet::ops::join_request(h, source, wallet, vec![], false)
                             .await?,
                     );
                 }
@@ -694,6 +803,32 @@ pub async fn run<H: Hold>(h: &H, source: &str, id: Hash, step: Step) -> Result<J
             }
         }
         (Side::Successor, Step::Revoke) => {
+            if info.devices.get(&task.predecessor).is_some_and(|d| d.revoked_at.is_some()) {
+                // The original approval still has a root rotation to
+                // reconcile; do not queue a second revocation.
+                return Err(Error::Pending);
+            }
+            // Reconcile every binding before account revocation. Joining
+            // earlier granted the successor access without removing the L1
+            // signer; these reviewed joins now retire that signer.
+            let records = wallets(h).await?;
+            let predecessor = json!(hex::encode(*task.predecessor));
+            let mut requests = vec![];
+            for record in records.as_array().into_iter().flatten() {
+                let wallet = crate::wallet::parse_wallet(record["wallet"].as_str().unwrap_or(""))?;
+                let view = crate::wallet::bindings(h, wallet).await?;
+                // A migrated creator binding may still have no device
+                // tag. It cannot be proven retired by replacing an ID;
+                // the owner must explicitly take over those bindings.
+                ensure(!view["bindings"].as_array().into_iter().flatten().any(|b| b["device"].is_null()), Error::RecoveryIncomplete)?;
+                let old_bound = view["bindings"].as_array().into_iter().flatten().any(|b| b["device"] == predecessor);
+                if old_bound || view["bound"] != true {
+                    requests.push(crate::wallet::ops::join_request(h, source, wallet, vec![task.predecessor], false).await?);
+                }
+            }
+            if !requests.is_empty() {
+                return Ok(json!({"requests": requests}));
+            }
             crate::approval::revoke_request(h, source, task.predecessor).await
         }
         (_, Step::Content) => Err(Error::InvalidInput(
@@ -737,6 +872,10 @@ pub async fn peer<H: Hold>(h: &H, id: Hash) -> Result<Hash> {
 /// Returns `Error::Forbidden` for a transfer with another device or a step
 /// that is no longer open.
 pub async fn transferred<H: Hold>(h: &H, id: Hash, report: &Report) -> Result<Json> {
+    ensure(
+        report.skipped == 0 && report.pending_sync == 0,
+        Error::RecoveryIncomplete,
+    )?;
     h.with(|c| {
         let mut task = c.succession(&id)?;
         ensure(

@@ -185,7 +185,7 @@ fn publish(report: &Mutex<Report>, now: &Report) {
 pub async fn send<H, D, S>(
     h: &H,
     devices: &D,
-    mut stream: S,
+    stream: S,
     to: Hash,
     id: SessionId,
     report: &Mutex<Report>,
@@ -195,9 +195,62 @@ where
     D: Devices,
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
+    send_inner(h, devices, stream, to, id, report, None).await
+}
+
+/// Send the exact library approved in the host's approval center.
+///
+/// # Errors
+/// As [`send`], plus `Error::Locked` after the original unlock session ends
+/// or `Error::VersionConflict` if the reviewed library changed.
+pub async fn send_approved<H, D, S>(
+    h: &H,
+    devices: &D,
+    stream: S,
+    permit: super::Permit,
+    report: &Mutex<Report>,
+) -> Result<Report>
+where
+    H: Hold,
+    D: Devices,
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    send_inner(
+        h,
+        devices,
+        stream,
+        permit.to,
+        permit.session,
+        report,
+        Some(permit),
+    )
+    .await
+}
+
+async fn send_inner<H, D, S>(
+    h: &H,
+    devices: &D,
+    mut stream: S,
+    to: Hash,
+    id: SessionId,
+    report: &Mutex<Report>,
+    permit: Option<super::Permit>,
+) -> Result<Report>
+where
+    H: Hold,
+    D: Devices,
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
     let active = devices.active().await?;
     let (hello, key, entries, blobs) = h
         .with(|c| {
+            if let Some(permit) = &permit {
+                ensure(
+                    c.session_generation == permit.generation
+                        && c.workspace.meta.device_id == permit.device,
+                    Error::Locked,
+                )?;
+            }
             let me = c.workspace.meta.device_id;
             ensure(
                 to != me,
@@ -207,6 +260,12 @@ where
             let receiver = active.get(&to).ok_or(Error::DeviceNotApproved)?;
             let entries = library::entries(c)?;
             ensure(entries.len() <= MAX_ENTRIES, Error::QuotaExceeded)?;
+            if let Some(permit) = &permit {
+                ensure(
+                    manifest_digest(&entries.iter().collect::<Vec<_>>()) == permit.manifest,
+                    Error::VersionConflict,
+                )?;
+            }
             let account = c.account()?.id;
             let key = Zeroizing::new(random_key());
             let sealed = hpke_seal_info(
@@ -319,7 +378,15 @@ where
                         active.contains_key(&me) && active.contains_key(&to),
                         Error::DeviceNotApproved,
                     )?;
-                    channel.send(&Body::Ack).await?;
+                    sent.pending_sync = h
+                        .with(|c| c.workspace.store.count_in(crate::store::LOCAL))
+                        .await?;
+                    publish(report, &sent);
+                    channel
+                        .send(&Body::Ack {
+                            pending_sync: sent.pending_sync,
+                        })
+                        .await?;
                     return Ok(sent);
                 }
                 body => return Err(stopped(body)),
@@ -524,16 +591,20 @@ where
             active.contains_key(&me) && active.contains_key(&header.from),
             Error::DeviceNotApproved,
         )?;
+        // A digest of the offered entries is not evidence that skipped
+        // records arrived. Keep the session resumable until all do.
+        ensure(got.skipped == 0, Error::RecoveryIncomplete)?;
         let done = Body::Done {
             categories: categories.to_vec(),
             committed: manifest_digest(&chosen),
         };
         channel.send(&done).await?;
         match channel.recv().await? {
-            Body::Ack => {}
+            Body::Ack { pending_sync } => got.pending_sync = pending_sync,
             body => return Err(stopped(body)),
         }
         h.with(|c| c.finish_transfer(&id)).await?;
+        publish(report, &got);
         Ok(got)
     }
     .await;

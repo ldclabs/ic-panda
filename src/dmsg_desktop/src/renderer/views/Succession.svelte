@@ -109,6 +109,7 @@
     shown = ''
     review = null
     reviewError = ''
+    notice = ''
     reviewing = true
     void call('files/local_only').then((value) => { if (alive) local = value }, () => {})
   }
@@ -135,6 +136,13 @@
     try {
       const request: any = await call('device/succession_approve', { token: token.trim(), device: shownId })
       if (!alive) return
+      if (Array.isArray(request.requests)) {
+        notice = `${t('successionApprovals', { n: request.requests.length })} ${t('successionRefreshRequest')}`
+        review = null
+        token = ''
+        if (request.requests[0]?.id) await ask(request.requests[0].id)
+        return
+      }
       reviewing = false
       await ask(request.id)
     } catch (e) {
@@ -279,6 +287,7 @@
 <Dialog bind:open={reviewing} title={t('successionReview')} description={t('successionReviewHint')} icon="device" dismissible={!busy} wide testid="succession-review-dialog">
   <div class="grid gap-3">
     {#if reviewError}<Notice failure={reviewError} tone="danger">{reviewError}</Notice>{/if}
+    {#if notice}<Notice>{notice}</Notice>{/if}
     <TextArea label={t('successionToken')} bind:value={token} rows={3} mono disabled={busy} oninput={() => (review = null)} data-testid="succession-token" />
     {#if review}
       <dl data-testid="succession-reviewed">

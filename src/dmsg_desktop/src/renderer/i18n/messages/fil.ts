@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Mananatili lang sa lumang device ang file library. Mawawala ang anumang hindi kailanman na-sync o na-back up doon kapag binawi na ito.",
     "successionLeaveNative": "Patuloy na kakailanganin ng mga native address na ito ang lumang device para sa L1. Maaari pa rin itong i-sweep ng team sa L2 kapag sapat na ang tanda ng bawat output.",
     "successionRevokeBody": "Hindi na gagana ang lumang device para sa account na ito, at mawawala ang anumang nasa device na iyon lang.",
+    "successionRefreshRequest": "Pagkatapos aprubahan ang mga kahilingan sa wallet, gumawa ng bagong kahilingan sa pagpapalit sa bagong device.",
     "successionApprovals": "{n} pag-apruba ng wallet ang naghihintay; bukas ang una sa window ng pag-apruba.",
     "successionPartial": "Hindi pa tapos ang ilang wallet. Patakbuhin muli ang hakbang para matapos.",
     "successionFinished": "Tapos na ang pagpapasa. Isaalang-alang ding magrehistro ng susi ng pag-apruba at susi ng cosigner sa pangalawang device.",

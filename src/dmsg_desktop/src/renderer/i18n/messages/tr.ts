@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Dosya kitaplığı yalnızca eski cihazda kalır. Orada hiç eşitlenmemiş ya da yedeklenmemiş olanlar, cihaz iptal edilince kaybolur.",
     "successionLeaveNative": "Bu yerel adreslerin L1’i için eski cihaz gerekmeye devam eder. Her çıktı yeterince eskiyince ekip bunları L2 üzerinden yine de aktarabilir.",
     "successionRevokeBody": "Eski cihaz bu hesapta çalışmayı bırakır ve yalnızca onda olanlar kaybolur.",
+    "successionRefreshRequest": "Cüzdan isteklerini onayladıktan sonra yeni cihazda yeni bir değiştirme isteği oluşturun.",
     "successionApprovals": "{n} cüzdan onayı bekliyor; ilki onay penceresinde açık.",
     "successionPartial": "Bazı cüzdanlar henüz bitmedi. Tamamlamak için adımı yeniden çalıştırın.",
     "successionFinished": "Devir tamamlandı. İkinci bir cihazda da onay anahtarı ve ortak imza anahtarı kaydetmeyi düşünün.",

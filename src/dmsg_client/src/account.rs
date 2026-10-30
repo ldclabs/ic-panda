@@ -813,7 +813,7 @@ impl Client {
     /// Check device rights and sign the mutation against freshly read
     /// account state, before journaling and sending it.
     pub(crate) fn prepare_mutation(
-        &self,
+        &mut self,
         state: &AccountState,
         command: AccountCommand,
         fixed: Option<(Hash, u64)>,

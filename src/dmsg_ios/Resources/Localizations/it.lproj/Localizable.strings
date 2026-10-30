@@ -88,6 +88,8 @@
 	<string>Approvazioni amministrative %u</string>
 	<key>Administrator</key>
 	<string>Amministratore</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Dopo aver approvato le richieste dei portafogli, genera una nuova richiesta di sostituzione sul nuovo dispositivo.</string>
 	<key>Agent ID</key>
 	<string>ID dell'agente</string>
 	<key>Agents</key>

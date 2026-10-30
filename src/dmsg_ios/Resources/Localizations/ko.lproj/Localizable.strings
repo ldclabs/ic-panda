@@ -88,6 +88,8 @@
 	<string>행정 승인 %u</string>
 	<key>Administrator</key>
 	<string>관리자</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>지갑 요청을 승인한 후 새 기기에서 교체 요청을 다시 생성하세요.</string>
 	<key>Agent ID</key>
 	<string>에이전트 ID</string>
 	<key>Agents</key>

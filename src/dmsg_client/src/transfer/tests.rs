@@ -23,6 +23,105 @@ use zeroize::Zeroizing;
 
 const VECTORS: &str = "../../tests/vectors/transfer/transfer-v1.json";
 
+#[tokio::test]
+async fn an_export_requires_a_reviewed_one_use_snapshot_and_the_same_unlock_session() {
+    let mut pair = pair();
+    let to = id(&pair.new);
+    let session = session_id();
+    let requested = request(&pair.old.hold(), "gui", to, session).await.unwrap();
+    let (approval, digest) = (
+        requested["id"].as_str().unwrap(),
+        requested["digest"].as_str().unwrap(),
+    );
+    assert_eq!(requested["risk"], "high");
+    assert!(matches!(
+        claim(&pair.old.hold(), approval, to, session).await,
+        Err(Error::Forbidden)
+    ));
+    pair.old
+        .approval_respond(approval, digest, true, "gui", false)
+        .await
+        .unwrap();
+    assert!(matches!(
+        claim(&pair.old.hold(), approval, to, session_id()).await,
+        Err(Error::IntegrityFailed)
+    ));
+    pair.old.files_mkdir(ROOT, "after review").unwrap();
+    assert!(matches!(
+        claim(&pair.old.hold(), approval, to, session).await,
+        Err(Error::VersionConflict)
+    ));
+
+    let requested = request(&pair.old.hold(), "gui", to, session).await.unwrap();
+    let (approval, digest) = (
+        requested["id"].as_str().unwrap(),
+        requested["digest"].as_str().unwrap(),
+    );
+    pair.old
+        .approval_respond(approval, digest, true, "gui", false)
+        .await
+        .unwrap();
+    let permit = claim(&pair.old.hold(), approval, to, session)
+        .await
+        .unwrap();
+    assert!(matches!(
+        claim(&pair.old.hold(), approval, to, session).await,
+        Err(Error::Forbidden)
+    ));
+    pair.old.lock();
+    pair.old.keys = Some(pair.old.workspace.unlock(&crate::testing::SECRET).unwrap());
+    let (stream, _receiver) = duplex(4096);
+    let report = Mutex::new(Report::default());
+    assert_eq!(
+        send_approved(&pair.old.hold(), &pair.devices, stream, permit, &report).await,
+        Err(Error::Locked)
+    );
+}
+
+#[tokio::test]
+async fn an_export_approval_requires_system_presence_when_available() {
+    use crate::secure::{Presence, PresenceKey};
+    struct Hardware;
+    impl PresenceKey for Hardware {
+        fn presence(&self) -> Option<Presence> {
+            Some(Presence::Password)
+        }
+
+        fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<[u8; 32]>)> {
+            Err(Error::Forbidden)
+        }
+
+        fn open(&self, _: &[u8], _: &[u8], _: bool) -> Result<Zeroizing<[u8; 32]>> {
+            Err(Error::Forbidden)
+        }
+
+        fn biometry_state(&self) -> Option<Hash> {
+            None
+        }
+
+        fn confirm(&self, _: &str) -> Result<()> {
+            Err(Error::Forbidden)
+        }
+    }
+    let mut pair = pair();
+    pair.old.set_presence_key(std::sync::Arc::new(Hardware));
+    let requested = request(&pair.old.hold(), "gui", id(&pair.new), session_id())
+        .await
+        .unwrap();
+    assert_eq!(
+        pair.old
+            .approval_respond(
+                requested["id"].as_str().unwrap(),
+                requested["digest"].as_str().unwrap(),
+                true,
+                "gui",
+                false
+            )
+            .await,
+        Err(Error::Forbidden)
+    );
+}
+
 struct Fixed(Mutex<BTreeMap<Hash, DeviceInput>>);
 
 impl Devices for Fixed {
@@ -188,6 +287,70 @@ async fn the_library_moves_whole_and_reads_the_same() {
     let again = again.unwrap();
     assert_eq!((again.records, again.blobs), (0, 0));
     assert_eq!(again.kept, 9);
+}
+
+#[tokio::test]
+async fn a_transfer_fills_chunks_of_a_version_already_known_to_the_receiver() {
+    let mut p = pair();
+    transfer(&mut p, [1; 16], &Category::ALL, None)
+        .await
+        .1
+        .unwrap();
+    let id = p.new.files_find(ROOT, "b.txt").unwrap().unwrap();
+    let current = p.new.files_show(&id).unwrap().file.current;
+    let mut version = p.new.version(&id, &current).unwrap();
+    let digest = &version.chunks[0].digest;
+    std::fs::remove_file(
+        p.new
+            .files_blobs_dir()
+            .unwrap()
+            .join(&digest[..2])
+            .join(digest),
+    )
+    .unwrap();
+    version.local = false;
+    p.new.save_version(&id, &current, &version).unwrap();
+    let received = transfer(&mut p, [2; 16], &Category::ALL, None)
+        .await
+        .1
+        .unwrap();
+    assert_eq!(received.blobs, 1);
+    assert!(p.new.version(&id, &current).unwrap().local);
+    let out = p.files.path("restored.txt");
+    p.new.files_export(&id, None, &out).unwrap();
+    assert_eq!(std::fs::read(out).unwrap(), b"hello");
+}
+
+#[test]
+fn an_incomplete_source_cannot_offer_a_complete_library() {
+    let mut p = pair();
+    let id = p.old.files_find(ROOT, "b.txt").unwrap().unwrap();
+    let current = p.old.files_show(&id).unwrap().file.current;
+    let version = p.old.version(&id, &current).unwrap();
+    let digest = &version.chunks[0].digest;
+    std::fs::remove_file(
+        p.old
+            .files_blobs_dir()
+            .unwrap()
+            .join(&digest[..2])
+            .join(digest),
+    )
+    .unwrap();
+    assert_eq!(library::entries(&mut p.old), Err(Error::RecoveryIncomplete));
+}
+
+#[tokio::test]
+async fn a_file_transfer_reports_changes_it_does_not_sync() {
+    let mut p = pair();
+    p.old
+        .vault_create(
+            "note",
+            &serde_json::from_value(json!({"title": "not synced"})).unwrap(),
+        )
+        .unwrap();
+    let (sent, got) = transfer(&mut p, [1; 16], &Category::ALL, None).await;
+    assert_eq!(sent.unwrap().pending_sync, 1);
+    assert_eq!(got.unwrap().pending_sync, 1);
 }
 
 #[tokio::test]
@@ -658,7 +821,7 @@ fn build() -> Json {
                 committed: manifest,
             },
         ),
-        (SENDER, 3, Body::Ack),
+        (SENDER, 3, Body::Ack { pending_sync: 0 }),
         (
             SENDER,
             4,

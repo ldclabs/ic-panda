@@ -406,6 +406,9 @@ pub struct Client {
     pub(crate) hardware: Verdict,
     /// The account workspaces that came from other hardware.
     pub(crate) moved: BTreeSet<AccountId>,
+    /// Accounts whose anchor has not answered yet; no background receiver
+    /// may use their copied credentials until it has.
+    pub(crate) hardware_pending: BTreeSet<AccountId>,
     pub(crate) slot: Slot,
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
@@ -774,6 +777,7 @@ impl Client {
             anchor: None,
             hardware: Verdict::Native,
             moved: BTreeSet::new(),
+            hardware_pending: BTreeSet::new(),
             running: BTreeMap::new(),
             slot: Slot::Idle,
             workspace,
@@ -1851,7 +1855,10 @@ impl Client {
     /// Returns `Error::Unavailable` when files cannot be removed.
     pub fn reset(&mut self) -> Result<Status> {
         // A moved workspace is set aside, never erased.
-        ensure(self.hardware != Verdict::Moved, Error::Forbidden)?;
+        ensure(
+            self.hardware != Verdict::Moved && !matches!(self.slot, Slot::Moved(_)),
+            Error::Forbidden,
+        )?;
         self.retire_notifications()?;
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
@@ -1904,7 +1911,9 @@ impl Client {
             .device(&self.workspace.meta.device_id)
             .is_some_and(|d| d.revoked_at.is_some());
         if revoked && !self.workspace.provisional() {
-            self.reset()?;
+            if !matches!(self.slot, Slot::Moved(_)) {
+                self.reset()?;
+            }
             return Err(Error::DeviceNotApproved);
         }
         Ok(())

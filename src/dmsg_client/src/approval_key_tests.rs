@@ -314,7 +314,7 @@ fn key_maintenance_does_not_require_a_lost_key_while_the_policy_is_off() {
 fn member_devices_can_only_manage_their_own_approval_key() {
     let dir = TempDir::new();
     let software = Arc::new(Software::default());
-    let (client, key) = client(&dir, &software, None);
+    let (mut client, key) = client(&dir, &software, None);
     let device_id = client.workspace.meta.device_id;
     let mut info = info(&client, None, &[]);
     let own = info.devices.get_mut(&device_id).unwrap();

@@ -228,6 +228,22 @@ impl Store {
         Self::init(Connection::open(path).map_err(storage)?)
     }
 
+    /// Open an existing migration source without schema writes or creation.
+    pub(crate) fn read_only(path: &Path) -> Result<Self> {
+        let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(storage)?;
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
+    }
+
+    /// Copy a consistent SQLite image, including committed WAL pages.
+    pub(crate) fn backup_to(&self, path: &Path) -> Result<()> {
+        self.conn()
+            .backup(rusqlite::MAIN_DB, path, None)
+            .map_err(storage)
+    }
+
     /// A private in-memory database.
     ///
     /// # Errors

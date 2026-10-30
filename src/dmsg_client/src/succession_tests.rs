@@ -156,8 +156,12 @@ fn the_account_shows_enrollment_keys_revocation_and_cancellation() {
         },
     );
     state.devices.insert(hash(2), device(2, None, Some(12)));
+    state.vault_write_state = VaultWriteState::RekeyRequired;
     assert!(new.observe(&state, 12));
     assert!(new.steps.contains_key(&Step::ApprovalKey));
+    assert!(!new.steps.contains_key(&Step::Revoke));
+    state.vault_write_state = VaultWriteState::Ready;
+    assert!(new.observe(&state, 12));
     assert_eq!(new.steps[&Step::Revoke].evidence["revoked_at"], 12);
     assert_eq!(new.cancelled_at_ms, None);
     // Revoking the successor cancels.
@@ -318,6 +322,29 @@ async fn a_transfer_with_the_other_device_settles_content() {
     );
     saved.record(Step::Authorize, Json::Null, 2);
     h.0.lock().await.save_succession(&saved).unwrap();
+    for incomplete in [
+        Report {
+            skipped: 1,
+            ..report(2)
+        },
+        Report {
+            pending_sync: 1,
+            ..report(2)
+        },
+    ] {
+        assert_eq!(
+            transferred(&h, saved.id, &incomplete).await,
+            Err(Error::RecoveryIncomplete)
+        );
+        assert!(
+            h.0.lock()
+                .await
+                .succession(&saved.id)
+                .unwrap()
+                .available()
+                .contains(&Step::Content)
+        );
+    }
     assert_eq!(
         transferred(&h, saved.id, &report(9)).await,
         Err(Error::Forbidden)
@@ -331,4 +358,13 @@ async fn a_transfer_with_the_other_device_settles_content() {
         transferred(&h, saved.id, &report(2)).await,
         Err(Error::Forbidden)
     );
+}
+
+#[tokio::test]
+async fn an_unreachable_wallet_hub_is_not_an_account_without_wallets() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    assert_eq!(wallets(&client.hold()).await.unwrap(), json!([]));
+    client.config.wallet.hub = Some(Principal::from_slice(&[7; 10]));
+    assert!(wallets(&client.hold()).await.is_err());
 }

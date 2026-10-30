@@ -18,6 +18,7 @@ use std::ffi::{CString, c_char, c_void};
 use zeroize::Zeroizing;
 
 unsafe extern "C" {
+    fn dmsg_platform_identity(output: *mut u8) -> i32;
     fn dmsg_se_presence() -> i32;
     fn dmsg_se_confirm(reason: *const c_char) -> i32;
     fn dmsg_se_biometry_state(state: *mut u8) -> i32;
@@ -271,6 +272,11 @@ impl ApprovalKeys for SecureEnclave {
 }
 
 impl HardwareAnchor for SecureEnclave {
+    fn platform(&self) -> Option<Hash> {
+        let mut identity = [0; 32];
+        (unsafe { dmsg_platform_identity(identity.as_mut_ptr()) } == 0).then(|| Hash::new(identity))
+    }
+
     fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
         let mut point = [0u8; POINT];
         let handle = handle(|handle, capacity, length| unsafe {

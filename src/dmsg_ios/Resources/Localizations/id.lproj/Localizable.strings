@@ -88,6 +88,8 @@
 	<string>Persetujuan administratif %u</string>
 	<key>Administrator</key>
 	<string>Administrator</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Setelah menyetujui permintaan dompet, buat permintaan penggantian baru di perangkat baru.</string>
 	<key>Agent ID</key>
 	<string>ID Agen</string>
 	<key>Agents</key>

@@ -88,6 +88,8 @@
 	<string>Approbations administratives : %u</string>
 	<key>Administrator</key>
 	<string>Administrateur</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Après avoir approuvé les demandes des portefeuilles, générez une nouvelle demande de remplacement sur le nouvel appareil.</string>
 	<key>Agent ID</key>
 	<string>Agent ID</string>
 	<key>Agents</key>

@@ -88,6 +88,8 @@
 	<string>موافقات الإدارة: %u</string>
 	<key>Administrator</key>
 	<string>مسؤول</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>بعد الموافقة على طلبات المحافظ، أنشئ طلب استبدال جديدًا على الجهاز الجديد.</string>
 	<key>Agent ID</key>
 	<string>معرّف الوكيل</string>
 	<key>Agents</key>

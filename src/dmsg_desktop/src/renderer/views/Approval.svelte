@@ -806,6 +806,11 @@
               {@render row(t('device'), d.device_id, { mono: true, testid: 'approval-device' })}
               {@render row(t('role'), d.role)}
               {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
+            {:else if request.type === 'device_transfer'}
+              {@render row(t('deviceTransferTo'), d.to_device, { mono: true, testid: 'approval-transfer-device' })}
+              {@render row(t('deviceTransferSession'), d.session, { mono: true })}
+              {@render row(t('files'), size(d.bytes))}
+              {@render row('SHA-256', d.manifest, { mono: true })}
             {:else if request.type === 'device_revoke'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
             {:else if request.type === 'approval_key' || request.type === 'approval_key_retire'}

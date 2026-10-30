@@ -421,6 +421,7 @@ const GUI_SOURCED = new Set([
   'device/succession_run',
   'device/moved_approve_successor',
   'inbox/pay',
+  'transfer/send_start',
   'plan/checkout',
   'plan/advance',
   'handle/claim',

@@ -601,10 +601,12 @@ navigation, and light/dark screenshots in Chinese, French and Arabic at the
 minimum window size. It skips the unrelated full smoke flows.
 `DMSG_DESKTOP_SMOKE=succession pnpm test:e2e` runs device replacement with
 synthetic tasks: the review and approval by keyboard, both sides' steps,
-transfers and their resumption, leaving content and native addresses behind,
+creator-binding approvals and a fresh replacement request, export approval
+before any send, partial-transfer failures and their resumption, leaving content and native addresses behind,
 the revocation, moving a native address, this device's native key root, the
 local-only notices and a new Mac's request, with light/dark screenshots in
-Chinese, French and Arabic at the default and minimum window sizes.
+Chinese, French and Arabic at the default and minimum window sizes, including
+the export approval window.
 `DMSG_DESKTOP_SMOKE=legacy pnpm test:e2e` stops after the account-setup and
 legacy flows, including unavailable-account guidance and a failed initial
 setup followed by a successful retry. Later flows are explicitly skipped.

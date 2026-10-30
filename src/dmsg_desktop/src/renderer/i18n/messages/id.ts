@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Pustaka berkas hanya akan tetap ada di perangkat lama. Apa pun di sana yang tidak pernah disinkronkan atau dicadangkan akan hilang setelah perangkat itu dicabut.",
     "successionLeaveNative": "Alamat native ini tetap memerlukan perangkat lama untuk L1. Tim masih dapat menyapunya melalui L2 setelah setiap output cukup lama.",
     "successionRevokeBody": "Perangkat lama tidak lagi berfungsi untuk akun ini, dan apa pun yang hanya ada di sana akan hilang.",
+    "successionRefreshRequest": "Setelah menyetujui permintaan dompet, buat permintaan penggantian baru di perangkat baru.",
     "successionApprovals": "{n} persetujuan dompet sedang menunggu; yang pertama terbuka di jendela persetujuan.",
     "successionPartial": "Beberapa dompet belum selesai. Jalankan langkah ini lagi untuk menyelesaikannya.",
     "successionFinished": "Serah terima selesai. Pertimbangkan juga untuk mendaftarkan kunci persetujuan dan kunci cosigner di perangkat kedua.",

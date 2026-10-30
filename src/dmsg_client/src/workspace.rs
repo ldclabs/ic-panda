@@ -75,6 +75,9 @@ pub struct Meta {
     /// The hardware anchor, once this hardware made one.
     #[serde(default)]
     pub anchor: Option<Anchor>,
+    /// A weak fallback for Macs without Secure Enclave, bound to this device.
+    #[serde(default)]
+    pub platform: Option<Hash>,
 }
 
 /// A key the hardware running the workspace made for it
@@ -176,6 +179,7 @@ impl Workspace {
             fast_presence: false,
             fast_declined: false,
             anchor: None,
+            platform: None,
         };
         let workspace = Self { store, meta };
         let keys = Keys { ldk, signing, hpke };
@@ -295,7 +299,10 @@ impl Workspace {
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub(crate) fn holds_hardware(store: &Store, meta: &Meta) -> Result<bool> {
-        Ok(meta.fast_unlock.is_some() && meta.fast_presence || store.sealed(BOUND_LDK)?.is_some())
+        Ok(meta.fast_unlock.is_some() && meta.fast_presence
+            || store.sealed(BOUND_LDK)?.is_some()
+            || store.sealed("approval-keys")?.is_some()
+            || store.sealed("wallet-cosigners")?.is_some())
     }
 
     /// What the device-bound keys and wrappings commit to: the format, the

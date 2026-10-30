@@ -159,6 +159,9 @@ pub enum TransferCommand {
         /// The receiver's address and port, where Bonjour does not find it.
         #[arg(long)]
         address: Option<String>,
+        /// A reviewed export approval; omitted to request one first.
+        #[arg(long)]
+        approval: Option<String>,
         /// The succession whose content step it settles.
         #[arg(long)]
         succession: Option<String>,
@@ -810,8 +813,26 @@ async fn succession(
             request: token,
             device,
         } => {
-            let params = json!({"token": token, "device": device});
-            return request(remote, json, "device/succession_approve", params).await;
+            let params = json!({"token": token, "device": device, "source": "cli"});
+            let made = remote.call("device/succession_approve", params).await?;
+            if let Some(requests) = made["requests"].as_array() {
+                if json {
+                    print(true, &made, pretty);
+                    return Ok(());
+                }
+                for made in requests.clone() {
+                    created(remote, json, made).await?;
+                }
+                println!(
+                    "{}",
+                    tr!(
+                        "After approving the wallet requests, generate a new replacement request on the new device.",
+                        "批准钱包请求后，请在新设备上重新生成替换请求。"
+                    )
+                );
+                return Ok(());
+            }
+            return created(remote, json, made).await;
         }
         SuccessionCommand::Run { id, step } => {
             let params = json!({"id": id, "step": step, "source": "cli"});
@@ -967,17 +988,38 @@ async fn transfer(remote: &Remote, json: bool, command: TransferCommand) -> Resu
             session,
             to,
             address,
+            approval,
             succession,
             wait,
         } => (
             "transfer/send_start",
-            json!({"session": session, "to": to, "address": address, "succession": succession}),
+            json!({"session": session, "to": to, "address": address, "succession": succession, "approval": approval}),
             wait,
         ),
         TransferCommand::Status => ("transfer/status", Value::Null, false),
         TransferCommand::Cancel => ("transfer/cancel", Value::Null, false),
     };
-    let mut view = remote.call(method, params).await?;
+    let mut view = remote.call(method, params.clone()).await?;
+    if let Some(approval) = view.get("approval").cloned() {
+        let id = approval["id"].as_str().unwrap_or_default().to_string();
+        created(remote, json, approval).await?;
+        let decided = remote.call("approval/show", json!({"id": id})).await?;
+        if decided["state"] != "done" {
+            if !json {
+                println!(
+                    "{}",
+                    tr!(
+                        "After approval, repeat the send command with --approval {id}.",
+                        "批准后，请加上 --approval {id} 重新运行发送命令。"
+                    )
+                );
+            }
+            return Ok(());
+        }
+        let mut params = params;
+        params["approval"] = id.into();
+        view = remote.call(method, params).await?;
+    }
     if method == "transfer/receive_start" && !json {
         let (session, to) = (
             view["session"].as_str().unwrap_or_default(),

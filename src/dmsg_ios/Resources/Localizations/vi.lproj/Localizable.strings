@@ -88,6 +88,8 @@
 	<string>Phê duyệt hành chính %u</string>
 	<key>Administrator</key>
 	<string>Quản trị viên</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Sau khi phê duyệt các yêu cầu ví, hãy tạo lại yêu cầu thay thế trên thiết bị mới.</string>
 	<key>Agent ID</key>
 	<string>ID tác tử</string>
 	<key>Agents</key>

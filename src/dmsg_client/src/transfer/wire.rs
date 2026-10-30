@@ -103,7 +103,10 @@ pub enum Body {
         committed: Hash,
     },
     /// The sender checked [`Body::Done`].
-    Ack,
+    Ack {
+        /// Changes still awaiting cloud sync on the sender.
+        pending_sync: u64,
+    },
     /// Either side stops, with an error code.
     Abort {
         /// Such as `DEVICE_NOT_APPROVED`.

@@ -88,6 +88,8 @@
 	<string>Zezwolenia administracyjne %u</string>
 	<key>Administrator</key>
 	<string>Administrator</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Po zatwierdzeniu żądań portfeli wygeneruj nowe żądanie wymiany na nowym urządzeniu.</string>
 	<key>Agent ID</key>
 	<string>Identyfikator agenta</string>
 	<key>Agents</key>

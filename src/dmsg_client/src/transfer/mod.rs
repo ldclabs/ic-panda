@@ -17,6 +17,7 @@
 //!
 //! [docs/protocol/device_transfer.md]: ../../../../docs/protocol/device_transfer.md
 
+mod authorization;
 mod hosted;
 pub(crate) mod library;
 mod session;
@@ -31,8 +32,9 @@ use serde_bytes::{ByteBuf, Bytes};
 use std::collections::BTreeMap;
 use std::future::Future;
 
+pub use authorization::{claim, request};
 pub use hosted::{Start, Ticket, Transfers, listen, local_address};
-pub use session::{HELLO_TIMEOUT, IDLE_TIMEOUT, receive, send, serve};
+pub use session::{HELLO_TIMEOUT, IDLE_TIMEOUT, receive, send, send_approved, serve};
 pub use wire::{Body, Header, Hello, MAX_BODY};
 
 /// The format a header names.
@@ -50,6 +52,15 @@ pub const MAX_ENTRIES: usize = 1_000_000;
 
 /// A receiving session's ID, random.
 pub type SessionId = [u8; 16];
+
+/// One reviewed export, consumed by a host when it starts sending.
+pub struct Permit {
+    to: Hash,
+    session: SessionId,
+    manifest: Hash,
+    generation: u64,
+    device: Hash,
+}
 
 /// A new receiving session's ID.
 ///
@@ -217,6 +228,9 @@ pub struct Report {
     /// Records left out: one that changed on the sender meanwhile, or a
     /// file none of whose versions arrived.
     pub skipped: usize,
+    /// Changes on the sender that still need cloud sync; the file transfer
+    /// does not carry them. A succession cannot settle content until zero.
+    pub pending_sync: u64,
     /// Chunks stored here, or sent from here.
     pub blobs: usize,
     /// Their bytes.

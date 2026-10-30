@@ -88,6 +88,8 @@
 	<string>Kelulusan pentadbiran %u</string>
 	<key>Administrator</key>
 	<string>Pentadbir</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Selepas meluluskan permintaan dompet, jana permintaan penggantian baharu pada peranti baharu.</string>
 	<key>Agent ID</key>
 	<string>ID ejen</string>
 	<key>Agents</key>

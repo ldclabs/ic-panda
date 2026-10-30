@@ -38,6 +38,7 @@ export function kindOf(request: any): Label {
     case 'account':
     case 'device_capabilities':
     case 'device_pair':
+    case 'device_transfer':
     case 'device_revoke':
     case 'approval_key':
     case 'approval_key_retire':
@@ -152,6 +153,8 @@ export function titleOf(request: any): Title {
       return { label: 'capabilities' }
     case 'device_pair':
       return { label: 'approveDevice' }
+    case 'device_transfer':
+      return { label: 'deviceTransferSend' }
     case 'device_revoke':
       return { label: 'revokeDevice' }
     case 'approval_key':
@@ -217,6 +220,8 @@ export function summaryOf(request: any): string {
     case 'approval_key':
     case 'approval_key_retire':
       return String(d.device_id ?? '').slice(0, 16)
+    case 'device_transfer':
+      return String(d.to_device ?? '').slice(0, 16)
     case 'hardware_policy':
       return (d.purposes ?? []).join(' ')
     case 'wallet':

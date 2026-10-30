@@ -128,6 +128,12 @@ pub trait Authorized: Send + Sync {
 /// has not been copied to other hardware, such as by a system migration or
 /// a restored backup.
 pub trait HardwareAnchor: Send + Sync {
+    /// A platform identifier for hosts without an enclave (older Macs).
+    /// This only detects ordinary system copies, not deliberate tampering.
+    fn platform(&self) -> Option<Hash> {
+        None
+    }
+
     /// A new key: its opaque handle and its SEC1 public key. Asks nothing.
     ///
     /// # Errors

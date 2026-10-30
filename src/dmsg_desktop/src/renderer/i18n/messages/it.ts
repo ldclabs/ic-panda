@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "La libreria file resta solo sul vecchio dispositivo. Ciò che lì non è mai stato sincronizzato né salvato va perso quando viene revocato.",
     "successionLeaveNative": "Questi indirizzi nativi continuano a richiedere il vecchio dispositivo per L1. Il team può comunque spostarli tramite L2 quando ogni output è abbastanza vecchio.",
     "successionRevokeBody": "Il vecchio dispositivo smette di funzionare per questo account e ciò che esiste solo su di esso va perso.",
+    "successionRefreshRequest": "Dopo aver approvato le richieste dei portafogli, genera una nuova richiesta di sostituzione sul nuovo dispositivo.",
     "successionApprovals": "{n} approvazioni di wallet in attesa; la prima è aperta nella finestra di approvazione.",
     "successionPartial": "Alcuni wallet non sono ancora pronti. Esegui di nuovo il passaggio per finire.",
     "successionFinished": "Passaggio completato. Valuta di registrare anche una chiave di approvazione e una chiave di cofirma su un secondo dispositivo.",

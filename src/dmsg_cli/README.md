@@ -153,6 +153,12 @@ pairs or recovers; `device/moved_list` lists the copies and
 Secure Enclave keys when its anchor was made counts as moved when the first of
 them fails on this Mac; the first that opens settles it.
 
+Older Macs without Secure Enclave use a device-bound digest of IOPlatformUUID
+to detect ordinary system copies; this is weaker than an enclave anchor.
+Resident Agent credentials and notification receivers stay inactive while
+hardware is foreign or still unverified. Existing approval and cosigner keys
+also participate in late-anchor checks; keys created afterwards do not.
+
 While the old device is still active, the new device can take over from a
 copy without the old Mac (`dmsg device moved`). After `login`,
 `approve-successor <id>` asks to succeed the copy's device and makes a
@@ -164,6 +170,9 @@ not require approval keys for device control. `import <id> --succession
 succession's content step; the other steps run as in any succession, and the
 copy no longer opens once the old device is revoked. A copy whose device
 bound its workspace to its hardware does not open here (`FORBIDDEN`).
+The import source is opened read-only. The permitted local succession keeps
+its mutable journals in `moved-operations/<copy>/`, separately from that source;
+discarding the copy also removes those journals.
 
 The hardware creation tests run without a prompt:
 `cargo test --locked -p dmsg_cli --bin dmsg enclave::tests::creates_keys_without_asking -- --exact --nocapture`
@@ -292,7 +301,7 @@ dmsg device key status | register [--biometry-only] | request [--biometry-only] 
 dmsg device succession request <device> | review <request> | approve <request> --device <id> | list | status <id>
 dmsg device succession run <id> <step> | skip <id> content|native_addresses [--keep a,b] | cancel <id>
 dmsg device transfer receive [--session S] [--succession ID] [--wait] | status | cancel
-dmsg device transfer send <session> [--to <device>] [--address host:port] [--succession ID] [--wait]
+dmsg device transfer send <session> [--to <device>] [--address host:port] [--succession ID] [--approval ID] [--wait]
 dmsg device moved list | set-aside | import <id> [--succession ID] | approve-successor <id> | discard <id>
 dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
                 [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
@@ -389,14 +398,24 @@ seven days after the new device joined. Each device keeps the steps it saw
 done (`list`, `status <id>`) and runs its own with `run <id> <step>`: the old
 device registers the new approval key (`approval_key`) and rotates its
 cosigner keys in every wallet (`cosigners`); the new device confirms the
-rotation, takes over the old device's wallet bindings (`wallets`) and
-finally revokes it (`revoke`). Local content moves with a device transfer
+rotation, joins its wallets (`wallets`) and finally retires the old wallet
+bindings and revokes the device (`revoke`). The old wallet identity remains
+bound until native-address sweeps finish, so it can read private L1 plans.
+A creator binding without a device ID is named through an ordinary wallet
+join approval before enrolling the successor. Keeping both devices bound
+needs a free wallet binding slot; the existing four-binding limit still applies.
+After approving these preliminary wallet joins, generate a new succession
+request on the new device because its proof binds the account version.
+Local content moves with a device transfer
 for the succession (below), which settles the `content` step on both
 devices. `run <id> native_addresses` lists the native addresses still bound
 to another device's key, each moved with `wallet nc-migrate`, and settles the
 step once none is left; `skip <id> native_addresses` leaves them, and
 `skip <id> content --keep a,b` leaves content, listing what stays. `cancel` stops a succession and keeps what was done; revoking the new
 device undoes its enrollment.
+List/status refresh account evidence; revocation is complete only after the
+root rotation is ready. A failed wallet-hub read never means there are no wallets.
+Skipped file records or unsynced vault changes leave the content step open.
 
 `device transfer` moves the file library from one device of the account to
 another over the local network, end to end encrypted
@@ -411,6 +430,13 @@ minutes, `cancel` stops it or the device locks; a broken transfer resumes
 with `receive --session <session>`. It only adds: records already there stay
 as they are, and nothing is deleted. `status` shows the running or last
 transfer; `--wait` follows it to the end.
+
+Sending first creates a high-risk local export approval for the receiving
+device, session and current library manifest. An interactive terminal can
+approve it in place; otherwise approve it in the approval center and repeat
+the send command with `--approval <id>`. Permission is consumed once, and a
+changed library or an interrupted send requires another approval. No bytes
+leave before this approval and the peer's certified identity checks.
 
 Hidden values
 leave the daemon only with `vault show --reveal` (the desktop asks for one

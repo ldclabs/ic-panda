@@ -12,7 +12,7 @@
   import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { call, errorText, onChange, size, when } from '../rpc'
+  import { bridge, call, errorText, onChange, size, when } from '../rpc'
 
   /**
    * The file library moving between two devices of the account on the same
@@ -29,6 +29,7 @@
   let to = $state('')
   let address = $state('')
   let succession = $state<string | null>(null)
+  let pending = $state<{ id: string; params: Record<string, unknown> } | null>(null)
   let alive = true
   onDestroy(() => { alive = false })
 
@@ -61,14 +62,20 @@
     busy = true
     error = ''
     try {
-      const next = await call(method, params)
-      if (alive) view = next
+      const next: any = await call(method, params)
+      if (!alive) return false
+      if (next?.approval) {
+        pending = { id: next.approval.id, params }
+        await bridge(() => window.dmsg.openApproval(next.approval.id))
+        return false
+      }
+      view = next
       return true
     } catch (e) {
       if (alive) error = errorText(e)
       return false
     } finally {
-      if (alive) busy = false
+      if (alive) { busy = false; if (pending) void approved() }
     }
   }
 
@@ -86,6 +93,7 @@
     to = task?.successor ?? ''
     succession = task?.id ?? null
     error = ''
+    pending = null
     sending = true
   }
 
@@ -94,6 +102,19 @@
     const params: Record<string, unknown> = { session: sessionShown, ...(succession ? { succession } : { to: toShown }) }
     if (address.trim()) params.address = address.trim()
     if (await attempt('transfer/send_start', params)) sending = false
+  }
+
+  async function approved() {
+    const request = pending
+    if (!request || busy || !alive) return
+    try {
+      const view: any = await call('approval/show', { id: request.id })
+      if (!alive || pending !== request) return
+      if (view.state === 'done') {
+        pending = null
+        if (await attempt('transfer/send_start', { ...request.params, approval: request.id })) sending = false
+      } else if (view.state !== 'awaiting_user' && view.state !== 'executing') pending = null
+    } catch (e) { if (alive) error = errorText(e) }
   }
 
   /** The same session again: listening once more, or sending to it once more. */
@@ -106,7 +127,10 @@
 
   onMount(() => {
     void load()
-    return onChange(['transfer/changed', 'session/changed'], () => void load())
+    const transfer = onChange(['transfer/changed'], () => void load())
+    const session = onChange(['session/changed'], () => { pending = null; void load() })
+    const approvals = onChange(['approval/changed'], () => void approved())
+    return () => { transfer(); session(); approvals() }
   })
 </script>
 
@@ -117,6 +141,7 @@
   {/snippet}
   <div class="grid gap-3">
     {#if error && !sending}<Notice failure={error} tone="danger">{error}</Notice>{/if}
+    {#if pending && !sending}<Notice>{t('experience.awaiting')}</Notice>{/if}
     {#if view}
       <div class="flex flex-wrap items-center gap-1.5" data-testid="transfer-state">
         <Pill>{t(view.role === 'receive' ? 'deviceTransferReceiving' : 'deviceTransferSending')}</Pill>
@@ -166,15 +191,16 @@
 <Dialog bind:open={sending} title={t('deviceTransferSend')} description={t('deviceTransferSendHint')} icon="send" dismissible={!busy} testid="transfer-send-dialog">
   <div class="grid gap-3">
     {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
-    <TextField label={t('deviceTransferSession')} bind:value={session} mono disabled={busy} error={session.trim() && !SESSION.test(sessionShown) ? t('deviceTransferSessionHint') : ''} data-testid="transfer-session" />
+    {#if pending}<Notice>{t('experience.awaiting')}</Notice>{/if}
+    <TextField label={t('deviceTransferSession')} bind:value={session} mono disabled={busy} oninput={() => (pending = null)} error={session.trim() && !SESSION.test(sessionShown) ? t('deviceTransferSessionHint') : ''} data-testid="transfer-session" />
     {#if !succession}
-      <TextField label={t('deviceTransferTo')} bind:value={to} mono disabled={busy} error={to.trim() && !DEVICE.test(toShown) ? t('securityDeviceIdHint') : ''} data-testid="transfer-to" />
+      <TextField label={t('deviceTransferTo')} bind:value={to} mono disabled={busy} oninput={() => (pending = null)} error={to.trim() && !DEVICE.test(toShown) ? t('securityDeviceIdHint') : ''} data-testid="transfer-to" />
     {/if}
-    <TextField label={t('deviceTransferAddress')} hint={t('deviceTransferAddressHint')} bind:value={address} mono disabled={busy} data-testid="transfer-address" />
+    <TextField label={t('deviceTransferAddress')} hint={t('deviceTransferAddressHint')} bind:value={address} mono disabled={busy} oninput={() => (pending = null)} data-testid="transfer-address" />
   </div>
   {#snippet footer()}
     <span class="flex-1"></span>
-    <button class={buttonClass('secondary')} disabled={busy} onclick={() => (sending = false)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !canSend} aria-busy={busy} onclick={start} data-testid="transfer-start">{t('deviceTransferStart')}</button>
+    <button class={buttonClass('secondary')} disabled={busy} onclick={() => { pending = null; sending = false }}>{t('cancel')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !canSend || !!pending} aria-busy={busy} onclick={start} data-testid="transfer-start">{t('deviceTransferStart')}</button>
   {/snippet}
 </Dialog>

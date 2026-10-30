@@ -88,6 +88,8 @@
 	<string>प्रशासनिक स्वीकृतियाँ %u</string>
 	<key>Administrator</key>
 	<string>प्रशासक</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>वॉलेट अनुरोधों को मंज़ूरी देने के बाद, नए डिवाइस पर नया प्रतिस्थापन अनुरोध बनाएँ।</string>
 	<key>Agent ID</key>
 	<string>एजेंट आईडी</string>
 	<key>Agents</key>

@@ -330,6 +330,8 @@ impl Client {
 /// Returns `Error::Forbidden` for a root kept in software or a declined
 /// prompt, and `Error::Unavailable` without such hardware.
 pub async fn add_protector<H: Hold>(h: &H, biometry_only: bool) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let opener = h.with(|c| c.native_opener()).await?;
     ensure(opener.root.software.is_none(), Error::Forbidden)?;
     let hardware = opener
@@ -379,6 +381,8 @@ pub async fn add_protector<H: Hold>(h: &H, biometry_only: bool) -> Result<Json> 
 /// Returns `Error::NotFound` without a root and `Error::Forbidden` when the
 /// person declines.
 pub async fn key<H: Hold>(h: &H, wallet: Principal, label: &str) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     ensure(
         !label.is_empty() && label.len() <= 64,
         dmsg_types::invalid("label"),
@@ -446,6 +450,8 @@ pub(super) async fn sign<H: Hold>(
     public_key: &[u8],
     messages: Vec<Hash>,
 ) -> Result<Vec<Vec<u8>>> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (opener, key) = h
         .with(|c| {
             let key = c
@@ -455,7 +461,7 @@ pub(super) async fn sign<H: Hold>(
             Ok((c.native_opener()?, key))
         })
         .await?;
-    asking(move || {
+    let signatures = asking(move || {
         let root = opener.open()?;
         let signer = signing_key(&root, wallet, key.index);
         ensure(
@@ -472,7 +478,9 @@ pub(super) async fn sign<H: Hold>(
             })
             .collect()
     })
-    .await
+    .await?;
+    h.with(|_| Ok(())).await?;
+    Ok(signatures)
 }
 
 #[cfg(test)]
@@ -743,6 +751,40 @@ mod tests {
         assert_eq!(status["created"], true);
         release.send(()).unwrap();
         prompt.await.unwrap().unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_prompt_cannot_finish_after_locking_and_unlocking_the_same_workspace() {
+        let dir = TempDir::new();
+        let (mut client, hardware) = with_hardware(&dir);
+        client.wallet_native_create(false, false).unwrap();
+        let (release, held) = std::sync::mpsc::channel();
+        *hardware.held.lock().unwrap() = Some(held);
+        let shared = Arc::new(Shared(Mutex::new(client)));
+        let prompt = tokio::spawn({
+            let shared = shared.clone();
+            async move { key(&*shared, wallet(), "phone").await }
+        });
+        while hardware.held.lock().unwrap().is_some() {
+            tokio::task::yield_now().await;
+        }
+        shared
+            .with(|c| {
+                c.lock();
+                c.keys = Some(c.workspace.unlock(&crate::testing::SECRET)?);
+                Ok(())
+            })
+            .await
+            .unwrap();
+        release.send(()).unwrap();
+        assert_eq!(prompt.await.unwrap(), Err(Error::Locked));
+        assert!(
+            shared
+                .with(|c| c.native_key(wallet()))
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     struct Shared(Mutex<Client>);

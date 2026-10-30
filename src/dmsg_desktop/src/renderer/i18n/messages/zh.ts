@@ -2507,6 +2507,7 @@ export default {
     "successionLeaveContent": "文件库将只留在旧设备上。旧设备被撤销后，其中从未同步或备份的内容会丢失。",
     "successionLeaveNative": "这些原生地址的 L1 仍需要旧设备签名。等每笔输出足够久后，团队仍可经 L2 扫回。",
     "successionRevokeBody": "旧设备将无法再用于此账户，只在它上面的内容会丢失。",
+    "successionRefreshRequest": "批准钱包请求后，请在新设备上重新生成替换请求。",
     "successionApprovals": "有 {n} 个钱包审批在等待，第一个已在审批窗口中打开。",
     "successionPartial": "还有钱包未完成。请再执行一次此步骤。",
     "successionFinished": "交接已完成。建议在另一台设备上也登记批准钥匙和协签钥匙。",

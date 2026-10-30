@@ -1120,7 +1120,10 @@ pub async fn list<H: Hold>(h: &H) -> Result<Json> {
 /// # Errors
 /// Returns `Error::Forbidden` when this account is not a member.
 pub async fn bindings<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let view = state(h, wallet).await?;
+    let (actor, _) = identity(h).await?;
     let (me, this) = h
         .with(|c| Ok((c.wallet_member()?, c.workspace.meta.device_id)))
         .await?;
@@ -1156,7 +1159,9 @@ pub async fn bindings<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
         })
         .collect();
     unbind.sort();
-    Ok(json!({"wallet": wallet.to_text(), "bindings": rows, "unbind": unbind}))
+    Ok(
+        json!({"wallet": wallet.to_text(), "bound": member.binds(&actor), "bindings": rows, "unbind": unbind}),
+    )
 }
 
 /// The proposal giving cosigner `id` of this member the key `label` of this

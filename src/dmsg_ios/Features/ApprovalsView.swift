@@ -35,6 +35,7 @@ func approvalTitle(_ type: String) -> String {
     case "delegation": String(localized: "Review agent delegation")
     case "grant": String(localized: "Review agent permissions")
     case "device_pair": String(localized: "Authorize a new device")
+    case "device_transfer": String(localized: "Send to a device")
     case "device_revoke": String(localized: "Revoke a device")
     case "device_capabilities": String(localized: "Change device permissions")
     case "attest": String(localized: "Sign a statement")

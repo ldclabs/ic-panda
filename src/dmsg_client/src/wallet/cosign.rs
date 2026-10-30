@@ -21,21 +21,21 @@ const COSIGNERS: &str = "wallet-cosigners";
 pub async fn test_key<H: Hold>(h: &H, label: &str) -> Result<Json> {
     let bound = crate::hold::Unlocked::new(h).await?;
     let h = &bound;
-    let (public, signer) = h
+    let public = h
         .with(|c| {
             let key = c
                 .wallet_cosigner_keys()?
                 .into_iter()
                 .find(|k| k.label == label)
                 .ok_or(Error::NotFound)?;
-            Ok((key.public_key.clone(), c.prepare_cosign(&key.public_key)?))
+            Ok(key.public_key.clone())
         })
         .await?;
     let challenge = dmsg_protocol::digest(
         "dmsg-wallet/local-key-test/v1",
         &(public.clone(), crate::crypto::random_id()),
     );
-    let signatures = signer.sign(vec![challenge]).await?;
+    let signatures = sign_local(h, &public, vec![challenge]).await?;
     let signature = signatures.first().ok_or(Error::IntegrityFailed)?;
     VerifyingKey::from_sec1_bytes(&public)
         .map_err(|_| Error::IntegrityFailed)?
@@ -46,6 +46,39 @@ pub async fn test_key<H: Hold>(h: &H, label: &str) -> Result<Json> {
         .map_err(|_| Error::IntegrityFailed)?;
     h.with(|_| Ok(())).await?;
     Ok(json!({"label":label,"public_key":hex::encode(&public),"verified":true,"read_at":now_ms()}))
+}
+
+/// Sign without holding the client, then feed an existing hardware key's
+/// answer back into the late-anchor check before exposing its result.
+pub(crate) async fn sign_local<H: Hold>(
+    h: &H,
+    public: &[u8],
+    messages: Vec<Hash>,
+) -> Result<Vec<Vec<u8>>> {
+    let bound = crate::hold::Session::new(h).await?;
+    let (signer, hardware) = bound
+        .with(|c| {
+            let key = c
+                .wallet_cosigner_keys()?
+                .into_iter()
+                .find(|key| key.public_key.as_slice() == public)
+                .ok_or(Error::NotFound)?;
+            let hardware = key.hardware()
+                && c.workspace
+                    .meta
+                    .anchor
+                    .as_ref()
+                    .is_none_or(|a| key.created_at <= a.created_at);
+            Ok((c.prepare_cosign(public)?, hardware))
+        })
+        .await?;
+    let signatures = signer.sign(messages).await;
+    bound
+        .with(|c| match hardware {
+            true => c.hardware_key(signatures),
+            false => signatures,
+        })
+        .await
 }
 
 /// A batch signature operation that may wait for user presence.
@@ -448,6 +481,28 @@ mod tests {
             1
         );
         assert!(test_key(&h, "missing").await.is_err());
+    }
+
+    #[tokio::test]
+    async fn a_new_key_does_not_vouch_for_keys_that_predate_a_late_anchor() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        client.workspace.meta.anchor = Some(crate::workspace::Anchor {
+            handle: vec![].into(),
+            public: vec![].into(),
+            created_at: 0,
+            late: true,
+            foreign: false,
+        });
+        client.set_cosign_provider(Arc::new(SmallBatches::default()));
+        client.wallet_cosigner_create("new", true).unwrap();
+        let h = Shared(Mutex::new(client));
+        assert_eq!(test_key(&h, "new").await.unwrap()["verified"], true);
+        assert!(
+            h.with(|c| Ok(c.workspace.meta.anchor.as_ref().unwrap().late))
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]

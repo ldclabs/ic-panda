@@ -2510,6 +2510,7 @@ const messages = {
     "successionLeaveContent": "The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.",
     "successionLeaveNative": "These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.",
     "successionRevokeBody": "The old device stops working for this account, and anything only on it is lost.",
+    "successionRefreshRequest": "After approving the wallet requests, generate a new replacement request on the new device.",
     "successionApprovals": "{n} wallet approvals are waiting; the first is open in the approval window.",
     "successionPartial": "Some wallets are not done yet. Run the step again to finish.",
     "successionFinished": "Handover complete. Consider registering an approval key and a cosigner key on a second device as well.",

@@ -772,6 +772,34 @@ cancelled or replaced sessions, and lock clears cached backup metadata.
   account name, avatar and desktop-origin cloud backups all appeared correctly.
   A real-device restore/download of one of those backups was not separately tested.
 
+## Apple device handover review (2026-10-30)
+
+- Exporting the file library now goes through the existing high-risk approval
+  flow. Permission names the receiving device, session and exact manifest,
+  is consumed once, and is checked again after connection setup. Transfer
+  reset clears prior status; delayed discovery and advertising results cannot
+  revive a stopped session. Resuming preserves a manually entered address.
+- Succession refresh observes enrollment and completed root rotation. Initial
+  wallet bindings are named before handover; those approvals require a fresh
+  succession request, with the superseded draft retained as cancelled. The old
+  wallet binding remains until native-address work finishes. Content with
+  skipped files or unsynced vault changes cannot settle the content step.
+- ARM64 device and simulator Rust libraries and Swift bindings were rebuilt;
+  artifact/source fingerprints verified. The Debug app built and launched on
+  iPhone 16 Pro / iOS 18.4. All 45 unit tests and three handover UI tests passed
+  (48 total, no failures or skips), including live simulator Bonjour discovery,
+  CryptoKit vectors, English and dark Arabic handover entries, and the Chinese
+  replacement request before joining. The exported screenshots were inspected.
+- All 23 localizations passed resource and compiler-extraction checks; the 12
+  localization/artifact Python tests passed. Shared-core regressions and two
+  real desktop-daemon handover tests also passed against local PocketIC and the
+  test relay. The user-canister schema 16-to-17 upgrade and Candid compatibility
+  were verified with the historical Wasm; this does not claim production rollout.
+- Physical Secure Enclave migration/restore, biometric and device-password
+  behavior, transfer between two real Apple devices, and Bitcoin regtest L1/L2
+  sweeps were not exercised by this review. Simulator fixtures do not validate
+  those hardware or chain paths.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a
@@ -804,8 +832,8 @@ claim that every P0–P3 milestone or the App Store release is complete**.
 - Minimum-device performance and large-file memory budgets, Duo physical Touch ID,
   live activities/camera reserved regions, App Store account deletion,
   reporting/blocking, privacy labels and distribution review remain unverified or
-  require the corresponding service/product work. No canister stable layout was
-  changed, and no canister upgrade test is claimed.
+  require the corresponding service/product work. Local canister upgrade
+  coverage for device succession is recorded above; deployment remains separate.
 
 The 8 MiB secret-package ceiling limits payload buffers, not process RSS. Chunk
 buffers, the manifest, Swift UI metadata and password derivation have additional

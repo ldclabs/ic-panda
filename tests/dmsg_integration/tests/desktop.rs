@@ -1743,7 +1743,13 @@ fn two_desktop_devices_share_an_account() {
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_device_succession() {
-    let mut env = Env::start("succession", "");
+    let mut env = Env::launch(
+        "succession",
+        Options {
+            wallet: true,
+            ..Options::default()
+        },
+    );
     let http = env.http.clone();
     let (c, _) = env.desktop("c");
     let (a, b, c) = (&env.a, &env.b, &c);
@@ -1779,6 +1785,20 @@ fn desktop_device_succession() {
         open["session"].as_str().unwrap(),
         open["to"].as_str().unwrap(),
     );
+    let export = b.run(&[
+        "device",
+        "transfer",
+        "send",
+        session,
+        "--to",
+        to,
+        "--address",
+        &address,
+    ]);
+    assert_eq!(export["type"], "device_transfer");
+    assert_eq!(export["state"], "awaiting_user");
+    assert!(b.run(&["device", "transfer", "status"]).is_null());
+    assert_eq!(b.decide(&http, &export, true).unwrap()["state"], "done");
     let sent = b.run(&[
         "device",
         "transfer",
@@ -1788,6 +1808,8 @@ fn desktop_device_succession() {
         to,
         "--address",
         &address,
+        "--approval",
+        export["id"].as_str().unwrap(),
         "--wait",
     ]);
     assert_eq!(sent["state"], "done", "{sent}");
@@ -1796,14 +1818,44 @@ fn desktop_device_succession() {
     assert_eq!(shown["file"]["sha256"], sha256_hex(&bytes).as_str());
     assert_eq!(a.run(&["device", "transfer", "status"])["state"], "done");
 
+    // The old device created a private wallet. Its initial binding has no
+    // device tag; the handover must name it before restricting the old device.
+    add_capabilities(b, &http, &["WalletApprove"]);
+    let readiness = b
+        .rpc(&http, "wallet/readiness", json!({"funding": true}))
+        .unwrap();
+    let ledger = Principal::from_text(readiness["balance"]["ledger"].as_str().unwrap()).unwrap();
+    mint(
+        &env.deployment,
+        ledger,
+        icrc_ledger_types::icrc1::account::Account::from(
+            login_principal(41).parse::<Principal>().unwrap(),
+        ),
+        10_000_000_000,
+    );
+    let quote = b.run(&["wallet", "quote"]);
+    let create = b.run(&[
+        "wallet",
+        "create",
+        quote["quote_id"].as_str().unwrap(),
+        "--name",
+        "Handover",
+    ]);
+    assert_eq!(b.decide(&http, &create, true).unwrap()["state"], "done");
+    let created = b.run(&["approvals", "show", create["id"].as_str().unwrap()]);
+    let wallet = created["detail"]["result"]["wallet"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(b.run(&["wallet", "bindings", &wallet])["bindings"][0]["device"].is_null());
+
     // C, new, asks to replace B with B's role and capabilities. These homes
     // keep no hardware keys, so the request carries none.
     assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
     let request = c.run(&["device", "succession", "request", &old]);
-    let (token, new, id) = (
+    let (token, new) = (
         request["token"].as_str().unwrap(),
         request["device_id"].as_str().unwrap(),
-        request["id"].as_str().unwrap(),
     );
     assert_eq!(
         (
@@ -1819,7 +1871,7 @@ fn desktop_device_succession() {
     );
     let review = b.run(&["device", "succession", "review", token]);
     assert_eq!(review["device_id"], new);
-    assert_eq!(review["wallets"], json!([]));
+    assert_eq!(review["wallets"][0]["wallet"], wallet);
     assert_eq!(
         b.fail(&[
             "device",
@@ -1830,6 +1882,34 @@ fn desktop_device_succession() {
             &"00".repeat(32)
         ]),
         "INVALID_INPUT"
+    );
+    let preflight = b
+        .rpc(
+            &http,
+            "device/succession_approve",
+            json!({"token": token, "device": new, "source": "gui"}),
+        )
+        .unwrap();
+    assert_eq!(preflight["requests"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        b.decide(&http, &preflight["requests"][0], true).unwrap()["state"],
+        "done"
+    );
+    assert_eq!(
+        b.run(&["wallet", "bindings", &wallet])["bindings"][0]["device"],
+        old
+    );
+    assert_eq!(
+        b.fail(&["device", "succession", "approve", token, "--device", new]),
+        "VERSION_CONFLICT"
+    );
+    // Wallet authorization advanced the account version; the successor's
+    // proof binds that version, so it must issue a fresh request.
+    let request = c.run(&["device", "succession", "request", &old]);
+    let (token, new, id) = (
+        request["token"].as_str().unwrap(),
+        request["device_id"].as_str().unwrap(),
+        request["id"].as_str().unwrap(),
     );
     let approval = b.run(&["device", "succession", "approve", token, "--device", new]);
     assert_eq!(
@@ -1866,7 +1946,14 @@ fn desktop_device_succession() {
 
     // Each side settles its steps; revoking B waits for the rest.
     let steps = |device: &Desktop| {
-        let status = device.run(&["device", "succession", "status", id]);
+        // Both graphical apps refresh the list, not the CLI-only status.
+        let list = device.run(&["device", "succession", "list"]);
+        let status = list
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|task| task["id"] == id)
+            .unwrap();
         status["available"]
             .as_array()
             .unwrap()
@@ -1883,13 +1970,22 @@ fn desktop_device_succession() {
         c.fail(&["device", "succession", "run", id, "revoke"]),
         "FORBIDDEN"
     );
-    for step in ["approval_key", "cosigners", "wallets"] {
+    for step in ["approval_key", "cosigners"] {
         c.run(&["device", "succession", "run", id, step]);
     }
+    let join = c.run(&["device", "succession", "run", id, "wallets"]);
+    assert_eq!(join["detail"]["replaces"], json!([]));
+    assert_eq!(c.decide(&http, &join, true).unwrap()["state"], "done");
+    c.run(&["device", "succession", "run", id, "wallets"]);
+    // Both devices can still read a private plan while L1 needs the old key.
+    assert_eq!(b.run(&["wallet", "bindings", &wallet])["bound"], true);
+    assert_eq!(c.run(&["wallet", "bindings", &wallet])["bound"], true);
     // B's library moves to C, found with Bonjour; the transfer settles the
     // content step on both.
     let open = c.run(&["device", "transfer", "receive", "--succession", id]);
     let session = open["session"].as_str().unwrap();
+    let export = b.run(&["device", "transfer", "send", session, "--succession", id]);
+    assert_eq!(b.decide(&http, &export, true).unwrap()["state"], "done");
     let sent = b.run(&[
         "device",
         "transfer",
@@ -1897,6 +1993,8 @@ fn desktop_device_succession() {
         session,
         "--succession",
         id,
+        "--approval",
+        export["id"].as_str().unwrap(),
         "--wait",
     ]);
     assert_eq!(sent["state"], "done", "{sent}");
@@ -1911,6 +2009,10 @@ fn desktop_device_succession() {
     assert!(!steps(b).contains(&"content".to_string()));
     c.run(&["device", "succession", "skip", id, "native_addresses"]);
     assert_eq!(steps(c), ["revoke"]);
+    let retire = c.run(&["device", "succession", "run", id, "revoke"]);
+    assert_eq!(retire["detail"]["replaces"], json!([old]));
+    assert_eq!(c.decide(&http, &retire, true).unwrap()["state"], "done");
+    assert_eq!(b.fail(&["wallet", "show", &wallet]), "FORBIDDEN");
     let revoke = c.run(&["device", "succession", "run", id, "revoke"]);
     assert_eq!(revoke["type"], "device_revoke");
     assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
@@ -1924,13 +2026,28 @@ fn desktop_device_succession() {
     );
     assert_eq!(done["steps"][3]["evidence"]["records"], 2);
     assert_eq!(active(a), 2);
-    // C keeps its record of the succession.
+    // C keeps the completed handover and the cancelled, superseded draft.
+    let listed = c.run(&["device", "succession", "list"]);
+    let listed = listed.as_array().unwrap();
+    assert_eq!(listed.len(), 2);
     assert_eq!(
-        c.run(&["device", "succession", "list"])
+        listed
+            .iter()
+            .filter(|task| task["cancelled_at"].is_null())
+            .count(),
+        1
+    );
+    let old_draft = listed
+        .iter()
+        .find(|task| !task["cancelled_at"].is_null())
+        .unwrap();
+    assert!(old_draft["available"].as_array().unwrap().is_empty());
+    assert!(
+        old_draft["steps"]
             .as_array()
             .unwrap()
-            .len(),
-        1
+            .iter()
+            .all(|step| step["settled"] == false)
     );
     env.finish();
 }

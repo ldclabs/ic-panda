@@ -51,27 +51,20 @@ impl Successor {
 /// Returns `Error::NotFound` for an unknown label, `Error::Locked` when the
 /// device locks meanwhile, and the keystore's error when the person declines.
 pub async fn successor<H: Hold>(h: &H, member: MemberId, label: &str) -> Result<Successor> {
-    let (input, signer, generation) = h
+    let bound = crate::hold::Session::new(h).await?;
+    let h = &bound;
+    let input = h
         .with(|c| {
             let key = c
                 .wallet_cosigner_keys()?
                 .into_iter()
                 .find(|k| k.label == label)
                 .ok_or(Error::NotFound)?;
-            Ok((
-                key.input(member),
-                c.prepare_cosign(&key.public_key)?,
-                c.session_generation(),
-            ))
+            Ok(key.input(member))
         })
         .await?;
     let digest = possession_digest(&input.member, &input.public_key);
-    let signature = signer.sign(vec![digest]).await?;
-    h.with(|c| {
-        c.keys()?;
-        ensure(c.session_generation() == generation, Error::Locked)
-    })
-    .await?;
+    let signature = cosign::sign_local(h, &input.public_key, vec![digest]).await?;
     let signature = signature.into_iter().next().ok_or(Error::IntegrityFailed)?;
     Ok(Successor {
         input,
@@ -156,8 +149,7 @@ pub async fn rotate<H: Hold>(h: &H, successor: &Successor) -> Result<Json> {
             .iter()
             .map(|x| rotate_digest(x.wallet, x.cosigner, old, new, expires_at_ms))
             .collect();
-        let signer = h.with(|c| c.prepare_cosign(old)).await?;
-        let signatures = signer.sign(digests).await?;
+        let signatures = cosign::sign_local(h, old, digests).await?;
         h.with(|c| c.keys().map(|_| ())).await?;
         ensure(signatures.len() == batch.len(), Error::IntegrityFailed)?;
         signed.extend(batch.into_iter().zip(signatures));

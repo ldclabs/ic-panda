@@ -88,6 +88,8 @@
 	<string>การอนุมัติของผู้ดูแลระบบ %u</string>
 	<key>Administrator</key>
 	<string>ผู้ดูแลระบบ</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>หลังจากอนุมัติคำขอกระเป๋าเงินแล้ว ให้สร้างคำขอเปลี่ยนอุปกรณ์ใหม่บนอุปกรณ์เครื่องใหม่</string>
 	<key>Agent ID</key>
 	<string>รหัสเอเจนต์</string>
 	<key>Agents</key>

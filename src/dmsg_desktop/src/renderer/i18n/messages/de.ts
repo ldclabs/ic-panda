@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Die Dateibibliothek bleibt nur auf dem alten Gerät. Was dort nie synchronisiert oder gesichert wurde, geht beim Widerrufen verloren.",
     "successionLeaveNative": "Diese nativen Adressen brauchen für L1 weiterhin das alte Gerät. Das Team kann sie über L2 abziehen, sobald jede Ausgabe alt genug ist.",
     "successionRevokeBody": "Das alte Gerät funktioniert für dieses Konto nicht mehr, und was nur auf ihm liegt, geht verloren.",
+    "successionRefreshRequest": "Erstellen Sie nach der Genehmigung der Wallet-Anfragen auf dem neuen Gerät eine neue Ersatzanfrage.",
     "successionApprovals": "{n} Wallet-Genehmigungen warten; die erste ist im Genehmigungsfenster geöffnet.",
     "successionPartial": "Einige Wallets sind noch nicht fertig. Führen Sie den Schritt erneut aus.",
     "successionFinished": "Übergabe abgeschlossen. Registrieren Sie am besten auch auf einem zweiten Gerät einen Genehmigungs- und einen Mitunterzeichnungsschlüssel.",

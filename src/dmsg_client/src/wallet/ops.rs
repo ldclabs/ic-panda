@@ -1458,10 +1458,7 @@ pub(super) async fn local_cosigs<H: Hold>(
         CosignerKind::Bip340 => {
             super::native::sign(h, view.wallet, &key.input.public_key, messages).await?
         }
-        _ => {
-            let signer = h.with(|c| c.prepare_cosign(&key.input.public_key)).await?;
-            signer.sign(messages).await?
-        }
+        _ => cosign::sign_local(h, &key.input.public_key, messages).await?,
     };
     h.with(|c| c.keys().map(|_| ())).await?;
     ensure(signatures.len() == digests.len(), Error::IntegrityFailed)?;

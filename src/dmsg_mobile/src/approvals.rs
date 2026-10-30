@@ -6,6 +6,7 @@ fn supported(view: &Value) -> bool {
     match view["type"].as_str() {
         Some(
             "device_pair"
+            | "device_transfer"
             | "device_revoke"
             | "device_capabilities"
             | "attest"

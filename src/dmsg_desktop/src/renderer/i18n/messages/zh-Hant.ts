@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "檔案庫將只留在舊裝置上。舊裝置被撤銷後，其中從未同步或備份的內容會遺失。",
     "successionLeaveNative": "這些原生地址的 L1 仍需要舊裝置簽署。等每筆輸出夠久之後，團隊仍可經 L2 掃回。",
     "successionRevokeBody": "舊裝置將無法再用於此帳戶，只存在於它上面的內容會遺失。",
+    "successionRefreshRequest": "批准錢包請求後，請在新裝置上重新產生替換請求。",
     "successionApprovals": "有 {n} 個錢包審批在等待，第一個已在審批視窗中開啟。",
     "successionPartial": "還有錢包未完成。請再執行一次此步驟。",
     "successionFinished": "交接已完成。建議在另一台裝置上也登記批准鑰匙和協籤鑰匙。",

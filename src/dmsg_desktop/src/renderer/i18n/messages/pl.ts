@@ -2498,6 +2498,7 @@ export default {
     "successionLeaveContent": "Biblioteka plików zostaje tylko na starym urządzeniu. To, czego nigdy tam nie zsynchronizowano ani nie zarchiwizowano, przepadnie po jego unieważnieniu.",
     "successionLeaveNative": "Te natywne adresy nadal będą wymagać starego urządzenia dla L1. Zespół może je przenieść przez L2, gdy każde wyjście będzie wystarczająco stare.",
     "successionRevokeBody": "Stare urządzenie przestaje działać na tym koncie, a to, co jest tylko na nim, przepada.",
+    "successionRefreshRequest": "Po zatwierdzeniu żądań portfeli wygeneruj nowe żądanie wymiany na nowym urządzeniu.",
     "successionApprovals": "Oczekujące zatwierdzenia portfeli: {n}; pierwsze jest otwarte w oknie zatwierdzania.",
     "successionPartial": "Niektóre portfele nie są jeszcze gotowe. Uruchom krok ponownie, aby dokończyć.",
     "successionFinished": "Przekazanie zakończone. Warto zarejestrować też klucz zatwierdzający i klucz współpodpisu na drugim urządzeniu.",

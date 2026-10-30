@@ -70,8 +70,13 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
     if (p.token !== token) throw { code: 'INVALID_INPUT', message: 'Fixture token is not a succession request' }
     return { id: 'b1'.repeat(32), device_id: fresh, role: 'Administrator', capabilities, approval_key: true, cosigner: true, expires_at: Date.now() + 600_000, wallets: [{ wallet: wallets.a, name: 'Engineering' }, { wallet: wallets.b, name: 'Operations' }] }
   }
+  let untaggedCreator = true
   methods['device/succession_approve'] = p => {
     assert.deepEqual([p.token, p.device], [token, fresh])
+    if (untaggedCreator) {
+      untaggedCreator = false
+      return { requests: [request('wallet', { action: 'join', wallet: wallets.a, name: 'Engineering', replaces: [], exclusive: false })] }
+    }
     if (!task('b1'.repeat(32))) tasks.push({ id: 'b1'.repeat(32), side: 'predecessor', predecessor: me, successor: fresh, steps: {}, created_at: Date.now() })
     return { ...request('device_pair', { device_id: fresh, role: 'Administrator', capabilities }), succession: 'b1'.repeat(32) }
   }
@@ -113,6 +118,7 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
 
   // One transfer at a time, as the daemon keeps it.
   let transfer = null
+  let exportApproval = null
   methods['transfer/status'] = () => structuredClone(transfer)
   const report = (bytes, peer) => ({ peer, entries: 40, records: 0, kept: 0, skipped: 0, blobs: 0, bytes, total_bytes: 5_330_000, last_error: null })
   methods['transfer/receive_start'] = p => {
@@ -124,6 +130,12 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
     return structuredClone(transfer)
   }
   methods['transfer/send_start'] = p => {
+    if (!p.approval) {
+      exportApproval = request('device_transfer', { session: p.session, to_device: p.to ?? fresh, categories: ['library'], bytes: 5_330_000, manifest: '9e'.repeat(32) })
+      return { approval: exportApproval }
+    }
+    assert.equal(p.approval, exportApproval.id)
+    assert.equal(exportApproval.state, 'done')
     transfer = {
       role: 'send', session: p.session, advert: 'dmsg-e3e3', to: p.to ?? fresh, succession: p.succession ?? null, port: null,
       addresses: p.address ? [p.address] : [], bonjour: null, state: 'running', error: null, report: report(2_000_000, fresh), started_at: Date.now(), ended_at: null
@@ -177,6 +189,12 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   await main.getByTestId('succession-device').fill(` ${fresh.toUpperCase()} `)
   await waitFor(() => main.getByTestId('succession-approve').isEnabled())
   await main.getByTestId('succession-approve').click()
+  await review.getByText('1 wallet approvals are waiting', { exact: false }).waitFor()
+  assert.equal(await review.isVisible(), true, 'name the creator binding before approving device replacement')
+  await review.getByText('After approving the wallet requests', { exact: false }).waitFor()
+  await main.getByTestId('succession-token').fill(token)
+  await main.getByTestId('succession-check').click()
+  await main.getByTestId('succession-approve').click()
   await review.waitFor({ state: 'detached' })
   // The main process marks requests the person starts here as the window's.
   assert.deepEqual(last('device/succession_approve').params, { token, device: fresh, source: 'gui' })
@@ -206,14 +224,43 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   assert.equal(await main.getByTestId('transfer-session').getAttribute('aria-invalid'), 'true')
   await main.getByTestId('transfer-session').fill('E3'.repeat(16))
   await main.getByTestId('transfer-start').click()
+  await send.getByText('Waiting for your approval', { exact: true }).waitFor()
+  assert.equal(transfer, null, 'no content leaves before export approval')
+  assert.equal(exportApproval.risk, 'high')
+  await waitFor(() => app.windows().some(page => page.url().includes(`/approval/${exportApproval.id}`)))
+  const exportWindow = app.windows().find(page => page.url().includes(`/approval/${exportApproval.id}`))
+  await exportWindow.getByTestId('approval-transfer-device').waitFor()
+  assert.equal(await exportWindow.getByTestId('approval-transfer-device').textContent(), fresh)
+  await exportWindow.screenshot({ path: join(shots, 'succession-export-approval.png'), animations: 'disabled' })
+  const exportBrowser = await app.browserWindow(exportWindow)
+  for (const [locale, appearance, width, height] of [['zh', 'light', 460, 720], ['zh', 'dark', 400, 560], ['fr', 'light', 400, 560], ['ar', 'dark', 400, 560]]) {
+    await exportBrowser.evaluate((w, [width, height]) => w.setContentSize(width, height), [width, height])
+    await main.evaluate(async ({ locale, appearance }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(appearance) }, { locale, appearance })
+    await exportWindow.waitForSelector(`html[lang|="${locale}"]`)
+    await exportWindow.waitForFunction(dark => matchMedia('(prefers-color-scheme: dark)').matches === dark, appearance === 'dark')
+    assert.ok(await exportWindow.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `export approval fits ${locale}`)
+    await exportWindow.screenshot({ path: join(shots, `succession-export-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+  }
+  await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
+  await main.waitForSelector('html[lang="en"]')
+  exportApproval.state = 'done'
+  emit('approval/changed')
   await send.waitFor({ state: 'detached' })
-  assert.deepEqual(last('transfer/send_start').params, { session: 'e3'.repeat(16), succession: 'b1'.repeat(32) })
+  assert.deepEqual(last('transfer/send_start').params, { session: 'e3'.repeat(16), succession: 'b1'.repeat(32), approval: exportApproval.id, source: 'gui' })
   await main.getByTestId('transfer-progress').waitFor()
-  transfer = { ...transfer, state: 'done', ended_at: Date.now(), report: { ...transfer.report, records: 40, kept: 2, skipped: 1, bytes: 5_330_000 } }
-  task('b1'.repeat(32)).steps.content = done(transfer.report)
+  transfer = { ...transfer, state: 'failed', error: { code: 'RECOVERY_INCOMPLETE', message: 'Recovery incomplete' }, ended_at: Date.now(), report: { ...transfer.report, records: 40, kept: 2, skipped: 1, bytes: 5_330_000 } }
   emit('transfer/changed')
   await main.getByTestId('transfer-counts').waitFor()
   assert.ok((await main.getByTestId('transfer-counts').innerText()).includes('40 records added, 2 already here, 1 left out'))
+  assert.equal(await main.getByTestId('succession-step-content').getByText('Done', { exact: true }).count(), 0)
+  await main.getByTestId('transfer-resume').click()
+  await main.getByTestId('device-transfer').getByText('Waiting for your approval', { exact: true }).waitFor()
+  exportApproval.state = 'done'
+  emit('approval/changed')
+  await main.getByTestId('transfer-progress').waitFor()
+  transfer = { ...transfer, state: 'done', error: null, ended_at: Date.now(), report: { ...transfer.report, records: 1, kept: 41, skipped: 0, bytes: 5_330_000 } }
+  task('b1'.repeat(32)).steps.content = done(transfer.report)
+  emit('transfer/changed')
   await main.getByTestId('succession-step-content').getByText('Done', { exact: true }).waitFor()
 
   // Stopping asks first; Escape keeps the handover.

@@ -88,6 +88,8 @@
 	<string>Mga administratibong pag-apruba %u</string>
 	<key>Administrator</key>
 	<string>Tagapangasiwa</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Pagkatapos aprubahan ang mga kahilingan sa wallet, gumawa ng bagong kahilingan sa pagpapalit sa bagong device.</string>
 	<key>Agent ID</key>
 	<string>ID ng Agent</string>
 	<key>Agents</key>

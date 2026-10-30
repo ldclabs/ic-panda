@@ -88,6 +88,8 @@
 	<string>انتظامی منظوری %u</string>
 	<key>Administrator</key>
 	<string>ایڈمنسٹریٹر</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>والٹ کی درخواستیں منظور کرنے کے بعد، نئے آلے پر تبدیلی کی نئی درخواست بنائیں۔</string>
 	<key>Agent ID</key>
 	<string>ایجنٹ کی شناخت</string>
 	<key>Agents</key>

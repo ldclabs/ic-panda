@@ -273,6 +273,9 @@ impl Client {
         let mut result = Vec::new();
         for local in self.accounts()?.into_iter().filter(|a| a.bound && !a.moved) {
             let id = account_id(&local.account)?;
+            if self.hardware_pending.contains(&id) {
+                continue;
+            }
             if let Some(context) =
                 self.with_notification_store(&id, |s| s.meta::<ReceiveContext>(RECEIVE))?
                 && context.account == local.account

@@ -322,6 +322,12 @@ impl AgentMailCodec {
 
 impl Client {
     pub(crate) fn agents(&self) -> Result<Agents> {
+        // Resident credentials may have travelled with the system keychain.
+        // They must not bypass a moved or still-unverified workspace.
+        ensure(
+            self.hardware == crate::hardware::Verdict::Native,
+            Error::Locked,
+        )?;
         Ok(self.workspace.store.meta(AGENTS)?.unwrap_or_default())
     }
 

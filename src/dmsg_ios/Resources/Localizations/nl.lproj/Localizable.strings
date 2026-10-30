@@ -88,6 +88,8 @@
 	<string>Administratieve goedkeuringen %u</string>
 	<key>Administrator</key>
 	<string>Beheerder</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Maak na het goedkeuren van de walletverzoeken een nieuw vervangingsverzoek op het nieuwe apparaat.</string>
 	<key>Agent ID</key>
 	<string>Agent-ID</string>
 	<key>Agents</key>

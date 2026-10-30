@@ -88,6 +88,8 @@
 	<string>İdari onaylar %u</string>
 	<key>Administrator</key>
 	<string>Yönetici</string>
+	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
+	<string>Cüzdan isteklerini onayladıktan sonra yeni cihazda yeni bir değiştirme isteği oluşturun.</string>
 	<key>Agent ID</key>
 	<string>Temsilci Kimliği</string>
 	<key>Agents</key>

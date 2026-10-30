@@ -61,6 +61,18 @@ pub struct MovedCopy {
 /// it now, unless the hardware makes none.
 fn verdict(anchor: &dyn HardwareAnchor, store: &Store, meta: &mut Meta) -> Result<Verdict> {
     let Some(held) = &meta.anchor else {
+        let platform = anchor
+            .platform()
+            .map(|id| digest("dmsg/anchor-platform/v1", &(meta.device_id, id)));
+        if let Some(previous) = meta.platform {
+            match platform {
+                Some(current) if current != previous => return Ok(Verdict::Moved),
+                None => return Ok(Verdict::Pending),
+                _ => {}
+            }
+        }
+        let changed = meta.platform != platform;
+        meta.platform = platform;
         if let Ok((handle, public)) = anchor.create() {
             meta.anchor = Some(Anchor {
                 handle: handle.into(),
@@ -69,6 +81,8 @@ fn verdict(anchor: &dyn HardwareAnchor, store: &Store, meta: &mut Meta) -> Resul
                 late: Workspace::holds_hardware(store, meta)?,
                 foreign: false,
             });
+            store.set_meta(META, meta)?;
+        } else if changed {
             store.set_meta(META, meta)?;
         }
         return Ok(Verdict::Native);
@@ -118,6 +132,7 @@ impl Client {
     pub fn set_hardware_anchor(&mut self, anchor: Arc<dyn HardwareAnchor>) -> Result<()> {
         self.anchor = Some(anchor.clone());
         self.moved.clear();
+        self.hardware_pending.clear();
         let entries = match std::fs::read_dir(self.dir.join("accounts")) {
             Ok(entries) => entries,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return self.check_hardware(),
@@ -136,8 +151,14 @@ impl Client {
             let Some(mut meta) = store.meta::<Meta>(META)? else {
                 continue;
             };
-            if verdict(anchor.as_ref(), &store, &mut meta)? == Verdict::Moved {
-                self.moved.insert(account);
+            match verdict(anchor.as_ref(), &store, &mut meta)? {
+                Verdict::Moved => {
+                    self.moved.insert(account);
+                }
+                Verdict::Pending => {
+                    self.hardware_pending.insert(account);
+                }
+                Verdict::Native => {}
             }
         }
         self.check_hardware()
@@ -155,10 +176,20 @@ impl Client {
             }
         };
         if let Slot::Account(account) = &self.slot {
+            if self.hardware == Verdict::Pending {
+                self.hardware_pending.insert(*account);
+            } else {
+                self.hardware_pending.remove(account);
+            }
             match self.hardware {
                 Verdict::Moved => self.moved.insert(*account),
                 _ => self.moved.remove(account),
             };
+        }
+        if self.hardware != Verdict::Native {
+            // A late key check may discover the move after login unlocked
+            // the workspace. Neither content nor a background key survives.
+            self.shutdown();
         }
         Ok(())
     }
@@ -169,7 +200,7 @@ impl Client {
     /// Returns `Error::Forbidden` for a moved workspace and
     /// `Error::Unavailable` while the hardware cannot answer.
     pub(crate) fn hardware_ready(&mut self) -> Result<()> {
-        if self.hardware == Verdict::Pending {
+        if self.hardware == Verdict::Pending || self.workspace.meta.anchor.is_none() {
             self.check_hardware()?;
         }
         match self.hardware {
@@ -305,6 +336,10 @@ impl Client {
             );
             secure.delete(&format!("{name}:fast-unlock"))?;
             secure.delete(&format!("{name}:device-bound"))?;
+        }
+        let operations = self.dir.join(crate::moved::OPERATIONS).join(id);
+        if operations.exists() {
+            std::fs::remove_dir_all(operations).map_err(storage)?;
         }
         std::fs::remove_dir_all(self.dir.join(MOVED).join(id)).map_err(storage)
     }

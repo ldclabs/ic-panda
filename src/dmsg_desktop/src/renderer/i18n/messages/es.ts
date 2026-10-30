@@ -2508,6 +2508,7 @@ export default {
     "successionLeaveContent": "La biblioteca de archivos queda solo en el dispositivo anterior. Lo que nunca se sincronizó ni respaldó allí se pierde al revocarlo.",
     "successionLeaveNative": "Estas direcciones nativas seguirán necesitando el dispositivo anterior para L1. El equipo podrá barrerlas por L2 cuando cada salida tenga suficiente antigüedad.",
     "successionRevokeBody": "El dispositivo anterior deja de funcionar para esta cuenta y se pierde lo que solo existe en él.",
+    "successionRefreshRequest": "Después de aprobar las solicitudes de las billeteras, genera una nueva solicitud de reemplazo en el dispositivo nuevo.",
     "successionApprovals": "Hay {n} aprobaciones de billetera en espera; la primera está abierta en la ventana de aprobación.",
     "successionPartial": "Aún faltan billeteras. Vuelve a ejecutar el paso para terminar.",
     "successionFinished": "Traspaso completado. Considera registrar también una clave de aprobación y una clave de cofirma en un segundo dispositivo.",

@@ -11,7 +11,7 @@ use crate::library::catalog::{
     FILE, FOLDER, FileRecord, Folder, ROOT, VERSION, Version, validate_name,
 };
 use crate::workspace::MAX_PRIVATE;
-use dmsg_types::{Error, Result};
+use dmsg_types::{Error, Result, ensure};
 
 /// The library's record prefixes, in the order the receiver commits them.
 pub(crate) const PHASES: [&str; 3] = [FOLDER, VERSION, FILE];
@@ -40,6 +40,14 @@ pub(crate) fn entries(c: &mut Client) -> Result<Vec<Entry>> {
                 };
                 let chunks: Option<Vec<_>> =
                     version.chunks.iter().map(|c| found(&c.digest)).collect();
+                ensure(
+                    !version.local || chunks.is_some(),
+                    Error::RecoveryIncomplete,
+                )?;
+                ensure(
+                    version.local || version.backup.is_some(),
+                    Error::RecoveryIncomplete,
+                )?;
                 if let Some(mut chunks) = chunks.filter(|_| version.local) {
                     // The thumbnail is optional.
                     chunks.extend(version.thumbnail.as_deref().and_then(found));
@@ -100,16 +108,29 @@ pub(crate) fn commit(c: &mut Client, key: &str, value: &[u8]) -> Result<Outcome>
     }
     if let Some(rest) = key.strip_prefix(VERSION) {
         let (file, version) = rest.split_once(':').ok_or(Error::IntegrityFailed)?;
-        if present(c, file, version)? {
-            return Ok(Outcome::Kept);
-        }
         let mut record: Version = decode(value, MAX_PRIVATE)?;
+        let incoming_local = record.local;
+        if present(c, file, version)? {
+            // A backup-only record, or a transfer interrupted after its
+            // metadata arrived, must still be able to acquire its chunks.
+            let own = c.version(file, version)?;
+            ensure(
+                own.key == record.key && own.chunks == record.chunks,
+                Error::IntegrityFailed,
+            )?;
+            record = own;
+        }
         let blobs = c.blobs()?;
         let mut here = true;
         for chunk in &record.chunks {
             here &= blobs.has_chunk(&chunk.digest)?;
         }
-        record.local &= here;
+        ensure(!incoming_local || here, Error::RecoveryIncomplete)?;
+        let local = (record.local || incoming_local) && here;
+        if present(c, file, version)? && record.local == local {
+            return Ok(Outcome::Kept);
+        }
+        record.local = local;
         c.save_version(file, version, &record)?;
         return Ok(Outcome::Added);
     }
@@ -157,8 +178,21 @@ pub(crate) fn held(c: &mut Client, key: &str) -> Result<bool> {
     if let Some(id) = key.strip_prefix(FOLDER) {
         return Ok(c.catalog()?.folders.contains_key(id));
     }
-    if key.starts_with(VERSION) {
-        return Ok(c.workspace.store.sealed(key)?.is_some());
+    if let Some(rest) = key.strip_prefix(VERSION) {
+        let (file, version) = rest.split_once(':').ok_or(Error::IntegrityFailed)?;
+        if !present(c, file, version)? {
+            return Ok(false);
+        }
+        let version = c.version(file, version)?;
+        if !version.local {
+            return Ok(false);
+        }
+        for chunk in &version.chunks {
+            if !c.blobs()?.has_chunk(&chunk.digest)? {
+                return Ok(false);
+            }
+        }
+        return Ok(true);
     }
     Ok(false)
 }

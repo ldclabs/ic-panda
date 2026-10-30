@@ -1314,6 +1314,10 @@ impl Client {
 
     /// Forget the library's index and clean up opened copies; on lock.
     pub(crate) fn library_lock(&mut self) {
+        if matches!(self.slot, crate::client::Slot::Moved(_)) {
+            self.library = None;
+            return;
+        }
         if self.keys.is_some() {
             let _ = self.open_copies_on_lock();
         }

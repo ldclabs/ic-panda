@@ -10,7 +10,7 @@ use crate::approval::{Action, HIGH_RISK_TTL_MS};
 use crate::client::{Client, Slot};
 use crate::crypto::Key;
 use crate::hardware::{MOVED, plain_name};
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::transfer::library::{self, Outcome, PHASES};
 use crate::transfer::{MAX_WANT, Report};
@@ -18,6 +18,9 @@ use dmsg_types::user::{Capability, ControllerRole, DeviceInput, HardwarePurpose}
 use dmsg_types::{Error, Hash, Result, ensure};
 use serde_json::Value as Json;
 use zeroize::Zeroizing;
+
+/// Mutable handover journals are separate from the preserved source.
+pub(crate) const OPERATIONS: &str = "moved-operations";
 
 impl Client {
     /// The account a copy must belong to: this device's, or the one its
@@ -38,17 +41,54 @@ impl Client {
     /// for a copy bound to its device's hardware.
     pub(crate) fn moved_client(&self, id: &str, secret: &Key) -> Result<Client> {
         ensure(plain_name(id), Error::NotFound)?;
-        let (_, account) = self.moved_account()?;
+        let (home, account) = self.moved_account()?;
         let dir = self.dir.join(MOVED);
         let mut copy = Client::open(self.config.clone(), &dir, None)?;
         copy.login = self.login.clone();
-        copy.select(Slot::Moved(dir.join(id)))?;
+        let path = dir.join(id);
+        copy.workspace = crate::workspace::Workspace::load(
+            crate::store::Store::read_only(&path.join(crate::client::WORKSPACE))?,
+            &self.config.environment,
+            now_ms(),
+        )?;
+        copy.slot = Slot::Moved(path.clone());
+        copy.blobs = Some(crate::library::blobs::Blobs::new(path.join("blobs")));
         ensure(
-            copy.workspace.meta.account.as_ref().map(|a| a.id) == Some(account),
+            copy.workspace.meta.account.as_ref().map(|a| (a.home, a.id)) == Some((home, account)),
             Error::IntegrityFailed,
         )?;
         // Its local data key opens only with the hardware it left behind.
         ensure(!copy.workspace.bound()?, Error::Forbidden)?;
+        copy.keys = Some(copy.workspace.unlock(secret)?);
+        Ok(copy)
+    }
+
+    /// The one permitted signing flow journals in a separate SQLite image;
+    /// neither it nor revocation cleanup can change the import source.
+    fn moved_signing_client(&self, id: &str, secret: &Key) -> Result<Client> {
+        let mut copy = self.moved_client(id, secret)?;
+        let device = copy.workspace.meta.device_id;
+        let path = self.dir.join(OPERATIONS).join(id);
+        crate::library::blobs::create_private_dir(&path)?;
+        let database = path.join(crate::client::WORKSPACE);
+        if !database.exists() {
+            let pending = path.join("preparing.sqlite");
+            copy.workspace.store.backup_to(&pending)?;
+            let store = crate::store::Store::open(&pending)?;
+            // These belonged to work started on the old device, not to the
+            // replacement approved here. The original journal stays intact.
+            store.delete_sealed("journal")?;
+            store.delete_sealed(crate::root::ROOT_JOB)?;
+            drop(store);
+            std::fs::rename(&pending, &database).map_err(crate::storage)?;
+        }
+        copy.workspace =
+            crate::workspace::Workspace::open(&database, &self.config.environment, now_ms())?;
+        ensure(
+            copy.workspace.meta.device_id == device,
+            Error::IntegrityFailed,
+        )?;
+        copy.slot = Slot::Moved(path);
         copy.keys = Some(copy.workspace.unlock(secret)?);
         Ok(copy)
     }
@@ -63,7 +103,7 @@ impl Client {
     pub(crate) async fn moved_signer(&self, id: &str) -> Result<Client> {
         let (ic, home, account, device) = moved_secret_query(self, id)?;
         let secret = unlock_secret(&ic, home, &account, device).await?;
-        let mut copy = self.moved_client(id, &secret)?;
+        let mut copy = self.moved_signing_client(id, &secret)?;
         copy.open_root().await?;
         Ok(copy)
     }
@@ -160,6 +200,8 @@ async fn opened<H: Hold>(h: &H, id: &str) -> Result<Client> {
 /// of another device or past its content step, and `Error::Locked` while
 /// this device is locked.
 pub async fn import<H: Hold>(h: &H, id: &str, succession: Option<Hash>) -> Result<Report> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let mut copy = opened(h, id).await?;
     let peer = copy.workspace.meta.device_id;
     if let Some(task) = succession {
@@ -182,6 +224,7 @@ pub async fn import<H: Hold>(h: &H, id: &str, succession: Option<Hash>) -> Resul
         peer: Some(peer),
         entries: entries.len(),
         total_bytes: entries.iter().map(|e| e.blob_bytes).sum(),
+        pending_sync: copy.workspace.store.count_in(crate::store::LOCAL)?,
         ..Report::default()
     };
     for phase in PHASES {
@@ -246,6 +289,8 @@ pub async fn import<H: Hold>(h: &H, id: &str, succession: Option<Hash>) -> Resul
 /// Returns `Error::Forbidden` when the copy's device cannot approve, and as
 /// [`import`] and [`crate::succession::request`].
 pub async fn approve_successor<H: Hold>(h: &H, source: &str, id: &str) -> Result<Json> {
+    let bound = crate::hold::Session::new(h).await?;
+    let h = &bound;
     let copy = opened(h, id).await?;
     let predecessor = copy.workspace.meta.device_id;
     let (ic, (home, account)) = h

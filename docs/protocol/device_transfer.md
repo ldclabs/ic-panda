@@ -32,6 +32,12 @@ file: the content goes from one device's workspace to the other's.
   again before the end, and check that the other device is active, that its
   ID, signing key and HPKE key are those certified, and that neither is
   revoked.
+- Before sending, the host creates a local `device_transfer` approval naming
+  the receiver, session, library manifest digest and byte count. The existing
+  high-risk approval flow asks for system presence where available. Sending
+  consumes that approval once, before its deadline, and checks the manifest
+  again before the hello. Changed content or a different unlock session
+  requires a new approval; interrupted sends also request one again.
 
 ## 2. Hello
 
@@ -88,7 +94,7 @@ Bodies, each a CBOR map with a single key naming its type:
 | `blob` | sender | `{digest, bytes}`: a sealed chunk. |
 | `record` | sender | `{key, value}`: a record's canonical CBOR, empty when the record is gone. |
 | `done` | receiver | `{categories, committed}`: it went through every entry of the chosen categories, whose manifest digest is `committed`. |
-| `ack` | sender | It checked `done`. |
+| `ack` | sender | `{pending_sync: uint}`: it checked `done`, and reports changes still awaiting cloud sync on the sender. |
 | `abort` | either | `{code}`, such as `INTEGRITY_FAILED` or `FORBIDDEN`. |
 
 The sender serves only names and digests its manifest lists, and refuses
@@ -119,7 +125,7 @@ Only names on this list move; any other name stays on the sending device.
 
 | Category | Records | Chunks |
 | --- | --- | --- |
-| `library` | `lib-folder:`, `lib-file:`, `lib-version:` | A version's sealed chunks and thumbnail, when they are all on the sending device; a version without them is offered as cloud-only. |
+| `library` | `lib-folder:`, `lib-file:`, `lib-version:` | A local version's sealed chunks and optional thumbnail. A cloud-only version must have a backup; missing chunks of a local version stop the transfer. |
 
 Stays: the device's keys and identity, its wallet key, software cosigner keys
 and Secure Enclave handles, the local data key, logins, the daemon's owner
@@ -139,12 +145,18 @@ journals are settled on the old device before it is revoked.
   versions that arrived; its name, place, tags and trash state stay the
   receiver's. Nothing trashed is restored and nothing is deleted. A record
   whose bytes no longer match the manifest (changed on the sender meanwhile)
-  is left out. A new file none of whose versions arrived is left out.
+  is left out. A new file none of whose versions arrived is left out. Such a
+  transfer returns `RECOVERY_INCOMPLETE` and retains its manifest for retry.
+  Existing version metadata does not prevent fetching missing chunks; its
+  local availability is updated once all chunks arrive.
 - After its final check of both devices, the receiver sends `done` with the
   categories it chose and their entries' manifest digest; the sender
   recomputes it from its own manifest, checks both devices again and answers
   `ack`. The receiver then marks the session finished and drops the kept
   manifest.
+- A succession's content step settles only with no skipped records and no
+  pending cloud changes on the sender. This protocol carries the file library;
+  unsynced vault changes must sync separately or be explicitly left behind.
 - A write failure, such as a full disk, stops the transfer before any record
   whose chunks did not all arrive; the session resumes after space is freed.
 

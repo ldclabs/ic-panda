@@ -259,6 +259,17 @@ pub enum Action {
         /// The device.
         device_id: Hash,
     },
+    /// Authorize one local-library export, without changing the user home.
+    DeviceTransfer {
+        /// The receiver's one-time session code.
+        session: String,
+        /// The receiving device in this account.
+        to_device: Hash,
+        /// Commitment to the exact records and chunks offered for export.
+        manifest: Hash,
+        /// Encrypted chunk bytes offered by the manifest.
+        bytes: u64,
+    },
     /// Enroll the device of a pairing request, then rotate the content
     /// root to include it.
     DevicePair {
@@ -394,6 +405,7 @@ impl Action {
             | Action::SecretUse { .. } => "secret",
             Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
+            | Action::DeviceTransfer { .. }
             | Action::DeviceRevoke { .. }
             | Action::DevicePair { .. }
             | Action::Account { .. }
@@ -499,6 +511,7 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         | Action::SecretUse { .. } => true,
         Action::Checkout { .. }
         | Action::Letter { .. }
+        | Action::DeviceTransfer { .. }
         | Action::DeviceRevoke { .. }
         | Action::DevicePair { .. }
         | Action::DeviceCapabilities { .. }
@@ -1208,6 +1221,7 @@ impl Client {
     /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
+            Action::DeviceTransfer { .. } => Ok(()),
             Action::SecretShare { .. }
             | Action::SecretPackageImport { .. }
             | Action::SecretDiscoveryImport { .. } => Err(Error::Forbidden),
@@ -1489,6 +1503,8 @@ impl Client {
         let count = requests.len();
         for mut request in requests {
             let outcome = match request.action.clone() {
+                // An interrupted local permission is not replayed on restart.
+                Action::DeviceTransfer { .. } => Err(Error::Forbidden),
                 Action::SecretPackageImport { .. } | Action::SecretDiscoveryImport { .. } => {
                     self.secret_reconcile(&mut request)?;
                     continue;
@@ -1621,6 +1637,16 @@ impl Client {
     /// Read the operation behind a request for display.
     fn approval_detail(&self, action: &Action, check_files: bool) -> Result<Json> {
         Ok(match action {
+            Action::DeviceTransfer {
+                session,
+                to_device,
+                manifest,
+                bytes,
+            } => json!({
+                "session": session, "to_device": hex::encode(**to_device),
+                "manifest": hex::encode(**manifest), "bytes": bytes,
+                "categories": crate::transfer::Category::ALL,
+            }),
             Action::SecretDiscoveryImport { plan } => json!(plan),
             Action::SecretPackageImport { selection } => self.secret_package_detail(selection)?,
             Action::SecretShare { id, digest } => self.secret_share_detail(id, digest)?,
@@ -1768,6 +1794,7 @@ impl Client {
                 Action::DeviceCapabilities { .. } => "device_capabilities",
                 Action::DeviceRevoke { .. } => "device_revoke",
                 Action::DevicePair { .. } => "device_pair",
+                Action::DeviceTransfer { .. } => "device_transfer",
                 Action::Connect { .. } => "connect",
                 Action::Checkout { .. } => "checkout",
                 Action::Letter { .. } => "letter",

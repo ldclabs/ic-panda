@@ -78,9 +78,9 @@
     {
       "direction": 0,
       "sequence": 3,
-      "body_cbor_hex": "6361636b",
+      "body_cbor_hex": "a16361636ba16c70656e64696e675f73796e6300",
       "aad_hex": "8477646d73672f6465766963652d7472616e736665722f76315010e59e4ecdef33a9bc0ce871519a25850003",
-      "sealed_hex": "dcbf17d0f2df6c7d9042c1872e21543c9dcef438"
+      "sealed_hex": "1ebd15d815f0d1057235f84635fa90b1ddeb414e8b17b6fcb5bc5ba1acc0941a2dddbdda"
     },
     {
       "direction": 0,

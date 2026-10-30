@@ -288,24 +288,37 @@ request. The old device checks it (`inspect_succession`: its account, its own
 device ID as the one replaced, unexpired, every proof valid) and approves it
 as a `DevicePair` with `succession: true`: the user home enrolls the new
 device beyond the limit, and the old device rotates the content root to it.
+Before that approval, a wallet creator whose initial binding has no device
+tag receives ordinary wallet-join approvals to name its binding. After
+approving those, the new device must generate a fresh succession request:
+its proof binds the account version that those approvals advanced.
 
 Each device keeps a task of the succession, sealed under the LDK as
 `succession:<request ID>`, with the steps it saw done: the enrollment, the
 new approval key (the old device registers the token's key), the cosigner
 keys (the old device rotates its keys in every wallet to the new one, before
 the bindings move, since rotating calls the wallets as the old device), local
-content, the wallet bindings (the new device joins each wallet replacing the
-old one), native addresses, and the old device's revocation by the new one,
-offered once content and native addresses are settled. `status` reads the
+content, the wallet bindings (the new device joins each wallet while keeping
+the old one bound so it can read private L1 plans), native addresses, and the
+old device's revocation by the new one, offered once content and native
+addresses are settled. Joining needs a free member binding slot. The final
+revocation step first asks to retire the old wallet bindings, then revokes
+the device and waits for its content-root rotation. `list` and `status` read the
 account and records the enrollment, the key and the revocation on either
 device by itself. Local content moves with a device transfer between the
 two devices (`peer` names the other one, and `transferred` records the
-transfer's report as the step's evidence on the device it ran on). The
+transfer's report as the step's evidence on the device it ran on). Skipped
+records or unsynced vault changes prevent content from settling; sync those
+changes separately or explicitly skip the step. The
 native-address step lists this account's native addresses whose key is
 another device's and that the new device has not archived; each moves with
 `wallet::nc_migrate`, and the step settles once none is left. It can also be
 left, listing what stays, as content can. Cancelling keeps what was committed; revoking the
 new device undoes its enrollment.
+An untagged creator binding from a moved copy cannot be retired by device ID;
+the owner must explicitly take over the wallet's bindings (`join --exclusive`)
+before revocation can complete. This removes the other bindings of that
+account, as the wallet approval shows, so it is never selected silently.
 
 ### Device transfer
 
@@ -317,6 +330,12 @@ new session key sealed to the receiver's HPKE key and signed by the sender's
 device key; both check each other against the certified account state at
 the start and again before the end. Every later frame is AES-256-GCM under
 that key, bound to the session, the direction and the sequence number.
+The hosts first call `transfer::request` to review a high-risk local export,
+then `claim` to consume that permission and `send_approved` to send it. The
+permission binds the receiver, session and manifest, and cannot survive a
+lock after being claimed. The low-level `send` transport is for callers
+that supply their own authorization; the daemon and mobile host always use
+the approval-gated path.
 
 Only record names on the whitelist (`transfer::PREFIXES`, which classifies
 every prefix the client writes) move. The receiver keeps the manifest sealed
@@ -345,8 +364,9 @@ On the new device, `approve_successor` asks to succeed the copy's device
 ([`succession::request`]) and makes an approval request of its own, a
 high-risk `DevicePair` naming the copy (`moved`). Approving it signs the
 enrollment as the copy's device and rotates the content root to the new
-device, as the old device would have, journaled in the copy as it would have
-been there; the copy's device must be an active administrator with
+device, as the old device would have, journaled in a separate SQLite backup
+under `moved-operations/`. The original source stays read-only, including
+its journals and blobs; revocation cannot reset it. The copy's device must be an active administrator with
 `RootManage`, and the account must not require approval keys for device
 control, which the copy cannot use away from its hardware. `import` then
 reads the copy's file library, changing nothing in it, and brings it in
@@ -571,9 +591,12 @@ raw sighash, no hardware policy filters it, and its packets are version 2.
 `wallet::nc_migrate` takes a native address to this device's key one
 proposal at a time (`AddCosigner`, `AddAddress` with the old delay and
 recovery, the address book when the tier is book-only, then a sweep without
-change through L1 or L2) and keeps each sweep's inputs and fee rate, which
-`ops::params` builds its plan from; once the old address is empty, this
-device marks it archived.
+change through L1 or L2). Before submission it persists the exact intent,
+operation ID, inputs and fee rate; an uncertain reply retries those same
+arguments. The accepted proposal and its sweep parameters are committed
+together, and `ops::params` builds the plan from them. Preview and submission
+use the actual sweep amount's policy tier. Once the old address is empty,
+this device marks it archived.
 
 Wallet display reads certified state and statistics together. Transfer previews
 run independent fee, balance and token-metadata reads concurrently; explicit

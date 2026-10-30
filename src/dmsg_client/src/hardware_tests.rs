@@ -14,6 +14,7 @@ struct Enclave {
     away: AtomicBool,
     /// The hardware makes no anchors.
     absent: bool,
+    platform: Option<Hash>,
     made: AtomicU8,
 }
 
@@ -31,6 +32,10 @@ fn signing(handle: &[u8]) -> SigningKey {
 }
 
 impl HardwareAnchor for Enclave {
+    fn platform(&self) -> Option<Hash> {
+        self.platform
+    }
+
     fn create(&self) -> Result<(Vec<u8>, Vec<u8>)> {
         ensure(!self.absent, Error::Unavailable("no enclave".into()))?;
         let handle = vec![self.id, self.made.fetch_add(1, SeqCst) + 1];
@@ -209,6 +214,8 @@ async fn a_late_anchor_moves_on_the_first_hardware_key_this_hardware_cannot_use(
         Err(Error::Forbidden)
     );
     assert_eq!(client.session_state().state, "moved");
+    assert!(client.keys().is_err());
+    assert!(!client.session_state().resident);
     drop(client);
 
     let mut client = Client::open(config(false), &dir.0, None).unwrap();
@@ -232,4 +239,75 @@ async fn a_late_anchor_moves_on_the_first_hardware_key_this_hardware_cannot_use(
         Err(Error::IntegrityFailed)
     );
     assert_eq!(client.session_state().state, "unlocked");
+}
+
+#[test]
+fn a_mac_without_an_enclave_detects_a_copy_by_platform() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let platform = |n| {
+        Arc::new(Enclave {
+            absent: true,
+            platform: Some(Hash::new([n; 32])),
+            ..Default::default()
+        })
+    };
+    client.set_hardware_anchor(platform(1)).unwrap();
+    assert!(client.workspace.meta.anchor.is_none());
+    assert!(client.workspace.meta.platform.is_some());
+    drop(client);
+    let mut client = Client::open(config(false), &dir.0, None).unwrap();
+    client.set_hardware_anchor(platform(1)).unwrap();
+    assert_eq!(client.hardware, Verdict::Native);
+    client.set_hardware_anchor(platform(2)).unwrap();
+    assert_eq!(client.hardware, Verdict::Moved);
+    assert_eq!(client.prepare_fast_unlock().err(), Some(Error::Forbidden));
+}
+
+#[test]
+fn moved_and_unverified_workspaces_cannot_use_resident_agent_keys() {
+    let dir = TempDir::new();
+    let secure = Arc::new(crate::testing::MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(secure.clone()));
+    let agent = client.agent_create("resident").unwrap();
+    client.agent_resident(&agent.agent_id, true).unwrap();
+    client.set_hardware_anchor(Enclave::new(1)).unwrap();
+    drop(client);
+    let mut client = Client::open(config(false), &dir.0, Some(secure)).unwrap();
+    let native = Enclave::new(1);
+    native.away.store(true, SeqCst);
+    client.set_hardware_anchor(native.clone()).unwrap();
+    assert_eq!(
+        client.agent_signer(&agent.agent_id).err(),
+        Some(Error::Locked)
+    );
+    native.away.store(false, SeqCst);
+    client.check_hardware().unwrap();
+    assert!(client.agent_signer(&agent.agent_id).is_ok());
+    client.set_hardware_anchor(Enclave::new(2)).unwrap();
+    assert_eq!(
+        client.agent_signer(&agent.agent_id).err(),
+        Some(Error::Locked)
+    );
+    assert_eq!(client.agent_mail_keys(&agent.agent_id), Err(Error::Locked));
+}
+
+#[test]
+fn sealed_approval_and_cosigner_keys_also_mark_an_anchor_as_late() {
+    for name in ["approval-keys", "wallet-cosigners"] {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, true, None);
+        client
+            .workspace
+            .put_private(client.keys().unwrap(), name, &vec![1u8])
+            .unwrap();
+        client.set_hardware_anchor(Enclave::new(1)).unwrap();
+        assert!(client.workspace.meta.anchor.as_ref().unwrap().late);
+        assert_eq!(
+            client.hardware_key::<()>(Err(Error::IntegrityFailed)),
+            Err(Error::Forbidden)
+        );
+        assert!(client.keys().is_err());
+        assert!(!client.session_state().resident);
+    }
 }
