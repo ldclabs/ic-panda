@@ -72,13 +72,15 @@
     }
   }
 
-  /** Receive into this device; for handover `task`, its content step. */
+  /** Receive into this device; for handover `task`, its content step. A running transfer stays as it is. */
   export function receive(task?: any) {
+    if (active) return
     void attempt('transfer/receive_start', task ? { succession: task.id } : {})
   }
 
   /** Ask for the receiving session to send to; for handover `task`, to its new device. */
   export function send(task?: any) {
+    if (active) return
     session = ''
     address = ''
     to = task?.successor ?? ''

@@ -242,6 +242,11 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   assert.deepEqual(last('transfer/receive_start').params, { succession: successor.id })
   assert.equal(await main.getByTestId('transfer-session-code').innerText(), 'e3'.repeat(16))
   await main.getByTestId('transfer-addresses').getByText('192.168.1.20:52000', { exact: false }).waitFor()
+  // While it waits, the handover's receive button leaves the transfer as it is.
+  const receiving = count('transfer/receive_start')
+  await main.getByTestId('succession-receive').click()
+  await main.waitForTimeout(300)
+  assert.equal(count('transfer/receive_start'), receiving)
   await matrix('devices', '[data-testid="succession"]')
   // A stopped transfer resumes in the same session.
   await main.getByTestId('transfer-cancel').click()
