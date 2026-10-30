@@ -306,7 +306,7 @@ dmsg files add <path>... [--to <folder>] [--keep-both] | mkdir <path> | mv <id>.
 dmsg files tag <id> +t|-t... | note <id> [text] | star <id> [--off]
 dmsg files get <id> [--version V] -o <path> | open <id> [--version V] | opened [--cleanup [nonce]] [--save]
 dmsg files verify <id> | verify --all | versions <id> | version-use <id> <version> | version-rm <id> <version>
-dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage
+dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage | local-only
 dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--to <folder>]
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
 dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | rm <upload>... | verify <upload> | usage
@@ -556,6 +556,11 @@ chunks, so other local requests and locking can proceed during large files.
 The desktop renders local listings and cached cloud inventories before
 waiting for quota and remote refreshes; a late response cannot replace a
 different folder or account's listing.
+
+`files local-only` tells what only this device holds: local versions without a
+cloud backup, changes waiting to sync and when a sync last succeeded; the
+desktop shows it before revoking a device or binding the workspace to its
+hardware, and when syncs have failed for a week.
 
 Backups. `files backup` queues the requested versions durably and returns;
 `files backup-status` reports their progress, and the `files/backup_run` RPC
@@ -1201,7 +1206,7 @@ The daemon listens on `127.0.0.1` only.
   (one transfer at a time; `transfer/changed` follows its progress),
   `vault/templates|create|edit|duplicate|delete|restore|tags|list|show|reveal|history|revert|conflicts|resolve|otp|ssh_keygen|health`,
   `vault/otp_scan {image|path}`, `vault/import_preview|import` (absolute paths),
-  `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,
+  `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage|local_only`,
   `files/import|export|open|open_list|open_cleanup` (absolute paths),
   `files/share_channel|save_shared`,
   `files/backup|backup_status|backup_cancel|backup_run`,

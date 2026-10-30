@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 44] = [
+pub(crate) const METHODS: [&str; 45] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -50,6 +50,7 @@ pub(crate) const METHODS: [&str; 44] = [
     "files/purge",
     "files/verify",
     "files/usage",
+    "files/local_only",
     // Deprecated cloud-space RPCs; retained for explicit callers, not desktop UI.
     "files/storage",
     "files/storage_refresh",
@@ -87,6 +88,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/open_list"
         | "files/verify"
         | "files/usage"
+        | "files/local_only"
         | "files/backup_status"
         | "files/cloud_list"
         | "files/cloud_usage"
@@ -156,6 +158,7 @@ impl Daemon {
                 ));
             }
             "files/usage" => return Ok(to_json(&reading::usage(&h).await?)),
+            "files/local_only" => return Ok(to_json(&h.with(|c| c.local_only()).await?)),
             "files/export" => {
                 return Ok(to_json(
                     &reading::export(

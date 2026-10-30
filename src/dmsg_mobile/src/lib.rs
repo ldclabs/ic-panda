@@ -1211,6 +1211,12 @@ impl MobileEngine {
             .await
     }
 
+    /// What only this device holds: file versions without a cloud backup,
+    /// changes waiting to sync and when a sync last succeeded.
+    pub async fn local_only(&self) -> Result<ObjectSnapshot> {
+        self.object(|c| Box::pin(async { c.local_only() })).await
+    }
+
     pub async fn file_details(&self, id: String) -> Result<ObjectSnapshot> {
         self.object(move |c| Box::pin(async move { c.files_show(&id) }))
             .await

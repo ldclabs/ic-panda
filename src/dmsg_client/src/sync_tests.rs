@@ -101,6 +101,7 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
         let failed = client.last_sync().unwrap().unwrap();
         assert_eq!(failed.error.as_deref(), Some("UNAVAILABLE"));
         assert_eq!(failed.stage, Some(SyncStage::ExportPage));
+        assert_eq!(failed.succeeded_at(), None);
         assert!(
             !serde_json::to_string(&failed)
                 .unwrap()
@@ -111,6 +112,7 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
         let recovered = client.last_sync().unwrap().unwrap();
         assert_eq!(recovered.error, None);
         assert_eq!(recovered.stage, None);
+        assert_eq!(recovered.succeeded_at(), Some(recovered.at));
         assert_eq!(
             client.workspace.store.meta::<u64>(SNAPSHOT).unwrap(),
             Some(0)
@@ -125,6 +127,13 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
 fn saved_sync_status_without_a_stage_remains_readable() {
     let last: LastSync = serde_json::from_value(json!({"at": 42, "error": "UNAVAILABLE"})).unwrap();
     assert_eq!(last.stage, None);
+    assert_eq!(last.succeeded_at(), None);
+    // A success recorded before `ok_at` was kept still counts.
+    let last: LastSync = serde_json::from_value(json!({"at": 42, "error": null})).unwrap();
+    assert_eq!(last.succeeded_at(), Some(42));
+    let last: LastSync =
+        serde_json::from_value(json!({"at": 50, "error": "UNAVAILABLE", "ok_at": 42})).unwrap();
+    assert_eq!(last.succeeded_at(), Some(42));
 }
 
 #[tokio::test]

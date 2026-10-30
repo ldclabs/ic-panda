@@ -166,6 +166,17 @@ pub struct LastSync {
     /// The failed step, without resource IDs, URLs or server messages.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stage: Option<SyncStage>,
+    /// When a sync last succeeded, in Unix milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ok_at: Option<u64>,
+}
+
+impl LastSync {
+    /// When a sync last succeeded, also for a record written before
+    /// `ok_at` was kept.
+    pub fn succeeded_at(&self) -> Option<u64> {
+        self.ok_at.or(self.error.is_none().then_some(self.at))
+    }
 }
 
 /// Fixed diagnostic names for the steps of an account sync.
@@ -784,12 +795,17 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     session
         .with(|c| {
             let now = now_ms();
+            let ok_at = match result.is_ok() {
+                true => Some(now),
+                false => c.last_sync()?.and_then(|last| last.succeeded_at()),
+            };
             c.workspace.store.set_meta(
                 LAST_SYNC,
                 &LastSync {
                     at: now,
                     error: result.as_ref().err().map(crate::error_code),
                     stage: result.is_err().then_some(stage),
+                    ok_at,
                 },
             )?;
             if c.session_state().state == "unlocked" {

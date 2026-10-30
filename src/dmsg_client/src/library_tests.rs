@@ -1950,3 +1950,41 @@ async fn sharing_releases_the_client_and_pins_prepared_chunks_until_journaled() 
     assert_eq!(c.collect_blobs().unwrap().0, 1);
     assert!(c.files_verify(&file.file.id, None).unwrap().versions[0].ok);
 }
+
+#[test]
+fn local_only_counts_local_versions_without_a_backup() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    assert_eq!(client.local_only().unwrap(), LocalOnly::default());
+    let kept = pattern(CHUNK + 5, 3);
+    let backed = pattern(300, 4);
+    let trashed = pattern(200, 5);
+    let mut import = |name: &str, bytes: &[u8]| {
+        client
+            .files_import(&write(&dir, name, bytes), ROOT, false, &mut no_progress)
+            .unwrap()
+    };
+    let kept = (import("kept.bin", &kept), kept.len() as u64);
+    let backed = (import("backed.bin", &backed), backed.len() as u64);
+    let trashed = import("trashed.bin", &trashed);
+    let version = client
+        .version(&backed.0.file.id, &backed.0.version)
+        .unwrap();
+    let with_backup = Version {
+        backup: Some(Backup {
+            upload_id: "11".repeat(16),
+            generation: 1,
+            backed_up_at: 7,
+            verified: true,
+        }),
+        ..version
+    };
+    client
+        .save_version(&backed.0.file.id, &backed.0.version, &with_backup)
+        .unwrap();
+    client.files_trash(&[trashed.file.id]).unwrap();
+    let only = client.local_only().unwrap();
+    assert_eq!((only.versions, only.bytes), (2, kept.1 + backed.1));
+    assert_eq!((only.unbacked_versions, only.unbacked_bytes), (1, kept.1));
+    assert_eq!(only.last_sync_ok_at, None);
+}

@@ -166,6 +166,9 @@ pub enum FilesCommand {
     },
     /// What the library occupies on this device.
     Usage,
+    /// What only this device holds: file versions without a cloud backup,
+    /// changes waiting to sync and when a sync last succeeded.
+    LocalOnly,
     /// Share a version to a channel as a new edition under its own key.
     Share {
         /// Channel ID.
@@ -694,6 +697,20 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
         FilesCommand::Usage => {
             let usage = remote.call("files/usage", Value::Null).await?;
             print(json, &usage, pretty);
+        }
+        FilesCommand::LocalOnly => {
+            let only = remote.call("files/local_only", Value::Null).await?;
+            print(json, &only, |o| {
+                tr!(
+                    "{} of {} versions here ({} of {} bytes) have no cloud backup; {} changes wait to sync",
+                    "本机 {1} 个版本中有 {0} 个（{3} 字节中的 {2} 字节）没有云端备份；{4} 项改动等待同步",
+                    o["unbacked_versions"],
+                    o["versions"],
+                    o["unbacked_bytes"],
+                    o["bytes"],
+                    o["pending_sync"]
+                )
+            });
         }
         FilesCommand::Share {
             channel,

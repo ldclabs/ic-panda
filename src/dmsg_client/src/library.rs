@@ -193,6 +193,24 @@ pub struct Usage {
     pub last_check: Option<Check>,
 }
 
+/// What only this device holds: file versions without a cloud backup are
+/// lost with the device, and changes waiting to sync until a sync succeeds.
+#[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalOnly {
+    /// Versions of files not in the trash whose chunks are on this device.
+    pub versions: u64,
+    /// Their plaintext bytes.
+    pub bytes: u64,
+    /// Those of them without a cloud backup.
+    pub unbacked_versions: u64,
+    /// Their plaintext bytes.
+    pub unbacked_bytes: u64,
+    /// Encrypted changes waiting to sync.
+    pub pending_sync: u64,
+    /// When a sync last succeeded, in Unix milliseconds.
+    pub last_sync_ok_at: Option<u64>,
+}
+
 /// A writer that keeps only the first `limit` bytes.
 struct Head {
     bytes: Zeroizing<Vec<u8>>,
@@ -1106,6 +1124,48 @@ impl Client {
         usage.blobs = entries.len() as u64;
         usage.blob_bytes = entries.iter().map(|(_, size)| size).sum();
         Ok(usage)
+    }
+
+    /// What only this device holds, to show before revoking a device,
+    /// binding the workspace to its hardware or when syncs keep failing.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn local_only(&mut self) -> Result<LocalOnly> {
+        let mut only = LocalOnly {
+            pending_sync: self.workspace.store.count_in(crate::store::LOCAL)?,
+            last_sync_ok_at: self.last_sync()?.and_then(|last| last.succeeded_at()),
+            ..LocalOnly::default()
+        };
+        let ids: Vec<(String, Vec<String>)> = {
+            let catalog = self.catalog()?;
+            catalog
+                .files
+                .iter()
+                .filter(|(_, f)| !catalog.file_trashed(f))
+                .map(|(id, f)| {
+                    (
+                        id.clone(),
+                        f.versions.iter().map(|v| v.id.clone()).collect(),
+                    )
+                })
+                .collect()
+        };
+        for (id, versions) in ids {
+            for version in versions {
+                let version = self.version(&id, &version)?;
+                if !version.local {
+                    continue;
+                }
+                only.versions += 1;
+                only.bytes += version.size;
+                if version.backup.is_none() {
+                    only.unbacked_versions += 1;
+                    only.unbacked_bytes += version.size;
+                }
+            }
+        }
+        Ok(only)
     }
 
     fn usage_metadata(&mut self) -> Result<Usage> {

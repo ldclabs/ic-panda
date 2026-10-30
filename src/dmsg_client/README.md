@@ -112,8 +112,15 @@ failure leaves the remaining jobs queued for the next sync.
 `last_sync` stores the error code and a fixed stage name (security,
 reconcile, export_start, export_page, download, apply, upload or finish),
 never the raw error message or resource identifiers. A successful pass
-clears both. The daemon schedules transient failures for another pass while
-unlocked, even when periodic sync is off.
+clears both and records its time in `ok_at`, which a failed pass keeps.
+The daemon schedules transient failures for another pass while unlocked,
+even when periodic sync is off.
+
+`local_only` tells what only this device holds: the local versions of files
+not in the trash, those of them without a cloud backup (`version.backup`),
+the changes waiting to sync and when a sync last succeeded. The apps show it
+before a device is revoked or a workspace is bound to its hardware, and when
+syncs have failed for a week.
 
 `diagnostic` emits allowlisted subsystem/cause/HTTP status records through
 the `dmsg::diagnostic` log target at network and storage failure boundaries.
