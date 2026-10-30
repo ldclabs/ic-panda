@@ -30,6 +30,7 @@
   import Readiness from './wallet/Readiness.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import History from './wallet/History.svelte'
+  import NcMigrate from './wallet/NcMigrate.svelte'
   import { w } from './wallet/text'
   import { WALLET_CREATION_PAUSED } from '../../shared/wallet-availability'
   import { walletError as errorText } from './wallet/errors'
@@ -129,6 +130,13 @@
   const mayMembers = $derived(member?.status === 'Active' && member?.role !== 'Viewer')
   const decider = $derived(member?.status === 'Active' && ['Admin', 'Approver'].includes(member?.role ?? ''))
   const usable = $derived(!!wallet && !loading && !busy && wallet.wallet === selected && unlocked)
+  /** The native address being moved to this device, from the address list or a handover's `?move=`. */
+  let moving = $state<number | null>(null)
+  /** A native address of this member whose L1 key another device holds, which moves to this device's key. */
+  const movable = (a: any) => {
+    const key = a.control === 'taproot_2of2' && !a.archived && wallet?.cosigners.find((c) => c.id === a.control_details?.cosigner)
+    return mayPropose && !!key && !key.local && key.member === wallet?.me?.id
+  }
   const needsExtras = $derived(transferOpen || ['overview', 'assets'].includes(tab))
   const tabs = $derived(
     ['overview', 'assets', 'proposals', 'team'].map((value) => ({
@@ -204,6 +212,15 @@
     }
   })
 
+  $effect(() => {
+    const move = new URLSearchParams(route.split('?')[1] ?? '').get('move')
+    if (move && /^\d+$/.test(move))
+      untrack(() => {
+        tab = 'assets'
+        moving = Number(move)
+      })
+  })
+
   async function readList() {
     if (!active || !unlocked) return
     const run = listEpoch,
@@ -214,7 +231,7 @@
       if (!active || run !== listEpoch || owner !== account || !unlocked) return
       wallets = list
       if (!selected && wallets.length) {
-        const wanted = route.split('/')[2]
+        const wanted = route.split('?')[0].split('/')[2]
         select(validPrincipal(wanted ?? '') ? wanted : wallets[0].wallet)
       }
     } catch (e) {
@@ -833,8 +850,15 @@
                     ><b class="text-[14px]">{a.label || a.chain}</b><Pill
                       >{a.chain === 'Icp' ? 'ICP' : a.chain === 'Evm' ? 'EVM' : a.chain}</Pill
                     ><Pill tone={a.verified ? 'ok' : 'danger'}>{a.verified ? w('addressVerified') : t('twUnverified')}</Pill
-                    >{#if a.cosign}<Pill>{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill>{/if}<span class="flex-1"
-                    ></span><button
+                    >{#if a.cosign}<Pill>{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill>{/if}{#if a.archived}<Pill
+                        >{w('archived')}</Pill
+                      >{/if}<span class="flex-1"
+                    ></span>{#if movable(a)}<button
+                        class={buttonClass('secondary', 'xs')}
+                        disabled={!usable || wallet.frozen}
+                        onclick={() => (moving = a.id)}
+                        data-testid="wallet-nc-move">{w('nativeMove')}</button
+                      >{/if}<button
                       class={buttonClass('ghost', 'xs')}
                       aria-label={`${t('copy')} ${a.label || a.chain}`}
                       onclick={() => copyText(a.text)}><Icon name="copy" /></button
@@ -1093,6 +1117,16 @@
           onclick={() => run('wallet/freeze')}>{w('freeze')}</button
         >{/snippet}<Id id={wallet.wallet} full /></Dialog
     >
+    {#if moving !== null}{#key `${wallet.wallet}:${moving}`}<NcMigrate
+          bind:open={() => moving !== null, (next) => !next && (moving = null)}
+          {wallet}
+          from={moving}
+          onChanged={() => void refresh()}
+          onShowProposal={(id) => {
+            moving = null
+            showProposal(id)
+          }}
+        />{/key}{/if}
     {#if manage}{#key manage.key}<Manage
           bind:open={manageOpen}
           {wallet}

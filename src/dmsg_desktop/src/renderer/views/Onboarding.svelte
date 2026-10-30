@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TextArea from '../components/TextArea.svelte'
   import TextField from '../components/TextField.svelte'
   import { onDestroy, onMount } from 'svelte'
   import Collapsible from '../components/Collapsible.svelte'
@@ -7,7 +8,9 @@
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
+  import { copyText } from '../components/clipboard'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { call, errorText, onChange, when } from '../rpc'
@@ -19,6 +22,8 @@
   let token = $state('')
   let pairing = $state<any>(null)
   let member = $state(false)
+  let predecessor = $state('')
+  let succession = $state<any>(null)
   let recovery = $state<any>(null)
   let error = $state('')
   let busy = $state(false)
@@ -60,6 +65,13 @@
     attempt(async () => {
       const value = await call('device/pair_request', { role: member ? 'member' : 'administrator' })
       if (alive) pairing = value
+    })
+
+  /** Ask to replace an administrator device: it approves this one in its place. */
+  const succeed = () =>
+    attempt(async () => {
+      const value = await call('device/succession_request', { predecessor: predecessor.trim().toLowerCase() })
+      if (alive) succession = value
     })
 
   /** An approved device joins on the next unlock with the login. */
@@ -126,6 +138,29 @@
           <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{pairing.device_id}</b></p>
         </Notice>
       {/if}
+      <Collapsible testid="succession-request">
+        {#snippet title()}<b class="text-[13px] font-semibold">{t('successionTitle')}</b>{/snippet}
+        <div class="grid gap-2 py-2">
+          <p class="text-[12.5px] text-muted">{t('successionRequestHint')}</p>
+          <TextField label={t('successionPredecessor')} hint={t('successionPredecessorHint')} bind:value={predecessor} oninput={() => (succession = null)} mono disabled={busy} data-testid="succession-predecessor" />
+          <button class={buttonClass('secondary', 'md', 'justify-self-start')} disabled={busy || !/^[0-9a-f]{64}$/.test(predecessor.trim().toLowerCase()) || !!succession} onclick={succeed} data-testid="succession-request-create">{t('successionRequest')}</button>
+          {#if succession}
+            <Notice testid="succession-request-made">
+              <p>{t('successionRequestShown')}</p>
+              <p class="mt-1.5">{t('device')}: <b class="font-mono text-[12px]">{succession.device_id}</b></p>
+              <p class="mt-1.5 flex flex-wrap gap-1">
+                <Pill tone={succession.approval_key ? 'ok' : 'neutral'}>{t('successionApprovalKey')}: {succession.approval_key ? t('successionMade') : t('successionNotMade')}</Pill>
+                <Pill tone={succession.cosigner ? 'ok' : 'neutral'}>{t('successionCosigner')}: {succession.cosigner ? t('successionMade') : t('successionNotMade')}</Pill>
+              </p>
+            </Notice>
+            <TextArea label={t('requestToken')} readonly rows={3} value={succession.token} mono data-testid="succession-token-made" />
+            <div class="flex flex-wrap gap-2">
+              <button class={buttonClass('secondary')} onclick={() => copyText(succession.token)} data-testid="succession-token-copy"><Icon name="copy" />{t('copy')}</button>
+              <button class={buttonClass('primary')} disabled={busy} onclick={joined}>{t('checkApproval')}</button>
+            </div>
+          {/if}
+        </div>
+      </Collapsible>
     </div>
   </Section>
 {:else if status?.state === 'root_required'}

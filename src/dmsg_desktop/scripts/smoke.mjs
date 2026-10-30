@@ -40,6 +40,7 @@ import { notificationsFlow } from './notifications-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
+import { successionFlow } from './succession-flow.mjs'
 import { trayFlow } from './tray-flow.mjs'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { _electron as electron } from 'playwright'
@@ -667,6 +668,9 @@ const methods = {
     }
     return { trashed: p.ids.length }
   },
+  'files/local_only': () => ({ versions: library.length, bytes: 5330, unbacked_versions: 0, unbacked_bytes: 0, pending_sync: 0, last_sync_ok_at: Date.now() }),
+  'device/successions': () => [],
+  'transfer/status': () => null,
   'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30, last_check: null }),
   'files/backup_status': () => backupJobs,
   'files/backup_cancel': (p) => {
@@ -1621,6 +1625,12 @@ smoke: try {
     await notificationsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, model: notificationModel, account, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('desktop notifications smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'succession') {
+    await successionFlow({ app, main, shots, methods, wallets, account, created, emit, waitFor, calls, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop succession smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'settings') {

@@ -162,3 +162,25 @@ export function shortMime(mime: string | undefined): string {
   const [, subtype = mime] = mime.split('/')
   return subtype.replace(/^x-/, '').replace(/^vnd\./, '').toUpperCase().slice(0, 12)
 }
+
+/** What only this device holds, as `files/local_only` reports it. */
+export interface LocalOnly {
+  versions: number
+  bytes: number
+  unbacked_versions: number
+  unbacked_bytes: number
+  pending_sync: number
+  last_sync_ok_at: number | null
+}
+
+/** A week without a successful sync counts as stale. */
+export const STALE_SYNC_MS = 7 * 24 * 60 * 60 * 1000
+
+/** What losing this device would lose: versions without a backup, unsynced changes, and a sync that stopped succeeding. */
+export function localOnlyRisk(value: LocalOnly, now: number) {
+  const unbacked = value.unbacked_versions > 0
+  const pending = value.pending_sync > 0
+  const never = value.last_sync_ok_at == null
+  const stale = !never && now - value.last_sync_ok_at! > STALE_SYNC_MS
+  return { unbacked, pending, never, stale, any: unbacked || pending || never || stale }
+}

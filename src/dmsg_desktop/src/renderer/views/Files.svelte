@@ -34,6 +34,7 @@
   import Row from './files/Row.svelte'
   import Trash from './files/Trash.svelte'
   import Tree from './files/Tree.svelte'
+  import LocalOnly from './LocalOnly.svelte'
 
   /**
    * The file library: the folders, tags and places on the left, the current
@@ -722,6 +723,7 @@
         {#if usage.last_check && usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length > 0}
           <p class="flex items-start gap-1.5 px-3.5 pb-2 text-[11px] text-warn" data-testid="files-check-warning"><Icon name="warning" class="mt-px size-3.5 shrink-0" />{t('selfCheckDamage', { n: usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length })}</p>
         {/if}
+        {#if unlocked}<LocalOnly compact testid="files-local-only" />{/if}
         {#if usage.open_copies > 0 && unlocked}
           <button class="flex items-center gap-1.5 border-t border-line px-3.5 py-2 text-start text-[11px] text-warn hover:underline" onclick={() => (copiesOpen = true)} data-testid="files-open-copies-open">
             <Icon name="external" class="size-3.5 shrink-0" />{t('openCopies', { n: usage.open_copies })}

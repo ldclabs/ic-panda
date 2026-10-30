@@ -27,6 +27,7 @@
   import { startLogin } from '../shell/login.svelte'
   import { hardwarePurposeLabels, purposeLabels } from '../approval'
   import { dailyLimit, policyChanges, sameSelection } from './security'
+  import LocalOnly from './LocalOnly.svelte'
 
   /** The page shows effective settings. One dialog edits one task; the approval window decides account changes. */
   type Editor = 'policy' | 'recovery' | 'hardware' | 'others' | 'key' | 'key-request' | 'key-approve' | 'bound'
@@ -377,6 +378,7 @@
       <TextArea label={t('requestToken')} readonly rows={3} value={made.token} mono data-testid="approval-key-token" />
       <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(made.token)} data-testid="approval-key-copy"><Icon name="copy" />{t('copy')}</button>
     {:else}
+      {#if editor === 'bound'}<LocalOnly testid="device-bound-local-only" />{/if}
       {#if keys?.biometry}<Checkbox checked={biometryOnly} disabled={blocked || !!pending.key && editor === 'key'} onCheckedChange={(on) => (biometryOnly = on)} testid="security-biometry">{t('biometryOnly')}</Checkbox>{/if}
       {#if editor === 'key'}{@render receipt('key')}{/if}
     {/if}

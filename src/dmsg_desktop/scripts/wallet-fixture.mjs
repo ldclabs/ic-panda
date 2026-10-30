@@ -220,6 +220,8 @@ export function walletFixture(account, created) {
       action: 'cosign', wallet: p.wallet, name: view(p.wallet).name, before: view(p.wallet),
       proposal: proposals.find((v) => v.id === p.proposal), plan: {seq:p.plan, chain:'Bitcoin', from:'bc1pfixture', fee:'10000', outputs:[], expires_at:Date.now()+600000}, collect_only: true
     }),
+    'wallet/bindings': (p) => ({ wallet: p.wallet, bindings: [], unbind: [] }),
+    'wallet/native_status': () => ({ created: false, protection: null, protectors: [], created_at: null, hardware: null, key: null }),
     'wallet/unbind': (p) => created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
       action: 'unbind', wallet: p.wallet, name: view(p.wallet).name, devices: p.devices
     }),

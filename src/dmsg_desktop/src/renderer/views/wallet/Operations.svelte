@@ -8,12 +8,14 @@
   import Collapsible from '../../components/Collapsible.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Confirm from '../../components/Confirm.svelte'
+  import Dialog from '../../components/Dialog.svelte'
   import { buttonClass } from '../../components/ui'
-  import { CallError, call, single, when } from '../../rpc'
+  import { CallError, bridge, call, single, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import { cyclesText, decimal, utf8Length, type Wallet } from './model'
   import { w } from './text'
+  import NativeKey from './NativeKey.svelte'
   let {
     wallet,
     onManage,
@@ -34,6 +36,19 @@
     error = $state(''),
     notice = $state(''),
     lockConfirmed = $state(false)
+  // Bindings of devices the account revoked or no longer lists, and a
+  // cosigner key this device does not hold being replaced with one it does.
+  let unbind = $state<string[]>([]),
+    replacing = $state<any>(null),
+    replacement = $state('')
+  const spare = $derived(keys.filter((k) => !wallet.cosigners.some((c) => c.public_key === k.public_key)))
+  /** A key of this member that this device does not hold and governance may replace: not native, not committed by a Taproot address. */
+  const replaceable = (c: any) =>
+    mayPropose &&
+    c.member === wallet.me?.id &&
+    !c.local &&
+    c.curve !== 'Bip340' &&
+    !wallet.addresses.some((a) => a.control_details?.cosigner === c.id)
   let setupStep = $state(0),
     tested = $state<Record<string, boolean>>({}),
     rollback = $state<any>(null),
@@ -84,12 +99,35 @@
   const readKeys = reader('keys', 'wallet/cosigners', (value) => (keys = value))
   const readChannels = reader('channels', 'channel/list', (value) => (channels = value))
   const readBinding = reader('binding', 'wallet/channel', (value) => (channel = value.channel ?? wallet.channel_hint ?? ''))
+  const readBindings = single(async () => {
+    const value: any = await call('wallet/bindings', { wallet: wallet.wallet }).catch(() => null)
+    if (alive) unbind = value?.unbind ?? []
+  })
   function load() {
     void readVersions()
     void readRpc()
     void readKeys()
     void readChannels()
     void readBinding()
+    void readBindings()
+  }
+  async function unbindRemoved() {
+    if (busy || !unbind.length) return
+    busy = true
+    error = ''
+    try {
+      const request: any = await call('wallet/unbind', { wallet: wallet.wallet, devices: unbind })
+      if (alive && request?.id) await bridge(() => window.dmsg.openApproval(request.id))
+    } catch (e) {
+      if (alive) error = errorText(e)
+    } finally {
+      busy = false
+      void readBindings()
+    }
+  }
+  function replace(c: any) {
+    replacement = spare[0]?.label ?? ''
+    replacing = c
   }
   async function installUpgrade() {
     if (busy || !pendingUpgrade) return
@@ -124,6 +162,7 @@
       const result: any = await call(method, { wallet: wallet.wallet, ...params })
       if (!alive) return
       if (method === 'wallet/change') {
+        replacing = null
         onProposed(result)
         return
       }
@@ -176,6 +215,13 @@
     >{/each}
   {#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
   {#if notice}<Notice>{notice}</Notice>{/if}
+  {#if unbind.length}<Notice tone="warn" testid="wallet-unbind"
+      >{t('wallet.unbindHint', { n: unbind.length })}{#snippet action()}<button
+          class={buttonClass('secondary', 'xs')}
+          disabled={busy}
+          onclick={unbindRemoved}>{w('unbind')}</button
+        >{/snippet}</Notice
+    >{/if}
   <Section title={w('runningHealth')} icon="coins">
     <div class="grid gap-3 sm:grid-cols-3">
       <div
@@ -271,14 +317,23 @@
     <Collapsible class="mt-5"
       >{#snippet title()}<span class="text-[13px]">{w('cosigners')} · {w('technical')}</span>{/snippet}
       {#each wallet.cosigners as c (c.id)}<div class="border-line grid gap-2 border-b py-3"
-          ><b>#{c.id} · {c.label}</b><p class="text-[12px] break-all">{c.member} · {c.public_key}</p>{#if mayPropose}<button
-              class={buttonClass('ghost', 'sm', 'justify-self-start')}
-              aria-label={`${w('remove')} ${c.label}`}
-              onclick={() => onManage('remove_cosigner', c)}>{w('remove')}</button
+          ><b>#{c.id} · {c.label}</b><p class="text-[12px] break-all">{c.member} · {c.public_key}</p>{#if mayPropose}<div
+              class="flex flex-wrap gap-2"
+              >{#if replaceable(c)}<button
+                  class={buttonClass('secondary', 'sm')}
+                  disabled={busy}
+                  onclick={() => replace(c)}
+                  data-testid="wallet-replace-key">{w('replaceKey')}</button
+                >{/if}<button
+                class={buttonClass('ghost', 'sm')}
+                aria-label={`${w('remove')} ${c.label}`}
+                onclick={() => onManage('remove_cosigner', c)}>{w('remove')}</button
+              ></div
             >{/if}</div
         >{/each}
     </Collapsible>
   </Section>
+  <NativeKey {wallet} />
   <Section title={w('versions')} icon="settings">
     {#if errors.versions}<Notice failure={errors.versions} tone="danger">{errors.versions}<button class={buttonClass('ghost', 'xs')} onclick={readVersions}>{w('retry')}</button></Notice>{/if}
     {#if versions}
@@ -379,6 +434,35 @@
     {:else}<button class={buttonClass('secondary', 'sm')} onclick={load}>{w('retry')}</button>{/if}
   </Section>
 </div>
+<Dialog
+  bind:open={() => !!replacing, (open) => !open && (replacing = null)}
+  title={w('replaceKey')}
+  description={w('replaceKeyHint')}
+  icon="key"
+  dismissible={!busy}
+  testid="wallet-replace-key-dialog"
+>
+  <div class="grid gap-3">
+    {#if replacing}<p class="text-[12px] break-all">#{replacing.id} · {replacing.label} · <bdi dir="ltr" class="font-mono">{replacing.public_key}</bdi></p>{/if}
+    {#if spare.length}<Select
+        bind:value={replacement}
+        label={w('replaceWith')}
+        options={spare.map((k) => ({ value: k.label, label: `${k.label} · ${k.backend}` }))}
+        disabled={busy}
+      />{:else}<Notice>{w('setupKeys')}</Notice>{/if}
+  </div>
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('secondary')} disabled={busy} onclick={() => (replacing = null)}>{t('cancel')}</button>
+    <button
+      class={buttonClass('primary')}
+      disabled={busy || !replacement}
+      aria-busy={busy}
+      onclick={() => run('wallet/change', { change: { kind: 'replace_cosigner', id: replacing.id, label: replacement } })}
+      >{t('submit')}</button
+    >
+  {/snippet}
+</Dialog>
 <Confirm
   bind:open={softwareKey}
   title={w('softwareKeyTitle')}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, matchesFile, ordered, within } from '../src/renderer/views/files/files.ts'
+import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, localOnlyRisk, matchesFile, ordered, STALE_SYNC_MS, within } from '../src/renderer/views/files/files.ts'
 
 const file = (name: string, updated_at: number, size: number, mime = 'application/octet-stream') => ({ name, updated_at, size, mime })
 
@@ -50,4 +50,15 @@ test('a search looks in the name, tags and note', () => {
   const report = { name: 'Report.pdf', tags: ['work'], note: 'final draft' }
   for (const query of ['report', 'WORK', 'draft', ' ']) assert.equal(matchesFile(report, query), true, query)
   assert.equal(matchesFile(report, 'invoice'), false)
+})
+
+test('what only this device holds is at risk without a backup, with unsynced changes, or after a week without a successful sync', () => {
+  const now = 1_800_000_000_000
+  const clear = { versions: 3, bytes: 300, unbacked_versions: 0, unbacked_bytes: 0, pending_sync: 0, last_sync_ok_at: now - 1000 }
+  assert.equal(localOnlyRisk(clear, now).any, false)
+  assert.equal(localOnlyRisk({ ...clear, unbacked_versions: 1, unbacked_bytes: 10 }, now).unbacked, true)
+  assert.equal(localOnlyRisk({ ...clear, pending_sync: 2 }, now).pending, true)
+  assert.deepEqual(localOnlyRisk({ ...clear, last_sync_ok_at: null }, now), { unbacked: false, pending: false, never: true, stale: false, any: true })
+  assert.equal(localOnlyRisk({ ...clear, last_sync_ok_at: now - STALE_SYNC_MS }, now).stale, false)
+  assert.equal(localOnlyRisk({ ...clear, last_sync_ok_at: now - STALE_SYNC_MS - 1 }, now).stale, true)
 })

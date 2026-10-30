@@ -420,7 +420,7 @@
         {:else if part === 'security'}
           <Security {status} {go} />
         {:else if part === 'devices'}
-          <Devices {status} />
+          <Devices {status} {go} />
         {:else}
           {#key status.account}<Profile {status} />{/key}
         {/if}

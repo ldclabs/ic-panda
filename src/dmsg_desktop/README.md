@@ -381,6 +381,23 @@ Rules (`src/main/policy.ts`):
 - Security → Device-bound unlock binds the account's local data to this
   Mac's Secure Enclave (asking Touch ID once) and lists what it leaves out;
   unbinding needs a login.
+- Settings → Devices shows what only this device holds (file versions
+  without a cloud backup, unsynced changes, no successful sync for a week),
+  which Files and the device-bound dialog repeat. Replace a device reviews a
+  new device's request and approves it in this device's place; each side
+  then runs its steps (approval key, cosigner keys, local content, wallet
+  bindings, native addresses, revoking the old device). Content and native
+  addresses can be left behind, and the revocation lists what was. A Mac not
+  yet joined asks to replace an administrator device from Settings →
+  Session, or has a copied workspace of it approve. Transfer between devices
+  moves the file library over the local network with a session code,
+  encrypted end to end; a stopped transfer resumes in the same session.
+- A team wallet's native Taproot address whose L1 key another device holds
+  moves to this device's key through proposals: this device's key, a new
+  address, the address book where the policy needs it, a sweep through L1
+  (the old device cosigns) or L2 (after the delay), then archiving. The
+  wallet's settings show this device's native key root, replace a cosigner
+  key this device does not hold, and remove bindings of revoked devices.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer. A web
   application's checkout is quoted in the approval window (an asset, or a
@@ -582,6 +599,12 @@ flows: unchanged/invalid drafts, combined policy approval, retry and refresh,
 pending receipts, recovery and hardware settings, late replies, keyboard
 navigation, and light/dark screenshots in Chinese, French and Arabic at the
 minimum window size. It skips the unrelated full smoke flows.
+`DMSG_DESKTOP_SMOKE=succession pnpm test:e2e` runs device replacement with
+synthetic tasks: the review and approval by keyboard, both sides' steps,
+transfers and their resumption, leaving content and native addresses behind,
+the revocation, moving a native address, this device's native key root, the
+local-only notices and a new Mac's request, with light/dark screenshots in
+Chinese, French and Arabic at the default and minimum window sizes.
 `DMSG_DESKTOP_SMOKE=legacy pnpm test:e2e` stops after the account-setup and
 legacy flows, including unavailable-account guidance and a failed initial
 setup followed by a successful retry. Later flows are explicitly skipped.

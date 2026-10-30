@@ -58,6 +58,24 @@ test('windows never decide or grant, and never send human', () => {
   for (const method of ['wallet/show', 'wallet/join', 'wallet/unbind', 'wallet/bindings', 'wallet/activation_continue', 'wallet/refund']) {
     assert.equal(WINDOW_METHODS.has(method), true, method)
   }
+  // Handing a device over, moving content between devices and importing a
+  // copied workspace are the person's own steps in the windows.
+  for (const method of [
+    'device/succession_request',
+    'device/succession_review',
+    'device/successions',
+    'device/succession_skip',
+    'device/succession_cancel',
+    'device/moved_import',
+    'transfer/receive_start',
+    'transfer/send_start',
+    'transfer/status',
+    'transfer/cancel',
+    'files/local_only',
+    'wallet/native_status',
+    'wallet/nc_migrate_start'
+  ])
+    assert.equal(WINDOW_METHODS.has(method), true, method)
   for (const method of [
     'inbox/pay',
     'plan/checkout',
@@ -83,6 +101,9 @@ test('windows never decide or grant, and never send human', () => {
     'device/capabilities',
     'device/formal_approve',
     'device/revoke',
+    'device/succession_approve',
+    'device/succession_run',
+    'device/moved_approve_successor',
     ...(!WALLET_CREATION_PAUSED ? ['wallet/create'] : []),
     'wallet/join',
     'wallet/unbind',
