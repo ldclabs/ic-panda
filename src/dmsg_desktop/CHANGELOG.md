@@ -5,6 +5,16 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.2.1] - 2026-10-31
+
+### Fixes
+
+- Fix `INTEGRITY_FAILED` when opening Signatures & approvals after upgrading
+  to 1.2.0 with older wallet approvals in the local history. Wallet proposal
+  and cosigning records now read snapshots saved before per-device bindings
+  were introduced, while preserving their original bytes and approved digests.
+  Existing history remains available without clearing local data.
+
 ## [1.2.0] - 2026-10-31
 
 ### Security and recovery

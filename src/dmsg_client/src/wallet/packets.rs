@@ -356,7 +356,7 @@ pub async fn request<H: Hold>(
             JobKind::Cosign {
                 wallet,
                 name: view.name.clone(),
-                context: Box::new(view),
+                context: Box::new(view.into()),
                 proposal: Box::new(p),
                 plan: plan.map(Box::new),
                 cosigners,

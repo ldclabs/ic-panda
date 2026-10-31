@@ -189,7 +189,7 @@ pub async fn decide_request<H: Hold>(
             JobKind::Decide {
                 wallet,
                 name: view.name.clone(),
-                context: Box::new(view),
+                context: Box::new(view.into()),
                 proposal: Box::new(proposal),
                 decision,
             },
@@ -595,7 +595,7 @@ pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -
                     JobKind::Cosign {
                         wallet,
                         name: view.name.clone(),
-                        context: Box::new(view),
+                        context: Box::new(view.into()),
                         proposal: Box::new(proposal),
                         plan: plan.map(Box::new),
                         cosigners,

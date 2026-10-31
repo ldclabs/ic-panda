@@ -431,6 +431,12 @@ Addresses are re-derived from the wallet's key roots with
 each proposal's digest is recomputed from what it shows, so no single
 replica can change what a person approves or cosigns.
 
+Approval journals retain the original CBOR of their wallet snapshots, including
+the `principals` member records written before desktop 1.2.0. The history view
+projects those into bindings with no device or known binding time; reading or
+resaving a journal preserves its approved digest. Fresh certified wallet state
+still uses the current protocol types and is checked separately before execution.
+
 ## Payments
 
 The dMsg account never holds funds: the payer is the login's Principal or a

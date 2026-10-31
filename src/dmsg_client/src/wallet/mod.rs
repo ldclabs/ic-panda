@@ -21,6 +21,9 @@ pub mod ops;
 pub mod packets;
 pub mod rotate;
 pub mod rpc;
+mod snapshot;
+
+pub use snapshot::WalletSnapshot;
 
 use crate::client::Client;
 use crate::codec::principal_input;
@@ -95,7 +98,7 @@ pub enum JobKind {
         /// Its name.
         name: String,
         /// Certified state against which the change is reviewed.
-        context: Box<WalletView>,
+        context: Box<WalletSnapshot>,
         /// The proposal as shown.
         proposal: Box<Proposal>,
         /// The decision.
@@ -109,7 +112,7 @@ pub enum JobKind {
         /// Its name.
         name: String,
         /// Certified state against which the change is reviewed.
-        context: Box<WalletView>,
+        context: Box<WalletSnapshot>,
         /// The proposal.
         proposal: Box<Proposal>,
         /// The plan, checked by the decoder; none for ICP and ICRC.
@@ -188,7 +191,7 @@ impl WalletJob {
                 "wallet": wallet.to_text(),
                 "name": name,
                 "proposal": proposal_view(proposal),
-                "before": wallet_view(context, None),
+                "before": wallet_view(context.view(), None),
             }),
             JobKind::Cosign {
                 wallet,
@@ -203,7 +206,7 @@ impl WalletJob {
                 "wallet": wallet.to_text(),
                 "name": name,
                 "proposal": proposal_view(proposal),
-                "before": wallet_view(context, None),
+                "before": wallet_view(context.view(), None),
                 "plan": plan.as_deref().map(plan_view),
                 "cosigners": cosigners,
                 "collect_only": collect_only,
