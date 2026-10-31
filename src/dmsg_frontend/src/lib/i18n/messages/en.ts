@@ -1,4 +1,5 @@
 const en = {
+  'Documentation': 'Documentation',
   "Pricing": "Pricing",
   "Membership": "Membership",
   "Start free.": "Start free.",

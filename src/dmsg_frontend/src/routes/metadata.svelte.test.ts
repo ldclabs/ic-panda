@@ -52,3 +52,25 @@ it('updates existing social metadata and image when the language changes', async
     target.remove()
   }
 })
+
+it('removes the static overview only when the client layout mounts', async () => {
+  const overview = document.createElement('section')
+  overview.id = 'dmsg-public-content'
+  overview.textContent = 'Public guide'
+  const style = document.createElement('link')
+  style.id = 'dmsg-reading-style'
+  document.head.append(style)
+  const target = document.createElement('div')
+  document.body.append(overview, target)
+  expect(document.getElementById('dmsg-public-content')).toBe(overview)
+  const component = mount(Layout, { target })
+  try {
+    flushSync()
+    expect(document.getElementById('dmsg-public-content')).toBeNull()
+    expect(document.getElementById('dmsg-reading-style')).toBeNull()
+  } finally {
+    await unmount(component)
+    overview.remove()
+    target.remove()
+  }
+})

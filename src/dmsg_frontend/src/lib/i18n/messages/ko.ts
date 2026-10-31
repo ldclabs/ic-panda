@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  'Documentation': '문서',
   "Pricing": "요금",
   "Membership": "멤버십",
   "Start free.": "무료로 시작하세요.",

@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  'Documentation': 'Dokumentasyon',
   "Pricing": "Presyo",
   "Membership": "Membership",
   "Start free.": "Magsimula nang libre.",

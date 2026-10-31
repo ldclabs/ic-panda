@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  'Documentation': 'নথিপত্র',
   "Pricing": "মূল্য",
   "Membership": "সদস্যতা",
   "Start free.": "বিনামূল্যে শুরু করুন।",

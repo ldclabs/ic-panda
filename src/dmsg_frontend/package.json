@@ -75,16 +75,16 @@
   "name": "dmsg_frontend",
   "private": true,
   "scripts": {
-    "build": "node ../../scripts/terms-digest.mjs --check && tsc && vite build",
+    "build": "node ../../scripts/terms-digest.mjs --check && tsc && vite build && node scripts/public-content.mjs && node scripts/check-public-content.mjs",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
     "ncu": "npx npm-check-updates -u",
-    "preview": "vite preview",
+    "preview": "vite preview --config vite.preview.config.js",
     "social-card": "node scripts/social-card.mjs",
     "setup": "npm i && icp deploy",
     "start": "vite dev --port 3000",
     "test": "node --test ../../scripts/signer-heartbeat.test.mjs && vitest run"
   },
   "type": "module",
-  "version": "3.4.6"
+  "version": "3.4.7"
 }

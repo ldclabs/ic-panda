@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  'Documentation': 'Документация',
   "Pricing": "Цены",
   "Membership": "Подписка",
   "Start free.": "Начните бесплатно.",

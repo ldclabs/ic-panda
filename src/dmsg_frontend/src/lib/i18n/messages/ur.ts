@@ -1,6 +1,7 @@
 import type { Messages } from './en'
 
 export default {
+  'Documentation': 'دستاویزات',
   "Pricing": "قیمتیں",
   "Membership": "رکنیت",
   "Start free.": "مفت شروع کریں۔",

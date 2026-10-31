@@ -1,6 +1,6 @@
 {
   "name": "dmsg-sdk",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "description": "Explicit dMsg third-party contracts and browser integration",
   "type": "module",
   "license": "Apache-2.0",

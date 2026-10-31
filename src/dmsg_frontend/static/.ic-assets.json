@@ -32,5 +32,93 @@
             "X-XSS-Protection": "1; mode=block"
         },
         "allow_raw_access": false
+    },
+    {
+        "match": "index.html",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "_/about*.html",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "index*.md",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/markdown; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "_/docs/*.md",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/markdown; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "llms*.txt",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "robots.txt",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "sitemap.xml",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
+    },
+    {
+        "match": "_/knowledge.json",
+        "cache": {
+            "max_age": 0
+        },
+        "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            "Link": "</llms.txt>; rel=\"describedby\""
+        }
     }
 ]

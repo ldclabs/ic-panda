@@ -5,6 +5,95 @@ desktop app share one version and one release, tagged `dmsg-v<version>`.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.2.0] - 2026-10-31
+
+### Security and recovery
+
+- New accounts start with on-chain recovery disabled. An unlocked
+  administrator device can explicitly enable or disable it in Security,
+  with an approval and content-key rotation. Existing accounts retain
+  their previous recovery setting.
+- Recovery through a bound login is available only if it was enabled
+  before all authorized devices were lost. Disabling it cancels pending
+  recovery and removes the recovery envelope from the new content root.
+  Losing every device with recovery disabled leaves content unrecoverable.
+- Supported devices now bind the local workspace to hardware by default
+  during setup and login, while preserving an explicit unbind preference.
+  Failed or cancelled hardware authentication does not fall back to
+  login-only unlocking.
+- Obsolete local key wrappings are checkpointed out of SQLite's write-ahead
+  log after key changes. Incomplete cleanup is retried before unlocking;
+  copies made before the upgrade are not erased by this change.
+- Interrupted recovery and recovery-policy changes remain resumable when
+  root upload or rotation fails. The daemon also avoids a worker-stack
+  overflow in the recovery approval path.
+
+### Notifications
+
+- A shared Reminders view collects channel and inbox activity, approvals,
+  recovery alerts, Agent Mail and wallet events. Notification settings add
+  account preferences, quiet hours, timed mutes and snoozes.
+- New installations opt in to notifications; existing installations retain
+  their previous selected-account alerts. Enabling another account explains
+  the shared-device relationship before registering it with the service.
+- Notifications can reach enabled accounts that are not currently selected.
+  Opening one returns to its original account and current business state;
+  viewing the reminder list does not mark messages as read.
+- Locked summaries contain no message content and are cleared after unlocked
+  reconciliation. Badge counts remain available for the selected account
+  even when alerts are disabled, and receiver cleanup survives account removal.
+
+### Device replacement and files
+
+- Guided device replacement works when the account is already at its device
+  limit. A request can be copied or scanned as a QR code; the handover tracks
+  device approval, keys, local content, wallet bindings and native addresses
+  before the old device is revoked. Tasks survive restarts.
+- Direct encrypted transfers move the Files library between authorized
+  devices, using local-network discovery on macOS or an entered address.
+  Interrupted transfers resume in the same session. Export requires an
+  approval bound to the receiving device, session and file manifest.
+- Workspaces copied to another machine are detected and kept read-only for
+  supported import or recovery flows. They cannot silently continue as the
+  original device. A running transfer is preserved when a handover resumes.
+- Files and device settings show unbacked local versions, changes waiting
+  to sync and the last successful sync, so a handover can identify content
+  that would otherwise be left behind.
+- Handovers no longer fail because another device created a team wallet,
+  and wallet access is retained until the required native-address moves finish.
+
+### Team wallets
+
+- Wallet bindings are tracked per device. Owners can remove lost-device
+  bindings, move them during replacement and rotate cosigner keys without
+  changing the cosigner identity. Lost keys can be replaced through an
+  administrator proposal with the required delay.
+- Imported signing packets identify signatures made by superseded keys
+  as stale and require those cosigners to sign again.
+- Creating a hardware cosigner no longer silently falls back to software.
+  Software keys require an explicit choice.
+- Native Taproot keys and signing support address migration to a new
+  device, including proposal-by-proposal transfers and L1 or time-eligible
+  L2 sweeps. The desktop shows this device's native-key protection and the
+  addresses still awaiting migration.
+
+### Desktop
+
+- SSH/Git credential approvals and related secret reviews render correctly
+  in the separate approval window. Long translated badges and decision
+  buttons wrap at the minimum window size.
+
+### Upgrade notes
+
+- Device succession and explicit recovery policies require the matching
+  `dmsg_user` update. Deploy cloud and public-reader support before enabling
+  the new account state; older clients must update before reading schema-5
+  accounts or version-3 root bundles. Existing version-2 bundles remain readable.
+- Per-device wallet bindings and cosigner replacement require the matching
+  wallet contract. Remote notifications depend on the service advertising
+  support and the user enabling them; a client upgrade alone does not deploy
+  or activate these services.
+
 ## [1.1.4] - 2026-10-28
 
 ### Desktop

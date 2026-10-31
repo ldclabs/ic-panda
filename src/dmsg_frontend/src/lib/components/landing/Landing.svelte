@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
-  import { t } from '$lib/i18n'
+  import { locale, t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
   import Brand from './Brand.svelte'
   import CipherLanes from './CipherLanes.svelte'
@@ -798,6 +798,9 @@
           >ICPanda DAO</a
         ></span
       ><div class="footer-links"
+        ><a
+          href={$locale.startsWith('zh') ? '/_/about.zh.html' : '/_/about.html'}
+          data-sveltekit-reload>{$t('Documentation')}</a
         ><a href="/_/privacy">{$t('Privacy Policy')}</a><a href="/_/terms"
           >{$t('Terms of Service')}</a
         ><a href="/_/support">{$t('Support')}</a><a

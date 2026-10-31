@@ -1,7 +1,15 @@
 <script lang="ts">
   import { browser } from '$app/environment'
+  import { onMount } from 'svelte'
   import { t, locale } from '$lib/i18n'
   import '$lib/i18n/locale.css'
+
+  // The asset canister serves this shell for deep links too. Keep its static
+  // public overview until the correct client route has mounted successfully.
+  onMount(() => {
+    document.getElementById('dmsg-public-content')?.remove()
+    document.getElementById('dmsg-reading-style')?.remove()
+  })
 
   // Localize the SPA fallback metadata in place, without duplicate tags.
   $: if (browser) {

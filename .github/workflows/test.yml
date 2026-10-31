@@ -31,6 +31,8 @@ jobs:
       - run: node scripts/generate-declarations.mjs
       - run: pnpm --dir src/dmsg_frontend check
       - run: pnpm --dir src/dmsg_frontend test
+      # Check the shipped no-JavaScript pages, Markdown snapshots and discovery files.
+      - run: pnpm --dir src/dmsg_frontend build
       # The dmsg-connect/1 bridge page, checked against tests/vectors/client/connect-v1.json;
       # its real-browser tests run with the desktop end-to-end tests.
       - run: pnpm --dir src/dmsg_connect check

@@ -2,58 +2,14 @@
   import { locale, t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
   import { reveal } from './motion'
+  import membership from './membership.json'
 
   // Public marketing snapshot, checked 2026-10-28: effective commerce catalog
   // v2 (uwist-sqaaa-aaaaj-qsjyq-cai), wallet hub get_hub_config
   // (ghcje-dyaaa-aaaas-qg7va-cai), and dmsg_types::billing::PlanId::device_limit.
   // Recheck both services when updating these figures; Rust's default catalog
   // is not the live catalog. Checkout always confirms current terms in the app.
-  const plans = [
-    {
-      name: 'Free',
-      usd: 0,
-      storage: 100,
-      unit: 'MiB',
-      devices: 2,
-      channels: 5,
-      signatures: 5,
-      wallets: 0,
-      audience: 'For everyday essentials.'
-    },
-    {
-      name: 'Plus',
-      usd: 10,
-      storage: 1,
-      unit: 'GiB',
-      devices: 3,
-      channels: 20,
-      signatures: 20,
-      wallets: 1,
-      audience: 'For a growing personal workspace.'
-    },
-    {
-      name: 'Pro',
-      usd: 50,
-      storage: 10,
-      unit: 'GiB',
-      devices: 5,
-      channels: 100,
-      signatures: 100,
-      wallets: 3,
-      audience: 'For work and collaboration.'
-    },
-    {
-      name: 'Max',
-      usd: 200,
-      storage: 100,
-      unit: 'GiB',
-      devices: 10,
-      channels: 10_000,
-      signatures: 10_000,
-      wallets: 10,
-      audience: 'For larger teams and workloads.'
-    }
-  ] as const
+  const { plans } = membership
 
   const number = $derived(new Intl.NumberFormat($locale))
   const price = $derived(
@@ -70,7 +26,7 @@
       month: 'short',
       day: 'numeric',
       timeZone: 'UTC'
-    }).format(new Date('2026-10-28T00:00:00Z'))
+    }).format(new Date(`${membership.checkedAt}T00:00:00Z`))
   )
 </script>
 

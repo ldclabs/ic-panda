@@ -1,0 +1,49 @@
+{
+  "checkedAt": "2026-10-28",
+  "plans": [
+    {
+      "name": "Free",
+      "usd": 0,
+      "storage": 100,
+      "unit": "MiB",
+      "devices": 2,
+      "channels": 5,
+      "signatures": 5,
+      "wallets": 0,
+      "audience": "For everyday essentials."
+    },
+    {
+      "name": "Plus",
+      "usd": 10,
+      "storage": 1,
+      "unit": "GiB",
+      "devices": 3,
+      "channels": 20,
+      "signatures": 20,
+      "wallets": 1,
+      "audience": "For a growing personal workspace."
+    },
+    {
+      "name": "Pro",
+      "usd": 50,
+      "storage": 10,
+      "unit": "GiB",
+      "devices": 5,
+      "channels": 100,
+      "signatures": 100,
+      "wallets": 3,
+      "audience": "For work and collaboration."
+    },
+    {
+      "name": "Max",
+      "usd": 200,
+      "storage": 100,
+      "unit": "GiB",
+      "devices": 10,
+      "channels": 10000,
+      "signatures": 10000,
+      "wallets": 10,
+      "audience": "For larger teams and workloads."
+    }
+  ]
+}
