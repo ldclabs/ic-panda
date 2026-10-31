@@ -691,6 +691,20 @@ fn render(request: &Value) -> String {
                     let days = d["delay_ms"].as_u64().unwrap_or(0) / 86_400_000;
                     tr!("recovery delay {days} days", "恢复等待期 {days} 天")
                 }
+                Some("recovery_policy") => {
+                    let days = d["delay_ms"].as_u64().unwrap_or(0) / 86_400_000;
+                    if d["enabled"] == true {
+                        tr!(
+                            "enable on-chain recovery with a {days}-day delay; a stolen login could recover content after that delay",
+                            "开启链上恢复，等待 {days} 天；登录身份失窃后可能在等待期结束时恢复内容"
+                        )
+                    } else {
+                        tr!(
+                            "disable on-chain recovery; losing every authorized device makes cloud content unrecoverable",
+                            "关闭链上恢复；丢失全部授权设备后无法恢复云端内容"
+                        )
+                    }
+                }
                 Some("dispute_recovery") => {
                     let op = field(&d["op_id"]);
                     tr!("cancel the pending recovery {op}", "取消待生效的恢复 {op}")

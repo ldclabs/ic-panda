@@ -742,6 +742,8 @@
 	<string>このフォルダー内のファイル</string>
 	<key>Fingerprint</key>
 	<string>指紋</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>セキュリティ設定を更新中です。完了まで新しい内容の保存を待機します。</string>
 	<key>Folder name</key>
 	<string>フォルダ名</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>ID番号</string>
 	<key>Identity</key>
 	<string>アイデンティティ</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>すべての端末を紛失した場合、紐付けたログインで待機期間後にアップロード済みの内容を復元できます。ログインを盗まれた場合も、承認済み端末で期限内に取り消さない限り同様です。</string>
 	<key>Illegal content</key>
 	<string>違法なコンテンツ</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>既存のウォレットに参加する</string>
 	<key>Join conversation</key>
 	<string>会話に参加する</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>機種変更にはロック解除できる承認済み端末が必要です。すべての承認済み端末を紛失すると、ログインを取り戻してもクラウドの内容は復元できません。</string>
 	<key>Keep current version</key>
 	<string>現在のバージョンを維持する</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>このデバイス上で</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>初めてアクセスするときは、サインインし、手順に従って暗号化されたワークスペースを作成します。</string>
+	<key>On-chain recovery</key>
+	<string>オンチェーン復元</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>承認すると、新しいデバイスがこのデバイスの役割で参加し、コンテンツルートもそちらへ移ります。以後このデバイスは引き継ぎを完了させることしかできません。</string>
 	<key>One-time code</key>

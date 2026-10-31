@@ -742,6 +742,8 @@
 	<string>Mga file sa folder na ito</string>
 	<key>Fingerprint</key>
 	<string>Fingerprint</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Tinatapos ang pag-update ng seguridad. Maghihintay ang bagong nilalaman hanggang matapos.</string>
 	<key>Folder name</key>
 	<string>Pangalan ng folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Numero ng ID</string>
 	<key>Identity</key>
 	<string>Pagkakakilanlan</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Kung mawala ang lahat ng device, maibabalik ng naka-link na login ang na-upload na nilalaman matapos ang paghihintay. Magagawa rin ito ng ninakaw na login maliban kung kanselahin agad ng awtorisadong device.</string>
 	<key>Illegal content</key>
 	<string>Ilegal na nilalaman</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Sumali sa isang umiiral nang wallet</string>
 	<key>Join conversation</key>
 	<string>Sumali sa usapan</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Magtabi ng awtorisadong device na mabubuksan mo para makalipat ng device. Kung mawala ang lahat, hindi maibabalik ng pagbawi sa login ang nilalaman sa cloud.</string>
 	<key>Keep current version</key>
 	<string>Panatilihin ang kasalukuyang bersyon</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Sa device na ito</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Sa iyong unang pagbisita, mag-sign in at sundin ang mga hakbang upang gawin ang iyong naka-encrypt na workspace.</string>
+	<key>On-chain recovery</key>
+	<string>Pagbawi sa blockchain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Kapag naaprubahan, sasali ang bagong device na may tungkulin ng device na ito at lilipat dito ang content root; pagkatapos ay tatapusin na lang ng device na ito ang pagpapasa.</string>
 	<key>One-time code</key>

@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   messages: {
     ...notificationText('es'),
+    onChainRecovery: "Recuperación en cadena",
+    recoveryOnHint: "Si se pierden todos los dispositivos, un inicio de sesión vinculado puede recuperar el contenido subido tras la espera. Uno robado también, salvo que un dispositivo autorizado cancele a tiempo.",
+    recoveryOffHint: "Conserva un dispositivo autorizado que puedas desbloquear para cambiar de dispositivo. Si los pierdes todos, recuperar el acceso no recuperará el contenido en la nube.",
+    recoveryUpdating: "Finalizando la actualización de seguridad. El contenido nuevo espera hasta que termine.",
     deviceSlots: 'Hasta {n} dispositivos',
     teamWalletSlots: 'Hasta {n} carteras de equipo',
     walletQuotasUnavailable: 'Los límites de carteras de equipo no están disponibles. Actualiza para reintentar.',
@@ -991,7 +995,7 @@ export default {
     afterRetireApprovalKey: 'Hasta que registre otra clave, el dispositivo ya no puede hacer las aprobaciones que tu cuenta protege.',
     afterRequireKeys: 'Cada una de estas aprobaciones necesitará además la clave del dispositivo que aprueba; las aprobaciones en curso deben hacerse de nuevo.',
     afterWithoutKeys: '{n} dispositivos sin clave ya no podrán hacer estas aprobaciones.',
-    afterRecoveryStill: 'Un inicio de sesión vinculado aún puede tomar la cuenta mediante una recuperación tras su espera; dispútala a tiempo desde cualquier dispositivo.',
+    afterRecoveryStill: "Un inicio de sesión vinculado solo puede tomar el control tras la espera si la recuperación en cadena está activada.",
     afterStopRequiring: 'Las aprobaciones ya no necesitarán clave: una clave de dispositivo y un inicio de sesión robados volverían a bastar.',
     approvalKey: 'Clave de aprobación',
     approvalKeysRequiredFor: 'Exigida para',
@@ -1004,7 +1008,7 @@ export default {
     hwPayment: 'Pagos',
     hwAttestation: 'Firmas formales',
     approvalKeys: 'Claves de aprobación',
-    approvalKeysHint: 'Una clave en el Secure Enclave de este Mac firma las aprobaciones que tu cuenta protege. Una vez exigidas, una clave de dispositivo y un inicio de sesión robados ya no pueden cambiar dispositivos, inicios de sesión, políticas ni el principal de agente; una recuperación sí puede, tras su espera.',
+    approvalKeysHint: "Una clave de hardware confirma las operaciones protegidas por la cuenta. La recuperación en cadena se configura aparte en Seguridad de la cuenta.",
     keysRequired: 'Exigidas',
     keysNotRequired: 'No exigidas',
     approvalKeysUnavailable: 'Este dispositivo no puede guardar claves de aprobación: hace falta un Mac con Secure Enclave y el llavero del sistema.',

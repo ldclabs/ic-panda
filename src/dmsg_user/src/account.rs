@@ -58,6 +58,7 @@ pub(crate) fn create(
             },
         )]),
         recovery_delay_ms: DEFAULT_RECOVERY_DELAY_MS,
+        recovery_enabled: Some(false),
         pending_recovery: None,
         completed_recovery: None,
         current_root: None,
@@ -496,6 +497,34 @@ pub(crate) fn apply(
             next.recovery_delay_ms = *delay_ms;
             invalidate_approvals(&mut next);
         }
+        AccountCommand::SetRecoveryPolicy { enabled, delay_ms } => {
+            ensure_valid((DAY..=7 * DAY).contains(delay_ms), "recovery delay")?;
+            if *enabled != s.recovery_enabled.unwrap_or(true) {
+                // Finish already authorized derivations before changing their
+                // policy. No new grants can start once disabling commits.
+                ensure(
+                    s.execution_expirations.values().all(Option::is_some),
+                    Error::Pending,
+                )?;
+                next.pending_recovery = None;
+                if let Some(receipt) = &mut next.completed_recovery {
+                    receipt.root_generation = None;
+                }
+                if next.current_root.is_some() {
+                    next.vault_write_state = VaultWriteState::RekeyRequired;
+                }
+            } else {
+                ensure(
+                    s.pending_recovery
+                        .as_ref()
+                        .is_none_or(|r| now >= r.request.expires_at),
+                    Error::Pending,
+                )?;
+            }
+            next.recovery_enabled = Some(*enabled);
+            next.recovery_delay_ms = *delay_ms;
+            invalidate_approvals(&mut next);
+        }
         AccountCommand::SetPolicy { policy } => {
             ensure(
                 policy.daily_executions <= FORMAL_DAILY_EXECUTIONS
@@ -548,13 +577,25 @@ pub(crate) fn apply(
             ensure(now < slot.expires_at, Error::Expired)?;
             // The bundle must wrap the root to exactly the devices holding
             // VaultUnlock, the committing device among them, and to this
-            // generation's vetKD recovery identity.
+            // generation's vetKD identity only when recovery is enabled.
             let recipients = s.root_recipients();
             ensure(
-                root.suite == "dmsg-root-v2"
+                ((root.suite == "dmsg-root-v3"
+                    && root.recovery_enabled == Some(s.recovery_enabled.unwrap_or(true)))
+                    || (root.suite == "dmsg-root-v2"
+                        && root.recovery_enabled.is_none()
+                        && s.recovery_enabled.unwrap_or(true)))
                     && recipients.contains(&m.approval.device_id)
                     && root.recipients_digest
-                        == root_recipients_digest(&recipients, root.generation)
+                        == if root.suite == "dmsg-root-v2" {
+                            root_recipients_digest(&recipients, root.generation)
+                        } else {
+                            root_recipients_digest_v2(
+                                &recipients,
+                                root.generation,
+                                s.recovery_enabled.unwrap_or(true),
+                            )
+                        }
                     && root.bundle_digest
                         == root_bundle_digest(root.recipients_digest, root.body_digest),
                 Error::IntegrityFailed,

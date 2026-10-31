@@ -1711,6 +1711,8 @@ fn two_desktop_devices_share_an_account() {
         "FORBIDDEN"
     );
 
+    let opt_in = a.run(&["account", "recovery", "on"]);
+    assert_eq!(a.decide(http, &opt_in, true).unwrap()["state"], "done");
     // Recovery: B starts over as a new device of the first account, and the
     // bound login asks to take the account over; A disputes it.
     let status = b.run(&["reset", "--yes"]);
@@ -1802,6 +1804,44 @@ fn recovery_deployment(dir: &Path) -> support::Deployment {
             .unwrap();
         let account: Result<AccountId> = candid::decode_one(&reply).unwrap();
         let account = account.unwrap();
+        let mut policy = AccountMutation {
+            account_id: account,
+            expected_version: 0,
+            command: AccountCommand::SetRecoveryPolicy {
+                enabled: true,
+                delay_ms: DEFAULT_RECOVERY_DELAY_MS,
+            },
+            approval: Approval {
+                device_id: a.device_id,
+                security_epoch: 0,
+                sequence: 0,
+                request_id: Hash::new([92; 32]),
+                expires_at: now + 5 * MINUTE,
+                signature: Default::default(),
+                hardware: None,
+            },
+        };
+        policy.approval.signature = Ed25519Signature::new(dmsg_client::crypto::sign(
+            &a_keys.signing,
+            dmsg_protocol::approval_message(
+                user,
+                &account,
+                "dmsg/account/v2",
+                &(&policy.expected_version, &policy.command),
+                &policy.approval,
+            )
+            .as_slice(),
+        ));
+        let reply = ic
+            .update_call(
+                user,
+                caller,
+                "mutate_account",
+                candid::encode_args((policy,)).unwrap(),
+            )
+            .unwrap();
+        let changed: Result<OperationReceipt> = candid::decode_one(&reply).unwrap();
+        changed.unwrap();
         let request = RecoveryRequest {
             op_id: Hash::new([91; 32]),
             new_auth: caller,
@@ -9723,5 +9763,48 @@ fn desktop_inbox_cache_and_pagination() {
             .unwrap_err(),
         "LOCKED"
     );
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_recovery_is_opt_in_and_policy_changes_rotate_the_root() {
+    let env = Env::start("recovery-policy", "");
+    let (a, b, http) = (&env.a, &env.b, &env.http);
+    assert_eq!(a.login(http, 41).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    assert_eq!(a.run(&["account", "security"])["recovery_enabled"], false);
+    a.run(&["vault", "add", "--title", "before-recovery-policy"]);
+    a.run(&["sync"]);
+    assert_eq!(b.login(http, 41).unwrap()["state"], "pairing_required");
+    assert_eq!(b.run(&["recovery", "status"])["enabled"], false);
+    assert_eq!(b.fail(&["recovery", "request"]), "FORBIDDEN");
+    assert_eq!(b.fail(&["recovery", "complete"]), "FORBIDDEN");
+    let baseline = a.run(&["account", "show"])["root_generation"]
+        .as_u64()
+        .unwrap();
+    let request = a.run(&["account", "recovery", "on", "--days", "2"]);
+    assert_eq!(request["detail"]["change"], "recovery_policy");
+    assert_eq!(a.run(&["account", "security"])["recovery_enabled"], false);
+    assert_eq!(a.decide(http, &request, true).unwrap()["state"], "done");
+    assert_eq!(a.run(&["account", "show"])["root_generation"], baseline + 1);
+    let recovery = b.run(&["recovery", "request"]);
+    assert_eq!(recovery["enabled"], true);
+    assert_eq!(recovery["recovery_delay_ms"], 2 * dmsg_types::DAY);
+    let request = a.run(&["account", "recovery", "off", "--days", "2"]);
+    assert_eq!(a.decide(http, &request, true).unwrap()["state"], "done");
+    let security = a.run(&["account", "security"]);
+    assert_eq!(security["recovery_enabled"], false);
+    assert_eq!(security["recovery_updating"], false);
+    assert!(security["pending_recovery"].is_null());
+    assert_eq!(a.run(&["account", "show"])["root_generation"], baseline + 2);
+    assert_eq!(b.fail(&["recovery", "complete"]), "FORBIDDEN");
+    // Pairing and history remain available while recovery is disabled.
+    let pairing = b.run(&["device", "pair-request"]);
+    assert_eq!(a.approve_pairing(http, &pairing)["state"], "done");
+    assert_eq!(b.run(&["unlock"])["state"], "unlocked");
+    b.run(&["sync"]);
+    assert!(titles(b).contains(&"before-recovery-policy".to_string()));
+    assert_eq!(b.run(&["account", "security"])["recovery_enabled"], false);
     env.finish();
 }

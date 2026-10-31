@@ -171,6 +171,7 @@ pub(crate) fn check_derivation(
     fingerprint: Hash,
     now: u64,
 ) -> Result<Budget> {
+    ensure(s.recovery_enabled.unwrap_or(true), Error::Forbidden)?;
     precheck(
         s,
         caller,

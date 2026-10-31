@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('it'),
+    onChainRecovery: "Recupero on-chain",
+    recoveryOnHint: "Se tutti i dispositivi vengono persi, un accesso collegato può recuperare i contenuti caricati dopo l’attesa. Anche un accesso rubato può farlo, salvo annullamento tempestivo da un dispositivo autorizzato.",
+    recoveryOffHint: "Conserva un dispositivo autorizzato che puoi sbloccare per cambiare dispositivo. Se li perdi tutti, recuperare l’accesso non ripristina i contenuti cloud.",
+    recoveryUpdating: "Aggiornamento di sicurezza in corso. I nuovi contenuti attendono il completamento.",
     deviceSlots: 'Fino a {n} dispositivi',
     teamWalletSlots: 'Fino a {n} portafogli di squadra',
     walletQuotasUnavailable: 'I limiti dei portafogli di squadra non sono disponibili. Aggiorna per riprovare.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Finché non registra un'altra chiave, il dispositivo non potrà più effettuare le approvazioni protette dal tuo account.",
     "afterRequireKeys": "Ognuna di queste approvazioni necessita poi della chiave del dispositivo approvante oltre che della sua firma abituale; le approvazioni in corso dovranno essere effettuate nuovamente.",
     "afterWithoutKeys": "I dispositivi {n} senza chiave non possono più rilasciare queste approvazioni.",
-    "afterRecoveryStill": "Un accesso associato può comunque riprendere l'account tramite un ripristino dopo il ritardo; contestalo da qualsiasi dispositivo in tempo.",
+    afterRecoveryStill: "Un accesso collegato può subentrare dopo l’attesa solo se il recupero on-chain è attivo.",
     "afterStopRequiring": "Le approvazioni non necessitano più di una chiave di approvazione: basterebbero ancora una volta la chiave del dispositivo rubata e il login.",
     "approvalKey": "Chiave di approvazione",
     "approvalKeysRequiredFor": "Richiesto per",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Pagamenti",
     "hwAttestation": "Firme formali",
     "approvalKeys": "Chiavi di approvazione",
-    "approvalKeysHint": "Una chiave nella Secure Enclave di questo Mac firma le approvazioni protette dal tuo account. Una volta richieste le chiavi, la chiave del dispositivo e l'accesso rubati non possono più modificare dispositivi, accessi, policy o l'agente principal; è ancora possibile un ripristino dell'accesso, dopo il ritardo.",
+    approvalKeysHint: "Una chiave hardware conferma le operazioni protette dall’account. Il recupero on-chain si imposta separatamente nella sicurezza dell’account.",
     "keysRequired": "Obbligatorio",
     "keysNotRequired": "Non richiesto",
     "approvalKeysUnavailable": "Questo dispositivo non può conservare le chiavi di approvazione: richiede un Mac con Secure Enclave e il portachiavi di sistema.",

@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   messages: {
     ...notificationText('zh'),
+    onChainRecovery: "链上恢复",
+    recoveryOnHint: "全部设备丢失后，可凭绑定的登录身份在等待期后恢复已上传内容。登录身份被盗且无人及时取消时，对方也可恢复内容。",
+    recoveryOffHint: "换机需要一台仍可解锁的授权设备。丢失全部授权设备后，即使找回登录，也无法恢复云端内容。",
+    recoveryUpdating: "正在完成安全设置更新；完成前暂缓保存新内容。",
   deviceSlots: '最多 {n} 台设备',
   teamWalletSlots: '最多开通 {n} 个团队钱包',
   walletQuotasUnavailable: '暂时无法读取团队钱包额度，请刷新重试。',
@@ -991,7 +995,7 @@ export default {
     afterRetireApprovalKey: '在登记另一把钥匙之前，这台设备不能再做账户保护的批准。',
     afterRequireKeys: '这些批准此后除了通常的签名，还需要批准设备的钥匙；进行中的批准须重新发起。',
     afterWithoutKeys: '{n} 台没有钥匙的设备将不能再做这些批准。',
-    afterRecoveryStill: '已绑定的登录仍可在等待期后经恢复接管账户；请在期限内用任一设备提出争议。',
+    afterRecoveryStill: "只有已开启链上恢复时，绑定登录才能在等待期后接管账户。",
     afterStopRequiring: '批准将不再需要批准钥匙：失窃的设备钥匙和登录又足以操作。',
     approvalKey: '批准钥匙',
     approvalKeysRequiredFor: '需要钥匙',
@@ -1004,7 +1008,7 @@ export default {
     hwPayment: '付款',
     hwAttestation: '正式签名',
     approvalKeys: '批准钥匙',
-    approvalKeysHint: '这台 Mac 的 Secure Enclave 中的钥匙签署账户保护的批准。要求钥匙后，失窃的设备钥匙和登录不能再更改设备、登录、策略或 Agent 主体；登录恢复在等待期后仍可接管。',
+    approvalKeysHint: "硬件钥匙用于确认账户要求保护的操作。链上恢复由账户安全中的独立开关控制。",
     keysRequired: '已要求',
     keysNotRequired: '未要求',
     approvalKeysUnavailable: '这台设备不能保管批准钥匙：需要带 Secure Enclave 的 Mac 并使用系统钥匙串。',

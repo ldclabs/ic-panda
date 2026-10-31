@@ -115,7 +115,8 @@ pub fn verify_security(
         verify_certified_leaf(batch, account.as_slice(), home, root_key, now)?;
     let snapshot: SecuritySnapshot = decode(&value, MAX_RECORD)?;
     ensure(
-        snapshot.schema == 4
+        ((snapshot.schema == 4 && snapshot.recovery_enabled.is_none())
+            || (snapshot.schema == 5 && snapshot.recovery_enabled.is_some()))
             && snapshot.account_id == *account
             && snapshot.home_user == home
             && snapshot.devices_root == digest("dmsg/devices/v1", &devices),
@@ -177,6 +178,7 @@ pub fn verify_account(
             && snapshot.security_epoch == info.security_epoch
             && snapshot.vault_write_state == info.vault_write_state
             && snapshot.recovery_delay_ms == info.recovery_delay_ms
+            && snapshot.recovery_enabled == info.recovery_enabled
             && snapshot.content_root_generation
                 == info.current_root.as_ref().map_or(0, |r| r.generation)
             && snapshot.content_root_digest == info.current_root.as_ref().map(|r| r.bundle_digest)

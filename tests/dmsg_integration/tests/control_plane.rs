@@ -74,6 +74,7 @@ struct AnyAccountInfo {
     security_epoch: u64,
     devices: std::collections::BTreeMap<Hash, Device>,
     recovery_delay_ms: u64,
+    recovery_enabled: Option<bool>,
     pending_recovery: Option<PendingRecovery>,
     recovered_device: Option<(Hash, u64)>,
     current_root: Option<ContentRootRef>,
@@ -97,6 +98,7 @@ impl From<AnyAccountInfo> for AccountInfo {
             security_epoch: a.security_epoch,
             devices: a.devices,
             recovery_delay_ms: a.recovery_delay_ms,
+            recovery_enabled: a.recovery_enabled,
             pending_recovery: a.pending_recovery,
             recovered_device: a.recovered_device,
             current_root: a.current_root,
@@ -873,11 +875,20 @@ impl Fixture {
             .filter(|(_, d)| d.revoked_at.is_none())
             .map(|(id, _)| *id)
             .collect();
-        let recipients_digest = root_recipients_digest(&devices, generation);
+        let recipients_digest = match s.recovery_enabled {
+            Some(enabled) => root_recipients_digest_v2(&devices, generation, enabled),
+            None => root_recipients_digest(&devices, generation),
+        };
         let body_digest = Hash::new([12 + generation as u8; 32]);
         ContentRootRef {
             generation,
-            suite: "dmsg-root-v2".into(),
+            suite: if s.recovery_enabled.is_some() {
+                "dmsg-root-v3"
+            } else {
+                "dmsg-root-v2"
+            }
+            .into(),
+            recovery_enabled: s.recovery_enabled,
             bundle_digest: root_bundle_digest(recipients_digest, body_digest),
             recipients_digest,
             body_digest,
@@ -921,12 +932,32 @@ impl Fixture {
     /// An account with a committed generation-1 content root.
     fn root_account(&self, n: u8) -> AccountId {
         let account_id = self.create(n);
+        self.enable_recovery(n, &account_id);
         self.rekey(n, &account_id);
         account_id
     }
 
+    fn enable_recovery(&self, n: u8, id: &AccountId) {
+        let state = self.account_id(n, id);
+        if state.recovery_enabled == Some(false) {
+            self.mutate(
+                n,
+                id,
+                AccountCommand::SetRecoveryPolicy {
+                    enabled: true,
+                    delay_ms: state.recovery_delay_ms,
+                },
+            )
+            .unwrap();
+            if state.current_root.is_some() {
+                self.rekey(n, id);
+            }
+        }
+    }
+
     /// Recover the account of login `n` onto new device `m` after the delay.
     fn recover(&self, n: u8, m: u8, id: &AccountId) -> OpId {
+        self.enable_recovery(n, id);
         let s = self.account_id(n, id);
         let request = RecoveryRequest {
             op_id: digest("test-recovery", &(id, m, s.account_version)),
@@ -1230,6 +1261,7 @@ fn xid_allocation_is_atomic_idempotent_and_persistent() {
 fn identity_roots_certification_attestation_recovery_and_upgrade() {
     let f = Fixture::new();
     let account_id = f.create(1);
+    f.enable_recovery(1, &account_id);
     assert_eq!(f.create(1), account_id);
     let root = f.rekey(1, &account_id);
     let s = f.account_id(1, &account_id);
@@ -1259,7 +1291,7 @@ fn identity_roots_certification_attestation_recovery_and_upgrade() {
     );
     let snapshot: SecuritySnapshot =
         decode_canonical(batch.entries[0].value.as_ref().unwrap()).unwrap();
-    assert_eq!(snapshot.schema, 4);
+    assert_eq!(snapshot.schema, 5);
     assert_eq!(snapshot.content_root_digest, Some(root.bundle_digest));
 
     // The unlock secret is served only to a bound login for an active device,

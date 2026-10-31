@@ -38,6 +38,10 @@ fn changes_survive_the_approval_record() {
             previous: Some(SensitivePolicy::default()),
         },
         AccountChange::RecoveryDelay { delay_ms: 2 * DAY },
+        AccountChange::RecoveryPolicy {
+            enabled: false,
+            delay_ms: 2 * DAY,
+        },
         AccountChange::DisputeRecovery {
             op_id: Hash::new([2; 32]),
         },

@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('id'),
+    onChainRecovery: "Pemulihan on-chain",
+    recoveryOnHint: "Jika semua perangkat hilang, login tertaut dapat memulihkan konten yang diunggah setelah masa tunggu. Login yang dicuri juga bisa, kecuali perangkat berizin membatalkan tepat waktu.",
+    recoveryOffHint: "Simpan perangkat berizin yang bisa dibuka untuk pindah perangkat. Jika semuanya hilang, memulihkan login tidak memulihkan konten cloud.",
+    recoveryUpdating: "Menyelesaikan pembaruan keamanan. Konten baru menunggu hingga selesai.",
     deviceSlots: 'Hingga {n} perangkat',
     teamWalletSlots: 'Hingga {n} dompet tim',
     walletQuotasUnavailable: 'Batas dompet tim tidak tersedia. Segarkan untuk mencoba lagi.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Hingga perangkat mendaftarkan kunci lain, perangkat tidak dapat lagi membuat persetujuan yang dilindungi akun Anda.",
     "afterRequireKeys": "Masing-masing persetujuan ini memerlukan kunci perangkat yang menyetujui serta tanda tangannya yang biasa; persetujuan yang sedang berjalan harus dilakukan lagi.",
     "afterWithoutKeys": "Perangkat {n} tanpa kunci tidak dapat lagi melakukan persetujuan ini.",
-    "afterRecoveryStill": "Login yang terikat masih dapat mengambil alih akun melalui pemulihan setelah penundaan; menyengketakannya dari perangkat apa pun tepat waktu.",
+    afterRecoveryStill: "Login tertaut hanya dapat mengambil alih setelah masa tunggu jika pemulihan on-chain aktif.",
     "afterStopRequiring": "Persetujuan tidak lagi memerlukan kunci persetujuan: kunci perangkat yang dicuri dan login saja sudah cukup.",
     "approvalKey": "Kunci persetujuan",
     "approvalKeysRequiredFor": "Diperlukan untuk",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Pembayaran",
     "hwAttestation": "Tanda tangan resmi",
     "approvalKeys": "Kunci persetujuan",
-    "approvalKeysHint": "Kunci di Secure Enclave Mac ini menandakan persetujuan yang dilindungi akun Anda. Setelah kunci diperlukan, kunci perangkat dan login yang dicuri tidak dapat lagi mengubah perangkat, login, kebijakan, atau Agen principal; pemulihan login masih bisa, setelah penundaan.",
+    approvalKeysHint: "Kunci perangkat keras mengonfirmasi operasi yang dilindungi akun. Pemulihan on-chain diatur terpisah di keamanan akun.",
     "keysRequired": "Diperlukan",
     "keysNotRequired": "Tidak diperlukan",
     "approvalKeysUnavailable": "Perangkat ini tidak dapat menyimpan kunci persetujuan: perangkat ini memerlukan Mac dengan Secure Enclave dan gantungan kunci sistem.",

@@ -11,7 +11,7 @@ It describes the public client implementation, not acceptance of production keys
 
 The client does not fix one user home. It reads `dmsg_handle.get_handle_config()` for `user_homes`, the authoritative list (`config.toml`'s `user_homes` are optional pins that must all be listed), and `registration_homes`, the currently accepting subset from which registration picks randomly. After login, it calls `my_account` on all listed homes in parallel. Once all succeed it selects the first matching account in list order; any failed query means unknown, never fallback registration. An account's `home_user` is fixed for its lifetime.
 
-Before network access, the client writes the full request into the workspace's encrypted journal. A lost reply is reconciled through `my_account` / `get_operation` for the original operation. Successful authentication or an account ID is not treated as device approval. IC certificates first authenticate the current security leaf (schema 4), complete device map, versions and root digests; an older reply cannot overwrite a higher observed version or installed root.
+Before network access, the client writes the full request into the workspace's encrypted journal. A lost reply is reconciled through `my_account` / `get_operation` for the original operation. Successful authentication or an account ID is not treated as device approval. IC certificates first authenticate the current security leaf (schema 5 for explicit recovery policy; schema 4 for legacy accounts), complete device map, versions and root digests; an older reply cannot overwrite a higher observed version or installed root.
 
 A new-device request binds the target account, home, device public keys, role, capabilities, expected version and request ID for administrator review. Members default to ContentSign/VaultUnlock; administrators additionally get RootManage, but not FormalApprove/PaymentOffer by default. Root bundles wrap only for active devices with `VaultUnlock`: a new device with it can read the root after administrator rotation; devices without it receive no envelope and do not attempt opening. The cloud likewise requires `VaultUnlock` for account ciphertext reads. Initial devices and login-recovery replacement devices require both `RootManage` and `VaultUnlock`. Authentication binding has three steps: the new login creates a local nonce and sends home/account/Principal/nonce to an administrator device; approval of `BindAuth { principal, nonce }` records a pending entry valid for 10 minutes; the new login calls `accept_auth_binding` with that nonce to complete binding. Login identity is distinct from device authorization.
 
@@ -87,24 +87,26 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // optional
 
 Default binding rules, added 2026-10-31: joins after registration, pairing or recovery and ordinary logins share the local binding flow, reusing the existing `unlock_secret` query result without additional updates or everyday vetKD calls. Confirmation runs outside the client executor. Content keys stay unavailable until confirmation; cancellation or failure cannot fall back, and completion revalidates the session and device authorization. Old unbound fast unlock returns `AuthRequired` until a login migrates it. Workspace metadata `bound_declined` defaults to false, becomes true on explicit unbind and clears on manual rebind; disabling fast unlock does not change it. The compatibility path remains without a credential store or supported hardware. An existing hardware anchor prevents treating temporarily unavailable presence as absent hardware. Earlier copies retain their earlier protection boundary.
 
-Migration uses approval by the old device and `dmsg-device-transfer/1` for local data; the new device does not inherit the old identity or hardware slot. Without the old device, recovery covers already uploaded cloud content, not unuploaded files inside a hardware-bound copy. Default binding prefers an existing hardware fast-unlock key. New bound slots record `created_at` (older slots default to zero); only keys predating the hardware anchor may establish its origin, so a key made on the new machine cannot validate an old copied workspace.
+Migration uses approval by the old device and `dmsg-device-transfer/1` for local data; the new device does not inherit the old identity or hardware slot. Without the old device, previously enabled on-chain recovery covers already uploaded cloud content, not unuploaded files inside a hardware-bound copy. Default binding prefers an existing hardware fast-unlock key. New bound slots record `created_at` (older slots default to zero); only keys predating the hardware anchor may establish its origin, so a key made on the new machine cannot validate an old copied workspace.
 
-## Immutable RootBundle v2
+## Immutable RootBundle v3
 
 Bytes use deterministic CBOR:
 
 ```text
 { body: {
-    format: "dmsg-root-bundle/2",
+    format: "dmsg-root-bundle/3",
     context: { account, environment, generation, opId, securityEpoch },
     commitment: hex(SHA256(HKDF(VRK, ["dmsg/root-commitment/1"]))),
     envelopes: [ { device, enc, ciphertext } ... ],      // ascending device order; one per active VaultUnlock device
-    recoveryKey: { homeCose, keyName, publicKey },        // COSE content-root vetKD public key
-    recovery: base64url(IbeCiphertext),                   // IBE to identity CBOR([AccountId, generation])
+    recoveryKey?: { homeCose, keyName, publicKey },        // COSE content-root vetKD public key
+    recovery?: base64url(IbeCiphertext),                   // IBE to identity CBOR([AccountId, generation])
     previous: null | { digest, uploadId, generation, envelope },
     device, signingPublic
   }, signature: bytes64 }
 ```
+
+In v3, `recoveryKey` and `recovery` appear together or are both omitted while recovery is off. `ContentRootRef.recovery_enabled` must match account policy and the recipients digest. Legacy v2 bundles remain readable; pending v2 jobs retain their original suite and digests, and v2 commits require recovery enabled. Signature and bundle-digest domains remain version 2; the body format discriminates the encoding.
 
 Public keys, COSE_Encrypt0 and HPKE envelope bytes use unpadded base64url; digests and device/operation/upload IDs use lowercase hex. The account is a canonical 20-character Xid, generations are positive safe integers, and `securityEpoch` is the reserved slot's security version.
 
@@ -112,9 +114,11 @@ Public keys, COSE_Encrypt0 and HPKE envelope bytes use unpadded base64url; diges
 - Device envelope: `HPKE.Seal(device.hpke_pub, VRK, info = aad = CBOR(["dmsg/device-root/1", environment, account, generation, device_id]))`, using the same RFC 9180 X25519/HKDF-SHA256/AES-256-GCM primitives as channel epoch keys. After opening, readers check `commitment` so every device receives the same root.
 - Recovery envelope: `ic-vetkeys`' `IbeCiphertext::encrypt(dpk, identity, VRK, seed)`. `dpk` is the 96-byte derived public key returned by COSE `root_public_key(account_id, generation)`; all accounts share the context public key. `identity = CBOR([AccountId bytes12, generation])`. The client checks home, environment, generation, derivation version 2, account, `SHA256(public_key)` fingerprint and key name (`key_1` in production).
 - `previous.envelope` wraps the previous VRK under the new VRK with AAD `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`. `previous.digest` is SHA-256 of the previous bundle's **bytes**, the cloud manifest digest, and `uploadId` locates it. Readers verify the digest and strictly decreasing generations, following at most 256 generations.
-- On-chain `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`: `recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`, `body_digest = SHA256(CBOR(body))`, and `bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`. `CommitRoot` recomputes recipients from currently active `VaultUnlock` devices and requires the approving device to be included. Any mismatch fails, excluding revoked, non-VaultUnlock and unapproved devices from new roots.
+- On-chain `ContentRootRef { generation, suite: "dmsg-root-v3", recovery_enabled, recipients_digest, body_digest, bundle_digest }`: `recipients_digest = digest("dmsg/root-recipients/2", [sorted device_id bytes, generation, recovery_enabled])`, `body_digest = SHA256(CBOR(body))`, and `bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`. `CommitRoot` recomputes recipients from currently active `VaultUnlock` devices and requires the approving device to be included. Any mismatch fails, excluding revoked, non-VaultUnlock and unapproved devices from new roots.
 
 Each bundle is at most 64,000 bytes. It is stored as a cloud `kind=root` upload: the manifest is the raw bundle, and the required single chunk is the deterministic CBOR empty array `0x80`. The cloud ObjectRef digest is the manifest SHA-256; the client downloads by it and verifies the on-chain `bundle_digest`.
+
+Deploy reader support before the user canister and client update; older clients must upgrade to read v3 roots or schema-5 accounts.
 
 ## Initialization and root rotation
 
@@ -128,6 +132,12 @@ This process makes no on-chain key call. Only changes to root recipients (adding
 
 ## Recovery after losing every device
 
+Added 2026-10-31: new accounts start with on-chain recovery off. An administrator device approves `SetRecoveryPolicy { enabled, delay_ms }` under the existing `AccountControl` hardware policy. The security settings submit one approval; the client rotates the root automatically. Enabling requires an authorized device that can still unlock.
+
+A mode change cancels pending recovery, clears derivation eligibility and marks an existing root `RekeyRequired`. Already authorized, nonterminal derivations must settle first (`Pending`). While disabled, request, takeover and derivation all fail. Enabling only permits recovery requests after a root with a recovery envelope commits. Daily `unlock_secret` stays a query. Previously delivered keys and copied content cannot be recalled.
+
+The optional stored `recovery_enabled` is absent for legacy accounts: they retain enabled recovery and schema-4 certification without a bulk rewrite. New accounts and explicit policy choices emit schema 5 with a required Boolean; `get_account` must match the certified leaf. The steps below apply only when recovery was enabled beforehand. Otherwise losing all authorized devices makes content unrecoverable even with the login.
+
 Client implementation is in `dmsg_client::recovery`. The request is sealed in the new device's workspace and resent unchanged after lost replies, without restarting the wait. Derivation approval and transport-key seed are sealed as `recover-root:<digest>` under the committed root digest. Results are queried by execution ID first; reapproval happens only when the original approval expired and certified time/device sequence prove it can no longer execute. `max_cycles` is fixed at 70 billion. The client opens the recovery envelope, follows `previous` for historical roots, then rotates.
 
 1. Log in on the new device using a bound II identity and submit `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)` with PoP `dmsg/recovery-device/v1`. If II is lost too, recovery is impossible.
@@ -135,4 +145,4 @@ Client implementation is in `dmsg_client::recovery`. The request is sealed in th
 3. After the delay, `complete_recovery(account_id, op_id)` replaces all devices and login bindings, retires every approval key and turns the hardware policy off, increments `security_epoch`, marks the existing root `RekeyRequired` and records `recovered_device = (device_id, generation)`.
 4. The recovering device obtains `unlock_secret` to bind locally, then calls `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`. Only `recovered_device` may derive for the current generation; the same `request_id` returns the original result, and a new approval may derive again before rotation. COSE derives the identity's vetKey and encrypts it for the transport public key. The client decrypts and verifies the vetKey, opens the root bundle's IBE envelope, then rotates to the next generation wrapped only for itself. Rotation removes derivation authority.
 
-Recovery approval uses `dmsg/derive-root/v1` with command `[generation, transport_public_key, max_cycles]`; the client commits to the cycles ceiling in its approval. Derivation and formal attestation share the account policy's daily execution limit (20 by default, at most 64 through `SetPolicy`) and 64-result retention window. A stolen II login with no device dispute during the delay exposes content; this is the tradeoff of removing recovery codes.
+Recovery approval uses `dmsg/derive-root/v1` with command `[generation, transport_public_key, max_cycles]`; the client commits to the cycles ceiling in its approval. Derivation and formal attestation share the account policy's daily execution limit (20 by default, at most 64 through `SetPolicy`) and 64-result retention window. With on-chain recovery enabled, a stolen II login without a timely device dispute can still expose content. Disabling recovery rejects that path.

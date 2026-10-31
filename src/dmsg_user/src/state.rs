@@ -45,6 +45,8 @@ pub struct AccountState {
     pub security_epoch: u64,
     pub devices: BTreeMap<Hash, Device>,
     pub recovery_delay_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_enabled: Option<bool>,
     pub pending_recovery: Option<PendingRecovery>,
     pub completed_recovery: Option<RecoveryReceipt>,
     pub current_root: Option<ContentRootRef>,
@@ -75,13 +77,18 @@ impl AccountState {
         SecuritySnapshot {
             issuer: account_issuer(namespace, &self.account_id),
             home_cose: self.home_cose,
-            schema: 4,
+            schema: if self.recovery_enabled.is_some() {
+                5
+            } else {
+                4
+            },
             account_id: self.account_id,
             home_user: self.home_user,
             account_version: self.account_version,
             security_epoch: self.security_epoch,
             devices_root: digest("dmsg/devices/v1", &self.devices),
             recovery_delay_ms: self.recovery_delay_ms,
+            recovery_enabled: self.recovery_enabled,
             pending_recovery_digest: self
                 .pending_recovery
                 .as_ref()
@@ -105,6 +112,7 @@ impl AccountState {
             security_epoch: self.security_epoch,
             devices: self.devices.clone(),
             recovery_delay_ms: self.recovery_delay_ms,
+            recovery_enabled: self.recovery_enabled,
             pending_recovery: self.pending_recovery.clone(),
             recovered_device: self
                 .completed_recovery

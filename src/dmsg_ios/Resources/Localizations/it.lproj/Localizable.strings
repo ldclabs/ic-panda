@@ -742,6 +742,8 @@
 	<string>File in questa cartella</string>
 	<key>Fingerprint</key>
 	<string>Impronta digitale</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Aggiornamento di sicurezza in corso. I nuovi contenuti attendono il completamento.</string>
 	<key>Folder name</key>
 	<string>Nome della cartella</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Numero di identificazione</string>
 	<key>Identity</key>
 	<string>Identità</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Se tutti i dispositivi vengono persi, un accesso collegato può recuperare i contenuti caricati dopo l’attesa. Anche un accesso rubato può farlo, salvo annullamento tempestivo da un dispositivo autorizzato.</string>
 	<key>Illegal content</key>
 	<string>Contenuti illegali</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Unisciti a un portafoglio esistente</string>
 	<key>Join conversation</key>
 	<string>Partecipa alla conversazione</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Conserva un dispositivo autorizzato che puoi sbloccare per cambiare dispositivo. Se li perdi tutti, recuperare l’accesso non ripristina i contenuti cloud.</string>
 	<key>Keep current version</key>
 	<string>Mantieni la versione corrente</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Su questo dispositivo</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Alla tua prima visita, accedi e segui i passaggi per creare il tuo spazio di lavoro crittografato.</string>
+	<key>On-chain recovery</key>
+	<string>Recupero on-chain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Dopo l’approvazione il nuovo dispositivo entra con il ruolo di questo e la radice dei contenuti passa a lui; da quel momento questo dispositivo può solo completare il passaggio.</string>
 	<key>One-time code</key>

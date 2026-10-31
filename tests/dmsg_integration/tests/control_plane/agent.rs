@@ -256,7 +256,7 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     );
     let snapshot: SecuritySnapshot =
         decode_canonical(&certified_value(&f, batch.unwrap(), id.as_slice())).unwrap();
-    assert_eq!(snapshot.schema, 4);
+    assert_eq!(snapshot.schema, 5);
     assert_eq!(snapshot.principal_updated_at, Some(info.state.updated_at));
     assert_eq!(
         snapshot.principal_updated_at,

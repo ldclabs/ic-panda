@@ -1642,6 +1642,25 @@ impl MobileEngine {
         .await
     }
 
+    /// Ask the person to change recovery; root rotation is part of approval.
+    pub async fn change_recovery_policy(&self, enabled: bool, days: u32) -> Result<ObjectSnapshot> {
+        ensure_valid((1..=7).contains(&days), "recovery delay")?;
+        self.object(move |c| {
+            Box::pin(async move {
+                dmsg_client::security::account_request(
+                    &c.cooperative_hold(),
+                    "gui",
+                    dmsg_client::security::AccountChange::RecoveryPolicy {
+                        enabled,
+                        delay_ms: u64::from(days) * dmsg_types::DAY,
+                    },
+                )
+                .await
+            })
+        })
+        .await
+    }
+
     pub async fn dispute_recovery(&self, operation: String) -> Result<ObjectSnapshot> {
         let bytes = hex::decode(operation)
             .ok()

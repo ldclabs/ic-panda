@@ -196,4 +196,4 @@ pub(crate) fn prune_executions(after: Vec<u8>, now: u64) -> Option<Vec<u8>> {
     cursor
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 17;
+pub(crate) const STABLE_SCHEMA: u16 = 18;

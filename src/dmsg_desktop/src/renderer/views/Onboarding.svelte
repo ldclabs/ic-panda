@@ -80,7 +80,7 @@
   const recoveryCall = (method: string) =>
     attempt(async () => {
       if (method === 'recovery/complete' && !canComplete) return
-      if (method === 'recovery/request' && (!recovery || recovery.pending)) return
+      if (method === 'recovery/request' && (!recovery || recovery.enabled === false || recovery.pending)) return
       const value = await call(method)
       if (alive && method !== 'recovery/complete') recovery = value
     })
@@ -179,11 +179,12 @@
       <div class="flex flex-wrap gap-2">
         <button class={buttonClass('secondary')} disabled={busy} onclick={() => recoveryCall('recovery/status')}>{t('recoveryStatus')}</button>
         {#if status?.state === 'pairing_required'}
-          <button class={buttonClass('secondary')} disabled={busy || !recovery || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
+          <button class={buttonClass('secondary')} disabled={busy || !recovery || recovery.enabled === false || !!recovery.pending} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
         {/if}
         <button class={buttonClass('primary')} disabled={busy || !canComplete} onclick={() => recoveryCall('recovery/complete')} data-testid="recovery-complete">{t('completeRecovery')}</button>
       </div>
       {#if recovery}
+        {#if recovery.enabled === false}<Notice>{t('recoveryOffHint')}</Notice>{/if}
         {#if recovery.pending}
           <Notice tone="warn" testid="recovery-pending">
             {t('pendingRecovery')} · {t('loginPrincipal')} <span class="font-mono">{recovery.pending.new_auth}</span> · {t('device')}

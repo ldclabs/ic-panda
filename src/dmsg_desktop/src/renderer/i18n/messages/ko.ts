@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ko'),
+    onChainRecovery: "온체인 복구",
+    recoveryOnHint: "모든 기기를 잃어버린 경우 연결된 로그인으로 대기 기간 후 업로드한 내용을 복구할 수 있습니다. 로그인이 도난당해도 승인된 기기가 제때 취소하지 않으면 마찬가지입니다.",
+    recoveryOffHint: "기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.",
+    recoveryUpdating: "보안 설정을 업데이트하고 있습니다. 완료될 때까지 새 내용 저장을 기다립니다.",
     deviceSlots: '최대 {n}개의 기기',
     teamWalletSlots: '최대 {n}개의 팀 지갑',
     walletQuotasUnavailable: '팀 지갑 한도를 불러올 수 없습니다. 새로고침하여 다시 시도하세요.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "다른 키를 등록할 때까지 장치는 더 이상 계정이 보호하는 승인을 할 수 없습니다.",
     "afterRequireKeys": "이러한 각 승인에는 승인 장치의 키와 일반적인 서명이 필요합니다. 진행 중인 승인을 다시 받아야 합니다.",
     "afterWithoutKeys": "키가 없는 {n} 장치는 더 이상 이러한 승인을 할 수 없습니다.",
-    "afterRecoveryStill": "바인딩된 로그인은 지연 후에도 복구를 통해 계정을 인계받을 수 있습니다. 제 시간에 어떤 장치에서든 이의를 제기하십시오.",
+    afterRecoveryStill: "온체인 복구가 켜져 있어야 연결된 로그인으로 대기 기간 후 계정을 인계받을 수 있습니다.",
     "afterStopRequiring": "승인에는 더 이상 승인 키가 필요하지 않습니다. 도난당한 장치 키와 로그인만으로도 충분합니다.",
     "approvalKey": "승인 키",
     "approvalKeysRequiredFor": "필수",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "결제",
     "hwAttestation": "공식 서명",
     "approvalKeys": "승인 키",
-    "approvalKeysHint": "이 Mac의 Secure Enclave에 있는 키는 귀하의 계정이 보호하는 승인에 서명합니다. 키가 필요하면 도난당한 장치 키와 로그인으로 더 이상 장치, 로그인, 정책 또는 에이전트 principal를 변경할 수 없습니다. 지연 후에도 로그인 복구가 가능합니다.",
+    approvalKeysHint: "하드웨어 키로 계정의 보호 대상 작업을 확인합니다. 온체인 복구는 계정 보안에서 별도로 설정합니다.",
     "keysRequired": "필수",
     "keysNotRequired": "필요하지 않음",
     "approvalKeysUnavailable": "이 장치는 승인 키를 유지할 수 없습니다. 이를 위해서는 Secure Enclave 및 시스템 키체인이 있는 Mac이 필요합니다.",

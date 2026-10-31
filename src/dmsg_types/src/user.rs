@@ -105,14 +105,17 @@ pub enum VaultWriteState {
 /// Commitment to an encrypted root bundle stored outside the user canister.
 /// This contains neither the bundle nor a plaintext content key.
 /// The commit checks that `recipients_digest` names exactly the active devices
-/// and the vetKD recovery identity of this generation, and that
+/// and, when enabled, the vetKD recovery identity of this generation, and that
 /// `bundle_digest = digest("dmsg/root-bundle-digest/2", (recipients_digest, body_digest))`.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentRootRef {
     /// Reserved content-root generation being committed.
     pub generation: u64,
-    /// Root bundle suite identifier; current commit validation requires `dmsg-root-v2`.
+    /// Root bundle suite: `dmsg-root-v3`, or legacy `dmsg-root-v2` with recovery enabled.
     pub suite: String,
+    /// RootBundle v3's recovery recipient. Absent in legacy v2 (enabled).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_enabled: Option<bool>,
     /// Commitment to the externally stored encrypted root bundle.
     pub bundle_digest: Hash,
     /// `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
@@ -248,7 +251,7 @@ pub struct PendingRecovery {
     pub execute_after: u64,
 }
 
-/// Certified account security leaf (current schema 4).
+/// Certified account security leaf (schema 5, or legacy schema 4 without a policy).
 /// The leaf path is the single raw 12-byte account ID. `devices_root` commits
 /// to the complete device map, including revocation and replay state. Verify
 /// certificate, witness and freshness before using it as authority.
@@ -272,6 +275,10 @@ pub struct SecuritySnapshot {
     pub devices_root: Hash,
     /// Configured recovery delay in milliseconds.
     pub recovery_delay_ms: u64,
+    /// Whether login-authorized on-chain recovery is enabled. None is the
+    /// legacy schema-4 policy (enabled); schema 5 always supplies a value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_enabled: Option<bool>,
     /// Commitment to pending recovery state, if any.
     pub pending_recovery_digest: Option<Hash>,
     /// Committed content-root generation; zero before initialization.
@@ -428,6 +435,13 @@ pub enum AccountCommand {
         /// Recovery waiting period in milliseconds.
         delay_ms: u64,
     },
+    /// Opt into or out of login-authorized recovery and set its waiting period.
+    SetRecoveryPolicy {
+        /// New accounts start with recovery disabled.
+        enabled: bool,
+        /// Waiting period in milliseconds, from one to seven days.
+        delay_ms: u64,
+    },
     /// Replace sensitive execution policy.
     SetPolicy {
         /// New recovery or sensitive-execution policy, as selected by the command.
@@ -572,6 +586,9 @@ pub struct AccountInfo {
     pub devices: BTreeMap<Hash, Device>,
     /// Configured recovery delay in milliseconds.
     pub recovery_delay_ms: u64,
+    /// None denotes an older user home, whose recovery policy was enabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_enabled: Option<bool>,
     /// Active delayed recovery procedure, if any.
     pub pending_recovery: Option<PendingRecovery>,
     /// Device enrolled by the latest completed recovery and the root generation

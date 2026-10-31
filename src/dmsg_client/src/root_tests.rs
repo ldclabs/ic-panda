@@ -278,6 +278,11 @@ fn opens_exported_bundles() {
         assert_eq!(digests.recipients, hash(&case["recipients_digest"]));
         assert_eq!(digests.body, hash(&case["body_digest"]));
         assert_eq!(digests.bundle, hash(&case["bundle_digest"]));
+        // A pending v2 job from before upgrade still commits its original suite.
+        let reference = root_reference(&bundle).unwrap();
+        assert_eq!(reference.suite, "dmsg-root-v2");
+        assert_eq!(reference.recovery_enabled, None);
+        assert_eq!(reference.bundle_digest, digests.bundle);
         assert_eq!(
             commitment(&key(&case["root_hex"])),
             text(&case["commitment"])
@@ -371,7 +376,7 @@ fn wraps_bundles_that_open_with_their_chain() {
         &context(1),
         &first_root,
         &recipients,
-        &recovery,
+        Some(&recovery),
         (&signer.0, &signer.1),
         None,
     )
@@ -384,7 +389,7 @@ fn wraps_bundles_that_open_with_their_chain() {
         &context(2),
         &second_root,
         &recipients,
-        &recovery,
+        Some(&recovery),
         (&signer.0, &signer.1),
         Some(PreviousLink {
             digest: &sha,
@@ -430,7 +435,7 @@ fn wraps_bundles_that_open_with_their_chain() {
             &context(1),
             &first_root,
             &recipients,
-            &recovery,
+            Some(&recovery),
             (&Hash::new([3; 32]), &signer.1),
             None
         )
@@ -468,7 +473,7 @@ fn a_derived_key_opens_the_recovery_envelope_and_its_chain() {
         &context(1),
         &[40; 32],
         &recipients,
-        &recovery,
+        Some(&recovery),
         (&signer.0, &signer.1),
         None,
     )
@@ -515,4 +520,75 @@ fn a_derived_key_opens_the_recovery_envelope_and_its_chain() {
         .err(),
         Some(Error::IntegrityFailed)
     );
+}
+
+#[test]
+fn a_root_without_recovery_opens_only_for_its_device() {
+    let v = load("root-v2.json");
+    let signer = (
+        hash(&v["signer"]["device_id"]),
+        key(&v["signer"]["seed_hex"]),
+    );
+    let seed = key(&v["devices"][0]["hpke_seed_hex"]);
+    let device = hash(&v["devices"][0]["device_id"]);
+    let mut recipients = vec![Recipient {
+        device,
+        hpke_pub: Hash::new(hpke_public(&seed)),
+    }];
+    if signer.0 != device {
+        recipients.push(Recipient {
+            device: signer.0,
+            hpke_pub: Hash::new(hpke_public(&[99; 32])),
+        });
+    }
+    let context = RootContext {
+        account: text(&v["account"]).into(),
+        environment: "local".into(),
+        generation: 1,
+        op_id: "75".repeat(32),
+        security_epoch: 0,
+    };
+    let bytes = wrap_root(
+        &context,
+        &[76; 32],
+        &recipients,
+        None,
+        (&signer.0, &signer.1),
+        None,
+    )
+    .unwrap();
+    let bundle = parse_bundle(&bytes).unwrap();
+    assert!(bundle.body.recovery.is_none());
+    assert!(bundle.body.recovery_key.is_none());
+    assert!(
+        !bytes
+            .windows(b"recovery".len())
+            .any(|part| part == b"recovery")
+    );
+    let digest = bundle_digests(&bundle).unwrap();
+    let (key, _) = open_root(
+        std::slice::from_ref(&bytes),
+        &digest.bundle,
+        (&context.account, "local", 1),
+        &device,
+        &seed,
+    )
+    .unwrap();
+    assert_eq!(*key, [76; 32]);
+    assert!(
+        open_root(
+            &[bytes],
+            &digest.bundle,
+            (&context.account, "local", 1),
+            &device,
+            &[77; 32]
+        )
+        .is_err()
+    );
+    // The generation and recovery recipient are part of the chain commitment.
+    let ids = recipients.iter().map(|r| r.device).collect::<Vec<_>>();
+    assert_ne!(digest.recipients, root_recipients_digest_v2(&ids, 1, true));
+    let mut malformed = bundle.body;
+    malformed.format = "dmsg-root-bundle/2".into();
+    assert_eq!(check_body(&malformed), Err(Error::IntegrityFailed));
 }

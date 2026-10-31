@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ms'),
+    onChainRecovery: "Pemulihan pada rantaian",
+    recoveryOnHint: "Jika semua peranti hilang, log masuk terpaut boleh memulihkan kandungan yang dimuat naik selepas tempoh menunggu. Log masuk yang dicuri juga boleh berbuat demikian jika tiada peranti dibenarkan membatalkannya tepat pada masanya.",
+    recoveryOffHint: "Simpan peranti dibenarkan yang boleh dibuka untuk bertukar peranti. Jika semuanya hilang, memulihkan log masuk tidak memulihkan kandungan awan.",
+    recoveryUpdating: "Sedang melengkapkan kemas kini keselamatan. Kandungan baharu menunggu sehingga selesai.",
     deviceSlots: 'Sehingga {n} peranti',
     teamWalletSlots: 'Sehingga {n} dompet pasukan',
     walletQuotasUnavailable: 'Had dompet pasukan tidak tersedia. Muat semula untuk mencuba lagi.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Sehingga ia mendaftarkan kunci lain, peranti tidak lagi boleh membuat kelulusan yang dilindungi akaun anda.",
     "afterRequireKeys": "Setiap daripada kelulusan ini kemudiannya memerlukan kunci peranti yang meluluskan serta tandatangannya yang biasa; kelulusan yang sedang dijalankan mesti dibuat semula.",
     "afterWithoutKeys": "Peranti {n} tanpa kunci tidak lagi boleh membuat kelulusan ini.",
-    "afterRecoveryStill": "Log masuk terikat masih boleh mengambil alih akaun melalui pemulihan selepas kelewatannya; mempertikaikannya dari mana-mana peranti dalam masa.",
+    afterRecoveryStill: "Log masuk terpaut hanya boleh mengambil alih selepas tempoh menunggu jika pemulihan pada rantaian diaktifkan.",
     "afterStopRequiring": "Kelulusan tidak lagi memerlukan kunci kelulusan: kunci peranti yang dicuri dan log masuk sekali lagi sudah memadai.",
     "approvalKey": "Kunci kelulusan",
     "approvalKeysRequiredFor": "Diperlukan untuk",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Pembayaran",
     "hwAttestation": "Tandatangan rasmi",
     "approvalKeys": "Kekunci kelulusan",
-    "approvalKeysHint": "Kunci dalam Secure Enclave Mac ini menandatangani kelulusan yang dilindungi oleh akaun anda. Sebaik sahaja kunci diperlukan, kunci peranti dan log masuk yang dicuri tidak lagi boleh menukar peranti, log masuk, dasar atau Ejen principal; pemulihan log masuk masih boleh, selepas kelewatannya.",
+    approvalKeysHint: "Kunci perkakasan mengesahkan operasi yang dilindungi akaun. Pemulihan pada rantaian ditetapkan berasingan dalam keselamatan akaun.",
     "keysRequired": "Diperlukan",
     "keysNotRequired": "Tidak diperlukan",
     "approvalKeysUnavailable": "Peranti ini tidak boleh menyimpan kunci kelulusan: yang memerlukan Mac dengan Secure Enclave dan rantai kunci sistem.",

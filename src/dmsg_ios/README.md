@@ -6,6 +6,15 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## On-chain recovery
+
+Account security offers one recovery toggle and an optional 1–7 day waiting
+period. Changes go through the existing approval view; the shared core rotates
+the root automatically. New accounts default off and older accounts retain their
+policy. The recovery screen disables request/completion while the policy is off.
+Cloud backups remain available, but losing all authorized devices while recovery
+is off makes their content unrecoverable even with the login.
+
 ## Notifications
 
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's

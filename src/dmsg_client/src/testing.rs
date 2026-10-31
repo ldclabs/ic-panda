@@ -309,6 +309,7 @@ pub fn security(epoch: u64, devices: BTreeMap<Hash, Device>) -> Security {
             security_epoch: epoch,
             devices_root: Hash::new([0; 32]),
             recovery_delay_ms: 0,
+            recovery_enabled: None,
             pending_recovery_digest: None,
             content_root_generation: 1,
             content_root_digest: None,

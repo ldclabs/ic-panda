@@ -113,7 +113,8 @@ fn post_upgrade() {
         // acquire empty metadata (14), old accounts no approval keys and no
         // hardware policy (15) and no successions (16), in their stable
         // decoders; the new schema keeps an older module from dropping
-        // those fields.
+        // those fields. Schema 18 adds an optional recovery policy; absent
+        // values retain schema-4 certification and enabled legacy recovery.
         cfg.schema = STABLE_SCHEMA;
         save_config(&cfg);
     }
@@ -611,6 +612,7 @@ async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     let caller = ic_cdk::api::msg_caller();
     let at = now();
     let mut s = own(&input.account_id, caller)?;
+    ensure(s.recovery_enabled.unwrap_or(true), Error::Forbidden)?;
     let fingerprint = digest("dmsg/derive-request/v1", &input);
     if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
         admit_call(&input.account_id, at)?;

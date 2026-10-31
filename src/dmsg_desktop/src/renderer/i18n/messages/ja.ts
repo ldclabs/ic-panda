@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ja'),
+    onChainRecovery: "オンチェーン復元",
+    recoveryOnHint: "すべての端末を紛失した場合、紐付けたログインで待機期間後にアップロード済みの内容を復元できます。ログインを盗まれた場合も、承認済み端末で期限内に取り消さない限り同様です。",
+    recoveryOffHint: "機種変更にはロック解除できる承認済み端末が必要です。すべての承認済み端末を紛失すると、ログインを取り戻してもクラウドの内容は復元できません。",
+    recoveryUpdating: "セキュリティ設定を更新中です。完了まで新しい内容の保存を待機します。",
     deviceSlots: 'デバイス最大 {n} 台',
     teamWalletSlots: 'チームウォレット最大 {n} 個',
     walletQuotasUnavailable: 'チームウォレットの上限を取得できません。更新して再試行してください。',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "別のキーを登録するまで、デバイスはアカウントが保護する承認を行うことができなくなります。",
     "afterRequireKeys": "これらの各承認には、通常の署名に加えて、承認デバイスのキーが必要です。進行中の承認は再度行う必要があります。",
     "afterWithoutKeys": "キーのない {n} デバイスは、これらの承認を行うことができなくなります。",
-    "afterRecoveryStill": "バインドされたログインは、遅延後の回復を通じてアカウントを引き継ぐことができます。どのデバイスからでも時間内に異議を申し立てることができます。",
+    afterRecoveryStill: "オンチェーン復元が有効な場合のみ、紐付けたログインで待機期間後にアカウントを引き継げます。",
     "afterStopRequiring": "承認には承認キーは必要なくなりました。盗んだデバイス キーとログインだけで十分になります。",
     "approvalKey": "承認キー",
     "approvalKeysRequiredFor": "必須",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "支払い",
     "hwAttestation": "正式な署名",
     "approvalKeys": "承認キー",
-    "approvalKeysHint": "この Mac の Secure Enclave のキーは、アカウントが保護する承認に署名します。キーが必要になると、盗まれたデバイス キーとログインによってデバイス、ログイン、ポリシー、またはエージェント principal を変更できなくなります。ログインの回復は遅れても可能です。",
+    approvalKeysHint: "ハードウェアキーでアカウントの保護対象操作を確認します。オンチェーン復元はアカウントのセキュリティで別途設定します。",
     "keysRequired": "必須",
     "keysNotRequired": "不要",
     "approvalKeysUnavailable": "このデバイスは承認キーを保持できません。それには、Secure Enclave とシステム キーチェーンを備えた Mac が必要です。",

@@ -1,9 +1,9 @@
-//! Content roots (`docs/protocol/account_root_zh.md`): the RootBundle v2
-//! bytes, the reserve → wrap → upload → commit sequence, and opening the
+//! Content roots (`docs/protocol/account_root_zh.md`): the RootBundle v3
+//! bytes (with v2 read compatibility), the reserve → wrap → upload → commit sequence, and opening the
 //! committed root with this device's own envelope.
 //!
 //! A bundle wraps a random root key (VRK) to every active device holding
-//! `VaultUnlock` (HPKE), to the account's vetKD recovery identity (IBE) and,
+//! `VaultUnlock` (HPKE), optionally to its vetKD recovery identity (IBE) and,
 //! from the second generation, carries the previous root sealed under the new
 //! one. Readers authenticate the current bundle by the certified
 //! `bundle_digest` and earlier ones by that chain.
@@ -16,7 +16,9 @@ use crate::crypto::{
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
-use dmsg_protocol::{root_bundle_digest, root_recipients_digest, verify};
+use dmsg_protocol::{
+    root_bundle_digest, root_recipients_digest, root_recipients_digest_v2, verify,
+};
 use dmsg_types::{
     AccountId, Environment, Error, Hash, Result,
     cose::KeyDescriptor,
@@ -30,10 +32,10 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 use zeroize::Zeroizing;
 
-/// Suite of every committed root.
-pub const ROOT_SUITE: &str = "dmsg-root-v2";
+/// Suite of newly generated roots; pending legacy jobs keep their v2 suite.
+pub const ROOT_SUITE: &str = "dmsg-root-v3";
 /// `body.format` of a bundle.
-pub const ROOT_FORMAT: &str = "dmsg-root-bundle/2";
+pub const ROOT_FORMAT: &str = "dmsg-root-bundle/3";
 /// Largest bundle.
 pub const MAX_BUNDLE: usize = 64_000;
 /// Most bundles a previous-root chain may hold.
@@ -66,9 +68,11 @@ pub struct RootBody {
     /// One HPKE envelope per device, ascending by device ID.
     pub envelopes: Vec<DeviceEnvelope>,
     /// The COSE content-root key the recovery envelope is encrypted to.
-    pub recovery_key: RecoveryKey,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_key: Option<RecoveryKey>,
     /// IBE ciphertext of the VRK to `CBOR([account, generation])`, base64url.
-    pub recovery: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery: Option<String>,
     /// The previous root, sealed under this one.
     pub previous: Option<PreviousRoot>,
     /// The signing device.
@@ -214,7 +218,7 @@ pub fn wrap_root(
     context: &RootContext,
     root: &Key,
     recipients: &[Recipient],
-    recovery_key: &RecoveryKey,
+    recovery_key: Option<&RecoveryKey>,
     signer: (&Hash, &Key),
     previous: Option<PreviousLink<'_>>,
 ) -> Result<Vec<u8>> {
@@ -229,8 +233,6 @@ pub fn wrap_root(
     )?;
     let account =
         AccountId::from_str(&context.account).map_err(|_| dmsg_types::invalid("account"))?;
-    let public = DerivedPublicKey::deserialize(&unb64(&recovery_key.public_key)?)
-        .map_err(|_| Error::IntegrityFailed)?;
     let mut envelopes = Vec::with_capacity(recipients.len());
     for recipient in &recipients {
         let device = hex::encode(*recipient.device);
@@ -241,13 +243,20 @@ pub fn wrap_root(
             ciphertext: sealed.ciphertext,
         });
     }
-    let seed = IbeSeed::from_bytes(&random_key()).map_err(|_| Error::IntegrityFailed)?;
-    let recovery = IbeCiphertext::encrypt(
-        &public,
-        &IbeIdentity::from_bytes(&recovery_identity(&account, context.generation)),
-        root,
-        &seed,
-    );
+    let recovery = recovery_key
+        .map(|key| {
+            let public = DerivedPublicKey::deserialize(&unb64(&key.public_key)?)
+                .map_err(|_| Error::IntegrityFailed)?;
+            let seed = IbeSeed::from_bytes(&random_key()).map_err(|_| Error::IntegrityFailed)?;
+            Ok::<_, Error>(b64(&IbeCiphertext::encrypt(
+                &public,
+                &IbeIdentity::from_bytes(&recovery_identity(&account, context.generation)),
+                root,
+                &seed,
+            )
+            .serialize()))
+        })
+        .transpose()?;
     let previous = previous.map(|link| {
         let mut entry = PreviousRoot {
             digest: link.digest.into(),
@@ -267,8 +276,8 @@ pub fn wrap_root(
         context: context.clone(),
         commitment: commitment(root),
         envelopes,
-        recovery_key: recovery_key.clone(),
-        recovery: b64(&recovery.serialize()),
+        recovery_key: recovery_key.cloned(),
+        recovery,
         previous,
         device: hex::encode(**signer.0),
         signing_public: b64(&signing_public(signer.1)),
@@ -288,7 +297,7 @@ fn check_body(body: &RootBody) -> Result<()> {
     crate::config::parse_environment(&context.environment).map_err(|_| Error::IntegrityFailed)?;
     hex_id(&context.op_id)?;
     ensure(
-        body.format == ROOT_FORMAT
+        (body.format == ROOT_FORMAT || body.format == "dmsg-root-bundle/2")
             && body.commitment.len() == 64
             && body
                 .commitment
@@ -298,14 +307,21 @@ fn check_body(body: &RootBody) -> Result<()> {
             && !body.envelopes.is_empty()
             && body.envelopes.len() <= MAX_RECIPIENTS
             && body.envelopes.windows(2).all(|w| w[0].device < w[1].device)
-            && body.envelopes.iter().any(|e| e.device == body.device)
-            && body.recovery_key.home_cose.len() <= 63
-            && (1..=64).contains(&body.recovery_key.key_name.len())
-            && unb64(&body.recovery_key.public_key)?.len() == 96
-            && body.recovery.len() <= 512
-            && unb64(&body.recovery).is_ok(),
+            && body.envelopes.iter().any(|e| e.device == body.device),
         Error::IntegrityFailed,
     )?;
+    match (&body.recovery_key, &body.recovery) {
+        (Some(key), Some(envelope)) => ensure(
+            key.home_cose.len() <= 63
+                && (1..=64).contains(&key.key_name.len())
+                && unb64(&key.public_key)?.len() == 96
+                && envelope.len() <= 512
+                && unb64(envelope).is_ok(),
+            Error::IntegrityFailed,
+        )?,
+        (None, None) if body.format == ROOT_FORMAT => {}
+        _ => return Err(Error::IntegrityFailed),
+    }
     for envelope in &body.envelopes {
         hex_id(&envelope.device)?;
     }
@@ -350,12 +366,33 @@ pub fn bundle_digests(bundle: &RootBundle) -> Result<BundleDigests> {
         .iter()
         .map(|e| hex_id(&e.device))
         .collect::<Result<Vec<_>>>()?;
-    let recipients = root_recipients_digest(&devices, bundle.body.context.generation);
+    let recipients = if bundle.body.format == "dmsg-root-bundle/2" {
+        root_recipients_digest(&devices, bundle.body.context.generation)
+    } else {
+        root_recipients_digest_v2(
+            &devices,
+            bundle.body.context.generation,
+            bundle.body.recovery.is_some(),
+        )
+    };
     let body = sha256(&canonical(&bundle.body));
     Ok(BundleDigests {
         recipients,
         body,
         bundle: root_bundle_digest(recipients, body),
+    })
+}
+
+fn root_reference(bundle: &RootBundle) -> Result<ContentRootRef> {
+    let digests = bundle_digests(bundle)?;
+    let legacy = bundle.body.format == "dmsg-root-bundle/2";
+    Ok(ContentRootRef {
+        generation: bundle.body.context.generation,
+        suite: if legacy { "dmsg-root-v2" } else { ROOT_SUITE }.into(),
+        recovery_enabled: (!legacy).then_some(bundle.body.recovery.is_some()),
+        bundle_digest: digests.bundle,
+        recipients_digest: digests.recipients,
+        body_digest: digests.body,
     })
 }
 
@@ -456,8 +493,10 @@ pub fn open_recovered(
     vetkey: &VetKey,
 ) -> Result<(Zeroizing<Key>, History)> {
     let current = current_bundle(bundles, expected, context)?;
-    let ciphertext = IbeCiphertext::deserialize(&unb64(&current.body.recovery)?)
-        .map_err(|_| Error::IntegrityFailed)?;
+    let ciphertext = IbeCiphertext::deserialize(&unb64(
+        current.body.recovery.as_ref().ok_or(Error::Forbidden)?,
+    )?)
+    .map_err(|_| Error::IntegrityFailed)?;
     let opened = Zeroizing::new(
         ciphertext
             .decrypt(vetkey)
@@ -894,6 +933,22 @@ impl Client {
             self.workspace.delete_private(ROOT_JOB)?;
             return Err(Error::VersionConflict);
         }
+        // A policy change invalidates an unfinished reservation. Its candidate
+        // has never become a content key; rebuild it under the current policy.
+        if job.context.is_some()
+            && !job.reservation_current(
+                state.info.root_slot.as_ref(),
+                state.info.security_epoch,
+                now_ms(),
+            )
+        {
+            job.op_id = Hash::new(crate::crypto::random_id());
+            job.context = None;
+            job.candidate = None;
+            job.bytes = None;
+            job.plan = None;
+            save(self, &job)?;
+        }
         if job.context.is_none() {
             let device = state.active(&self.workspace.meta.device_id)?;
             ensure(
@@ -956,9 +1011,14 @@ impl Client {
                     hpke_pub: d.input.hpke_pub,
                 })
                 .collect();
-            let recovery = self
-                .recovery_key(&account.id, context.generation, state.info.home_cose)
-                .await?;
+            let recovery = if state.info.recovery_enabled.unwrap_or(true) {
+                Some(
+                    self.recovery_key(&account.id, context.generation, state.info.home_cose)
+                        .await?,
+                )
+            } else {
+                None
+            };
             let candidate = *job
                 .candidate
                 .get_or_insert_with(|| ByteArray::new(random_key()));
@@ -973,7 +1033,7 @@ impl Client {
                 &context,
                 &candidate,
                 &recipients,
-                &recovery,
+                recovery.as_ref(),
                 (&self.workspace.meta.device_id, &self.keys()?.signing),
                 previous,
             )?;
@@ -981,7 +1041,7 @@ impl Client {
             save(self, &job)?;
         }
         let bytes = job.bytes.clone().ok_or(Error::IntegrityFailed)?.into_vec();
-        let digests = bundle_digests(&parse_bundle(&bytes)?)?;
+        let reference = root_reference(&parse_bundle(&bytes)?)?;
         let placeholder = canonical(&Vec::<u8>::new());
         let plan = job
             .plan
@@ -989,7 +1049,7 @@ impl Client {
                 management: None,
                 upload_id: random_hex(),
                 // The relay serves the committed root by its certified digest.
-                object_id: hex::encode(*digests.bundle),
+                object_id: hex::encode(*reference.bundle_digest),
                 version_id: random_hex(),
                 root_generation: context.generation,
                 epoch: 0,
@@ -1039,13 +1099,7 @@ impl Client {
             AccountCommand::CommitRoot {
                 expected_generation: job.expected_generation,
                 op_id: job.op_id,
-                root: ContentRootRef {
-                    generation: context.generation,
-                    suite: ROOT_SUITE.into(),
-                    bundle_digest: digests.bundle,
-                    recipients_digest: digests.recipients,
-                    body_digest: digests.body,
-                },
+                root: reference,
             },
             None,
         )

@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('zh-Hant'),
+    onChainRecovery: "鏈上復原",
+    recoveryOnHint: "全部裝置遺失後，可憑綁定的登入身分在等待期後復原已上傳內容。登入身分遭竊且無人及時取消時，對方也可復原內容。",
+    recoveryOffHint: "換機需要一台仍可解鎖的授權裝置。遺失全部授權裝置後，即使找回登入，也無法復原雲端內容。",
+    recoveryUpdating: "正在完成安全設定更新；完成前暫緩儲存新內容。",
     deviceSlots: '最多 {n} 台裝置',
     teamWalletSlots: '最多開通 {n} 個團隊錢包',
     walletQuotasUnavailable: '暫時無法讀取團隊錢包額度，請重新整理再試。',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "在登記另一把鑰匙之前，這台裝置不能再做帳戶保護的批准。",
     "afterRequireKeys": "這些批准此後除了通常的簽名，還需要批准裝置的鑰匙；進行中的批准須重新發起。",
     "afterWithoutKeys": "{n} 臺沒有鑰匙的裝置將不能再做這些批准。",
-    "afterRecoveryStill": "已繫結的登入仍可在等待期後經恢復接管帳戶；請在期限內用任一裝置提出爭議。",
+    afterRecoveryStill: "只有已開啟鏈上復原時，綁定登入才能在等待期後接管帳戶。",
     "afterStopRequiring": "批准將不再需要批准鑰匙：失竊的裝置鑰匙和登入又足以操作。",
     "approvalKey": "批准鑰匙",
     "approvalKeysRequiredFor": "需要鑰匙",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "付款",
     "hwAttestation": "正式簽名",
     "approvalKeys": "批准鑰匙",
-    "approvalKeysHint": "這台 Mac 的 Secure Enclave 中的鑰匙簽署帳戶保護的批准。要求鑰匙後，失竊的裝置鑰匙和登入不能再更改裝置、登入、策略或 Agent 主體；登入恢復在等待期後仍可接管。",
+    approvalKeysHint: "硬體金鑰用於確認帳戶要求保護的操作。鏈上復原由帳戶安全中的獨立開關控制。",
     "keysRequired": "已要求",
     "keysNotRequired": "未要求",
     "approvalKeysUnavailable": "這台裝置不能保管批准鑰匙：需要帶 Secure Enclave 的 Mac 並使用系統鑰匙串。",

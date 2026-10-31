@@ -742,6 +742,8 @@
 	<string>Fichiers de ce dossier</string>
 	<key>Fingerprint</key>
 	<string>Empreinte</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Mise à jour de sécurité en cours. Le nouveau contenu attend sa fin.</string>
 	<key>Folder name</key>
 	<string>Nom du dossier</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Numéro d’identité</string>
 	<key>Identity</key>
 	<string>Identité</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Si tous les appareils sont perdus, une identité liée peut récupérer le contenu envoyé après le délai. Une identité volée le peut aussi, sauf annulation à temps par un appareil autorisé.</string>
 	<key>Illegal content</key>
 	<string>Contenu illégal</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Rejoindre un portefeuille existant</string>
 	<key>Join conversation</key>
 	<string>Rejoindre la conversation</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Gardez un appareil autorisé que vous pouvez déverrouiller pour changer d’appareil. Si tous sont perdus, retrouver votre connexion ne restaure pas le contenu cloud.</string>
 	<key>Keep current version</key>
 	<string>Conserver la version actuelle</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Sur cet appareil</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Lors de votre première utilisation, connectez-vous et suivez les étapes pour créer votre espace de travail chiffré.</string>
+	<key>On-chain recovery</key>
+	<string>Récupération sur la chaîne</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Une fois approuvé, le nouvel appareil rejoint le compte avec le rôle de cet appareil et la racine de contenu passe sur lui ; cet appareil ne peut ensuite que terminer la passation.</string>
 	<key>One-time code</key>

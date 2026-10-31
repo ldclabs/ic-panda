@@ -26,7 +26,7 @@
 ## 当前合同
 
 - **账户与设备**：`dmsg_user` 发放 12 字节 Xid 账户，管理登录绑定、设备能力、内容根承诺与延迟恢复。账户可登记每台设备的硬件批准钥匙（P-256），并按用途要求设备批准附带其签名；核验集中在 user home 的设备批准检查，消费方 canister 不变，登录恢复会退役全部钥匙并关闭要求。满额账户换设备时，由旧设备批准 `AddSuccessor`，继任结束前旧设备只能交接，见[账户合同](protocol/account_root_zh.md)。客户端通过 `dmsg_handle` 发现 user homes，并行查询账户。按既定设计，不强制跨 home 的登录 Principal 唯一性。
-- **内容与恢复**：设备生成内容根并为授权设备和恢复封装。`dmsg_cose` 只在全设备丢失恢复时执行 vetKD，不签署普通文档或 Agent Delegation 事件。
+- **内容与恢复**：设备生成内容根并为授权设备封装；链上恢复默认关闭，主动开启后才添加恢复封装。`dmsg_cose` 只在全设备丢失恢复时执行 vetKD，不签署普通文档或 Agent Delegation 事件。
 - **签名**：设备在本机签署 COSE 声明和应用动作；`attest` / `attest_app_action` 核验签名与设备批准、扣减执行额度、发布认证回执。公钥本身不证明账户授权，见[声明与回执](protocol/README_zh.md)。
 - **公开身份**：user home 保存官方 PrincipalDocument 展示字段及 controller 记录，`dmsg_directory` 发布认证 JSON。展示资料更新写链，公开头像二进制留在云端。Agent controller 是客户端 vault 中自持的 Ed25519 key，见 [Agent Delegation](protocol/agent_zh.md)。
 - **名称**：注册表保存规范名称及可选展示大小写，处理注册、旧名称认领和账户批准的转移；注册费直接进入配置的收入账户。

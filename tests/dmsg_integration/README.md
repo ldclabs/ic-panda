@@ -119,6 +119,8 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_WASM_DI
 
 `desktop_mail_webhook_and_native_events` 使用同一隔离环境，验证 Mail webhook → MCP 中继 → daemon 同步 → `dmsg.mail.received` 的完整链路，以及游标重放、已读与 inbox 确认、暂停/恢复、撤权与关闭后的订阅清理。测试打印 20 封邮件从中继接受到本地 MCP 事件接收的 p50/p95/最大延迟；这是本地样本，不是生产 SLO。`desktop_mail_background_receives_and_notifies_mcp` 验证未启用推送时的周期同步和资源通知兜底。
 
+`desktop_recovery_is_opt_in_and_policy_changes_rotate_the_root` 验证新账户默认关闭、开启/关闭各一次审批后自动换根、取消待恢复，以及关闭状态下配对并读取历史内容。`recovery_policy_upgrade_preserves_existing_accounts_and_defaults_new_accounts_off` 使用 `DMSG_PRE_RECOVERY_USER_WASM` 指定的旧模块验证升级保留原账户与认证叶、新账户默认关闭、选择关闭后再次升级保持政策。
+
 `desktop_login_recovery_restores_cloud_content` 验证旧设备不可用后的云端恢复：替代设备完成登录恢复、vetKD 解根与换根，并取回秘密库条目及已备份文件。等待期通过在 PocketIC 启动实时时钟前预置历史请求来模拟；实际 daemon 的时钟、证书新鲜度和批准期限校验保持不变，恢复完成与后续读写都在当前认证时间运行。换机的本机文件传输与旧设备退役继续由 `desktop_device_succession` 覆盖；硬件绑定的两端传输另有 `dmsg_client::transfer` 回归测试。
 
 `DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`；release 构建（`cargo build --release -p dmsg_cli`）加解密 100 MiB 更快。中继由私有仓库的 `dmsg-core/scripts/desktop-probe-server.mjs` 启动（W5 另传 `api_origin` 与 `paid_contacts`；W6 另传 `delegation_service`、`principal_origin` 与 `principal_gateway`：本地没有自定义域，中继经 PocketIC 网关读取 directory 的 principal 文档），只允许本次分配的桥接页 origin（`connect_origin`，也是 daemon 的 `connect_url`），按启动参数 `ttl_ms`（桌面用例 20 分钟）自行退出。`desktop_content_and_sync` 还需要 Node 与 `src/dmsg_frontend` 的依赖（`pnpm install`）。`desktop_web_connect` 与 `desktop_browser_connect` 还需要 Node 与 `pnpm install`（`src/dmsg_connect` 及其依赖 `dmsg-sdk` 的构建）；后者还需要 Playwright 浏览器（`pnpm --dir src/dmsg_connect exec playwright install chromium webkit firefox`），`DMSG_TEST_CHROME` 可指向已安装的 Chrome for Testing。

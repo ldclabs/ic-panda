@@ -742,6 +742,8 @@
 	<string>Các tập tin trong thư mục này</string>
 	<key>Fingerprint</key>
 	<string>Dấu vân tay</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.</string>
 	<key>Folder name</key>
 	<string>Tên thư mục</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Số ID</string>
 	<key>Identity</key>
 	<string>Danh tính</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Nếu mất mọi thiết bị, thông tin đăng nhập đã liên kết có thể khôi phục nội dung đã tải lên sau thời gian chờ. Kẻ đánh cắp thông tin đăng nhập cũng có thể làm vậy nếu thiết bị được cấp quyền không hủy kịp.</string>
 	<key>Illegal content</key>
 	<string>nội dung bất hợp pháp</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Tham gia ví hiện có</string>
 	<key>Join conversation</key>
 	<string>Tham gia cuộc trò chuyện</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Giữ một thiết bị được cấp quyền mà bạn có thể mở khóa để chuyển máy. Nếu mất tất cả, lấy lại đăng nhập cũng không khôi phục được nội dung đám mây.</string>
 	<key>Keep current version</key>
 	<string>Giữ phiên bản hiện tại</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Trên thiết bị này</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Trong lần truy cập đầu tiên, hãy đăng nhập và làm theo các bước để tạo không gian làm việc được mã hóa của bạn.</string>
+	<key>On-chain recovery</key>
+	<string>Khôi phục trên chuỗi</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Sau khi phê duyệt, thiết bị mới tham gia với vai trò của thiết bị này và gốc nội dung chuyển sang nó; sau đó thiết bị này chỉ hoàn tất việc bàn giao.</string>
 	<key>One-time code</key>

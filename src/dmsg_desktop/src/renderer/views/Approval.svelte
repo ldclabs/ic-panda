@@ -455,6 +455,7 @@
       case 'grant':
         return [[t('afterCapabilityGrant'), false]]
       case 'account': {
+        if (d.change === 'recovery_policy') return [[t(d.enabled ? 'recoveryOnHint' : 'recoveryOffHint'), true], [t('recoveryUpdating'), false]]
         const line = ({
           bind_login: t('afterBindLogin'),
           remove_login: t('afterRemoveLogin'),
@@ -775,7 +776,8 @@
                 {@render row(t('dailyExecutions'), `${was ? `${was.daily_executions} → ` : ''}${d.daily_executions}`)}
                 {@render row(t('purposes'), `${was ? `${purposes(was.allowed_purposes)} → ` : ''}${purposes(d.allowed_purposes)}`)}
               {/if}
-              {#if d.delay_ms}{@render row(t('recoveryDelay'), t('daysCount', { n: Math.round(d.delay_ms / 86_400_000) }))}{/if}
+              {#if d.change === 'recovery_policy'}{@render row(t('onChainRecovery'), t(d.enabled ? 'on' : 'off'))}{/if}
+              {#if d.delay_ms && d.enabled !== false}{@render row(t('recoveryDelay'), t('daysCount', { n: Math.round(d.delay_ms / 86_400_000) }))}{/if}
               {#if d.op_id}{@render row(t('recovery'), d.op_id, { mono: true })}{/if}
             {:else if request.type === 'delegation'}
               {#if d.kind?.type === 'grant'}

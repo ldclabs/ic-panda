@@ -85,6 +85,7 @@ pub fn command_purpose(command: &AccountCommand) -> Option<HardwarePurpose> {
         | SetHardwarePolicy { .. }
         | SetPolicy { .. }
         | SetRecoveryDelay { .. }
+        | SetRecoveryPolicy { .. }
         | BindAuth { .. }
         | RemoveAuth { .. } => Some(HardwarePurpose::AccountControl),
         AddDevice { .. }

@@ -742,6 +742,8 @@
 	<string>ملفات هذا المجلد</string>
 	<key>Fingerprint</key>
 	<string>البصمة</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>جارٍ إكمال تحديث الأمان. ينتظر المحتوى الجديد حتى يكتمل.</string>
 	<key>Folder name</key>
 	<string>اسم المجلد</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>رقم الهوية</string>
 	<key>Identity</key>
 	<string>هوية</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>إذا فُقدت كل الأجهزة، يمكن لهوية دخول مرتبطة استرداد المحتوى المرفوع بعد فترة الانتظار. ويمكن لمن يسرق هوية الدخول فعل ذلك ما لم يلغِ جهاز معتمد الطلب في الوقت المناسب.</string>
 	<key>Illegal content</key>
 	<string>محتوى غير قانوني</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>الانضمام إلى محفظة موجودة</string>
 	<key>Join conversation</key>
 	<string>الانضمام إلى المحادثة</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>يتطلب الانتقال إلى جهاز جديد جهازًا معتمدًا يمكنك فتحه. إذا فُقدت كل الأجهزة المعتمدة، فلن يعيد استرداد تسجيل الدخول محتوى السحابة.</string>
 	<key>Keep current version</key>
 	<string>الاحتفاظ بالنسخة الحالية</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>على هذا الجهاز</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>عند الاستخدام لأول مرة، سجّل الدخول واتبع الخطوات لإنشاء مساحة عملك المشفّرة.</string>
+	<key>On-chain recovery</key>
+	<string>الاسترداد عبر السلسلة</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>بعد الموافقة ينضم الجهاز الجديد بدور هذا الجهاز وينتقل إليه جذر المحتوى؛ ولا يستطيع هذا الجهاز بعدها إلا إتمام التسليم.</string>
 	<key>One-time code</key>

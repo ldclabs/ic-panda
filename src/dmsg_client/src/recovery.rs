@@ -67,6 +67,10 @@ impl Client {
         let pending = pending?;
         let security = self.refresh_security(home, &account).await?;
         ensure(
+            security.snapshot.recovery_enabled.unwrap_or(true),
+            Error::Forbidden,
+        )?;
+        ensure(
             security.snapshot.pending_recovery_digest
                 == pending
                     .as_ref()
@@ -99,6 +103,10 @@ impl Client {
         let caller = self.session()?.principal;
         let device = self.workspace.meta.device_id;
         let security = self.refresh_security(home, &account).await?;
+        ensure(
+            security.snapshot.recovery_enabled.unwrap_or(true),
+            Error::Forbidden,
+        )?;
         ensure(
             security.device(&device).is_none(),
             Error::IdempotencyConflict,
@@ -221,7 +229,10 @@ impl Client {
         let recovery = self
             .recovery_key(&account.id, generation, state.info.home_cose)
             .await?;
-        ensure(recovery == bundle.body.recovery_key, Error::IntegrityFailed)?;
+        ensure(
+            Some(&recovery) == bundle.body.recovery_key.as_ref(),
+            Error::IntegrityFailed,
+        )?;
         let key = format!("{DERIVE}{}", hex::encode(*current.bundle_digest));
         let mut job = match self.workspace.private::<DeriveJob>(self.keys()?, &key)? {
             Some(job) => job,
@@ -413,6 +424,7 @@ pub async fn status<H: crate::hold::Hold>(h: &H) -> Result<Json> {
         c.observe(&account, &security)?;
         ensure(security.snapshot.pending_recovery_digest == pending.as_ref().map(|p| dmsg_protocol::digest("dmsg/pending-recovery/v1", p)), Error::PolicyStale)?;
         Ok(json!({"account":account.to_string(),"recovery_delay_ms":security.snapshot.recovery_delay_ms,
+            "enabled":security.snapshot.recovery_enabled.unwrap_or(true),
             "member":security.active(&device).is_ok(),"pending":pending.as_ref().map(|p|crate::security::recovery_view(p,&device)),
             "ready":pending.as_ref().is_some_and(|p|p.request.device.device_id==device && now>=p.execute_after)}))
     }).await

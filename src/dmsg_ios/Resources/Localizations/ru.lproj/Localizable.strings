@@ -742,6 +742,8 @@
 	<string>Файлы в этой папке</string>
 	<key>Fingerprint</key>
 	<string>Отпечаток</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Завершается обновление безопасности. Новые данные ожидают его окончания.</string>
 	<key>Folder name</key>
 	<string>Имя папки</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Номер документа</string>
 	<key>Identity</key>
 	<string>Личные данные</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>При потере всех устройств привязанный вход позволяет восстановить загруженные данные после ожидания. Украденный вход тоже позволяет это сделать, если авторизованное устройство не отменит запрос вовремя.</string>
 	<key>Illegal content</key>
 	<string>Незаконный контент</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Присоединиться к существующему кошельку</string>
 	<key>Join conversation</key>
 	<string>Присоединиться к разговору</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Для смены устройства сохраните авторизованное устройство, которое можете разблокировать. Если все они потеряны, восстановление входа не вернёт облачные данные.</string>
 	<key>Keep current version</key>
 	<string>Сохранить текущую версию</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>На этом устройстве</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>При первом использовании войдите и следуйте инструкциям, чтобы создать зашифрованное рабочее пространство.</string>
+	<key>On-chain recovery</key>
+	<string>Восстановление через блокчейн</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>После одобрения новое устройство присоединяется с ролью этого, и корень контента переходит к нему; после этого это устройство может только завершить передачу.</string>
 	<key>One-time code</key>

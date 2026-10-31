@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('tr'),
+    onChainRecovery: "Zincir üzerinden kurtarma",
+    recoveryOnHint: "Tüm cihazlar kaybolursa bağlı giriş, bekleme süresinden sonra yüklenen içeriği kurtarabilir. Yetkili bir cihaz zamanında iptal etmezse çalınan giriş de bunu yapabilir.",
+    recoveryOffHint: "Cihaz değiştirmek için kilidini açabildiğiniz yetkili bir cihazı saklayın. Tüm yetkili cihazlar kaybolursa girişinizi kurtarmak bulut içeriğini geri getirmez.",
+    recoveryUpdating: "Güvenlik güncellemesi tamamlanıyor. Yeni içerik tamamlanana kadar bekler.",
     deviceSlots: 'En fazla {n} cihaz',
     teamWalletSlots: 'En fazla {n} ekip cüzdanı',
     walletQuotasUnavailable: 'Ekip cüzdanı limitleri alınamıyor. Yeniden denemek için yenileyin.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Cihaz, başka bir anahtar kaydedene kadar hesabınızın koruduğu onayları artık yapamaz.",
     "afterRequireKeys": "Bu onayların her biri, onaylayan cihazın anahtarının yanı sıra olağan imzasına da ihtiyaç duyar; devam eden onayların tekrar yapılması gerekmektedir.",
     "afterWithoutKeys": "Anahtarı olmayan {n} cihazları artık bu onayları veremez.",
-    "afterRecoveryStill": "Bağlantılı bir oturum açma işlemi, gecikmeden sonra da kurtarma yoluyla hesabı devralabilir; zamanında herhangi bir cihazdan itiraz edin.",
+    afterRecoveryStill: "Bağlı giriş, bekleme süresi sonunda hesabı yalnızca zincir üzerinden kurtarma açıksa devralabilir.",
     "afterStopRequiring": "Onaylar artık bir onay anahtarına ihtiyaç duymuyor: Çalınan bir cihaz anahtarı ve oturum açma işlemi yine yeterli olacaktır.",
     "approvalKey": "Onay anahtarı",
     "approvalKeysRequiredFor": "Şunun için gerekli:",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Ödemeler",
     "hwAttestation": "Resmi imzalar",
     "approvalKeys": "Onay anahtarları",
-    "approvalKeysHint": "Bu Mac'in Secure Enclave'sundaki bir anahtar, hesabınızın koruduğu onayları imzalar. Anahtarlar gerekli olduğunda, çalınan cihaz anahtarı ve oturum açma bilgileri artık cihazları, oturum açma bilgilerini, politikaları veya principal Aracısını değiştiremez; oturum açma kurtarma işlemi gecikmeden sonra da yapılabilir.",
+    approvalKeysHint: "Donanım anahtarı hesabın koruduğu işlemleri onaylar. Zincir üzerinden kurtarma, hesap güvenliğinde ayrıca ayarlanır.",
     "keysRequired": "Gerekli",
     "keysNotRequired": "Gerekli değil",
     "approvalKeysUnavailable": "Bu cihaz onay anahtarlarını saklayamaz: bunun için Secure Enclave içeren bir Mac ve sistem anahtarlığı gerekir.",

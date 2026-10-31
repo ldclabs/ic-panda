@@ -32,7 +32,8 @@ const Capability = IDL.Variant({
   ContentSign: IDL.Null,
   VaultUnlock: IDL.Null,
   RootManage: IDL.Null,
-  PaymentOffer: IDL.Null
+  PaymentOffer: IDL.Null,
+  WalletApprove: IDL.Null
 })
 const Device = IDL.Record({
   added_at: IDL.Nat64,
@@ -61,6 +62,7 @@ const SecuritySnapshot = IDL.Record({
   home_cose: IDL.Principal,
   home_user: IDL.Principal,
   recovery_delay_ms: IDL.Nat64,
+  recovery_enabled: IDL.Opt(IDL.Bool),
   vault_write_state: VaultWriteState,
   pending_recovery_digest: IDL.Opt(IDL.Vec(IDL.Nat8))
 })
@@ -196,7 +198,8 @@ export class Certified {
     const snapshot = decodeCanonical<Record<string, unknown>>(value)
     const wire = new Map(devices.map(([id, d]) => [bytes(id), wireDevice(d)] as const))
     ensure(
-      snapshot.schema === 4 &&
+      ((snapshot.schema === 4 && snapshot.recovery_enabled === undefined) ||
+        (snapshot.schema === 5 && typeof snapshot.recovery_enabled === 'boolean')) &&
         snapshot.account_id instanceof Uint8Array &&
         equal(snapshot.account_id, account) &&
         snapshot.home_user instanceof Uint8Array &&

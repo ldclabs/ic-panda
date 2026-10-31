@@ -22,7 +22,7 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
     if (failPolicy) throw { code: 'INVALID_INPUT', message: 'Fixture policy failure' }
     return make('account', { change: 'policy', ...security.policy, ...p, previous: security.policy })
   }
-  methods['account/recovery_delay'] = p => make('account', { change: 'recovery_delay', delay_ms: p.days * 86400000 })
+  methods['account/recovery_policy'] = p => make('account', { change: 'recovery_policy', enabled: p.enabled, delay_ms: p.days * 86400000 })
   methods['account/hardware_policy'] = p => make('hardware_policy', { purposes: p.purposes, previous: keys.policy, missing_devices: [] })
   methods['device/key_approve'] = p => make('approval_key', { device_id: p.device, key_id: '5a'.repeat(32) })
   const refresh = async () => {
@@ -116,12 +116,31 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await submit.click()
   await main.getByTestId('security-editor').waitFor({ state: 'detached' })
   await main.getByTestId('security-pending-recovery').waitFor()
-  assert.deepEqual(last('account/recovery_delay').params, { days: 4, source: 'gui' })
+  assert.deepEqual(last('account/recovery_policy').params, { enabled: true, days: 4, source: 'gui' })
   security.recovery_delay_ms = 4 * 86400000
   await dismissRequest('recovery', 'done')
   await main.getByTestId('security-recovery-edit').click()
   assert.equal(await main.getByTestId('recovery-days').locator('[data-value="4"]').getAttribute('data-state'), 'on')
   assert.equal(await submit.isDisabled(), true, 'completed policy becomes the new unchanged baseline')
+  await closeEditor()
+
+  // Turning recovery off keeps a single review and hides irrelevant delay controls.
+  await main.getByTestId('security-recovery-edit').click()
+  await main.getByTestId('recovery-enabled').focus()
+  await main.keyboard.press('Space')
+  assert.equal(await main.getByTestId('recovery-enabled').getAttribute('aria-checked'), 'false')
+  assert.equal(await main.getByTestId('recovery-days').count(), 0)
+  await main.screenshot({ path: join(shots, 'security-recovery-off-review.png'), animations: 'disabled' })
+  await submit.click()
+  await main.getByTestId('security-editor').waitFor({ state: 'detached' })
+  await main.getByTestId('security-pending-recovery').waitFor()
+  assert.deepEqual(last('account/recovery_policy').params, { enabled: false, days: 4, source: 'gui' })
+  security.recovery_enabled = false
+  await dismissRequest('recovery', 'done')
+  await main.getByTestId('security-recovery-edit').click()
+  assert.equal(await submit.isDisabled(), true)
+  await main.getByTestId('recovery-enabled').click()
+  assert.equal(await main.getByTestId('recovery-days').count(), 1)
   await closeEditor()
 
   // Hardware policy has its own draft and compares a set, not checkbox order.
@@ -202,6 +221,12 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
       await main.keyboard.press('Tab')
       assert.ok(await dialog.evaluate(el => el.contains(document.activeElement)), 'focus stays within the dialog')
       await main.screenshot({ path: join(shots, `security-${name}-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+      if (name === 'recovery') {
+        await main.getByTestId('recovery-enabled').click()
+        await main.getByTestId('recovery-days').waitFor()
+        assert.ok(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1), `enabled recovery fits ${locale}`)
+        await main.screenshot({ path: join(shots, `security-recovery-on-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
+      }
       await closeEditor()
     }
     assert.ok(await main.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overview fits ${locale}`)
@@ -233,5 +258,5 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await main.getByTestId('security-editor').waitFor({ state: 'detached' })
   assert.equal(app.windows().length, windowsBefore)
   assert.equal(approvalBefore?.url(), approvalUrl, 'a late response cannot navigate the existing approval window')
-  console.log('Security: unchanged/invalid guards, combined approval, retry and refresh drafts, pending receipts, recovery, hardware, late replies, keyboard and 39 screenshots passed')
+  console.log('Security: unchanged/invalid guards, combined approval, retry and refresh drafts, pending receipts, recovery, hardware, late replies, keyboard and recovery-state screenshots passed')
 }

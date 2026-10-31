@@ -389,6 +389,7 @@ fn removed_and_recovered_logins_lose_their_routes() {
     assert_eq!(denied, Err(Error::AuthRequired));
     assert_ne!(f.create(2), id);
 
+    f.enable_recovery(1, &id);
     // An unbound login cannot start a takeover; a bound one replaces every
     // other binding and drops their routes.
     bind(3, 31);

@@ -322,11 +322,17 @@ export function createProfileReader(
           if (found.value) {
             const snapshot = decodeCanonical<{
               schema: number
+              recovery_enabled?: boolean
               account_id: Uint8Array
               home_user: Uint8Array
             }>(found.value)
             if (
-              snapshot.schema !== 4 ||
+              !(
+                (snapshot.schema === 4 &&
+                  snapshot.recovery_enabled === undefined) ||
+                (snapshot.schema === 5 &&
+                  typeof snapshot.recovery_enabled === 'boolean')
+              ) ||
               !equal(snapshot.account_id, id) ||
               !equal(snapshot.home_user, home)
             )

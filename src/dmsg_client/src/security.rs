@@ -112,6 +112,13 @@ pub enum AccountChange {
         /// Milliseconds, one to seven days.
         delay_ms: u64,
     },
+    /// Change on-chain recovery. A mode change also rotates the content root.
+    RecoveryPolicy {
+        /// Whether login-authorized recovery is allowed.
+        enabled: bool,
+        /// Waiting period in milliseconds, one to seven days.
+        delay_ms: u64,
+    },
     /// Cancel a pending recovery.
     DisputeRecovery {
         /// Its operation ID.
@@ -142,6 +149,12 @@ impl AccountChange {
             AccountChange::RecoveryDelay { delay_ms } => AccountCommand::SetRecoveryDelay {
                 delay_ms: *delay_ms,
             },
+            AccountChange::RecoveryPolicy { enabled, delay_ms } => {
+                AccountCommand::SetRecoveryPolicy {
+                    enabled: *enabled,
+                    delay_ms: *delay_ms,
+                }
+            }
             AccountChange::DisputeRecovery { op_id } => {
                 AccountCommand::DisputeRecovery { op_id: *op_id }
             }
@@ -183,6 +196,9 @@ impl AccountChange {
                 "change": "recovery_delay",
                 "delay_ms": delay_ms,
             }),
+            AccountChange::RecoveryPolicy { enabled, delay_ms } => json!({
+                "change": "recovery_policy", "enabled": enabled, "delay_ms": delay_ms,
+            }),
             AccountChange::DisputeRecovery { op_id } => json!({
                 "change": "dispute_recovery",
                 "op_id": hex::encode(**op_id),
@@ -207,6 +223,9 @@ impl Client {
                 "daily_executions": info.sensitive_policy.daily_executions,
             },
             "recovery_delay_ms": info.recovery_delay_ms,
+            "recovery_enabled": info.recovery_enabled.unwrap_or(true),
+            "recovery_updating": info.current_root.as_ref().is_some_and(|root|
+                root.recovery_enabled.unwrap_or(true) != info.recovery_enabled.unwrap_or(true)),
             "pending_recovery": info.pending_recovery.as_ref().map(|p| recovery_view(p, &self.workspace.meta.device_id)),
             "notification": state.security.snapshot.pending_recovery_digest.map(|hash| json!({
                 "id": crate::notifications::item_id(&info.account_id.to_string(), &crate::notifications::Target::Recovery(hex::encode(*hash))),
@@ -406,6 +425,19 @@ impl Client {
                 ensure_valid((DAY..=7 * DAY).contains(delay_ms), "recovery delay")?;
                 ensure(info.pending_recovery.is_none(), Error::Pending)?;
             }
+            AccountCommand::SetRecoveryPolicy { enabled, delay_ms } => {
+                ensure(
+                    admin
+                        && own
+                            .input
+                            .capabilities
+                            .contains(&dmsg_types::user::Capability::VaultUnlock),
+                    Error::Forbidden,
+                )?;
+                self.roots()?;
+                ensure_valid((DAY..=7 * DAY).contains(delay_ms), "recovery delay")?;
+                ensure(!*enabled || info.pending_recovery.is_none(), Error::Pending)?;
+            }
             AccountCommand::DisputeRecovery { op_id } => ensure(
                 info.pending_recovery
                     .as_ref()
@@ -427,13 +459,30 @@ impl Client {
     pub(crate) async fn account_execute(&mut self, change: &AccountChange) -> Result<()> {
         let command = change.command()?;
         self.mutate(command.clone(), None).await?;
-        self.accept_pending(&command).await
+        self.finish_account_change(&command).await
     }
 
     /// Settle an approved security change whose outcome is unknown.
     pub(crate) async fn account_reconcile(&mut self, change: &AccountChange) -> Result<()> {
         self.resume().await?;
-        self.accept_pending(&change.command()?).await
+        self.finish_account_change(&change.command()?).await
+    }
+
+    async fn finish_account_change(&mut self, command: &AccountCommand) -> Result<()> {
+        if let AccountCommand::SetRecoveryPolicy { enabled, delay_ms } = command {
+            let account = self.account()?.clone();
+            let state = self.refresh(account.home, &account.id).await?;
+            ensure(
+                state.info.recovery_enabled == Some(*enabled)
+                    && state.info.recovery_delay_ms == *delay_ms,
+                Error::PolicyStale,
+            )?;
+            if state.info.vault_write_state == dmsg_types::user::VaultWriteState::RekeyRequired {
+                self.load_root().await?;
+                self.rotate_root().await?;
+            }
+        }
+        self.accept_pending(command).await
     }
 
     /// Accept with the waiting login the binding this device just approved.

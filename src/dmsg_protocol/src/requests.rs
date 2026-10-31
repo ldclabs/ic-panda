@@ -276,6 +276,13 @@ pub fn root_recipients_digest(devices: &[Hash], generation: u64) -> Hash {
     digest("dmsg/root-recipients/1", &(ids, generation))
 }
 
+/// RootBundle v3 commits to the device set and the optional recovery recipient.
+pub fn root_recipients_digest_v2(devices: &[Hash], generation: u64, recovery: bool) -> Hash {
+    let mut ids = devices.to_vec();
+    ids.sort_unstable();
+    digest("dmsg/root-recipients/2", &(ids, generation, recovery))
+}
+
 /// Commitment to a root bundle: its recipients digest and the SHA-256 of its
 /// body. The user home checks both parts at `CommitRoot`.
 pub fn root_bundle_digest(recipients_digest: Hash, body_digest: Hash) -> Hash {

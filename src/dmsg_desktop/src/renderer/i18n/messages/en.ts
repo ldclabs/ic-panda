@@ -6,6 +6,10 @@ import { notificationText } from '../../../shared/notification-text.ts'
  */
 const messages = {
     ...notificationText('en'),
+  onChainRecovery: "On-chain recovery",
+  recoveryOnHint: "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.",
+  recoveryOffHint: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.",
+  recoveryUpdating: "Finishing the security update. New content waits until it completes.",
   deviceSlots: 'Up to {n} devices',
   teamWalletSlots: 'Team wallet slots: {n}',
   walletQuotasUnavailable: 'Team wallet limits are unavailable. Refresh to retry.',
@@ -993,7 +997,7 @@ const messages = {
   afterRetireApprovalKey: 'Until it registers another key, the device can no longer make the approvals your account protects.',
   afterRequireKeys: 'Each of these approvals then needs the approving device’s key as well as its usual signature; approvals under way must be made again.',
   afterWithoutKeys: '{n} devices without a key can no longer make these approvals.',
-  afterRecoveryStill: 'A bound login can still take the account over through a recovery after its delay; dispute it from any device in time.',
+  afterRecoveryStill: "Only when on-chain recovery is enabled can a bound login take over after the waiting period.",
   afterStopRequiring: 'Approvals no longer need an approval key: a stolen device key and login would again be enough.',
   approvalKey: 'Approval key',
   approvalKeysRequiredFor: 'Required for',
@@ -1006,7 +1010,7 @@ const messages = {
   hwPayment: 'Payments',
   hwAttestation: 'Formal signatures',
   approvalKeys: 'Approval keys',
-  approvalKeysHint: 'A key in this Mac’s Secure Enclave signs the approvals your account protects. Once keys are required, a stolen device key and login can no longer change devices, logins, policies or the Agent principal; a login recovery still can, after its delay.',
+  approvalKeysHint: "A hardware key confirms the operations your account protects. On-chain recovery is controlled separately in Account security.",
   keysRequired: 'Required',
   keysNotRequired: 'Not required',
   approvalKeysUnavailable: 'This device cannot keep approval keys: that needs a Mac with a Secure Enclave and the system keychain.',

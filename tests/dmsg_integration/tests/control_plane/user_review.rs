@@ -94,6 +94,7 @@ fn inspect_refuses_product_ingress_and_anonymous_accounts_but_not_maintenance() 
 fn recovery_retries_preserve_pending_and_completed_results() {
     let f = Fixture::new();
     let id = f.create(1);
+    f.enable_recovery(1, &id);
     let s = f.account_id(1, &id);
     let at = time(&f.ic);
     let request = RecoveryRequest {
@@ -527,4 +528,67 @@ fn independent_cleanup_preserves_pending_executions_billing_and_replay_guards() 
         )
         .unwrap();
     }
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_RECOVERY_USER_WASM from the pre-opt-in user module"]
+fn recovery_policy_upgrade_preserves_existing_accounts_and_defaults_new_accounts_off() {
+    let old =
+        std::fs::read(std::env::var_os("DMSG_PRE_RECOVERY_USER_WASM").expect("pre-opt-in Wasm"))
+            .unwrap();
+    let f = Fixture::with_identity_modules(
+        false,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [old, wasm("dmsg_directory"), wasm("dmsg_handle")],
+    );
+    let id = f.root_account(1);
+    let before = f.account_id(1, &id);
+    assert!(before.recovery_enabled.is_none());
+    let leaf = |id: AccountId| {
+        let batch: Result<CertifiedBatch> = query(
+            &f.ic,
+            f.user,
+            Principal::anonymous(),
+            "security_snapshot_batch",
+            (vec![id],),
+        );
+        certified_value(&f, batch.unwrap(), id.as_slice())
+    };
+    let old_leaf = leaf(id);
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(f.account_id(1, &id), before);
+    assert_eq!(leaf(id), old_leaf);
+    let fresh = f.create(2);
+    assert_eq!(f.account_id(2, &fresh).recovery_enabled, Some(false));
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::SetRecoveryPolicy {
+            enabled: false,
+            delay_ms: DAY,
+        },
+    )
+    .unwrap();
+    let snapshot: SecuritySnapshot = decode_canonical(&leaf(id)).unwrap();
+    assert_eq!(snapshot.schema, 5);
+    assert_eq!(snapshot.recovery_enabled, Some(false));
+    let root = f.rekey(1, &id);
+    assert_eq!(root.recovery_enabled, Some(false));
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(f.account_id(1, &id).current_root, Some(root));
+    assert_eq!(f.account_id(1, &id).recovery_enabled, Some(false));
 }

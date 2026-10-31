@@ -888,6 +888,8 @@ const methods = {
       logins: [{ principal: login, current: !legacyHolderLoggedIn }, ...(legacyHolderBound ? [{ principal: legacyHolder, current: legacyHolderLoggedIn }] : [])],
       policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
       recovery_delay_ms: 3 * 86_400_000,
+      recovery_enabled: true,
+      recovery_updating: false,
       pending_recovery: pendingRecovery,
       notification: recoveryWarning?.pending ? notificationModel.ref({kind:'recovery',id:recoveryWarning.digest}) : null,
       recovered_device: null

@@ -22,12 +22,12 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`ic`] | `ic-agent` calls with Candid-typed replies; a lost update reply is `ExecutionUnknown` |
 | [`hold`] | Where an operation finds the client: held by its one caller throughout (`Client::hold`), or taken for each synchronous step by a caller that shares it, as the daemon does. Relay requests are signed in a step and sent after it, and the agents for the IC and the user homes leave the client the same way, so a shared client never waits on the network |
 | [`account`] | Certified security (public, no login needed) and account state (with the login), the encrypted operation journal, account creation, device-approved mutations and pairing |
-| [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
+| [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, opt-in on-chain recovery, its delay and disputes, each through the approval center |
 | [`succession`] | A planned device replacement: the new device's `dmsg-succession/1` request, the old device's review and approval, and each device's task of the handover steps it saw done |
 | [`transfer`] | dmsg-device-transfer/1: local content from one active device of the account to another over a local connection. The signed hello with the session key sealed by HPKE, AES-256-GCM frames, the manifest of transferable record names, resumable sessions and the receiver's additive merge; the host supplies the connection |
 | [`moved`] | Workspaces copied from another computer and set aside under `moved/`, opened as the device each was with the user home's unlock secret for it: importing a copy's file library through the device transfer's merge, and having its device approve this one as its successor |
 | [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |
-| [`root`] | RootBundle v2: wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
+| [`root`] | RootBundle v3 (v2 read compatibility): wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
 | [`cloud`] | dmsg-cloud/1: security evidence, device commands and HTTP proof of possession, presigned commands, chunks, stored-command verification |
 | [`upload`] | Account uploads, resumable after the chunks already stored |
 | [`content`] | Encrypted object versions, the cloud object container, upload manifests and local writes; a version on a stale base is a conflict copy |
@@ -730,3 +730,18 @@ writes of the same kind even when disk cleanup fails; other kinds go on. Capacit
 sums rather than the first inventory page. Avatar downloads bind both URL and
 publication version, so changing away from a URL and back cannot accept an older
 in-flight image as the new publication.
+
+### Optional on-chain recovery
+
+New accounts start with recovery disabled. An existing unlocked administrator
+requests `AccountChange::RecoveryPolicy { enabled, delay_ms }`; approval commits
+`SetRecoveryPolicy` and automatically rotates the root when its mode changes.
+The whole action stays pending/unknown until the root finishes, with ordinary
+approval reconciliation for retry. Legacy accounts retain enabled recovery.
+
+Disabled recovery has no IBE envelope in new RootBundle v3 generations and
+rejects login-authorized requests, takeover and derivation. Device-approved
+pairing and transfer still work. Losing every authorized device while recovery
+is off makes uploaded content unrecoverable even with the login. Enabling later
+requires an existing device and only takes effect for recovery after its new root
+commits. Disabling cannot recall keys or content already delivered.

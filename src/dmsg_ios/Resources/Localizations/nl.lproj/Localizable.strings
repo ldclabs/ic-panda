@@ -742,6 +742,8 @@
 	<string>Bestanden in deze map</string>
 	<key>Fingerprint</key>
 	<string>Vingerafdruk</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>De beveiligingswijziging wordt afgerond. Nieuwe inhoud wacht tot die klaar is.</string>
 	<key>Folder name</key>
 	<string>Mapnaam</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>ID-nummer</string>
 	<key>Identity</key>
 	<string>Identiteit</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Bij verlies van alle apparaten kan een gekoppelde aanmelding geüploade inhoud na de wachttijd herstellen. Een gestolen aanmelding kan dit ook, tenzij een bevoegd apparaat op tijd annuleert.</string>
 	<key>Illegal content</key>
 	<string>Illegale inhoud</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Sluit je aan bij een bestaande portemonnee</string>
 	<key>Join conversation</key>
 	<string>Neem deel aan het gesprek</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Bewaar een bevoegd apparaat dat je kunt ontgrendelen om van apparaat te wisselen. Als ze allemaal verloren gaan, herstelt opnieuw toegang krijgen geen cloudinhoud.</string>
 	<key>Keep current version</key>
 	<string>Behoud de huidige versie</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Op dit apparaat</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Bij je eerste bezoek logt je in en volgt je de stappen om je gecodeerde werkruimte te creëren.</string>
+	<key>On-chain recovery</key>
+	<string>Herstel via de blockchain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Na goedkeuring sluit het nieuwe apparaat aan met de rol van dit apparaat en gaat de inhoudsroot naar het nieuwe; dit apparaat kan daarna alleen de overdracht afronden.</string>
 	<key>One-time code</key>

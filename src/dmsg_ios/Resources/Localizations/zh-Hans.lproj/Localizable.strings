@@ -742,6 +742,8 @@
 	<string>此文件夹中的文件</string>
 	<key>Fingerprint</key>
 	<string>指纹</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>正在完成安全设置更新；完成前暂缓保存新内容。</string>
 	<key>Folder name</key>
 	<string>文件夹名称</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>证件号码</string>
 	<key>Identity</key>
 	<string>身份信息</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>全部设备丢失后，可凭绑定的登录身份在等待期后恢复已上传内容。登录身份被盗且无人及时取消时，对方也可恢复内容。</string>
 	<key>Illegal content</key>
 	<string>违法内容</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>加入已有钱包</string>
 	<key>Join conversation</key>
 	<string>加入对话</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>换机需要一台仍可解锁的授权设备。丢失全部授权设备后，即使找回登录，也无法恢复云端内容。</string>
 	<key>Keep current version</key>
 	<string>保留当前版本</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>保存在本机</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>首次使用 dMsg 时，登录后按引导创建你的加密工作区。</string>
+	<key>On-chain recovery</key>
+	<string>链上恢复</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>批准后，新设备以本设备的角色加入，内容根随之转到新设备；此后本设备只能完成交接。</string>
 	<key>One-time code</key>

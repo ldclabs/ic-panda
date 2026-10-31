@@ -73,6 +73,16 @@ struct ApprovalDetailView: View {
     @State private var decisionTask: Task<Void, Never>?
 
 
+    private var recoveryNotice: String? {
+        guard request.type == "account", let payload, case .object(let fields) = payload,
+              case .object(let detail)? = fields["detail"],
+              case .string("recovery_policy")? = detail["change"],
+              case .boolean(let enabled)? = detail["enabled"] else { return nil }
+        return String(localized: enabled
+            ? "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time."
+            : "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")
+    }
+
     var body: some View {
         List {
             HStack(alignment: .top, spacing: 12) {
@@ -86,6 +96,7 @@ struct ApprovalDetailView: View {
                 NoticeBar(text: String(localized: "This device may receive your private content. The content root must be redistributed after approval."))
                     .listRowBackground(Color.clear)
             }
+            if let recoveryNotice { NoticeBar(text: recoveryNotice).listRowBackground(Color.clear) }
             if let notice = approvalNotice(request.type) { NoticeBar(text: notice).listRowBackground(Color.clear) }
             if payload != nil && !supported { NoticeBar(text: String(localized: "This request requires a supported desktop client.")) }
             LabeledContent("Account ID") {

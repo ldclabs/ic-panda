@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('vi'),
+    onChainRecovery: "Khôi phục trên chuỗi",
+    recoveryOnHint: "Nếu mất mọi thiết bị, thông tin đăng nhập đã liên kết có thể khôi phục nội dung đã tải lên sau thời gian chờ. Kẻ đánh cắp thông tin đăng nhập cũng có thể làm vậy nếu thiết bị được cấp quyền không hủy kịp.",
+    recoveryOffHint: "Giữ một thiết bị được cấp quyền mà bạn có thể mở khóa để chuyển máy. Nếu mất tất cả, lấy lại đăng nhập cũng không khôi phục được nội dung đám mây.",
+    recoveryUpdating: "Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.",
     deviceSlots: 'Tối đa {n} thiết bị',
     teamWalletSlots: 'Tối đa {n} ví nhóm',
     walletQuotasUnavailable: 'Chưa thể tải giới hạn ví nhóm. Hãy làm mới để thử lại.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Cho đến khi đăng ký một khóa khác, thiết bị không thể thực hiện phê duyệt mà tài khoản của bạn bảo vệ nữa.",
     "afterRequireKeys": "Sau đó, mỗi phê duyệt này cần có khóa của thiết bị phê duyệt cũng như chữ ký thông thường của nó; phê duyệt đang được thực hiện phải được thực hiện lại.",
     "afterWithoutKeys": "Các thiết bị {n} không có khóa sẽ không thể thực hiện các phê duyệt này nữa.",
-    "afterRecoveryStill": "Thông tin đăng nhập bị ràng buộc vẫn có thể đưa tài khoản qua quá trình khôi phục sau khi bị trì hoãn; tranh chấp nó từ bất kỳ thiết bị nào kịp thời.",
+    afterRecoveryStill: "Đăng nhập đã liên kết chỉ có thể tiếp quản sau thời gian chờ nếu đã bật khôi phục trên chuỗi.",
     "afterStopRequiring": "Phê duyệt không còn cần khóa phê duyệt nữa: khóa thiết bị bị đánh cắp và thông tin đăng nhập lại là đủ.",
     "approvalKey": "Khóa phê duyệt",
     "approvalKeysRequiredFor": "Cần thiết cho",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Thanh toán",
     "hwAttestation": "Chữ ký chính thức",
     "approvalKeys": "Khóa phê duyệt",
-    "approvalKeysHint": "Một khóa trong Secure Enclave của máy Mac này ký các phê duyệt mà tài khoản của bạn bảo vệ. Sau khi cần có khóa, khóa và thông tin đăng nhập của thiết bị bị đánh cắp sẽ không thể thay đổi thiết bị, thông tin đăng nhập, chính sách hoặc Tác nhân principal nữa; vẫn có thể khôi phục đăng nhập sau khi bị trì hoãn.",
+    approvalKeysHint: "Khóa phần cứng xác nhận các thao tác được tài khoản bảo vệ. Khôi phục trên chuỗi được đặt riêng trong phần bảo mật tài khoản.",
     "keysRequired": "Bắt buộc",
     "keysNotRequired": "Không bắt buộc",
     "approvalKeysUnavailable": "Thiết bị này không thể giữ các khóa phê duyệt: cần có máy Mac có Secure Enclave và chuỗi khóa hệ thống.",

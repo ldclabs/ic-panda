@@ -324,6 +324,15 @@ pub enum SecurityCommand {
         /// Days.
         days: u64,
     },
+    /// Enable or disable on-chain recovery; requires approval on this device.
+    Recovery {
+        /// on or off.
+        #[arg(value_parser = ["on", "off"])]
+        state: String,
+        /// Waiting period, in days.
+        #[arg(long, default_value_t = 3)]
+        days: u64,
+    },
     /// Require approval keys for account, device and Agent principal
     /// changes, and optionally payments and attestations, or no longer
     /// (`off`); goes through the approval center. Devices without a key
@@ -552,6 +561,17 @@ pub async fn security(
                 json,
                 "account/recovery_delay",
                 json!({"days": days}),
+            )
+            .await;
+        }
+        SecurityCommand::Recovery { state, days } => {
+            return request(
+                remote,
+                json,
+                "account/recovery_policy",
+                json!({
+                    "enabled": state == "on", "days": days,
+                }),
             )
             .await;
         }

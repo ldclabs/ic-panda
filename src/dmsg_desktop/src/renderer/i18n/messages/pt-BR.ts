@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('pt-BR'),
+    onChainRecovery: "Recuperação on-chain",
+    recoveryOnHint: "Se todos os dispositivos forem perdidos, um login vinculado pode recuperar o conteúdo enviado após a espera. Um login roubado também, salvo cancelamento a tempo por um dispositivo autorizado.",
+    recoveryOffHint: "Mantenha um dispositivo autorizado que possa desbloquear para trocar de aparelho. Se perder todos, recuperar o login não recuperará o conteúdo na nuvem.",
+    recoveryUpdating: "Concluindo a atualização de segurança. Novos conteúdos aguardam o término.",
     deviceSlots: 'Até {n} dispositivos',
     teamWalletSlots: 'Até {n} carteiras de equipe',
     walletQuotasUnavailable: 'Os limites de carteiras de equipe estão indisponíveis. Atualize para tentar novamente.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Até registrar outra chave, o dispositivo não poderá mais fazer as aprovações que sua conta protege.",
     "afterRequireKeys": "Cada uma destas aprovações necessita então da chave do dispositivo de aprovação, bem como da sua assinatura habitual; as aprovações em andamento deverão ser feitas novamente.",
     "afterWithoutKeys": "Dispositivos {n} sem chave não podem mais fazer essas aprovações.",
-    "afterRecoveryStill": "Um login vinculado ainda pode assumir o controle da conta por meio de uma recuperação após o atraso; contestá-lo a partir de qualquer dispositivo a tempo.",
+    afterRecoveryStill: "Um login vinculado só pode assumir a conta após a espera se a recuperação on-chain estiver ativada.",
     "afterStopRequiring": "As aprovações não precisam mais de uma chave de aprovação: uma chave de dispositivo roubada e um login seriam novamente suficientes.",
     "approvalKey": "Chave de aprovação",
     "approvalKeysRequiredFor": "Obrigatório para",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Pagamentos",
     "hwAttestation": "Assinaturas formais",
     "approvalKeys": "Chaves de aprovação",
-    "approvalKeysHint": "Uma chave no Secure Enclave deste Mac assina as aprovações que sua conta protege. Depois que as chaves forem exigidas, a chave e o login de um dispositivo roubado não poderão mais alterar dispositivos, logins, políticas ou o Agente principal; uma recuperação de login ainda pode, após seu atraso.",
+    approvalKeysHint: "Uma chave de hardware confirma operações protegidas pela conta. A recuperação on-chain é configurada separadamente em Segurança da conta.",
     "keysRequired": "Obrigatório",
     "keysNotRequired": "Não obrigatório",
     "approvalKeysUnavailable": "Este dispositivo não pode manter chaves de aprovação: isso precisa de um Mac com Secure Enclave e as chaves do sistema.",

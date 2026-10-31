@@ -979,6 +979,7 @@ fn a_sequence_another_attestation_holds_is_not_signed_again() {
             security_epoch: 1,
             devices: devices.clone(),
             recovery_delay_ms: 0,
+            recovery_enabled: None,
             pending_recovery: None,
             recovered_device: None,
             current_root: None,

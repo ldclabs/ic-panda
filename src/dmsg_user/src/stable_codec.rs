@@ -302,6 +302,9 @@ pub struct AccountStateRepr {
     #[cbor(key = 32)]
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub successions: BTreeMap<Hash, Hash>,
+    #[cbor(key = 33)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_enabled: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -357,6 +360,7 @@ impl StableCodec for AccountState {
             security_epoch: self.security_epoch,
             devices: map_to_repr(&self.devices),
             recovery_delay_ms: self.recovery_delay_ms,
+            recovery_enabled: self.recovery_enabled,
             pending_recovery: self.pending_recovery.as_ref().map(StableCodec::to_repr),
             current_root: self.current_root.as_ref().map(StableCodec::to_repr),
             root_slot: self.root_slot.as_ref().map(StableCodec::to_repr),
@@ -408,6 +412,7 @@ impl StableCodec for AccountState {
             security_epoch: repr.security_epoch,
             devices: map_from_repr(repr.devices),
             recovery_delay_ms: repr.recovery_delay_ms,
+            recovery_enabled: repr.recovery_enabled,
             pending_recovery: repr.pending_recovery.map(PendingRecovery::from_repr),
             current_root: repr.current_root.map(ContentRootRef::from_repr),
             root_slot: repr.root_slot.map(RootReservation::from_repr),
@@ -613,6 +618,7 @@ mod tests {
             security_epoch: 0,
             devices: BTreeMap::from([(Hash::new([1; 32]), device(1))]),
             recovery_delay_ms: DEFAULT_RECOVERY_DELAY_MS,
+            recovery_enabled: None,
             pending_recovery: None,
             completed_recovery: None,
             current_root: None,
@@ -663,6 +669,7 @@ mod tests {
         state.current_root = Some(ContentRootRef {
             generation: 7,
             suite: "dmsg-root-v2".into(),
+            recovery_enabled: None,
             bundle_digest: Hash::new([36; 32]),
             recipients_digest: Hash::new([38; 32]),
             body_digest: Hash::new([39; 32]),
@@ -738,6 +745,22 @@ mod tests {
                 .iter()
                 .all(|(key, _)| matches!(key, cbor2::Value::Text(_)))
         );
+    }
+
+    #[test]
+    fn legacy_accounts_keep_recovery_and_explicit_choices_survive_upgrade() {
+        let mut state = account(false);
+        let legacy = compact_bytes(&state);
+        let restored = compact_from_bytes::<AccountState>(&legacy);
+        assert_eq!(restored.recovery_enabled, None);
+        assert_eq!(restored.snapshot("https://dmsg.test/u/").schema, 4);
+        assert_eq!(compact_bytes(&restored), legacy);
+        for enabled in [false, true] {
+            state.recovery_enabled = Some(enabled);
+            let restored = compact_from_bytes::<AccountState>(&compact_bytes(&state));
+            assert_eq!(restored.recovery_enabled, Some(enabled));
+            assert_eq!(restored.snapshot("https://dmsg.test/u/").schema, 5);
+        }
     }
 
     #[test]

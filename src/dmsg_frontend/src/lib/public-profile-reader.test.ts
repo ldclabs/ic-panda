@@ -392,3 +392,49 @@ it('checks document freshness after slower parallel configuration reads finish',
   waiting.resolve(config)
   await rejected
 })
+
+it.each([false, true])(
+  'reads an unpublished account with certified recovery policy %s',
+  async (enabled) => {
+    directory.principal_document.mockResolvedValue({
+      Ok: batch(await f.certified(f.directory, f.accountId, null))
+    })
+    user.security_snapshot_batch.mockResolvedValue({
+      Ok: batch(
+        await f.certified(
+          f.home,
+          f.accountId,
+          canonical({
+            schema: 5,
+            recovery_enabled: enabled,
+            account_id: f.accountId,
+            home_user: f.home
+          })
+        )
+      )
+    })
+    expect(await read()).toMatchObject({ account: f.account, document: null })
+  }
+)
+it('rejects a certified policy with a mismatched schema', async () => {
+  directory.principal_document.mockResolvedValue({
+    Ok: batch(await f.certified(f.directory, f.accountId, null))
+  })
+  for (const policy of [
+    { schema: 5 },
+    { schema: 4, recovery_enabled: false }
+  ]) {
+    user.security_snapshot_batch.mockResolvedValue({
+      Ok: batch(
+        await f.certified(
+          f.home,
+          f.accountId,
+          canonical({ ...policy, account_id: f.accountId, home_user: f.home })
+        )
+      )
+    })
+    await expect(read()).rejects.toMatchObject({
+      reason: 'verification_failed'
+    })
+  }
+})

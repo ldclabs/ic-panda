@@ -65,6 +65,7 @@ fn info(devices: Vec<Device>) -> AccountInfo {
             .map(|d| (d.input.device_id, d))
             .collect(),
         recovery_delay_ms: 0,
+        recovery_enabled: None,
         pending_recovery: None,
         recovered_device: None,
         current_root: None,

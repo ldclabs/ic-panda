@@ -742,6 +742,8 @@
 	<string>File dalam folder ini</string>
 	<key>Fingerprint</key>
 	<string>Sidik jari</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Menyelesaikan pembaruan keamanan. Konten baru menunggu hingga selesai.</string>
 	<key>Folder name</key>
 	<string>Nama folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Nomor Identitas</string>
 	<key>Identity</key>
 	<string>Identitas</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Jika semua perangkat hilang, login tertaut dapat memulihkan konten yang diunggah setelah masa tunggu. Login yang dicuri juga bisa, kecuali perangkat berizin membatalkan tepat waktu.</string>
 	<key>Illegal content</key>
 	<string>Konten ilegal</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Bergabunglah dengan dompet yang ada</string>
 	<key>Join conversation</key>
 	<string>Bergabunglah dalam percakapan</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Simpan perangkat berizin yang bisa dibuka untuk pindah perangkat. Jika semuanya hilang, memulihkan login tidak memulihkan konten cloud.</string>
 	<key>Keep current version</key>
 	<string>Pertahankan versi saat ini</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>Di perangkat ini</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>Pada kunjungan pertama Anda, masuk dan ikuti langkah-langkah untuk membuat ruang kerja terenkripsi Anda.</string>
+	<key>On-chain recovery</key>
+	<string>Pemulihan on-chain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Setelah disetujui, perangkat baru bergabung dengan peran perangkat ini dan akar konten pindah ke sana; perangkat ini kemudian hanya menyelesaikan serah terima.</string>
 	<key>One-time code</key>

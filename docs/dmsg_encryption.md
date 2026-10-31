@@ -12,8 +12,8 @@ Key conclusions:
 
 1. Login authentication, device authorization, content decryption and formal attestation are separate. Neither names nor login Principals are content keys.
 2. Local content uses a random content root and a random key per immutable version. The account-issued login unlock secret or platform fast-unlock key protects the local data key; macOS uses Secure Enclave, other supported platforms a random credential-store key. Devices with a credential store and supported hardware bind by default on login, requiring local hardware for every unlock; an explicit unbind preserves the compatibility path.
-3. Roots are HPKE-wrapped per device and vetKD-IBE-wrapped per generation for recovery. Registration, adding devices and rotation make no chain-key service call; recovery after losing all devices performs one vetKD derivation.
-4. There is no local unlock password, recovery code or service-independent offline recovery package. File export/sharing is not account recovery. Login identity plus an on-chain waiting period is the final recovery authority; losing that identity and every device makes content unrecoverable.
+3. Roots are HPKE-wrapped per device and, only with on-chain recovery enabled, vetKD-IBE-wrapped per generation for recovery. Registration, adding devices and rotation make no chain-key service call; recovery after losing all devices performs one vetKD derivation.
+4. There is no local unlock password, recovery code or service-independent offline recovery package. File export/sharing is not account recovery. On-chain recovery defaults off; opting in grants final recovery authority to the login identity plus an on-chain waiting period; losing that identity and every device makes content unrecoverable.
 5. Devices sign formal documents and the user home records certified receipts and charges usage. Agent controller keys remain in the vault and sign locally. Neither path uses threshold signing anymore.
 6. An account can turn on hardware approval: account, device and Agent principal control (optionally payments and formal attestations) then also needs a signature from the device's approval key, a P-256 key in the macOS Secure Enclave, which the user home verifies. Login recovery is not blocked by it and retires every approval key when it completes.
 
@@ -148,7 +148,7 @@ Local key cleanup (2026-10-31 addition): account binding, device binding and rep
 
 Default binding (2026-10-31 addition): joining after registration, pairing or recovery, and logging into an existing account, reuse the current `unlock_secret` query result to bind; there is no extra update or everyday vetKD derivation. The new hardware key must first open with user presence before content keys are released. Cancellation, creation failure and hardware errors do not fall back to login-only unlock. An existing hardware anchor distinguishes temporarily unavailable presence from unsupported hardware. Old unbound fast unlock requires a login to migrate. An explicit unbind persists `bound_declined`; manually binding again clears it. Devices without a credential store or supported hardware keep the compatibility path. Desktop and mobile hosts run confirmation outside the client executor and recheck the account, session and device state before accepting it.
 
-Migration scope: while the old device is available, unlock it and use device approval plus `dmsg-device-transfer/1` to transfer local data securely; the new device has independent device keys and hardware binding. Without the old device, login recovery restores content already uploaded to the cloud; a copied hardware-bound workspace cannot recover its unuploaded local files. Default binding first verifies and reuses an existing hardware fast-unlock key when present, preserving its evidence about a moved copy. A newly created key cannot establish the origin of an older hardware anchor.
+Migration scope: while the old device is available, unlock it and use device approval plus `dmsg-device-transfer/1` to transfer local data securely; the new device has independent device keys and hardware binding. Without the old device, previously enabled login recovery restores content already uploaded to the cloud; a copied hardware-bound workspace cannot recover its unuploaded local files. Default binding first verifies and reuses an existing hardware fast-unlock key when present, preserving its evidence about a moved copy. A newly created key cannot establish the origin of an older hardware anchor.
 
 ### 5.3 Plaintext storage boundary
 
@@ -207,9 +207,9 @@ Library files stay local by default; backup and cloud-copy deletion are explicit
 
 ## 8. Content roots, rotation and recovery
 
-### 8.1 RootBundle v2
+### 8.1 RootBundle v3
 
-Each generation wraps for active `VaultUnlock` devices and that generation's vetKD recovery identity. Exact bytes are in the [account/root contract](protocol/account_root.md):
+Each generation wraps for active `VaultUnlock` devices, plus its vetKD recovery identity only when on-chain recovery is enabled. Legacy v2 bundles remain readable. Exact bytes are in the [account/root contract](protocol/account_root.md):
 
 ```text
 device_envelope = HPKE.Seal(device.hpke_pub, VRK_g, ["dmsg/device-root/1", environment, account, g, device_id])
@@ -218,9 +218,11 @@ previous  = E(VRK_g, VRK_{g-1}, ["dmsg/previous-root/1", account, g, g-1, previo
 commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 ```
 
-On-chain `ContentRootRef` binds `recipients_digest` (sorted recipient IDs plus generation), `body_digest` and `bundle_digest`. `CommitRoot` recomputes the current recipient set and requires the approver to be included. Revoked/non-VaultUnlock devices receive no new root; unapproved devices cannot be inserted. Rotation reserves, wraps, uploads and CAS-commits without chain-key derivation.
+On-chain `ContentRootRef` binds `recipients_digest` (sorted recipient IDs, generation and recovery mode), `body_digest` and `bundle_digest`. `CommitRoot` recomputes the current recipient set and requires the approver to be included. Revoked/non-VaultUnlock devices receive no new root; unapproved devices cannot be inserted. Rotation reserves, wraps, uploads and CAS-commits without chain-key derivation.
 
 ### 8.2 Recovery scope
+
+New accounts start with on-chain recovery off; existing accounts retain their policy. Security settings submit one device approval and automatically rotate the root after a mode change, pausing writes until completion. Disabling cancels pending recovery and rejects takeover and derivation. Previously delivered keys and copied content cannot be recalled. Device-approved migration and encrypted cloud backups remain available while recovery is off.
 
 | Situation | Recoverable scope |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -228,20 +230,21 @@ On-chain `ContentRootRef` binds `recipients_digest` (sorted recipient IDs plus g
 | Local data remains with fast unlock enabled | Unlock without login for 30 days; macOS requires Touch ID/password and restores login. Afterwards login is required |
 | Device-bound slot lost or invalid (such as a fingerprint-only key after the fingerprints change) | This copy no longer opens and does not fall back to the old wrap; reset the workspace and recover the content as a new device through pairing or recovery |
 | New device with an administrator device available | Administrator approves pairing in the approval center (high-risk) and rotates; the new device downloads and opens its envelope. If the account requires hardware approval, the administrator device's approval key is needed too |
-| Hardware approval required and a device's approval key lost | That device cannot perform protected operations; it can make a new key and token locally for an administrator device with a key to register; with no usable key left, only login recovery remains |
-| All devices lost, II retained | Request recovery → waiting period (default 3 days, cancellable by any old device) → replace devices/bindings, retire every approval key and turn hardware approval off → one vetKD derivation opens recovery envelope → rotate |
+| Hardware approval required and a device's approval key lost | That device cannot perform protected operations; it can make a new key and token locally for an administrator device with a key to register; with no usable key left, only previously enabled login recovery remains |
+| All devices lost, II retained, recovery enabled beforehand | Request recovery → waiting period (default 3 days, cancellable by any old device) → replace devices/bindings, retire every approval key and turn hardware approval off → one vetKD derivation opens recovery envelope → rotate |
+| All authorized devices lost with recovery off | Content is unrecoverable even with the login |
 | II and all devices lost | Unrecoverable |
 | dMsg service unavailable | No service-independent recovery path |
 
-Only the device registered by `complete_recovery` may derive the current generation. Before rotation, a new approval may derive again, consuming daily execution count; rotation removes that authority. The waiting period is the mitigation for stolen II: no device response during the delay exposes content.
+Only the device registered by `complete_recovery` may derive the current generation. Before rotation, a new approval may derive again, consuming daily execution count; rotation removes that authority. When recovery is enabled, the waiting period mitigates stolen II: no device response during the delay exposes content.
 
 Sources: [root.rs](../src/dmsg_client/src/root.rs), [client account.rs](../src/dmsg_client/src/account.rs), [account.rs](../src/dmsg_user/src/account.rs), [recovery.rs](../src/dmsg_user/src/recovery.rs), [COSE](../src/dmsg_cose/README.md).
 
 ## 9. On-chain permissions
 
-`dmsg_user` verifies actual caller login binding, device signature/state/sequence, security epoch, expiry, role and entry-point capability such as `RootManage`, `FormalApprove`, `PaymentOffer` or `WalletApprove`. Cloud `ContentSign` and `VaultUnlock` govern ciphertext writes/reads respectively; root envelopes likewise include only active VaultUnlock devices, enforcing revocation cryptographically for new roots. Changes to devices, bindings, the recovery delay and execution policy, approval keys and the hardware policy advance security_epoch and clear candidate roots, invalidating approvals in flight. Only recipient changes or login recovery mark the committed root `RekeyRequired`; other bindings/capabilities do not require rotation. On-chain changes do not themselves re-encrypt client history.
+`dmsg_user` verifies actual caller login binding, device signature/state/sequence, security epoch, expiry, role and entry-point capability such as `RootManage`, `FormalApprove`, `PaymentOffer` or `WalletApprove`. Cloud `ContentSign` and `VaultUnlock` govern ciphertext writes/reads respectively; root envelopes likewise include only active VaultUnlock devices, enforcing revocation cryptographically for new roots. Changes to devices, bindings, the recovery delay and execution policy, approval keys and the hardware policy advance security_epoch and clear candidate roots, invalidating approvals in flight. Recipient changes, recovery mode changes or login recovery mark the committed root `RekeyRequired`; other bindings/capabilities do not require rotation. On-chain changes do not themselves re-encrypt client history.
 
-Security evidence uses certified values: `SecuritySnapshot` schema 4 at the single raw AccountId path; `devices_root = digest("dmsg/devices/v1", devices)` for the full device map; plus `recovery_delay_ms`, `pending_recovery_digest`, root generation/digests, `vault_write_state` and `principal_updated_at`. Match device records to the commitment before using public keys. Certificate time may lead the local clock by at most 10 seconds, and now must be before certificate time +60 seconds.
+Security evidence uses certified values: `SecuritySnapshot` schema 5 includes explicit `recovery_enabled`; legacy accounts without it retain enabled recovery and schema 4. The leaf uses the single raw AccountId path; `devices_root = digest("dmsg/devices/v1", devices)` for the full device map; plus `recovery_delay_ms`, `pending_recovery_digest`, root generation/digests, `vault_write_state` and `principal_updated_at`. Match device records to the commitment before using public keys. Certificate time may lead the local clock by at most 10 seconds, and now must be before certificate time +60 seconds.
 
 Hardware approval is verified only in the user home's device-approval check; exact encoding is in the [account contract](protocol/account_root.md#approval-keys):
 
@@ -272,7 +275,7 @@ sealed     = HPKE-Auth.Seal(skS = responding_device_hpke_private_key, pkR = resu
 
 Locked devices retain original envelopes, opening and checking pairing grants/page signatures only after unlock before approval. Replies use HPKE Auth to the bridge's per-operation non-exportable result key: relays cannot read them and parties without the responding device HPKE key cannot forge them. Page origin is a pairing-key-signed bridge claim displayed after registration checks, not cryptographic origin proof. MCP Events are likewise relay-sealed to device HPKE keys and signature-checked before LDK storage. Login requests a 30-day target-restricted delegation including ledgers; the session key is discarded, while the restricted key remains in memory and is persisted under LDK only for presence-required fast unlock. Signatures prove device approval of fixed data, not that a human read it.
 
-Where the account requires an approval key (section 9), the person answers once: without holding the client lock, the daemon obtains presence through the approval key (an evaluated Secure Enclave `LAContext`), then assembles the approval, signs Ed25519, and signs `H` with the same answer, so waiting for the person holds no device sequence and no second prompt appears. Formal attestations the account protects likewise ask before signing. Without a registered key on this device, a protected operation is refused locally before submission (`APPROVAL_KEY_REQUIRED`). Once the policy is on, a device without a usable key can make a key locally and sign a `dmsg-approval-key/1` token with its proof of possession; an administrator device with a key checks the device ID and approves the registration. Hardware approval means a stolen device software key and login together cannot immediately perform protected operations, but login recovery can still take over after its waiting period, during which any old device can dispute it. It proves that the registered key took part in the approval, not the model of hardware holding it or the person's intent.
+Where the account requires an approval key (section 9), the person answers once: without holding the client lock, the daemon obtains presence through the approval key (an evaluated Secure Enclave `LAContext`), then assembles the approval, signs Ed25519, and signs `H` with the same answer, so waiting for the person holds no device sequence and no second prompt appears. Formal attestations the account protects likewise ask before signing. Without a registered key on this device, a protected operation is refused locally before submission (`APPROVAL_KEY_REQUIRED`). Once the policy is on, a device without a usable key can make a key locally and sign a `dmsg-approval-key/1` token with its proof of possession; an administrator device with a key checks the device ID and approves the registration. Hardware approval means a stolen device software key and login together cannot immediately perform protected operations, but previously enabled login recovery can still take over after its waiting period, during which any old device can dispute it. It proves that the registered key took part in the approval, not the model of hardware holding it or the person's intent.
 
 ## 11. Verification boundaries
 

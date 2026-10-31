@@ -368,6 +368,7 @@ fn schema_15_upgrade_keeps_accounts_and_starts_without_approval_keys() {
     let root = ContentRootRef {
         generation: 1,
         suite: "dmsg-root-v2".into(),
+        recovery_enabled: None,
         bundle_digest: root_bundle_digest(recipients_digest, body_digest),
         recipients_digest,
         body_digest,

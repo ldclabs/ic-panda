@@ -11,7 +11,7 @@
 
 user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_handle_config()` 的 `user_homes`（权威列表；`config.toml` 的 `user_homes` 只作钉定，必须都在列表中）和 `registration_homes`（当前接收新账户的子集，随机选择一个注册）。登录后并行对列表中的每个 home 调用 `my_account`，全部成功后选取列表中首个命中的账户；任一查询失败视为未知，不落到注册。账户的 `home_user` 随账户固定。
 
-客户端在联网前把完整请求写入工作区的加密日志。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
+客户端在联网前把完整请求写入工作区的加密日志。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（显式恢复策略为 schema 5，旧账户保留 schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
 新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定分三步：新登录在本机生成 nonce 并把请求（home、账户、Principal、nonce）交给管理员设备；管理员批准 `BindAuth { principal, nonce }`，账户内登记 10 分钟有效的待接受项；新登录用同一 nonce 调用 `accept_auth_binding` 后才绑定。登录身份不等同于设备授权。
 
@@ -48,7 +48,7 @@ P-256 签名按 ECDSA-SHA256 处理 32 字节的 `H`（即 CryptoKit `signature(
 - `SetHardwarePolicy { purposes }`：空集合关闭；非空时必须包含三项控制用途。开启需要批准设备本身的有效证明。
 - 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`AddSuccessor`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不在其列。
 - 核验只在 user home 的设备批准检查中进行：账户政策要求的用途必须带有当前登记钥匙的有效证明；未要求时请求带来的证明同样核验。是否要求只由账户状态决定，旧 Candid（没有 `hardware` 字段）在启用后被拒绝。登记、替换、退役钥匙和修改政策都递增 `security_epoch`，在途的旧批准随之失效；commerce、membership 与团队钱包仍经 `verify_application_authorization` 复核记录与 epoch，不需改动。
-- 登录恢复不需要批准钥匙：`complete_recovery` 在同一提交点退役全部钥匙并清空政策，替换设备再登记、再启用。开启硬件批准后，账户控制从“设备软件钥匙与登录同时失窃即可立即接管”变为“只能经可被争议的延迟恢复接管”。
+- 登录恢复不需要批准钥匙：`complete_recovery` 在同一提交点退役全部钥匙并清空政策，替换设备再登记、再启用。开启硬件批准后，账户控制从“设备软件钥匙与登录同时失窃即可立即接管”变为“链上恢复开启时仍可经可被争议的延迟恢复接管”。
 
 客户端（`dmsg_client::approval_key`）把钥匙句柄用 LDK 封存，不出现在任何视图或日志中。账户保护的高风险请求在本机有登记钥匙时，人只在审批开始前回答一次：daemon 在不持客户端锁时取得这次在场授权，随后组装批准、签 Ed25519，并以同一授权签 `H`，因此等待人时不占设备序号，也不弹第二次在场确认。启用政策后没有可用钥匙的设备，可在本机生成钥匙并当场以持有证明签出请求令牌（base64url 确定性 CBOR `{format: "dmsg-approval-key/1", home, account, device_id, key}`），由一台有钥匙的管理员设备批准登记。
 
@@ -87,24 +87,26 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 2026-10-31 默认绑定规则：注册、配对、恢复后的加入与普通登录共用本机绑定流程，复用已有 `unlock_secret` query 的结果，不增加 update 或日常 vetKD 调用。系统确认在客户端执行器之外；确认前不释放内容密钥，取消或失败不回退，确认后重新校验会话与设备授权。旧的未绑定快速解锁返回 `AuthRequired`，先经登录迁移。工作区元数据 `bound_declined` 缺省为 false，明确解除绑定时设为 true，手动重新绑定时清除；关闭快速解锁不改变它。没有系统凭据库或硬件能力时保留兼容路径，已有硬件锚但暂时不能询问时不能按无硬件降级。既有副本仍受此前的保护边界约束。
 
-换机通过旧机批准新设备与 `dmsg-device-transfer/1` 传输本机数据；新设备不继承旧设备身份或硬件槽位。旧机不可用时，只承诺恢复已上传的云端内容，硬件绑定副本中的未上传文件不能仅凭登录恢复。已有硬件快速解锁钥匙优先用于默认绑定；新绑定槽位记录 `created_at`（旧槽位缺省为 0），只有早于硬件锚的钥匙才能确认旧锚的归属，避免用新机生成的钥匙误认旧机副本。
+换机通过旧机批准新设备与 `dmsg-device-transfer/1` 传输本机数据；新设备不继承旧设备身份或硬件槽位。旧机不可用且事先开启链上恢复时，只承诺恢复已上传的云端内容，硬件绑定副本中的未上传文件不能仅凭登录恢复。已有硬件快速解锁钥匙优先用于默认绑定；新绑定槽位记录 `created_at`（旧槽位缺省为 0），只有早于硬件锚的钥匙才能确认旧锚的归属，避免用新机生成的钥匙误认旧机副本。
 
-## 不可变 RootBundle v2
+## 不可变 RootBundle v3
 
 字节为确定性 CBOR：
 
 ```text
 { body: {
-    format: "dmsg-root-bundle/2",
+    format: "dmsg-root-bundle/3",
     context: { account, environment, generation, opId, securityEpoch },
     commitment: hex(SHA256(HKDF(VRK, ["dmsg/root-commitment/1"]))),
     envelopes: [ { device, enc, ciphertext } ... ],      // 按 device 升序，每台持有 VaultUnlock 的活跃设备一项
-    recoveryKey: { homeCose, keyName, publicKey },        // COSE 内容根 vetKD 公钥
-    recovery: base64url(IbeCiphertext),                   // IBE 到身份 CBOR([AccountId, generation])
+    recoveryKey?: { homeCose, keyName, publicKey },        // COSE 内容根 vetKD 公钥
+    recovery?: base64url(IbeCiphertext),                   // IBE 到身份 CBOR([AccountId, generation])
     previous: null | { digest, uploadId, generation, envelope },
     device, signingPublic
   }, signature: bytes64 }
 ```
+
+v3 的 `recoveryKey` 与 `recovery` 必须同时存在或同时省略，关闭时省略。`ContentRootRef.recovery_enabled` 必须与账户策略及接收者摘要一致。旧 v2 包仍可读取，未完成的 v2 任务保持原套件和摘要；v2 新提交只允许恢复已开启的账户。签名域与 bundle digest 域保持版本 2，body 内的 format 区分格式。
 
 公钥、COSE_Encrypt0 与 HPKE envelope 字节使用无填充 base64url；摘要、设备/操作/上传 ID 使用小写 hex。account 为规范的 20 字符 Xid，代次为安全正整数，`securityEpoch` 为预留槽的安全版本。
 
@@ -112,21 +114,29 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 - 设备信封：`HPKE.Seal(device.hpke_pub, VRK, info = aad = CBOR(["dmsg/device-root/1", environment, account, generation, device_id]))`，复用频道 epoch 密钥的 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM 原语。读取方解开后核对 `commitment`，保证所有设备拿到同一个根。
 - 恢复信封：`ic-vetkeys` 的 `IbeCiphertext::encrypt(dpk, identity, VRK, seed)`，`dpk` 是 COSE `root_public_key(account_id, generation)` 返回的 96 字节派生公钥（所有账户共享同一 context 公钥），`identity = CBOR([AccountId bytes12, generation])`。客户端核对描述中的 home、环境、代次、派生版本 2、账户、`SHA256(public_key)` 指纹与 key 名（生产为 `key_1`）。
 - `previous.envelope` 以新 VRK 包装上一代 VRK，AAD 为 `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`。`previous.digest` 是上一份 bundle **字节**的 SHA-256（即云端 manifest digest），`uploadId` 定位它；读者验证摘要并要求代次严格递减，至多读取 256 代。
-- 链上 `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用持有 `VaultUnlock` 的当前活跃设备集合重算 `recipients_digest`，并要求批准设备本身在其中，任一不符则拒绝，因此已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准设备也不能被塞进根包。
+- 链上 `ContentRootRef { generation, suite: "dmsg-root-v3", recovery_enabled, recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/2", [sorted device_id bytes, generation, recovery_enabled])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用持有 `VaultUnlock` 的当前活跃设备集合重算 `recipients_digest`，并要求批准设备本身在其中，任一不符则拒绝，因此已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准设备也不能被塞进根包。
 
 单份 bundle 最多 64,000 字节。通过 cloud upload 的 `kind=root` 保存：manifest 是原始 bundle 字节；必须存在的一块为确定性 CBOR 空数组 `0x80`。云端 ObjectRef 的 digest 等于 manifest SHA-256，客户端据此下载并按链上 `bundle_digest` 验证。
+
+部署先更新认证状态读取端，再升级 user canister 与客户端；旧客户端读取 v3 根或 schema 5 账户时须升级。
 
 ## 初始化与换根顺序
 
 1. 验证账户与设备能力；用单独 op_id 预留根代次（`ReserveRoot`）。丢弃/过期预留可能产生代次间隙。
-2. 本地生成随机 VRK（换根任务连同候选根用 LDK 封存为本机记录 `root-job`，重试复用），按认证设备表封装给每台持有 `VaultUnlock` 的活跃设备，查询并核对 COSE 恢复公钥后生成 IBE 恢复信封，生成唯一 bundle 字节。
+2. 本地生成随机 VRK（换根任务连同候选根用 LDK 封存为本机记录 `root-job`，重试复用），按认证设备表封装给每台持有 `VaultUnlock` 的活跃设备，仅在链上恢复开启时查询并核对 COSE 恢复公钥后生成 IBE 恢复信封，生成唯一 bundle 字节。
 3. 上传计划与 upload_id 持久化；重试查询同一上传，复用计划和密文。上传并 finalize 后，下载 manifest 再核对 SHA-256。
 4. 执行唯一的 user `CommitRoot` CAS。上传成功不能替代链上提交成功。
 5. 读回认证承诺后启用新根：首次绑定时工作区才归属账户（此前没有内容）；换根后，旧根经新根包的 `previous` 链读取。
 
-全程没有链上密钥调用。只有根包接收者变化（新增或撤销持有 `VaultUnlock` 的设备，或为设备增减这项能力）和登录恢复会让 `vault_write_state` 变为 `RekeyRequired`，管理员换根即可；认证绑定和其他能力的变化只递增 security epoch。其他接收者下载当前根包、解开自己的信封即可读取。
+全程没有链上密钥调用。只有根包接收者变化（新增或撤销持有 `VaultUnlock` 的设备，或为设备增减这项能力）、链上恢复开关变化和登录恢复会让 `vault_write_state` 变为 `RekeyRequired`，管理员换根即可；认证绑定和其他能力的变化只递增 security epoch。其他接收者下载当前根包、解开自己的信封即可读取。
 
 ## 全设备丢失恢复
+
+2026-10-31：新账户默认关闭链上恢复。`SetRecoveryPolicy { enabled, delay_ms }` 由管理员设备批准，受 `AccountControl` 硬件批准政策约束。桌面安全设置只提交一次审批，批准后客户端自动换根；不要求用户另行操作根密钥。开启前必须仍有可解锁的授权设备。
+
+模式变化取消待恢复、清除恢复派生资格并使已有根进入 `RekeyRequired`；没有结束的已授权派生先完成再改政策（返回 `Pending`）。关闭时 `request_recovery`、`complete_recovery`、`derive_root` 均拒绝；开启后须先提交包含恢复信封的根，才能申请恢复。日常 `unlock_secret` 仍是 query。旧根、已交付的密钥及已复制内容不能追回。
+
+稳定存储新增可选 `recovery_enabled`：缺省保留旧账户的开启状态，认证叶仍为 schema 4，升级不批量改写；新账户或显式设置后为 schema 5，并必须包含布尔值。`get_account` 与认证叶须一致。以下恢复步骤仅适用于已开启的账户；关闭时即使找回登录也不能恢复全失后的内容。
 
 客户端实现见 `dmsg_client::recovery`：申请封存在新设备的工作区，回复丢失时原样重发（同一申请不会重新开始等待）；派生的批准与传输密钥种子按承诺的根摘要封存为 `recover-root:<digest>`，结果先按执行 ID 读取，原批准过期且认证时间与设备序号证明它不可能再执行时才重新批准；`max_cycles` 固定为 700 亿。完成后客户端解开恢复信封、沿 `previous` 链取得历史根，再换根。
 
@@ -135,4 +145,4 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，退役全部批准钥匙并关闭硬件批准政策，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
 4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生（同一 `request_id` 重试返回原结果，换根前也可凭新批准再次派生），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端解密并核对 vetKey 后用它解开根包的 IBE 恢复信封，随即换根到下一代（只封装给自己）。换根后派生权消失。
 
-恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`max_cycles` 是客户端在批准中写定的上限。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。
+恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`max_cycles` 是客户端在批准中写定的上限。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。开启链上恢复时，II 被盗且延迟期内所有设备都没响应仍可能导致内容泄露；关闭时拒绝这条恢复路径。

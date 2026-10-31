@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('pl'),
+    onChainRecovery: "Odzyskiwanie on-chain",
+    recoveryOnHint: "Po utracie wszystkich urządzeń powiązane logowanie pozwala odzyskać przesłane treści po okresie oczekiwania. Skradzione logowanie również, jeśli autoryzowane urządzenie nie anuluje wniosku na czas.",
+    recoveryOffHint: "Zachowaj autoryzowane urządzenie, które możesz odblokować, aby zmienić urządzenie. Po utracie wszystkich odzyskanie logowania nie przywróci treści w chmurze.",
+    recoveryUpdating: "Trwa kończenie aktualizacji zabezpieczeń. Nowe treści czekają na jej zakończenie.",
     deviceSlots: 'Do {n} urządzeń',
     teamWalletSlots: 'Do {n} portfeli zespołowych',
     walletQuotasUnavailable: 'Limity portfeli zespołowych są niedostępne. Odśwież, aby spróbować ponownie.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Dopóki nie zarejestruje innego klucza, urządzenie nie będzie już mogło dokonywać zatwierdzeń chronionych przez Twoje konto.",
     "afterRequireKeys": "Każde z tych zatwierdzeń wymaga następnie klucza urządzenia zatwierdzającego oraz jego zwykłego podpisu; homologacje będące w toku muszą zostać ponownie wydane.",
     "afterWithoutKeys": "Urządzenia bez klucza: {n}. Nie mogą już zatwierdzać tych żądań.",
-    "afterRecoveryStill": "Powiązany login może nadal przejąć konto poprzez odzyskanie po jego opóźnieniu; zakwestionuj go z dowolnego urządzenia na czas.",
+    afterRecoveryStill: "Powiązane logowanie może przejąć konto po okresie oczekiwania tylko przy włączonym odzyskiwaniu on-chain.",
     "afterStopRequiring": "Do zatwierdzeń nie jest już potrzebny klucz zatwierdzający: znowu wystarczy skradziony klucz urządzenia i login.",
     "approvalKey": "Klucz zatwierdzający",
     "approvalKeysRequiredFor": "Wymagane dla",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Płatności",
     "hwAttestation": "Podpisy formalne",
     "approvalKeys": "Klucze zatwierdzające",
-    "approvalKeysHint": "Klucz w Secure Enclave tego komputera Mac podpisuje zatwierdzenia, których chroni Twoje konto. Gdy potrzebne będą klucze, skradziony klucz urządzenia i login nie będą już mogły zmieniać urządzeń, loginów, zasad ani agenta principal; odzyskanie logowania jest nadal możliwe po jego opóźnieniu.",
+    approvalKeysHint: "Klucz sprzętowy potwierdza chronione operacje konta. Odzyskiwanie on-chain ustawia się osobno w zabezpieczeniach konta.",
     "keysRequired": "Wymagane",
     "keysNotRequired": "Nie jest wymagane",
     "approvalKeysUnavailable": "To urządzenie nie może przechowywać kluczy zatwierdzających: wymaga komputera Mac z Secure Enclave i systemowym pękiem kluczy.",

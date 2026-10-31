@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('fil'),
+    onChainRecovery: "Pagbawi sa blockchain",
+    recoveryOnHint: "Kung mawala ang lahat ng device, maibabalik ng naka-link na login ang na-upload na nilalaman matapos ang paghihintay. Magagawa rin ito ng ninakaw na login maliban kung kanselahin agad ng awtorisadong device.",
+    recoveryOffHint: "Magtabi ng awtorisadong device na mabubuksan mo para makalipat ng device. Kung mawala ang lahat, hindi maibabalik ng pagbawi sa login ang nilalaman sa cloud.",
+    recoveryUpdating: "Tinatapos ang pag-update ng seguridad. Maghihintay ang bagong nilalaman hanggang matapos.",
     deviceSlots: 'Hanggang {n} device',
     teamWalletSlots: 'Hanggang {n} team wallet',
     walletQuotasUnavailable: 'Hindi makuha ang mga limitasyon ng team wallet. I-refresh upang subukang muli.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Hanggang sa magrerehistro ito ng isa pang key, hindi na magagawa ng device ang mga pag-apruba na pinoprotektahan ng iyong account.",
     "afterRequireKeys": "Ang bawat isa sa mga pag-apruba na ito ay nangangailangan ng susi ng pag-apruba ng device pati na rin ang karaniwang lagda nito; ang mga pag-apruba na isinasagawa ay dapat gawin muli.",
     "afterWithoutKeys": "Ang mga {n} na device na walang susi ay hindi na makakagawa ng mga pag-apruba na ito.",
-    "afterRecoveryStill": "Ang isang nakatali na pag-log in ay maaari pa ring kunin ang account sa pamamagitan ng pagbawi pagkatapos ng pagkaantala nito; i-dispute ito mula sa anumang device sa oras.",
+    afterRecoveryStill: "Makukuha lang ng naka-link na login ang account matapos ang paghihintay kung naka-on ang pagbawi sa blockchain.",
     "afterStopRequiring": "Hindi na kailangan ng mga pag-apruba ng key ng pag-apruba: sapat na muli ang isang ninakaw na key ng device at pag-log in.",
     "approvalKey": "Susi ng pag-apruba",
     "approvalKeysRequiredFor": "Kinakailangan para sa",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Mga pagbabayad",
     "hwAttestation": "Mga pormal na pirma",
     "approvalKeys": "Mga susi sa pag-apruba",
-    "approvalKeysHint": "Ang isang susi sa Secure Enclave ng Mac na ito ay pumipirma sa mga pag-apruba na pinoprotektahan ng iyong account. Kapag kailangan na ng mga susi, hindi na mababago ng ninakaw na key ng device at pag-log in ang mga device, login, patakaran o ang Agent principal; ang isang pagbawi sa pag-login ay maaari pa rin, pagkatapos ng pagkaantala nito.",
+    approvalKeysHint: "Kinukumpirma ng hardware key ang mga operasyong protektado ng account. Hiwalay na itinatakda ang pagbawi sa blockchain sa seguridad ng account.",
     "keysRequired": "Kinakailangan",
     "keysNotRequired": "Hindi kinakailangan",
     "approvalKeysUnavailable": "Hindi mapanatili ng device na ito ang mga key ng pag-apruba: nangangailangan iyon ng Mac na may Secure Enclave at ang keychain ng system.",

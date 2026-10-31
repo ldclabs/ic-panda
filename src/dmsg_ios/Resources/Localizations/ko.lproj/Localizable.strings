@@ -742,6 +742,8 @@
 	<string>이 폴더의 파일</string>
 	<key>Fingerprint</key>
 	<string>지문</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>보안 설정을 업데이트하고 있습니다. 완료될 때까지 새 내용 저장을 기다립니다.</string>
 	<key>Folder name</key>
 	<string>폴더 이름</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>아이디 번호</string>
 	<key>Identity</key>
 	<string>아이덴티티</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>모든 기기를 잃어버린 경우 연결된 로그인으로 대기 기간 후 업로드한 내용을 복구할 수 있습니다. 로그인이 도난당해도 승인된 기기가 제때 취소하지 않으면 마찬가지입니다.</string>
 	<key>Illegal content</key>
 	<string>불법 콘텐츠</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>기존 지갑에 가입하기</string>
 	<key>Join conversation</key>
 	<string>대화에 참여</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.</string>
 	<key>Keep current version</key>
 	<string>현재 버전 유지</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>이 기기에서</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>처음 방문할 때 로그인하고 단계에 따라 암호화된 작업 공간을 만드세요.</string>
+	<key>On-chain recovery</key>
+	<string>온체인 복구</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>승인하면 새 장치가 이 장치의 역할로 가입하고 콘텐츠 루트도 새 장치로 옮겨집니다. 이후 이 장치는 인계를 마치는 일만 할 수 있습니다.</string>
 	<key>One-time code</key>

@@ -1538,3 +1538,15 @@ unlock/invalidation generation and source before reading. A clear, policy edit
 or endpoint change prevents an earlier response from writing back. Locks caused
 by background revocation checks or a failed unlock also announce the session
 change; owner views do not wait for another successful status query to clear.
+
+### On-chain recovery
+
+New accounts default to off; existing accounts retain their previous recovery
+capability. `dmsg account recovery on [--days 3]` and
+`dmsg account recovery off` request one administrator-device approval, including
+automatic root rotation. Desktop exposes the same choice in Account security.
+Daily unlock queries do not change. `recovery status` reports `enabled` and the
+waiting request; recovery cannot be enabled using only a login on a new device.
+Without a remaining authorized device, only previously enabled recovery can
+restore uploaded content. Earlier disclosed keys cannot be recalled by turning
+it off.

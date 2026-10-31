@@ -74,7 +74,7 @@ fn device(n: u8, admin: bool) -> DeviceInput {
     }
 }
 
-fn fixture() -> TestAccount {
+fn fresh_fixture() -> TestAccount {
     let input = CreateAccount {
         device: device(1, true),
         op_id: Hash::new([9; 32]),
@@ -95,6 +95,13 @@ fn fixture() -> TestAccount {
         account: account::create(p(5), p(6), AccountId([8; 12]), p(1), &input, 1).unwrap(),
         executions: BTreeMap::new(),
     }
+}
+
+// Existing scenarios model accounts created before recovery became opt-in.
+fn fixture() -> TestAccount {
+    let mut s = fresh_fixture();
+    s.account.recovery_enabled = None;
+    s
 }
 
 fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
@@ -136,11 +143,20 @@ fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<Ope
 /// A generation-`generation` root reference wrapped to the account's root
 /// recipients and the vetKD identity, with an arbitrary body digest.
 fn root_ref(s: &AccountState, generation: u64) -> ContentRootRef {
-    let recipients_digest = root_recipients_digest(&s.root_recipients(), generation);
+    let recipients_digest = match s.recovery_enabled {
+        Some(enabled) => root_recipients_digest_v2(&s.root_recipients(), generation, enabled),
+        None => root_recipients_digest(&s.root_recipients(), generation),
+    };
     let body_digest = Hash::new([generation as u8; 32]);
     ContentRootRef {
         generation,
-        suite: "dmsg-root-v2".into(),
+        suite: if s.recovery_enabled.is_some() {
+            "dmsg-root-v3"
+        } else {
+            "dmsg-root-v2"
+        }
+        .into(),
+        recovery_enabled: s.recovery_enabled,
         bundle_digest: root_bundle_digest(recipients_digest, body_digest),
         recipients_digest,
         body_digest,
@@ -523,6 +539,7 @@ fn commit_root_binds_the_vault_devices_and_vetkd_identity() {
         ContentRootRef {
             generation: 1,
             suite: "dmsg-root-v2".into(),
+            recovery_enabled: None,
             bundle_digest: root_bundle_digest(recipients_digest, body),
             recipients_digest,
             body_digest: body,
@@ -2603,4 +2620,142 @@ fn optional_purposes_protect_attestations_and_recovery_resets_the_policy() {
         .to_bytes()
         .into();
     account::apply(&mut s, p(4), &m, now, p(7), &PlanId::Pro).unwrap();
+}
+
+#[test]
+fn new_accounts_cannot_recover_without_an_authorized_opt_in() {
+    let mut s = fresh_fixture();
+    assert_eq!(s.recovery_enabled, Some(false));
+    assert_eq!(s.snapshot(NAMESPACE).schema, 5);
+    let root = committed(&mut s, 2);
+    assert_eq!(root.recovery_enabled, Some(false));
+    let request = RecoveryRequest {
+        op_id: Hash::new([70; 32]),
+        new_auth: p(1),
+        device: device(4, true),
+        expires_at: 10 * DAY,
+    };
+    let proof = sk(4)
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
+        .to_bytes();
+    let before = s.clone();
+    assert_eq!(
+        recovery::begin_recovery(&mut s, p(1), &request, &proof, 3),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(1), request.op_id, 4 * DAY),
+        Err(Error::Forbidden)
+    );
+    let derive_input = derive_request(&s, 1, root.generation, 4);
+    assert_eq!(
+        derive(&mut s, p(1), &derive_input, 4),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(s, before);
+    let command = AccountCommand::SetRecoveryPolicy {
+        enabled: true,
+        delay_ms: DAY,
+    };
+    let mut unsigned = mutation(&s, command.clone(), 1, 5);
+    unsigned.approval.signature = Default::default();
+    assert!(account::apply(&mut s, p(1), &unsigned, 5, p(7), &PlanId::Pro).is_err());
+    assert_eq!(s, before);
+    apply(&mut s, command, 5).unwrap();
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+    // A policy opt-in alone cannot offer recovery until its envelope commits.
+    assert_eq!(
+        recovery::begin_recovery(&mut s, p(1), &request, &proof, 6),
+        Err(Error::RekeyRequired)
+    );
+    committed(&mut s, 6);
+    recovery::begin_recovery(&mut s, p(1), &request, &proof, 7).unwrap();
+    recovery::complete_recovery(&mut s, p(1), request.op_id, DAY + 7).unwrap();
+    assert_eq!(s.devices.len(), 1);
+    assert!(s.devices.contains_key(&Hash::new([4; 32])));
+}
+
+#[test]
+fn disabling_recovery_cancels_takeover_and_requires_a_root_without_recovery() {
+    let mut s = fixture();
+    committed(&mut s, 1);
+    let request = RecoveryRequest {
+        op_id: Hash::new([71; 32]),
+        new_auth: p(1),
+        device: device(4, true),
+        expires_at: 10 * DAY,
+    };
+    let proof = sk(4)
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
+        .to_bytes();
+    recovery::begin_recovery(&mut s, p(1), &request, &proof, 2).unwrap();
+    apply(
+        &mut s,
+        AccountCommand::SetRecoveryPolicy {
+            enabled: false,
+            delay_ms: 3 * DAY,
+        },
+        3,
+    )
+    .unwrap();
+    assert!(s.pending_recovery.is_none());
+    assert_eq!(s.snapshot(NAMESPACE).recovery_enabled, Some(false));
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(1), request.op_id, 4 * DAY),
+        Err(Error::Forbidden)
+    );
+    let op_id = Hash::new([72; 32]);
+    apply(
+        &mut s,
+        AccountCommand::ReserveRoot {
+            expected_generation: 1,
+            op_id,
+        },
+        4,
+    )
+    .unwrap();
+    let generation = s.root_slot.as_ref().unwrap().generation;
+    let mut root = root_ref(&s, generation);
+    root.recovery_enabled = Some(true);
+    root.recipients_digest = root_recipients_digest_v2(&s.root_recipients(), generation, true);
+    root.bundle_digest = root_bundle_digest(root.recipients_digest, root.body_digest);
+    let command = |root| AccountCommand::CommitRoot {
+        expected_generation: 1,
+        op_id,
+        root,
+    };
+    assert_eq!(
+        apply(&mut s, command(root.clone()), 5),
+        Err(Error::IntegrityFailed)
+    );
+    root.suite = "dmsg-root-v2".into();
+    root.recovery_enabled = None;
+    root.recipients_digest = root_recipients_digest(&s.root_recipients(), generation);
+    root.bundle_digest = root_bundle_digest(root.recipients_digest, root.body_digest);
+    assert_eq!(apply(&mut s, command(root), 5), Err(Error::IntegrityFailed));
+    let valid = root_ref(&s, generation);
+    apply(&mut s, command(valid), 5).unwrap();
+    assert_eq!(s.vault_write_state, VaultWriteState::Ready);
+    assert_eq!(
+        s.current_root.as_ref().unwrap().recovery_enabled,
+        Some(false)
+    );
+}
+
+#[test]
+fn a_policy_change_waits_for_already_authorized_derivations() {
+    let mut s = fixture();
+    let pending = Hash::new([73; 32]);
+    s.execution_expirations.insert(pending, None);
+    let change = AccountCommand::SetRecoveryPolicy {
+        enabled: false,
+        delay_ms: DAY,
+    };
+    let before = s.clone();
+    assert_eq!(apply(&mut s, change.clone(), 2), Err(Error::Pending));
+    assert_eq!(s, before);
+    s.execution_expirations.insert(pending, Some(DAY));
+    apply(&mut s, change, 3).unwrap();
+    assert_eq!(s.recovery_enabled, Some(false));
 }

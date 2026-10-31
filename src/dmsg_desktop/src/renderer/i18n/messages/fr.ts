@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   messages: {
     ...notificationText('fr'),
+    onChainRecovery: "Récupération sur la chaîne",
+    recoveryOnHint: "Si tous les appareils sont perdus, une identité liée peut récupérer le contenu envoyé après le délai. Une identité volée le peut aussi, sauf annulation à temps par un appareil autorisé.",
+    recoveryOffHint: "Gardez un appareil autorisé que vous pouvez déverrouiller pour changer d’appareil. Si tous sont perdus, retrouver votre connexion ne restaure pas le contenu cloud.",
+    recoveryUpdating: "Mise à jour de sécurité en cours. Le nouveau contenu attend sa fin.",
     deviceSlots: 'Jusqu’à {n} appareils',
     teamWalletSlots: 'Portefeuilles d’équipe : {n}',
     walletQuotasUnavailable: 'Les limites des portefeuilles d’équipe sont indisponibles. Actualisez pour réessayer.',
@@ -991,7 +995,7 @@ export default {
     afterRetireApprovalKey: 'Tant qu’il n’enregistre pas une autre clé, l’appareil ne peut plus faire les approbations que votre compte protège.',
     afterRequireKeys: 'Chacune de ces approbations demandera en plus la clé de l’appareil qui approuve ; les approbations en cours devront être refaites.',
     afterWithoutKeys: '{n} appareils sans clé ne pourront plus faire ces approbations.',
-    afterRecoveryStill: 'Une connexion liée peut toujours prendre le compte par une récupération après son délai ; contestez-la à temps depuis n’importe quel appareil.',
+    afterRecoveryStill: "Une identité liée ne peut reprendre le compte après le délai que si la récupération sur la chaîne est activée.",
     afterStopRequiring: 'Les approbations n’exigeront plus de clé : une clé d’appareil et une connexion volées suffiraient de nouveau.',
     approvalKey: 'Clé d’approbation',
     approvalKeysRequiredFor: 'Exigée pour',
@@ -1004,7 +1008,7 @@ export default {
     hwPayment: 'Paiements',
     hwAttestation: 'Signatures formelles',
     approvalKeys: 'Clés d’approbation',
-    approvalKeysHint: 'Une clé dans la Secure Enclave de ce Mac signe les approbations que votre compte protège. Une fois exigées, une clé d’appareil et une connexion volées ne peuvent plus changer les appareils, les connexions, les règles ni le principal d’agent ; une récupération le peut toujours, après son délai.',
+    approvalKeysHint: "Une clé matérielle confirme les opérations protégées par votre compte. La récupération sur la chaîne se règle séparément dans la sécurité du compte.",
     keysRequired: 'Exigées',
     keysNotRequired: 'Non exigées',
     approvalKeysUnavailable: 'Cet appareil ne peut pas garder de clés d’approbation : il faut un Mac avec une Secure Enclave et le trousseau du système.',

@@ -102,6 +102,7 @@ export const changeLabels: Record<string, Label> = {
   remove_login: 'removeLogin',
   policy: 'signingPolicy',
   recovery_delay: 'recoveryDelay',
+  recovery_policy: 'onChainRecovery',
   dispute_recovery: 'disputeRecovery'
 }
 

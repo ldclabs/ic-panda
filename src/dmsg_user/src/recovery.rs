@@ -17,6 +17,13 @@ pub(crate) fn begin_recovery(
     now: u64,
 ) -> Result<()> {
     authenticated(caller)?;
+    ensure(s.recovery_enabled.unwrap_or(true), Error::Forbidden)?;
+    ensure(
+        s.current_root
+            .as_ref()
+            .is_none_or(|root| root.recovery_enabled.unwrap_or(true)),
+        Error::RekeyRequired,
+    )?;
     ensure(
         caller == request.new_auth && s.auth_bindings.contains(&caller),
         Error::AuthRequired,
@@ -65,6 +72,7 @@ pub(crate) fn complete_recovery(
     request_id: OpId,
     now: u64,
 ) -> Result<Option<Vec<Principal>>> {
+    ensure(s.recovery_enabled.unwrap_or(true), Error::Forbidden)?;
     if let Some(r) = &s.completed_recovery
         && r.request_id == request_id
     {

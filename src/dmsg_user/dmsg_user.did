@@ -137,6 +137,13 @@ type AccountCommand = variant {
     // Controller generation.
     generation : nat32;
   };
+  // Opt into or out of login-authorized recovery and set its waiting period.
+  SetRecoveryPolicy : record {
+    // Waiting period in milliseconds, from one to seven days.
+    delay_ms : nat64;
+    // New accounts start with recovery disabled.
+    enabled : bool;
+  };
   // Revoke a device and invalidate affected security state.
   RevokeDevice : record {
     // 32-byte device identifier, distinct from its signing public key.
@@ -158,6 +165,8 @@ type AccountInfo = record {
   auth_bindings : vec principal;
   // Outstanding root reservation, if present.
   root_slot : opt RootReservation;
+  // None denotes an older user home, whose recovery policy was enabled.
+  recovery_enabled : opt bool;
   // Device enrolled by the latest completed recovery and the root generation
   // it may derive; None once that device commits a new root.
   recovered_device : opt record { blob; nat64 };
@@ -615,14 +624,16 @@ type CertifiedEntry = record {
 // Commitment to an encrypted root bundle stored outside the user canister.
 // This contains neither the bundle nor a plaintext content key.
 // The commit checks that `recipients_digest` names exactly the active devices
-// and the vetKD recovery identity of this generation, and that
+// and, when enabled, the vetKD recovery identity of this generation, and that
 // `bundle_digest = digest("dmsg/root-bundle-digest/2", (recipients_digest, body_digest))`.
 type ContentRootRef = record {
+  // RootBundle v3's recovery recipient. Absent in legacy v2 (enabled).
+  recovery_enabled : opt bool;
   // SHA-256 of the bundle body that carries the envelopes.
   body_digest : blob;
   // Reserved content-root generation being committed.
   generation : nat64;
-  // Root bundle suite identifier; current commit validation requires `dmsg-root-v2`.
+  // Root bundle suite: `dmsg-root-v3`, or legacy `dmsg-root-v2` with recovery enabled.
   suite : text;
   // `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
   recipients_digest : blob;
@@ -1125,7 +1136,7 @@ type RootReservation = record {
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
-// Certified account security leaf (current schema 4).
+// Certified account security leaf (schema 5, or legacy schema 4 without a policy).
 // The leaf path is the single raw 12-byte account ID. `devices_root` commits
 // to the complete device map, including revocation and replay state. Verify
 // certificate, witness and freshness before using it as authority.
@@ -1140,6 +1151,9 @@ type SecuritySnapshot = record {
   content_root_digest : opt blob;
   // `dmsg/devices/v1` digest of the complete BTreeMap<Hash, Device>.
   devices_root : blob;
+  // Whether login-authorized on-chain recovery is enabled. None is the
+  // legacy schema-4 policy (enabled); schema 5 always supplies a value.
+  recovery_enabled : opt bool;
   // `updated_at` of the account's current principal state, or None before
   // the principal is enabled. A published document older than this is stale.
   principal_updated_at : opt nat64;

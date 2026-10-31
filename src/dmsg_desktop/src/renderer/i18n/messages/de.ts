@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('de'),
+    onChainRecovery: "On-Chain-Wiederherstellung",
+    recoveryOnHint: "Gehen alle Geräte verloren, kann eine verknüpfte Anmeldung hochgeladene Inhalte nach der Wartezeit wiederherstellen. Das gilt auch bei Diebstahl der Anmeldung, sofern kein autorisiertes Gerät rechtzeitig widerspricht.",
+    recoveryOffHint: "Behalte ein entsperrbares autorisiertes Gerät für den Gerätewechsel. Gehen alle autorisierten Geräte verloren, stellt die Wiederherstellung der Anmeldung keine Cloud-Inhalte wieder her.",
+    recoveryUpdating: "Die Sicherheitsänderung wird abgeschlossen. Neue Inhalte warten bis dahin.",
     deviceSlots: 'Bis zu {n} Geräte',
     teamWalletSlots: 'Bis zu {n} Team-Wallets',
     walletQuotasUnavailable: 'Die Limits für Team-Wallets sind nicht verfügbar. Zum erneuten Versuch aktualisieren.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Bis ein anderer Schlüssel registriert wird, kann das Gerät die durch Ihr Konto geschützten Genehmigungen nicht mehr durchführen.",
     "afterRequireKeys": "Jede dieser Genehmigungen benötigt dann den Schlüssel des genehmigenden Geräts sowie dessen übliche Signatur; Laufende Genehmigungen müssen erneut vorgenommen werden.",
     "afterWithoutKeys": "{n} Geräte ohne Schlüssel können diese Genehmigungen nicht mehr vornehmen.",
-    "afterRecoveryStill": "Eine gebundene Anmeldung kann das Konto nach der Verzögerung immer noch durch eine Wiederherstellung übernehmen; bestreiten Sie es rechtzeitig von jedem Gerät aus.",
+    afterRecoveryStill: "Eine verknüpfte Anmeldung kann das Konto nach der Wartezeit nur bei aktivierter On-Chain-Wiederherstellung übernehmen.",
     "afterStopRequiring": "Für Genehmigungen ist kein Genehmigungsschlüssel mehr erforderlich: Ein gestohlener Geräteschlüssel und ein Login würden wieder ausreichen.",
     "approvalKey": "Genehmigungsschlüssel",
     "approvalKeysRequiredFor": "Erforderlich für",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Zahlungen",
     "hwAttestation": "Formelle Unterschriften",
     "approvalKeys": "Genehmigungsschlüssel",
-    "approvalKeysHint": "Ein Schlüssel im Secure Enclave dieses Mac signiert die Genehmigungen, die Ihr Konto schützt. Sobald Schlüssel erforderlich sind, können ein gestohlener Geräteschlüssel und ein gestohlenes Login keine Geräte, Logins, Richtlinien oder den Agenten principal mehr ändern; Eine Login-Wiederherstellung ist nach der Verzögerung immer noch möglich.",
+    approvalKeysHint: "Ein Hardwareschlüssel bestätigt geschützte Kontovorgänge. Die On-Chain-Wiederherstellung wird separat in der Kontosicherheit eingestellt.",
     "keysRequired": "Erforderlich",
     "keysNotRequired": "Nicht erforderlich",
     "approvalKeysUnavailable": "Dieses Gerät kann keine Genehmigungsschlüssel behalten. Dazu ist ein Mac mit einem Secure Enclave und dem Systemschlüsselbund erforderlich.",

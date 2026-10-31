@@ -742,6 +742,8 @@
 	<string>Archivos de esta carpeta</string>
 	<key>Fingerprint</key>
 	<string>Huella</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>Finalizando la actualización de seguridad. El contenido nuevo espera hasta que termine.</string>
 	<key>Folder name</key>
 	<string>Nombre de la carpeta</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>Número de documento</string>
 	<key>Identity</key>
 	<string>Identidad</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>Si se pierden todos los dispositivos, un inicio de sesión vinculado puede recuperar el contenido subido tras la espera. Uno robado también, salvo que un dispositivo autorizado cancele a tiempo.</string>
 	<key>Illegal content</key>
 	<string>Contenido ilegal</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>Unirse a una cartera existente</string>
 	<key>Join conversation</key>
 	<string>Unirse a la conversación</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>Conserva un dispositivo autorizado que puedas desbloquear para cambiar de dispositivo. Si los pierdes todos, recuperar el acceso no recuperará el contenido en la nube.</string>
 	<key>Keep current version</key>
 	<string>Conservar versión actual</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>En este dispositivo</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>La primera vez, inicia sesión y sigue los pasos para crear tu espacio de trabajo cifrado.</string>
+	<key>On-chain recovery</key>
+	<string>Recuperación en cadena</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Al aprobar, el dispositivo nuevo se une con el rol de este y la raíz de contenido pasa a él; después este dispositivo solo puede terminar el traspaso.</string>
 	<key>One-time code</key>

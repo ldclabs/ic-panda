@@ -742,6 +742,8 @@
 	<string>इस फ़ोल्डर में फ़ाइलें</string>
 	<key>Fingerprint</key>
 	<string>फ़िंगरप्रिंट</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>सुरक्षा अपडेट पूरा हो रहा है। तब तक नई सामग्री सहेजना रुका रहेगा।</string>
 	<key>Folder name</key>
 	<string>फ़ोल्डर का नाम</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>आईडी नंबर</string>
 	<key>Identity</key>
 	<string>पहचान</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>सभी डिवाइस खोने पर जुड़ा लॉगिन प्रतीक्षा अवधि के बाद अपलोड की गई सामग्री वापस ला सकता है। चोरी हुआ लॉगिन भी ऐसा कर सकता है, यदि अधिकृत डिवाइस समय पर अनुरोध रद्द न करे।</string>
 	<key>Illegal content</key>
 	<string>अवैध सामग्री</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>किसी मौजूदा वॉलेट से जुड़ें</string>
 	<key>Join conversation</key>
 	<string>बातचीत में शामिल हों</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>डिवाइस बदलने के लिए ऐसा अधिकृत डिवाइस रखें जिसे आप अनलॉक कर सकें। सभी अधिकृत डिवाइस खोने पर लॉगिन वापस मिलने से भी क्लाउड सामग्री वापस नहीं आएगी।</string>
 	<key>Keep current version</key>
 	<string>वर्तमान संस्करण रखें</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>इस डिवाइस पर</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>अपनी पहली यात्रा पर, साइन इन करें और अपना एन्क्रिप्टेड कार्यक्षेत्र बनाने के लिए चरणों का पालन करें।</string>
+	<key>On-chain recovery</key>
+	<string>ऑन-चेन पुनर्प्राप्ति</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>अनुमोदन के बाद नया उपकरण इस उपकरण की भूमिका के साथ जुड़ता है और सामग्री रूट उसे मिल जाता है; इसके बाद यह उपकरण केवल सौंपने का काम पूरा कर सकता है।</string>
 	<key>One-time code</key>

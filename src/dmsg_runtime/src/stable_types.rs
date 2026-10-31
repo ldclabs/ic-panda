@@ -117,6 +117,8 @@ stable_struct!(ContentRootRefRepr => ContentRootRef {
     6 => bundle_digest: Hash,
     8 => recipients_digest: Hash,
     9 => body_digest: Hash,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    10 => recovery_enabled: Option<bool>,
 });
 
 stable_struct!(RootReservationRepr => RootReservation {

@@ -4,6 +4,10 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('nl'),
+    onChainRecovery: "Herstel via de blockchain",
+    recoveryOnHint: "Bij verlies van alle apparaten kan een gekoppelde aanmelding geüploade inhoud na de wachttijd herstellen. Een gestolen aanmelding kan dit ook, tenzij een bevoegd apparaat op tijd annuleert.",
+    recoveryOffHint: "Bewaar een bevoegd apparaat dat je kunt ontgrendelen om van apparaat te wisselen. Als ze allemaal verloren gaan, herstelt opnieuw toegang krijgen geen cloudinhoud.",
+    recoveryUpdating: "De beveiligingswijziging wordt afgerond. Nieuwe inhoud wacht tot die klaar is.",
     deviceSlots: 'Tot {n} apparaten',
     teamWalletSlots: 'Tot {n} teamwallets',
     walletQuotasUnavailable: 'De limieten voor teamwallets zijn niet beschikbaar. Vernieuw om het opnieuw te proberen.',
@@ -983,7 +987,7 @@ export default {
     "afterRetireApprovalKey": "Totdat een andere sleutel wordt geregistreerd, kan het apparaat niet langer de goedkeuringen uitvoeren die door je account worden beschermd.",
     "afterRequireKeys": "Voor elk van deze goedkeuringen is de sleutel van het goedkeurende apparaat nodig, evenals de gebruikelijke handtekening; lopende goedkeuringen moeten opnieuw worden gedaan.",
     "afterWithoutKeys": "Apparaten zonder sleutel: {n}. Ze kunnen deze verzoeken niet meer goedkeuren.",
-    "afterRecoveryStill": "Een gebonden login kan het account na vertraging nog steeds overnemen via een herstel; betwist het op tijd vanaf elk apparaat.",
+    afterRecoveryStill: "Een gekoppelde aanmelding kan het account na de wachttijd alleen overnemen als herstel via de blockchain is ingeschakeld.",
     "afterStopRequiring": "Voor goedkeuringen is geen goedkeuringssleutel meer nodig: een gestolen apparaatsleutel en inloggen zouden weer voldoende zijn.",
     "approvalKey": "Goedkeuringssleutel",
     "approvalKeysRequiredFor": "Vereist voor",
@@ -996,7 +1000,7 @@ export default {
     "hwPayment": "Betalingen",
     "hwAttestation": "Formele handtekeningen",
     "approvalKeys": "Goedkeuringssleutels",
-    "approvalKeysHint": "Een sleutel in de Secure Enclave van deze Mac ondertekent de goedkeuringen die door je account worden beschermd. Zodra sleutels nodig zijn, kunnen een gestolen apparaatsleutel en login niet langer apparaten, logins, beleid of de Agent principal wijzigen; een login-herstel kan nog steeds, na vertraging.",
+    approvalKeysHint: "Een hardwaresleutel bevestigt beschermde accountacties. Herstel via de blockchain wordt apart ingesteld bij accountbeveiliging.",
     "keysRequired": "Verplicht",
     "keysNotRequired": "Niet vereist",
     "approvalKeysUnavailable": "Dit apparaat kan geen goedkeuringssleutels bewaren: daarvoor is een Mac nodig met een Secure Enclave en de systeemsleutelhanger.",

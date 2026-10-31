@@ -73,6 +73,7 @@ fn account(home: Principal, cose: Principal, i: u64, id: AccountId) -> AccountSt
         security_epoch: 0,
         devices: BTreeMap::from([device(i, 0, true, false)]),
         recovery_delay_ms: DEFAULT_RECOVERY_DELAY_MS,
+        recovery_enabled: None,
         pending_recovery: None,
         completed_recovery: None,
         current_root: None,
@@ -101,6 +102,7 @@ fn account(home: Principal, cose: Principal, i: u64, id: AccountId) -> AccountSt
     s.current_root = Some(ContentRootRef {
         generation: 2,
         suite: "dmsg-root-v2".into(),
+        recovery_enabled: None,
         bundle_digest: digest("capacity bundle", &i),
         recipients_digest: digest("capacity recipients", &i),
         body_digest: digest("capacity body", &i),

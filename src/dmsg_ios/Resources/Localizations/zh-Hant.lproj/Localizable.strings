@@ -742,6 +742,8 @@
 	<string>此資料夾中的檔案</string>
 	<key>Fingerprint</key>
 	<string>指紋</string>
+	<key>Finishing the security update. New content waits until it completes.</key>
+	<string>正在完成安全設定更新；完成前暫緩儲存新內容。</string>
 	<key>Folder name</key>
 	<string>資料夾名稱</string>
 	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
@@ -794,6 +796,8 @@
 	<string>證件號碼</string>
 	<key>Identity</key>
 	<string>身份資訊</string>
+	<key>If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.</key>
+	<string>全部裝置遺失後，可憑綁定的登入身分在等待期後復原已上傳內容。登入身分遭竊且無人及時取消時，對方也可復原內容。</string>
 	<key>Illegal content</key>
 	<string>違法內容</string>
 	<key>Import</key>
@@ -876,6 +880,8 @@
 	<string>加入已有錢包</string>
 	<key>Join conversation</key>
 	<string>加入對話</string>
+	<key>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</key>
+	<string>換機需要一台仍可解鎖的授權裝置。遺失全部授權裝置後，即使找回登入，也無法復原雲端內容。</string>
 	<key>Keep current version</key>
 	<string>保留當前版本</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
@@ -1132,6 +1138,8 @@
 	<string>儲存在本機</string>
 	<key>On your first visit, sign in and follow the steps to create your encrypted workspace.</key>
 	<string>首次使用 dMsg 時，登入後按引導建立你的加密工作區。</string>
+	<key>On-chain recovery</key>
+	<string>鏈上復原</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>批准後，新裝置以本裝置的角色加入，內容根隨之轉到新裝置；此後本裝置只能完成交接。</string>
 	<key>One-time code</key>

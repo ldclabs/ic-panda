@@ -18,7 +18,7 @@ use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 44] = [
+pub(crate) const METHODS: [&str; 45] = [
     "account/security",
     "account/hardware_policy",
     "device/key",
@@ -40,6 +40,7 @@ pub(crate) const METHODS: [&str; 44] = [
     "account/unbind",
     "account/policy",
     "account/recovery_delay",
+    "account/recovery_policy",
     "recovery/status",
     "recovery/request",
     "recovery/complete",
@@ -79,6 +80,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "device/key_retire"
         | "account/policy"
         | "account/recovery_delay"
+        | "account/recovery_policy"
         | "recovery/dispute"
         | "handle/transfer_commit"
         | "handle/accept"
@@ -344,6 +346,21 @@ impl Daemon {
                     delay_ms: days.saturating_mul(DAY),
                 };
                 return account_request(&self.hold(), source(params)?, change).await;
+            }
+            "account/recovery_policy" => {
+                let enabled = params["enabled"]
+                    .as_bool()
+                    .ok_or_else(|| dmsg_types::invalid("enabled"))?;
+                let days = number::<u64>(params, "days")?;
+                return account_request(
+                    &self.hold(),
+                    source(params)?,
+                    AccountChange::RecoveryPolicy {
+                        enabled,
+                        delay_ms: days.saturating_mul(DAY),
+                    },
+                )
+                .await;
             }
             "recovery/complete" => {
                 // The takeover journal is serialized; its local hardware

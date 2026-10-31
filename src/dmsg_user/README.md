@@ -225,7 +225,7 @@ flowchart LR
 
 ### 存储
 
-稳定布局为 schema 17，支持从 schema 14、15、16 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变；schema 16 在 `AccountState` 增加批准钥匙（key 30）与硬件批准政策（key 31），schema 17 增加继任表（key 32），旧账户读为空，安全叶不含它们。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段；新 schema 也使更旧的模块拒绝装回，避免丢弃新字段。schema 14–17 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+稳定布局为 schema 18，支持从 schema 14–17 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变；schema 16 在 `AccountState` 增加批准钥匙（key 30）与硬件批准政策（key 31），schema 17 增加继任表（key 32），旧账户读为空，安全叶不含它们。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段；新 schema 也使更旧的模块拒绝装回，避免丢弃新字段。schema 18 增加可选恢复开关（key 33）：缺省保留旧账户的开启状态及 schema 4 认证叶；新账户默认关闭，显式策略使用 schema 5 认证叶。schema 14–18 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
 
 发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`（提交 `70d67c86` 的 schema 14 原始 Wasm）、`scripts/test-dmsg-hardware-upgrade.sh`（提交 `58197c35` 的 schema 15 原始 Wasm）与 `scripts/test-dmsg-succession-upgrade.sh`（提交 `11064564` 的 schema 16 原始 Wasm），各自写入数据后升级到当前代码。新客户端读取 `AccountInfo` 需要新字段，所以先升级 user home 再发布客户端；旧客户端读取新回复不受影响。
 
@@ -392,7 +392,7 @@ flowchart LR
 
   `prune_executions` 一页最多 64 条执行记录，用掉 20B 指令后在账户边界提前结束；100 万账户时一页约 1.7 亿 cycles。它只删除保留期已过的终态结果，不改动未终结执行、设备序号和月账。
 
-- **升级**：支持 schema 14、15、16 → 17 及 schema 17 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
+- **升级**：支持 schema 14–17 → 18 及 schema 18 后续升级；先让安全证据消费者兼容 schema 4/5，再发布 user 模块与新版客户端；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
 
   ```sh
   icp canister stop dmsg_user -e ic
@@ -493,3 +493,17 @@ DMSG_USER_IMAGE_DIR=/path/to/images DMSG_WASM_DIR=/path/to/wasm cargo test --loc
 2026-10-11 改用 icp-cli 命令后，`icp deploy` 不带参数升级、快照创建与恢复在 icp 1.6.0 本地网络上用 dmsg_handle 演练过；本 canister 的安装、清理和回滚命令没有在 icp 下运行。
 
 开发阶段使用新实例，不兼容此前的实验接口和稳定布局。
+
+## 可选链上恢复（2026-10-31）
+
+新账户默认关闭，既有账户保留恢复能力。管理员设备批准
+`SetRecoveryPolicy { enabled, delay_ms }`（AccountControl）后，模式变化取消
+待恢复并要求换根；客户端自动提交 v3 根，关闭时没有 IBE 恢复信封。
+有未结束的授权派生时返回 `Pending`，待原执行对账完成后再修改。
+关闭状态拒绝恢复申请、接管与派生。开启后须先提交包含恢复信封的根，
+才能申请恢复。v3 接收者摘要绑定布尔开关；v2 提交只允许恢复已开启的账户。
+旧格式根及历史内容继续可读。旧客户端读取 v3 根或遇到 schema 5 时需升级，不回退安全策略。
+
+部署顺序是先更新认证证据消费者，再升级 user canister 与客户端；本文不表示
+已部署。关闭不能收回已交付的密钥或历史明文。旧机在场迁移与日常 query
+不受影响，全部设备丢失后的云端恢复仅供事先开启的账户使用。

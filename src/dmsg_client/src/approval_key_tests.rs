@@ -145,6 +145,7 @@ fn info(client: &Client, key: Option<&LocalKey>, policy: &[HardwarePurpose]) -> 
         security_epoch: 1,
         devices: BTreeMap::from([(device_id, device)]),
         recovery_delay_ms: 0,
+        recovery_enabled: None,
         pending_recovery: None,
         recovered_device: None,
         current_root: None,
