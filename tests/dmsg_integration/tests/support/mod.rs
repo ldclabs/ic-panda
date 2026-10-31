@@ -6,6 +6,8 @@ use dmsg_types::{cose::*, user::*, *};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use std::path::PathBuf;
 
+type BeforeLive<'a> = &'a mut dyn FnMut(&PocketIc, Principal);
+
 /// A running local deployment.
 pub struct Deployment {
     pub ic: PocketIc,
@@ -87,13 +89,24 @@ fn wasm_dir() -> PathBuf {
 impl Deployment {
     /// Install and configure every canister, then open the HTTP gateway.
     pub fn start() -> Self {
+        Self::start_with(None, None)
+    }
+
+    /// Prepare historical fixture state before real-time client calls start.
+    pub fn start_with(
+        initial_time: Option<pocket_ic::Time>,
+        before_live: Option<BeforeLive<'_>>,
+    ) -> Self {
         let (server, url) = server();
-        let mut ic = PocketIcBuilder::new()
+        let mut builder = PocketIcBuilder::new()
             .with_server_url(url)
             .with_nns_subnet()
             .with_application_subnet()
-            .with_fiduciary_subnet()
-            .build();
+            .with_fiduciary_subnet();
+        if let Some(time) = initial_time {
+            builder = builder.with_initial_time(time);
+        }
+        let mut ic = builder.build();
         let subnet = ic.topology().get_app_subnets()[0];
         let user = ic.create_canister_on_subnet(None, None, subnet);
         let cose = ic.create_canister_on_subnet(None, None, subnet);
@@ -537,6 +550,9 @@ impl Deployment {
             .unwrap();
         let result: Result<KeyState> = candid::decode_one(&response).unwrap();
         result.unwrap();
+        if let Some(prepare) = before_live {
+            prepare(&ic, user);
+        }
         let gateway = ic.make_live(None).to_string();
         let root_key_hex: String = ic
             .root_key()

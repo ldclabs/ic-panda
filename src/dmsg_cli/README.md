@@ -118,6 +118,15 @@ kept sealed under the local data key and comes back with it. Elsewhere the
 key sits in the credential store, nothing asks for the person and no login is
 kept. Team-wallet cosigner keys use the Secure Enclave the same way.
 
+With system credentials and supported hardware, the first login after
+registration, pairing, recovery or an upgrade binds the workspace by default.
+The system asks once to verify the hardware factor; cancellation or failure leaves
+content locked. The existing login query supplies the secret, with no added
+update or everyday vetKD call. Old unbound fast unlock first requires login.
+An explicit `device-bound disable` is remembered across later logins; enabling
+it again clears that preference. Systems without hardware or using file
+credentials keep their existing compatibility path.
+
 `device-bound enable [--biometry-only]` binds the workspace to this Mac:
 another Secure Enclave key, in a credential-store entry of its own, joins
 every unlock, the login's included, and alone opens fast unlock. Touch ID is

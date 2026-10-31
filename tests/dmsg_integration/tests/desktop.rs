@@ -1036,6 +1036,8 @@ struct Options {
     /// Install the team wallet hub; the daemons' `[wallet]` names it and
     /// points every external chain at a closed loopback port.
     wallet: bool,
+    /// Pre-enroll A and an elapsed, device-proved recovery request for B.
+    recovery: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -1196,7 +1198,11 @@ impl Env {
         std::fs::create_dir_all(&dir).unwrap();
         let mut children = Children(vec![]);
 
-        let deployment = support::Deployment::start();
+        let deployment = if options.recovery {
+            recovery_deployment(&dir)
+        } else {
+            support::Deployment::start()
+        };
         let legacy = options.legacy.then(|| Legacy::install(&deployment));
         let wallet_hub = options
             .wallet
@@ -1737,6 +1743,158 @@ fn two_desktop_devices_share_an_account() {
     assert_eq!(status["environment"], "local");
     assert_eq!(status["account"], Value::Null);
     assert!(status["version"].is_string() && status["instance"].is_string());
+    env.finish();
+}
+
+/// Seed a genuine account and signed recovery request in the past, then let
+/// PocketIC advance to real time before either daemon begins. No client
+/// clock, expiry check or recovery delay is changed for the recovery itself.
+fn recovery_deployment(dir: &Path) -> support::Deployment {
+    use dmsg_types::{user::*, *};
+
+    fn device(dir: &Path, name: &str, at: u64) -> (DeviceInput, dmsg_client::workspace::Keys) {
+        let path = dir.join(format!("{name}-bootstrap"));
+        std::fs::create_dir_all(&path).unwrap();
+        let workspace = dmsg_client::workspace::Workspace::open(
+            &path.join("workspace.sqlite"),
+            &Environment::Local,
+            at,
+        )
+        .unwrap();
+        let keys = workspace.unlock_provisional().unwrap();
+        (workspace.device_input(ControllerRole::Administrator), keys)
+    }
+
+    let at = now_ms();
+    let (a, a_keys) = device(dir, "a", at);
+    let (b, b_keys) = device(dir, "b", at);
+    let mut prepare = |ic: &pocket_ic::PocketIc, user: Principal| {
+        let now = ic.get_time().as_nanos_since_unix_epoch() / 1_000_000;
+        let caller = Principal::from_text(login_principal(41)).unwrap();
+        let mut create = CreateAccount {
+            device: a.clone(),
+            op_id: Hash::new([90; 32]),
+            expires_at: now + 5 * MINUTE,
+            proof: Ed25519Signature::new([0; 64]),
+            admission: None,
+        };
+        create.proof = Ed25519Signature::new(dmsg_client::crypto::sign(
+            &a_keys.signing,
+            dmsg_protocol::digest(
+                "dmsg/create-account/v1",
+                &(
+                    user,
+                    caller,
+                    &create.device,
+                    create.op_id,
+                    create.expires_at,
+                ),
+            )
+            .as_slice(),
+        ));
+        let reply = ic
+            .update_call(
+                user,
+                caller,
+                "create_account",
+                candid::encode_args((create,)).unwrap(),
+            )
+            .unwrap();
+        let account: Result<AccountId> = candid::decode_one(&reply).unwrap();
+        let account = account.unwrap();
+        let request = RecoveryRequest {
+            op_id: Hash::new([91; 32]),
+            new_auth: caller,
+            device: b.clone(),
+            expires_at: at + DAY,
+        };
+        let proof = serde_bytes::ByteBuf::from(
+            dmsg_client::crypto::sign(
+                &b_keys.signing,
+                dmsg_protocol::recovery_device_message(user, &account, &request).as_slice(),
+            )
+            .to_vec(),
+        );
+        let reply = ic
+            .update_call(
+                user,
+                caller,
+                "request_recovery",
+                candid::encode_args((account, request, proof)).unwrap(),
+            )
+            .unwrap();
+        let begun: Result<()> = candid::decode_one(&reply).unwrap();
+        begun.unwrap();
+        for name in ["a", "b"] {
+            let target = dir
+                .join(name)
+                .join("local/accounts")
+                .join(account.to_string());
+            std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+            std::fs::rename(dir.join(format!("{name}-bootstrap")), target).unwrap();
+        }
+    };
+    support::Deployment::start_with(
+        Some(pocket_ic::Time::from_nanos_since_unix_epoch(
+            (at - DEFAULT_RECOVERY_DELAY_MS - DAY) * 1_000_000,
+        )),
+        Some(&mut prepare),
+    )
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_login_recovery_restores_cloud_content() {
+    let env = Env::launch(
+        "login-recovery",
+        Options {
+            recovery: true,
+            ..Options::default()
+        },
+    );
+    let (a, b, http) = (&env.a, &env.b, &env.http);
+    assert_eq!(a.login(http, 41).unwrap()["state"], "root_required");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    a.run(&["vault", "add", "--title", "cloud-kept"]);
+    a.run(&["sync"]);
+    let input = env.dir.join("recover.txt");
+    std::fs::write(&input, b"recover this encrypted cloud backup").unwrap();
+    let added = a.run(&["files", "add", input.to_str().unwrap()]);
+    let file = added[0]["file"]["id"].as_str().unwrap();
+    a.run(&["files", "backup", file]);
+    eventually(60, || {
+        (a.run(&["files", "show", file])["file"]["status"] == "backed_up").then_some(())
+    });
+    assert_eq!(a.run(&["stop"])["stopped"], true);
+    assert_eq!(b.login(http, 41).unwrap()["state"], "pairing_required");
+    let device = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let recovery = b.run(&["recovery", "status"]);
+    assert_eq!(recovery["ready"], true);
+    assert_eq!(recovery["pending"]["this_device"], true);
+    let recovered = b.run(&["recovery", "complete"]);
+    assert_eq!(recovered["state"], "unlocked");
+    assert_eq!(recovered["account"], account);
+    assert_eq!(b.run(&["status"])["device_id"], device);
+    b.run(&["sync"]);
+    assert!(titles(b).contains(&"cloud-kept".to_string()));
+    let state = b.run(&["account", "show"]);
+    assert_eq!(state["root_generation"], 2);
+    let backups = b.run(&["files", "cloud", "ls", "--refresh"]);
+    let upload = backups[0]["upload_id"].as_str().unwrap();
+    b.run(&["files", "cloud", "get", upload]);
+    let output = env.dir.join("recovered.txt");
+    b.run(&["files", "get", file, "-o", output.to_str().unwrap()]);
+    assert_eq!(
+        std::fs::read(output).unwrap(),
+        b"recover this encrypted cloud backup"
+    );
     env.finish();
 }
 

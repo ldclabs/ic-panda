@@ -345,6 +345,25 @@ impl Daemon {
                 };
                 return account_request(&self.hold(), source(params)?, change).await;
             }
+            "recovery/complete" => {
+                // The takeover journal is serialized; its local hardware
+                // confirmation must not hold Client while waiting for a person.
+                let (prepared, session) = self
+                    .under_lock(async |client| {
+                        let prepared = client.prepare_recovery_complete().await?;
+                        Ok((prepared, client.session_generation()))
+                    })
+                    .await?;
+                self.finish_login_unlock(prepared).await?;
+                return self
+                    .under_lock(async |client| {
+                        if client.session_generation() != session {
+                            return Err(Error::Locked);
+                        }
+                        Ok(to_json(&client.recovery_complete().await?))
+                    })
+                    .await;
+            }
             _ => {}
         }
         // Logins, recovery, handles and payments still wait on the IC under
@@ -358,7 +377,6 @@ impl Daemon {
                 &client.bind_accept(&account(params, "account")?).await?,
             )),
             "recovery/request" => client.recovery_request().await,
-            "recovery/complete" => Ok(to_json(&client.recovery_complete().await?)),
             "recovery/dispute" => {
                 let status = client.recovery_status().await?;
                 let op_id = status["pending"]["op_id"]

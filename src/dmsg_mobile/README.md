@@ -3,6 +3,12 @@
 In-process Rust host for the native iOS application. See `src/dmsg_ios/README.md`
 for build instructions and the verified release boundaries.
 
+Account registration, device joining, recovery and ordinary login default to
+local device binding when the platform supplies a credential store and
+supported presence hardware. Verification runs outside the scoped client
+host, so locking cancels its result; it does not add a chain update. Old
+unbound fast unlock first requires login, and an explicit unbind is remembered.
+
 `notifications.rs` exposes named settings, status, reminder pagination, observed
 versions, snooze, Apple registration, reconciliation, local presentation results
 and opaque-route resolution. It uses the same scoped host/session fence and

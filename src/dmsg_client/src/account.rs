@@ -6,7 +6,7 @@
 //! reply leaves the journal `unknown`; the next call reconciles it by its
 //! operation ID and never signs a second request for the same intent.
 
-use crate::client::Client;
+use crate::client::{Client, LoginUnlock};
 use crate::cloud::{Evidence, EvidenceEntry};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, unb64};
 use crate::config::Config;
@@ -671,14 +671,30 @@ impl Client {
     /// authorization failures while opening or committing the initial root.
     /// An existing account must already be bound to this unlocked device.
     pub async fn initialize_account(&mut self) -> Result<(AccountRef, u64)> {
-        self.keys()?;
-        let account = if self.workspace.provisional() {
-            self.create_account().await?
-        } else {
-            self.account()?.clone()
-        };
+        if let Some(prepared) = self.prepare_initialize_account().await? {
+            let key = prepared.open();
+            self.complete_login_unlock(prepared, key).await?;
+        }
+        let account = self.account()?.clone();
         let generation = self.initialize_root().await?;
         Ok((account, generation))
+    }
+
+    /// Create and bind the account before root setup, returning any hardware
+    /// confirmation for the host to run outside the client executor. After
+    /// completing it, [`Self::initialize_account`] finishes the root setup.
+    ///
+    /// # Errors
+    /// As [`Self::initialize_account`].
+    pub async fn prepare_initialize_account(&mut self) -> Result<Option<LoginUnlock>> {
+        self.keys()?;
+        if self.workspace.provisional() {
+            self.prepare_create_account()
+                .await
+                .map(|(_, prepared)| prepared)
+        } else {
+            Ok(None)
+        }
     }
 
     /// Create the login's account with this provisional device as its first
@@ -688,11 +704,20 @@ impl Client {
     /// Returns `Error::Forbidden` when the workspace already has an account
     /// and `Error::IdempotencyConflict` when the login already owns one.
     pub async fn create_account(&mut self) -> Result<AccountRef> {
+        let (account, prepared) = self.prepare_create_account().await?;
+        if let Some(prepared) = prepared {
+            let key = prepared.open();
+            self.complete_login_unlock(prepared, key).await?;
+        }
+        Ok(account)
+    }
+
+    async fn prepare_create_account(&mut self) -> Result<(AccountRef, Option<LoginUnlock>)> {
         ensure(self.workspace.provisional(), Error::Forbidden)?;
         if let Some(journal) = self.resume().await?
             && let (Request::Create(_), Some(account)) = (&journal.request, journal.account)
         {
-            return self.join(journal.home, account).await;
+            return self.prepare_join(journal.home, account).await;
         }
         ensure(self.locate().await?.is_none(), Error::IdempotencyConflict)?;
         let login = self.session()?;
@@ -730,7 +755,7 @@ impl Client {
         };
         self.save_journal(&journal)?;
         let journal = self.dispatch(journal).await?;
-        self.join(home, journal.account.ok_or(Error::IntegrityFailed)?)
+        self.prepare_join(home, journal.account.ok_or(Error::IntegrityFailed)?)
             .await
     }
 
@@ -739,6 +764,19 @@ impl Client {
     /// # Errors
     /// Returns `Error::DeviceNotApproved` until an administrator approves it.
     pub async fn join(&mut self, home: Principal, account: AccountId) -> Result<AccountRef> {
+        let (reference, prepared) = self.prepare_join(home, account).await?;
+        if let Some(prepared) = prepared {
+            let key = prepared.open();
+            self.complete_login_unlock(prepared, key).await?;
+        }
+        Ok(reference)
+    }
+
+    pub(crate) async fn prepare_join(
+        &mut self,
+        home: Principal,
+        account: AccountId,
+    ) -> Result<(AccountRef, Option<LoginUnlock>)> {
         let state = self.refresh(home, &account).await?;
         state.active(&self.workspace.meta.device_id)?;
         let secret = self.unlock_secret(home, &account).await?;
@@ -756,8 +794,8 @@ impl Client {
         self.located = None;
         // A login's own workspace becomes the account's.
         self.adopt(&account)?;
-        self.after_login_unlock()?;
-        Ok(reference)
+        let prepared = self.prepare_login_keys(secret)?;
+        Ok((reference, prepared))
     }
 
     /// The user home's unlock secret of this device.

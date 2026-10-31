@@ -622,6 +622,24 @@ async fn terminated() {
 }
 
 impl Daemon {
+    /// Keep login/account authorization serialized, but let lock and account
+    /// switching invalidate a hardware answer while the person is deciding.
+    pub(crate) async fn finish_login_unlock(
+        &self,
+        prepared: Option<dmsg_client::client::LoginUnlock>,
+    ) -> Result<dmsg_client::Status> {
+        let Some(prepared) = prepared else {
+            return self.hold().with(|client| client.status()).await;
+        };
+        let (prepared, key) = blocking(move || {
+            let key = prepared.open();
+            Ok((prepared, key))
+        })
+        .await?;
+        self.under_lock(async |client| client.complete_login_unlock(prepared, key).await)
+            .await
+    }
+
     /// Announcements for local transports waiting on a person's decision.
     #[cfg(unix)]
     pub(crate) fn subscribe_events(&self) -> broadcast::Receiver<Value> {
@@ -1299,16 +1317,15 @@ impl Daemon {
                         .await?;
                     (status, true)
                 } else {
-                    (
-                        self.under_lock(async |client| {
+                    let prepared = self
+                        .under_lock(async |client| {
                             if client.session_generation() != selected_generation {
                                 return Err(Error::Locked);
                             }
-                            client.unlock().await
+                            client.prepare_unlock().await
                         })
-                        .await?,
-                        true,
-                    )
+                        .await?;
+                    (self.finish_login_unlock(prepared).await?, true)
                 };
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
@@ -1372,9 +1389,20 @@ impl Daemon {
             // Account and device changes still wait
             // on the IC and the relay under the client.
             "account/create" => {
+                // Persist account setup under the operation lock; its hardware
+                // confirmation waits outside it before content root creation.
+                let (prepared, session) = self
+                    .under_lock(async |client| {
+                        let prepared = client.prepare_initialize_account().await?;
+                        Ok((prepared, client.session_generation()))
+                    })
+                    .await?;
+                self.finish_login_unlock(prepared).await?;
                 self.under_lock(async |client| {
-                    // Account and root journals must settle in order, so setup
-                    // stays under the account-operation lock while on the network.
+                    if client.session_generation() != session {
+                        return Err(Error::Locked);
+                    }
+                    // Root journals still settle under the operation lock.
                     let (account, generation) = client.initialize_account().await?;
                     Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
                 })
@@ -2156,13 +2184,14 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                         daemon.emit("approval/changed", Value::Null);
                     }),
                 None => {
-                    let (login, state) = daemon
-                        .under_lock(async |client| {
-                            let login = client.login(delegated).await.map(|_| ());
-                            Ok((login, client.session_state().state))
-                        })
-                        .await
-                        .unwrap_or_else(|error| (Err(error), "logged_out"));
+                    let login = async {
+                        let prepared = daemon
+                            .under_lock(async |client| client.prepare_login(delegated).await)
+                            .await?;
+                        daemon.finish_login_unlock(prepared).await.map(|_| ())
+                    }
+                    .await;
+                    let state = daemon.client.lock().await.session_state().state;
                     // The login may have selected another account.
                     *daemon.last_connect.lock().expect("connect report") = None;
                     // No method call carries it, so the windows hear of it

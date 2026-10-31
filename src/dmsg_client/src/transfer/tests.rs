@@ -264,6 +264,24 @@ fn library(c: &mut Client) -> Vec<Entry> {
 #[tokio::test]
 async fn the_library_moves_whole_and_reads_the_same() {
     let mut p = pair();
+    // Both endpoints have independent hardware factors and device identities.
+    // Migration uses the unlocked old device, never its copied LDK wrapping.
+    assert_ne!(id(&p.old), id(&p.new));
+    for (client, factor) in [(&mut p.old, 41), (&mut p.new, 42)] {
+        let keys = client.keys.take().unwrap();
+        client
+            .workspace
+            .bind_device(
+                &keys,
+                &crate::testing::SECRET,
+                &[factor; 32],
+                Hash::new([factor; 32]),
+                crate::now_ms(),
+            )
+            .unwrap();
+        client.keys = Some(keys);
+        assert!(client.workspace.unlock(&crate::testing::SECRET).is_err());
+    }
     let (sent, got) = transfer(&mut p, [1; 16], &Category::ALL, None).await;
     let (sent, got) = (sent.unwrap(), got.unwrap());
     // Two folders, three files, four versions; five chunks of 1 MiB at most.

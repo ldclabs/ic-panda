@@ -26,6 +26,26 @@ fn copy_tree(from: &std::path::Path, to: &std::path::Path) {
 }
 
 #[test]
+fn a_hardware_bound_copy_needs_the_old_device_or_cloud_recovery() {
+    let (here_dir, old_dir) = (TempDir::new(), TempDir::new());
+    let mut old = unlocked(&old_dir.0, false, None);
+    let keys = old.keys.take().unwrap();
+    old.workspace
+        .bind_device(&keys, &SECRET, &[41; 32], Hash::new([42; 32]), 1)
+        .unwrap();
+    let source = old.slot_dir(&old.slot);
+    drop(old);
+    let here = unlocked(&here_dir.0, false, None);
+    let moved = here.dir.join(MOVED).join("bound-old");
+    copy_tree(&source, &moved);
+    assert_eq!(
+        here.moved_client("bound-old", &SECRET).err(),
+        Some(Error::Forbidden)
+    );
+    assert!(moved.join(crate::client::WORKSPACE).exists());
+}
+
+#[test]
 fn a_copy_opens_as_its_device_and_reads_its_library() {
     let (here_dir, old_dir, files) = (TempDir::new(), TempDir::new(), TempDir::new());
     let mut old = unlocked(&old_dir.0, false, None);

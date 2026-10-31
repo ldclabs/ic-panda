@@ -12,7 +12,7 @@
 //! execution ID; a new approval is signed only once the old one provably
 //! can no longer start.
 
-use crate::client::{Client, Status};
+use crate::client::{Client, LoginUnlock, Status};
 use crate::codec::{b64, unb64};
 use crate::crypto::sign;
 use crate::now_ms;
@@ -145,6 +145,31 @@ impl Client {
     /// Returns `Error::Pending` before the delay ends and `Error::NotFound`
     /// without this device's recovery.
     pub async fn recovery_complete(&mut self) -> Result<Status> {
+        if let Some(prepared) = self.prepare_recovery_complete().await? {
+            let key = prepared.open();
+            self.complete_login_unlock(prepared, key).await?;
+        }
+        if self.root.is_none() {
+            self.recover_root().await?;
+        }
+        let account = self.account()?.clone();
+        let state = self.refresh(account.home, &account.id).await?;
+        // The recovered root is known to the replaced devices.
+        if state.info.recovered_device.is_some() {
+            self.rotate_root().await?;
+        }
+        // The outcome is recorded in the status; it never fails recovery.
+        let _ = self.sync().await;
+        self.status()
+    }
+
+    /// Complete the account takeover and prepare its local hardware binding.
+    /// Hosts run the returned prompt outside the client, then call
+    /// [`Self::recovery_complete`] to derive and rotate the content root.
+    ///
+    /// # Errors
+    /// As [`Self::recovery_complete`].
+    pub async fn prepare_recovery_complete(&mut self) -> Result<Option<LoginUnlock>> {
         if self.workspace.provisional() {
             let (home, account) = self.located.ok_or(Error::NotFound)?;
             let device = self.workspace.meta.device_id;
@@ -168,21 +193,11 @@ impl Client {
                     security.active(&device).map_err(|_| Error::NotFound)?;
                 }
             }
-            self.join(home, account).await?;
+            let (_, prepared) = self.prepare_join(home, account).await?;
             self.workspace.delete_private(REQUEST)?;
+            return Ok(prepared);
         }
-        if self.root.is_none() {
-            self.recover_root().await?;
-        }
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
-        // The recovered root is known to the replaced devices.
-        if state.info.recovered_device.is_some() {
-            self.rotate_root().await?;
-        }
-        // The outcome is recorded in the status; it never fails recovery.
-        let _ = self.sync().await;
-        self.status()
+        Ok(None)
     }
 
     /// Derive the committed root's vetKD key for this recovered device and

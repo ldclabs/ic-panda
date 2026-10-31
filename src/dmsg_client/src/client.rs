@@ -154,6 +154,9 @@ struct BoundSlot {
     /// For a key that takes only the fingerprints enrolled when it was
     /// made: their digest then.
     biometry: Option<Hash>,
+    /// Zero for older slots, which predate the hardware anchor metadata.
+    #[serde(default)]
+    created_at: u64,
 }
 
 impl BoundSlot {
@@ -207,6 +210,15 @@ impl DevicePresence {
 pub struct LoginUnlock {
     presence: DevicePresence,
     secret: Zeroizing<Key>,
+    /// A new binding must prove it can recover the secret returned at creation.
+    initializing: Option<BindingInitialization>,
+}
+
+enum BindingInitialization {
+    /// Preserve and verify a pre-existing hardware fast-unlock key, including
+    /// its evidence about a late anchor after copying a workspace.
+    Fast,
+    New(Zeroizing<Key>),
 }
 
 impl LoginUnlock {
@@ -215,7 +227,11 @@ impl LoginUnlock {
     /// # Errors
     /// As [`DevicePresence::open`].
     pub fn open(&self) -> Result<Zeroizing<Key>> {
-        self.presence.open()
+        let secret = self.presence.open()?;
+        if let Some(BindingInitialization::New(expected)) = &self.initializing {
+            ensure(**expected == *secret, Error::IntegrityFailed)?;
+        }
+        Ok(secret)
     }
 }
 
@@ -242,6 +258,7 @@ impl DeviceBinding {
     /// # Errors
     /// Refuses unavailable biometry, cancellation and mismatched secrets.
     pub fn open(self) -> Result<OpenedDeviceBinding> {
+        let created_at = now_ms();
         let biometry = match self.biometry_only {
             true => Some(
                 self.hardware
@@ -255,6 +272,7 @@ impl DeviceBinding {
             handle: handle.into(),
             peer: peer.into(),
             biometry,
+            created_at,
         };
         let secret = slot.open(self.hardware.as_ref())?;
         ensure(*secret == *created, Error::IntegrityFailed)?;
@@ -867,6 +885,9 @@ impl Client {
         let account = self.account()?.id;
         self.hardware_ready()?;
         ensure(self.workspace.meta.fast_unlock.is_some(), Error::NotFound)?;
+        // Older hardware-capable workspaces migrate through a login, which
+        // supplies the existing query's secret for the new bound wrapping.
+        ensure(!self.default_binding_needed()?, Error::AuthRequired)?;
         let deadline = self
             .workspace
             .meta
@@ -921,7 +942,10 @@ impl Client {
         )?;
         ensure(now_ms() < prepared.deadline, Error::AuthRequired)?;
         self.hardware_ready()?;
-        let key = self.hardware_key(key);
+        let key = match &prepared.source {
+            FastUnlockSource::Bound(slot) => self.binding_hardware_key(slot, key),
+            FastUnlockSource::Fast(_) => self.hardware_key(key),
+        };
         let keys = match &prepared.source {
             FastUnlockSource::Bound(slot) => {
                 ensure(self.bound_slot()?.as_ref() == Some(slot), Error::Locked)?;
@@ -930,6 +954,7 @@ impl Client {
             }
             FastUnlockSource::Fast(_) => {
                 ensure(!self.workspace.bound()?, Error::Locked)?;
+                ensure(!self.default_binding_needed()?, Error::AuthRequired)?;
                 let key = match key {
                     Err(Error::IntegrityFailed) => {
                         self.invalidate_fast_unlock()?;
@@ -1288,8 +1313,8 @@ impl Client {
         }
     }
 
-    /// Prepare a login unlock. A bound workspace returns the hardware request;
-    /// an ordinary/provisional workspace completes without any presence wait.
+    /// Prepare a login unlock, including the first hardware binding on a
+    /// capable device. All presence prompts run through the returned request.
     ///
     /// # Errors
     /// As [`Self::unlock`].
@@ -1302,7 +1327,10 @@ impl Client {
             if let Some((home, account)) = self.located {
                 let state = self.refresh(home, &account).await?;
                 if state.active(&self.workspace.meta.device_id).is_ok() {
-                    self.join(home, account).await?;
+                    let (_, prepared) = self.prepare_join(home, account).await?;
+                    if prepared.is_some() {
+                        return Ok(prepared);
+                    }
                 }
             }
         } else {
@@ -1310,19 +1338,9 @@ impl Client {
             let security = self.refresh_security(account.home, &account.id).await?;
             self.check_revoked(&security)?;
             let secret = self.unlock_secret(account.home, &account.id).await?;
-            match self.bound_slot()? {
-                Some(slot) => {
-                    return Ok(Some(LoginUnlock {
-                        presence: self.device_presence(slot)?,
-                        secret,
-                    }));
-                }
-                None => {
-                    self.keys = Some(self.workspace.unlock(&secret)?);
-                    self.workspace.meta.login_unlocked_at = Some(now_ms());
-                    self.workspace.save_meta()?;
-                    self.after_login_unlock()?;
-                }
+            let prepared = self.prepare_login_keys(secret)?;
+            if prepared.is_some() {
+                return Ok(prepared);
             }
         }
         if !self.workspace.provisional() {
@@ -1336,6 +1354,130 @@ impl Client {
         Ok(None)
     }
 
+    /// Whether the next login must install a hardware factor. A deliberate
+    /// unbind is remembered; without a keystore or usable hardware, the
+    /// existing compatibility path remains available.
+    fn default_binding_needed(&self) -> Result<bool> {
+        Ok(!self.workspace.provisional()
+            && !self.workspace.meta.bound_declined
+            && !self.workspace.bound()?
+            && self.secure.is_some()
+            && self
+                .presence
+                .as_ref()
+                // An existing enclave anchor proves hardware support even
+                // when the OS cannot currently offer a presence prompt.
+                .is_some_and(|key| {
+                    key.presence().is_some() || self.workspace.meta.anchor.is_some()
+                }))
+    }
+
+    /// Use the secret already returned by the login query. New bindings create
+    /// their key without asking, then verify it outside the client executor;
+    /// no content keys are released until that verification finishes.
+    pub(crate) fn prepare_login_keys(
+        &mut self,
+        secret: Zeroizing<Key>,
+    ) -> Result<Option<LoginUnlock>> {
+        self.keys = None;
+        self.root = None;
+        if let Some(slot) = self.bound_slot()? {
+            return Ok(Some(LoginUnlock {
+                presence: self.device_presence(slot)?,
+                secret,
+                initializing: None,
+            }));
+        }
+        if self.default_binding_needed()? {
+            // A pre-existing fast key proves the old device's hardware. Do
+            // not replace that proof with a new key on a migrated copy.
+            let stored = if self.workspace.meta.fast_presence {
+                self.secure
+                    .as_ref()
+                    .ok_or(Error::IntegrityFailed)?
+                    .get(&self.fast_name()?)?
+                    .map(|bytes| decode::<FastKey>(&bytes, MAX_RECORD))
+                    .transpose()?
+            } else {
+                None
+            };
+            if let Some(FastKey::Present { handle, peer }) = stored {
+                return Ok(Some(LoginUnlock {
+                    presence: self.device_presence(BoundSlot {
+                        handle,
+                        peer,
+                        biometry: None,
+                        created_at: 0,
+                    })?,
+                    secret,
+                    initializing: Some(BindingInitialization::Fast),
+                }));
+            }
+            let hardware = self.presence.as_ref().ok_or(Error::IntegrityFailed)?;
+            let (handle, peer, expected) = hardware.create(false)?;
+            let slot = BoundSlot {
+                handle: handle.into(),
+                peer: peer.into(),
+                biometry: None,
+                created_at: now_ms(),
+            };
+            return Ok(Some(LoginUnlock {
+                presence: self.device_presence(slot)?,
+                secret,
+                initializing: Some(BindingInitialization::New(expected)),
+            }));
+        }
+        self.keys = Some(self.workspace.unlock(&secret)?);
+        self.workspace.meta.login_unlocked_at = Some(now_ms());
+        self.workspace.save_meta()?;
+        self.after_login_unlock()?;
+        Ok(None)
+    }
+
+    fn check_login_unlock(&self, prepared: &LoginUnlock) -> Result<()> {
+        if prepared.initializing.is_none() {
+            return self.check_device_presence(&prepared.presence);
+        }
+        ensure(
+            self.session_generation == prepared.presence.generation
+                && self.account()?.id == prepared.presence.account
+                && !self.workspace.meta.bound_declined
+                && !self.workspace.bound()?,
+            Error::Locked,
+        )
+    }
+
+    /// Apply only the hardware answer for this login. The async caller
+    /// revalidates device authorization immediately before this local step.
+    fn apply_login_keys(&mut self, prepared: LoginUnlock, device: &Key, now: u64) -> Result<()> {
+        self.check_login_unlock(&prepared)?;
+        let slot = prepared.presence.slot.id();
+        if let Some(initializing) = &prepared.initializing {
+            match initializing {
+                BindingInitialization::New(expected) => {
+                    ensure(**expected == *device, Error::IntegrityFailed)?;
+                }
+                BindingInitialization::Fast => {
+                    // Also verify the old fast wrapping before replacing it.
+                    self.workspace
+                        .unlock_fast(&presence_key(device, &self.fast_name()?))?;
+                }
+            }
+            self.keys = Some(self.workspace.unlock(&prepared.secret)?);
+            let bound =
+                self.bind_device_keys(prepared.presence.slot, &prepared.secret, device, now);
+            bound.inspect_err(|_| self.lock())?;
+        } else {
+            self.keys = Some(
+                self.workspace
+                    .unlock_bound(&prepared.secret, device, slot)?,
+            );
+        }
+        self.workspace.meta.login_unlocked_at = Some(now);
+        self.workspace.save_meta()?;
+        self.after_bound_unlock(device, slot)
+    }
+
     /// Complete only the prepared account, generation and unchanged hardware
     /// slot. A cancelled or failed answer never alters either wrapping.
     ///
@@ -1346,23 +1488,15 @@ impl Client {
         prepared: LoginUnlock,
         device: Result<Zeroizing<Key>>,
     ) -> Result<Status> {
-        self.check_device_presence(&prepared.presence)?;
+        self.check_login_unlock(&prepared)?;
         self.session()?;
         self.hardware_ready()?;
-        let device = self.hardware_key(device)?;
+        let device = self.binding_hardware_key(&prepared.presence.slot, device)?;
         let account = self.account()?.clone();
         // The device may have been revoked while the system was asking.
         let security = self.refresh_security(account.home, &account.id).await?;
         self.check_revoked(&security)?;
-        self.check_device_presence(&prepared.presence)?;
-        let slot = prepared.presence.slot.id();
-        self.keys = Some(
-            self.workspace
-                .unlock_bound(&prepared.secret, &device, slot)?,
-        );
-        self.workspace.meta.login_unlocked_at = Some(now_ms());
-        self.workspace.save_meta()?;
-        self.after_bound_unlock(&device, slot)?;
+        self.apply_login_keys(prepared, &device, now_ms())?;
         if let Err(error) = self.resume().await
             && error != Error::Expired
         {
@@ -1468,6 +1602,26 @@ impl Client {
             self.bound_slot()?.as_ref() == Some(&prepared.slot),
             Error::Locked,
         )
+    }
+
+    /// A key made after the anchor cannot establish where older keys came
+    /// from. Keep the same provenance rule as approval and wallet keys.
+    fn binding_hardware_key(
+        &mut self,
+        slot: &BoundSlot,
+        opened: Result<Zeroizing<Key>>,
+    ) -> Result<Zeroizing<Key>> {
+        if self
+            .workspace
+            .meta
+            .anchor
+            .as_ref()
+            .is_some_and(|anchor| slot.created_at != 0 && slot.created_at >= anchor.created_at)
+        {
+            opened
+        } else {
+            self.hardware_key(opened)
+        }
     }
 
     /// Local protection state, including copies outside the hardware binding.

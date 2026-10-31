@@ -72,6 +72,10 @@ pub struct Meta {
     /// The person turned fast unlock off; a login unlock leaves it off.
     #[serde(default)]
     pub fast_declined: bool,
+    /// The person explicitly unbound this workspace; do not bind it again
+    /// automatically on the next login.
+    #[serde(default)]
+    pub bound_declined: bool,
     /// The hardware anchor, once this hardware made one.
     #[serde(default)]
     pub anchor: Option<Anchor>,
@@ -181,6 +185,7 @@ impl Workspace {
             fast_unlock: None,
             fast_presence: false,
             fast_declined: false,
+            bound_declined: false,
             anchor: None,
             platform: None,
         };
@@ -369,6 +374,7 @@ impl Workspace {
         let mut meta = self.meta.clone();
         meta.fast_unlock = (!meta.fast_declined).then_some(now);
         meta.fast_presence = meta.fast_unlock.is_some();
+        meta.bound_declined = false;
         let fast_enabled = meta.fast_unlock.is_some();
         self.commit_key_change(meta, |store| {
             store.set_sealed(BOUND_LDK, &login)?;
@@ -451,6 +457,7 @@ impl Workspace {
         let mut meta = self.meta.clone();
         meta.fast_unlock = None;
         meta.fast_presence = false;
+        meta.bound_declined = true;
         self.commit_key_change(meta, |store| {
             store.set_sealed(LDK, &wrapped)?;
             store.delete_sealed(BOUND_LDK)?;

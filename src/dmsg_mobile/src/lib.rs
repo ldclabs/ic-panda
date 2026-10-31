@@ -606,6 +606,11 @@ impl MobileEngine {
     pub async fn initialize_account(&self) -> Result<SessionSnapshot> {
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
+        let generation = transition.generation();
+        let prepared = transition
+            .run(|c| Box::pin(async { c.prepare_initialize_account().await }))
+            .await?;
+        self.finish_login_unlock(generation, prepared).await?;
         transition
             .run(|c| Box::pin(async { c.initialize_account().await }))
             .await?;
@@ -1670,6 +1675,11 @@ impl MobileEngine {
     pub async fn complete_recovery(&self) -> Result<SessionSnapshot> {
         let transition = self.host.begin_transition()?;
         self.platform.cancel_presence();
+        let generation = transition.generation();
+        let prepared = transition
+            .run(|c| Box::pin(async { c.prepare_recovery_complete().await }))
+            .await?;
+        self.finish_login_unlock(generation, prepared).await?;
         transition
             .run(|c| Box::pin(async { c.recovery_complete().await }))
             .await?;

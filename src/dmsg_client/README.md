@@ -562,6 +562,25 @@ failure deletes the slot or falls back to the LUK alone; only a reset or
 binding; the device key kept with `background_online` and resident Agent
 IDs' copies are outside it, and binding returns them.
 
+With a credential store and supported presence hardware, login binds an
+unbound workspace by default, using the unlock secret already queried.
+`prepare_login` / `prepare_unlock` return a `LoginUnlock` for either the
+existing factor or first-time verification; no content keys are released
+before the hardware answers. Hosts run its `open` outside the client and
+finish with `complete_login_unlock`. Account setup and recovery expose
+`prepare_initialize_account` / `prepare_recovery_complete` for the same
+split before completing root setup or recovery. Old unbound fast unlock
+requires login to migrate. Explicit unbinding persists `bound_declined` so
+later logins respect that choice; manually binding clears it. Disabling fast
+unlock does not disable device binding. Without a keystore or supported
+hardware, login keeps its existing compatibility behavior.
+
+An existing hardware fast key is verified and reused during default binding.
+New bound slots record their creation time so they cannot settle an older
+late anchor. Device-to-device transfer uses both unlocked devices and keeps
+their identities and hardware factors separate; without the old device,
+recovery covers cloud uploads, not unuploaded files in a hardware-bound copy.
+
 Unlock returns before content sync. Hosts must schedule `sync::sync(&hold)`
 after an unlocked result, as the daemon does. A matching stored root needs no
 relay request; the online device revocation check still precedes access.

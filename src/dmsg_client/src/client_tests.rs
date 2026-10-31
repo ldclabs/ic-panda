@@ -7,6 +7,9 @@ async fn mobile_presence_policy_refuses_plain_keys_and_lock_invalidates_a_prompt
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    // Exercise the explicit unbound compatibility path; default enrollment
+    // has separate coverage below.
+    client.workspace.meta.bound_declined = true;
     client.require_fast_presence();
     assert_eq!(client.enable_fast_unlock().err(), Some(Error::Forbidden));
     assert!(!client.status().unwrap().fast_unlock);
@@ -99,6 +102,7 @@ async fn prepared_login_factor_cannot_unlock_after_lock_or_slot_replacement() {
     let prepared = LoginUnlock {
         presence: client.device_presence(slot).unwrap(),
         secret: Zeroizing::new(crate::testing::SECRET),
+        initializing: None,
     };
     let key = prepared.open();
     client.lock();
@@ -111,6 +115,7 @@ async fn prepared_login_factor_cannot_unlock_after_lock_or_slot_replacement() {
     let prepared = LoginUnlock {
         presence: client.device_presence(slot).unwrap(),
         secret: Zeroizing::new(crate::testing::SECRET),
+        initializing: None,
     };
     let key = prepared.open();
     let mut replacement = client.bound_slot().unwrap().unwrap();
@@ -396,14 +401,22 @@ struct Hardware {
     made: std::sync::atomic::AtomicU8,
     /// The enrolled fingerprints.
     fingerprints: std::sync::atomic::AtomicU8,
+    create_fails: std::sync::atomic::AtomicBool,
+    wrong_secret: std::sync::atomic::AtomicBool,
+    no_presence: std::sync::atomic::AtomicBool,
 }
 
 impl PresenceKey for Hardware {
     fn presence(&self) -> Option<Presence> {
-        Some(Presence::Biometrics)
+        (!self.no_presence.load(std::sync::atomic::Ordering::SeqCst))
+            .then_some(Presence::Biometrics)
     }
 
     fn create(&self, _: bool) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+        ensure(
+            !self.create_fails.load(std::sync::atomic::Ordering::SeqCst),
+            Error::Unavailable("cannot create a key".into()),
+        )?;
         let n = self.made.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 7;
         Ok((vec![n; 10], vec![n; 65], Zeroizing::new([n + 2; 32])))
     }
@@ -420,6 +433,7 @@ impl PresenceKey for Hardware {
             (true, _, _) => Err(Error::Forbidden),
             (_, true, _) => Err(Error::Unavailable("not now".into())),
             (_, _, true) => Err(Error::IntegrityFailed),
+            _ if self.wrong_secret.load(SeqCst) => Ok(Zeroizing::new([0; 32])),
             _ => Ok(Zeroizing::new([handle[0] + 2; 32])),
         }
     }
@@ -454,12 +468,318 @@ async fn log_in(client: &mut Client, seed: u8, expires_at: u64) -> Principal {
 }
 
 #[tokio::test]
+async fn default_binding_requires_proven_hardware_before_releasing_content_keys() {
+    use std::sync::atomic::Ordering::SeqCst;
+    for fast_declined in [false, true] {
+        let dir = TempDir::new();
+        let storage = Arc::new(MemoryStorage::default());
+        let hardware = Arc::new(Hardware::default());
+        let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+        client.set_presence_key(hardware.clone());
+        log_in(&mut client, 3, now_ms() + DAY).await;
+        client.workspace.meta.fast_declined = fast_declined;
+        let prepared = client
+            .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+            .unwrap()
+            .unwrap();
+        assert!(prepared.initializing.is_some());
+        assert_eq!(hardware.opened.load(SeqCst), 0);
+        assert!(client.keys().is_err());
+        assert!(client.root.is_none());
+        assert!(
+            storage
+                .get(&client.bound_name().unwrap())
+                .unwrap()
+                .is_none()
+        );
+        let device = prepared.open().unwrap();
+        client
+            .apply_login_keys(prepared, &device, now_ms())
+            .unwrap();
+        client.load_root().await.unwrap();
+        assert_eq!(client.session_state().state, "unlocked");
+        assert!(client.workspace.bound().unwrap());
+        assert_eq!(client.status().unwrap().fast_unlock, !fast_declined);
+        assert!(client.workspace.unlock(&crate::testing::SECRET).is_err());
+        assert!(
+            storage
+                .get(&client.bound_name().unwrap())
+                .unwrap()
+                .is_some()
+        );
+        assert!(storage.get(&client.fast_name().unwrap()).unwrap().is_none());
+
+        // Later logins use the existing slot, with no new key or extra prompt.
+        let made = hardware.made.load(SeqCst);
+        let prepared = client
+            .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+            .unwrap()
+            .unwrap();
+        assert!(prepared.initializing.is_none());
+        let device = prepared.open().unwrap();
+        client
+            .apply_login_keys(prepared, &device, now_ms())
+            .unwrap();
+        assert_eq!(hardware.made.load(SeqCst), made);
+        assert_eq!(hardware.opened.load(SeqCst), 2);
+    }
+}
+
+#[tokio::test]
+async fn default_binding_reuses_old_hardware_proof_instead_of_blessing_a_copy() {
+    use std::sync::atomic::Ordering::SeqCst;
+    for moved in [false, true] {
+        let dir = TempDir::new();
+        let storage = Arc::new(MemoryStorage::default());
+        let hardware = Arc::new(Hardware::default());
+        let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+        client.set_presence_key(hardware.clone());
+        client.enable_fast_unlock().unwrap();
+        client.workspace.meta.anchor = Some(crate::workspace::Anchor {
+            handle: vec![1].into(),
+            public: vec![2].into(),
+            created_at: 1,
+            late: true,
+            foreign: false,
+        });
+        let made = hardware.made.load(SeqCst);
+        let prepared = client
+            .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            prepared.initializing,
+            Some(BindingInitialization::Fast)
+        ));
+        assert_eq!(hardware.made.load(SeqCst), made);
+        hardware.forgot.store(moved, SeqCst);
+        let key = client.binding_hardware_key(&prepared.presence.slot, prepared.open());
+        if moved {
+            assert_eq!(key.err(), Some(Error::Forbidden));
+            assert!(client.workspace.meta.anchor.as_ref().unwrap().foreign);
+            assert!(!client.workspace.bound().unwrap());
+            assert!(client.keys().is_err());
+            continue;
+        }
+        assert!(!client.workspace.meta.anchor.as_ref().unwrap().late);
+        client
+            .apply_login_keys(prepared, &key.unwrap(), now_ms())
+            .unwrap();
+        assert!(client.workspace.bound().unwrap());
+        assert!(storage.get(&client.fast_name().unwrap()).unwrap().is_none());
+        assert!(client.workspace.unlock(&crate::testing::SECRET).is_err());
+    }
+}
+
+#[tokio::test]
+async fn a_new_binding_key_cannot_settle_an_older_late_anchor() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage));
+    client.set_presence_key(Arc::new(Hardware::default()));
+    client.workspace.meta.anchor = Some(crate::workspace::Anchor {
+        handle: vec![1].into(),
+        public: vec![2].into(),
+        created_at: 1,
+        late: true,
+        foreign: false,
+    });
+    let prepared = client
+        .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+        .unwrap()
+        .unwrap();
+    let key = client
+        .binding_hardware_key(&prepared.presence.slot, prepared.open())
+        .unwrap();
+    assert!(client.workspace.meta.anchor.as_ref().unwrap().late);
+    client.apply_login_keys(prepared, &key, now_ms()).unwrap();
+    client.lock();
+    assert_eq!(client.unlock_fast().await.unwrap().state, "unlocked");
+    assert!(client.workspace.meta.anchor.as_ref().unwrap().late);
+}
+
+#[tokio::test]
+async fn default_binding_failure_never_falls_back_to_login_only_keys() {
+    use std::sync::atomic::Ordering::SeqCst;
+    for failure in ["cancel", "unavailable", "lost", "mismatch", "creation"] {
+        let dir = TempDir::new();
+        let storage = Arc::new(MemoryStorage::default());
+        let hardware = Arc::new(Hardware::default());
+        let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+        client.set_presence_key(hardware.clone());
+        log_in(&mut client, 3, now_ms() + DAY).await;
+        hardware.declines.store(failure == "cancel", SeqCst);
+        hardware.away.store(failure == "unavailable", SeqCst);
+        hardware.forgot.store(failure == "lost", SeqCst);
+        hardware.wrong_secret.store(failure == "mismatch", SeqCst);
+        hardware.create_fails.store(failure == "creation", SeqCst);
+        let prepared = client.prepare_login_keys(Zeroizing::new(crate::testing::SECRET));
+        if failure == "creation" {
+            assert!(matches!(prepared, Err(Error::Unavailable(_))));
+        } else {
+            let prepared = prepared.unwrap().unwrap();
+            let key = prepared.open();
+            assert!(key.is_err());
+            // Rejection happens before any network authorization or commit.
+            assert!(client.complete_login_unlock(prepared, key).await.is_err());
+        }
+        assert!(client.keys().is_err());
+        assert!(client.root.is_none());
+        assert!(!client.workspace.bound().unwrap());
+        assert!(!client.workspace.meta.bound_declined);
+        assert!(
+            storage
+                .get(&client.bound_name().unwrap())
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(client.prepare_fast_unlock().err(), Some(Error::NotFound));
+    }
+}
+
+#[tokio::test]
+async fn default_binding_rejects_late_or_mismatched_hardware_answers() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(Arc::new(Hardware::default()));
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    let prepared = client
+        .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        client.apply_login_keys(prepared, &[0; 32], now_ms()),
+        Err(Error::IntegrityFailed)
+    );
+    assert!(client.keys().is_err());
+    let prepared = client
+        .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+        .unwrap()
+        .unwrap();
+    let key = prepared.open();
+    client.lock();
+    assert_eq!(
+        client.complete_login_unlock(prepared, key).await.err(),
+        Some(Error::Locked)
+    );
+    assert!(!client.workspace.bound().unwrap());
+    assert!(
+        storage
+            .get(&client.bound_name().unwrap())
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn default_binding_does_not_treat_temporarily_unavailable_enclave_as_unsupported() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage));
+    client.set_presence_key(hardware.clone());
+    client.workspace.meta.anchor = Some(crate::workspace::Anchor {
+        handle: vec![1].into(),
+        public: vec![2].into(),
+        created_at: 1,
+        late: false,
+        foreign: false,
+    });
+    hardware.no_presence.store(true, SeqCst);
+    hardware.create_fails.store(true, SeqCst);
+    assert!(matches!(
+        client.prepare_login_keys(Zeroizing::new(crate::testing::SECRET)),
+        Err(Error::Unavailable(_))
+    ));
+    assert!(client.keys().is_err());
+    assert!(!client.workspace.meta.bound_declined);
+}
+
+#[test]
+fn default_binding_respects_a_persisted_explicit_unbind() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    bind_offline(&mut client, &hardware, &storage, false);
+    let keys = client.keys.take().unwrap();
+    client
+        .workspace
+        .unbind_device(&keys, &crate::testing::SECRET)
+        .unwrap();
+    storage.delete(&client.bound_name().unwrap()).unwrap();
+    drop(client);
+    let mut client = Client::open(crate::testing::config(false), &dir.0, Some(storage)).unwrap();
+    client.set_presence_key(hardware.clone());
+    let made = hardware.made.load(SeqCst);
+    assert!(client.workspace.meta.bound_declined);
+    assert!(
+        client
+            .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+            .unwrap()
+            .is_none()
+    );
+    // Fast unlock may create its own key; automatic binding remains off.
+    assert!(!client.workspace.bound().unwrap());
+    assert_eq!(hardware.made.load(SeqCst), made + 1);
+    client.workspace.unlock(&crate::testing::SECRET).unwrap();
+}
+
+#[tokio::test]
+async fn old_unbound_fast_unlock_requires_login_before_hardware_migration() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage));
+    client.enable_fast_unlock().unwrap();
+    client.lock();
+    let prepared = client.prepare_fast_unlock().unwrap();
+    let key = prepared.open();
+    client.set_presence_key(Arc::new(Hardware::default()));
+    assert_eq!(
+        client.prepare_fast_unlock().err(),
+        Some(Error::AuthRequired)
+    );
+    assert_eq!(
+        client.complete_fast_unlock(prepared, key).await.err(),
+        Some(Error::AuthRequired)
+    );
+    assert!(client.keys().is_err());
+}
+
+#[test]
+fn default_binding_keeps_compatibility_without_hardware_or_a_credential_store() {
+    for has_store in [false, true] {
+        let dir = TempDir::new();
+        let storage =
+            has_store.then(|| Arc::new(MemoryStorage::default()) as Arc<dyn SecureStorage>);
+        let mut client = unlocked(&dir.0, false, storage);
+        if !has_store {
+            client.set_presence_key(Arc::new(Hardware::default()));
+        }
+        assert!(
+            client
+                .prepare_login_keys(Zeroizing::new(crate::testing::SECRET))
+                .unwrap()
+                .is_none()
+        );
+        assert!(!client.workspace.bound().unwrap());
+        client.workspace.unlock(&crate::testing::SECRET).unwrap();
+    }
+}
+
+#[tokio::test]
 async fn fast_unlock_with_the_person_restores_the_login() {
     use std::sync::atomic::Ordering::SeqCst;
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let hardware = Arc::new(Hardware::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    // Hardware fast unlock is still available after an explicit device unbind.
+    client.workspace.meta.bound_declined = true;
     client.set_presence_key(hardware.clone());
     let principal = log_in(&mut client, 3, now_ms() + DAY).await;
 
@@ -771,6 +1091,7 @@ fn bind_offline(client: &mut Client, hardware: &Hardware, storage: &MemoryStorag
         handle: handle.into(),
         peer: peer.into(),
         biometry: biometry.then(|| hardware.biometry_state().unwrap()),
+        created_at: 0,
     };
     storage
         .set(&client.bound_name().unwrap(), &canonical(&slot))
@@ -795,6 +1116,7 @@ async fn a_committed_binding_keeps_its_hardware_slot_when_wal_cleanup_is_blocked
         handle: handle.into(),
         peer: peer.into(),
         biometry: None,
+        created_at: 0,
     };
     let name = client.bound_name().unwrap();
     let reader = rusqlite::Connection::open(client.slot_dir(&client.slot).join(WORKSPACE)).unwrap();
@@ -850,6 +1172,7 @@ fn a_rolled_back_binding_discards_only_its_unused_hardware_slot() {
         handle: handle.into(),
         peer: peer.into(),
         biometry: None,
+        created_at: 0,
     };
     let name = client.bound_name().unwrap();
     let database =
