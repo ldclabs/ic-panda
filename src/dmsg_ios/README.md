@@ -114,8 +114,9 @@ The workflow has not been run on GitHub as part of local development.
 python3 scripts/ios/testflight.py
 ```
 
-需要完整 Xcode（在 Settings → Accounts 登录有本项目签名权限的账号）、
-Python 3、Rust 和 XcodeGen。首次配置时安装 XcodeGen 和两个 Rust target：
+需要完整 Xcode、Python 3、Rust 和 XcodeGen。自动签名可以使用 Xcode
+Settings → Accounts 中具有本团队 App Store Connect 和分发签名权限的账号，
+也可以使用下面的 App Store Connect 团队 API Key。首次配置时安装 XcodeGen 和两个 Rust target：
 
 ```sh
 brew install xcodegen
@@ -134,6 +135,20 @@ rustup target add aarch64-apple-ios aarch64-apple-ios-sim
 ```sh
 python3 scripts/ios/testflight.py --dry-run
 ```
+
+未在 Xcode 登录的构建环境，可以显式提供 App Store Connect **团队 API Key**：
+
+```sh
+python3 scripts/ios/testflight.py \
+  --authentication-key-path "$HOME/.appstoreconnect/private_keys/AuthKey_KEY_ID.p8" \
+  --authentication-key-id KEY_ID \
+  --authentication-key-issuer-id ISSUER_ID
+```
+
+三个参数必须一起提供，并会同时传给归档和导出阶段的 `xcodebuild`。
+密钥需要本团队的开发者资源及分发签名权限；APNs 或 Sign in with Apple 的 `.p8`
+不能替代 App Store Connect API Key。私钥放在仓库之外，脚本只传入文件路径，
+不会复制私钥到产物目录。参数不完整或私钥文件不可读时，在递增构建号前报错。
 
 脚本复用 `archive.sh`，重新构建优化后的 Rust 核心、生成 Xcode 工程并归档
 Swift Release，再使用自动签名导出 App Store Connect IPA。导出时使用系统工具
@@ -154,7 +169,21 @@ src/dmsg_ios/.build/TestFlight-0.1.0-5/
 ```
 
 输出目录被 Git 忽略且不会覆盖已有同名目录。开始构建后即保留递增后的编号；
-如果归档或导出失败，查看对应日志，修复后重新执行会使用下一个编号。
+如果归档失败，查看 `archive.log`，修复后重新执行会使用下一个编号。
+如果归档成功但导出失败，修复签名配置后可直接重试已有归档：
+
+```sh
+python3 scripts/ios/testflight.py \
+  --export-archive src/dmsg_ios/.build/TestFlight-0.1.0-5/dMsg.xcarchive
+```
+
+使用 API Key 时，在此命令后追加相同的三个认证参数。
+`--export-archive` 从归档读取团队、版本和主 App/扩展信息，不读取或修改
+`project.yml`，不递增构建号，不重新编译，也不要求安装 Rust 或 XcodeGen。
+每次重试在归档旁创建独立的 `Export-*/` 目录，包含本次 `ExportOptions.plist`、
+`export.log` 和 `Distribution/`；原来的归档、日志和 IPA 保留。
+可以追加 `--dry-run` 只检查归档，不导出或创建目录。
+
 将 `project.yml` 的构建号变更随代码提交，便于下次更新和其他机器接续。
 脚本打包当前工作区，未提交改动也会包含在内；打包期间不要同时修改源码或运行另一套
 原生构建。脚本不自动执行完整单元/UI 测试，发布前仍按上面的 `verify.sh` 验证。
@@ -166,9 +195,18 @@ src/dmsg_ios/.build/TestFlight-0.1.0-5/
 Apple 处理完成后，在 App Store Connect → TestFlight → 测试组中添加新构建。
 打包脚本不会自动上传、提交审核或邀请测试员。
 
-如果 `export.log` 出现 `No Accounts` 或找不到 Distribution 签名证书，先在
-Xcode → Settings → Accounts 检查 Apple ID 登录和团队权限，再重试；如果 Xcode
-界面可以导出、受限终端不可以，改在 macOS Terminal 中运行同一脚本。
+如果 `export.log` 出现 `No Accounts`，说明导出进程无法取得可用的团队认证。
+先用 `xcode-select -p` 核对命令行使用的 Xcode；`DEVELOPER_DIR` 如果设置了会覆盖该选择。
+在对应 Xcode → Settings → Accounts 登录并检查团队、App Store Connect 及云端分发证书权限，
+或使用上述 API Key 参数。若仅受限终端失败，而同一 Xcode 的界面可导出，可在 macOS Terminal
+中重试已有归档。
+
+归档可使用已有的 Apple Development 证书和开发描述文件，因此归档成功不代表已具备
+TestFlight 分发签名条件。`security find-identity -v -p codesigning` 可以检查本地带私钥的
+签名身份；Apple Development 和用于 macOS 的 Developer ID Application 都不能替代
+Apple Distribution。本地分发签名需要证书及其私钥；自动签名也可使用
+[Apple 云端管理的分发证书](https://developer.apple.com/help/account/certificates/cloud-managed-certificates)，
+因此本地没有 Distribution 身份不一定是错误，仍需核对账号和云签名权限。
 归档成功但导出失败时不会显示“IPA ready”，也不能把 `.xcarchive` 当作 IPA 上传。
 
 当前 Release/TestFlight 连接线上服务，内购开关为关闭；脚本沿用 `project.yml`

@@ -929,7 +929,7 @@ impl Fixture {
         root
     }
 
-    /// An account with a committed generation-1 content root.
+    /// An account with recovery enabled and a committed generation-1 content root.
     fn root_account(&self, n: u8) -> AccountId {
         let account_id = self.create(n);
         self.enable_recovery(n, &account_id);
@@ -955,9 +955,8 @@ impl Fixture {
         }
     }
 
-    /// Recover the account of login `n` onto new device `m` after the delay.
+    /// Recover an opted-in account of login `n` onto new device `m` after the delay.
     fn recover(&self, n: u8, m: u8, id: &AccountId) -> OpId {
-        self.enable_recovery(n, id);
         let s = self.account_id(n, id);
         let request = RecoveryRequest {
             op_id: digest("test-recovery", &(id, m, s.account_version)),

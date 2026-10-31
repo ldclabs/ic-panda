@@ -201,6 +201,8 @@ fn old_apply(f: &Fixture, m: &OldMutation) -> Result<OperationReceipt> {
 fn the_home_requires_approval_keys_once_the_account_turns_them_on() {
     let f = Fixture::new();
     let id = f.create(1);
+    // Opt in while account control still needs only the device's Ed25519 key.
+    f.enable_recovery(1, &id);
     enroll(&f, &id, 2);
     // Without a policy the device's Ed25519 approval registers its key.
     apply(

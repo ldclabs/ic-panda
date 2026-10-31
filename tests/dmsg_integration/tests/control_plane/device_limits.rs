@@ -94,6 +94,8 @@ fn unlock(f: &Fixture, id: &AccountId, n: u8) -> Result<Hash> {
 fn a_full_account_replaces_a_device_through_one_succession_at_a_time() {
     let f = Fixture::commercial();
     let id = f.create(1);
+    // Opt in before the recovering login's device starts its handover.
+    f.enable_recovery(1, &id);
     enroll(&f, &enrollment(&f, &id, 2)).unwrap();
     assert_eq!(
         enroll(&f, &enrollment(&f, &id, 3)),
