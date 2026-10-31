@@ -645,6 +645,11 @@ each page owns its loading, retry and error state. Source selectors search
 metadata without retaining hidden values. P1 owner workflows are described below.
 `node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
 against a local fixture; it does not test OS biometrics or contact GitHub.
+`node scripts/approval-smoke.mjs` covers SSH/Git activation approvals and shared
+secret review components in the independent window, identifier tooltips and
+keyboard copying, hold/reject and lock masking, plus light/dark Chinese, German
+and Arabic layouts at the minimum window size. It uses synthetic metadata and
+does not test real SSH signing or OS identity confirmation.
 See [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
 File details show complete, copyable file and version IDs and copy
 `dmsg-file://<file>/<version>` references; Vault items show their ID and get

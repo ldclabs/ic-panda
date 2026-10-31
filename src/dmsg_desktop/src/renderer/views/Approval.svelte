@@ -576,14 +576,14 @@
     <p class="p-5 text-muted">{error || '…'}</p>
   {:else}
     <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-5">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-6 items-center gap-1.5 rounded-md bg-gem-pale px-2 text-xs font-semibold text-gem">
-          <i class="size-[7px] rotate-45 rounded-[1px] bg-current"></i>{t(kind)}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex min-h-6 min-w-0 items-center gap-1.5 rounded-md bg-gem-pale px-2 py-0.5 text-xs font-semibold text-gem [overflow-wrap:anywhere]">
+          <i class="size-[7px] shrink-0 rotate-45 rounded-[1px] bg-current"></i>{t(kind)}
         </span>
-        {#if request.risk === 'high'}<span class="inline-flex h-6 items-center rounded-md bg-warn-pale px-2 text-xs font-medium text-warn" data-testid="approval-risk">{t('highRisk')}</span>{/if}
+        {#if request.risk === 'high'}<span class="inline-flex min-h-6 items-center rounded-md bg-warn-pale px-2 py-0.5 text-xs font-medium text-warn" data-testid="approval-risk">{t('highRisk')}</span>{/if}
         {#if queue.length}<span class="text-xs text-faint" data-testid="approval-queue">{t('moreWaiting', { n: queue.length })}</span>{/if}
         {#if waiting && left !== null}
-          <span class={cn('ms-auto inline-flex items-center gap-1.5 font-mono text-xs tabular-nums', left <= 60_000 ? 'text-warn' : 'text-faint')}>
+          <span class={cn('ms-auto inline-flex items-center gap-1.5 text-xs tabular-nums', left <= 60_000 ? 'text-warn' : 'text-faint')}>
             <Icon name="time" class="size-3.5" />{expired ? stateLabel('expired') : t('expiresIn', { time: clock(left) })}
           </span>
         {/if}
@@ -593,7 +593,7 @@
         <span class="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pale text-sm font-semibold text-forest">{(who.name || '?').slice(0, 1).toUpperCase()}</span>
         <div class="min-w-0">
           <b class="block truncate text-sm font-semibold">{who.name}</b>
-          <span class="block truncate font-mono text-xs text-faint" data-testid={request.type === 'connect' ? 'approval-origin' : undefined}>{who.detail}</span>
+          <span class={cn('block truncate text-xs text-faint', request.type === 'connect' && 'font-mono')} data-testid={request.type === 'connect' ? 'approval-origin' : undefined}>{who.detail}</span>
         </div>
       </div>
 
@@ -929,12 +929,12 @@
             ></i>
           </div>
         {/if}
-        <div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
-          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg')} disabled={busy || expired} data-testid="reject" onclick={() => decide(false)}>
+        <div class="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2.5">
+          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg', 'h-auto min-h-10 min-w-0 whitespace-normal py-2 [overflow-wrap:anywhere]')} disabled={busy || expired} data-testid="reject" onclick={() => decide(false)}>
             {t('reject')}
           </button>
           <button
-            class={buttonClass('primary', 'lg', 'overflow-hidden disabled:border-transparent disabled:bg-forest/45 disabled:opacity-100')}
+            class={buttonClass('primary', 'lg', 'h-auto min-h-10 min-w-0 whitespace-normal py-2 [overflow-wrap:anywhere] overflow-hidden disabled:border-transparent disabled:bg-forest/45 disabled:opacity-100')}
             disabled={!canApprove}
             data-testid="approve"
             onclick={() => !hold && decide(true)}

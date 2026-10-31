@@ -4503,7 +4503,10 @@ smoke: try {
   // The hold uses animation frames, which macOS may suspend in an occluded window.
   await app.evaluate(({ app }) => app.focus({ steal: true }))
   await (await app.browserWindow(approval)).evaluate((window) => { window.show(); window.focus() })
-  await approval.waitForFunction(() => !document.querySelector('[data-testid="approve"]')?.disabled)
+  await approval.waitForFunction(() => {
+    const button = document.querySelector('[data-testid="approve"]')
+    return button && !button.disabled
+  })
   const decisions = () => calls.filter((c) => c.method === 'approval/respond').length
   const before = decisions()
   await approval.click('[data-testid="approve"]')
@@ -4591,6 +4594,13 @@ smoke: try {
     return 'alive'
   }), 'alive')
   console.log(process.platform === 'darwin' && !nativeFullscreen ? 'desktop smoke test passed (native fullscreen checks explicitly skipped)' : 'desktop smoke test passed')
+} catch (error) {
+  for (const [index, page] of app.windows().entries()) {
+    await page.screenshot({ path: join(shots, `failure-${index}.png`) }).catch(() => {})
+    console.error('Window:', page.url(), await page.locator('body').innerText().catch(() => ''))
+  }
+  console.error('Last fixture calls:', calls.slice(-12).map(call => ({ method: call.method, id: call.params?.id })))
+  throw error
 } finally {
   await closeTest()
 }

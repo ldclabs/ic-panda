@@ -251,6 +251,8 @@
 {#if !connected || !verifiedConnection}
   <div class="fixed inset-0 z-[100] grid place-items-center bg-paper" role="status" data-testid="daemon-disconnected">{t('daemonDisconnected')}</div>
 {/if}
+<!-- Shared controls, including approval identifiers, need this in both windows. -->
+<Tooltip.Provider delayDuration={350}>
 {#if !isMain}
   <main class="h-screen" inert={!connected || !verifiedConnection} aria-hidden={!connected || !verifiedConnection}>
     <RecoveryBanner />
@@ -262,7 +264,6 @@
   </main>
   <Toaster />
 {:else}
-  <Tooltip.Provider delayDuration={350}>
     <div class="flex h-screen min-h-0" inert={!connected || !verifiedConnection} aria-hidden={!connected || !verifiedConnection}>
       {#key viewSession}
       <Sidebar
@@ -310,8 +311,8 @@
       <Toaster />
       {/key}
     </div>
-  </Tooltip.Provider>
 {/if}
+</Tooltip.Provider>
 
 <style>
   :global(body[data-daemon-unverified] > :not(#app)) { visibility: hidden !important; }
