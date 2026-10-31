@@ -15,6 +15,26 @@ final class RecoveryPolicyTests: XCTestCase {
         return model
     }
 
+    func testCompletedTakeoverCanResumeWithNoPendingRequest() throws {
+        let status = try JSONDecoder().decode(RecoveryView.RecoveryState.self,
+            from: Data(#"{"enabled":true,"ready":false,"member":true,"pending":null}"#.utf8))
+        XCTAssertTrue(status.canComplete)
+    }
+
+    func testRecoveryCompletionStillRequiresAnEnabledPolicyAndEligibleDevice() throws {
+        let decoder = JSONDecoder()
+        for json in [
+            #"{"enabled":false,"ready":false,"member":true}"#,
+            #"{"enabled":true,"ready":false,"member":false}"#
+        ] {
+            let status = try decoder.decode(RecoveryView.RecoveryState.self, from: Data(json.utf8))
+            XCTAssertFalse(status.canComplete)
+        }
+        let waiting = try decoder.decode(RecoveryView.RecoveryState.self,
+            from: Data(#"{"enabled":true,"ready":true,"member":false}"#.utf8))
+        XCTAssertTrue(waiting.canComplete)
+    }
+
     func testRecoveryWarningRejectsOldAndForeignObservationsAndDeduplicatesNotices() {
         let model = model(), now = UInt64(Date.now.timeIntervalSince1970 * 1000) + 1000
         let pending = RecoveryObservation(account: account, pending: true, digest: "one", observedAtMs: now, stale: false)

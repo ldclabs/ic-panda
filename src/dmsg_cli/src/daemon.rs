@@ -1146,23 +1146,7 @@ impl Daemon {
         } else {
             None
         };
-        let result = match module {
-            Module::Daemon => self.call_daemon(method, params).await,
-            Module::More => self.call_more(method, params).await,
-            Module::Account => self.call_account(method, params).await,
-            Module::Legacy => self.call_legacy(method, params).await,
-            Module::Agents => self.call_agents(method, params).await,
-            Module::McpEvents => self.call_mcp_events(method, params).await,
-            Module::Files => self.call_files(method, params).await,
-            Module::Mount => self.call_mount(method, params).await,
-            Module::Wallet => self.call_wallet(method, params).await,
-            Module::Vault => self.call_vault(method, params).await,
-            Module::Secrets => self.call_secrets(method, params).await,
-            Module::Notifications => self.call_notifications(method, params).await,
-            Module::Transfer => self.call_transfer(method, params).await,
-            // An agent's credential reaches these, never the owner's.
-            Module::Agent => Err(Error::Forbidden),
-        };
+        let result = self.module_call(module, method, params).await;
         if let (Ok(data), Some(session)) = (&result, cache_session) {
             let saved = self
                 .hold()
@@ -1188,6 +1172,34 @@ impl Daemon {
             }
         }
         result
+    }
+
+    // Construct large module futures outside the dispatch future's poll frame.
+    // Account approvals may rotate a root before returning, so nesting their
+    // full futures can overflow an ordinary Tokio worker stack in debug builds.
+    fn module_call<'a>(
+        &'a self,
+        module: Module,
+        method: &'a str,
+        params: &'a Value,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value>> + Send + 'a>> {
+        match module {
+            Module::Daemon => Box::pin(self.call_daemon(method, params)),
+            Module::More => Box::pin(self.call_more(method, params)),
+            Module::Account => Box::pin(self.call_account(method, params)),
+            Module::Legacy => Box::pin(self.call_legacy(method, params)),
+            Module::Agents => Box::pin(self.call_agents(method, params)),
+            Module::McpEvents => Box::pin(self.call_mcp_events(method, params)),
+            Module::Files => Box::pin(self.call_files(method, params)),
+            Module::Mount => Box::pin(self.call_mount(method, params)),
+            Module::Wallet => Box::pin(self.call_wallet(method, params)),
+            Module::Vault => Box::pin(self.call_vault(method, params)),
+            Module::Secrets => Box::pin(self.call_secrets(method, params)),
+            Module::Notifications => Box::pin(self.call_notifications(method, params)),
+            Module::Transfer => Box::pin(self.call_transfer(method, params)),
+            // An agent's credential reaches these, never the owner's.
+            Module::Agent => Box::pin(async { Err(Error::Forbidden) }),
+        }
     }
 
     /// Run one of [`METHODS`].

@@ -118,7 +118,8 @@ pub struct ContentRootRef {
     pub recovery_enabled: Option<bool>,
     /// Commitment to the externally stored encrypted root bundle.
     pub bundle_digest: Hash,
-    /// `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
+    /// v3: `digest("dmsg/root-recipients/2", (sorted active device IDs, generation, recovery_enabled))`;
+    /// legacy v2: `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
     pub recipients_digest: Hash,
     /// SHA-256 of the bundle body that carries the envelopes.
     pub body_digest: Hash,

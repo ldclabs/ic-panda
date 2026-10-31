@@ -459,7 +459,16 @@ impl Client {
     pub(crate) async fn account_execute(&mut self, change: &AccountChange) -> Result<()> {
         let command = change.command()?;
         self.mutate(command.clone(), None).await?;
-        self.finish_account_change(&command).await
+        let finished = self.finish_account_change(&command).await;
+        match command {
+            // The policy has committed and writes wait for its root: leave the
+            // request unknown so reconciliation retries the rotation, never
+            // waiting as if nothing ran.
+            AccountCommand::SetRecoveryPolicy { .. } => {
+                finished.map_err(|_| Error::ExecutionUnknown)
+            }
+            _ => finished,
+        }
     }
 
     /// Settle an approved security change whose outcome is unknown.

@@ -302,6 +302,7 @@ dmsg device-bound enable [--biometry-only] | disable
 dmsg account create | show | security
 dmsg account bind-request <account> | bind-approve <request> --principal <p> | bind-accept <account>
 dmsg account unbind <principal> | policy [--freeze|--unfreeze] [--daily N] [--purposes a,b] | recovery-delay <days>
+dmsg account recovery on [--days N] | off
 dmsg account hardware on [--payment] [--attestation] | off
 dmsg recovery status | request | complete | dispute
 dmsg legacy delete-channel <archive-id> <canister/channel/id>
@@ -504,10 +505,11 @@ at once. From another device, the new login (without an account) runs
 `account bind-approve <request> --principal <p>`, and the new login then
 `account bind-accept <account>` within ten minutes. `account unbind`,
 `account policy` (freeze formal signatures, executions a day, allowed
-purposes) and `account recovery-delay` are approvals too.
+purposes), `account recovery-delay` and `account recovery on|off` are
+approvals too.
 
-Recovery, when every device is lost: a new device logged in with a bound
-login runs `recovery request`; any device of the account sees it in
+Recovery, when every device is lost and on-chain recovery was enabled
+beforehand: a new device logged in with a bound login runs `recovery request`; any device of the account sees it in
 `account security` and can `recovery dispute` it during the delay (one to
 seven days, three by default). After the delay, `recovery complete` takes the
 account over, derives the committed root's key once, opens it and rotates to
@@ -1230,7 +1232,7 @@ The daemon listens on `127.0.0.1` only.
   MCP Events endpoints, team wallets' reads, the plan's status, catalog
   and assets, `account/show|security`, `connect/pairings|sync` and
   `attest/readiness|action|verify`; requests for account and device
-  changes (`account/bind_approve|unbind|policy|recovery_delay`,
+  changes (`account/bind_approve|unbind|policy|recovery_delay|recovery_policy`,
   `device/approve|capabilities|formal_approve|revoke|succession_*`); a high-risk approval's
   presence prompt, an approved attestation's reads, submission and receipt,
   and the reconciling of attestations whose outcome is unknown; and the
@@ -1245,7 +1247,7 @@ The daemon listens on `127.0.0.1` only.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
-  `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay`,
+  `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay|recovery_policy`,
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
   `device/moved_list|moved_set_aside|moved_discard {id}`,

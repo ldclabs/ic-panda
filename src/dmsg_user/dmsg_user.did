@@ -635,7 +635,8 @@ type ContentRootRef = record {
   generation : nat64;
   // Root bundle suite: `dmsg-root-v3`, or legacy `dmsg-root-v2` with recovery enabled.
   suite : text;
-  // `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
+  // v3: `digest("dmsg/root-recipients/2", (sorted active device IDs, generation, recovery_enabled))`;
+  // legacy v2: `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
   recipients_digest : blob;
   // Commitment to the externally stored encrypted root bundle.
   bundle_digest : blob;

@@ -1889,6 +1889,7 @@ fn desktop_login_recovery_restores_cloud_content() {
         "login-recovery",
         Options {
             recovery: true,
+            proxies: true,
             ..Options::default()
         },
     );
@@ -1918,6 +1919,21 @@ fn desktop_login_recovery_restores_cloud_content() {
     let recovery = b.run(&["recovery", "status"]);
     assert_eq!(recovery["ready"], true);
     assert_eq!(recovery["pending"]["this_device"], true);
+    // Takeover consumes the request before the root is downloaded. A lost
+    // reply must leave an enrolled device able to resume without a new wait.
+    let relay_proxy = env.relay_proxy.as_ref().unwrap();
+    // Exhaust the safe-read transport's three attempts.
+    for _ in 0..3 {
+        relay_proxy.lose_next("GET", "/root");
+    }
+    assert_eq!(b.fail(&["recovery", "complete"]), "NETWORK_UNAVAILABLE");
+    assert_eq!(relay_proxy.pending(), 0);
+    assert_eq!(b.run(&["status"])["state"], "root_required");
+    let interrupted = b.run(&["recovery", "status"]);
+    assert_eq!(interrupted["enabled"], true);
+    assert_eq!(interrupted["member"], true);
+    assert_eq!(interrupted["ready"], false);
+    assert!(interrupted["pending"].is_null());
     let recovered = b.run(&["recovery", "complete"]);
     assert_eq!(recovered["state"], "unlocked");
     assert_eq!(recovered["account"], account);
@@ -9769,7 +9785,13 @@ fn desktop_inbox_cache_and_pagination() {
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_recovery_is_opt_in_and_policy_changes_rotate_the_root() {
-    let env = Env::start("recovery-policy", "");
+    let env = Env::launch(
+        "recovery-policy",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
     let (a, b, http) = (&env.a, &env.b, &env.http);
     assert_eq!(a.login(http, 41).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
@@ -9792,7 +9814,21 @@ fn desktop_recovery_is_opt_in_and_policy_changes_rotate_the_root() {
     assert_eq!(recovery["enabled"], true);
     assert_eq!(recovery["recovery_delay_ms"], 2 * dmsg_types::DAY);
     let request = a.run(&["account", "recovery", "off", "--days", "2"]);
-    assert_eq!(a.decide(http, &request, true).unwrap()["state"], "done");
+    // The policy commits, then every safe read of the new root's upload status
+    // fails. This normally returns NETWORK_UNAVAILABLE, not EXECUTION_UNKNOWN:
+    // the committed policy must nevertheless keep its approval reconcilable.
+    let relay_proxy = env.relay_proxy.as_ref().unwrap();
+    // Upload status refreshes authentication once after the three read attempts.
+    for _ in 0..6 {
+        relay_proxy.lose_next("GET", "/uploads/");
+    }
+    assert_eq!(
+        a.decide(http, &request, true).unwrap_err(),
+        "EXECUTION_UNKNOWN"
+    );
+    assert_eq!(relay_proxy.pending(), 0);
+    a.rpc(http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "done");
     let security = a.run(&["account", "security"]);
     assert_eq!(security["recovery_enabled"], false);
     assert_eq!(security["recovery_updating"], false);

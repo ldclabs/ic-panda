@@ -310,16 +310,26 @@ struct RecoveryView: View {
     @Environment(SessionModel.self) private var model
     @State private var value: DisplayValue?
     @State private var confirming = false
-    @State private var enabled = false
-    @State private var ready = false
-    private struct RecoveryState: Decodable { let enabled: Bool; let ready: Bool }
+    @State private var recovery: RecoveryState?
+    struct RecoveryState: Decodable {
+        let enabled: Bool
+        let ready: Bool
+        let member: Bool
+
+        var canComplete: Bool {
+            // Takeover clears the pending request before root recovery and
+            // rotation finish. Completion is safe to repeat for a member.
+            enabled && (ready || member)
+        }
+    }
     var body: some View {
         List {
-            if value != nil && !enabled { NoticeBar(text: String(localized: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")) }
+            if recovery?.enabled == false { NoticeBar(text: String(localized: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")) }
             NoticeBar(text: String(localized: "Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered."))
             if let value { Section("Recovery status") { CanonicalDetails(value: value) } }
-            Button("Request account recovery") { confirming = true }.disabled(!enabled)
-            Button("Complete recovery after waiting period") { Task { await complete() } }.disabled(!enabled || !ready)
+            Button("Request account recovery") { confirming = true }.disabled(recovery?.enabled != true)
+            Button("Complete recovery after waiting period") { Task { await complete() } }
+                .disabled(recovery?.canComplete != true)
         }.privateScreen().navigationTitle("Recovery").task { await refresh() }
             .confirmationDialog("Start account recovery?", isPresented: $confirming) {
                 Button("Request recovery") { Task {
@@ -331,8 +341,7 @@ struct RecoveryView: View {
     private func refresh() async {
         do { if let result = try await model.engine?.recoveryStatus() {
             let data = Data(result.json.utf8)
-            let state = try JSONDecoder().decode(RecoveryState.self, from: data)
-            enabled = state.enabled; ready = state.ready
+            recovery = try JSONDecoder().decode(RecoveryState.self, from: data)
             value = try JSONDecoder().decode(DisplayValue.self, from: data)
         } }
         catch { model.report(error) }
