@@ -962,7 +962,7 @@ impl Client {
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
         }
-        self.workspace.disable_fast()?;
+        self.workspace.disable_fast().inspect_err(|_| self.lock())?;
         self.workspace.delete_private(KEPT_LOGIN)
     }
 
@@ -1414,7 +1414,7 @@ impl Client {
                 .workspace
                 .enable_fast_bound(&keys, device, slot, now_ms());
             self.keys = Some(keys);
-            enabled?;
+            enabled.inspect_err(|_| self.lock())?;
         }
         self.keep_login()
     }
@@ -1550,25 +1550,43 @@ impl Client {
         self.keys()?;
         ensure(!self.workspace.bound()?, Error::Forbidden)?;
         let account = self.account()?.clone();
-        let secure = self
-            .secure
-            .clone()
-            .ok_or_else(|| Error::Unavailable("no credential store".into()))?;
         let OpenedDeviceBinding {
             slot,
             secret: device,
             ..
         } = prepared;
         let secret = self.unlock_secret(account.home, &account.id).await?;
+        self.bind_device_keys(slot, &secret, &device, now_ms())
+    }
+
+    /// Commit the local wrapping and its hardware factor together from the
+    /// caller's point of view, including a failure after the SQLite commit.
+    fn bind_device_keys(
+        &mut self,
+        slot: BoundSlot,
+        secret: &Key,
+        device: &Key,
+        now: u64,
+    ) -> Result<Json> {
+        let secure = self
+            .secure
+            .clone()
+            .ok_or_else(|| Error::Unavailable("no credential store".into()))?;
         let name = self.bound_name()?;
         secure.set(&name, &Zeroizing::new(canonical(&slot)))?;
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let bound = self
             .workspace
-            .bind_device(&keys, &secret, &device, slot.id(), now_ms());
+            .bind_device(&keys, secret, device, slot.id(), now);
         self.keys = Some(keys);
         if let Err(error) = bound {
-            secure.delete(&name)?;
+            self.lock();
+            // A checkpoint can fail after the binding committed. Its slot
+            // is then the only way back in; an unreadable database also
+            // cannot prove it is safe to discard the factor.
+            if matches!(self.workspace.bound(), Ok(false)) {
+                secure.delete(&name)?;
+            }
             return Err(error);
         }
         // Fast unlock now opens with the slot alone.
@@ -1592,7 +1610,7 @@ impl Client {
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let unbound = self.workspace.unbind_device(&keys, &secret);
         self.keys = Some(keys);
-        unbound?;
+        unbound.inspect_err(|_| self.lock())?;
         if let Some(secure) = &self.secure {
             secure.delete(&self.bound_name()?)?;
         }
@@ -1704,7 +1722,7 @@ impl Client {
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let enabled = self.workspace.enable_fast(&keys, &key, now_ms(), presence);
         self.keys = Some(keys);
-        enabled?;
+        enabled.inspect_err(|_| self.lock())?;
         self.keep_login()?;
         Ok(None)
     }
@@ -1725,7 +1743,7 @@ impl Client {
             self.workspace
                 .enable_fast_bound(&keys, &device, prepared.slot.id(), now_ms());
         self.keys = Some(keys);
-        enabled?;
+        enabled.inspect_err(|_| self.lock())?;
         self.keep_login()?;
         self.status()
     }
@@ -1739,7 +1757,7 @@ impl Client {
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
         }
-        self.workspace.disable_fast()?;
+        self.workspace.disable_fast().inspect_err(|_| self.lock())?;
         self.workspace.delete_private(KEPT_LOGIN)?;
         self.workspace.meta.fast_declined = true;
         self.workspace.save_meta()?;
@@ -1821,7 +1839,7 @@ impl Client {
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
         }
-        self.workspace.disable_fast()?;
+        self.workspace.disable_fast().inspect_err(|_| self.lock())?;
         self.workspace.delete_private(KEPT_LOGIN)?;
         self.shutdown();
         match std::fs::remove_file(self.dir.join(CURRENT)) {

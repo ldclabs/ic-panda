@@ -262,8 +262,8 @@ impl Store {
             .map_err(storage)?;
         conn.pragma_update(None, "synchronous", "FULL")
             .map_err(storage)?;
-        // Deleted pages are zeroed, so a removed record leaves no ciphertext
-        // or metadata behind in the file.
+        // Zero removed records in current pages. Historical WAL pages still
+        // need checkpoint(TRUNCATE) when key wrappings are replaced or removed.
         conn.pragma_update(None, "secure_delete", "ON")
             .map_err(storage)?;
         conn.execute_batch(SCHEMA).map_err(storage)?;
@@ -274,6 +274,23 @@ impl Store {
 
     fn conn(&self) -> MutexGuard<'_, Connection> {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Flush current pages and remove historical WAL pages. A busy reader
+    /// must not turn a logically deleted key wrapping into a successful erase.
+    /// Read-only import sources are preserved; only writable workspaces clean up.
+    pub(crate) fn checkpoint(&self) -> Result<()> {
+        let conn = self.conn();
+        if conn.is_readonly(rusqlite::MAIN_DB).map_err(storage)? {
+            return Ok(());
+        }
+        let busy: i64 = conn
+            .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))
+            .map_err(storage)?;
+        ensure(
+            busy == 0,
+            Error::Unavailable("workspace key cleanup is blocked by a database reader".into()),
+        )
     }
 
     /// Run `f` in one transaction; an error rolls everything back.

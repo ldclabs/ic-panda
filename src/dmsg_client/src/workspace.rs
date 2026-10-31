@@ -161,6 +161,9 @@ impl Workspace {
         let name = environment_name(environment);
         if let Some(meta) = store.meta::<Meta>(META)? {
             ensure(meta.environment == name, Error::IntegrityFailed)?;
+            // Also clean up older releases and a commit interrupted before
+            // its old key wrappings could be removed from the WAL.
+            store.checkpoint()?;
             return Ok(Self { store, meta });
         }
         let ldk = Zeroizing::new(random_key());
@@ -267,12 +270,7 @@ impl Workspace {
         meta.fast_unlock = Some(now);
         meta.fast_presence = presence;
         meta.fast_declined = false;
-        self.store.atomic(|store| {
-            store.set_sealed(FAST_LDK, &wrapped)?;
-            store.set_meta(META, &meta)
-        })?;
-        self.meta = meta;
-        Ok(())
+        self.commit_key_change(meta, |store| store.set_sealed(FAST_LDK, &wrapped))
     }
 
     /// Unlock with the fast-unlock key.
@@ -371,17 +369,16 @@ impl Workspace {
         let mut meta = self.meta.clone();
         meta.fast_unlock = (!meta.fast_declined).then_some(now);
         meta.fast_presence = meta.fast_unlock.is_some();
-        self.store.atomic(|store| {
+        let fast_enabled = meta.fast_unlock.is_some();
+        self.commit_key_change(meta, |store| {
             store.set_sealed(BOUND_LDK, &login)?;
-            match meta.fast_unlock {
-                Some(_) => store.set_sealed(FAST_LDK, &fast)?,
-                None => store.delete_sealed(FAST_LDK)?,
+            if fast_enabled {
+                store.set_sealed(FAST_LDK, &fast)?;
+            } else {
+                store.delete_sealed(FAST_LDK)?;
             }
-            store.delete_sealed(LDK)?;
-            store.set_meta(META, &meta)
-        })?;
-        self.meta = meta;
-        Ok(())
+            store.delete_sealed(LDK)
+        })
     }
 
     /// Unlock a device-bound workspace through a login: the unlock secret
@@ -434,12 +431,7 @@ impl Workspace {
         meta.fast_unlock = Some(now);
         meta.fast_presence = true;
         meta.fast_declined = false;
-        self.store.atomic(|store| {
-            store.set_sealed(FAST_LDK, &fast)?;
-            store.set_meta(META, &meta)
-        })?;
-        self.meta = meta;
-        Ok(())
+        self.commit_key_change(meta, |store| store.set_sealed(FAST_LDK, &fast))
     }
 
     /// Undo [`Self::bind_device`]: seal the LDK under the LUK again and
@@ -459,14 +451,11 @@ impl Workspace {
         let mut meta = self.meta.clone();
         meta.fast_unlock = None;
         meta.fast_presence = false;
-        self.store.atomic(|store| {
+        self.commit_key_change(meta, |store| {
             store.set_sealed(LDK, &wrapped)?;
             store.delete_sealed(BOUND_LDK)?;
-            store.delete_sealed(FAST_LDK)?;
-            store.set_meta(META, &meta)
-        })?;
-        self.meta = meta;
-        Ok(())
+            store.delete_sealed(FAST_LDK)
+        })
     }
 
     /// Delete the fast-unlock copy of the LDK.
@@ -477,15 +466,13 @@ impl Workspace {
         let mut meta = self.meta.clone();
         meta.fast_unlock = None;
         meta.fast_presence = false;
-        self.store.atomic(|store| {
-            store.delete_sealed(FAST_LDK)?;
-            store.set_meta(META, &meta)
-        })?;
-        self.meta = meta;
-        Ok(())
+        self.commit_key_change(meta, |store| store.delete_sealed(FAST_LDK))
     }
 
     fn open_keys<C: Serialize>(&self, key: &Key, record: &str, context: &C) -> Result<Keys> {
+        // Retry a cleanup that failed after committing a key change, before
+        // releasing any keys to a new unlocked session.
+        self.store.checkpoint()?;
         let sealed = self.store.sealed(record)?.ok_or(Error::IntegrityFailed)?;
         let ldk = open(key, &sealed, context)?;
         let ldk: Key = ldk
@@ -527,13 +514,26 @@ impl Workspace {
             keys.ldk.as_slice(),
             &("dmsg/local-key/2", name.as_str()),
         );
-        self.store.atomic(|store| {
+        self.commit_key_change(meta, |store| {
             store.set_sealed(LDK, &wrapped)?;
-            store.delete_meta(PROVISIONAL)?;
+            store.delete_meta(PROVISIONAL)
+        })
+    }
+
+    /// A committed change stays committed even if its WAL cleanup fails.
+    /// Keep metadata in step with the database and retain the new wrapping's
+    /// factors; loading or unlocking the workspace retries the cleanup.
+    fn commit_key_change(
+        &mut self,
+        meta: Meta,
+        change: impl FnOnce(&Store) -> Result<()>,
+    ) -> Result<()> {
+        self.store.atomic(|store| {
+            change(store)?;
             store.set_meta(META, &meta)
         })?;
         self.meta = meta;
-        Ok(())
+        self.store.checkpoint()
     }
 
     /// Persist changed metadata.

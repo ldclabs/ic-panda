@@ -784,6 +784,89 @@ fn bind_offline(client: &mut Client, hardware: &Hardware, storage: &MemoryStorag
 }
 
 #[tokio::test]
+async fn a_committed_binding_keeps_its_hardware_slot_when_wal_cleanup_is_blocked() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    let (handle, peer, secret) = hardware.create(false).unwrap();
+    let slot = BoundSlot {
+        handle: handle.into(),
+        peer: peer.into(),
+        biometry: None,
+    };
+    let name = client.bound_name().unwrap();
+    let reader = rusqlite::Connection::open(client.slot_dir(&client.slot).join(WORKSPACE)).unwrap();
+    reader
+        .execute_batch("BEGIN; SELECT value FROM sealed;")
+        .unwrap();
+    assert!(matches!(
+        client.bind_device_keys(slot, &crate::testing::SECRET, &secret, now_ms()),
+        Err(Error::Unavailable(_))
+    ));
+    assert!(client.workspace.bound().unwrap());
+    assert!(storage.get(&name).unwrap().is_some());
+    assert!(client.keys().is_err());
+    assert!(client.root.is_none());
+    reader.execute_batch("ROLLBACK").unwrap();
+    // The same slot recovers the committed LDK and content after retrying
+    // cleanup. Deleting it on the earlier error would lose this workspace.
+    assert_eq!(client.unlock_fast().await.unwrap().state, "unlocked");
+}
+
+#[test]
+fn failed_fast_unlock_cleanup_locks_the_client_until_it_can_retry() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.enable_fast_unlock().unwrap();
+    let reader = rusqlite::Connection::open(client.slot_dir(&client.slot).join(WORKSPACE)).unwrap();
+    reader
+        .execute_batch("BEGIN; SELECT value FROM sealed;")
+        .unwrap();
+    assert!(matches!(
+        client.disable_fast_unlock(),
+        Err(Error::Unavailable(_))
+    ));
+    assert!(client.keys().is_err());
+    assert!(client.root.is_none());
+    assert!(storage.get(&client.fast_name().unwrap()).unwrap().is_none());
+    reader.execute_batch("ROLLBACK").unwrap();
+    let status = client.disable_fast_unlock().unwrap();
+    assert!(!status.fast_unlock);
+    client.workspace.unlock(&crate::testing::SECRET).unwrap();
+}
+
+#[test]
+fn a_rolled_back_binding_discards_only_its_unused_hardware_slot() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    let (handle, peer, secret) = hardware.create(false).unwrap();
+    let slot = BoundSlot {
+        handle: handle.into(),
+        peer: peer.into(),
+        biometry: None,
+    };
+    let name = client.bound_name().unwrap();
+    let database =
+        rusqlite::Connection::open(client.slot_dir(&client.slot).join(WORKSPACE)).unwrap();
+    database.execute_batch("CREATE TRIGGER reject_binding BEFORE INSERT ON sealed WHEN NEW.key = 'ldk-bound' BEGIN SELECT RAISE(ABORT, 'test failure'); END;").unwrap();
+    assert!(matches!(
+        client.bind_device_keys(slot, &crate::testing::SECRET, &secret, now_ms()),
+        Err(Error::Unavailable(_))
+    ));
+    assert!(!client.workspace.bound().unwrap());
+    assert!(storage.get(&name).unwrap().is_none());
+    assert!(client.keys().is_err());
+    // The original login wrapping remains usable after the rollback.
+    client.workspace.unlock(&crate::testing::SECRET).unwrap();
+}
+
+#[tokio::test]
 async fn a_device_bound_workspace_keeps_its_slot_through_failures_and_logout() {
     use std::sync::atomic::Ordering::SeqCst;
     let dir = TempDir::new();

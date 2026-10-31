@@ -136,6 +136,8 @@ name        = "dmsg:" + environment + ":" + account + ":" + deviceId   // 绑定
 
 其他封存记录（根与历史根、文件导入计划、换根任务、账户与审批日志、MCP 事件等）同样以 `["dmsg/local-private/1", hex(deviceId), 记录名]` 封存在 LDK 下。绑定前写入被拒绝，因此临时键只保护尚未被任何账户承认的设备密钥。首次使用必须经 dmsg.net 登录页登录 Internet Identity（[dmsg-login/1](protocol/login-v1_zh.md)）：新账户在注册 home 创建（初始设备随之登记），已有账户则由管理员设备在审批中心批准配对请求（高风险；有在场硬件时须在场确认，批准即登记设备并换根）。之后客户端查询 `unlock_secret(account, device)`，用 `LUK` 以 `["dmsg/local-key/2", name]` 重封同一把 LDK 并删除临时键。
 
+本地密钥清理（2026-10-31 增补）：账户绑定、设备绑定以及 LDK 封装的替换或删除，提交后必须成功执行 `wal_checkpoint(TRUNCATE)` 才返回成功。`secure_delete` 只清除当前数据库页中的旧记录，不能单独清除 WAL 的历史页。打开已有可写工作区及释放其解锁密钥前也会执行清理，覆盖旧版本和提交后中断的情况；清理被其他数据库读取者阻挡时返回失败，已提交的硬件绑定保留其凭据槽位，稍后解锁重试。迁入副本作为只读导入源时保持原样。此过程不保证擦除此前复制的工作区、文件系统快照或已经取得的密钥。
+
 ### 5.2 日常解锁
 
 - 通用路径：II 登录（会话私钥由 daemon 生成并持有，不依赖解锁）→ `unlock_secret` → LUK → LDK → 封存记录，全部只在内存；锁定后重复。`login_unlocked_at` 记录时间。

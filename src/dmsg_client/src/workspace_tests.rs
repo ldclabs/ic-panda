@@ -1,4 +1,5 @@
 use super::*;
+use crate::testing::TempDir;
 use dmsg_types::AccountId;
 use std::str::FromStr;
 
@@ -8,6 +9,192 @@ fn account() -> AccountRef {
         home: Principal::from_text("aaaaa-aa").unwrap(),
         issuer: "https://dmsg.test/u/040g2081040g2081040g".into(),
     }
+}
+
+fn disk_contains(dir: &TempDir, bytes: &[u8]) -> bool {
+    ["workspace.sqlite", "workspace.sqlite-wal"]
+        .iter()
+        .filter_map(|name| match std::fs::read(dir.path(name)) {
+            Ok(bytes) => Some(bytes),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => panic!("read test database: {error}"),
+        })
+        .any(|file| file.windows(bytes.len()).any(|window| window == bytes))
+}
+
+#[test]
+fn binding_erases_provisional_material_from_database_and_wal() {
+    let dir = TempDir::new();
+    let mut ws = Workspace::open(&dir.path("workspace.sqlite"), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    let provisional: ByteArray<32> = ws.store.meta(PROVISIONAL).unwrap().unwrap();
+    let wrapped = ws.store.sealed(LDK).unwrap().unwrap();
+    assert!(disk_contains(&dir, provisional.as_slice()));
+    assert!(disk_contains(&dir, wrapped.as_bytes()));
+
+    ws.bind(&keys, account(), &[9; 32]).unwrap();
+    // Keep the connection open, as when an existing account admits a new
+    // device. SQL deletion alone must not leave the bootstrap in old WAL pages.
+    ws.put_private(&keys, "root", &ByteArray::new([73; 32]))
+        .unwrap();
+    assert!(!disk_contains(&dir, provisional.as_slice()));
+    assert!(!disk_contains(&dir, wrapped.as_bytes()));
+    let again = ws.unlock(&[9; 32]).unwrap();
+    assert_eq!(
+        ws.private::<ByteArray<32>>(&again, "root").unwrap(),
+        Some(ByteArray::new([73; 32]))
+    );
+}
+
+#[test]
+fn hardware_binding_erases_old_login_and_fast_wrappings_from_database_and_wal() {
+    let dir = TempDir::new();
+    let mut ws = Workspace::open(&dir.path("workspace.sqlite"), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    ws.bind(&keys, account(), &[9; 32]).unwrap();
+    ws.enable_fast(&keys, &[3; 32], 2, false).unwrap();
+    let login = ws.store.sealed(LDK).unwrap().unwrap();
+    let fast = ws.store.sealed(FAST_LDK).unwrap().unwrap();
+    let slot = Hash::new([6; 32]);
+    ws.bind_device(&keys, &[9; 32], &[4; 32], slot, 3).unwrap();
+    assert!(!disk_contains(&dir, login.as_bytes()));
+    assert!(!disk_contains(&dir, fast.as_bytes()));
+    assert!(ws.unlock(&[9; 32]).is_err());
+    assert!(ws.unlock_fast(&[3; 32]).is_err());
+    assert_eq!(
+        ws.unlock_bound(&[9; 32], &[4; 32], slot)
+            .unwrap()
+            .ldk
+            .as_slice(),
+        keys.ldk.as_slice()
+    );
+    ws.unlock_fast_bound(&[4; 32], slot).unwrap();
+}
+
+#[test]
+fn replacing_and_removing_fast_wrappings_erases_old_copies() {
+    let dir = TempDir::new();
+    let mut ws = Workspace::open(&dir.path("workspace.sqlite"), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    ws.bind(&keys, account(), &[9; 32]).unwrap();
+    ws.put_private(&keys, "note", &"kept").unwrap();
+    ws.enable_fast(&keys, &[3; 32], 2, false).unwrap();
+    let old = ws.store.sealed(FAST_LDK).unwrap().unwrap();
+    ws.enable_fast(&keys, &[4; 32], 3, false).unwrap();
+    assert!(!disk_contains(&dir, old.as_bytes()));
+    let old = ws.store.sealed(FAST_LDK).unwrap().unwrap();
+    ws.disable_fast().unwrap();
+    assert!(!disk_contains(&dir, old.as_bytes()));
+
+    let slot = Hash::new([6; 32]);
+    ws.bind_device(&keys, &[9; 32], &[5; 32], slot, 4).unwrap();
+    let old = ws.store.sealed(FAST_LDK).unwrap().unwrap();
+    ws.enable_fast_bound(&keys, &[5; 32], slot, 5).unwrap();
+    assert!(!disk_contains(&dir, old.as_bytes()));
+    let bound = ws.store.sealed(BOUND_LDK).unwrap().unwrap();
+    let fast = ws.store.sealed(FAST_LDK).unwrap().unwrap();
+    ws.unbind_device(&keys, &[9; 32]).unwrap();
+    assert!(!disk_contains(&dir, bound.as_bytes()));
+    assert!(!disk_contains(&dir, fast.as_bytes()));
+    let again = ws.unlock(&[9; 32]).unwrap();
+    assert_eq!(
+        ws.private::<String>(&again, "note").unwrap().as_deref(),
+        Some("kept")
+    );
+}
+
+#[test]
+fn loading_an_older_workspace_erases_bootstrap_pages_without_closing_the_store() {
+    let dir = TempDir::new();
+    let ws = Workspace::open(&dir.path("workspace.sqlite"), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    let provisional: ByteArray<32> = ws.store.meta(PROVISIONAL).unwrap().unwrap();
+    let old = ws.store.sealed(LDK).unwrap().unwrap();
+    // The pre-fix binding transaction: current rows are safe, old WAL pages
+    // still carry the provisional key and its wrapping of the same LDK.
+    let mut meta = ws.meta.clone();
+    meta.account = Some(account());
+    let name = name_of(&meta).unwrap();
+    let wrapped = seal(
+        &crate::crypto::unlock_key(&[9; 32], &name),
+        keys.ldk.as_slice(),
+        &("dmsg/local-key/2", name.as_str()),
+    );
+    ws.store
+        .atomic(|store| {
+            store.set_sealed(LDK, &wrapped)?;
+            store.delete_meta(PROVISIONAL)?;
+            store.set_meta(META, &meta)
+        })
+        .unwrap();
+    assert!(disk_contains(&dir, provisional.as_slice()));
+    assert!(disk_contains(&dir, old.as_bytes()));
+    let ws = Workspace::load(ws.store, &Environment::Local, 2).unwrap();
+    assert!(!disk_contains(&dir, provisional.as_slice()));
+    assert!(!disk_contains(&dir, old.as_bytes()));
+    assert_eq!(
+        ws.unlock(&[9; 32]).unwrap().ldk.as_slice(),
+        keys.ldk.as_slice()
+    );
+}
+
+#[test]
+fn a_read_only_import_preserves_its_database_and_wal() {
+    let dir = TempDir::new();
+    let path = dir.path("workspace.sqlite");
+    let mut ws = Workspace::open(&path, &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    ws.bind(&keys, account(), &[9; 32]).unwrap();
+    ws.put_private(&keys, "note", &"import me").unwrap();
+    let database = std::fs::read(&path).unwrap();
+    let wal = std::fs::read(dir.path("workspace.sqlite-wal")).unwrap();
+    assert!(!wal.is_empty());
+    let copy = Workspace::load(Store::read_only(&path).unwrap(), &Environment::Local, 2).unwrap();
+    let keys = copy.unlock(&[9; 32]).unwrap();
+    assert_eq!(
+        copy.private::<String>(&keys, "note").unwrap().as_deref(),
+        Some("import me")
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), database);
+    assert_eq!(
+        std::fs::read(dir.path("workspace.sqlite-wal")).unwrap(),
+        wal
+    );
+    assert!(copy.put_private(&keys, "note", &"not allowed").is_err());
+}
+
+#[test]
+fn blocked_binding_cleanup_fails_and_unlock_retries_the_committed_change() {
+    let dir = TempDir::new();
+    let path = dir.path("workspace.sqlite");
+    let mut ws = Workspace::open(&path, &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    let provisional: ByteArray<32> = ws.store.meta(PROVISIONAL).unwrap().unwrap();
+    let reader = rusqlite::Connection::open(&path).unwrap();
+    reader
+        .execute_batch("BEGIN; SELECT value FROM meta;")
+        .unwrap();
+    assert!(matches!(
+        ws.bind(&keys, account(), &[9; 32]),
+        Err(Error::Unavailable(_))
+    ));
+    // COMMIT succeeded: metadata must agree, and failure must not be reported
+    // as a successful erasure or allow another unlock before cleanup.
+    assert!(!ws.provisional());
+    assert!(
+        ws.store
+            .meta::<ByteArray<32>>(PROVISIONAL)
+            .unwrap()
+            .is_none()
+    );
+    assert!(disk_contains(&dir, provisional.as_slice()));
+    assert!(matches!(ws.unlock(&[9; 32]), Err(Error::Unavailable(_))));
+    reader.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(
+        ws.unlock(&[9; 32]).unwrap().ldk.as_slice(),
+        keys.ldk.as_slice()
+    );
+    assert!(!disk_contains(&dir, provisional.as_slice()));
 }
 
 #[test]

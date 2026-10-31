@@ -750,7 +750,7 @@ impl Client {
         let keys = self.keys.take().ok_or(Error::Locked)?;
         let bound = self.workspace.bind(&keys, reference.clone(), &secret);
         self.keys = Some(keys);
-        bound?;
+        bound.inspect_err(|_| self.lock())?;
         self.workspace.meta.login_unlocked_at = Some(now_ms());
         self.workspace.save_meta()?;
         self.located = None;
