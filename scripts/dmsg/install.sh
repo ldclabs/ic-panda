@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/ldclabs/ic-panda/main/scripts/dmsg/install.sh | sh
 #   sh install.sh --uninstall
 #
-# The binary comes from the latest dmsg-v* release and is checked against its
+# The binary comes from the latest stable SemVer release and is checked against its
 # published SHA-256, then `dmsg install` puts it in DMSG_INSTALL_DIR
 # (default ~/.local/bin), never over a newer one. Upgrade an installed dmsg
 # with `dmsg update`, which also restarts the daemon safely. Uninstalling
@@ -45,15 +45,15 @@ case "$(uname -s)/$(uname -m)" in
 esac
 
 if [ -n "${DMSG_VERSION:-}" ]; then
-    TAG="dmsg-v${DMSG_VERSION#v}"
+    TAG="$DMSG_VERSION"
 else
     TAG=$(curl -fsSL -H 'Accept: application/json' "${RELEASES}/latest" |
         sed -n 's/.*"tag_name" *: *"\([^"]*\)".*/\1/p')
-    case "$TAG" in
-        dmsg-v*) ;;
-        *) error "the latest release (${TAG:-none}) is not a dMsg client release" ;;
-    esac
+    printf '%s\n' "$TAG" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' ||
+        error "the latest release (${TAG:-none}) is not a stable dMsg client release"
 fi
+printf '%s\n' "$TAG" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$' ||
+    error "DMSG_VERSION must be X.Y.Z or X.Y.Z-beta.N"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT

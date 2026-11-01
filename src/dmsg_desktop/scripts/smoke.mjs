@@ -39,6 +39,7 @@ import { notificationsFixture } from './notifications-fixture.mjs'
 import { notificationsFlow } from './notifications-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
+import { updatesFlow } from './updates-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
 import { successionFlow } from './succession-flow.mjs'
 import { trayFlow } from './tray-flow.mjs'
@@ -1600,6 +1601,13 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'updates') {
+    await updatesFlow({ app, main, profile, shots, waitFor })
+    await closeTest()
+    console.log('desktop updates smoke test passed')
+    process.exit(0)
+  }
+
   if (process.env.DMSG_DESKTOP_SMOKE === 'languages') {
     const opened = app.waitForEvent('window')
     await main.evaluate(id => window.dmsg.openApproval(id), request.id)

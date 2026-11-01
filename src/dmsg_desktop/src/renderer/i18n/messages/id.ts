@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('id'),
+    betaUpdates: "Terima pembaruan Beta",
+    betaUpdatesHint: "Coba fitur baru di perangkat ini, termasuk layanan latar belakang bersama. Versi Beta mungkin tidak stabil. Menonaktifkannya akan menunggu rilis stabil yang lebih baru tanpa menurunkan versi.",
+    updateChannel: "Saluran pembaruan",
+    updateStable: "Stabil",
+    updateWaitingStable: "Menunggu rilis stabil",
+    updateHomebrew: "Instalasi ini dikelola Homebrew. Jalankan brew upgrade dmsg dmsg-desktop. Pembaruan Beta memerlukan peralihan ke instalasi standar.",
     onChainRecovery: "Pemulihan on-chain",
     recoveryOnHint: "Jika semua perangkat hilang, login tertaut dapat memulihkan konten yang diunggah setelah masa tunggu. Login yang dicuri juga bisa, kecuali perangkat berizin membatalkan tepat waktu.",
     recoveryOffHint: "Simpan perangkat berizin yang bisa dibuka untuk pindah perangkat. Jika semuanya hilang, memulihkan login tidak memulihkan konten cloud.",

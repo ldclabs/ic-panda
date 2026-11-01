@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('de'),
+    betaUpdates: "Beta-Updates erhalten",
+    betaUpdatesHint: "Neue Funktionen auf diesem Gerät testen, einschließlich des gemeinsamen Hintergrunddienstes. Beta-Versionen können instabil sein. Nach dem Abschalten wird auf eine neuere stabile Version gewartet; es erfolgt kein Downgrade.",
+    updateChannel: "Update-Kanal",
+    updateStable: "Stabil",
+    updateWaitingStable: "Warten auf eine stabile Version",
+    updateHomebrew: "Homebrew verwaltet diese Installation. Führen Sie brew upgrade dmsg dmsg-desktop aus. Für Beta-Updates ist ein Wechsel zur Standardinstallation erforderlich.",
     onChainRecovery: "On-Chain-Wiederherstellung",
     recoveryOnHint: "Gehen alle Geräte verloren, kann eine verknüpfte Anmeldung hochgeladene Inhalte nach der Wartezeit wiederherstellen. Das gilt auch bei Diebstahl der Anmeldung, sofern kein autorisiertes Gerät rechtzeitig widerspricht.",
     recoveryOffHint: "Behalte ein entsperrbares autorisiertes Gerät für den Gerätewechsel. Gehen alle autorisierten Geräte verloren, stellt die Wiederherstellung der Anmeldung keine Cloud-Inhalte wieder her.",

@@ -1,7 +1,7 @@
 {
   "name": "@dmsg/desktop",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "dMsg desktop: the vault, signatures and approvals of a dMsg device, on its local daemon",
   "author": "LDC Labs",
   "license": "Apache-2.0",
@@ -19,6 +19,7 @@
   "dependencies": {
     "agent-protocols": "0.12.6",
     "electron-updater": "6.8.9",
+    "semver": "7.8.5",
     "ws": "8.20.1"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^26.6.4",
+    "@types/semver": "^7.8.0",
     "@types/ws": "^8.18.1",
     "bits-ui": "^2.19.0",
     "clsx": "^2.1.1",

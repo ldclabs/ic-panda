@@ -12,6 +12,7 @@ import WebSocket from 'ws'
 import type { DaemonEvent } from '../shared/contract'
 import { DaemonError } from './error.ts'
 import { ReadRecovery } from './recovery.ts'
+import { requireRuntimeVersion } from './runtime.ts'
 import { isRead, requestKey } from '../shared/requests.ts'
 
 const run = promisify(execFile)
@@ -45,6 +46,8 @@ const UNTIMED = new Set(['files/import', 'files/export', 'files/open', 'files/ve
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */
   binary: string
+  /** Packaged desktop version; do not attach to an older daemon still draining its work. */
+  minimumVersion?: string
   /** The dMsg home. */
   home: string
   /** Test only: a daemon URL and credential instead of `dmsg app-token`. */
@@ -82,7 +85,11 @@ export class Daemon extends EventEmitter {
     if (this.options.fixed) return this.options.fixed
     const home = ['--home', this.options.home]
     // Returns once the daemon answers; a bad config.toml fails here.
-    await run(this.options.binary, [...home, 'start'], { timeout: 45_000 })
+    const started = await run(this.options.binary, [...home, '--json', 'start'], { timeout: 45_000 })
+    if (this.options.minimumVersion) {
+      const status = JSON.parse(started.stdout.trim().split('\n').pop()!) as { version?: string }
+      requireRuntimeVersion(status.version, this.options.minimumVersion)
+    }
     const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 15_000 })
     return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
   }

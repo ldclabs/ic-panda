@@ -4,6 +4,8 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { parse } = require('yaml')
+const { publishConfig } = require('../../scripts/dmsg/release-config.cjs')
+const { version } = require('./package.json')
 
 const config = parse(fs.readFileSync(path.join(__dirname, 'electron-builder.yml'), 'utf8'))
 const signed = Boolean(process.env.CSC_LINK)
@@ -13,9 +15,9 @@ const signed = Boolean(process.env.CSC_LINK)
 if (process.platform === 'darwin' && !signed)
   throw new Error('A macOS release needs the Developer ID certificate in CSC_LINK')
 config.forceCodeSigning = signed
-// dmsg-v* releases are the repository's latest release; canister releases are not.
-// Packages without this feed check the same one (FEED in src/main/updater.ts).
-config.publish =[{ provider: 'github', owner: 'ldclabs', repo: 'ic-panda', releaseType: 'release' }]
+// The main process selects an eligible release and overrides this pinned feed.
+config.publish = [publishConfig(version)]
+config.generateUpdatesFilesForAllChannels = false
 delete config.mac.identity
 config.mac.entitlements = 'resources/entitlements.mac.plist'
 config.mac.entitlementsInherit = 'resources/entitlements.mac.plist'

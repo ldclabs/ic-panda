@@ -1,12 +1,13 @@
-//! Releases and installs of `dmsg`: the latest `dmsg-v*` release of the
+//! Releases and installs of `dmsg`: the latest stable SemVer release of the
 //! repository, a download checked against its published SHA-256 and, on
 //! macOS, signed by the same team as the running binary, and the one shared
 //! location that the install scripts, Homebrew and the desktop app use.
 //!
-//! The repository also publishes canister releases (`v*`); only the dMsg
+//! The repository also publishes canister releases (`canisters-v*`); only the stable dMsg
 //! client release is marked as the latest one.
 
 use crate::remote::Failure;
+use semver::Version;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -14,8 +15,6 @@ use std::process::Command;
 
 /// The repository's releases; `DMSG_RELEASE_URL` replaces it for tests and mirrors.
 const RELEASES: &str = "https://github.com/ldclabs/ic-panda/releases";
-/// Tag prefix of dMsg client releases.
-const TAG_PREFIX: &str = "dmsg-v";
 /// This binary's version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -39,27 +38,16 @@ pub fn asset() -> Option<&'static str> {
     }
 }
 
-/// Whether `a` is a newer version than `b`: numeric parts first, then a
-/// release after its pre-releases. Unreadable versions are never newer.
+/// SemVer precedence, including beta sequence numbers. Build metadata does not order versions.
 pub fn newer(a: &str, b: &str) -> bool {
     match (parse(a), parse(b)) {
-        (Some(a), Some(b)) => a > b,
+        (Some(a), Some(b)) => a.cmp_precedence(&b).is_gt(),
         _ => false,
     }
 }
 
-fn parse(version: &str) -> Option<(Vec<u64>, bool)> {
-    let version = version.trim().trim_start_matches('v');
-    let (core, release) = match version.split_once('-') {
-        Some((core, _)) => (core, false),
-        None => (version, true),
-    };
-    let core = core.split('+').next()?;
-    let parts = core
-        .split('.')
-        .map(|part| part.parse().ok())
-        .collect::<Option<Vec<u64>>>()?;
-    Some((parts, release))
+fn parse(version: &str) -> Option<Version> {
+    Version::parse(version).ok()
 }
 
 fn unavailable(error: impl std::fmt::Display) -> Failure {
@@ -98,15 +86,22 @@ pub async fn latest(http: &reqwest::Client) -> Result<String, Failure> {
     let bytes = get(http, &url, "application/json").await?;
     let reply: Value = serde_json::from_slice(&bytes).map_err(unavailable)?;
     let tag = reply["tag_name"].as_str().unwrap_or_default();
-    tag.strip_prefix(TAG_PREFIX)
-        .filter(|version| parse(version).is_some())
-        .map(str::to_string)
-        .ok_or_else(|| {
-            Failure::new(
-                "NOT_FOUND",
-                format!("the latest release ({tag}) is not a dMsg client release"),
-            )
-        })
+    stable_version(&reply).map(str::to_string).ok_or_else(|| {
+        Failure::new(
+            "NOT_FOUND",
+            format!("the latest release ({tag}) is not a dMsg client release"),
+        )
+    })
+}
+
+fn stable_version(reply: &Value) -> Option<&str> {
+    let tag = reply["tag_name"].as_str()?;
+    let version = parse(tag)?;
+    (version.pre.is_empty()
+        && version.build.is_empty()
+        && reply["draft"] == false
+        && reply["prerelease"] == false)
+        .then_some(tag)
 }
 
 /// This platform's binary of release `version`, checked against the
@@ -114,7 +109,7 @@ pub async fn latest(http: &reqwest::Client) -> Result<String, Failure> {
 pub async fn download(http: &reqwest::Client, version: &str) -> Result<Vec<u8>, Failure> {
     let asset = asset()
         .ok_or_else(|| Failure::new("UNSUPPORTED", "dMsg releases no binary for this platform"))?;
-    let url = format!("{}/download/{TAG_PREFIX}{version}/{asset}", base());
+    let url = format!("{}/download/{version}/{asset}", base());
     let listed = get(http, &format!("{url}.sha256"), "text/plain").await?;
     let expected = String::from_utf8_lossy(&listed)
         .split_whitespace()
@@ -367,7 +362,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_default_update_requires_a_stable_client_release() {
+        let release = |tag, draft, prerelease| json!({"tag_name": tag, "draft": draft, "prerelease": prerelease});
+        assert_eq!(
+            stable_version(&release("1.3.0", false, false)),
+            Some("1.3.0")
+        );
+        for tag in [
+            "dmsg-v1.3.0",
+            "v3.0.0",
+            "canisters-v3.1.6",
+            "1.3.0-beta.1",
+            "1.3.0+build.1",
+        ] {
+            assert_eq!(stable_version(&release(tag, false, false)), None);
+        }
+        assert_eq!(stable_version(&release("1.3.0", true, false)), None);
+        assert_eq!(stable_version(&release("1.3.0", false, true)), None);
+    }
+
+    #[test]
     fn versions_order_numerically_and_releases_follow_prereleases() {
+        assert!(newer("1.3.0-beta.10", "1.3.0-beta.2"));
+        assert!(newer("1.3.0-beta.2", "1.3.0-beta.1"));
+        assert!(!newer("1.3.0-beta.1", "1.3.0-beta.2"));
+        assert!(!newer("1.3.0+build.2", "1.3.0+build.1"));
+        assert!(!newer("1.3.0-beta.01", "1.2.0"));
         assert!(newer("0.10.0", "0.9.9"));
         assert!(newer("1.0.0", "1.0.0-beta.2"));
         assert!(!newer("1.0.0-beta.2", "1.0.0"));

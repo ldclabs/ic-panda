@@ -3,7 +3,7 @@
 #   irm https://raw.githubusercontent.com/ldclabs/ic-panda/main/scripts/dmsg/install.ps1 | iex
 #   & .\install.ps1 -Uninstall
 #
-# The binary comes from the latest dmsg-v* release and is checked against its
+# The binary comes from the latest stable SemVer release and is checked against its
 # published SHA-256, then `dmsg install` puts it in DMSG_INSTALL_DIR (default
 # %LOCALAPPDATA%\dMsg\bin, which the user PATH gains), never over a newer one.
 # Upgrade with `dmsg update`. Uninstalling stops the daemon, removes the login
@@ -42,11 +42,12 @@ if ($Uninstall) {
 if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw "dMsg releases Windows binaries for x64 only" }
 $Asset = 'dmsg-windows-x64.exe'
 if ($env:DMSG_VERSION) {
-  $Tag = 'dmsg-v' + $env:DMSG_VERSION.TrimStart('v')
+  $Tag = $env:DMSG_VERSION
 } else {
   $Tag = (Invoke-RestMethod -Uri "$Releases/latest" -Headers @{ Accept = 'application/json' }).tag_name
-  if ($Tag -notlike 'dmsg-v*') { throw "the latest release ($Tag) is not a dMsg client release" }
+  if ($Tag -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "the latest release ($Tag) is not a stable dMsg client release" }
 }
+if ($Tag -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.(0|[1-9][0-9]*))?$') { throw 'DMSG_VERSION must be X.Y.Z or X.Y.Z-beta.N' }
 
 $Work = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid())
 New-Item -ItemType Directory $Work | Out-Null

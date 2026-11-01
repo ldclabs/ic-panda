@@ -26,7 +26,7 @@
   import './tour.css'
 
   const REPO = 'https://github.com/ldclabs/ic-panda'
-  // The repository's latest release is always a dmsg-v* release, so these
+  // The repository's latest release is always a stable dMsg client release, so these
   // links follow each new version without a change here.
   const RELEASE = `${REPO}/releases/latest`
   const MAC_APP = `${REPO}/releases/latest/download/dMsg-mac-arm64.dmg`

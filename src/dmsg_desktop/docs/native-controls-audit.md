@@ -1,8 +1,24 @@
 # 桌面表单统一：整改与验证记录
 
-更新日期：2026-10-26。本次整改基于 `main@777a7c3f`；原始排查的界面基线为 `643693a5`。
+更新日期：2026-11-01。原控件整改基于 `main@777a7c3f`；原始排查的界面基线为 `643693a5`。
 原始 9 项整改、11 处特殊控件/交互，以及设置的 17 处直接文本输入均已完成代码整改。
 实际交互验证使用构建后的 Electron 与隔离的本地 mock daemon，不操作真实账户。
+
+## 2026-11-01 Beta 更新通道增量
+
+基于 `main@83f6548b` 的工作区增量。「关于 dMsg」复用共享 `Checkbox`、
+`Notice`、`Pill` 和 `buttonClass`；复选框通过 `aria-describedby` 关联说明，
+版本号使用 LTR 隔离。通道偏好仅由主进程写入，不经 daemon 或账户同步。
+
+- 桌面 `pnpm check` 通过；`pnpm test` 151 项通过；`pnpm audit:controls`
+  报告 0 处未经批准的原生控件。
+- `DMSG_DESKTOP_SMOKE=updates pnpm test:e2e` 在隔离 Electron 中通过：
+  默认稳定通道、键盘切换、实际偏好保存、保存失败后的草稿与重试、等待时禁用、
+  页面切换后的迟到回包、检查/下载/就绪/失败/等待正式版、Homebrew 限制。
+- 检查 `test-results/updates-*.png` 七张截图：中文、法语长文案、阿拉伯语 RTL
+  各覆盖明暗主题与 760×540，另有中文明色 1180×760；检查换行、边界和 Tab 焦点。
+- 更新选择和取消竞态由单元测试覆盖；真实 GitHub 发布、macOS 签名包覆盖安装、
+  Windows 安装和 PowerShell 执行未在本次本地验证中运行。
 
 ## 整改结果
 

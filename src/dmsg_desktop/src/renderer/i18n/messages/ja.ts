@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ja'),
+    betaUpdates: "Beta アップデートを受け取る",
+    betaUpdatesHint: "この端末で共有バックグラウンドサービスを含む新機能を試します。Beta 版は不安定な場合があります。オフにすると新しい安定版を待ち、旧バージョンには戻りません。",
+    updateChannel: "更新チャネル",
+    updateStable: "安定版",
+    updateWaitingStable: "安定版の公開を待っています",
+    updateHomebrew: "このインストールは Homebrew が管理しています。brew upgrade dmsg dmsg-desktop を実行してください。Beta の利用には通常のインストール方式への切り替えが必要です。",
     onChainRecovery: "オンチェーン復元",
     recoveryOnHint: "すべての端末を紛失した場合、紐付けたログインで待機期間後にアップロード済みの内容を復元できます。ログインを盗まれた場合も、承認済み端末で期限内に取り消さない限り同様です。",
     recoveryOffHint: "機種変更にはロック解除できる承認済み端末が必要です。すべての承認済み端末を紛失すると、ログインを取り戻してもクラウドの内容は復元できません。",

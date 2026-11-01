@@ -1,9 +1,28 @@
 # dMsg client changelog
 
 The `dmsg` CLI and daemon ([`src/dmsg_cli`](../dmsg_cli/README.md)) and this
-desktop app share one version and one release, tagged `dmsg-v<version>`.
+desktop app share one version and one release. Starting with 1.3.0, tags are
+bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged.
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
+
+## [1.3.0] - Unreleased
+
+### Updates
+
+- Add an opt-in Beta channel in Settings › About dMsg, saved only on this
+  installation. Stable remains the default, including on a manually installed
+  beta. Leaving Beta cancels pending beta downloads and waits for a newer
+  stable release without downgrading.
+- Select complete client releases by SemVer across stable and beta publication
+  order. Cancelled or late checks cannot restore an ineligible install; an
+  installation waits for the daemon to become idle as before.
+- Compare beta sequence numbers correctly when installing or starting the
+  shared daemon. A packaged desktop refuses an older runtime. Homebrew-managed
+  installations update through Homebrew and cannot opt into Beta.
+- Publish beta releases as GitHub prereleases without changing Latest or
+  Homebrew. Verify package manifests and checksums before publishing a draft;
+  new client release tags no longer use the `dmsg-v` prefix.
 
 ## [1.2.1] - 2026-10-31
 

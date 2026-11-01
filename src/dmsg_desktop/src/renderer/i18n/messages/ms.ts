@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ms'),
+    betaUpdates: "Terima kemas kini Beta",
+    betaUpdatesHint: "Cuba ciri baharu pada peranti ini, termasuk perkhidmatan latar belakang yang dikongsi. Versi Beta mungkin tidak stabil. Apabila dimatikan, tunggu keluaran stabil yang lebih baharu tanpa menurunkan versi.",
+    updateChannel: "Saluran kemas kini",
+    updateStable: "Stabil",
+    updateWaitingStable: "Menunggu keluaran stabil",
+    updateHomebrew: "Homebrew mengurus pemasangan ini. Jalankan brew upgrade dmsg dmsg-desktop. Kemas kini Beta memerlukan pertukaran kepada pemasangan standard.",
     onChainRecovery: "Pemulihan pada rantaian",
     recoveryOnHint: "Jika semua peranti hilang, log masuk terpaut boleh memulihkan kandungan yang dimuat naik selepas tempoh menunggu. Log masuk yang dicuri juga boleh berbuat demikian jika tiada peranti dibenarkan membatalkannya tepat pada masanya.",
     recoveryOffHint: "Simpan peranti dibenarkan yang boleh dibuka untuk bertukar peranti. Jika semuanya hilang, memulihkan log masuk tidak memulihkan kandungan awan.",

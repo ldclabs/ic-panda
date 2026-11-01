@@ -231,7 +231,8 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   installed one, so the CLI, agents and the app share one daemon. `--json`
   reports `{action, path, version, on_path}` with `action` one of
   `installed`, `upgraded`, `replaced`, `current`, `kept_newer`, `homebrew`.
-- **Releases.** dMsg client releases are tagged `dmsg-v<version>` and are the
+- **Releases.** Since 1.3.0, dMsg client tags are bare versions (`1.3.0`,
+  `1.4.0-beta.1`); only stable versions are the
   repository's latest release (canister releases are not).
   `dmsg update --check --json` reports `{current, latest, available,
   homebrew}`. `dmsg update` downloads this platform's binary

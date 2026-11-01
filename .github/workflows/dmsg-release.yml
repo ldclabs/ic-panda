@@ -1,11 +1,9 @@
 name: dMsg release
 # The dMsg client: the dmsg CLI and daemon for macOS, Linux and Windows, and
-# the desktop app for macOS and Windows, in one release tagged dmsg-v<version>.
-# It is the repository's latest release, which `dmsg update`, the install
-# scripts and the desktop update feed read; canister releases (v*) are not.
+# the desktop app for macOS and Windows. Tags are X.Y.Z or X.Y.Z-beta.N.
+# Only stable releases become latest and update Homebrew; beta releases are opt-in.
 #
-# Secrets of the dmsg-release environment (all optional; without them the
-# packages are unsigned and the macOS app has no update feed):
+# Secrets of the dmsg-release environment (macOS signing/notarization are required):
 #   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
 #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   notarization
 #   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   Windows code signing; variable DMSG_WINDOWS_PUBLISHER
@@ -13,7 +11,7 @@ name: dMsg release
 on:
   push:
     tags:
-      - "dmsg-v*"
+      - "[0-9]*.[0-9]*.[0-9]*"
   workflow_dispatch:
 
 permissions:
@@ -24,18 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.version.outputs.channel }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      make_latest: ${{ steps.version.outputs.make_latest }}
     steps:
       - uses: actions/checkout@v7
       # One version for the tag, the dmsg binary and the desktop app.
       - id: version
-        run: |
-          cli=$(sed -n 's/^version = "\(.*\)"/\1/p' src/dmsg_cli/Cargo.toml | head -1)
-          desktop=$(node -p "require('./src/dmsg_desktop/package.json').version")
-          [ "$cli" = "$desktop" ] || { echo "dmsg_cli is $cli, the desktop is $desktop"; exit 1; }
-          if [ "${GITHUB_REF_TYPE}" = tag ] && [ "${GITHUB_REF_NAME}" != "dmsg-v$cli" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not name dmsg $cli"; exit 1
-          fi
-          echo "version=$cli" >> "$GITHUB_OUTPUT"
+        run: node scripts/dmsg/release-config.cjs
 
   binary:
     needs: version
@@ -126,7 +120,7 @@ jobs:
           overwrite: true
 
   desktop:
-    needs: [binary, sign-macos]
+    needs: [version, binary, sign-macos]
     strategy:
       fail-fast: false
       matrix:
@@ -161,18 +155,6 @@ jobs:
           chmod +x "$DMSG_DESKTOP_RUNTIME"
           pnpm --dir src/dmsg_desktop build
           node src/dmsg_desktop/scripts/prepare-runtime.mjs
-      - id: config
-        shell: bash
-        env:
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
-        run: |
-          # A macOS feed needs the Developer ID signature; Windows publishes one either way.
-          if [ -n "$CSC_LINK" ] || [ "$RUNNER_OS" = Windows ]; then
-            echo "file=electron-builder.release.cjs" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Developer ID certificate; the macOS app is unsigned and has no update feed."
-            echo "file=electron-builder.yml" >> "$GITHUB_OUTPUT"
-          fi
       - name: Package
         shell: bash
         working-directory: src/dmsg_desktop
@@ -183,13 +165,13 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           DMSG_WINDOWS_PUBLISHER: ${{ vars.DMSG_WINDOWS_PUBLISHER }}
-        run: pnpm exec electron-builder --config ${{ steps.config.outputs.file }} --publish never
+        run: pnpm exec electron-builder --config electron-builder.release.cjs --publish never
       - name: Collect
         shell: bash
         run: |
           mkdir desktop-release
           cp src/dmsg_desktop/release/dMsg-* desktop-release/
-          for feed in latest-mac.yml latest.yml; do
+          for feed in latest-mac.yml latest.yml beta-mac.yml beta.yml; do
             [ -f "src/dmsg_desktop/release/$feed" ] && cp "src/dmsg_desktop/release/$feed" desktop-release/
           done
           cd desktop-release
@@ -197,7 +179,7 @@ jobs:
           for file in dMsg-*.dmg dMsg-*.zip dMsg-*.exe; do
             [ -f "$file" ] && $sum "$file" > "$file.sha256"
           done
-          ls -la
+          node ../src/dmsg_desktop/scripts/verify-release.cjs .
       - uses: actions/upload-artifact@v4
         with:
           name: release-desktop-${{ matrix.os }}
@@ -216,12 +198,29 @@ jobs:
           pattern: release-*
           merge-multiple: true
           path: release
+      - name: Verify binary and package checksums
+        working-directory: release
+        run: sha256sum --check ./*.sha256
       - uses: softprops/action-gh-release@v3
+        id: upload
         with:
           name: dMsg ${{ needs.version.outputs.version }}
           files: release/*
-          make_latest: true
+          fail_on_unmatched_files: true
+          draft: true
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          make_latest: false
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ steps.upload.outputs.id }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+          MAKE_LATEST: ${{ needs.version.outputs.make_latest }}
+        run: |
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            -F draft=false -F prerelease="$PRERELEASE" -f make_latest="$MAKE_LATEST"
       - name: Homebrew
+        if: needs.version.outputs.prerelease == 'false'
         env:
           CHECKSUM_DIR: release
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

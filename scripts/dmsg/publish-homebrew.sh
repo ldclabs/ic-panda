@@ -4,7 +4,7 @@
 # the tap. The cask depends on the formula, so the desktop app keeps using
 # Homebrew's dmsg (`dmsg install` leaves it alone).
 #
-# Usage: scripts/dmsg/publish-homebrew.sh dmsg-v0.2.0
+# Usage: scripts/dmsg/publish-homebrew.sh 1.3.0
 #
 # Environment:
 #   HOMEBREW_TAP_TOKEN   token with write access to the tap (CI)
@@ -21,10 +21,9 @@ TAG="${1:-${GITHUB_REF_NAME:-}}"
 
 error() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 
-case "$TAG" in
-    dmsg-v*) VERSION="${TAG#dmsg-v}" ;;
-    *) error "usage: $0 dmsg-v<version>" ;;
-esac
+printf '%s\n' "$TAG" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' ||
+    error "Homebrew accepts stable X.Y.Z tags only"
+VERSION="$TAG"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 
 checksum() {
@@ -98,12 +97,11 @@ cask "dmsg-desktop" do
   version "${VERSION}"
   sha256 "${DESKTOP}"
 
-  url "https://github.com/${REPO}/releases/download/dmsg-v#{version}/dMsg-mac-arm64.dmg"
+  url "https://github.com/${REPO}/releases/download/#{version}/dMsg-mac-arm64.dmg"
   name "dMsg"
   desc "Desktop workspace and approvals for dMsg"
   homepage "https://dmsg.net/"
 
-  auto_updates true
   depends_on arch: :arm64
   depends_on formula: "dmsg"
   depends_on :macos

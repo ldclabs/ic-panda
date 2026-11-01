@@ -6,6 +6,12 @@ import { notificationText } from '../../../shared/notification-text.ts'
  */
 const messages = {
     ...notificationText('en'),
+    betaUpdates: "Receive Beta updates",
+    betaUpdatesHint: "Try new features on this device, including its shared background service. Beta versions may be unstable. Turning this off waits for a newer stable release; it does not downgrade.",
+    updateChannel: "Update channel",
+    updateStable: "Stable",
+    updateWaitingStable: "Waiting for a stable release",
+    updateHomebrew: "Homebrew manages this installation. Run brew upgrade dmsg dmsg-desktop. Beta updates require switching to the standard installation.",
   onChainRecovery: "On-chain recovery",
   recoveryOnHint: "If every device is lost, a bound login can recover uploaded content after the waiting period. A stolen login can do the same unless an authorized device cancels in time.",
   recoveryOffHint: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.",

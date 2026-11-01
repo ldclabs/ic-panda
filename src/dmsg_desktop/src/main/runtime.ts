@@ -9,6 +9,7 @@
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
+import { gte, valid } from 'semver'
 
 const run = promisify(execFile)
 
@@ -19,6 +20,13 @@ export interface Runtime {
   action?: string
   /** The installed binary's version, when known. */
   version?: string
+}
+
+/** A retained or already-running daemon must understand the desktop release using it. */
+export function requireRuntimeVersion(version: unknown, minimum: string) {
+  if (typeof version !== 'string' || !valid(version) || !gte(version, minimum)) {
+    throw new Error(`dMsg ${minimum} needs daemon ${minimum} or newer; found ${String(version ?? 'unknown')}. Let pending work finish and retry. If Homebrew manages dmsg, run brew upgrade dmsg dmsg-desktop.`)
+  }
 }
 
 export async function resolveRuntime(packaged: boolean, resources: string): Promise<Runtime> {

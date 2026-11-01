@@ -1,92 +1,138 @@
-/**
- * Updates of a package from the GitHub release feed (electron-updater). A
- * release package carries the feed (electron-builder.release.cjs): its update
- * downloads in the background and is applied only on request, after the
- * daemon stopped for it (`update.ts`); the new app then installs and starts
- * its own `dmsg`. A local package signed with the Developer ID carries the
- * feed too (electron-builder.local.cjs). A package without it (an ad hoc
- * local one, or a macOS release built without the Developer ID) cannot
- * install a signed release, so its check only finds the update, and the
- * release page has it.
- */
-import { app, dialog, shell } from 'electron'
-import { existsSync } from 'node:fs'
+/** GitHub release selection and a local channel preference; electron-updater owns verified downloads and installation. */
+import { app, dialog, net, shell } from 'electron'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { autoUpdater } from 'electron-updater'
-import type { UpdateState } from '../shared/contract'
+import { autoUpdater, CancellationToken } from 'electron-updater'
+import type { AppUpdates, UpdateChannel, UpdateState } from '../shared/contract'
 import type { Text } from './text'
+import { ReleaseFeed, RELEASES, type DesktopRelease } from './release-feed'
+import { UpdateSession } from './update-session'
 import { describe, stopForUpdate } from './update'
 
 const CHECK_MS = 6 * 60 * 60 * 1000
 
-/** The feed release packages carry as `app-update.yml`; dmsg-v* releases are the repository's latest release. */
-const FEED = { provider: 'github', owner: 'ldclabs', repo: 'ic-panda', releaseType: 'release' } as const
-
-/** The release page of a version, which has its packages. */
-const releasePage = (version: string) => `https://github.com/ldclabs/ic-panda/releases/tag/dmsg-v${encodeURIComponent(version)}`
-
 export class Updates {
-  state: UpdateState = { kind: 'off' }
-  private changed: () => void
+  private session?: UpdateSession
+  private homebrew = false
+  private resumeInstallation?: () => Promise<void>
 
-  constructor(changed: () => void) {
-    this.changed = changed
+  constructor(private changed: () => void) {}
+
+  get state(): UpdateState {
+    return this.session?.state ?? { kind: 'off' }
   }
 
-  /** Check now and every six hours in a packaged app; only a package with the feed downloads. */
-  start() {
-    if (!app.isPackaged) return
-    const installs = existsSync(join(process.resourcesPath, 'app-update.yml'))
-    if (!installs) autoUpdater.setFeedURL(FEED)
-    autoUpdater.autoDownload = installs
+  info(): AppUpdates {
+    return { version: app.getVersion(), state: this.state, channel: this.session?.channel ?? 'stable', homebrew: this.homebrew, applying: this.session?.applying ?? false }
+  }
+
+  private saveChannel(channel: UpdateChannel) {
+    const file = join(app.getPath('userData'), 'update-channel')
+    writeFileSync(`${file}.tmp`, channel, { mode: 0o600 })
+    renameSync(`${file}.tmp`, file)
+  }
+
+  setChannel(channel: UpdateChannel): AppUpdates {
+    if (channel !== 'stable' && channel !== 'beta') throw new Error('Invalid update channel.')
+    if (!this.session || this.session.applying) throw new Error('The update channel cannot change during installation.')
+    if (channel === 'beta' && this.homebrew) throw new Error('Homebrew manages this daemon. Use the standard dMsg installation to receive beta updates.')
+    this.saveChannel(channel)
+    this.session.changeChannel(channel)
+    return this.info()
+  }
+
+  /** The preference is loaded even in development; network checks require a packaged app. */
+  start(homebrew = false) {
+    this.homebrew = homebrew
+    let channel: UpdateChannel = 'stable'
+    try {
+      if (readFileSync(join(app.getPath('userData'), 'update-channel'), 'utf8').trim() === 'beta' && !homebrew) channel = 'beta'
+    } catch { /* A missing or unreadable preference never opts into beta. */ }
+    const installs = existsSync(join(process.resourcesPath, 'app-update.yml')) && !homebrew
+    // A prerelease build does not imply consent. Only this session starts downloads.
+    autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = false
-    autoUpdater.on('checking-for-update', () => this.set({ kind: 'checking' }))
-    autoUpdater.on('update-not-available', () => this.set({ kind: 'latest' }))
-    autoUpdater.on('update-available', (info) => this.set({ kind: installs ? 'downloading' : 'available', version: info.version }))
-    autoUpdater.on('update-downloaded', (info) => this.set({ kind: 'ready', version: info.version }))
-    // The first line only: an HTTP error goes on with the request and the response.
-    autoUpdater.on('error', (error) => this.set({ kind: 'error', message: error.message.split('\n')[0] }))
-    this.set({ kind: 'idle' })
+    autoUpdater.allowDowngrade = false
+    // The awaited operations report failures for their own generation; late events cannot change the UI.
+    autoUpdater.on('error', (error) => {
+      // macOS verifies with Squirrel only after quitAndInstall; a failure leaves the old app running.
+      const resume = this.resumeInstallation
+      if (resume) {
+        this.resumeInstallation = undefined
+        this.session?.installFailed(error)
+        void resume()
+      }
+    })
+    const feed = new ReleaseFeed((url, options) => net.fetch(url, options))
+    this.session = new UpdateSession({
+      enabled: app.isPackaged,
+      channel,
+      changed: this.changed,
+      find: (selected, signal) => feed.latest(selected, app.getVersion(), process.platform, process.arch, signal),
+      download: installs ? (release, signal) => this.download(release, signal) : undefined
+    })
+    this.changed()
+    if (!app.isPackaged) return
     void this.check()
     setInterval(() => void this.check(), CHECK_MS).unref()
   }
 
-  /** Check now, unless updates are off or one is downloading or downloaded; resolves with where the update then stands. */
-  async check(): Promise<UpdateState> {
-    if (!['off', 'downloading', 'ready'].includes(this.state.kind)) {
-      try {
-        await autoUpdater.checkForUpdates()
-      } catch {
-        /* reported through the error event */
+  private async download(release: DesktopRelease, signal: AbortSignal) {
+    signal.throwIfAborted()
+    const channel = release.channel === 'beta' ? 'beta' : 'latest'
+    autoUpdater.setFeedURL({ provider: 'generic', url: `${RELEASES}/download/${release.version}/`, channel, useMultipleRangeRequest: false })
+    autoUpdater.channel = channel
+    autoUpdater.allowPrerelease = release.channel === 'beta'
+    // Setting channel turns this on in electron-updater; undo it on every check.
+    autoUpdater.allowDowngrade = false
+    const result = await autoUpdater.checkForUpdates()
+    signal.throwIfAborted()
+    if (!result?.isUpdateAvailable || result.updateInfo.version !== release.version ||
+        !result.updateInfo.files.some((file) => file.url === release.installer) ||
+        !result.updateInfo.files.every((file) => release.assets.includes(file.url))) {
+      throw new Error('The update manifest does not match the selected dMsg release.')
+    }
+    const token = result.cancellationToken ?? new CancellationToken()
+    const cancel = () => token.cancel()
+    signal.addEventListener('abort', cancel, { once: true })
+    try {
+      await autoUpdater.downloadUpdate(token)
+    } finally {
+      signal.removeEventListener('abort', cancel)
+    }
+  }
+
+  check(): Promise<UpdateState> {
+    return this.session?.check() ?? Promise.resolve(this.state)
+  }
+
+  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => Promise<void>, resume: () => Promise<void>, text: Text) {
+    if (this.homebrew) throw new Error('Update this installation with brew upgrade dmsg dmsg-desktop.')
+    const release = this.session?.beginApply()
+    if (!release) return
+    let installing = false
+    let prepared = false
+    try {
+      if (this.state.kind === 'available') {
+        await shell.openExternal(`${RELEASES}/tag/${release.version}`)
+        return
       }
+      const stopped = await stopForUpdate(call)
+      if (!stopped.stopped) {
+        await dialog.showMessageBox({ type: 'info', message: text.updateLater, detail: text.updateBusy(describe(stopped.inFlight, text)) })
+        return
+      }
+      prepared = true
+      await quit()
+      this.resumeInstallation = resume
+      autoUpdater.quitAndInstall()
+      installing = true
+    } catch (error) {
+      this.resumeInstallation = undefined
+      if (prepared) await resume()
+      throw error
+    } finally {
+      if (!installing) this.session?.endApply()
     }
-    return this.state
-  }
-
-  /**
-   * Open the release page of an update this package cannot install; for a
-   * downloaded one, stop the daemon once idle, then quit and install,
-   * otherwise say what holds it.
-   */
-  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => Promise<void>, text: Text) {
-    const state = this.state
-    if (state.kind === 'available') return shell.openExternal(releasePage(state.version))
-    if (state.kind !== 'ready') return
-    const stopped = await stopForUpdate(call)
-    if (!stopped.stopped) {
-      await dialog.showMessageBox({
-        type: 'info',
-        message: text.updateLater,
-        detail: text.updateBusy(describe(stopped.inFlight, text))
-      })
-      return
-    }
-    await quit()
-    autoUpdater.quitAndInstall()
-  }
-
-  private set(state: UpdateState) {
-    this.state = state
-    this.changed()
   }
 }

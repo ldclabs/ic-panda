@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('nl'),
+    betaUpdates: "Beta-updates ontvangen",
+    betaUpdatesHint: "Probeer nieuwe functies op dit apparaat, inclusief de gedeelde achtergrondservice. Beta-versies kunnen instabiel zijn. Na uitschakelen wordt op een nieuwere stabiele versie gewacht, zonder terug te gaan naar een oudere versie.",
+    updateChannel: "Updatekanaal",
+    updateStable: "Stabiel",
+    updateWaitingStable: "Wachten op een stabiele versie",
+    updateHomebrew: "Homebrew beheert deze installatie. Voer brew upgrade dmsg dmsg-desktop uit. Voor Beta-updates moet u overstappen op de standaardinstallatie.",
     onChainRecovery: "Herstel via de blockchain",
     recoveryOnHint: "Bij verlies van alle apparaten kan een gekoppelde aanmelding geüploade inhoud na de wachttijd herstellen. Een gestolen aanmelding kan dit ook, tenzij een bevoegd apparaat op tijd annuleert.",
     recoveryOffHint: "Bewaar een bevoegd apparaat dat je kunt ontgrendelen om van apparaat te wisselen. Als ze allemaal verloren gaan, herstelt opnieuw toegang krijgen geen cloudinhoud.",

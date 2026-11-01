@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('tr'),
+    betaUpdates: "Beta güncellemelerini al",
+    betaUpdatesHint: "Paylaşılan arka plan hizmeti dahil yeni özellikleri bu cihazda deneyin. Beta sürümleri kararsız olabilir. Kapatıldığında eski sürüme dönülmez, daha yeni bir kararlı sürüm beklenir.",
+    updateChannel: "Güncelleme kanalı",
+    updateStable: "Kararlı",
+    updateWaitingStable: "Kararlı sürüm bekleniyor",
+    updateHomebrew: "Bu kurulumu Homebrew yönetiyor. brew upgrade dmsg dmsg-desktop komutunu çalıştırın. Beta güncellemeleri için standart kuruluma geçin.",
     onChainRecovery: "Zincir üzerinden kurtarma",
     recoveryOnHint: "Tüm cihazlar kaybolursa bağlı giriş, bekleme süresinden sonra yüklenen içeriği kurtarabilir. Yetkili bir cihaz zamanında iptal etmezse çalınan giriş de bunu yapabilir.",
     recoveryOffHint: "Cihaz değiştirmek için kilidini açabildiğiniz yetkili bir cihazı saklayın. Tüm yetkili cihazlar kaybolursa girişinizi kurtarmak bulut içeriğini geri getirmez.",

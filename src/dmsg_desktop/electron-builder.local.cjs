@@ -8,6 +8,8 @@ const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 const { parse } = require('yaml')
+const { publishConfig } = require('../../scripts/dmsg/release-config.cjs')
+const { version } = require('./package.json')
 
 const config = parse(fs.readFileSync(path.join(__dirname, 'electron-builder.yml'), 'utf8'))
 
@@ -29,7 +31,7 @@ if (identity) {
   config.mac.entitlementsInherit = 'resources/entitlements.mac.plist'
   config.mac.notarize = false
   config.mac.timestamp = 'none'
-  // The feed of electron-builder.release.cjs (FEED in src/main/updater.ts).
-  config.publish = [{ provider: 'github', owner: 'ldclabs', repo: 'ic-panda', releaseType: 'release' }]
+  config.publish = [publishConfig(version)]
+  config.generateUpdatesFilesForAllChannels = false
 }
 module.exports = config

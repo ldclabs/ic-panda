@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('vi'),
+    betaUpdates: "Nhận bản cập nhật Beta",
+    betaUpdatesHint: "Thử tính năng mới trên thiết bị này, gồm cả dịch vụ nền dùng chung. Bản Beta có thể không ổn định. Khi tắt, ứng dụng chờ bản ổn định mới hơn và không hạ phiên bản.",
+    updateChannel: "Kênh cập nhật",
+    updateStable: "Ổn định",
+    updateWaitingStable: "Đang chờ bản ổn định",
+    updateHomebrew: "Homebrew quản lý bản cài đặt này. Chạy brew upgrade dmsg dmsg-desktop. Muốn nhận bản Beta, hãy chuyển sang cách cài đặt tiêu chuẩn.",
     onChainRecovery: "Khôi phục trên chuỗi",
     recoveryOnHint: "Nếu mất mọi thiết bị, thông tin đăng nhập đã liên kết có thể khôi phục nội dung đã tải lên sau thời gian chờ. Kẻ đánh cắp thông tin đăng nhập cũng có thể làm vậy nếu thiết bị được cấp quyền không hủy kịp.",
     recoveryOffHint: "Giữ một thiết bị được cấp quyền mà bạn có thể mở khóa để chuyển máy. Nếu mất tất cả, lấy lại đăng nhập cũng không khôi phục được nội dung đám mây.",

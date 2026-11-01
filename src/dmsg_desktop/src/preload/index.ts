@@ -94,6 +94,7 @@ const api: DesktopBridge = {
   openApproval: (id) => unwrap(ipcRenderer.invoke('dmsg:open-approval', id)),
   connection: () => unwrap(ipcRenderer.invoke('dmsg:connection')),
   updates: () => unwrap(ipcRenderer.invoke('dmsg:updates')),
+  setUpdateChannel: (channel) => unwrap(ipcRenderer.invoke('dmsg:set-update-channel', channel)),
   checkUpdates: () => unwrap(ipcRenderer.invoke('dmsg:check-updates')),
   applyUpdate: () => unwrap(ipcRenderer.invoke('dmsg:apply-update')),
   onEvent: (listener) => {

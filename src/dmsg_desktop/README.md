@@ -554,6 +554,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   then runs the installed `dmsg` (`src/main/runtime.ts`). If the install
   fails, the main window shows its error and the next start tries again. On macOS the bundled
   file keeps the release binary's own signature (`signIgnore`).
+  SemVer compares beta sequence numbers as well as stable versions. A packaged
+  app checks the installed and running daemon versions and refuses to use an
+  older daemon; busy work may need to settle before the daemon can restart.
 - `electron-builder.yml` is the base: ad hoc signed, no update feed;
   `package:dir` uses it. `electron-builder.local.cjs` (`package`) signs a
   local package with the keychain's Developer ID Application identity when
@@ -565,7 +568,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `electron-builder.release.cjs` (the release
   workflow) adds the Developer ID signature and notarization on macOS
   (required there), Authenticode on Windows when a certificate is configured,
-  and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`).
+  and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`
+  for stable; `beta-mac.yml`, `beta.yml` for beta). Tags are bare versions,
+  such as `1.3.0` or `1.4.0-beta.1`; see [release instructions](../../scripts/dmsg/README.md).
 - Packages register the `dmsg:` scheme (`CFBundleURLTypes` on macOS, the
   NSIS installer on Windows) besides `setAsDefaultProtocolClient` at run time.
   The Windows app installs per user under `%LOCALAPPDATA%\Programs\dMsg`,
@@ -580,6 +585,24 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   request, account update or root rotation is left unsettled, asking every two
   seconds for a minute; otherwise it says what is in flight and keeps both
   running. The new app installs and starts its own `dmsg`.
+- Stable is the default, even for a manually installed beta. Settings › About
+  dMsg › Receive Beta updates saves the channel in this profile's
+  `update-channel` file; it does not sync between accounts or devices. Beta
+  includes newer stable releases. Release selection checks canonical SemVer,
+  GitHub prerelease flags and complete platform assets, with paginated queries
+  and short caches. A later stable hotfix cannot hide a higher beta version.
+  The selected tag pins the updater's feed and all downloads; the manifest
+  version and filenames must match before a download starts.
+- Changing the channel cancels and invalidates the prior candidate, download
+  and late results. Leaving Beta never downgrades installed code or data;
+  the UI shows that an installed beta is waiting for a newer stable version.
+  Channel changes are disabled while a requested installation drains the
+  daemon and quits. Failed native installation restores the existing daemon
+  connection and leaves a retryable update error.
+- Homebrew-managed runtime installations update through Homebrew, with a
+  visible explanation and Beta disabled. They never silently pair a beta UI
+  with an older Homebrew daemon. The [release instructions](../../scripts/dmsg/README.md)
+  describe switching to the standard installation while keeping local data.
 - A package without the feed (an ad hoc local package, or a macOS release
   built without the Developer ID) checks the same GitHub release feed but cannot
   install a signed release: the tray and About dMsg offer "Download dMsg
@@ -587,6 +610,13 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   check.
 - The tray's "Open at Login" is the app's login item; opened at login, the
   app starts in the tray. `dmsg autostart` starts only the daemon.
+
+`DMSG_DESKTOP_SMOKE=updates pnpm test:e2e` verifies the Beta checkbox with
+keyboard input, real local preference persistence and a failed-save retry,
+then uses isolated IPC fixtures for pending and late replies, update states,
+Homebrew restrictions and Chinese/French/Arabic screenshots in both themes at
+760×540 (plus the normal window). It does not install a signed release or
+exercise a real GitHub publication.
 
 The smoke test normally checks native macOS fullscreen transitions as well.
 `DMSG_DESKTOP_SMOKE=settings pnpm test:e2e` checks all nine Settings routes,

@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('zh-Hant'),
+    betaUpdates: "接收 Beta 測試版",
+    betaUpdatesHint: "在本機提前體驗新功能，也會更新共用的背景服務。測試版可能不穩定；關閉後等待後續正式版，不會降級。",
+    updateChannel: "更新通道",
+    updateStable: "穩定版",
+    updateWaitingStable: "等待後續正式版",
+    updateHomebrew: "此安裝由 Homebrew 管理，請執行 brew upgrade dmsg dmsg-desktop。參與 Beta 測試需改用標準安裝方式。",
     onChainRecovery: "鏈上復原",
     recoveryOnHint: "全部裝置遺失後，可憑綁定的登入身分在等待期後復原已上傳內容。登入身分遭竊且無人及時取消時，對方也可復原內容。",
     recoveryOffHint: "換機需要一台仍可解鎖的授權裝置。遺失全部授權裝置後，即使找回登入，也無法復原雲端內容。",

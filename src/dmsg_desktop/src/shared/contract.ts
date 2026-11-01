@@ -28,10 +28,15 @@ export type UpdateState =
   | { kind: 'downloading' | 'available' | 'ready'; version: string }
   | { kind: 'error'; message: string }
 
+export type UpdateChannel = 'stable' | 'beta'
+
 /** The app's version and its update. */
 export interface AppUpdates {
   version: string
   state: UpdateState
+  channel: UpdateChannel
+  homebrew: boolean
+  applying: boolean
 }
 
 export interface NoticeVisibility {
@@ -171,6 +176,8 @@ export interface DesktopBridge {
   connection(): Promise<Connection>
   /** The app's version and where its update stands; the main window only. `updates/changed` events follow it. */
   updates(): Promise<AppUpdates>
+  /** Opt this installation into beta releases, or stop receiving them without downgrading. */
+  setUpdateChannel(channel: UpdateChannel): Promise<AppUpdates>
   /** Check for an update now; resolves with where the update then stands. */
   checkUpdates(): Promise<UpdateState>
   /** Restart into a downloaded update once the daemon stopped for it, or open the release page of one this package cannot install. */

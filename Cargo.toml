@@ -96,6 +96,7 @@ futures = { version = "0.3", default-features = false }
 futures-timer = "3"
 futures-util = { version = "0.3", default-features = false }
 log = "0.4"
+semver = "1"
 serde = "1"
 serde_bytes = "0.11"
 serde_json = { version = "1", features = ["preserve_order"] }

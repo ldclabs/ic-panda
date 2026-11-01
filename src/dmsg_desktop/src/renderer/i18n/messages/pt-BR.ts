@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('pt-BR'),
+    betaUpdates: "Receber atualizações Beta",
+    betaUpdatesHint: "Experimente novidades neste dispositivo, incluindo o serviço compartilhado em segundo plano. Versões Beta podem ser instáveis. Ao desativar, aguarda-se uma versão estável mais recente, sem voltar à anterior.",
+    updateChannel: "Canal de atualização",
+    updateStable: "Estável",
+    updateWaitingStable: "Aguardando uma versão estável",
+    updateHomebrew: "O Homebrew gerencia esta instalação. Execute brew upgrade dmsg dmsg-desktop. Para receber atualizações Beta, mude para a instalação padrão.",
     onChainRecovery: "Recuperação on-chain",
     recoveryOnHint: "Se todos os dispositivos forem perdidos, um login vinculado pode recuperar o conteúdo enviado após a espera. Um login roubado também, salvo cancelamento a tempo por um dispositivo autorizado.",
     recoveryOffHint: "Mantenha um dispositivo autorizado que possa desbloquear para trocar de aparelho. Se perder todos, recuperar o login não recuperará o conteúdo na nuvem.",

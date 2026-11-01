@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('fil'),
+    betaUpdates: "Tumanggap ng mga update na Beta",
+    betaUpdatesHint: "Subukan ang mga bagong feature sa device na ito, kasama ang pinagsasaluhang serbisyo sa background. Maaaring hindi matatag ang mga bersyong Beta. Kapag in-off, maghihintay ng mas bagong stable na bersyon nang hindi nagda-downgrade.",
+    updateChannel: "Channel ng update",
+    updateStable: "Stable",
+    updateWaitingStable: "Naghihintay ng stable na bersyon",
+    updateHomebrew: "Homebrew ang namamahala sa instalasyong ito. Patakbuhin ang brew upgrade dmsg dmsg-desktop. Lumipat sa karaniwang instalasyon para sa mga update na Beta.",
     onChainRecovery: "Pagbawi sa blockchain",
     recoveryOnHint: "Kung mawala ang lahat ng device, maibabalik ng naka-link na login ang na-upload na nilalaman matapos ang paghihintay. Magagawa rin ito ng ninakaw na login maliban kung kanselahin agad ng awtorisadong device.",
     recoveryOffHint: "Magtabi ng awtorisadong device na mabubuksan mo para makalipat ng device. Kung mawala ang lahat, hindi maibabalik ng pagbawi sa login ang nilalaman sa cloud.",

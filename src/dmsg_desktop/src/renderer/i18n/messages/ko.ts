@@ -4,6 +4,12 @@ import type { Catalog } from './en'
 export default {
   "messages": {
     ...notificationText('ko'),
+    betaUpdates: "Beta 업데이트 받기",
+    betaUpdatesHint: "공유 백그라운드 서비스를 포함한 새 기능을 이 기기에서 사용해 봅니다. Beta 버전은 불안정할 수 있습니다. 끄면 이전 버전으로 돌아가지 않고 새로운 안정 버전을 기다립니다.",
+    updateChannel: "업데이트 채널",
+    updateStable: "안정 버전",
+    updateWaitingStable: "안정 버전 기다리는 중",
+    updateHomebrew: "Homebrew가 이 설치를 관리합니다. brew upgrade dmsg dmsg-desktop을 실행하세요. Beta 업데이트를 받으려면 표준 설치 방식으로 전환해야 합니다.",
     onChainRecovery: "온체인 복구",
     recoveryOnHint: "모든 기기를 잃어버린 경우 연결된 로그인으로 대기 기간 후 업로드한 내용을 복구할 수 있습니다. 로그인이 도난당해도 승인된 기기가 제때 취소하지 않으면 마찬가지입니다.",
     recoveryOffHint: "기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.",

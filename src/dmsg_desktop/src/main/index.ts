@@ -35,7 +35,7 @@ import { walletHistoryCsv } from '../shared/wallet-report'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
 import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
-import { resolveRuntime } from './runtime'
+import { requireRuntimeVersion, resolveRuntime } from './runtime'
 import { Notifications } from './notifications'
 import { isNoticeAccount, isNoticeHash, isNoticeSequence, isNoticeTarget, noticeCategories, noticeRoute, type NoticeCategory, type NoticeBatch, type NoticeItem, type NoticePreferences, type NoticeStatus, type NoticeTarget } from '../shared/notifications'
 import { quietUntil, validTimeZone } from '../shared/notification-time'
@@ -737,7 +737,8 @@ handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: da
 /** What an MCP client runs to reach this daemon: the installed binary and its home. */
 handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
-handle('dmsg:updates', 'main', () => ({ version: app.getVersion(), state: updates.state }))
+handle('dmsg:updates', 'main', () => updates.info())
+handle('dmsg:set-update-channel', 'main', (_event, channel) => updates.setChannel(channel))
 handle('dmsg:check-updates', 'main', () => updates.check())
 handle('dmsg:apply-update', 'main', () => applyUpdate())
 
@@ -918,6 +919,10 @@ function applyUpdate() {
       daemon.close()
       await forgetCopied()
     },
+    async () => {
+      quitting = false
+      await daemon.connect()
+    },
     text
   )
 }
@@ -925,6 +930,7 @@ function applyUpdate() {
 /** A check asked for from the tray says what it found; the window shows it in Settings › About dMsg. */
 async function checkFromTray() {
   const state = await updates.check()
+  if (updates.info().homebrew) return showMain('/settings/about')
   if (state.kind === 'latest') {
     await dialog.showMessageBox({ type: 'info', message: text.upToDate(app.getVersion()) })
   } else if (state.kind === 'error') {
@@ -947,6 +953,7 @@ async function checkFromTray() {
 /** The tray's update item: nothing in a development run, else where the update stands. */
 function updateItem(): Electron.MenuItemConstructorOptions[] {
   const state = updates.state
+  if (updates.info().homebrew) return [{ label: text.checkUpdates, click: () => void checkFromTray() }]
   switch (state.kind) {
     case 'off':
       return []
@@ -1109,9 +1116,16 @@ app.whenReady().then(async () => {
   // Opened at login, the app starts in the tray.
   if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain(noticeActivation ? '/reminders' : undefined)
   let installed = true
+  let homebrew = false
   if (!daemon.options.fixed) {
     try {
-      daemon.options.binary = (await resolveRuntime(app.isPackaged, process.resourcesPath)).binary
+      const runtime = await resolveRuntime(app.isPackaged, process.resourcesPath)
+      homebrew = runtime.action === 'homebrew'
+      daemon.options.binary = runtime.binary
+      if (app.isPackaged) {
+        daemon.options.minimumVersion = app.getVersion()
+        requireRuntimeVersion(runtime.version, app.getVersion())
+      }
     } catch (error) {
       // Without the shared `dmsg` nothing can start the daemon; the next app start installs again.
       installed = false
@@ -1119,7 +1133,7 @@ app.whenReady().then(async () => {
       daemon.emit('state')
     }
   }
-  updates.start()
+  updates.start(homebrew)
   if (installed) await daemon.connect()
   const link = pendingLink ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)

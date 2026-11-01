@@ -1,5 +1,5 @@
-# The base configuration: ad-hoc signed, no update feed, as the release
-# workflow packages macOS without a Developer ID. Local packages use
+# The base configuration: ad-hoc signed, no update feed, for unpacked/local builds.
+# Local packages use
 # electron-builder.local.cjs, which signs with the keychain's Developer ID and
 # adds the feed when it can; releases use electron-builder.release.cjs, which
 # adds signing, notarization and the feed.
