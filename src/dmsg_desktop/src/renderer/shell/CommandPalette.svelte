@@ -12,7 +12,6 @@
   import { focus } from '../views/vault/focus.svelte'
   import { isManaged, otpField, typeIcon, typeLabel, typeOf, valueOf } from '../views/vault/vault'
   import { shortcuts, views } from './nav'
-  import { startLogin } from './login.svelte'
   import { lock, nextStep, sync } from './session'
 
   /** The command palette: go to any view, and the session, appearance and language commands, found by typing. */
@@ -77,7 +76,6 @@
     const offered: (Entry | null)[] = [
       unlocked ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock } : step ? { label: t(step.label), icon: step.icon, run: step.run } : null,
       status?.account ? { label: t('sync'), icon: 'sync-now', run: sync } : null,
-      status?.state && status.state !== 'logged_out' ? { label: t('loginOther'), icon: 'login', run: () => startLogin() } : null,
       { label: t('checkUpdates'), icon: 'sync-now', run: checkUpdates },
       { label: collapsed ? t('expandSidebar') : t('collapseSidebar'), icon: collapsed ? 'sidebar-unfold' : 'sidebar-fold', run: onToggleSidebar }
     ]

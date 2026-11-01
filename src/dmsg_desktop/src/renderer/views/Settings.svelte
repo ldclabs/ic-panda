@@ -21,8 +21,7 @@
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, single, when } from '../rpc'
-  import { startLogin } from '../shell/login.svelte'
-  import { switchAccount, unlock, unlocking } from '../shell/session'
+  import { unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
   import FilesSettings from './files/FilesSettings.svelte'
@@ -33,8 +32,8 @@
   import Security from './Security.svelte'
 
   /**
-   * Settings in sections beside their list: this session and the device's
-   * accounts, security, devices, the public profile, connected browsers, the
+   * Settings in sections beside their list: this session, account security,
+   * devices, the public profile, connected browsers, the
    * file library, the interface language and appearance, the legacy migration
    * and the app's version and updates. Each section has its own route under
    * /settings.
@@ -59,7 +58,6 @@
   const part = $derived<Part>(parts.find((p) => route === `/settings/${p.value}`)?.value ?? 'session')
 
   let account = $state<any>(null)
-  let accounts = $state<any[]>([])
   /** Null while the device cannot sign for them: locked without a resident key. */
   let pairings = $state<any[] | null>([])
   let invite = $state<any>(null)
@@ -119,10 +117,9 @@
       } finally { if (current(turn)) loaded[key] = true }
     })
   }
-  const loadAccounts = reader('accounts', 'session/accounts', () => part === 'session', (value) => (accounts = value))
   const loadAccount = reader('account', 'account/show', () => part === 'session' && opened, (value) => (account = value))
   const loadPairings = reader('pairings', 'connect/pairings', () => part === 'browsers' && opened, (value) => (pairings = value))
-  function reload() { void loadAccounts(); void loadAccount(); void loadPairings() }
+  function reload() { void loadAccount(); void loadPairings() }
 
   /** A session or browser change; its daemon event reloads what it changed. */
   async function act(method: string, params?: unknown) {
@@ -135,17 +132,6 @@
     } catch (e) {
       if (current(turn)) error = errorText(e)
     } finally { if (current(turn)) actionBusy = false }
-  }
-
-  /** Another account's workspace opens locked; its fast unlock or a login opens it. */
-  async function switchTo(id: string, fast: boolean) {
-    if (actionBusy || $unlocking || id === status?.account) return
-    actionBusy = true
-    const turn = generation
-    account = null
-    pairings = []
-    try { await switchAccount(id, fast) }
-    finally { if (current(turn)) actionBusy = false }
   }
 
   function stopPairing() {
@@ -223,7 +209,7 @@
       if (lastSession !== next) {
         lastSession = next
         generation++
-        account = null; accounts = []; pairings = []; error = ''; errors = {}; loaded = {}; actionBusy = false
+        account = null; pairings = []; error = ''; errors = {}; loaded = {}; actionBusy = false
         stopPairing()
       } else if (part !== 'browsers') stopPairing()
       reload()
@@ -264,7 +250,7 @@
     <div class="min-h-0 flex-1">
       <Page>
         {#key sessionKey}
-        {#each (part === 'session' ? [errors.account, errors.accounts] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
+        {#each (part === 'session' ? [errors.account] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
         {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
           <Legacy {status} {go} />
@@ -304,11 +290,6 @@
           <Moved {status} {refresh} />
           <Onboarding {status} {refresh} />
           <Section title={t('status')} icon="account">
-            <div class="mb-3 flex flex-wrap gap-2">
-              <button class={buttonClass(status?.state === 'logged_out' ? 'primary' : 'secondary', 'sm')} onclick={() => startLogin()} data-testid="settings-login">
-                <Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}
-              </button>
-            </div>
             <dl>
               <Fact label={t('status')} testid="session-state">
                 <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
@@ -355,24 +336,6 @@
               {/if}
             </div>
           </Section>
-          {#if accounts.length}
-            <Section title={t('localAccounts')} description={t('localAccountsHint')} icon="members" flush>
-              <ul class="divide-y divide-line" data-testid="local-accounts">
-                {#each accounts as a (a.account)}
-                  <li class="flex flex-wrap items-center gap-2 px-5 py-3">
-                    <Id id={a.account} full class="max-w-[60%]" />
-                    {#if a.current}<Pill tone="forest">{t('current')}</Pill>{/if}
-                    {#if !a.bound}<Pill tone="warn">{t('waitingDevice')}</Pill>{/if}
-                    <span class="flex-1"></span>
-                    {#if !a.current}
-                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} disabled={actionBusy || $unlocking} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
-                      <button class={buttonClass('secondary', 'xs')} disabled={actionBusy || $unlocking} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
-                    {/if}
-                  </li>
-                {/each}
-              </ul>
-            </Section>
-          {/if}
         {:else if part === 'browsers'}
           {#if opened && pairings}
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>

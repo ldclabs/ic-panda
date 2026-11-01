@@ -8,7 +8,7 @@
 // with PANDA, upgraded, extended with storage and refunded, and that a name
 // moves only once both accounts approved; that an activation payment
 // that created no wallet is refunded from the wallet view; that another account's
-// workspace is selected from Settings, which shows the app's version and
+// workspace is selected from the sidebar, that Settings shows the app's version and
 // offers no update check in a development run, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
 // can be approved; that a web login shows what it proves and pays nothing;
@@ -38,6 +38,7 @@ import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { notificationsFixture } from './notifications-fixture.mjs'
 import { notificationsFlow } from './notifications-flow.mjs'
+import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
@@ -1641,6 +1642,12 @@ smoke: try {
     await securityFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
     assert.deepEqual(pageErrors, [])
     console.log('desktop account security smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'accounts') {
+    await accountsFlow({ app, main, shots, methods, emit, hold, waitFor, calls, model: notificationModel, account, other })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop single account context smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'notifications') {
@@ -4137,9 +4144,9 @@ smoke: try {
   const sessionPairingReads = calls.filter((c) => c.method === 'connect/pairings').length
   const finishSessionAccount = hold('account/show')
   await main.click('nav >> text=/Settings|设置/')
-  await main.waitForSelector('[data-testid="local-accounts"]')
+  await main.waitForSelector('[data-testid="session-state"]')
   await main.waitForSelector('[data-testid="settings-legacy"]')
-  assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  assert.equal(await main.getByTestId('local-accounts').count(), 0)
   await waitFor(() => held.get('account/show'))
   assert.equal(calls.filter((c) => c.method === 'connect/pairings').length, sessionPairingReads)
   await finishSessionAccount()
@@ -4493,7 +4500,8 @@ smoke: try {
   session = 'unlocked'
   emit('session/changed', { state: 'unlocked' })
   await main.waitForSelector('[data-testid="gate-lock"]')
-  await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
+  await main.getByTestId('account-switcher').click()
+  await main.locator(`[data-testid="account-menu"] [data-value="${other}"]`).click()
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)

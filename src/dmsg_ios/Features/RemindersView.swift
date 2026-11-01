@@ -5,7 +5,6 @@ struct RemindersView: View {
     let entry: ReminderEntry
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    @State private var selected = ""
     @State private var recent = false
     @State private var items: [ReminderItem] = []
     @State private var next: UInt32?
@@ -18,7 +17,7 @@ struct RemindersView: View {
     @State private var request: UUID?
     @State private var itemScope = ""
     @State private var settingUp = false
-    private var accounts: [ReminderStatus.Account] { model.notifications.status?.accounts ?? [] }
+    private var selected: String { model.session?.account ?? "" }
     private var scope: String { "\(model.epoch):\(selected):\(recent):\(started)" }
     private var category: ReminderCategory? {
         if selected == entry.account, case .summary(let category) = entry.target { return category }
@@ -32,19 +31,16 @@ struct RemindersView: View {
                 NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
                 Button("Retry") { Task { await model.openPushRoute(route) } }
             }
-            if !accounts.isEmpty {
-                Picker("Account", selection: $selected) {
-                    ForEach(accounts) { account in Text(account.account).font(.caption.monospaced()).tag(account.account) }
-                }.accessibilityIdentifier("reminders.account")
-            }
             Picker(NoticeCopy.text("noticeTitle"), selection: $recent) {
                 Text(NoticeCopy.text("noticeNeedsAction")).tag(false)
                 Text(NoticeCopy.text("noticeRecent")).tag(true)
             }.pickerStyle(.segmented).accessibilityIdentifier("reminders.scope")
-            if !selected.isEmpty && selected != model.session?.account {
+            if let account = entry.account, account != selected, !entry.ended {
                 NoticeBar(text: NoticeCopy.text("noticeSwitch"))
-                Button(NoticeCopy.text("noticeSwitch")) { Task { await switchAccount() } }.accessibilityIdentifier("reminders.switch")
-            } else if !model.unlocked && !selected.isEmpty {
+                LabeledContent("Account ID", value: account).font(.caption)
+                    .accessibilityIdentifier("reminders.originalAccount")
+            }
+            if !model.unlocked && !selected.isEmpty {
                 Button("Unlock with system authentication") { Task { await model.fastUnlock() } }.disabled(model.busy)
             }
             if loading && items.isEmpty { ProgressView() }
@@ -85,14 +81,13 @@ struct RemindersView: View {
         }
         .task {
             await model.notifications.refresh(model)
-            selected = (entry.ended || entry.retryRoute != nil) && entry.account == nil ? "" : entry.account ?? model.session?.account ?? accounts.first?.account ?? ""
             if case .summary(let category) = entry.target { recent = category == .message || category == .service }
             started = true
         }
         .task(id: scope) {
             if started {
                 await load()
-                if !openedEntry, !Task.isCancelled, let target = entry.target, let account = entry.account,
+                if !openedEntry, !entry.ended, !Task.isCancelled, let target = entry.target, let account = entry.account,
                    selected == account, account == model.session?.account, model.unlocked {
                     openedEntry = true
                     if case .summary = target { return }
@@ -107,7 +102,7 @@ struct RemindersView: View {
         .accessibilityIdentifier("reminders.page")
     }
     private func load(more: Bool = false) async {
-        guard !selected.isEmpty else { items = []; return }
+        guard !selected.isEmpty else { items = []; next = nil; return }
         let current = scope, offset = more ? next ?? 0 : 0
         let token = UUID(); request = token
         let identity = "\(selected):\(recent)"
@@ -121,11 +116,6 @@ struct RemindersView: View {
             guard scope == current, request == token, !Task.isCancelled else { return }
             items = more ? items + page.items : page.items; next = page.next
         } catch { if scope == current && !Task.isCancelled { failed = true } }
-    }
-    private func switchAccount() async {
-        guard let engine = model.engine, accounts.contains(where: { $0.account == selected }) else { return }
-        do { _ = try await engine.switchAccount(account: selected); await model.updateSession() }
-        catch { model.report(error) }
     }
     private func clearRecent() async {
         do { try await model.engine?.notificationClearRecent(selected: selected); await load() }

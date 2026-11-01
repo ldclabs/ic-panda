@@ -1,5 +1,24 @@
 # iOS implementation validation
 
+## Single account selection (2026-11-01)
+
+Account → Switch account is the only workspace selector. Reminders now follow
+the active session; their former account picker and switch action are removed,
+as is the direct switch action in browser requests. Foreign notification and
+browser targets retain their account hint and cannot change the active workspace.
+
+Debug build and native artifact fingerprint verification passed. On iPhone 17e /
+iOS 27.0, 47 unit tests and nine NotificationUITests ultimately passed. Two new
+tests initially used an exact text query for a combined SwiftUI accessibility
+label; after correcting the locator from the captured hierarchy, both reruns
+passed. English, Chinese dark, German and Arabic RTL reminder screenshots and
+both cross-account prompts were inspected. All 23 localization and notification
+catalog checks passed. These are isolated fixtures; physical-device and live
+multi-account push delivery were not tested, nor was the complete iOS UI suite.
+See the [shared validation record](../dmsg_desktop/docs/notifications-validation.md).
+
+Implementation and validation: Codex <codex@openai.com>.
+
 ## Channel timeline loading (2026-11-01)
 
 The conversation now reads verified local pages during a remote refresh, with

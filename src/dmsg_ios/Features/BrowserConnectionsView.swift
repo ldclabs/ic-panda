@@ -111,7 +111,6 @@ struct ConnectLandingView: View {
                 Form {
                     Text("This browser request belongs to another account. Switching locks the current workspace and preserves its draft.")
                     LabeledContent("Account ID", value: account)
-                    Button("Switch to this account") { Task { await choose(account) } }.disabled(loading)
                 }
             } else if !model.unlocked { AccessView() }
             else if link.destination == .pair { BrowserConnectionsView() }
@@ -127,12 +126,6 @@ struct ConnectLandingView: View {
         }.navigationTitle("Browser request")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             .task(id: "\(model.epoch):\(model.unlocked)") { await locate() }
-    }
-    private func choose(_ account: String) async {
-        guard !loading else { return }; loading = true; defer { loading = false }
-        model.invalidateSystemExports(); await model.lock()
-        do { _ = try await model.engine?.switchAccount(account: account); await model.updateSession() }
-        catch { model.report(error) }
     }
     private func locate() async {
         guard link.destination == .request, model.unlocked, model.session?.account == link.account, let request = link.request, let engine = model.engine else { return }

@@ -4,6 +4,39 @@ import XCTest
     func testReminderSettingsEnglish() { check(language: "en", locale: "en_US", dark: false) }
     func testReminderSettingsDarkChinese() { check(language: "zh-Hans", locale: "zh_CN", dark: true) }
     func testReminderSettingsArabicRTL() { check(language: "ar", locale: "ar_SA", dark: false) }
+    func testReminderSettingsGerman() { check(language: "de", locale: "de_DE", dark: false) }
+
+    func testOtherAccountReminderKeepsCurrentWorkspace() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-notification-setup", "--ui-reminder-other-account", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.segmentedControls["reminders.scope"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "040g2082040g2082040g")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["reminders.account"].exists)
+        XCTAssertFalse(app.buttons["reminders.switch"].exists)
+        // Both rows belong to the active account, even though the entry names
+        // the other local account. A notification cannot select its workspace.
+        XCTAssertTrue(app.staticTexts["Account security"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Approvals"].exists)
+        capture(app, "Reminder from another account")
+        app.buttons["Done"].tap()
+        app.tabBars.buttons["Account"].tap()
+        XCTAssertTrue(app.staticTexts["040g2081040g2081040g"].waitForExistence(timeout: 5))
+        app.terminate()
+    }
+
+    func testBrowserRequestDoesNotOfferAccountSwitch() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-browser-other-account", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "040g2082040g2082040g")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Switch to this account"].exists)
+        capture(app, "Browser request from another account")
+        app.buttons["Done"].tap()
+        app.tabBars.buttons["Account"].tap()
+        XCTAssertTrue(app.staticTexts["040g2081040g2081040g"].waitForExistence(timeout: 5))
+        app.terminate()
+    }
 
     func testSecondAccountConsentEnglish() { consent(language: "en", locale: "en_US", dark: false, confirm: "Turn on for this account") }
     func testSecondAccountConsentArabicDark() { consent(language: "ar", locale: "ar_SA", dark: true, confirm: "تفعيل لهذا الحساب") }
@@ -63,6 +96,8 @@ import XCTest
         let reminders = app.buttons["reminders.open"].firstMatch
         XCTAssertTrue(reminders.waitForExistence(timeout: 10)); reminders.tap()
         XCTAssertTrue(app.segmentedControls["reminders.scope"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["reminders.account"].exists)
+        XCTAssertFalse(app.buttons["reminders.switch"].exists)
         capture(app, "Reminders · \(language)")
         app.buttons["reminders.menu"].tap()
         app.buttons["reminders.settings"].tap()

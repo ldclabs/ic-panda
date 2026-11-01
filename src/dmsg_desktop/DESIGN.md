@@ -191,6 +191,11 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
   Missing controls are implemented once in the kit, with the same tokens,
   keyboard behavior and states. A browser-default control with an accent
   color is not a finished desktop component.
+- **R8 One active account.** Only the sidebar account menu selects a workspace
+  or signs in to another account. Settings, reminders and the command palette
+  do not offer additional account selectors. Lists and actions use the current
+  session's account; a notification's original account only gates opening its
+  target and never selects the account shown by a business view.
 
 ## Colors
 

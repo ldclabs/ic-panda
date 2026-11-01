@@ -31,6 +31,12 @@ extension SessionModel {
             ])
         }
         if storeScreens { loadStorePresentation() }
+        if ProcessInfo.processInfo.arguments.contains("--ui-reminder-other-account") {
+            reminderEntry = ReminderEntry(account: "040g2082040g2082040g", target: .task("conflicts:2"))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-browser-other-account") {
+            ConnectNavigation.shared.pending = ConnectLink(URL(string: "dmsg://connect/request?account=040g2082040g2082040g&request=\(String(repeating: "a", count: 64))")!)
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel") {
             channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
             selectedTab = .messages

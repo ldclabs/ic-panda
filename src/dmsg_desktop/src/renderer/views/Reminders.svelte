@@ -5,31 +5,32 @@
   import Notice from '../components/page/Notice.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Icon from '../components/Icon.svelte'
-  import Select from '../components/Select.svelte'
+  import Id from '../components/page/Id.svelte'
   import Segmented from '../components/Segmented.svelte'
   import Dialog from '../components/Dialog.svelte'
   import NoticeSetup from './NoticeSetup.svelte'
   import { buttonClass } from '../components/ui'
   import { call, errorText, single, when } from '../rpc'
   import { locale, t } from '../i18n/index.svelte'
-  import { nextStep, shortId, switchAccount } from '../shell/session'
+  import { nextStep } from '../shell/session'
   import { notificationBody } from '../../shared/notification-text'
   import { tomorrowMorning } from '../../shared/notification-time'
   import type { NoticeCategory, NoticeItem, NoticeStatus } from '../../shared/notifications'
   import type { Glyph } from '../components/glyphs'
 
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
-  let selected = $state(''), scope = $state('open')
-  let accounts = $state<{ account: string; bound: boolean }[]>([])
+  const selected = $derived<string>(status?.account ?? '')
+  let scope = $state('open')
   let items = $state<NoticeItem[]>([])
   let cursor = $state<string | null>(null)
   let summary = $state<NoticeStatus | null>(null)
   let loading = $state(true), busy = $state(false), error = $state('')
   let later = $state(false), laterItem = $state<NoticeItem | null>(null), laterNow = $state(0)
   let alive = true, generation = 0, opened = ''
-  const context = $derived(`${status?.session ?? ''}:${route}`)
+  const context = $derived(`${status?.session ?? ''}:${selected}:${status?.state ?? ''}:${route}`)
   const query = $derived(new URLSearchParams(route.split('?')[1] ?? ''))
-  const wrongAccount = $derived(!!selected && status?.account !== selected)
+  const requestedAccount = $derived(query.get('account'))
+  const wrongAccount = $derived(!!requestedAccount && requestedAccount !== selected)
   const step = $derived(nextStep(status))
   const category = (item: NoticeItem): NoticeCategory => ['recovery'].includes(item.target.kind) ? 'security'
     : ['approval', 'wallet', 'task'].includes(item.target.kind) ? 'action'
@@ -75,22 +76,19 @@
   $effect(() => {
     void context
     untrack(() => {
-      selected = query.get('account') ?? status?.account ?? ''
+      generation++
       scope = query.get('scope') === 'recent' ? 'recent' : 'open'
       items = []
       cursor = null
+      summary = null
       later = false
+      laterItem = null
       void reload()
     })
   })
   $effect(() => { void selected; void scope; untrack(() => { items = []; cursor = null; void reload() }) })
 
   onMount(() => {
-    void call<{ account: string; bound: boolean }[]>('session/accounts').then((value) => {
-      if (!alive) return
-      accounts = value.filter((account) => account.bound)
-      if (!selected && accounts.length) selected = accounts[0].account
-    }, (cause) => { if (alive) error = errorText(cause) })
     const off = window.dmsg.onEvent((event) => { if (event.type === 'notifications/changed') void reload() })
     return () => { alive = false; generation++; off() }
   })
@@ -106,7 +104,7 @@
   // Reading this list itself never submits an observed/read receipt.
   $effect(() => {
     const id = query.get('item')
-    if (!id || opened === id || query.has('ended') || wrongAccount || status?.state !== 'unlocked') return
+    if (!id || opened === id || query.has('ended') || requestedAccount !== selected || status?.state !== 'unlocked') return
     untrack(() => {
       opened = id
       void window.dmsg.notificationOpen(selected, id).catch((cause) => { if (alive) error = errorText(cause) })
@@ -139,15 +137,15 @@
       <button class={buttonClass('ghost', 'sm')} disabled={loading || busy} onclick={() => reload()}>{t('refresh')}</button>
     {/snippet}
     <div class="flex flex-wrap items-center gap-3">
-      <Select bind:value={selected} options={accounts.map((account) => ({value:account.account,label:shortId(account.account)}))} label={t('account')} disabled={busy || !accounts.length} testid="reminders-account" />
       <Segmented bind:value={scope} options={[{value:'open',label:t('noticeNeedsAction')},{value:'recent',label:t('noticeRecent')}]} label={t('noticeTitle')} disabled={busy} testid="reminders-scope" />
     </div>
     <NoticeSetup {status} {go} class="mt-4" />
     {#if error}<div class="mt-4"><Notice failure={error} tone="danger">{error}</Notice></div>{/if}
     {#if query.has('ended')}<div class="mt-4"><Notice>{t('noticeEnded')}</Notice></div>{/if}
-    {#if wrongAccount}
-      <div class="mt-4"><Notice icon="account">{accounts.some((account) => account.account === selected) ? t('noticeSwitch') : t('noticeEnded')}{#if accounts.some((account) => account.account === selected)}<button class={buttonClass('secondary', 'sm', 'ms-3')} disabled={busy} onclick={() => switchAccount(selected, false)}>{shortId(selected)}</button>{/if}</Notice></div>
-    {:else if step}
+    {#if wrongAccount && !query.has('ended')}
+      <div class="mt-4" data-testid="reminders-original-account"><Notice icon="account">{t('noticeSwitch')} <Id id={requestedAccount!} /></Notice></div>
+    {/if}
+    {#if step}
       <div class="mt-4"><button class={buttonClass('secondary', 'sm')} onclick={step.run}><Icon name={step.icon} />{t(step.label)}</button></div>
     {/if}
     {#if summary?.counts.unverified}<p class="mt-3 text-xs text-muted" role="status">{t('sync')} · {t('loading')}</p>{/if}
