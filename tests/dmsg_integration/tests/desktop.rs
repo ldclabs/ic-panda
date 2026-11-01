@@ -8860,15 +8860,14 @@ impl Releases {
             ("linux", "aarch64") => "dmsg-linux-arm64",
             other => panic!("no release asset for {other:?}"),
         };
-        let tag = format!("dmsg-v{version}");
         let mut files = self.files.lock().unwrap();
         files.insert(
             "/latest".into(),
-            json!({"tag_name": tag}).to_string().into_bytes(),
+            json!({"tag_name": version}).to_string().into_bytes(),
         );
-        files.insert(format!("/download/{tag}/{asset}"), bytes.to_vec());
+        files.insert(format!("/download/{version}/{asset}"), bytes.to_vec());
         files.insert(
-            format!("/download/{tag}/{asset}.sha256"),
+            format!("/download/{version}/{asset}.sha256"),
             format!("{listed}  {asset}\n").into_bytes(),
         );
     }
@@ -8951,12 +8950,15 @@ fn desktop_release() {
     };
     let instance = |desktop: &Desktop| desktop.run(&["status"])["instance"].clone();
 
-    // A canister release is not a client release; the same version is no update.
-    releases.files.lock().unwrap().insert(
-        "/latest".into(),
-        json!({"tag_name": "v2.15.1"}).to_string().into_bytes(),
-    );
-    assert_eq!(fail(&["update", "--check"]), "NOT_FOUND");
+    // The default updater rejects non-client tags and betas, even without REST flags.
+    for tag in ["canisters-v3.1.6", "dmsg-v1.2.1", "1.4.0-beta.1"] {
+        releases.files.lock().unwrap().insert(
+            "/latest".into(),
+            json!({"tag_name": tag}).to_string().into_bytes(),
+        );
+        assert_eq!(fail(&["update", "--check"]), "NOT_FOUND");
+    }
+    // A tag-only response, like GitHub's web endpoint, accepts the same version.
     releases.publish(&version, &bytes, &"00".repeat(32));
     let check = run(&["update", "--check"]);
     assert_eq!(check["available"], false);

@@ -97,11 +97,13 @@ pub async fn latest(http: &reqwest::Client) -> Result<String, Failure> {
 fn stable_version(reply: &Value) -> Option<&str> {
     let tag = reply["tag_name"].as_str()?;
     let version = parse(tag)?;
+    // The web /releases/latest endpoint already excludes drafts and prereleases
+    // and omits these REST API fields. Honor explicit flags from mirrors.
     (version.pre.is_empty()
         && version.build.is_empty()
-        && reply["draft"] == false
-        && reply["prerelease"] == false)
-        .then_some(tag)
+        && reply.get("draft").is_none_or(|flag| flag == false)
+        && reply.get("prerelease").is_none_or(|flag| flag == false))
+    .then_some(tag)
 }
 
 /// This platform's binary of release `version`, checked against the
@@ -364,6 +366,8 @@ mod tests {
     #[test]
     fn the_default_update_requires_a_stable_client_release() {
         let release = |tag, draft, prerelease| json!({"tag_name": tag, "draft": draft, "prerelease": prerelease});
+        // GitHub's web /releases/latest endpoint omits the REST API's flags.
+        assert_eq!(stable_version(&json!({"tag_name": "1.3.0"})), Some("1.3.0"));
         assert_eq!(
             stable_version(&release("1.3.0", false, false)),
             Some("1.3.0")
@@ -376,6 +380,7 @@ mod tests {
             "1.3.0+build.1",
         ] {
             assert_eq!(stable_version(&release(tag, false, false)), None);
+            assert_eq!(stable_version(&json!({"tag_name": tag})), None);
         }
         assert_eq!(stable_version(&release("1.3.0", true, false)), None);
         assert_eq!(stable_version(&release("1.3.0", false, true)), None);
