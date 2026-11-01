@@ -3,6 +3,7 @@ import PhotosUI
 
 struct PublicProfileView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var name = ""
     @State private var about = ""
     @State private var updated: Int64?
@@ -18,6 +19,7 @@ struct PublicProfileView: View {
     struct Publication: Decodable { let published: Bool; let updatedAt: Int64?; let pending: Bool? }
     var body: some View {
         Form {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             NoticeBar(text: String(localized: "This profile is public. Do not include secrets or private contact information."))
             Section("Public profile") {
                 TextField("Name", text: $name)
@@ -50,18 +52,17 @@ struct PublicProfileView: View {
                 Button("Publish") { Task { await publish(retry: false) } }
             }
     }
-    private func load() async {
-        guard let engine = model.engine, !working else { return }; let epoch = model.epoch
-        working = true; defer { working = false }
-        do {
-            let result = try await engine.profileEditor()
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            let profile: AccountProfile = try model.decode(result)
+    private func load(force: Bool = false) async {
+        guard !working else { return }
+        var shownName = name, shownAbout = about
+        await display.load(model, kind: "profile-editor", force: force) { (profile: AccountProfile) in
+            guard !working, name == shownName, about == shownAbout else { return }
             name = profile.name ?? ""; about = profile.description ?? ""; updated = profile.updatedAt
-            let publication = try await engine.profilePublication()
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            accept(try model.decode(publication))
-        } catch { if epoch == model.epoch { model.report(error) } }
+            shownName = name; shownAbout = about
+        }
+        let epoch = model.epoch
+        do { if let publication = try await model.engine?.profilePublication(), epoch == model.epoch, !Task.isCancelled { accept(try model.decode(publication)) } }
+        catch { /* Keep the draft and cached display; publishing still checks current state. */ }
     }
     private func accept(_ result: Publication) {
         pending = result.pending == true || !result.published

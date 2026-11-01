@@ -23,7 +23,7 @@ fn notifications_silence_machine_wallet_hints_but_preserve_human_handovers() {
 }
 
 #[tokio::test]
-async fn ordinary_attachment_import_rejects_a_refreshed_secret_package_before_fetch() {
+async fn ordinary_attachment_import_rejects_a_cached_secret_package_without_network() {
     use std::sync::{
         Mutex,
         atomic::{AtomicUsize, Ordering},
@@ -91,7 +91,7 @@ async fn ordinary_attachment_import_rejects_a_refreshed_secret_package_before_fe
         save_regular_shared(&h, &channel, 1, "root", &mut |_, _| {}).await,
         Err(Error::UnsupportedProtocol)
     ));
-    assert_eq!(h.reads.load(Ordering::SeqCst), 1);
+    assert_eq!(h.reads.load(Ordering::SeqCst), 0);
     assert!(
         h.client
             .lock()
@@ -990,6 +990,16 @@ fn unchanged_head_skips_the_log_but_changed_heads_and_pins_still_verify() {
         )
         .unwrap();
     assert!(reading.done()); // Two requests, no empty control page.
+
+    let mut controls = Reading::controls(&channel);
+    client.channel_read_request(&mut controls).unwrap();
+    client
+        .channel_read_settle(&mut controls, head.clone(), &trust)
+        .unwrap();
+    assert!(
+        controls.done(),
+        "background control maintenance must not fetch message bodies"
+    );
 
     let mut reading = Reading::controls(&channel);
     client.channel_read_request(&mut reading).unwrap();

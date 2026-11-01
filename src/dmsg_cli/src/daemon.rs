@@ -458,6 +458,10 @@ fn sync_retry_due(client: &Client, now: u64) -> bool {
 /// scheduled sync, including retries. Background work is not activity.
 async fn background(daemon: Arc<Daemon>) {
     let mut synced = now_ms();
+    let mut content_seen = None;
+    let mut content_changed = 0;
+    let mut idle_rounds = 0u32;
+    let mut observed_through = None;
     let mut polled = 0;
     // Requests waiting at the last pass; one that expires changes the count.
     let mut waiting = 0;
@@ -474,7 +478,7 @@ async fn background(daemon: Arc<Daemon>) {
             continue;
         }
         let now = now_ms();
-        let (session, requested, retry) = {
+        let (session, requested, retry, content) = {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
             if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
@@ -489,24 +493,49 @@ async fn background(daemon: Arc<Daemon>) {
                 session,
                 daemon.sync_requested.swap(false, Ordering::Relaxed),
                 sync_retry_due(&client, now),
+                (
+                    client.session_state().account,
+                    client.local_change().unwrap_or(0),
+                ),
             )
         };
         daemon.check_mount().await;
         daemon.check_secret_mounts().await;
         let interval = daemon.settings.sync_interval_ms;
+        if content_seen.as_ref() != Some(&content) {
+            content_changed = now;
+            content_seen = Some(content.clone());
+            idle_rounds = 0;
+        }
+        let edited = interval > 0
+            && content.1 > 0
+            && content_changed > synced
+            && now >= content_changed + 500;
+        let periodic = interval.saturating_mul(1 + u64::from(idle_rounds.min(4)));
+
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
         // The relay is waited on without holding the client where the work
         // allows it, so that the windows' reads go on meanwhile.
         if ready
             && ((requested && unlocked)
+                || (edited && unlocked)
                 || (retry && !daemon.syncing.load(Ordering::Relaxed))
-                || (interval > 0 && now >= synced + interval))
+                || (periodic > 0 && now >= synced + periodic))
         {
             synced = now;
             // Recorded in the status; transient failures retry after a minute.
-            let synced = daemon.sync_pass().await;
-            daemon.note_result("sync", &synced);
+            let result = daemon.sync_pass().await;
+            idle_rounds = match &result {
+                Ok(r) if r.sent == 0 && r.pending == 0 && observed_through == Some(r.through) => {
+                    idle_rounds.saturating_add(1)
+                }
+                _ => 0,
+            };
+            if let Ok(report) = &result {
+                observed_through = Some(report.through);
+            }
+            daemon.note_result("sync", &result);
         } else {
             let flushed = daemon.flush_pass().await;
             daemon.note_result("flush", &flushed);
@@ -851,13 +880,24 @@ impl Daemon {
         self.wake();
     }
 
+    /// A reconnected hint source wakes automatic account sync, never file backups.
+    pub(crate) fn request_content_sync(&self) {
+        if self.settings.sync_interval_ms > 0 {
+            self.request_sync();
+        }
+    }
+
     /// Serialize content submissions, but leave the client available to
     /// local reads, edits and locking throughout every network wait.
     async fn sync_pass(&self) -> Result<dmsg_client::sync::SyncReport> {
         let h = self.hold();
         // Bind the account before waiting for another pass to finish.
-        let before = h.with(|c| Ok(c.session_state())).await?;
+        let (before, generation) = h
+            .with(|c| Ok((c.session_state(), c.session_generation())))
+            .await?;
         let _turn = self.turn("sync").await;
+        h.with(|c| dmsg_types::ensure(c.session_generation() == generation, Error::Locked))
+            .await?;
         self.syncing.store(true, Ordering::Relaxed);
         self.emit("sync/progress", Value::Null);
         let started = std::time::Instant::now();
@@ -895,9 +935,11 @@ impl Daemon {
     /// its entries ([`Client::connect_entries`]), which reply and verify
     /// under it while there are any.
     pub(crate) async fn connect_pass(&self) -> Result<dmsg_client::connect::ConnectReport> {
-        let fetched = dmsg_client::connect::fetch_mailbox(&self.hold()).await?;
-        self.under_lock(async |client| client.connect_entries(fetched).await)
-            .await
+        let h = self.hold();
+        h.with(|c| Ok(c.session_state())).await?;
+        let _turn = self.turn("connect-read").await;
+        let fetched = dmsg_client::connect::fetch_mailbox(&h).await?;
+        dmsg_client::connect::entries(&h, fetched).await
     }
 
     pub(crate) fn turns(&self) -> &crate::held::Turns {
@@ -1013,10 +1055,17 @@ impl Daemon {
             let _turn = self.turn("wallet-approval").await;
             dmsg_client::approval::reconcile_wallets(&self.hold()).await?
         };
+        let connections = {
+            let _turn = self.turn("connect-read").await;
+            dmsg_client::connect::reconcile_reads(&self.hold()).await?
+        };
+        // Approved account/root changes and payment journals still need one
+        // exclusive mutation runner; normal mailbox, wallet and display reads
+        // above release the client at every network wait.
         let others = self
             .under_lock(async |client| client.approvals_reconcile_others().await)
             .await?;
-        Ok(attested + wallets + others)
+        Ok(attested + wallets + connections + others)
     }
 
     /// The loopback port.
@@ -2789,7 +2838,7 @@ mod tests {
             for code in ["UNAVAILABLE", "EXECUTION_UNKNOWN", "INTEGRITY_FAILED"] {
                 let dir = dmsg_client::testing::TempDir::new();
                 let (daemon, relay, _ic) = stalled(&dir).await;
-                assert_eq!(daemon.settings.sync_interval_ms, 0);
+                assert_eq!(daemon.settings.sync_interval_ms, dmsg_types::MINUTE);
                 let work = tokio::spawn({
                     let daemon = daemon.clone();
                     async move { daemon.sync_pass().await }

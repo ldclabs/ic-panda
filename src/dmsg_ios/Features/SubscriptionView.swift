@@ -8,12 +8,14 @@ struct SubscriptionView: View {
         struct Term: Decodable { let endsAtMs: UInt64; let method: String }
         let plan: String; let source: String; let limits: Limits; let current: Term?
     }
+    @State private var display = DisplayLoad()
     @State private var plan: Plan?
     @State private var managing = false
     @State private var loading = false
     @State private var failed = false
     var body: some View {
         List {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section("Current plan and limits") {
                 if let plan {
                     LabeledContent("Plan", value: plan.plan)
@@ -61,7 +63,7 @@ struct SubscriptionView: View {
                 Link("Terms of service", destination: URL(string: "https://dmsg.net/_/terms")!)
             }
         }.privateScreen().navigationTitle("Plan and usage").manageSubscriptionsSheet(isPresented: $managing)
-            .task { await load() }.refreshable { await load() }
+            .task { await load() }.refreshable { await load(force: true) }
     }
     private func productRows(_ products: [Product]) -> some View {
                 ForEach(products) { product in
@@ -89,7 +91,7 @@ struct SubscriptionView: View {
         }
         return formatter.string(from: components) ?? ""
     }
-    private func load() async {
+    private func load(force: Bool = false) async {
         guard !loading else { return }; loading = true; failed = false; defer { loading = false }
         #if DEBUG
         if model.uiTesting {
@@ -98,9 +100,9 @@ struct SubscriptionView: View {
             return
         }
         #endif
-        let epoch = model.epoch
-        await model.purchases.load(model)
-        do { if let result = try await model.engine?.accountPlan() { if epoch == model.epoch, !Task.isCancelled { plan = try model.decode(result) } } }
-        catch { if epoch == model.epoch { failed = true; model.report(error) } }
+        async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in plan = next }
+        async let products: Void = model.purchases.load(model)
+        _ = await (saved, products)
+        failed = display.failed
     }
 }

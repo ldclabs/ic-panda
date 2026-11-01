@@ -1,17 +1,5 @@
-//! The channel loop: while unlocked, the daemon reads a channel when the
-//! account's hint channel names it (a message or a control landed), every
-//! few minutes regardless, which brings a member's device revocation to the
-//! relay's notice without traffic, and once more a few seconds after a
-//! hint, as the relay hints a channel at most every five seconds. Each read
-//! waits on the relay without holding the client.
-//!
-//! A channel that waits for a new epoch, after a member left or was
-//! removed, a device was revoked or a manager rekeyed, is rotated here when
-//! this account may coordinate it; the relay's lease lets one device win.
-//! The delivery cursor of what this device read goes to the relay at most
-//! every half minute per channel (C04). Reads of one channel may overlap,
-//! such as this loop's and one after a send: each settles against what the
-//! others kept.
+//! Background channel control maintenance. Message bodies are fetched only by
+//! a visible owner view (or an explicit channel/sync call), never by hints alone.
 
 use crate::daemon::Daemon;
 use dmsg_client::channel::Reading;
@@ -218,10 +206,19 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
             })
             .unwrap_or_default()
     };
-    let (log, cursor, unread) = state(&*daemon.client().lock().await);
-    let mut reading = Reading::new(channel);
-    let _ = dmsg_client::channel::read(&daemon.hold(), &mut reading).await;
-    let (log_after, cursor_after, unread_after) = state(&*daemon.client().lock().await);
+    let shared = daemon.hold();
+    let Ok(bound) = dmsg_client::hold::Unlocked::new(&shared).await else {
+        return false;
+    };
+    let Ok((log, cursor, unread)) = bound.with(|c| Ok(state(c))).await else {
+        return false;
+    };
+    let _turn = daemon.turn(&format!("channel-read:{channel}")).await;
+    let mut reading = Reading::controls(channel);
+    let _ = dmsg_client::channel::read(&bound, &mut reading).await;
+    let Ok((log_after, cursor_after, unread_after)) = bound.with(|c| Ok(state(c))).await else {
+        return false;
+    };
     if reading.received > 0 || log_after != log || cursor_after > cursor {
         let view = daemon.client().lock().await.channel_view(channel).ok();
         daemon.emit(

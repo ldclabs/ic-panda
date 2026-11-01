@@ -236,6 +236,8 @@
 	<string>ব্যাকগ্রাউন্ড ট্রান্সফার শুরু হয়েছে। স্থানান্তরে এর অগ্রগতি পর্যালোচনা করুন।</string>
 	<key>Backing up…</key>
 	<string>ব্যাক আপ করা হচ্ছে...</string>
+	<key>Backup failed</key>
+	<string>ব্যাকআপ ব্যর্থ</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>ব্যাকআপ অগ্রগতি সংরক্ষণ করা হয়েছে৷ সমাপ্তির জন্য ফাইলের স্থিতি পরীক্ষা করুন।</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>মূল স্বাক্ষরিত লেনদেন সম্প্রচার করুন</string>
 	<key>Browser request</key>
 	<string>ব্রাউজার অনুরোধ</string>
+	<key>Cached data</key>
+	<string>ক্যাশ করা ডেটা</string>
 	<key>Cancel</key>
 	<string>বাতিল করুন</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>কোন সংস্করণ রাখতে হবে তা বেছে নিন। বিদ্যমান ইতিহাস ধরে রাখা হয়; গোপনীয়তা কখনই নীরবে মুছে যায় না।</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>কে আপনাকে বিনামূল্যে চিঠি পাঠাতে পারে তা চয়ন করুন৷ অবরুদ্ধ অ্যাকাউন্টগুলি অবরুদ্ধ থাকবে যতক্ষণ না আপনি তাদের অবরোধ মুক্ত করবেন।</string>
+	<key>Clear cached data</key>
+	<string>ক্যাশ মুছুন</string>
 	<key>Closed</key>
 	<string>বন্ধ</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>স্বতঃপূর্ণ সেটিংসে dMsg সক্ষম করুন৷</string>
 	<key>Encrypted backup</key>
 	<string>এনক্রিপ্ট করা ব্যাকআপ</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>এনক্রিপ্ট করা প্রদর্শন ডেটা, ক্যাশ করা সংযুক্তি এবং ক্লাউড ফাইলের তালিকা আবার ডাউনলোড করা যাবে। ভল্ট, বার্তা, স্থানীয় ফাইল লাইব্রেরি এবং সিঙ্ক না হওয়া কাজ অক্ষত থাকবে।</string>
 	<key>Encrypting</key>
 	<string>এনক্রিপ্ট করা হচ্ছে</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>আপনি এটি ব্যবহার করার জন্য প্রস্তুত হলেই এটি করুন৷ অনুলিপিগুলি এই ডিভাইসে থাকে এবং 30 সেকেন্ড পরে মেয়াদ শেষ হয়৷</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>শুধুমাত্র বিনামূল্যে যোগাযোগ এখানে সমর্থিত. এই ক্রিয়াটি প্রাপকের ফি প্রদান বা অনুমোদন করতে পারে না।</string>
+	<key>Only in cloud</key>
+	<string>শুধু ক্লাউডে</string>
 	<key>Only on this device</key>
 	<string>শুধু এই ডিভাইসে</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>আবার স্বাগতম।</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>স্থানীয় ডেমোতে স্বাগতম। এই বার্তাগুলি এই স্ক্রিনে থাকে৷</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>dMsg খোলা এবং আনলক থাকা অবস্থায়, এনক্রিপ্ট করা সম্পাদনাগুলি আপলোড হবে এবং বার্তা এবং অনুমোদনগুলি রিফ্রেশ হবে৷ ফাইল ব্যাকআপ এখনও একটি পৃথক নিশ্চিতকরণ প্রয়োজন. আপনি যেকোনো সময় এটি বন্ধ করতে পারেন।</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg খোলা ও আনলক থাকলে ভল্ট স্বয়ংক্রিয়ভাবে সিঙ্ক হয়। কথোপকথন বা ইনবক্স খুললে বার্তা আপডেট হয়। ফাইল ব্যাকআপের জন্য আলাদা নিশ্চিতকরণ প্রয়োজন। আপনি যেকোনো সময় স্বয়ংক্রিয় সিঙ্ক বন্ধ করতে পারেন।</string>
 	<key>Who may contact you</key>
 	<string>কে আপনার সাথে যোগাযোগ করতে পারে</string>
 	<key>Withdraw</key>

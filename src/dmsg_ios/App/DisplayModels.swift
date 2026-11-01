@@ -26,6 +26,8 @@ struct CloudBackup: Decodable, Identifiable {
     let bytes: UInt64
     let needsRoot: Bool
     let local: Bool
+    var fileId: String? = nil
+    var versionId: String? = nil
     var id: String { uploadId }
 }
 
@@ -34,6 +36,18 @@ struct LibraryFile: Decodable, Identifiable {
     let id: String; let name: String; let mime: String; let size: UInt64
     let current: String; let sha256: String; let status: String
     let versions: Int
+    var local: Bool? = nil
+    var canOpen: Bool { local ?? (status != "cloud_only") }
+    var statusLabel: String {
+        switch status {
+        case "cloud_only": String(localized: "Only in cloud")
+        case "backed_up": String(localized: "Backed up")
+        case "backing_up": String(localized: "Backing up…")
+        case "failed": String(localized: "Backup failed")
+        case "too_large": String(localized: "On this device")
+        default: String(localized: "On this device")
+        }
+    }
 }
 
 struct ApprovalView: Decodable, Identifiable {

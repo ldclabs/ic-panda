@@ -108,7 +108,12 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
                 .contains("private relay detail")
         );
         assert_eq!(client.workspace.store.meta::<u64>(SNAPSHOT).unwrap(), None);
-        assert_eq!(sync(&client.hold()).await.unwrap(), SyncReport::default());
+        let report = sync(&client.hold()).await.unwrap();
+        assert_eq!(report.export_pages, 1);
+        assert_eq!(
+            (report.sent, report.pending, report.downloaded_bytes),
+            (0, 0, 0)
+        );
         let recovered = client.last_sync().unwrap().unwrap();
         assert_eq!(recovered.error, None);
         assert_eq!(recovered.stage, None);
@@ -310,6 +315,9 @@ async fn a_sync_response_cannot_follow_a_lock_and_reopen_of_the_same_account() {
     .await
     .unwrap();
     let empty = Snapshot {
+        pages: 0,
+        downloaded_bytes: 0,
+        verify_ms: 0,
         through: 0,
         plans: vec![],
         revisions: vec![],
@@ -421,6 +429,9 @@ impl Relay {
 
     fn snapshot(&self) -> Snapshot {
         Snapshot {
+            pages: 0,
+            downloaded_bytes: 0,
+            verify_ms: 0,
             through: self.through,
             plans: self.plans.clone(),
             revisions: self.revisions.clone(),
@@ -778,4 +789,144 @@ fn snapshot_entries_verify_against_the_evidence_of_their_epoch() {
         verify(&mut epochs, &json!({}), &json!({})).unwrap_err(),
         Error::IntegrityFailed
     );
+}
+
+#[tokio::test]
+async fn verified_attachment_survives_account_collection_and_offline_reopen() {
+    use crate::channel_log::{ChannelType, Genesis, start};
+    use crate::files::BlobStore;
+    let dir = TempDir::new();
+    let root = dir.path("workspace");
+    let mut c = unlocked(&root, false, None);
+    let path = dir.path("offline.txt");
+    let plain = b"cached attachment survives vault sync";
+    std::fs::write(&path, plain).unwrap();
+    let imported = c
+        .files_import(&path, "root", false, &mut |_, _| {})
+        .unwrap();
+    let (_, _, file) = c.library_manifest(&imported.file.id, None).unwrap();
+    let channel = "ab".repeat(32);
+    let author = c.account().unwrap().id.to_string();
+    let mut ledger = start(
+        &Genesis {
+            channel_id: channel.clone(),
+            nonce: "cd".repeat(32),
+            kind: ChannelType::Collaboration,
+        },
+        &author,
+        &"ef".repeat(32),
+    )
+    .unwrap();
+    ledger.epoch = 1;
+    let (reference, upload) = c
+        .prepare_upload(&channel, &ledger, &file, c.blobs().unwrap())
+        .unwrap();
+    for chunk in &file.chunks {
+        c.workspace
+            .store
+            .put_chunk(
+                &chunk.digest,
+                &c.blobs().unwrap().chunk(&chunk.digest).unwrap().unwrap(),
+            )
+            .unwrap();
+    }
+    c.keep_attachment(
+        &channel,
+        &reference,
+        &author,
+        &upload.plan,
+        &upload.manifest,
+    )
+    .unwrap();
+    c.workspace
+        .put_private(c.keys().unwrap(), "test-attachment", &reference)
+        .unwrap();
+    let snapshot = Snapshot {
+        pages: 0,
+        downloaded_bytes: 0,
+        verify_ms: 0,
+        through: 0,
+        plans: vec![],
+        revisions: vec![],
+    };
+    c.collect_chunks(&snapshot, upload.plan.expires_at + 1)
+        .unwrap();
+    assert!(c.workspace.store.has_chunk(&file.chunks[0].digest).unwrap());
+    drop(c);
+    let mut c = Client::open(crate::testing::config(false), &root, None).unwrap();
+    c.keys = Some(c.workspace.unlock(&crate::testing::SECRET).unwrap());
+    c.load_root().await.unwrap();
+    let reference = c
+        .workspace
+        .private(c.keys().unwrap(), "test-attachment")
+        .unwrap()
+        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    crate::testing::relay_to(
+        &mut c,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    let opened = tokio::time::timeout(
+        std::time::Duration::from_millis(500),
+        crate::channel::fetch_file(&c.hold(), &channel, &reference, &author),
+    )
+    .await
+    .expect("cached attachment never waits on the network")
+    .unwrap();
+    let mut bytes = Vec::new();
+    crate::files::read_file(&c.workspace.store, &opened, MAX_FILE, Some(&mut bytes)).unwrap();
+    assert_eq!(bytes, plain);
+    let status = c.cache_status().unwrap();
+    assert!(
+        status["domains"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["kind"] == "attachments" && d["sealed_bytes"].as_u64().unwrap() > 0)
+    );
+    c.workspace
+        .put_private(c.keys().unwrap(), "lib-cloud-cursor", &42u64)
+        .unwrap();
+    c.workspace
+        .put_private(c.keys().unwrap(), "lib-cloud-observed", &42u64)
+        .unwrap();
+    c.cache_clear().unwrap();
+    assert!(!c.workspace.store.has_chunk(&file.chunks[0].digest).unwrap());
+    assert!(
+        c.workspace
+            .store
+            .sealed_keys("channel-file:")
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        c.workspace
+            .store
+            .sealed_keys("lib-cloud")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(c.files_cloud_observation().unwrap()["complete"], false);
+    // The user-imported copy is separately encrypted and is not cache data.
+    let (_, _, kept) = c.library_manifest(&imported.file.id, None).unwrap();
+    let mut kept_bytes = Vec::new();
+    crate::files::read_file(c.blobs().unwrap(), &kept, MAX_FILE, Some(&mut kept_bytes)).unwrap();
+    assert_eq!(kept_bytes, plain);
+    c.lock();
+    assert!(matches!(
+        crate::channel::fetch_file(&c.hold(), &channel, &reference, &author).await,
+        Err(Error::Locked)
+    ));
+}
+
+#[test]
+fn local_write_watermark_changes_on_edits_but_not_reads() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let before = c.local_change().unwrap();
+    c.vault_create("note", &item("offline edit")).unwrap();
+    let after = c.local_change().unwrap();
+    assert!(after > before);
+    c.vault_list(&Filter::default()).unwrap();
+    assert_eq!(c.local_change().unwrap(), after);
 }

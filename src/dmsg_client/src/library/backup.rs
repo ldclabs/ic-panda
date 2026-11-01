@@ -373,6 +373,20 @@ impl Client {
 /// `Error::QuotaExceeded` when the cloud has no room for all of it (nothing
 /// starts then) and `Error::NotFound` for an unknown ID.
 pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Result<BackupRequest> {
+    backup_checked(h, ids, all_versions, None).await
+}
+
+/// Plan exactly the file version the user selected, rechecking after quota I/O.
+pub async fn backup_version<H: Hold>(h: &H, id: &str, version: &str) -> Result<BackupRequest> {
+    backup_checked(h, &[id.to_string()], false, Some((id, version))).await
+}
+
+async fn backup_checked<H: Hold>(
+    h: &H,
+    ids: &[String],
+    all_versions: bool,
+    expected: Option<(&str, &str)>,
+) -> Result<BackupRequest> {
     let (_, security) = h
         .signed(|c| {
             c.roots()?;
@@ -384,7 +398,15 @@ pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Resul
         Error::RekeyRequired,
     )?;
     let (mut request, jobs) = h
-        .with(|c| c.plan_backups(ids, all_versions, now_ms()))
+        .with(|c| {
+            if let Some((id, version)) = expected {
+                ensure(
+                    c.file_record(id)?.current == version,
+                    Error::VersionConflict,
+                )?;
+            }
+            c.plan_backups(ids, all_versions, now_ms())
+        })
         .await?;
     if !jobs.is_empty() {
         // The cloud's room, as the relay projects it; the relay checks
@@ -402,6 +424,12 @@ pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Resul
         }
     }
     h.signed(|c| {
+        if let Some((id, version)) = expected {
+            ensure(
+                c.file_record(id)?.current == version,
+                Error::VersionConflict,
+            )?;
+        }
         c.root_now()?;
         let generation = c.roots()?.generation;
         for job in &jobs {

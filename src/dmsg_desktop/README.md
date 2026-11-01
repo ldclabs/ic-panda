@@ -713,7 +713,7 @@ including already stored avatar bytes. Locked menus show account IDs only.
 Public-name batches have no renderer TTL or persistent browser store; lock and
 account/session changes clear the in-memory names and discard late replies.
 
-Membership, account/security, wallet summaries and balances, names, Inbox policy
+Full profiles, wallet directories, membership, account/security, wallet summaries and balances, names, Inbox policy
 and cloud inventory read local display snapshots before asynchronous refreshes.
 Historical observations show their saved time. Display snapshots do not approve
 payments, signing, membership entitlement updates or wallet actions. Ordinary
@@ -721,7 +721,7 @@ membership reads are query-only; the existing explicit refresh and the 15-minute
 follow-up after this page starts a payment retain their separate update path.
 Cache events reread locally, including during payment follow-up, so they cannot
 form an entitlement-update loop. The main-process reminder reads only a saved
-membership snapshot. Settings → Files exposes cache size and clearing.
+membership snapshot. Settings → Files exposes encrypted cache size and clearing, including attachment copies and cloud file inventory. Vault records, messages, library files and unsynced work are retained.
 
 A lost daemon connection masks both main and approval windows. A confirmed
 same-session reconnect preserves edits; a different daemon instance or unlock
@@ -768,3 +768,15 @@ and Arabic/Urdu RTL screenshots.
 The translations received terminology and representative screenshot review.
 Native-speaker review, Windows/Linux UI runs and production OS identity/file
 dialogs were not performed for this change.
+
+Visible channel and Inbox views own body refreshes: they paint the local timeline
+before completing remote increments, react to hints only while mounted/visible,
+and reread locally on content-change events. Background notification/control work
+never walks message-body pages. File inventory uses the core observation TTL;
+opening the application or running vault sync does not schedule file backups.
+
+`DMSG_DESKTOP_SMOKE=cache node scripts/smoke.mjs` exercises local-first rendering,
+visibility scheduling, draft preservation, keyboard cache clearing and the Chinese,
+French and Arabic light/dark/minimum-window matrix using an isolated daemon fixture.
+`cargo test -p dmsg_cli real_electron_cached_profile_and_reconnection -- --ignored`
+uses a real daemon and temporary encrypted workspace for the cache/reconnect path.

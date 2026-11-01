@@ -1480,6 +1480,32 @@ impl Client {
         }
     }
 
+    pub(crate) fn connect_pending_reconciliations(&mut self) -> Result<Vec<String>> {
+        let mut keys = Vec::new();
+        for request in self.unsettled(false)? {
+            if let Action::Connect { operation, .. } = request.action
+                && !self.connect_needs_serial_reconcile(&operation)?
+            {
+                keys.push(operation);
+            }
+        }
+        Ok(keys)
+    }
+
+    pub(crate) fn connect_reconciled_approval(
+        &mut self,
+        key: &str,
+        outcome: Result<()>,
+    ) -> Result<()> {
+        let requests = self.unsettled(false)?;
+        for mut request in requests {
+            if matches!(&request.action, Action::Connect { operation, .. } if operation == key) {
+                return self.reconciled(&mut request, outcome);
+            }
+        }
+        Ok(())
+    }
+
     /// Reconcile every approved request whose outcome is unknown, other
     /// than attestations ([`reconcile_attestations`]); returns how many
     /// there were.
@@ -1489,7 +1515,8 @@ impl Client {
     /// kept on it.
     pub async fn approvals_reconcile(&mut self) -> Result<usize> {
         let wallets = reconcile_wallets(&self.hold()).await?;
-        Ok(wallets + self.approvals_reconcile_others().await?)
+        let connections = crate::connect::reconcile_reads(&self.hold()).await?;
+        Ok(wallets + connections + self.approvals_reconcile_others().await?)
     }
 
     /// Reconcile requests not handled by the wallet or attestation step runners.
@@ -1534,7 +1561,12 @@ impl Client {
                         Err(error) => Err(error),
                     }
                 }
-                Action::Connect { operation, .. } => self.connect_reconcile(&operation).await,
+                Action::Connect { operation, .. } => {
+                    if !self.connect_needs_serial_reconcile(&operation)? {
+                        continue;
+                    }
+                    self.connect_reconcile(&operation).await
+                }
                 Action::Checkout { id, fresh, .. } => match fresh {
                     true => self.plan_advance(&id).await.map(|_| ()),
                     false => self.plan_execute(&id).await.map(|_| ()),

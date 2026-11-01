@@ -236,6 +236,8 @@
 	<string>पृष्ठभूमि स्थानांतरण प्रारंभ हुआ. स्थानान्तरण में इसकी प्रगति की समीक्षा करें।</string>
 	<key>Backing up…</key>
 	<string>बैकअप लिया जा रहा है...</string>
+	<key>Backup failed</key>
+	<string>बैकअप विफल</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>बैकअप प्रगति सहेजी गई. पूर्णता के लिए फ़ाइल की स्थिति जांचें.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>मूल हस्ताक्षरित लेनदेन प्रसारित करें</string>
 	<key>Browser request</key>
 	<string>ब्राउज़र अनुरोध</string>
+	<key>Cached data</key>
+	<string>कैश किया गया डेटा</string>
 	<key>Cancel</key>
 	<string>रद्द करें</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>चुनें कि कौन सा संस्करण रखना है. मौजूदा इतिहास बरकरार रखा गया है; रहस्य कभी चुपचाप नहीं लिखे जाते।</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>चुनें कि आपको निःशुल्क पत्र कौन भेज सकता है। ब्लॉक किए गए खाते तब तक ब्लॉक रहते हैं जब तक आप उन्हें अनब्लॉक नहीं करते।</string>
+	<key>Clear cached data</key>
+	<string>कैश साफ़ करें</string>
 	<key>Closed</key>
 	<string>बंद</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>ऑटोफ़िल सेटिंग में dMsg सक्षम करें</string>
 	<key>Encrypted backup</key>
 	<string>एन्क्रिप्टेड बैकअप</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>एन्क्रिप्ट किया गया प्रदर्शन डेटा, कैश किए गए अटैचमेंट और क्लाउड फ़ाइल सूचियाँ फिर से डाउनलोड की जा सकती हैं। वॉल्ट, संदेश, स्थानीय फ़ाइल लाइब्रेरी और असिंक किया गया काम सुरक्षित रहेगा।</string>
 	<key>Encrypting</key>
 	<string>एन्क्रिप्ट करना</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>ऐसा तभी करें जब आप इसका उपयोग करने के लिए तैयार हों। प्रतिलिपियाँ इस उपकरण पर रहती हैं और 30 सेकंड के बाद समाप्त हो जाती हैं।</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>यहां केवल निःशुल्क संपर्क समर्थित है. यह क्रिया किसी प्राप्तकर्ता के शुल्क का भुगतान या अनुमोदन नहीं कर सकती है।</string>
+	<key>Only in cloud</key>
+	<string>केवल क्लाउड में</string>
 	<key>Only on this device</key>
 	<string>सिर्फ़ इस उपकरण पर</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>पुनः स्वागत है.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>स्थानीय डेमो में आपका स्वागत है. ये संदेश इसी स्क्रीन में रहते हैं.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>जबकि dMsg खुला और अनलॉक है, एन्क्रिप्टेड संपादन अपलोड होंगे और संदेश और अनुमोदन ताज़ा हो जाएंगे। फ़ाइल बैकअप के लिए अभी भी एक अलग पुष्टि की आवश्यकता होती है। आप इसे किसी भी समय बंद कर सकते हैं.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg खुला और अनलॉक होने पर वॉल्ट अपने आप सिंक होता है। बातचीत या इनबॉक्स खोलने पर संदेश अपडेट होते हैं। फ़ाइल बैकअप के लिए अलग पुष्टि आवश्यक है। आप ऑटो सिंक कभी भी बंद कर सकते हैं।</string>
 	<key>Who may contact you</key>
 	<string>आपसे कौन संपर्क कर सकता है</string>
 	<key>Withdraw</key>

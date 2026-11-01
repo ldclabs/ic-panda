@@ -693,7 +693,6 @@ pub async fn channel_preview_limited<H: Hold>(
 ) -> Result<Value> {
     check_package_size(0, max_plain_bytes)?;
     let bound = Unlocked::new(h).await?;
-    crate::channel::read(&bound, &mut crate::channel::Reading::new(channel)).await?;
     let message = bound
         .with(|c| c.snapshot_channel_message(channel, seq))
         .await?;

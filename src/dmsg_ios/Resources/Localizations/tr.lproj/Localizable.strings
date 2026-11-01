@@ -236,6 +236,8 @@
 	<string>Arka plan aktarımı başladı. Transferler'deki ilerleme durumunu inceleyin.</string>
 	<key>Backing up…</key>
 	<string>Yedekleniyor…</string>
+	<key>Backup failed</key>
+	<string>Yedekleme başarısız</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Yedekleme ilerlemesi kaydedildi. Tamamlanmak üzere dosya durumunu kontrol edin.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Orijinal imzalı işlemi yayınla</string>
 	<key>Browser request</key>
 	<string>Tarayıcı isteği</string>
+	<key>Cached data</key>
+	<string>Önbellek verileri</string>
 	<key>Cancel</key>
 	<string>İptal</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Hangi sürümün tutulacağını seçin. Mevcut geçmiş korunur; sırların üzerine asla sessizce yazılmaz.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Size kimin ücretsiz mektup gönderebileceğini seçin. Engellenen hesaplar siz engellemeyi kaldırıncaya kadar engellenmiş olarak kalır.</string>
+	<key>Clear cached data</key>
+	<string>Önbelleği temizle</string>
 	<key>Closed</key>
 	<string>Kapalı</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Otomatik Doldurma ayarlarında dMsg'yu etkinleştirin</string>
 	<key>Encrypted backup</key>
 	<string>Şifreli yedekleme</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Şifreli görüntüleme verileri, önbellekteki ekler ve bulut dosya listeleri yeniden indirilebilir. Kasa, mesajlar, yerel dosya kitaplığı ve eşitlenmemiş çalışmalar korunur.</string>
 	<key>Encrypting</key>
 	<string>Şifreleme</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Bunu yalnızca kullanmaya hazır olduğunuzda yapın. Kopyalar bu cihazda kalır ve 30 saniye sonra sona erer.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Burada yalnızca ücretsiz iletişim desteklenmektedir. Bu işlem, alıcının ücretini ödeyemez veya onaylayamaz.</string>
+	<key>Only in cloud</key>
+	<string>Yalnızca bulutta</string>
 	<key>Only on this device</key>
 	<string>Yalnızca bu cihazda</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Tekrar hoş geldiniz.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Yerel demoya hoş geldiniz. Bu mesajlar bu ekranda kalır.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>dMsg açık ve kilidi açıkken, şifrelenmiş düzenlemeler yüklenecek ve mesajlar ile onaylar yenilenecektir. Dosya yedeklemeleri yine de ayrı bir onay gerektirir. Bunu istediğiniz zaman kapatabilirsiniz.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg açık ve kilidi açılmışken kasa otomatik eşitlenir. Mesajlar konuşma veya gelen kutusu açıldığında yenilenir. Dosya yedeklemeleri ayrı onay gerektirir. Otomatik eşitlemeyi istediğiniz zaman kapatabilirsiniz.</string>
 	<key>Who may contact you</key>
 	<string>Sizinle kim iletişime geçebilir?</string>
 	<key>Withdraw</key>

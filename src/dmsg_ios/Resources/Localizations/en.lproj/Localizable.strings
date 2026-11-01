@@ -236,6 +236,8 @@
 	<string>Background transfer started. Review its progress in Transfers.</string>
 	<key>Backing up…</key>
 	<string>Backing up…</string>
+	<key>Backup failed</key>
+	<string>Backup failed</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Backup progress saved. Check the file status for completion.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Broadcast original signed transaction</string>
 	<key>Browser request</key>
 	<string>Browser request</string>
+	<key>Cached data</key>
+	<string>Cached data</string>
 	<key>Cancel</key>
 	<string>Cancel</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Choose which version to keep. Existing history is retained; secrets are never silently overwritten.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</string>
+	<key>Clear cached data</key>
+	<string>Clear cached data</string>
 	<key>Closed</key>
 	<string>Closed</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Enable dMsg in AutoFill settings</string>
 	<key>Encrypted backup</key>
 	<string>Encrypted backup</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</string>
 	<key>Encrypting</key>
 	<string>Encrypting</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</string>
+	<key>Only in cloud</key>
+	<string>Only in cloud</string>
 	<key>Only on this device</key>
 	<string>Only on this device</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Welcome back.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Welcome to the local demo. These messages stay in this screen.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</string>
 	<key>Who may contact you</key>
 	<string>Who may contact you</string>
 	<key>Withdraw</key>

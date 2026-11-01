@@ -136,6 +136,8 @@ pub const PREFIXES: &[(&str, Class)] = &[
     // Channels and the inbox sync through the relay.
     ("channel:", Class::Stays),
     ("channel-msg:", Class::Stays),
+    ("channel-file:", Class::Stays),
+    ("channel-observed:", Class::Stays),
     ("channel-job:", Class::Stays),
     ("channel-control:", Class::Stays),
     ("inbox-job:", Class::Stays),

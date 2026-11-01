@@ -1,8 +1,3 @@
-<script module lang="ts">
-  /** The cloud view reads the relay once per window by itself; later reads are asked for. */
-  const cloudRead = new Set<string>()
-</script>
-
 <script lang="ts">
   import SecretInput from '../components/SecretInput.svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
@@ -243,11 +238,12 @@
     const account = status?.account
     const current = () => scope === place && status?.account === account
     try {
-      const [tree, shown, trashed, cloudList] = await Promise.all([
+      const [tree, shown, trashed, cloudList, cloudStatus] = await Promise.all([
         call('files/tree'),
         folderScope ? call('files/list', { folder: place }) : place === 'starred' ? call<any[]>('files/search', { query: '', starred: true }) : tag ? call<any[]>('files/search', { query: '', tag }) : null,
         place === 'trash' ? call('files/list', { trash: true }) : null,
-        place === 'cloud' ? call('files/cloud_list') : null
+        place === 'cloud' ? call('files/cloud_list') : null,
+        place === 'cloud' ? call<any>('files/cloud_status') : null
       ])
       if (!current() || !unlocked) return
       folders = tree
@@ -255,12 +251,9 @@
       if (trashed) trashListing = trashed
       if (cloudList) {
         cloud = cloudList
-        cloudLoaded = true
+        cloudLoaded = cloudList.length > 0 || cloudStatus?.complete === true
         void refreshCloudUsage()
-        if (account && !cloudRead.has(account)) {
-          cloudRead.add(account)
-          void call('files/cloud_refresh').catch(() => cloudRead.delete(account))
-        }
+
       }
       error = ''
       void reloadMetadata()
@@ -284,7 +277,7 @@
   // Read untracked: the reload's own reads are not this effect's to follow.
   $effect(() => {
     void scope
-    untrack(() => void reload())
+    untrack(() => { void reload(); if (scope === 'cloud') void refreshInventory() })
   })
 
   // A new place or search starts at the top of its rows.
@@ -633,6 +626,12 @@
       const counts = { versions: report.versions.length, blobs: report.blobs_checked, n: bad }
       toast(() => t(bad ? 'verifyAllBad' : 'verifyAllDone', counts), { ms: 8000, testid: 'files-verified' })
     })
+  const refreshInventory = single(async () => {
+    if (scope !== 'cloud' || !unlocked || document.visibilityState !== 'visible' || document.body.inert) return
+    try { await call('files/cloud_refresh', { force: false }) }
+    catch (e) { if (scope === 'cloud') { const failure = errorText(e); await reload(); if (scope === 'cloud') error = failure } }
+  })
+
   const refreshCloud = () => attempt(() => call('files/cloud_refresh'))
   const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder }), t('fetched'))
   const verifyBackup = (upload: string) =>
@@ -662,6 +661,7 @@
     })
 
   onMount(() => {
+    const inventoryTimer = setInterval(() => void refreshInventory(), 60_000)
     const stop = watchDisplays(['usage'], (mode) => refreshCloudUsage(mode))
     const offChange = onChange(['files/changed', 'session/changed'], reload)
     const offWork = window.dmsg.onEvent((event) => {
@@ -674,6 +674,7 @@
     })
     return () => {
       offChange()
+      clearInterval(inventoryTimer)
       stop()
       offWork()
     }

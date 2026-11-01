@@ -1111,6 +1111,19 @@ impl Store {
             .map_err(storage)
     }
 
+    /// Local write watermark. Immutable object rows make new edits distinguishable
+    /// even when the number of pending objects is unchanged.
+    pub fn local_change(&self) -> Result<u64> {
+        self.conn()
+            .query_row(
+                "SELECT COALESCE(MAX(rowid), 0) FROM objects WHERE state = ?1",
+                [LOCAL],
+                |r| r.get::<_, i64>(0),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
+    }
+
     /// One object version by `item:revision`.
     ///
     /// # Errors
@@ -1145,6 +1158,10 @@ impl Store {
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn objects_in(&self, state: &str) -> Result<Vec<ObjectRow>> {
         self.select("state = ?1", state)
+    }
+
+    pub(crate) fn objects_of_kind(&self, kind: &str) -> Result<Vec<ObjectRow>> {
+        self.select("kind = ?1", kind)
     }
 
     /// Conflict copies of one kind that are neither resolved nor replaced.
@@ -1392,6 +1409,18 @@ impl Store {
             })
             .optional()
             .map(|r| r.is_some())
+            .map_err(storage)
+    }
+
+    pub(crate) fn chunk_size(&self, digest: &str) -> Result<u64> {
+        self.conn()
+            .query_row(
+                "SELECT length(bytes) FROM chunks WHERE digest = ?1",
+                [digest],
+                |r| r.get::<_, i64>(0),
+            )
+            .optional()
+            .map(|size| size.unwrap_or(0) as u64)
             .map_err(storage)
     }
 

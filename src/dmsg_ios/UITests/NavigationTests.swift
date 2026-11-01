@@ -400,6 +400,24 @@ import XCTest
         footer.name = "Dark Arabic large-text access footer"; footer.lifetime = .keepAlways; add(footer)
     }
 
+    func testCacheExplanationAndControlsInEnglishChineseFrenchAndArabic() {
+        for (language, locale, account, dark) in [("en", "en_US", "Account", false), ("zh-Hans", "zh_CN", "我的", true), ("fr", "fr_FR", "Compte", false), ("ar", "ar_SA", "الحساب", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale] + (dark ? ["--ui-dark"] : [])
+            app.launch()
+            tab(app, symbol: "Glyph-account", title: account).tap()
+            let cache = app.buttons["account.cache"]
+            for _ in 0..<8 where !cache.isHittable { app.swipeUp() }
+            XCTAssertTrue(cache.isHittable); cache.tap()
+            XCTAssertTrue(app.staticTexts["cache.explanation"].waitForExistence(timeout: 5))
+            let clear = app.buttons["cache.clear"]
+            XCTAssertTrue(clear.isHittable)
+            XCTAssertFalse(clear.isEnabled, "a presentation fixture without a core cannot clear a real workspace")
+            capture(app, name: "Encrypted cache explanation · \(language) · \(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
     func testFilesShowCloudBackupsWithoutOpeningImportMenu() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

@@ -34,6 +34,7 @@ use zeroize::Zeroizing;
 
 pub(crate) const CLOUD: &str = "lib-cloud:";
 const CURSOR: &str = "lib-cloud-cursor";
+const OBSERVED: &str = "lib-cloud-observed";
 
 /// The plan of one inventory entry of `account` and the device that
 /// reserved it, checked against the certified evidence the relay kept from
@@ -170,6 +171,31 @@ fn plan_bytes(plan: &UploadPlan) -> u64 {
 }
 
 impl Client {
+    pub(crate) fn clear_cloud_inventory(&self) -> Result<()> {
+        for key in self.workspace.store.sealed_keys(CLOUD)? {
+            self.workspace.store.delete_sealed(&key)?;
+        }
+        for key in [CURSOR, OBSERVED] {
+            self.workspace.store.delete_sealed(key)?;
+        }
+        Ok(())
+    }
+
+    /// Whether this device has completed a backup inventory observation.
+    pub fn files_cloud_observation(&self) -> Result<Json> {
+        let observed = self.workspace.private::<u64>(self.keys()?, OBSERVED)?;
+        Ok(json!({"complete":observed.is_some(),"observed_at_ms":observed}))
+    }
+
+    /// Whether the backup inventory needs a visible-view refresh.
+    pub fn files_cloud_stale(&self) -> Result<bool> {
+        let observed = self
+            .workspace
+            .private::<u64>(self.keys()?, OBSERVED)?
+            .unwrap_or(0);
+        Ok(crate::display::stale(observed, 60_000, now_ms()))
+    }
+
     fn cloud_entries(&self) -> Result<Vec<(String, CloudEntry)>> {
         let mut entries = Vec::new();
         for key in self.workspace.store.sealed_keys(CLOUD)? {
@@ -430,7 +456,17 @@ impl Client {
         let objects = format!("{}/objects/{upload_id}/chunks", self.base()?);
         let mut missing = vec![];
         for (index, chunk) in file.chunks.iter().enumerate() {
-            if !self.blobs()?.has_chunk(&chunk.digest)? {
+            // This is an explicit restore/verify, not a list read. An existing
+            // but corrupt block must be replaceable by the verified cloud copy.
+            let present = match self.blobs()?.chunk(&chunk.digest) {
+                Ok(bytes) => bytes.is_some(),
+                Err(Error::IntegrityFailed) => {
+                    self.blobs()?.delete(&chunk.digest)?;
+                    false
+                }
+                Err(error) => return Err(error),
+            };
+            if !present {
                 missing.push((format!("{objects}/{index}"), chunk.digest.clone()));
             }
         }
@@ -588,6 +624,11 @@ async fn open_backup<H: Hold>(
 /// Returns `Error::Locked` while locked and `Error::IntegrityFailed` for an
 /// entry that does not verify.
 pub async fn cloud_refresh<H: Hold>(h: &H) -> Result<CloudRefresh> {
+    let scoped = crate::display::Scoped {
+        session: h.with(|c| c.display_session()).await?,
+        inner: h,
+    };
+    let h = &scoped;
     let (account, base, mut cursor, rootless) = h
         .with(|c| {
             c.roots()?;
@@ -655,6 +696,8 @@ pub async fn cloud_refresh<H: Hold>(h: &H) -> Result<CloudRefresh> {
         .await?;
     }
     report.cursor = cursor;
+    h.with(|c| c.workspace.put_private(c.keys()?, OBSERVED, &now_ms()))
+        .await?;
     Ok(report)
 }
 
@@ -802,4 +845,50 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
         Ok(usage)
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn explicit_restore_replaces_corrupt_blocks_but_listing_does_not() {
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let path = dir.path("notes.txt");
+        std::fs::write(&path, b"kept cloud copy").unwrap();
+        let imported = client
+            .files_import(&path, ROOT, false, &mut |_, _| {})
+            .unwrap();
+        let (file, version, manifest) = client.library_manifest(&imported.file.id, None).unwrap();
+        let job = client
+            .plan_backup(&imported.file.id, &imported.version, now_ms())
+            .unwrap();
+        let backup = BackupManifest {
+            format: super::super::backup::BACKUP_FORMAT.into(),
+            file: manifest.clone(),
+            path: vec![],
+            tags: file.tags,
+            note: file.note,
+            created_at: version.created_at,
+            modified_at: file.updated_at,
+            device: version.device,
+        };
+        let digest = &manifest.chunks[0].digest;
+        let path = client
+            .blobs()
+            .unwrap()
+            .dir()
+            .join(&digest[..2])
+            .join(digest);
+        std::fs::write(&path, b"damaged").unwrap();
+        client.files_list(ROOT, false).unwrap();
+        assert!(path.exists(), "a list is not a repair or full-file scan");
+        let (_, missing) = client
+            .missing_chunks(&job.plan.upload_id, &job.plan, &backup)
+            .unwrap();
+        assert_eq!(missing.len(), 1);
+        assert_eq!(missing[0].1, *digest);
+        assert!(!path.exists());
+    }
 }

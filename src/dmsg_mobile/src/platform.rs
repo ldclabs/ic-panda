@@ -256,11 +256,11 @@ impl dmsg_client::wallet::cosign::CosignProvider for Adapter {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     #[derive(Default)]
-    struct PasscodeFallback {
+    pub(crate) struct PasscodeFallback {
         questions: std::sync::atomic::AtomicU64,
         released: std::sync::atomic::AtomicU64,
         cancelled: std::sync::atomic::AtomicBool,

@@ -643,7 +643,7 @@ pub fn parse_wallet(text: &str) -> Result<Principal> {
 }
 
 impl Client {
-    fn wallet_hub(&self) -> Result<Principal> {
+    pub(crate) fn wallet_hub(&self) -> Result<Principal> {
         self.config
             .wallet
             .hub

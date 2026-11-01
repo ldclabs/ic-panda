@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { watchContent } from '../content-refresh'
   import Notice from '../components/page/Notice.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
@@ -37,6 +38,7 @@
    */
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
 
+  let alive = true
   let channels = $state<any[]>([])
   let legacyChannels = $state<any[]>([])
   let legacySelected = $state<any>(null)
@@ -157,6 +159,14 @@
     }
   })
 
+  const refreshChannel = single(async (id: string | null = selected) => {
+    if (!alive || !unlocked || !id || selected !== id || document.visibilityState !== 'visible' || document.body.inert) return
+    let failure = ''
+    try { await call('channel/sync', { id }) }
+    catch (e) { failure = closed(e, status) ? 'LOCKED' : errorText(e) }
+    if (alive && selected === id) { await reload(); if (alive && selected === id) error = failure }
+  })
+
   function pickLegacy(entry: any) {
     selected = channel = null
     legacySelected = entry
@@ -211,7 +221,7 @@
       void loadReceipts(id)
       // Show local history immediately, then catch up this channel without
       // waiting for its place in the background pass.
-      if (next.ledger?.members?.[me ?? '']) void call('channel/sync', { id }).catch(fail)
+      if (next.ledger?.members?.[me ?? '']) void refreshChannel(id)
     } else {
       // A local send can be acknowledged before earlier incoming messages
       // arrive. Merge by sequence so those gaps appear in the right place.
@@ -332,9 +342,10 @@
     })
 
   async function preview(message: any) {
+    const id = selected, digest = message.digest
     images[message.seq] = ''
-    const result: any = await call('channel/preview', { id: channel.id, seq: message.seq }).catch(() => null)
-    if (result?.url) images[message.seq] = result.url
+    const result: any = await call('channel/preview', { id, seq: message.seq }).catch(() => null)
+    if (alive && selected === id && messages.some((m) => m.seq === message.seq && m.digest === digest) && result?.url) images[message.seq] = result.url
   }
 
   const hide = (message: any, hidden: boolean) =>
@@ -499,7 +510,8 @@
       }),
       onChange(['legacy/changed', 'session/changed', 'sync/changed'], readLegacy)
     ]
-    return () => offs.forEach((off) => off())
+    const stop = watchContent('channel', () => selected, () => refreshChannel())
+    return () => { alive = false; stop(); offs.forEach((off) => off()) }
   })
 </script>
 

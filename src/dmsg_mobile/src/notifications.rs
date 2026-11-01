@@ -308,8 +308,6 @@ impl MobileEngine {
                 if session.unlocked_account().is_some() {
                     let _ = notice::refresh_capabilities(h).await;
                     h.with(|c| c.reconcile_notifications(now_ms())).await?;
-                    // Ordinary incoming letters use the same verifier as the inbox page.
-                    let _ = dmsg_client::inbox::sync(h, 3).await;
                     let _ = dmsg_client::wallet::refresh_notifications(h).await;
                     let _ = dmsg_client::commerce::plan_status(h, false).await;
                 }

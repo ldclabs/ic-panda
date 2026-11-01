@@ -187,6 +187,8 @@ async fn connect_account(
         == Some(account)
     {
         daemon.hint_channel("*");
+        daemon.emit("channel/hint", json!({"id":"*"}));
+        daemon.request_content_sync();
         daemon.notifications.inbox.notify_one();
         daemon.mail_push().receive.notify_one();
         daemon.mcp().wake();
@@ -275,6 +277,10 @@ async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Value) {
         }
         "channel" if unlocked => {
             daemon.hint_channel(hint["resource"].as_str().unwrap_or("*"));
+            daemon.emit(
+                "channel/hint",
+                json!({"id":hint["resource"].as_str().unwrap_or("*")}),
+            );
             daemon.notifications.receive.notify_one();
         }
         "channel" if hint["event"] == "control" => {}

@@ -2340,20 +2340,6 @@ impl Client {
         self.hold().post(path, action, payload, request_id).await
     }
 
-    /// A signed device command with a sealed reply beside it.
-    pub(crate) async fn relay_post_sealed<P: Serialize + Sync>(
-        &mut self,
-        path: &str,
-        action: &str,
-        payload: &P,
-        request_id: &Hash,
-        sealed: Option<&[u8]>,
-    ) -> Result<Json> {
-        self.hold()
-            .send(|c| c.signed_post_sealed(path, action, payload, request_id, sealed))
-            .await
-    }
-
     pub(crate) fn base(&self) -> Result<String> {
         Ok(format!("/v1/accounts/{}", self.account()?.id))
     }

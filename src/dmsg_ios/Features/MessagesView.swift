@@ -7,6 +7,8 @@ struct MessagesView: View {
     @State private var selected: String?
     @State private var mode = 0
     @State private var creating = false
+    @State private var lettersKnown = false
+    @State private var lettersFailed = false
     @State private var letters: [InboxLetter] = []
     @State private var archived = false
     var body: some View {
@@ -35,7 +37,11 @@ struct MessagesView: View {
                     ForEach(visible) { letter in
                         NavigationLink(value: letter.id) { InboxRow(letter: letter) }.compactObjectRow()
                     }
-                    if visible.isEmpty { ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName) }
+                    if visible.isEmpty && lettersKnown { ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName) }
+                    if lettersFailed {
+                        NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
+                        Button("Retry") { Task { await loadLetters(refresh: true) } }
+                    } else if !lettersKnown { ProgressView() }
                 }
             }.listStyle(.plain).privateScreen().navigationTitle("Messages")
                 .toolbar {
@@ -47,7 +53,15 @@ struct MessagesView: View {
                 }
                 .task { await model.refresh() }
                 .task(id: "\(mode):\(model.contentRevision):\(model.epoch)") {
-                    if mode == 1 { await loadLetters(refresh: false); await loadLetters(refresh: true) }
+                    if mode == 1 { await loadLetters(refresh: false) }
+                }
+                .task(id: "inbox:\(mode):\(model.epoch):\(model.concealed)") {
+                    guard mode == 1, !model.concealed else { return }
+                    await loadLetters(refresh: false)
+                    while !Task.isCancelled {
+                        await loadLetters(refresh: true)
+                        do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                    }
                 }
                 .refreshable {
                     if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() }
@@ -69,7 +83,18 @@ struct MessagesView: View {
                   epoch == model.epoch, !Task.isCancelled else { return }
             let incoming: [InboxLetter] = try model.decode(snapshot)
             letters = incoming.sorted { $0.createdAt > $1.createdAt }
-        } catch { if epoch == model.epoch { model.report(error) } }
+            struct Observation: Decodable { let complete: Bool }
+            if let status = try await model.engine?.cachedInboxStatus() {
+                let known: Observation = try model.decode(status)
+                guard epoch == model.epoch, !Task.isCancelled else { return }
+                lettersKnown = known.complete || !letters.isEmpty
+            }
+            if refresh { lettersFailed = false }
+        } catch {
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            if refresh { await loadLetters(refresh: false) }
+            if epoch == model.epoch { lettersFailed = true }
+        }
     }
 }
 
@@ -187,6 +212,14 @@ struct ConversationView: View {
                 if !query.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
                 if !Task.isCancelled { await load() }
             }
+            .task(id: "refresh:\(channel.id):\(model.epoch):\(model.concealed)") {
+                guard !model.concealed else { return }
+                await load()
+                while !Task.isCancelled {
+                    await refreshMessages()
+                    do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                }
+            }
             .onChange(of: draft) { _, value in
                 model.activity(); let previous = persistTask; previous?.cancel()
                 let epoch = model.epoch, channelID = channel.id
@@ -206,8 +239,7 @@ struct ConversationView: View {
                 Task { await persistence?.value; if epoch == model.epoch { try? await engine?.saveDraft(channel: channelID, text: value) } }
             }
             .refreshable {
-                do { if let engine = model.engine { _ = try await coreOperation { try await engine.refreshChannel(channel: channel.id, operation: $0) } }; await load() }
-                catch { model.report(error) }
+                await refreshMessages()
             }
     }
 
@@ -237,6 +269,13 @@ struct ConversationView: View {
                                                       in: RoundedRectangle(cornerRadius: 16))
                             if message.account != model.session?.account { Spacer(minLength: 36) }
                         }
+    }
+
+    private func refreshMessages() async {
+        let epoch = model.epoch
+        do { if let engine = model.engine { _ = try await coreOperation { try await engine.refreshChannel(channel: channel.id, operation: $0) } } }
+        catch { if epoch == model.epoch { model.report(error) } }
+        if epoch == model.epoch, !Task.isCancelled { await load(); await model.loadChannels() }
     }
 
     private func load() async {

@@ -65,6 +65,7 @@ export const closed = (error: unknown, status: any) =>
  */
 export const errorText = (error: unknown) => {
   const failure = code(error)
+  if (failure === 'CACHE_MISSING') return ''
   const label = failureLabel(failure)
   return label ? t(label) : `${t('error')}: ${failure}`
 }

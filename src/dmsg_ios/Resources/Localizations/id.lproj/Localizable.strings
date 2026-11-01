@@ -236,6 +236,8 @@
 	<string>Transfer latar belakang dimulai. Tinjau kemajuannya di Transfer.</string>
 	<key>Backing up…</key>
 	<string>Mencadangkan…</string>
+	<key>Backup failed</key>
+	<string>Pencadangan gagal</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Kemajuan pencadangan disimpan. Periksa status file untuk penyelesaian.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Siarkan transaksi asli yang ditandatangani</string>
 	<key>Browser request</key>
 	<string>Permintaan peramban</string>
+	<key>Cached data</key>
+	<string>Data cache</string>
 	<key>Cancel</key>
 	<string>Batalkan</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Pilih versi mana yang akan disimpan. Sejarah yang ada dipertahankan; rahasia tidak pernah ditimpa secara diam-diam.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Pilih siapa yang boleh mengirimi Anda surat gratis. Akun yang diblokir akan tetap diblokir sampai Anda membatalkan pemblokirannya.</string>
+	<key>Clear cached data</key>
+	<string>Hapus cache</string>
 	<key>Closed</key>
 	<string>Tertutup</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Aktifkan dMsg di pengaturan IsiOtomatis</string>
 	<key>Encrypted backup</key>
 	<string>Cadangan terenkripsi</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Data tampilan terenkripsi, lampiran dalam cache, dan daftar file cloud dapat diunduh kembali. Brankas, pesan, pustaka file lokal, dan pekerjaan yang belum disinkronkan tetap tersimpan.</string>
 	<key>Encrypting</key>
 	<string>Mengenkripsi</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Lakukan ini hanya jika Anda siap menggunakannya. Salinan tetap ada di perangkat ini dan habis masa berlakunya setelah 30 detik.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Hanya kontak gratis yang didukung di sini. Tindakan ini tidak dapat membayar atau menyetujui biaya penerima.</string>
+	<key>Only in cloud</key>
+	<string>Hanya di cloud</string>
 	<key>Only on this device</key>
 	<string>Hanya di perangkat ini</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Selamat datang kembali.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Selamat datang di demo lokal. Pesan-pesan ini tetap ada di layar ini.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Saat dMsg terbuka dan tidak terkunci, hasil edit terenkripsi akan diunggah dan pesan serta persetujuan akan disegarkan. Pencadangan file masih memerlukan konfirmasi terpisah. Anda dapat menonaktifkannya kapan saja.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Saat dMsg terbuka dan tidak terkunci, brankas disinkronkan otomatis. Pesan diperbarui saat percakapan atau kotak masuk dibuka. Pencadangan file tetap memerlukan konfirmasi terpisah. Sinkronisasi otomatis dapat dinonaktifkan kapan saja.</string>
 	<key>Who may contact you</key>
 	<string>Siapa yang dapat menghubungi Anda</string>
 	<key>Withdraw</key>

@@ -236,6 +236,8 @@
 	<string>بدأ النقل في الخلفية. راجع التقدم في «عمليات النقل».</string>
 	<key>Backing up…</key>
 	<string>جارٍ النسخ…</string>
+	<key>Backup failed</key>
+	<string>فشل النسخ الاحتياطي</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>حُفظ التقدم. تحقّق من حالة الملف لمعرفة اكتمال النسخ.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>بث المعاملة الأصلية الموقّعة</string>
 	<key>Browser request</key>
 	<string>طلب المتصفح</string>
+	<key>Cached data</key>
+	<string>البيانات المخزنة مؤقتًا</string>
 	<key>Cancel</key>
 	<string>إلغاء</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>اختر النسخة التي تريد الاحتفاظ بها. يبقى السجل محفوظًا، ولا تُستبدل الأسرار دون قرار منك.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>اختر من يمكنه مراسلتك مجانًا. تبقى الحسابات المحظورة كذلك حتى تلغي حظرها.</string>
+	<key>Clear cached data</key>
+	<string>مسح ذاكرة التخزين المؤقت</string>
 	<key>Closed</key>
 	<string>مغلق</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>تفعيل dMsg في إعدادات الملء التلقائي</string>
 	<key>Encrypted backup</key>
 	<string>نسخة احتياطية مشفّرة</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>يمكن تنزيل بيانات العرض المشفرة والمرفقات المخزنة مؤقتًا وقوائم الملفات السحابية مجددًا. يبقى المخزن والرسائل ومكتبة الملفات المحلية والعمل غير المتزامن محفوظًا.</string>
 	<key>Encrypting</key>
 	<string>جارٍ التشفير</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>نفّذ ذلك فقط عندما تكون مستعدًا للاستخدام. تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها بعد 30 ثانية.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>يُدعم التواصل المجاني فقط هنا. لا يمكن لهذا الإجراء دفع رسوم المستلم أو الموافقة عليها.</string>
+	<key>Only in cloud</key>
+	<string>في السحابة فقط</string>
 	<key>Only on this device</key>
 	<string>على هذا الجهاز فقط</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>أهلًا بعودتك.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>مرحبًا بك في العرض المحلي. تبقى هذه الرسائل في هذه الشاشة.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>عندما يكون dMsg مفتوحًا وغير مقفل، تُرفع التعديلات المشفّرة وتُحدَّث الرسائل والموافقات. يظل نسخ الملفات احتياطيًا بحاجة إلى تأكيد منفصل. يمكنك إيقاف ذلك في أي وقت.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>عندما يكون dMsg مفتوحًا وغير مقفل، يتزامن المخزن تلقائيًا. تُحدّث الرسائل عند فتح المحادثة أو صندوق الوارد. تظل النسخ الاحتياطية للملفات بحاجة إلى تأكيد منفصل. يمكنك إيقاف المزامنة التلقائية في أي وقت.</string>
 	<key>Who may contact you</key>
 	<string>من يمكنه التواصل معك</string>
 	<key>Withdraw</key>

@@ -165,8 +165,8 @@ next pull checks every one, so a deleted one would be downloaded again), an
 unsent version's job does (it replans from them), or a channel or root
 upload in flight does whose plan has not lapsed: an upload reads chunks only
 before its plan lapses, and channel uploads are listed in one sealed record
-for that until then. Replaced versions', lapsed or abandoned
-uploads' and channel downloads' chunks go; resolved conflict copies and
+for that until then. Verified attachment-cache references also keep their chunks. Replaced versions', lapsed or abandoned
+uploads' unreferenced chunks go; resolved conflict copies and
 older versions stay, as the relay keeps them. The freed pages return to the
 file system in a workspace created since (`auto_vacuum = INCREMENTAL`). The
 file library's chunks are not in this table: they are files in the
@@ -722,8 +722,7 @@ JSON projections are stored as sealed 512 KiB byte pages with a whole-snapshot
 digest, atomically with their header. Each snapshot is at most 16 MiB; each domain
 is bounded to 32 MiB of sealed records and 4096 records. Old successful
 observations are evicted first; reads do not write access timestamps.
-Wallet history, asset metadata, Inbox policy and cloud inventory use this same
-store. Unsupported old display formats are discarded, never migrated by
+Wallet directories, full profile documents, wallet history, asset metadata and Inbox policy use this snapshot store. Cloud backup inventory reuses the encrypted `lib-cloud` records and its existing cursor. Unsupported old display formats are discarded, never migrated by
 resetting a workspace. Missing/corrupt pages are a miss rather than a partial
 success. A failed replacement keeps the prior complete snapshot.
 
@@ -740,6 +739,24 @@ writes of the same kind even when disk cleanup fails; other kinds go on. Capacit
 sums rather than the first inventory page. Avatar downloads bind both URL and
 publication version, so changing away from a URL and back cannot accept an older
 in-flight image as the new publication.
+
+`snapshot` supplies the shared local/read-refresh entry points used by the daemon
+and mobile host. A visible screen owns its refresh; read-only snapshots cannot
+replace live authorization checks. Vault sync keeps complete verified exports,
+coalesces concurrent passes and reports export pages, downloaded ciphertext bytes,
+verification/application time and elapsed time. No new delta protocol is assumed.
+
+Verified channel attachment descriptors and encrypted manifests are LDK-sealed;
+content-addressed blocks remain ciphertext. Offline reopening validates the local
+message and manifest, then reuses existing blocks. Missing blocks are fetched only
+when the person reads the attachment. The cache retains at most 512 descriptors
+and 256 MiB of referenced material, evicting oldest entries. Explicit cache clearing
+also removes attachment-only chunks and `lib-cloud` inventory/cursor/observation.
+Chunks still needed by pending uploads, content jobs, roots or imported history
+are protected; the separately encrypted file-library copies are unaffected.
+The cache-clear generation fences late attachment and inventory responses.
+SQLite still contains operational metadata: this is encrypted content storage,
+not a claim that the entire database or unlocked process memory is encrypted.
 
 ### Optional on-chain recovery
 

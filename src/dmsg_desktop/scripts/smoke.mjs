@@ -32,6 +32,7 @@
 // in place when it collapses the sidebar, and that closing the main window
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
+import { cacheFlow } from './cache-flow.mjs'
 import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
@@ -686,6 +687,7 @@ const methods = {
   },
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
+  'files/cloud_status': () => ({ complete: true, observed_at_ms: Date.now() }),
   'files/cloud_usage': () => ({
     reserved: 0,
     committed: 1300,
@@ -1111,6 +1113,7 @@ const methods = {
     { order_id: '77'.repeat(32), sender: peer, state: 'visible', text: 'A paid letter', created_at: Date.now(), read: false, archived: false }
   ],
   'inbox/outgoing': () => [],
+  'inbox/status': () => ({ complete: true, observed_at_ms: Date.now() }),
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
   'inbox/mark': (p) => ({ order_id: p.order, read: p.read, archived: p.archived }),
@@ -1436,6 +1439,7 @@ const announced = {
 /** Methods whose next reply waits for the test (`hold`), to see a click's work under way. */
 const held = new Map()
 const heldFilters = new Map()
+const displayStates = new Map()
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
 server.on('upgrade', (req, socket, head) => {
@@ -1459,7 +1463,7 @@ server.on('upgrade', (req, socket, head) => {
         reply = { jsonrpc: '2.0', id: message.id, error: { code: -32000, message: failure.message, data: { code: failure.code } } }
       }
       if (handler && !reply.error && ['local','swr','fresh'].includes(message.params?.mode)) {
-        reply.result = {state:reply.result === null ? 'absent':'present',data:reply.result,observed_at_ms:Date.now(),stale:false,refreshing:false,error:null}
+        reply.result = {state:reply.result === null ? 'absent':'present',data:reply.result,observed_at_ms:Date.now(),stale:false,refreshing:false,error:null,...displayStates.get(message.method)}
       }
       const send = () => {
         if (['profile/publish', 'profile/retry'].includes(message.method) && reply.result?.published) emit('profile/changed')
@@ -1601,6 +1605,13 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'cache') {
+    wallets.state.enabled = true
+    await cacheFlow({ app, main, shots, methods, calls, emit, hold, waitFor, formMatrix, displayStates })
+    assert.deepEqual(pageErrors, [])
+    console.log('Desktop cache smoke passed: local-first views, passive messages, draft isolation, cache clear and visual matrix')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'updates') {
     await updatesFlow({ app, main, profile, shots, waitFor })
     await closeTest()

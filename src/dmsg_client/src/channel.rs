@@ -52,8 +52,12 @@ use zeroize::Zeroizing;
 #[path = "channel_snapshot.rs"]
 pub mod snapshot;
 
+#[path = "channel_attachments.rs"]
+mod attachments;
+
 /// Content kind of a channel's synced record.
 pub const CHANNEL: &str = "formal_channel";
+const OBSERVED: &str = "channel-observed:";
 /// Largest message text in bytes.
 pub const MAX_TEXT: usize = 16_000;
 /// Largest channel name in characters.
@@ -227,7 +231,7 @@ struct Held {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct Upload {
     pub(crate) plan: UploadPlan,
-    manifest: ByteBuf,
+    pub(crate) manifest: ByteBuf,
     recipients: Vec<String>,
 }
 
@@ -637,19 +641,6 @@ pub enum Posting {
     Done(Json),
     /// The request to send.
     Send(Prepared),
-}
-
-/// An image a message carries, downloaded without holding the client: the
-/// plan of its upload as checked, then its sealed manifest and the chunks
-/// not kept here, by path and digest. It holds no key; the image opens
-/// under the client's copy of the message.
-#[derive(Clone, Debug)]
-struct Fetching {
-    channel: String,
-    seq: u64,
-    plan: UploadPlan,
-    /// The sealed manifest first, then the chunks.
-    parts: Vec<(String, String)>,
 }
 
 /// An invitation the inviter hands to the invited account.
@@ -1876,10 +1867,15 @@ pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<Chann
     }
     read(h, &mut reading).await?;
     sync_file_deletions(h, channel).await?;
-    Ok(ChannelSync {
-        through: h.with(|c| Ok(c.local(channel)?.message)).await?,
-        received: reading.received,
+    h.with(|c| {
+        c.workspace
+            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &now_ms())?;
+        Ok(ChannelSync {
+            through: c.local(channel)?.message,
+            received: reading.received,
+        })
     })
+    .await
 }
 
 async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
@@ -1932,18 +1928,36 @@ pub(crate) async fn fetch_file<H: Hold>(
     reference: &FileRef,
     uploader: &str,
 ) -> Result<FileManifest> {
-    let plan = descriptor(h, channel, &reference.upload_id, Some(uploader)).await?;
+    let bound = crate::display::Scoped {
+        session: h.with(|c| c.display_session()).await?,
+        inner: h,
+    };
+    let h = &bound;
+    let cached = h
+        .with(|c| c.cached_attachment(channel, reference, uploader))
+        .await?;
+    let (plan, sealed) = if let Some(cached) = cached {
+        (cached.plan, cached.manifest.into_vec())
+    } else {
+        let plan = descriptor(h, channel, &reference.upload_id, Some(uploader)).await?;
+        ensure(of_file(&plan, reference), Error::IntegrityFailed)?;
+        let sealed = crate::downloads::one(
+            h,
+            format!(
+                "{}/objects/{}/chunks/manifest",
+                base(channel)?,
+                reference.upload_id
+            ),
+            &reference.manifest_digest,
+        )
+        .await?;
+        // Check the manifest before retaining any reusable reference.
+        shared_manifest(channel, reference, &plan, &sealed)?;
+        h.with(|c| c.keep_attachment(channel, reference, uploader, &plan, &sealed))
+            .await?;
+        (plan, sealed)
+    };
     ensure(of_file(&plan, reference), Error::IntegrityFailed)?;
-    let sealed = crate::downloads::one(
-        h,
-        format!(
-            "{}/objects/{}/chunks/manifest",
-            base(channel)?,
-            reference.upload_id
-        ),
-        &reference.manifest_digest,
-    )
-    .await?;
     let file = shared_manifest(channel, reference, &plan, &sealed)?;
     let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
     let missing = h
@@ -1974,8 +1988,9 @@ pub async fn download<H: Hold>(
     seq: u64,
     out: &std::path::Path,
 ) -> Result<FileManifest> {
-    Box::pin(pull(h, channel, None, None)).await?;
-    let message = h.with(|c| c.message_at(channel, seq)).await?;
+    let bound = crate::hold::Unlocked::new(h).await?;
+    let h = &bound;
+    let message = h.with(|c| c.attachment_message(channel, seq)).await?;
     let reference = message.file.clone().ok_or(Error::NotFound)?;
     let manifest = fetch_file(h, channel, &reference, &message.account).await?;
     h.with(|c| export_manifest(&c.workspace.store, &manifest, MAX_FILE, out))
@@ -2021,9 +2036,10 @@ async fn save_shared_in<H: Hold>(
     progress: &mut (dyn FnMut(u64, u64) + Send),
     regular_only: bool,
 ) -> Result<Imported> {
+    let bound = crate::hold::Unlocked::new(h).await?;
+    let h = &bound;
     h.with(|c| c.catalog()?.live_folder(folder)).await?;
-    Box::pin(pull(h, channel, None, None)).await?;
-    let message = h.with(|c| c.message_at(channel, seq)).await?;
+    let message = h.with(|c| c.attachment_message(channel, seq)).await?;
     let reference = message.file.clone().ok_or(Error::NotFound)?;
     ensure(
         !regular_only || reference.mime != crate::secrets::package::MIME,
@@ -2061,25 +2077,19 @@ async fn save_shared_in<H: Hold>(
 /// Returns `Error::NotFound` for a message without an image and
 /// `Error::QuotaExceeded` for one over 4 MiB.
 pub async fn preview_image<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<Json> {
-    let (reference, _) = h.with(|c| c.image(channel, seq)).await?;
-    let value = h
-        .get(&format!(
-            "{}/objects/{}",
-            base(channel)?,
-            reference.upload_id
-        ))
-        .await?;
-    let trust = h.trust().await?;
-    let fetching = h
-        .with(|c| c.channel_preview_plan(channel, seq, &value, &trust))
-        .await?;
-    let mut parts = Vec::new();
-    crate::downloads::chunks(h, &fetching.parts, |_, _, fetched| {
-        parts.extend(fetched);
-        Ok(())
+    let bound = crate::hold::Unlocked::new(h).await?;
+    let h = &bound;
+    let (reference, author) = h.with(|c| c.image(channel, seq)).await?;
+    let manifest = fetch_file(h, channel, &reference, &author).await?;
+    h.with(|c| {
+        c.attachment_message(channel, seq)?;
+        let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
+        read_file(&c.workspace.store, &manifest, PREVIEW, Some(&mut *plain))?;
+        use base64::Engine;
+        let data = base64::engine::general_purpose::STANDARD.encode(&plain[..]);
+        Ok(json!({"mime":reference.mime,"url":format!("data:{};base64,{data}",reference.mime)}))
     })
-    .await?;
-    h.with(|c| c.channel_preview_settle(&fetching, parts)).await
+    .await
 }
 
 /// Open a message's body under its epoch's key. A body that does not open,
@@ -4497,10 +4507,7 @@ impl Client {
 
     /// The image message `seq` of `channel` carries, and its author.
     fn image(&self, channel: &str, seq: u64) -> Result<(FileRef, String)> {
-        let message: Message = self
-            .workspace
-            .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
-            .ok_or(Error::NotFound)?;
+        let message = self.attachment_message(channel, seq)?;
         let reference = message.file.ok_or(Error::NotFound)?;
         ensure(
             matches!(
@@ -4513,67 +4520,20 @@ impl Client {
         Ok((reference, message.account))
     }
 
-    /// Check the plan [`preview_image`] read, which the image's author signed for
-    /// that very file, and list what is still to download.
-    ///
-    /// # Errors
-    /// Returns `Error::IntegrityFailed` for the plan of anything else.
-    fn channel_preview_plan(
-        &self,
-        channel: &str,
-        seq: u64,
-        value: &Json,
-        trust: &Trust,
-    ) -> Result<Fetching> {
-        let (reference, author) = self.image(channel, seq)?;
-        let plan = plan_of(trust, value, &reference.upload_id, Some(&author))?;
-        ensure(of_file(&plan, &reference), Error::IntegrityFailed)?;
-        let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
-        let mut parts = vec![(
-            format!("{objects}/manifest"),
-            reference.manifest_digest.clone(),
-        )];
-        // An empty file's plan holds a placeholder chunk nothing reads.
-        let count = chunk_count(reference.size) as usize;
-        for (index, chunk) in plan.chunks.iter().enumerate().take(count) {
-            if !self.workspace.store.has_chunk(&chunk.digest)? {
-                parts.push((format!("{objects}/{index}"), chunk.digest.clone()));
-            }
-        }
-        Ok(Fetching {
-            channel: channel.into(),
-            seq,
-            plan,
-            parts,
-        })
+    /// Last complete message refresh, used to coalesce overlapping readers.
+    pub fn channel_observed(&self, channel: &str) -> Result<Option<u64>> {
+        base(channel)?;
+        self.workspace
+            .private(self.keys()?, &format!("{OBSERVED}{channel}"))
     }
 
-    /// Open the image `fetching` downloaded, `parts` in its order: the
-    /// sealed manifest is checked against the plan and the chunks are kept.
-    /// Returns a data URL to show in place.
-    ///
-    /// # Errors
-    /// Returns `Error::IntegrityFailed` for downloads that do not match.
-    fn channel_preview_settle(&self, fetching: &Fetching, parts: Vec<Vec<u8>>) -> Result<Json> {
-        let (reference, _) = self.image(&fetching.channel, fetching.seq)?;
+    fn attachment_message(&self, channel: &str, seq: u64) -> Result<Message> {
+        let message = self.message_at(channel, seq)?;
         ensure(
-            parts.len() == fetching.parts.len() && hex_sha256(&parts[0]) == fetching.parts[0].1,
-            Error::IntegrityFailed,
+            !message.hidden && !message.retracted && !message.file_deleted && !message.unreadable,
+            Error::Forbidden,
         )?;
-        let file = shared_manifest(&fetching.channel, &reference, &fetching.plan, &parts[0])?;
-        // The store checks each chunk against its digest.
-        for ((_, digest), bytes) in fetching.parts.iter().zip(&parts).skip(1) {
-            self.workspace.store.put_chunk(digest, bytes)?;
-        }
-        let manifest = FileManifest {
-            key: reference.key.clone(),
-            ..file
-        };
-        let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
-        read_file(&self.workspace.store, &manifest, PREVIEW, Some(&mut *plain))?;
-        use base64::Engine;
-        let data = base64::engine::general_purpose::STANDARD.encode(&plain[..]);
-        Ok(json!({"mime": reference.mime, "url": format!("data:{};base64,{data}", reference.mime)}))
+        Ok(message)
     }
 
     /// A message this device read.

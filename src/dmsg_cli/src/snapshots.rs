@@ -1,7 +1,7 @@
 //! Explicit owner display methods, with local/SWR/fresh reads. No command or
 //! authorization method can enter this scheduler merely by supplying a mode.
 
-use crate::{daemon::Daemon, params::to_json};
+use crate::daemon::Daemon;
 use dmsg_client::{
     cache::{Kind, Snapshot},
     display::{self, Session},
@@ -26,7 +26,9 @@ struct Resource {
 pub(crate) fn supports(method: &str) -> bool {
     matches!(
         method,
-        "plan/status"
+        "profile/show"
+            | "wallet/list"
+            | "plan/status"
             | "plan/catalog"
             | "plan/assets"
             | "plan/panda"
@@ -46,10 +48,20 @@ pub(crate) fn supports(method: &str) -> bool {
 
 pub(crate) fn invalidates(method: &str) -> &'static [Kind] {
     if crate::wallet_methods::events_of(method).contains(&"wallet/changed") {
-        return &[Kind::Wallet, Kind::Balances, Kind::History, Kind::Asset];
+        return &[
+            Kind::Wallets,
+            Kind::Wallet,
+            Kind::Balances,
+            Kind::History,
+            Kind::Asset,
+        ];
     }
     match method {
+        "profile/publish" | "profile/retry" => &[Kind::Profile, Kind::ProfileEditor],
         "approval/respond" | "approval/reconcile" => &[
+            Kind::Profile,
+            Kind::ProfileEditor,
+            Kind::Wallets,
             Kind::Account,
             Kind::Summary,
             Kind::Recovery,
@@ -68,6 +80,8 @@ pub(crate) fn invalidates(method: &str) -> &'static [Kind] {
 
 fn resource(method: &str, params: &Value) -> Result<Resource> {
     let kind = match method {
+        "profile/show" => Kind::Profile,
+        "wallet/list" => Kind::Wallets,
         "plan/status" => {
             ensure_valid(
                 params["refresh"] != true,
@@ -282,51 +296,10 @@ async fn worker(d: &Daemon) {
 }
 
 async fn fetch<H: Hold>(d: &Daemon, h: &H, session: Session, r: &Resource) -> Result<()> {
-    use dmsg_client::{
-        commerce, handle, inbox,
-        library::{cloud, storage},
-        security, wallet,
-    };
     let scoped = display::Scoped { inner: h, session };
-    let h = &scoped;
-    h.with(|c| c.check_display_session(session)).await?;
-    let wallet = || candid::Principal::from_text(&r.id).map_err(|_| dmsg_types::invalid("wallet"));
-    let scope = h.with(|c| c.cache_scope(r.kind)).await?;
-    let data = match r.kind {
-        Kind::Plan => commerce::plan_status(h, false).await?,
-        Kind::Catalog => commerce::catalog_display(h).await?,
-        Kind::Assets => commerce::plan_assets(h).await?,
-        Kind::Panda => commerce::plan_panda(h).await?,
-        Kind::Handles => Value::Array(handle::mine(h).await?),
-        Kind::Account => security::account_security(h).await?,
-        Kind::Summary => {
-            let state = h
-                .warm(dmsg_client::client::Warm::Home)
-                .await?
-                .ok_or(Error::PolicyStale)?;
-            h.with(|c| Ok(to_json(&c.account_view_of(&state)?))).await?
-        }
-        Kind::Recovery => dmsg_client::recovery::status(h).await?,
-        Kind::Wallet => wallet::show(h, wallet()?).await?,
-        Kind::Balances => wallet::balances(h, wallet()?).await?,
-        Kind::History => wallet::desktop::history(h, wallet()?, false).await?,
-        Kind::Inbox => inbox::policy(h).await?.unwrap_or(Value::Null),
-        #[allow(deprecated)] // Display modes remain supported on the deprecated files/storage RPC.
-        Kind::Storage => storage::refresh(h).await?,
-        Kind::Usage => to_json(&cloud::cloud_usage(h).await?),
-        Kind::Asset => return Err(Error::Forbidden),
-    };
+    dmsg_client::snapshot::refresh(&scoped, r.kind, &r.id).await?;
     h.with(|c| {
         c.check_display_session(session)?;
-        if r.kind == Kind::History && data["persisted"] == false {
-            return Err(Error::Unavailable(
-                "storage: display snapshot was not persisted".into(),
-            ));
-        }
-        // These producers already write the same common snapshot; no second copy.
-        if !matches!(r.kind, Kind::History | Kind::Inbox | Kind::Storage) {
-            c.cache_save_checked(&scope, r.kind, &r.id, &data, now_ms())?;
-        }
         let mut q = d.snapshots.queue.lock().expect("snapshots");
         if q.session == Some(session) {
             q.failed.remove(r);

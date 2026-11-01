@@ -71,9 +71,9 @@ export default {
     secretPolicy: "Modifier la politique d’utilisation",
     secretUse: "Créer une issue GitHub",
 
-    displayCache: "Cache d’affichage",
-    displayCacheHint: "Données chiffrées téléchargeables à nouveau. Le contenu, les brouillons, les opérations et les données de sécurité sont conservés. Taille des enregistrements stockés.",
-    clearDisplayCache: "Vider le cache d’affichage",
+    displayCache: "Données en cache",
+    displayCacheHint: "Les données d’affichage chiffrées, les pièces jointes en cache et les listes cloud peuvent être téléchargées à nouveau. Le coffre, les messages, la bibliothèque locale et les modifications non synchronisées sont conservés.",
+    clearDisplayCache: "Vider le cache",
     cachedDisplay: "Affichage des dernières données enregistrées",
     daemonDisconnected: "Connexion au service dMsg local…",
     loadingCachedDisplay: "Chargement des données enregistrées…",

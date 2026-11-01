@@ -236,6 +236,8 @@
 	<string>백그라운드 전송이 시작되었습니다. 전송에서 진행 상황을 검토하세요.</string>
 	<key>Backing up…</key>
 	<string>백업 중…</string>
+	<key>Backup failed</key>
+	<string>백업 실패</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>백업 진행 상황이 저장되었습니다. 파일 상태를 확인하여 완료하세요.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>원본 서명된 거래 브로드캐스트</string>
 	<key>Browser request</key>
 	<string>브라우저 요청</string>
+	<key>Cached data</key>
+	<string>캐시 데이터</string>
 	<key>Cancel</key>
 	<string>취소</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>유지할 버전을 선택하세요. 기존 기록은 유지됩니다. 비밀은 자동으로 덮어쓰여지지 않습니다.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>무료 편지를 보낼 수 있는 사람을 선택하세요. 차단된 계정은 차단을 해제할 때까지 차단된 상태로 유지됩니다.</string>
+	<key>Clear cached data</key>
+	<string>캐시 지우기</string>
 	<key>Closed</key>
 	<string>휴무</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>자동완성 설정에서 dMsg 활성화</string>
 	<key>Encrypted backup</key>
 	<string>암호화된 백업</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>암호화된 표시 데이터, 첨부 파일 캐시 및 클라우드 파일 목록은 다시 다운로드할 수 있습니다. 보관함, 메시지, 로컬 파일 라이브러리 및 동기화되지 않은 작업은 유지됩니다.</string>
 	<key>Encrypting</key>
 	<string>암호화 중</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>사용할 준비가 되었을 때만 이 작업을 수행하십시오. 사본은 이 장치에 유지되며 30초 후에 만료됩니다.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>여기서는 무료 연락만 지원됩니다. 이 작업은 수취인의 수수료를 지불하거나 승인할 수 없습니다.</string>
+	<key>Only in cloud</key>
+	<string>클라우드에만 있음</string>
 	<key>Only on this device</key>
 	<string>이 장치에만 있음</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>돌아온 것을 환영합니다.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>로컬 데모에 오신 것을 환영합니다. 이러한 메시지는 이 화면에 남아 있습니다.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>dMsg가 열려 있고 잠금 해제되어 있는 동안 암호화된 편집 내용이 업로드되고 메시지와 승인이 새로 고쳐집니다. 파일 백업에는 여전히 별도의 확인이 필요합니다. 언제든지 이 기능을 끌 수 있습니다.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg가 열려 있고 잠금 해제되어 있으면 보관함이 자동으로 동기화됩니다. 대화나 받은 편지함을 열면 메시지가 업데이트됩니다. 파일 백업에는 별도의 확인이 필요합니다. 자동 동기화는 언제든지 끌 수 있습니다.</string>
 	<key>Who may contact you</key>
 	<string>귀하에게 연락할 수 있는 사람</string>
 	<key>Withdraw</key>

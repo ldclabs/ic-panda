@@ -27,3 +27,12 @@ side's steps, and the copied-workspace import and successor approval. Every
 operation is a `Hold` function with source `gui`, so steps that ask create
 approval requests the app's approval view decides; wallet unbinding requests
 are decidable on the phone like joining.
+
+`display.rs` exposes `cached_display` and `refresh_display` from the shared Rust
+snapshot implementation, plus encrypted cache inventory/clearing. Resource lanes
+coalesce overlapping vault, channel, Inbox, display and cloud-inventory reads.
+Session and cache-clear generations fence queued and late writes. Common channel,
+Inbox, mailbox and file-transfer operations use shared Host steps, releasing the
+client during network waits. Approved account/root changes and payment journals
+retain the existing exclusive mutation runner; ordinary reads do not enter it.
+Notification reconciliation does not download Inbox message bodies.

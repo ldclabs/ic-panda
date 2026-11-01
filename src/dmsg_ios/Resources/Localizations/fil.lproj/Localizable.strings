@@ -236,6 +236,8 @@
 	<string>Nagsimula ang paglilipat ng background. Suriin ang progreso nito sa Transfers.</string>
 	<key>Backing up…</key>
 	<string>Bina-back up…</string>
+	<key>Backup failed</key>
+	<string>Nabigo ang backup</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Na-save ang pag-unlad ng backup. Suriin ang katayuan ng file para sa pagkumpleto.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>I-broadcast ang orihinal na nilagdaang transaksyon</string>
 	<key>Browser request</key>
 	<string>Kahilingan sa browser</string>
+	<key>Cached data</key>
+	<string>Naka-cache na data</string>
 	<key>Cancel</key>
 	<string>Kanselahin</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Piliin kung aling bersyon ang pananatilihin. Ang kasalukuyang kasaysayan ay pinanatili; ang mga sikreto ay hindi kailanman nasasabik nang tahimik.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Piliin kung sino ang maaaring magpadala sa iyo ng mga libreng sulat. Nananatiling naka-block ang mga naka-block na account hanggang sa i-unblock mo sila.</string>
+	<key>Clear cached data</key>
+	<string>Burahin ang cache</string>
 	<key>Closed</key>
 	<string>sarado</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>I-enable ang dMsg sa mga setting ng AutoFill</string>
 	<key>Encrypted backup</key>
 	<string>Naka-encrypt na backup</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Maaaring i-download muli ang naka-encrypt na display data, naka-cache na attachment, at listahan ng cloud file. Mananatili ang vault, mga mensahe, lokal na library, at hindi pa naka-sync na gawain.</string>
 	<key>Encrypting</key>
 	<string>Pag-encrypt</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Gawin lamang ito kapag handa ka nang gamitin ito. Ang mga kopya ay mananatili sa device na ito at mag-e-expire pagkalipas ng 30 segundo.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Ang libreng contact lang ang sinusuportahan dito. Ang pagkilos na ito ay hindi maaaring magbayad o mag-apruba ng bayad ng tatanggap.</string>
+	<key>Only in cloud</key>
+	<string>Nasa cloud lang</string>
 	<key>Only on this device</key>
 	<string>Sa device na ito lang</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Maligayang pagbabalik.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Maligayang pagdating sa lokal na demo. Ang mga mensaheng ito ay nananatili sa screen na ito.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Habang ang dMsg ay bukas at naka-unlock, mag-a-upload ang mga naka-encrypt na pag-edit at magre-refresh ang mga mensahe at pag-apruba. Nangangailangan pa rin ng hiwalay na kumpirmasyon ang mga backup ng file. Maaari mong i-off ito anumang oras.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Habang bukas at naka-unlock ang dMsg, awtomatikong nagsi-sync ang vault. Nire-refresh ang mga mensahe kapag binuksan ang pag-uusap o inbox. Kailangan pa rin ng hiwalay na kumpirmasyon para sa backup ng file. Maaari mong i-off ang awtomatikong sync anumang oras.</string>
 	<key>Who may contact you</key>
 	<string>Sino ang maaaring makipag-ugnayan sa iyo</string>
 	<key>Withdraw</key>

@@ -48,7 +48,7 @@ struct ConfigFile {
     background_online: bool,
     idle_lock_minutes: Option<u64>,
     #[serde(default)]
-    sync_interval_minutes: u64,
+    sync_interval_minutes: Option<u64>,
     files_max_bytes: Option<u64>,
     files_trash_days: Option<u64>,
     #[serde(default)]
@@ -299,7 +299,7 @@ impl Home {
         if !(1..=24 * 60).contains(&idle) {
             return Err(dmsg_types::invalid("idle_lock_minutes"));
         }
-        if file.sync_interval_minutes > 24 * 60 {
+        if file.sync_interval_minutes.is_some_and(|n| n > 24 * 60) {
             return Err(dmsg_types::invalid("sync_interval_minutes"));
         }
         if file.agent_ca.is_some() && config.environment != dmsg_types::Environment::Local {
@@ -316,7 +316,7 @@ impl Home {
             built_in,
             config,
             idle_lock_ms: idle * MINUTE,
-            sync_interval_ms: file.sync_interval_minutes * MINUTE,
+            sync_interval_ms: file.sync_interval_minutes.unwrap_or(1) * MINUTE,
             storage,
             agent_hosts: file.agent_hosts,
             agent_blocked_senders: file.agent_blocked_senders,
@@ -469,6 +469,10 @@ mod tests {
         let home = Home { dir: dir.clone() };
         let settings = home.settings().unwrap();
         assert!(settings.built_in);
+        assert_eq!(settings.sync_interval_ms, MINUTE);
+        let explicit: ConfigFile =
+            toml::from_str(&format!("sync_interval_minutes = 0\n{PRODUCTION}")).unwrap();
+        assert_eq!(explicit.sync_interval_minutes, Some(0));
         // A fresh home: no owner credential yet, and no daemon to reach.
         assert!(matches!(
             home.owner_token(&settings, false),

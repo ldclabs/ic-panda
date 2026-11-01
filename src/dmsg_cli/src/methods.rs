@@ -18,7 +18,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 69] = [
+pub(crate) const METHODS: [&str; 70] = [
     "channel/list",
     "channel/show",
     "channel/delete_legacy_draft",
@@ -64,6 +64,7 @@ pub(crate) const METHODS: [&str; 69] = [
     "inbox/escrow",
     "inbox/refund",
     "inbox/list",
+    "inbox/status",
     "inbox/mark",
     "payer/use",
     "payer/balance",
@@ -140,7 +141,30 @@ impl Daemon {
             }
             "channel/sync" => {
                 let backfill = params["backfill"].as_bool().unwrap_or(false);
-                return Ok(to_json(&channel::sync(&h, &id()?, backfill).await?));
+                let id = id()?;
+                let bound = Unlocked::new(&h).await?;
+                let requested = dmsg_client::now_ms();
+                let _turn = self.turn(&format!("channel-read:{id}")).await;
+                if !backfill
+                    && bound
+                        .with(|c| Ok(c.channel_observed(&id)?.is_some_and(|at| at >= requested)))
+                        .await?
+                {
+                    return bound
+                        .with(|c| {
+                            Ok(json!({"through":c.channel_view(&id)?.message_cursor,"received":0}))
+                        })
+                        .await;
+                }
+                let result = channel::sync(&bound, &id, backfill).await;
+                // A failed later page can still have committed earlier messages.
+                if result.is_err() {
+                    self.emit("channel/changed", json!({"id":id}));
+                }
+                if result.is_ok() {
+                    let _ = crate::channels::report(self, &id, None).await;
+                }
+                return Ok(to_json(&result?));
             }
             "channel/send" => {
                 let message_id = params["message_id"].as_str();
@@ -195,13 +219,25 @@ impl Daemon {
                 let channel = id()?;
                 return h.send(|c| c.channel_receipts_request(&channel)).await;
             }
+            "inbox/status" => return h.with(|c| c.inbox_observation()).await,
             "inbox/list" => {
                 if params["refresh"] == false {
                     return h.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
                 }
-                h.with(|c| Ok(c.session_state())).await?;
+                let bound = Unlocked::new(&h).await?;
+                let requested = dmsg_client::now_ms();
                 let _turn = self.turn("inbox/read").await;
-                return Ok(to_json(&inbox::list(&h).await?));
+                if bound
+                    .with(|c| {
+                        Ok(c.inbox_observation()?["observed_at_ms"]
+                            .as_u64()
+                            .is_some_and(|at| at >= requested))
+                    })
+                    .await?
+                {
+                    return bound.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
+                }
+                return Ok(to_json(&inbox::list(&bound).await?));
             }
             "inbox/policy" => {
                 if params["refresh"] == false {

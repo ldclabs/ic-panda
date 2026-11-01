@@ -87,6 +87,9 @@ pub(crate) struct ContentJob {
 
 /// The verified relay snapshot, before it is applied.
 struct Snapshot {
+    pages: u64,
+    downloaded_bytes: u64,
+    verify_ms: u64,
     through: u64,
     plans: Vec<UploadPlan>,
     revisions: Vec<(Revision, bool)>,
@@ -140,6 +143,16 @@ fn verify_signed_entry<P: DeserializeOwned + Serialize>(
 /// What one sync did.
 #[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct SyncReport {
+    /// Export pages checked, without resource identifiers.
+    pub export_pages: u64,
+    /// Newly downloaded ciphertext bytes; existing chunks are reused.
+    pub downloaded_bytes: u64,
+    /// Local entry verification milliseconds.
+    pub verify_ms: u64,
+    /// Local snapshot application milliseconds.
+    pub apply_ms: u64,
+    /// Whole pass milliseconds, including network waits.
+    pub elapsed_ms: u64,
     /// Local versions the relay accepted.
     pub sent: usize,
     /// Local versions that lost to the relay and stay conflict copies.
@@ -434,6 +447,7 @@ impl Client {
     /// collected by [`crate::library::gc`]. Returns how many were deleted.
     fn collect_chunks(&self, snapshot: &Snapshot, now: u64) -> Result<u64> {
         let mut keep = self.held_chunks(now)?;
+        keep.extend(self.attachment_chunks()?);
         let mut add = |plan: &UploadPlan| {
             keep.extend(plan.chunks.iter().map(|c| c.digest.clone()));
             keep.insert(plan.manifest_digest.clone());
@@ -459,12 +473,53 @@ impl Client {
         Ok(garbage.len() as u64)
     }
 
+    pub(crate) fn disposable_attachment_chunks(&self) -> Result<Vec<String>> {
+        self.disposable_chunks(self.attachment_chunks()?)
+    }
+
+    pub(crate) fn disposable_chunks(
+        &self,
+        mut candidates: BTreeSet<String>,
+    ) -> Result<Vec<String>> {
+        if candidates.is_empty() {
+            return Ok(Vec::new());
+        }
+        // Keep even expired uploads: clearing a cache must never decide that
+        // a user's pending send or root rotation may be discarded.
+        let mut keep = self.held_chunks(0)?;
+        let mut add = |plan: &UploadPlan| {
+            keep.extend(plan.chunks.iter().map(|c| c.digest.clone()));
+            keep.insert(plan.manifest_digest.clone());
+        };
+        for (_, job) in self.workspace.store.jobs::<ContentJob>()? {
+            job.file
+                .iter()
+                .chain([&job.vault])
+                .for_each(|u| add(&u.plan));
+        }
+        if let Some(plan) = self.root_plan()? {
+            add(&plan);
+        }
+        for row in self.workspace.store.objects_of_kind(MIGRATION_PART)? {
+            if let Some(file) = self.version_file(&record(&row)?)? {
+                keep.extend(file.chunks.into_iter().map(|c| c.digest));
+            }
+        }
+        candidates.retain(|digest| !keep.contains(digest));
+        Ok(candidates.into_iter().collect())
+    }
+
     /// [`flush`] for a caller that holds the client throughout.
     ///
     /// # Errors
     /// As [`flush`].
     pub async fn flush(&mut self) -> Result<usize> {
         flush(&self.hold()).await
+    }
+
+    /// Pending content's local write watermark for host sync scheduling.
+    pub fn local_change(&self) -> Result<u64> {
+        self.workspace.store.local_change()
     }
 
     /// What [`flush`] submits, by job: the presigned revisions whose
@@ -777,6 +832,7 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     // same account while a request is in flight.
     let generation = h.with(|c| Ok(c.session_generation)).await?;
     let session = SyncSession { h, generation };
+    let started = std::time::Instant::now();
     let mut stage = SyncStage::Security;
     let mut result = sync_once(&session, &mut stage).await;
     if matches!(result, Err(Error::PolicyStale)) {
@@ -791,6 +847,9 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     if matches!(result, Err(Error::DeviceNotApproved)) {
         let security = crate::account::refreshed_security(&session).await?;
         session.with(|c| c.check_revoked(&security)).await?;
+    }
+    if let Ok(report) = &mut result {
+        report.elapsed_ms = started.elapsed().as_millis() as u64;
     }
     session
         .with(|c| {
@@ -878,6 +937,9 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
         // but must not start an export or download new content.
         h.with(|c| {
             Ok(Snapshot {
+                pages: 0,
+                downloaded_bytes: 0,
+                verify_ms: 0,
                 through: c.workspace.store.meta(SNAPSHOT)?.unwrap_or(0),
                 plans: vec![],
                 revisions: vec![],
@@ -887,7 +949,18 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
     };
     if unlocked {
         *stage = SyncStage::Apply;
-        report.revisions = h.with(|c| c.apply(&snapshot)).await?;
+        report.export_pages += snapshot.pages;
+        report.downloaded_bytes += snapshot.downloaded_bytes;
+        report.verify_ms += snapshot.verify_ms;
+        let (revisions, elapsed) = h
+            .with(|c| {
+                let start = std::time::Instant::now();
+                let count = c.apply(&snapshot)?;
+                Ok((count, start.elapsed().as_millis() as u64))
+            })
+            .await?;
+        report.revisions = revisions;
+        report.apply_ms += elapsed;
     }
     report.through = snapshot.through;
     *stage = SyncStage::Upload;
@@ -895,7 +968,18 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
     if unlocked && sent + blocked > 0 {
         snapshot = fetch(h, stage).await?;
         *stage = SyncStage::Apply;
-        report.revisions = h.with(|c| c.apply(&snapshot)).await?;
+        report.export_pages += snapshot.pages;
+        report.downloaded_bytes += snapshot.downloaded_bytes;
+        report.verify_ms += snapshot.verify_ms;
+        let (revisions, elapsed) = h
+            .with(|c| {
+                let start = std::time::Instant::now();
+                let count = c.apply(&snapshot)?;
+                Ok((count, start.elapsed().as_millis() as u64))
+            })
+            .await?;
+        report.revisions = revisions;
+        report.apply_ms += elapsed;
         report.through = snapshot.through;
     }
     *stage = SyncStage::Finish;
@@ -1228,6 +1312,9 @@ async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
     let mut cursor = 0u64;
     let mut counts: BTreeMap<String, u64> = BTreeMap::new();
     let mut snapshot = Snapshot {
+        pages: 0,
+        downloaded_bytes: 0,
+        verify_ms: 0,
         through,
         plans: vec![],
         revisions: vec![],
@@ -1240,6 +1327,8 @@ async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
                 "{base}/exports/{export_id}?after={cursor}&limit=100"
             ))
             .await?;
+        snapshot.pages += 1;
+        let verifying = std::time::Instant::now();
         let now = now_ms();
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
         ensure(entries.len() <= 100, Error::IntegrityFailed)?;
@@ -1312,7 +1401,8 @@ async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
             }
         }
         *stage = SyncStage::Download;
-        cache(h, &fetched).await?;
+        snapshot.verify_ms += verifying.elapsed().as_millis() as u64;
+        snapshot.downloaded_bytes += cache(h, &fetched).await?;
         *stage = SyncStage::ExportPage;
         snapshot.plans.extend(fetched);
         let end = page["inventory_end"]
@@ -1338,11 +1428,12 @@ async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
 
 /// Download the manifests and chunks of committed uploads that the
 /// store lacks; every one is checked against its digest.
-async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
-    let (missing, files) = h
+async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<u64> {
+    let (missing, files, bytes) = h
         .with(|c| {
             let base = c.base()?;
             let mut seen = BTreeSet::new();
+            let mut bytes = 0;
             let mut missing = Vec::new();
             let mut files = Vec::new();
             for plan in plans {
@@ -1350,10 +1441,15 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
                     .chunks
                     .iter()
                     .enumerate()
-                    .map(|(i, c)| (i.to_string(), &c.digest))
-                    .chain([("manifest".to_string(), &plan.manifest_digest)]);
-                for (name, digest) in parts {
+                    .map(|(i, c)| (i.to_string(), &c.digest, c.size))
+                    .chain([(
+                        "manifest".to_string(),
+                        &plan.manifest_digest,
+                        plan.manifest_size,
+                    )]);
+                for (name, digest, size) in parts {
                     if seen.insert(digest) && !c.workspace.store.has_chunk(digest)? {
+                        bytes += size;
                         let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
                         if matches!(plan.kind.as_str(), "file" | "backup" | "share") {
                             files.push((path, digest.clone()));
@@ -1363,11 +1459,12 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
                     }
                 }
             }
-            Ok((missing, files))
+            Ok((missing, files, bytes))
         })
         .await?;
     crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await?;
-    crate::upload::download_file_chunks(h, Source::Store, &files, |_| {}).await
+    crate::upload::download_file_chunks(h, Source::Store, &files, |_| {}).await?;
+    Ok(bytes)
 }
 
 /// Submit the presigned revisions whose deadline has not passed, each

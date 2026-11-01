@@ -236,6 +236,8 @@
 	<string>Achtergrondoverdracht gestart. Bekijk de voortgang in Overdrachten.</string>
 	<key>Backing up…</key>
 	<string>Een back-up maken…</string>
+	<key>Backup failed</key>
+	<string>Back-up mislukt</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Back-upvoortgang opgeslagen. Controleer de bestandsstatus op voltooiing.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Oorspronkelijke ondertekende transactie uitzenden</string>
 	<key>Browser request</key>
 	<string>Browserverzoek</string>
+	<key>Cached data</key>
+	<string>Gegevens in cache</string>
 	<key>Cancel</key>
 	<string>Annuleren</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Kies welke versie je wilt behouden. Bestaande historie blijft behouden; geheimen worden nooit stilletjes overschreven.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Kies wie je gratis brieven mag sturen. Geblokkeerde accounts blijven geblokkeerd totdat je ze deblokkeert.</string>
+	<key>Clear cached data</key>
+	<string>Cache wissen</string>
 	<key>Closed</key>
 	<string>Gesloten</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Schakel dMsg in in de instellingen voor Automatisch aanvullen</string>
 	<key>Encrypted backup</key>
 	<string>Gecodeerde back-up</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Versleutelde weergavegegevens, bijlagen in cache en bestandslijsten uit de cloud kunnen opnieuw worden gedownload. De kluis, berichten, lokale bibliotheek en niet-gesynchroniseerd werk blijven behouden.</string>
 	<key>Encrypting</key>
 	<string>Versleutelen</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Doe dit alleen als je klaar bent om het te gebruiken. Kopieën blijven op dit apparaat staan ​​en vervallen na 30 seconden.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Hier wordt alleen gratis contact ondersteund. Met deze actie kan de vergoeding van een ontvanger niet worden betaald of goedgekeurd.</string>
+	<key>Only in cloud</key>
+	<string>Alleen in de cloud</string>
 	<key>Only on this device</key>
 	<string>Alleen op dit apparaat</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Welkom terug.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Welkom bij de lokale demo. Deze berichten blijven in dit scherm staan.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Terwijl dMsg open en ontgrendeld is, worden gecodeerde bewerkingen geüpload en worden berichten en goedkeuringen vernieuwd. Bestandsback-ups vereisen nog steeds een afzonderlijke bevestiging. Je kunt dit op elk gewenst moment uitschakelen.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Als dMsg open en ontgrendeld is, synchroniseert de kluis automatisch. Berichten worden vernieuwd wanneer je het gesprek of de inbox opent. Back-ups van bestanden vereisen nog steeds aparte bevestiging. Je kunt automatische synchronisatie altijd uitschakelen.</string>
 	<key>Who may contact you</key>
 	<string>Wie kan contact met je opnemen</string>
 	<key>Withdraw</key>

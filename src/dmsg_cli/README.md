@@ -48,7 +48,7 @@ root_key = "<hex DER>"           # local only
 login_url = "http://localhost:3002/_/login"  # local only; default https://dmsg.net/_/login
 idle_lock_minutes = 15           # 1 to 1440
 background_online = false        # keep the device key while locked
-sync_interval_minutes = 0        # scheduled sync; 0 is off
+sync_interval_minutes = 1        # default when absent; explicit 0 disables automatic sync
 files_max_bytes = 4294967296     # largest file the file library takes (default 4 GiB)
 files_trash_days = 30            # days a trashed library file is kept, 1 to 365
 files_mount = false              # allow mounting the library as a disk (loopback WebDAV); preferences.json may too
@@ -1498,10 +1498,10 @@ The former returns `{state,name,avatar,updated_at,observed_at_ms,stale,refreshin
 IDs and returns `{account: {name,stale}}`; an unobserved account is omitted,
 whereas a verified missing name is `null`. They queue bounded background work;
 `profile/changed` and `names/changed` contain no names, IDs or image URLs.
-`profile/show` and `profile/resolve` remain live verified document reads.
+`profile/resolve` remains a live verified document read; `profile/show` without a mode also keeps its live behavior.
 
 The following owner methods additionally accept `mode: "local" | "swr" | "fresh"`:
-`plan/status|catalog|assets|panda`, `handle/mine`, `account/show|security`,
+`profile/show`, `wallet/list`, `plan/status|catalog|assets|panda`, `handle/mine`, `account/show|security`,
 `recovery/status`, `wallet/show|balances|history|queue`, `inbox/policy`,
 `files/storage|cloud_usage`. Parameters such as `wallet` remain required.
 These display reads return `{state,data,observed_at_ms,stale,refreshing,error}`.
@@ -1522,7 +1522,7 @@ stand for a changed avatar URL.
 
 `cache/status` reports encrypted record sizes by category; these are not SQLite
 file sizes or a promise that clearing shrinks WAL/files. `cache/clear` removes
-only reconstructible display records. Content, unsent work, notes, recovery
+reconstructible display records, attachment-only ciphertext blocks and the cloud backup inventory (including its cursor). Content, unsent work, notes, recovery
 material, audit checkpoints and protocol pins are excluded. Pending refreshes
 are fenced by the unlock and clear generations, and a snapshot also by an
 invalidation of its own kind; another kind's invalidation does not fence it.
@@ -1532,9 +1532,7 @@ None of these methods is available to an Agent credential.
 unlock generation. The desktop masks disconnected views, retains edits only
 after the same session is confirmed, and uses `DAEMON_DISCONNECTED` separately
 from upstream `NETWORK_UNAVAILABLE`. Neither local reads nor background cache
-workers renew activity. Existing serialized account mutations, connect-entry
-processing and non-wallet approval reconciliation can still delay acquiring the
-client lock; profile timing measurements must report that limitation separately.
+workers renew activity. Mailbox admission, ordinary connection-result reconciliation, wallet reconciliation and display reads release the client at network waits. Approved account/root changes and payment journals retain their exclusive mutation runner and can still delay local reads during those operations; this exception is separate from ordinary background reads.
 
 Cache producers outside the background workers capture the same account,
 unlock/invalidation generation and source before reading. A clear, policy edit
@@ -1553,3 +1551,22 @@ waiting request; recovery cannot be enabled using only a login on a new device.
 Without a remaining authorized device, only previously enabled recovery can
 restore uploaded content. Earlier disclosed keys cannot be recalled by turning
 it off.
+
+### Vault, message and file refresh ownership
+
+The default vault interval is one minute; explicit zero remains an opt-out.
+Local version changes are detected centrally and debounced for 500 ms. Unchanged
+passes back off to five minutes; edits, unlock and account hints wake synchronization.
+The existing sync turn, durable jobs and retry/reconciliation rules are reused.
+
+Background channel work reads controls only. Inbox notifications and reconnects
+emit hints without fetching bodies. Mounted, visible Channel/Inbox views read local
+content first, then complete the increment from its durable cursor. They own the
+30-second fallback and hint handling. Leaving a view stops scheduling new reads;
+already submitted pages may finish into the account cache. Partial success stays
+readable after a later page fails. `inbox/status` reports `complete` and
+`observed_at_ms` so an unknown list is not presented as confirmed empty.
+
+Cloud file inventory has a 60-second successful-observation TTL; `files/cloud_status`
+reports its observation. Viewing inventory fetches descriptors/manifests, never file
+blocks. Backup, restore and direct cloud-file reads remain explicit user actions.

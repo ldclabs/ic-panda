@@ -15,6 +15,12 @@ use sha2::Sha256;
 /// Explicit display domains; no caller-provided method or record prefix.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
+    /// Published profile for display only.
+    Profile,
+    /// Own editable profile, including pending publication.
+    ProfileEditor,
+    /// Account wallet directory.
+    Wallets,
     /// Certified entitlement projected for display, never for authorization.
     Plan,
     /// Product catalog.
@@ -49,6 +55,9 @@ pub enum Kind {
 
 /// All reconstructible domains, used by the owner-only inventory.
 pub const KINDS: &[Kind] = &[
+    Kind::Profile,
+    Kind::ProfileEditor,
+    Kind::Wallets,
     Kind::Plan,
     Kind::Catalog,
     Kind::Assets,
@@ -70,6 +79,9 @@ impl Kind {
     /// Stable, non-sensitive category used in events and record prefixes.
     pub fn name(self) -> &'static str {
         match self {
+            Self::Profile => "profile-document",
+            Self::ProfileEditor => "profile-editor",
+            Self::Wallets => "wallets",
             Self::Plan => "plan",
             Self::Catalog => "catalog",
             Self::Assets => "assets",
@@ -189,6 +201,16 @@ impl Client {
 
     fn cache_source(&self, kind: Kind) -> Result<dmsg_types::Hash> {
         let account = self.account()?;
+        if kind == Kind::Wallets {
+            return Ok(sha256(&canonical(&(
+                kind.name(),
+                account.home,
+                self.wallet_hub()?,
+                &self.config.environment,
+                &self.config.root_key,
+                &self.config.ic_host,
+            ))));
+        }
         let caller = matches!(kind, Kind::Account | Kind::Panda | Kind::Recovery)
             .then(|| self.session().ok().map(|s| s.principal));
         let rpc = if matches!(kind, Kind::Wallet | Kind::Balances | Kind::Asset) {
@@ -342,6 +364,9 @@ impl Client {
             let saved = self.workspace.store.sealed(key)?;
             domains.push(json!({"kind":kind,"records":usize::from(saved.is_some()),"sealed_bytes":saved.map_or(0, |s|s.len())}));
         }
+        domains.push(self.attachment_cache_status()?);
+        let (records, bytes) = self.workspace.store.sealed_usage("lib-cloud")?;
+        domains.push(json!({"kind":"cloud-files","records":records,"sealed_bytes":bytes}));
         Ok(json!({"domains":domains}))
     }
 
@@ -376,7 +401,13 @@ impl Client {
     pub fn cache_clear(&mut self) -> Result<()> {
         self.display_session()?;
         self.display_generation = self.display_generation.wrapping_add(1);
+        // Chunks can also belong to uploads or imported history. Only delete
+        // those held exclusively by reconstructible attachment records.
+        let chunks = self.disposable_attachment_chunks()?;
+        self.workspace.store.delete_chunks(&chunks)?;
         self.workspace.store.atomic(|_| {
+            self.clear_attachment_records()?;
+            self.clear_cloud_inventory()?;
             for kind in KINDS {
                 loop {
                     let rows = self.workspace.store.sealed_after(&kind.prefix(), "", 256)?;

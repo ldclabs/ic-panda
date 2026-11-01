@@ -71,9 +71,9 @@ export default {
     secretPolicy: "Cambiar política de credenciales",
     secretUse: "Crear un issue de GitHub",
 
-    displayCache: "Caché de visualización",
-    displayCacheHint: "Datos cifrados que se pueden descargar de nuevo. Conserva el contenido, borradores, operaciones pendientes y registros de seguridad. Tamaño de los registros almacenados.",
-    clearDisplayCache: "Borrar caché de visualización",
+    displayCache: "Datos en caché",
+    displayCacheHint: "Los datos de visualización cifrados, los adjuntos en caché y las listas de la nube se pueden descargar de nuevo. Se conservan la bóveda, los mensajes, la biblioteca local y los cambios sin sincronizar.",
+    clearDisplayCache: "Borrar caché",
     cachedDisplay: "Se muestran los últimos datos guardados",
     daemonDisconnected: "Conectando al servicio local de dMsg…",
     loadingCachedDisplay: "Cargando los datos guardados…",

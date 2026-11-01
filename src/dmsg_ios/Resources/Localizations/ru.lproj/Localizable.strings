@@ -236,6 +236,8 @@
 	<string>Фоновая передача начата. Прогресс доступен в разделе «Передачи».</string>
 	<key>Backing up…</key>
 	<string>Копируется…</string>
+	<key>Backup failed</key>
+	<string>Ошибка резервного копирования</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Прогресс сохранён. Проверьте состояние файла, чтобы узнать о завершении.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Отправить исходную подписанную транзакцию</string>
 	<key>Browser request</key>
 	<string>Запрос браузера</string>
+	<key>Cached data</key>
+	<string>Кэшированные данные</string>
 	<key>Cancel</key>
 	<string>Отмена</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Выберите версию для сохранения. История остаётся доступной; секреты не перезаписываются без вашего решения.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Выберите, кто может писать вам бесплатно. Заблокированные аккаунты останутся заблокированными до отмены блокировки.</string>
+	<key>Clear cached data</key>
+	<string>Очистить кэш</string>
 	<key>Closed</key>
 	<string>Закрыто</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Включить dMsg в настройках автозаполнения</string>
 	<key>Encrypted backup</key>
 	<string>Зашифрованная копия</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Зашифрованные данные отображения, кэш вложений и списки облачных файлов можно загрузить повторно. Сейф, сообщения, локальная библиотека и несинхронизированные изменения сохранятся.</string>
 	<key>Encrypting</key>
 	<string>Шифрование</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Делайте это только перед использованием. Копии остаются на этом устройстве и истекают через 30 секунд.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Здесь поддерживается только бесплатное общение. Действие не оплачивает и не одобряет плату получателю.</string>
+	<key>Only in cloud</key>
+	<string>Только в облаке</string>
 	<key>Only on this device</key>
 	<string>Только на этом устройстве</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>С возвращением.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Добро пожаловать в локальное демо. Эти сообщения остаются на этом экране.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Пока dMsg открыт и разблокирован, зашифрованные изменения отправляются, а сообщения и запросы обновляются. Резервное копирование файлов требует отдельного подтверждения. Эту функцию можно отключить в любое время.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Пока dMsg открыт и разблокирован, сейф синхронизируется автоматически. Сообщения обновляются при открытии беседы или входящих. Резервное копирование файлов требует отдельного подтверждения. Автоматическую синхронизацию можно отключить в любое время.</string>
 	<key>Who may contact you</key>
 	<string>Кто может с вами связаться</string>
 	<key>Withdraw</key>

@@ -236,6 +236,8 @@
 	<string>È iniziato il trasferimento in background. Controlla i suoi progressi in Trasferimenti.</string>
 	<key>Backing up…</key>
 	<string>Backup…</string>
+	<key>Backup failed</key>
+	<string>Backup non riuscito</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Avanzamento del backup salvato. Controllare lo stato del file per il completamento.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Trasmetti la transazione firmata originale</string>
 	<key>Browser request</key>
 	<string>Richiesta del browser</string>
+	<key>Cached data</key>
+	<string>Dati nella cache</string>
 	<key>Cancel</key>
 	<string>Annulla</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Scegli quale versione mantenere. La cronologia esistente viene mantenuta; i segreti non vengono mai sovrascritti silenziosamente.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Scegli chi può inviarti lettere gratuite. Gli account bloccati rimangono tali finché non li sblocchi.</string>
+	<key>Clear cached data</key>
+	<string>Svuota cache</string>
 	<key>Closed</key>
 	<string>Chiuso</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Abilita dMsg nelle impostazioni di Compilazione automatica</string>
 	<key>Encrypted backup</key>
 	<string>Backup crittografato</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>I dati di visualizzazione cifrati, gli allegati nella cache e gli elenchi cloud possono essere scaricati di nuovo. Cassaforte, messaggi, libreria locale e modifiche non sincronizzate vengono conservati.</string>
 	<key>Encrypting</key>
 	<string>Crittografia</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Fallo solo quando sei pronto per usarlo. Le copie rimangono su questo dispositivo e scadono dopo 30 secondi.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Qui è supportato solo il contatto gratuito. Questa azione non può pagare o approvare la tariffa del destinatario.</string>
+	<key>Only in cloud</key>
+	<string>Solo nel cloud</string>
 	<key>Only on this device</key>
 	<string>Solo su questo dispositivo</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Bentornato.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Benvenuti alla demo locale. Questi messaggi rimangono in questa schermata.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Mentre dMsg è aperto e sbloccato, le modifiche crittografate verranno caricate e i messaggi e le approvazioni verranno aggiornati. I backup dei file richiedono comunque una conferma separata. Puoi disattivarlo in qualsiasi momento.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Quando dMsg è aperto e sbloccato, la cassaforte si sincronizza automaticamente. I messaggi si aggiornano aprendo la conversazione o la posta in arrivo. Il backup dei file richiede una conferma separata. Puoi disattivare la sincronizzazione automatica in qualsiasi momento.</string>
 	<key>Who may contact you</key>
 	<string>Chi potrebbe contattarti</string>
 	<key>Withdraw</key>

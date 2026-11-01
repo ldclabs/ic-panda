@@ -11,6 +11,10 @@
 //! mode, so a reply proves which device wrote it. A request for an operation
 //! the device already has becomes one more delivery channel of it.
 
+#[path = "connect_reads.rs"]
+mod reads;
+pub use reads::{entries, reconcile_reads};
+
 use crate::approval::{self, Action, State};
 use crate::attest::{Subject, statement_view};
 use crate::client::Client;
@@ -1012,46 +1016,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` without the device key and relay errors.
     pub async fn connect_entries(&mut self, fetched: u64) -> Result<ConnectReport> {
-        let mut report = ConnectReport {
-            fetched,
-            ..ConnectReport::default()
-        };
-        if self.keys.is_none() {
-            report.sealed = self.workspace.store.inbox_entries::<Entry>(true)?.len() as u64;
-            return Ok(report);
-        }
-        let mut checks: Option<Checks> = None;
-        for entry in self.workspace.store.inbox_entries::<Entry>(true)? {
-            if checks.is_none() {
-                checks = Some(self.checks().await?);
-            }
-            let checks = checks.as_mut().expect("checks");
-            match self.connect_handle(&entry, checks).await {
-                Ok(Handled::Queued) => report.queued += 1,
-                Ok(Handled::Refused(code)) => {
-                    report.refused += 1;
-                    report.refusals.push(code.into());
-                }
-                Ok(Handled::Replied) => report.replied += 1,
-                Ok(Handled::Ignored) => report.ignored += 1,
-                // Transient: the entry stays for the next pass.
-                Err(
-                    error @ (Error::Unavailable(_) | Error::PolicyStale | Error::ExecutionUnknown),
-                ) => {
-                    report.deferred.push(error.to_string());
-                    continue;
-                }
-                Err(error) => return Err(error),
-            }
-            self.workspace.store.put_inbox(
-                &hex::encode(*entry.request_id),
-                entry.seq,
-                &entry,
-                true,
-            )?;
-        }
-        report.replied += self.connect_follow().await?;
-        Ok(report)
+        entries(&self.hold(), fetched).await
     }
 
     /// The next page of the mailbox, the entries changed since the cursor,
@@ -1166,12 +1131,16 @@ impl Client {
         registration(&ic, home, &self.config.environment, commerce, app_id).await
     }
 
-    async fn connect_handle(&mut self, entry: &Entry, checks: &mut Checks) -> Result<Handled> {
+    fn connect_decode(
+        &self,
+        entry: &Entry,
+        checks: &Checks,
+    ) -> Result<Option<(ConnectRequest, Channel, Result<()>)>> {
         let account = self.account()?.clone();
         let device = self.workspace.meta.device_id;
         let envelope: Envelope = match decode(&entry.envelope, MAX_ENVELOPE) {
             Ok(envelope) => envelope,
-            Err(_) => return Ok(Handled::Ignored),
+            Err(_) => return Ok(None),
         };
         let seed = self.keys()?.hpke.clone();
         let cose = match open_request(
@@ -1184,17 +1153,17 @@ impl Client {
         ) {
             Ok(cose) => cose,
             // Not sealed to this device, or not openable: nobody to answer.
-            Err(_) => return Ok(Handled::Ignored),
+            Err(_) => return Ok(None),
         };
         // An unknown, revoked or invalid pairing cannot speak for any page.
         let Some(pairing) = checks.pairings.get(&entry.pairing_id).cloned() else {
-            return Ok(Handled::Ignored);
+            return Ok(None);
         };
         let Ok(payload) = es256_open(&cose, &entry.pairing_id, REQUEST_TYP, &pairing.public) else {
-            return Ok(Handled::Ignored);
+            return Ok(None);
         };
         let Ok(request) = decode::<ConnectRequest>(&payload, MAX_ENVELOPE) else {
-            return Ok(Handled::Ignored);
+            return Ok(None);
         };
         let channel = Channel {
             request_id: request.request_id,
@@ -1228,99 +1197,21 @@ impl Client {
             )
             .map_err(|_| Error::Forbidden)
         })();
-        let key = operation_key(&request.origin, &request.command);
-        if let Err(error) = checked {
-            let reason = refusal(&error);
-            let code = reason.0;
-            return self
-                .refuse(&request, channel, reason, &key)
-                .await
-                .map(|_| Handled::Refused(code));
-        }
-        match request.kind {
-            RequestKind::Read | RequestKind::Open => {
-                self.answer_read(&request, channel, &key).await?;
-                Ok(Handled::Replied)
-            }
-            RequestKind::Create => {
-                if let Ok(mut op) = self.operation(&key) {
-                    let digest = operation_digest(&request.origin, &request.command)?;
-                    if op.digest != digest {
-                        self.refuse(&request, channel, Refusal("IDEMPOTENCY_CONFLICT"), &key)
-                            .await?;
-                        return Ok(Handled::Refused("IDEMPOTENCY_CONFLICT"));
-                    }
-                    // The same operation from another page: one more channel.
-                    if !op
-                        .channels
-                        .iter()
-                        .any(|c| c.request_id == channel.request_id)
-                    {
-                        op.channels.push(channel);
-                        self.save_operation(&op)?;
-                    }
-                    self.deliver(&mut op).await?;
-                    return Ok(Handled::Replied);
-                }
-                // Taken, withdrawn or over before this device saw it.
-                if entry.state != "pending" {
-                    return Ok(Handled::Ignored);
-                }
-                match self.admit(&request, &pairing, checks, now).await {
-                    Ok(mut op) => {
-                        let created = self.approval_create(
-                            &format!("connect:{}", request.origin),
-                            Action::Connect {
-                                operation: op.key.clone(),
-                                digest: op.digest,
-                                checkout: None,
-                            },
-                            request.expires_at,
-                        );
-                        match created {
-                            Ok(approval) => {
-                                op.approval = approval.id;
-                                self.save_operation(&op)?;
-                                Ok(Handled::Queued)
-                            }
-                            Err(error) => {
-                                // Over the limits: the operation ends here.
-                                let code = refusal(&error).0;
-                                op.state = OpState::Rejected;
-                                op.error = Some(code.into());
-                                self.save_operation(&op)?;
-                                self.deliver(&mut op).await?;
-                                Ok(Handled::Refused(code))
-                            }
-                        }
-                    }
-                    Err(Error::Unavailable(message)) => Err(Error::Unavailable(message)),
-                    Err(error) => {
-                        let reason = admission_refusal(&error);
-                        let code = reason.0;
-                        self.refuse(&request, channel, reason, &key).await?;
-                        Ok(Handled::Refused(code))
-                    }
-                }
-            }
-        }
+        Ok(Some((request, channel, checked)))
     }
 
     /// The checks of connect-v1 §4.5 and §6.3 on a create request, with the
     /// fresh certified registration; the new operation on success.
-    async fn admit(
+    fn admit_checked(
         &mut self,
         request: &ConnectRequest,
         pairing: &Pairing,
-        checks: &mut Checks,
+        app: &AppRegistration,
+        state: Option<&crate::account::AccountState>,
         now: u64,
     ) -> Result<Operation> {
         let command = &request.command;
-        let app = match self.registration(checks, &command.app_id).await {
-            Ok(app) => app,
-            Err(Error::NotFound) => return Err(Error::InvalidInput("APP_NOT_REGISTERED".into())),
-            Err(error) => return Err(error),
-        };
+        validate_request(request, &self.config.environment, now)?;
         ensure(
             app.origins.contains(&request.origin),
             Error::InvalidInput("APP_NOT_REGISTERED".into()),
@@ -1337,7 +1228,7 @@ impl Client {
                     auth.app_config_version == app.config_version,
                     Error::PolicyStale,
                 )?;
-                validate_authentication(&auth, &app, now)?;
+                validate_authentication(&auth, app, now)?;
                 ensure(
                     auth.origin == request.origin
                         && auth.app_id == command.app_id
@@ -1366,7 +1257,7 @@ impl Client {
                     action.app_config_version == app.config_version,
                     Error::PolicyStale,
                 )?;
-                dmsg_protocol::app_action::validate_action_admission(&action, &app, now)?;
+                dmsg_protocol::app_action::validate_action_admission(&action, app, now)?;
                 ensure(
                     action.signing_account == account.id,
                     Error::InvalidInput("ACCOUNT_MISMATCH".into()),
@@ -1408,8 +1299,7 @@ impl Client {
         )?;
         // The account's sensitive policy, when a login can read it; the
         // home enforces it again on execution.
-        if self.session().is_ok() {
-            let state = self.refresh(account.home, &account.id).await?;
+        if let Some(state) = state {
             let policy = &state.info.sensitive_policy;
             ensure(!policy.frozen, Error::Locked)?;
             if let Some(purpose) = match command.method.as_str() {
@@ -1535,178 +1425,20 @@ impl Client {
         Ok((statement, expires_at))
     }
 
-    /// Refuse a request before it reaches the user.
-    async fn refuse(
-        &mut self,
-        request: &ConnectRequest,
-        mut channel: Channel,
-        reason: Refusal,
-        key: &str,
-    ) -> Result<()> {
-        let value = json!({
-            "operationId": request.command.operation_id,
-            "kind": operation_kind(&request.command.method).unwrap_or("document"),
-            "state": "rejected",
-            "error": reason.0,
-        });
-        let digest = operation_digest(&request.origin, &request.command)
-            .unwrap_or_else(|_| digest("dmsg/connect-key/v1", &key));
-        self.reply(&mut channel, digest, ResponseState::Closed, Some(&value))
-            .await
-    }
-
-    /// Answer `read` and `open`: a snapshot when this device has the
-    /// operation and no other device holds it, `unknown` otherwise.
-    async fn answer_read(
-        &mut self,
-        request: &ConnectRequest,
-        mut channel: Channel,
-        key: &str,
-    ) -> Result<()> {
-        let device = self.workspace.meta.device_id;
-        match self.operation(key) {
-            Ok(op)
-                if op.command.public_key == request.command.public_key
-                    && op.pinned.is_none_or(|p| p == device)
-                    && op.state != OpState::Elsewhere =>
-            {
-                if request.kind == RequestKind::Open && op.state == OpState::AwaitingUser {
-                    // Shown again: refresh the request's place in the queue.
-                    if let Ok(mut approval) = self.approval_record(&op.approval) {
-                        approval.updated_at = now_ms();
-                        self.save_approval(&approval)?;
-                    }
-                }
-                self.reply(
-                    &mut channel,
-                    op.digest,
-                    ResponseState::Closed,
-                    Some(&op.value()),
-                )
-                .await
-            }
-            _ => {
-                self.reply(
-                    &mut channel,
-                    Hash::new([0; 32]),
-                    ResponseState::Unknown,
-                    None,
-                )
-                .await
-            }
-        }
-    }
-
-    /// Write one reply to a channel, retrying once on a version conflict.
-    async fn reply(
-        &mut self,
-        channel: &mut Channel,
-        operation: Hash,
-        state: ResponseState,
-        value: Option<&Json>,
-    ) -> Result<()> {
-        let account = self.account()?.id;
-        let device = self.workspace.meta.device_id;
-        let seed = self.keys()?.hpke.clone();
-        for attempt in 0..2 {
-            let version = channel.version + 1;
-            let sealed = value
-                .map(|value| {
-                    seal_response(
-                        &ConnectResponse {
-                            protocol: CONNECT_PROTOCOL.into(),
-                            request_id: channel.request_id,
-                            version,
-                            operation_digest: operation,
-                            value: serde_json::to_vec(value).expect("JSON").into(),
-                        },
-                        &account,
-                        &channel.pairing_id,
-                        &device,
-                        &seed,
-                        &channel.result_key,
-                    )
-                    .map(|s| canonical(&s))
-                })
-                .transpose()?;
-            let path = self.connect_path(&format!(
-                "/requests/{}/respond",
-                hex::encode(*channel.request_id)
-            ))?;
-            let command = RespondCommand {
-                request_id: channel.request_id,
-                version,
-                state,
-                sealed_digest: sealed.as_ref().map(|s| sha256(s)),
-            };
-            match self
-                .relay_post_sealed(
-                    &path,
-                    RESPOND_ACTION,
-                    &command,
-                    &Hash::new(random_id()),
-                    sealed.as_deref(),
-                )
-                .await
-            {
-                Ok(_) => {
-                    channel.version = version;
-                    channel.sent = value.and_then(|v| v["state"].as_str().map(str::to_string));
-                    channel.closed = state != ResponseState::Open;
-                    return Ok(());
-                }
-                Err(Error::VersionConflict) if attempt == 0 => {
-                    let path = self
-                        .connect_path(&format!("/requests/{}", hex::encode(*channel.request_id)))?;
-                    let entry = Entry::parse(&self.relay_get(&path).await?)?;
-                    channel.version = entry.version;
-                }
-                // The relay closed the request: nobody reads this channel now.
-                Err(Error::Expired | Error::NotFound | Error::Forbidden | Error::ResultExpired) => {
-                    channel.closed = true;
-                    return Ok(());
-                }
-                Err(error) => return Err(error),
-            }
-        }
-        Err(Error::VersionConflict)
-    }
-
     /// Reply the operation's current state on every channel that has not
     /// seen it.
     async fn deliver(&mut self, op: &mut Operation) -> Result<u64> {
-        let state = if op.state.terminal() {
-            ResponseState::Closed
-        } else {
-            ResponseState::Open
-        };
-        let value = op.value();
-        let name = op.state.name().to_string();
-        let mut written = 0;
-        for i in 0..op.channels.len() {
-            let mut channel = op.channels[i].clone();
-            // A waiting operation has nothing new for its first page.
-            if channel.closed
-                || channel.sent.as_deref() == Some(name.as_str())
-                || (i == 0 && op.state == OpState::AwaitingUser)
-            {
-                continue;
-            }
-            self.reply(&mut channel, op.digest, state, Some(&value))
-                .await?;
-            op.channels[i] = channel;
-            written += 1;
-            self.save_operation(op)?;
-        }
-        Ok(written)
+        let result = reads::deliver(&self.hold(), &op.key).await?;
+        *op = self.operation(&op.key)?;
+        Ok(result)
     }
 
     /// Follow the relay state of every operation: taken by another device,
     /// cancelled, expired or acknowledged; then reconcile and deliver.
-    async fn connect_follow(&mut self) -> Result<u64> {
+    fn connect_follow_local(&mut self) -> Result<Vec<String>> {
         let device = self.workspace.meta.device_id;
         let now = now_ms();
-        let mut written = 0;
+        let mut deliver = Vec::new();
         for key in self.workspace.store.sealed_keys(OP)? {
             let key = key.trim_start_matches(OP).to_string();
             let mut op = self.operation(&key)?;
@@ -1780,23 +1512,11 @@ impl Client {
                     self.save_approval(&approval)?;
                 }
             }
-            if matches!(
-                op.state,
-                OpState::Authorizing | OpState::Authorized | OpState::ExecutionUnknown
-            ) && op.pinned.is_none_or(|p| p == device)
-            {
-                match self.connect_reconcile(&key).await {
-                    Ok(()) | Err(Error::ExecutionUnknown) => {}
-                    Err(Error::Unavailable(_)) => continue,
-                    Err(error) => return Err(error),
-                }
-                op = self.operation(&key)?;
-            }
             if op.pinned.is_none_or(|p| p == device) && op.state != OpState::Elsewhere {
-                written += self.deliver(&mut op).await?;
+                deliver.push(key);
             }
         }
-        Ok(written)
+        Ok(deliver)
     }
 
     /// Mark a waiting operation expired; the relay expires its requests.
@@ -2054,6 +1774,12 @@ impl Client {
 
     /// Record an execution's outcome on the operation and reply it.
     async fn connect_outcome(&mut self, key: &str, outcome: Result<Json>) -> Result<()> {
+        let result = self.connect_outcome_local(key, outcome);
+        let _ = reads::deliver(&self.hold(), key).await;
+        result
+    }
+
+    fn connect_outcome_local(&mut self, key: &str, outcome: Result<Json>) -> Result<()> {
         let mut op = self.operation(key)?;
         let result = match outcome {
             Ok(result) => {
@@ -2079,7 +1805,6 @@ impl Client {
             }
         };
         self.save_operation(&op)?;
-        let _ = self.deliver(&mut op).await;
         result
     }
 
@@ -2176,37 +1901,11 @@ impl Client {
     }
 
     async fn authentication_result(&mut self, job: &AuthJob) -> Result<Json> {
-        let account = self.account()?.clone();
-        let batch: Result<CertifiedBatch> = self
-            .session()?
-            .ic
-            .query(
-                account.home,
-                "authentication_certificate",
-                (account.id, job.request.operation_id),
-            )
-            .await?;
-        let batch = match batch {
-            Ok(batch) => batch,
-            Err(Error::NotFound) if now_ms() < job.request.expires_at_ms => {
-                let reply: Result<dmsg_types::integration::AuthenticationResult> = self
-                    .session()?
-                    .ic
-                    .update(
-                        account.home,
-                        "approve_authentication",
-                        (account.id, &job.request, &job.approval),
-                    )
-                    .await?;
-                reply?;
-                return Box::pin(self.authentication_result(job)).await;
-            }
-            Err(error) => return Err(error),
-        };
-        let root = self.session()?.ic.root_key();
-        let result = verify_authentication(&batch, &job.request, account.home, &root, now_ms())?;
-        ensure(result.account_id == account.id, Error::IntegrityFailed)?;
-        Ok(json!({"proof": STANDARD.encode(canonical(&batch))}))
+        reads::authentication_result(&self.hold(), job).await
+    }
+
+    pub(crate) fn connect_needs_serial_reconcile(&self, key: &str) -> Result<bool> {
+        Ok(self.operation(key)?.checkout.is_some())
     }
 
     /// The review of a web request: what the bridge page relayed and what
@@ -2327,7 +2026,7 @@ impl Client {
 /// How one mailbox entry ended.
 enum Handled {
     Queued,
-    Refused(&'static str),
+    Refused(String),
     Replied,
     Ignored,
 }

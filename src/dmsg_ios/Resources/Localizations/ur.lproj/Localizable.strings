@@ -236,6 +236,8 @@
 	<string>پس منظر کی منتقلی شروع ہو گئی۔ ٹرانسفرز میں اس کی پیشرفت کا جائزہ لیں۔</string>
 	<key>Backing up…</key>
 	<string>بیک اپ لیا جا رہا ہے…</string>
+	<key>Backup failed</key>
+	<string>بیک اپ ناکام</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>بیک اپ کی پیش رفت محفوظ ہو گئی۔ تکمیل کے لیے فائل کی حیثیت کو چیک کریں۔</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>اصل دستخط شدہ لین دین کو نشر کریں</string>
 	<key>Browser request</key>
 	<string>براؤزر کی درخواست</string>
+	<key>Cached data</key>
+	<string>کیش شدہ ڈیٹا</string>
 	<key>Cancel</key>
 	<string>منسوخ کریں</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>منتخب کریں کہ کون سا ورژن رکھنا ہے۔ موجودہ تاریخ برقرار ہے؛ راز کبھی بھی خاموشی سے اوور رائٹ نہیں ہوتے۔</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>منتخب کریں کہ کون آپ کو مفت خط بھیج سکتا ہے۔ مسدود اکاؤنٹس اس وقت تک مسدود رہیں گے جب تک کہ آپ انہیں غیر مسدود نہ کر دیں۔</string>
+	<key>Clear cached data</key>
+	<string>کیش صاف کریں</string>
 	<key>Closed</key>
 	<string>بند</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>آٹو فل سیٹنگز میں dMsg کو فعال کریں</string>
 	<key>Encrypted backup</key>
 	<string>خفیہ کردہ بیک اپ</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>خفیہ کردہ نمائشی ڈیٹا، کیش شدہ منسلکات اور کلاؤڈ فائلوں کی فہرستیں دوبارہ ڈاؤن لوڈ کی جا سکتی ہیں۔ والٹ، پیغامات، مقامی فائل لائبریری اور غیر مطابقت پذیر کام محفوظ رہیں گے۔</string>
 	<key>Encrypting</key>
 	<string>خفیہ کاری</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>یہ صرف اس وقت کریں جب آپ اسے استعمال کرنے کے لیے تیار ہوں۔ کاپیاں اس ڈیوائس پر رہتی ہیں اور 30 ​​سیکنڈ کے بعد ختم ہوجاتی ہیں۔</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>یہاں صرف مفت رابطے کی سہولت ہے۔ یہ کارروائی وصول کنندہ کی فیس ادا یا منظور نہیں کر سکتی۔</string>
+	<key>Only in cloud</key>
+	<string>صرف کلاؤڈ میں</string>
 	<key>Only on this device</key>
 	<string>صرف اس آلے پر</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>واپسی پر خوش آمدید۔</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>مقامی ڈیمو میں خوش آمدید۔ یہ پیغامات اس اسکرین میں رہتے ہیں۔</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>جبکہ dMsg کھلا اور غیر مقفل ہے، مرموز کردہ ترامیم اپ لوڈ ہوں گی اور پیغامات اور منظورییں تازہ ہوجائیں گی۔ فائل بیک اپ کے لیے اب بھی علیحدہ تصدیق کی ضرورت ہے۔ آپ اسے کسی بھی وقت آف کر سکتے ہیں۔</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>جب dMsg کھلا اور غیر مقفل ہو تو والٹ خودکار طور پر مطابقت پذیر ہوتا ہے۔ گفتگو یا ان باکس کھولنے پر پیغامات تازہ ہوتے ہیں۔ فائلوں کے بیک اپ کے لیے الگ تصدیق ضروری ہے۔ آپ خودکار مطابقت پذیری کسی بھی وقت بند کر سکتے ہیں۔</string>
 	<key>Who may contact you</key>
 	<string>کون آپ سے رابطہ کر سکتا ہے</string>
 	<key>Withdraw</key>

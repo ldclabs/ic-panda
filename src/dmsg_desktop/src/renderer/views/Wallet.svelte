@@ -221,13 +221,13 @@
       })
   })
 
-  async function readList() {
+  async function readList(mode: Mode = 'swr') {
     if (!active || !unlocked) return
     const run = listEpoch,
       owner = account
     listLoading = true
     try {
-      const list = await call<any[]>('wallet/list')
+      const list = await display<any[]>('wallet/list', {}, mode)
       if (!active || run !== listEpoch || owner !== account || !unlocked) return
       wallets = list
       if (!selected && wallets.length) {
@@ -577,7 +577,8 @@
     }
   }
   onMount(() => {
-    const stopDisplays = watchDisplays(['wallet', 'history', 'balances'], (mode) => {
+    const stopDisplays = watchDisplays(['wallets', 'wallet', 'history', 'balances'], (mode) => {
+      void readList(mode)
       if (!unlocked || !selected || busy) return
       return Promise.all([open(selected, mode), readQueue(mode), ...(needsExtras ? [readBalances(mode)] : [])])
     }, 30_000)
@@ -626,7 +627,8 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col" data-testid="wallet-view">
-  <DisplayNotice methods={['wallet/show', 'wallet/queue', 'wallet/balances']} />
+  <DisplayNotice methods={['wallet/list']} />
+  <DisplayNotice methods={['wallet/show', 'wallet/queue', 'wallet/balances']} params={{wallet: selected}} />
   {#if unlocked && wallet}
     <div class="flex flex-wrap items-center gap-3 px-8 py-3">
       <div class="min-w-[min(100%,15rem)] flex-1" data-testid="wallet-list"

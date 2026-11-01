@@ -73,9 +73,9 @@ const messages = {
     secretPolicy: "Change credential-use policy",
     secretUse: "Create a GitHub issue",
 
-    displayCache: "Display cache",
-    displayCacheHint: "Encrypted data that can be downloaded again. Clearing it keeps content, drafts, pending work and security records. Sizes are stored record bytes.",
-    clearDisplayCache: "Clear display cache",
+    displayCache: "Cached data",
+    displayCacheHint: "Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.",
+    clearDisplayCache: "Clear cached data",
     cachedDisplay: "Showing the last saved data",
     daemonDisconnected: "Connecting to the local dMsg service…",
     loadingCachedDisplay: "Loading saved data…",

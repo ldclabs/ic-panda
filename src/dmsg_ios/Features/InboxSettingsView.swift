@@ -3,6 +3,7 @@ import SwiftUI
 
 struct InboxSettingsView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var mode = "closed"
     @State private var allowed = ""
     @State private var loaded = false
@@ -13,6 +14,7 @@ struct InboxSettingsView: View {
     struct Change { let mode: String; let allow: [String] }
     var body: some View {
         Form {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Text("Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.").font(.footnote).foregroundStyle(.secondary)
             Section("Receiving policy") {
                 Picker("Who may contact you", selection: $mode) {
@@ -40,14 +42,15 @@ struct InboxSettingsView: View {
                 }
             }
     }
-    private func load() async {
-        guard let engine = model.engine, !working else { return }; let epoch = model.epoch
-        working = true; defer { working = false }
-        do {
-            let next: Policy? = try model.decode(try await engine.inboxPolicy())
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            mode = next?.mode ?? "closed"; allowed = next?.allow.joined(separator: "\n") ?? ""; loaded = true
-        } catch { if epoch == model.epoch { model.report(error) } }
+    private func load(force: Bool = false) async {
+        guard !working else { return }
+        var initialMode = mode, initialAllowed = allowed
+        await display.load(model, kind: "inbox-policy", force: force) { (next: Policy) in
+            guard !working, pending == nil, !loaded || (mode == initialMode && allowed == initialAllowed) else { return }
+            mode = next.mode; allowed = next.allow.joined(separator: "\n"); loaded = true
+            initialMode = mode; initialAllowed = allowed
+        }
+        if display.loaded { loaded = true }
     }
     private func save(_ change: Change) async {
         guard let engine = model.engine, !working else { return }; let epoch = model.epoch

@@ -8,10 +8,10 @@ struct AccountView: View {
     @State private var signingOut = false
     @State private var profile: AccountProfile?
     @State private var avatar: UIImage?
+    @State private var display = DisplayLoad()
+    @State private var avatarTask: Task<Void, Never>?
     @State private var loadingProfile = false
     @State private var profileFailed = false
-    @State private var profileLoadedAt: Date?
-    @State private var profileAccount: String?
     @State private var loadedProfileRevision: UInt64 = 0
     var body: some View {
         @Bindable var model = model
@@ -40,6 +40,7 @@ struct AccountView: View {
             if profileFailed {
                 Button("Retry loading profile") { Task { await loadProfile(force: true) } }.disabled(loadingProfile)
             }
+            DisplayLoadStatus(state: display) { Task { await loadProfile(force: true) } }
             Section {
                 NavigationLink { PublicProfileView() } label: { Label("Public profile", glyph: .profile) }
                 NavigationLink { ApprovalsView() } label: { Label("Approvals", glyph: .approvals) }
@@ -69,6 +70,7 @@ struct AccountView: View {
                 NavigationLink { SubscriptionView() } label: { Label("Plan and usage", glyph: .plan) }
                     .accessibilityIdentifier("account.plan")
                 NavigationLink { InboxSettingsView() } label: { Label("Inbox settings", glyph: .inbox) }
+                NavigationLink { DisplayCacheView() } label: { Label("Cached data", systemImage: "internaldrive") }.accessibilityIdentifier("account.cache")
                 NavigationLink { NotificationSettingsView() } label: { Label("Notifications", systemImage: "bell") }
                 Button { model.reminderEntry = ReminderEntry(account: model.session?.account) } label: { Label(NoticeCopy.text("noticeTitle"), systemImage: "clock") }
             }
@@ -90,6 +92,7 @@ struct AccountView: View {
                 .listRowBackground(Color.clear)
         }.privateScreen().navigationTitle("Account")
             .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
+            .onDisappear { avatarTask?.cancel() }
             .toolbar { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }
             .confirmationDialog("Sign out of this account?", isPresented: $signingOut) {
                 Button("Sign out", role: .destructive) { Task { await logout() } }
@@ -106,24 +109,24 @@ struct AccountView: View {
             return
         }
         #endif
-        guard let engine = model.engine, model.unlocked else { return }
-        let epoch = model.epoch, account = model.session?.account
-        if !force, profileAccount == account, let at = profileLoadedAt, Date.now.timeIntervalSince(at) < 300 { return }
-        loadingProfile = true; profileFailed = false
-        defer { if !Task.isCancelled, epoch == model.epoch { loadingProfile = false } }
-        do {
-            let result = try await engine.profile()
-            guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
-            let incoming: AccountProfile = try model.decode(result)
-            if incoming.avatarUrl != profile?.avatarUrl { avatar = nil }
-            profile = incoming; profileAccount = account; profileLoadedAt = .now; loadedProfileRevision = model.profileRevision
-            if let url = incoming.avatarUrl, avatar == nil {
-                let bytes = try await engine.profileAvatar(url: url)
-                guard !Task.isCancelled, epoch == model.epoch, account == model.session?.account else { return }
-                avatar = await AvatarImage.decode(bytes)
+        let epoch = model.epoch
+        loadingProfile = true
+        defer { if epoch == model.epoch { loadingProfile = false; profileFailed = display.failed } }
+        await display.load(model, kind: "profile-document", force: force) { (incoming: AccountProfile) in
+            profile = incoming; loadedProfileRevision = model.profileRevision
+            avatarTask?.cancel()
+            avatarTask = Task {
+                if let url = incoming.avatarUrl {
+                    let saved = try? await model.engine?.cachedProfileAvatar(url: url)
+                    let cached = await AvatarImage.decode(saved)
+                    guard epoch == model.epoch, !Task.isCancelled, profile?.updatedAt == incoming.updatedAt else { return }
+                    avatar = cached
+                    let bytes = try? await model.engine?.profileAvatar(url: url)
+                    let image = await AvatarImage.decode(bytes)
+                    guard epoch == model.epoch, !Task.isCancelled, profile?.updatedAt == incoming.updatedAt else { return }
+                    if let image { avatar = image }
+                } else { avatar = nil }
             }
-        } catch {
-            if !Task.isCancelled, epoch == model.epoch, account == model.session?.account { profileFailed = true; profileLoadedAt = nil }
         }
     }
 
@@ -140,6 +143,7 @@ struct AccountView: View {
 
 struct DevicesView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var devices: [DeviceInfo] = []
     @State private var local: LocalOnly?
     @State private var copies: [MovedCopy] = []
@@ -147,6 +151,7 @@ struct DevicesView: View {
     struct AccountDevices: Decodable { let devices: [DeviceInfo] }
     var body: some View {
         List {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section {
                 NavigationLink("Authorize another device") { PairApprovalView() }
                 NavigationLink("Replace a device") { SuccessionsView() }.accessibilityIdentifier("devices.succession")
@@ -171,10 +176,9 @@ struct DevicesView: View {
         }.privateScreen().navigationTitle("Devices").task { await load() }
     }
 
-    private func load() async {
+    private func load(force: Bool = false) async {
         guard let engine = model.engine else { return }
-        do { let account: AccountDevices = try model.decode(try await engine.devices()); devices = account.devices }
-        catch { model.report(error) }
+        await display.load(model, kind: "account-summary", force: force) { (account: AccountDevices) in devices = account.devices }
         local = await LocalOnly.load(model)
         let account = model.session?.account
         let moved: [MovedCopy] = (try? model.decode(try await engine.movedCopies())) ?? []
@@ -308,6 +312,7 @@ struct PairApprovalView: View {
 
 struct RecoveryView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var value: DisplayValue?
     @State private var confirming = false
     @State private var recovery: RecoveryState?
@@ -322,8 +327,17 @@ struct RecoveryView: View {
             enabled && (ready || member)
         }
     }
+    struct RecoveryDisplay: Decodable {
+        let state: RecoveryState
+        let value: DisplayValue
+        init(from decoder: Decoder) throws {
+            state = try RecoveryState(from: decoder)
+            value = try DisplayValue(from: decoder)
+        }
+    }
     var body: some View {
         List {
+            if model.unlocked { DisplayLoadStatus(state: display) { Task { await refresh(force: true) } } }
             if recovery?.enabled == false { NoticeBar(text: String(localized: "Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.")) }
             NoticeBar(text: String(localized: "Recovery uses your bound login and a waiting period. An authorized device can dispute it. Unsynced local content cannot be recovered."))
             if let value { Section("Recovery status") { CanonicalDetails(value: value) } }
@@ -338,7 +352,13 @@ struct RecoveryView: View {
                 } }
             }
     }
-    private func refresh() async {
+    private func refresh(force: Bool = false) async {
+        if model.unlocked {
+            await display.load(model, kind: "recovery", force: force) { (next: RecoveryDisplay) in
+                value = next.value; recovery = next.state
+            }
+            return
+        }
         do { if let result = try await model.engine?.recoveryStatus() {
             let data = Data(result.json.utf8)
             recovery = try JSONDecoder().decode(RecoveryState.self, from: data)

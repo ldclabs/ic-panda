@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WalletsView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var wallets: [Wallet] = []
     @State private var pending: [Pending] = []
     @State private var walletID = ""
@@ -12,13 +13,14 @@ struct WalletsView: View {
     struct Pending: Decodable, Identifiable { let id: String; let wallet: String; let intent: DisplayValue }
     var body: some View {
         List {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section {
                 Text("Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             Section("Multisig wallets") {
                 ForEach(wallets) { wallet in NavigationLink(wallet.name) { WalletDetailView(wallet: wallet.wallet, name: wallet.name) } }
-                if wallets.isEmpty {
+                if display.loaded && wallets.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Your assets. Your approval rules.").font(.headline)
                         Text("Set up device co-signing for your own assets, or invite others to manage funds together.")
@@ -47,13 +49,13 @@ struct WalletsView: View {
                     }
                 }
             }
-        }.privateScreen().navigationTitle("Multisig wallets").task { await load() }.refreshable { await load() }
+        }.privateScreen().navigationTitle("Multisig wallets").task { await load() }.refreshable { await load(force: true) }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) { if let request { ApprovalDetailView(request: request) } }
     }
-    private func load() async {
+    private func load(force: Bool = false) async {
         guard let engine = model.engine else { return }
-        do { pending = try model.decode(try await engine.pendingWalletProposals()); wallets = try model.decode(try await engine.wallets()) }
-        catch { model.report(error) }
+        do { pending = try model.decode(try await engine.pendingWalletProposals()) } catch { model.report(error) }
+        await display.load(model, kind: "wallets", force: force) { (next: [Wallet]) in wallets = next }
     }
     private func join() async {
         guard let engine = model.engine, !working else { return }; working = true; defer { working = false }
@@ -65,6 +67,9 @@ struct WalletsView: View {
 struct WalletDetailView: View {
     let wallet: String; let name: String
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
+    @State private var history = DisplayLoad()
+    @State private var allProposals: [Proposal] = []
     @State private var details: DisplayValue?
     @State private var proposals: [Proposal] = []
     @State private var next: UInt64?
@@ -73,6 +78,8 @@ struct WalletDetailView: View {
     struct Page: Decodable { let proposals: [Proposal]; let next: UInt64? }
     var body: some View {
         List {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
+            DisplayLoadStatus(state: history) { Task { await load(force: true) } }
             NavigationLink("Propose transfer") { WalletTransferView(wallet: wallet) }
             NavigationLink("Wallet controls") { WalletControlsView(wallet: wallet) }
             NavigationLink("This iPhone's keys") { WalletDeviceKeysView(wallet: wallet) }
@@ -83,15 +90,22 @@ struct WalletDetailView: View {
                 if next != nil { Button("Load earlier proposals") { Task { await load(more: true) } }.disabled(reading) }
             }
             if let details { DisclosureGroup("Wallet details and policy") { CanonicalDetails(value: details) } }
-        }.privateScreen().navigationTitle(name).task { await load() }.refreshable { await load() }
+        }.privateScreen().navigationTitle(name).task { await load() }.refreshable { await load(force: true) }
     }
-    private func load(more: Bool = false) async {
-        guard let engine = model.engine, !reading else { return }; reading = true; defer { reading = false }
-        do {
-            if !more { details = try model.decode(try await engine.walletDetails(wallet: wallet)) }
-            let page: Page = try model.decode(try await engine.walletProposals(wallet: wallet, before: more ? next : nil))
-            proposals = more ? proposals + page.proposals : page.proposals; next = page.next
-        } catch { model.report(error) }
+    private func load(more: Bool = false, force: Bool = false) async {
+        guard !reading else { return }; reading = true; defer { reading = false }
+        if more {
+            proposals = Array(allProposals.prefix(proposals.count + 30))
+            next = proposals.count < allProposals.count ? UInt64(proposals.count) : nil
+            return
+        }
+        async let detail: Void = display.load(model, kind: "wallet", id: wallet, force: force) { (next: DisplayValue) in details = next }
+        async let entries: Void = history.load(model, kind: "history", id: wallet, force: force) { (page: Page) in
+            allProposals = page.proposals
+            proposals = Array(allProposals.prefix(max(30, proposals.count)))
+            next = proposals.count < allProposals.count ? UInt64(proposals.count) : nil
+        }
+        _ = await (detail, entries)
     }
 }
 

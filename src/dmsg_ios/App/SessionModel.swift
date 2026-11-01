@@ -37,6 +37,7 @@ final class SessionModel {
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
     private(set) var cloudBackupsFailed = false
+    private(set) var cloudBackupsKnown = false
     private var cloudBackupRequest: UUID?
     var loadingCloudBackups: Bool { cloudBackupRequest != nil }
     var filesFolder = "root"
@@ -84,7 +85,9 @@ final class SessionModel {
     private var syncIntroduced: Set<String> = []
     private var automaticPassRunning = false
     private var automaticOperation: OperationToken?
-    private var automaticChannelCursor = 0
+    private var nextAutomaticSync: ContinuousClock.Instant?
+    private var lastLocalChange: UInt64?
+    private var lastSyncThrough: UInt64?
     private var recoveryOperation: OperationToken?
     private var recoveryRequest: UUID?
     private var seenRecoveryDigests: [String: String] = [:]
@@ -295,7 +298,7 @@ final class SessionModel {
     /// which this device keeps for that account.
     func setAutomaticSync(_ enabled: Bool) {
         guard let account = session?.account else { return }
-        if enabled { manualSyncAccounts.remove(account) } else { manualSyncAccounts.insert(account); automaticOperation?.cancel() }
+        if enabled { manualSyncAccounts.remove(account); nextAutomaticSync = nil } else { manualSyncAccounts.insert(account); automaticOperation?.cancel() }
         if let files {
             do { try writePreferences(at: files.root) }
             catch { report(error) }
@@ -320,10 +323,16 @@ final class SessionModel {
     func automaticSyncPass() async {
         guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning,
               let account = session?.account else { return }
+        guard let engine else { return }
+        let change = try? await engine.localChange()
+        let edited = change != nil && change != lastLocalChange && change != 0
+        if !edited, let nextAutomaticSync, ContinuousClock.now < nextAutomaticSync { return }
+        lastLocalChange = change
+        nextAutomaticSync = .now.advanced(by: .seconds(60))
         if !syncIntroduced.contains(account) {
             // Said once per account, where it first syncs by itself.
             syncIntroduced.insert(account)
-            notice = String(localized: "While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.")
+            notice = String(localized: "While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.")
             if let files {
                 do { try writePreferences(at: files.root) }
                 catch { report(error) }
@@ -343,55 +352,37 @@ final class SessionModel {
         }
     }
 
-    /// One pass owns its handle. Independent read failures do not starve the
-    /// current channel; cancellation and session changes still end the pass.
+    /// Vault completion is published before any independent service work.
     private func syncPass(operation: OperationToken, automatic: Bool) async throws {
         guard let engine, unlocked else { return }
         let current = epoch
-        var failures: [Error] = []
-        func attempt(_ work: () async throws -> Void) async throws {
-            guard current == epoch, !Task.isCancelled else { throw CancellationError() }
-            do { try await work() }
-            catch {
-                if let failure = error as? MobileError, case .Failure(let code) = failure,
-                   ["LOCKED", "CANCELLED", "DEVICE_NOT_APPROVED"].contains(code) { throw error }
-                if error is CancellationError { throw error }
-                failures.append(error)
+        do {
+            let value = try await engine.sync(operation: operation)
+            struct Report: Decodable { let through: UInt64?; let sent: UInt64? }
+            let report: Report = try decode(value)
+            if report.through != lastSyncThrough || (report.sent ?? 0) > 0 {
+                nextAutomaticSync = .now.advanced(by: .seconds(30))
             }
+            lastSyncThrough = report.through ?? lastSyncThrough
+            guard current == epoch else { throw CancellationError() }
+            contentRevision &+= 1
+            await updateSession()
+        } catch {
+            if current == epoch { contentRevision &+= 1; await updateSession() }
+            throw error
         }
-        try await attempt { _ = try await engine.reconcile(operation: operation) }
-        // This verifies current device authority before content is refreshed.
-        _ = try await engine.sync(operation: operation)
-        try await attempt { _ = try await engine.syncConnect(operation: operation) }
-        let available = try await engine.channels().items
-        let ids = Self.channelBatch(available.map(\.id), active: activeChannel,
-                                    cursor: automaticChannelCursor, limit: automatic ? 4 : available.count)
-        let remaining = available.filter { $0.id != activeChannel }.count
-        if remaining > 0 { automaticChannelCursor = (automaticChannelCursor + max(1, ids.filter { $0 != activeChannel }.count)) % remaining }
-        for id in ids {
-            try await attempt { _ = try await engine.refreshChannel(channel: id, operation: operation) }
-        }
-        try await attempt { _ = try await engine.inbox(refresh: true) }
-        try await attempt { try await fetchCloudBackups(refresh: true, operation: operation) }
-        guard current == epoch else { throw CancellationError() }
-        try await attempt { _ = try await engine.syncBlockedAccounts() }
-        await loadBlockedAccounts()
-        try await attempt { _ = try await engine.maintainFiles() }
-        contentRevision &+= 1
-        await updateSession()
-        await loadApprovals()
-        if let error = failures.first { throw error }
     }
 
-    static func channelBatch(_ ids: [String], active: String?, cursor: Int, limit: Int) -> [String] {
-        guard !ids.isEmpty, limit > 0 else { return [] }
-        var batch: [String] = []
-        if let active, ids.contains(active) { batch.append(active) }
-        let remaining = ids.filter { $0 != active }
-        for index in 0..<remaining.count where batch.count < limit {
-            batch.append(remaining[(cursor + index) % remaining.count])
-        }
-        return batch
+    /// Mailbox/approval work does not own the vault or fetch message bodies.
+    func maintenancePass() async {
+        guard unlocked, !concealed, let engine else { return }
+        let current = epoch
+        do { _ = try await coreOperation { try await engine.reconcile(operation: $0) } } catch { }
+        guard current == epoch, !Task.isCancelled else { return }
+        do { _ = try await coreOperation { try await engine.syncConnect(operation: $0) } } catch { }
+        guard current == epoch, !Task.isCancelled else { return }
+        _ = try? await engine.syncBlockedAccounts()
+        await loadBlockedAccounts(); await loadApprovals()
     }
 
     func loadChannels() async {
@@ -419,6 +410,7 @@ final class SessionModel {
 
     func background() {
         automaticUnlock.rearm()
+        nextAutomaticSync = nil
         lifecycleGeneration &+= 1
         isForeground = false
         concealed = true
@@ -524,6 +516,7 @@ final class SessionModel {
         transfer.cancel()
         recoveryOperation?.cancel()
         epoch &+= 1
+        nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
@@ -679,16 +672,27 @@ final class SessionModel {
             let result = try await engine.cloudBackups(refresh: refresh, operation: operation)
             guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
             cloudBackups = try decode(result)
+            struct Observation: Decodable { let complete: Bool }
+            let observation: Observation = try decode(try await engine.cloudBackupStatus())
+            guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
+            cloudBackupsKnown = observation.complete || !cloudBackups.isEmpty
             if refresh { cloudBackupsFailed = false }
         } catch {
             if !Task.isCancelled, current == epoch, cloudBackupRequest == request {
+                // Inventory pages already committed before a later page failed
+                // remain useful offline; keep the failure visible after rereading.
+                if let saved = try? await engine.cloudBackups(refresh: false, operation: operation),
+                   current == epoch, cloudBackupRequest == request {
+                    cloudBackups = (try? decode(saved)) ?? cloudBackups
+                }
+                guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
                 cloudBackupsFailed = true; throw error
             }
         }
     }
 
     private func clearCloudBackups() {
-        cloudBackups = []; cloudBackupsFailed = false; cloudBackupRequest = nil
+        cloudBackups = []; cloudBackupsFailed = false; cloudBackupsKnown = false; cloudBackupRequest = nil
     }
 
     func loadApprovals(refresh: Bool = false) async {

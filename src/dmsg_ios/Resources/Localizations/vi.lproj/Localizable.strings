@@ -236,6 +236,8 @@
 	<string>Quá trình chuyển nền đã bắt đầu. Xem lại tiến trình của nó trong Chuyển khoản.</string>
 	<key>Backing up…</key>
 	<string>Đang sao lưu…</string>
+	<key>Backup failed</key>
+	<string>Sao lưu thất bại</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Đã lưu tiến trình sao lưu. Kiểm tra trạng thái tập tin để hoàn thành.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>Phát sóng giao dịch đã ký ban đầu</string>
 	<key>Browser request</key>
 	<string>Yêu cầu trình duyệt</string>
+	<key>Cached data</key>
+	<string>Dữ liệu bộ nhớ đệm</string>
 	<key>Cancel</key>
 	<string>Hủy</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>Chọn phiên bản nào để giữ. Lịch sử hiện tại được giữ lại; bí mật không bao giờ được ghi đè âm thầm.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Chọn người có thể gửi thư miễn phí cho bạn. Các tài khoản bị chặn vẫn bị chặn cho đến khi bạn bỏ chặn chúng.</string>
+	<key>Clear cached data</key>
+	<string>Xóa bộ nhớ đệm</string>
 	<key>Closed</key>
 	<string>Đã đóng</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>Bật dMsg trong cài đặt Tự động điền</string>
 	<key>Encrypted backup</key>
 	<string>Sao lưu được mã hóa</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>Có thể tải lại dữ liệu hiển thị mã hóa, tệp đính kèm đã lưu đệm và danh sách tệp đám mây. Kho bí mật, tin nhắn, thư viện tệp cục bộ và công việc chưa đồng bộ được giữ lại.</string>
 	<key>Encrypting</key>
 	<string>Mã hóa</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>Chỉ làm điều này khi bạn đã sẵn sàng sử dụng nó. Bản sao vẫn còn trên thiết bị này và hết hạn sau 30 giây.</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>Chỉ có liên hệ miễn phí được hỗ trợ ở đây. Hành động này không thể thanh toán hoặc phê duyệt phí của người nhận.</string>
+	<key>Only in cloud</key>
+	<string>Chỉ trên đám mây</string>
 	<key>Only on this device</key>
 	<string>Chỉ trên thiết bị này</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>Chào mừng trở lại.</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>Chào mừng bạn đến với bản demo địa phương. Những tin nhắn này vẫn ở màn hình này.</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>Trong khi dMsg được mở và mở khóa, các chỉnh sửa được mã hóa sẽ tải lên và các thông báo cũng như phê duyệt sẽ được làm mới. Sao lưu tập tin vẫn yêu cầu xác nhận riêng. Bạn có thể tắt tính năng này bất cứ lúc nào.</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>Khi dMsg đang mở và đã mở khóa, kho bí mật tự động đồng bộ. Tin nhắn cập nhật khi bạn mở cuộc trò chuyện hoặc hộp thư đến. Sao lưu tệp vẫn cần xác nhận riêng. Bạn có thể tắt đồng bộ tự động bất cứ lúc nào.</string>
 	<key>Who may contact you</key>
 	<string>Ai có thể liên hệ với bạn</string>
 	<key>Withdraw</key>

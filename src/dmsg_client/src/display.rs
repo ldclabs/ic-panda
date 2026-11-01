@@ -235,7 +235,13 @@ impl Client {
 
     /// Publication confirmation is newer than a lagging directory response.
     /// A display-write failure must not change a successful publication's outcome.
-    pub(crate) fn published_display(&self, info: &PrincipalInfo) {
+    pub(crate) fn published_display(&mut self, info: &PrincipalInfo) {
+        if let Err(error) = self.cache_invalidate(&[
+            crate::cache::Kind::Profile,
+            crate::cache::Kind::ProfileEditor,
+        ]) {
+            crate::diagnostic::Diagnostic::error(&error).emit();
+        }
         if info.state.version != info.published_version {
             return;
         }

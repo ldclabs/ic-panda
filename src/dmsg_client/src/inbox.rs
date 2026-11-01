@@ -918,6 +918,14 @@ impl Client {
     /// Previously verified letters on this device, available offline.
     /// # Errors
     /// Returns `Error::Locked` while locked and errors for corrupt local data.
+    pub fn inbox_observation(&self) -> Result<Json> {
+        self.keys()?;
+        Ok(
+            serde_json::json!({"complete":self.workspace.store.meta::<bool>("notification:inbox_initialized")?.unwrap_or(false), "observed_at_ms":self.workspace.store.meta::<u64>("inbox-observed")?}),
+        )
+    }
+
+    /// Locally verified letters; no network request.
     pub fn inbox_cached(&self) -> Result<Vec<Letter>> {
         let keys = self.keys()?;
         self.workspace
@@ -1038,7 +1046,8 @@ pub async fn sync<H: Hold>(h: &H, max_pages: usize) -> Result<SyncReport> {
                 h.with(|c| {
                     c.workspace
                         .store
-                        .set_meta("notification:inbox_initialized", &true)
+                        .set_meta("notification:inbox_initialized", &true)?;
+                    c.workspace.store.set_meta("inbox-observed", &now_ms())
                 })
                 .await?;
                 return Ok(SyncReport {

@@ -71,9 +71,9 @@ export default {
     secretPolicy: "变更凭据使用策略",
     secretUse: "创建 GitHub issue",
 
-    displayCache: "展示缓存",
-    displayCacheHint: "可重新下载的加密数据。清理后保留内容、草稿、待处理操作和安全记录。容量按已存储的记录计算。",
-    clearDisplayCache: "清理展示缓存",
+    displayCache: "缓存数据",
+    displayCacheHint: "加密的展示数据、附件缓存和云端文件目录可以重新下载。清理后保留保险库、消息、本地文件库和未同步的内容。",
+    clearDisplayCache: "清理缓存",
     cachedDisplay: "正在显示上次保存的数据",
     daemonDisconnected: "正在连接本机 dMsg 服务…",
     loadingCachedDisplay: "正在读取已保存的数据…",

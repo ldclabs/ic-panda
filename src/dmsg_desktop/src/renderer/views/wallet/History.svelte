@@ -96,7 +96,7 @@
     return () => { alive = false; generation++; stop() }
   })
 </script>
-<DisplayNotice methods={['wallet/history']} />
+<DisplayNotice methods={['wallet/history']} params={{wallet: wallet.wallet}} />
 
 <section class="grid gap-4" data-testid="wallet-history" aria-busy={busy}>
   <p class="text-muted text-[12px]">{w('historyCoverage')}</p>

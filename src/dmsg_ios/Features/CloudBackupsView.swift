@@ -32,7 +32,7 @@ struct CloudBackupSection: View {
                 }.padding(.vertical, 4)
                     .contextMenu { Button("Delete cloud backup", role: .destructive) { deleting = backup } }
             }
-            if model.cloudBackups.isEmpty && !model.loadingCloudBackups && !model.cloudBackupsFailed {
+            if model.cloudBackupsKnown && model.cloudBackups.isEmpty && !model.loadingCloudBackups && !model.cloudBackupsFailed {
                 Text("No cloud backups").foregroundStyle(.secondary)
             }
         }

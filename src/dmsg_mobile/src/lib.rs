@@ -8,6 +8,7 @@ mod connect;
 mod content;
 pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
+mod display;
 mod error;
 mod models;
 mod notifications;
@@ -93,6 +94,7 @@ pub struct MobileEngine {
     config: Config,
     staging: PathBuf,
     approval_turn: Arc<tokio::sync::Mutex<()>>,
+    read_turns: Arc<display::ReadTurns>,
     /// The device transfer, shared by every view of the engine.
     transfers: Arc<dmsg_client::transfer::Transfers>,
 }
@@ -201,6 +203,7 @@ impl MobileEngine {
             config,
             staging,
             approval_turn: Arc::new(tokio::sync::Mutex::new(())),
+            read_turns: Arc::new(display::ReadTurns::default()),
             transfers: Arc::default(),
         }))
     }
@@ -264,6 +267,7 @@ impl MobileEngine {
             config: self.config.clone(),
             staging: self.staging.clone(),
             approval_turn: self.approval_turn.clone(),
+            read_turns: self.read_turns.clone(),
             transfers: self.transfers.clone(),
         }))
     }
@@ -872,25 +876,66 @@ impl MobileEngine {
     }
 
     pub async fn sync(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane("sync");
+        let requested = dmsg_client::now_ms();
         operation
-            .run(self.held_object(|h| Box::pin(async { dmsg_client::sync::sync(h).await })))
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    if let Some(last) = h.with(|c| c.last_sync()).await?
+                        && last.at >= requested
+                        && last.error.is_none()
+                    {
+                        return Ok(serde_json::json!({"coalesced":true}));
+                    }
+                    serde_json::to_value(dmsg_client::sync::sync(h).await?)
+                        .map_err(|_| Error::IntegrityFailed)
+                })
+            }))
+            .await
+    }
+
+    pub async fn local_change(&self) -> Result<u64> {
+        self.held(|h| Box::pin(async { h.with(|c| c.local_change()).await }))
             .await
     }
 
     pub async fn reconcile(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
         let _turn = self.approval_turn.lock().await;
+        let turn = self.read_turns.lane("connect-read");
         operation
-            .run(self.object(|c| Box::pin(async { c.approvals_reconcile().await })))
+            .run(async {
+                let shared = self
+                    .held(move |h| {
+                        Box::pin(async move {
+                            let attestations =
+                                dmsg_client::approval::reconcile_attestations(h).await?;
+                            let wallets = dmsg_client::approval::reconcile_wallets(h).await?;
+                            let _turn = turn.lock().await;
+                            Ok(attestations
+                                + wallets
+                                + dmsg_client::connect::reconcile_reads(h).await?)
+                        })
+                    })
+                    .await?;
+                // Account/root mutations and payment journals retain their exclusive
+                // runner. Ordinary background reads never enter that runner.
+                self.object(move |c| {
+                    Box::pin(async move { Ok(shared + c.approvals_reconcile_others().await?) })
+                })
+                .await
+            })
             .await
     }
 
     pub async fn sync_connect(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane("connect-read");
         operation
-            .run(self.object(|c| {
-                Box::pin(async {
-                    let fetched =
-                        dmsg_client::connect::fetch_mailbox(&c.cooperative_hold()).await?;
-                    c.connect_entries(fetched).await
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    let fetched = dmsg_client::connect::fetch_mailbox(h).await?;
+                    dmsg_client::connect::entries(h, fetched).await
                 })
             }))
             .await
@@ -898,11 +943,13 @@ impl MobileEngine {
 
     pub async fn run_backups(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
         let progress = operation.clone();
+        let turn = self.read_turns.lane("files-backup");
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
+                    let _turn = turn.lock().await;
                     dmsg_client::library::backup::backup_run(
-                        &c.cooperative_hold(),
+                        h,
                         Some(15_000),
                         &mut |_, done, total| progress.report(done, total),
                     )
@@ -1131,10 +1178,8 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
-                Box::pin(async move {
-                    dmsg_client::outbox::send(&c.cooperative_hold(), &channel, &message_id).await
-                })
+            .run(self.held_object(move |h| {
+                Box::pin(async move { dmsg_client::outbox::send(h, &channel, &message_id).await })
             }))
             .await
     }
@@ -1144,10 +1189,28 @@ impl MobileEngine {
         channel: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane(&format!("channel:{channel}"));
+        let requested = dmsg_client::now_ms();
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
-                    dmsg_client::channel::sync(&c.cooperative_hold(), &channel, false).await
+                    let _turn = turn.lock().await;
+                    if h.with(|c| {
+                        Ok(c.channel_observed(&channel)?
+                            .is_some_and(|at| at >= requested))
+                    })
+                    .await?
+                    {
+                        return h
+                            .with(|c| {
+                                Ok(dmsg_client::channel::ChannelSync {
+                                    through: c.channel_view(&channel)?.message_cursor,
+                                    received: 0,
+                                })
+                            })
+                            .await;
+                    }
+                    dmsg_client::channel::sync(h, &channel, false).await
                 })
             }))
             .await
@@ -1160,10 +1223,10 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
                     dmsg_client::channel::save_regular_shared(
-                        &c.cooperative_hold(),
+                        h,
                         &channel,
                         sequence,
                         "root",
@@ -1175,13 +1238,30 @@ impl MobileEngine {
             .await
     }
 
+    pub async fn cached_inbox_status(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(async { h.with(|c| c.inbox_observation()).await }))
+            .await
+    }
+
     pub async fn inbox(&self, refresh: bool) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
+        let requested = dmsg_client::now_ms();
+        let turn = self.read_turns.lane("inbox");
+        self.held_object(move |h| {
             Box::pin(async move {
                 if refresh {
-                    dmsg_client::inbox::list(&c.cooperative_hold()).await
+                    let _turn = turn.lock().await;
+                    if h.with(|c| {
+                        Ok(c.inbox_observation()?["observed_at_ms"]
+                            .as_u64()
+                            .is_some_and(|at| at >= requested))
+                    })
+                    .await?
+                    {
+                        return h.with(|c| c.inbox_cached()).await;
+                    }
+                    dmsg_client::inbox::list(h).await
                 } else {
-                    c.inbox_cached()
+                    h.with(|c| c.inbox_cached()).await
                 }
             })
         })
@@ -1194,10 +1274,8 @@ impl MobileEngine {
         read: bool,
         archived: bool,
     ) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
-            Box::pin(async move {
-                dmsg_client::inbox::mark(&c.cooperative_hold(), &order, read, archived).await
-            })
+        self.held_object(move |h| {
+            Box::pin(async move { dmsg_client::inbox::mark(h, &order, read, archived).await })
         })
         .await
     }
@@ -1333,13 +1411,9 @@ impl MobileEngine {
         id: String,
         expected_version: String,
     ) -> Result<ObjectSnapshot> {
-        self.object(move |c| {
+        self.held_object(move |h| {
             Box::pin(async move {
-                ensure(
-                    c.files_show(&id)?.file.current == expected_version,
-                    Error::VersionConflict,
-                )?;
-                dmsg_client::library::backup::backup(&c.cooperative_hold(), &[id], false).await
+                dmsg_client::library::backup::backup_version(h, &id, &expected_version).await
             })
         })
         .await
@@ -1375,12 +1449,16 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         operation
-            .run(self.object(move |c| {
-                Box::pin(async move {
-                    dmsg_client::library::cloud::cloud_delete(&c.cooperative_hold(), &[upload])
-                        .await
-                })
+            .run(self.held_object(move |h| {
+                Box::pin(
+                    async move { dmsg_client::library::cloud::cloud_delete(h, &[upload]).await },
+                )
             }))
+            .await
+    }
+
+    pub async fn cloud_backup_status(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(async { h.with(|c| c.files_cloud_observation()).await }))
             .await
     }
 
@@ -1389,11 +1467,23 @@ impl MobileEngine {
         refresh: bool,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane("cloud-inventory");
+        let requested = dmsg_client::now_ms();
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move {
+                    let session = h.with(|c| c.display_session()).await?;
+                    let scoped = dmsg_client::display::Scoped { inner: h, session };
+                    let h = &scoped;
                     if refresh {
-                        dmsg_client::library::cloud::cloud_refresh(h).await?;
+                        let _turn = turn.lock().await;
+                        let last = h.with(|c| c.files_cloud_observation()).await?;
+                        if last["observed_at_ms"]
+                            .as_u64()
+                            .is_none_or(|at| at < requested)
+                        {
+                            dmsg_client::library::cloud::cloud_refresh(h).await?;
+                        }
                     }
                     h.with(|c| c.files_cloud_list()).await
                 })
@@ -1409,19 +1499,22 @@ impl MobileEngine {
     ) -> Result<ObjectSnapshot> {
         let progress = operation.clone();
         operation
-            .run(self.object(move |c| {
+            .run(self.held_object(move |h| {
                 Box::pin(async move {
-                    let entry = c
-                        .files_cloud_list()?
-                        .into_iter()
-                        .find(|e| e.upload_id == upload)
-                        .ok_or(Error::NotFound)?;
-                    ensure(
-                        entry.size.is_some_and(|s| s <= c.config().files_max_bytes),
-                        Error::QuotaExceeded,
-                    )?;
+                    h.with(|c| {
+                        let entry = c
+                            .files_cloud_list()?
+                            .into_iter()
+                            .find(|e| e.upload_id == upload)
+                            .ok_or(Error::NotFound)?;
+                        ensure(
+                            entry.size.is_some_and(|s| s <= c.config().files_max_bytes),
+                            Error::QuotaExceeded,
+                        )
+                    })
+                    .await?;
                     dmsg_client::library::cloud::cloud_fetch(
-                        &c.cooperative_hold(),
+                        h,
                         &upload,
                         Some(&folder),
                         &mut |done, total| progress.report(done, total),
@@ -1457,10 +1550,8 @@ impl MobileEngine {
     }
 
     pub async fn security(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
-            Box::pin(async { dmsg_client::security::account_security(&c.cooperative_hold()).await })
-        })
-        .await
+        self.held_object(|h| Box::pin(async { dmsg_client::security::account_security(h).await }))
+            .await
     }
 
     pub async fn profile(&self) -> Result<ObjectSnapshot> {
@@ -1468,14 +1559,30 @@ impl MobileEngine {
             .await
     }
 
-    /// Fetch a public profile image through the core's anonymous, bounded
-    /// downloader. A stale account handle cannot return image bytes to Swift.
-    pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
+    /// Pure local avatar read; an unobserved image is absent, never fetched here.
+    pub async fn cached_profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
         self.held(move |h| {
             Box::pin(async move {
-                Ok(dmsg_client::principal::avatar(h, &url)
-                    .await?
-                    .map(|(_, bytes)| bytes))
+                h.with(|c| Ok(c.profile_avatar(&url)?.map(|a| a.bytes)))
+                    .await
+            })
+        })
+        .await
+    }
+
+    /// Refresh the current profile image separately from its document. Failed
+    /// image reads keep a valid cached image and cannot delay the text snapshot.
+    pub async fn profile_avatar(&self, url: String) -> Result<Option<Vec<u8>>> {
+        let turn = self.read_turns.lane("profile-avatar");
+        self.held(move |h| {
+            Box::pin(async move {
+                let session = h.with(|c| c.display_session()).await?;
+                let scoped = dmsg_client::display::Scoped { inner: h, session };
+                let h = &scoped;
+                let _turn = turn.lock().await;
+                dmsg_client::snapshot::refresh_avatar(h).await;
+                h.with(|c| Ok(c.profile_avatar(&url)?.map(|a| a.bytes)))
+                    .await
             })
         })
         .await
@@ -1594,14 +1701,13 @@ impl MobileEngine {
     }
 
     pub async fn devices(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
+        self.held_object(|h| {
             Box::pin(async {
-                let state = c
-                    .cooperative_hold()
+                let state = h
                     .warm(dmsg_client::client::Warm::Home)
                     .await?
                     .ok_or(Error::PolicyStale)?;
-                c.account_view_of(&state)
+                h.with(|c| c.account_view_of(&state)).await
             })
         })
         .await
@@ -1682,7 +1788,7 @@ impl MobileEngine {
     }
 
     pub async fn recovery_status(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| Box::pin(async { c.recovery_status().await }))
+        self.held_object(|h| Box::pin(async { dmsg_client::recovery::status(h).await }))
             .await
     }
 

@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 45] = [
+pub(crate) const METHODS: [&str; 46] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -63,6 +63,7 @@ pub(crate) const METHODS: [&str; 45] = [
     "files/backup_cancel",
     "files/backup_run",
     "files/cloud_list",
+    "files/cloud_status",
     "files/cloud_refresh",
     "files/cloud_fetch",
     "files/cloud_delete",
@@ -91,6 +92,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/local_only"
         | "files/backup_status"
         | "files/cloud_list"
+        | "files/cloud_status"
         | "files/cloud_usage"
         | "files/share_links"
         | "files/storage"
@@ -293,6 +295,7 @@ impl Daemon {
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
             "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
+            "files/cloud_status" => client.files_cloud_observation(),
             "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
             _ => Err(Error::NotFound),
         }
@@ -441,7 +444,23 @@ impl Daemon {
                     let turn = self.turn("backup").await;
                     to_json(&self.backup_pass(turn, None).await?)
                 }
-                "files/cloud_refresh" => to_json(&cloud::cloud_refresh(&h).await?),
+                "files/cloud_refresh" => {
+                    let requested = dmsg_client::now_ms();
+                    let session = h.with(|c| c.display_session()).await?;
+                    let scoped = dmsg_client::display::Scoped { inner: &h, session };
+                    let _turn = self.turn("files-cloud-inventory").await;
+                    let observed = scoped.with(|c| c.files_cloud_observation()).await?;
+                    if observed["observed_at_ms"]
+                        .as_u64()
+                        .is_some_and(|at| at >= requested)
+                        || (params["force"] == false
+                            && !scoped.with(|c| c.files_cloud_stale()).await?)
+                    {
+                        json!({"cached":true})
+                    } else {
+                        to_json(&cloud::cloud_refresh(&scoped).await?)
+                    }
+                }
                 "files/cloud_fetch" => {
                     let upload = text(params, "upload_id")?;
                     let target = match params["folder"].is_null() {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { display, watchDisplays, type Mode } from '../display.svelte'
+  import DisplayNotice from '../components/DisplayNotice.svelte'
   import TextField from '../components/TextField.svelte'
   import TextArea from '../components/TextArea.svelte'
 
@@ -114,11 +116,11 @@
     void avatarOf(document)
   }
 
-  const loadDocument = single(async () => {
+  const loadDocument = single(async (mode: Mode = 'swr') => {
     if (!alive) return
     try {
-      const document = await call('profile/show')
-      if (alive) { show(document); loaded.document = true; loadErrors.document = '' }
+      const document = await display('profile/show', {}, mode)
+      if (alive) { if (!editing) show(document); loaded.document = true; loadErrors.document = '' }
     } catch (e) { if (alive) loadErrors.document = errorText(e) }
   })
   const loadStatus = single(async () => {
@@ -199,7 +201,7 @@
     }
     pending = false
     fromLegacy = false
-    show(await call('profile/show'))
+    show(await display('profile/show', {}, 'fresh'))
   })
 
   function changeLinkUrl(index: number, url: string) {
@@ -227,7 +229,9 @@
   }
 
   onMount(() => {
+    const stopDisplay = watchDisplays(['profile-document'], (mode) => loadDocument(mode))
     if (status?.state === 'unlocked') void load()
+    return stopDisplay
   })
 </script>
 
@@ -239,6 +243,7 @@
   {/if}
 {/snippet}
 
+<DisplayNotice methods={['profile/show']} />
 {#if error && !editing}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}<button class={buttonClass('secondary','sm')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
 <Section title={t('publicProfile')} icon="profile" testid="profile-summary">

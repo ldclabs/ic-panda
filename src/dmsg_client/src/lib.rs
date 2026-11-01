@@ -56,6 +56,7 @@ pub mod safety;
 pub mod secrets;
 pub mod secure;
 pub mod security;
+pub mod snapshot;
 pub mod store;
 pub mod succession;
 pub mod sync;

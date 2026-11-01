@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AccountSecurityView: View {
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
     @State private var security: SecurityInfo?
     @State private var request: ApprovalView?
     @State private var token = ""
@@ -14,6 +15,7 @@ struct AccountSecurityView: View {
     struct SecurityInfo: Decodable { let logins: [Login]; let recoveryDelayMs: UInt64; let recoveryEnabled: Bool; let recoveryUpdating: Bool; let pendingRecovery: Recovery? }
     var body: some View {
         Form {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
             Section { NotificationSetupPrompt { settingUp = true } }
             Section("Login identities") {
                 ForEach(security?.logins ?? []) { login in
@@ -48,27 +50,21 @@ struct AccountSecurityView: View {
                     } }
                 }
             }
-        }.privateScreen().navigationTitle("Account security").task { await load() }.refreshable { await load() }
+        }.privateScreen().navigationTitle("Account security").task { await load() }.refreshable { await load(force: true) }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }
             }
             .navigationDestination(isPresented: $settingUp) { NotificationSettingsView() }
     }
-    private func load() async {
-        let epoch = model.epoch
-        do {
-            if let result = try await model.engine?.security() {
-                guard epoch == model.epoch, !Task.isCancelled else { return }
-                let next: SecurityInfo = try model.decode(result)
-                // A newly bound login can start a recovery: offer security alerts again.
-                if let previous = security, next.logins.count > previous.logins.count, let account = model.session?.account {
-                    model.setNotificationSetupDismissed(false, account: account)
-                }
-                security = next; delay = Int(next.recoveryDelayMs / 86_400_000); recoveryEnabled = next.recoveryEnabled
-                await model.refreshRecoveryWarning()
-                await model.notifications.refresh(model)
+    private func load(force: Bool = false) async {
+        await display.load(model, kind: "account", force: force) { (next: SecurityInfo) in
+            let editing = security != nil && (recoveryEnabled != security?.recoveryEnabled || delay != Int((security?.recoveryDelayMs ?? 0) / 86_400_000))
+            if let previous = security, next.logins.count > previous.logins.count, let account = model.session?.account {
+                model.setNotificationSetupDismissed(false, account: account)
             }
-        } catch { if epoch == model.epoch { model.report(error) } }
+            security = next
+            if !editing { delay = Int(next.recoveryDelayMs / 86_400_000); recoveryEnabled = next.recoveryEnabled }
+        }
     }
     private func reviewRecovery() async {
         guard !busy, let security else { return }

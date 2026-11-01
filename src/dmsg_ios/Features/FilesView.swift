@@ -1,4 +1,5 @@
 import SwiftUI
+@preconcurrency import DMsgCore
 import UniformTypeIdentifiers
 import QuickLook
 import PhotosUI
@@ -131,7 +132,7 @@ struct FileRow: View {
             ObjectIcon(glyph: file.mime.hasPrefix("image/") ? .image : .file)
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.name).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file) + " · " + (file.status == "backed_up" ? String(localized: "Backed up") : String(localized: "Local")))
+                Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file) + " · " + file.statusLabel)
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -144,6 +145,8 @@ struct FileDetailView: View {
     @Environment(SessionModel.self) private var model
     @State private var preview: SharedFile?
     @State private var sharing: SharedFile?
+    @State private var restored = false
+    @State private var needsRestore = false
     @State private var confirmBackup = false
     @State private var working = false
     @State private var openedNonce: String?
@@ -159,12 +162,15 @@ struct FileDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(file.name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                     Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file)).font(.subheadline).foregroundStyle(.secondary)
-                    Text(LocalizedStringKey(file.status == "backed_up" ? "Backed up" : "On this device")).font(.caption).foregroundStyle(Theme.forest)
+                    Text(restored ? String(localized: "On this device") : needsRestore ? String(localized: "File not available on this device") : file.statusLabel).font(.caption).foregroundStyle(Theme.forest)
                 }
             }.listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
-                Button("Preview file", systemImage: "doc.text.magnifyingglass") { actionTask = Task { await open(share: false) } }
-                Button("Share a copy", systemImage: "square.and.arrow.up") { actionTask = Task { await open(share: true) } }
+                Button("Preview file", systemImage: "doc.text.magnifyingglass") { actionTask = Task { await open(share: false) } }.disabled(needsRestore || (!file.canOpen && !restored))
+                Button("Share a copy", systemImage: "square.and.arrow.up") { actionTask = Task { await open(share: true) } }.disabled(needsRestore || (!file.canOpen && !restored))
+                if needsRestore || (!file.canOpen && !restored) {
+                    Button("Restore to this device") { actionTask = Task { await restore() } }
+                }
                 if !historical {
                     Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { confirmBackup = true }
                     NavigationLink("Manage file") { FileManagementView(file: file) }
@@ -200,6 +206,26 @@ struct FileDetailView: View {
             let url = URL(fileURLWithPath: opened.path)
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
             if share { sharing = SharedFile(url: url) } else { preview = SharedFile(url: url) }
+        } catch {
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            if case MobileError.Failure(let code) = error, ["NOT_FOUND", "INTEGRITY_FAILED"].contains(code) { needsRestore = true }
+            model.report(error)
+        }
+    }
+
+    private func restore() async {
+        guard let engine = model.engine else { return }
+        let epoch = model.epoch
+        working = true; defer { working = false }
+        await model.loadCloudBackups(refresh: true)
+        guard epoch == model.epoch, !Task.isCancelled else { return }
+        guard let backup = model.cloudBackups.first(where: { $0.fileId == file.id && $0.versionId == file.current }) else {
+            model.notice = String(localized: "File not available on this device"); return
+        }
+        do {
+            _ = try await model.transfer.run(file.name) { try await engine.restoreBackup(upload: backup.id, folder: model.filesFolder, operation: $0) }
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            restored = true; needsRestore = false; await model.refresh()
         } catch { model.report(error) }
     }
 

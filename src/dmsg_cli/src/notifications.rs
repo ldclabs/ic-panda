@@ -118,17 +118,8 @@ pub(crate) async fn inbox_run(d: Arc<Daemon>) {
             d.note_result("notifications/capabilities", &result);
             d.notifications.receive.notify_one();
         }
-        let result = dmsg_client::inbox::sync(&h, 10).await;
-        d.note_result("notifications/inbox", &result);
-        if let Ok(report) = result {
-            if !report.changed.is_empty() {
-                d.emit("inbox/changed", json!({"synced":true}));
-            }
-            if report.more {
-                d.notifications.inbox.notify_one();
-                tokio::task::yield_now().await;
-            }
-        }
+        // A notification is a signal to visible views, not a content fetch.
+        d.emit("inbox/hint", Value::Null);
     }
 }
 

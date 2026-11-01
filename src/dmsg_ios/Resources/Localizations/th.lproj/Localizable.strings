@@ -236,6 +236,8 @@
 	<string>เริ่มการถ่ายโอนเบื้องหลังแล้ว ตรวจสอบความคืบหน้าในการโอน</string>
 	<key>Backing up…</key>
 	<string>กำลังสำรองข้อมูล...</string>
+	<key>Backup failed</key>
+	<string>สำรองข้อมูลไม่สำเร็จ</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>บันทึกความคืบหน้าในการสำรองข้อมูลแล้ว ตรวจสอบสถานะไฟล์ว่าเสร็จสมบูรณ์</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>ออกอากาศธุรกรรมที่ลงนามต้นฉบับ</string>
 	<key>Browser request</key>
 	<string>คำขอเบราว์เซอร์</string>
+	<key>Cached data</key>
+	<string>ข้อมูลแคช</string>
 	<key>Cancel</key>
 	<string>ยกเลิก</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>เลือกเวอร์ชันที่จะเก็บไว้ ประวัติศาสตร์ที่มีอยู่จะถูกเก็บรักษาไว้ ความลับไม่เคยถูกเขียนทับอย่างเงียบๆ</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>เลือกผู้ที่อาจส่งจดหมายถึงคุณฟรี บัญชีที่ถูกบล็อกจะยังคงถูกบล็อกจนกว่าคุณจะปลดบล็อก</string>
+	<key>Clear cached data</key>
+	<string>ล้างแคช</string>
 	<key>Closed</key>
 	<string>ปิดแล้ว</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>เปิดใช้งาน dMsg ในการตั้งค่าป้อนอัตโนมัติ</string>
 	<key>Encrypted backup</key>
 	<string>การสำรองข้อมูลที่เข้ารหัส</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>ดาวน์โหลดข้อมูลการแสดงผลที่เข้ารหัส ไฟล์แนบในแคช และรายการไฟล์คลาวด์ใหม่ได้ คลังลับ ข้อความ คลังไฟล์ในเครื่อง และงานที่ยังไม่ซิงค์จะยังคงอยู่</string>
 	<key>Encrypting</key>
 	<string>กำลังเข้ารหัส</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>ทำสิ่งนี้เมื่อคุณพร้อมที่จะใช้เท่านั้น สำเนาจะยังคงอยู่ในอุปกรณ์นี้และหมดอายุหลังจากผ่านไป 30 วินาที</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>ที่นี่รองรับเฉพาะการติดต่อแบบฟรีเท่านั้น การดำเนินการนี้ไม่สามารถชำระหรืออนุมัติค่าธรรมเนียมของผู้รับได้</string>
+	<key>Only in cloud</key>
+	<string>อยู่บนคลาวด์เท่านั้น</string>
 	<key>Only on this device</key>
 	<string>อยู่บนอุปกรณ์นี้เท่านั้น</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>ยินดีต้อนรับกลับ</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>ยินดีต้อนรับสู่การสาธิตในท้องถิ่น ข้อความเหล่านี้จะยังคงอยู่ในหน้าจอนี้</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>ขณะที่เปิดและปลดล็อก dMsg การแก้ไขที่เข้ารหัสแล้วจะถูกอัปโหลด และข้อความกับคำขออนุมัติจะอัปเดต การสำรองไฟล์ยังต้องยืนยันแยกต่างหาก คุณปิดการตั้งค่านี้ได้ทุกเมื่อ</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>เมื่อเปิด dMsg และปลดล็อกอยู่ คลังลับจะซิงค์อัตโนมัติ ข้อความจะอัปเดตเมื่อเปิดการสนทนาหรือกล่องขาเข้า การสำรองไฟล์ยังต้องยืนยันแยกต่างหาก คุณปิดการซิงค์อัตโนมัติได้ทุกเมื่อ</string>
 	<key>Who may contact you</key>
 	<string>ใครสามารถติดต่อคุณได้</string>
 	<key>Withdraw</key>

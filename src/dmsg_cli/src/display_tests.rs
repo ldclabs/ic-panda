@@ -484,7 +484,7 @@ async fn real_electron_cached_profile_and_reconnection() {
 }
 
 #[tokio::test]
-async fn pending_connect_checks_measure_the_existing_serialized_wait() {
+async fn pending_connect_checks_do_not_block_local_content() {
     let dir = testing::TempDir::new();
     let (d, _) = fixture(&dir);
     let relay = tokio::net::TcpListener::bind(("127.0.0.1", 0))
@@ -501,7 +501,7 @@ async fn pending_connect_checks_measure_the_existing_serialized_wait() {
     }
     let checking = tokio::spawn({
         let d = d.clone();
-        async move { d.under_lock(async |c| c.connect_entries(0).await).await }
+        async move { dmsg_client::connect::entries(&d.hold(), 0).await }
     });
     let (_socket, _) = tokio::time::timeout(Duration::from_secs(3), relay.accept())
         .await
@@ -512,12 +512,18 @@ async fn pending_connect_checks_measure_the_existing_serialized_wait() {
         let d = d.clone();
         async move { d.profile_display().await }
     });
-    tokio::time::sleep(Duration::from_millis(120)).await;
-    assert!(!read.is_finished(), "this legacy path is still serialized");
+    assert_eq!(
+        tokio::time::timeout(Duration::from_millis(500), read)
+            .await
+            .expect("local reads do not wait on the relay")
+            .unwrap()
+            .unwrap()["name"],
+        "Cached Person"
+    );
+    assert!(!checking.is_finished());
     checking.abort();
-    assert_eq!(read.await.unwrap().unwrap()["name"], "Cached Person");
     println!(
-        "existing connect-entry network wait: local profile read waited {} ms (network wait cancelled after 120 ms)",
+        "local profile answered beside a stalled mailbox in {} ms",
         start.elapsed().as_millis()
     );
 }

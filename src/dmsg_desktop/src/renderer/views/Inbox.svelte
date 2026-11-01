@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { watchContent } from '../content-refresh'
   import Notice from '../components/page/Notice.svelte'
   import { Tabs } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
@@ -85,7 +86,7 @@
 
   const refreshLetters = single(async () => {
     const at = generation
-    if (!valid(at)) return
+    if (!valid(at) || document.visibilityState !== 'visible' || document.body.inert) return
     refreshing = true
     try {
       const next = await call('inbox/list')
@@ -97,6 +98,7 @@
       if (!valid(at)) return
       error = closed(e, status) ? 'LOCKED' : errorText(e)
       if (error === 'LOCKED') letters = outgoing = []
+      else { const cached = await call('inbox/list', { refresh: false }).catch(() => null); if (valid(at) && cached) letters = cached }
     } finally {
       if (valid(at)) refreshing = false
     }
@@ -121,9 +123,10 @@
       const cached = await call('inbox/list', { refresh: false })
       if (!valid(at)) return
       letters = cached
-      loaded = true
+      const observation = await call<{complete: boolean}>('inbox/status')
+      if (!valid(at)) return
+      loaded = cached.length > 0 || observation.complete
       error = ''
-      void refreshLetters()
     } catch (e) {
       if (valid(at)) error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
@@ -139,7 +142,7 @@
       policy = null
       loaded = refreshing = policyReady = busy = writing = ruling = false
       error = unlocked ? '' : 'LOCKED'
-      if (unlocked) { void reload(); void loadPolicy() }
+      if (unlocked) { void reload().then(() => refreshLetters()); void loadPolicy() }
     })
   })
 
@@ -182,6 +185,7 @@
     })
 
   onMount(() => {
+    const stopContent = watchContent('inbox', () => unlocked ? 'inbox' : null, () => refreshLetters())
     const stop = watchDisplays(['inbox-policy'], (mode) => loadPolicy(mode))
     const off = window.dmsg.onEvent((event) => {
       if (event.type === 'approval/changed') { void loadOutgoing(); return }
@@ -189,7 +193,7 @@
       const detail = event.data as { method?: string; hint?: boolean } | null
       if (event.type === 'resync' || (event.type === 'inbox/changed' && (detail?.method === 'inbox/configure' || detail?.hint))) void loadPolicy()
     })
-    return () => { alive = false; generation += 1; off(); stop() }
+    return () => { alive = false; generation += 1; off(); stop(); stopContent() }
   })
 
   const tabClass =
@@ -200,11 +204,11 @@
   <bdi dir="ltr" class="font-mono text-[12.5px]">{shortId(account)}</bdi>
 {/snippet}
 
-<div class="@container flex h-full min-h-0" data-testid="inbox">
+<div class="@container flex h-full min-h-0 flex-wrap" data-testid="inbox">
   {#if error === 'LOCKED'}
     <Locked {status} testid="inbox-locked" />
   {:else}
-    <section class="flex w-[280px] shrink-0 flex-col border-e border-line @min-[900px]:w-[320px]">
+    <section class="flex h-[38%] min-h-0 w-full shrink-0 flex-col border-b border-line @min-[760px]:h-full @min-[760px]:w-[280px] @min-[760px]:border-b-0 @min-[760px]:border-e @min-[1000px]:w-[320px]">
       <div class="grid gap-2 p-3 pb-2">
         <div class="flex items-center gap-1.5">
           {#if unlocked}
@@ -237,7 +241,7 @@
           </Tabs.List>
         </Tabs.Root>
       </div>
-      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error}{#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={refreshing} onclick={() => refreshLetters()}>{t('retry')}</button>{/snippet}</Notice>{/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}
@@ -276,26 +280,26 @@
         {:else}
           <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
             <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="inbox" /></span>
-            <p class="text-[13px] text-muted">{!loaded || (refreshing && box !== 'sent') ? t('loading') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
+            <p class="text-[13px] text-muted">{!loaded && error ? t('serviceUnavailable') : !loaded || (refreshing && box !== 'sent') ? t('loading') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
           </li>
         {/each}
       </ul>
     </section>
 
-    <section class="min-w-0 flex-1 overflow-y-auto">
+    <section class="h-[62%] min-w-0 w-full overflow-y-auto @min-[760px]:h-full @min-[760px]:w-auto @min-[760px]:flex-1">
       {#if missingNotice}<div class="p-5"><Notice>{t('noticeEnded')}</Notice></div>{/if}
       {#if letter}
-        <article class="mx-auto max-w-2xl px-8 py-6" data-testid="letter">
-          <header class="flex items-start gap-3">
+        <article class="mx-auto max-w-2xl px-4 py-5 @min-[900px]:px-8" data-testid="letter">
+          <header class="flex flex-wrap items-start gap-3">
             <Avatar id={letter.sender} size="lg" />
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1 basis-40">
               <button class="max-w-full truncate font-mono text-[13px] font-medium outline-none hover:text-forest focus-visible:underline" title={t('copy')} onclick={() => copyText(letter.sender)}>
                 <bdi dir="ltr">{letter.sender}</bdi>
               </button>
               <p class="text-[12px] text-faint">{when(letter.created_at)}</p>
             </div>
             {#if unlocked}
-              <div class="flex shrink-0 gap-1">
+              <div class="flex w-full flex-wrap gap-1 @min-[1000px]:w-auto">
                 {#if !letter.read}
                   <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => mark(letter, true, letter.archived)} data-testid="letter-read">
                     <Icon name="check" />{t('markRead')}
@@ -320,9 +324,9 @@
         </article>
       {:else if order}
         <article class="mx-auto grid max-w-2xl gap-4 px-8 py-6" data-testid="sent-letter">
-          <header class="flex items-start gap-3">
+          <header class="flex flex-wrap items-start gap-3">
             <Avatar id={order.recipient} size="lg" />
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1 basis-40">
               <p class="text-[12px] text-faint">{t('to')}</p>
               <bdi dir="ltr" class="block truncate font-mono text-[13px] font-medium">{order.recipient}</bdi>
             </div>

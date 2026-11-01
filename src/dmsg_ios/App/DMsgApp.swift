@@ -50,7 +50,14 @@ struct DMsgApp: App {
                     guard model.automaticSyncEnabled, model.unlocked, scenePhase == .active else { return }
                     while !Task.isCancelled {
                         await model.automaticSyncPass()
-                        do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                        do { try await Task.sleep(for: .seconds(2)) } catch { break }
+                    }
+                }
+                .task(id: "maintenance:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    while !Task.isCancelled {
+                        await model.maintenancePass()
+                        do { try await Task.sleep(for: .seconds(60)) } catch { break }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in

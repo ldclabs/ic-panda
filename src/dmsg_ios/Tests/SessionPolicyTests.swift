@@ -190,17 +190,14 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertEqual(model.drafts["two"], "other channel")
     }
 
-    func testChannelBatchesPrioritizeTheVisibleChannelWithoutStarvingOthers() {
-        let ids = (0..<8).map(String.init)
-        var visited = Set<String>()
-        for cursor in [0, 3, 6] {
-            let batch = SessionModel.channelBatch(ids, active: "0", cursor: cursor, limit: 4)
-            XCTAssertEqual(batch.first, "0")
-            XCTAssertEqual(Set(batch).count, batch.count)
-            visited.formUnion(batch)
+    func testFileAvailabilityDoesNotConfuseCloudBackupsWithLocalCopies() throws {
+        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+        func file(_ status: String, local: Bool) throws -> LibraryFile {
+            try decoder.decode(LibraryFile.self, from: Data("{\"id\":\"f\",\"name\":\"test\",\"mime\":\"text/plain\",\"size\":4,\"current\":\"v\",\"sha256\":\"hash\",\"status\":\"\(status)\",\"versions\":1,\"local\":\(local)}".utf8))
         }
-        XCTAssertEqual(visited, Set(ids))
-        XCTAssertEqual(SessionModel.channelBatch([], active: nil, cursor: 0, limit: 4), [])
+        XCTAssertFalse(try file("cloud_only", local: false).canOpen)
+        XCTAssertTrue(try file("backed_up", local: true).canOpen)
+        XCTAssertTrue(try file("failed", local: true).canOpen, "a failed backup must not hide the local copy")
     }
 
     func testStagingStoresDestinationAndStartupRemovesOnlyPreviewCopies() throws {

@@ -430,8 +430,7 @@ It does not select files for backup. Files require their own explicit selection
 and confirmation.
 
 Manual synchronization shows an activity indicator until completion or failure.
-Both manual and automatic synchronization refresh the verified cloud-backup
-inventory. Files lists cloud backups directly alongside local content; restoring
+Vault synchronization publishes completion before independent maintenance work. It does not fetch channel/Inbox bodies or cloud-backup inventory. Files reads its saved cloud inventory first and refreshes it while that screen is in use; restoring
 file bytes onto this device remains an explicit action. The Account header reads
 the official public name and avatar, with anonymous, bounded avatar downloads and
 an explicit retry when loading fails.
@@ -556,3 +555,33 @@ distribution eligibility. Check compiler extraction and offline policy parity wi
     python3 scripts/ios/localizations.py --derived-data src/dmsg_ios/.build/ReviewDerivedData
 
 Implementation and review: Codex (OpenAI), 2026-10-27.
+
+### Cache and offline reading (2026-11-01)
+
+`DisplayLoad` paints the LDK-encrypted Rust snapshot before refreshing a visible
+profile, device/recovery/security, Inbox-rule, plan or wallet page. Failure preserves
+saved values and drafts; a missing observation is distinct from a known empty list.
+Account → Cached data reports and clears reconstructible snapshots, attachment
+copies and cloud inventory. Vault/message records, file-library copies and unsynced
+work are not cache-clear targets. Unlocked memory and temporary OS preview files
+have their existing lifecycle; the entire SQLite file is not claimed to be encrypted.
+
+Vault synchronization detects local edits during the foreground loop, coalesces
+manual/automatic passes and polls idle accounts less often. Channel and Inbox body
+increments run only in their visible views, with a 30-second fallback; notification
+refresh never pulls bodies. File backup and restore remain explicit. A cloud-only
+file has a restore action and cannot be previewed as a complete local file.
+
+Rebuild the Rust bridge with `scripts/ios/build-core.sh` before simulator validation.
+Rust workspace/host tests cover offline attachment reopening, cache-clear retention,
+late-write fencing and local reads alongside a stalled network request. Swift tests
+cover wire decoding, lifecycle and local/cloud file availability; UI fixtures cover
+presentation only and do not prove production-network or physical-device behavior.
+
+Validation on 2026-11-01 rebuilt both native slices and checked their source
+fingerprint. On iPhone 17e / iOS 27.0 Simulator, all 47 Swift unit tests and seven
+selected NavigationTests passed (54 total). The selected UI tests cover the cache
+explanation in English, Chinese, French and Arabic, dark/light appearance, long
+profile names, manual-sync presentation, file detail/cloud inventory and read-only
+plans. These are synthetic UI fixtures; physical hardware unlock, prolonged
+background execution and live two-device cloud tests were not run.

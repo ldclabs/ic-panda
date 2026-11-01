@@ -4,6 +4,8 @@ import SwiftUI
 struct WalletControlsView: View {
     let wallet: String
     @Environment(SessionModel.self) private var model
+    @State private var display = DisplayLoad()
+    @State private var balanceDisplay = DisplayLoad()
     @State private var details: Details?
     @State private var balances: DisplayValue?
     @State private var chain = "Icp"
@@ -30,6 +32,8 @@ struct WalletControlsView: View {
     }
     var body: some View {
         Form {
+            DisplayLoadStatus(state: display) { Task { await load(force: true) } }
+            DisplayLoadStatus(state: balanceDisplay) { Task { await readBalances() } }
             NoticeBar(text: String(localized: "Changes create proposals and still require the wallet's existing approvals. Existing policy fields and member agent permissions are preserved."))
             if let details {
                 Section("Receiving addresses") {
@@ -106,18 +110,15 @@ struct WalletControlsView: View {
                 } }
             }
     }
-    private func load() async {
-        guard let engine = model.engine else { return }; let epoch = model.epoch
-        do {
-            let value: Details = try model.decode(try await engine.walletDetails(wallet: wallet))
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            details = value; approvers = value.policy.approverThreshold; administrators = value.policy.adminThreshold
-        } catch { if epoch == model.epoch { model.report(error) } }
+    private func load(force: Bool = false) async {
+        await display.load(model, kind: "wallet", id: wallet, force: force) { (value: Details) in
+            let editing = details != nil && (approvers != details?.policy.approverThreshold || administrators != details?.policy.adminThreshold)
+            details = value
+            if !editing { approvers = value.policy.approverThreshold; administrators = value.policy.adminThreshold }
+        }
     }
     private func readBalances() async {
-        guard let engine = model.engine, !working else { return }; let epoch = model.epoch; working = true; defer { working = false }
-        do { let value = try await engine.walletBalances(wallet: wallet); if epoch == model.epoch { balances = try model.decode(value) } }
-        catch { if epoch == model.epoch { model.report(error) } }
+        await balanceDisplay.load(model, kind: "balances", id: wallet, force: true) { (next: DisplayValue) in balances = next }
     }
     private func submit(_ change: WalletChange?) async {
         guard let engine = model.engine, !working else { return }; let epoch = model.epoch; working = true; confirming = nil; model.activity(); defer { working = false }

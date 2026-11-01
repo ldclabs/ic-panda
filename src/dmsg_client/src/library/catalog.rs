@@ -235,6 +235,8 @@ pub struct FileView {
     pub versions: usize,
     /// When it was trashed.
     pub trashed_at: Option<u64>,
+    /// This version has a local copy, independent of backup progress.
+    pub local: bool,
     /// The current version's status.
     pub status: &'static str,
     /// The current version's backup.
@@ -578,6 +580,7 @@ impl Catalog {
             current: file.current.clone(),
             versions: file.versions.len(),
             trashed_at: file.trashed_at,
+            local: current.local,
             status: current.status(),
             backup: current.backup.clone(),
             path: self.path(&file.folder),

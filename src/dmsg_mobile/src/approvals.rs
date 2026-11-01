@@ -60,9 +60,20 @@ impl MobileEngine {
         approve: bool,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
-        operation
+        let result = operation
             .run(self.decide_reviewed(id, digest, approve))
-            .await
+            .await;
+        if approve {
+            let _ = self
+                .held(|h| {
+                    Box::pin(async {
+                        h.with(|c| c.cache_invalidate(dmsg_client::cache::KINDS))
+                            .await
+                    })
+                })
+                .await;
+        }
+        result
     }
 }
 

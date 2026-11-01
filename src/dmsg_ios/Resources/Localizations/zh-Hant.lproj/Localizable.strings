@@ -236,6 +236,8 @@
 	<string>背景傳輸已啟動，請在「傳輸」中檢視進度。</string>
 	<key>Backing up…</key>
 	<string>備份中…</string>
+	<key>Backup failed</key>
+	<string>備份失敗</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>備份進度已儲存，請在檔案狀態中檢視是否完成。</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -268,6 +270,8 @@
 	<string>廣播原已簽名交易</string>
 	<key>Browser request</key>
 	<string>瀏覽器請求</string>
+	<key>Cached data</key>
+	<string>快取資料</string>
 	<key>Cancel</key>
 	<string>取消</string>
 	<key>Cancel background transfer</key>
@@ -360,6 +364,8 @@
 	<string>選擇要保留的版本。現有歷史會繼續儲存，秘密不會被靜默覆蓋。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>選擇誰可以向你免費傳送來信。已封鎖帳號會保持封鎖，直到你解除。</string>
+	<key>Clear cached data</key>
+	<string>清除快取</string>
 	<key>Closed</key>
 	<string>關閉</string>
 	<key>Cloud backups</key>
@@ -662,6 +668,8 @@
 	<string>在自動填充設定中啟用 dMsg</string>
 	<key>Encrypted backup</key>
 	<string>加密備份</string>
+	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
+	<string>加密的顯示資料、附件快取和雲端檔案目錄可以重新下載。清除後保留保險庫、訊息、本機檔案庫和未同步的內容。</string>
 	<key>Encrypting</key>
 	<string>正在加密</string>
 	<key>Engine</key>
@@ -1150,6 +1158,8 @@
 	<string>請在準備使用時操作。複製內容僅保留在本機，30 秒後過期。</string>
 	<key>Only free contact is supported here. This action cannot pay or approve a recipient's fee.</key>
 	<string>此處僅支援免費聯絡，不能支付或批准收件人的費用。</string>
+	<key>Only in cloud</key>
+	<string>僅在雲端</string>
 	<key>Only on this device</key>
 	<string>僅在本裝置</string>
 	<key>Only outputs at least %lld blocks deep move now; each other output shows the block from which it can.</key>
@@ -2264,8 +2274,8 @@
 	<string>歡迎回來。</string>
 	<key>Welcome to the local demo. These messages stay in this screen.</key>
 	<string>歡迎體驗本機演示，這些訊息僅保留在此頁面。</string>
-	<key>While dMsg is open and unlocked, encrypted edits will upload and messages and approvals will refresh. File backups still require a separate confirmation. You can turn this off at any time.</key>
-	<string>dMsg 在前臺且已解鎖時，會上傳加密後的修改並更新訊息和審批。檔案備份仍須單獨確認。你可以隨時關閉。</string>
+	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
+	<string>dMsg 開啟且已解鎖時，保險庫會自動同步。進入對話或收件匣後才會更新訊息。檔案備份仍需另行確認。你可以隨時關閉自動同步。</string>
 	<key>Who may contact you</key>
 	<string>誰可以聯絡你</string>
 	<key>Withdraw</key>
