@@ -45,12 +45,12 @@ trap 'rm -rf "$WORK"' EXIT
 
 # Homebrew style keeps url/sha256 out of on_macos: the macOS binary is the
 # top-level url and on_linux overrides it per architecture.
+# The bare release tag in each URL supplies the formula version.
 cat >"${WORK}/dmsg.rb" <<EOF
 class Dmsg < Formula
   desc "CLI and daemon for the private dMsg workspace and its agents"
   homepage "https://dmsg.net/"
   url "${BASE_URL}/dmsg-macos-arm64", using: :nounzip
-  version "${VERSION}"
   sha256 "${MACOS_ARM64}"
   license "Apache-2.0"
 
