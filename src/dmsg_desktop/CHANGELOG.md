@@ -29,6 +29,9 @@ where the client depends on them.
 
 ### Fixes
 
+- Notification settings stay on the current account instead of offering a
+  separate account picker. Agent Mail alerts use individual rows with
+  wrapping names, copyable IDs and an explicit empty state.
 - Recover stalled HTTP/2 connections after a network change, allowing read
   retries to reconnect within their existing retry budget. Writes with an
   uncertain outcome are not automatically replayed.

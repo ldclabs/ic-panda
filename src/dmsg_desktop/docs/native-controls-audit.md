@@ -4,6 +4,24 @@
 原始 9 项整改、11 处特殊控件/交互，以及设置的 17 处直接文本输入均已完成代码整改。
 实际交互验证使用构建后的 Electron 与隔离的本地 mock daemon，不操作真实账户。
 
+## 2026-11-01 通知设置增量
+
+基于 `main@c7fb38bd`。通知页移除独立账户选择器，读写跟随当前会话；
+账户 ID 使用共享 `Id`，仅查看与复制。Agent Mail 使用带 legend 的 fieldset
+和逐行列表，复用 `Checkbox`、`Id`，长名称换行，无 Agent 时显示明确空态。
+
+- `pnpm check`、151 项 `pnpm test`、`pnpm build` 通过；`pnpm audit:controls`
+  报告 0 处未经批准的原生控件。
+- `DMSG_DESKTOP_SMOKE=notifications DMSG_DESKTOP_NOTIFICATION_FOCUS=mock node scripts/smoke.mjs`
+  通过：当前账户读写、会话切换与旧读取回包隔离、空格键选择、等待时禁用、
+  保存失败保留草稿与重试、空 Agent/无账户状态，以及现有通知联动与关联确认。
+- 检查英文常规窗口、中文明暗主题、德语长文案、阿拉伯语 RTL 的截图，
+  并检查保存等待和空列表状态；窄窗口为 760×540，长名称含无空格文本。
+  截图在本地 `test-results/notifications-*.png`，不提交测试账户图片。
+- 原生焦点模式未通过环境前置检查（窗口可见但 macOS 不授予焦点），
+  通过的回归使用现有焦点模拟模式；真实系统通知、远端推送、签名发布包和
+  Windows/Linux 未在本次验证中运行。
+
 ## 2026-11-01 Beta 更新通道增量
 
 基于 `main@83f6548b` 的工作区增量。「关于 dMsg」复用共享 `Checkbox`、

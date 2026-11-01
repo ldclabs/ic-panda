@@ -12,7 +12,6 @@
   import { toast } from '../components/toast.svelte'
   import { call, code, errorText, when } from '../rpc'
   import { t, stateLabel, type Label } from '../i18n/index.svelte'
-  import { shortId } from '../shell/session'
   import { tomorrowMorning } from '../../shared/notification-time'
   import { noticeCategories, type GlobalNoticeSettings, type NoticeCategory, type NoticePermission, type NoticePreferences, type NoticeSettings, type NoticeStatus } from '../../shared/notifications'
 
@@ -20,8 +19,7 @@
   let preferences = $state<NoticePreferences | null>(null)
   let global = $state<GlobalNoticeSettings | null>(null)
   let account = $state<NoticeSettings | null>(null)
-  let selected = $state('')
-  let accounts = $state<{ account: string; bound: boolean }[]>([])
+  const accountId = $derived(status?.account ?? '')
   let agents = $state<{ agent_id: string; label: string }[]>([])
   let permission = $state<NoticePermission | null>(null)
   /** Other local accounts already receiving notifications on this device. */
@@ -40,20 +38,18 @@
   const valid = (turn: number) => alive && generation === turn
   function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T }
 
-  async function load(id = selected, replace = true) {
-    const turn = ++generation
+  async function load(replace = true) {
+    const turn = ++generation, id = accountId
     loading = true
     error = ''
     try {
-      const [next, local, platform, counts] = await Promise.all([
+      const [next, platform, counts] = await Promise.all([
         call<NoticePreferences>('notifications/settings', id ? { account: id } : {}),
-        call<{ account: string; bound: boolean }[]>('session/accounts'),
         window.dmsg.notificationPermission(),
         call<NoticeStatus>('notifications/status')
       ])
       if (!valid(turn)) return
       preferences = next
-      accounts = local.filter((entry) => entry.bound)
       others = counts.accounts.filter((entry) => entry.enabled && entry.account !== id).map((entry) => entry.account)
       permission = platform
       if (replace || !global) global = clone(next.global)
@@ -70,13 +66,17 @@
 
   $effect(() => {
     void scope
-    untrack(() => { selected = status?.account ?? ''; void load(selected) })
+    untrack(() => {
+      preferences = null; global = null; account = null; agents = []
+      others = []; linking = false; busy = false
+      void load()
+    })
   })
 
   onMount(() => {
     const off = window.dmsg.onEvent((event) => {
       if (event.type === 'notifications/changed' && !busy && !loading) {
-        const turn = generation, id = selected, keepDraft = dirty
+        const turn = generation, id = accountId, keepDraft = dirty
         void call<NoticePreferences>('notifications/settings', id ? { account: id } : {}).then((next) => {
           if (!valid(turn) || busy) return
           const preserve = keepDraft || dirty
@@ -96,15 +96,15 @@
     if (!global) return
     global.enabled = value
     // The first explicit opt-in selects only the current account.
-    if (value && preferences?.global.revision === 0 && account?.revision === 0 && selected === status?.account) account.enabled = true
+    if (value && preferences?.global.revision === 0 && account?.revision === 0) account.enabled = true
   }
 
   async function save(linked = false) {
-    if (!preferences || !global || busy) return
+    if (!preferences || !global || busy || loading) return
     // Registering another account tells the notification service and the push
     // provider that these accounts share this device; that needs consent.
     if (!linked && account?.enabled && !preferences.account?.enabled && others.length) { linking = true; return }
-    const turn = generation, id = selected
+    const turn = generation, id = accountId, origin = scope
     busy = true
     error = ''
     try {
@@ -124,9 +124,9 @@
       if (!valid(turn)) return
       // Re-read the version after a conflict, retaining the person's draft. A
       // second explicit Save is required; no automatic overwrite/retry occurs.
-      if (code(cause) === 'VERSION_CONFLICT') await load(id, false)
-      if (alive) error = errorText(cause)
-    } finally { if (alive) busy = false }
+      if (code(cause) === 'VERSION_CONFLICT') await load(false)
+      if (alive && scope === origin) error = errorText(cause)
+    } finally { if (alive && scope === origin) busy = false }
   }
 
   async function pause(until: number | null) {
@@ -188,10 +188,10 @@
       </div>
     </Section>
 
-    <Section title={t('account')} icon="account">
+    <Section title={t('account')} icon="account" testid="notifications-account-section">
+      {#snippet actions()}{#if accountId}<Id id={accountId} testid="notifications-account-id" />{/if}{/snippet}
       <div class="space-y-4">
-        <Select value={selected} options={accounts.map((entry) => ({value:entry.account,label:shortId(entry.account)}))} label={t('account')} placeholder={t('account')} disabled={busy || loading || !accounts.length} onChange={(id) => { selected = id; void load(id) }} testid="notifications-account" />
-        {#if !accounts.length}<Notice>{t('loggedOutHint')}</Notice>{/if}
+        {#if !account}<Notice>{t('loggedOutHint')}</Notice>{/if}
         {#if account}
           <Checkbox bind:checked={account.enabled} disabled={busy || loading} label={t('noticeAccount')} testid="notifications-account-enabled">{t('noticeAccount')}</Checkbox>
           <div class="divide-y divide-line rounded-xl border border-line">
@@ -203,11 +203,22 @@
             {/each}
           </div>
           <Checkbox bind:checked={account.merge_devices} disabled={busy || loading} label={t('noticeMerge')}>{t('noticeMerge')}</Checkbox>
-          {#if agents.length}
-            <p class="text-xs font-medium text-muted">{t('noticeAgent')}</p>
-            {#each agents as agent (agent.agent_id)}
-              <Checkbox checked={account.agent_mail[agent.agent_id] ?? false} onCheckedChange={(value) => { account!.agent_mail[agent.agent_id] = value }} disabled={busy || loading} label={agent.label}>{agent.label}</Checkbox>
-            {/each}
+          {#if status?.state === 'unlocked'}
+            <fieldset class="min-w-0" data-testid="notifications-agents">
+              <legend class="mb-2 text-xs font-medium text-muted">{t('noticeAgent')}</legend>
+              {#if agents.length}
+                <ul class="divide-y divide-line rounded-xl border border-line">
+                  {#each agents as agent (agent.agent_id)}
+                    <li class="flex items-center gap-3 p-3">
+                      <Checkbox class="flex min-w-0 flex-1 [&>span]:min-w-0 [&>span]:[overflow-wrap:anywhere]" checked={account.agent_mail[agent.agent_id] ?? false} onCheckedChange={(value) => { account!.agent_mail[agent.agent_id] = value }} disabled={busy || loading} label={agent.label || agent.agent_id} testid="notifications-agent"><bdi>{agent.label || agent.agent_id}</bdi></Checkbox>
+                      <Id id={agent.agent_id} class="shrink-0" />
+                    </li>
+                  {/each}
+                </ul>
+              {:else if !loading && !error}
+                <p class="text-xs text-muted" data-testid="notifications-agents-empty">{t('noAgents')}</p>
+              {/if}
+            </fieldset>
           {/if}
         {/if}
       </div>
@@ -217,7 +228,7 @@
     {#if conflict}<Notice tone="warn" icon="info">{t('conflictItem')} {t('retry')}</Notice>{/if}
     <div class="flex flex-wrap gap-2 px-5 pb-5">
       <button class={buttonClass('primary', 'sm')} disabled={(!dirty && !conflict) || busy || loading} onclick={() => save()} data-testid="notifications-save">{busy ? t('loading') : conflict ? t('retry') : t('save')}</button>
-      <button class={buttonClass('secondary', 'sm')} disabled={busy || loading} onclick={() => load(selected)}>{t('refresh')}</button>
+      <button class={buttonClass('secondary', 'sm')} disabled={busy || loading} onclick={() => load()} data-testid="notifications-refresh">{t('refresh')}</button>
     </div>
   {:else if !loading}
     <button class={buttonClass('secondary', 'sm')} onclick={() => load()}>{t('retry')}</button>

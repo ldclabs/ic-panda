@@ -31,6 +31,13 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   const route = async (path) => { await main.evaluate((path) => { location.hash = path }, path) }
   const notes = () => app.evaluate(() => globalThis.__notes.length)
   const latest = (method) => calls.filter((call) => call.method === method).at(-1)
+  const readAgents = methods['agent/ids']
+  const agents = [
+    { agent_id: '61'.repeat(32), label: 'anda' },
+    { agent_id: '62'.repeat(32), label: 'deepseek' },
+    { agent_id: '63'.repeat(32), label: 'gpt' }
+  ]
+  methods['agent/ids'] = () => ({ ...readAgents(), agents })
   await focus()
   const request = [...requests.values()][0]
   request.updated_at = request.created_at
@@ -45,6 +52,10 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.getByTestId('notification-settings').getByText('Loading…', { exact: true }).waitFor()
   await releaseSettings()
   await main.getByTestId('notifications-enabled').waitFor()
+  await waitFor(async () => await main.getByTestId('notifications-agent').count() === agents.length)
+  assert.equal(await main.getByTestId('notifications-account').count(), 0, 'notification settings have no independent account picker')
+  assert.equal(await main.getByTestId('notifications-account-menu').count(), 0)
+  assert.equal(await main.getByTestId('notifications-account-id').count(), 1)
   const save = methods['notifications/settings_set']
   let fail = true
   methods['notifications/settings_set'] = (params) => {
@@ -67,6 +78,36 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.getByTestId('notifications-save').click()
   await waitFor(() => model.methods['notifications/settings']().global.enabled === true)
   methods['notifications/settings_set'] = save
+
+  // Each Agent Mail row is keyboard operable and saves only the current account.
+  // A waiting or failed save keeps its selections and cannot write another account.
+  const agentControls = main.getByTestId('notifications-agent')
+  await agentControls.first().focus()
+  await main.keyboard.press('Space')
+  assert.equal(await agentControls.first().getAttribute('aria-checked'), 'true')
+  const finishAgentSave = hold('notifications/settings_set', (params) => params.scope === 'account')
+  await main.getByTestId('notifications-save').click()
+  await waitFor(async () => await agentControls.first().isDisabled())
+  await main.getByTestId('notifications-agents').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'notifications-agents-saving.png') })
+  await finishAgentSave()
+  await waitFor(async () => !await agentControls.first().isDisabled())
+  assert.equal(model.settings.get(account).agent_mail[agents[0].agent_id], true)
+  assert.equal(latest('notifications/settings_set').params.account, account)
+  assert.equal(await agentControls.nth(1).getAttribute('aria-checked'), 'false')
+  methods['notifications/settings_set'] = () => { throw { code: 'INVALID_INPUT', message: 'Prepared notification settings failure' } }
+  await agentControls.nth(1).focus()
+  await main.keyboard.press('Space')
+  await main.getByTestId('notifications-save').click()
+  await main.getByTestId('notifications-error').waitFor()
+  assert.equal(await agentControls.nth(1).getAttribute('aria-checked'), 'true')
+  methods['notifications/settings_set'] = save
+  await main.getByTestId('notifications-save').click()
+  await waitFor(async () => await main.getByTestId('notifications-save').isDisabled())
+  assert.equal(model.settings.get(account).agent_mail[agents[1].agent_id], true)
+  assert.ok(calls.filter((call) => call.method === 'notifications/settings_set' && call.params.scope === 'account').every((call) => call.params.account === account))
+  await main.getByTestId('notifications-account-section').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'notifications-account-en-light.png') })
   // A remote CAS conflict stays pending until an explicit Retry, then an ACK
   // updates the status without making the untouched form dirty.
   const readSettings = methods['notifications/settings']
@@ -92,6 +133,10 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   await main.locator('.pointer-events-auto button[aria-label="Dismiss"]').click()
 
   // The same shared controls must remain usable in narrow, translated themes.
+  agents[1].label = '用于项目协作和发布提醒的智能体 · Agent de coordination des notifications et des publications'
+  agents[2].label = 'LongAgentNameWithoutSpaces'.repeat(4)
+  await main.getByTestId('notifications-refresh').click()
+  await waitFor(async () => !await main.getByTestId('notifications-refresh').isDisabled())
   await main.getByTestId('notifications-quiet').click()
   for (const [language, appearance] of [['zh', 'light'], ['zh', 'dark'], ['de', 'light'], ['fr', 'dark'], ['ar', 'dark'], ['ur', 'light']]) {
     await native.evaluate((window) => window.setContentSize(760, 540))
@@ -106,16 +151,60 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
     await main.screenshot({ path: join(shots, `notifications-${language}-${appearance}-top.png`) })
     await main.getByTestId('notifications-save').scrollIntoViewIfNeeded()
     await main.screenshot({ path: join(shots, `notifications-${language}-${appearance}-bottom.png`) })
+    await main.getByTestId('notifications-agents').scrollIntoViewIfNeeded()
+    await main.screenshot({ path: join(shots, `notifications-agents-${language}-${appearance}.png`) })
+    assert.ok(await main.getByTestId('notifications-agents').evaluate((node) => node.scrollWidth <= node.clientWidth), 'long agent names fit the group')
     assert.equal(await main.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
   }
   await main.evaluate(async () => { await window.dmsg.setLocale('en'); await window.dmsg.setAppearance('light') })
   await main.getByTestId('notifications-quiet').scrollIntoViewIfNeeded()
   await main.getByTestId('notifications-quiet').click()
-  // Keyboard access reaches the account selector and global reminder entry.
-  await main.getByTestId('notifications-account').focus()
-  await main.keyboard.press('Enter')
-  await main.getByTestId('notifications-account-menu').waitFor()
-  await main.keyboard.press('Escape')
+  // Empty agents have an explicit state; a later refresh restores the list.
+  methods['agent/ids'] = () => ({ ...readAgents(), agents: [] })
+  await main.getByTestId('notifications-refresh').click()
+  await main.getByTestId('notifications-agents-empty').waitFor()
+  await main.getByTestId('notifications-agents').scrollIntoViewIfNeeded()
+  await main.screenshot({ path: join(shots, 'notifications-agents-empty.png') })
+  methods['agent/ids'] = readAgents
+  await main.getByTestId('notifications-refresh').click()
+  await waitFor(async () => await main.getByTestId('notifications-agent').count() === readAgents().agents.length)
+  // Keyboard access reaches the current account toggle and global reminder entry.
+  await main.getByTestId('notifications-account-enabled').focus()
+  await main.keyboard.press('Space')
+  assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'false')
+  await main.keyboard.press('Space')
+
+  // A session change, including one from another window, is the only way this
+  // page changes account. A late read from the previous account is discarded.
+  const originalStatus = methods['daemon/status']
+  const nextAccount = methods['session/accounts']().find((entry) => !entry.current).account
+  const originalSettings = structuredClone(model.settings.get(account))
+  const nextAgent = { agent_id: '64'.repeat(32), label: 'Other account agent' }
+  model.settings.set(nextAccount, { ...structuredClone(originalSettings), enabled: false, agent_mail: {} })
+  const releaseOldAccount = hold('notifications/settings', (params) => params?.account === account)
+  await main.getByTestId('notifications-refresh').click()
+  await waitFor(async () => await main.getByTestId('notifications-refresh').isDisabled())
+  methods['daemon/status'] = () => ({ ...originalStatus(), account: nextAccount })
+  methods['agent/ids'] = () => ({ ...readAgents(), agents: [nextAgent] })
+  emit('session/changed', { state: 'unlocked' })
+  await main.getByRole('checkbox', { name: nextAgent.label, exact: true }).waitFor()
+  await releaseOldAccount()
+  // Wait for a later RPC response so the old settings reply has been consumed.
+  await main.evaluate(() => window.dmsg.call('daemon/status'))
+  assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'false')
+  assert.equal(await main.getByTestId('notifications-agent').getAttribute('aria-label'), nextAgent.label)
+  await main.getByTestId('notifications-agent').click()
+  await main.getByTestId('notifications-save').click()
+  await waitFor(async () => await main.getByTestId('notifications-save').isDisabled())
+  assert.equal(latest('notifications/settings_set').params.account, nextAccount)
+  assert.equal(model.settings.get(nextAccount).agent_mail[nextAgent.agent_id], true)
+  assert.deepEqual(model.settings.get(account), originalSettings)
+  methods['daemon/status'] = originalStatus
+  methods['agent/ids'] = readAgents
+  emit('session/changed', { state: 'unlocked' })
+  await main.getByRole('checkbox', { name: readAgents().agents[0].label, exact: true }).waitFor()
+  assert.equal(await main.getByTestId('notifications-account-enabled').getAttribute('aria-checked'), 'true')
+  model.settings.delete(nextAccount)
   await main.getByTestId('reminders-open').click()
   await main.getByTestId('reminders-page').waitFor()
   await waitFor(async () => await main.getByTestId('reminder-item').count() === 2)
@@ -235,11 +324,12 @@ export async function notificationsFlow({ app, main, shots, methods, requests, e
   methods['notifications/status'] = () => ({ counts:{actionable:0,unread:0,unverified:false},accounts:[],badge:0,enabled:true })
   emit('session/changed', { state: 'logged_out' })
   await route('/settings/notifications')
-  await main.getByTestId('notifications-account').waitFor()
-  assert.equal(await main.getByTestId('notifications-account').isDisabled(), true)
+  await main.getByTestId('notifications-account-section').waitFor()
+  assert.equal(await main.getByTestId('notifications-account').count(), 0)
+  assert.equal(await main.getByTestId('notifications-account-id').count(), 0)
   assert.equal(await main.getByTestId('notifications-account-enabled').count(), 0)
   await main.screenshot({ path: join(shots, 'notifications-empty-account.png') })
-  await main.getByTestId('notifications-account').scrollIntoViewIfNeeded()
+  await main.getByTestId('notifications-account-section').scrollIntoViewIfNeeded()
   await main.screenshot({ path: join(shots, 'notifications-empty-account-detail.png') })
   methods['session/accounts'] = oldAccounts
   methods['notifications/settings'] = oldSettings
