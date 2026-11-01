@@ -99,6 +99,14 @@ pub(crate) fn insufficient_funds() -> Error {
 /// An error's variant name in `SCREAMING_SNAKE_CASE`, as the daemon and the
 /// status report it; a tagged client failure keeps its own code.
 pub fn error_code(error: &Error) -> String {
+    if transport::retry_after(error).is_some() {
+        return "SYNC_BUSY".into();
+    }
+    if let Error::InvalidInput(code) = error
+        && matches!(code.as_str(), "RESPONSE_TOO_LARGE" | "REQUEST_TOO_LARGE")
+    {
+        return code.clone();
+    }
     if let Error::Unavailable(message) = error
         && (message.starts_with("storage: ") || message == "corrupt record")
     {

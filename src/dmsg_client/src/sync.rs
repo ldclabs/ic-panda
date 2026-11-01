@@ -10,8 +10,9 @@
 //! an older root or with a lapsed upload is resealed only after the relay
 //! confirms the old submission can no longer commit.
 //!
-//! Pulling reads a complete export snapshot: every signed entry is checked
-//! against the certified devices, every chunk against its digest, and each
+//! Initialization and recovery read a complete export snapshot; daily pulls
+//! apply only the signed entries after a durable content cursor. Both paths check
+//! every signed entry against the certified devices, every chunk against its digest, and each
 //! new version is opened before any head moves. Local versions the relay's
 //! head does not lead to become conflict copies and are still sent, so the
 //! relay keeps them for every device; it refuses only a tombstone or restore
@@ -44,6 +45,9 @@ const MAX_REVISIONS: usize = 100_000;
 const SNAPSHOT: &str = "snapshot-through";
 const LAST_SYNC: &str = "last-sync";
 
+#[path = "sync_pull.rs"]
+mod pull;
+
 /// A vault revision as the device signs it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -59,6 +63,8 @@ struct Revision {
 /// The relay's verdict on a revision.
 #[derive(Deserialize)]
 struct Verdict {
+    #[serde(default)]
+    cursor: Option<u64>,
     revision_id: String,
     head: String,
     conflict: bool,
@@ -86,18 +92,11 @@ pub(crate) struct ContentJob {
 }
 
 /// The verified relay snapshot, before it is applied.
+#[derive(Clone, Default)]
 struct Snapshot {
-    pages: u64,
-    downloaded_bytes: u64,
-    verify_ms: u64,
     through: u64,
     plans: Vec<UploadPlan>,
     revisions: Vec<(Revision, bool)>,
-}
-
-#[derive(Serialize)]
-struct ExportStart<'a> {
-    export_id: &'a str,
 }
 
 /// The payload of a snapshot entry's command, checked against the certified
@@ -143,6 +142,12 @@ fn verify_signed_entry<P: DeserializeOwned + Serialize>(
 /// What one sync did.
 #[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct SyncReport {
+    /// Whether this pass established a complete snapshot baseline.
+    pub full_snapshot: bool,
+    /// Incremental pages checked, including an empty up-to-date page.
+    pub delta_pages: u64,
+    /// A blocked upload, while incoming changes can still be received.
+    pub upload_error: Option<String>,
     /// Export pages checked, without resource identifiers.
     pub export_pages: u64,
     /// Newly downloaded ciphertext bytes; existing chunks are reused.
@@ -153,6 +158,8 @@ pub struct SyncReport {
     pub apply_ms: u64,
     /// Whole pass milliseconds, including network waits.
     pub elapsed_ms: u64,
+    /// Verified metadata changes applied in this pass.
+    pub changes: usize,
     /// Local versions the relay accepted.
     pub sent: usize,
     /// Local versions that lost to the relay and stay conflict copies.
@@ -170,7 +177,7 @@ pub struct SyncReport {
 }
 
 /// The latest sync attempt.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct LastSync {
     /// When it ended, in Unix milliseconds.
     pub at: u64,
@@ -182,13 +189,37 @@ pub struct LastSync {
     /// When a sync last succeeded, in Unix milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ok_at: Option<u64>,
+    /// Incoming changes succeeded, but new uploads are blocked by a resource limit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upload_error: Option<String>,
+    /// Consecutive failed passes, used for bounded automatic backoff.
+    #[serde(default)]
+    pub failures: u32,
+    /// The earliest automatic retry, or none for a failure requiring action.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_at: Option<u64>,
 }
 
 impl LastSync {
     /// When a sync last succeeded, also for a record written before
     /// `ok_at` was kept.
     pub fn succeeded_at(&self) -> Option<u64> {
-        self.ok_at.or(self.error.is_none().then_some(self.at))
+        self.ok_at
+            .or((self.error.is_none() && self.upload_error.is_none()).then_some(self.at))
+    }
+
+    /// Whether the scheduler may start a pass, including periodic and reconnect triggers.
+    pub fn automatic_at(&self) -> Option<u64> {
+        if self.error.is_none() {
+            return Some(self.at);
+        }
+        self.retry_at.or_else(|| {
+            matches!(
+                self.error.as_deref(),
+                Some("UNAVAILABLE" | "NETWORK_UNAVAILABLE" | "EXECUTION_UNKNOWN")
+            )
+            .then_some(self.at.saturating_add(60_000))
+        })
     }
 }
 
@@ -204,6 +235,8 @@ pub enum SyncStage {
     ExportStart,
     /// Read and verify the snapshot's inventory pages.
     ExportPage,
+    /// Read changes after the verified account cursor.
+    DeltaPage,
     /// Fetch and verify missing manifests and chunks.
     Download,
     /// Open verified versions and advance local heads.
@@ -222,6 +255,7 @@ impl SyncStage {
             Self::Reconcile => "reconcile",
             Self::ExportStart => "export_start",
             Self::ExportPage => "export_page",
+            Self::DeltaPage => "delta_page",
             Self::Download => "download",
             Self::Apply => "apply",
             Self::Upload => "upload",
@@ -425,6 +459,7 @@ impl Client {
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn sync(&mut self) -> Result<SyncReport> {
+        retry_uploads(self)?;
         sync(&self.hold()).await
     }
 
@@ -436,23 +471,16 @@ impl Client {
         self.workspace.store.meta(LAST_SYNC)
     }
 
-    /// Delete the local chunks nothing needs any more: those of versions
-    /// replaced before they were sent, of uploads that lapsed or were
-    /// abandoned, and of attachments a channel download cached. Kept are
-    /// the chunks of the relay snapshot just applied, since every pull
-    /// checks them all and would download a missing one again; of every
-    /// unsent version's job, which replans from them; and of each channel
-    /// upload and root upload that may still be sent before its plan
-    /// lapses. The file library's chunks live in its own directory and are
-    /// collected by [`crate::library::gc`]. Returns how many were deleted.
-    fn collect_chunks(&self, snapshot: &Snapshot, now: u64) -> Result<u64> {
+    /// Collect unreferenced cache bytes using the entire verified inventory and
+    /// local jobs. An empty delta never removes history or unsent ciphertext.
+    fn collect_chunks(&self, now: u64) -> Result<u64> {
         let mut keep = self.held_chunks(now)?;
         keep.extend(self.attachment_chunks()?);
         let mut add = |plan: &UploadPlan| {
             keep.extend(plan.chunks.iter().map(|c| c.digest.clone()));
             keep.insert(plan.manifest_digest.clone());
         };
-        snapshot.plans.iter().for_each(&mut add);
+        self.workspace.store.sync_plans()?.iter().for_each(&mut add);
         for (_, job) in self.workspace.store.jobs::<ContentJob>()? {
             job.file
                 .iter()
@@ -526,6 +554,17 @@ impl Client {
     /// deadline has not passed. They need no key.
     fn flush_due(&self) -> Result<Vec<(String, Presigned)>> {
         let now = now_ms();
+        if self
+            .last_sync()?
+            .is_some_and(|last| last.automatic_at().is_none_or(|at| now < at))
+            || self
+                .workspace
+                .store
+                .meta::<String>(pull::UPLOAD_BLOCKED)?
+                .is_some()
+        {
+            return Ok(Vec::new());
+        }
         Ok(self
             .workspace
             .store
@@ -567,6 +606,12 @@ impl Client {
             Error::IntegrityFailed,
         )?;
         self.workspace.store.atomic(|store| {
+            if let Some(after) = store.meta::<u64>(pull::CURSOR)? {
+                let cursor = verdict.cursor.ok_or(Error::UnsupportedProtocol)?;
+                if cursor > after {
+                    store.sync_confirm(key, cursor)?;
+                }
+            }
             store.set_object(key, SYNCED, verdict.conflict)?;
             store.delete_job(key)?;
             // A conflict copy steps aside for the relay's head, once known.
@@ -650,7 +695,17 @@ impl Client {
 
     /// Open every new version of a fetched snapshot, then move the heads in
     /// one transaction. Returns the number of revisions.
+    #[cfg(test)]
     fn apply(&mut self, snapshot: &Snapshot) -> Result<usize> {
+        self.apply_versions(snapshot, true, &[])
+    }
+
+    fn apply_versions(
+        &mut self,
+        snapshot: &Snapshot,
+        complete: bool,
+        retired: &[String],
+    ) -> Result<usize> {
         let account = self.account()?.id.to_string();
         let store = &self.workspace.store;
         let mut records: BTreeMap<String, EncryptedObject> = BTreeMap::new();
@@ -711,8 +766,26 @@ impl Client {
         let mut incoming: Vec<(EncryptedObject, bool, bool)> = Vec::new();
         let mut resolved: BTreeSet<String> = BTreeSet::new();
         let mut heads: BTreeMap<String, (String, String)> = BTreeMap::new();
+        let mut accepted = BTreeSet::new();
         for (revision, conflict) in &snapshot.revisions {
             let key = format!("{}:{}", revision.item_id, revision.revision_id);
+            if let Some(parent) = &revision.base_revision {
+                let parent_key = format!("{}:{parent}", revision.item_id);
+                ensure(
+                    accepted.contains(&parent_key)
+                        || store
+                            .object(&parent_key)?
+                            .is_some_and(|r| r.state == SYNCED),
+                    Error::RecoveryIncomplete,
+                )?;
+            }
+            accepted.insert(key.clone());
+            if !complete
+                && !records.contains_key(&key)
+                && let Some(known) = store.object(&key)?
+            {
+                records.insert(key.clone(), record(&known)?);
+            }
             let found = records.get(&key).ok_or(Error::RecoveryIncomplete)?;
             ensure(
                 found.tombstone == revision.tombstone && found.parent == revision.base_revision,
@@ -747,11 +820,20 @@ impl Client {
         store.atomic(|store| {
             let previous: u64 = store.meta(SNAPSHOT)?.unwrap_or(0);
             ensure(snapshot.through >= previous, Error::IntegrityFailed)?;
-            // The relay may not drop a version it once accepted.
-            for row in store.objects_in(SYNCED)? {
-                ensure(keys.contains(&row.key), Error::IntegrityFailed)?;
+            if complete {
+                // A full snapshot must still account for every previously accepted version.
+                for row in store.objects_in(SYNCED)? {
+                    ensure(keys.contains(&row.key), Error::IntegrityFailed)?;
+                }
+            }
+            for plan in &snapshot.plans {
+                store.sync_put_plan(plan)?;
+            }
+            for upload in retired {
+                store.sync_remove_plan(upload)?;
             }
             for (found, conflict, known) in &incoming {
+                store.sync_confirmed(&found.key)?;
                 match known {
                     true => {
                         store.set_object(&found.key, SYNCED, *conflict)?;
@@ -785,7 +867,12 @@ impl Client {
                     store.set_head(item, revision, kind)?;
                 }
             }
-            store.set_meta(SNAPSHOT, &snapshot.through)
+            ensure(
+                !store.sync_missing_confirmation(snapshot.through)?,
+                Error::RecoveryIncomplete,
+            )?;
+            store.set_meta(SNAPSHOT, &snapshot.through)?;
+            pull::committed(store, snapshot.through, complete)
         })?;
         Ok(snapshot.revisions.len())
     }
@@ -854,17 +941,62 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
     session
         .with(|c| {
             let now = now_ms();
-            let ok_at = match result.is_ok() {
-                true => Some(now),
-                false => c.last_sync()?.and_then(|last| last.succeeded_at()),
+            if matches!(result, Err(Error::Locked | Error::AuthRequired))
+                && c.session_state().state != "unlocked"
+            {
+                return Ok(());
+            }
+            let previous = c.last_sync()?;
+            let upload_error = result.as_ref().ok().and_then(|r| r.upload_error.clone());
+            let ok_at = if result.is_ok() && upload_error.is_none() {
+                Some(now)
+            } else {
+                previous.as_ref().and_then(LastSync::succeeded_at)
             };
+            let error = result.as_ref().err().map(crate::error_code);
+            let failures = if error.is_some() {
+                previous
+                    .as_ref()
+                    .filter(|s| s.error.is_some())
+                    .map_or(1, |s| s.failures.saturating_add(1))
+            } else {
+                0
+            };
+            let retry_at = result.as_ref().err().and_then(|e| {
+                if let Some(delay) = crate::transport::retry_after(e) {
+                    return Some(now.saturating_add(delay));
+                }
+                if matches!(
+                    error.as_deref(),
+                    Some(
+                        "UNAVAILABLE"
+                            | "NETWORK_UNAVAILABLE"
+                            | "EXECUTION_UNKNOWN"
+                            | "RESULT_EXPIRED"
+                            | "POLICY_STALE"
+                    )
+                ) {
+                    let delay = match failures {
+                        0 | 1 => 5_000,
+                        2 => 15_000,
+                        3 => 30_000,
+                        n => 60_000u64.saturating_mul(1 << (n - 4).min(3)).min(300_000),
+                    };
+                    let jitter = delay * u64::from(crate::crypto::random_id()[0]) / 1280;
+                    return Some(now.saturating_add(delay + jitter));
+                }
+                None
+            });
             c.workspace.store.set_meta(
                 LAST_SYNC,
                 &LastSync {
                     at: now,
-                    error: result.as_ref().err().map(crate::error_code),
+                    error,
                     stage: result.is_err().then_some(stage),
                     ok_at,
+                    upload_error,
+                    failures,
+                    retry_at,
                 },
             )?;
             if c.session_state().state == "unlocked" {
@@ -886,6 +1018,7 @@ struct SyncSession<'a, H> {
 
 /// Refresh the encrypted account inventory without flushing or uploading local
 /// work. Used when reviewing account deletion from a newly authorized device.
+/// Shared hosts serialize this call in the same sync lane as ordinary passes.
 /// # Errors
 /// Locked/revoked device, unavailable relay or an unverifiable snapshot.
 pub async fn pull_metadata<H: Hold>(h: &H) -> Result<usize> {
@@ -898,8 +1031,8 @@ pub async fn pull_metadata<H: Hold>(h: &H) -> Result<usize> {
     })
     .await?;
     let mut stage = SyncStage::ExportStart;
-    let snapshot = fetch(&h, &mut stage).await?;
-    h.with(|c| c.apply(&snapshot)).await
+    let report = pull::full(&h, &mut stage).await?;
+    Ok(report.revisions)
 }
 
 impl<H: Hold> Hold for SyncSession<'_, H> {
@@ -930,70 +1063,84 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
     *stage = SyncStage::Reconcile;
     reconcile(h).await?;
     let mut report = SyncReport::default();
-    let mut snapshot = if unlocked {
-        fetch(h, stage).await?
-    } else {
-        // A resident device may send its already sealed jobs while locked,
-        // but must not start an export or download new content.
-        h.with(|c| {
-            Ok(Snapshot {
-                pages: 0,
-                downloaded_bytes: 0,
-                verify_ms: 0,
-                through: c.workspace.store.meta(SNAPSHOT)?.unwrap_or(0),
-                plans: vec![],
-                revisions: vec![],
-            })
-        })
-        .await?
-    };
     if unlocked {
-        *stage = SyncStage::Apply;
-        report.export_pages += snapshot.pages;
-        report.downloaded_bytes += snapshot.downloaded_bytes;
-        report.verify_ms += snapshot.verify_ms;
-        let (revisions, elapsed) = h
+        pull::run(h, stage, &mut report).await?;
+    } else {
+        report.through = h
             .with(|c| {
-                let start = std::time::Instant::now();
-                let count = c.apply(&snapshot)?;
-                Ok((count, start.elapsed().as_millis() as u64))
+                Ok(c.workspace
+                    .store
+                    .meta(pull::CURSOR)?
+                    .or(c.workspace.store.meta(SNAPSHOT)?)
+                    .unwrap_or(0))
             })
             .await?;
-        report.revisions = revisions;
-        report.apply_ms += elapsed;
     }
-    report.through = snapshot.through;
     *stage = SyncStage::Upload;
-    let (sent, blocked) = push(h).await?;
-    if unlocked && sent + blocked > 0 {
-        snapshot = fetch(h, stage).await?;
-        *stage = SyncStage::Apply;
-        report.export_pages += snapshot.pages;
-        report.downloaded_bytes += snapshot.downloaded_bytes;
-        report.verify_ms += snapshot.verify_ms;
-        let (revisions, elapsed) = h
-            .with(|c| {
-                let start = std::time::Instant::now();
-                let count = c.apply(&snapshot)?;
-                Ok((count, start.elapsed().as_millis() as u64))
-            })
+    let paused = h
+        .with(|c| c.workspace.store.meta::<String>(pull::UPLOAD_BLOCKED))
+        .await?;
+    let (sent, blocked) = if paused.is_some() {
+        report.upload_error = paused;
+        (0, 0)
+    } else {
+        let result = push(h).await?;
+        report.upload_error = h
+            .with(|c| c.workspace.store.meta(pull::UPLOAD_BLOCKED))
             .await?;
-        report.revisions = revisions;
-        report.apply_ms += elapsed;
-        report.through = snapshot.through;
+        result
+    };
+    if unlocked && sent + blocked > 0 {
+        pull::run(h, stage, &mut report).await?;
     }
     *stage = SyncStage::Finish;
+    if unlocked {
+        pull::close_completed(h).await;
+    }
     h.with(|c| {
         report.sent = sent;
         report.blocked = blocked;
         report.pending = c.workspace.store.count_in(LOCAL)?;
         report.conflicts = c.workspace.store.count_conflicts(VAULT)?;
-        if unlocked {
-            report.collected = c.collect_chunks(&snapshot, now_ms()).unwrap_or(0);
+        if unlocked && (report.changes > 0 || sent + blocked > 0) {
+            report.collected = c.collect_chunks(now_ms()).unwrap_or(0);
         }
         Ok(report)
     })
     .await
+}
+
+/// Resume an upload blocked by a confirmed resource limit after an owner retry or quota refresh.
+/// # Errors
+/// Local storage errors.
+pub fn retry_uploads(client: &mut Client) -> Result<()> {
+    let now = now_ms();
+    if let Some(last) = client.last_sync()?
+        && last.error.as_deref() == Some("SYNC_BUSY")
+        && let Some(at) = last.retry_at.filter(|at| *at > now)
+    {
+        return Err(crate::transport::busy(at - now));
+    }
+    client.workspace.store.delete_meta(pull::UPLOAD_BLOCKED)
+}
+
+/// Recovery must establish a new complete baseline while keeping local drafts and the rollback floor.
+pub(crate) fn require_full(client: &mut Client) -> Result<()> {
+    pull::require_full(&client.workspace.store)
+}
+
+/// An authenticated quota refresh can resume uploads when storage availability improves.
+pub(crate) fn observe_storage(client: &mut Client, available: u64) -> Result<()> {
+    const AVAILABLE: &str = "sync-storage-available";
+    let store = &client.workspace.store;
+    let previous = store.meta::<u64>(AVAILABLE)?;
+    store.atomic(|store| {
+        store.set_meta(AVAILABLE, &available)?;
+        if available > 0 && previous.is_none_or(|p| available > p) {
+            store.delete_meta(pull::UPLOAD_BLOCKED)?;
+        }
+        Ok(())
+    })
 }
 
 async fn reconcile<H: Hold>(h: &H) -> Result<()> {
@@ -1035,6 +1182,15 @@ async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
             Ok(true) => sent += 1,
             Ok(false) => blocked += 1,
             Err(Error::Locked) if h.with(|c| Ok(c.keys.is_none())).await? => {}
+            Err(Error::QuotaExceeded) => {
+                h.with(|c| {
+                    c.workspace
+                        .store
+                        .set_meta(pull::UPLOAD_BLOCKED, &"QUOTA_EXCEEDED")
+                })
+                .await?;
+                break;
+            }
             Err(error) => return Err(error),
         }
     }
@@ -1169,7 +1325,11 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
     if matches!(
         verdict,
         Err(Error::ExecutionUnknown | Error::Unavailable(_))
-    ) {
+    ) && verdict
+        .as_ref()
+        .err()
+        .is_some_and(|error| crate::transport::retry_after(error).is_none())
+    {
         let now = now_ms();
         if now < dispatch.deadline {
             // A lost reply must not stop the rest of a large import. Submit
@@ -1253,7 +1413,9 @@ async fn send_upload<H: Hold>(
         .await
         {
             Ok(_) => return h.with(|c| update(c, None)).await,
-            Err(Error::ExecutionUnknown | Error::Unavailable(_)) if !retried => {
+            Err(error @ (Error::ExecutionUnknown | Error::Unavailable(_)))
+                if !retried && crate::transport::retry_after(&error).is_none() =>
+            {
                 // Re-read the same upload's status and stored chunk progress.
                 // Reserve/finalize may already have succeeded; neither a new
                 // upload ID nor a new content version is needed to resume it.
@@ -1287,145 +1449,6 @@ async fn send_upload<H: Hold>(
 
 /// Read and verify the relay's export snapshot, caching every vault and
 /// file chunk it lacks; nothing is opened yet.
-async fn fetch<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<Snapshot> {
-    *stage = SyncStage::ExportStart;
-    let id = h.with(|c| Ok(c.account()?.id)).await?;
-    let account = id.to_string();
-    let trust = h.trust().await?;
-    let base = h.with(|c| c.base()).await?;
-    let export_id = random_hex();
-    let start = h
-        .post(
-            &format!("{base}/exports"),
-            "dmsg/export/start/v1",
-            &ExportStart {
-                export_id: &export_id,
-            },
-            &Hash::new(crate::crypto::random_id()),
-        )
-        .await?;
-    let through = start["through"].as_u64().ok_or(Error::IntegrityFailed)?;
-    ensure(
-        start["account"] == account.as_str() && start["scope"] == "cloud_snapshot",
-        Error::IntegrityFailed,
-    )?;
-    let mut cursor = 0u64;
-    let mut counts: BTreeMap<String, u64> = BTreeMap::new();
-    let mut snapshot = Snapshot {
-        pages: 0,
-        downloaded_bytes: 0,
-        verify_ms: 0,
-        through,
-        plans: vec![],
-        revisions: vec![],
-    };
-    let mut epochs: BTreeMap<u64, Security> = BTreeMap::new();
-    loop {
-        *stage = SyncStage::ExportPage;
-        let page = h
-            .get(&format!(
-                "{base}/exports/{export_id}?after={cursor}&limit=100"
-            ))
-            .await?;
-        snapshot.pages += 1;
-        let verifying = std::time::Instant::now();
-        let now = now_ms();
-        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-        ensure(entries.len() <= 100, Error::IntegrityFailed)?;
-        let mut fetched = Vec::new();
-        for entry in entries {
-            let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-            ensure(at > cursor && at <= through, Error::IntegrityFailed)?;
-            cursor = at;
-            let kind = entry["kind"].as_str().ok_or(Error::IntegrityFailed)?;
-            *counts.entry(kind.into()).or_default() += 1;
-            match kind {
-                "object" => {
-                    ensure(
-                        entry["missing_chunks"].as_array().is_none_or(Vec::is_empty),
-                        Error::RecoveryIncomplete,
-                    )?;
-                    let plan: UploadPlan = serde_json::from_value(entry["plan"].clone())
-                        .map_err(|_| Error::IntegrityFailed)?;
-                    let signed: UploadPlan = verify_signed_entry(
-                        &trust,
-                        &id,
-                        &mut epochs,
-                        &page,
-                        entry,
-                        entry["signature"]["cose_sign1"]
-                            .as_str()
-                            .unwrap_or_default(),
-                        "dmsg/upload/reserve/v1",
-                        now,
-                    )?;
-                    ensure(
-                        signed == plan
-                            && entry["value"]["upload_id"] == plan.upload_id.as_str()
-                            && entry["value"]["digest"] == plan.manifest_digest.as_str(),
-                        Error::IntegrityFailed,
-                    )?;
-                    if matches!(plan.kind.as_str(), "vault" | "file") {
-                        ensure(
-                            snapshot.plans.len() + fetched.len() < MAX_PLANS,
-                            Error::QuotaExceeded,
-                        )?;
-                        fetched.push(plan);
-                    }
-                }
-                "revision" => {
-                    let value = &entry["value"];
-                    let revision: Revision = verify_signed_entry(
-                        &trust,
-                        &id,
-                        &mut epochs,
-                        &page,
-                        entry,
-                        value["signed"]["cose_sign1"].as_str().unwrap_or_default(),
-                        "dmsg/vault/revision/v1",
-                        now,
-                    )?;
-                    let fields =
-                        serde_json::to_value(&revision).map_err(|_| Error::IntegrityFailed)?;
-                    for (name, field) in fields.as_object().into_iter().flatten() {
-                        ensure(value[name] == *field, Error::IntegrityFailed)?;
-                    }
-                    let conflict = value["conflict"].as_bool().ok_or(Error::IntegrityFailed)?;
-                    ensure(
-                        snapshot.revisions.len() < MAX_REVISIONS,
-                        Error::QuotaExceeded,
-                    )?;
-                    snapshot.revisions.push((revision, conflict));
-                }
-                _ => {}
-            }
-        }
-        *stage = SyncStage::Download;
-        snapshot.verify_ms += verifying.elapsed().as_millis() as u64;
-        snapshot.downloaded_bytes += cache(h, &fetched).await?;
-        *stage = SyncStage::ExportPage;
-        snapshot.plans.extend(fetched);
-        let end = page["inventory_end"]
-            .as_bool()
-            .ok_or(Error::IntegrityFailed)?;
-        ensure(
-            page["next_cursor"].as_u64() == Some(cursor) && (end || !entries.is_empty()),
-            Error::IntegrityFailed,
-        )?;
-        if end {
-            break;
-        }
-    }
-    for count in start["counts"].as_array().ok_or(Error::IntegrityFailed)? {
-        let kind = count["kind"].as_str().ok_or(Error::IntegrityFailed)?;
-        ensure(
-            counts.get(kind).copied().unwrap_or(0) == count["n"].as_u64().unwrap_or(u64::MAX),
-            Error::RecoveryIncomplete,
-        )?;
-    }
-    Ok(snapshot)
-}
-
 /// Download the manifests and chunks of committed uploads that the
 /// store lacks; every one is checked against its digest.
 async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<u64> {
@@ -1478,6 +1501,23 @@ pub async fn flush<H: Hold>(h: &H) -> Result<usize> {
     let mut settled = 0;
     for (key, dispatch) in due {
         let sent = relay.submit(&dispatch, now_ms()).await;
+        if let Err(error) = &sent
+            && let Some(delay) = crate::transport::retry_after(error)
+        {
+            h.with(|c| {
+                let previous = c.last_sync()?;
+                let ok_at = previous.as_ref().and_then(LastSync::succeeded_at);
+                let mut last = previous.unwrap_or_default();
+                last.ok_at = ok_at;
+                last.at = now_ms();
+                last.error = Some("SYNC_BUSY".into());
+                last.stage = Some(SyncStage::Upload);
+                last.retry_at = Some(last.at.saturating_add(delay));
+                c.workspace.store.set_meta(LAST_SYNC, &last)
+            })
+            .await?;
+            return Err(error.clone());
+        }
         settled += usize::from(h.with(|c| c.flush_settle(&key, &dispatch, sent)).await?);
     }
     Ok(settled)

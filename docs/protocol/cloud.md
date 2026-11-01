@@ -101,7 +101,7 @@ Upload reservations accept a deadline up to 24 hours from relay time. Account up
 
 After plan expiry/root rotation, query the original revision operation and each upload. Reuse committed objects. Explicitly cancel staging uploads that cannot continue before rewrapping manifests under the current root with a new upload_id. Preserve object/revision/request IDs and encrypted file chunks. Keep jobs available for retry while quota release remains pending.
 
-Pulls verify versions/gaps using complete export snapshots, checking/caching ciphertext chunk by chunk and reusing verified chunks. Heads/cursors advance atomically only after all manifests/files verify. Account pulls are no longer limited by a 256 MiB backup package, though individual file/chunk/manifest/evidence limits remain. Cached chunks from interruptions do not imply content commit. After unlocked sync, collection retains all chunks/manifests in the applied snapshot (otherwise next pull redownloads them), unsent-version jobs, unfinished imports and unexpired sealed upload plans for channel envelopes/attachments and rotation. Replaced versions, expired/abandoned uploads and cached channel downloads can be collected. Resolved conflict copies and history still in relay snapshots are retained.
+Initialization and recovery verify complete export inventories, signatures, ciphertext and retained history before committing a baseline. Daily synchronization reads fixed-range changes after that baseline, verifying and applying one page atomically; see [Incremental account content](#incremental-account-content-content_sync-1). Cached bytes alone never establish progress. Cache collection retains the full verified local reference index, pending jobs, unfinished imports and root/attachment references, regardless of the latest page's contents. Individual content and evidence bounds remain in effect.
 
 Export signatures: every object/revision carries the signed command's `security_epoch`; pages provide `security: {"<epoch>": {evidence, stored_at}}`, the evidence checked when the relay first accepted a reservation/revision in that epoch. Each pull verifies certificate, account leaf and device table once per epoch at stored_at, requiring matching epochs, then verifies each command under its then-nonrevoked content_sign device. Do not use only current devices: full recovery replaces them, and adding at the 16-record bound removes the oldest revoked entry, yet historical versions must remain verifiable. Entries without their epoch evidence fail.
 
@@ -138,7 +138,6 @@ Locked daemons complete only already-signed submissions: fixed vault revisions a
 Public `Certification::batch` reads IC time once so queries depend on current batch time; a transport nonce alone cannot bypass replica caching by caller/method/arguments. This matches the [IC query cache](https://github.com/dfinity/ic/blob/master/rs/execution_environment/src/query_handler/query_cache.rs) and has PocketIC coverage for certificate refresh without account writes. Client/Worker 60-second freshness and rollback protection remain.
 
 Payment `get_configuration_certified` provides `configuration`, `signer/<u64be>` and `fee/<u64be>` leaves for receiving routes, quote/receipt keys and fee policy. It changes no existing escrow terms or fund state machine.
-
 
 ## Inbox terminal-state management
 
@@ -208,3 +207,51 @@ Bytes come directly from private S3 without device proofs, Cookie, Referer or re
 Share descriptors remain `GET /public/shares/:share`; public /manifest and /chunks/:index are removed. The page generates a nonzero random 32-byte session ID and uses `POST /public/shares/:share/downloads/:session` to start/retry that session, GET on the same path to renew. Data adds session_expires_at; the session lasts at most one hour and no later than share expiry. Renewal neither extends it nor consumes another count; absent/expired sessions fail. Lost start replies reuse the ID; known sessions renew only by GET; explicit new downloads create new IDs. Session IDs are bearer secrets held only in page memory.
 
 Count limits count new download sessions; started sessions can finish after the quota is exhausted. Revocation/deletion stops issuance, but old URLs may repeatedly read ciphertext until expiry/physical deletion. URLs contain no decryption key; in-progress transfers/saved copies cannot be recalled. Client completion follows whole-file verification. `downloads::tests::print_download_vector` emits cross-language fixtures whose fixed keys prove no real deployment.
+
+## Incremental account content (content_sync: 1)
+
+Daily reads use `GET /v1/accounts/:account/content/changes?after=C&limit=100`.
+The response is `{content_sync:1,account,through,entries,next_cursor,end,security}`.
+The first page fixes `through=T`; later pages include `through=T` and read only
+`(C,T]`. Cursors may have gaps. At the end, `next_cursor=T`; otherwise it is
+the last returned entry. Page length alone does not indicate completion.
+Account/target mismatches and a cursor ahead of the service are refused without
+resetting the local cursor. Pages contain at most 100 entries and fit within
+1 MiB, including historical security evidence. They allocate no export lease
+and perform no remote chunk availability checks.
+
+The stream retains object commits, revisions and object tombstones, including
+retired object descriptions; file-library backup/share objects use their own
+inventories. New content retains signature, digest and AEAD verification;
+only missing ciphertext is fetched. A tombstone carries its collection
+command's `security_epoch`; its upload ID must match and its generation must
+be the signed generation plus one. A retained revision's missing object is
+still an integrity failure. Absence from a delta never deletes local history.
+
+Initialization, recovery and the first upgrade of an old workspace establish
+a complete baseline. `dmsg/export/start/v1` accepts `{export_id,mode:"sync"}`
+at `POST /v1/accounts/:account/exports`; the result must include `content_sync:1`.
+A device reuses its unfinished snapshot and uses the returned `export_id`,
+which can differ from its requested ID. Old export leases do not occupy these
+device slots. The original operation ID, fixed range/counts and verified-page
+progress persist across retries. Lost starts reconcile the same operation.
+Full snapshots still verify counts, retained history, rollback protection,
+security evidence, signatures, manifests, ciphertext and decryption before
+atomically establishing the baseline at T. Daily reads then continue from T.
+
+`POST /v1/accounts/:account/exports/:export/close` accepts the signed
+`dmsg/export/close/v1` payload `{export_id}`. The path and payload must match;
+the creating device needs `vault_unlock`. Closing a completed or abandoned
+snapshot is idempotent. Reference protection remains until verification is
+complete; a failed close is retried separately from the verified data.
+
+Revision ACKs include their `cursor`. An ACK confirms its own upload only:
+the reader must verify that revision before advancing past its position.
+Each verified page commits affected records, heads and its cursor atomically.
+Cache collection uses the whole local reference index and pending jobs.
+
+`SYNC_BUSY` can include `retry_after_ms`. Request/response limits become
+`REQUEST_TOO_LARGE` (wire `TOO_LARGE`) / `RESPONSE_TOO_LARGE`, separately from
+storage quota. `upload_error` describes paused uploads while reads continue;
+manual retry or improved available storage resumes them. Wire vectors:
+[sync-v1.json](../../tests/vectors/client/sync-v1.json).

@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Huling pag-sync sa cloud: {time}",
+    "syncRetryAt": "Subukan muli pagkatapos ng {time}",
+    "syncStorageBlocked": "Naka-pause ang pag-upload · Puno ang storage",
+    "syncBusy": "Abala ang cloud · Susubukan muli",
+    "syncSizeError": "Lampas sa suportadong laki ang data ng pag-sync.",
+    "syncUnsupported": "I-update ang dMsg at serbisyo ng pag-sync nito.",
+
     scanDeviceRequest: "I-scan ang kahilingan ng device",
     scanQrCamera: "I-scan gamit ang camera",
     qrCameraUnavailable: "Hindi magamit ang camera. Gumamit ng QR image o i-paste ang kahilingan.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Ina-unlock...",
     "syncFailed": "Nabigo ang pag-sync · Subukang muli",
     "syncing": "Sini-sync ang account...",
-    "connected": "Nakakonekta sa dMsg",
+    "connected": "Nakakonekta ang lokal na serbisyo ng dMsg",
     "kindWeb": "Kahilingan sa web",
     "kindSignature": "Lagda",
     "kindPayment": "Pagbabayad",

@@ -879,6 +879,13 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
                 .cloned(),
             ..CloudUsage::default()
         };
+        ensure(c.base()? == base, Error::Locked)?;
+        if let Some(limit) = usage.storage_limit {
+            crate::sync::observe_storage(
+                c,
+                limit.saturating_sub(usage.reserved.saturating_add(usage.committed)),
+            )?;
+        }
         for (_, entry) in c.cloud_entries()? {
             usage.backups += 1;
             usage.backup_bytes += plan_bytes(&entry.plan);

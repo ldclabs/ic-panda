@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncLastSuccess": "Última sincronización en la nube: {time}",
+    "syncRetryAt": "Reintentar después de {time}",
+    "syncStorageBlocked": "Envíos pausados · Espacio lleno",
+    "syncBusy": "Nube ocupada · Se reintentará",
+    "syncSizeError": "Los datos de sincronización superan el tamaño permitido.",
+    "syncUnsupported": "Actualiza dMsg y su servicio de sincronización.",
+
     scanDeviceRequest: "Escanear solicitud de dispositivo",
     scanQrCamera: "Escanear con la cámara",
     qrCameraUnavailable: "Cámara no disponible. Usa una imagen QR o pega la solicitud.",
@@ -946,7 +953,7 @@ export default {
     unlocking: 'Desbloqueando…',
     syncFailed: 'Error de sincronización · Reintentar',
     syncing: 'Sincronizando la cuenta…',
-    connected: 'Conectado a dMsg',
+    connected: "Servicio local de dMsg conectado",
     kindWeb: 'Solicitud web',
     kindSignature: 'Firma',
     kindPayment: 'Pago',

@@ -2519,7 +2519,7 @@ fn files_under(dir: &Path) -> Vec<(PathBuf, Vec<u8>)> {
         let path = entry.unwrap().path();
         if path.is_dir() {
             found.extend(files_under(&path));
-        } else {
+        } else if path.is_file() {
             found.push((path.clone(), std::fs::read(&path).unwrap()));
         }
     }
@@ -3063,10 +3063,35 @@ fn desktop_content_and_sync() {
     );
     let a_report = a.run(&["sync"]);
     let b_report = b.run(&["sync"]);
-    assert_eq!(a_report["revisions"], b_report["revisions"]);
-    // Eight versions of the shared item (the refused late edit is not one);
-    // the library adds none.
-    assert_eq!(b_report["revisions"], 8);
+    // Unchanged accounts read one empty incremental page; backups do not enter this stream.
+    for report in [&a_report, &b_report] {
+        assert_eq!(report["revisions"], 0);
+        assert_eq!(report["full_snapshot"], false);
+        assert_eq!(report["export_pages"], 0);
+        assert_eq!(report["delta_pages"], 1);
+        assert_eq!(report["downloaded_bytes"], 0);
+    }
+    // All eight accepted historical versions remain locally readable on both devices.
+    for device in [a, b] {
+        let versions = device.run(&["vault", "history", &x]);
+        assert_eq!(
+            versions
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|v| v["synced"] == true)
+                .count(),
+            8
+        );
+    }
+    // Cross the old 64-export failure boundary with actual signed device requests.
+    for _ in 0..70 {
+        let idle = a.run(&["sync"]);
+        assert_eq!(idle["through"], a_report["through"]);
+        assert_eq!(idle["export_pages"], 0);
+        assert_eq!(idle["delta_pages"], 1);
+        assert_eq!(idle["revisions"], 0);
+    }
     b.run(&["files", "cloud", "refresh"]);
     b.run(&["files", "cloud", "get", &medium_upload]);
     let out = env.dir.join("medium.out");
@@ -3344,9 +3369,20 @@ fn desktop_idle_lock_and_scheduled_sync() {
     let since = now_ms();
     a.run(&["vault", "add", "--title", "for the scheduled sync"]);
     assert_eq!(a.run(&["sync"])["sent"], 1);
-    // About a minute after its daemon started, B syncs on its own; a
-    // minute after its last activity, it locks.
-    let status = eventually(150, || {
+    // Keep the device active while its periodic interval can back off on empty
+    // rounds. Once incoming content is visible, stop activity and check idle lock
+    // separately; locking must never wait for a scheduled network operation.
+    eventually(330, || {
+        let visible = titles(b).contains(&"for the scheduled sync".to_string());
+        let status = b.run(&["status"]);
+        (visible
+            && status["last_sync"]["at"]
+                .as_u64()
+                .is_some_and(|at| at > since)
+            && status["last_sync"]["error"].is_null())
+        .then_some(())
+    });
+    let status = eventually(90, || {
         let status = b.run(&["status"]);
         (status["state"] == "locked").then_some(status)
     });

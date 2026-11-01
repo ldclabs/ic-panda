@@ -83,8 +83,12 @@ impl MobileEngine {
     }
 
     pub async fn account_deletion_preview(&self) -> Result<ObjectSnapshot> {
-        self.held_object(|h| Box::pin(async {
-            dmsg_client::sync::pull_metadata(h).await?;
+        let turn = self.read_turns.lane("sync");
+        self.held_object(move |h| Box::pin(async move {
+            {
+                let _turn = turn.lock().await;
+                dmsg_client::sync::pull_metadata(h).await?;
+            }
             let (wallets, wallets_available) = match dmsg_client::wallet::list(h).await {
                 Ok(wallets) => (wallets, true),
                 Err(error @ (Error::Locked | Error::AuthRequired | Error::DeviceNotApproved)) => return Err(error),

@@ -164,6 +164,7 @@ impl Client {
         let state = self.refresh(account.home, &account.id).await?;
         // The recovered root is known to the replaced devices.
         if state.info.recovered_device.is_some() {
+            crate::sync::require_full(self)?;
             self.rotate_root().await?;
         }
         // The outcome is recorded in the status; it never fails recovery.
@@ -282,6 +283,7 @@ impl Client {
             (&account.id.to_string(), environment, generation),
             &vetkey,
         )?;
+        crate::sync::require_full(self)?;
         self.keep_root(
             generation,
             current.bundle_digest,

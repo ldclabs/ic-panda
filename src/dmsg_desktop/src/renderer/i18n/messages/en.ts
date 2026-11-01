@@ -5,6 +5,13 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "syncLastSuccess": "Last cloud sync: {time}",
+    "syncRetryAt": "Retry after {time}",
+    "syncStorageBlocked": "Uploads paused · Storage full",
+    "syncBusy": "Cloud busy · Retrying",
+    "syncSizeError": "Sync data exceeds the supported size.",
+    "syncUnsupported": "Update dMsg and its sync service.",
+
     scanDeviceRequest: "Scan device request",
     scanQrCamera: "Scan with camera",
     qrCameraUnavailable: "Camera unavailable. Use a QR image or paste the request.",
@@ -948,7 +955,7 @@ const messages = {
   unlocking: 'Unlocking…',
   syncFailed: 'Sync failed · Retry',
   syncing: 'Syncing account…',
-  connected: 'Connected to dMsg',
+  connected: "Local dMsg service connected",
   kindWeb: 'Web request',
   kindSignature: 'Signature',
   kindPayment: 'Payment',

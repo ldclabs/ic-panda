@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "آخری کلاؤڈ ہم آہنگی: {time}",
+    "syncRetryAt": "{time} کے بعد دوبارہ کوشش ہوگی",
+    "syncStorageBlocked": "اپ لوڈ موقوف · اسٹوریج بھرا ہوا ہے",
+    "syncBusy": "کلاؤڈ مصروف · دوبارہ کوشش ہوگی",
+    "syncSizeError": "ہم آہنگی کا ڈیٹا معاون سائز سے زیادہ ہے۔",
+    "syncUnsupported": "dMsg اور اس کی ہم آہنگی سروس اپ ڈیٹ کریں۔",
+
     scanDeviceRequest: "اسکین ڈیوائس کی درخواست",
     scanQrCamera: "کیمرے سے اسکین کریں",
     qrCameraUnavailable: "کیمرہ دستیاب نہیں۔ QR تصویر استعمال کریں یا درخواست چسپاں کریں۔",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "غیر مقفل ہو رہا ہے…",
     "syncFailed": "مطابقت پذیری ناکام · دوبارہ کوشش کریں",
     "syncing": "اکاؤنٹ کی مطابقت پذیری ہو رہی ہے…",
-    "connected": "dMsg سے منسلک ہے",
+    "connected": "مقامی dMsg سروس سے منسلک",
     "kindWeb": "ویب درخواست",
     "kindSignature": "دستخط",
     "kindPayment": "ادائیگی",

@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Son bulut eşitlemesi: {time}",
+    "syncRetryAt": "{time} sonrasında yeniden denenecek",
+    "syncStorageBlocked": "Yüklemeler duraklatıldı · Depolama dolu",
+    "syncBusy": "Bulut meşgul · Yeniden denenecek",
+    "syncSizeError": "Eşitleme verileri desteklenen boyutu aşıyor.",
+    "syncUnsupported": "dMsg ve eşitleme hizmetini güncelleyin.",
+
     scanDeviceRequest: "Cihaz isteğini tarayın",
     scanQrCamera: "Kamerayla tara",
     qrCameraUnavailable: "Kamera kullanılamıyor. QR görüntüsü kullanın veya isteği yapıştırın.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Kilit açılıyor…",
     "syncFailed": "Senkronizasyon başarısız oldu · Yeniden dene",
     "syncing": "Hesap senkronize ediliyor…",
-    "connected": "dMsg’ye bağlanıldı",
+    "connected": "Yerel dMsg hizmetine bağlı",
     "kindWeb": "Web isteği",
     "kindSignature": "İmza",
     "kindPayment": "Ödeme",

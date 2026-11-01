@@ -36,6 +36,12 @@ CREATE TABLE IF NOT EXISTS heads (
 );
 CREATE TABLE IF NOT EXISTS chunks (digest TEXT PRIMARY KEY, bytes BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS jobs (key TEXT PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS sync_objects (
+  upload TEXT PRIMARY KEY, object TEXT NOT NULL, version TEXT NOT NULL, value BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sync_objects_version ON sync_objects (object, version);
+CREATE TABLE IF NOT EXISTS sync_inventory (cursor INTEGER PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS sync_confirmations (key TEXT PRIMARY KEY, cursor INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS library_jobs (key TEXT PRIMARY KEY, value BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS approvals (
   id TEXT PRIMARY KEY,
@@ -365,6 +371,139 @@ impl Store {
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn delete_meta(&self, key: &str) -> Result<()> {
         self.delete("meta", key)
+    }
+
+    /// Cache a verified immutable upload description, independently of the pull cursor.
+    pub(crate) fn sync_put_plan(&self, plan: &crate::upload::UploadPlan) -> Result<()> {
+        if let Some(previous) = self.sync_plan(&plan.upload_id)? {
+            dmsg_types::ensure(previous == *plan, Error::IntegrityFailed)?;
+            return Ok(());
+        }
+        self.conn()
+            .execute(
+                "INSERT INTO sync_objects(upload,object,version,value) VALUES(?1,?2,?3,?4)",
+                params![
+                    plan.upload_id,
+                    plan.object_id,
+                    plan.version_id,
+                    crate::codec::canonical(plan)
+                ],
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    /// A verified plan by upload ID.
+    pub(crate) fn sync_plan(&self, upload: &str) -> Result<Option<crate::upload::UploadPlan>> {
+        let bytes: Option<Vec<u8>> = self
+            .conn()
+            .query_row(
+                "SELECT value FROM sync_objects WHERE upload=?1",
+                [upload],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(storage)?;
+        bytes.map(|b| cbor(&b)).transpose()
+    }
+
+    /// Plans of one immutable version, including a resealed manifest under a newer root.
+    pub(crate) fn sync_version_plans(
+        &self,
+        object: &str,
+        version: &str,
+    ) -> Result<Vec<crate::upload::UploadPlan>> {
+        let conn = self.conn();
+        let mut query = conn
+            .prepare(
+                "SELECT value FROM sync_objects WHERE object=?1 AND version=?2 ORDER BY rowid DESC",
+            )
+            .map_err(storage)?;
+        let rows = query
+            .query_map(params![object, version], |r| r.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|r| cbor(&r.map_err(storage)?)).collect()
+    }
+
+    /// All verified live plans; used for cache references, never to re-verify an incremental page.
+    pub(crate) fn sync_plans(&self) -> Result<Vec<crate::upload::UploadPlan>> {
+        let conn = self.conn();
+        let mut query = conn
+            .prepare("SELECT value FROM sync_objects")
+            .map_err(storage)?;
+        let rows = query
+            .query_map([], |r| r.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|r| cbor(&r.map_err(storage)?)).collect()
+    }
+
+    pub(crate) fn sync_remove_plan(&self, upload: &str) -> Result<()> {
+        self.conn()
+            .execute("DELETE FROM sync_objects WHERE upload=?1", [upload])
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    /// Stage verified snapshot metadata until its complete inventory can be applied atomically.
+    pub(crate) fn sync_stage<T: Serialize>(&self, cursor: u64, entry: &T) -> Result<()> {
+        self.conn()
+            .execute(
+                "INSERT OR REPLACE INTO sync_inventory(cursor,value) VALUES(?1,?2)",
+                params![
+                    i64::try_from(cursor).map_err(|_| Error::IntegrityFailed)?,
+                    crate::codec::canonical(entry)
+                ],
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    pub(crate) fn sync_staged<T: DeserializeOwned>(&self) -> Result<Vec<T>> {
+        let conn = self.conn();
+        let mut query = conn
+            .prepare("SELECT value FROM sync_inventory ORDER BY cursor")
+            .map_err(storage)?;
+        let rows = query
+            .query_map([], |r| r.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|r| cbor(&r.map_err(storage)?)).collect()
+    }
+
+    pub(crate) fn sync_clear_staged(&self) -> Result<()> {
+        self.conn()
+            .execute("DELETE FROM sync_inventory", [])
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    pub(crate) fn sync_confirm(&self, key: &str, cursor: u64) -> Result<()> {
+        self.conn()
+            .execute(
+                "INSERT OR REPLACE INTO sync_confirmations(key,cursor) VALUES(?1,?2)",
+                params![
+                    key,
+                    i64::try_from(cursor).map_err(|_| Error::IntegrityFailed)?
+                ],
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    pub(crate) fn sync_confirmed(&self, key: &str) -> Result<()> {
+        self.conn()
+            .execute("DELETE FROM sync_confirmations WHERE key=?1", [key])
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    pub(crate) fn sync_missing_confirmation(&self, through: u64) -> Result<bool> {
+        self.conn()
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sync_confirmations WHERE cursor<=?1)",
+                [i64::try_from(through).map_err(|_| Error::IntegrityFailed)?],
+                |r| r.get(0),
+            )
+            .map_err(storage)
     }
 
     /// Read a content-free notification projection, including while locked.

@@ -20,6 +20,25 @@ pub(crate) const READ: Policy = Policy {
     total: Duration::from_secs(12),
     backoff: Duration::from_millis(250),
 };
+/// A complete inventory checks remote object availability before returning a page.
+pub(crate) const SNAPSHOT_READ: Policy = Policy {
+    attempts: 3,
+    attempt: Duration::from_secs(15),
+    total: Duration::from_secs(30),
+    backoff: Duration::from_millis(250),
+};
+
+pub(crate) fn busy(delay_ms: u64) -> dmsg_types::Error {
+    dmsg_types::Error::Unavailable(format!("busy: {}", delay_ms.clamp(1000, 86_400_000)))
+}
+
+pub(crate) fn retry_after(error: &dmsg_types::Error) -> Option<u64> {
+    if let dmsg_types::Error::Unavailable(message) = error {
+        return message.strip_prefix("busy: ").and_then(|v| v.parse().ok());
+    }
+    None
+}
+
 /// Chunk bodies of up to 1 MiB, which a slow link needs longer to carry.
 pub(crate) const BULK: Policy = Policy {
     attempts: 3,
@@ -111,7 +130,7 @@ pub(crate) async fn send(
             }
             Ok(response) if !response.status().is_success() => {
                 Diagnostic::http(source, response.status().as_u16()).emit();
-                transient_status(response.status().as_u16())
+                response.status().as_u16() != 429 && transient_status(response.status().as_u16())
             }
             Ok(_) => false,
         };
@@ -298,6 +317,17 @@ mod tests {
         .unwrap();
         assert_eq!(first.body(), "ok");
         (client, format!("{origin}/after-network-change"), server)
+    }
+
+    #[tokio::test]
+    async fn rate_limits_return_to_the_scheduler_without_a_request_retry_burst() {
+        let (url, server) = server(vec![Some("HTTP/1.1 429 Too Many Requests\r\nretry-after: 90\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")]).await;
+        let http = client().unwrap();
+        let request = http.get(url).build().unwrap();
+        let response = send(&http, request, "relay", READ, 1024).await.unwrap();
+        assert_eq!(response.status().as_u16(), 429);
+        assert_eq!(response.headers()["retry-after"], "90");
+        assert_eq!(server.await.unwrap().len(), 1);
     }
 
     #[tokio::test]

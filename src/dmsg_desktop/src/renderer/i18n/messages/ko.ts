@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "최근 클라우드 동기화: {time}",
+    "syncRetryAt": "{time} 이후 재시도",
+    "syncStorageBlocked": "업로드 일시 중지 · 저장 공간 부족",
+    "syncBusy": "클라우드 사용 중 · 자동 재시도 예정",
+    "syncSizeError": "동기화 데이터가 지원 크기를 초과합니다.",
+    "syncUnsupported": "dMsg와 동기화 서비스를 업데이트하세요.",
+
     scanDeviceRequest: "스캔 장치 요청",
     scanQrCamera: "카메라로 스캔",
     qrCameraUnavailable: "카메라를 사용할 수 없습니다. QR 이미지를 사용하거나 요청을 붙여넣으세요.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "잠금 해제 중…",
     "syncFailed": "동기화 실패 · 다시 시도",
     "syncing": "계정 동기화 중…",
-    "connected": "dMsg에 연결됨",
+    "connected": "로컬 dMsg 서비스 연결됨",
     "kindWeb": "웹 요청",
     "kindSignature": "서명",
     "kindPayment": "결제",

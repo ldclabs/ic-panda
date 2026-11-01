@@ -726,10 +726,17 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
                 let (sent, blocked, revisions) = (&r["sent"], &r["blocked"], &r["revisions"]);
                 let (through, pending, conflicts) = (&r["through"], &r["pending"], &r["conflicts"]);
                 let collected = &r["collected"];
-                tr!(
+                let mut summary = tr!(
                     "sent {sent}, refused {blocked}, {revisions} revisions through {through}; {pending} pending, {conflicts} conflicts; {collected} unused chunks deleted",
                     "发送 {sent}，被拒 {blocked}，收到 {revisions} 个版本（至 {through}）；待同步 {pending}，冲突 {conflicts}；删除 {collected} 个不再需要的本地块"
-                )
+                );
+                if let Some(code) = r["upload_error"].as_str() {
+                    summary.push_str(&tr!(
+                        "; uploads paused ({code}), receiving continues",
+                        "；上传暂停（{code}），仍会接收更新"
+                    ));
+                }
+                summary
             });
             Ok(())
         }

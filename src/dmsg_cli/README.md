@@ -565,7 +565,6 @@ The desktop reads `profile/avatar_image { avatar_url }` for both new uploads and
 legacy HTTPS image links. A successful publication (including a retry) emits
 `profile/changed` so the sidebar rereads the published name and avatar.
 
-
 Files. The file library (`dmsg files`) keeps files on this device only, in
 folders, each file as a set of versions with its own key, and nothing of it
 syncs: a backup to the cloud is an explicit action, a file deleted here keeps
@@ -1463,7 +1462,6 @@ also require approval; disabling is immediate. A `lost` outcome may already
 have created the issue and is never replayed. Tests do not use real GitHub
 credentials; see [validation](../../docs/protocol/secrets_zh.md#验证入口与边界).
 
-
 ## Secrets P1 开发工作流
 
 实现进程单次交付、SSH/Git 逐次审批、机密文件挂载、秘密快照分享/导入、受限扫描与轮换记录。公开数据流、owner 接口与限制见 [Secrets 合同](../../docs/protocol/secrets_zh.md)，平台和实际测试边界见 [验证范围](../../docs/protocol/secrets_zh.md#验证入口与边界)。这些 owner 功能不为 MCP 增加明文取密或任意目录访问接口；团队共享保险库仍暂缓。
@@ -1570,3 +1568,18 @@ readable after a later page fails. `inbox/status` reports `complete` and
 Cloud file inventory has a 60-second successful-observation TTL; `files/cloud_status`
 reports its observation. Viewing inventory fetches descriptors/manifests, never file
 blocks. Backup, restore and direct cloud-file reads remain explicit user actions.
+
+### Incremental account sync
+
+`sync/run` establishes a resumable full snapshot on initialization, recovery or
+the first upgrade of a workspace. Later passes read only changes after the
+verified content cursor; an idle pass creates no export. `sync/status` retains
+pending versions and the last successful time even after a failure. `last_sync`
+includes `retry_at` for automatic retries and `upload_error` when storage limits
+pause uploads while receiving continues. `sync/run` is an owner retry; it can
+resume uploads but still honors a server busy deadline. Simultaneous callers
+share the in-flight result unless newer local work still needs sending.
+
+`sync/report` records snapshot/incremental mode, page/change/revision counts,
+downloaded bytes, verification/application durations and the upload outcome.
+These fields contain no content, resource paths, signed URLs or credentials.

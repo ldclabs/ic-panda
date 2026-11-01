@@ -175,7 +175,9 @@ pub(crate) async fn upload<H: Hold>(
     // Recheck this read once with fresh request authentication, keeping the
     // same upload ID. Mutation replies are still reconciled by their caller.
     let status = match h.find(&path).await {
-        Err(Error::Unavailable(_)) => h.find(&path).await?,
+        Err(error @ Error::Unavailable(_)) if crate::transport::retry_after(&error).is_none() => {
+            h.find(&path).await?
+        }
         result => result?,
     };
     let previous: Option<UploadStatus> = status

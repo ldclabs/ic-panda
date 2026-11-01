@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Sinkronisasi cloud terakhir: {time}",
+    "syncRetryAt": "Coba lagi setelah {time}",
+    "syncStorageBlocked": "Unggahan dijeda · Penyimpanan penuh",
+    "syncBusy": "Cloud sibuk · Akan dicoba lagi",
+    "syncSizeError": "Data sinkronisasi melebihi ukuran yang didukung.",
+    "syncUnsupported": "Perbarui dMsg dan layanan sinkronisasinya.",
+
     scanDeviceRequest: "Pindai permintaan perangkat",
     scanQrCamera: "Pindai dengan kamera",
     qrCameraUnavailable: "Kamera tidak tersedia. Gunakan gambar QR atau tempel permintaan.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Membuka kunci…",
     "syncFailed": "Sinkronisasi gagal · Coba lagi",
     "syncing": "Menyinkronkan akun…",
-    "connected": "Terhubung ke dMsg",
+    "connected": "Layanan dMsg lokal terhubung",
     "kindWeb": "Permintaan web",
     "kindSignature": "Tanda tangan",
     "kindPayment": "Pembayaran",

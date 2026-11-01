@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncLastSuccess": "Последняя синхронизация с облаком: {time}",
+    "syncRetryAt": "Повторить после {time}",
+    "syncStorageBlocked": "Загрузка приостановлена · Хранилище заполнено",
+    "syncBusy": "Облако занято · Повторим позже",
+    "syncSizeError": "Данные синхронизации превышают допустимый размер.",
+    "syncUnsupported": "Обновите dMsg и службу синхронизации.",
+
     scanDeviceRequest: "Сканировать запрос устройства",
     scanQrCamera: "Сканировать камерой",
     qrCameraUnavailable: "Камера недоступна. Используйте изображение QR или вставьте запрос.",
@@ -946,7 +953,7 @@ export default {
     unlocking: 'Разблокировка…',
     syncFailed: 'Ошибка синхронизации · Повторить',
     syncing: 'Синхронизация аккаунта…',
-    connected: 'Подключено к dMsg',
+    connected: "Локальная служба dMsg подключена",
     kindWeb: 'Веб-запрос',
     kindSignature: 'Подпись',
     kindPayment: 'Платёж',

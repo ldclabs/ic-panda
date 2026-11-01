@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Laatste cloudsynchronisatie: {time}",
+    "syncRetryAt": "Opnieuw proberen na {time}",
+    "syncStorageBlocked": "Uploads gepauzeerd · Opslag vol",
+    "syncBusy": "Cloud bezet · Nieuwe poging volgt",
+    "syncSizeError": "De synchronisatiegegevens overschrijden de ondersteunde grootte.",
+    "syncUnsupported": "Werk dMsg en de synchronisatieservice bij.",
+
     scanDeviceRequest: "Verzoek om scanapparaat",
     scanQrCamera: "Scannen met camera",
     qrCameraUnavailable: "Camera niet beschikbaar. Gebruik een QR-afbeelding of plak het verzoek.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Ontgrendelen…",
     "syncFailed": "Synchronisatie mislukt · Opnieuw proberen",
     "syncing": "Account synchroniseren…",
-    "connected": "Verbonden met dMsg",
+    "connected": "Lokale dMsg-service verbonden",
     "kindWeb": "Webverzoek",
     "kindSignature": "Handtekening",
     "kindPayment": "Betaling",

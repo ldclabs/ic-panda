@@ -248,6 +248,52 @@ async fn an_edge_error_page_is_a_lost_reply() {
 }
 
 #[tokio::test]
+async fn rate_limits_preserve_retry_after_for_reads_and_writes_without_hiding_storage_quota() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        for body in [
+            "Too Many Requests",
+            "Too Many Requests",
+            r#"{"error":"rate limited"}"#,
+            r#"{"ok":false,"error":{"code":"QUOTA_EXCEEDED"}}"#,
+        ] {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buffer = [0; 8192];
+            assert!(socket.read(&mut buffer).await.unwrap() > 0);
+            let reply = format!(
+                "HTTP/1.1 429 Too Many Requests\r\nretry-after: 90\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(reply.as_bytes()).await.unwrap();
+        }
+    });
+    let cloud = Cloud::new(&origin, true).unwrap();
+    for (i, method) in [
+        reqwest::Method::GET,
+        reqwest::Method::POST,
+        reqwest::Method::POST,
+        reqwest::Method::POST,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let error = cloud
+            .exchange(method, cloud.url("/v1/limited").unwrap(), None, None, false)
+            .await
+            .err()
+            .unwrap();
+        if i < 3 {
+            assert_eq!(crate::transport::retry_after(&error), Some(90_000));
+        } else {
+            assert_eq!(error, Error::QuotaExceeded);
+        }
+    }
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn direct_downloads_are_bounded_verified_and_send_no_device_credentials() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

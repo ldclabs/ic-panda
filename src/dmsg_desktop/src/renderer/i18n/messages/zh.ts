@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncLastSuccess": "最近云端同步：{time}",
+    "syncRetryAt": "{time} 后重试",
+    "syncStorageBlocked": "上传暂停 · 存储空间不足",
+    "syncBusy": "云端繁忙 · 将自动重试",
+    "syncSizeError": "同步数据超过支持的大小。",
+    "syncUnsupported": "请更新 dMsg 及其同步服务。",
+
     scanDeviceRequest: "扫描设备请求",
     scanQrCamera: "使用摄像头扫描",
     qrCameraUnavailable: "无法使用摄像头。可改用二维码图片或粘贴请求。",
@@ -946,7 +953,7 @@ export default {
     unlocking: '正在解锁…',
     syncFailed: '同步失败 · 重试',
     syncing: '正在同步账户…',
-    connected: '已连接 dMsg',
+    connected: "已连接本机 dMsg 服务",
     kindWeb: '网页请求',
     kindSignature: '签名',
     kindPayment: '付款',

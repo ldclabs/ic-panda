@@ -1617,6 +1617,36 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {
+    const okAt = Date.now() - 60000
+    lastSync = { at: Date.now(), ok_at: okAt, error: 'NETWORK_UNAVAILABLE', retry_at: Date.now() + 15000 }
+    emit('sync/changed')
+    await main.getByTestId('gate-sync-retry').waitFor()
+    assert.match(await main.getByTestId('gate-sync-pending').innerText(), /2/)
+    assert.match(await main.getByTestId('gate-sync-success').innerText(), /Last cloud sync/)
+    await formMatrix(app, main, shots, 'sync-network', '[data-testid="gate-rail"]')
+    lastSync = { at: Date.now(), ok_at: okAt, error: null, upload_error: 'QUOTA_EXCEEDED' }
+    emit('sync/changed')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Storage full'))
+    assert.match(await main.getByTestId('gate-sync-pending').innerText(), /2/)
+    await formMatrix(app, main, shots, 'sync-storage', '[data-testid="gate-rail"]')
+    const before = calls.filter(c => c.method === 'sync/run').length
+    const release = hold('sync/run')
+    await main.getByTestId('gate-sync').focus()
+    await main.keyboard.press('Enter')
+    await waitFor(() => typeof held.get('sync/run') === 'function')
+    assert.equal(await main.getByTestId('gate-sync').isDisabled(), true)
+    assert.equal(calls.filter(c => c.method === 'sync/run').length, before + 1)
+    await release()
+    await main.waitForFunction(() => !document.querySelector('[data-testid="gate-sync"]')?.disabled)
+    session = 'locked'
+    emit('session/changed')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.disabled)
+    assert.equal(await main.getByTestId('gate-sync-pending').isVisible(), true)
+    assert.deepEqual(pageErrors, [])
+    console.log('Sync Electron checks passed: pending work, last success, retry, storage limit, keyboard, lock and locale/theme matrix')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'cache') {
     wallets.state.enabled = true
     await cacheFlow({ app, main, shots, methods, calls, emit, hold, waitFor, formMatrix, displayStates })

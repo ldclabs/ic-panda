@@ -3,7 +3,7 @@ use crate::testing::{TempDir, unlocked};
 use crate::vault::{Changes, Filter, Keep};
 use serde_json::json;
 
-fn item(title: &str) -> Changes {
+pub(super) fn item(title: &str) -> Changes {
     Changes {
         title: Some(title.into()),
         ..Changes::default()
@@ -12,7 +12,7 @@ fn item(title: &str) -> Changes {
 
 /// A real HTTP relay that can lose a mutation's reply after reading its body.
 /// Return the bodies so retries can be checked for byte-for-byte identity.
-async fn scripted_relay(
+pub(super) async fn scripted_relay(
     client: &mut Client,
     replies: Vec<(&'static str, String, Option<serde_json::Value>)>,
 ) -> tokio::task::JoinHandle<Vec<Vec<u8>>> {
@@ -77,7 +77,8 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
     let base = client.base().unwrap();
     let start = reply(json!({
         "account": client.account().unwrap().id.to_string(),
-        "scope": "cloud_snapshot", "through": 0, "counts": []
+        "scope": "cloud_snapshot", "through": 0, "counts": [],
+        "content_sync": 1, "export_id": "aa".repeat(32), "expires_at": now_ms() + 60_000,
     }));
     let page = reply(json!({"entries": [], "next_cursor": 0, "inventory_end": true}));
     let unavailable = Some(json!({
@@ -88,8 +89,12 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
         vec![
             ("POST", format!("{base}/exports"), start.clone()),
             ("GET", format!("{base}/exports/*"), unavailable),
-            ("POST", format!("{base}/exports"), start),
             ("GET", format!("{base}/exports/*"), page),
+            (
+                "POST",
+                format!("{base}/exports/{}/close", "aa".repeat(32)),
+                reply(json!({"closed":true})),
+            ),
         ],
     )
     .await;
@@ -108,6 +113,12 @@ async fn a_failed_snapshot_records_its_stage_and_the_next_sync_clears_it() {
                 .contains("private relay detail")
         );
         assert_eq!(client.workspace.store.meta::<u64>(SNAPSHOT).unwrap(), None);
+        let config = client.config.clone();
+        drop(client);
+        let mut client = Client::open(config, &dir.0, None).unwrap();
+        client.keys = Some(client.workspace.unlock(&crate::testing::SECRET).unwrap());
+        client.load_root().await.unwrap();
+        crate::testing::warm(&mut client);
         let report = sync(&client.hold()).await.unwrap();
         assert_eq!(report.export_pages, 1);
         assert_eq!(
@@ -315,9 +326,6 @@ async fn a_sync_response_cannot_follow_a_lock_and_reopen_of_the_same_account() {
     .await
     .unwrap();
     let empty = Snapshot {
-        pages: 0,
-        downloaded_bytes: 0,
-        verify_ms: 0,
         through: 0,
         plans: vec![],
         revisions: vec![],
@@ -337,7 +345,7 @@ async fn a_sync_response_cannot_follow_a_lock_and_reopen_of_the_same_account() {
 /// is not the head is stored as a conflict copy; a tombstone needs the head
 /// as its base; a deleted item takes only an explicit restore.
 #[derive(Default)]
-struct Relay {
+pub(super) struct Relay {
     through: u64,
     plans: Vec<UploadPlan>,
     revisions: Vec<(Revision, bool)>,
@@ -348,7 +356,7 @@ struct Relay {
 
 impl Relay {
     /// Take the client's local versions, parents first, and settle each.
-    fn accept(&mut self, client: &mut Client) -> (usize, usize) {
+    pub(super) fn accept(&mut self, client: &mut Client) -> (usize, usize) {
         let (mut sent, mut refused) = (0, 0);
         let rows = ordered(client.workspace.store.objects_in(LOCAL).unwrap()).unwrap();
         for row in rows {
@@ -416,6 +424,7 @@ impl Relay {
             ));
             self.through += 1;
             let verdict = json!({
+                "cursor": self.through,
                 "revision_id": found.revision,
                 "head": if conflict { head.unwrap() } else { found.revision.clone() },
                 "conflict": conflict,
@@ -427,11 +436,8 @@ impl Relay {
         (sent, refused)
     }
 
-    fn snapshot(&self) -> Snapshot {
+    pub(super) fn snapshot(&self) -> Snapshot {
         Snapshot {
-            pages: 0,
-            downloaded_bytes: 0,
-            verify_ms: 0,
             through: self.through,
             plans: self.plans.clone(),
             revisions: self.revisions.clone(),
@@ -439,10 +445,15 @@ impl Relay {
     }
 
     /// What a pull hands the client once the chunks are cached.
-    fn deliver(&self, client: &mut Client) -> Result<usize> {
+    pub(super) fn cache(&self, client: &Client) -> Result<()> {
         for (digest, bytes) in &self.chunks {
             client.workspace.store.put_chunk(digest, bytes)?;
         }
+        Ok(())
+    }
+
+    pub(super) fn deliver(&self, client: &mut Client) -> Result<usize> {
+        self.cache(client)?;
         client.apply(&self.snapshot())
     }
 }
@@ -728,12 +739,12 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
     };
     b.hold_uploads([&plan(&live, now + 60_000), &plan(&lapsed, now - 1)])
         .unwrap();
-    assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 2);
+    assert_eq!(b.collect_chunks(now).unwrap(), 2);
     let has = |digest: &str| b.workspace.store.has_chunk(digest).unwrap();
     assert!(relay.chunks.keys().all(|d| has(d)));
     assert!(has(&live));
     assert!(!has(&cached) && !has(&lapsed));
-    assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 0);
+    assert_eq!(b.collect_chunks(now).unwrap(), 0);
     // The unsent edit still uploads, and A reads it.
     assert_eq!(relay.accept(&mut b), (1, 0));
     relay.deliver(&mut a).unwrap();
@@ -841,16 +852,7 @@ async fn verified_attachment_survives_account_collection_and_offline_reopen() {
     c.workspace
         .put_private(c.keys().unwrap(), "test-attachment", &reference)
         .unwrap();
-    let snapshot = Snapshot {
-        pages: 0,
-        downloaded_bytes: 0,
-        verify_ms: 0,
-        through: 0,
-        plans: vec![],
-        revisions: vec![],
-    };
-    c.collect_chunks(&snapshot, upload.plan.expires_at + 1)
-        .unwrap();
+    c.collect_chunks(upload.plan.expires_at + 1).unwrap();
     assert!(c.workspace.store.has_chunk(&file.chunks[0].digest).unwrap());
     drop(c);
     let mut c = Client::open(crate::testing::config(false), &root, None).unwrap();
@@ -929,4 +931,291 @@ fn local_write_watermark_changes_on_edits_but_not_reads() {
     assert!(after > before);
     c.vault_list(&Filter::default()).unwrap();
     assert_eq!(c.local_change().unwrap(), after);
+}
+
+#[tokio::test]
+async fn daily_reads_use_only_the_incremental_endpoint_and_never_advance_on_failure() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client
+        .apply(&Snapshot {
+            through: 42,
+            ..Snapshot::default()
+        })
+        .unwrap();
+    let base = client.base().unwrap();
+    let account = client.account().unwrap().id.to_string();
+    let path = format!("{base}/content/changes?after=42&limit=100");
+    let mut responses = vec![(
+        "GET",
+        path.clone(),
+        Some(json!({"ok":false,"error":{"code":"SYNC_BUSY","retry_after_ms":90_000}})),
+    )];
+    for _ in 0..20 {
+        responses.push(("GET", path.clone(), reply(json!({"content_sync":1,"account":account,"entries":[],"through":42,"next_cursor":42,"end":true}))));
+    }
+    let server = scripted_relay(&mut client, responses).await;
+    let error = sync(&client.hold()).await.unwrap_err();
+    assert_eq!(crate::error_code(&error), "SYNC_BUSY");
+    let failed = client.last_sync().unwrap().unwrap();
+    assert_eq!(failed.retry_at, Some(failed.at + 90_000));
+    assert_eq!(
+        retry_uploads(&mut client).map_err(|e| crate::error_code(&e)),
+        Err("SYNC_BUSY".into())
+    );
+    assert_eq!(
+        client.workspace.store.meta::<u64>(pull::CURSOR).unwrap(),
+        Some(42)
+    );
+    for _ in 0..20 {
+        let report = sync(&client.hold()).await.unwrap();
+        assert!(!report.full_snapshot);
+        assert_eq!(
+            (
+                report.delta_pages,
+                report.export_pages,
+                report.downloaded_bytes,
+                report.revisions
+            ),
+            (1, 0, 0, 0)
+        );
+    }
+    server.await.unwrap();
+}
+
+#[tokio::test]
+async fn storage_quota_pauses_uploads_but_keeps_daily_reads_and_local_work() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client.apply(&Snapshot::default()).unwrap();
+    let entry = client.vault_create("note", &item("keep my draft")).unwrap();
+    let key = format!("{}:{}", entry.id, entry.revision);
+    let mut job: ContentJob = client.workspace.store.job(&key).unwrap().unwrap();
+    job.vault.done = true;
+    client.workspace.store.set_job(&key, &job).unwrap();
+    let base = client.base().unwrap();
+    let account = client.account().unwrap().id.to_string();
+    let page = reply(
+        json!({"content_sync":1,"account":account,"through":0,"entries":[],"next_cursor":0,"end":true}),
+    );
+    let server = scripted_relay(
+        &mut client,
+        vec![
+            (
+                "GET",
+                format!("{base}/content/changes?after=0&limit=100"),
+                page.clone(),
+            ),
+            (
+                "GET",
+                format!("{base}/operations/{}", hex::encode(*job.request_id)),
+                reply(json!({"found":false})),
+            ),
+            (
+                "POST",
+                format!("{base}/vault"),
+                Some(json!({"ok":false,"error":{"code":"QUOTA_EXCEEDED"}})),
+            ),
+            (
+                "GET",
+                format!("{base}/operations/{}", hex::encode(*job.request_id)),
+                reply(json!({"found":false})),
+            ),
+            (
+                "GET",
+                format!("{base}/content/changes?after=0&limit=100"),
+                page,
+            ),
+        ],
+    )
+    .await;
+    for _ in 0..2 {
+        let report = sync(&client.hold()).await.unwrap();
+        assert_eq!(report.upload_error.as_deref(), Some("QUOTA_EXCEEDED"));
+        assert_eq!((report.pending, report.sent, report.delta_pages), (1, 0, 1));
+        let status = client.last_sync().unwrap().unwrap();
+        assert!(status.error.is_none() && status.succeeded_at().is_none());
+        assert!(
+            client
+                .workspace
+                .store
+                .job::<ContentJob>(&key)
+                .unwrap()
+                .is_some()
+        );
+    }
+    server.await.unwrap();
+    observe_storage(&mut client, 0).unwrap();
+    observe_storage(&mut client, 0).unwrap();
+    assert!(
+        client
+            .workspace
+            .store
+            .meta::<String>(pull::UPLOAD_BLOCKED)
+            .unwrap()
+            .is_some()
+    );
+    observe_storage(&mut client, 1024).unwrap();
+    assert!(
+        client
+            .workspace
+            .store
+            .meta::<String>(pull::UPLOAD_BLOCKED)
+            .unwrap()
+            .is_none()
+    );
+    client
+        .workspace
+        .store
+        .set_meta(pull::UPLOAD_BLOCKED, &"QUOTA_EXCEEDED")
+        .unwrap();
+    retry_uploads(&mut client).unwrap();
+    assert!(
+        client
+            .workspace
+            .store
+            .meta::<String>(pull::UPLOAD_BLOCKED)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn upload_status_and_revision_busy_responses_do_not_trigger_immediate_retries() {
+    for revision in [false, true] {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        client.apply(&Snapshot::default()).unwrap();
+        let entry = client
+            .vault_create("note", &item("wait for the relay"))
+            .unwrap();
+        let key = format!("{}:{}", entry.id, entry.revision);
+        let mut job: ContentJob = client.workspace.store.job(&key).unwrap().unwrap();
+        let base = client.base().unwrap();
+        let account = client.account().unwrap().id.to_string();
+        let mut replies = vec![(
+            "GET",
+            format!("{base}/content/changes?after=0&limit=100"),
+            reply(
+                json!({"content_sync":1,"account":account,"through":0,"entries":[],"next_cursor":0,"end":true}),
+            ),
+        )];
+        let busy = Some(json!({"ok":false,"error":{"code":"SYNC_BUSY","retry_after_ms":90_000}}));
+        if revision {
+            job.vault.done = true;
+            client.workspace.store.set_job(&key, &job).unwrap();
+            replies.push((
+                "GET",
+                format!("{base}/operations/{}", hex::encode(*job.request_id)),
+                reply(json!({"found":false})),
+            ));
+            replies.push(("POST", format!("{base}/vault"), busy));
+        } else {
+            replies.push((
+                "GET",
+                format!("{base}/uploads/{}", job.vault.plan.upload_id),
+                busy,
+            ));
+        }
+        let server = scripted_relay(&mut client, replies).await;
+        assert_eq!(
+            crate::error_code(&sync(&client.hold()).await.unwrap_err()),
+            "SYNC_BUSY"
+        );
+        let last = client.last_sync().unwrap().unwrap();
+        assert_eq!(last.retry_at, Some(last.at + 90_000));
+        assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 1);
+        assert_eq!(flush(&client.hold()).await.unwrap(), 0);
+        server.await.unwrap();
+    }
+}
+
+#[test]
+fn requiring_a_recovery_baseline_keeps_the_rollback_floor_and_local_work() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client
+        .apply(&Snapshot {
+            through: 42,
+            ..Snapshot::default()
+        })
+        .unwrap();
+    let entry = client.vault_create("note", &item("local draft")).unwrap();
+    require_full(&mut client).unwrap();
+    assert_eq!(
+        client.workspace.store.meta::<u64>(pull::CURSOR).unwrap(),
+        None
+    );
+    assert_eq!(
+        client.workspace.store.meta::<u64>(SNAPSHOT).unwrap(),
+        Some(42)
+    );
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 1);
+    assert!(
+        client
+            .workspace
+            .store
+            .job::<ContentJob>(&format!("{}:{}", entry.id, entry.revision))
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(
+        client.apply(&Snapshot {
+            through: 41,
+            ..Snapshot::default()
+        }),
+        Err(Error::IntegrityFailed)
+    );
+}
+
+#[test]
+fn incremental_sync_wire_vectors_match() {
+    use crate::cloud::{Signer, sign_command, sign_http};
+    use crate::codec::canonical;
+    use url::Url;
+    let seed = [7u8; 32];
+    let device = Hash::new([8; 32]);
+    let account = crate::testing::account();
+    let request_id = "09".repeat(32);
+    let deadline = 1_800_000_045_000u64;
+    let signer = Signer {
+        issuer: &account.issuer,
+        device_id: device,
+        security_epoch: 3,
+        seed: &seed,
+        expires_at: deadline,
+    };
+    let export_id = "0a".repeat(32);
+    let commands: Vec<Json> = [
+        ("dmsg/export/start/v1", json!({"export_id": export_id, "mode":"sync"}), format!("/v1/accounts/{}/exports", account.id)),
+        ("dmsg/export/close/v1", json!({"export_id": export_id}), format!("/v1/accounts/{}/exports/{export_id}/close", account.id)),
+    ].into_iter().map(|(action, payload, path)| {
+        let cose = sign_command(&signer, action, &payload, &request_id, deadline);
+        let body = json!({"cose_sign1":cose});
+        let bytes = canonical(&body);
+        let url = Url::parse(&format!("https://api.dmsg.test{path}")).unwrap();
+        json!({"action":action,"payload":payload,"body":body,"body_hex":hex::encode(&bytes),"url":url.as_str(),
+            "http_pop":sign_http(&signer,&url,"POST",&bytes,&request_id,deadline).unwrap()})
+    }).collect();
+    let url = Url::parse(&format!(
+        "https://api.dmsg.test/v1/accounts/{}/content/changes?through=15&after=7&limit=100",
+        account.id
+    ))
+    .unwrap();
+    let vector = json!({"format":"dmsg-content-sync/1","test_only":true,"generator":"dmsg_client::sync::tests::incremental_sync_wire_vectors_match",
+        "context":{"issuer":account.issuer,"account":account.id.to_string(),"device":hex::encode(*device),"security_epoch":3,"request_id":request_id,"deadline":deadline},
+        "public_key_hex":hex::encode(crate::crypto::signing_public(&seed)),"commands":commands,
+        "read":{"url":url.as_str(),"target":crate::cloud::canonical_target(&url).unwrap(),"http_pop":sign_http(&signer,&url,"GET",&[],&request_id,deadline).unwrap()},
+        "empty_page":{"content_sync":1,"account":account.id.to_string(),"through":15,"entries":[],"next_cursor":15,"end":true,"security":{}}});
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/vectors/client/sync-v1.json");
+    if std::env::var_os("DMSG_WRITE_CLIENT_VECTORS").is_some() {
+        std::fs::write(
+            &path,
+            format!("{}\n", serde_json::to_string_pretty(&vector).unwrap()),
+        )
+        .unwrap();
+    }
+    let saved: Json = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    assert_eq!(saved, vector);
 }

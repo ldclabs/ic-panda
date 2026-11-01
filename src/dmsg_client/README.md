@@ -34,7 +34,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`vault`] | Items and their versions: add, edit, trash, restore, local search, conflict copies and their resolution |
 | [`files`] | The file format: 1 MiB chunks with deterministic nonces under a per-version key, verified reads and exports, and the `BlobStore` trait over where chunks live (the store's `chunks` table or the library's directory) |
 | [`library`] | dMsg Files: the local encrypted file library. Folders, files and versions as sealed records indexed in memory while unlocked; chunks as files in `blobs/`; resumable imports with type sniffing and thumbnails; opened copies with change detection; the trash and chunk collection; shared editions under their own keys; what the daemon's loopback WebDAV mount and agents need (paths, single chunks and byte ranges read chunk by chunk, copies, an editor's safe save as a version); share links for people outside dMsg (`share` editions, manifests sealed under the share key, Argon2id password wraps, the links' records); explicit backups as `kind=backup` uploads, in passes the caller may bound in time, the account's backup inventory, fetching, deleting and verifying cloud copies, and freeing verified versions. Nothing syncs by itself and no deletion crosses to the other side |
-| [`sync`] | Content jobs, resumable uploads, presigned vault revisions, verified export snapshots, conflict copies and tombstones |
+| [`sync`] | Content jobs, resumable uploads, incremental pages, resumable verified baseline snapshots, conflict copies and tombstones |
 | [`principal`] | Official PrincipalDocument, directory-certified JSON shared with the web page, journaled on-chain display updates, and immutable public avatar uploads; network reads use Hold |
 | [`approval`] | The approval center: requests from the desktop, the CLI, agents and web pages, decided only by a person; their states, deadlines and limits |
 | [`attest`] | Formal statements (text, digest, file) and application actions signed by this device, journaled before they are sent, reconciled by execution ID; portable bundles and their independent verification |
@@ -131,9 +131,9 @@ writing it; the core requires neither an OS logger nor a daemon to run.
 
 IC and relay reads share a bounded transport policy: at most three attempts,
 five seconds per attempt and twelve seconds total, including response bodies,
-with jittered backoff. Chunk reads of up to 1 MiB allow thirty seconds per
+with jittered backoff. Complete snapshot pages have a separate 15-second attempt / 30-second total budget. Chunk reads of up to 1 MiB allow thirty seconds per
 attempt and sixty in total, so that a slow link can still carry them. Only
-transport interruptions and HTTP 408/429/500/502/503/504 retry; certificate
+transport interruptions and HTTP 408/500/502/503/504 retry within a request; HTTP 429 defers the next attempt instead of spinning; certificate
 failures, authority refusals and integrity failures do not. IC queries have a
 fifteen-second overall budget; update submission and status waiting have a
 ninety-second overall budget. Individual mutation HTTP requests have a
@@ -150,29 +150,37 @@ resubmitting the same idempotent operation. Query signature verification,
 certificate roots, response limits and session-generation checks remain
 enabled.
 
-Pulling reads a complete export snapshot, checks every signed entry against
-the devices of the security epoch it was signed under (the certified
-evidence the relay kept for that epoch, checked once per epoch, so devices
-replaced since by recovery or at the device bound still count) and every
-chunk against its digest, caches the
-ciphertext, opens every new version (a file's every chunk included), and
-only then moves the heads, in one transaction. A snapshot older than one
-already applied, or one that drops a version the relay accepted, is refused.
+Initialization, recovery and the first upgrade of an existing workspace establish
+a complete export baseline. Its original operation ID, export ID, counts and
+verified inventory pages are durable; interruptions resume the same task.
+Every signature is checked against its historical certified security epoch,
+every required chunk against its digest, and each new version is decrypted
+before the baseline and cursor commit atomically. Missing history and rollback
+remain errors. The creating device closes the lease after verification; a lost
+close is retried independently.
 
-The chunk store keeps what may still be read. At the end of a sync while
-unlocked, a chunk is deleted unless the snapshot just applied names it (the
-next pull checks every one, so a deleted one would be downloaded again), an
-unsent version's job does (it replans from them), or a channel or root
-upload in flight does whose plan has not lapsed: an upload reads chunks only
-before its plan lapses, and channel uploads are listed in one sealed record
-for that until then. Verified attachment-cache references also keep their chunks. Replaced versions', lapsed or abandoned
-uploads' unreferenced chunks go; resolved conflict copies and
-older versions stay, as the relay keeps them. The freed pages return to the
-file system in a workspace created since (`auto_vacuum = INCREMENTAL`). The
-file library's chunks are not in this table: they are files in the
-workspace's `blobs/` directory, which the library collects on its own
-against every version, thumbnail, unfinished import and shared edition in
-flight.
+Daily pulls use `content/changes` after the verified account cursor. Each pass
+fixes its target watermark. Verified object descriptions bridge page boundaries;
+new versions fetch only missing ciphertext. Applying a page and advancing its
+cursor share a transaction. An unchanged account reads one empty metadata page,
+without an export lease, R2 availability scan or old-version verification.
+Revision ACKs retain their positions until their signed revisions are observed;
+they never jump over another device's changes. Unknown writes still reconcile
+their original operations. After sending, only a second incremental read is needed.
+
+The local object-description index, accepted history, pending uploads, root work
+and attachment references keep cache chunks alive. Collection never treats the
+latest delta page as a complete inventory. File-library blobs retain their own
+reference accounting. A retained revision's missing data stays an integrity error.
+
+`LastSync` retains the last successful time, the current pull error, a separate
+`upload_error`, consecutive failure count and `retry_at`. Resource-limited uploads
+pause while incoming reads continue; an owner retry or improved available storage
+resumes them. Network failures back off from 5/15/30/60 seconds to five minutes
+with jitter. Server busy responses honor their retry delay; permanent failures
+require action. The daemon coalesces callers of the same session and applies this
+cooldown to periodic, edit and reconnect triggers. `sync/report` logs only mode,
+counts, byte totals, fixed error categories and stage durations.
 
 Conflicts: a local version the relay's head does not lead to becomes a
 conflict copy and is still sent, so the relay keeps it for every device. The

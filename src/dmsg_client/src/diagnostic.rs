@@ -228,6 +228,9 @@ impl Diagnostic {
     pub fn error(error: &Error) -> Self {
         match error {
             Error::Unavailable(message) => {
+                if message.starts_with("busy: ") {
+                    return Self::new("relay", "busy");
+                }
                 if let Some(message) = message.strip_prefix("network: ") {
                     let (source, reason) = message
                         .split_once(' ')
@@ -253,6 +256,9 @@ impl Diagnostic {
             }
             Error::ExecutionUnknown => Self::new("unknown", "result_unknown"),
             Error::IntegrityFailed => Self::new("client", "integrity"),
+            Error::InvalidInput(code) if code == "RESPONSE_TOO_LARGE" => {
+                Self::new("relay", "response_too_large")
+            }
             Error::InvalidInput(_) => Self::new("client", "invalid_input"),
             Error::Locked => Self::new("client", "locked"),
             _ => Self::new("client", "refused"),

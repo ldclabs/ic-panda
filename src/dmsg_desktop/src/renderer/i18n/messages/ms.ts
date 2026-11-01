@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Penyegerakan awan terakhir: {time}",
+    "syncRetryAt": "Cuba lagi selepas {time}",
+    "syncStorageBlocked": "Muat naik dijeda · Storan penuh",
+    "syncBusy": "Awan sibuk · Akan dicuba lagi",
+    "syncSizeError": "Data penyegerakan melebihi saiz yang disokong.",
+    "syncUnsupported": "Kemas kini dMsg dan perkhidmatan penyegerakannya.",
+
     scanDeviceRequest: "Imbas permintaan peranti",
     scanQrCamera: "Imbas dengan kamera",
     qrCameraUnavailable: "Kamera tidak tersedia. Gunakan imej QR atau tampal permintaan.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Membuka kunci…",
     "syncFailed": "Penyegerakan gagal · Cuba semula",
     "syncing": "Menyegerakkan akaun…",
-    "connected": "Disambungkan kepada dMsg",
+    "connected": "Perkhidmatan dMsg setempat disambungkan",
     "kindWeb": "Permintaan web",
     "kindSignature": "Tandatangan",
     "kindPayment": "Bayaran",

@@ -101,7 +101,17 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 
 若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
 
-普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。每次解锁后的同步完成时，客户端删除不再需要的本机块：保留刚应用的快照列出的全部块与 manifest（下一次拉取会核对它们，删掉会被重新下载）、尚未发送版本的任务、未完成导入，以及密封任务中仍未过期的上传计划（频道信封与附件、换根）所用的块；被替换的版本、过期或放弃的上传、频道附件下载留下的缓存因此被回收。已解决的冲突副本与历史版本仍在中继快照中，所以保留。
+日常账户同步使用 `GET /v1/accounts/:account/content/changes?after=C&limit=100`，响应为 `{content_sync:1,account,through,entries,next_cursor,end,security}`。首次请求固定目标 `through=T`，后续页带 `through=T`，只读取 `(C,T]` 的变化。游标可以有间隔；`end=true` 时 `next_cursor=T`，否则为本页最后条目的游标。不得根据条数推断结束，也不得将上传 ACK 的位置直接当作已读游标。越过服务端当前水位、响应回退、账户或固定目标不符均拒绝；不自动清空游标重来。
+
+变化包含对象提交、revision 和对象删除墓碑，排除文件库 backup/share。删除后的提交描述与墓碑仍可读取，不能仅返回当前可见对象。普通分页不创建 export 或检查远端块；每页最多 100 条、编码响应不超过 1 MiB。对象描述、原签名及所需纪元证据用于验证，密文只在新版本需要且本机缺少时获取。`object_tombstone` 带删除命令的 `security_epoch`；命令 `dmsg/object/collect/v1` 的 `upload_id` 必须一致，墓碑 generation 等于签名载荷 generation 加一。被保留版本引用的对象缺失仍是完整性错误。
+
+首次初始化、账户恢复、旧版工作区首次升级使用完整快照。`POST /v1/accounts/:account/exports` 的 `dmsg/export/start/v1` 载荷为 `{export_id,mode:"sync"}`，成功响应须带 `content_sync:1`。同设备复用未结束任务，响应中的 `export_id` 可能是先前任务的 ID；客户端使用该返回值，并持久保存原操作 ID、固定范围、数量和已验证分页进度。旧版 export 租约不占新版设备会话名额。开始结果未知先查原操作，失效任务才重建。
+
+完整快照继续核对数量、历史遗漏、签名、安全纪元、manifest、全部必需密文块、解密及防回退；通过后原子建立本地基线并从 T 接上增量。`POST /exports/:export/close` 使用 `dmsg/export/close/v1`、载荷 `{export_id}`，要求原设备的 `vault_unlock` 权限，路径与载荷一致；完成或放弃任务均可幂等关闭。客户端下载验证完成前保留引用保护，关闭失败单独重试，不撤销已经验证的数据。
+
+vault revision 成功响应增加 `cursor`，表示该 revision 的提交位置。客户端保存待核对的 ACK，必须在包含该位置的增量页中验证相应 revision，再推进游标；首次全量基线仍检查所有已接受版本是否齐全。每页应用对象、head 和游标在一个本地事务中提交。增量缺席不表示删除，既有冲突、删除与显式恢复规则不变。缓存回收使用完整的本地对象引用索引、历史版本、待发送任务和附件引用，不能仅保留最新一页中的块。
+
+同步状态分开记录拉取错误与 `upload_error`。`SYNC_BUSY` 可携带 `retry_after_ms`；请求／响应过大分别为 `REQUEST_TOO_LARGE`（wire `TOO_LARGE`）和 `RESPONSE_TOO_LARGE`，不等同于存储额度。存储额度不足暂停重复上传，继续接收；手动重试或额度改善恢复上传。固定向量见 [sync-v1.json](../../tests/vectors/client/sync-v1.json)。
 
 导出快照的签名依据：每个 `object` 与 `revision` 条目带签名命令的 `security_epoch`，每页带 `security: {"<epoch>": {evidence, stored_at}}`，即中继在该纪元下首次接受上传预留或 vault revision 时核对的认证证据。客户端每次拉取对每个纪元用 `stored_at` 核对一次证据（证书、账户叶与设备表，叶中的纪元须等于该纪元），再逐条在该纪元的设备表中找签名设备（当时未吊销、有 `content_sign`）验签，命令体的 `security_epoch` 须等于该纪元。不按当前设备集合验签：全设备丢失恢复会替换所有设备，设备表满 16 条时加设备会移除最早吊销的一台，它们签过的版本仍须可以拉取。缺少所属纪元证据的条目被拒绝。
 

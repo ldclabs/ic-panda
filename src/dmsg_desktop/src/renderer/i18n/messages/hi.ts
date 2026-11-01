@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "पिछला क्लाउड सिंक: {time}",
+    "syncRetryAt": "{time} के बाद फिर कोशिश करेंगे",
+    "syncStorageBlocked": "अपलोड रुका हुआ · स्टोरेज भरा है",
+    "syncBusy": "क्लाउड व्यस्त · फिर कोशिश करेंगे",
+    "syncSizeError": "सिंक डेटा समर्थित आकार से बड़ा है।",
+    "syncUnsupported": "dMsg और उसकी सिंक सेवा अपडेट करें।",
+
     scanDeviceRequest: "डिवाइस अनुरोध स्कैन करें",
     scanQrCamera: "कैमरे से स्कैन करें",
     qrCameraUnavailable: "कैमरा उपलब्ध नहीं है। QR चित्र का उपयोग करें या अनुरोध चिपकाएँ।",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "अनलॉक हो रहा है...",
     "syncFailed": "समन्वयन विफल · पुनः प्रयास करें",
     "syncing": "खाता सिंक हो रहा है...",
-    "connected": "dMsg से जुड़ा",
+    "connected": "स्थानीय dMsg सेवा से कनेक्ट है",
     "kindWeb": "वेब अनुरोध",
     "kindSignature": "हस्ताक्षर",
     "kindPayment": "भुगतान",

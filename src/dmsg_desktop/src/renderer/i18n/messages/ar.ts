@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncLastSuccess": "آخر مزامنة سحابية: {time}",
+    "syncRetryAt": "إعادة المحاولة بعد {time}",
+    "syncStorageBlocked": "الرفع متوقف · التخزين ممتلئ",
+    "syncBusy": "السحابة مشغولة · ستتم إعادة المحاولة",
+    "syncSizeError": "تتجاوز بيانات المزامنة الحجم المدعوم.",
+    "syncUnsupported": "حدّث dMsg وخدمة المزامنة.",
+
     scanDeviceRequest: "مسح طلب الجهاز",
     scanQrCamera: "المسح بالكاميرا",
     qrCameraUnavailable: "الكاميرا غير متاحة. استخدم صورة QR أو الصق الطلب.",
@@ -946,7 +953,7 @@ export default {
     unlocking: 'جارٍ إلغاء القفل…',
     syncFailed: 'فشلت المزامنة · إعادة المحاولة',
     syncing: 'جارٍ مزامنة الحساب…',
-    connected: 'متصل بـ dMsg',
+    connected: "متصل بخدمة dMsg المحلية",
     kindWeb: 'طلب ويب',
     kindSignature: 'توقيع',
     kindPayment: 'دفع',

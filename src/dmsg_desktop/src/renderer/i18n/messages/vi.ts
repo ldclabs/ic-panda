@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Lần đồng bộ đám mây gần nhất: {time}",
+    "syncRetryAt": "Thử lại sau {time}",
+    "syncStorageBlocked": "Tạm dừng tải lên · Hết dung lượng",
+    "syncBusy": "Đám mây đang bận · Sẽ thử lại",
+    "syncSizeError": "Dữ liệu đồng bộ vượt quá kích thước được hỗ trợ.",
+    "syncUnsupported": "Hãy cập nhật dMsg và dịch vụ đồng bộ.",
+
     scanDeviceRequest: "Yêu cầu thiết bị quét",
     scanQrCamera: "Quét bằng camera",
     qrCameraUnavailable: "Không dùng được camera. Dùng ảnh QR hoặc dán yêu cầu.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Đang mở khóa…",
     "syncFailed": "Đồng bộ hóa không thành công · Thử lại",
     "syncing": "Đang đồng bộ hóa tài khoản…",
-    "connected": "Đã kết nối với dMsg",
+    "connected": "Đã kết nối dịch vụ dMsg cục bộ",
     "kindWeb": "Yêu cầu web",
     "kindSignature": "Chữ ký",
     "kindPayment": "Thanh toán",

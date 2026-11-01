@@ -639,7 +639,9 @@ impl crate::Client {
         let account = self.account()?.id.to_string();
         let store = &self.workspace.store;
         let last_sync = self.last_sync()?;
-        let failure = last_sync.as_ref().and_then(|sync| sync.error.as_deref());
+        let failure = last_sync
+            .as_ref()
+            .and_then(|sync| sync.error.as_deref().or(sync.upload_error.as_deref()));
         let pending = store.count_in(crate::store::LOCAL)? > 0;
         let conflicts = store.count_conflicts(crate::content::VAULT)?;
         let temporary = pending && matches!(failure, Some("NETWORK_UNAVAILABLE" | "UNAVAILABLE"));

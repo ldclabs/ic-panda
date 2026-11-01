@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "শেষ ক্লাউড সিঙ্ক: {time}",
+    "syncRetryAt": "{time}-এর পরে আবার চেষ্টা করা হবে",
+    "syncStorageBlocked": "আপলোড স্থগিত · স্টোরেজ পূর্ণ",
+    "syncBusy": "ক্লাউড ব্যস্ত · আবার চেষ্টা করা হবে",
+    "syncSizeError": "সিঙ্ক ডেটা সমর্থিত আকার অতিক্রম করেছে।",
+    "syncUnsupported": "dMsg এবং এর সিঙ্ক পরিষেবা আপডেট করুন।",
+
     scanDeviceRequest: "ডিভাইসের অনুরোধ স্ক্যান করুন",
     scanQrCamera: "ক্যামেরা দিয়ে স্ক্যান করুন",
     qrCameraUnavailable: "ক্যামেরা উপলব্ধ নয়। QR ছবি ব্যবহার করুন বা অনুরোধ পেস্ট করুন।",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "আনলক হচ্ছে...",
     "syncFailed": "সিঙ্ক ব্যর্থ হয়েছে · আবার চেষ্টা করুন",
     "syncing": "অ্যাকাউন্ট সিঙ্ক হচ্ছে...",
-    "connected": "dMsg এর সাথে সংযুক্ত",
+    "connected": "স্থানীয় dMsg পরিষেবা সংযুক্ত",
     "kindWeb": "ওয়েব অনুরোধ",
     "kindSignature": "স্বাক্ষর",
     "kindPayment": "পেমেন্ট",

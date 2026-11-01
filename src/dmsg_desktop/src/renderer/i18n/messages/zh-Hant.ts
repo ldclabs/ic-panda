@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "最近雲端同步：{time}",
+    "syncRetryAt": "{time} 後重試",
+    "syncStorageBlocked": "上傳暫停 · 儲存空間不足",
+    "syncBusy": "雲端忙碌 · 將自動重試",
+    "syncSizeError": "同步資料超過支援的大小。",
+    "syncUnsupported": "請更新 dMsg 及其同步服務。",
+
     scanDeviceRequest: "掃描裝置請求",
     scanQrCamera: "使用相機掃描",
     qrCameraUnavailable: "無法使用相機。可改用 QR 碼圖片或貼上請求。",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "正在解鎖…",
     "syncFailed": "同步失敗 · 重試",
     "syncing": "正在同步帳戶…",
-    "connected": "已連線 dMsg",
+    "connected": "已連線本機 dMsg 服務",
     "kindWeb": "網頁請求",
     "kindSignature": "簽名",
     "kindPayment": "付款",

@@ -901,6 +901,14 @@ impl MobileEngine {
                     {
                         return Ok(serde_json::json!({"coalesced":true}));
                     }
+                    if let Some(last) = h.with(|c| c.last_sync()).await?
+                        && last.error.is_some()
+                        && last
+                            .automatic_at()
+                            .is_none_or(|at| at > dmsg_client::now_ms())
+                    {
+                        return Ok(serde_json::json!({"paused":true,"last_sync":last}));
+                    }
                     serde_json::to_value(dmsg_client::sync::sync(h).await?)
                         .map_err(|_| Error::IntegrityFailed)
                 })

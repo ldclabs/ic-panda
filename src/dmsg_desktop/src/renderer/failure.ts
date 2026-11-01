@@ -16,10 +16,13 @@ export function failureLabel(code: string): Label | undefined {
   if (code === 'PENDING') return 'reasonPending'
   if (code === 'INSUFFICIENT_FUNDS') return 'reasonInsufficientFunds'
   if (code === 'LOCKED') return 'locked'
+  if (code === 'SYNC_BUSY') return 'syncBusy'
+  if (['REQUEST_TOO_LARGE', 'RESPONSE_TOO_LARGE'].includes(code)) return 'syncSizeError'
+  if (code === 'UNSUPPORTED_PROTOCOL') return 'syncUnsupported'
 }
 
 const temporary = new Set([en, zh, ru, ar, fr, es].flatMap(({ messages }) =>
-  [messages.networkUnavailable, messages.operationUnknown, messages.serviceUnavailable, messages.networkReconnecting]))
+  [messages.networkUnavailable, messages.operationUnknown, messages.serviceUnavailable, messages.networkReconnecting, messages.syncBusy]))
 
 /** Stored messages retain their original language when the UI locale changes. */
 export const temporaryFailure = (message: string) => temporary.has(message)

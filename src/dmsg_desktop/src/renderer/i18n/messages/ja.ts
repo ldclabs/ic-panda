@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "前回のクラウド同期：{time}",
+    "syncRetryAt": "{time} 以降に再試行",
+    "syncStorageBlocked": "アップロード停止中 · 容量不足",
+    "syncBusy": "クラウドが混雑 · 自動再試行",
+    "syncSizeError": "同期データが対応サイズを超えています。",
+    "syncUnsupported": "dMsg と同期サービスを更新してください。",
+
     scanDeviceRequest: "デバイスのスキャン要求",
     scanQrCamera: "カメラでスキャン",
     qrCameraUnavailable: "カメラを使用できません。QR画像を使うかリクエストを貼り付けてください。",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "ロックを解除中…",
     "syncFailed": "同期失敗・再試行",
     "syncing": "アカウントを同期中…",
-    "connected": "dMsgに接続しました",
+    "connected": "ローカル dMsg サービスに接続済み",
     "kindWeb": "ウェブリクエスト",
     "kindSignature": "署名",
     "kindPayment": "お支払い",

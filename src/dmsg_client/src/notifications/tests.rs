@@ -573,6 +573,7 @@ fn notifications_network_failure_needs_unfinished_work_and_fifteen_minutes() {
         error: Some("NETWORK_UNAVAILABLE".into()),
         stage: None,
         ok_at: None,
+        ..Default::default()
     };
     client
         .workspace
@@ -619,6 +620,7 @@ fn notifications_network_failure_needs_unfinished_work_and_fifteen_minutes() {
                 error: None,
                 stage: None,
                 ok_at: Some(903_000),
+                ..Default::default()
             },
         )
         .unwrap();

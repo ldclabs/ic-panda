@@ -496,7 +496,9 @@ fn relay_error(code: &str, message: &str) -> Error {
         "EXECUTION_UNKNOWN" => Error::ExecutionUnknown,
         "DEVICE_NOT_APPROVED" => Error::DeviceNotApproved,
         "FEE_BLOCKED" => Error::FeeBlocked,
-        "TOO_LARGE" => Error::QuotaExceeded,
+        "TOO_LARGE" => Error::InvalidInput("REQUEST_TOO_LARGE".into()),
+        "RESPONSE_TOO_LARGE" => Error::InvalidInput("RESPONSE_TOO_LARGE".into()),
+        "SYNC_BUSY" => crate::transport::busy(60_000),
         "MEMBERSHIP_STALE" => Error::MembershipStale,
         "MEMBERSHIP_CLOSING" => Error::MembershipClosing,
         // The channel waits for a new epoch key before anything is published.
@@ -609,6 +611,7 @@ impl Cloud {
         binary: bool,
     ) -> Result<Reply> {
         let mutation = method != reqwest::Method::GET;
+        let inventory = !mutation && url.path().contains("/exports/");
         let mut request = self.http.request(method, url);
         if let Some((bytes, content_type)) = body {
             request = request
@@ -629,13 +632,17 @@ impl Cloud {
             crate::transport::WRITE
         } else if binary {
             crate::transport::BULK
+        } else if inventory {
+            crate::transport::SNAPSHOT_READ
         } else {
             crate::transport::READ
         };
         let response = crate::transport::send(&self.http, request, "relay", policy, limit)
             .await
             .map_err(|e| match e {
-                crate::transport::Failure::TooLarge => Error::QuotaExceeded,
+                crate::transport::Failure::TooLarge => {
+                    Error::InvalidInput("RESPONSE_TOO_LARGE".into())
+                }
                 crate::transport::Failure::Request(_) if mutation => Error::ExecutionUnknown,
                 crate::transport::Failure::Request(e) if crate::transport::transient(&e) => {
                     crate::transport::unavailable(
@@ -648,6 +655,12 @@ impl Cloud {
                 }
             })?;
         let status = response.status();
+        let retry_after = response
+            .headers()
+            .get("retry-after")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|s| s.saturating_mul(1000));
         let octets = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -661,6 +674,9 @@ impl Cloud {
             Ok(envelope) => envelope,
             // An error page of the edge, not the relay's answer: as a lost reply.
             Err(_) if !status.is_success() => {
+                if status.as_u16() == 429 {
+                    return Err(crate::transport::busy(retry_after.unwrap_or(60_000)));
+                }
                 return Err(match mutation {
                     true => Error::ExecutionUnknown,
                     false if crate::transport::transient_status(status.as_u16()) => {
@@ -687,6 +703,14 @@ impl Cloud {
                 let error = &envelope["error"];
                 let code = error["code"].as_str().ok_or(Error::IntegrityFailed)?;
                 let message = error["message"].as_str().unwrap_or_default();
+                if code == "SYNC_BUSY" || (status.as_u16() == 429 && code != "QUOTA_EXCEEDED") {
+                    return Err(crate::transport::busy(
+                        error["retry_after_ms"]
+                            .as_u64()
+                            .or(retry_after)
+                            .unwrap_or(60_000),
+                    ));
+                }
                 let error = relay_error(code, message);
                 if !mutation
                     && matches!(error, Error::Unavailable(_))
@@ -695,6 +719,9 @@ impl Cloud {
                     return Err(crate::transport::unavailable("relay", "http"));
                 }
                 Err(error)
+            }
+            _ if status.as_u16() == 429 => {
+                Err(crate::transport::busy(retry_after.unwrap_or(60_000)))
             }
             _ => Err(Error::IntegrityFailed),
         }

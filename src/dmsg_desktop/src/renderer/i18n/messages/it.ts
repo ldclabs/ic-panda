@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "Ultima sincronizzazione cloud: {time}",
+    "syncRetryAt": "Riprova dopo {time}",
+    "syncStorageBlocked": "Caricamenti sospesi · Spazio esaurito",
+    "syncBusy": "Cloud occupato · Riprova automatica prevista",
+    "syncSizeError": "I dati di sincronizzazione superano la dimensione supportata.",
+    "syncUnsupported": "Aggiorna dMsg e il servizio di sincronizzazione.",
+
     scanDeviceRequest: "Richiesta di scansione del dispositivo",
     scanQrCamera: "Scansiona con la fotocamera",
     qrCameraUnavailable: "Fotocamera non disponibile. Usa un’immagine QR o incolla la richiesta.",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "Sblocco…",
     "syncFailed": "Sincronizzazione non riuscita · Riprova",
     "syncing": "Sincronizzazione dell'account…",
-    "connected": "Connesso a dMsg",
+    "connected": "Servizio dMsg locale connesso",
     "kindWeb": "Richiesta web",
     "kindSignature": "Firma",
     "kindPayment": "Pagamento",

@@ -70,3 +70,9 @@ delegation signature is a placeholder that fixes only the encoding. The private 
   test `desktop_legacy`; `legacy-v1.json` fixes only the digests built on them.
 - **The browser bridge** was removed with the extension; see
   [dmsg-connect/1](../../../docs/protocol/connect-v1_zh.md).
+
+
+`sync-v1.json` fixes the signed full-snapshot start/close commands and an
+incremental HTTP target with `after`, `through` and `limit`. Regenerate with
+`DMSG_WRITE_CLIENT_VECTORS=1 cargo test --locked -p dmsg_client incremental_sync_wire_vectors_match`.
+The seed is a fixed test seed; the vector grants no live authority.

@@ -3,6 +3,13 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncLastSuccess": "ซิงค์กับคลาวด์ล่าสุด: {time}",
+    "syncRetryAt": "ลองใหม่หลัง {time}",
+    "syncStorageBlocked": "หยุดอัปโหลดชั่วคราว · พื้นที่เต็ม",
+    "syncBusy": "คลาวด์ไม่ว่าง · จะลองใหม่อัตโนมัติ",
+    "syncSizeError": "ข้อมูลซิงค์มีขนาดเกินที่รองรับ",
+    "syncUnsupported": "โปรดอัปเดต dMsg และบริการซิงค์",
+
     scanDeviceRequest: "สแกนคำขออุปกรณ์",
     scanQrCamera: "สแกนด้วยกล้อง",
     qrCameraUnavailable: "ไม่สามารถใช้กล้องได้ ใช้ภาพ QR หรือวางคำขอ",
@@ -938,7 +945,7 @@ export default {
     "unlocking": "กำลังปลดล็อก...",
     "syncFailed": "การซิงค์ล้มเหลว · ลองอีกครั้ง",
     "syncing": "กำลังซิงค์บัญชี...",
-    "connected": "เชื่อมต่อกับ dMsg แล้ว",
+    "connected": "เชื่อมต่อบริการ dMsg ในเครื่องแล้ว",
     "kindWeb": "คำขอเว็บ",
     "kindSignature": "ลายเซ็น",
     "kindPayment": "การชำระเงิน",

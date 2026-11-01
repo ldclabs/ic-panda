@@ -4,6 +4,7 @@
   import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
   import { when } from '../rpc'
+  import { syncState } from '../sync-state'
   import { lock, nextStep, sync, unlocking } from './session'
 
   /**
@@ -27,17 +28,19 @@
   const unlocked = $derived(session === 'unlocked')
   /** A login, an unlock or the setup: what opens the device from here. */
   const step = $derived(nextStep(status))
-  const pending = $derived<number>(status?.pending_sync ?? 0)
-  const failed = $derived(!syncing && !!status?.last_sync?.error)
-  const transient = $derived(['UNAVAILABLE', 'NETWORK_UNAVAILABLE', 'EXECUTION_UNKNOWN'].includes(status?.last_sync?.error))
-  const syncText = $derived(syncing ? t('syncing') : failed ? t(transient ? 'networkUnavailable' : 'syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('accountSynced') : t('sync'))
-  const syncHint = $derived(status?.last_sync?.at ? `${t('sync')} · ${when(status.last_sync.at)}${failed ? ` · ${status.last_sync.error}` : ''}` : t('sync'))
+  const presentation = $derived(syncState({ ...status, syncing }))
+  const pending = $derived(presentation.pending)
+  const failed = $derived(presentation.failed)
+  const transient = $derived(presentation.transient)
+  const syncText = $derived(t(presentation.label, { n: pending }))
+  const lastSuccess = $derived(presentation.okAt ? t('syncLastSuccess', { time: when(presentation.okAt) }) : t('localOnlyNever'))
+  const retryText = $derived(presentation.retryAt ? t('syncRetryAt', { time: when(presentation.retryAt) }) : '')
+  const syncHint = $derived([syncText, t('syncPending', { n: pending }), lastSuccess, retryText].filter(Boolean).join(' · '))
 
   async function syncNow() {
     if (syncing) return
     requested = true
-    await sync()
-    requested = false
+    try { await sync() } finally { requested = false }
   }
 </script>
 
@@ -64,7 +67,7 @@
     {#if status?.account}
       <Tooltip content={`${syncText} · ${syncHint}`} side="right">
         {#snippet children(props)}
-          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking} onclick={syncNow}>
+          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused} onclick={syncNow}>
             <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
@@ -103,16 +106,24 @@
         {#snippet children(props)}
           <button
             {...props}
-            class="-my-0.5 flex min-h-6 items-center gap-2 rounded-md text-start text-ink-2 outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35"
+            class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start whitespace-normal')}
             onclick={syncNow}
-            disabled={syncing || $unlocking}
+            disabled={syncing || $unlocking || presentation.paused}
             data-testid="gate-sync"
           >
-            <Icon name="sync" class={cn('text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
+            <Icon name="sync" class={cn('shrink-0 text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             <span role="status" class={cn(syncing && 'shimmer', failed && (transient ? 'text-warn' : 'text-danger'))}>{syncText}</span>
           </button>
         {/snippet}
       </Tooltip>
+      <div class="grid gap-0.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-detail">
+        <span data-testid="gate-sync-pending">{t('syncPending', { n: pending })}</span>
+        <span data-testid="gate-sync-success">{lastSuccess}</span>
+        {#if retryText}<span data-testid="gate-sync-retry">{retryText}</span>{/if}
+        {#if status?.last_sync?.upload_error === 'QUOTA_EXCEEDED'}
+          <button class={buttonClass('ghost', 'xs', 'h-auto justify-start px-0 text-start whitespace-normal')} onclick={() => (location.hash = '/plan')} data-testid="gate-sync-storage">{t('openPlan')}</button>
+        {/if}
+      </div>
     {/if}
     {#if status?.background_online}
       <div class="flex min-h-6 items-center gap-2 text-gem" data-testid="gate-background">
