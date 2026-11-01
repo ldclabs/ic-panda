@@ -65,12 +65,21 @@ pub(crate) fn unavailable(source: &str, reason: &str) -> dmsg_types::Error {
 
 /// Disable reqwest's own protocol retries so this is the only retry budget.
 pub(crate) fn client() -> Result<reqwest::Client, reqwest::Error> {
+    client_builder().build()
+}
+
+fn client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .retry(reqwest::retry::never())
+        // Timing out an HTTP/2 stream leaves its pooled connection alive.
+        // Detect a dead route before READ's retry budget is exhausted, so
+        // retries open a new connection instead of reusing the stalled one.
+        // Idle connections need no pings; only active requests probe liveness.
+        .http2_keep_alive_interval(Duration::from_secs(5))
+        .http2_keep_alive_timeout(Duration::from_secs(3))
         .connect_timeout(Duration::from_secs(3))
         .timeout(WRITE.total)
-        .build()
 }
 
 /// Reads include the body in their timeout and retry budget. Byte limits
@@ -238,6 +247,99 @@ mod tests {
 
     const OK: &str = "HTTP/1.1 200 OK\r\ncontent-length: 2\r\nconnection: close\r\n\r\nok";
     const BUSY: &str = "HTTP/1.1 503 Unavailable\r\ncontent-length: 0\r\nconnection: close\r\n\r\n";
+
+    async fn stalled_http2() -> (reqwest::Client, String, tokio::task::JoinHandle<()>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut connection = h2::server::handshake(socket).await.unwrap();
+            let (_, mut reply) = connection.accept().await.unwrap().unwrap();
+            reply
+                .send_response(http::Response::new(()), false)
+                .unwrap()
+                .send_data(Bytes::from_static(b"ok"), true)
+                .unwrap();
+            let (request, _) = connection.accept().await.unwrap().unwrap();
+            assert_eq!(request.uri().path(), "/after-network-change");
+            // Keep TCP open but stop processing HTTP/2, as when a route
+            // disappears without a FIN/RST. New connections still work.
+            let _stalled = connection;
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut connection = h2::server::handshake(socket).await.unwrap();
+            let (request, mut reply) = connection.accept().await.unwrap().unwrap();
+            assert_eq!(request.uri().path(), "/after-network-change");
+            assert_eq!(
+                request.method(),
+                http::Method::GET,
+                "a mutation was replayed"
+            );
+            reply
+                .send_response(http::Response::new(()), false)
+                .unwrap()
+                .send_data(Bytes::from_static(b"reconnected"), true)
+                .unwrap();
+            // Drive the response until the test closes the client.
+            let _ = connection.accept().await;
+        });
+        let client = client_builder()
+            .no_proxy()
+            .http2_prior_knowledge()
+            .build()
+            .unwrap();
+        let first = send(
+            &client,
+            client.get(&origin).build().unwrap(),
+            "relay",
+            READ,
+            100,
+        )
+        .await
+        .unwrap();
+        assert_eq!(first.body(), "ok");
+        (client, format!("{origin}/after-network-change"), server)
+    }
+
+    #[tokio::test]
+    async fn a_stalled_pooled_http2_connection_is_replaced_within_the_read_budget() {
+        let (client, url, server) = stalled_http2().await;
+        let started = Instant::now();
+        let recovered = send(
+            &client,
+            client.get(url).build().unwrap(),
+            "relay",
+            READ,
+            100,
+        )
+        .await;
+        server.abort();
+        assert_eq!(recovered.unwrap().body(), "reconnected");
+        assert!(started.elapsed() < READ.total);
+    }
+
+    #[tokio::test]
+    async fn a_stalled_http2_mutation_is_not_replayed_and_a_later_read_reconnects() {
+        let (client, url, server) = stalled_http2().await;
+        let mutation = send(
+            &client,
+            client.post(&url).body("signed command").build().unwrap(),
+            "relay",
+            WRITE,
+            100,
+        )
+        .await;
+        let recovered = send(
+            &client,
+            client.get(url).build().unwrap(),
+            "relay",
+            READ,
+            100,
+        )
+        .await;
+        server.abort();
+        assert!(matches!(mutation, Err(Failure::Request(_))));
+        assert_eq!(recovered.unwrap().body(), "reconnected");
+    }
 
     #[tokio::test]
     async fn safe_reads_recover_and_ingress_is_sent_once_even_on_503_or_lost_reply() {

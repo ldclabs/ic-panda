@@ -2476,6 +2476,7 @@ dependencies = [
  "futures-timer",
  "futures-util",
  "getrandom 0.4.3",
+ "h2",
  "hex",
  "hkdf 0.13.0",
  "hmac 0.13.0",

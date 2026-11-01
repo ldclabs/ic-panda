@@ -139,6 +139,10 @@ fifteen-second overall budget; update submission and status waiting have a
 ninety-second overall budget. Individual mutation HTTP requests have a
 thirty-second budget and are sent once. The custom IC transport replaces SDK
 retry middleware, and reqwest protocol retries are disabled.
+Active HTTP/2 connections send a liveness ping after five seconds without
+incoming traffic and close if it is not acknowledged within three seconds.
+This lets read retries establish a fresh connection after a network change instead of
+reusing a stalled pooled connection; idle connections do not send pings.
 `NETWORK_UNAVAILABLE` identifies exhausted transient reads. An uncertain
 update remains `EXECUTION_UNKNOWN`; its original journal/operation ID must be
 reconciled. Existing upload/revision recovery still reconciles before

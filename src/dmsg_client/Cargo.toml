@@ -42,7 +42,7 @@ k256 = { workspace = true, features = ["schnorr"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 rqrr.workspace = true
 qrcode.workspace = true
-reqwest = { workspace = true, features = ["rustls", "json"] }
+reqwest = { workspace = true, features = ["rustls", "json", "http2"] }
 rusqlite = { workspace = true, features = ["bundled", "backup"] }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
@@ -64,4 +64,5 @@ toml09.workspace = true
 testing = []
 
 [dev-dependencies]
+h2 = "0.4"
 tokio = { workspace = true }
