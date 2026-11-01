@@ -215,9 +215,27 @@ python3 scripts/ios/testflight.py \
 原生构建。脚本不自动执行完整单元/UI 测试，发布前仍按上面的 `verify.sh` 验证。
 
 生成后，在 Apple **Transporter** 中添加 `Distribution/dMsg.ipa` 并点击“交付”。
-也可以打开 `dMsg.xcarchive`，在 Xcode Organizer 选择
+也可以用以下入口打开归档，再在新打开的 Xcode Organizer 窗口选择
 **Distribute App → App Store Connect → Upload**；取消勾选
 **Manage version and build numbers** 可保留脚本分配的构建号。
+
+```sh
+bash scripts/ios/open-organizer.sh src/dmsg_ios/.build/TestFlight-0.1.0-5/dMsg.xcarchive
+```
+
+这个入口沿用 `DEVELOPER_DIR` / `xcode-select` 选择的 Xcode，显式启动一个使用系统工具
+PATH 的新进程；已打开的 Xcode 窗口保持原状。入口只打开归档，不会自动验证、上传或
+递增构建号。请在**新窗口**中执行 **Validate App** 或 **Distribute App**；若难以区分
+窗口，可先正常退出已有 Xcode，再运行入口。
+
+直接双击归档可能复用带有 Homebrew PATH 的 Xcode，绕过打包脚本的环境隔离。
+如果界面只显示 `Copy failed`，检查分发日志中的 `IDEDistributionPipeline.log`：
+`IDEDistributionCreateIPAStep` 的 `rsync: ... --extended-attributes: unknown option`
+表示系统 `rsync` 按 PATH 启动了不兼容的子进程，本机 IPA 打包已失败；
+此时 `ContentDelivery.log` 的 HTTP 200 不能代表上传或验证完成。
+使用上面的新进程入口，或 `--export-archive` 重新导出同一归档即可，不需要重编译、
+更改签名配置或卸载 Homebrew `rsync`；仅修改终端 PATH 不会改变已运行的 Xcode。
+
 Apple 处理完成后，在 App Store Connect → TestFlight → 测试组中添加新构建。
 打包脚本不会自动上传、提交审核或邀请测试员。
 

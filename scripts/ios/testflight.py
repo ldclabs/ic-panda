@@ -166,6 +166,8 @@ def export_archive(archive, output, version, build, team, bundle_ids, auth_args=
     checksum.write_text(f"{digest.hexdigest()}  {ipa.name}\n")
     print(f"\nTestFlight IPA ready: {version} ({build})\nIPA: {ipa}\nSHA-256: {checksum}")
     print("Add this IPA to Transporter to upload. No upload or review submission was performed.")
+    organizer = ["bash", str(ROOT / "scripts/ios/open-organizer.sh"), str(archive)]
+    print(f"For Xcode Validate App / Distribute App, open a new Organizer process:\n{shlex.join(organizer)}")
 
 
 def package(dry_run, auth_args=()):

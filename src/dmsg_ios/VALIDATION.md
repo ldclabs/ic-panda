@@ -1,5 +1,40 @@
 # iOS implementation validation
 
+## Organizer distribution environment (2026-11-01)
+
+Build `0.1.0 (8)` was already exported successfully by `testflight.py`, but
+Organizer's Validate App / Distribute App failed at `IDEDistributionCreateIPAStep`.
+The distribution pipeline log showed `/usr/bin/rsync -8aPhhE` starting a Homebrew
+3.5.0 peer that rejected Apple's `--extended-attributes`; ContentDelivery HTTP
+200 responses did not indicate a completed validation or upload.
+
+`scripts/ios/open-organizer.sh` opens the selected Xcode in a new process with
+the same system-only PATH used by the command-line export. A new process is
+necessary because opening the archive in an existing Xcode retains its old
+environment. The helper leaves other Xcode sessions, shell settings and Homebrew
+tools unchanged; the packaging output and README now point to this entry.
+
+On Xcode 27.2 (27B52), the exact rsync flags reproduced the failure with a
+Homebrew-first PATH and succeeded with a system-only PATH, preserving file bytes
+and a test extended attribute. All 13 packaging tests, shell syntax and invalid
+archive argument checks passed. The helper opened Organizer with build 8.
+Re-exporting the unchanged archive succeeded; rsync and ditto both exited 0.
+Both the original IPA and the new export passed ZIP integrity, SHA-256,
+version/bundle checks and `codesign --verify --deep --strict`. All six bundles
+have `get-task-allow=false`; the archived executable hashes match Organizer's
+copy, and all six arm64 executable/dSYM UUID pairs match. Build numbers and
+application sources were not changed.
+
+The new IPA, export log, checksum and `verification.json` are retained under
+`.build/TestFlight-0.1.0-8/Export-6tuciwot/` (excluded from Git). App Store Connect
+Validate was run with the user's authorization in the new Xcode process and
+passed: **dMsg 0.1.0 (8) validated — Your app successfully passed all validation
+checks.** The GUI pipeline also recorded rsync exit 0. The old Xcode process was
+quit normally after UI automation initially selected its unchanged environment;
+use the new window when multiple Xcode processes are open. No TestFlight
+distribution or review submission was performed. Swift/Rust rebuilds, Simulator
+and physical-device tests were not run for this tooling-only change.
+
 ## Single account selection (2026-11-01)
 
 Account → Switch account is the only workspace selector. Reminders now follow
