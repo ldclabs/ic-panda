@@ -2444,5 +2444,7 @@
 	<string>gemaakt</string>
 	<key>not available</key>
 	<string>niet beschikbaar</string>
+	<key>No messages</key>
+	<string>Geen berichten</string>
 </dict>
 </plist>

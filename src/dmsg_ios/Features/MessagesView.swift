@@ -121,6 +121,10 @@ struct ConversationView: View {
     @State private var persistTask: Task<Void, Never>?
     @State private var actionTask: Task<Void, Never>?
     @State private var loadingEarlier = false
+    @State private var messagesKnown = false
+    @State private var loadFailed = false
+    @State private var refreshFailed = false
+    @State private var refreshing = false
     @State private var query = ""
     @State private var replying: MessageItem?
     @State private var editingMessage: MessageEdit?
@@ -131,6 +135,17 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
+                    if refreshing || !messagesKnown && !loadFailed {
+                        ProgressView("Syncing…").accessibilityIdentifier("conversation.loading")
+                    }
+                    if loadFailed || refreshFailed {
+                        NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish."))
+                        Button("Retry") { actionTask = Task { await refreshMessages() } }
+                            .disabled(refreshing).accessibilityIdentifier("conversation.retry")
+                    } else if messagesKnown && messages.isEmpty && outbox.isEmpty && !refreshing {
+                        ContentUnavailableView("No messages", image: AppGlyph.channels.assetName)
+                            .accessibilityIdentifier("conversation.empty")
+                    }
                     if hasEarlier && query.isEmpty { Button("Load earlier messages") { actionTask = Task { await loadEarlier() } }.disabled(loadingEarlier) }
                     ForEach(messages.filter { !model.blockedAccounts.contains($0.account) }, id: \.id) { message in
                         messageBubble(message)
@@ -138,7 +153,7 @@ struct ConversationView: View {
                                 ready: query.isEmpty && !message.unreadable && message.id == messages.last?.id) {
                                 try? await model.engine?.markRead(channel: channel.id, through: message.sequence)
                             }
-                            .id(message.id).contextMenu {
+                            .id(message.id).accessibilityIdentifier("message.row.\(message.sequence)").contextMenu {
                             if message.account != model.session?.account {
                                 Button("Report content") { reporting = ReportTarget(kind: "channel", account: message.account, resource: channel.id, sequence: message.sequence) }
                                 Button("Block this account", role: .destructive) { Task { await model.blockAccount(message.account, blocked: true) } }
@@ -214,7 +229,6 @@ struct ConversationView: View {
             }
             .task(id: "refresh:\(channel.id):\(model.epoch):\(model.concealed)") {
                 guard !model.concealed else { return }
-                await load()
                 while !Task.isCancelled {
                     await refreshMessages()
                     do { try await Task.sleep(for: .seconds(30)) } catch { break }
@@ -272,36 +286,80 @@ struct ConversationView: View {
     }
 
     private func refreshMessages() async {
+        guard !refreshing, !model.concealed, !Task.isCancelled else { return }
         let epoch = model.epoch
-        do { if let engine = model.engine { _ = try await coreOperation { try await engine.refreshChannel(channel: channel.id, operation: $0) } } }
-        catch { if epoch == model.epoch { model.report(error) } }
+        refreshing = true; refreshFailed = false
+        // The core commits verified pages as it receives them. Read those
+        // pages while the remaining history or attachment metadata is pending.
+        // A slow later request must not leave the whole conversation blank.
+        let local = Task {
+            while !Task.isCancelled {
+                await load()
+                do { try await Task.sleep(for: .seconds(1)) } catch { break }
+            }
+        }
+        defer { local.cancel(); refreshing = false }
+        do {
+            #if DEBUG
+            if model.uiTesting { try await model.refreshConversationFixture() }
+            else { try await refreshFromCore() }
+            #else
+            try await refreshFromCore()
+            #endif
+        } catch {
+            if epoch == model.epoch, !Task.isCancelled {
+                refreshFailed = true
+                model.report(error)
+            }
+        }
+        local.cancel()
+        await local.value
         if epoch == model.epoch, !Task.isCancelled { await load(); await model.loadChannels() }
     }
 
+    private func refreshFromCore() async throws {
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        _ = try await coreOperation { try await engine.refreshChannel(channel: channel.id, operation: $0) }
+    }
+
+    private func readMessages(before: UInt64? = nil) async throws -> MessagePage {
+        #if DEBUG
+        if model.uiTesting { return model.conversationFixture(before: before, query: query) }
+        #endif
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        return query.isEmpty ? try await engine.messages(channel: channel.id, before: before, limit: 100)
+            : try await engine.searchMessages(channel: channel.id, query: query)
+    }
+
     private func load() async {
-        guard let engine = model.engine else { return }
         guard !loadingEarlier || query != loadedQuery else { return }
         let epoch = model.epoch, query = query, request = UUID()
         messageRequest = request
-        let earlier = query.isEmpty && loadedQuery.isEmpty ? messages.first?.sequence : nil
+        let earlier = query.isEmpty && loadedQuery.isEmpty && !nearBottom ? messages.first?.sequence : nil
         do {
-            var page = query.isEmpty ? try await engine.messages(channel: channel.id, before: nil, limit: 100) : try await engine.searchMessages(channel: channel.id, query: query)
+            var page = try await readMessages()
             var fresh = page.items
-            // Refresh the already visible history too, preserving its extent.
-            // Each local batch yields to lock/cancellation; no full-history read.
+            // Preserve history while reading above the bottom. During a first
+            // sync, follow the latest bounded page instead of accumulating the
+            // entire channel as more pages arrive.
             if let earlier {
                 while page.hasMore, let first = fresh.first, first.sequence > earlier {
                     guard epoch == model.epoch, !Task.isCancelled else { return }
-                    page = try await engine.messages(channel: channel.id, before: first.sequence, limit: 100)
+                    page = try await readMessages(before: first.sequence)
                     guard !page.items.isEmpty else { break }
                     fresh = page.items + fresh
                 }
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
-            messages = fresh; hasEarlier = page.hasMore; loadedQuery = query
+            messages = fresh; hasEarlier = page.hasMore; loadedQuery = query; messagesKnown = true; loadFailed = false
+            guard let engine = model.engine else { return }
             let pending = try await engine.outbox(channel: channel.id)
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }; outbox = pending.items
-        } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
+        } catch {
+            if epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled {
+                loadFailed = true; model.report(error)
+            }
+        }
     }
 
     private func loadEarlier() async {

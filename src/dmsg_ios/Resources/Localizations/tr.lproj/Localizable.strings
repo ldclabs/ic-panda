@@ -2444,5 +2444,7 @@
 	<string>oluşturuldu</string>
 	<key>not available</key>
 	<string>kullanılamıyor</string>
+	<key>No messages</key>
+	<string>Mesaj yok</string>
 </dict>
 </plist>

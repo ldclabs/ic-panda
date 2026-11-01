@@ -25,6 +25,11 @@ is off makes their content unrecoverable even with the login.
 
 ## Notifications
 
+Conversation views read local history while the core refreshes the channel.
+Verified pages appear before the remaining history and attachment metadata
+finish downloading. Loading, an empty conversation and a failed refresh have
+distinct states; retry keeps the available messages visible.
+
 The named UniFFI methods in `dmsg_mobile::notifications` share the desktop's
 settings, durable reminder records, version checks, budgets and snooze policy.
 The global bell opens pending/recent reminders and notification settings. The

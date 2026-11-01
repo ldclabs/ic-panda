@@ -31,6 +31,10 @@ extension SessionModel {
             ])
         }
         if storeScreens { loadStorePresentation() }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel") {
+            channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
+            selectedTab = .messages
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(synchronizing: true) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {
             let account = "040g2081040g2081040g"
@@ -38,6 +42,28 @@ extension SessionModel {
                 digest: "fixture-recovery", observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 1,
                 stale: false), for: account)
         }
+    }
+
+    func conversationFixture(before: UInt64?, query: String) -> MessagePage {
+        let items = fixtureChannelMessages.filter {
+            $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query))
+        }
+        return MessagePage(generation: 0, items: Array(items.suffix(100)), hasMore: items.count > 100)
+    }
+
+    func refreshConversationFixture() async throws {
+        fixtureChannelRefreshes += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-failure"), fixtureChannelRefreshes == 1 {
+            throw MobileError.Failure(code: "UNAVAILABLE")
+        }
+        try await Task.sleep(for: .milliseconds(200))
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-empty") { return }
+        fixtureChannelMessages = [MessageItem(id: "fixture-message", sequence: 1, account: "fixture-peer",
+            text: "Hello channel · 频道消息已显示", createdAtMs: 1_793_513_600_000,
+            attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
+            digest: "fixture-digest", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)]
+        // A verified first page is local, but a later relay request is still pending.
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-slow") { try await Task.sleep(for: .seconds(30)) }
     }
 
     /// Fictitious catalog data for native store screenshots. The normal UI-test

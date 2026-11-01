@@ -39,6 +39,7 @@
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
 
   let alive = true
+  let openRequest = 0
   let channels = $state<any[]>([])
   let legacyChannels = $state<any[]>([])
   let legacySelected = $state<any>(null)
@@ -60,8 +61,7 @@
   let editing = $state<any>(null)
   /** The daemon's outbox of the open channel, the messages this window sends now, and why the last try failed. */
   let outbox = $state<Outgoing[]>([])
-  let sending = $state<Outgoing[]>([])
-  let failures = $state<Record<string, string>>({})
+  let sending = $state<(Outgoing & { channel: string })[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
   let search = $state<{ open: boolean; query: string; results: any[] | null }>({ open: false, query: '', results: null })
@@ -104,8 +104,8 @@
   const listed = $derived(arrange(channels.filter((c) => !query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())), me))
   const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
   const shownOutbox = $derived([
-    ...sending,
-    ...outbox.filter((o) => !sending.some((s) => s.message_id === o.message_id)).map((o) => ({ ...o, error: failures[o.message_id] }))
+    ...sending.filter((o) => o.channel === channel?.id && !messages.some((m) => m.message_id === o.message_id)),
+    ...outbox.filter((o) => !sending.some((s) => s.channel === channel?.id && s.message_id === o.message_id))
   ])
   const transferring = $derived(channel?.billing?.lifecycle === 'transferring')
   const shortTime = $derived(new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }))
@@ -197,6 +197,7 @@
    * and hides change messages already shown.
    */
   async function open(id: string) {
+    const request = ++openRequest
     legacySelected = null
     const switching = channel?.id !== id
     selected = id
@@ -208,7 +209,7 @@
         : call<any[]>('channel/messages', { id, after: from, limit: 2 * PAGE }),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
-    if (selected !== id) return
+    if (!alive || selected !== id || openRequest !== request) return
     if (switching) {
       messages = list
       more = list.length === PAGE
@@ -261,18 +262,33 @@
 
   /** Send one message; it stays in the daemon's outbox until the relay stores it. */
   async function deliver(id: string, item: Outgoing, params: Record<string, unknown>, file?: { id: string; name: string }) {
-    sending = [...sending, { ...item, sending: true }]
+    if (sending.some((o) => o.message_id === item.message_id && o.sending)) return
+    const pending = { ...item, channel: id, draft: { ...params }, file: file ? { ...item.file!, source: file.id } : item.file, sending: true }
+    sending = [...sending.filter((o) => o.message_id !== item.message_id), pending]
     try {
+      let result: any
       if (file) {
         const [source, version] = file.id.split('@')
-        await call('channel/send_file', { id, file: source, version, message_id: item.message_id, ...params })
-      } else await call('channel/send', { id, message_id: item.message_id, ...params })
-      delete failures[item.message_id]
-    } catch (e) {
-      failures[item.message_id] = code(e)
-    } finally {
+        result = await call('channel/send_file', { id, file: source, version, message_id: item.message_id, ...params })
+      } else result = await call('channel/send', { id, message_id: item.message_id, ...params })
+      if (!alive) return
+      if (selected === id && channel?.id === id && result?.message) {
+        openRequest++
+        const changed = new Map([...messages, result.message].map((m: any) => [m.seq, m]))
+        messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
+        outbox = outbox.filter((o) => o.message_id !== item.message_id)
+      } else if (selected === id && channel?.id === id) {
+        // Older daemons do not include the message in the ACK. Keep the
+        // pending row visible until its local history has been loaded.
+        await open(id)
+      }
       sending = sending.filter((o) => o.message_id !== item.message_id)
-      await reload()
+      void reload()
+    } catch (e) {
+      if (!alive) return
+      // Preparation can fail before the daemon has a sealed outbox entry.
+      // Keep the original text, references and ID available for retry.
+      sending = sending.map((o) => o.message_id === item.message_id ? { ...o, sending: false, error: code(e) } : o)
     }
   }
 
@@ -311,7 +327,7 @@
   const discard = (item: Outgoing) =>
     attempt(async () => {
       await call('channel/discard', { id: channel.id, message_id: item.message_id })
-      delete failures[item.message_id]
+      sending = sending.filter((o) => o.message_id !== item.message_id)
       await reload()
     })
 

@@ -93,6 +93,8 @@ final class SessionModel {
     private var seenRecoveryDigests: [String: String] = [:]
     #if DEBUG
     let uiTesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    var fixtureChannelMessages: [MessageItem] = []
+    var fixtureChannelRefreshes = 0
     #else
     let uiTesting = false
     #endif

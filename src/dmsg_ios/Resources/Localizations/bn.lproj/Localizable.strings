@@ -2444,5 +2444,7 @@
 	<string>তৈরি হয়েছে</string>
 	<key>not available</key>
 	<string>উপলব্ধ নয়</string>
+	<key>No messages</key>
+	<string>কোনো বার্তা নেই</string>
 </dict>
 </plist>

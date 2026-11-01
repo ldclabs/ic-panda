@@ -163,10 +163,22 @@
     if (scroller) scroller.scrollTop += scroller.scrollHeight - before
   }
 
+  function send() {
+    if (!writes || tooLong || (!draft.trim() && !attachments.length)) return
+    // An explicit send follows its own pending row even when the person was
+    // reading older history. Incoming messages still respect their position.
+    atEnd = true
+    onSend()
+    void tick().then(() => {
+      if (scroller) scroller.scrollTop = scroller.scrollHeight
+      input?.focus()
+    })
+  }
+
   function onKey(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault()
-      if (!tooLong) onSend()
+      send()
     } else if (event.key === 'Escape' && (reply || editing)) {
       event.preventDefault()
       leave()
@@ -444,7 +456,7 @@
   {/each}
   {#each outbox as item (item.message_id)}
     <article class="flex gap-3 px-6 pt-2.5 pb-0.5" data-testid="message-outgoing" data-state={item.sending ? 'sending' : 'failed'}>
-      <Avatar id={me ?? ''} name={label(me)} class="opacity-60" />
+      <Avatar id={me ?? ''} name={label(me)} />
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
           {@render author(me ?? '')}
@@ -454,7 +466,7 @@
             <span class="inline-flex items-center gap-1 text-[11px] text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
           {/if}
         </div>
-        {#if item.draft?.text}<p class={cn('text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]', item.sending && 'text-muted')}>{item.draft.text}</p>{/if}
+        {#if item.draft?.text}<p class="text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
         {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
         {#if !item.sending}
           <div class="mt-1 flex gap-1.5">
@@ -536,7 +548,7 @@
         onpaste={onPaste}
         data-testid="channel-text"
       ></textarea>
-      <button class={buttonClass('primary', 'md')} disabled={tooLong || (!draft.trim() && !attachments.length)} onclick={onSend} data-testid="channel-send">
+      <button class={buttonClass('primary', 'md')} disabled={tooLong || (!draft.trim() && !attachments.length)} onclick={send} data-testid="channel-send">
         <Icon name={editing ? 'check' : 'send'} class="rtl:-scale-x-100" />{editing ? t('save') : t('send')}
       </button>
     </div>

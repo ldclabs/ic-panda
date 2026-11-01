@@ -110,9 +110,12 @@ desktop is one of its clients, like the CLI.
     composer, and the members in a drawer. A channel opens with its latest
     200 messages and then reads only those after the last one shown. The
     library's files for an attachment are read when its menu opens. A
-    message shows as sending
-    until the relay stores it, and stays with a retry if the daemon
-    refused it; unsent text is kept per channel. Attachments come from the
+    message follows the composer immediately, including when reading older
+    history. The verified ACK replaces its pending row without waiting for a
+    channel-list refresh. Text, references and attachment versions are sealed
+    before network preparation, so a failed send remains available after
+    reopening the page or restarting; retries retain the original message ID.
+    Pending rows stay with their channel. Attachments come from the
     file library (as shared editions under their own keys) or a file added
     to it on the spot, and a received file can be saved into the library;
     roles, rotation, removal and history grants are
@@ -477,6 +480,7 @@ with `node scripts/generate-tray-locks.mjs` (requires `rsvg-convert`).
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
 pnpm --dir src/dmsg_desktop test       # policy, update, language and view-rule unit tests
 pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron smoke test
+DMSG_SMOKE_SCOPE=channels pnpm --dir src/dmsg_desktop test:e2e # channel regression and locale screenshots
 ```
 
 The smoke test runs the built app in a temporary profile against a mock

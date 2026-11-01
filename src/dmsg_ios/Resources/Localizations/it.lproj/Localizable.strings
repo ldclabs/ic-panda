@@ -2444,5 +2444,7 @@
 	<string>creata</string>
 	<key>not available</key>
 	<string>non disponibile</string>
+	<key>No messages</key>
+	<string>Nessun messaggio</string>
 </dict>
 </plist>

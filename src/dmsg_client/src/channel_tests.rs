@@ -1238,6 +1238,25 @@ async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
         reads: AtomicUsize::new(0),
     });
     let id = "f1".repeat(32);
+    // An interrupted preparation is retried by the UI without the Agent
+    // display metadata. The queued message must retain its original author.
+    h.with(|c| {
+        c.queue_channel_send(
+            &channel,
+            &id,
+            &Draft {
+                text: "hello".into(),
+                agent: Some(AgentRef {
+                    id: "test-agent".into(),
+                    name: "Original writer".into(),
+                }),
+                ..Draft::default()
+            },
+            None,
+        )
+    })
+    .await
+    .unwrap();
     let server = tokio::spawn({
         let h = h.clone();
         let channel = channel.clone();
@@ -1274,6 +1293,16 @@ async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
     .expect("a stored send must not wait for message sync")
     .unwrap();
     assert_eq!(result["receipt"]["seq"], 3);
+    assert_eq!(result["message"]["text"], "hello");
+    assert_eq!(result["message"]["message_id"], id);
+    assert_eq!(result["message"]["seq"], 3);
+    assert_eq!(result["message"]["agent"]["name"], "Original writer");
+    assert!(
+        h.with(|c| c.channel_outbox(&channel))
+            .await
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(h.reads.load(Ordering::SeqCst), 1);
     assert_eq!(
         h.with(|c| c.channel_messages_before(&channel, u64::MAX, 10))
@@ -1283,4 +1312,86 @@ async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
         "hello"
     );
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn a_send_is_durable_before_its_first_network_read() {
+    use std::sync::{Arc, Mutex};
+
+    struct Offline(Mutex<Client>);
+    impl Hold for Offline {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.0.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Err(Error::Unavailable("offline".into()))
+        }
+    }
+
+    let dir = crate::testing::TempDir::new();
+    let storage = Arc::new(crate::testing::MemoryStorage::default());
+    let mut client = crate::testing::unlocked(&dir.0, false, Some(storage.clone()));
+    let (channel, _) = active_channel(&mut client);
+    client.enable_fast_unlock().unwrap();
+    let h = Offline(Mutex::new(client));
+    let id = "f2".repeat(32);
+    let draft = Draft {
+        text: "Keep me through restart".into(),
+        ..Default::default()
+    };
+    assert!(matches!(
+        send(&h, &channel, &draft, Some(&id)).await,
+        Err(Error::Unavailable(_))
+    ));
+    let changed = Draft {
+        text: "different content".into(),
+        ..Default::default()
+    };
+    assert_eq!(
+        send(&h, &channel, &changed, Some(&id)).await,
+        Err(Error::IdempotencyConflict)
+    );
+    let path = dir.path("queued.txt");
+    std::fs::write(&path, "attachment draft").unwrap();
+    let file = h
+        .with(|c| c.files_import(&path, "root", false, &mut |_, _| {}))
+        .await
+        .unwrap()
+        .file;
+    let file_id = "f3".repeat(32);
+    assert!(matches!(
+        send_file(&h, &channel, &file.id, None, &draft, Some(&file_id)).await,
+        Err(Error::Unavailable(_))
+    ));
+    assert_eq!(
+        send(&h, &channel, &draft, Some(&file_id)).await,
+        Err(Error::IdempotencyConflict)
+    );
+    drop(h);
+    let mut reopened = Client::open(crate::testing::config(false), &dir.0, Some(storage)).unwrap();
+    reopened.unlock_fast().await.unwrap();
+    let pending = reopened.channel_outbox(&channel).unwrap();
+    assert_eq!(pending.len(), 2);
+    let text = pending
+        .iter()
+        .find(|item| item["message_id"] == id)
+        .unwrap();
+    assert_eq!(text["draft"]["text"], draft.text);
+    let attachment = pending
+        .iter()
+        .find(|item| item["message_id"] == file_id)
+        .unwrap();
+    assert_eq!(attachment["draft"]["text"], draft.text);
+    assert_eq!(
+        attachment["file"]["source"],
+        format!("{}@{}", file.id, file.current)
+    );
+    assert_eq!(attachment["file"]["name"], "queued.txt");
+    reopened.channel_discard(&channel, &id).unwrap();
+    reopened.channel_discard(&channel, &file_id).unwrap();
+    assert!(reopened.channel_outbox(&channel).unwrap().is_empty());
 }

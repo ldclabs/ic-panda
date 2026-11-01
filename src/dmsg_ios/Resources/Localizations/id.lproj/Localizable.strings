@@ -2444,5 +2444,7 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
+	<key>No messages</key>
+	<string>Tidak ada pesan</string>
 </dict>
 </plist>

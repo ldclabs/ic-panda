@@ -1,5 +1,15 @@
 # iOS implementation validation
 
+## Channel timeline loading (2026-11-01)
+
+The conversation now reads verified local pages during a remote refresh, with
+explicit loading, empty and retry states. The Simulator channel UI tests cover
+a first page arriving before a deliberately stalled refresh completes, an
+initial failure followed by retry, and an empty channel. All three passed on
+the iPhone 17e simulator (iOS 27.0). Light English and dark Chinese screenshots
+were inspected. These use isolated Debug fixtures, not a production account;
+physical-device and live cross-device message delivery were not tested.
+
 ## Apple 回调合同同步（2026-10-30）
 
 本次只更新公开接口与发布文档。基于本地 `c0a09dff`，静态核对

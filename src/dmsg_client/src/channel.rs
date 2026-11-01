@@ -220,6 +220,14 @@ struct Outgoing {
     payload: MessagePayload,
 }
 
+/// Authored content, sealed locally before any network preparation succeeds.
+#[derive(Serialize, Deserialize)]
+struct Queued {
+    draft: Draft,
+    created_at: u64,
+    file: Option<Json>,
+}
+
 /// A channel upload in flight: what the chunk collectors keep for it.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Held {
@@ -1655,6 +1663,8 @@ pub async fn send<H: Hold>(
     let message_id = message_id.map_or_else(random_hex, str::to_string);
     ensure_valid(is_hash(&message_id), "message_id")?;
     ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
+    h.with(|c| c.queue_channel_send(channel, &message_id, draft, None))
+        .await?;
     let ledger = Box::pin(pull(h, channel, None, None)).await?;
     h.signed(Client::root_now).await?;
     let key_name = format!("message:{message_id}");
@@ -1662,7 +1672,10 @@ pub async fn send<H: Hold>(
     let (mut outgoing, draft) = h
         .with(|c| {
             let outgoing = c.job::<Outgoing>(channel, &key_name)?;
-            let mut draft = draft.clone();
+            let mut draft = c
+                .job::<Queued>(channel, &format!("queued:{message_id}"))?
+                .ok_or(Error::IntegrityFailed)?
+                .draft;
             if let Some(prior) = &outgoing {
                 // A retry resends the journaled message, with the Agent ID
                 // that wrote it, which a caller leaves out.
@@ -1718,7 +1731,21 @@ pub async fn send<H: Hold>(
     let receipt = h
         .with(|c| c.channel_send_settle(channel, &message_id, reply))
         .await?;
-    Ok(json!({"message_id": message_id, "receipt": receipt}))
+    // Return the locally verified result with the ACK. A UI need not reload
+    // every channel before replacing its pending row (including amendments).
+    let message = h
+        .with(|c| {
+            let seq = draft
+                .edit_of
+                .as_ref()
+                .or(draft.retract.as_ref())
+                .map(|r| r.seq)
+                .or_else(|| receipt["seq"].as_u64())
+                .ok_or(Error::IntegrityFailed)?;
+            c.public_message(channel, &c.message_at(channel, seq)?)
+        })
+        .await?;
+    Ok(json!({"message_id": message_id, "receipt": receipt, "message": message}))
 }
 
 /// Share a library file's version under the current epoch as a shared
@@ -1744,6 +1771,15 @@ pub async fn send_file<H: Hold>(
     ensure_valid(is_hash(&message_id), "message_id")?;
     let manifest = h.with(|c| Ok(c.library_manifest(file, version)?.2)).await?;
     let source = format!("{file}@{}", manifest.version);
+    h.with(|c| {
+        c.queue_channel_send(
+            channel,
+            &message_id,
+            draft,
+            Some(json!({"source": source, "name": manifest.name, "size": manifest.size})),
+        )
+    })
+    .await?;
     let ledger = Box::pin(pull(h, channel, None, None)).await?;
     h.signed(Client::root_now).await?;
     let key_name = format!("file:{message_id}");
@@ -3720,6 +3756,7 @@ impl Client {
                 self.save_local(channel, &local)?;
             }
             for key in [
+                format!("queued:{message_id}"),
                 format!("message:{message_id}"),
                 send,
                 format!("file:{message_id}"),
@@ -3729,6 +3766,50 @@ impl Client {
             Ok(())
         })?;
         Ok(receipt)
+    }
+
+    fn queue_channel_send(
+        &self,
+        channel: &str,
+        message_id: &str,
+        draft: &Draft,
+        file: Option<Json>,
+    ) -> Result<()> {
+        self.keyring(channel)?;
+        ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
+        let key = format!("queued:{message_id}");
+        if let Some(prior) = self.job::<Queued>(channel, &key)? {
+            let mut expected = draft.clone();
+            // A journaled Agent message may be retried without its display label.
+            if expected.agent.is_none() {
+                expected.agent.clone_from(&prior.draft.agent);
+            }
+            ensure(prior.draft == expected, Error::IdempotencyConflict)?;
+            if let Some(file) = file {
+                ensure(
+                    prior.file.as_ref() == Some(&file),
+                    Error::IdempotencyConflict,
+                )?;
+            } else if prior.file.is_some() {
+                // send_file calls send only after preparing its attachment.
+                // A plain-text retry must not drop an upload still to prepare.
+                ensure(
+                    self.job::<Attachment>(channel, &format!("file:{message_id}"))?
+                        .is_some(),
+                    Error::IdempotencyConflict,
+                )?;
+            }
+            return Ok(());
+        }
+        self.save_job(
+            channel,
+            &key,
+            &Queued {
+                draft: draft.clone(),
+                created_at: now_ms(),
+                file,
+            },
+        )
     }
 
     /// Check `draft` against the channel as [`Self::seal_message`] does;
@@ -3864,6 +3945,22 @@ impl Client {
         for key in self
             .workspace
             .store
+            .sealed_keys(&format!("{prefix}queued:"))?
+        {
+            let id = key[prefix.len() + "queued:".len()..].to_string();
+            if let Some(queued) = self.workspace.private::<Queued>(keys, &key)? {
+                items.insert(
+                    id.clone(),
+                    json!({
+                        "message_id": id, "draft": queued.draft,
+                        "created_at": queued.created_at, "file": queued.file,
+                    }),
+                );
+            }
+        }
+        for key in self
+            .workspace
+            .store
             .sealed_keys(&format!("{prefix}message:"))?
         {
             let id = key[prefix.len() + "message:".len()..].to_string();
@@ -3905,7 +4002,7 @@ impl Client {
     pub fn channel_discard(&self, channel: &str, message_id: &str) -> Result<()> {
         base(channel)?;
         ensure_valid(is_hash(message_id), "message_id")?;
-        for key in ["message", "send", "file"] {
+        for key in ["queued", "message", "send", "file"] {
             self.forget_job(channel, &format!("{key}:{message_id}"))?;
         }
         Ok(())

@@ -2444,5 +2444,7 @@
 	<string>đã tạo</string>
 	<key>not available</key>
 	<string>không khả dụng</string>
+	<key>No messages</key>
+	<string>Không có tin nhắn</string>
 </dict>
 </plist>

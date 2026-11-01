@@ -2444,5 +2444,7 @@
 	<string>utworzony</string>
 	<key>not available</key>
 	<string>niedostępny</string>
+	<key>No messages</key>
+	<string>Brak wiadomości</string>
 </dict>
 </plist>

@@ -2444,5 +2444,7 @@
 	<string>مُنشأ</string>
 	<key>not available</key>
 	<string>غير متاح</string>
+	<key>No messages</key>
+	<string>لا توجد رسائل</string>
 </dict>
 </plist>

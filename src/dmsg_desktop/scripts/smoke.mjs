@@ -1069,8 +1069,8 @@ const methods = {
     // An edit changes the message it names, as the daemon applies it.
     const edited = p.edit_of && messages.find((m) => m.seq === p.edit_of.seq)
     if (edited) Object.assign(edited, { text: p.text, edited_at: Date.now() })
-    else messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, digest: 'dd'.repeat(32) })
-    return { seq: messages.length }
+    else messages.push({ ...messages[0], seq: messages.length + 1, account, message_id: p.message_id, text: p.text, digest: 'dd'.repeat(32) })
+    return { message_id: p.message_id, receipt: { seq: messages.length }, message: edited ?? messages.at(-1) }
   },
   'channel/outbox': () => [],
   'channel/receipts': () => ({ latest_seq: messages.length, cursors: { [peer]: { delivered: messages.length, read: 1 } } }),
@@ -1504,6 +1504,7 @@ async function formMatrix(app, page, shots, name, selector) {
     await page.waitForSelector(`html[lang|="${locale}"]`)
     await page.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
     if (!selector.includes('popover')) await page.locator(selector).scrollIntoViewIfNeeded()
+    if (name === 'channel-retry') await page.getByTestId('outgoing-retry').scrollIntoViewIfNeeded()
     if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator')) {
       await page.waitForFunction((selector) => {
         const r = document.querySelector(selector)?.getBoundingClientRect()
@@ -1843,11 +1844,17 @@ smoke: try {
   await main.waitForSelector('text=Hello channel')
   // A stalled refresh must not delay the cached timeline or the composer.
   await waitFor(() => latest('channel/sync'))
+  const finishSend = hold('channel/send')
+  const finishSendList = hold('channel/list')
   await main.fill('[data-testid="channel-text"]', 'Reply from the desktop')
   await main.keyboard.press('Enter')
   await waitFor(() => latest('channel/send'))
+  await main.waitForSelector('[data-testid="message-outgoing"][data-state="sending"] >> text=Reply from the desktop')
+  assert.equal(await main.getByTestId('channel-text').inputValue(), '')
+  await finishSend()
   await main.waitForSelector('[data-testid="channel-messages"] article:not([data-testid]) >> text=Reply from the desktop')
   assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
+  await finishSendList()
   // ↑ edits this account's last message, and the timeline shows the edit.
   await main.press('[data-testid="channel-text"]', 'ArrowUp')
   await main.fill('[data-testid="channel-text"]', 'Edited from the desktop')
@@ -1878,6 +1885,60 @@ smoke: try {
   emit('channel/changed', {})
   await main.waitForSelector('[data-testid="channel-messages"] article >> text=Earlier incoming message')
   assert.deepEqual(await main.locator('[data-testid="channel-messages"] article[data-seq]').evaluateAll((rows) => rows.map((r) => Number(r.dataset.seq))), [1, 2, 3, 4, 5])
+
+  // A failure before the daemon journals a message must retain its original
+  // text and ID. Pending rows belong to their channel, even during navigation.
+  const realSend = methods['channel/send'], realList = methods['channel/list'], realShow = methods['channel/show']
+  const otherChannel = { ...channel, id: '39'.repeat(32), name: 'Another channel' }
+  methods['channel/list'] = () => [...realList(), otherChannel]
+  methods['channel/show'] = p => p.id === otherChannel.id ? otherChannel : realShow(p)
+  methods['channel/send'] = () => { throw { code: 'UNAVAILABLE', message: 'offline before sealing' } }
+  emit('channel/changed', {})
+  await main.getByTestId('channel-text').fill('保留这条长消息 · Keep this message available for retry even before the network is ready.')
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="message-outgoing"][data-state="failed"]')
+  const failedId = latest('channel/send').params.message_id
+  await main.getByTestId('channel-list').getByText('Another channel', { exact: true }).click()
+  await waitFor(async () => await main.getByTestId('channel-text').getAttribute('placeholder') === 'Message Another channel')
+  assert.equal(await main.getByTestId('message-outgoing').count(), 0)
+  await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
+  await main.waitForSelector('[data-testid="message-outgoing"][data-state="failed"]')
+  await main.getByTestId('channel-members-toggle').click()
+  await main.getByTestId('sidebar-toggle').click()
+  await formMatrix(app, main, shots, 'channel-retry', '[data-testid="channel-messages"]')
+  await main.getByTestId('sidebar-toggle').click()
+  await main.getByTestId('channel-members-toggle').click()
+  methods['channel/send'] = realSend
+  await main.getByTestId('outgoing-retry').focus()
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="channel-messages"] article[data-seq="6"]')
+  assert.equal(latest('channel/send').params.message_id, failedId)
+  assert.equal(await main.getByTestId('message-outgoing').count(), 0)
+  const keptMessages = messages.length
+  for (let i = 0; i < 30; i++) messages.push({ ...messages[0], seq: messages.length + 1, message_id: `history-${i}`, text: `Earlier conversation ${i}` })
+  emit('channel/changed', {})
+  await main.locator(`[data-seq="${messages.length}"]`).waitFor()
+  const timeline = main.getByTestId('channel-messages')
+  await timeline.evaluate(el => { el.scrollTop = 0 })
+  await waitFor(async () => await timeline.evaluate(el => el.scrollTop === 0))
+  const finishFromHistory = hold('channel/send')
+  await main.getByTestId('channel-text').fill('Send while reading older messages')
+  await main.getByTestId('channel-send').click()
+  await main.locator('[data-testid="message-outgoing"][data-state="sending"]').waitFor()
+  await waitFor(async () => {
+    const box = await timeline.boundingBox(), row = await main.getByTestId('message-outgoing').boundingBox()
+    return row && box && row.y >= box.y && row.y + row.height <= box.y + box.height + 1
+  })
+  assert.ok(await main.getByTestId('channel-text').evaluate(el => el === document.activeElement))
+  await finishFromHistory()
+  await main.locator(`[data-seq="${messages.length}"]`).waitFor()
+  messages.splice(keptMessages)
+  // Reopen to reset the fixture's temporary history window.
+  await main.getByTestId('channel-list').getByText('Another channel', { exact: true }).click()
+  await waitFor(async () => await main.getByTestId('channel-title').innerText() === 'Another channel')
+  await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
+  await waitFor(async () => await main.getByTestId('channel-title').innerText() === 'Smoke channel')
+  methods['channel/list'] = realList; methods['channel/show'] = realShow
 
   // A library file goes with a message as a shared edition; a shared file
   // is saved where the main process's dialog says, or into the library;
@@ -1939,6 +2000,12 @@ smoke: try {
   await waitFor(() => latest('channel/reactivate'))
   assert.equal(channel.ledger.status, 'active')
 
+  if (process.env.DMSG_SMOKE_SCOPE === 'channels') {
+    console.log('Channel Electron regression checks and locale screenshots passed.')
+    await closeTest()
+    process.exit(0)
+  }
+
   // Cached letters and sent items do not wait for either remote read.
   const finishLetters = hold('inbox/list', (p) => p?.refresh !== false)
   const finishPolicy = async () => emit('cache/changed', { kind: 'inbox-policy' })
@@ -1990,7 +2057,9 @@ smoke: try {
   await main.waitForSelector('[data-testid="letter-dialog"]', { state: 'detached' })
   assert.deepEqual(latest('inbox/send').params, firstLetter)
   methods['inbox/send'] = normalSend
-  const finishOldLetters = hold('inbox/list', (p) => p?.refresh !== false)
+  // Invalidation reloads the local cache; its late reply must also be dropped
+  // when the session locks, without requiring a fresh network read.
+  const finishOldLetters = hold('inbox/list')
   emit('inbox/changed')
   await waitFor(() => held.get('inbox/list'))
   session = 'locked'

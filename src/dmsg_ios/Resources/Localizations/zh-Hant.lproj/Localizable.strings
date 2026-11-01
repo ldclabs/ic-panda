@@ -2444,5 +2444,7 @@
 	<string>已產生</string>
 	<key>not available</key>
 	<string>無法使用</string>
+	<key>No messages</key>
+	<string>沒有訊息</string>
 </dict>
 </plist>

@@ -2444,5 +2444,7 @@
 	<string>créée</string>
 	<key>not available</key>
 	<string>indisponible</string>
+	<key>No messages</key>
+	<string>Aucun message</string>
 </dict>
 </plist>
