@@ -6,7 +6,7 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## [1.3.0] - Unreleased
+## [1.3.0] - 2026-11-01
 
 ### Updates
 
@@ -26,6 +26,15 @@ where the client depends on them.
 - Publish beta releases as GitHub prereleases without changing Latest or
   Homebrew. Verify package manifests and checksums before publishing a draft;
   new client release tags no longer use the `dmsg-v` prefix.
+
+### Fixes
+
+- Recover stalled HTTP/2 connections after a network change, allowing read
+  retries to reconnect within their existing retry budget. Writes with an
+  uncertain outcome are not automatically replayed.
+- Fix CLI update checks when GitHub's latest-release response contains a
+  stable tag without draft or prerelease flags. Explicit drafts and
+  prereleases remain excluded from stable updates.
 
 ## [1.2.1] - 2026-10-31
 
@@ -493,6 +502,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.3.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.2.1...1.3.0
 [1.1.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.2...dmsg-v1.1.0
 [1.0.2]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.1...dmsg-v1.0.2
 [1.0.1]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.0...dmsg-v1.0.1
