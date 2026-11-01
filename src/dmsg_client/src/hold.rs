@@ -75,11 +75,21 @@ pub trait Hold: Sync {
     /// A relay request `sign` signs under the client, answered without it.
     fn send(
         &self,
-        sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
     ) -> impl Future<Output = Result<Json>> + Send {
         async move {
-            let (relay, request) = self.signed(sign).await?;
-            relay.send(request).await
+            let (relay, request) = self.signed(&mut sign).await?;
+            let read = request.is_read();
+            match relay.send(request).await {
+                Err(Error::PolicyStale) if read => {
+                    // Another device may have changed the account while our
+                    // certificate was still within its local freshness window.
+                    self.warm(Warm::RelayFresh).await?;
+                    let (relay, request) = self.signed(sign).await?;
+                    relay.send(request).await
+                }
+                reply => reply,
+            }
         }
     }
 
@@ -320,6 +330,100 @@ impl Hold for Owned<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn stale_policy_refreshes_and_resigns_a_read_once_but_never_replays_a_write() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        struct Shared {
+            client: Mutex<Client>,
+            refreshes: AtomicUsize,
+        }
+        impl Hold for Shared {
+            async fn with<T: Send>(
+                &self,
+                step: impl FnOnce(&mut Client) -> Result<T> + Send,
+            ) -> Result<T> {
+                step(&mut self.client.lock().unwrap())
+            }
+
+            async fn warm(&self, warm: Warm) -> Result<Option<Security>> {
+                assert!(matches!(warm, Warm::RelayFresh));
+                self.refreshes.fetch_add(1, Ordering::SeqCst);
+                self.with(|c| {
+                    // Fixture for a newer certified observation. This test
+                    // exercises request recovery, not IC certificate validation.
+                    crate::testing::warm(c);
+                    c.security.as_mut().unwrap().snapshot.security_epoch = 2;
+                    Ok(c.security.clone())
+                })
+                .await
+            }
+        }
+        for (read, failures) in [(true, 1), (true, 2), (false, 1)] {
+            let dir = crate::testing::TempDir::new();
+            let mut client = crate::testing::unlocked(&dir.0, false, None);
+            crate::testing::warm(&mut client);
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            crate::testing::relay_to(
+                &mut client,
+                &format!("http://{}", listener.local_addr().unwrap()),
+            );
+            let shared = Shared {
+                client: Mutex::new(client),
+                refreshes: AtomicUsize::new(0),
+            };
+            let server = tokio::spawn(async move {
+                let mut proofs = vec![];
+                for attempt in 0..if read { 2 } else { 1 } {
+                    let (mut socket, _) = listener.accept().await.unwrap();
+                    let mut bytes = vec![];
+                    while !bytes.windows(4).any(|s| s == b"\r\n\r\n") {
+                        let mut part = [0; 8192];
+                        let n = socket.read(&mut part).await.unwrap();
+                        assert!(n > 0);
+                        bytes.extend_from_slice(&part[..n]);
+                    }
+                    let request = String::from_utf8_lossy(&bytes);
+                    proofs.push(
+                        request
+                            .lines()
+                            .find(|line| line.starts_with("x-dmsg-pop:"))
+                            .unwrap()
+                            .to_owned(),
+                    );
+                    let body = if attempt < failures {
+                        r#"{"ok":false,"error":{"code":"POLICY_STALE"}}"#
+                    } else {
+                        r#"{"ok":true,"data":{"fresh":true}}"#
+                    };
+                    socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+                }
+                if read {
+                    assert_ne!(proofs[0], proofs[1], "retry must use a fresh proof");
+                }
+            });
+            let result = if read {
+                shared.get("/v1/test").await
+            } else {
+                shared
+                    .post(
+                        "/v1/test",
+                        "test",
+                        &serde_json::json!({}),
+                        &Hash::new([1; 32]),
+                    )
+                    .await
+            };
+            if read && failures == 1 {
+                assert_eq!(result.unwrap()["fresh"], true);
+            } else {
+                assert_eq!(result, Err(Error::PolicyStale));
+            }
+            assert_eq!(shared.refreshes.load(Ordering::SeqCst), usize::from(read));
+            server.await.unwrap();
+        }
+    }
 
     #[tokio::test]
     async fn an_unlocked_operation_cannot_resume_after_lock_and_unlock() {

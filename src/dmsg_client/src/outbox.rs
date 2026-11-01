@@ -48,6 +48,12 @@ pub struct Attachment {
 }
 
 impl Client {
+    /// Settled with the verified message and send journals in one transaction.
+    pub(crate) fn forget_message_intent(&self, channel: &str, id: &str) -> Result<()> {
+        self.workspace
+            .delete_private(&format!("{PREFIX}{channel}:{id}"))
+    }
+
     /// Persist a batch of already authored drafts in one local transaction.
     pub fn save_message_drafts(&self, drafts: &[(String, String)]) -> Result<()> {
         self.workspace.store.atomic(|_| {
@@ -216,7 +222,15 @@ pub async fn send<H: Hold>(h: &H, channel: &str, id: &str) -> Result<serde_json:
             intent.error = Some(crate::error_code(error));
             // If the session ended, keep the already sealed pending intent.
             let _ = h
-                .with(|c| c.workspace.put_private(c.keys()?, &intent.key(), &intent))
+                .with(|c| {
+                    if c.workspace
+                        .private::<Intent>(c.keys()?, &intent.key())?
+                        .is_some()
+                    {
+                        c.workspace.put_private(c.keys()?, &intent.key(), &intent)?;
+                    }
+                    Ok(())
+                })
                 .await;
         }
     }

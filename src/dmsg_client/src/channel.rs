@@ -1644,6 +1644,72 @@ async fn committed<H: Hold>(h: &H, channel: &str, key: &str) -> Result<bool> {
     }
 }
 
+/// Read the original operation's outcome without publishing anything again.
+async fn send_receipt<H: Hold>(h: &H, channel: &str, message_id: &str) -> Result<Option<Json>> {
+    let key = format!("send:{message_id}");
+    if !committed(h, channel, &key).await? {
+        return Ok(None);
+    }
+    h.with(|c| {
+        Ok(c.job::<Operation>(channel, &key)?
+            .and_then(|job| job.result))
+    })
+    .await
+}
+
+/// A lost or stalled HTTP reply does not mean that publication failed. Probe
+/// the durable operation while waiting, keeping exactly one POST in flight.
+async fn submit_message<H: Hold>(
+    h: &H,
+    channel: &str,
+    message_id: &str,
+    request: Prepared,
+) -> Result<Json> {
+    use futures_util::future::{Either, select};
+    let relay = h.with(|c| Ok(c.relay())).await?;
+    let confirm = async {
+        for seconds in [2, 3, 5, 8] {
+            futures_timer::Delay::new(std::time::Duration::from_secs(seconds)).await;
+            if let Ok(Some(receipt)) = send_receipt(h, channel, message_id).await {
+                return Ok(receipt);
+            }
+        }
+        std::future::pending::<Result<Json>>().await
+    };
+    match select(Box::pin(relay.send(request)), Box::pin(confirm)).await {
+        Either::Left((Err(Error::ExecutionUnknown), _)) => {
+            // A dropped connection can return before the first delayed probe.
+            match send_receipt(h, channel, message_id).await {
+                Ok(Some(receipt)) => Ok(receipt),
+                _ => Err(Error::ExecutionUnknown),
+            }
+        }
+        Either::Left((reply, _)) | Either::Right((reply, _)) => reply,
+    }
+}
+
+async fn finish_send<H: Hold>(
+    h: &H,
+    channel: &str,
+    message_id: &str,
+    draft: &Draft,
+    reply: Result<Json>,
+) -> Result<Json> {
+    h.with(|c| {
+        let receipt = c.channel_send_settle(channel, message_id, reply)?;
+        let seq = draft
+            .edit_of
+            .as_ref()
+            .or(draft.retract.as_ref())
+            .map(|r| r.seq)
+            .or_else(|| receipt["seq"].as_u64())
+            .ok_or(Error::IntegrityFailed)?;
+        let message = c.public_message(channel, &c.message_at(channel, seq)?)?;
+        Ok(json!({"message_id": message_id, "receipt": receipt, "message": message}))
+    })
+    .await
+}
+
 /// Send `draft`, with the file prepared under the same message ID, under
 /// the current epoch, after the control log is read. The message is
 /// journaled before it is signed, so a retry with the same ID sends the
@@ -1665,6 +1731,10 @@ pub async fn send<H: Hold>(
     ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
     h.with(|c| c.queue_channel_send(channel, &message_id, draft, None))
         .await?;
+    if let Some(receipt) = send_receipt(h, channel, &message_id).await? {
+        // Reconciliation must not wait for an unrelated control-log refresh.
+        return finish_send(h, channel, &message_id, draft, Ok(receipt)).await;
+    }
     let ledger = Box::pin(pull(h, channel, None, None)).await?;
     h.signed(Client::root_now).await?;
     let key_name = format!("message:{message_id}");
@@ -1726,26 +1796,9 @@ pub async fn send<H: Hold>(
     .await?;
     let reply = match posting {
         Posting::Done(result) => Ok(result),
-        Posting::Send(request) => h.with(|c| Ok(c.relay())).await?.send(request).await,
+        Posting::Send(request) => submit_message(h, channel, &message_id, request).await,
     };
-    let receipt = h
-        .with(|c| c.channel_send_settle(channel, &message_id, reply))
-        .await?;
-    // Return the locally verified result with the ACK. A UI need not reload
-    // every channel before replacing its pending row (including amendments).
-    let message = h
-        .with(|c| {
-            let seq = draft
-                .edit_of
-                .as_ref()
-                .or(draft.retract.as_ref())
-                .map(|r| r.seq)
-                .or_else(|| receipt["seq"].as_u64())
-                .ok_or(Error::IntegrityFailed)?;
-            c.public_message(channel, &c.message_at(channel, seq)?)
-        })
-        .await?;
-    Ok(json!({"message_id": message_id, "receipt": receipt, "message": message}))
+    finish_send(h, channel, &message_id, &draft, reply).await
 }
 
 /// Share a library file's version under the current epoch as a shared
@@ -1907,13 +1960,21 @@ pub async fn resume_file<H: Hold>(
 /// Returns `Error::IntegrityFailed` for pages that do not verify; the
 /// cursor stays.
 pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<ChannelSync> {
+    let result = sync_messages(h, channel, backfill).await?;
+    sync_file_deletions(h, channel).await?;
+    Ok(result)
+}
+
+/// Read and verify message bodies without waiting for attachment maintenance.
+/// # Errors
+/// As [`sync`]; the last verified page stays readable after a later failure.
+pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<ChannelSync> {
     let mut reading = Reading::new(channel);
     if backfill {
         let through = h.with(|c| Ok(c.local(channel)?.message)).await?;
         reading.range = Some((0, through));
     }
     read(h, &mut reading).await?;
-    sync_file_deletions(h, channel).await?;
     h.with(|c| {
         c.workspace
             .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &now_ms())?;
@@ -1925,7 +1986,10 @@ pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<Chann
     .await
 }
 
-async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
+/// Refresh attachment removals independently of the conversation's message load.
+/// # Errors
+/// Relay or validation errors; the previous deletion cursor is retained.
+pub async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
     let key = format!("channel-deletions:{channel}");
     let mut after = h
         .with(|c| Ok(c.workspace.private::<u64>(c.keys()?, &key)?.unwrap_or(0)))
@@ -3774,6 +3838,7 @@ impl Client {
             ] {
                 self.forget_job(channel, &key)?;
             }
+            self.forget_message_intent(channel, message_id)?;
             Ok(())
         })?;
         Ok(receipt)
@@ -4125,7 +4190,11 @@ impl Client {
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
         let skipped = page["skipped"].as_array().ok_or(Error::IntegrityFailed)?;
         ensure(
-            next >= after && latest >= next && entries.len() <= 20 && next - after <= 20,
+            next >= after
+                && latest >= next
+                && (next > after || next == latest)
+                && entries.len() <= 20
+                && next - after <= 20,
             Error::IntegrityFailed,
         )?;
         let mut seen = BTreeSet::new();
@@ -4146,6 +4215,7 @@ impl Client {
         }
         let mut rows = vec![];
         let mut ledgers: BTreeMap<String, Ledger> = BTreeMap::new();
+        let now = now_ms();
         for row in entries {
             let seq = row["seq"].as_u64().ok_or(Error::IntegrityFailed)?;
             let receipt = &row["receipt"];
@@ -4157,7 +4227,7 @@ impl Client {
                 .ok_or(Error::IntegrityFailed)?;
             let evidence: Evidence = from(&row["evidence"])?;
             let verified: Verified<MessagePayload> =
-                trust.command(cose, &evidence, stored_at, Some(MESSAGE), now_ms())?;
+                trust.command(cose, &evidence, stored_at, Some(MESSAGE), now)?;
             let payload = verified.body.payload.clone();
             let digest = hex_sha256(&unb64(cose)?);
             ensure(

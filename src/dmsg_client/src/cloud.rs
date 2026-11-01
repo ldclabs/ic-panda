@@ -519,6 +519,12 @@ pub struct Prepared {
     pop: String,
 }
 
+impl Prepared {
+    pub(crate) fn is_read(&self) -> bool {
+        self.method == reqwest::Method::GET
+    }
+}
+
 /// A relay answer with an absent resource as `None`.
 ///
 /// # Errors

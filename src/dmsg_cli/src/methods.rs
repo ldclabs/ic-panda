@@ -156,13 +156,13 @@ impl Daemon {
                         })
                         .await;
                 }
-                let result = channel::sync(&bound, &id, backfill).await;
+                let result = channel::sync_messages(&bound, &id, backfill).await;
                 // A failed later page can still have committed earlier messages.
                 if result.is_err() {
                     self.emit("channel/changed", json!({"id":id}));
                 }
                 if result.is_ok() {
-                    let _ = crate::channels::report(self, &id, None).await;
+                    self.hint_channel(&id);
                 }
                 return Ok(to_json(&result?));
             }

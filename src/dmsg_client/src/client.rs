@@ -509,6 +509,8 @@ pub struct Warmup {
 pub enum Warm {
     /// Fresh evidence the relay holds, for signed relay requests.
     Relay,
+    /// Re-read the user home after the relay rejected a cached policy.
+    RelayFresh,
     /// The user home's answer now, for display; the relay is not involved.
     Home,
 }
@@ -560,7 +562,7 @@ impl Warmup {
                 warmed.fetched = Some(state);
                 return Ok(warmed);
             }
-            Some(Warm::Relay) => {}
+            Some(Warm::Relay | Warm::RelayFresh) => {}
         }
         let mut cached = self.state;
         let mut attempts = 0;

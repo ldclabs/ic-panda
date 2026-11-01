@@ -35,4 +35,21 @@ final class ConversationTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["conversation.empty"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["conversation.retry"].exists)
     }
+
+    func testHistoryStopsAtTheBeginningWithoutPullToRefresh() {
+        let app = open(["--ui-channel-history", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
+        let earlier = app.buttons["conversation.earlier"]
+        XCTAssertTrue(earlier.waitForExistence(timeout: 5))
+        let scroll = app.scrollViews.firstMatch
+        scroll.swipeDown()
+        earlier.tap()
+        scroll.swipeDown()
+        XCTAssertTrue(app.staticTexts["History message 1"].waitForExistence(timeout: 5))
+        XCTAssertFalse(earlier.exists)
+        scroll.swipeDown()
+        XCTAssertFalse(app.buttons["conversation.retry"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.descendants(matching: .any)["conversation.loading"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "History beginning · no redundant refresh"; shot.lifetime = .keepAlways; add(shot)
+    }
 }

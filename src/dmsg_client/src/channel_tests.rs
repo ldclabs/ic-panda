@@ -1315,6 +1315,217 @@ async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
 }
 
 #[tokio::test]
+async fn lost_or_stalled_ack_is_reconciled_without_a_second_publication() {
+    use std::sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    use tokio::io::AsyncReadExt;
+    use tokio::time::{Duration, timeout};
+
+    struct Sender {
+        client: Mutex<Client>,
+        channel: String,
+        id: String,
+        head: Json,
+        reads: AtomicUsize,
+        stored: bool,
+        bad_digest: bool,
+    }
+    impl Hold for Sender {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            let request = self.with(|c| sign(c)).await?;
+            assert!(request.is_read(), "reconciliation must not publish again");
+            if self.reads.fetch_add(1, Ordering::SeqCst) == 0 {
+                return Ok(self.head.clone());
+            }
+            self.with(|c| {
+                let op = c.job::<Operation>(&self.channel, &format!("send:{}", self.id))?.unwrap();
+                Ok(json!({"found":self.stored, "result":{
+                    "seq":3, "stored_at":now_ms(),
+                    "digest": if self.bad_digest { "00".repeat(32) } else { hex_sha256(&unb64(&op.cose)?) }
+                }}))
+            }).await
+        }
+    }
+
+    for (stall, stored, bad_digest) in [
+        (true, true, false),
+        (false, true, false),
+        (false, false, false),
+        (false, true, true),
+    ] {
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let (channel, ledger) = active_channel(&mut client);
+        let id = client
+            .queue_message(&channel, "one publication")
+            .unwrap()
+            .id;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        crate::testing::relay_to(
+            &mut client,
+            &format!("http://{}", listener.local_addr().unwrap()),
+        );
+        let h = Arc::new(Sender {
+            client: Mutex::new(client),
+            channel: channel.clone(),
+            id: id.clone(),
+            head: json(&ledger),
+            reads: AtomicUsize::new(0),
+            stored,
+            bad_digest,
+        });
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = [0; 8192];
+            let n = socket.read(&mut bytes).await.unwrap();
+            assert!(String::from_utf8_lossy(&bytes[..n]).starts_with("POST /v1/channels/"));
+            if stall {
+                std::future::pending::<()>().await;
+            }
+            // Otherwise drop the ACK connection after accepting the message.
+        });
+        let result = timeout(
+            Duration::from_secs(6),
+            crate::outbox::send(&*h, &channel, &id),
+        )
+        .await
+        .expect("a durable receipt must not wait for the 30-second POST timeout");
+        let confirmed = stored && !bad_digest;
+        if confirmed {
+            assert_eq!(result.unwrap()["message"]["text"], "one publication");
+        } else {
+            assert_eq!(
+                result.unwrap_err(),
+                if bad_digest {
+                    Error::IntegrityFailed
+                } else {
+                    Error::ExecutionUnknown
+                }
+            );
+        }
+        h.with(|c| {
+            assert_eq!(c.message_intents(&channel)?.is_empty(), confirmed);
+            assert_eq!(c.channel_outbox(&channel)?.is_empty(), confirmed);
+            assert_eq!(
+                c.channel_messages_before(&channel, u64::MAX, 10)?.len(),
+                usize::from(confirmed)
+            );
+            assert_eq!(
+                c.local(&channel)?.message,
+                0,
+                "ACK must not skip unread gaps"
+            );
+            Ok(())
+        })
+        .await
+        .unwrap();
+        assert_eq!(h.reads.load(Ordering::SeqCst), 2);
+        server.abort();
+    }
+}
+
+#[tokio::test]
+async fn text_sync_finishes_without_waiting_for_attachment_maintenance() {
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Reader {
+        client: Mutex<Client>,
+        head: Json,
+        reads: AtomicUsize,
+    }
+    impl Hold for Reader {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            self.with(|c| sign(c)).await?;
+            match self.reads.fetch_add(1, Ordering::SeqCst) {
+                0 => Ok(self.head.clone()),
+                1 => Ok(
+                    json!({"head":self.head["head"],"entries":[],"skipped":[],"next_seq":0,"latest_seq":0}),
+                ),
+                _ => std::future::pending().await,
+            }
+        }
+    }
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let h = Reader {
+        client: Mutex::new(client),
+        head: json(&ledger),
+        reads: AtomicUsize::new(0),
+    };
+    tokio::time::timeout(
+        std::time::Duration::from_secs(1),
+        sync_messages(&h, &channel, false),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(
+        h.with(|c| c.channel_observed(&channel))
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(h.reads.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn message_end_is_terminal_and_an_incomplete_page_must_advance() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let trust = Trust::new(vec![], String::new(), vec![]);
+    for latest in [0, 1] {
+        let mut reading = client.message_reading(&channel).unwrap();
+        let result = client.channel_read_settle(
+            &mut reading,
+            json!({
+                "head":ledger.head, "entries":[], "skipped":[], "next_seq":0, "latest_seq":latest
+            }),
+            &trust,
+        );
+        if latest == 0 {
+            assert!(result.is_ok());
+            assert!(reading.done());
+        } else {
+            assert_eq!(result, Err(Error::IntegrityFailed));
+        }
+    }
+}
+
+#[tokio::test]
 async fn a_send_is_durable_before_its_first_network_read() {
     use std::sync::{Arc, Mutex};
 

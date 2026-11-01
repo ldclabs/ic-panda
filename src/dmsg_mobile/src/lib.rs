@@ -1223,8 +1223,22 @@ impl MobileEngine {
                             })
                             .await;
                     }
-                    dmsg_client::channel::sync(h, &channel, false).await
+                    dmsg_client::channel::sync_messages(h, &channel, false).await
                 })
+            }))
+            .await
+    }
+
+    pub async fn refresh_channel_attachments(
+        &self,
+        channel: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<()> {
+        operation
+            .run(self.held(move |h| {
+                Box::pin(
+                    async move { dmsg_client::channel::sync_file_deletions(h, &channel).await },
+                )
             }))
             .await
     }

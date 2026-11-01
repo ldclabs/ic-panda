@@ -608,6 +608,17 @@ increments run only in their visible views, with a 30-second fallback; notificat
 refresh never pulls bodies. File backup and restore remain explicit. A cloud-only
 file has a restore action and cannot be previewed as a complete local file.
 
+Conversation history uses local pagination and stops when no earlier page remains.
+Scrolling past the beginning does not trigger a latest-message refresh, and explicit
+history pages survive later refreshes. Attachment deletion metadata refreshes in a
+separate visible-view task, so it cannot delay text completion. A send retains its
+original ID; after two seconds without an ACK, the shared core starts bounded queries
+for that operation's durable receipt while the single POST is still in flight. A
+lost connection also triggers reconciliation. Only a matching receipt confirms the
+send, and the message plus removal from both send queues commit atomically. Safe
+reads rejected with `POLICY_STALE` refresh account evidence and re-sign once; writes
+are never blindly replayed by this recovery path.
+
 Rebuild the Rust bridge with `scripts/ios/build-core.sh` before simulator validation.
 Rust workspace/host tests cover offline attachment reopening, cache-clear retention,
 late-write fencing and local reads alongside a stalled network request. Swift tests

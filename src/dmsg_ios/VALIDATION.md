@@ -1,5 +1,46 @@
 # iOS implementation validation
 
+## Channel history and send confirmation (2026-11-01)
+
+Conversation scrolling no longer invokes pull-to-refresh at the history boundary.
+Local pagination stops at the oldest page and preserves explicitly loaded history
+across refreshes. Text synchronization completes independently of attachment
+deletion metadata; desktop delivery reports also run outside the foreground read.
+The shared core probes a slow send's original operation after two seconds and
+reconciles a lost ACK without another publication. A matching durable receipt
+stores the message and clears both send queues atomically. A safe GET rejected
+with `POLICY_STALE` refreshes certified evidence and re-signs once; mutation
+requests are not replayed by this policy recovery.
+
+Both iOS native slices and the Swift bindings were rebuilt, and the source
+fingerprint verified immediately after that rebuild. Concurrent account-pairing
+edits appeared later in the workspace and are outside this native build's coverage.
+On iPhone 17e / iOS 27.0 Simulator, 47 Swift unit tests and
+all four ConversationTests passed. The XcodeBuildMCP call exceeded its 300-second
+tool timeout, but the continuing xcodebuild process completed successfully;
+`ChannelRegression.xcresult` reports 51 passed, zero failed and zero skipped.
+Chinese history-boundary, Chinese dark retry and English slow-refresh screenshots
+were exported and inspected. These are isolated presentation fixtures.
+
+`cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli` passed: 523 client,
+13 mobile and 104 CLI tests, with 11 explicitly ignored tests (native integration,
+fixture producers and large/performance runs). New regressions cover dropped and
+stalled ACKs, absent or mismatched receipts, bounded policy refresh for reads,
+no automatic mutation replay, terminal history and independent text completion.
+`cargo check` for mobile/CLI, `cargo fmt --all -- --check`, and Clippy with
+`--all-targets -- -D warnings` for client/mobile/CLI also passed. Clippy completed
+after waiting for the shared build-directory lock; it did not bypass that lock.
+
+Desktop `pnpm run check` and all 151 unit tests passed. The scoped channel Electron
+regression passed, including stable retry IDs, early ACK display, history order,
+keyboard retry, Chinese light/dark, French and Arabic RTL at the 760 × 540 minimum
+window. Screenshots were inspected. Electron required an unrestricted test process
+to launch; it used the smoke suite's loopback fake daemon and temporary profile.
+
+No production messages were sent, no real-device or live two-device latency tests
+were run, and no TestFlight build was uploaded. These checks do not establish
+production latency or identify which remote hop delayed the reported messages.
+
 ## Organizer distribution environment (2026-11-01)
 
 Build `0.1.0 (8)` was already exported successfully by `testflight.py`, but

@@ -123,6 +123,14 @@ pub async fn run(daemon: Arc<Daemon>) {
             work.spawn(async move {
                 if read {
                     unreported |= sync(&daemon, &channel.id).await;
+                    unreported |= daemon
+                        .client()
+                        .lock()
+                        .await
+                        .channel_delivery_due(&channel.id)
+                        .ok()
+                        .flatten()
+                        .is_some();
                 }
                 let mut reported = None;
                 if unreported && report_due {
@@ -131,6 +139,19 @@ pub async fn run(daemon: Arc<Daemon>) {
                 }
                 if rotate_due {
                     rotate(&daemon, &channel.id).await;
+                }
+                if read {
+                    let shared = daemon.hold();
+                    if let Ok(bound) = dmsg_client::hold::Unlocked::new(&shared).await {
+                        // Attachment metadata must not hold the message-read turn
+                        // or the foreground RPC waiting for a receipt report.
+                        if dmsg_client::channel::sync_file_deletions(&bound, &channel.id)
+                            .await
+                            .is_ok()
+                        {
+                            daemon.emit("channel/changed", json!({"id":channel.id}));
+                        }
+                    }
                 }
                 (channel.id, unreported, reported)
             });

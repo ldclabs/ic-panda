@@ -54,16 +54,30 @@ extension SessionModel {
         let items = fixtureChannelMessages.filter {
             $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query))
         }
-        return MessagePage(generation: 0, items: Array(items.suffix(100)), hasMore: items.count > 100)
+        let limit = ProcessInfo.processInfo.arguments.contains("--ui-channel-history") ? 3 : 100
+        return MessagePage(generation: 0, items: Array(items.suffix(limit)), hasMore: items.count > limit)
     }
 
     func refreshConversationFixture() async throws {
         fixtureChannelRefreshes += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-history"), fixtureChannelRefreshes > 1 {
+            // Scrolling to the beginning must not trigger a network refresh.
+            throw MobileError.Failure(code: "UNAVAILABLE")
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-failure"), fixtureChannelRefreshes == 1 {
             throw MobileError.Failure(code: "UNAVAILABLE")
         }
         try await Task.sleep(for: .milliseconds(200))
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-empty") { return }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-history") {
+            fixtureChannelMessages = (1...5).map { sequence in
+                MessageItem(id: "fixture-\(sequence)", sequence: UInt64(sequence), account: "fixture-peer",
+                    text: "History message \(sequence)", createdAtMs: 1_793_513_600_000,
+                    attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
+                    digest: "fixture-digest-\(sequence)", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)
+            }
+            return
+        }
         fixtureChannelMessages = [MessageItem(id: "fixture-message", sequence: 1, account: "fixture-peer",
             text: "Hello channel · 频道消息已显示", createdAtMs: 1_793_513_600_000,
             attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
