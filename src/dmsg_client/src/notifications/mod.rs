@@ -61,7 +61,7 @@ pub enum Target {
     Plan(String),
     /// A fixed service issue and its persistent episode ID.
     Service(String),
-    /// A verified team-wallet proposal, always re-read before any action.
+    /// A verified multisig wallet proposal, always re-read before any action.
     Wallet {
         /// Wallet canister Principal.
         wallet: String,

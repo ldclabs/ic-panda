@@ -69,7 +69,7 @@ identity = "<old name-identity canister>"
 buckets = ["<old OSS bucket>"]
 cutover = "<32-byte hex cutover ID>"
 
-[wallet]                         # team wallets; production names the hub
+[wallet]                         # multisig wallets; production names the hub
 hub = "<dmsg_wallet_hub canister>"
 bitcoin_api = "https://mempool.space/api"          # an Esplora API
 solana_rpc = "https://api.mainnet-beta.solana.com"
@@ -116,7 +116,7 @@ Xcode Swift toolchain): each fast unlock asks for Touch ID, or the login
 password without it, and gives up after a minute unanswered; the login is
 kept sealed under the local data key and comes back with it. Elsewhere the
 key sits in the credential store, nothing asks for the person and no login is
-kept. Team-wallet cosigner keys use the Secure Enclave the same way.
+kept. Multisig wallet cosigner keys use the Secure Enclave the same way.
 
 With system credentials and supported hardware, the first login after
 registration, pairing, recovery or an upgrade binds the workspace by default.
@@ -404,7 +404,7 @@ administrator device instead: after `login`, `device succession request
 <device>` names the device it replaces and prints a request with that
 device's role and capabilities and, where the Secure Enclave keeps them, new
 approval and cosigner keys (Touch ID asks once for each). On the old device,
-`device succession review <request>` shows it with the team wallets it
+`device succession review <request>` shows it with the multisig wallets it
 covers, and `device succession approve <request> --device <id>` is a
 high-risk approval request that enrolls the new device beyond the limit and
 rotates the content root to it; `unlock` on the new device binds it. From
@@ -842,7 +842,7 @@ ledger refused at the fee it asked for, never above the escrow's limit.
 wallet: the payment after the acceptance deadline, the unused fee reserve once
 every payout succeeded, and deposits the escrow did not take.
 
-Team wallets (`dmsg wallet`) are canisters of their own, created through
+Multisig wallets (`dmsg wallet`) are canisters of their own, created through
 the hub for a one-time ICP activation within the plan's quota. `quote` is
 an update because it stores the deposit and expiry it returns; a plan with
 no wallet left quotes `remaining` 0 instead of failing, and `create` refuses
@@ -1067,7 +1067,7 @@ canonical CBOR a web page passes to `signAction` (`action.request`); and
 (`agent.delegation.read`). Without any grant, `dmsg_capabilities` shows the
 agent its live grants and what may be granted, and
 `dmsg_capabilities_request` asks the owner for more: an approval request,
-never the decision, which waits an hour. 75 tools in all, team wallets and MCP Events included.
+never the decision, which waits an hour. 75 tools in all, multisig wallets and MCP Events included.
 
 Resources (local connector §4.4): `agent-protocols://identity/current`,
 `hosts`, `rooms`, `inbox/pending`, `drafts/held`, `mail/mailboxes`,
@@ -1230,7 +1230,7 @@ The daemon listens on `127.0.0.1` only.
   take it for each step alone and wait without it: the channels' reads,
   sends, attachments, downloads, previews, names and receipts; the
   library's backups, cloud copies and share links; profiles, the inbox,
-  MCP Events endpoints, team wallets' reads, the plan's status, catalog
+  MCP Events endpoints, multisig wallets' reads, the plan's status, catalog
   and assets, `account/show|security`, `connect/pairings|sync` and
   `attest/readiness|action|verify`; requests for account and device
   changes (`account/bind_approve|unbind|policy|recovery_delay|recovery_policy`,

@@ -16,8 +16,8 @@
 	<string>Daha sonraki geçmiş izinleri de dahil olmak üzere, bu döneme erişimi olan üyelere bir kanal anlık görüntüsü sunulur. Bağlantının sona ermesi, indirme oturumu sınırı veya geri çağırma yoktur.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Bir indirme oturumu, dosya okumalarının sayısı değil, bir alma iznidir. Sürenin sona ermesi veya iptal edilmesi, önceden kaydedilmiş kopyaları silemez.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>Yerel bir adresin L1’i tek bir cihazın anahtarına bağlıdır; bu yüzden bu cihaz kendi adresini alır ve coinler oraya taşınır. Her adım ekibin onayladığı bir tekliftir.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>Yerel bir adresin L1’i tek bir cihazın anahtarına bağlıdır; bu yüzden bu cihaz kendi adresini alır ve coinler oraya taşınır. Her adım üyelerin onayladığı bir tekliftir.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Bir kayıt veya cihaz anahtarı doğrulanamadı. Çalışma alanınız silinmedi.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Güvenlik güncellemesi tamamlanıyor. Yeni içerik tamamlanana kadar bekler.</string>
 	<key>Folder name</key>
 	<string>Klasör adı</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Bu cihazda olmayan bir anahtar için, örneğin kaybolan bir cihazdaki. Ekip onayladıktan 24 saat sonra yeni anahtar geçerli olur.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Bu cihazda olmayan bir anahtar için, örneğin kaybolan bir cihazdaki. Üyeler onayladıktan 24 saat sonra yeni anahtar geçerli olur.</string>
 	<key>Freeze this wallet?</key>
 	<string>Bu cüzdan dondurulsun mu?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Apple aboneliklerini yönetin</string>
 	<key>Manage file</key>
 	<string>Dosyayı yönet</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Kişisel veya ortak varlıkları farklı blokzincirlerde yönetin. Onay eşiklerini ve cihaz ortak imza gereksinimlerini belirleyin.</string>
 	<key>Manage subscriptions</key>
 	<string>Abonelikleri yönet</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Eski bir cihazdan mı geçiyorsunuz? Bu cihaz onun rolünü, anahtarlarını ve cüzdanlarını devralır, ardından eskisi iptal edilir.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Yeni cihaza geçiş: yeni cihaz eskisinin yerine geçmeyi ister, eski cihaz onaylar, ardından ikisi adım adım devreder.</string>
+	<key>Multisig wallets</key>
+	<string>Çok imzalı cüzdanlar</string>
 	<key>Mute notifications</key>
 	<string>Bildirimleri yoksay</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Bekleyen paylaşılan öğe yok</string>
 	<key>No snapshots on this device</key>
 	<string>Bu cihazda anlık görüntü yok</string>
-	<key>No team wallets</key>
-	<string>Takım cüzdanı yok</string>
 	<key>Not enabled</key>
 	<string>Etkin değil</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Sunucu</string>
 	<key>Session code</key>
 	<string>Oturum kodu</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Kendi varlıklarınız için cihaz ortak imzasını ayarlayın veya fonları birlikte yönetmek üzere başkalarını davet edin.</string>
 	<key>Set up this account</key>
 	<string>Bu hesabı kur</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Sistem izni</string>
 	<key>Tags, separated by commas</key>
 	<string>Virgülle ayrılmış etiketler</string>
-	<key>Team wallets</key>
-	<string>Takım cüzdanları</string>
 	<key>Terms of service</key>
 	<string>Hizmet şartları</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Bunlar, hesabınızın cihazlarından alınan doğrulanmış yedeklemelerdir. Bir kopyasını bu cihazda tutmak için açıkça geri yükleyin.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Bu dışa aktarmalar hiçbir zaman hesap kök anahtarlarını veya cihaz imzalama anahtarlarını içermez. Kaynak öğelerde yapılan değişiklikler yeni bir anlık görüntü gerektirir.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Bu yerel adreslerin L1’i için eski cihaz gerekmeye devam eder. Her çıktı yeterince eskiyince ekip bunları L2 üzerinden yine de aktarabilir.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Bu yerel adreslerin L1’i için eski cihaz gerekmeye devam eder. Her çıktı yeterince eskiyince üyeler bunları L2 üzerinden yine de aktarabilir.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Bu hesap kayıtlı bir onay anahtarı gerektiriyor. Bu cihazı Donanım güvenliğinde kurun veya başka bir yetkili cihaza sorun.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Değişmez bir tarihsel versiyonu görüntülüyorsunuz.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Sağlayıcı değişikliklerini kendiniz gerçekleştirirsiniz. dMsg ekstrelerinizi kaydeder ve yerel revizyonları kontrol eder; yukarı akış oluşturmayı, test etmeyi veya iptal etmeyi doğrulayamaz.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Varlıklarınız. Onay kurallarınız.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Yetkili kanallarınız senkronizasyondan sonra görünür.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

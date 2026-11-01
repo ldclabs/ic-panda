@@ -144,7 +144,7 @@
       >
       <li
         ><Glyph name="coins" size={14} />{$t(
-          'Team wallets, their proposals and approvals'
+          'Multisig wallets, their proposals and approvals'
         )}</li
       >
     </ul>

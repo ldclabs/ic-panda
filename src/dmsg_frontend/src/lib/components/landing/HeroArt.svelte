@@ -78,7 +78,7 @@
       kind: 'payment',
       from: 'agent',
       via: `agent:${AGENT}`,
-      title: 'Pay {amount} from the team wallet',
+      title: 'Pay {amount} from the multisig wallet',
       params: { amount: ltr('0.4 BTC') },
       effect: 'Approving adds your vote. The wallet’s policy decides the rest.',
       approved: 'Your vote is recorded.',
@@ -258,7 +258,7 @@
       vault: 'Vault',
       files: 'Files',
       channels: 'Channels',
-      wallets: 'Team wallets',
+      wallets: 'Multisig wallets',
       agent: ''
     }[room]
     record({ glyph, from, to, note })

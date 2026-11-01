@@ -16,8 +16,8 @@
 	<string>สมาชิกที่มีสิทธิ์เข้าถึงยุคนี้สามารถดูภาพรวมของช่องได้ รวมถึงสิทธิ์ในการเข้าถึงประวัติในภายหลังด้วย ลิงก์ไม่มีวันหมดอายุ การจำกัดเซสชันการดาวน์โหลด หรือการเรียกคืน</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>เซสชันการดาวน์โหลดเป็นสิทธิ์ในการเรียกข้อมูล ไม่ใช่จำนวนการอ่านไฟล์ การหมดอายุหรือการเพิกถอนไม่สามารถลบสำเนาที่บันทึกไว้แล้วได้</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>L1 ของที่อยู่ native ผูกกับคีย์ของอุปกรณ์เครื่องเดียว อุปกรณ์นี้จึงได้ที่อยู่ของตนเองและเหรียญจะย้ายไปที่นั่น แต่ละขั้นตอนเป็นข้อเสนอที่ทีมอนุมัติ</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>L1 ของที่อยู่ native ผูกกับคีย์ของอุปกรณ์เครื่องเดียว อุปกรณ์นี้จึงได้ที่อยู่ของตนเองและเหรียญจะย้ายไปที่นั่น แต่ละขั้นตอนเป็นข้อเสนอที่สมาชิกอนุมัติ</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>ไม่สามารถตรวจสอบบันทึกหรือรหัสอุปกรณ์ได้ พื้นที่ทำงานของคุณยังไม่ถูกลบ</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>กำลังอัปเดตความปลอดภัยให้เสร็จ เนื้อหาใหม่จะรอจนกว่าจะเสร็จสิ้น</string>
 	<key>Folder name</key>
 	<string>ชื่อโฟลเดอร์</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>สำหรับคีย์ที่อุปกรณ์นี้ไม่ได้ถือไว้ เช่น คีย์บนอุปกรณ์ที่หายไป หลังทีมอนุมัติ คีย์ใหม่จะมีผลใน 24 ชั่วโมงต่อมา</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>สำหรับคีย์ที่อุปกรณ์นี้ไม่ได้ถือไว้ เช่น คีย์บนอุปกรณ์ที่หายไป หลังสมาชิกอนุมัติ คีย์ใหม่จะมีผลใน 24 ชั่วโมงต่อมา</string>
 	<key>Freeze this wallet?</key>
 	<string>แช่แข็งกระเป๋าเงินนี้เหรอ?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>จัดการการสมัครสมาชิก Apple</string>
 	<key>Manage file</key>
 	<string>จัดการไฟล์</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>จัดการสินทรัพย์ส่วนตัวหรือสินทรัพย์ร่วมกันบนหลายเชน กำหนดจำนวนการอนุมัติและข้อกำหนดการร่วมลงนามของอุปกรณ์</string>
 	<key>Manage subscriptions</key>
 	<string>จัดการการสมัครสมาชิก</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>ย้ายมาจากอุปกรณ์เก่าใช่ไหม อุปกรณ์นี้จะรับช่วงบทบาท คีย์ และกระเป๋าเงินของอุปกรณ์นั้น จากนั้นอุปกรณ์เก่าจะถูกเพิกถอน</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>ย้ายไปยังอุปกรณ์ใหม่: อุปกรณ์ใหม่ขอแทนที่อุปกรณ์เก่า อุปกรณ์เก่าอนุมัติ จากนั้นทั้งสองส่งมอบงานทีละขั้นตอน</string>
+	<key>Multisig wallets</key>
+	<string>กระเป๋าเงินหลายลายเซ็น</string>
 	<key>Mute notifications</key>
 	<string>ปิดเสียงการแจ้งเตือน</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>ไม่มีรายการที่ใช้ร่วมกันรอ</string>
 	<key>No snapshots on this device</key>
 	<string>ไม่มีสแนปชอตบนอุปกรณ์นี้</string>
-	<key>No team wallets</key>
-	<string>ไม่มีกระเป๋าสตางค์ของทีม</string>
 	<key>Not enabled</key>
 	<string>ไม่ได้เปิดใช้งาน</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>เซิร์ฟเวอร์</string>
 	<key>Session code</key>
 	<string>รหัสเซสชัน</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>ตั้งค่าการร่วมลงนามของอุปกรณ์สำหรับสินทรัพย์ส่วนตัว หรือเชิญผู้อื่นมาจัดการเงินร่วมกัน</string>
 	<key>Set up this account</key>
 	<string>ตั้งค่าบัญชีนี้</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>สิทธิ์ของระบบ</string>
 	<key>Tags, separated by commas</key>
 	<string>แท็ก คั่นด้วยเครื่องหมายจุลภาค</string>
-	<key>Team wallets</key>
-	<string>กระเป๋าเงินของทีม</string>
 	<key>Terms of service</key>
 	<string>ข้อกำหนดในการให้บริการ</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>สิ่งเหล่านี้เป็นข้อมูลสำรองที่ได้รับการยืนยันจากอุปกรณ์ของบัญชีของคุณ กู้คืนอย่างชัดเจนเพื่อเก็บสำเนาไว้ในอุปกรณ์นี้</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>การส่งออกเหล่านี้ไม่มีคีย์รูทของบัญชีหรือคีย์การลงนามอุปกรณ์ การเปลี่ยนแปลงรายการแหล่งที่มาจำเป็นต้องมีสแนปชอตใหม่</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>ที่อยู่ native เหล่านี้ยังต้องใช้อุปกรณ์เก่าสำหรับ L1 ทีมยังคงกวาดผ่าน L2 ได้เมื่อแต่ละเอาต์พุตมีอายุนานพอ</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>ที่อยู่ native เหล่านี้ยังต้องใช้อุปกรณ์เก่าสำหรับ L1 สมาชิกยังคงกวาดผ่าน L2 ได้เมื่อแต่ละเอาต์พุตมีอายุนานพอ</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>บัญชีนี้ต้องมีรหัสอนุมัติที่ลงทะเบียนไว้ ตั้งค่าอุปกรณ์นี้ในความปลอดภัยของฮาร์ดแวร์ หรือสอบถามอุปกรณ์อื่นที่ได้รับอนุญาต</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>คุณกำลังดูเวอร์ชันทางประวัติศาสตร์ที่ไม่เปลี่ยนรูป</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>คุณดำเนินการเปลี่ยนแปลงผู้ให้บริการด้วยตนเอง dMsg บันทึกใบแจ้งยอดของคุณและตรวจสอบการแก้ไขในท้องถิ่น ไม่สามารถตรวจสอบการสร้าง การทดสอบ หรือการเพิกถอนอัปสตรีมได้</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>สินทรัพย์ของคุณ กฎการอนุมัติของคุณ</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>ช่องที่ได้รับอนุญาตของคุณจะปรากฏขึ้นหลังจากการซิงโครไนซ์</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

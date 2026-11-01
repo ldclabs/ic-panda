@@ -58,7 +58,7 @@ struct ConfigFile {
     wallet: Option<WalletFile>,
 }
 
-/// `[wallet]`: the team wallet hub and chain endpoints.
+/// `[wallet]`: the multisig wallet hub and chain endpoints.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WalletFile {

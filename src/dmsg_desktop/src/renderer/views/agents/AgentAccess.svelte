@@ -11,7 +11,7 @@
 
   /**
    * What this account's Agent IDs may do with one thing, such as a vault
-   * tag or a team wallet: the live grants that reach it with their revoke,
+   * tag or a multisig wallet: the live grants that reach it with their revoke,
    * and a new grant of the `choices` ticked, for a number of days or until
    * revoked. A choice the daemon's vocabulary cannot name, such as a tag
    * with a space, is not offered. Grants of other things stay in Agents.

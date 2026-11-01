@@ -16,7 +16,7 @@ export default {
   "Active devices": "الأجهزة النشطة",
   "Active channels": "القنوات النشطة",
   "Formal signatures / month": "التوقيعات الرسمية / شهر",
-  "Team wallet slots": "حصة محافظ الفريق",
+  "Multisig wallet slots": "حصة المحافظ متعددة التوقيعات",
   "Privacy comes with every plan.": "الخصوصية في كل خطة.",
   "Encryption, device revocation and account recovery are included at every tier.": "يشمل كل مستوى التشفير وإلغاء صلاحية الأجهزة واستعادة الحساب.",
   "Choose your plan in the app.": "اختر خطتك في التطبيق.",
@@ -715,11 +715,11 @@ export default {
   'Statement': 'البيان',
   'Synced': 'تمت المزامنة',
   'Team treasury': 'خزينة الفريق',
-  'Team wallets': 'محافظ الفريق',
-  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
-    'محافظ الفريق قيد التطوير. وحتى يُجرى تدقيق مستقل، استخدمها للاختبار فقط وبمبالغ صغيرة.',
-  'Team wallets, their proposals and approvals':
-    'محافظ الفريق ومقترحاتها وموافقاتها',
+  "Multisig wallets": "محافظ متعددة التوقيعات",
+  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
+    "المحافظ متعددة التوقيعات قيد التطوير. وحتى يُجرى تدقيق مستقل، استخدمها للاختبار فقط وبمبالغ صغيرة.",
+  "Multisig wallets, their proposals and approvals":
+    "المحافظ متعددة التوقيعات ومقترحاتها وموافقاتها",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'العميل والخدمة الخلفية والبروتوكولات والحاويات (canisters) موجودة في المستودع العام. لخدمة السحابة في بيئة الإنتاج حدود ثقة تشغيلية خاصة بها.',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
@@ -959,9 +959,9 @@ export default {
   'Important decisions stay explicit.': 'القرارات المهمة تتطلب تأكيدًا.',
   'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
     'راجع طلبات التوقيع الرسمي بنفسك. أما أموال الفريق فتخضع مقترحاتها لقواعد موافقته. الوكلاء يقترحون والناس يقررون.',
-  'Explore a team wallet proposal': 'استكشف مقترح محفظة الفريق',
-  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
-    'تحتفظ محفظة الفريق بالأموال المشتركة وتتبع سياسة موافقاته. جرّب مقترحًا من وكيل وشاهد القرارات التي تبقى بيد الأشخاص.',
+  "Explore a multisig wallet proposal": "استكشف مقترح المحفظة متعددة التوقيعات",
+  "Try a proposal from an agent and see which decisions belong to people.":
+    "جرّب مقترحًا من وكيل وتعرّف على القرارات التي يتخذها الأشخاص.",
   'Follow a request from a website': 'تتبّع طلبًا من موقع',
   'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
     'يطلب موقع توقيعك. تراجع الطلب في dMsg، ويتلقى الموقع النتيجة. لا حاجة إلى إضافة للمتصفح.',
@@ -1134,7 +1134,7 @@ export default {
   'Payment': 'دفعة',
   'Sign the release statement': 'وقّع بيان الإصدار',
   'Sign in to {site}': 'تسجيل الدخول إلى {site}',
-  'Pay {amount} from the team wallet': 'ادفع {amount} من محفظة الفريق',
+  "Pay {amount} from the multisig wallet": "ادفع {amount} من المحفظة متعددة التوقيعات",
   'Approving signs this statement with your account key.':
     'الموافقة توقّع هذا البيان بمفتاح حسابك.',
   'Approving proves to the site that it is you.':
@@ -1152,8 +1152,8 @@ export default {
   'The desktop app': 'تطبيق سطح المكتب',
   'Everything in one window.': 'كل شيء في نافذة واحدة.',
   'Every decision in its own.': 'ولكل قرار نافذته.',
-  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    'القنوات والملفات وخزنتك والرسائل والوكلاء ومحافظ الفريق جنبًا إلى جنب. وتُفتح طلبات المواقع والوكلاء والطرفية في نافذة موافقة منفصلة، وأنت وحدك من يقرر فيها.',
+  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
+    "القنوات والملفات وخزنتك والرسائل والوكلاء والمحافظ متعددة التوقيعات جنبًا إلى جنب. وتُفتح طلبات المواقع والوكلاء والطرفية في نافذة موافقة منفصلة، وأنت وحدك من يقرر فيها.",
   'The dMsg desktop app': 'تطبيق dMsg لسطح المكتب',
   'Views': 'الأقسام',
   'Work': 'العمل',
@@ -1170,8 +1170,8 @@ export default {
     'الطلبات التي تنتظر قرارك، والتواقيع وسجلاتها',
   'Agent IDs, what they may do and what they did':
     'معرّفات الوكلاء، وما يُسمح لها به وما فعلته',
-  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
-    'إدارة مشتركة لأموال ICP وبيتكوين وEVM وسولانا وفق سياسة المحفظة',
+  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
+    "أدِر أصولك الشخصية أو المشتركة عبر سلاسل متعددة. حدّد عدد الموافقات المطلوبة وقواعد التوقيع المشترك للأجهزة.",
   'Account synced': 'تمت مزامنة الحساب',
   'Unlock with Touch ID': 'الفتح باستخدام Touch ID',
   'Lock': 'قفل',

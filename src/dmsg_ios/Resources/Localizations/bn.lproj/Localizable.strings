@@ -16,8 +16,8 @@
 	<string>একটি চ্যানেল স্ন্যাপশট এই যুগে অ্যাক্সেস সহ সদস্যদের জন্য উপলব্ধ, পরবর্তী ইতিহাস অ্যাক্সেস অনুমতি সহ। এটির কোন লিংক এক্সপায়ারি, ডাউনলোড-সেশন লিমিট বা রিকল নেই।</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>একটি ডাউনলোড সেশন হল একটি পুনরুদ্ধার ভাতা, ফাইল পড়ার সংখ্যা নয়। মেয়াদ বা প্রত্যাহার ইতিমধ্যে সংরক্ষিত কপি মুছে ফেলতে পারে না।</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>নেটিভ ঠিকানার L1 একটিমাত্র ডিভাইসের কীর সঙ্গে বাঁধা, তাই এই ডিভাইস নিজের ঠিকানা পায় এবং কয়েন সেখানে সরে যায়। প্রতিটি ধাপ দলের অনুমোদনসাপেক্ষ একটি প্রস্তাব।</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>নেটিভ ঠিকানার L1 একটিমাত্র ডিভাইসের কীর সঙ্গে বাঁধা, তাই এই ডিভাইস নিজের ঠিকানা পায় এবং কয়েন সেখানে সরে যায়। প্রতিটি ধাপ সদস্যদের অনুমোদনসাপেক্ষ একটি প্রস্তাব।</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>একটি রেকর্ড বা ডিভাইস কী যাচাই করা যায়নি। আপনার কর্মক্ষেত্র মুছে ফেলা হয়নি.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>নিরাপত্তা আপডেট শেষ হচ্ছে। ততক্ষণ নতুন বিষয়বস্তু সংরক্ষণ অপেক্ষায় থাকবে।</string>
 	<key>Folder name</key>
 	<string>ফোল্ডারের নাম</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>এমন কীর জন্য যা এই ডিভাইসে নেই, যেমন হারানো ডিভাইসের কী। দল অনুমোদন দেওয়ার ২৪ ঘণ্টা পরে নতুন কী কার্যকর হয়।</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>এমন কীর জন্য যা এই ডিভাইসে নেই, যেমন হারানো ডিভাইসের কী। সদস্যরা অনুমোদন দেওয়ার ২৪ ঘণ্টা পরে নতুন কী কার্যকর হয়।</string>
 	<key>Freeze this wallet?</key>
 	<string>এই মানিব্যাগ ফ্রিজ?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>অ্যাপল সদস্যতা পরিচালনা করুন</string>
 	<key>Manage file</key>
 	<string>ফাইল পরিচালনা করুন</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>বিভিন্ন ব্লকচেইনে ব্যক্তিগত বা যৌথ সম্পদ পরিচালনা করুন। প্রয়োজনীয় অনুমোদনের সংখ্যা ও ডিভাইসের সহ-স্বাক্ষরের নিয়ম নির্ধারণ করুন।</string>
 	<key>Manage subscriptions</key>
 	<string>সদস্যতা পরিচালনা করুন</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>পুরনো ডিভাইস থেকে আসছেন? এই ডিভাইস তার ভূমিকা, কী ও ওয়ালেট নেবে, তারপর পুরনোটি বাতিল হবে।</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>নতুন ডিভাইসে যাওয়া: নতুন ডিভাইস পুরনোটির জায়গা নেওয়ার অনুরোধ করে, পুরনোটি অনুমোদন দেয়, তারপর দুটো ধাপে ধাপে হস্তান্তর করে।</string>
+	<key>Multisig wallets</key>
+	<string>মাল্টিসিগ ওয়ালেট</string>
 	<key>Mute notifications</key>
 	<string>বিজ্ঞপ্তিগুলি নিঃশব্দ করুন</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>কোনো শেয়ার করা আইটেম অপেক্ষা করছে না</string>
 	<key>No snapshots on this device</key>
 	<string>এই ডিভাইসে কোনো স্ন্যাপশট নেই</string>
-	<key>No team wallets</key>
-	<string>কোনো দলের মানিব্যাগ নেই</string>
 	<key>Not enabled</key>
 	<string>সক্রিয় করা হয়নি</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>সার্ভার</string>
 	<key>Session code</key>
 	<string>সেশন কোড</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>নিজের সম্পদের জন্য ডিভাইসের সহ-স্বাক্ষর সেট আপ করুন, অথবা একসঙ্গে তহবিল পরিচালনার জন্য অন্যদের আমন্ত্রণ জানান।</string>
 	<key>Set up this account</key>
 	<string>এই অ্যাকাউন্ট সেট আপ করুন</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>সিস্টেমের অনুমতি</string>
 	<key>Tags, separated by commas</key>
 	<string>ট্যাগ, কমা দ্বারা পৃথক</string>
-	<key>Team wallets</key>
-	<string>টিম ওয়ালেট</string>
 	<key>Terms of service</key>
 	<string>পরিষেবার শর্তাবলী</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>এগুলি আপনার অ্যাকাউন্টের ডিভাইসগুলি থেকে যাচাইকৃত ব্যাকআপ৷ এই ডিভাইসে একটি অনুলিপি রাখতে স্পষ্টভাবে পুনরুদ্ধার করুন।</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>এই এক্সপোর্টগুলিতে কখনই অ্যাকাউন্ট রুট কী বা ডিভাইস সাইনিং কী থাকে না। উৎস আইটেম পরিবর্তন একটি নতুন স্ন্যাপশট প্রয়োজন.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>এই নেটিভ ঠিকানাগুলোর L1-এর জন্য পুরনো ডিভাইস দরকার থাকবে। প্রতিটি আউটপুট যথেষ্ট পুরনো হলে দল এগুলো L2 দিয়ে সরাতে পারবে।</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>এই নেটিভ ঠিকানাগুলোর L1-এর জন্য পুরনো ডিভাইস দরকার থাকবে। প্রতিটি আউটপুট যথেষ্ট পুরনো হলে সদস্যরা এগুলো L2 দিয়ে সরাতে পারবে।</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>এই অ্যাকাউন্টের জন্য একটি নিবন্ধিত অনুমোদন কী প্রয়োজন৷ হার্ডওয়্যার নিরাপত্তায় এই ডিভাইসটি সেট আপ করুন, অথবা অন্য অনুমোদিত ডিভাইস জিজ্ঞাসা করুন।</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>আপনি একটি অপরিবর্তনীয় ঐতিহাসিক সংস্করণ দেখছেন।</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>আপনি নিজেকে প্রদানকারী পরিবর্তন সঞ্চালন. dMsg আপনার বিবৃতি রেকর্ড করে এবং স্থানীয় সংশোধন পরীক্ষা করে; এটি আপস্ট্রিম সৃষ্টি, পরীক্ষা বা প্রত্যাহার যাচাই করতে পারে না।</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>আপনার সম্পদ। আপনার অনুমোদনের নিয়ম।</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>আপনার অনুমোদিত চ্যানেলগুলি সিঙ্ক্রোনাইজেশনের পরে উপস্থিত হয়৷</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

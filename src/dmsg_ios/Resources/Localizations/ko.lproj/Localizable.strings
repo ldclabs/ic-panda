@@ -16,8 +16,8 @@
 	<string>이후 기록 부여를 포함하여 이 에포크에 액세스할 수 있는 멤버는 채널 스냅샷을 사용할 수 있습니다. 링크 만료, 다운로드 세션 제한 또는 회수가 없습니다.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>다운로드 세션은 파일 읽기 횟수가 아닌 검색 허용량입니다. 만료 또는 취소 시 이미 저장된 사본은 지울 수 없습니다.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>네이티브 주소의 L1은 한 장치의 키에 묶여 있으므로, 이 장치용 새 주소를 만들고 코인을 그리로 옮깁니다. 각 단계는 팀이 승인하는 제안입니다.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>네이티브 주소의 L1은 한 장치의 키에 묶여 있으므로, 이 장치용 새 주소를 만들고 코인을 그리로 옮깁니다. 각 단계는 구성원이 승인하는 제안입니다.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>기록이나 장치 키를 확인할 수 없습니다. 작업 공간이 지워지지 않았습니다.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>보안 설정을 업데이트하고 있습니다. 완료될 때까지 새 내용 저장을 기다립니다.</string>
 	<key>Folder name</key>
 	<string>폴더 이름</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>분실한 장치의 키처럼 이 장치에 없는 키를 위한 것입니다. 팀이 승인하면 새 키는 24시간 후에 적용됩니다.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>분실한 장치의 키처럼 이 장치에 없는 키를 위한 것입니다. 구성원이 승인하면 새 키는 24시간 후에 적용됩니다.</string>
 	<key>Freeze this wallet?</key>
 	<string>이 지갑을 동결하시겠습니까?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Apple 구독 관리</string>
 	<key>Manage file</key>
 	<string>파일 관리</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>여러 체인의 개인 또는 공동 자산을 관리하세요. 필요한 승인 수와 기기 공동 서명 규칙을 설정할 수 있습니다.</string>
 	<key>Manage subscriptions</key>
 	<string>구독 관리</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>이전 장치에서 옮겨 오나요? 이 장치가 그 역할, 키, 지갑을 넘겨받고 이후 이전 장치는 해지됩니다.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>새 장치로 옮기기: 새 장치가 이전 장치의 대체를 요청하고 이전 장치가 승인하면, 두 장치가 단계별로 인계합니다.</string>
+	<key>Multisig wallets</key>
+	<string>멀티시그 지갑</string>
 	<key>Mute notifications</key>
 	<string>알림 음소거</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>대기 중인 공유 항목이 없습니다.</string>
 	<key>No snapshots on this device</key>
 	<string>이 기기에는 스냅샷이 없습니다.</string>
-	<key>No team wallets</key>
-	<string>팀 지갑 없음</string>
 	<key>Not enabled</key>
 	<string>활성화되지 않음</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>서버</string>
 	<key>Session code</key>
 	<string>세션 코드</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>개인 자산을 위한 기기 공동 서명을 설정하거나 다른 사람을 초대해 자금을 함께 관리하세요.</string>
 	<key>Set up this account</key>
 	<string>이 계정을 설정하세요</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>시스템 권한</string>
 	<key>Tags, separated by commas</key>
 	<string>쉼표로 구분된 태그</string>
-	<key>Team wallets</key>
-	<string>팀 지갑</string>
 	<key>Terms of service</key>
 	<string>서비스 약관</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>이는 계정 기기에서 확인된 백업입니다. 이 장치에 복사본을 보관하려면 명시적으로 복원하세요.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>이러한 내보내기에는 계정 루트 키나 장치 서명 키가 포함되지 않습니다. 소스 항목을 변경하려면 새 스냅샷이 필요합니다.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>이 네이티브 주소들의 L1에는 계속 이전 장치가 필요합니다. 각 출력이 충분히 오래되면 팀은 L2로 옮길 수 있습니다.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>이 네이티브 주소들의 L1에는 계속 이전 장치가 필요합니다. 각 출력이 충분히 오래되면 구성원은 L2로 옮길 수 있습니다.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>이 계정에는 등록된 승인 키가 필요합니다. 하드웨어 보안에서 이 장치를 설정하거나 다른 승인된 장치에 문의하세요.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>귀하는 변경할 수 없는 이전 버전을 보고 계십니다.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>공급자 변경은 사용자가 직접 수행합니다. dMsg는 귀하의 진술을 기록하고 로컬 개정을 확인합니다. 업스트림 생성, 테스트 또는 취소를 확인할 수 없습니다.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>내 자산, 내가 정하는 승인 규칙</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>동기화 후 승인된 채널이 나타납니다.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

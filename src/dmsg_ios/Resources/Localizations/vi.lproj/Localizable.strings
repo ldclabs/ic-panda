@@ -16,8 +16,8 @@
 	<string>Ảnh chụp nhanh kênh có sẵn cho các thành viên có quyền truy cập vào kỷ nguyên này, bao gồm cả quyền truy cập lịch sử sau này. Nó không có hạn sử dụng liên kết, giới hạn phiên tải xuống hoặc thu hồi.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Phiên tải xuống là mức cho phép truy xuất chứ không phải số lần đọc tệp. Hết hạn hoặc thu hồi không thể xóa các bản sao đã được lưu.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>L1 của địa chỉ native gắn với khóa của một thiết bị, nên thiết bị này nhận địa chỉ riêng và coin được chuyển sang đó. Mỗi bước là một đề xuất do nhóm phê duyệt.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>L1 của địa chỉ native gắn với khóa của một thiết bị, nên thiết bị này nhận địa chỉ riêng và coin được chuyển sang đó. Mỗi bước là một đề xuất do thành viên phê duyệt.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Không thể xác minh bản ghi hoặc khóa thiết bị. Không gian làm việc của bạn chưa bị xóa.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.</string>
 	<key>Folder name</key>
 	<string>Tên thư mục</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Dành cho khóa mà thiết bị này không giữ, chẳng hạn khóa trên thiết bị bị mất. Sau khi nhóm phê duyệt, khóa mới có hiệu lực sau 24 giờ.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Dành cho khóa mà thiết bị này không giữ, chẳng hạn khóa trên thiết bị bị mất. Sau khi thành viên phê duyệt, khóa mới có hiệu lực sau 24 giờ.</string>
 	<key>Freeze this wallet?</key>
 	<string>Đóng băng ví này?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Quản lý đăng ký Apple</string>
 	<key>Manage file</key>
 	<string>Quản lý tập tin</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Quản lý tài sản cá nhân hoặc chung trên nhiều chuỗi. Thiết lập số lượt phê duyệt cần thiết và quy tắc đồng ký trên thiết bị.</string>
 	<key>Manage subscriptions</key>
 	<string>Quản lý đăng ký</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Chuyển từ thiết bị cũ? Thiết bị này tiếp nhận vai trò, khóa và ví của nó, rồi thiết bị cũ bị thu hồi.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Chuyển sang thiết bị mới: thiết bị mới yêu cầu thay thế thiết bị cũ, thiết bị cũ phê duyệt, rồi cả hai bàn giao từng bước.</string>
+	<key>Multisig wallets</key>
+	<string>Ví đa chữ ký</string>
 	<key>Mute notifications</key>
 	<string>Tắt tiếng thông báo</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Không có mục chia sẻ nào đang chờ</string>
 	<key>No snapshots on this device</key>
 	<string>Không có ảnh chụp nhanh trên thiết bị này</string>
-	<key>No team wallets</key>
-	<string>Không có ví nhóm</string>
 	<key>Not enabled</key>
 	<string>Chưa bật</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Máy chủ</string>
 	<key>Session code</key>
 	<string>Mã phiên</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Thiết lập đồng ký trên thiết bị cho tài sản cá nhân, hoặc mời người khác cùng quản lý quỹ.</string>
 	<key>Set up this account</key>
 	<string>Thiết lập tài khoản này</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Quyền hệ thống</string>
 	<key>Tags, separated by commas</key>
 	<string>Thẻ, cách nhau bằng dấu phẩy</string>
-	<key>Team wallets</key>
-	<string>Ví nhóm</string>
 	<key>Terms of service</key>
 	<string>Điều khoản dịch vụ</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Đây là những bản sao lưu đã được xác minh từ thiết bị trong tài khoản của bạn. Khôi phục rõ ràng để giữ một bản sao trên thiết bị này.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Những bản xuất này không bao giờ chứa khóa gốc của tài khoản hoặc khóa ký thiết bị. Những thay đổi đối với các mục nguồn yêu cầu một ảnh chụp nhanh mới.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Nhóm vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Thành viên vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Tài khoản này yêu cầu khóa phê duyệt đã đăng ký. Thiết lập thiết bị này trong Bảo mật phần cứng hoặc yêu cầu một thiết bị được ủy quyền khác.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Bạn đang xem một phiên bản lịch sử bất biến.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Bạn tự thực hiện thay đổi nhà cung cấp. dMsg ghi lại các tuyên bố của bạn và kiểm tra các sửa đổi cục bộ; nó không thể xác minh việc tạo, kiểm tra hoặc thu hồi ngược dòng.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Tài sản của bạn. Quy tắc phê duyệt của bạn.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Các kênh được ủy quyền của bạn sẽ xuất hiện sau khi đồng bộ hóa.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

@@ -24,7 +24,7 @@ App Attest, bir uygulama kurulumunu doğrulamak için uygulama tarafından oluş
 
 StoreKit satın alma işlemleri Apple tarafından gerçekleştirilir. Doğrulayıcı ve ticari canister işlem işlem/ürün tanımlayıcılarımızı, hesap bağlayıcı jetonu, satın alma ve son kullanma tarihlerini ve geri ödeme/iptal durumunu işler. Ödeme kartı bilgilerinizi almazlar. Diğer dMsg müşterileri, halka açık defter ve yetki kayıtları ile ICP cüzdan ödemelerini ve PANDA üyeliğini destekleyebilir. Hesabın silinmesi Apple aboneliğini iptal etmez; Apple hesabınızdaki abonelikleri yönetin.
 
-Ekip cüzdanı politikaları ve teklifleri canisters cüzdanı tarafından işlenir; görünürlükleri cüzdanın ayarlarını takip eder. Blockchain RPC sağlayıcıları, bakiye sorguları, ücret simülasyonu ve yayın için gereken adresleri, işlem verilerini ve IP bilgilerini alır. Varsayılan uç noktalar arasında mempool.space, PublicNode, mainnet.base.org ve api.mainnet-beta.solana.com bulunur; yapılandırılmış alternatiflerin kendi gizlilik uygulamaları vardır.
+Çok imzalı cüzdanı politikaları ve teklifleri canisters cüzdanı tarafından işlenir; görünürlükleri cüzdanın ayarlarını takip eder. Blockchain RPC sağlayıcıları, bakiye sorguları, ücret simülasyonu ve yayın için gereken adresleri, işlem verilerini ve IP bilgilerini alır. Varsayılan uç noktalar arasında mempool.space, PublicNode, mainnet.base.org ve api.mainnet-beta.solana.com bulunur; yapılandırılmış alternatiflerin kendi gizlilik uygulamaları vardır.
 
 ## 4. Yerel veri ve sistem entegrasyonları
 

@@ -1,8 +1,8 @@
-# dMsg Wallet product specification v0.2 · Team wallets
+# dMsg Wallet product specification v0.2 · Multisig wallets
 
 English | [简体中文](dMsg_wallet_zh.md)
 
-First version: 2026-10-16; revised: 2026-10-24. This document consolidates implementation and security revisions against public repository `b8b8b799`, describing current behavior and listing future capabilities separately. Product documentation is now unified here; protocols and component READMEs own exact interfaces and implementation boundaries. Source implementation is distinct from production deployment or desktop release.
+First version: 2026-10-16; implementation revised: 2026-10-24; naming and positioning revised: 2026-11-01 (based on `8286e058`; remote not checked). This document consolidates implementation and security revisions against public repository `b8b8b799`, describing current behavior and listing future capabilities separately. Product documentation is now unified here; protocols and component READMEs own exact interfaces and implementation boundaries. Source implementation is distinct from production deployment or desktop release.
 
 Desktop flows also incorporate the 2026-10-24 UX01–UX20 revisions; components, test entry points and platform boundaries are in the [desktop README](../src/dmsg_desktop/README.md).
 
@@ -14,19 +14,19 @@ Companions: [public contract](protocol/wallet.md), [wallet implementation](../sr
 | --- | --- |
 | Public code | Local `ic-panda` `main`, `b8b8b799` (2026-10-24); clean workspace at the start of that revision; remote not checked |
 | Private design | Located through [AGENTS.md](../AGENTS.md): PRD v1.1, implementation v1.1, commercialization/implementation v1.0 and shared-membership recommendation; local `dmsg-cloud` was `801940d4` (2026-10-23), clean, remote not checked. Private design text is not reproduced here |
-| Wallet services | One `dmsg_wallet` instance per team, with `dmsg_wallet_hub` as factory; reserved ID `ghcje-dyaaa-aaaas-qg7va-cai` is used by the hub |
-| Clients | Rust core, daemon, CLI, MCP and Electron team-wallet module are implemented; desktop creation is paused, while existing wallets and historical activation jobs remain usable |
+| Wallet services | One independent `dmsg_wallet` instance per wallet, with `dmsg_wallet_hub` as factory; reserved ID `ghcje-dyaaa-aaaas-qg7va-cai` is used by the hub |
+| Clients | Rust core, daemon, CLI, MCP and Electron multisig wallet module are implemented; desktop creation is paused, while existing wallets and historical activation jobs remain usable |
 | Verification and release | Unit, PocketIC, dual-daemon, Electron and some local external-chain checks exist; these do not establish production deployment, real-hardware acceptance or completion of every external-chain check |
 
 This document focuses on flows, authority and product boundaries. Public Candid, types and protocols govern exact fields/methods. Early research on incident losses, competitors, network throughput and dollar costs is not the current implementation baseline, and commercial recommendations are not configured entitlements.
 
 ## 1. Product definition
 
-**dMsg Wallet is a multichain team wallet jointly controlled by on-chain policy and members.** Each team owns an ICP canister storing membership, policy, proposals and audit records. It spends ICP/ICRC assets directly through ledgers; for BTC, EVM and Solana it constructs transactions from approved intent and signs with ICP chain keys, then member clients broadcast them.
+**dMsg Wallet manages personal or shared assets across chains, with configurable approval thresholds and device co-signing requirements.** Each wallet has its own ICP canister storing membership, policy, proposals and audit records. It spends ICP/ICRC assets directly through ledgers; for BTC, EVM and Solana it constructs transactions from approved intent and signs with ICP chain keys, then member clients broadcast them.
 
-Chain-key addresses do not require a team seed phrase. Account devices, local wallet identities and optional cosigner keys still have storage/recovery duties. No seed phrase does not mean no keys or independence from ICP, wallet code and governance.
+Chain-key addresses do not require members to back up a seed phrase. Account devices, local wallet identities and optional cosigner keys still have storage/recovery duties. No seed phrase does not mean no keys or independence from ICP, wallet code and governance.
 
-It serves managers of team operating funds, bringing multichain receipts, roles, multiple approvals, delays, cosigning and audit into one flow. Funds requiring SNS proposals remain in the SNS treasury.
+Individuals can configure device co-signing for their own assets or invite others to manage funds together. Multichain receipts, roles, approval rules, delays, cosigning and audit share one flow. Member approvals and device co-signing are configured separately: multisig does not require multiple people, nor does every address use native multisig on its destination chain. Funds requiring SNS proposals remain in the SNS treasury.
 
 ## 2. Current capabilities
 
@@ -43,11 +43,11 @@ It serves managers of team operating funds, bringing multichain receipts, roles,
 
 ## 3. Product principles
 
-1. **One instance per team.** Addresses, members, policy, audit and cycles are independent; each instance may accept upgrades or lock code.
+1. **One independent instance per wallet.** Addresses, members, policy, audit and cycles are independent; each instance may accept upgrades or lock code.
 2. **Approve intent before execution.** Device approval binds wallet, operation, policy version and decision. Clients read complete certified proposals and independently decode external-chain plans.
 3. **Member votes and device cosigning are separate.** One account on two devices remains one member with at most one vote; independent cosigner keys may add a k-of-l threshold.
 4. **Recover through original records.** Retry broadcasting original bytes first; reconcile unknown ledger payments with fixed arguments or actual blocks, never by creating a replacement payment.
-5. **Existing funds do not depend on subscription renewal.** Running wallets do not check the creator's plan or disable addresses, cosigning, approvals or withdrawals by plan; team policy, cycles and network availability still apply.
+5. **Existing funds do not depend on subscription renewal.** Running wallets do not check the creator's plan or disable addresses, cosigning, approvals or withdrawals by plan; wallet policy, cycles and network availability still apply.
 6. **State each trust boundary.** Certified reads establish source, independent decoding checks transactions and audit records behavior. None proves external-chain settlement or replaces members' review of complete content.
 
 ## 4. Members, roles and identities
@@ -90,7 +90,7 @@ The two clients differ: the macOS Secure Enclave signs at most 32 digests per pr
 
 NC cosigner keys are BIP-340 Taproot keys, which the Secure Enclave cannot hold, so a device soft key holds them: each device has a random root sealed under one or more dedicated Secure Enclave keys (protectors). Creating it asks nothing; opening it needs the person. A device without such hardware keeps the root in software under its local key only when the person explicitly chooses that. Each wallet's key derives from the root and registers as a `Bip340` cosigner with `hardware: false`, so wallets that require hardware cosigners refuse it. Before signing an L1 spend the client's own decoder confirms the plan takes L1 with this device's registered key in the leaf; the person then opens the root, and the client signs each input's script-path sighash directly with fresh auxiliary randomness, refusing when the derived key differs from the registered one. Packets with native signatures are version 2, which older clients refuse; packets with ordinary signatures stay version 1.
 
-The L1 leaf commits to one device's key, so a new device migrates an NC address: it registers its soft key (`AddCosigner`), adds a Taproot address with the old address's chain-key delay and recovery key (`AddAddress`), adds the new address to the address book and waits out its cooldown when the asset's tier is book-only, then sweeps the old address's UTXOs to it in one transfer without change: through L1 while the old device can still sign, otherwise through L2, spending only UTXOs at least `chain_key_after` blocks deep and showing each one's earliest spendable height, possibly in batches. Every step is a proposal the team approves as usual; once swept, the new device marks the old address archived locally.
+The L1 leaf commits to one device's key, so a new device migrates an NC address: it registers its soft key (`AddCosigner`), adds a Taproot address with the old address's chain-key delay and recovery key (`AddAddress`), adds the new address to the address book and waits out its cooldown when the asset's tier is book-only, then sweeps the old address's UTXOs to it in one transfer without change: through L1 while the old device can still sign, otherwise through L2, spending only UTXOs at least `chain_key_after` blocks deep and showing each one's earliest spendable height, possibly in batches. Every step is a proposal members approve under the wallet policy; once swept, the new device marks the old address archived locally.
 
 Devices must cosign the same plan. Package import only collects signatures, never executes; each cosigner must cover every digest, and repeated import adds no count. Before importing and executing, clients check collected signatures against the cosigners' current keys; those made with a key that has since changed are set aside and their cosigners asked to sign again. A cosigner key changes in place: its member rotates it with the old key at once, or an Admin proposal replaces it after 24 hours when the old key is lost, also while frozen; signatures collected with the old key must be made again. Adjust cosigner policy before deleting a referenced key/member. A Taproot-committed key does not disappear when its member is removed.
 
@@ -143,7 +143,7 @@ Invitees confirm their own join. A notification channel may reference an existin
 
 ## 7. Desktop, agents and notifications
 
-The desktop has overview, assets/addresses, transactions/proposals and team/security areas. History/audit belong under transactions and operations under team/security. It supports pagination, ID lookup, exact amounts, receive QR codes, cosignature packages, periodic refresh, resource status and RPC diagnostics. Account/wallet switches discard stale responses; network/hardware waits do not hold the global daemon Client lock.
+The desktop has overview, assets/addresses, transactions/proposals and members/security areas. History/audit belong under transactions and operations under members/security. It supports pagination, ID lookup, exact amounts, receive QR codes, cosignature packages, periodic refresh, resource status and RPC diagnostics. Account/wallet switches discard stale responses; network/hardware waits do not hold the global daemon Client lock.
 
 MCP tools are `dmsg_wallet_list`, `dmsg_wallet_balances`, `dmsg_wallet_propose_transfer`, `dmsg_wallet_proposal_status`, `dmsg_wallet_execute` and `dmsg_wallet_report_broadcast`, governed by `wallet.read`, `wallet.propose:<wallet>` and `wallet.execute:<wallet>`. Agent proposals additionally require the member to register that Agent ID. There is no approval tool; human cosigning goes through the approval center.
 
@@ -162,7 +162,7 @@ The hub checks eligibility only at creation; plan expiry does not automatically 
 
 ## 9. Seed wallet and governance
 
-An ICPanda DAO team wallet may serve as the initial user for operating funds, using member thresholds, address book, delays and optional cosigning, with an optionally offline-kept Recovery member. Governance may direct hub revenue to it; other business revenue requires separate review of receiving configuration and collection authority.
+An ICPanda DAO multisig wallet may serve as the initial user for operating funds, using member thresholds, address book, delays and optional cosigning, with an optionally offline-kept Recovery member. Governance may direct hub revenue to it; other business revenue requires separate review of receiving configuration and collection authority.
 
 This does not mean a seed wallet exists, revenue has moved or transparency pages are live. Funds requiring SNS governance remain in the SNS treasury; member approval is not SNS voting.
 
@@ -199,7 +199,7 @@ These remain unfinished capabilities or release acceptance; desktop forms, proto
 
 | Decision | Current disposition |
 | --- | --- |
-| D-1 Naming | `dmsg_wallet` instances and `dmsg_wallet_hub` factory; payer identity uses `payer/*`, team wallets use `wallet/*` |
+| D-1 Naming | `dmsg_wallet` instances and `dmsg_wallet_hub` factory; payer identity uses `payer/*`, multisig wallets use `wallet/*` |
 | D-2 Price/quota | Fixed ICP activation and configurable plan quotas implemented; recommendations are not production configuration |
 | D-3 Control | Hub-only controller, instance acceptance of upgrades, optional controller removal to lock code; hub governance remains trusted |
 | D-4 Chains | BTC P2TR/P2WPKH, allowlisted EVM chain IDs and SOL implemented; no default claim of deployment acceptance for any L2 |

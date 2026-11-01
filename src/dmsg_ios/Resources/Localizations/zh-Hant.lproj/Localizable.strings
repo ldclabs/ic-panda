@@ -16,8 +16,8 @@
 	<string>頻道快照對有權存取該時期的成員可見，包括之後獲授歷史存取權的成員。它沒有連結到期時間、下載會話限制，也無法收回。</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>下載會話是一次取回授權，並非檔案讀取次數。到期或撤銷不能刪除已儲存的副本。</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>原生地址的 L1 只承諾一台裝置的鑰匙，因此本裝置需要自己的新地址，並把幣轉過去。每一步都是需要團隊批准的提案。</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>原生地址的 L1 只承諾一台裝置的鑰匙，因此本裝置需要自己的新地址，並把幣轉過去。每一步都是需要成員批准的提案。</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>無法驗證記錄或裝置鑰匙。你的工作區並未被清除。</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>正在完成安全設定更新；完成前暫緩儲存新內容。</string>
 	<key>Folder name</key>
 	<string>資料夾名稱</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>用於本裝置沒有的鑰匙，例如遺失裝置上的鑰匙。團隊批准後，新鑰匙於 24 小時後生效。</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>用於本裝置沒有的鑰匙，例如遺失裝置上的鑰匙。成員批准後，新鑰匙於 24 小時後生效。</string>
 	<key>Freeze this wallet?</key>
 	<string>凍結此錢包？</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>管理 Apple 訂閱</string>
 	<key>Manage file</key>
 	<string>管理檔案</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>管理個人或共同持有的多鏈資產，自主設定批准人數與裝置協簽規則。</string>
 	<key>Manage subscriptions</key>
 	<string>管理訂閱</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>從舊裝置換過來？本裝置將接替它的角色、鑰匙和錢包，隨後撤銷舊裝置。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>換用新裝置：新裝置請求取代舊裝置，舊裝置批准後，兩台裝置逐步完成交接。</string>
+	<key>Multisig wallets</key>
+	<string>多簽錢包</string>
 	<key>Mute notifications</key>
 	<string>靜音通知</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>沒有待接收的分享內容</string>
 	<key>No snapshots on this device</key>
 	<string>此裝置尚無快照</string>
-	<key>No team wallets</key>
-	<string>沒有團隊錢包</string>
 	<key>Not enabled</key>
 	<string>未開啟</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>伺服器</string>
 	<key>Session code</key>
 	<string>工作階段碼</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>為自己的資產設定裝置協簽，或邀請他人共同管理資金。</string>
 	<key>Set up this account</key>
 	<string>初始化帳戶</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>系統權限</string>
 	<key>Tags, separated by commas</key>
 	<string>標籤，以逗號分隔</string>
-	<key>Team wallets</key>
-	<string>團隊錢包</string>
 	<key>Terms of service</key>
 	<string>服務條款</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>這些是帳戶內裝置的已驗證備份。請明確選擇恢復，將副本儲存到本機。</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>這些匯出不包含帳號根金鑰或裝置簽名金鑰。源條目更改後，需要建立新快照。</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>這些原生地址的 L1 仍需要舊裝置簽署。等每筆輸出夠久之後，團隊仍可經 L2 掃回。</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>這些原生地址的 L1 仍需要舊裝置簽署。等每筆輸出夠久之後，成員仍可經 L2 掃回。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>此帳戶要求使用已註冊的批准鑰匙。請到「硬體安全」中設定本裝置，或請其他已授權裝置處理。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>正在檢視不可變的歷史版本。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>服務提供方的變更由你自行完成。dMsg 記錄你的宣告並檢查本機版本，無法核實上游憑據是否已建立、測試或撤銷。</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>你的資產，你的批准規則</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>同步後會顯示你已加入的頻道。</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

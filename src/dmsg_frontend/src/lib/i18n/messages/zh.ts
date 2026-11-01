@@ -16,13 +16,13 @@ export default {
   "Active devices": "活跃设备",
   "Active channels": "活跃频道",
   "Formal signatures / month": "正式签名 / 月",
-  "Team wallet slots": "团队钱包名额",
+  "Multisig wallet slots": "多签钱包名额",
   "Privacy comes with every plan.": "每个档位，都保留隐私与控制。",
   "Encryption, device revocation and account recovery are included at every tier.": "所有档位均包含加密保护、设备撤销与账户恢复。",
   "Choose your plan in the app.": "在客户端选择会员方案。",
   "Pay with ckUSDC or ckUSDT, or use an eligible PANDA neuron for the annual membership.": "使用 ckUSDC、ckUSDT 支付，或通过符合条件的 PANDA 神经元抵扣年度会员费。",
   "Channel limits apply to channels you create or sponsor. Ordinary device signatures do not use the monthly allowance.": "频道额度用于你创建或赞助的频道；普通设备签名不消耗每月正式签名额度。",
-  "Wallet activation is charged separately; check availability in the app.": "团队钱包另收开通费，开放情况请在客户端查看。",
+  "Wallet activation is charged separately; check availability in the app.": "多签钱包另收开通费，开放情况请在客户端查看。",
   "Prices and limits checked on {date}. Confirm current terms in the app.": "价格与额度核对日期：{date}。当前条款请在客户端确认。",
   "Sign in to dMsg": "登录 dMsg",
   "Return to the dMsg iOS app after signing in.": "登录后将返回 dMsg iOS 应用。",
@@ -707,10 +707,10 @@ export default {
   'Statement': '声明',
   'Synced': '已同步',
   'Team treasury': '团队金库',
-  'Team wallets': '团队钱包',
-  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
-    '团队钱包仍在开发中。在完成独立审计之前，请只用小额资金测试。',
-  'Team wallets, their proposals and approvals': '团队钱包及其提案与批准',
+  "Multisig wallets": "多签钱包",
+  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
+    "多签钱包仍在开发中。在完成独立审计之前，请只用小额资金测试。",
+  "Multisig wallets, their proposals and approvals": "多签钱包及其提案与批准",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     '客户端、守护进程、协议和 canister 都在公开仓库中。生产环境的云服务有其独立的运营信任边界。',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
@@ -944,9 +944,9 @@ export default {
   'Important decisions stay explicit.': '重要决定，明确确认。',
   'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
     '正式签署由你审阅确认，团队资金按共同制定的规则批准。智能体可以提议，决定由人作出。',
-  'Explore a team wallet proposal': '体验团队钱包提案',
-  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
-    '团队钱包保管共同资金，按团队的审批规则执行。试一笔智能体提出的提案，看看哪些决定必须由人作出。',
+  "Explore a multisig wallet proposal": "体验多签钱包提案",
+  "Try a proposal from an agent and see which decisions belong to people.":
+    "试着处理一项智能体提案，看看哪些决定需要由人来做。",
   'Follow a request from a website': '看看网站如何发起请求',
   'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
     '网站请求签署，你在 dMsg 中审阅，网站收到处理结果。无需安装浏览器扩展。',
@@ -1115,7 +1115,7 @@ export default {
   'Payment': '付款',
   'Sign the release statement': '签署发布声明',
   'Sign in to {site}': '登录 {site}',
-  'Pay {amount} from the team wallet': '从团队钱包支付 {amount}',
+  "Pay {amount} from the multisig wallet": "从多签钱包支付 {amount}",
   'Approving signs this statement with your account key.':
     '批准后，将用你的账户密钥签署这份声明。',
   'Approving proves to the site that it is you.':
@@ -1133,8 +1133,8 @@ export default {
   'The desktop app': '桌面应用',
   'Everything in one window.': '所有工作，一个窗口。',
   'Every decision in its own.': '每项决定，另开一窗。',
-  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    '频道、文件、保险库、来信、智能体和团队钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。',
+  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
+    "频道、文件、保险库、来信、智能体和多签钱包并排在一起。来自网站、智能体和终端的请求会在单独的审批窗口中打开，只有你能在那里做决定。",
   'The dMsg desktop app': 'dMsg 桌面应用',
   'Views': '视图',
   'Work': '工作',
@@ -1151,8 +1151,8 @@ export default {
     '等你决定的请求、签名及其记录',
   'Agent IDs, what they may do and what they did':
     '智能体 ID、它们能做什么、做过什么',
-  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
-    '团队共同管理 ICP、比特币、EVM 与 Solana 资金，按钱包策略执行',
+  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
+    "管理个人或共同持有的多链资产，自主设置批准人数与设备协签规则。",
   'Account synced': '账户已同步',
   'Unlock with Touch ID': '用 Touch ID 解锁',
   'Lock': '锁定',

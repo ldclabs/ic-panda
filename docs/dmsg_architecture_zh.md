@@ -12,7 +12,7 @@
 2. **日常操作不写链。** 消息、文件、vault 编辑和频道控制不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
 3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，常规升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长；directory 6 → 7 首次迁移例外，需要逐条为原文档建立新增认证树。
 4. **按 user home 横向扩展。** 账户 ID 内嵌分配它的 user home 指纹，各服务据此路由，新增 home 不会重映射已有账户。需要全局唯一性的服务（名称、PANDA 神经元占用、principal 文档域名）保持单实例。
-5. **明确治理与维护。** 控制服务的管理方法核验配置的 controller/governance，并提供验证 query。团队钱包由成员提案决定，hub 升级前须取得钱包接受记录。commerce 定时归集和派发到期资金；其他清理与对账通过有界维护入口执行。
+5. **明确治理与维护。** 控制服务的管理方法核验配置的 controller/governance，并提供验证 query。多签钱包由成员提案决定，hub 升级前须取得钱包接受记录。commerce 定时归集和派发到期资金；其他清理与对账通过有界维护入口执行。
 
 ## 2. 信任域
 
@@ -21,7 +21,7 @@
 | dMsg 客户端（[dmsg_cli](../src/dmsg_cli/README.md) 的 daemon 与 CLI、[桌面应用](../src/dmsg_desktop/README.md)，核心为 [dmsg_client](../src/dmsg_client/README.md)） | 生成和使用内容根、对象与文件密钥；加解密；设备签名与批准（审批中心，含网页与智能体的请求）；本机 SQLite 工作区、同步任务与对账日志 | 客户端自报的设备、会员或付款状态不能代替认证证据 |
 | 桥接页（[dmsg_connect](../src/dmsg_connect/README.md)，connect.dmsg.net，资产 canister） | 网页应用与设备之间的 [dmsg-connect/1](protocol/connect-v1_zh.md)：核对应用登记，转述浏览器报告的 origin，保存本地操作索引与结果解封密钥 | 不持有账户或设备密钥，不能批准请求；它转述的 origin 不是密码学证明 |
 | 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据；网页请求的连接邮箱（只见密文）、给锁定设备的提示通道、MCP Events 中继 | 账户根授权、名称权属、正式认证和资金终态 |
-| ICP canisters（本仓库） | 第 3 节的控制服务与团队钱包服务 | 不保存频道成员、消息和文件正文；用户 PrincipalDocument 展示字段随账户状态上链 |
+| ICP canisters（本仓库） | 第 3 节的控制服务与多签钱包服务 | 不保存频道成员、消息和文件正文；用户 PrincipalDocument 展示字段随账户状态上链 |
 
 内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller（交给 SNS 后为 SNS）可以升级 canister、改变规则，并能读出 user home 的 `master_secret`。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
 
@@ -41,7 +41,7 @@ flowchart LR
     C["dmsg_commerce<br/>结账与权益"]
     M["membership<br/>PANDA 资格"]
     WH["dmsg_wallet_hub<br/>钱包激活 · 版本"]
-    W["dmsg_wallet × N<br/>团队钱包"]
+    W["dmsg_wallet × N<br/>多签钱包"]
   end
   EXT -- "home 列表 · 名称" --> H
   EXT -- "账户 · 设备 · 根 · 认证" --> U
@@ -84,7 +84,7 @@ flowchart LR
 | [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用与产品注册、目录、现金订单、付费主体与资源权益 | 1 个或多个，每个 home 属于 1 个 | 付费主体、累计订单各 1,000 万 |
 | [membership](../src/membership/README.md) | PANDA 神经元的跨产品占用与产品决定 | 每个 SNS 1 个 | 完整记录 100 万、累计操作 1,000 万 |
 | [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | 激活订单、钱包模块版本、钱包记录与成员索引 | 全局 1 个 | 每成员索引 256 个钱包，16 个模块版本 |
-| [dmsg_wallet](../src/dmsg_wallet/README.md) | 一个团队的成员、策略、地址、协签人、提案、计划与审计 | 每个团队 1 个，由 hub 创建 | 成员 64、地址 256、协签人 64、提案超 1 万触发有界清理 |
+| [dmsg_wallet](../src/dmsg_wallet/README.md) | 一个钱包的成员、策略、地址、协签人、提案、计划与审计 | 每个钱包 1 个，由 hub 创建 | 成员 64、地址 256、协签人 64、提案超 1 万触发有界清理 |
 
 共享库：[dmsg_types](../src/dmsg_types/README_zh.md) 定义公开数据合同，[dmsg_protocol](../src/dmsg_protocol/README_zh.md) 提供确定性编码、批准摘要与验签，[dmsg_runtime](../src/dmsg_runtime/README.md) 提供稳定存储、认证树、预算、账本适配和有界调用。
 
@@ -127,7 +127,7 @@ flowchart LR
 
 principal 的启用、controller 登记与退役在账户所在 home 提交，随后推送到 `dmsg_directory`；失败时任何人可用 `publish_principal` 补发。文档经 ICP HTTP 网关以认证响应发布在固定的自定义域下，协议见 [agent_zh.md](protocol/agent_zh.md)。
 
-### 4.7 团队钱包
+### 4.7 多签钱包
 
 hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设备批准与收款后创建并安装钱包，钱包只以 hub 为 controller。成员以 `WalletJoin` 批准绑定客户端的钱包密钥 Principal；提案的每个决定是一次 `WalletProposal` 设备批准，钱包向成员所在 home 核验。ICP/ICRC 由钱包直接转账；BTC/EVM/SOL 由钱包从意图构造交易、以 `key_1` 签名，客户端独立解码复核后广播并回报。升级与锁定须钱包先以管理类提案接受。合同见 [wallet_zh.md](protocol/wallet_zh.md)。
 
@@ -315,7 +315,7 @@ flowchart TB
 
 - 桌面端与 CLI 已有发布版本。源码、发布工件和已部署的 canister/云端版本分别演进；已有 user 与 directory 数据须原地保留。可丢弃的开发 fixture 不构成生产迁移政策。
 - 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
-- 团队钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
+- 多签钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
 - Rust 与 TypeScript 客户端使用 Agent Protocols SDK 0.12.6 及已提交的共享向量：daemon 在每次发布前将加密 Mail 密钥与连接器状态一同提交，后续调用先恢复中断的尝试，并保存已认证的邮箱清单分页和已验证的 owner Profile pin；controller 提交遇到有界 nonce 冲突时可重签一次，不改变原批准内容。canister 接口与稳定布局不变。
 - 本次核对未验证现网模块、生产 `key_1`、真实资金与外链路径、签名桌面端/网页/云端端到端、原生机密文件挂载或子网吞吐。dMsg 尚无独立安全审计；容量结论仍限于组件 README 记录的具体负载。
 
@@ -326,6 +326,6 @@ flowchart TB
 - [protocol/account_root_zh.md](protocol/account_root_zh.md)、[dmsg_encryption_zh.md](dmsg_encryption_zh.md)：账户控制、根封装与加密设计。
 - [protocol/cloud_zh.md](protocol/cloud_zh.md)：客户端与云端的 wire 合同；[protocol/connect-v1_zh.md](protocol/connect-v1_zh.md)：网页应用经桥接页接入的合同。
 - [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
-- [protocol/wallet_zh.md](protocol/wallet_zh.md)：团队钱包合同。
+- [protocol/wallet_zh.md](protocol/wallet_zh.md)：多签钱包合同。
 - 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。
 - [dmsg_agent](../src/dmsg_agent/README.md) 与 [Agent Protocols 向量](../tests/vectors/agent-protocols/README.md)：连接器持久化、SDK 对齐与可执行验证样本。

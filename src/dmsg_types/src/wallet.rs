@@ -1,4 +1,4 @@
-//! `dmsg-wallet/1`: team wallets, one canister per team.
+//! `dmsg-wallet/1`: multisig wallets, one independent canister per wallet.
 //!
 //! A wallet holds ICP and ICRC assets as its own ledger accounts and signs
 //! Bitcoin, EVM and Solana transactions with chain-key threshold signatures.

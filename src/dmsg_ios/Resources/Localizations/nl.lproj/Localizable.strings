@@ -16,8 +16,8 @@
 	<string>Er is een kanaalmomentopname beschikbaar voor leden met toegang tot dit tijdperk, inclusief toegangsrechten voor latere geschiedenis. Er is geen vervaldatum van de link, geen downloadsessielimiet of terugroepactie.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Een downloadsessie is een ophaalvergoeding, geen telling van het aantal gelezen bestanden. Bij het verlopen of intrekken kunnen reeds opgeslagen kopieën niet worden gewist.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>Het L1 van een native adres is gebonden aan de sleutel van één apparaat, dus dit apparaat krijgt een eigen adres en de munten gaan daarheen. Elke stap is een voorstel dat het team goedkeurt.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>Het L1 van een native adres is gebonden aan de sleutel van één apparaat, dus dit apparaat krijgt een eigen adres en de munten gaan daarheen. Elke stap is een voorstel dat de leden goedkeuren.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Een record- of apparaatsleutel kan niet worden geverifieerd. Je werkruimte is niet gewist.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>De beveiligingswijziging wordt afgerond. Nieuwe inhoud wacht tot die klaar is.</string>
 	<key>Folder name</key>
 	<string>Mapnaam</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Voor een sleutel die dit apparaat niet heeft, zoals die van een verloren apparaat. Na goedkeuring door het team geldt de nieuwe sleutel 24 uur later.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Voor een sleutel die dit apparaat niet heeft, zoals die van een verloren apparaat. Na goedkeuring door de leden geldt de nieuwe sleutel 24 uur later.</string>
 	<key>Freeze this wallet?</key>
 	<string>Deze portemonnee bevriezen?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Beheer Apple-abonnementen</string>
 	<key>Manage file</key>
 	<string>Beheer bestand</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Beheer eigen of gezamenlijke activa op meerdere blockchains. Stel goedkeuringsdrempels en regels voor medeondertekening op apparaten in.</string>
 	<key>Manage subscriptions</key>
 	<string>Beheer abonnementen</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Kom je van een oud apparaat? Dit apparaat neemt de rol, sleutels en wallets over, waarna het oude wordt ingetrokken.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Overstappen op een nieuw apparaat: het nieuwe apparaat vraagt een oud apparaat te vervangen, het oude keurt dat goed en daarna dragen ze stap voor stap over.</string>
+	<key>Multisig wallets</key>
+	<string>Multisig-wallets</string>
 	<key>Mute notifications</key>
 	<string>Meldingen dempen</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Er wachten geen gedeelde items</string>
 	<key>No snapshots on this device</key>
 	<string>Geen momentopnamen op dit apparaat</string>
-	<key>No team wallets</key>
-	<string>Geen teamportefeuilles</string>
 	<key>Not enabled</key>
 	<string>Niet ingeschakeld</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Server</string>
 	<key>Session code</key>
 	<string>Sessiecode</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Stel medeondertekening op apparaten in voor je eigen activa of nodig anderen uit om samen middelen te beheren.</string>
 	<key>Set up this account</key>
 	<string>Stel dit account in</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Systeemtoestemming</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, gescheiden door komma's</string>
-	<key>Team wallets</key>
-	<string>Team portemonnees</string>
 	<key>Terms of service</key>
 	<string>Servicevoorwaarden</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een ​​kopie op dit apparaat te bewaren.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Deze exports bevatten nooit accounthoofdsleutels of apparaatondertekeningssleutels. Wijzigingen in de bronitems vereisen een nieuwe momentopname.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Deze native adressen blijven het oude apparaat nodig hebben voor L1. Het team kan ze nog via L2 overhevelen zodra elke output oud genoeg is.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Deze native adressen blijven het oude apparaat nodig hebben voor L1. De leden kunnen ze nog via L2 overhevelen zodra elke output oud genoeg is.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Voor dit account is een geregistreerde goedkeuringssleutel vereist. Stel dit apparaat in Hardwarebeveiliging in, of vraag een ander geautoriseerd apparaat.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Je bekijkt een onveranderlijke historische versie.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Providerwijzigingen voer je zelf door. dMsg registreert je afschriften en controleert lokale revisies; het kan de creatie, het testen of de intrekking upstream niet verifiëren.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Jouw activa. Jouw goedkeuringsregels.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Je geautoriseerde kanalen verschijnen na synchronisatie.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

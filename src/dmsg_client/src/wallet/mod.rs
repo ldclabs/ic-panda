@@ -1,4 +1,4 @@
-//! Team wallets (`dmsg-wallet/1`): one canister per team, created through
+//! Multisig wallets (`dmsg-wallet/1`): one independent canister per wallet, created through
 //! the hub. Members propose intents; deciding on one, creating a wallet,
 //! joining one and cosigning go through the approval center, where only a
 //! person answers. The wallet signs every transaction itself; this client
@@ -7,7 +7,7 @@
 //!
 //! The client calls wallets with a wallet key of its own, an Ed25519 key
 //! sealed under this device's local key: login delegations reach only fixed
-//! canisters, and a team wallet binds the Principals its members name in
+//! canisters, and a multisig wallet binds the Principals its members name in
 //! device-approved joins. Only device approvals, verified by the user home,
 //! decide anything.
 
@@ -647,7 +647,7 @@ impl Client {
         self.config
             .wallet
             .hub
-            .ok_or_else(|| Error::Unavailable("team wallets are not configured".into()))
+            .ok_or_else(|| Error::Unavailable("multisig wallets are not configured".into()))
     }
 
     /// The seed of this device's wallet key, made once.

@@ -16,8 +16,8 @@
 	<string>Um instantâneo do canal está disponível para membros com acesso a esta época, incluindo concessões de histórico posteriores. Não tem expiração de link, limite de sessão de download ou recall.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Uma sessão de download é uma permissão de recuperação, não uma contagem de leituras de arquivos. A expiração ou revogação não pode apagar cópias já salvas.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>O L1 de um endereço nativo está ligado à chave de um único dispositivo, então este dispositivo recebe um endereço próprio e os fundos vão para ele. Cada etapa é uma proposta aprovada pela equipe.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>O L1 de um endereço nativo está ligado à chave de um único dispositivo, então este dispositivo recebe um endereço próprio e os fundos vão para ele. Cada etapa é uma proposta aprovada pelos membros.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Não foi possível verificar um registro ou chave de dispositivo. Seu espaço de trabalho não foi apagado.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Concluindo a atualização de segurança. Novos conteúdos aguardam o término.</string>
 	<key>Folder name</key>
 	<string>Nome da pasta</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Para uma chave que este dispositivo não tem, como a de um dispositivo perdido. Após a aprovação da equipe, a chave nova vale 24 horas depois.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Para uma chave que este dispositivo não tem, como a de um dispositivo perdido. Após a aprovação dos membros, a chave nova vale 24 horas depois.</string>
 	<key>Freeze this wallet?</key>
 	<string>Congelar esta carteira?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Gerenciar assinaturas da Apple</string>
 	<key>Manage file</key>
 	<string>Gerenciar arquivo</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Gerencie ativos pessoais ou compartilhados em várias redes. Defina os limites de aprovação e os requisitos de coassinatura dos dispositivos.</string>
 	<key>Manage subscriptions</key>
 	<string>Gerenciar assinaturas</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Vindo de um dispositivo antigo? Este assume a função, as chaves e as carteiras dele e, depois, o antigo é revogado.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Mudança para um dispositivo novo: o novo pede para substituir o antigo, o antigo aprova e os dois fazem a transição passo a passo.</string>
+	<key>Multisig wallets</key>
+	<string>Carteiras multifirma</string>
 	<key>Mute notifications</key>
 	<string>Silenciar notificações</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Nenhum item compartilhado aguardando</string>
 	<key>No snapshots on this device</key>
 	<string>Não há instantâneos neste dispositivo</string>
-	<key>No team wallets</key>
-	<string>Sem carteiras de equipe</string>
 	<key>Not enabled</key>
 	<string>Não ativado</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Servidor</string>
 	<key>Session code</key>
 	<string>Código de sessão</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Configure a coassinatura em dispositivos para seus próprios ativos ou convide outras pessoas para gerenciar fundos em conjunto.</string>
 	<key>Set up this account</key>
 	<string>Configurar esta conta</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Permissão do sistema</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, separadas por vírgulas</string>
-	<key>Team wallets</key>
-	<string>Carteiras de equipe</string>
 	<key>Terms of service</key>
 	<string>Termos de serviço</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Estes são backups verificados dos dispositivos da sua conta. Restaure explicitamente para manter uma cópia neste dispositivo.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Essas exportações nunca contêm chaves raiz de conta ou chaves de assinatura de dispositivo. As alterações nos itens de origem exigem um novo instantâneo.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Estes endereços nativos continuam precisando do dispositivo antigo para L1. A equipe ainda pode varrê-los por L2 quando cada saída for antiga o bastante.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Estes endereços nativos continuam precisando do dispositivo antigo para L1. Os membros ainda podem varrê-los por L2 quando cada saída for antiga o bastante.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Esta conta requer uma chave de aprovação registrada. Configure este dispositivo em Segurança de hardware ou pergunte a outro dispositivo autorizado.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Você está visualizando uma versão histórica imutável.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Você mesmo realiza alterações de provedor. dMsg registra suas declarações e verifica as revisões locais; ele não pode verificar a criação, teste ou revogação upstream.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Seus ativos. Suas regras de aprovação.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Seus canais autorizados aparecem após a sincronização.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

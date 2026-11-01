@@ -42,7 +42,7 @@ export const sources = [
   ],
   ['cli', 'CLI, installation and MCP configuration', 'src/dmsg_cli/README.md'],
   ['secrets', 'Approved credential use', 'docs/protocol/secrets.md'],
-  ['wallet', 'Team wallets', 'docs/protocol/wallet.md'],
+  ['wallet', 'Multisig wallets', 'docs/protocol/wallet.md'],
   ['sdk', 'Web application SDK', 'packages/dmsg-sdk/README.md'],
   ['connect', 'dmsg-connect/1', 'docs/protocol/connect-v1.md'],
   [
@@ -256,7 +256,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
       'Private channels',
       'Agent Protocols and MCP',
       'Explicit signature approvals',
-      'Team wallets'
+      'Multisig wallets'
     ]
   }
   // Visible HTML, not noscript or a bot-specific response. The SPA removes it
@@ -273,7 +273,7 @@ export function buildPublicContent(output = resolve(frontend, 'dist')) {
   write('_/knowledge.json', JSON.stringify(manifest, null, 2) + '\n')
   write(
     'llms.txt',
-    `# dMsg\n\n> Private collaboration for people and agents, by ICPanda DAO. Encrypted personal workspace, channels, team wallets, public identity, explicit approvals and Agent Protocols over MCP.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
+    `# dMsg\n\n> Private collaboration for people and agents, by ICPanda DAO. Encrypted personal workspace, channels, multisig wallets, public identity, explicit approvals and Agent Protocols over MCP.\n\nPublic information requires no login or JavaScript. Workspace access requires the owner's explicit capabilities. These documents are generated with the website from public source; source implementation, released binaries and deployed services can differ. Keep each document's review dates and limitations. Use tools/list for the installed MCP catalog.\n\n## Start here\n\n- [Product, installation, agent setup, pricing and trust boundaries](${origin}/index.md)\n- [简体中文产品与接入指南](${origin}/index.zh.md)\n- [Build revision, generation time and content hashes](${origin}/_/knowledge.json)\n- [Latest releases and checksums](${github}/releases/latest)\n\n## Public implementation and contracts\n\n${sources.map((source) => `- [${source.title}](${source.url})`).join('\n')}\n\n## Optional\n\n- [Complete English guide and public reference bundle](${origin}/llms-full.txt): Large file; prefer individual references for a focused question.\n- [Privacy policy](${origin}/_/privacy)\n- [Terms of service](${origin}/_/terms/v1.txt)\n- [Source repository](${github})\n`
   )
   write(
     'llms-full.txt',

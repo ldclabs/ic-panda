@@ -1,4 +1,4 @@
-# dMsg team wallet vectors
+# dMsg multisig wallet vectors
 
 Language-independent byte rules of `dmsg-wallet/1` (the public contract is
 [wallet_zh.md](../../../docs/protocol/wallet_zh.md)). Both files are generated

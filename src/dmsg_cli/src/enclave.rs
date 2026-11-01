@@ -1,6 +1,6 @@
 //! Keys in the Secure Enclave (macOS), through CryptoKit
 //! (`swift/Enclave.swift`): the fast-unlock and device-bound keys,
-//! team-wallet cosigner keys and approval keys. A key leaves the enclave
+//! multisig wallet cosigner keys and approval keys. A key leaves the enclave
 //! only as an opaque handle that just this Mac's enclave opens, so it needs
 //! no keychain item and no entitlement, and every use of it asks for Touch
 //! ID or the login password; a biometry-only key takes only the
@@ -326,7 +326,7 @@ impl CosignProvider for SecureEnclave {
                 let handle = URL_SAFE_NO_PAD
                     .decode(handle)
                     .map_err(|_| Error::IntegrityFailed)?;
-                let reason = reason(tr!("sign for a team wallet", "为团队钱包签名"));
+                let reason = reason(tr!("sign for a multisig wallet", "为多签钱包签名"));
                 let message: Vec<u8> = messages.iter().flat_map(|m| m.iter().copied()).collect();
                 let mut signatures = vec![0u8; 64 * messages.len()];
                 let signed = checked(unsafe {

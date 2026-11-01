@@ -328,11 +328,11 @@ pub enum ApprovalPurpose {
     CashCheckout,
     /// Full subscription waiver approval.
     PandaSubscription,
-    /// Create a team wallet; the service is the wallet hub.
+    /// Create a multisig wallet; the service is the wallet hub.
     WalletCreate,
-    /// Decide on a team wallet proposal; the service is the wallet.
+    /// Decide on a multisig wallet proposal; the service is the wallet.
     WalletProposal,
-    /// Join a team wallet and bind the actor Principal; the service is the wallet.
+    /// Join a multisig wallet and bind the actor Principal; the service is the wallet.
     WalletJoin,
 }
 

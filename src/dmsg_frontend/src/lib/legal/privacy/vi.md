@@ -24,7 +24,7 @@ Chứng thực ứng dụng xử lý mã định danh khóa do ứng dụng tạ
 
 Việc mua hàng trên StoreKit do Apple xử lý. Trình xác minh và thương mại canister của chúng tôi xử lý số nhận dạng sản phẩm/giao dịch, mã thông báo ràng buộc tài khoản, ngày mua và ngày hết hạn cũng như trạng thái hoàn tiền/thu hồi. Họ không nhận được chi tiết thẻ thanh toán của bạn. Các khách hàng dMsg khác có thể hỗ trợ thanh toán bằng ví ICP và tư cách thành viên PANDA, với sổ cái công khai và hồ sơ quyền lợi. Việc xóa tài khoản không hủy đăng ký Apple; quản lý đăng ký trong tài khoản Apple của bạn.
 
-Các chính sách và đề xuất của ví nhóm được xử lý bởi ví canisters; khả năng hiển thị của chúng tuân theo cài đặt của ví. Các nhà cung cấp Blockchain RPC nhận địa chỉ, dữ liệu giao dịch và thông tin IP cần thiết cho các truy vấn số dư, mô phỏng phí và phát sóng. Các điểm cuối mặc định bao gồm mempool.space, PublicNode, mainnet.base.org và api.mainnet-beta.solana.com; các lựa chọn thay thế được định cấu hình có các biện pháp bảo mật riêng.
+Các chính sách và đề xuất của ví đa chữ ký được xử lý bởi ví canisters; khả năng hiển thị của chúng tuân theo cài đặt của ví. Các nhà cung cấp Blockchain RPC nhận địa chỉ, dữ liệu giao dịch và thông tin IP cần thiết cho các truy vấn số dư, mô phỏng phí và phát sóng. Các điểm cuối mặc định bao gồm mempool.space, PublicNode, mainnet.base.org và api.mainnet-beta.solana.com; các lựa chọn thay thế được định cấu hình có các biện pháp bảo mật riêng.
 
 ## 4. Tích hợp dữ liệu cục bộ và hệ thống
 

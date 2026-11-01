@@ -210,7 +210,7 @@ fn funding(f: &Fixture, id: Hash, b: CashBlock) -> CheckoutProgress {
 }
 
 /// Let the serial timer allocate and dispatch fixed obligations, with no
-/// ingress from the merchant (which may itself be a team wallet canister).
+/// ingress from the merchant (which may itself be a multisig wallet canister).
 fn settle(f: &Fixture) {
     for _ in 0..3 {
         f.ic.advance_time(Duration::from_millis(MINUTE));

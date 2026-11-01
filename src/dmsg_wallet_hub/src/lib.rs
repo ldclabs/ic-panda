@@ -1,4 +1,4 @@
-//! dMsg wallet hub: quotes and creates paid team wallets, keeps the wallet
+//! dMsg wallet hub: quotes and creates paid multisig wallets, keeps the wallet
 //! modules governance registered, installs the version a wallet accepted,
 //! removes its controllers when it locks its code, and indexes members.
 //! It never moves a wallet's funds or decides for it.

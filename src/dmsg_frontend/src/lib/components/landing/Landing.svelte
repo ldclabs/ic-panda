@@ -338,7 +338,7 @@
           >
           <p class="sec-lead"
             >{$t(
-              'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.'
+              'Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.'
             )}</p
           >
         </header>
@@ -468,17 +468,19 @@
             ></article
           >
         </div>
-        <Demo id="wallets" title={$t('Explore a team wallet proposal')}>
+        <Demo id="wallets" title={$t('Explore a multisig wallet proposal')}>
           <p class="demo-intro"
             >{$t(
-              'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.'
+              'Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.'
+            )} {$t(
+              'Try a proposal from an agent and see which decisions belong to people.'
             )}</p
           >
           <TeamWallet />
           <p class="caveat"
             ><strong>{$t('Not audited yet.')}</strong>
             {$t(
-              'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.'
+              'Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.'
             )}</p
           >
         </Demo>

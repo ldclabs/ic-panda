@@ -649,7 +649,7 @@ async fn accept_pairing<H: Hold>(
     .await
 }
 
-/// The account's team wallets; none where team wallets are not configured.
+/// The account's multisig wallets; none where multisig wallets are not configured.
 async fn wallets<H: Hold>(h: &H) -> Result<Json> {
     if h.with(|c| Ok(c.config.wallet.hub.is_none())).await? {
         return Ok(json!([]));

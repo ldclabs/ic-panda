@@ -16,7 +16,7 @@ export default {
   "Active devices": "Dispositivos activos",
   "Active channels": "Canales activos",
   "Formal signatures / month": "Firmas formales / mes",
-  "Team wallet slots": "Cupos de carteras de equipo",
+  "Multisig wallet slots": "Cupos de carteras multifirma",
   "Privacy comes with every plan.": "Privacidad en todos los planes.",
   "Encryption, device revocation and account recovery are included at every tier.": "Todos los niveles incluyen cifrado, revocación de dispositivos y recuperación de cuenta.",
   "Choose your plan in the app.": "Elige tu plan en la aplicación.",
@@ -747,11 +747,11 @@ export default {
   'Statement': 'Declaración',
   'Synced': 'Sincronizado',
   'Team treasury': 'Tesorería del equipo',
-  'Team wallets': 'Monederos de equipo',
-  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
-    'Los monederos de equipo están en desarrollo. Hasta una auditoría independiente, úsalos solo para probar, con importes pequeños.',
-  'Team wallets, their proposals and approvals':
-    'Monederos de equipo, sus propuestas y aprobaciones',
+  "Multisig wallets": "Monederos multifirma",
+  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
+    "Los monederos multifirma están en desarrollo. Hasta una auditoría independiente, úsalos solo para probar, con importes pequeños.",
+  "Multisig wallets, their proposals and approvals":
+    "Monederos multifirma, sus propuestas y aprobaciones",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'El cliente, el demonio, los protocolos y los canisters están en el repositorio público. El servicio en la nube de producción tiene su propio límite de confianza operativo.',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
@@ -999,10 +999,10 @@ export default {
   'Important decisions stay explicit.': 'Decisiones importantes, explícitas.',
   'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
     'Tú revisas las firmas formales. Para los fondos compartidos, las propuestas siguen las reglas de aprobación del equipo. Los agentes proponen; las personas deciden.',
-  'Explore a team wallet proposal':
-    'Explorar una propuesta de la cartera del equipo',
-  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
-    'La cartera del equipo guarda los fondos compartidos y sigue sus reglas de aprobación. Prueba una propuesta de un agente y observa qué decisiones corresponden a las personas.',
+  "Explore a multisig wallet proposal":
+    "Explorar una propuesta de la cartera multifirma",
+  "Try a proposal from an agent and see which decisions belong to people.":
+    "Prueba una propuesta de un agente y descubre qué decisiones corresponden a las personas.",
   'Follow a request from a website': 'Seguir una solicitud de un sitio web',
   'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
     'Un sitio solicita tu firma. Revisas la solicitud en dMsg y el sitio recibe el resultado. No necesitas una extensión del navegador.',
@@ -1176,8 +1176,8 @@ export default {
   'Payment': 'Pago',
   'Sign the release statement': 'Firmar la declaración de lanzamiento',
   'Sign in to {site}': 'Iniciar sesión en {site}',
-  'Pay {amount} from the team wallet':
-    'Pagar {amount} desde el monedero del equipo',
+  "Pay {amount} from the multisig wallet":
+    "Pagar {amount} desde el monedero multifirma",
   'Approving signs this statement with your account key.':
     'Aprobar firma esta declaración con la clave de tu cuenta.',
   'Approving proves to the site that it is you.':
@@ -1195,8 +1195,8 @@ export default {
   'The desktop app': 'La aplicación de escritorio',
   'Everything in one window.': 'Todo en una ventana.',
   'Every decision in its own.': 'Cada decisión, en la suya.',
-  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    'Canales, archivos, tu bóveda, cartas, agentes y monederos de equipo, uno junto a otro. Las solicitudes de sitios web, agentes y la terminal se abren en una ventana de aprobación aparte, y solo tú decides allí.',
+  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
+    "Canales, archivos, tu bóveda, cartas, agentes y monederos multifirma, uno junto a otro. Las solicitudes de sitios web, agentes y la terminal se abren en una ventana de aprobación aparte, y solo tú decides allí.",
   'The dMsg desktop app': 'La aplicación de escritorio de dMsg',
   'Views': 'Vistas',
   'Work': 'Trabajo',
@@ -1213,8 +1213,8 @@ export default {
     'Solicitudes que esperan tu decisión, firmas y su registro',
   'Agent IDs, what they may do and what they did':
     'Los Agent ID, qué pueden hacer y qué hicieron',
-  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
-    'Gestión conjunta de fondos ICP, Bitcoin, EVM y Solana según las reglas de la cartera',
+  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
+    "Gestiona activos personales o compartidos en varias cadenas. Define los umbrales de aprobación y los requisitos de cofirma en dispositivos.",
   'Account synced': 'Cuenta sincronizada',
   'Unlock with Touch ID': 'Desbloquear con Touch ID',
   'Lock': 'Bloquear',

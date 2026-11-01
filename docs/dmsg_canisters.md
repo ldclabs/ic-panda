@@ -6,7 +6,7 @@ Reviewed against public source `9fd70dca` on 2026-10-24. This is a guide to the 
 
 ## Components
 
-The control plane has seven service roles, plus a team-wallet factory and per-team wallet instances. The client, bridge page and private cloud have separate responsibilities.
+The control plane has seven service roles, plus a multisig wallet factory and per-multisig wallet instances. The client, bridge page and private cloud have separate responsibilities.
 
 | Package | Responsibilities | Documentation |
 | --- | --- | --- |
@@ -20,8 +20,8 @@ The control plane has seven service roles, plus a team-wallet factory and per-te
 | dmsg_commerce | Tier plans, cash orders, refunds, and certified resource entitlements | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | Fixed-term escrow, deposit verification, mutually exclusive fund decisions, and disbursements | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 | dmsg_directory | Certified HTTP publication of Agent Delegation principal documents | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
-| dmsg_wallet_hub | Team wallet activation, creation, version registry, upgrades, locks and member index | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
-| dmsg_wallet | A team wallet: members, policy, proposals, ICP/ICRC transfers, chain-key signing and audit | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
+| dmsg_wallet_hub | Multisig wallet activation, creation, version registry, upgrades, locks and member index | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
+| dmsg_wallet | A multisig wallet: members, policy, proposals, ICP/ICRC transfers, chain-key signing and audit | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
 
 ## Current contracts
 
@@ -31,7 +31,7 @@ The control plane has seven service roles, plus a team-wallet factory and per-te
 - **Public identity:** user homes store the official PrincipalDocument display fields and controller records; `dmsg_directory` publishes certified JSON. Display edits write on chain; public avatar bytes remain in cloud storage. Agent controllers are self-held Ed25519 keys in the client vault. See [Agent Delegation](protocol/agent.md).
 - **Names:** the registry owns canonical names, preserves optional display casing and handles registration, legacy claims and account-approved transfers. Registration fees go directly to the configured revenue account.
 - **Payments and subscriptions:** `dmsg_payment` settles paid-letter escrows; `dmsg_commerce` handles commerce-2 cash checkout, resource entitlements and automatic settlement; shared `membership` handles membership-2 PANDA qualification and cross-product commitments. See [commerce](protocol/commerce.md). These are separate from everyday encrypted delivery.
-- **Team wallets:** the hub activates instances and manages registered code versions; each wallet controls its own proposals, approvals, funds, chain-key signatures and audit. Upgrades require the wallet's prior acceptance. Desktop creation is currently paused; existing-wallet operations remain available. See [wallet protocol](protocol/wallet.md) and [desktop scope](dMsg_wallet.md).
+- **Multisig wallets:** the hub activates instances and manages registered code versions; each wallet controls its own proposals, approvals, funds, chain-key signatures and audit. Upgrades require the wallet's prior acceptance. Desktop creation is currently paused; existing-wallet operations remain available. See [wallet protocol](protocol/wallet.md) and [desktop scope](dMsg_wallet.md).
 
 Ordinary messages, files, vault edits and channel control do not add per-item ICP updates. The desktop app, CLI and MCP use the Rust daemon; web applications use [dmsg-connect/1](protocol/connect-v1.md). Cloud interoperability is described by [cloud.md](protocol/cloud.md), not by private implementation details.
 

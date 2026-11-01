@@ -16,8 +16,8 @@
 	<string>لقطة القناة متاحة للأعضاء المخوّلين بالوصول إلى هذه الحقبة، بما في ذلك من يُمنحون وصولًا إلى السجل لاحقًا. لا تتضمن انتهاء صلاحية للرابط أو حدًا لجلسات التنزيل، ولا يمكن استرجاعها من المستلمين.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>جلسة التنزيل تمنح إذنًا بالاسترجاع، ولا تحسب مرات قراءة الملف. انتهاء الصلاحية أو الإبطال لا يمحو النسخ المحفوظة سابقًا.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>يرتبط L1 للعنوان الأصلي بمفتاح جهاز واحد، لذا يحصل هذا الجهاز على عنوان خاص به وتُنقل العملات إليه. كل خطوة مقترح يوافق عليه الفريق.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>يرتبط L1 للعنوان الأصلي بمفتاح جهاز واحد، لذا يحصل هذا الجهاز على عنوان خاص به وتُنقل العملات إليه. كل خطوة مقترح يوافق عليه الأعضاء.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>تعذر التحقق من سجل أو مفتاح جهاز. لم يتم مسح مساحة عملك.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>جارٍ إكمال تحديث الأمان. ينتظر المحتوى الجديد حتى يكتمل.</string>
 	<key>Folder name</key>
 	<string>اسم المجلد</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>لمفتاح لا يملكه هذا الجهاز، مثل مفتاح على جهاز مفقود. بعد موافقة الفريق يسري المفتاح الجديد بعد 24 ساعة.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>لمفتاح لا يملكه هذا الجهاز، مثل مفتاح على جهاز مفقود. بعد موافقة الأعضاء يسري المفتاح الجديد بعد 24 ساعة.</string>
 	<key>Freeze this wallet?</key>
 	<string>هل تريد تجميد هذه المحفظة؟</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>إدارة اشتراكات Apple</string>
 	<key>Manage file</key>
 	<string>إدارة الملف</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>أدِر أصولك الشخصية أو المشتركة عبر سلاسل متعددة. حدّد عدد الموافقات المطلوبة وقواعد التوقيع المشترك للأجهزة.</string>
 	<key>Manage subscriptions</key>
 	<string>إدارة الاشتراكات</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>هل تنتقل من جهاز قديم؟ يتولى هذا الجهاز دوره ومفاتيحه ومحافظه، ثم يُلغى القديم.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>الانتقال إلى جهاز جديد: يطلب الجهاز الجديد أن يحلّ محل جهاز قديم، فيوافق القديم، ثم يتسلّم الجديد خطوة بخطوة.</string>
+	<key>Multisig wallets</key>
+	<string>محافظ متعددة التوقيعات</string>
 	<key>Mute notifications</key>
 	<string>كتم الإشعارات</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>لا توجد عناصر مشتركة بانتظار الاستيراد</string>
 	<key>No snapshots on this device</key>
 	<string>لا توجد لقطات على هذا الجهاز</string>
-	<key>No team wallets</key>
-	<string>لا توجد محافظ فريق</string>
 	<key>Not enabled</key>
 	<string>غير مفعّل</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>خادم</string>
 	<key>Session code</key>
 	<string>رمز الجلسة</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>أعدّ التوقيع المشترك للأجهزة لحماية أصولك الشخصية، أو ادعُ آخرين لإدارة الأموال معًا.</string>
 	<key>Set up this account</key>
 	<string>إعداد هذا الحساب</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>إذن النظام</string>
 	<key>Tags, separated by commas</key>
 	<string>وسوم مفصولة بفواصل</string>
-	<key>Team wallets</key>
-	<string>محافظ الفريق</string>
 	<key>Terms of service</key>
 	<string>شروط الخدمة</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>هذه نسخ احتياطية تم التحقق منها من أجهزة حسابك. اختر الاستعادة صراحةً للاحتفاظ بنسخة على هذا الجهاز.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>لا تتضمن هذه الصادرات مفاتيح الحساب الجذرية أو مفاتيح توقيع الجهاز. تتطلب تغييرات المصدر لقطة جديدة.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>ستظل هذه العناوين الأصلية تحتاج إلى الجهاز القديم في L1. ويمكن للفريق نقلها عبر L2 حين يصبح كل مُخرج قديمًا بما يكفي.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>ستظل هذه العناوين الأصلية تحتاج إلى الجهاز القديم في L1. ويمكن للأعضاء نقلها عبر L2 حين يصبح كل مُخرج قديمًا بما يكفي.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>يتطلب هذا الحساب مفتاح موافقة مسجّلًا. أعدّ هذا الجهاز في أمان العتاد، أو اطلب المعالجة من جهاز مخوّل آخر.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>أنت تعرض نسخة تاريخية ثابتة.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>تنفّذ تغييرات المزود بنفسك. يسجّل dMsg إفاداتك ويفحص الإصدارات المحلية؛ ولا يستطيع التحقق من الإنشاء أو الاختبار أو الإبطال لدى المزود.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>أصولك. قواعد موافقتك.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>تظهر القنوات المفوّضة بعد المزامنة.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

@@ -46,7 +46,7 @@ fn load(id: &AccountId) -> ExternalState {
         .unwrap_or_default()
 }
 
-/// Team-wallet approvals need their own capability, so a device may sign
+/// Multisig wallet approvals need their own capability, so a device may sign
 /// documents without moving team funds and the reverse.
 fn purpose_capability(purpose: &ApprovalPurpose) -> Capability {
     match purpose {

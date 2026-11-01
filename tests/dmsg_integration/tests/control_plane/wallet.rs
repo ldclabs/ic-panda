@@ -1,4 +1,4 @@
-//! Team wallets end to end: paid activation through the hub, members
+//! Multisig wallets end to end: paid activation through the hub, members
 //! joining with device approvals, ICP transfers, threshold signing for
 //! Bitcoin, EVM and Solana, cosigners, freezes, vetoes, upgrades, locks,
 //! cycles top-ups and refunds.

@@ -24,7 +24,7 @@ flowchart LR
 | `dmsg_handle`                    | 名称表、旧名预留、注册收费操作与锁、权属事件、认证树                                                                               |
 | `dmsg_user`                      | 可有多个分片（user home）。校验账户的认证 caller 与管理员设备，保存短期的精确名称意图；handle 只消费这些意图，不读取账户的其他状态 |
 | PANDA 账本                       | ICRC-2 扣款；ICRC-3 区块用于对账                                                                                                   |
-| 收入账户                         | 治理设置的 ICRC 账户，例如 ICPanda DAO 团队钱包，直接接收注册费；handle 只作为 spender 发起扣款，不托管资金                        |
+| 收入账户                         | 治理设置的 ICRC 账户，例如 ICPanda DAO 多签钱包，直接接收注册费；handle 只作为 spender 发起扣款，不托管资金                        |
 | `ic_message`、`ic_name_identity` | 冻结后提供带证书的名称与角色快照，只在迁移时使用                                                                                   |
 
 handle 是全局唯一的名称注册表，所有 user home 共用。它不保存设备、密钥、资料或旧名称区块，注册也不创建旧 Profile 或 COSE namespace。
@@ -196,7 +196,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 | `registration_homes` | `user_homes` 中当前接收新账户的 home，客户端从中随机选择；之后由 controller 或 governance 用 `admin_set_registration_homes` 整体替换，空列表关闭注册                                                                             |
 | `ledger`             | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
 | `ledger_fee`         | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
-| `revenue`            | 直接接收注册费的 ICRC 账户，例如 ICPanda DAO 团队钱包；之后由 controller 或 governance 用 `admin_set_revenue` 替换，只影响新操作                                                                                                 |
+| `revenue`            | 直接接收注册费的 ICRC 账户，例如 ICPanda DAO 多签钱包；之后由 controller 或 governance 用 `admin_set_revenue` 替换，只影响新操作                                                                                                 |
 | `max_pending`        | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
 | `governance`         | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
 
@@ -234,7 +234,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
      registration_homes = vec { principal \"$USER_HOME\" };
      ledger = principal \"druyg-tyaaa-aaaaq-aactq-cai\";
      ledger_fee = <icrc1_fee> : nat;
-     revenue = record { owner = principal \"<团队钱包 ID>\"; subaccount = null };
+     revenue = record { owner = principal \"<多签钱包 ID>\"; subaccount = null };
      max_pending = 1000 : nat32;
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
    })"

@@ -24,7 +24,7 @@ App Attest processes an app-generated key identifier, attestation/assertion evid
 
 StoreKit purchases are handled by Apple. Our verifier and commerce canister process transaction/product identifiers, an account-binding token, purchase and expiry dates, and refund/revocation status. They do not receive your payment-card details. Other dMsg clients may support ICP wallet payments and PANDA membership, with public ledger and entitlement records. Account deletion does not cancel an Apple subscription; manage subscriptions in your Apple account.
 
-Team-wallet policies and proposals are processed by the wallet canisters; their visibility follows the wallet's settings. Blockchain RPC providers receive the addresses, transaction data and IP information needed for balance queries, fee simulation and broadcasting. Default endpoints include mempool.space, PublicNode, mainnet.base.org and api.mainnet-beta.solana.com; configured alternatives have their own privacy practices.
+Multisig wallet policies and proposals are processed by the wallet canisters; their visibility follows the wallet's settings. Blockchain RPC providers receive the addresses, transaction data and IP information needed for balance queries, fee simulation and broadcasting. Default endpoints include mempool.space, PublicNode, mainnet.base.org and api.mainnet-beta.solana.com; configured alternatives have their own privacy practices.
 
 ## 4. Local data and system integrations
 

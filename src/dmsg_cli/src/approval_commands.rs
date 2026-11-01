@@ -531,8 +531,8 @@ fn render(request: &Value) -> String {
                         "create",
                         "创建",
                         tr!(
-                            "team wallet {} for {} e8s ICP",
-                            "团队钱包 {}，费用 {} e8s ICP",
+                            "multisig wallet {} for {} e8s ICP",
+                            "多签钱包 {}，费用 {} e8s ICP",
                             field(&d["name"]),
                             field(&d["price_e8s"])
                         ),

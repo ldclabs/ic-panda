@@ -47,7 +47,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`inbox`] | The contact policy and its synced inbox key, sealed letters, the paid-letter quote, escrow, admission and refund, and the recipient's letters checked against the sender's evidence |
 | [`payment`] | The `dmsg_payment` escrow: certified terms and escrows, funding checks, decisions, payouts and refunds |
 | [`payer`] | ICRC transfers and approvals by the login's Principal or a PEM identity, journaled before they are sent; a lost reply resends the same bytes |
-| [`wallet`] | Team wallets (`dmsg-wallet/1`): this device's wallet key that joins bind, the hub's quotes, the activation deposits that created no wallet and their refund to the payer, proposals, and approval-center jobs to create, join, decide and cosign; chain parameters read from Esplora, EVM and Solana JSON-RPC; an independent decoder that re-derives every plan's transaction and messages to sign before cosigning or broadcasting; addresses checked against the wallet's key roots; the audit chain; cosigner keys in a platform keystore (the daemon's Secure Enclave on macOS) or sealed in software; native Taproot keys derived from a root under hardware protectors, and moving native addresses to a new device |
+| [`wallet`] | Multisig wallets (`dmsg-wallet/1`): this device's wallet key that joins bind, the hub's quotes, the activation deposits that created no wallet and their refund to the payer, proposals, and approval-center jobs to create, join, decide and cosign; chain parameters read from Esplora, EVM and Solana JSON-RPC; an independent decoder that re-derives every plan's transaction and messages to sign before cosigning or broadcasting; addresses checked against the wallet's key roots; the audit chain; cosigner keys in a platform keystore (the daemon's Secure Enclave on macOS) or sealed in software; native Taproot keys derived from a root under hardware protectors, and moving native addresses to a new device |
 | [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the payer may read and repair as payer, merchant or operator |
 | [`handle`] | Names: certified resolution, legacy claims, registrations, transfers between accounts and charge reconciliation, as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
@@ -212,7 +212,7 @@ Anything may ask; only a person answers, by the digest of the request as it
 was shown. A high-risk request also waits for the device owner's presence
 when the device has a presence key: a payment, a device's enrollment,
 capability change or revocation, a change to the account's logins, signing
-policy or recovery delay or to its Agent principal, and a team wallet's
+policy or recovery delay or to its Agent principal, and a multisig wallet's
 creation, cosignature or transfer. Approving executes once, and a finished request is
 forgotten 30 days after it was made. A source other than the desktop and the
 CLI keeps at most five requests waiting. A request waits ten minutes, a
@@ -416,9 +416,9 @@ network waits, and uploads batch up to eight device envelopes plus their
 manifest before finalizing. These are client optimizations; they neither
 change the wire contract nor relax security-evidence freshness.
 
-## Team wallets
+## Multisig wallets
 
-A team wallet signs every transaction itself; this client never holds a
+A multisig wallet signs every transaction itself; this client never holds a
 chain key. It calls wallets with a wallet key of this device (an Ed25519 key
 sealed under the LDK), which joining binds with a `WalletApprove` device
 approval, because login delegations reach only fixed canisters. Creating,
@@ -444,7 +444,7 @@ still uses the current protocol types and is checked separately before execution
 ## Payments
 
 The dMsg account never holds funds: the payer is the login's Principal or a
-PEM identity the CLI names (team wallets hold their own funds; see [`wallet`]). Every ICRC transfer or approval is journaled with
+PEM identity the CLI names (multisig wallets hold their own funds; see [`wallet`]). Every ICRC transfer or approval is journaled with
 its exact arguments before it is sent; a lost reply sends the same bytes
 again and the ledger's deduplication returns the original block. Only a
 typed ledger rejection on a first attempt proves nothing was paid.
@@ -607,7 +607,7 @@ The end-to-end checks against real canisters and the relay are in
 
 ### Wallet execution and desktop forms
 
-`wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [team-wallet guide](../../docs/dMsg_wallet.md) distinguishes these paths from future hardware and chain extensions.
+`wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [multisig wallet guide](../../docs/dMsg_wallet.md) distinguishes these paths from future hardware and chain extensions.
 
 `wallet::native` keeps this device's native Taproot keys: a random root,
 sealed under the LDK for each protector, a dedicated `PresenceKey` key

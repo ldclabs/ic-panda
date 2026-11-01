@@ -16,8 +16,8 @@
 	<string>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>A record or device key could not be verified. Your workspace has not been erased.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Finishing the security update. New content waits until it completes.</string>
 	<key>Folder name</key>
 	<string>Folder name</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</string>
 	<key>Freeze this wallet?</key>
 	<string>Freeze this wallet?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Manage Apple subscriptions</string>
 	<key>Manage file</key>
 	<string>Manage file</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</string>
 	<key>Manage subscriptions</key>
 	<string>Manage subscriptions</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</string>
+	<key>Multisig wallets</key>
+	<string>Multisig wallets</string>
 	<key>Mute notifications</key>
 	<string>Mute notifications</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>No shared items waiting</string>
 	<key>No snapshots on this device</key>
 	<string>No snapshots on this device</string>
-	<key>No team wallets</key>
-	<string>No team wallets</string>
 	<key>Not enabled</key>
 	<string>Not enabled</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Server</string>
 	<key>Session code</key>
 	<string>Session code</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Set up device co-signing for your own assets, or invite others to manage funds together.</string>
 	<key>Set up this account</key>
 	<string>Set up this account</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>System permission</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, separated by commas</string>
-	<key>Team wallets</key>
-	<string>Team wallets</string>
 	<key>Terms of service</key>
 	<string>Terms of service</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>You are viewing an immutable historical version.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Your assets. Your approval rules.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Your authorized channels appear after synchronization.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

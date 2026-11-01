@@ -58,7 +58,7 @@
     { glyph: 'inbox', key: 'Inbox' },
     { glyph: 'pen', key: 'Signatures' },
     { glyph: 'robot', key: 'Agents' },
-    { glyph: 'coins', key: 'Team wallets' },
+    { glyph: 'coins', key: 'Multisig wallets' },
     { glyph: 'settings', key: 'Settings' }
   ]
 

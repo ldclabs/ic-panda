@@ -133,7 +133,7 @@ desktop is one of its clients, like the CLI.
     journals appear before remote status checks, with order reads bounded to
     four at once. A fundless checkout retries its still-valid quote; closing
     the dialog or changing accounts prevents late replies from opening approval.
-  - Team wallets (`/wallet/<wallet>/<proposal?>`): Overview, Proposals,
+  - Multisig wallets (`/wallet/<wallet>/<proposal?>`): Overview, Proposals,
     Assets and addresses, Members and policy, Audit, and Operations. Exact
     asset-unit amounts and per-chain fee previews precede transfers; the
     wallet rechecks policy. Member, policy, address-book, cosigner, unfreeze,
@@ -144,7 +144,7 @@ desktop is one of its clients, like the CLI.
     from separate devices can be checked, collected and explicitly executed
     for one plan. RPC preferences belong to this account on this device;
     audit pages verify against a fresh certified head, and optional channel
-    cards are encrypted hints. See [the team-wallet guide](../../docs/dMsg_wallet.md).
+    cards are encrypted hints. See [the multisig wallet guide](../../docs/dMsg_wallet.md).
   - Agents, in tabs: the principal with its controllers and credentials,
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
@@ -392,7 +392,7 @@ Rules (`src/main/policy.ts`):
   Session, or has a copied workspace of it approve. Transfer between devices
   moves the file library over the local network with a session code,
   encrypted end to end; a stopped transfer resumes in the same session.
-- A team wallet's native Taproot address whose L1 key another device holds
+- A multisig wallet's native Taproot address whose L1 key another device holds
   moves to this device's key through proposals: this device's key, a new
   address, the address book where the policy needs it, a sweep through L1
   (the old device cosigns) or L2 (after the delay), then archiving. The
@@ -421,7 +421,7 @@ Rules (`src/main/policy.ts`):
   vocabulary, with clickable suggestions and editable targets, checked before
   they are sent (unfilled target placeholders cannot be granted), for days or until revoked, and
   asks again for a grant reaching every target, a secret or a wallet's
-  execution; vault tags and team wallets open the same grants for
+  execution; vault tags and multisig wallets open the same grants for
   themselves, and a wallet member names the Agent IDs that propose for it.
   Agent Discourse shows what a connector holds (rooms, latest records, held
   drafts, pending inbox) through `ap/read`, which fetches and marks nothing;
@@ -492,7 +492,7 @@ and notifications instead of the system's. It covers:
   proposal from its dialog, archiving and reopening;
 - the inbox, its contact rules, and a subscription that reaches the daemon
   only as a desktop-sourced approval request;
-- team wallets: an activation payment that created no wallet refunded
+- multisig wallets: an activation payment that created no wallet refunded
   with one click and no approval request, and one that waits for its
   quote to expire;
 - agents: a grant whose approval window shows the agent it names, mail inspected

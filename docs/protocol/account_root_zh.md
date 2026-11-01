@@ -46,8 +46,8 @@ P-256 签名按 ECDSA-SHA256 处理 32 字节的 `H`（即 CryptoKit `signature(
 
 - `SetApprovalKey { device_id, key }`：登记、替换（`key` 带新公钥与持有证明）或退役（`None`）。任何有效设备可设自己的钥匙，为其他设备设钥匙需要管理员；同一把钥匙不能登记给两台设备。撤销设备时其钥匙一并退役。
 - `SetHardwarePolicy { purposes }`：空集合关闭；非空时必须包含三项控制用途。开启需要批准设备本身的有效证明。
-- 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`AddSuccessor`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、团队钱包批准和恢复派生不在其列。
-- 核验只在 user home 的设备批准检查中进行：账户政策要求的用途必须带有当前登记钥匙的有效证明；未要求时请求带来的证明同样核验。是否要求只由账户状态决定，旧 Candid（没有 `hardware` 字段）在启用后被拒绝。登记、替换、退役钥匙和修改政策都递增 `security_epoch`，在途的旧批准随之失效；commerce、membership 与团队钱包仍经 `verify_application_authorization` 复核记录与 epoch，不需改动。
+- 用途：`AccountControl`（批准钥匙、两种政策、恢复延迟、登录绑定）、`DeviceControl`（`AddDevice`、`AddSuccessor`、`RevokeDevice`、`SetDeviceCapabilities`）、`PrincipalControl`（`EnablePrincipal`、`RegisterController`、`RetireController`）为启用即必含；`Payment`（`CashCheckout`、`PandaSubscription` 的 `approve_application`，`AuthorizeHandle`）与 `Attestation`（`attest`、`attest_app_action`、`approve_authentication`）可选。换根、争议恢复、principal 展示文档、controller 改名与标记失陷、多签钱包批准和恢复派生不在其列。
+- 核验只在 user home 的设备批准检查中进行：账户政策要求的用途必须带有当前登记钥匙的有效证明；未要求时请求带来的证明同样核验。是否要求只由账户状态决定，旧 Candid（没有 `hardware` 字段）在启用后被拒绝。登记、替换、退役钥匙和修改政策都递增 `security_epoch`，在途的旧批准随之失效；commerce、membership 与多签钱包仍经 `verify_application_authorization` 复核记录与 epoch，不需改动。
 - 登录恢复不需要批准钥匙：`complete_recovery` 在同一提交点退役全部钥匙并清空政策，替换设备再登记、再启用。开启硬件批准后，账户控制从“设备软件钥匙与登录同时失窃即可立即接管”变为“链上恢复开启时仍可经可被争议的延迟恢复接管”。
 
 客户端（`dmsg_client::approval_key`）把钥匙句柄用 LDK 封存，不出现在任何视图或日志中。账户保护的高风险请求在本机有登记钥匙时，人只在审批开始前回答一次：daemon 在不持客户端锁时取得这次在场授权，随后组装批准、签 Ed25519，并以同一授权签 `H`，因此等待人时不占设备序号，也不弹第二次在场确认。启用政策后没有可用钥匙的设备，可在本机生成钥匙并当场以持有证明签出请求令牌（base64url 确定性 CBOR `{format: "dmsg-approval-key/1", home, account, device_id, key}`），由一台有钥匙的管理员设备批准登记。

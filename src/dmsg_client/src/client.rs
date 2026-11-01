@@ -448,9 +448,9 @@ pub struct Client {
     peers: BTreeMap<AccountId, Principal>,
     /// The payer loaded from a PEM file, until the device locks.
     pub(crate) payer: Option<(Principal, Ic)>,
-    /// This device's team-wallet key and agent, until the device locks.
+    /// This device's multisig wallet key and agent, until the device locks.
     pub(crate) wallet_ic: Option<(Principal, Ic)>,
-    /// The team wallets' chain endpoints, once read.
+    /// The multisig wallets' chain endpoints, once read.
     pub(crate) chains: Option<crate::wallet::rpc::Chains>,
     /// The platform keystore of cosigner keys.
     pub(crate) cosign: Option<Arc<dyn crate::wallet::cosign::CosignProvider>>,

@@ -16,8 +16,8 @@
 	<string>チャネル スナップショットは、このエポックにアクセスできるメンバーが利用できます (その後の履歴付与も含む)。リンクの有効期限、ダウンロード セッションの制限、リコールはありません。</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>ダウンロード セッションは取得許可であり、ファイルの読み取り数ではありません。有効期限または取り消しによって、すでに保存されているコピーを消去することはできません。</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>ネイティブアドレスの L1 は 1 台のデバイスのキーに結び付いているため、このデバイス用の新しいアドレスを作り、そこへコインを移します。各手順はチームが承認する提案です。</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>ネイティブアドレスの L1 は 1 台のデバイスのキーに結び付いているため、このデバイス用の新しいアドレスを作り、そこへコインを移します。各手順はメンバーが承認する提案です。</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>レコードまたはデバイス キーを検証できませんでした。ワークスペースは消去されていません。</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>セキュリティ設定を更新中です。完了まで新しい内容の保存を待機します。</string>
 	<key>Folder name</key>
 	<string>フォルダ名</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>紛失したデバイスのキーなど、このデバイスが持っていないキー向けです。チームが承認すると、新しいキーは 24 時間後に有効になります。</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>紛失したデバイスのキーなど、このデバイスが持っていないキー向けです。メンバーが承認すると、新しいキーは 24 時間後に有効になります。</string>
 	<key>Freeze this wallet?</key>
 	<string>このウォレットを凍結しますか?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Apple のサブスクリプションを管理する</string>
 	<key>Manage file</key>
 	<string>ファイルの管理</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>個人または共有の資産を複数のチェーンで管理。必要な承認数とデバイスの共同署名ルールを設定できます。</string>
 	<key>Manage subscriptions</key>
 	<string>サブスクリプションを管理する</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>古いデバイスから移行しますか？このデバイスがその役割、キー、ウォレットを引き継ぎ、その後古いデバイスは取り消されます。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>新しいデバイスへの移行：新しいデバイスが古いデバイスの置き換えを依頼し、古いデバイスが承認したあと、両方で順に引き継ぎます。</string>
+	<key>Multisig wallets</key>
+	<string>マルチシグウォレット</string>
 	<key>Mute notifications</key>
 	<string>通知をミュートする</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>待機中の共有アイテムはありません</string>
 	<key>No snapshots on this device</key>
 	<string>このデバイスにはスナップショットがありません</string>
-	<key>No team wallets</key>
-	<string>チームウォレットがない</string>
 	<key>Not enabled</key>
 	<string>有効になっていません</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>サーバー</string>
 	<key>Session code</key>
 	<string>セッションコード</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>個人資産のためにデバイスの共同署名を設定したり、他の人を招待して資金を共同管理したりできます。</string>
 	<key>Set up this account</key>
 	<string>このアカウントを設定する</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>システム権限</string>
 	<key>Tags, separated by commas</key>
 	<string>カンマで区切られたタグ</string>
-	<key>Team wallets</key>
-	<string>チームウォレット</string>
 	<key>Terms of service</key>
 	<string>利用規約</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>これらは、アカウントのデバイスからの検証済みのバックアップです。このデバイスにコピーを保存するには、明示的に復元します。</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>これらのエクスポートには、アカウント ルート キーやデバイス署名キーが含まれることはありません。ソース項目を変更するには、新しいスナップショットが必要です。</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>これらのネイティブアドレスの L1 には引き続き古いデバイスが必要です。各出力が十分に古くなれば、チームは L2 経由で移せます。</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>これらのネイティブアドレスの L1 には引き続き古いデバイスが必要です。各出力が十分に古くなれば、メンバーは L2 経由で移せます。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>このアカウントには登録済みの承認キーが必要です。このデバイスをハードウェア セキュリティで設定するか、別の承認されたデバイスに問い合わせてください。</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>あなたは不変の履歴バージョンを表示しています。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>プロバイダーの変更は自分で行います。 dMsg はステートメントを記録し、ローカル リビジョンをチェックします。アップストリームの作成、テスト、または取り消しを検証することはできません。</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>あなたの資産に、あなたの承認ルールを。</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>認証されたチャネルは同期後に表示されます。</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

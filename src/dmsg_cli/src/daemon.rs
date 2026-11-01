@@ -3048,7 +3048,7 @@ mod tests {
                 json!({"recipient":dmsg_client::testing::account().id.to_string(),"text":"hello"}),
                 true,
             ),
-            // The IC: a team wallet, the plan.
+            // The IC: a multisig wallet, the plan.
             ("wallet/show", json!({"wallet": "aaaaa-aa"}), true),
             ("wallet/freeze", json!({"wallet":"aaaaa-aa"}), true),
             (

@@ -412,7 +412,7 @@ commerce 自动执行收入归集、费用准备退回和已分配出金的派�
 
 自动结算每分钟处理最多 32 项工作，并受 `calls_per_caller`（初始 40）及全局资金调用预算限制。大规模集中到期前应测量积压和消耗；这里不宣称新增队列的生产吞吐已经过压测。
 
-`merchant.owner` 可以直接设置为团队钱包或 SNS governance，无需为正常归集发起钱包 / SNS 提案。自动任务只向订单冻结的商户账户转账；修改产品登记只影响新订单。明确拒绝的异常出金若需 `revise_checkout_transfer_fee`，仍由该腿的收款 owner 批准。
+`merchant.owner` 可以直接设置为多签钱包或 SNS governance，无需为正常归集发起钱包 / SNS 提案。自动任务只向订单冻结的商户账户转账；修改产品登记只影响新订单。明确拒绝的异常出金若需 `revise_checkout_transfer_fee`，仍由该腿的收款 owner 批准。
 
 ### 治理变更
 

@@ -1,7 +1,7 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
-/// What this iPhone holds for a team wallet: its native Taproot key root and
+/// What this iPhone holds for a multisig wallet: its native Taproot key root and
 /// this wallet's key, native addresses whose key another device holds and
 /// which move here, keys this device does not hold that a key here
 /// replaces, and bindings of devices the account no longer lists.
@@ -113,7 +113,7 @@ struct WalletDeviceKeysView: View {
                     if replaced { Text("Proposal created. Review it in the wallet's proposal list.").font(.footnote) }
                     else if replaceAttempted { Button("Reconcile original proposal") { Task { await resume() } }.disabled(working) }
                 } header: { Text("Replace key") } footer: {
-                    Text("For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.")
+                    Text("For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.")
                 }
             }
             if !unbind.isEmpty {
@@ -243,7 +243,7 @@ struct WalletNativeMoveView: View {
 
     var body: some View {
         Form {
-            Text("A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.")
+            Text("A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.")
                 .font(.footnote).foregroundStyle(.secondary)
             Section {
                 Picker("Sweep path", selection: $l2) {

@@ -322,7 +322,7 @@ The landing rhythm is:
    agent) and a website reaching through `connect.dmsg.net` ask on the left;
    their traces rise over the post and drop down the gap. The mark, drawn
    large and flat on its own grid, holds five rooms in its dome: vault, files,
-   channels, team wallets and the agent's Agent ID. The agent network (Agent
+   channels, multisig wallets and the agent's Agent ID. The agent network (Agent
    Mail, Discourse and Knowledge with their hosts) sits on the right; signed
    messages leave through the gap's lower end on a dashed wire. Under the
    scene, a log of what passed the gate and the approval window. Then the
@@ -334,12 +334,12 @@ The landing rhythm is:
    and terminal demo.
 3. 02 Private space: vault, files and the lock, with the file library demo.
 4. 03 Collaboration: channels, shared copies, letters and contact rules, and
-   explicit decisions, with the team wallet and website demos.
+   explicit decisions, with the multisig wallet and website demos.
 5. 04 Agent network: the three protocols, three notes, and the agent demo.
 6. 05 Privacy & trust (Ink band): boundaries, the privacy demo, public code,
    recovery, the signature verifier, and the statement that no audit exists.
 7. 06 Membership: a four-tier comparison of annual price, encrypted cloud
-   storage, active devices and channels, formal signatures and team wallets.
+   storage, active devices and channels, formal signatures and multisig wallets.
    Use aligned columns and rules, stacking on phones; one download action
    leads to choosing a plan in the app. Keep the public configuration check
    date, payment options, quota scope and separate wallet activation fee visible.
@@ -500,7 +500,7 @@ Figures follow the product's real rules and names: the approval sources `gui`,
 tool names, capabilities and `FORBIDDEN` refusals; the dmsg-connect/1 moves;
 second clicks before a secret is shown or copied; the file library's states,
 its ask-first backup, random cloud IDs and deletions that never cross sides;
-a team wallet's policy, proposal states and audit chain. Only a person
+a multisig wallet's policy, proposal states and audit chain. Only a person
 approves: an agent or website in a figure can create a request and never
 decides one, and a wallet's delay ends only when the visitor skips it.
 Approval states keep their distinct words (“Approved”, “Signature generated”,
@@ -519,7 +519,7 @@ states. Invitation acceptance is not vault permission. Removed membership and
 future key isolation are different stages. Do not imply that a downloaded file
 or disclosed secret can be remotely erased.
 
-### Files and Team Wallets
+### Files and Multisig wallets
 
 A file's state says where its copies are: only on this device, backing up,
 backed up, or over the cloud's limit. Backing up asks first and shows the
@@ -649,11 +649,11 @@ protocol-heavy presentation from 1Pay.ing.
 > collaboration. / For people and agents.” headline and CTA sit beside a
 > framed diagram: you, a teammate, an agent and a website ask on the left;
 > their traces rise over the dMsg mark, drawn large, and drop into its gap;
-> the dome holds the vault, files, channels, team wallets and the agent's
+> the dome holds the vault, files, channels, multisig wallets and the agent's
 > Agent ID; Agent Mail, Discourse and Knowledge wait on the right on a dashed
 > wire. Under it, a log of what passed and an approval window with Reject and
 > Approve. Continue into the desktop app's main window with its sidebar and
-> gate rail, a file library beside what the cloud holds, a team wallet
+> gate rail, a file library beside what the cloud holds, a multisig wallet
 > proposal with its policy, an agent capability panel with an audit record, a
 > website request sequence ending in an approval window, a dark privacy band,
 > trust evidence, release status, FAQ and a closing CTA. Aligned rules and crop marks, not a card grid. No invented

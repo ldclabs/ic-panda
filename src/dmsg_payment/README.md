@@ -333,13 +333,13 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
 ### 更换平台收款账户
 
-使用完整 ICRC 账户参数，可将 owner 设置为团队钱包 canister；`subaccount = null` 表示其默认账户。先用 `validate_admin_set_revenue` 预检，确认返回的新旧账户，再由 controller 或 governance 调用同参数的 `admin_set_revenue`。相同账户重复设置不改状态。账户 owner 不能是匿名、管理 canister 或 payment 本身。
+使用完整 ICRC 账户参数，可将 owner 设置为多签钱包 canister；`subaccount = null` 表示其默认账户。先用 `validate_admin_set_revenue` 预检，确认返回的新旧账户，再由 controller 或 governance 调用同参数的 `admin_set_revenue`。相同账户重复设置不改状态。账户 owner 不能是匿名、管理 canister 或 payment 本身。
 
 ```sh
 icp canister call -e ic dmsg_payment validate_admin_set_revenue \
-  '(record { owner = principal "<团队钱包 ID>"; subaccount = null })' --query
+  '(record { owner = principal "<多签钱包 ID>"; subaccount = null })' --query
 icp canister call -e ic dmsg_payment admin_set_revenue \
-  '(record { owner = principal "<团队钱包 ID>"; subaccount = null })'
+  '(record { owner = principal "<多签钱包 ID>"; subaccount = null })'
 icp canister call -e ic dmsg_payment payment_config '()' --query
 ```
 

@@ -24,7 +24,7 @@ App Attest verarbeitet eine von der App generierte Schlüsselkennung, Attestieru
 
 StoreKit-Käufe werden von Apple abgewickelt. Unser Verifizierer und Handelsunternehmen canister verarbeitet Transaktions-/Produktkennungen, ein kontobindendes Token, Kauf- und Ablaufdaten sowie den Rückerstattungs-/Widerrufsstatus. Sie erhalten Ihre Zahlungskartendaten nicht. Andere dMsg-Clients unterstützen möglicherweise ICP-Wallet-Zahlungen und die PANDA-Mitgliedschaft mit öffentlichen Hauptbuch- und Berechtigungsdatensätzen. Durch die Kontolöschung wird ein Apple-Abonnement nicht gekündigt; Verwalten Sie Abonnements in Ihrem Apple-Konto.
 
-Team-Wallet-Richtlinien und -Vorschläge werden von der Wallet canisters verarbeitet; Ihre Sichtbarkeit richtet sich nach den Einstellungen des Wallets. Blockchain RPC-Anbieter erhalten die Adressen, Transaktionsdaten und IP-Informationen, die für Kontostandabfragen, Gebührensimulation und Ausstrahlung benötigt werden. Zu den Standardendpunkten gehören mempool.space, PublicNode, mainnet.base.org und api.mainnet-beta.solana.com; konfigurierte Alternativen haben ihre eigenen Datenschutzpraktiken.
+Multisig-Wallet-Richtlinien und -Vorschläge werden von der Wallet canisters verarbeitet; Ihre Sichtbarkeit richtet sich nach den Einstellungen des Wallets. Blockchain RPC-Anbieter erhalten die Adressen, Transaktionsdaten und IP-Informationen, die für Kontostandabfragen, Gebührensimulation und Ausstrahlung benötigt werden. Zu den Standardendpunkten gehören mempool.space, PublicNode, mainnet.base.org und api.mainnet-beta.solana.com; konfigurierte Alternativen haben ihre eigenen Datenschutzpraktiken.
 
 ## 4. Lokale Daten- und Systemintegrationen
 

@@ -24,7 +24,7 @@ App Attest elabora un identificatore di chiave generato dall'app, prove di attes
 
 Gli acquisti di StoreKit sono gestiti da Apple. Il nostro verificatore ed e-commerce canister elabora gli identificatori di transazione/prodotto, un token vincolante per l'account, le date di acquisto e di scadenza e lo stato di rimborso/revoca. Non ricevono i dettagli della tua carta di pagamento. Altri client dMsg possono supportare i pagamenti tramite portafoglio ICP e l'iscrizione PANDA, con registro pubblico e record dei diritti. La cancellazione dell'account non annulla un abbonamento Apple; gestire gli abbonamenti nel tuo account Apple.
 
-Le politiche e le proposte del portafoglio del team vengono elaborate dal portafoglio canisters; la loro visibilità segue le impostazioni del portafoglio. I fornitori di Blockchain RPC ricevono gli indirizzi, i dati delle transazioni e le informazioni IP necessarie per le richieste di saldo, la simulazione delle commissioni e la trasmissione. Gli endpoint predefiniti includono mempool.space, PublicNode, mainnet.base.org e api.mainnet-beta.solana.com; le alternative configurate hanno le proprie pratiche sulla privacy.
+Le politiche e le proposte del portafoglio multifirma vengono elaborate dal portafoglio canisters; la loro visibilità segue le impostazioni del portafoglio. I fornitori di Blockchain RPC ricevono gli indirizzi, i dati delle transazioni e le informazioni IP necessarie per le richieste di saldo, la simulazione delle commissioni e la trasmissione. Gli endpoint predefiniti includono mempool.space, PublicNode, mainnet.base.org e api.mainnet-beta.solana.com; le alternative configurate hanno le proprie pratiche sulla privacy.
 
 ## 4. Dati locali e integrazioni di sistema
 

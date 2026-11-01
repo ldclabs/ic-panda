@@ -24,7 +24,7 @@ App Attest verwerkt een door de app gegenereerde sleutelidentificatie, attest/be
 
 StoreKit-aankopen worden afgehandeld door Apple. Onze verificateur en commerce canister verwerken transactie-/product-ID's, een accountbindend token, aankoop- en vervaldata en de terugbetalings-/intrekkingsstatus. Zij ontvangen je betaalkaartgegevens niet. Andere dMsg-clients ondersteunen mogelijk ICP-portemonneebetalingen en PANDA-lidmaatschap, met grootboek- en rechtengegevens. Het verwijderen van een account betekent niet dat een Apple-abonnement wordt opgezegd; beheer abonnementen in je Apple-account.
 
-Het beleid en de voorstellen van teamwallets worden verwerkt door de portemonnee canisters; hun zichtbaarheid volgt de instellingen van de portemonnee. Blockchain RPC-providers ontvangen de adressen, transactiegegevens en IP-informatie die nodig zijn voor saldovragen, vergoedingssimulatie en uitzending. Standaardeindpunten zijn onder meer mempool.space, PublicNode, mainnet.base.org en api.mainnet-beta.solana.com; geconfigureerde alternatieven hebben hun eigen privacypraktijken.
+Het beleid en de voorstellen van multisig-wallets worden verwerkt door de portemonnee canisters; hun zichtbaarheid volgt de instellingen van de portemonnee. Blockchain RPC-providers ontvangen de adressen, transactiegegevens en IP-informatie die nodig zijn voor saldovragen, vergoedingssimulatie en uitzending. Standaardeindpunten zijn onder meer mempool.space, PublicNode, mainnet.base.org en api.mainnet-beta.solana.com; geconfigureerde alternatieven hebben hun eigen privacypraktijken.
 
 ## 4. Lokale data- en systeemintegraties
 

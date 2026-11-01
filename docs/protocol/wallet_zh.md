@@ -1,8 +1,8 @@
-# dMsg 团队钱包：dmsg-wallet/1 公开合同
+# dMsg 多签钱包：dmsg-wallet/1 公开合同
 
 [English](wallet.md) | 简体中文
 
-本文描述 `dmsg_wallet`（每个团队一个实例）与 `dmsg_wallet_hub`（创建与升级实例的工厂）的公开接口、批准字节、地址派生与外链交易规则。类型定义在 [dmsg_types::wallet](../../src/dmsg_types/src/wallet.rs)，摘要、策略评估、地址编码与协签验证在 [dmsg_protocol::wallet](../../src/dmsg_protocol/src/wallet/mod.rs)，ICP 接口以 [dmsg_wallet.did](../../src/dmsg_wallet/dmsg_wallet.did) 与 [dmsg_wallet_hub.did](../../src/dmsg_wallet_hub/dmsg_wallet_hub.did) 为准。时间单位为 Unix 毫秒，金额为资产最小单位（e8s、satoshi、wei、lamport、代币原子单位）。
+本文描述 `dmsg_wallet`（每个钱包一个独立实例）与 `dmsg_wallet_hub`（创建与升级实例的工厂）的公开接口、批准字节、地址派生与外链交易规则。类型定义在 [dmsg_types::wallet](../../src/dmsg_types/src/wallet.rs)，摘要、策略评估、地址编码与协签验证在 [dmsg_protocol::wallet](../../src/dmsg_protocol/src/wallet/mod.rs)，ICP 接口以 [dmsg_wallet.did](../../src/dmsg_wallet/dmsg_wallet.did) 与 [dmsg_wallet_hub.did](../../src/dmsg_wallet_hub/dmsg_wallet_hub.did) 为准。时间单位为 Unix 毫秒，金额为资产最小单位（e8s、satoshi、wei、lamport、代币原子单位）。
 
 ## 角色
 
@@ -18,7 +18,7 @@
 
 ## 成员与角色
 
-钱包由团队成员管理：成员是团队成员的 dMsg 账户（`MemberId::Account`）或以调用者身份直接行动的 Principal（`MemberId::Principal`）。需要 SNS 治理的资金留在 SNS 国库，由 SNS 提案处理，不经团队钱包。角色：
+钱包由一个或多个成员按策略管理：成员可以是 dMsg 账户（`MemberId::Account`）或以调用者身份直接行动的 Principal（`MemberId::Principal`）。需要 SNS 治理的资金留在 SNS 国库，由 SNS 提案处理，不经多签钱包。角色：
 
 | 角色 | 提案 | 批准计数 | 否决 / 冻结 |
 | --- | --- | --- | --- |
@@ -151,7 +151,7 @@
 
 ## 桌面与本地协议
 
-桌面结构化方法、多设备协签包、增量审计和加密频道提示的实现及边界见 [团队钱包桌面实现](../dMsg_wallet_zh.md)。客户端在创建付款前完成 `WalletCreate` 的 user home 核验；协签包导入只收集签名，不自动执行。
+桌面结构化方法、多设备协签包、增量审计和加密频道提示的实现及边界见 [多签钱包桌面实现](../dMsg_wallet_zh.md)。客户端在创建付款前完成 `WalletCreate` 的 user home 核验；协签包导入只收集签名，不自动执行。
 
 
 ## 2026-10-24 安全修订

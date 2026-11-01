@@ -1,4 +1,4 @@
-//! `dmsg wallet`: team wallets. Creating, joining, deciding and cosigning
+//! `dmsg wallet`: multisig wallets. Creating, joining, deciding and cosigning
 //! wait in the approval center, decided here at an interactive terminal.
 
 use crate::approval_commands::{created, request};
@@ -9,7 +9,7 @@ use clap::Subcommand;
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
-/// Team wallets: one canister per team, holding ICP and ICRC tokens and
+/// Multisig wallets: one independent canister per wallet, holding ICP and ICRC tokens and
 /// signing Bitcoin, EVM and Solana transactions with chain keys.
 #[derive(Subcommand)]
 pub enum WalletCommand {

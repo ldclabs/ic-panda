@@ -176,7 +176,7 @@ struct SuccessionsView: View {
             } message: {
                 Text(LocalizedStringKey(leaving?.step == "content"
                     ? "The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked."
-                    : "These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough."))
+                    : "These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough."))
             }
             .confirmationDialog("Stop handover", isPresented: Binding(get: { stopping != nil }, set: { if !$0 { stopping = nil } }), titleVisibility: .visible) {
                 Button("Stop handover", role: .destructive) { if let stopping { Task { await cancel(stopping) } } }
@@ -324,7 +324,7 @@ struct SuccessionsView: View {
 }
 
 /// The old device reviews a new device's request: the device, its role and
-/// permissions, the keys made there and the team wallets the handover
+/// permissions, the keys made there and the multisig wallets the handover
 /// covers, then approves it once the person confirms its device ID.
 struct SuccessionReviewView: View {
     private struct PendingBindings: Decodable { let requests: [ApprovalView]? }
@@ -376,7 +376,7 @@ struct SuccessionReviewView: View {
                     LabeledContent("Permissions", value: review.capabilities.joined(separator: ", "))
                     LabeledContent("Approval key", value: review.approvalKey ? String(localized: "made") : String(localized: "not available"))
                     LabeledContent("Cosigner key", value: review.cosigner ? String(localized: "made") : String(localized: "not available"))
-                    LabeledContent("Team wallets", value: review.wallets.isEmpty ? "—" : review.wallets.map { $0.name ?? $0.wallet }.joined(separator: " · "))
+                    LabeledContent("Multisig wallets", value: review.wallets.isEmpty ? "—" : review.wallets.map { $0.name ?? $0.wallet }.joined(separator: " · "))
                     LabeledContent("Request expires") { Text(Date(timeIntervalSince1970: TimeInterval(review.expiresAt) / 1000), style: .relative) }
                 }
                 LocalOnlySection(value: local, always: true)

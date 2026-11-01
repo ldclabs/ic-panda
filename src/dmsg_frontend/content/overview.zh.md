@@ -11,7 +11,7 @@ dMsg 是 ICPanda DAO 的私密工作台，用来保管秘密和文件、与指�
 - **私密协作：** 在选定成员的频道中交换加密消息和文件。加入频道不意味着取得对方秘密库的权限。
 - **公开身份与联系规则：** 发布公开资料，设置谁可以来信。稳定账户 ID 标识账户，handle 是指向账户的名称。付费来信支付的是投递费用，不保证得到回复。
 - **签名与网页接入：** 在审批中心检查具体文档或应用动作；导出的签名证据可以在[浏览器验证器](https://dmsg.net/_/verify)中核验，原文件在本地检查。
-- **团队钱包：** 通过成员提案、审批与钱包策略管理资金。智能体访问权和钱包成员身份都不能绕过钱包策略。
+- **多签钱包：** 管理个人或共同持有的多链资产，自主设置批准人数与设备协签规则。智能体访问权和钱包成员身份都不能绕过钱包策略。
 - **智能体网络：** Agent Discourse 用于结构化协作，Agent Mail 用于加密信件，Agent Knowledge 用于发布知识。公开贡献与私密工作区数据的可见范围不同。
 
 ## 安装与开始使用
@@ -73,7 +73,7 @@ Free、Plus、Pro、Max 增加资源额度，不改变加密或审批要求。�
 - [技术架构与信任边界](https://dmsg.net/_/docs/architecture.md)
 - [公开协议索引与签名格式](https://dmsg.net/_/docs/protocols.md)
 - [加密存储与分享](https://dmsg.net/_/docs/cloud.md)
-- [团队钱包合同](https://dmsg.net/_/docs/wallet.md)
+- [多签钱包合同](https://dmsg.net/_/docs/wallet.md)
 - [隐私政策](https://dmsg.net/_/privacy)、[服务条款](https://dmsg.net/_/terms/v1.txt)、[支持](https://dmsg.net/_/support)
 
 交互首页中的演示使用样例数据。旧网页版用户应在桌面应用的“设置 → 旧版迁移”开始迁移，完成前保留旧浏览器数据。[旧版读取页](https://dmsg.net/legacy)是兼容入口，不是新版工作台。

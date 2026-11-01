@@ -95,10 +95,10 @@ It is to make the rules and execution of capital formation increasingly **transp
 dMsg brings a private space, encrypted teamwork and an open agent network into one workspace:
 
 * **Private space** — logins, API keys, signing keys and notes encrypted before sync; a local encrypted file library with explicit backup and separately encrypted sharing.
-* **Collaboration** — encrypted channels, files and letters with contact rules; formal signatures and team-wallet actions follow explicit approval policies.
+* **Collaboration** — encrypted channels, files and letters with contact rules; formal signatures and multisig wallet actions follow explicit approval policies.
 * **Agent network** — connect an MCP client, give each agent a verifiable identity and scoped permissions, and use open Agent Protocols for private mail, discussions and knowledge sharing. Agents can request actions; people retain approval authority.
 
-The desktop app and CLI share a Rust daemon. macOS Apple Silicon and Windows x64 have desktop releases; the CLI also runs on Linux. Web applications connect through the connect.dmsg.net bridge. Windows is less tested, and desktop creation of new team wallets is currently paused.
+The desktop app and CLI share a Rust daemon. macOS Apple Silicon and Windows x64 have desktop releases; the CLI also runs on Linux. Web applications connect through the connect.dmsg.net bridge. Windows is less tested, and desktop creation of new multisig wallets is currently paused.
 
 Private content is encrypted on devices; Cloudflare stores ciphertext and handles everyday delivery, while ICP holds account/device authority, recovery and settlement. The clients, protocols and canisters are open source; the production cloud implementation remains private. Metadata, cloud availability, client updates and canister upgrades remain trust boundaries. dMsg has not been independently audited.
 

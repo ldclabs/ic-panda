@@ -1033,7 +1033,7 @@ struct Options {
     /// Keep device A's owner credential and keys in the system credential
     /// store, as installed desktops do.
     system_storage: bool,
-    /// Install the team wallet hub; the daemons' `[wallet]` names it and
+    /// Install the multisig wallet hub; the daemons' `[wallet]` names it and
     /// points every external chain at a closed loopback port.
     wallet: bool,
     /// Pre-enroll A and an elapsed, device-proved recovery request for B.
@@ -5756,7 +5756,7 @@ fn desktop_paid_letters() {
 
 /// An MCP client on `dmsg mcp`'s stdio, as Claude Code or another agent
 /// runtime drives it.
-/// Activation price of the team wallet hub, in e8s of the test ledger.
+/// Activation price of the multisig wallet hub, in e8s of the test ledger.
 const WALLET_PRICE: u64 = 1_000_000_000;
 
 /// Mint `amount` to `to` on a test ledger.

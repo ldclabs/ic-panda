@@ -16,7 +16,7 @@
 | Agent 身份与事件 | [Agent Delegation](agent_zh.md) · [Mail 事件](mail_events_zh.md) |
 | 无内容系统通知 | [dmsg-notifications/1](notifications_zh.md) |
 | 凭据受控使用 | [Secrets](secrets_zh.md) |
-| 团队钱包 | [dmsg-wallet/1](wallet_zh.md) |
+| 多签钱包 | [dmsg-wallet/1](wallet_zh.md) |
 | 旧版数据 | [只读档案](legacy_archive_zh.md) · [冻结证据](legacy_freeze_zh.md) |
 
 `dmsg_types` 只定义公开数据；`dmsg_protocol` 实现标准编码、profile 验证和身份适配；`dmsg_runtime` 与各 canister 保存内部状态。第三方独立验签无需实现账户数据库、名称或付费投递业务。
@@ -131,4 +131,4 @@ dMsg 账户可作为 Agent Delegation 1.0 principal：controller 是客户端 va
 
 产品中立的 `membership/2` 与 `dmsg-commerce/2` 合同详见 [commerce_zh.md](commerce_zh.md)，配套有生成的 [integration.cddl](integration.cddl) 与独立向量。[commerce.cddl](commerce.cddl) 仅保留仍使用 v1 域的资源/权益结构，付费投递继续使用独立 profile 2。这些版本不改变正式声明或设备认证字节。
 
-团队钱包 `dmsg-wallet/1`：成员、策略、提案、地址派生、外链计划与协签的公开合同见 [wallet_zh.md](wallet_zh.md)。设备批准沿用 `ApplicationApproval`，新增用途 `WalletCreate`、`WalletProposal`、`WalletJoin` 与设备能力 `WalletApprove`。
+多签钱包 `dmsg-wallet/1`：成员、策略、提案、地址派生、外链计划与协签的公开合同见 [wallet_zh.md](wallet_zh.md)。设备批准沿用 `ApplicationApproval`，新增用途 `WalletCreate`、`WalletProposal`、`WalletJoin` 与设备能力 `WalletApprove`。

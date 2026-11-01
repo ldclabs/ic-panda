@@ -24,7 +24,7 @@ App Attest przetwarza wygenerowany przez aplikację kluczowy identyfikator, dowo
 
 Zakupy w StoreKit są obsługiwane przez firmę Apple. Nasz weryfikator i handel canister przetwarzają identyfikatory transakcji/produktów, token powiązania z kontem, daty zakupu i wygaśnięcia oraz status zwrotu/odwołania. Nie otrzymują danych Twojej karty płatniczej. Inni klienci dMsg mogą obsługiwać płatności portfelowe ICP i członkostwo PANDA z księgą publiczną i zapisami uprawnień. Usunięcie konta nie powoduje anulowania subskrypcji Apple; zarządzaj subskrypcjami na swoim koncie Apple.
 
-Zasady i propozycje portfela zespołu są przetwarzane przez portfel canisters; ich widoczność zależy od ustawień portfela. Dostawcy Blockchain RPC otrzymują adresy, dane transakcyjne i informacje IP potrzebne do zapytań o saldo, symulacji opłat i transmisji. Domyślne punkty końcowe obejmują mempool.space, PublicNode, mainnet.base.org i api.mainnet-beta.solana.com; skonfigurowane alternatywy mają własne praktyki dotyczące prywatności.
+Zasady i propozycje portfela wielopodpisowego są przetwarzane przez portfel canisters; ich widoczność zależy od ustawień portfela. Dostawcy Blockchain RPC otrzymują adresy, dane transakcyjne i informacje IP potrzebne do zapytań o saldo, symulacji opłat i transmisji. Domyślne punkty końcowe obejmują mempool.space, PublicNode, mainnet.base.org i api.mainnet-beta.solana.com; skonfigurowane alternatywy mają własne praktyki dotyczące prywatności.
 
 ## 4. Integracje danych lokalnych i systemów
 

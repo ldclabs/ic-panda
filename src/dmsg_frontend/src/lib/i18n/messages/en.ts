@@ -14,7 +14,7 @@ const en = {
   "Active devices": "Active devices",
   "Active channels": "Active channels",
   "Formal signatures / month": "Formal signatures / month",
-  "Team wallet slots": "Team wallet slots",
+  "Multisig wallet slots": "Multisig wallet slots",
   "Privacy comes with every plan.": "Privacy comes with every plan.",
   "Encryption, device revocation and account recovery are included at every tier.": "Encryption, device revocation and account recovery are included at every tier.",
   "Choose your plan in the app.": "Choose your plan in the app.",
@@ -727,11 +727,11 @@ const en = {
   'Statement': 'Statement',
   'Synced': 'Synced',
   'Team treasury': 'Team treasury',
-  'Team wallets': 'Team wallets',
-  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
-    'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.',
-  'Team wallets, their proposals and approvals':
-    'Team wallets, their proposals and approvals',
+  "Multisig wallets": "Multisig wallets",
+  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
+    "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.",
+  "Multisig wallets, their proposals and approvals":
+    "Multisig wallets, their proposals and approvals",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
@@ -978,9 +978,9 @@ const en = {
   'Important decisions stay explicit.': 'Important decisions stay explicit.',
   'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
     'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.',
-  'Explore a team wallet proposal': 'Explore a team wallet proposal',
-  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
-    'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.',
+  "Explore a multisig wallet proposal": "Explore a multisig wallet proposal",
+  "Try a proposal from an agent and see which decisions belong to people.":
+    "Try a proposal from an agent and see which decisions belong to people.",
   'Follow a request from a website': 'Follow a request from a website',
   'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
     'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.',
@@ -1155,7 +1155,7 @@ const en = {
   'Payment': 'Payment',
   'Sign the release statement': 'Sign the release statement',
   'Sign in to {site}': 'Sign in to {site}',
-  'Pay {amount} from the team wallet': 'Pay {amount} from the team wallet',
+  "Pay {amount} from the multisig wallet": "Pay {amount} from the multisig wallet",
   'Approving signs this statement with your account key.':
     'Approving signs this statement with your account key.',
   'Approving proves to the site that it is you.':
@@ -1173,8 +1173,8 @@ const en = {
   'The desktop app': 'The desktop app',
   'Everything in one window.': 'Everything in one window.',
   'Every decision in its own.': 'Every decision in its own.',
-  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.',
+  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
+    "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.",
   'The dMsg desktop app': 'The dMsg desktop app',
   'Views': 'Views',
   'Work': 'Work',
@@ -1191,8 +1191,8 @@ const en = {
     'Requests waiting for you, signatures and their records',
   'Agent IDs, what they may do and what they did':
     'Agent IDs, what they may do and what they did',
-  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
-    'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy',
+  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
+    "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.",
   'Account synced': 'Account synced',
   'Unlock with Touch ID': 'Unlock with Touch ID',
   'Lock': 'Lock',

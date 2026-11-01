@@ -1,6 +1,6 @@
 # dmsg_wallet_hub
 
-团队钱包的工厂，接管保留的主网 ID `ghcje-dyaaa-aaaas-qg7va-cai`（产品设计 D-1）。它按 dMsg 会员套餐的配额出售一次性激活、创建 [dmsg_wallet](../dmsg_wallet/README.md) 实例并作为其唯一 controller，保存 SNS 登记的钱包模块，只在实例自己接受后升级或锁定它，并维护成员到钱包的索引。hub 不读取也不移动任何钱包的资金。
+多签钱包的工厂，接管保留的主网 ID `ghcje-dyaaa-aaaas-qg7va-cai`（产品设计 D-1）。它按 dMsg 会员套餐的配额出售一次性激活、创建 [dmsg_wallet](../dmsg_wallet/README.md) 实例并作为其唯一 controller，保存 SNS 登记的钱包模块，只在实例自己接受后升级或锁定它，并维护成员到钱包的索引。hub 不读取也不移动任何钱包的资金。
 
 公开合同见 [wallet_zh.md](../../docs/protocol/wallet_zh.md)，接口见 [dmsg_wallet_hub.did](dmsg_wallet_hub.did)。
 
@@ -31,7 +31,7 @@
 
 `upgrade_wallet` 读取实例的 `accepted_upgrade()`，核对版本已登记、哈希一致且与已装版本不同，然后 stop → 分块 install（`Upgrade`，参数为版本号）→ start。停止失败（例如在途调用使其超时）或安装失败都会重新启动实例；安装成功即记下新版本，即使随后启动失败。读取 `accepted_upgrade()` 失败时先 `start_canister`（对运行中的实例无影响），所以上一次没能启动的实例在下一次调用时恢复运行。`lock_wallet` 在实例接受 `LockCode` 后把 controllers 设为空。
 
-安装前优先用 `claim_code` 领取接受记录。对明确返回 IC0536、缺少此接口的旧实例，hub 确认自己是唯一 controller，读取系统执行版本后重新读取精确接受记录，停止后要求执行版本只增加 3（一次 replicated query、Running → Stopping → Stopped）。额外执行会返回 `VersionConflict` 并重启钱包，等待安静时重试；超时、其他拒绝和业务错误不会触发此路径。这里的系统执行版本不是界面中的钱包发布版本。此路径保留原已接受版本与哈希，不替团队选择新版本。
+安装前优先用 `claim_code` 领取接受记录。对明确返回 IC0536、缺少此接口的旧实例，hub 确认自己是唯一 controller，读取系统执行版本后重新读取精确接受记录，停止后要求执行版本只增加 3（一次 replicated query、Running → Stopping → Stopped）。额外执行会返回 `VersionConflict` 并重启钱包，等待安静时重试；超时、其他拒绝和业务错误不会触发此路径。这里的系统执行版本不是界面中的钱包发布版本。此路径保留原已接受版本与哈希，不替成员选择新版本。
 
 ## 存储
 
@@ -42,7 +42,7 @@ stable 记录用整数键的紧凑编码（`dmsg_runtime::stable_types::wallet` 
 1. 部署 hub（`HubInit`：environment、SNS governance、ICP 账本、CMC、commerce、issuer namespace、user homes、`key_1`、`Mainnet`、定价与配额、hub 以外的收入账户），给 hub 充足 cycles。保留 ID 上没有模块（2026-10-18 核对），首次安装即普通安装。
 2. 治理在 commerce 登记产品 `dmsg-wallet`（`quote_authority = beneficiary_authorities = adapter = hub`，subject schema `dmsg-wallet-v1`，subject 10 字节）与应用 `dmsg-wallet`（origins 含 `https://dmsg.net`，capabilities `[Checkout]`），并把 hub 的 `admin_*` 方法与对应 `validate_*` 注册为 SNS generic function。
 3. 上传 release 中的 `dmsg_wallet.wasm.gz` 并以其 SHA-256 提案登记。
-4. ICPanda DAO 团队钱包由 Max 套餐成员创建，成员只有团队成员（产品设计 D-6：SNS governance 不作为成员，需要 SNS 治理的资金留在 SNS 国库）；hub 的收入账户可经治理改为该钱包的 ICP 地址。
+4. ICPanda DAO 多签钱包由 Max 套餐成员创建，成员只有团队成员（产品设计 D-6：SNS governance 不作为成员，需要 SNS 治理的资金留在 SNS 国库）；hub 的收入账户可经治理改为该钱包的 ICP 地址。
 5. 定期运行维护：`collectable_activations` + `collect_revenue`，`list_wallets` + 实例 `refuel()`。
 
 ## 验证

@@ -44,7 +44,7 @@ struct AccountView: View {
                 NavigationLink { PublicProfileView() } label: { Label("Public profile", glyph: .profile) }
                 NavigationLink { ApprovalsView() } label: { Label("Approvals", glyph: .approvals) }
                 NavigationLink { AgentsView() } label: { Label("Agents", glyph: .agents) }
-                NavigationLink { WalletsView() } label: { Label("Team wallets", glyph: .coins) }
+                NavigationLink { WalletsView() } label: { Label("Multisig wallets", glyph: .coins) }
                 NavigationLink { DevicesView() } label: { Label("Authorized devices", glyph: .device) }.accessibilityIdentifier("account.devices")
                 NavigationLink { RecoveryView() } label: { Label("Account recovery", glyph: .recovery) }
                 NavigationLink { AccountSecurityView() } label: { Label("Login identities", glyph: .security) }

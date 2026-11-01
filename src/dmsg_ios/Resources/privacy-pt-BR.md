@@ -24,7 +24,7 @@ O App Attest processa um identificador de chave gerado pelo aplicativo, evidênc
 
 As compras do StoreKit são feitas pela Apple. Nosso verificador e comércio canister processa identificadores de transação/produto, um token de vinculação de conta, datas de compra e vencimento e status de reembolso/revogação. Eles não recebem os detalhes do seu cartão de pagamento. Outros clientes dMsg podem oferecer suporte a pagamentos de carteira ICP e associação PANDA, com razão pública e registros de direitos. A exclusão da conta não cancela uma assinatura da Apple; gerenciar assinaturas em sua conta Apple.
 
-As políticas e propostas da carteira da equipe são processadas pela carteira canisters; sua visibilidade segue as configurações da carteira. Os provedores Blockchain RPC recebem os endereços, dados de transação e informações de IP necessários para consultas de saldo, simulação de taxas e transmissão. Os endpoints padrão incluem mempool.space, PublicNode, mainnet.base.org e api.mainnet-beta.solana.com; as alternativas configuradas têm suas próprias práticas de privacidade.
+As políticas e propostas da carteira multifirma são processadas pela carteira canisters; sua visibilidade segue as configurações da carteira. Os provedores Blockchain RPC recebem os endereços, dados de transação e informações de IP necessários para consultas de saldo, simulação de taxas e transmissão. Os endpoints padrão incluem mempool.space, PublicNode, mainnet.base.org e api.mainnet-beta.solana.com; as alternativas configuradas têm suas próprias práticas de privacidade.
 
 ## 4. Dados locais e integrações de sistemas
 

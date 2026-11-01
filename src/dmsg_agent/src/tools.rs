@@ -1,6 +1,6 @@
 //! The MCP tool catalog `dmsg mcp` serves: the 41 standard Agent Protocols
 //! local connector tools, Agent Mail and Agent Knowledge among them, and the
-//! 34 `dmsg_*` tools over this account's data, team wallets, the agent's own
+//! 34 `dmsg_*` tools over this account's data, multisig wallets, the agent's own
 //! capabilities and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
@@ -244,19 +244,19 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 38] = [
     ),
     (
         "dmsg_wallet_list",
-        "The team wallets of this account, with members, policy and addresses each checked against the wallet's keys; needs wallet.read.",
+        "The multisig wallets of this account, with members, policy and addresses each checked against the wallet's keys; needs wallet.read.",
         true,
         r#"{"type":"object","properties":{}}"#,
     ),
     (
         "dmsg_wallet_balances",
-        "Balances of every address of a team wallet, read from the ledgers and the configured chain endpoints; needs wallet.read.",
+        "Balances of every address of a multisig wallet, read from the ledgers and the configured chain endpoints; needs wallet.read.",
         true,
         r#"{"type":"object","required":["wallet"],"properties":{"wallet":{"type":"string"}}}"#,
     ),
     (
         "dmsg_wallet_propose_transfer",
-        "Propose a transfer from a team wallet address on this member's behalf; needs wallet.propose:<wallet>, and the member must list this Agent ID. Members approve it themselves; no tool approves. asset: icp, icrc:<ledger>, btc, evm:<chain>[:<token>], sol[:<mint>]; amounts in base units.",
+        "Propose a transfer from a multisig wallet address on this member's behalf; needs wallet.propose:<wallet>, and the member must list this Agent ID. Members approve it themselves; no tool approves. asset: icp, icrc:<ledger>, btc, evm:<chain>[:<token>], sol[:<mint>]; amounts in base units.",
         false,
         concat!(
             r#"{"type":"object","required":["wallet","from","asset","to","amount","max_fee"],"properties":{"wallet":{"type":"string"},"from":{"type":"integer","minimum":0},"#,
@@ -265,13 +265,13 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 38] = [
     ),
     (
         "dmsg_wallet_proposal_status",
-        "One proposal of a team wallet: status, approvals, plans and signed transactions; needs wallet.read.",
+        "One proposal of a multisig wallet: status, approvals, plans and signed transactions; needs wallet.read.",
         true,
         r#"{"type":"object","required":["wallet","proposal"],"properties":{"wallet":{"type":"string"},"proposal":{"type":"integer","minimum":1}}}"#,
     ),
     (
         "dmsg_wallet_execute",
-        "Execute an approved proposal of a team wallet: the wallet signs, this device checks the plan and broadcasts. A plan that needs this device's cosigner becomes an approval request. Needs wallet.execute:<wallet>.",
+        "Execute an approved proposal of a multisig wallet: the wallet signs, this device checks the plan and broadcasts. A plan that needs this device's cosigner becomes an approval request. Needs wallet.execute:<wallet>.",
         false,
         r#"{"type":"object","required":["wallet","proposal"],"properties":{"wallet":{"type":"string"},"proposal":{"type":"integer","minimum":1}}}"#,
     ),

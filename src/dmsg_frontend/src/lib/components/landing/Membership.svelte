@@ -81,7 +81,7 @@
               ></div
             >
             <div
-              ><dt>{$t('Team wallet slots')}</dt><dd
+              ><dt>{$t('Multisig wallet slots')}</dt><dd
                 >{number.format(plan.wallets)}</dd
               ></div
             >

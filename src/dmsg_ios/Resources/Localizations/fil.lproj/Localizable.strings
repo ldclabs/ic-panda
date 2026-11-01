@@ -16,8 +16,8 @@
 	<string>Available ang snapshot ng channel sa mga miyembrong may access sa panahong ito, kasama ang mga pahintulot sa pag-access sa kasaysayan sa ibang pagkakataon. Wala itong pag-expire ng link, limitasyon ng download-session o pag-recall.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Ang session sa pag-download ay isang retrieval allowance, hindi bilang ng mga nabasang file. Ang pag-expire o pagbawi ay hindi makakapagbura ng mga kopyang na-save na.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>Nakatali ang L1 ng native address sa key ng iisang device, kaya kukuha ang device na ito ng sariling address at doon ililipat ang mga coin. Bawat hakbang ay panukalang inaaprubahan ng team.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>Nakatali ang L1 ng native address sa key ng iisang device, kaya kukuha ang device na ito ng sariling address at doon ililipat ang mga coin. Bawat hakbang ay panukalang inaaprubahan ng mga miyembro.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Hindi ma-verify ang isang record o device key. Ang iyong workspace ay hindi nabura.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Tinatapos ang pag-update ng seguridad. Maghihintay ang bagong nilalaman hanggang matapos.</string>
 	<key>Folder name</key>
 	<string>Pangalan ng folder</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Para sa key na wala sa device na ito, gaya ng nasa nawalang device. Pagkatapos aprubahan ng team, magkakabisa ang bagong key makalipas ang 24 na oras.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Para sa key na wala sa device na ito, gaya ng nasa nawalang device. Pagkatapos aprubahan ng mga miyembro, magkakabisa ang bagong key makalipas ang 24 na oras.</string>
 	<key>Freeze this wallet?</key>
 	<string>I-freeze ang wallet na ito?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Pamahalaan ang mga subscription sa Apple</string>
 	<key>Manage file</key>
 	<string>Pamahalaan ang file</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Pamahalaan ang personal o pinagsasaluhang asset sa iba’t ibang blockchain. Itakda ang bilang ng kailangang pag-apruba at mga patakaran sa co-signing ng device.</string>
 	<key>Manage subscriptions</key>
 	<string>Pamahalaan ang mga subscription</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Lumilipat mula sa lumang device? Kukunin ng device na ito ang tungkulin, mga susi at mga wallet nito, saka babawiin ang lumang device.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Paglipat sa bagong device: humihiling ang bagong device na palitan ang luma, inaaprubahan ito ng lumang device, saka nagpapasahan ang dalawa nang hakbang-hakbang.</string>
+	<key>Multisig wallets</key>
+	<string>Mga multisig wallet</string>
 	<key>Mute notifications</key>
 	<string>I-mute ang mga notification</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Walang nakabahaging item na naghihintay</string>
 	<key>No snapshots on this device</key>
 	<string>Walang mga snapshot sa device na ito</string>
-	<key>No team wallets</key>
-	<string>Walang mga wallet ng koponan</string>
 	<key>Not enabled</key>
 	<string>Hindi pinagana</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>server</string>
 	<key>Session code</key>
 	<string>Session code</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Mag-set up ng co-signing ng device para sa sarili mong mga asset, o mag-imbita ng iba para sama-samang mamahala ng pondo.</string>
 	<key>Set up this account</key>
 	<string>I-set up ang account na ito</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Pahintulot ng system</string>
 	<key>Tags, separated by commas</key>
 	<string>Mga tag, na pinaghihiwalay ng mga kuwit</string>
-	<key>Team wallets</key>
-	<string>Mga wallet ng koponan</string>
 	<key>Terms of service</key>
 	<string>Mga tuntunin ng serbisyo</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Ito ay mga na-verify na backup mula sa mga device ng iyong account. I-restore nang tahasan upang mapanatili ang isang kopya sa device na ito.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Ang mga pag-export na ito ay hindi kailanman naglalaman ng mga root key ng account o mga signing key ng device. Ang mga pagbabago sa source item ay nangangailangan ng bagong snapshot.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Patuloy na kakailanganin ng mga native address na ito ang lumang device para sa L1. Maaari pa rin itong i-sweep ng team sa L2 kapag sapat na ang tanda ng bawat output.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Patuloy na kakailanganin ng mga native address na ito ang lumang device para sa L1. Maaari pa rin itong i-sweep ng mga miyembro sa L2 kapag sapat na ang tanda ng bawat output.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Nangangailangan ang account na ito ng nakarehistrong key ng pag-apruba. I-set up ang device na ito sa seguridad ng Hardware, o magtanong sa isa pang awtorisadong device.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Tinitingnan mo ang isang hindi nababagong makasaysayang bersyon.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Ikaw mismo ang nagsasagawa ng mga pagbabago sa provider. Itinatala ng dMsg ang iyong mga pahayag at sinusuri ang mga lokal na rebisyon; hindi nito mabe-verify ang upstream na paggawa, pagsubok o pagbawi.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Mga asset mo. Mga patakaran mo sa pag-apruba.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Lumilitaw ang iyong mga awtorisadong channel pagkatapos ng pag-synchronize.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

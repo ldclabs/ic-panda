@@ -1,8 +1,8 @@
-# dMsg team wallets: public dmsg-wallet/1 contract
+# dMsg multisig wallets: public dmsg-wallet/1 contract
 
 English | [简体中文](wallet_zh.md)
 
-This describes public interfaces, approval bytes, address derivation and external-chain transaction rules for `dmsg_wallet` (one instance per team) and its creation/upgrade factory `dmsg_wallet_hub`. Types are in [dmsg_types::wallet](../../src/dmsg_types/src/wallet.rs); digests, policy evaluation, address encoding and cosigner verification in [dmsg_protocol::wallet](../../src/dmsg_protocol/src/wallet/mod.rs). ICP interfaces follow [dmsg_wallet.did](../../src/dmsg_wallet/dmsg_wallet.did) and [dmsg_wallet_hub.did](../../src/dmsg_wallet_hub/dmsg_wallet_hub.did). Time uses Unix milliseconds; amounts use smallest asset units: e8s, satoshi, wei, lamport or token atomic units.
+This describes public interfaces, approval bytes, address derivation and external-chain transaction rules for `dmsg_wallet` (one independent instance per wallet) and its creation/upgrade factory `dmsg_wallet_hub`. Types are in [dmsg_types::wallet](../../src/dmsg_types/src/wallet.rs); digests, policy evaluation, address encoding and cosigner verification in [dmsg_protocol::wallet](../../src/dmsg_protocol/src/wallet/mod.rs). ICP interfaces follow [dmsg_wallet.did](../../src/dmsg_wallet/dmsg_wallet.did) and [dmsg_wallet_hub.did](../../src/dmsg_wallet_hub/dmsg_wallet_hub.did). Time uses Unix milliseconds; amounts use smallest asset units: e8s, satoshi, wei, lamport or token atomic units.
 
 ## Roles
 
@@ -18,7 +18,7 @@ Wallets make no HTTPS outcalls. Member clients read balances, UTXOs, nonces and 
 
 ## Members and roles
 
-Teams manage wallets through dMsg account members (`MemberId::Account`) or direct-calling Principals (`MemberId::Principal`). SNS-governed funds remain in the SNS treasury for SNS proposals, not team-wallet operations. Roles:
+One or more members manage each wallet under its policy, using dMsg accounts (`MemberId::Account`) or direct-calling Principals (`MemberId::Principal`). SNS-governed funds remain in the SNS treasury for SNS proposals, not multisig wallet operations. Roles:
 
 | Role | Proposals | Counted approvals | Veto / freeze |
 | --- | --- | --- | --- |
@@ -151,7 +151,7 @@ Anyone may call refuel(): under policy, when below min_cycles and within daily c
 
 ## Desktop and local protocol
 
-Structured desktop methods, multi-device packages, incremental audit and encrypted channel hints are described in the [team-wallet guide](../dMsg_wallet.md). Client creation verifies WalletCreate at the home before payment; importing cosignatures never executes automatically.
+Structured desktop methods, multi-device packages, incremental audit and encrypted channel hints are described in the [multisig wallet guide](../dMsg_wallet.md). Client creation verifies WalletCreate at the home before payment; importing cosignatures never executes automatically.
 
 
 ## Security revisions on 2026-10-24

@@ -45,17 +45,17 @@ pub struct Config {
     pub files_trash_days: u64,
     /// The reviewed freeze of the old service, once there is one.
     pub legacy: Option<LegacyConfig>,
-    /// Team wallets: the hub and the chain endpoints this client reads and
+    /// Multisig wallets: the hub and the chain endpoints this client reads and
     /// broadcasts through.
     pub wallet: WalletSettings,
 }
 
-/// Team wallet settings. The chain endpoints only read and broadcast:
+/// Multisig wallet settings. The chain endpoints only read and broadcast:
 /// wallets sign on the IC, and the client checks what it reads against
 /// what the wallet built.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WalletSettings {
-    /// The wallet hub; team wallets are off without one.
+    /// The wallet hub; multisig wallets are off without one.
     pub hub: Option<Principal>,
     /// An Esplora API, such as `https://mempool.space/api`.
     pub bitcoin_api: String,

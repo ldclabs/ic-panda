@@ -27,7 +27,7 @@ dMsg 是 ICPanda DAO 的产品之一，为人与智能体提供私密协作。�
 | 协议索引、签名与回执 | [English](protocol/README.md) · [简体中文](protocol/README_zh.md) |
 | 加密与恢复边界 | [加密实现](dmsg_encryption_zh.md) · [账户与根](protocol/account_root_zh.md) |
 | 凭据受控使用与秘密分享 | [Secrets 合同与验证入口](protocol/secrets_zh.md) |
-| 团队钱包 | [产品范围](dMsg_wallet_zh.md) · [公开合同](protocol/wallet_zh.md) · [桌面实现](../src/dmsg_desktop/README.md) |
+| 多签钱包 | [产品范围](dMsg_wallet_zh.md) · [公开合同](protocol/wallet_zh.md) · [桌面实现](../src/dmsg_desktop/README.md) |
 | 旧版数据与迁移 | [只读盘点](legacy_inventory_zh.md) · [个人档案](protocol/legacy_archive_zh.md) · [冻结证据](protocol/legacy_freeze_zh.md) |
 
 [协议索引](protocol/README_zh.md#协议导航)还覆盖云端投递、频道、浏览器登录、dmsg-connect、commerce 2、Agent Delegation 和 Mail 事件。各 canister README 负责具体限额、测量与运维；Candid 和共享向量定义可执行接口。
@@ -36,7 +36,7 @@ dMsg 是 ICPanda DAO 的产品之一，为人与智能体提供私密协作。�
 
 - 主客户端是共用 Rust daemon 的桌面应用与 CLI；网页应用使用 dmsg-connect/1，原浏览器扩展已退役，尚无移动端应用。
 - `dmsg_user` 与 `dmsg_directory` 已有线上用户数据。稳定布局变化必须提供保留数据的升级与旧 Wasm 验证，不得重装代替迁移。
-- 桌面端暂停新建团队钱包，已有钱包仍可使用；这不改变 CLI、daemon 或 hub 的创建接口。原生机密文件挂载有独立的 OS、打包与验证要求。
+- 桌面端暂停新建多签钱包，已有钱包仍可使用；这不改变 CLI、daemon 或 hub 的创建接口。原生机密文件挂载有独立的 OS、打包与验证要求。
 - 旧版个人档案继续支持阅读与导入。共享旧频道继承流程已从公开客户端删除；当前频道协议与旧版证据格式仍分别承担不同职责。
 - dMsg 尚未经过独立审计。既有本地测试与容量样本仅证明注明的范围，不是完整生产验收。
 

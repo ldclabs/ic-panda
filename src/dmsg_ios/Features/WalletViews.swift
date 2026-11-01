@@ -12,9 +12,19 @@ struct WalletsView: View {
     struct Pending: Decodable, Identifiable { let id: String; let wallet: String; let intent: DisplayValue }
     var body: some View {
         List {
-            Section("Team wallets") {
+            Section {
+                Text("Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            Section("Multisig wallets") {
                 ForEach(wallets) { wallet in NavigationLink(wallet.name) { WalletDetailView(wallet: wallet.wallet, name: wallet.name) } }
-                if wallets.isEmpty { Text("No team wallets").foregroundStyle(.secondary) }
+                if wallets.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your assets. Your approval rules.").font(.headline)
+                        Text("Set up device co-signing for your own assets, or invite others to manage funds together.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                }
             }
             Section("Join an existing wallet") {
                 TextField("Wallet canister ID", text: $walletID).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -37,7 +47,7 @@ struct WalletsView: View {
                     }
                 }
             }
-        }.privateScreen().navigationTitle("Wallets").task { await load() }.refreshable { await load() }
+        }.privateScreen().navigationTitle("Multisig wallets").task { await load() }.refreshable { await load() }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) { if let request { ApprovalDetailView(request: request) } }
     }
     private func load() async {

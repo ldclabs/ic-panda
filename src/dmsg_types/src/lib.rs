@@ -14,7 +14,7 @@ pub mod membership;
 pub mod payment;
 pub mod protocol;
 pub mod user;
-/// `dmsg-wallet/1` team wallets and their hub.
+/// `dmsg-wallet/1` multisig wallets and their hub.
 pub mod wallet;
 pub use protocol::*;
 /// Application-action signing contract and registered command schemas.

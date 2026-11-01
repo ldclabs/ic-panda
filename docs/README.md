@@ -27,7 +27,7 @@ This index was reviewed against public source `9fd70dca` on 2026-10-24. Document
 | Protocol index, signatures and receipts | [English](protocol/README.md) · [简体中文](protocol/README_zh.md) |
 | Encryption and recovery boundaries | [Encryption](dmsg_encryption.md) · [Accounts and roots](protocol/account_root.md) |
 | Approved credential use and secret sharing | [Secrets contract and verification](protocol/secrets.md) |
-| Team wallets | [Product scope](dMsg_wallet.md) · [Public contract](protocol/wallet.md) · [Desktop implementation](../src/dmsg_desktop/README.md) |
+| Multisig wallets | [Product scope](dMsg_wallet.md) · [Public contract](protocol/wallet.md) · [Desktop implementation](../src/dmsg_desktop/README.md) |
 | Legacy data and migration | [Read-only inventory](legacy_inventory.md) · [Personal archives](protocol/legacy_archive.md) · [Freeze evidence](protocol/legacy_freeze.md) |
 
 The [protocol index](protocol/README.md#protocol-map) also covers cloud delivery, channels, browser login, dmsg-connect, commerce 2, Agent Delegation and Mail events. Each canister README owns its detailed limits, measurements and operations; Candid and shared vectors define the executable interface.
@@ -36,7 +36,7 @@ The [protocol index](protocol/README.md#protocol-map) also covers cloud delivery
 
 - The main clients are the desktop app and CLI, sharing the Rust daemon. Web applications use dmsg-connect/1; the former browser extension is retired. There is no mobile app yet.
 - `dmsg_user` and `dmsg_directory` already contain production user data. Stable-layout changes require data-preserving upgrades and old-Wasm verification, never reinstallation.
-- Team-wallet creation is paused in the desktop app. Existing wallets remain accessible; this does not change the CLI, daemon or hub's creation interfaces. Native secret-file mounts have separate OS, packaging and validation requirements.
+- Multisig wallet creation is paused in the desktop app. Existing wallets remain accessible; this does not change the CLI, daemon or hub's creation interfaces. Native secret-file mounts have separate OS, packaging and validation requirements.
 - Legacy personal archives remain readable and importable. The old shared-channel inheritance workflow was removed from the public clients; the current channel protocol and legacy evidence formats still serve different purposes.
 - dMsg has not been independently audited. Recorded local tests and capacity samples have explicit scopes and are not blanket production acceptance.
 

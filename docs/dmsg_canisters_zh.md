@@ -6,7 +6,7 @@
 
 ## 组件
 
-控制面有七类服务，另有团队钱包工厂与每个团队的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
+控制面有七类服务，另有多签钱包工厂与各自独立的钱包实例。客户端、桥接页与私有云端分别承担自己的职责。
 
 | 包 | 职责 | 文档 |
 | --- | --- | --- |
@@ -20,8 +20,8 @@
 | dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 | dmsg_directory | Agent Delegation principal 文档的认证 HTTP 发布 | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
-| dmsg_wallet_hub | 团队钱包的激活、创建、版本登记、升级与锁定、成员索引 | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
-| dmsg_wallet | 团队钱包实例：成员、策略、提案、ICP/ICRC 转账、链密钥签名、审计 | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
+| dmsg_wallet_hub | 多签钱包的激活、创建、版本登记、升级与锁定、成员索引 | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
+| dmsg_wallet | 多签钱包实例：成员、策略、提案、ICP/ICRC 转账、链密钥签名、审计 | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
 
 ## 当前合同
 
@@ -31,7 +31,7 @@
 - **公开身份**：user home 保存官方 PrincipalDocument 展示字段及 controller 记录，`dmsg_directory` 发布认证 JSON。展示资料更新写链，公开头像二进制留在云端。Agent controller 是客户端 vault 中自持的 Ed25519 key，见 [Agent Delegation](protocol/agent_zh.md)。
 - **名称**：注册表保存规范名称及可选展示大小写，处理注册、旧名称认领和账户批准的转移；注册费直接进入配置的收入账户。
 - **支付与订阅**：`dmsg_payment` 结算付费来信托管；`dmsg_commerce` 实现 commerce 2 现金结账、资源权益与自动归集，并接收登记验证方的 Apple 交易事实；共享 `membership` 实现 membership 2 的 PANDA 资格与跨产品占用。见[商业合同](protocol/commerce_zh.md)。这些职责独立于日常加密投递。
-- **团队钱包**：hub 激活实例并管理已登记的代码版本；各钱包管理自己的提案、批准、资金、链上密钥签名与审计；成员按设备绑定调用身份，可接管或解绑其他设备的绑定，协签钥匙可由旧钥匙原地轮换，或经 Admin 提案替换。升级先由钱包接受。桌面端当前暂停新建，已有钱包操作继续提供，见[钱包合同](protocol/wallet_zh.md)与[桌面范围](dMsg_wallet_zh.md)。
+- **多签钱包**：hub 激活实例并管理已登记的代码版本；各钱包管理自己的提案、批准、资金、链上密钥签名与审计；成员按设备绑定调用身份，可接管或解绑其他设备的绑定，协签钥匙可由旧钥匙原地轮换，或经 Admin 提案替换。升级先由钱包接受。桌面端当前暂停新建，已有钱包操作继续提供，见[钱包合同](protocol/wallet_zh.md)与[桌面范围](dMsg_wallet_zh.md)。
 
 普通消息、文件、保险库编辑和频道控制不增加逐条 ICP update。桌面应用、CLI 和 MCP 共用 Rust daemon；[iOS](../src/dmsg_ios/README.md) 通过 UniFFI 直接复用客户端核心，Apple 与系统能力见 [mobile 合同](protocol/mobile_zh.md)；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。云端互操作见 [cloud_zh.md](protocol/cloud_zh.md)，不在此复制私有实现。
 

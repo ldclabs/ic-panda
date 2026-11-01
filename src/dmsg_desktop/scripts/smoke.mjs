@@ -2000,10 +2000,10 @@ smoke: try {
   assert.equal(await main.textContent('[data-testid="plan-name"]'), 'Free')
   await main.waitForSelector('[data-testid="plan-max-wallets"]')
   assert.match(await main.textContent('[data-testid="plan-device-limit"]'), /2 devices/)
-  assert.match(await main.textContent('[data-testid="plan-wallet-limit"]'), /Team wallet slots: 0/)
+  assert.match(await main.textContent('[data-testid="plan-wallet-limit"]'), /Multisig wallet slots: 0/)
   for (const [tier, devices, wallets] of [['plus', 3, 1], ['pro', 5, 3], ['max', 10, 10]]) {
     assert.match(await main.textContent(`[data-testid="plan-${tier}-devices"]`), new RegExp(`${devices} devices`))
-    assert.match(await main.textContent(`[data-testid="plan-${tier}-wallets"]`), new RegExp(`Team wallet slots: ${wallets}`))
+    assert.match(await main.textContent(`[data-testid="plan-${tier}-wallets"]`), new RegExp(`Multisig wallet slots: ${wallets}`))
   }
   const statusReads = calls.filter((c) => c.method === 'plan/status').length
   await main.click('[data-testid="plan-refresh"]')
@@ -2035,8 +2035,8 @@ smoke: try {
   await main.keyboard.press('Enter')
   await main.getByTestId('wallet-quotas-error').waitFor({ state: 'hidden' })
   assert.equal(latest('plan/catalog').params.mode, 'fresh')
-  assert.match(await main.getByTestId('plan-wallet-limit').textContent(), /Team wallet slots: 0/)
-  assert.match(await main.getByTestId('plan-max-wallets').textContent(), /Team wallet slots: 10/)
+  assert.match(await main.getByTestId('plan-wallet-limit').textContent(), /Multisig wallet slots: 0/)
+  assert.match(await main.getByTestId('plan-max-wallets').textContent(), /Multisig wallet slots: 10/)
   methods['plan/catalog'] = normalCatalog
   // The relay's notice of an account over its plan is acknowledged once, which starts its export window.
   await main.click('[data-testid="plan-notice-ack"]')
@@ -2370,7 +2370,7 @@ smoke: try {
   const finishWalletDeposits = hold('wallet/deposits')
   const finishFirstProposals = WALLET_CREATION_PAUSED ? hold('wallet/queue') : null
   if (WALLET_CREATION_PAUSED) wallets.state.enabled = true
-  await main.click('nav >> text=Team wallets')
+  await main.click('nav >> text=Multisig wallets')
   await waitFor(() => held.get('wallet/deposits'))
   if (WALLET_CREATION_PAUSED) {
     // Main wallet details are independent of deposits and the proposal list.
@@ -2437,7 +2437,7 @@ smoke: try {
     await main.waitForSelector('[data-testid="wallet-quote-line"]')
     const quoteLine = await main.textContent('[data-testid="wallet-quote-line"]')
     assert.match(quoteLine, /0 left on Free/)
-    assert.match(quoteLine, /Your plan cannot create a team wallet/)
+    assert.match(quoteLine, /Your plan cannot create a multisig wallet/)
     assert.equal(await main.locator('[data-testid="wallet-create"]').count(), 0)
     await waitFor(() => latest('wallet/quote_preview'))
 
@@ -2531,7 +2531,7 @@ smoke: try {
     await main.waitForSelector('[data-testid="wallet-creation-paused"]')
   } else {
     // Dismissing a notice does not cancel the request or let a late activation reply restore it.
-    await main.getByRole('button', { name: 'New wallet', exact: true }).click()
+    await main.getByRole('button', { name: 'Create wallet', exact: true }).click()
     await main.fill('[data-testid="wallet-name"]', 'Another team')
     const finishActivation = hold('wallet/activation')
     await main.click('[data-testid="wallet-create"]')
@@ -2855,7 +2855,7 @@ smoke: try {
   await main.evaluate(async (wallet) => { const r = await window.dmsg.call('wallet/unbind', {wallet, devices:['ab'.repeat(32)], source:'gui'}); await window.dmsg.openApproval(r.id) }, wallets.a)
   await approval.waitForSelector('[data-testid="approval-wallet-devices"]')
   assert.match(await approval.textContent('[data-testid="approval-wallet-devices"]'), /(ab){32}/)
-  assert.match(await approval.textContent('body'), /Unbind devices from a team wallet[\s\S]*can no longer act for your account in this wallet/)
+  assert.match(await approval.textContent('body'), /Unbind devices from a multisig wallet[\s\S]*can no longer act for your account in this wallet/)
   // The approval window follows the language and theme the main window picks.
   const approvalWindow = await app.browserWindow(approval)
   for (const [locale, theme, width, height] of [['zh','light',460,720],['zh','dark',400,560],['fr','light',400,560],['ar','dark',400,560]]) {

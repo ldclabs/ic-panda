@@ -67,7 +67,7 @@ AEAD prevents keyless ciphertext tampering, not refusal to deliver, hidden recor
 | II session key | Generated each login; presence-protected fast unlock may LDK-seal the restricted login | II delegation session key, usable before unlock |
 | Controller key | Random 32 bytes in a vault entry | Local Agent Delegation signing, synced under the root |
 | Hosted Agent ID seed | Random 32 bytes in a vault entry whose ID its label determines; a resident Agent ID keeps a copy in the credential store | The Agent ID's Ed25519 signatures; while locked only resident Agent IDs sign |
-| Wallet cosigner key | macOS: a Secure Enclave P-256 key; otherwise a software P-256 key sealed under the LDK and declared non-hardware | Team wallet cosigning; see the [wallet contract](protocol/wallet.md) |
+| Wallet cosigner key | macOS: a Secure Enclave P-256 key; otherwise a software P-256 key sealed under the LDK and declared non-hardware | Multisig wallet cosigning; see the [wallet contract](protocol/wallet.md) |
 | vetKD derived public key | COSE fixed-context public key; client checks name/fingerprint | IBE recovery-envelope encryption |
 
 Local protection chain:
@@ -255,7 +255,7 @@ Approval.hardware = { key_id, signature = P256(approval_key, H) }
 ```
 
 - A purpose the account's policy requires needs a valid proof by the currently registered key; a proof that comes along otherwise is verified too. Only account state decides what is required, so once on, old clients (Candid without the `hardware` field) are refused.
-- Purposes: `AccountControl` (approval keys, both policies, recovery delay, login bindings), `DeviceControl` (adding and revoking devices, changing capabilities) and `PrincipalControl` (enabling the Agent principal, registering and retiring controllers) are always included once on; `Payment` (cash checkout and PANDA subscription application approvals, `AuthorizeHandle`) and `Attestation` (`attest`, `attest_app_action`, third-party authentication) are optional. Root rotation, recovery disputes, the principal display document, controller renames and compromise marks, team wallet approvals and recovery derivation are not protected.
+- Purposes: `AccountControl` (approval keys, both policies, recovery delay, login bindings), `DeviceControl` (adding and revoking devices, changing capabilities) and `PrincipalControl` (enabling the Agent principal, registering and retiring controllers) are always included once on; `Payment` (cash checkout and PANDA subscription application approvals, `AuthorizeHandle`) and `Attestation` (`attest`, `attest_app_action`, third-party authentication) are optional. Root rotation, recovery disputes, the principal display document, controller renames and compromise marks, multisig wallet approvals and recovery derivation are not protected.
 - Registration needs the new key's proof of possession over `digest("dmsg/approval-key/v1", (home, account, device_id, public_key))`, and one key cannot be registered to two devices. Any active device manages its own key; registering or retiring another device's key needs an administrator. Revoking a device retires its key. Turning the policy on needs a valid proof from the approving device itself.
 - Approval keys and the policy live in account state and are returned by `AccountInfo`; they are not in `Device`, `devices_root` or the security leaf, so cloud and `dmsg_directory` security evidence is unchanged. The user home's stable layout is schema 17 (device successions, likewise only in account state), upgraded in place from 14, 15 and 16.
 

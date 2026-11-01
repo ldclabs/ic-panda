@@ -64,9 +64,9 @@
     },
     wallets: {
       glyph: 'coins',
-      label: 'Team wallets',
+      label: 'Multisig wallets',
       detail:
-        'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy',
+        'Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.',
       key: '8'
     }
   }
@@ -508,7 +508,7 @@
                     ><span class="tp-state wait">{$t('Proposed')}</span></p
                   >
                   <b
-                    >{$t('Pay {amount} from the team wallet', {
+                    >{$t('Pay {amount} from the multisig wallet', {
                       amount: ltr('0.4 BTC')
                     })}</b
                   >

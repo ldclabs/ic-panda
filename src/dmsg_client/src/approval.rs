@@ -355,7 +355,7 @@ pub enum Action {
         /// The event's commitment.
         digest: Hash,
     },
-    /// Create or join a team wallet, decide on its proposal, or cosign
+    /// Create or join a multisig wallet, decide on its proposal, or cosign
     /// one of its transactions.
     Wallet {
         /// Journal ID.

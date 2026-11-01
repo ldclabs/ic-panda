@@ -24,7 +24,7 @@ App Attest memproses pengidentifikasi kunci, bukti pengesahan/pernyataan, dan ta
 
 Pembelian StoreKit ditangani oleh Apple. Verifikator dan perdagangan kami canister memproses pengidentifikasi transaksi/produk, token pengikatan akun, tanggal pembelian dan kedaluwarsa, dan status pengembalian dana/pencabutan. Mereka tidak menerima rincian kartu pembayaran Anda. Klien dMsg lainnya dapat mendukung pembayaran dompet ICP dan keanggotaan PANDA, dengan buku besar umum dan catatan hak. Penghapusan akun tidak membatalkan langganan Apple; mengelola langganan di akun Apple Anda.
 
-Kebijakan dan proposal dompet tim diproses oleh dompet canisters; visibilitasnya mengikuti pengaturan dompet. Penyedia Blockchain RPC menerima alamat, data transaksi, dan informasi IP yang diperlukan untuk pertanyaan saldo, simulasi biaya, dan penyiaran. Titik akhir default mencakup mempool.space, PublicNode, mainnet.base.org, dan api.mainnet-beta.solana.com; alternatif yang dikonfigurasi memiliki praktik privasinya sendiri.
+Kebijakan dan proposal dompet multisig diproses oleh dompet canisters; visibilitasnya mengikuti pengaturan dompet. Penyedia Blockchain RPC menerima alamat, data transaksi, dan informasi IP yang diperlukan untuk pertanyaan saldo, simulasi biaya, dan penyiaran. Titik akhir default mencakup mempool.space, PublicNode, mainnet.base.org, dan api.mainnet-beta.solana.com; alternatif yang dikonfigurasi memiliki praktik privasinya sendiri.
 
 ## 4. Integrasi data dan sistem lokal
 

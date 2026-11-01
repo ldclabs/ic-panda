@@ -24,7 +24,7 @@ App Attest 使用应用生成的密钥标识、证明和挑战数据验证应用
 
 StoreKit 内购由 Apple 处理。我们的验证服务与商业 canister 处理交易和商品标识、账号绑定 token、购买及到期日期、退款与撤销状态，不接收银行卡资料。其他 dMsg 客户端可能支持 ICP 钱包付款和 PANDA 会员，相关账本与权益记录公开可验证。删除 dMsg 账号不会取消 Apple 订阅，请在 Apple 账号中管理订阅。
 
-团队钱包的策略和提案由钱包 canister 处理，可见范围遵循钱包设置。查询余额、估算费用和广播交易时，区块链 RPC 服务会收到所需的地址、交易数据及 IP 信息。默认端点包括 mempool.space、PublicNode、mainnet.base.org 和 api.mainnet-beta.solana.com；另行配置的服务适用其各自隐私政策。
+多签钱包的策略和提案由钱包 canister 处理，可见范围遵循钱包设置。查询余额、估算费用和广播交易时，区块链 RPC 服务会收到所需的地址、交易数据及 IP 信息。默认端点包括 mempool.space、PublicNode、mainnet.base.org 和 api.mainnet-beta.solana.com；另行配置的服务适用其各自隐私政策。
 
 ## 4. 本机数据与系统集成
 

@@ -1,4 +1,4 @@
-//! The daemon methods of team wallets (`wallet/*`). Reading, proposing,
+//! The daemon methods of multisig wallets (`wallet/*`). Reading, proposing,
 //! executing approved proposals, broadcasting, reporting and returning an
 //! unused activation deposit to its payer run at once; creating a wallet,
 //! joining one, unbinding devices, deciding on a proposal and cosigning

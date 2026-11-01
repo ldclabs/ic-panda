@@ -448,13 +448,13 @@ type ApprovalKeyInput = record {
 };
 // Exact purpose for account approval, distinct from product authorization.
 type ApprovalPurpose = variant {
-  // Join a team wallet and bind the actor Principal; the service is the wallet.
+  // Join a multisig wallet and bind the actor Principal; the service is the wallet.
   WalletJoin;
-  // Create a team wallet; the service is the wallet hub.
+  // Create a multisig wallet; the service is the wallet hub.
   WalletCreate;
   // Cash order approval.
   CashCheckout;
-  // Decide on a team wallet proposal; the service is the wallet.
+  // Decide on a multisig wallet proposal; the service is the wallet.
   WalletProposal;
   // Full subscription waiver approval.
   PandaSubscription;
@@ -591,7 +591,7 @@ type Capability = variant {
   // Read account ciphertext through the cloud service. The user home only
   // records it: every active device receives a content-root envelope.
   VaultUnlock;
-  // Create, join and decide on team wallet proposals.
+  // Create, join and decide on multisig wallet proposals.
   WalletApprove;
   // Reserve and commit content roots.
   RootManage;

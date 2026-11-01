@@ -59,7 +59,7 @@ flowchart LR
 
 1. **登录 Principal**：caller 必须在账户的 `auth_bindings` 中（最多 8 个）。登录只能证明 caller 是谁，本身不授予设备权限。
 2. **设备批准**：设备用 Ed25519 签名 `Approval`。被签名的摘要覆盖 user home、账户、操作域、命令摘要、设备、`security_epoch`、设备序号、`request_id` 和期限，期限最长 5 分钟。签名的设备必须未撤销，并具备该操作要求的能力。设备序号必须等于 `next_sequence`，成功后加 1。`security_epoch` 增加后，所有未提交的批准都会失效。
-3. **批准钥匙**（账户开启硬件批准政策时）：受保护用途的批准还须带 `Approval.hardware`，即该设备登记的 P-256 批准钥匙对 `digest("dmsg/hardware-approval/v1", (批准摘要, key_id))` 的低 s 签名。账户、设备与 Agent 主体三项控制用途随政策必含，付款（`CashCheckout`、`PandaSubscription` 应用批准与 `AuthorizeHandle`）与正式认证（`attest`、`attest_app_action`、`approve_authentication`）可选。是否需要只由账户状态决定；请求带来的证明即使不需要也核验。四个入口（账户变更、认证、恢复派生、外部批准）都经同一个 `check_device`；恢复派生、换根、争议恢复和团队钱包批准不要求钥匙。
+3. **批准钥匙**（账户开启硬件批准政策时）：受保护用途的批准还须带 `Approval.hardware`，即该设备登记的 P-256 批准钥匙对 `digest("dmsg/hardware-approval/v1", (批准摘要, key_id))` 的低 s 签名。账户、设备与 Agent 主体三项控制用途随政策必含，付款（`CashCheckout`、`PandaSubscription` 应用批准与 `AuthorizeHandle`）与正式认证（`attest`、`attest_app_action`、`approve_authentication`）可选。是否需要只由账户状态决定；请求带来的证明即使不需要也核验。四个入口（账户变更、认证、恢复派生、外部批准）都经同一个 `check_device`；恢复派生、换根、争议恢复和多签钱包批准不要求钥匙。
 
 | 能力                              | 用途                                                                                   |
 | --------------------------------- | -------------------------------------------------------------------------------------- |

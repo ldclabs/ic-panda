@@ -610,7 +610,7 @@ impl Deployment {
         ledger
     }
 
-    /// Install the team wallet hub with a test cycles minting canister,
+    /// Install the multisig wallet hub with a test cycles minting canister,
     /// register the `dmsg-wallet` application and product with commerce and
     /// the current `dmsg_wallet` module with the hub. Activation costs
     /// `price_e8s` on a separate ICP ledger; Free accounts may create two wallets.

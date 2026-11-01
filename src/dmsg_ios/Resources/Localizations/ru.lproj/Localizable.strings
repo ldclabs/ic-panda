@@ -16,8 +16,8 @@
 	<string>Снимок канала доступен участникам с доступом к этой эпохе, включая получивших доступ к истории позднее. У него нет срока действия ссылки, лимита сеансов скачивания или возможности изъятия.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Сеанс скачивания разрешает получение данных, а не учитывает чтения файла. Истечение срока или отзыв не удаляют уже сохранённые копии.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>L1 нативного адреса привязан к ключу одного устройства, поэтому это устройство получает собственный адрес, и средства переводятся на него. Каждый шаг — предложение, которое одобряет команда.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>L1 нативного адреса привязан к ключу одного устройства, поэтому это устройство получает собственный адрес, и средства переводятся на него. Каждый шаг — предложение, которое одобряют участники.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Не удалось проверить запись или ключ устройства. Рабочая область не удалена.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Завершается обновление безопасности. Новые данные ожидают его окончания.</string>
 	<key>Folder name</key>
 	<string>Имя папки</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Для ключа, которого нет на этом устройстве, например с потерянного. После одобрения командой новый ключ начнёт действовать через 24 часа.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Для ключа, которого нет на этом устройстве, например с потерянного. После одобрения участниками новый ключ начнёт действовать через 24 часа.</string>
 	<key>Freeze this wallet?</key>
 	<string>Заморозить этот кошелёк?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Управлять подписками Apple</string>
 	<key>Manage file</key>
 	<string>Управлять файлом</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Управляйте личными или общими активами в разных блокчейнах. Настраивайте пороги одобрения и правила совместной подписи устройств.</string>
 	<key>Manage subscriptions</key>
 	<string>Управлять подписками</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Переходите со старого устройства? Это устройство примет его роль, ключи и кошельки, затем старое будет отозвано.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Переход на новое устройство: новое просит заменить старое, старое одобряет, затем оба шаг за шагом передают дела.</string>
+	<key>Multisig wallets</key>
+	<string>Мультиподписные кошельки</string>
 	<key>Mute notifications</key>
 	<string>Без уведомлений</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Нет ожидающих общих элементов</string>
 	<key>No snapshots on this device</key>
 	<string>На этом устройстве нет снимков</string>
-	<key>No team wallets</key>
-	<string>Нет командных кошельков</string>
 	<key>Not enabled</key>
 	<string>Не включено</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>Сервер</string>
 	<key>Session code</key>
 	<string>Код сеанса</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Настройте совместную подпись устройств для личных активов или пригласите других управлять средствами вместе.</string>
 	<key>Set up this account</key>
 	<string>Настроить этот аккаунт</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Системное разрешение</string>
 	<key>Tags, separated by commas</key>
 	<string>Метки через запятую</string>
-	<key>Team wallets</key>
-	<string>Командные кошельки</string>
 	<key>Terms of service</key>
 	<string>Условия использования</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Это проверенные копии с устройств вашего аккаунта. Выберите восстановление, чтобы сохранить копию здесь.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Экспорт не содержит корневых ключей или ключей подписи устройства. После изменения исходных данных нужен новый снимок.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Для L1 этих нативных адресов по-прежнему нужно старое устройство. Команда сможет перевести средства через L2, когда каждый выход станет достаточно старым.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Для L1 этих нативных адресов по-прежнему нужно старое устройство. Участники смогут перевести средства через L2, когда каждый выход станет достаточно старым.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Для аккаунта нужен зарегистрированный ключ подтверждения. Настройте устройство в разделе аппаратной безопасности или используйте другое авторизованное устройство.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Вы просматриваете неизменяемую историческую версию.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Изменения у поставщика вы выполняете самостоятельно. dMsg записывает ваши подтверждения и проверяет локальные версии, но не может проверить создание, тестирование или отзыв у поставщика.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Ваши активы. Ваши правила одобрения.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Авторизованные каналы появятся после синхронизации.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

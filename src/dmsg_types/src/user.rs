@@ -56,7 +56,7 @@ pub enum Capability {
     FormalApprove,
     /// Authorize recipient payment offers.
     PaymentOffer,
-    /// Create, join and decide on team wallet proposals.
+    /// Create, join and decide on multisig wallet proposals.
     WalletApprove,
 }
 

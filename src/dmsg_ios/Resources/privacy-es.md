@@ -24,7 +24,7 @@ App Attest verifica la instalación con un identificador de clave, pruebas y des
 
 Apple procesa las compras StoreKit. Nuestro verificador y canister comercial procesan identificadores de transacción y producto, un token vinculado a la cuenta, fechas y estados de reembolso o revocación, sin datos de tarjetas. Otros clientes pueden ofrecer pagos ICP y membresía PANDA, con registros públicos. Eliminar la cuenta dMsg no cancela una suscripción Apple: gestiónala en tu cuenta Apple.
 
-Los canisters de cartera procesan las políticas y propuestas del equipo; su visibilidad depende de los ajustes. Los proveedores RPC reciben direcciones, datos de transacciones e información IP para consultar saldos, simular comisiones y difundir transacciones. Los servicios predeterminados incluyen mempool.space, PublicNode, mainnet.base.org y api.mainnet-beta.solana.com; las alternativas configuradas tienen sus propias prácticas.
+Los canisters de cartera procesan las reglas y propuestas de los monederos multifirma; su visibilidad depende de los ajustes. Los proveedores RPC reciben direcciones, datos de transacciones e información IP para consultar saldos, simular comisiones y difundir transacciones. Los servicios predeterminados incluyen mempool.space, PublicNode, mainnet.base.org y api.mainnet-beta.solana.com; las alternativas configuradas tienen sus propias prácticas.
 
 ## 4. Datos locales e integraciones
 

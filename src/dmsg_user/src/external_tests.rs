@@ -129,7 +129,7 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
         .is_err()
     );
     // An account that protects attestations needs the device's key here;
-    // payments and team wallets fall under their own purposes.
+    // payments and multisig wallets fall under their own purposes.
     account.hardware_policy = vec![HardwarePurpose::Attestation];
     assert_eq!(
         precheck(

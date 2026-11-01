@@ -10,7 +10,7 @@ and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
 | --- | --- |
 | `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it when it changed, with each session's presented heads apart; resource reads that save nothing; the sessions an Agent ID was used in, and forgetting everything of one that is no longer hosted; its published Agent Profile, read from the configured profile services and checked against its signature; the host allowlist and the blocked mail senders come only from `config.toml` |
 | `resources` | The local connector's resources (§4.4) and the read-only tool behind each |
-| `tools` | The MCP catalog: the 41 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 34 `dmsg_*` tools, six of them for team wallets, seven for MCP Events endpoints and two for the agent's own capabilities |
+| `tools` | The MCP catalog: the 41 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 34 `dmsg_*` tools, six of them for multisig wallets, seven for MCP Events endpoints and two for the agent's own capabilities |
 
 Every tool call restores the connector from its snapshot (local connector
 §4.1: hosts, rooms and records, members, timeline, read and presented

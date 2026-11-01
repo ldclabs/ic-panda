@@ -1,4 +1,4 @@
-//! dMsg team wallet: one canister per team. Members propose intents and
+//! dMsg multisig wallet: one independent canister per wallet. Members propose intents and
 //! approve them under the wallet's policy; the canister moves ICP and ICRC
 //! assets itself and signs Bitcoin, EVM and Solana transactions with chain
 //! keys for members to broadcast. It makes no HTTPS outcalls.

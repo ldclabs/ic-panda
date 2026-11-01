@@ -16,7 +16,7 @@ export default {
   "Active devices": "Активные устройства",
   "Active channels": "Активные каналы",
   "Formal signatures / month": "Формальные подписи / месяц",
-  "Team wallet slots": "Лимит командных кошельков",
+  "Multisig wallet slots": "Лимит мультиподписных кошельков",
   "Privacy comes with every plan.": "Приватность в каждом тарифе.",
   "Encryption, device revocation and account recovery are included at every tier.": "Шифрование, отзыв доступа устройств и восстановление аккаунта доступны на каждом уровне.",
   "Choose your plan in the app.": "Выберите тариф в приложении.",
@@ -736,11 +736,11 @@ export default {
   'Statement': 'Заявление',
   'Synced': 'Синхронизировано',
   'Team treasury': 'Казна команды',
-  'Team wallets': 'Командные кошельки',
-  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
-    'Командные кошельки в разработке. До независимого аудита используйте их только для проверки, с небольшими суммами.',
-  'Team wallets, their proposals and approvals':
-    'Командные кошельки, их предложения и одобрения',
+  "Multisig wallets": "Мультиподписные кошельки",
+  "Multisig wallets are in development. Until an independent audit, use them only to test, with small amounts.":
+    "Мультиподписные кошельки в разработке. До независимого аудита используйте их только для проверки, с небольшими суммами.",
+  "Multisig wallets, their proposals and approvals":
+    "Мультиподписные кошельки, их предложения и одобрения",
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'Клиент, демон, протоколы и канистры находятся в публичном репозитории. У облачного сервиса в продакшене своя операционная граница доверия.',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
@@ -986,10 +986,10 @@ export default {
   'Important decisions stay explicit.': 'Важные решения — с подтверждением.',
   'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
     'Вы лично проверяете запросы на официальную подпись. Предложения по общим средствам проходят по правилам команды. Агенты предлагают, люди решают.',
-  'Explore a team wallet proposal':
-    'Посмотреть предложение командного кошелька',
-  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
-    'Командный кошелёк хранит общие средства и соблюдает правила подтверждения. Попробуйте предложение агента и посмотрите, какие решения остаются за людьми.',
+  "Explore a multisig wallet proposal":
+    "Посмотреть предложение мультиподписного кошелька",
+  "Try a proposal from an agent and see which decisions belong to people.":
+    "Попробуйте обработать предложение агента и узнайте, какие решения принимают люди.",
   'Follow a request from a website': 'Проследить запрос с сайта',
   'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
     'Сайт запрашивает подпись. Вы проверяете запрос в dMsg, а сайт получает результат. Расширение браузера не требуется.',
@@ -1165,8 +1165,8 @@ export default {
   'Payment': 'Платёж',
   'Sign the release statement': 'Подписать заявление о выпуске',
   'Sign in to {site}': 'Вход на {site}',
-  'Pay {amount} from the team wallet':
-    'Оплатить {amount} из командного кошелька',
+  "Pay {amount} from the multisig wallet":
+    "Оплатить {amount} из мультиподписного кошелька",
   'Approving signs this statement with your account key.':
     'Одобрение подпишет это заявление ключом вашего аккаунта.',
   'Approving proves to the site that it is you.':
@@ -1184,8 +1184,8 @@ export default {
   'The desktop app': 'Настольное приложение',
   'Everything in one window.': 'Всё в одном окне.',
   'Every decision in its own.': 'Каждое решение — в своём.',
-  'Channels, files, your vault, letters, agents and team wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.':
-    'Каналы, файлы, хранилище, письма, агенты и командные кошельки — рядом друг с другом. Запросы от сайтов, агентов и терминала открываются в отдельном окне одобрения, и решаете там только вы.',
+  "Channels, files, your vault, letters, agents and multisig wallets sit side by side. Requests from websites, agents and the terminal open in a separate approval window, and only you decide there.":
+    "Каналы, файлы, хранилище, письма, агенты и мультиподписные кошельки — рядом друг с другом. Запросы от сайтов, агентов и терминала открываются в отдельном окне одобрения, и решаете там только вы.",
   'The dMsg desktop app': 'Настольное приложение dMsg',
   'Views': 'Разделы',
   'Work': 'Работа',
@@ -1202,8 +1202,8 @@ export default {
     'Запросы, ждущие вашего решения, подписи и их записи',
   'Agent IDs, what they may do and what they did':
     'Agent ID: что им разрешено и что они сделали',
-  'Team funds on ICP, Bitcoin, EVM and Solana, managed together under wallet policy':
-    'Совместное управление средствами ICP, Bitcoin, EVM и Solana по правилам кошелька',
+  "Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.":
+    "Управляйте личными или общими активами в разных блокчейнах. Настраивайте пороги одобрения и правила совместной подписи устройств.",
   'Account synced': 'Аккаунт синхронизирован',
   'Unlock with Touch ID': 'Разблокировать с Touch ID',
   'Lock': 'Заблокировать',

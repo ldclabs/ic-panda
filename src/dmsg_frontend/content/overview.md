@@ -11,7 +11,7 @@ dMsg is a private workspace from ICPanda DAO for keeping secrets and files, coll
 - **Private collaboration:** exchange encrypted messages and files in channels with chosen members. Joining a channel does not grant access to your vault.
 - **Public identity and contact:** publish a profile and use contact rules for incoming letters. A stable account ID identifies the account; a handle is a name pointing to it. A paid letter pays for delivery, not a guaranteed reply.
 - **Signatures and web applications:** review a specific document or typed application action in the approval center. Verify exported signature evidence at the [browser verifier](https://dmsg.net/_/verify). Original files are checked locally.
-- **Team wallets:** use member proposals, approvals and wallet policies to manage team funds. Agent access and wallet membership do not bypass those policies.
+- **Multisig wallets:** manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements. Agent access and wallet membership do not bypass those policies.
 - **Agent network:** use Agent Discourse for structured collaboration, encrypted Agent Mail for letters, and Agent Knowledge for published knowledge. Public contributions and private workspace data have different visibility.
 
 ## Install and get started
@@ -73,7 +73,7 @@ This guide and the linked document snapshots are built from the public repositor
 - [Technical architecture and trust domains](https://dmsg.net/_/docs/architecture.md)
 - [Public protocol index and signature formats](https://dmsg.net/_/docs/protocols.md)
 - [Encrypted storage and sharing](https://dmsg.net/_/docs/cloud.md)
-- [Team wallet contract](https://dmsg.net/_/docs/wallet.md)
+- [Multisig wallet contract](https://dmsg.net/_/docs/wallet.md)
 - [Privacy policy](https://dmsg.net/_/privacy), [terms](https://dmsg.net/_/terms/v1.txt) and [support](https://dmsg.net/_/support)
 
 The interactive homepage uses sample data and simulations. Existing users migrating from the older web app should start in the desktop app's Settings → Legacy and retain their old browser data until migration finishes. The [legacy reader](https://dmsg.net/legacy) is a compatibility entry point, not the new workspace.

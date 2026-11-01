@@ -995,7 +995,11 @@
                 onProposed={proposed}
               />{/key}{/if}
         {:else if !loading}
-          <Section title={t('twNav')} description={listLoading ? w('loading') : error ? w('retry') : t('twNone')} icon="coins"
+          <Section
+            title={!listLoading && !error && wallets.length === 0 ? t('twNone') : t('twNav')}
+            description={listLoading ? w('loading') : error ? w('retry') : wallets.length === 0 ? t('twEmptyHint') : undefined}
+            icon="coins"
+            testid="wallet-empty"
             ><div class="flex flex-wrap gap-2"
               >{#each wallets as entry (entry.wallet)}<button class={buttonClass('secondary', 'sm')} onclick={() => select(entry.wallet)}
                   >{entry.name}</button

@@ -258,7 +258,7 @@ enum Command {
     /// The payer: the login, or an identity PEM file.
     #[command(subcommand)]
     Payer(commands::PayerCommand),
-    /// Team wallets.
+    /// Multisig wallets.
     #[command(subcommand)]
     Wallet(wallet_commands::WalletCommand),
     /// Plans and membership: catalog, status and checkouts.

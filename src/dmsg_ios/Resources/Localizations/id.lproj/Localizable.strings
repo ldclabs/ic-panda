@@ -16,8 +16,8 @@
 	<string>Cuplikan saluran tersedia bagi anggota yang memiliki akses ke periode ini, termasuk izin riwayat selanjutnya. Tidak ada masa berlaku tautan, batas sesi pengunduhan, atau penarikan kembali.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Sesi pengunduhan adalah tunjangan pengambilan, bukan hitungan pembacaan file. Kedaluwarsa atau pencabutan tidak dapat menghapus salinan yang sudah disimpan.</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>L1 alamat native terikat pada kunci satu perangkat, jadi perangkat ini mendapat alamatnya sendiri dan koin dipindahkan ke sana. Setiap langkah adalah proposal yang disetujui tim.</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>L1 alamat native terikat pada kunci satu perangkat, jadi perangkat ini mendapat alamatnya sendiri dan koin dipindahkan ke sana. Setiap langkah adalah proposal yang disetujui anggota.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>Catatan atau kunci perangkat tidak dapat diverifikasi. Ruang kerja Anda belum terhapus.</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>Menyelesaikan pembaruan keamanan. Konten baru menunggu hingga selesai.</string>
 	<key>Folder name</key>
 	<string>Nama folder</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>Untuk kunci yang tidak dimiliki perangkat ini, misalnya kunci di perangkat yang hilang. Setelah tim menyetujui, kunci baru berlaku 24 jam kemudian.</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>Untuk kunci yang tidak dimiliki perangkat ini, misalnya kunci di perangkat yang hilang. Setelah anggota menyetujui, kunci baru berlaku 24 jam kemudian.</string>
 	<key>Freeze this wallet?</key>
 	<string>Bekukan dompet ini?</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>Kelola langganan Apple</string>
 	<key>Manage file</key>
 	<string>Kelola berkas</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>Kelola aset pribadi atau bersama di berbagai blockchain. Tetapkan ambang persetujuan dan persyaratan tanda tangan bersama perangkat.</string>
 	<key>Manage subscriptions</key>
 	<string>Kelola langganan</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>Pindah dari perangkat lama? Perangkat ini mengambil alih peran, kunci, dan dompetnya, lalu perangkat lama dicabut.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Pindah ke perangkat baru: perangkat baru meminta untuk menggantikan perangkat lama, perangkat lama menyetujui, lalu keduanya melakukan serah terima langkah demi langkah.</string>
+	<key>Multisig wallets</key>
+	<string>Dompet multisig</string>
 	<key>Mute notifications</key>
 	<string>Bisukan notifikasi</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>Tidak ada item bersama yang menunggu</string>
 	<key>No snapshots on this device</key>
 	<string>Tidak ada snapshot di perangkat ini</string>
-	<key>No team wallets</key>
-	<string>Tidak ada dompet tim</string>
 	<key>Not enabled</key>
 	<string>Tidak diaktifkan</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>pelayan</string>
 	<key>Session code</key>
 	<string>Kode sesi</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>Siapkan tanda tangan bersama perangkat untuk aset pribadi, atau undang orang lain untuk mengelola dana bersama.</string>
 	<key>Set up this account</key>
 	<string>Siapkan akun ini</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>Izin sistem</string>
 	<key>Tags, separated by commas</key>
 	<string>Tag, dipisahkan dengan koma</string>
-	<key>Team wallets</key>
-	<string>Dompet tim</string>
 	<key>Terms of service</key>
 	<string>Persyaratan layanan</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>Ini adalah cadangan terverifikasi dari perangkat akun Anda. Pulihkan secara eksplisit untuk menyimpan salinan di perangkat ini.</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>Ekspor ini tidak pernah berisi kunci akar akun atau kunci penandatanganan perangkat. Perubahan pada item sumber memerlukan snapshot baru.</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>Alamat native ini tetap memerlukan perangkat lama untuk L1. Tim masih dapat menyapunya melalui L2 setelah setiap output cukup lama.</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>Alamat native ini tetap memerlukan perangkat lama untuk L1. Anggota masih dapat menyapunya melalui L2 setelah setiap output cukup lama.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>Akun ini memerlukan kunci persetujuan terdaftar. Siapkan perangkat ini di Keamanan perangkat keras, atau tanyakan pada perangkat resmi lainnya.</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>Anda sedang melihat versi sejarah yang tidak dapat diubah.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Anda melakukan sendiri perubahan penyedia. dMsg mencatat pernyataan Anda dan memeriksa revisi lokal; itu tidak dapat memverifikasi pembuatan, pengujian, atau pencabutan hulu.</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>Aset Anda. Aturan persetujuan Anda.</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>Saluran resmi Anda muncul setelah sinkronisasi.</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>

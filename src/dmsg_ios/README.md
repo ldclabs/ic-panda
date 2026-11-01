@@ -6,6 +6,14 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## Multisig wallets
+
+Manage personal or shared assets across chains. Set approval thresholds and
+device co-signing requirements. The account entry, wallet list and device
+handover use the same name and all 23 locales as desktop and the website.
+Member approvals and device co-signing remain separate; one person can use
+multiple cosigner keys without counting as multiple members.
+
 ## On-chain recovery
 
 Account security offers one recovery toggle and an optional 1–7 day waiting

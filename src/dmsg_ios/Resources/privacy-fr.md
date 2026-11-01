@@ -24,7 +24,7 @@ App Attest vérifie l’installation avec un identifiant de clé, des preuves et
 
 Apple traite les achats StoreKit. Notre vérificateur et le canister commercial traitent les identifiants de transaction et de produit, un jeton lié au compte, les dates et les états de remboursement ou révocation, sans données de carte bancaire. D’autres clients peuvent proposer des paiements ICP et l’adhésion PANDA, avec des registres publics. Supprimer un compte dMsg n’annule pas l’abonnement Apple : gérez-le dans votre compte Apple.
 
-Les canisters de portefeuille traitent les politiques et propositions d’équipe ; leur visibilité dépend des réglages du portefeuille. Les fournisseurs RPC reçoivent les adresses, données de transaction et informations IP nécessaires aux soldes, simulations de frais et diffusions. Les points d’accès par défaut comprennent mempool.space, PublicNode, mainnet.base.org et api.mainnet-beta.solana.com ; les autres services configurés ont leurs propres pratiques.
+Les canisters de portefeuille traitent les règles et propositions des portefeuilles multisignatures ; leur visibilité dépend des réglages du portefeuille. Les fournisseurs RPC reçoivent les adresses, données de transaction et informations IP nécessaires aux soldes, simulations de frais et diffusions. Les points d’accès par défaut comprennent mempool.space, PublicNode, mainnet.base.org et api.mainnet-beta.solana.com ; les autres services configurés ont leurs propres pratiques.
 
 ## 4. Données locales et intégrations
 

@@ -1,6 +1,6 @@
 //! The payer: ICRC ledger transfers paid by the login's Principal or an
 //! identity PEM file (plan R25). The dMsg account never holds funds; the
-//! payer is only the identity that pays. Team wallets are [`crate::wallet`].
+//! payer is only the identity that pays. Multisig wallets are [`crate::wallet`].
 //!
 //! Every payment is journaled under the LDK before it is sent, with its
 //! exact arguments: a lost reply sends the same bytes again, and the

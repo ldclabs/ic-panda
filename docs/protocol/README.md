@@ -16,7 +16,7 @@ The current contract has three document profiles v1, 12-byte Xid accounts and de
 | Agent identity and events | [Agent Delegation](agent.md) · [Mail events](mail_events.md) |
 | Content-free system notifications | [dmsg-notifications/1 (中文)](notifications_zh.md) |
 | Approved credential use | [Secrets](secrets.md) |
-| Team wallets | [dmsg-wallet/1](wallet.md) |
+| Multisig wallets | [dmsg-wallet/1](wallet.md) |
 | Legacy data | [Read-only archive](legacy_archive.md) · [Freeze evidence](legacy_freeze.md) |
 
 `dmsg_types` defines public data contracts only; `dmsg_protocol` implements canonical encoding, profile verification, and identity adaptation; `dmsg_runtime` and each canister persist internal state. Independent third-party signature verification does not require implementing account databases, handle management, or paid delivery services.
@@ -131,4 +131,4 @@ A dMsg account can act as an Agent Delegation 1.0 principal: controllers are sel
 
 The product-neutral `membership/2` and `dmsg-commerce/2` contracts are documented in [commerce.md](commerce.md), with generated [integration.cddl](integration.cddl) records and independent vectors. [commerce.cddl](commerce.cddl) retains only the resource/entitlement framing that still uses v1 domains. Paid delivery keeps its separate profile 2. These versions do not change formal statement or device attestation bytes.
 
-Team wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet.md](wallet.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.
+Multisig wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet.md](wallet.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.

@@ -1,4 +1,4 @@
-//! Compact representations of the team-wallet records a wallet canister and
+//! Compact representations of the multisig wallet records a wallet canister and
 //! the wallet hub store. Nested enums (intents, outcomes, audit kinds,
 //! activation states) and policies keep their protocol encoding; the integer
 //! keys replace the field names repeated in every member, address, proposal,

@@ -10,6 +10,9 @@ where the client depends on them.
 
 ### Updates
 
+- Rename Team wallets to Multisig wallets and clarify personal and shared
+  asset management, approval thresholds and device co-signing. Update wallet
+  descriptions, empty states and related labels in all 23 locales.
 - Add an opt-in Beta channel in Settings › About dMsg, saved only on this
   installation. Stable remains the default, including on a manually installed
   beta. Leaving Beta cancels pending beta downloads and waits for a newer

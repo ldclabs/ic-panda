@@ -16,8 +16,8 @@
 	<string>ایک چینل کا سنیپ شاٹ ان ممبران کے لیے دستیاب ہے جو اس دور تک رسائی رکھتے ہیں، بشمول بعد کی تاریخ تک رسائی کی اجازت۔ اس میں کوئی لنک ایکسپائری، ڈاؤن لوڈ سیشن کی حد یا واپسی نہیں ہے۔</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>ڈاؤن لوڈ سیشن ایک بازیافت الاؤنس ہے، فائل پڑھنے کی گنتی نہیں۔ میعاد ختم یا منسوخی پہلے سے محفوظ شدہ کاپیاں نہیں مٹا سکتی۔</string>
-	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal the team approves.</key>
-	<string>مقامی پتے کا L1 ایک ہی آلے کی کلید سے بندھا ہوتا ہے، اس لیے یہ آلہ اپنا پتہ لیتا ہے اور سکے وہاں منتقل ہوتے ہیں۔ ہر مرحلہ ایک تجویز ہے جسے ٹیم منظور کرتی ہے۔</string>
+	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
+	<string>مقامی پتے کا L1 ایک ہی آلے کی کلید سے بندھا ہوتا ہے، اس لیے یہ آلہ اپنا پتہ لیتا ہے اور سکے وہاں منتقل ہوتے ہیں۔ ہر مرحلہ ایک تجویز ہے جسے ارکان منظور کرتے ہیں۔</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
 	<string>ریکارڈ یا آلہ کی کلید کی تصدیق نہیں ہو سکی۔ آپ کے ورک اسپیس کو مٹایا نہیں گیا ہے۔</string>
 	<key>A reference identifies a field; it does not contain its secret value or grant permission to read it.</key>
@@ -746,8 +746,8 @@
 	<string>سیکیورٹی اپ ڈیٹ مکمل ہو رہی ہے۔ نیا مواد اس کے مکمل ہونے تک انتظار کرے گا۔</string>
 	<key>Folder name</key>
 	<string>فولڈر کا نام</string>
-	<key>For a key this device does not hold, such as one on a lost device. After the team approves, the new key takes effect 24 hours later.</key>
-	<string>ایسی کلید کے لیے جو اس آلے کے پاس نہیں، جیسے گم شدہ آلے کی کلید۔ ٹیم کی منظوری کے 24 گھنٹے بعد نئی کلید نافذ ہوتی ہے۔</string>
+	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
+	<string>ایسی کلید کے لیے جو اس آلے کے پاس نہیں، جیسے گم شدہ آلے کی کلید۔ ارکان کی منظوری کے 24 گھنٹے بعد نئی کلید نافذ ہوتی ہے۔</string>
 	<key>Freeze this wallet?</key>
 	<string>اس پرس کو منجمد کریں؟</string>
 	<key>Freeze wallet</key>
@@ -974,6 +974,8 @@
 	<string>ایپل سبسکرپشنز کا نظم کریں</string>
 	<key>Manage file</key>
 	<string>فائل کا نظم کریں</string>
+	<key>Manage personal or shared assets across chains. Set approval thresholds and device co-signing requirements.</key>
+	<string>مختلف بلاک چینز پر ذاتی یا مشترکہ اثاثوں کا انتظام کریں۔ درکار منظوریوں کی تعداد اور آلات کے مشترکہ دستخط کے اصول طے کریں۔</string>
 	<key>Manage subscriptions</key>
 	<string>سبسکرپشنز کا نظم کریں</string>
 	<key>Mark as read</key>
@@ -1022,6 +1024,8 @@
 	<string>پرانے آلے سے منتقل ہو رہے ہیں؟ یہ آلہ اس کا کردار، کلیدیں اور والٹس سنبھال لے گا، پھر پرانا منسوخ ہو جائے گا۔</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>نئے آلے پر منتقلی: نیا آلہ پرانے کی جگہ لینے کی درخواست کرتا ہے، پرانا منظوری دیتا ہے، پھر دونوں مرحلہ وار حوالگی کرتے ہیں۔</string>
+	<key>Multisig wallets</key>
+	<string>ملٹی سگ والیٹس</string>
 	<key>Mute notifications</key>
 	<string>اطلاعات کو خاموش کریں</string>
 	<key>My account</key>
@@ -1094,8 +1098,6 @@
 	<string>کوئی مشترکہ آئٹمز انتظار نہیں کر رہے ہیں</string>
 	<key>No snapshots on this device</key>
 	<string>اس آلہ پر کوئی سنیپ شاٹس نہیں ہیں</string>
-	<key>No team wallets</key>
-	<string>ٹیم کے بٹوے نہیں ہیں</string>
 	<key>Not enabled</key>
 	<string>فعال نہیں ہے</string>
 	<key>Not enough storage on this device.</key>
@@ -1788,6 +1790,8 @@
 	<string>سرور</string>
 	<key>Session code</key>
 	<string>سیشن کوڈ</string>
+	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
+	<string>اپنے اثاثوں کے لیے آلات کے مشترکہ دستخط ترتیب دیں، یا مل کر فنڈز کا انتظام کرنے کے لیے دوسروں کو مدعو کریں۔</string>
 	<key>Set up this account</key>
 	<string>اس اکاؤنٹ کو ترتیب دیں</string>
 	<key>Set up this iPhone as a new device</key>
@@ -1940,8 +1944,6 @@
 	<string>سسٹم کی اجازت</string>
 	<key>Tags, separated by commas</key>
 	<string>ٹیگز، کوما سے الگ</string>
-	<key>Team wallets</key>
-	<string>ٹیم بٹوے</string>
 	<key>Terms of service</key>
 	<string>سروس کی شرائط</string>
 	<key>Test environment · Separate accounts and test purchases</key>
@@ -2022,8 +2024,8 @@
 	<string>یہ آپ کے اکاؤنٹ کے آلات سے تصدیق شدہ بیک اپس ہیں۔ اس آلہ پر ایک کاپی رکھنے کے لیے واضح طور پر بحال کریں۔</string>
 	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
 	<string>ان برآمدات میں کبھی بھی اکاؤنٹ کی روٹ کیز یا ڈیوائس سائننگ کیز شامل نہیں ہوتی ہیں۔ سورس آئٹمز میں تبدیلیوں کے لیے ایک نیا سنیپ شاٹ درکار ہے۔</string>
-	<key>These native addresses keep needing the old device for L1. The team can still sweep them through L2 once each output is old enough.</key>
-	<string>ان مقامی پتوں کے L1 کے لیے پرانا آلہ بدستور درکار رہے گا۔ ہر آؤٹ پٹ کافی پرانا ہو جانے پر ٹیم انہیں L2 کے ذریعے منتقل کر سکتی ہے۔</string>
+	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
+	<string>ان مقامی پتوں کے L1 کے لیے پرانا آلہ بدستور درکار رہے گا۔ ہر آؤٹ پٹ کافی پرانا ہو جانے پر ارکان انہیں L2 کے ذریعے منتقل کر سکتے ہیں۔</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
 	<string>اس اکاؤنٹ کو ایک رجسٹرڈ منظوری کلید کی ضرورت ہے۔ اس ڈیوائس کو ہارڈ ویئر سیکیورٹی میں سیٹ اپ کریں، یا کسی اور مجاز ڈیوائس سے پوچھیں۔</string>
 	<key>This action is not supported on this device. Secret snapshots must use their dedicated import flow.</key>
@@ -2290,6 +2292,8 @@
 	<string>آپ ایک ناقابل تغیر تاریخی ورژن دیکھ رہے ہیں۔</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>آپ خود فراہم کنندہ تبدیلیاں انجام دیتے ہیں۔ dMsg آپ کے بیانات کو ریکارڈ کرتا ہے اور مقامی نظرثانی کو چیک کرتا ہے۔ یہ اپ اسٹریم تخلیق، جانچ یا منسوخی کی تصدیق نہیں کر سکتا۔</string>
+	<key>Your assets. Your approval rules.</key>
+	<string>آپ کے اثاثے۔ آپ کی منظوری کے اصول۔</string>
 	<key>Your authorized channels appear after synchronization.</key>
 	<string>آپ کے مجاز چینلز مطابقت پذیری کے بعد ظاہر ہوتے ہیں۔</string>
 	<key>Your current entitlement could not be refreshed. Retry when the verification service is available.</key>
