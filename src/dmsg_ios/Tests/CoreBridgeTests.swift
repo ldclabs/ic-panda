@@ -42,7 +42,7 @@ final class CoreBridgeTests: XCTestCase {
         XCTAssertGreaterThan(locked.generation, initial.generation)
         let operation = OperationToken()
         operation.cancel()
-        do { _ = try await engine.sync(operation: operation); XCTFail("Cancelled operation ran") }
+        do { _ = try await engine.sync(automatic: false, operation: operation); XCTFail("Cancelled operation ran") }
         catch MobileError.Failure(let code) { XCTAssertEqual(code, "CANCELLED") }
         let oldForeground = engine.controlGeneration()
         engine.suspend()

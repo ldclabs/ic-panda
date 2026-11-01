@@ -28,6 +28,9 @@ mod session;
 mod succession;
 mod transfer;
 
+#[cfg(test)]
+mod sync_tests;
+
 use dmsg_client::hold::Hold;
 use dmsg_client::{Client, config::Config, host::Host, login::LoginSession};
 use dmsg_types::{Error, ensure, ensure_valid};
@@ -888,20 +891,31 @@ impl MobileEngine {
         .await
     }
 
-    pub async fn sync(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+    /// Automatic passes honor failure pauses; an owner retry resumes uploads
+    /// and rechecks repaired failures, while still honoring server backpressure.
+    pub async fn sync(
+        &self,
+        automatic: bool,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
         let turn = self.read_turns.lane("sync");
         let requested = dmsg_client::now_ms();
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move {
                     let _turn = turn.lock().await;
+                    if !automatic {
+                        h.with(dmsg_client::sync::retry_uploads).await?;
+                    }
                     if let Some(last) = h.with(|c| c.last_sync()).await?
                         && last.at >= requested
                         && last.error.is_none()
+                        && (automatic || last.upload_error.is_none())
                     {
                         return Ok(serde_json::json!({"coalesced":true}));
                     }
-                    if let Some(last) = h.with(|c| c.last_sync()).await?
+                    if automatic
+                        && let Some(last) = h.with(|c| c.last_sync()).await?
                         && last.error.is_some()
                         && last
                             .automatic_at()

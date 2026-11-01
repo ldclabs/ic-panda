@@ -608,6 +608,11 @@ increments run only in their visible views, with a 30-second fallback; notificat
 refresh never pulls bodies. File backup and restore remain explicit. A cloud-only
 file has a restore action and cannot be previewed as a complete local file.
 
+Automatic vault sync honors persisted retry deadlines and pauses after failures
+requiring user action. An explicit Sync now retries repaired failures and resumes
+quota-paused uploads, while retaining the server's busy deadline. Upload errors
+remain visible in the session even when incoming changes were received successfully.
+
 Conversation history uses local pagination and stops when no earlier page remains.
 An uncached conversation starts with a bounded recent interval, with older history
 fetched on demand. This window never advances the complete-history delivery cursor

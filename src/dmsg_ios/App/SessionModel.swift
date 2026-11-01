@@ -381,7 +381,7 @@ final class SessionModel {
         guard let engine, unlocked else { return }
         let current = epoch
         do {
-            let value = try await engine.sync(operation: operation)
+            let value = try await engine.sync(automatic: automatic, operation: operation)
             struct Report: Decodable { let through: UInt64?; let sent: UInt64? }
             let report: Report = try decode(value)
             if report.through != lastSyncThrough || (report.sent ?? 0) > 0 {

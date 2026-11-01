@@ -1,5 +1,38 @@
 # iOS implementation validation
 
+## Sync retry review (2026-11-02)
+
+Review of `7650e91..=2c07800` found that mobile manual sync shared the automatic
+pause gate and could not retry a repaired failure or resume quota-paused uploads.
+It also dropped the new `upload_error` when projecting session state. The mobile
+entry now receives the existing Swift automatic/manual choice, keeps server busy
+deadlines for both paths, and exposes upload failures through `syncError`.
+
+Both defects were reproduced with failing tests before the fix. Three mobile tests
+using a loopback HTTP relay now cover manual retry after an integrity failure, automatic
+pause, continued incoming reads while uploads are blocked, explicit upload retry,
+quota error presentation and server backpressure. `cargo test --locked -p dmsg_client
+-p dmsg_mobile -p dmsg_cli` passed: 543 client, 16 mobile and 105 CLI tests; 11 tests
+remain explicitly ignored. Formatting, diff whitespace and all-target Clippy with
+`-D warnings` passed.
+
+Desktop checks, all 159 unit tests, the control audit and production build passed.
+The scoped sync and channel Electron suites passed with a loopback fixture and
+temporary profile. Chinese light/dark, French and Arabic RTL screenshots were
+inspected, including the 760 × 540 minimum window, retry/queued states and history;
+the suites also exercised keyboard actions and navigation during delivery.
+
+Both ARM64 native libraries and Swift bindings were rebuilt, and the source
+fingerprint verified. The app built and launched on iPhone 17e / iOS 27.0 Simulator;
+all 52 Swift unit tests and six ConversationTests passed, with zero failed or
+skipped (`target/ios-review-sync/ReviewSync.xcresult`). The five conversation
+screenshots were exported and inspected, covering queued sends after navigation,
+Chinese dark retry, the history boundary, inline uncertain sends and slow refresh.
+
+PocketIC/private Worker acceptance and physical-device/live two-device checks were
+not rerun; the unrelated iOS UI suites were not run. Review, fixes and validation:
+Codex <codex@openai.com>.
+
 ## Recent pages and session-owned delivery (2026-11-01)
 
 Desktop and iOS now show saved messages first, fetch the latest bounded interval
