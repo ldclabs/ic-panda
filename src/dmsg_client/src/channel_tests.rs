@@ -1371,6 +1371,32 @@ async fn a_send_is_durable_before_its_first_network_read() {
         send(&h, &channel, &draft, Some(&file_id)).await,
         Err(Error::IdempotencyConflict)
     );
+    // Desktop retries can omit the version. A newer library revision must
+    // not replace the version already queued for this message ID.
+    std::fs::write(&path, "a newer attachment draft").unwrap();
+    let updated = h
+        .with(|c| c.files_import(&path, "root", false, &mut |_, _| {}))
+        .await
+        .unwrap()
+        .file;
+    assert_eq!(updated.id, file.id);
+    assert_ne!(updated.current, file.current);
+    assert!(matches!(
+        send_file(&h, &channel, &file.id, None, &draft, Some(&file_id)).await,
+        Err(Error::Unavailable(_))
+    ));
+    assert_eq!(
+        send_file(
+            &h,
+            &channel,
+            &file.id,
+            Some(&updated.current),
+            &draft,
+            Some(&file_id),
+        )
+        .await,
+        Err(Error::IdempotencyConflict)
+    );
     drop(h);
     let mut reopened = Client::open(crate::testing::config(false), &dir.0, Some(storage)).unwrap();
     reopened.unlock_fast().await.unwrap();

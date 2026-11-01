@@ -1769,7 +1769,18 @@ pub async fn send_file<H: Hold>(
 ) -> Result<Json> {
     let message_id = message_id.map_or_else(random_hex, str::to_string);
     ensure_valid(is_hash(&message_id), "message_id")?;
-    let manifest = h.with(|c| Ok(c.library_manifest(file, version)?.2)).await?;
+    let manifest = h
+        .with(|c| {
+            // An omitted version selects the current one only on the first
+            // attempt. Retries keep the immutable version already queued.
+            let queued = c.job::<Queued>(channel, &format!("queued:{message_id}"))?;
+            let source = queued.as_ref().and_then(|q| q.file.as_ref());
+            let queued_version = source
+                .and_then(|f| f["source"].as_str())
+                .and_then(|source| source.strip_prefix(&format!("{file}@")));
+            Ok(c.library_manifest(file, version.or(queued_version))?.2)
+        })
+        .await?;
     let source = format!("{file}@{}", manifest.version);
     h.with(|c| {
         c.queue_channel_send(
