@@ -2458,5 +2458,7 @@
 	<string>Войдите в тот же аккаунт на новом устройстве, отсканируйте QR-код компьютера, затем проверьте и подтвердите запрос на компьютере.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Доставка запроса не подтверждена. Проверьте соединение и компьютер перед повторной попыткой.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
 </dict>
 </plist>

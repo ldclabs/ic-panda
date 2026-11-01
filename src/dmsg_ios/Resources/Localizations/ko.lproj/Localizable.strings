@@ -2458,5 +2458,7 @@
 	<string>새 기기에서 같은 계정으로 로그인하고 컴퓨터의 QR 코드를 스캔한 다음 컴퓨터에서 확인하고 승인하세요.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>기기 요청의 전달이 확인되지 않았습니다. 다시 시도하기 전에 연결과 컴퓨터를 확인하세요.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
 </dict>
 </plist>

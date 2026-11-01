@@ -65,4 +65,5 @@ testing = []
 
 [dev-dependencies]
 h2 = "0.4"
+ic-verify-bls-signature.workspace = true
 tokio = { workspace = true }

@@ -298,7 +298,14 @@ impl Client {
     fn inbox_seeds(&self, version: u64) -> Result<Vec<Zeroizing<[u8; 32]>>> {
         let account = self.account()?.id.to_string();
         let id = key_object(&account, version);
-        let mut records = vec![self.current(&id)?.1];
+        let mut records = vec![
+            self.current(&id)
+                .map_err(|error| match error {
+                    Error::NotFound => Error::RecoveryIncomplete,
+                    other => other,
+                })?
+                .1,
+        ];
         for copy in self.workspace.store.conflicts(INBOX_KEY)? {
             if copy.item == id {
                 records.push(crate::content::record(&copy)?);

@@ -2458,5 +2458,7 @@
 	<string>ลงชื่อเข้าใช้บัญชีเดียวกันบนอุปกรณ์ใหม่ สแกน QR ของคอมพิวเตอร์ แล้วตรวจสอบและอนุมัติบนคอมพิวเตอร์</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>ยังยืนยันไม่ได้ว่าคำขอของอุปกรณ์ส่งถึงแล้ว ตรวจสอบการเชื่อมต่อและคอมพิวเตอร์ก่อนลองอีกครั้ง</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>คีย์กล่องขาเข้ายังไม่ได้ซิงค์กับอุปกรณ์นี้ โปรดซิงค์อุปกรณ์ที่เปิดใช้การรับจดหมาย แล้วลองอีกครั้งที่นี่</string>
 </dict>
 </plist>

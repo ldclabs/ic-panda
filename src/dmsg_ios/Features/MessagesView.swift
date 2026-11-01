@@ -7,9 +7,7 @@ struct MessagesView: View {
     @State private var selected: String?
     @State private var mode = 0
     @State private var creating = false
-    @State private var lettersKnown = false
-    @State private var lettersFailed = false
-    @State private var letters: [InboxLetter] = []
+    @State private var inbox = InboxLoading()
     @State private var archived = false
     var body: some View {
         WorkspaceNavigation(selection: $selected) { listSelection in
@@ -32,16 +30,22 @@ struct MessagesView: View {
                     }
                     if model.channels.isEmpty { ContentUnavailableView("No conversations yet", image: AppGlyph.channels.assetName, description: Text("Your authorized channels appear after synchronization.")) }
                 } else {
-                    Toggle("Archived", isOn: $archived)
-                    let visible = letters.filter { $0.archived == archived && !model.blockedAccounts.contains($0.sender) }
+                    Toggle("Archived", isOn: $archived).accessibilityIdentifier("inbox.archived")
+                    let visible = inbox.letters.filter { $0.archived == archived && !model.blockedAccounts.contains($0.sender) }
                     ForEach(visible) { letter in
                         NavigationLink(value: letter.id) { InboxRow(letter: letter) }.compactObjectRow()
+                            .accessibilityIdentifier("inbox.row.\(letter.id)")
                     }
-                    if visible.isEmpty && lettersKnown { ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName) }
-                    if lettersFailed {
-                        NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device."))
+                    if let failure = inbox.failure {
+                        NoticeBar(text: failure).accessibilityIdentifier("inbox.failure")
                         Button("Retry") { Task { await loadLetters(refresh: true) } }
-                    } else if !lettersKnown { ProgressView() }
+                            .disabled(inbox.refreshing).accessibilityIdentifier("inbox.retry")
+                    } else if visible.isEmpty && inbox.known && !inbox.refreshing {
+                        ContentUnavailableView("No letters yet", image: AppGlyph.inbox.assetName).accessibilityIdentifier("inbox.empty")
+                    }
+                    if inbox.refreshing || !inbox.known && inbox.failure == nil {
+                        ProgressView("Syncing…").accessibilityIdentifier("inbox.loading")
+                    }
                 }
             }.listStyle(.plain).privateScreen().navigationTitle("Messages")
                 .toolbar {
@@ -67,7 +71,7 @@ struct MessagesView: View {
                     if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() }
                 }
         } detail: { id in
-            if mode == 1, let letter = letters.first(where: { $0.id == id }) {
+            if mode == 1, let letter = inbox.letters.first(where: { $0.id == id }) {
                 InboxDetail(letter: letter) { await loadLetters(refresh: false) }
             } else if mode == 0, let channel = model.channels.first(where: { $0.id == id }) { ConversationView(channel: channel).id(channel.id) }
             else { ContentUnavailableView("Select a conversation", image: AppGlyph.channels.assetName) }
@@ -77,23 +81,28 @@ struct MessagesView: View {
     }
 
     private func loadLetters(refresh: Bool) async {
+        guard model.unlocked, !model.concealed else { return }
+        if refresh { await inbox.refresh(read: readLetters) }
+        else { await inbox.cached(read: readLetters) }
+    }
+
+    private func readLetters(refresh: Bool) async throws -> InboxSnapshot {
         let epoch = model.epoch
+        #if DEBUG
+        if model.uiTesting { return try await model.inboxFixture(refresh: refresh) }
+        #endif
+        guard let engine = model.engine else { throw CancellationError() }
         do {
-            guard let snapshot = try await model.engine?.inbox(refresh: refresh),
-                  epoch == model.epoch, !Task.isCancelled else { return }
+            let snapshot = try await engine.inbox(refresh: refresh)
             let incoming: [InboxLetter] = try model.decode(snapshot)
-            letters = incoming.sorted { $0.createdAt > $1.createdAt }
             struct Observation: Decodable { let complete: Bool }
-            if let status = try await model.engine?.cachedInboxStatus() {
-                let known: Observation = try model.decode(status)
-                guard epoch == model.epoch, !Task.isCancelled else { return }
-                lettersKnown = known.complete || !letters.isEmpty
-            }
-            if refresh { lettersFailed = false }
+            let known: Observation = try model.decode(try await engine.cachedInboxStatus())
+            guard epoch == model.epoch, !Task.isCancelled else { throw CancellationError() }
+            return InboxSnapshot(letters: incoming, complete: known.complete)
         } catch {
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            if refresh { await loadLetters(refresh: false) }
-            if epoch == model.epoch { lettersFailed = true }
+            guard epoch == model.epoch, !Task.isCancelled else { throw CancellationError() }
+            if case MobileError.Failure(let code) = error, code == "DEVICE_NOT_APPROVED" { model.report(error) }
+            throw error
         }
     }
 }

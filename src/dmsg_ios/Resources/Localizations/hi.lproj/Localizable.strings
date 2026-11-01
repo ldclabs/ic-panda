@@ -2458,5 +2458,7 @@
 	<string>नए डिवाइस पर उसी खाते में साइन इन करें, कंप्यूटर का QR कोड स्कैन करें, फिर कंप्यूटर पर जाँचकर मंज़ूरी दें।</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>डिवाइस अनुरोध पहुँचने की पुष्टि नहीं हुई है। दोबारा कोशिश करने से पहले कनेक्शन और कंप्यूटर जाँचें।</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>इनबॉक्स की कुंजी अभी इस डिवाइस पर सिंक नहीं हुई है। जिस डिवाइस पर संदेश प्राप्त करना चालू किया था, उसे सिंक करें, फिर यहाँ दोबारा कोशिश करें।</string>
 </dict>
 </plist>

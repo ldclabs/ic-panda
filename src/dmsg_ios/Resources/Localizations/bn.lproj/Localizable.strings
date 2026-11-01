@@ -2458,5 +2458,7 @@
 	<string>নতুন ডিভাইসে একই অ্যাকাউন্টে সাইন ইন করে কম্পিউটারের QR কোড স্ক্যান করুন, তারপর কম্পিউটারে যাচাই করে অনুমোদন দিন।</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>ডিভাইসের অনুরোধ পৌঁছানোর বিষয়টি নিশ্চিত নয়। আবার চেষ্টা করার আগে সংযোগ ও কম্পিউটার পরীক্ষা করুন।</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>ইনবক্সের কী এখনও এই ডিভাইসে সিঙ্ক হয়নি। যে ডিভাইসে বার্তা গ্রহণ চালু করেছিলেন সেটি সিঙ্ক করুন, তারপর এখানে আবার চেষ্টা করুন।</string>
 </dict>
 </plist>

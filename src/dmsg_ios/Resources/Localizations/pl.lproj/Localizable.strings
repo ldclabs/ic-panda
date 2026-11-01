@@ -2458,5 +2458,7 @@
 	<string>Zaloguj się na to samo konto na nowym urządzeniu, zeskanuj QR komputera, a następnie sprawdź i zatwierdź na komputerze.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Dostarczenie prośby nie zostało potwierdzone. Sprawdź połączenie i komputer przed ponowną próbą.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Klucz skrzynki odbiorczej nie został jeszcze zsynchronizowany z tym urządzeniem. Zsynchronizuj urządzenie, na którym włączono odbieranie, i spróbuj ponownie tutaj.</string>
 </dict>
 </plist>

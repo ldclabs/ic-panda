@@ -180,6 +180,103 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn inbox_recovers_missing_keys_with_a_read_only_content_sync() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let dir = testing::TempDir::new();
+        let mut client = testing::unlocked(&dir.0, false, None);
+        client
+            .vault_create(
+                "note",
+                &dmsg_client::vault::Changes {
+                    title: Some("must stay local".into()),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        testing::relay_to(
+            &mut client,
+            &format!("http://{}", listener.local_addr().unwrap()),
+        );
+        testing::warm(&mut client);
+        let account = testing::account().id.to_string();
+        let server = tokio::spawn(async move {
+            let inbox = format!("/v1/inboxes/{account}?after=0&limit=20");
+            let base = format!("/v1/accounts/{account}");
+            let replies = [
+                (
+                    "GET",
+                    inbox.clone(),
+                    json!({"ok":false,"error":{"code":"RECOVERY_INCOMPLETE"}}),
+                ),
+                (
+                    "POST",
+                    format!("{base}/exports"),
+                    json!({"ok":true,"data":{
+                    "account":account,"scope":"cloud_snapshot","through":0,"counts":[],
+                    "content_sync":1,"export_id":"aa".repeat(32),"expires_at":dmsg_client::now_ms()+60_000}}),
+                ),
+                (
+                    "GET",
+                    format!("{base}/exports/{}?after=0&limit=100", "aa".repeat(32)),
+                    json!({"ok":true,"data":{"entries":[],"next_cursor":0,"inventory_end":true}}),
+                ),
+                (
+                    "POST",
+                    format!("{base}/exports/{}/close", "aa".repeat(32)),
+                    json!({"ok":true,"data":{"closed":true}}),
+                ),
+                (
+                    "GET",
+                    inbox,
+                    json!({"ok":true,"data":{"entries":[],"next_cursor":0}}),
+                ),
+            ];
+            for (method, path, body) in replies {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut bytes = Vec::new();
+                loop {
+                    let mut chunk = [0; 8192];
+                    let n = socket.read(&mut chunk).await.unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&chunk[..n]);
+                    if let Some(end) = bytes.windows(4).position(|s| s == b"\r\n\r\n") {
+                        let headers = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                        let length = headers
+                            .lines()
+                            .find_map(|s| s.strip_prefix("content-length:"))
+                            .map(|s| s.trim().parse::<usize>().unwrap())
+                            .unwrap_or(0);
+                        if bytes.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                let request = String::from_utf8_lossy(&bytes);
+                assert_eq!(
+                    request.lines().next().unwrap(),
+                    format!("{method} {path} HTTP/1.1")
+                );
+                let body = body.to_string();
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let engine = engine(client, &dir);
+        let result = tokio::time::timeout(Duration::from_secs(10), engine.inbox(true))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(result.json, "[]");
+        let status: Value =
+            serde_json::from_str(&engine.cached_inbox_status().await.unwrap().json).unwrap();
+        assert_eq!(status["complete"], true);
+        assert_eq!(engine.session_state().await.unwrap().pending_sync, 1);
+        assert_eq!(engine.inbox(false).await.unwrap().json, "[]");
+        server.await.unwrap();
+        engine.close().await.unwrap();
+    }
+
+    #[tokio::test]
     async fn notification_reconciliation_never_fetches_inbox_bodies() {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
         let dir = testing::TempDir::new();

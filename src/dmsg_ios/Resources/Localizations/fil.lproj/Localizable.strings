@@ -2458,5 +2458,7 @@
 	<string>Mag-sign in sa parehong account sa bagong device, i-scan ang QR ng computer, saka suriin at aprubahan sa computer.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Hindi pa kumpirmado ang pagdating ng kahilingan. Suriin ang koneksyon at computer bago subukang muli.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.</string>
 </dict>
 </plist>

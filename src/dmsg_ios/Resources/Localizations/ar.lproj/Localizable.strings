@@ -2458,5 +2458,7 @@
 	<string>سجّل الدخول إلى الحساب نفسه على الجهاز الجديد، وامسح رمز QR على الكمبيوتر، ثم راجع الطلب ووافق عليه على الكمبيوتر.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>لم يتم تأكيد وصول طلب الجهاز. تحقق من الاتصال والكمبيوتر قبل إعادة المحاولة.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 </dict>
 </plist>

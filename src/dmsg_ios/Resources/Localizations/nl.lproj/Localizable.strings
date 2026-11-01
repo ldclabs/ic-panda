@@ -2458,5 +2458,7 @@
 	<string>Meld het nieuwe apparaat aan bij hetzelfde account, scan de QR-code van de computer en controleer en keur goed op de computer.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>De bezorging van het apparaatverzoek is niet bevestigd. Controleer de verbinding en de computer voordat je opnieuw probeert.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.</string>
 </dict>
 </plist>

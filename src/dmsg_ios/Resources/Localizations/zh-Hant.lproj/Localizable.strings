@@ -2458,5 +2458,7 @@
 	<string>新裝置先登入同一帳戶，掃描桌面 QR 碼，然後在桌面核對並批准。</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>尚未確認裝置請求已送達。請先檢查網路與桌面端狀態，再決定是否重試。</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
 </dict>
 </plist>

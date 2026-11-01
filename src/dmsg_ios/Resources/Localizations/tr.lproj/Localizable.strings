@@ -2458,5 +2458,7 @@
 	<string>Yeni cihazda aynı hesaba giriş yapın, bilgisayarın QR kodunu tarayın, ardından bilgisayarda inceleyip onaylayın.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Cihaz isteğinin teslimi doğrulanamadı. Yeniden denemeden önce bağlantıyı ve bilgisayarı kontrol edin.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
 </dict>
 </plist>

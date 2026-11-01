@@ -2458,5 +2458,7 @@
 	<string>Log masuk ke akaun yang sama pada peranti baharu, imbas QR komputer, kemudian semak dan luluskan pada komputer.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Penghantaran permintaan peranti belum disahkan. Semak sambungan dan komputer sebelum mencuba lagi.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
 </dict>
 </plist>

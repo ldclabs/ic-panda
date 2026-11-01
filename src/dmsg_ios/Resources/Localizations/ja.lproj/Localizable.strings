@@ -2458,5 +2458,7 @@
 	<string>新しいデバイスで同じアカウントにログインし、パソコンのQRコードをスキャンして、パソコンで内容を確認し承認してください。</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>デバイスのリクエストが届いたか確認できません。再試行の前に接続とパソコンを確認してください。</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。</string>
 </dict>
 </plist>

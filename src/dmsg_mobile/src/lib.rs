@@ -1323,6 +1323,7 @@ impl MobileEngine {
     pub async fn inbox(&self, refresh: bool) -> Result<ObjectSnapshot> {
         let requested = dmsg_client::now_ms();
         let turn = self.read_turns.lane("inbox");
+        let sync_turn = self.read_turns.lane("sync");
         self.held_object(move |h| {
             Box::pin(async move {
                 if refresh {
@@ -1336,7 +1337,20 @@ impl MobileEngine {
                     {
                         return h.with(|c| c.inbox_cached()).await;
                     }
-                    dmsg_client::inbox::list(h).await
+                    match dmsg_client::inbox::list(h).await {
+                        Err(Error::RecoveryIncomplete) => {
+                            // The receiving key belongs to encrypted account content.
+                            // A newly authorized device may open the inbox before its
+                            // first content sync. Fetch it without uploading local work,
+                            // then retry the same uncommitted inbox page.
+                            {
+                                let _sync = sync_turn.lock().await;
+                                dmsg_client::sync::pull_metadata(h).await?;
+                            }
+                            dmsg_client::inbox::list(h).await
+                        }
+                        result => result,
+                    }
                 } else {
                     h.with(|c| c.inbox_cached()).await
                 }

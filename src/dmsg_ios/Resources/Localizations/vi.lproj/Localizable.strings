@@ -2458,5 +2458,7 @@
 	<string>Đăng nhập cùng tài khoản trên thiết bị mới, quét mã QR của máy tính rồi kiểm tra và phê duyệt trên máy tính.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Chưa xác nhận yêu cầu thiết bị đã được chuyển đến. Kiểm tra kết nối và máy tính trước khi thử lại.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 </dict>
 </plist>

@@ -2487,6 +2487,7 @@ dependencies = [
  "ic-certification 3.2.0",
  "ic-ed25519",
  "ic-secp256k1",
+ "ic-verify-bls-signature",
  "ic-vetkeys",
  "ic_auth_verifier",
  "icrc-ledger-types 0.2.0",

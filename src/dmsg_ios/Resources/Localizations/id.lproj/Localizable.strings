@@ -2458,5 +2458,7 @@
 	<string>Masuk ke akun yang sama di perangkat baru, pindai QR komputer, lalu tinjau dan setujui di komputer.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Pengiriman permintaan perangkat belum dikonfirmasi. Periksa koneksi dan komputer sebelum mencoba lagi.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Kunci kotak masuk belum disinkronkan ke perangkat ini. Sinkronkan perangkat yang mengaktifkan penerimaan pesan, lalu coba lagi di sini.</string>
 </dict>
 </plist>

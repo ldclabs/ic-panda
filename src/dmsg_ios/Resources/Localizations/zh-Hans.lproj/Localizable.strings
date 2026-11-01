@@ -2458,5 +2458,7 @@
 	<string>新设备先登录同一账户，扫描桌面二维码，然后在桌面核对并批准。</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>尚未确认设备请求已送达。请先检查网络和桌面端状态，再决定是否重试。</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>收件箱密钥尚未同步到此设备。请先在开启收信的设备上同步，再在此重试。</string>
 </dict>
 </plist>

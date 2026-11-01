@@ -1,5 +1,49 @@
 # iOS implementation validation
 
+## Inbox receiving and retry (2026-11-02)
+
+A missing synced inbox key previously surfaced as `NOT_FOUND`; mobile inbox
+refresh only retried letters and never fetched the key. The core now reports
+`RECOVERY_INCOMPLETE`. Mobile performs one encrypted account-content pull in the
+existing sync lane, without flushing or uploading local work, then retries from
+the unchanged inbox cursor. Signature and HPKE validation still gate page commits.
+If the key is not available from the relay, the view explains that the device
+which enabled receiving must sync first.
+
+The inbox keeps verified local letters visible, distinguishes loading/empty/failure,
+and prevents a late cached read from replacing a newer result. Read, archive and
+restore acknowledgements update the detail immediately, including notification
+destinations. Missing-key copy is provided in all 23 interface languages.
+
+The missing-key regression failed with `NotFound` before the fix and passed
+afterward. New client tests use locally generated BLS certificates, device-signed
+commands and HPKE ciphertext, including a different sending account, tampered-page
+rollback and read/archive/restore HTTP acknowledgements. A mobile loopback test
+verifies the content-pull/retry sequence and preservation of an unsent local note.
+
+`cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli` passed: 546 client,
+17 mobile and 105 CLI tests; 11 tests remain explicitly ignored. All-target Clippy
+with `-D warnings`, Rust formatting and diff whitespace checks passed. All 18 iOS
+script tests, 23-language resource/notification checks and shared-icon checks
+passed. Both ARM64 native slices and Swift bindings were rebuilt, and the native
+artifact/source fingerprint was verified.
+
+On iPhone 17e / iOS 27.0 Simulator with Xcode 27.2, all 57 Swift unit tests and
+six ConversationTests passed (`target/ios-inbox/InboxTests.xcresult`). The first
+inbox UI run exposed a test-selector mistake: tapping the full SwiftUI toggle
+row did not toggle its child switch. After targeting the actual switch and
+asserting its value, all four InboxUITests passed with no failures or skips
+(`target/ios-inbox/InboxUITestsVerified.xcresult`). Coverage includes missing-key
+failure/retry, read/archive/restore, slow loading, verified empty state and Arabic
+RTL. Chinese dark, English light and Arabic RTL screenshots were exported and
+inspected. Swift-extracted localization keys also passed the resource check.
+
+Physical-device and production two-device delivery, private Worker acceptance,
+TestFlight packaging/upload, unrelated iOS UI suites and desktop UI checks have
+not been run.
+
+Implementation and validation: Codex <codex@openai.com>.
+
 ## Sync retry review (2026-11-02)
 
 Review of `7650e91..=2c07800` found that mobile manual sync shared the automatic

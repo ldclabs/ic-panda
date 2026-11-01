@@ -41,6 +41,7 @@ extension SessionModel {
             channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
             selectedTab = .messages
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-inbox") { selectedTab = .messages }
         if ProcessInfo.processInfo.arguments.contains("--ui-syncing") { _ = beginBusyOperation(synchronizing: true) }
         if ProcessInfo.processInfo.arguments.contains("--ui-recovery-pending") {
             let account = "040g2081040g2081040g"
@@ -48,6 +49,28 @@ extension SessionModel {
                 digest: "fixture-recovery", observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 1,
                 stale: false), for: account)
         }
+    }
+
+    func inboxFixture(refresh: Bool) async throws -> InboxSnapshot {
+        let arguments = ProcessInfo.processInfo.arguments
+        if refresh {
+            fixtureInboxRefreshes += 1
+            if arguments.contains("--ui-inbox-failure"), fixtureInboxRefreshes == 1 {
+                throw MobileError.Failure(code: "RECOVERY_INCOMPLETE")
+            }
+            if arguments.contains("--ui-inbox-slow") { try await Task.sleep(for: .seconds(30)) }
+            if !arguments.contains("--ui-inbox-empty"), fixtureInboxLetters.isEmpty {
+                fixtureInboxLetters = [InboxLetter(orderId: "fixture-letter", sender: "040g2082040g2082040g",
+                    state: "visible", text: "A verified letter · 已验证来信", createdAt: 1_793_534_400_000,
+                    read: false, archived: false, abortReason: nil)]
+            }
+        }
+        return InboxSnapshot(letters: fixtureInboxLetters, complete: refresh || fixtureInboxRefreshes > 1)
+    }
+
+    func markInboxFixture(order: String, read: Bool, archived: Bool) {
+        guard let index = fixtureInboxLetters.firstIndex(where: { $0.id == order }) else { return }
+        fixtureInboxLetters[index].read = read; fixtureInboxLetters[index].archived = archived
     }
 
     func conversationFixture(before: UInt64?, query: String) -> MessagePage {

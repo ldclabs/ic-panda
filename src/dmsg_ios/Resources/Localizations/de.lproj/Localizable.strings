@@ -2458,5 +2458,7 @@
 	<string>Melden Sie das neue Gerät beim selben Konto an, scannen Sie den QR-Code des Computers und prüfen und bestätigen Sie dort die Anfrage.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Die Zustellung der Geräteanfrage ist unbestätigt. Prüfen Sie Verbindung und Computer, bevor Sie es erneut versuchen.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Der Posteingangsschlüssel wurde noch nicht mit diesem Gerät synchronisiert. Synchronisiere das Gerät, auf dem der Empfang aktiviert wurde, und versuche es hier erneut.</string>
 </dict>
 </plist>

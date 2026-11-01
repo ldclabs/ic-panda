@@ -2458,5 +2458,7 @@
 	<string>نئے آلے پر اسی اکاؤنٹ میں سائن ان کریں، کمپیوٹر کا QR کوڈ اسکین کریں، پھر کمپیوٹر پر جائزہ لے کر منظوری دیں۔</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>آلے کی درخواست پہنچنے کی تصدیق نہیں ہوئی۔ دوبارہ کوشش سے پہلے کنکشن اور کمپیوٹر دیکھیں۔</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
 </dict>
 </plist>

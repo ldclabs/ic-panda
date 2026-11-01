@@ -96,6 +96,8 @@ final class SessionModel {
     let uiTesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
     var fixtureChannelMessages: [MessageItem] = []
     var fixtureChannelRefreshes = 0
+    var fixtureInboxLetters: [InboxLetter] = []
+    var fixtureInboxRefreshes = 0
     #else
     let uiTesting = false
     #endif

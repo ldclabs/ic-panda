@@ -2458,5 +2458,7 @@
 	<string>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</string>
 	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
 	<string>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</string>
 </dict>
 </plist>

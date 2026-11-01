@@ -38,6 +38,13 @@ is off makes their content unrecoverable even with the login.
 
 ## Notifications
 
+The inbox shows verified letters saved on this device while refreshing. If the
+receiving key has not reached a newly authorized device, it pulls encrypted
+account content and retries the uncommitted letter page without uploading local
+work. A key that is still missing needs synchronization on the device that
+enabled receiving. Loading, an empty inbox and a failed refresh have distinct
+states; read, archive and restore actions update the detail after confirmation.
+
 Conversation views read local history while the core refreshes the channel.
 Verified pages appear before the remaining history and attachment metadata
 finish downloading. Loading, an empty conversation and a failed refresh have
