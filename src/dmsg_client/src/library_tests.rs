@@ -1447,6 +1447,50 @@ async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
         Err(Error::InvalidInput(_))
     ));
     assert!(client.cloud_entry(&upload).unwrap().is_some());
+    client.cache_clear().unwrap();
+    assert!(client.cloud_entry(&upload).unwrap().is_none());
+    assert!(matches!(
+        client.deletable(std::slice::from_ref(&upload)),
+        Err(Error::InvalidInput(_))
+    ));
+}
+
+#[test]
+fn cloud_deletion_clears_backup_marks_after_inventory_cache_clear() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let imported = client
+        .files_import(
+            &write(&dir, "notes.txt", b"notes"),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let mut version = client
+        .version(&imported.file.id, &imported.version)
+        .unwrap();
+    let upload = random_hex();
+    version.backup = Some(Backup {
+        upload_id: upload.clone(),
+        generation: 1,
+        backed_up_at: 7,
+        verified: true,
+    });
+    client
+        .save_version(&imported.file.id, &imported.version, &version)
+        .unwrap();
+    client.cache_clear().unwrap();
+    client.deletable(std::slice::from_ref(&upload)).unwrap();
+    client.forget_cloud(&upload).unwrap();
+    assert_eq!(
+        client.files_show(&imported.file.id).unwrap().file.status,
+        "local"
+    );
+    assert!(client.files_evict(&imported.file.id, None).is_err());
+    let out = dir.path("kept.txt");
+    client.files_export(&imported.file.id, None, &out).unwrap();
+    assert_eq!(std::fs::read(out).unwrap(), b"notes");
 }
 
 #[test]

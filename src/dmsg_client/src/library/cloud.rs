@@ -15,7 +15,7 @@
 
 use super::backup::{BACKUP, BackupManifest};
 use super::catalog::{
-    Backup, FILE, FileRecord, FileView, Origin, ROOT, Version, VersionRef, safe_name,
+    Backup, FILE, FileRecord, FileView, Origin, ROOT, VERSION, Version, VersionRef, safe_name,
 };
 use super::{Client, VersionCheck};
 use crate::cloud::Evidence;
@@ -23,7 +23,7 @@ use crate::codec::sha256;
 use crate::content::{Opened, empty_file, open_manifest};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
-use crate::files::{BlobStore, MAX_FILE, Source};
+use crate::files::{BlobStore, MAX_FILE};
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
@@ -35,6 +35,8 @@ use zeroize::Zeroizing;
 pub(crate) const CLOUD: &str = "lib-cloud:";
 const CURSOR: &str = "lib-cloud-cursor";
 const OBSERVED: &str = "lib-cloud-observed";
+/// Interrupted downloads stop holding chunks after this idle period.
+const DOWNLOAD_HOLD_MS: u64 = 10 * dmsg_types::MINUTE;
 
 /// The plan of one inventory entry of `account` and the device that
 /// reserved it, checked against the certified evidence the relay kept from
@@ -219,16 +221,21 @@ impl Client {
     /// Forget a cloud copy here: its cache, and the backup mark of the
     /// local version it was of.
     pub(crate) fn forget_cloud(&mut self, upload_id: &str) -> Result<()> {
-        if let Some(entry) = self.cloud_entry(upload_id)?
-            && let Some(manifest) = &entry.manifest
-            && let Ok(mut version) = self.version(&manifest.file.id, &manifest.file.version)
-            && version
+        // Backup ownership is durable library state, independent of the
+        // reconstructible inventory (which the person may have cleared).
+        for key in self.workspace.store.sealed_keys(VERSION)? {
+            let (file, id) = key[VERSION.len()..]
+                .split_once(':')
+                .ok_or(Error::IntegrityFailed)?;
+            let mut version = self.version(file, id)?;
+            if version
                 .backup
                 .as_ref()
                 .is_some_and(|b| b.upload_id == upload_id)
-        {
-            version.backup = None;
-            self.save_version(&manifest.file.id, &manifest.file.version, &version)?;
+            {
+                version.backup = None;
+                self.save_version(file, id, &version)?;
+            }
         }
         self.workspace
             .delete_private(&format!("{CLOUD}{upload_id}"))
@@ -490,13 +497,15 @@ impl Client {
     /// version released from this device reads from is its last one.
     pub(crate) fn deletable(&self, upload_ids: &[String]) -> Result<()> {
         ensure_valid(!upload_ids.is_empty(), "upload_ids")?;
-        for upload_id in upload_ids {
-            let Some(manifest) = self.cloud_entry(upload_id)?.and_then(|e| e.manifest) else {
-                continue;
-            };
-            let last = self
-                .version(&manifest.file.id, &manifest.file.version)
-                .is_ok_and(|v| !v.local && v.backup.is_some_and(|b| b.upload_id == *upload_id));
+        for key in self.workspace.store.sealed_keys(VERSION)? {
+            let (file, id) = key[VERSION.len()..]
+                .split_once(':')
+                .ok_or(Error::IntegrityFailed)?;
+            let version = self.version(file, id)?;
+            let last = !version.local
+                && version
+                    .backup
+                    .is_some_and(|b| upload_ids.contains(&b.upload_id));
             ensure_valid(
                 !last,
                 "upload_ids: the only copy of a version freed here; fetch it first",
@@ -522,9 +531,9 @@ impl Client {
         let upload_id = plan.upload_id.clone();
         if entry["state"] != "committed" {
             if self.cloud_entry(&upload_id)?.is_some() {
-                self.forget_cloud(&upload_id)?;
                 report.deleted += 1;
             }
+            self.forget_cloud(&upload_id)?;
             return Ok(None);
         }
         if self.cloud_entry(&upload_id)?.is_some() {
@@ -710,18 +719,41 @@ async fn fetch_chunks<H: Hold>(
     plan: &UploadPlan,
     manifest: &BackupManifest,
     progress: &mut (dyn FnMut(u64, u64) + Send),
-) -> Result<()> {
+) -> Result<String> {
+    let hold = crate::upload::random_hex();
+    let pin = |c: &Client| {
+        c.hold_chunks([(
+            hold.clone(),
+            now_ms() + DOWNLOAD_HOLD_MS,
+            manifest
+                .file
+                .chunks
+                .iter()
+                .map(|chunk| chunk.digest.clone())
+                .collect(),
+        )])
+    };
     let (count, missing) = h
-        .with(|c| c.missing_chunks(upload_id, plan, manifest))
+        .with(|c| {
+            let missing = c.missing_chunks(upload_id, plan, manifest)?;
+            pin(c)?;
+            Ok(missing)
+        })
         .await?;
     let mut done = count - missing.len() as u64;
     progress(done, count);
-    crate::upload::download_file_chunks(h, Source::Library, &missing, |n| {
-        done += n as u64;
+    crate::downloads::chunks(h, &missing, |c, group, fetched| {
+        for ((_, digest), bytes) in group.iter().zip(fetched) {
+            c.blobs()?.put_chunk(digest, &bytes)?;
+        }
+        pin(c)?;
+        done += group.len() as u64;
         progress(done, count);
+        Ok(())
     })
     .await?;
-    super::reading::check_manifest(h, &manifest.file, MAX_FILE).await
+    super::reading::check_manifest(h, &manifest.file, MAX_FILE).await?;
+    Ok(hold)
 }
 
 /// Fetch a backup into the library: its chunks are downloaded and checked,
@@ -749,9 +781,13 @@ pub async fn cloud_fetch<H: Hold>(
         })
         .await?;
     let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-    fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await?;
-    h.with(|c| c.fetched(upload_id, folder, &entry, &manifest))
-        .await
+    let hold = fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await?;
+    h.with(|c| {
+        let result = c.fetched(upload_id, folder, &entry, &manifest);
+        c.release_chunks(&hold)?;
+        result
+    })
+    .await
 }
 
 /// Delete cloud copies: an explicit, signed collection of each object on
@@ -802,8 +838,13 @@ pub async fn cloud_verify<H: Hold>(
         .await?;
     let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
     let checked = fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await;
-    if checked.is_ok() {
-        h.with(|c| c.verified(upload_id, &manifest)).await?;
+    if let Ok(hold) = &checked {
+        h.with(|c| {
+            let result = c.verified(upload_id, &manifest);
+            c.release_chunks(hold)?;
+            result
+        })
+        .await?;
     }
     let file = &manifest.file;
     Ok(VersionCheck {
@@ -850,6 +891,85 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn restoring_keeps_downloaded_chunks_through_concurrent_collection() {
+        use std::sync::{
+            Mutex,
+            atomic::{AtomicBool, Ordering},
+        };
+        struct Collecting {
+            client: Mutex<Client>,
+            collecting: AtomicBool,
+        }
+        impl Hold for Collecting {
+            async fn with<T: Send>(
+                &self,
+                step: impl FnOnce(&mut Client) -> Result<T> + Send,
+            ) -> Result<T> {
+                let mut c = self.client.lock().unwrap();
+                let result = step(&mut c);
+                if self.collecting.load(Ordering::Relaxed) {
+                    c.collect_blobs()?;
+                }
+                result
+            }
+        }
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let source = dir.path("restore.txt");
+        std::fs::write(&source, b"resumed download").unwrap();
+        let imported = c
+            .files_import(&source, ROOT, false, &mut |_, _| {})
+            .unwrap();
+        let (file, mut version, manifest) = c.library_manifest(&imported.file.id, None).unwrap();
+        let job = c
+            .plan_backup(&imported.file.id, &imported.version, now_ms())
+            .unwrap();
+        let upload = job.plan.upload_id.clone();
+        c.save_cloud_entry(
+            &upload,
+            &CloudEntry {
+                plan: job.plan,
+                device: version.device.clone(),
+                committed_at: Some(7),
+                manifest: Some(BackupManifest {
+                    format: super::super::backup::BACKUP_FORMAT.into(),
+                    file: manifest,
+                    path: vec![],
+                    tags: file.tags,
+                    note: file.note,
+                    created_at: version.created_at,
+                    modified_at: file.updated_at,
+                    device: version.device.clone(),
+                }),
+            },
+        )
+        .unwrap();
+        // Bytes from an interrupted download exist, but the file is not yet local.
+        version.local = false;
+        c.save_version(&imported.file.id, &imported.version, &version)
+            .unwrap();
+        let h = Collecting {
+            client: Mutex::new(c),
+            collecting: AtomicBool::new(false),
+        };
+        let restored = cloud_fetch(&h, &upload, Some(ROOT), &mut |_, _| {
+            h.collecting.store(true, Ordering::Relaxed);
+        })
+        .await
+        .unwrap();
+        assert!(restored.local);
+        h.with(|c| {
+            let out = dir.path("restored.txt");
+            c.files_export(&imported.file.id, None, &out)?;
+            assert_eq!(std::fs::read(out).unwrap(), b"resumed download");
+            assert!(c.held_chunks(now_ms())?.is_empty());
+            Ok(())
+        })
+        .await
+        .unwrap();
+    }
 
     #[test]
     fn explicit_restore_replaces_corrupt_blocks_but_listing_does_not() {

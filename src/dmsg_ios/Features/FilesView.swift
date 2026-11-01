@@ -67,7 +67,11 @@ struct FilesView: View {
                         }.disabled(model.filesFolder != (model.library.folder?.id ?? "root"))
                     }
                 }.task { await model.refresh(); await model.loadCloudBackups(refresh: true); local = await LocalOnly.load(model) }
-                .refreshable { await model.synchronize(); local = await LocalOnly.load(model) }
+                .refreshable {
+                    await model.loadCloudBackups(refresh: true)
+                    await model.refresh()
+                    local = await LocalOnly.load(model)
+                }
                 .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { result in
                     Task { await importFile(result) }
                 }

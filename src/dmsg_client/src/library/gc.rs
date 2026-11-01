@@ -57,8 +57,8 @@ impl Client {
 
     /// Delete the chunk files nothing references and the day-old temporary
     /// files; returns how many of each. Backups in flight keep their chunks
-    /// through the reference set; a fetch holds the client while it adds
-    /// chunks, so nothing collects beside it.
+    /// through the reference set; downloads pin their chunks until the
+    /// verified version joins the catalog.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
