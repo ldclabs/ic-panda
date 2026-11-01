@@ -175,13 +175,13 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
   await main.getByTestId('approve-shown').fill('34'.repeat(32))
   assert.equal(await submit.isEnabled(), true)
   await closeEditor()
-  await main.getByTestId('security-approve-others').click()
+  await main.getByTestId('security-approve-login').click()
   assert.equal(await submit.isDisabled(), true)
-  await main.getByTestId('approve-request').fill('pairing-token')
-  await main.getByTestId('approve-shown').fill('34'.repeat(32))
+  await main.getByTestId('approve-request').fill('binding-token')
+  await main.getByTestId('approve-shown').fill('aaaaa-aa')
   await submit.click()
   await main.getByTestId('security-editor').waitFor({ state: 'detached' })
-  assert.deepEqual(last('device/approve').params, { token: 'pairing-token', device: '34'.repeat(32), source: 'gui' })
+  assert.deepEqual(last('account/bind_approve').params, { token: 'binding-token', principal: 'aaaaa-aa', source: 'gui' })
 
   // A failed hardware read is visible and retryable, without hiding account settings.
   failKeys = true
@@ -203,13 +203,13 @@ export async function securityFlow({ app, main, shots, methods, requests, emit, 
     await main.waitForFunction(dark => matchMedia('(prefers-color-scheme: dark)').matches === dark, appearance === 'dark')
     await main.getByTestId('security').scrollIntoViewIfNeeded()
     await main.screenshot({ path: join(shots, `security-overview-${locale}-${appearance}-${width}.png`), animations: 'disabled' })
-    for (const [name, button] of [['policy', 'security-policy-edit'], ['recovery', 'security-recovery-edit'], ['hardware', 'approval-keys-require'], ['others', 'security-approve-others'], ['key', 'security-key-edit'], ['bound', 'device-bound-toggle'], ['key-approve', 'security-key-approve'], ['key-request', 'security-key-request']]) {
+    for (const [name, button] of [['policy', 'security-policy-edit'], ['recovery', 'security-recovery-edit'], ['hardware', 'approval-keys-require'], ['login', 'security-approve-login'], ['key', 'security-key-edit'], ['bound', 'device-bound-toggle'], ['key-approve', 'security-key-approve'], ['key-request', 'security-key-request']]) {
       await main.getByTestId(button).click()
       const dialog = main.getByTestId('security-editor')
       await dialog.waitFor()
       if (name === 'policy') await main.getByTestId('daily-executions').fill('65')
-      if (name === 'others' || name === 'key-approve') {
-        await main.getByTestId(name === 'others' ? 'approve-request' : 'approval-key-request').fill('fixture-request-'.repeat(100))
+      if (name === 'login' || name === 'key-approve') {
+        await main.getByTestId(name === 'login' ? 'approve-request' : 'approval-key-request').fill('fixture-request-'.repeat(100))
         await main.getByTestId('approve-shown').fill('34'.repeat(32))
       }
       if (name === 'key-request') {

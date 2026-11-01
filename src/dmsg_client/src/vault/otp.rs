@@ -9,8 +9,7 @@ use sha1::Sha1;
 use sha2::{Sha256, Sha512};
 use zeroize::Zeroizing;
 
-/// Largest image a QR code is read from, in pixels.
-const MAX_PIXELS: u64 = 40_000_000;
+pub use crate::qr::scan;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Algorithm {
@@ -140,37 +139,6 @@ impl Totp {
             remaining_ms: period_ms - now_ms % period_ms,
         }
     }
-}
-
-/// The text of the first readable QR code in an image (PNG, JPEG, GIF or
-/// WebP), such as an `otpauth://` URI.
-///
-/// # Errors
-/// Returns `Error::InvalidInput("image")` for an unreadable or oversized
-/// image and `Error::NotFound` when no QR code reads.
-pub fn scan(image: &[u8]) -> Result<String> {
-    let invalid = || Error::InvalidInput("image".into());
-    let reader = image::ImageReader::new(std::io::Cursor::new(image))
-        .with_guessed_format()
-        .map_err(|_| invalid())?;
-    let (width, height) = reader.into_dimensions().map_err(|_| invalid())?;
-    ensure(
-        u64::from(width) * u64::from(height) <= MAX_PIXELS,
-        invalid(),
-    )?;
-    let luma = image::load_from_memory(image)
-        .map_err(|_| invalid())?
-        .to_luma8();
-    let mut prepared = rqrr::PreparedImage::prepare_from_greyscale(
-        luma.width() as usize,
-        luma.height() as usize,
-        |x, y| luma.get_pixel(x as u32, y as u32)[0],
-    );
-    prepared
-        .detect_grids()
-        .into_iter()
-        .find_map(|grid| grid.decode().ok().map(|(_, text)| text))
-        .ok_or(Error::NotFound)
 }
 
 #[cfg(test)]

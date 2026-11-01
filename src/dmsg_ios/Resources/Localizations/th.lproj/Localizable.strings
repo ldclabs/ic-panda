@@ -2446,5 +2446,17 @@
 	<string>ไม่พร้อมใช้งาน</string>
 	<key>No messages</key>
 	<string>ไม่มีข้อความ</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>เปรียบเทียบ ID อุปกรณ์บนทั้งสองหน้าจอ แล้วอนุมัติบนคอมพิวเตอร์</string>
+	<key>Scan desktop invitation</key>
+	<string>สแกนคำเชิญจากคอมพิวเตอร์</string>
+	<key>Send device request</key>
+	<string>ส่งคำขอของอุปกรณ์</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>ไม่สามารถใช้กล้องได้ วางคำเชิญหรืออนุญาตการเข้าถึงกล้องในการตั้งค่า</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>ลงชื่อเข้าใช้บัญชีเดียวกันบนอุปกรณ์ใหม่ สแกน QR ของคอมพิวเตอร์ แล้วตรวจสอบและอนุมัติบนคอมพิวเตอร์</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>ยังยืนยันไม่ได้ว่าคำขอของอุปกรณ์ส่งถึงแล้ว ตรวจสอบการเชื่อมต่อและคอมพิวเตอร์ก่อนลองอีกครั้ง</string>
 </dict>
 </plist>

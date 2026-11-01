@@ -20,6 +20,8 @@ import {
   Notification,
   powerMonitor,
   shell,
+  session as electronSession,
+  systemPreferences,
   Tray,
   type IpcMainInvokeEvent
 } from 'electron'
@@ -592,6 +594,28 @@ handle('dmsg:vault-import', 'main', async (_event, session: number, picks: numbe
   importing = null
   return daemon.call('vault/import', { ...source, picks: chosen, attachments, folder })
 })
+/** Camera permission and picked images stay behind the main-process bridge. */
+handle('dmsg:camera-access', 'main', () => process.platform === 'darwin' ? systemPreferences.askForMediaAccess('camera') : true)
+handle('dmsg:device-qr-image', 'main', async (_event, source: string) => {
+  const limit = 8 * 1024 * 1024
+  let bytes: Buffer
+  if (source === 'clipboard') {
+    const items = await clipboard.read()
+    const item = items.find((item) => item.types.includes('image/png'))
+    if (!item) throw new DaemonError('NOT_FOUND', 'No image on the clipboard')
+    const blob = (await item.getType('image/png')) as Blob
+    if (blob.size > limit) throw new DaemonError('QUOTA_EXCEEDED', 'QR image too large')
+    bytes = Buffer.from(await blob.arrayBuffer())
+  } else if (source === 'file') {
+    const path = await pickFile({ title: text.pickQrImage, filters: [{ name: text.images, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] })
+    if (!path) return null
+    if ((await stat(path)).size > limit) throw new DaemonError('QUOTA_EXCEEDED', 'QR image too large')
+    bytes = await readFile(path)
+  } else throw new DaemonError('INVALID_INPUT', 'QR image source')
+  if (bytes.length > limit) throw new DaemonError('QUOTA_EXCEEDED', 'QR image too large')
+  return daemon.call('device/pair_scan', { image: bytes.toString('base64') })
+})
+
 /** The text of a QR code, from an image the person picks or the one on the clipboard. */
 handle('dmsg:vault-otp-scan', 'main', async (_event, source: string) => {
   if (source === 'clipboard') {
@@ -1082,6 +1106,12 @@ app.on('ready', (_event, launchInfo) => {
 })
 
 app.whenReady().then(async () => {
+  // Camera frames belong only to the main app's top frame, never the approval
+  // window or an embedded frame. No microphone permission is granted here.
+  electronSession.defaultSession.setPermissionCheckHandler((contents, permission, _origin, details) =>
+    permission !== 'media' || (!!main && contents === main.webContents && details.isMainFrame === true && details.mediaType === 'video'))
+  electronSession.defaultSession.setPermissionRequestHandler((contents, permission, respond, details) =>
+    respond(permission !== 'media' || (!!main && contents === main.webContents && details.isMainFrame === true && 'mediaTypes' in details && details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'video')))
   powerMonitor.on('lock-screen', () => { screenLocked = true; noticeViewports.clear(); noticeEpoch++; void refreshNotices() })
   powerMonitor.on('unlock-screen', () => { screenLocked = false; noticeEpoch++; void refreshNotices() })
   powerMonitor.on('resume', () => { noticeEpoch++; void refreshNotices() })

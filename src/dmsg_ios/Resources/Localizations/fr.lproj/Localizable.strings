@@ -2446,5 +2446,17 @@
 	<string>indisponible</string>
 	<key>No messages</key>
 	<string>Aucun message</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Comparez l’identifiant de l’appareil sur les deux écrans, puis approuvez sur l’ordinateur.</string>
+	<key>Scan desktop invitation</key>
+	<string>Scanner l’invitation de l’ordinateur</string>
+	<key>Send device request</key>
+	<string>Envoyer la demande de l’appareil</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>La caméra est indisponible. Collez l’invitation ou autorisez la caméra dans Réglages.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Connectez le nouvel appareil au même compte, scannez le code QR de l’ordinateur, puis vérifiez et approuvez sur l’ordinateur.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>La réception de la demande n’est pas confirmée. Vérifiez la connexion et l’ordinateur avant de réessayer.</string>
 </dict>
 </plist>

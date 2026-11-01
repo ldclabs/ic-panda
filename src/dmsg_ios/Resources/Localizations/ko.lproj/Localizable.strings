@@ -2446,5 +2446,17 @@
 	<string>사용 불가</string>
 	<key>No messages</key>
 	<string>메시지 없음</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>두 화면의 기기 ID를 비교한 후 컴퓨터에서 승인하세요.</string>
+	<key>Scan desktop invitation</key>
+	<string>컴퓨터 초대 스캔</string>
+	<key>Send device request</key>
+	<string>기기 요청 보내기</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>새 기기에서 같은 계정으로 로그인하고 컴퓨터의 QR 코드를 스캔한 다음 컴퓨터에서 확인하고 승인하세요.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>기기 요청의 전달이 확인되지 않았습니다. 다시 시도하기 전에 연결과 컴퓨터를 확인하세요.</string>
 </dict>
 </plist>

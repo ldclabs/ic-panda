@@ -2446,5 +2446,17 @@
 	<string>غير متاح</string>
 	<key>No messages</key>
 	<string>لا توجد رسائل</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
+	<key>Scan desktop invitation</key>
+	<string>مسح دعوة الكمبيوتر</string>
+	<key>Send device request</key>
+	<string>إرسال طلب الجهاز</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>الكاميرا غير متاحة. الصق الدعوة أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>سجّل الدخول إلى الحساب نفسه على الجهاز الجديد، وامسح رمز QR على الكمبيوتر، ثم راجع الطلب ووافق عليه على الكمبيوتر.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>لم يتم تأكيد وصول طلب الجهاز. تحقق من الاتصال والكمبيوتر قبل إعادة المحاولة.</string>
 </dict>
 </plist>

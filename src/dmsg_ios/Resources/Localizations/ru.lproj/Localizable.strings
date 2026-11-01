@@ -2446,5 +2446,17 @@
 	<string>недоступен</string>
 	<key>No messages</key>
 	<string>Сообщений нет</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Сравните ID устройства на обоих экранах и подтвердите на компьютере.</string>
+	<key>Scan desktop invitation</key>
+	<string>Сканировать приглашение с компьютера</string>
+	<key>Send device request</key>
+	<string>Отправить запрос устройства</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Войдите в тот же аккаунт на новом устройстве, отсканируйте QR-код компьютера, затем проверьте и подтвердите запрос на компьютере.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Доставка запроса не подтверждена. Проверьте соединение и компьютер перед повторной попыткой.</string>
 </dict>
 </plist>

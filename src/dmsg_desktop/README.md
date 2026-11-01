@@ -313,7 +313,7 @@ Rules (`src/main/policy.ts`):
   hint), and leaves the clipboard after 30 seconds, or when dMsg locks or
   quits, unless something replaced it. A one-time password copies as its
   current code. Imports read only the export the person picked in the main
-  process's dialog, and QR codes only a picked image or the clipboard's;
+  process's dialog, and OTP QR codes only a picked image or the clipboard's;
   items open their web addresses in the system browser, http and https
   only. dMsg's own keys (tagged `dmsg-`) are read-only.
 - Revoking a device and changing its capabilities are approval requests.
@@ -368,8 +368,16 @@ Rules (`src/main/policy.ts`):
   binding and approval; once the holder's credential is unavailable it offers
   a login without asking to bind again. The credential expires with its
   delegation and is discarded on removal, lock or account switch.
-  Approving another device's pairing takes the device ID shown on that device
-  and opens a high-risk approval request with its role and capabilities.
+  Login binding approval stays in Account security. Devices → Authorize another
+  device displays a short-lived relay invitation QR code for a new iOS device
+  signed in to the same account. The devices may use different networks. Scanning
+  returns an encrypted signed request through the relay; the desktop
+  shows the full device ID, role and capabilities before opening the high-risk
+  approval window. The separate Scan device request action reads the new device’s
+  QR directly using a camera, selected image or clipboard, without creating a relay
+  invitation; pasting remains available. Camera frames are decoded locally. Closing the dialog,
+  expiry or changing the unlocked session invalidates the invitation. See the
+  [public device invitation contract](../../docs/protocol/device_pairing.md).
 - Security → Approval keys shows this Mac's Secure Enclave approval key,
   every device's and the purposes keys are required for. Registering a key
   (optionally Touch ID only), retiring one, requiring keys for account,

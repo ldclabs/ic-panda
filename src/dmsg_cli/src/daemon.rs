@@ -59,7 +59,7 @@ use dmsg_client::{
     now_ms,
     principal::{self as profile, PrincipalDocument},
 };
-use dmsg_types::{Error, Result, user::ControllerRole};
+use dmsg_types::{Error, Result, ensure, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -90,7 +90,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 61] = [
+const METHODS: [&str; 66] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -104,6 +104,11 @@ const METHODS: [&str; 61] = [
     "account/create",
     "account/show",
     "device/pair_request",
+    "device/pair_inspect",
+    "device/pair_scan",
+    "device/pair_invite",
+    "device/pair_invite_status",
+    "device/pair_invite_cancel",
     "device/approve",
     "device/moved_list",
     "device/moved_set_aside",
@@ -286,6 +291,7 @@ pub(crate) struct Daemon {
     pub(crate) notifications: crate::notifications::Notifications,
     /// The device transfer, running or last.
     pub(crate) transfers: crate::transfer::Transfers,
+    pub(crate) pairing: crate::pairing::Pairing,
 }
 
 /// Who presented a credential.
@@ -722,6 +728,7 @@ impl Daemon {
             snapshots: Default::default(),
             notifications: Default::default(),
             transfers: Default::default(),
+            pairing: Default::default(),
         }
     }
 
@@ -1483,12 +1490,43 @@ impl Daemon {
                     Some("member") => ControllerRole::Member,
                     _ => ControllerRole::Administrator,
                 };
-                self.under_lock(async |client| {
-                    let token = client.pair_request(role).await?;
-                    let qr = dmsg_client::qr::png_data(&token).ok();
-                    Ok(json!({"token": token, "device_id": client.status()?.device_id, "qr": qr}))
+                let h = self.hold();
+                let request = dmsg_client::account::pair_request(&h, role).await?;
+                let qr = dmsg_client::qr::png_data(&request.token).ok();
+                Ok(
+                    json!({"token": request.token, "device_id": hex::encode(*request.device_id), "qr": qr, "expires_at": request.expires_at}),
+                )
+            }
+            "device/pair_scan" => {
+                let encoded = text(params, "image")?;
+                ensure(encoded.len() <= 12 * 1024 * 1024, Error::QuotaExceeded)?;
+                let image = base64::engine::general_purpose::STANDARD
+                    .decode(encoded)
+                    .map_err(|_| Error::InvalidInput("image".into()))?;
+                ensure(image.len() <= 8 * 1024 * 1024, Error::QuotaExceeded)?;
+                let h = self.hold();
+                let session = h.with(|c| Ok(c.session_generation())).await?;
+                let token = tokio::task::spawn_blocking(move || dmsg_client::qr::scan(&image))
+                    .await
+                    .map_err(|e| Error::Unavailable(e.to_string()))??;
+                h.with(|c| {
+                    ensure(c.session_generation() == session, Error::Locked)?;
+                    let mut preview = c.pairing_preview(&token)?;
+                    preview["token"] = json!(token);
+                    Ok(preview)
                 })
                 .await
+            }
+            "device/pair_inspect" => {
+                self.hold()
+                    .with(|c| c.pairing_preview(&text(params, "token")?))
+                    .await
+            }
+            "device/pair_invite" => self.pairing.start(self).await,
+            "device/pair_invite_status" => self.pairing.status(self, &text(params, "id")?).await,
+            "device/pair_invite_cancel" => {
+                self.pairing.cancel(self, &text(params, "id")?).await?;
+                Ok(Value::Null)
             }
             "device/approve" => {
                 // The owner names the device shown on the new device's

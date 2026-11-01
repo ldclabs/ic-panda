@@ -232,6 +232,20 @@ struct Pairing {
     request: AccountMutation,
 }
 
+/// A provisional device's request and metadata from the same session.
+pub struct PairingToken {
+    /// The existing `dmsg-device-request/2` proof.
+    pub token: String,
+    /// The requesting device.
+    pub device_id: Hash,
+    /// Its authenticated account's home.
+    pub home: Principal,
+    /// Its authenticated account.
+    pub account: AccountId,
+    /// The request deadline, in milliseconds.
+    pub expires_at: u64,
+}
+
 /// A pairing request another device produced, after its checks.
 #[derive(Clone, Debug)]
 pub struct PairingRequest {
@@ -932,9 +946,17 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` when the login has no account.
     pub async fn pair_request(&mut self, role: ControllerRole) -> Result<String> {
+        Ok(pair_request(&self.hold(), role).await?.token)
+    }
+
+    fn pair_request_for(
+        &mut self,
+        home: Principal,
+        account: AccountId,
+        state: &AccountState,
+        role: ControllerRole,
+    ) -> Result<PairingToken> {
         ensure(self.workspace.provisional(), Error::Forbidden)?;
-        let (home, account) = self.locate().await?.ok_or(Error::NotFound)?;
-        let state = self.refresh(home, &account).await?;
         ensure(
             state.device(&self.workspace.meta.device_id).is_none(),
             Error::IdempotencyConflict,
@@ -952,6 +974,7 @@ impl Client {
             ),
         );
         let proof = Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
+        let expires_at = now_ms() + APPROVAL_MS;
         let mutation = AccountMutation {
             account_id: account,
             expected_version: state.info.account_version,
@@ -961,17 +984,23 @@ impl Client {
                 security_epoch: state.info.security_epoch,
                 sequence: 0,
                 request_id,
-                expires_at: now_ms() + APPROVAL_MS,
+                expires_at,
                 signature: Ed25519Signature::new([0; 64]),
                 hardware: None,
             },
         };
         self.located = Some((home, account));
-        Ok(b64(&canonical(&Pairing {
-            format: PAIRING.into(),
+        Ok(PairingToken {
+            token: b64(&canonical(&Pairing {
+                format: PAIRING.into(),
+                home,
+                request: mutation,
+            })),
+            device_id: self.workspace.meta.device_id,
             home,
-            request: mutation,
-        })))
+            account,
+            expires_at,
+        })
     }
 
     /// Check a pairing token for this administrator's account.
@@ -980,7 +1009,11 @@ impl Client {
     /// A token for another home or account, an expired request or a bad
     /// proof of possession is refused.
     pub fn pairing_preview(&self, token: &str) -> Result<serde_json::Value> {
-        let pairing = self.inspect_pairing(token)?;
+        self.pairing_preview_at(token, now_ms())
+    }
+
+    pub(crate) fn pairing_preview_at(&self, token: &str, now: u64) -> Result<serde_json::Value> {
+        let pairing = self.inspect_pairing_at(token, now)?;
         Ok(serde_json::json!({
             "device_id": hex::encode(*pairing.device.device_id),
             "role": pairing.device.role, "capabilities": pairing.device.capabilities,
@@ -990,6 +1023,10 @@ impl Client {
 
     /// The validated mutation used only by the approval state machine.
     pub(crate) fn inspect_pairing(&self, token: &str) -> Result<PairingRequest> {
+        self.inspect_pairing_at(token, now_ms())
+    }
+
+    fn inspect_pairing_at(&self, token: &str, now: u64) -> Result<PairingRequest> {
         ensure(token.len() <= 4096, Error::QuotaExceeded)?;
         let packet: Pairing = decode(&unb64(token)?, 4096)?;
         let account = self.account()?;
@@ -1000,7 +1037,6 @@ impl Client {
                 && request.account_id == account.id,
             Error::IntegrityFailed,
         )?;
-        let now = now_ms();
         ensure(
             request.approval.expires_at > now && request.approval.expires_at <= now + 300_000,
             Error::Expired,
@@ -1074,6 +1110,41 @@ pub(crate) async fn read_account(
         &ic.root_key(),
         now_ms(),
     )
+}
+
+/// Create a provisional device's pairing request without holding the client
+/// during account discovery and certified reads.
+///
+/// # Errors
+/// As [`Client::pair_request`]; locking or switching the workspace cancels it.
+pub async fn pair_request<H: Hold>(h: &H, role: ControllerRole) -> Result<PairingToken> {
+    let h = crate::hold::Session::new(h).await?;
+    let (ic, handle, pins) = h
+        .with(|c| {
+            ensure(c.workspace.provisional(), Error::Forbidden)?;
+            Ok((
+                c.session()?.ic.clone(),
+                c.config.handle,
+                c.config.user_homes.clone(),
+            ))
+        })
+        .await?;
+    let homes = user_homes(&ic, handle, &pins).await?;
+    let (home, account) = find_account(&ic, &homes.user_homes)
+        .await?
+        .ok_or(Error::NotFound)?;
+    let state = read_account(&ic, home, &account).await?;
+    h.with(|c| {
+        ensure(
+            c.config.handle == handle && c.config.user_homes == pins,
+            Error::VersionConflict,
+        )?;
+        c.observe(&account, &state.security)?;
+        c.observe_recovery_deadline(&state)?;
+        c.observe_hardware(&state.info);
+        c.pair_request_for(home, account, &state, role)
+    })
+    .await
 }
 
 /// [`Client::refresh`] of the selected account, its user home waited on

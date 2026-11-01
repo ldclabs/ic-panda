@@ -30,14 +30,14 @@
   import LocalOnly from './LocalOnly.svelte'
 
   /** The page shows effective settings. One dialog edits one task; the approval window decides account changes. */
-  type Editor = 'policy' | 'recovery' | 'hardware' | 'others' | 'key' | 'key-request' | 'key-approve' | 'bound'
+  type Editor = 'policy' | 'recovery' | 'hardware' | 'login' | 'key' | 'key-request' | 'key-approve' | 'bound'
   type Pending = 'policy' | 'recovery' | 'hardware' | 'key'
   const titles: Record<Editor, Label> = {
-    policy: 'signingPolicy', recovery: 'onChainRecovery', hardware: 'approvalKeys', others: 'approveOthers',
+    policy: 'signingPolicy', recovery: 'onChainRecovery', hardware: 'approvalKeys', login: 'approveLogin',
     key: 'approvalKey', 'key-request': 'keyRequest', 'key-approve': 'approveKeyRequest', bound: 'deviceBound'
   }
   const descriptions: Record<Editor, Label> = {
-    policy: 'securityApprovalHint', recovery: 'securityApprovalHint', hardware: 'securityApprovalHint', others: 'approveOthersHint',
+    policy: 'securityApprovalHint', recovery: 'securityApprovalHint', hardware: 'securityApprovalHint', login: 'approveLoginHint',
     key: 'approvalKeysHint', 'key-request': 'keyRequestHint', 'key-approve': 'keyRequestHint', bound: 'deviceBoundHint'
   }
   const OPTIONAL = ['payment', 'attestation']
@@ -73,15 +73,15 @@
   const policy = $derived(security ? policyChanges(security.policy, daily, purposes) : null)
   const recoveryChanged = $derived(/^[1-7]$/.test(days) && (recoveryEnabled !== security?.recovery_enabled || (recoveryEnabled && Number(days) * 86_400_000 !== security?.recovery_delay_ms)))
   const hardwareChanged = $derived(!sameSelection([...CONTROL, ...extra], keys?.policy ?? []))
-  const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
+  const validDeviceId = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
   const canSubmit = $derived.by(() => {
     if (blocked) return false
     switch (editor) {
       case 'policy': return !!policy && !pending.policy
       case 'recovery': return recoveryChanged && !pending.recovery
       case 'hardware': return hardwareChanged && !!own?.here && !own.fingerprints_changed && !keyError && !pending.hardware
-      case 'others': return !!request.trim() && !!shown.trim()
-      case 'key-approve': return !!request.trim() && pairing && !keyError
+      case 'login': return !!request.trim() && !!shown.trim()
+      case 'key-approve': return !!request.trim() && validDeviceId && !keyError
       case 'key': return !!keys?.available && !keyError && !pending.key
       case 'key-request': return !!keys?.available && !keyError && !made
       case 'bound': return !!keys?.available && !keys.device_bound && !keyError
@@ -194,7 +194,7 @@
     if (editor === 'recovery') return ask('account/recovery_policy', { enabled: recoveryEnabled, days: recoveryEnabled ? Number(days) : security.recovery_delay_ms / 86_400_000 }, 'recovery')
     if (editor === 'hardware') return ask('account/hardware_policy', { purposes: [...CONTROL, ...extra] }, 'hardware')
     if (editor === 'key') return ask('device/key_register', { biometry_only: biometryOnly }, 'key')
-    if (editor === 'others') return ask(pairing ? 'device/approve' : 'account/bind_approve', { token: request.trim(), [pairing ? 'device' : 'principal']: shown.trim() })
+    if (editor === 'login') return ask('account/bind_approve', { token: request.trim(), principal: shown.trim() })
     if (editor === 'key-approve') return ask('device/key_approve', { token: request.trim(), device: shown.trim() })
     if (editor === 'key-request') return guard(async () => {
       const result = await call('device/key_request', { biometry_only: biometryOnly })
@@ -264,7 +264,7 @@
     </ul>
     <div class="mt-3 flex flex-wrap gap-2 px-5">
       <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="bind-login" onclick={() => startLogin(true)}><Icon name="add" />{t('bindLogin')}</button>
-      <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="security-approve-others" onclick={() => begin('others')}><Icon name="pair" />{t('approveOthers')}</button>
+      <button class={buttonClass('secondary', 'sm')} disabled={blocked} data-testid="security-approve-login" onclick={() => begin('login')}><Icon name="login" />{t('approveLogin')}</button>
     </div>
   </Section>
 
@@ -347,7 +347,7 @@
   {/if}
 {/if}
 
-<Dialog bind:open={() => open, setOpen} title={editor === 'key' ? (own ? t('replaceKey') : t('registerKey')) : t(titles[editor])} description={t(descriptions[editor])} icon={editor === 'policy' ? 'signature' : editor === 'recovery' ? 'recovery' : editor === 'others' ? 'pair' : 'key'} dismissible={!busy} testid="security-editor">
+<Dialog bind:open={() => open, setOpen} title={editor === 'key' ? (own ? t('replaceKey') : t('registerKey')) : t(titles[editor])} description={t(descriptions[editor])} icon={editor === 'policy' ? 'signature' : editor === 'recovery' ? 'recovery' : editor === 'login' ? 'login' : 'key'} dismissible={!busy} testid="security-editor">
   <div class="grid gap-4">
     {#if error}<Notice failure={error} tone="danger" testid="security-editor-error">{error}</Notice>{/if}
     {#if needsLogin || loadError}<Notice tone="warn">{needsLogin ? t('securityNeedsLogin') : loadError}</Notice>{/if}
@@ -377,9 +377,9 @@
           <button class={buttonClass('danger', 'sm')} disabled={blocked || !!pending.hardware || !!keyError} onclick={() => ask('account/hardware_policy', { purposes: [] }, 'hardware')}>{t('stopRequiring')}</button>
         </div>
       {/if}
-    {:else if editor === 'others' || editor === 'key-approve'}
-      <SecretInput label={t('pasteRequest')} bind:value={request} multiline disabled={blocked} testid={editor === 'others' ? 'approve-request' : 'approval-key-request'} />
-      <TextField label={editor === 'others' ? `${t('deviceShown')} / ${t('principalShown')}` : t('deviceShown')} bind:value={shown} mono disabled={blocked} error={editor === 'key-approve' && shown.trim() && !pairing ? t('securityDeviceIdHint') : ''} data-testid="approve-shown" />
+    {:else if editor === 'login' || editor === 'key-approve'}
+      <SecretInput label={t('pasteRequest')} bind:value={request} multiline disabled={blocked} testid={editor === 'login' ? 'approve-request' : 'approval-key-request'} />
+      <TextField label={editor === 'login' ? t('principalShown') : t('deviceShown')} bind:value={shown} mono disabled={blocked} error={editor === 'key-approve' && shown.trim() && !validDeviceId ? t('securityDeviceIdHint') : ''} data-testid="approve-shown" />
     {:else if made && editor === 'key-request'}
       <TextField label={`${t('device')} · ${t('thisDevice')}`} readonly value={made.device_id} mono />
       <TextArea label={t('requestToken')} readonly rows={3} value={made.token} mono data-testid="approval-key-token" />
@@ -396,7 +396,7 @@
     <button class={buttonClass('secondary')} disabled={busy} onclick={() => setOpen(false)}>{made ? t('close') : t('cancel')}</button>
     {#if !(editor === 'key-request' && made)}
       <button class={buttonClass('primary')} disabled={!canSubmit} data-testid={editor === 'key' ? 'approval-key-register' : 'security-submit'} onclick={submit}>
-        {editor === 'bound' ? t('deviceBoundOn') : editor === 'key-request' ? t('keyRequest') : editor === 'others' ? (pairing ? t('approveDevice') : t('approveLogin')) : t('submit')}
+        {editor === 'bound' ? t('deviceBoundOn') : editor === 'key-request' ? t('keyRequest') : editor === 'login' ? t('approveLogin') : t('submit')}
       </button>
     {/if}
   {/snippet}

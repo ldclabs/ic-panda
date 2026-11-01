@@ -2446,5 +2446,17 @@
 	<string>tidak tersedia</string>
 	<key>No messages</key>
 	<string>Tidak ada pesan</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Bandingkan ID perangkat di kedua layar dan setujui di komputer.</string>
+	<key>Scan desktop invitation</key>
+	<string>Pindai undangan komputer</string>
+	<key>Send device request</key>
+	<string>Kirim permintaan perangkat</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Kamera tidak tersedia. Tempel undangan atau izinkan akses kamera di Pengaturan.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Masuk ke akun yang sama di perangkat baru, pindai QR komputer, lalu tinjau dan setujui di komputer.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Pengiriman permintaan perangkat belum dikonfirmasi. Periksa koneksi dan komputer sebelum mencoba lagi.</string>
 </dict>
 </plist>

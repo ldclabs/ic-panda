@@ -14,6 +14,19 @@ handover use the same name and all 23 locales as desktop and the website.
 Member approvals and device co-signing remain separate; one person can use
 multiple cosigner keys without counting as multiple members.
 
+## Device authorization
+
+To add this iPhone, sign in to the existing account and choose **Scan desktop
+invitation**. The authorized desktop shows its QR code under Settings → Devices
+→ Authorize another device. The encrypted request returns through the configured
+relay, so the devices may use different networks.
+Scanning delivers a device request; compare the full device ID and approve in
+the desktop approval window, then check authorization on the phone. The existing
+phone-displayed request QR and copied tokens remain available: an authorized
+iPhone or desktop can scan the new device’s request directly without an invitation mailbox. This is separate
+from binding another login identity. See the
+[public invitation contract](../../docs/protocol/device_pairing.md).
+
 ## On-chain recovery
 
 Account security offers one recovery toggle and an optional 1–7 day waiting

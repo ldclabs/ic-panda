@@ -2446,5 +2446,17 @@
 	<string>không khả dụng</string>
 	<key>No messages</key>
 	<string>Không có tin nhắn</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
+	<key>Scan desktop invitation</key>
+	<string>Quét lời mời từ máy tính</string>
+	<key>Send device request</key>
+	<string>Gửi yêu cầu thiết bị</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Không thể truy cập camera. Dán lời mời hoặc cho phép truy cập camera trong Cài đặt.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Đăng nhập cùng tài khoản trên thiết bị mới, quét mã QR của máy tính rồi kiểm tra và phê duyệt trên máy tính.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Chưa xác nhận yêu cầu thiết bị đã được chuyển đến. Kiểm tra kết nối và máy tính trước khi thử lại.</string>
 </dict>
 </plist>

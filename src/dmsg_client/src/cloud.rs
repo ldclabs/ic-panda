@@ -787,6 +787,38 @@ impl Cloud {
         })
     }
 
+    /// Submit one opaque device-pairing candidate using the invitation's
+    /// independent bearer credential. The decryption key never crosses HTTP.
+    pub(crate) async fn pairing_submit(
+        &self,
+        account: &dmsg_types::AccountId,
+        invite: &Hash,
+        submit_token: &Hash,
+        sealed: &[u8],
+    ) -> Result<Json> {
+        #[derive(Serialize)]
+        struct Submission<'a> {
+            submit_token: &'a Hash,
+            sealed: &'a Bytes,
+        }
+        let path = format!("/v1/device-invites/{account}/{}", hex::encode(**invite));
+        self.exchange(
+            reqwest::Method::POST,
+            self.url(&path)?,
+            Some((
+                canonical(&Submission {
+                    submit_token,
+                    sealed: Bytes::new(sealed),
+                }),
+                "application/cbor",
+            )),
+            None,
+            false,
+        )
+        .await
+        .and_then(Reply::json)
+    }
+
     /// Hand the relay certified account evidence.
     ///
     /// # Errors

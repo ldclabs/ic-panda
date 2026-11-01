@@ -515,4 +515,34 @@ import XCTest
         wait(for: [expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: create)], timeout: 5)
         capture(app, name: "Chinese replace a device request")
     }
+
+    func testDesktopInvitationEntryAndPasteInChineseGermanAndArabic() {
+        for (language, locale) in [("zh-Hans", "zh_CN"), ("de", "de_DE"), ("ar", "ar")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--ui-testing", "--ui-access", "--ui-pairing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+            if language == "ar" { app.launchArguments.append("--ui-dark") }
+            app.launch()
+            let authorize = app.buttons["login.authorize"]
+            XCTAssertTrue(authorize.waitForExistence(timeout: 5))
+            for _ in 0..<4 where !authorize.isHittable { app.swipeUp() }
+            authorize.tap()
+            let desktop = app.buttons["pair.desktop"]
+            XCTAssertTrue(desktop.waitForExistence(timeout: 5))
+            desktop.tap()
+            let fields = app.textFields.matching(identifier: "pair.desktop.invitation")
+            let views = app.textViews.matching(identifier: "pair.desktop.invitation")
+            XCTAssertTrue(fields.firstMatch.waitForExistence(timeout: 5) || views.firstMatch.exists)
+            let field = fields.firstMatch.exists ? fields.firstMatch : views.firstMatch
+            let send = app.buttons["pair.desktop.send"]
+            XCTAssertFalse(send.isEnabled)
+            capture(app, name: "Desktop invitation empty · \(language)")
+            field.tap()
+            field.typeText("dmsg-device-invite/2:" + String(repeating: "a", count: 180))
+            XCTAssertTrue(send.isEnabled)
+            XCTAssertTrue((field.value as? String)?.hasPrefix("dmsg-device-invite/2:") == true)
+            capture(app, name: "Desktop invitation paste · \(language)")
+            XCTAssertFalse(app.staticTexts["pair.desktop.device"].exists, "Typing an invitation does not authorize a device")
+            app.terminate()
+        }
+    }
 }

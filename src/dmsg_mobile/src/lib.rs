@@ -623,11 +623,24 @@ impl MobileEngine {
     }
 
     pub async fn pair_request(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| {
+        self.held_object(|h| {
             Box::pin(async {
-                c.pair_request(dmsg_types::user::ControllerRole::Administrator)
-                    .await
+                dmsg_client::account::pair_request(
+                    h,
+                    dmsg_types::user::ControllerRole::Administrator,
+                )
+                .await
+                .map(|request| request.token)
             })
+        })
+        .await
+    }
+
+    /// Send this provisional device's signed request to a scanned desktop
+    /// invitation. The desktop still requires explicit approval.
+    pub async fn join_device_invitation(&self, invitation: String) -> Result<ObjectSnapshot> {
+        self.held_object(move |h| {
+            Box::pin(async move { dmsg_client::pairing::join(h, &invitation).await })
         })
         .await
     }

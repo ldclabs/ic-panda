@@ -2446,5 +2446,17 @@
 	<string>उपलब्ध नहीं</string>
 	<key>No messages</key>
 	<string>कोई संदेश नहीं</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>दोनों स्क्रीन पर डिवाइस ID मिलाएँ और कंप्यूटर पर मंज़ूरी दें।</string>
+	<key>Scan desktop invitation</key>
+	<string>कंप्यूटर का निमंत्रण स्कैन करें</string>
+	<key>Send device request</key>
+	<string>डिवाइस अनुरोध भेजें</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>कैमरे का उपयोग उपलब्ध नहीं है। निमंत्रण चिपकाएँ या सेटिंग्स में कैमरे की अनुमति दें।</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>नए डिवाइस पर उसी खाते में साइन इन करें, कंप्यूटर का QR कोड स्कैन करें, फिर कंप्यूटर पर जाँचकर मंज़ूरी दें।</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>डिवाइस अनुरोध पहुँचने की पुष्टि नहीं हुई है। दोबारा कोशिश करने से पहले कनेक्शन और कंप्यूटर जाँचें।</string>
 </dict>
 </plist>

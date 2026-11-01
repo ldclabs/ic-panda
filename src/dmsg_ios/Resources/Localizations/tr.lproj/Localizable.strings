@@ -2446,5 +2446,17 @@
 	<string>kullanılamıyor</string>
 	<key>No messages</key>
 	<string>Mesaj yok</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
+	<key>Scan desktop invitation</key>
+	<string>Bilgisayar davetini tara</string>
+	<key>Send device request</key>
+	<string>Cihaz isteği gönder</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Kamera erişimi kullanılamıyor. Daveti yapıştırın veya Ayarlar’dan kamera erişimine izin verin.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Yeni cihazda aynı hesaba giriş yapın, bilgisayarın QR kodunu tarayın, ardından bilgisayarda inceleyip onaylayın.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Cihaz isteğinin teslimi doğrulanamadı. Yeniden denemeden önce bağlantıyı ve bilgisayarı kontrol edin.</string>
 </dict>
 </plist>

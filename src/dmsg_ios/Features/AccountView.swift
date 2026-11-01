@@ -238,18 +238,21 @@ struct PairView: View {
                     Text("Your existing device makes the final decision.").font(.subheadline).foregroundStyle(.secondary)
                 }
             }.listRowBackground(Color.clear)
+            NavigationLink { DesktopPairingView() } label: {
+                Label("Scan desktop invitation", systemImage: "qrcode.viewfinder")
+            }.accessibilityIdentifier("pair.desktop")
             if let token {
                 if let image = qrImage { Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(maxWidth: 240).frame(maxWidth: .infinity).accessibilityLabel("Device pairing request QR code") }
                 Text(model.session?.deviceId ?? "").font(.caption.monospaced()).textSelection(.enabled)
                 ShareLink(item: token) { Label("Share pairing request", systemImage: "square.and.arrow.up") }
                 Button("Copy pairing request") { model.clipboard.copy(token) }
                 Text(expires, style: .relative).font(.caption).foregroundStyle(.secondary)
-                Button("Check authorization") { Task { await refresh() } }
             }
+            Button("Check authorization") { Task { await refresh() } }
             Button("Create a new pairing request") { Task { await request() } }
             NoticeBar(text: String(localized: "On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically."))
             NavigationLink("All devices lost?") { RecoveryView() }
-        }.privateScreen().navigationTitle("Join account").task { await request() }
+        }.privateScreen().navigationTitle("Join account")
     }
 
     private func request() async {

@@ -2446,5 +2446,17 @@
 	<string>不可用</string>
 	<key>No messages</key>
 	<string>没有消息</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>核对两端显示的设备 ID，并在桌面确认授权。</string>
+	<key>Scan desktop invitation</key>
+	<string>扫描桌面邀请</string>
+	<key>Send device request</key>
+	<string>发送设备请求</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>无法使用摄像头。请粘贴邀请，或在系统设置中允许访问摄像头。</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>新设备先登录同一账户，扫描桌面二维码，然后在桌面核对并批准。</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>尚未确认设备请求已送达。请先检查网络和桌面端状态，再决定是否重试。</string>
 </dict>
 </plist>

@@ -2446,5 +2446,17 @@
 	<string>no disponible</string>
 	<key>No messages</key>
 	<string>No hay mensajes</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Compara el ID del dispositivo en ambas pantallas y aprueba en el ordenador.</string>
+	<key>Scan desktop invitation</key>
+	<string>Escanear invitación del ordenador</string>
+	<key>Send device request</key>
+	<string>Enviar solicitud del dispositivo</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>La cámara no está disponible. Pega la invitación o permite el acceso a la cámara en Ajustes.</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Inicia sesión con la misma cuenta en el dispositivo nuevo, escanea el QR del ordenador y revisa y aprueba allí la solicitud.</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>No se ha confirmado la entrega de la solicitud. Comprueba la conexión y el ordenador antes de reintentar.</string>
 </dict>
 </plist>

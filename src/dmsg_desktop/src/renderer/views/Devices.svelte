@@ -14,6 +14,7 @@
   import { t } from '../i18n/index.svelte'
   import { bridge, call, errorText, onChange, single, when } from '../rpc'
   import DeviceTransfer from './DeviceTransfer.svelte'
+  import DeviceAuthorization from './DeviceAuthorization.svelte'
   import LocalOnly from './LocalOnly.svelte'
   import Succession from './Succession.svelte'
 
@@ -114,6 +115,9 @@
 {#if !view && !loadError}<p class="px-5 text-[13px] text-muted" role="status">{t('loading')}</p>{/if}
 {#if view}
   <Section title={t('devices')} description={t('devicesRevokeHint')} icon="device" flush testid="devices">
+    {#if status?.state === 'unlocked'}
+      <div class="px-5 pb-4"><DeviceAuthorization disabled={busy || !!loadError || !view.devices.some((device: any) => device.current && !device.revoked_at && device.role === 'Administrator' && device.capabilities.includes('RootManage'))} /></div>
+    {/if}
     <p class="flex flex-wrap gap-x-3 px-5 pb-3 text-[12px] text-faint" data-testid="security-snapshot">
       <span class="inline-flex items-center gap-1"><Icon name="verified" class="size-3.5 text-ok" />{t('snapshotChecked')}</span>
       <span>{t('accountVersion')} {view.account_version}</span>

@@ -45,6 +45,7 @@ pub mod migration;
 pub mod moved;
 pub mod notifications;
 pub mod outbox;
+pub mod pairing;
 pub mod payer;
 pub mod payment;
 pub mod principal;

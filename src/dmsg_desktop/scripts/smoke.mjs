@@ -40,6 +40,7 @@ import { notificationsFixture } from './notifications-fixture.mjs'
 import { notificationsFlow } from './notifications-flow.mjs'
 import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
+import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
@@ -860,8 +861,8 @@ const methods = {
     security_epoch: 3,
     root_generation: 2,
     devices: [
-      { device_id: '11'.repeat(32), role: 'Admin', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove'], added_at: Date.now(), added_by: null, revoked_at: null, current: true },
-      { device_id: '12'.repeat(32), role: 'Admin', capabilities: ['ContentSign', 'VaultUnlock'], added_at: Date.now(), added_by: '11'.repeat(32), revoked_at: null, current: false }
+      { device_id: '11'.repeat(32), role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove'], added_at: Date.now(), added_by: null, revoked_at: null, current: true },
+      { device_id: '12'.repeat(32), role: 'Administrator', capabilities: ['ContentSign', 'VaultUnlock'], added_at: Date.now(), added_by: '11'.repeat(32), revoked_at: null, current: false }
     ]
   }),
   'session/accounts': () => [
@@ -1636,6 +1637,12 @@ smoke: try {
     if (process.env.DMSG_DESKTOP_TEST_TRAY === '1') await trayFlow({ app, methods, emit, waitFor, shots, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('desktop files and tray smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'pairing') {
+    await pairingFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, created })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop device invitation smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'security') {
