@@ -1,5 +1,58 @@
 # iOS implementation validation
 
+## Recent pages and session-owned delivery (2026-11-01)
+
+Desktop and iOS now show saved messages first, fetch the latest bounded interval
+for an uncached conversation, and fetch older intervals only when requested.
+An explicit history cursor handles display-empty pages and stops at the beginning.
+The recent verified interval remains separate from the complete delivery prefix;
+loading the tail never reports missing history as delivered. Existing conversations
+continue incrementally, and newly granted history still reopens.
+
+Every outgoing intent is persisted before ordered delivery by the account session.
+Navigation does not own the send task, the next draft stays editable, and verified
+ACKs update message rows directly. Uncertain outcomes keep the original retry ID
+inline. iOS pending rows have a different view identity from confirmed bubbles:
+the Simulator regression exposed LazyVStack retaining the old sending view when
+both used the same ID. Session resets clear presentation and stop queued work.
+Fixed phase timings record elapsed milliseconds without content or resource IDs.
+
+Final `cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli` passed:
+530 client, 13 mobile and 104 CLI tests, with 11 explicitly ignored tests.
+New regressions cover bounded cold reads with and without a head hint, empty-page
+cursor progress, history-gap merging, grant reopening, original send IDs and
+immutable attachment versions. Formatting and Clippy (`--all-targets -- -D warnings`)
+passed. Both ARM64 native slices and Swift bindings were rebuilt, and the source
+fingerprint verified. All 23 localization catalogs and offline privacy copies passed.
+
+On iPhone 17e / iOS 27.0 Simulator, 52 Swift unit tests and all six conversation
+UI tests passed (`MessageExperienceVerified.xcresult`, zero failed or skipped).
+Coverage includes consecutive sends before confirmation, leaving and returning
+to a channel, replacement of pending rows by confirmed bubbles, inline uncertain
+outcomes with the next draft preserved, slow reads, retry, empty channels and the
+history boundary. The tests now leave the detail before tapping the tab bar,
+which the software keyboard otherwise covers; pending containers also preserve
+their retry button's accessibility identifier. English send/slow-read and Chinese
+dark retry/uncertain-send and history screenshots were exported and inspected.
+After aligning iOS with desktop so a verified local copy of an own message also
+suppresses its pending row, all five sender unit tests and both sending UI tests
+passed again (`MessageExperienceReceipt.xcresult`, seven passed, zero failed).
+
+Desktop type/Svelte checks, all 155 unit tests and the production build passed.
+The scoped Electron channel suite passed with a loopback fake daemon and temporary
+profile: immediate durable queuing of consecutive sends, route recreation,
+ACK display before later sync, original-ID retry, history failure/retry, discarded
+late history replies and a terminal history boundary. Chinese light/dark, French
+and Arabic RTL screenshots at the minimum 760 × 540 window were inspected, along
+with keyboard retry and the history display. Old toasts were dismissed before
+capturing queued-message screenshots so they do not obscure the tested rows.
+
+These checks use local fixtures and do not establish live two-device latency.
+No production message, cloud deployment, TestFlight upload or physical-device test
+was performed; the complete unrelated iOS UI suite was not run.
+
+Implementation and validation: Codex <codex@openai.com>.
+
 ## Channel history and send confirmation (2026-11-01)
 
 Conversation scrolling no longer invokes pull-to-refresh at the history boundary.

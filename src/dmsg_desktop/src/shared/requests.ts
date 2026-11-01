@@ -15,7 +15,7 @@ export const READ_METHODS = new Set([
   'sync/status', 'profile/show', 'profile/display', 'cache/status', 'profile/pending', 'profile/resolve', 'profile/avatar_image',
   'approval/list', 'approval/show', 'attest/readiness', 'attest/history', 'attest/usage',
   'connect/candidates', 'connect/pairings', 'connect/status',
-  'channel/list', 'channel/show', 'channel/messages', 'channel/outbox', 'channel/search', 'channel/preview', 'channel/names', 'channel/receipts',
+  'channel/list', 'channel/show', 'channel/messages', 'channel/message_page', 'channel/outbox', 'channel/search', 'channel/preview', 'channel/names', 'channel/receipts',
   'handle/resolve', 'handle/mine', 'handle/operations',
   'plan/catalog', 'plan/status', 'plan/assets', 'plan/order', 'plan/checkouts', 'plan/panda',
   'payer/status', 'payer/balance', 'inbox/policy', 'inbox/order', 'inbox/outgoing', 'inbox/escrow',

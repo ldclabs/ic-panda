@@ -1,17 +1,11 @@
 <script lang="ts" module>
-  /** A message on its way, as the daemon's outbox holds it, and whether this window is sending it now. */
-  export interface Outgoing {
-    message_id: string
-    draft?: { text?: string; reply_to?: { seq: number } }
-    file?: { name: string; size: number }
-    sending?: boolean
-    error?: string
-  }
+  export type { Outgoing } from '../../message-delivery'
 </script>
 
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
   import { tick } from 'svelte'
+  import { uncertainSend, type Outgoing } from '../../message-delivery'
   import { localeDir } from '../../../shared/locales'
   import Avatar from '../../components/Avatar.svelte'
   import { copyText } from '../../components/clipboard'
@@ -45,6 +39,7 @@
     writes,
     receipts,
     more,
+    loadingEarlier = false,
     highlight,
     images,
     draft = $bindable(''),
@@ -76,6 +71,7 @@
     writes: boolean
     receipts: any
     more: boolean
+    loadingEarlier?: boolean
     highlight: number | null
     images: Record<number, string>
     draft?: string
@@ -316,7 +312,7 @@
 >
   {#if more}
     <div class="flex justify-center pb-2">
-      <button class={buttonClass('ghost', 'xs')} onclick={earlier} data-testid="channel-earlier"><Icon name="history" />{t('earlierMessages')}</button>
+      <button class={buttonClass('ghost', 'xs')} disabled={loadingEarlier} onclick={earlier} data-testid="channel-earlier"><Icon name="history" />{t('earlierMessages')}</button>
     </div>
   {/if}
   {#each groups as group (group.day)}
@@ -445,7 +441,7 @@
       {/if}
     {/each}
   {:else}
-    {#if !outbox.length}
+    {#if !outbox.length && !more}
       <div class="grid h-full place-items-center px-8 text-center">
         <div class="grid justify-items-center gap-2">
           <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
@@ -455,23 +451,27 @@
     {/if}
   {/each}
   {#each outbox as item (item.message_id)}
-    <article class="flex gap-3 px-6 pt-2.5 pb-0.5" data-testid="message-outgoing" data-state={item.sending ? 'sending' : 'failed'}>
+    <article class="flex gap-3 px-6 pt-2.5 pb-0.5" data-testid="message-outgoing" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
       <Avatar id={me ?? ''} name={label(me)} />
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
           {@render author(me ?? '')}
-          {#if item.sending}
+          {#if item.queued}
+            <span class="text-[11px] text-muted">{t('mailQueued')}</span>
+          {:else if item.sending}
             <span class="shimmer text-[11px]">{t('sending')}</span>
+          {:else if uncertainSend(item)}
+            <span class="inline-flex items-center gap-1 text-[11px] text-warn"><Icon name="history" class="size-3" />{t('waiting')}</span>
           {:else}
             <span class="inline-flex items-center gap-1 text-[11px] text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
           {/if}
         </div>
         {#if item.draft?.text}<p class="text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
         {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
-        {#if !item.sending}
+        {#if !item.sending && !item.queued}
           <div class="mt-1 flex gap-1.5">
-            <button class={buttonClass('secondary', 'xs')} onclick={() => onRetry(item)} data-testid="outgoing-retry">{t('retry')}</button>
-            <button class={buttonClass('ghost', 'xs')} onclick={() => onDiscard(item)} data-testid="outgoing-discard">{t('discard')}</button>
+            <button class={buttonClass('secondary', 'xs')} onclick={() => onRetry(item)} data-testid="outgoing-retry">{t(uncertainSend(item) ? 'reconcileNow' : 'retry')}</button>
+            {#if !uncertainSend(item)}<button class={buttonClass('ghost', 'xs')} onclick={() => onDiscard(item)} data-testid="outgoing-discard">{t('discard')}</button>{/if}
           </div>
         {/if}
       </div>

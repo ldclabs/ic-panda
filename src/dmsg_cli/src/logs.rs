@@ -9,7 +9,7 @@
 //! rewrites: startup failures keep only their code, and panics after the
 //! log opens keep only a source filename and line, never their payload.
 
-use dmsg_client::diagnostic::{Diagnostic, TARGET};
+use dmsg_client::diagnostic::{Diagnostic, MessageTiming, TARGET, TIMING_TARGET};
 use dmsg_types::{Error, Result};
 use std::fmt::Display;
 use std::fs;
@@ -36,7 +36,8 @@ struct Diagnostics;
 
 impl log::Log for Diagnostics {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
-        metadata.target() == TARGET && metadata.level() <= log::Level::Warn
+        (metadata.target() == TARGET && metadata.level() <= log::Level::Warn)
+            || (metadata.target() == TIMING_TARGET && metadata.level() <= log::Level::Info)
     }
 
     fn log(&self, record: &log::Record<'_>) {
@@ -44,6 +45,14 @@ impl log::Log for Diagnostics {
             && let Some(diagnostic) = Diagnostic::decode(&record.args().to_string())
         {
             write_diagnostic("failure", &[], diagnostic);
+        }
+        if record.target() == TIMING_TARGET
+            && let Some((phase, millis)) = MessageTiming::decode(&record.args().to_string())
+        {
+            write(
+                "message_timing",
+                &[("phase", &phase), ("elapsed_ms", &millis)],
+            );
         }
     }
 
@@ -105,7 +114,7 @@ pub fn open(home: &Path) -> std::io::Result<()> {
         file: Mutex::new(None),
     });
     if log::set_logger(&DIAGNOSTICS).is_ok() {
-        log::set_max_level(log::LevelFilter::Warn);
+        log::set_max_level(log::LevelFilter::Info);
     }
     std::panic::set_hook(Box::new(move |info| {
         let at = info

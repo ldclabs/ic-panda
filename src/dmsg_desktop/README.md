@@ -720,6 +720,24 @@ keyless mailbox controls.
 
 ## Offline display data
 
+Channel timelines paint local records first. An uncached channel fetches a bounded
+recent interval and loads older history on demand, with an explicit cursor even
+when a page contains no displayable messages. The complete-history delivery cursor
+never skips a gap. CLI synchronization still supports the full history path.
+
+Message delivery belongs to the desktop session, independently of the current
+route. `channel/queue` durably saves every message and pins each attachment version
+before it waits behind another send. The composer stays available; returning from
+another page retains sending/queued state, and unconfirmed outcomes keep the
+original retry ID. Session changes clear presentation and prevent queued work from
+publishing in a replacement account. ACKs update the visible row before a later
+local snapshot; stale reads cannot undo that acknowledgment.
+
+The daemon records fixed message phases and elapsed milliseconds as `message_timing`
+events (queue/preparation/submission/settlement and local/recent/history reads),
+without message text, resource IDs, URLs or credentials. These measurements separate
+local work from remote waits; mock UI timings do not establish production latency.
+
 The account switcher reads the daemon's encrypted profile snapshot in one call,
 including already stored avatar bytes. Locked menus show account IDs only.
 Public-name batches have no renderer TTL or persistent browser store; lock and

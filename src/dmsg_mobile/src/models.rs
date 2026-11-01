@@ -208,6 +208,13 @@ pub struct MessagePage {
     pub generation: u64,
     pub items: Vec<MessageItem>,
     pub has_more: bool,
+    pub next_before: Option<u64>,
+}
+
+#[derive(uniffi::Record)]
+pub struct SentMessage {
+    pub generation: u64,
+    pub message: MessageItem,
 }
 
 #[derive(uniffi::Record)]

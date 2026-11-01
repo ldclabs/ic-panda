@@ -1058,6 +1058,7 @@ const methods = {
   'channel/list': () => [channel, ...legacyDrafts],
   'channel/show': (p) => legacyDrafts.find((d) => d.id === p.id) ?? channel,
   'channel/sync': () => ({ through: channel.message_cursor, received: 0 }),
+  'channel/queue': p => ({ message_id: p.message_id }),
   'channel/delete_legacy_draft': (p) => {
     assert.ok(legacyDrafts.some((d) => d.id === p.id))
     legacyDrafts = legacyDrafts.filter((d) => d.id !== p.id)
@@ -1067,6 +1068,12 @@ const methods = {
     legacyDrafts.some((d) => d.id === p.id) ? [] : p.before !== undefined
       ? messages.filter((m) => m.seq < p.before).slice(-(p.limit ?? 200))
       : messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
+  'channel/message_page': (p) => {
+    const rows = legacyDrafts.some((d) => d.id === p.id) ? [] : messages.filter((m) => m.seq < (p.before ?? Number.MAX_SAFE_INTEGER))
+    const items = rows.slice(-(p.limit ?? 200)), has_more = rows.length > items.length
+    return { items, has_more, next_before: has_more ? items[0].seq : null }
+  },
+  'channel/earlier': (p) => methods['channel/message_page'](p),
   'channel/send': (p) => {
     // An edit changes the message it names, as the daemon applies it.
     const edited = p.edit_of && messages.find((m) => m.seq === p.edit_of.seq)
@@ -1089,8 +1096,8 @@ const methods = {
   'channel/hide': (p) => ({ ...messages.find((m) => m.seq === p.seq), hidden: p.hidden }),
   'channel/send_file': (p) => {
     const file = library.find((f) => f.id === p.file)
-    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, file: { name: file.name, size: file.size } })
-    return { seq: messages.length }
+    messages.push({ ...messages[0], seq: messages.length + 1, account, message_id: p.message_id, text: p.text, file: { name: file.name, size: file.size } })
+    return { receipt: { seq: messages.length }, message: messages.at(-1) }
   },
   'channel/download': (p) => ({ name: 'plan.pdf', size: 2048, sha256: 'aa'.repeat(32), path: p.path }),
   'channel/control': (p) => {
@@ -1397,6 +1404,7 @@ const announced = {
   'files/save_shared': ['files/changed'],
   'files/backup_cancel': ['files/changed'],
   'channel/send': ['channel/changed'],
+  'channel/earlier': ['channel/changed'],
   'channel/settings': ['channel/changed'],
   'channel/delete_legacy_draft': ['channel/changed'],
   'legacy/delete_channel': ['legacy/changed', 'sync/changed'],
@@ -1507,6 +1515,7 @@ async function formMatrix(app, page, shots, name, selector) {
     await page.waitForFunction((dark) => matchMedia('(prefers-color-scheme: dark)').matches === dark, theme === 'dark')
     if (!selector.includes('popover')) await page.locator(selector).scrollIntoViewIfNeeded()
     if (name === 'channel-retry') await page.getByTestId('outgoing-retry').scrollIntoViewIfNeeded()
+    if (name === 'channel-queued') await page.getByTestId('message-outgoing').last().scrollIntoViewIfNeeded()
     if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator')) {
       await page.waitForFunction((selector) => {
         const r = document.querySelector(selector)?.getBoundingClientRect()
@@ -1879,11 +1888,12 @@ smoke: try {
   await main.waitForSelector('[data-testid="message-edited"]')
   // A channel opens with its latest page; later reads ask again for the last
   // page shown and what follows it, as edits change messages already shown.
-  const pages = calls.filter((c) => c.method === 'channel/messages').map((c) => c.params)
+  const pages = calls.filter((c) => c.method === 'channel/message_page').map((c) => c.params)
   assert.deepEqual(pages[0], { id: channel.id, before: Number.MAX_SAFE_INTEGER, limit: 200 })
   assert.ok(latest('channel/sync'), 'opening a channel refreshes it immediately')
   await finishChannelSync()
-  assert.ok(pages.slice(1).some((p) => p.after === 0 && p.limit === 400))
+  assert.equal(latest('channel/sync').params.recent, true)
+  assert.ok(pages.slice(1).some((p) => p.before === Number.MAX_SAFE_INTEGER && p.limit === 200))
   // A message names its own ID, so a retry never sends it twice; members show their names.
   assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
   await main.waitForSelector('[data-testid="channel-members"] >> text=Peer Person')
@@ -2013,6 +2023,89 @@ smoke: try {
   await main.click('[data-testid="channel-reactivate"]')
   await waitFor(() => latest('channel/reactivate'))
   assert.equal(channel.ledger.status, 'active')
+
+  // Queued drafts reach the daemon before the previous send completes,
+  // and the session owns their state across route destruction/recreation.
+  const finishQueuedSend = hold('channel/send', p => p.text === 'Session send one')
+  await main.getByTestId('channel-text').fill('Session send one')
+  await main.getByTestId('channel-send').click()
+  await waitFor(() => held.get('channel/send'))
+  await main.getByTestId('channel-text').fill('Session send two · 第二条消息')
+  assert.ok(await main.getByTestId('channel-send').isEnabled())
+  await main.getByTestId('channel-send').click()
+  await waitFor(() => latest('channel/queue')?.params.text === 'Session send two · 第二条消息')
+  assert.equal(calls.some(c => c.method === 'channel/send' && c.params.text === 'Session send two · 第二条消息'), false)
+  await main.keyboard.press(`${mod}+1`)
+  await title('Vault')
+  await main.click('nav >> text=/Channels|频道/')
+  await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
+  // The fixture stores the first message before delaying its RPC response.
+  // A fresh local read can already show it as stored, without reviving a
+  // failed pending row. The second send still waits in the session queue.
+  await main.waitForSelector('[data-testid="channel-messages"] article[data-seq] >> text=Session send one')
+  assert.equal(await main.getByTestId('message-outgoing').filter({ hasText: 'Session send one' }).count(), 0)
+  await main.waitForSelector('[data-testid="message-outgoing"][data-state="queued"] >> text=Session send two')
+  assert.equal(await main.getByTestId('outgoing-retry').count(), 0)
+  await main.getByTestId('channel-members-toggle').click()
+  await main.getByTestId('sidebar-toggle').click()
+  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label]').count()) {
+    await main.locator('[role="status"][aria-live="polite"] button[aria-label]').first().click()
+  }
+  await formMatrix(app, main, shots, 'channel-queued', '[data-testid="channel-messages"]')
+  await main.getByTestId('sidebar-toggle').click()
+  await main.getByTestId('channel-members-toggle').click()
+  await finishQueuedSend()
+  await main.waitForSelector('[data-testid="channel-messages"] article[data-seq] >> text=Session send two')
+  const sessionMessages = await main.locator('[data-testid="channel-messages"] article[data-seq]').allTextContents()
+  assert.ok(sessionMessages.findIndex(text => text.includes('Session send one')) < sessionMessages.findIndex(text => text.includes('Session send two')))
+  assert.equal(await main.getByTestId('message-outgoing').count(), 0)
+
+  // Explicit history cursors work even when the local recent page is short.
+  // Failure retains the page; a late response cannot enter another visit.
+  const normalPage = methods['channel/message_page'], normalEarlier = methods['channel/earlier']
+  const historyChannel = { ...channel, id: '3a'.repeat(32), name: 'History window', message_cursor: 0, latest_cursor: 100, history_before: 81 }
+  const recentRow = { ...messages[0], seq: 100, message_id: 'recent-window', text: 'Latest window message' }
+  const earlierRow = { ...messages[0], seq: 80, message_id: 'earlier-window', text: 'Earlier window message' }
+  let historyLoaded = false
+  methods['channel/list'] = () => [...realList(), historyChannel]
+  methods['channel/show'] = p => p.id === historyChannel.id ? historyChannel : realShow(p)
+  methods['channel/message_page'] = p => p.id === historyChannel.id
+    ? { items: historyLoaded ? [earlierRow, recentRow] : [recentRow], has_more: !historyLoaded, next_before: historyLoaded ? null : 100 }
+    : normalPage(p)
+  methods['channel/earlier'] = () => { throw { code: 'UNAVAILABLE', message: 'history unavailable' } }
+  emit('channel/changed', {})
+  await main.getByTestId('channel-list').getByText('History window', { exact: true }).click()
+  await main.getByTestId('channel-earlier').click()
+  await waitFor(() => latest('channel/earlier'))
+  await waitFor(async () => await main.getByTestId('channel-earlier').isEnabled())
+  assert.ok(await main.getByText('Latest window message', { exact: true }).isVisible())
+  methods['channel/earlier'] = p => {
+    assert.equal(p.before, 100)
+    historyLoaded = true
+    return { items: [earlierRow], has_more: false, next_before: null }
+  }
+  const finishHistory = hold('channel/earlier')
+  await main.getByTestId('channel-earlier').click()
+  await waitFor(() => held.get('channel/earlier'))
+  assert.ok(await main.getByTestId('channel-earlier').isDisabled())
+  await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
+  await waitFor(async () => await main.getByTestId('channel-title').innerText() === 'Smoke channel')
+  await finishHistory()
+  assert.equal(await main.getByText('Earlier window message', { exact: true }).count(), 0)
+  historyLoaded = false
+  await main.getByTestId('channel-list').getByText('History window', { exact: true }).click()
+  await main.getByTestId('channel-earlier').click()
+  await main.getByText('Earlier window message', { exact: true }).waitFor()
+  await main.getByTestId('channel-earlier').waitFor({ state: 'detached' })
+  emit('channel/changed', {})
+  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label]').count()) {
+    await main.locator('[role="status"][aria-live="polite"] button[aria-label]').first().click()
+  }
+  await main.screenshot({ path: join(shots, 'channel-history-loaded.png') })
+  assert.equal(await main.getByTestId('channel-earlier').count(), 0)
+  methods['channel/list'] = realList; methods['channel/show'] = realShow
+  methods['channel/message_page'] = normalPage; methods['channel/earlier'] = normalEarlier
+  emit('channel/changed', {})
 
   if (process.env.DMSG_SMOKE_SCOPE === 'channels') {
     console.log('Channel Electron regression checks and locale screenshots passed.')

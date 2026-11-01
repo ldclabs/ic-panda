@@ -1084,29 +1084,46 @@ impl MobileEngine {
     ) -> Result<MessagePage> {
         ensure_valid(limit > 0 && limit <= 100, "page")?;
         let generation = self.host.generation();
-        let mut items: Vec<MessageItem> = self
+        let page = self
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    Ok(c.channel_messages_before(
-                        &channel,
-                        before.unwrap_or(u64::MAX),
-                        limit as usize + 1,
-                    )?
-                    .into_iter()
-                    .map(MessageItem::from)
-                    .collect())
+                    c.channel_message_page(&channel, before.unwrap_or(u64::MAX), limit as usize)
                 })
             })
             .await?;
-        let has_more = items.len() > limit as usize;
-        if has_more {
-            items.remove(0);
-        }
         Ok(MessagePage {
             generation,
-            items,
-            has_more,
+            items: page.items.into_iter().map(MessageItem::from).collect(),
+            has_more: page.has_more,
+            next_before: page.next_before,
+        })
+    }
+
+    pub async fn earlier_messages(
+        &self,
+        channel: String,
+        before: u64,
+        limit: u32,
+        operation: Arc<OperationToken>,
+    ) -> Result<MessagePage> {
+        ensure_valid(limit > 0 && limit <= 100, "page")?;
+        let generation = self.host.generation();
+        let turn = self.read_turns.lane(&format!("channel:{channel}"));
+        let page = operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::channel::earlier_messages(h, &channel, before, limit as usize)
+                        .await
+                })
+            }))
+            .await?;
+        Ok(MessagePage {
+            generation,
+            items: page.items.into_iter().map(MessageItem::from).collect(),
+            has_more: page.has_more,
+            next_before: page.next_before,
         })
     }
 
@@ -1189,12 +1206,23 @@ impl MobileEngine {
         channel: String,
         message_id: String,
         operation: Arc<OperationToken>,
-    ) -> Result<ObjectSnapshot> {
-        operation
-            .run(self.held_object(move |h| {
-                Box::pin(async move { dmsg_client::outbox::send(h, &channel, &message_id).await })
+    ) -> Result<SentMessage> {
+        let generation = self.host.generation();
+        let message = operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let value = dmsg_client::outbox::send(h, &channel, &message_id).await?;
+                    let message: dmsg_client::channel::Message =
+                        serde_json::from_value(value["message"].clone())
+                            .map_err(|_| Error::IntegrityFailed)?;
+                    Ok(MessageItem::from(message))
+                })
             }))
-            .await
+            .await?;
+        Ok(SentMessage {
+            generation,
+            message,
+        })
     }
 
     pub async fn refresh_channel(
@@ -1217,13 +1245,13 @@ impl MobileEngine {
                         return h
                             .with(|c| {
                                 Ok(dmsg_client::channel::ChannelSync {
-                                    through: c.channel_view(&channel)?.message_cursor,
+                                    through: c.channel_view(&channel)?.latest_cursor,
                                     received: 0,
                                 })
                             })
                             .await;
                     }
-                    dmsg_client::channel::sync_messages(h, &channel, false).await
+                    dmsg_client::channel::sync_recent(h, &channel).await
                 })
             }))
             .await

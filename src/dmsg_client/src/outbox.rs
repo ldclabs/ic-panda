@@ -117,6 +117,8 @@ impl Client {
         draft: &channel::Draft,
         attachment: Option<Attachment>,
     ) -> Result<Intent> {
+        let _timing =
+            crate::diagnostic::MessageTiming::start(crate::diagnostic::MessagePhase::Queue);
         self.channel_view(channel)?;
         let text = &draft.text;
         ensure_valid(

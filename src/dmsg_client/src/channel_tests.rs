@@ -1253,6 +1253,7 @@ async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
                 ..Draft::default()
             },
             None,
+            now_ms(),
         )
     })
     .await
@@ -1526,6 +1527,278 @@ fn message_end_is_terminal_and_an_incomplete_page_must_advance() {
 }
 
 #[tokio::test]
+async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claiming_delivery() {
+    use std::collections::VecDeque;
+    use std::sync::Mutex;
+    struct Relay {
+        client: Mutex<Client>,
+        replies: Mutex<VecDeque<Json>>,
+    }
+    impl Hold for Relay {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            self.with(|c| sign(c)).await?;
+            Ok(self
+                .replies
+                .lock()
+                .unwrap()
+                .pop_front()
+                .expect("must not fetch the old backlog"))
+        }
+    }
+    for with_hint in [true, false] {
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        let (channel, mut ledger) = active_channel(&mut client);
+        let me = client.me().unwrap();
+        ledger.epoch = 2;
+        ledger.members.get_mut(&me).unwrap().joined_epoch = 2;
+        let mut local = client.local(&channel).unwrap();
+        local.ledger = Some(ledger.clone());
+        client.save_local(&channel, &local).unwrap();
+        // No synthetic certificate is accepted here: these old-epoch rows
+        // are explicitly inaccessible, and carry no body or signature.
+        let page = |after: u64, through: u64, latest: u64| {
+            json!({
+                "head":ledger.head, "entries":[], "skipped":(after+1..=through).map(|seq| json!({"seq":seq,"epoch":1})).collect::<Vec<_>>(),
+                "next_seq":through,"latest_seq":latest,
+            })
+        };
+        let mut head = json(&ledger);
+        if with_hint {
+            head["capacity"] = json!({"messages":{"used":1_000_000}});
+        }
+        let mut replies = VecDeque::from([head.clone()]);
+        if !with_hint {
+            replies.push_back(page(0, 20, 1_000_000));
+        }
+        replies.push_back(page(999_980, 1_000_000, 1_000_000));
+        let h = Relay {
+            client: Mutex::new(client),
+            replies: Mutex::new(replies),
+        };
+        let result = sync_recent(&h, &channel).await.unwrap();
+        assert_eq!(result.through, 1_000_000);
+        assert!(h.replies.lock().unwrap().is_empty());
+        h.with(|c| {
+            let local = c.local(&channel)?;
+            assert_eq!(local.message, 0);
+            assert_eq!(local.recent, Some((999_980, 1_000_000)));
+            assert_eq!(local.skipped[&1], (999_981, 1_000_000));
+            assert_eq!(c.channel_delivery_due(&channel)?, None);
+            let page = c.channel_message_page(&channel, u64::MAX, 100)?;
+            assert!(page.items.is_empty() && page.has_more);
+            assert_eq!(page.next_before, Some(999_981));
+            assert_eq!(c.channel_mark(&channel, 1_000_000)?.read, 1_000_000);
+            Ok(())
+        })
+        .await
+        .unwrap();
+        h.replies
+            .lock()
+            .unwrap()
+            .extend([head.clone(), page(999_960, 999_980, 1_000_000)]);
+        let history = earlier_messages(&h, &channel, 999_981, 100).await.unwrap();
+        assert!(history.items.is_empty() && history.has_more);
+        assert_eq!(
+            history.next_before,
+            Some(999_961),
+            "an empty display page still makes progress"
+        );
+        assert!(h.replies.lock().unwrap().is_empty());
+        assert_eq!(
+            h.with(|c| Ok(c.local(&channel)?.recent)).await.unwrap(),
+            Some((999_960, 1_000_000))
+        );
+
+        if with_hint {
+            head["capacity"]["messages"]["used"] = json!(1_000_003);
+        }
+        h.replies
+            .lock()
+            .unwrap()
+            .extend([head, page(1_000_000, 1_000_003, 1_000_003)]);
+        assert_eq!(sync_recent(&h, &channel).await.unwrap().through, 1_000_003);
+        assert!(h.replies.lock().unwrap().is_empty());
+        assert_eq!(
+            h.with(|c| c.channel_delivery_due(&channel)).await.unwrap(),
+            None
+        );
+    }
+}
+
+#[test]
+fn cached_history_does_not_bridge_a_gap_and_merges_into_the_complete_prefix() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, _) = active_channel(&mut client);
+    let mut local = client.local(&channel).unwrap();
+    for seq in (1..=20).chain(81..=100) {
+        keep(
+            &client,
+            &channel,
+            &mut local,
+            &written(seq, "peer", "history"),
+        );
+    }
+    local.message = 20;
+    local.received(80, 100);
+    client.save_local(&channel, &local).unwrap();
+    let page = client
+        .channel_message_page(&channel, u64::MAX, 100)
+        .unwrap();
+    assert_eq!(
+        page.items.iter().map(|m| m.seq).collect::<Vec<_>>(),
+        (81..=100).collect::<Vec<_>>()
+    );
+    assert_eq!(page.next_before, Some(81));
+    assert!(
+        client
+            .channel_message_page(&channel, 81, 100)
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    assert_eq!(client.channel_delivery_due(&channel).unwrap(), Some(20));
+
+    local.received(60, 80);
+    assert_eq!(local.recent, Some((60, 100)));
+    local.received(20, 60);
+    assert_eq!(local.message, 100);
+    assert!(local.recent.is_none());
+    local.received(20, 40); // A late page cannot move either cursor backwards.
+    assert_eq!(local.message, 100);
+    for seq in 21..=80 {
+        keep(
+            &client,
+            &channel,
+            &mut local,
+            &written(seq, "peer", "history"),
+        );
+    }
+    client.save_local(&channel, &local).unwrap();
+    let page = client.channel_message_page(&channel, 81, 100).unwrap();
+    assert_eq!(page.items.len(), 80);
+    assert!(!page.has_more);
+    assert_eq!(page.next_before, None);
+    assert_eq!(client.channel_delivery_due(&channel).unwrap(), Some(100));
+}
+
+#[test]
+fn empty_recent_head_stops_without_a_message_request_and_rollback_stays_rejected() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let trust = Trust::new(vec![], String::new(), vec![]);
+    let mut head = json(&ledger);
+    head["capacity"] = json!({"messages":{"used":0}});
+    let mut reading = Reading {
+        recent: true,
+        ..Reading::new(&channel)
+    };
+    client.channel_read_request(&mut reading).unwrap();
+    client
+        .channel_read_settle(&mut reading, head.clone(), &trust)
+        .unwrap();
+    assert!(reading.done());
+    let mut local = client.local(&channel).unwrap();
+    local.received(80, 100);
+    client.save_local(&channel, &local).unwrap();
+    let mut reading = Reading {
+        recent: true,
+        ..Reading::new(&channel)
+    };
+    client.channel_read_request(&mut reading).unwrap();
+    assert_eq!(
+        client.channel_read_settle(&mut reading, head, &trust),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(client.local(&channel).unwrap().recent, Some((80, 100)));
+}
+
+#[test]
+fn desktop_queue_clears_only_its_submitted_draft_and_keeps_the_original_id() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, _) = active_channel(&mut client);
+    let id = "f9".repeat(32);
+    let draft = Draft {
+        text: "  keep spacing  ".into(),
+        ..Draft::default()
+    };
+    client.channel_draft(&channel, &draft.text).unwrap();
+    client
+        .channel_queue(&channel, &id, &draft, None, None)
+        .unwrap();
+    assert!(client.channel_view(&channel).unwrap().draft.is_empty());
+    assert_eq!(
+        client.channel_outbox(&channel).unwrap()[0]["message_id"],
+        id
+    );
+    client.channel_draft(&channel, "next draft").unwrap();
+    client
+        .channel_queue(&channel, &id, &draft, None, None)
+        .unwrap();
+    assert_eq!(client.channel_view(&channel).unwrap().draft, "next draft");
+    let changed = Draft {
+        text: "different message".into(),
+        ..Draft::default()
+    };
+    assert_eq!(
+        client.channel_queue(&channel, &id, &changed, None, None),
+        Err(Error::IdempotencyConflict)
+    );
+    assert_eq!(client.channel_outbox(&channel).unwrap().len(), 1);
+}
+
+#[test]
+fn reopening_granted_history_does_not_replace_the_recent_timeline_or_delivery_cursor() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, mut ledger) = active_channel(&mut client);
+    let me = client.me().unwrap();
+    ledger.epoch = 2;
+    ledger.members.get_mut(&me).unwrap().joined_epoch = 2;
+    let mut local = client.local(&channel).unwrap();
+    local.ledger = Some(ledger.clone());
+    local.recent = Some((80, 100));
+    local.granted = vec![(1, 1)];
+    client.save_local(&channel, &local).unwrap();
+    let mut reading = Reading {
+        recent: true,
+        ledger: Some(ledger.clone()),
+        ..Reading::new(&channel)
+    };
+    client.grants_opened(&mut reading, &[(11, 20)]).unwrap();
+    let page = json!({"head":ledger.head,"entries":[],"skipped":(11..=20).map(|seq|json!({"seq":seq,"epoch":1})).collect::<Vec<_>>(),"next_seq":20,"latest_seq":100});
+    client
+        .channel_read_settle(
+            &mut reading,
+            page,
+            &Trust::new(vec![], String::new(), vec![]),
+        )
+        .unwrap();
+    let local = client.local(&channel).unwrap();
+    assert_eq!(local.recent, Some((80, 100)));
+    assert_eq!(local.message, 0);
+    assert!(local.granted.is_empty());
+    assert!(reading.done());
+}
+
+#[tokio::test]
 async fn a_send_is_durable_before_its_first_network_read() {
     use std::sync::{Arc, Mutex};
 
@@ -1574,6 +1847,9 @@ async fn a_send_is_durable_before_its_first_network_read() {
         .unwrap()
         .file;
     let file_id = "f3".repeat(32);
+    h.with(|c| c.channel_queue(&channel, &file_id, &draft, Some(&file.id), None))
+        .await
+        .unwrap();
     assert!(matches!(
         send_file(&h, &channel, &file.id, None, &draft, Some(&file_id)).await,
         Err(Error::Unavailable(_))
@@ -1592,6 +1868,20 @@ async fn a_send_is_durable_before_its_first_network_read() {
         .file;
     assert_eq!(updated.id, file.id);
     assert_ne!(updated.current, file.current);
+    h.with(|c| c.channel_queue(&channel, &file_id, &draft, Some(&file.id), None))
+        .await
+        .unwrap();
+    assert_eq!(
+        h.with(|c| c.channel_queue(
+            &channel,
+            &file_id,
+            &draft,
+            Some(&file.id),
+            Some(&updated.current)
+        ))
+        .await,
+        Err(Error::IdempotencyConflict)
+    );
     assert!(matches!(
         send_file(&h, &channel, &file.id, None, &draft, Some(&file_id)).await,
         Err(Error::Unavailable(_))

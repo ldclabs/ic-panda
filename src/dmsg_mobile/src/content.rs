@@ -199,6 +199,7 @@ impl MobileEngine {
             generation,
             items: items.into_iter().map(MessageItem::from).collect(),
             has_more: false,
+            next_before: None,
         })
     }
 

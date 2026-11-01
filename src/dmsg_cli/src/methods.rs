@@ -18,7 +18,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 70] = [
+pub(crate) const METHODS: [&str; 73] = [
     "channel/list",
     "channel/show",
     "channel/delete_legacy_draft",
@@ -30,9 +30,12 @@ pub(crate) const METHODS: [&str; 70] = [
     "channel/rotate",
     "channel/rekey",
     "channel/send",
+    "channel/queue",
     "channel/send_file",
     "channel/sync",
     "channel/messages",
+    "channel/message_page",
+    "channel/earlier",
     "channel/download",
     "channel/history",
     "channel/owner_propose",
@@ -94,9 +97,17 @@ pub(crate) const METHODS: [&str; 70] = [
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "channel/list" | "channel/show" | "channel/messages" | "channel/pending"
-        | "channel/outbox" | "channel/search" | "channel/preview" | "channel/names"
-        | "channel/receipts" | "channel/draft" => &[],
+        "channel/list"
+        | "channel/show"
+        | "channel/messages"
+        | "channel/message_page"
+        | "channel/pending"
+        | "channel/outbox"
+        | "channel/search"
+        | "channel/preview"
+        | "channel/names"
+        | "channel/receipts"
+        | "channel/draft" => &[],
         // A read position moves only counts, which the views keep themselves.
         "channel/mark" => &["channel/read"],
         m if m.starts_with("channel/") => &["channel/changed"],
@@ -141,22 +152,31 @@ impl Daemon {
             }
             "channel/sync" => {
                 let backfill = params["backfill"].as_bool().unwrap_or(false);
+                let recent = params["recent"] == true && !backfill;
                 let id = id()?;
                 let bound = Unlocked::new(&h).await?;
                 let requested = dmsg_client::now_ms();
                 let _turn = self.turn(&format!("channel-read:{id}")).await;
                 if !backfill
                     && bound
-                        .with(|c| Ok(c.channel_observed(&id)?.is_some_and(|at| at >= requested)))
+                        .with(|c| {
+                            Ok(c.channel_observed(&id)?.is_some_and(|at| at >= requested)
+                                && (recent || c.channel_view(&id)?.history_before.is_none()))
+                        })
                         .await?
                 {
                     return bound
                         .with(|c| {
-                            Ok(json!({"through":c.channel_view(&id)?.message_cursor,"received":0}))
+                            let view = c.channel_view(&id)?;
+                            Ok(json!({"through":if recent {view.latest_cursor} else {view.message_cursor},"received":0}))
                         })
                         .await;
                 }
-                let result = channel::sync_messages(&bound, &id, backfill).await;
+                let result = if recent {
+                    channel::sync_recent(&bound, &id).await
+                } else {
+                    channel::sync_messages(&bound, &id, backfill).await
+                };
                 // A failed later page can still have committed earlier messages.
                 if result.is_err() {
                     self.emit("channel/changed", json!({"id":id}));
@@ -165,6 +185,16 @@ impl Daemon {
                     self.hint_channel(&id);
                 }
                 return Ok(to_json(&result?));
+            }
+            "channel/earlier" => {
+                let id = id()?;
+                let bound = Unlocked::new(&h).await?;
+                let _turn = self.turn(&format!("channel-read:{id}")).await;
+                let before = number(params, "before")?;
+                let limit = params["limit"].as_u64().unwrap_or(100).min(1000) as usize;
+                return Ok(to_json(
+                    &channel::earlier_messages(&bound, &id, before, limit).await?,
+                ));
             }
             "channel/send" => {
                 let message_id = params["message_id"].as_str();
@@ -500,6 +530,22 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                     )?,
                 })
             }
+            "channel/queue" => {
+                let message_id = text(params, "message_id")?;
+                client.channel_queue(
+                    &id()?,
+                    &message_id,
+                    &draft(params)?,
+                    params["file"].as_str(),
+                    params["version"].as_str(),
+                )?;
+                json!({"message_id":message_id})
+            }
+            "channel/message_page" => to_json(&client.channel_message_page(
+                &id()?,
+                params["before"].as_u64().unwrap_or(u64::MAX),
+                params["limit"].as_u64().unwrap_or(100).min(1000) as usize,
+            )?),
             "channel/pending" => Value::Array(client.channel_pending(&id()?)?),
             "channel/outbox" => Value::Array(client.channel_outbox(&id()?)?),
             "channel/discard" => {

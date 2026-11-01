@@ -1,11 +1,89 @@
-//! Privacy-safe failure diagnostics. Only allowlisted categories and HTTP
-//! status numbers cross the logging boundary; error messages are never logs.
+//! Privacy-safe failures and message timings. Only fixed categories, HTTP
+//! status numbers and elapsed durations cross the logging boundary.
 
 use dmsg_types::Error;
 use std::error::Error as StdError;
 
-/// The only `log` target the daemon records from libraries.
+/// The allowlisted failure `log` target recorded by the hosts.
 pub const TARGET: &str = "dmsg::diagnostic";
+/// Bounded timings contain a fixed phase and elapsed milliseconds only.
+pub const TIMING_TARGET: &str = "dmsg::message_timing";
+
+/// Fixed message phases; callers cannot turn resource data into a log label.
+#[derive(Clone, Copy)]
+pub enum MessagePhase {
+    /// Persist a local send intent.
+    Queue,
+    /// Prepare current channel policy and the signed outgoing message.
+    Prepare,
+    /// Submit once and await or reconcile the durable acknowledgment.
+    Submit,
+    /// Store a confirmed message and settle its send journals.
+    Store,
+    /// Refresh the visible conversation.
+    Recent,
+    /// Fetch an explicitly requested earlier interval.
+    History,
+    /// Decrypt a bounded local timeline page.
+    Local,
+}
+
+impl MessagePhase {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Queue => "queue",
+            Self::Prepare => "prepare",
+            Self::Submit => "submit",
+            Self::Store => "store",
+            Self::Recent => "recent",
+            Self::History => "history",
+            Self::Local => "local",
+        }
+    }
+}
+
+/// Measures a single message phase, including failed or cancelled work.
+/// It never includes an account, channel, message ID, URL or content.
+pub struct MessageTiming {
+    phase: MessagePhase,
+    started: std::time::Instant,
+}
+
+impl MessageTiming {
+    /// Start a monotonic timer; dropping it emits the bounded duration.
+    pub fn start(phase: MessagePhase) -> Self {
+        Self {
+            phase,
+            started: std::time::Instant::now(),
+        }
+    }
+
+    /// Validate again at each host's logging boundary.
+    pub fn decode(record: &str) -> Option<(&'static str, u64)> {
+        let (phase, millis) = record.split_once(' ')?;
+        let name = [
+            MessagePhase::Queue,
+            MessagePhase::Prepare,
+            MessagePhase::Submit,
+            MessagePhase::Store,
+            MessagePhase::Recent,
+            MessagePhase::History,
+            MessagePhase::Local,
+        ]
+        .into_iter()
+        .map(MessagePhase::name)
+        .find(|name| *name == phase)?;
+        let millis = millis.parse::<u64>().ok()?;
+        (millis <= 86_400_000).then_some((name, millis))
+    }
+}
+
+impl Drop for MessageTiming {
+    fn drop(&mut self) {
+        let millis = self.started.elapsed().as_millis().min(86_400_000);
+        log::info!(target: TIMING_TARGET, "{} {}", self.phase.name(), millis);
+    }
+}
 
 const SOURCES: &[&str] = &[
     "relay", "ic", "download", "storage", "hints", "mount", "client", "unknown",
@@ -208,6 +286,21 @@ impl Diagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn message_timings_accept_only_fixed_phases_and_bounded_durations() {
+        assert_eq!(MessageTiming::decode("submit 123"), Some(("submit", 123)));
+        for record in [
+            "channel-secret 12",
+            "submit -1",
+            "submit 86400001",
+            "submit 10 token=secret",
+            "submit https://secret",
+            "submit 1\nsecret",
+        ] {
+            assert_eq!(MessageTiming::decode(record), None);
+        }
+    }
 
     #[tokio::test]
     async fn request_diagnostics_distinguish_timeout_and_refused_connection_without_urls() {

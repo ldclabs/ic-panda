@@ -609,6 +609,10 @@ refresh never pulls bodies. File backup and restore remain explicit. A cloud-onl
 file has a restore action and cannot be previewed as a complete local file.
 
 Conversation history uses local pagination and stops when no earlier page remains.
+An uncached conversation starts with a bounded recent interval, with older history
+fetched on demand. This window never advances the complete-history delivery cursor
+over a gap. Empty display pages retain their next cursor. Existing conversations
+continue incrementally, and explicitly granted history still reopens normally.
 Scrolling past the beginning does not trigger a latest-message refresh, and explicit
 history pages survive later refreshes. Attachment deletion metadata refreshes in a
 separate visible-view task, so it cannot delay text completion. A send retains its
@@ -618,6 +622,21 @@ lost connection also triggers reconciliation. Only a matching receipt confirms t
 send, and the message plus removal from both send queues commit atomically. Safe
 reads rejected with `POLICY_STALE` refresh account evidence and re-sign once; writes
 are never blindly replayed by this recovery path.
+
+`MessageSending` belongs to the account session. Every text, reply, edit, withdrawal
+or attachment is persisted before delivery; messages of a channel run in order.
+The composer is released after local queuing, and navigating away does not cancel
+a send. ACKs carry the verified display message so the bubble updates before a
+later local refresh. Failures stay beside the original message with its retry ID.
+Lock, account changes and background suspension cancel session tasks and clear
+plaintext presentation; the encrypted core journals remain available for recovery.
+This is not an iOS background-execution guarantee.
+
+Message timing diagnostics contain fixed phase names and elapsed milliseconds:
+queue, preparation, submission/reconciliation, local settlement, recent/history
+reads and local page decoding. Swift additionally records local-page availability,
+queued-row presentation and ACK presentation. They contain no message content,
+resource IDs, URLs or credentials, and are not production latency targets.
 
 Rebuild the Rust bridge with `scripts/ios/build-core.sh` before simulator validation.
 Rust workspace/host tests cover offline attachment reopening, cache-clear retention,

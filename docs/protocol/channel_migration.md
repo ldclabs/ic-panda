@@ -18,6 +18,14 @@ Messages use independent random IDs and derive a message key from the epoch key 
 
 Certified records retain historical device evidence; current permission is not proof of past authority. Relay acceptance time is not an independent TSA timestamp. Previously obtained history keys cannot be remotely recalled; revocation isolation depends on a new root/epoch and is bounded by certification freshness.
 
+### Recent messages and on-demand history (2026-11-01)
+
+Visible desktop and iOS conversations fetch a recent page when no verified local interval exists. Saved content appears first; subsequent refreshes read incrementally from the latest verified position. The client uses the channel overview's `capacity.messages.used` as a sequence hint, or a sync page's `latest_seq` when that hint is absent. Page length never determines the end. Control history, author signatures, permissions and sequence continuity are still verified.
+
+The complete local prefix and the recent verified interval are tracked separately. Earlier pages use local records first and fetch at most one bounded missing interval per request; the complete cursor advances across a gap only after it is filled. Even a display-empty page returns its history cursor, so amendments and inaccessible messages cannot trap pagination. Delivery reports retain the complete prefix and do not claim skipped history was received. Explicit full synchronization and rereading newly granted history remain available.
+
+The desktop daemon's `channel/queue` durably records the original message ID, draft and immutable attachment version before network delivery waits in a queue, clearing only the matching composer draft. `channel/message_page` returns local `{items, has_more, next_before}`, `channel/earlier` fills history at that cursor, and `recent: true` on `channel/sync` selects the recent path. CLI synchronization retains its complete incremental behavior. These client optimizations use the existing cloud read interfaces.
+
 ## Personal legacy history
 
 Product scope changed on 2026-10-22: official shared legacy-channel inheritance, administrator approval, member claims and history-grant handoff were removed from the public client, CLI and legacy website. Personal-history import, reading, per-channel deletion and synchronization remain available; see [legacy archives](legacy_archive.md). Previously created inactive inheritance drafts have a separate deletion entry point; no new drafts are created.

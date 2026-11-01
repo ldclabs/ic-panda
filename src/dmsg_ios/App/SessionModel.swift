@@ -10,7 +10,7 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset() } }
     private(set) var viewGeneration: UInt64 = 0
     var concealed = true
     var busy = false
@@ -33,6 +33,7 @@ final class SessionModel {
     /// Navigation/layout may recreate a detail column; drafts belong to the
     /// account session and are also persisted by the core.
     var drafts: [String: String] = [:]
+    let messageSending = MessageSending()
     private var dirtyDrafts: Set<String> = []
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
@@ -224,6 +225,27 @@ final class SessionModel {
 
     func clearQueuedDraft(channel: String, sent: String) {
         if drafts[channel] == sent { drafts[channel] = "" }
+    }
+
+    func deliverMessage(channel: String, item: OutgoingMessage) {
+        #if DEBUG
+        if uiTesting {
+            messageSending.start(channel: channel, item: item, work: {
+                try await self.sendConversationFixture(item)
+            })
+            return
+        }
+        #endif
+        guard let engine, unlocked, !concealed else { return }
+        messageSending.start(channel: channel, item: item, work: {
+            let result = try await coreOperation { try await engine.sendMessage(channel: channel, messageId: item.id, operation: $0) }
+            return result.message
+        }, finished: { [weak self] error in
+            guard let self else { return }
+            self.contentRevision &+= 1
+            if let error, let failure = error as? MobileError, case .Failure(let code) = failure, code == "DEVICE_NOT_APPROVED" { self.report(error) }
+            Task { await self.loadChannels() }
+        })
     }
 
     func openPushRoute(_ route: String) async {

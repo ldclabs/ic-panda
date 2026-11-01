@@ -27,6 +27,7 @@
   import { startLogin } from './shell/login.svelte'
   import { call, onChange, single } from './rpc'
   import { clearDisplays } from './display.svelte'
+  import { MessageDeliveries, type Delivery } from './message-delivery'
   import { locale, t } from './i18n/index.svelte'
   import { namesSession, namesChanged } from './views/channels/names.svelte'
 
@@ -37,6 +38,8 @@
   let connected = $state(true)
   let verifiedConnection = $state(false)
   let viewSession = $state<string | null>(null)
+  let deliveries = $state<Delivery[]>([])
+  const messageDeliveries = new MessageDeliveries(rows => { deliveries = rows }, () => verifiedConnection && status?.state === 'unlocked')
   let connectionError = $state<string | undefined>()
   let palette = $state(false)
   let collapsed = $state(stored('dmsg.sidebar') === 'collapsed')
@@ -88,7 +91,7 @@
       // Without an opaque token, a reconnect cannot prove it is the same
       // unlocked session (for example while the installed daemon is older).
       const key = `${next.session || `unknown:${revision}`}:${next.account ?? ''}:${next.state}`
-      if (viewSession !== key) clearDisplays()
+      if (viewSession !== key) { clearDisplays(); messageDeliveries.reset() }
       namesSession(next)
       viewSession = key
       status = next
@@ -211,6 +214,7 @@
           palette = false
           namesSession(null)
           clearDisplays()
+          messageDeliveries.reset()
         }
         void refresh()
       } else if (event.type === 'resync') void refresh()
@@ -286,7 +290,7 @@
           {#if view === views.files}
             <Files {status} {mod} {route} {go} />
           {:else if view === views.channels}
-            <Channels {status} {route} {go} />
+            <Channels {status} {route} {go} {deliveries} {messageDeliveries} />
           {:else if view === views.inbox}
             <Inbox {status} {mod} {route} />
           {:else if view === views.reminders}

@@ -32,6 +32,7 @@ use crate::crypto::{
     HpkeEnvelope, derive, hpke_open, hpke_seal, open, open_bytes, random_key, seal, seal_bytes,
     sign,
 };
+use crate::diagnostic::{MessagePhase, MessageTiming};
 use crate::evidence::{Trust, Verified};
 use crate::files::{
     BlobStore, FileManifest, MAX_FILE, Source, chunk_count, export_manifest, read_file,
@@ -58,6 +59,7 @@ mod attachments;
 /// Content kind of a channel's synced record.
 pub const CHANNEL: &str = "formal_channel";
 const OBSERVED: &str = "channel-observed:";
+const MESSAGE_PAGE: u64 = 20;
 /// Largest message text in bytes.
 pub const MAX_TEXT: usize = 16_000;
 /// Largest channel name in characters.
@@ -114,6 +116,9 @@ struct Local {
     control: u64,
     /// Relay sequence of the last message read.
     message: u64,
+    /// A verified recent interval (after, through], separate from the complete
+    /// prefix. Older history is fetched only when requested by the reader.
+    recent: Option<(u64, u64)>,
     /// The channel after the latest control.
     ledger: Option<Ledger>,
     /// Control sequence of each head.
@@ -151,6 +156,40 @@ struct Local {
     invites: BTreeMap<String, Invitation>,
     /// The delivery cursor last reported to the relay.
     delivered: u64,
+}
+
+impl Local {
+    fn latest(&self) -> u64 {
+        self.recent
+            .map_or(self.message, |(_, through)| self.message.max(through))
+    }
+
+    fn covers(&self, seq: u64) -> bool {
+        seq <= self.message
+            || self
+                .recent
+                .is_some_and(|(after, through)| after < seq && seq <= through)
+    }
+
+    fn received(&mut self, after: u64, through: u64) {
+        if after <= self.message {
+            self.message = self.message.max(through);
+        } else if through > after {
+            self.recent = Some(match self.recent {
+                Some((start, end)) if after <= end && through >= start => {
+                    (start.min(after), end.max(through))
+                }
+                // The first recent page starts ahead of the complete prefix.
+                _ => (after, through),
+            });
+        }
+        if let Some((after, through)) = self.recent
+            && after <= self.message
+        {
+            self.message = self.message.max(through);
+            self.recent = None;
+        }
+    }
 }
 
 /// The latest message of a channel, for its list.
@@ -516,6 +555,10 @@ pub struct ChannelView {
     pub ledger: Option<Ledger>,
     /// Relay sequence of the last message read.
     pub message_cursor: u64,
+    /// Latest verified sequence, including a recent window ahead of history.
+    pub latest_cursor: u64,
+    /// Exclusive cursor for the next uncached historical page, if any.
+    pub history_before: Option<u64>,
     /// Epochs this account holds keys for.
     pub readable_epochs: Vec<u64>,
     /// No notifications for it.
@@ -554,6 +597,18 @@ pub struct ChannelSync {
     pub received: usize,
 }
 
+/// A local timeline page, with an explicit cursor even when a remote interval
+/// contains only amendments or messages this member cannot read.
+#[derive(Serialize, Clone, Debug)]
+pub struct MessagePage {
+    /// Oldest first, with amendments applied.
+    pub items: Vec<Message>,
+    /// There are earlier local or remote records.
+    pub has_more: bool,
+    /// Exclusive sequence to pass to [`earlier_messages`].
+    pub next_before: Option<u64>,
+}
+
 /// The step a channel read takes next.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Step {
@@ -586,6 +641,9 @@ pub struct Reading {
     messages: bool,
     /// Messages read again in `(after, through]`, the cursor untouched.
     range: Option<(u64, u64)>,
+    /// A visible timeline read records a recent interval without advancing
+    /// the complete-history delivery cursor over a gap.
+    recent: bool,
     /// The range reads epochs granted to this account.
     granting: bool,
     invitation: Option<String>,
@@ -620,6 +678,7 @@ impl Reading {
             control: 0,
             messages: false,
             range: None,
+            recent: false,
             granting: false,
             invitation: None,
             pinned: None,
@@ -1665,6 +1724,7 @@ async fn submit_message<H: Hold>(
     message_id: &str,
     request: Prepared,
 ) -> Result<Json> {
+    let _timing = MessageTiming::start(MessagePhase::Submit);
     use futures_util::future::{Either, select};
     let relay = h.with(|c| Ok(c.relay())).await?;
     let confirm = async {
@@ -1695,6 +1755,7 @@ async fn finish_send<H: Hold>(
     draft: &Draft,
     reply: Result<Json>,
 ) -> Result<Json> {
+    let _timing = MessageTiming::start(MessagePhase::Store);
     h.with(|c| {
         let receipt = c.channel_send_settle(channel, message_id, reply)?;
         let seq = draft
@@ -1726,13 +1787,15 @@ pub async fn send<H: Hold>(
     draft: &Draft,
     message_id: Option<&str>,
 ) -> Result<Json> {
+    let preparation = MessageTiming::start(MessagePhase::Prepare);
     let message_id = message_id.map_or_else(random_hex, str::to_string);
     ensure_valid(is_hash(&message_id), "message_id")?;
     ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
-    h.with(|c| c.queue_channel_send(channel, &message_id, draft, None))
+    h.with(|c| c.queue_channel_send(channel, &message_id, draft, None, now_ms()))
         .await?;
     if let Some(receipt) = send_receipt(h, channel, &message_id).await? {
         // Reconciliation must not wait for an unrelated control-log refresh.
+        drop(preparation);
         return finish_send(h, channel, &message_id, draft, Ok(receipt)).await;
     }
     let ledger = Box::pin(pull(h, channel, None, None)).await?;
@@ -1794,6 +1857,7 @@ pub async fn send<H: Hold>(
         "/messages",
     )
     .await?;
+    drop(preparation);
     let reply = match posting {
         Posting::Done(result) => Ok(result),
         Posting::Send(request) => submit_message(h, channel, &message_id, request).await,
@@ -1841,6 +1905,7 @@ pub async fn send_file<H: Hold>(
             &message_id,
             draft,
             Some(json!({"source": source, "name": manifest.name, "size": manifest.size})),
+            now_ms(),
         )
     })
     .await?;
@@ -1971,8 +2036,9 @@ pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<Chann
 pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<ChannelSync> {
     let mut reading = Reading::new(channel);
     if backfill {
-        let through = h.with(|c| Ok(c.local(channel)?.message)).await?;
+        let through = h.with(|c| Ok(c.local(channel)?.latest())).await?;
         reading.range = Some((0, through));
+        reading.recent = true;
     }
     read(h, &mut reading).await?;
     h.with(|c| {
@@ -1984,6 +2050,60 @@ pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Res
         })
     })
     .await
+}
+
+/// Refresh the visible conversation, prioritizing one latest page over a
+/// backlog. The ordinary [`sync_messages`] path still reads complete history.
+/// # Errors
+/// As [`sync_messages`]. A failed page never advances either verified cursor.
+pub async fn sync_recent<H: Hold>(h: &H, channel: &str) -> Result<ChannelSync> {
+    let _timing = MessageTiming::start(MessagePhase::Recent);
+    let mut reading = Reading {
+        recent: true,
+        ..Reading::new(channel)
+    };
+    read(h, &mut reading).await?;
+    h.with(|c| {
+        c.workspace
+            .put_private(c.keys()?, &format!("{OBSERVED}{channel}"), &now_ms())?;
+        Ok(ChannelSync {
+            through: c.local(channel)?.latest(),
+            received: reading.received,
+        })
+    })
+    .await
+}
+
+/// Read an earlier page locally first, fetching at most one missing interval.
+/// # Errors
+/// As [`sync_messages`]; already cached history stays available on failure.
+pub async fn earlier_messages<H: Hold>(
+    h: &H,
+    channel: &str,
+    before: u64,
+    limit: usize,
+) -> Result<MessagePage> {
+    let _timing = MessageTiming::start(MessagePhase::History);
+    let range = h
+        .with(|c| {
+            let page = c.channel_message_page(channel, before, limit)?;
+            let local = c.local(channel)?;
+            Ok(local
+                .recent
+                .filter(|(after, _)| before > *after && page.items.len() < limit)
+                .map(|(after, _)| (after.saturating_sub(MESSAGE_PAGE).max(local.message), after)))
+        })
+        .await?;
+    if let Some((after, through)) = range.filter(|(after, through)| after < through) {
+        let mut reading = Reading {
+            range: Some((after, through)),
+            recent: true,
+            ..Reading::new(channel)
+        };
+        read(h, &mut reading).await?;
+    }
+    h.with(|c| c.channel_message_page(channel, before, limit))
+        .await
 }
 
 /// Refresh attachment removals independently of the conversation's message load.
@@ -2467,9 +2587,13 @@ impl Client {
     }
 
     fn save_local(&self, channel: &str, local: &Local) -> Result<()> {
+        self.save_local_at(channel, local, now_ms())
+    }
+
+    fn save_local_at(&self, channel: &str, local: &Local, now: u64) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{LOCAL}{channel}"), local)?;
-        self.project_channel_notification(channel, local, now_ms())
+        self.project_channel_notification(channel, local, now)
     }
 
     fn project_channel_notification(&self, channel: &str, local: &Local, now: u64) -> Result<()> {
@@ -2511,8 +2635,12 @@ impl Client {
         }
         let mut item = Item::new(account.clone(), target, version, now);
         item.quiet = old.is_none();
-        item.unread = Some(local.unread);
-        item.unverified = unknown > 0 || local.message < version;
+        item.unread = if local.recent.is_some_and(|(after, _)| after > local.read) {
+            None
+        } else {
+            Some(local.unread)
+        };
+        item.unverified = unknown > 0 || (version > local.read && !local.covers(version));
         item.open = local.unread > 0 || item.unverified;
         let preference = self.channel_notification_preference(channel, ring.muted)?;
         let inactive = ring.hidden
@@ -2986,10 +3114,16 @@ impl Client {
                     .map(|i| format!("?invitation={i}"))
                     .unwrap_or_default()
             ),
-            Step::Messages => format!(
-                "{base}/sync?after={}&limit=20",
-                reading.after.unwrap_or_default()
-            ),
+            Step::Messages => {
+                let after = reading.after.unwrap_or_default();
+                let limit = reading
+                    .range
+                    .map_or(MESSAGE_PAGE, |(_, through)| {
+                        through.saturating_sub(after).min(MESSAGE_PAGE)
+                    })
+                    .max(1);
+                format!("{base}/sync?after={after}&limit={limit}")
+            }
             Step::Epochs | Step::Grants | Step::Done => return Err(Error::IntegrityFailed),
         })
     }
@@ -3162,10 +3296,40 @@ impl Client {
         self.save_local(&channel, &local)?;
         reading.ledger = Some(ledger);
         reading.step = if reading.messages {
-            reading
-                .after
-                .get_or_insert(reading.range.map_or(local.message, |(after, _)| after));
-            Step::Messages
+            if reading.recent
+                && reading.range.is_none()
+                && let Some(latest) = remote["capacity"]["messages"]["used"].as_u64()
+            {
+                ensure(latest >= local.latest(), Error::IntegrityFailed)?;
+                // The existing channel overview supplies a sequence hint;
+                // message signatures and continuity still verify below.
+                let after = if local.latest() == 0 || !local.granted.is_empty() {
+                    latest.saturating_sub(MESSAGE_PAGE)
+                } else {
+                    local.latest()
+                };
+                reading.range = Some((after, latest));
+            }
+            reading.after.get_or_insert(reading.range.map_or(
+                if reading.recent {
+                    local.latest()
+                } else {
+                    local.message
+                },
+                |(after, _)| after,
+            ));
+            if reading
+                .range
+                .is_some_and(|(_, through)| reading.after == Some(through))
+            {
+                if local.granted.is_empty() {
+                    Step::Done
+                } else {
+                    Step::Grants
+                }
+            } else {
+                Step::Messages
+            }
         } else {
             Step::Done
         };
@@ -3283,6 +3447,8 @@ impl Client {
         let preference = self.channel_notification_preference(channel, ring.muted)?;
         let local = self.local(channel)?;
         let deletable_legacy_draft = self.deletable_legacy_draft(channel, &ring, &local)?;
+        let latest_cursor = local.latest();
+        let history_before = local.recent.map(|(after, _)| after + 1);
         let invites = local
             .invites
             .into_iter()
@@ -3300,6 +3466,8 @@ impl Client {
             genesis: ring.genesis,
             ledger: local.ledger,
             message_cursor: local.message,
+            latest_cursor,
+            history_before,
             readable_epochs: ring.keys.keys().copied().collect(),
             muted: preference.muted && preference.until.is_none_or(|at| at > now),
             muted_until: preference.until,
@@ -3844,12 +4012,56 @@ impl Client {
         Ok(receipt)
     }
 
+    /// Persist a UI-authored send before it waits behind another delivery.
+    /// An attachment selects its immutable library version at queue time.
+    /// # Errors
+    /// Returns `IdempotencyConflict` when the ID already names other content,
+    /// or `NotFound` for a missing channel/file version.
+    pub fn channel_queue(
+        &mut self,
+        channel: &str,
+        message_id: &str,
+        draft: &Draft,
+        file: Option<&str>,
+        version: Option<&str>,
+    ) -> Result<()> {
+        let _timing = MessageTiming::start(MessagePhase::Queue);
+        let now = now_ms();
+        ensure_valid(is_hash(message_id), "message_id")?;
+        let attachment = if let Some(file) = file {
+            let queued = self.job::<Queued>(channel, &format!("queued:{message_id}"))?;
+            let prior = queued
+                .as_ref()
+                .and_then(|q| q.file.as_ref())
+                .and_then(|f| f["source"].as_str())
+                .and_then(|source| source.strip_prefix(&format!("{file}@")));
+            let manifest = self.library_manifest(file, version.or(prior))?.2;
+            Some(
+                json!({"source":format!("{file}@{}", manifest.version), "name":manifest.name, "size":manifest.size}),
+            )
+        } else {
+            None
+        };
+        self.workspace.store.atomic(|_| {
+            self.queue_channel_send(channel, message_id, draft, attachment, now)?;
+            if draft.edit_of.is_none() && draft.retract.is_none() {
+                let mut local = self.local(channel)?;
+                if local.draft == draft.text {
+                    local.draft.clear();
+                    self.save_local_at(channel, &local, now)?;
+                }
+            }
+            Ok(())
+        })
+    }
+
     fn queue_channel_send(
         &self,
         channel: &str,
         message_id: &str,
         draft: &Draft,
         file: Option<Json>,
+        now: u64,
     ) -> Result<()> {
         self.keyring(channel)?;
         ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
@@ -3882,7 +4094,7 @@ impl Client {
             &key,
             &Queued {
                 draft: draft.clone(),
-                created_at: now_ms(),
+                created_at: now,
                 file,
             },
         )
@@ -4193,10 +4405,26 @@ impl Client {
             next >= after
                 && latest >= next
                 && (next > after || next == latest)
-                && entries.len() <= 20
-                && next - after <= 20,
+                && entries.len() <= MESSAGE_PAGE as usize
+                && next - after <= MESSAGE_PAGE,
             Error::IntegrityFailed,
         )?;
+        if reading.recent && reading.range.is_none() {
+            // A relay without the optional capacity hint supplies its latest
+            // sequence in the first page. Never walk an entire backlog to
+            // find it; fetch and verify the latest interval directly.
+            ensure(latest >= local.latest(), Error::IntegrityFailed)?;
+            let start = if local.latest() == 0 {
+                after.max(latest.saturating_sub(MESSAGE_PAGE))
+            } else {
+                after
+            };
+            reading.range = Some((start, latest));
+            if start > after {
+                reading.after = Some(start);
+                return Ok(());
+            }
+        }
         let mut seen = BTreeSet::new();
         let mut unread_epochs = vec![];
         for row in skipped {
@@ -4301,7 +4529,7 @@ impl Client {
             };
             opened.push((key_name, open_message(&channel, &ring, message, &payload)));
         }
-        let reread = reading.range.is_some();
+        let reread = reading.range.is_some() && !reading.recent;
         let keys = self.keys()?;
         // The page's messages and the cursor past them in one write. Another
         // read of the channel may have kept the page first: only what is past
@@ -4344,21 +4572,19 @@ impl Client {
                 }
                 self.workspace.put_private(keys, key, message)?;
                 self.amend(&channel, &mut local, message)?;
-                if !reread
-                    && !message.amends()
-                    && message.seq > cursor
+                if !message.amends()
                     && local
                         .last
                         .as_ref()
                         .is_none_or(|last| last.seq < message.seq)
                 {
-                    local.last = Some(preview(message));
+                    local.last = Some(preview(&self.message_at(&channel, message.seq)?));
                 }
             }
             if !reread {
-                local.message = cursor.max(next);
+                local.received(after, next);
             }
-            self.save_local(&channel, &local)
+            self.save_local_at(&channel, &local, now)
         })?;
         reading.received += opened.iter().filter(|(_, m)| !m.amends()).count();
         reading.after = Some(next);
@@ -4370,8 +4596,8 @@ impl Client {
             reading.step = Step::Done;
             if reading.granting {
                 local.granted.clear();
-                self.save_local(&channel, &local)?;
-            } else if reading.range.is_none() && !local.granted.is_empty() {
+                self.save_local_at(&channel, &local, now)?;
+            } else if (reading.range.is_none() || reading.recent) && !local.granted.is_empty() {
                 reading.step = Step::Grants;
             }
         }
@@ -4449,6 +4675,9 @@ impl Client {
                 reading.range = Some((first - 1, last));
                 reading.after = Some(first - 1);
                 reading.granting = true;
+                // Reopening granted epochs must not replace the current
+                // timeline window with a disconnected historical interval.
+                reading.recent = false;
                 reading.step = Step::Messages;
             }
             None => {
@@ -4524,11 +4753,21 @@ impl Client {
         before: u64,
         limit: usize,
     ) -> Result<Vec<Message>> {
+        self.messages_before(channel, before, limit, 0)
+    }
+
+    fn messages_before(
+        &self,
+        channel: &str,
+        before: u64,
+        limit: usize,
+        after: u64,
+    ) -> Result<Vec<Message>> {
         base(channel)?;
         let prefix = format!("{INBOX}{channel}:");
         let mut shown = vec![];
         let mut until = before;
-        while shown.len() < limit && until > 1 {
+        while shown.len() < limit && until > after.saturating_add(1) {
             let page: Vec<Message> = self.workspace.private_before(
                 self.keys()?,
                 &prefix,
@@ -4539,7 +4778,10 @@ impl Client {
                 break;
             };
             until = first.seq;
-            let mut kept: Vec<Message> = page.into_iter().filter(|m| !m.amends()).collect();
+            let mut kept: Vec<Message> = page
+                .into_iter()
+                .filter(|m| m.seq > after && !m.amends())
+                .collect();
             kept.extend(shown);
             shown = kept;
         }
@@ -4548,6 +4790,37 @@ impl Client {
             .iter()
             .map(|m| self.public_message(channel, m))
             .collect()
+    }
+
+    /// A bounded local timeline page. Older cached islands are not joined
+    /// across an unfetched gap; [`earlier_messages`] fills that gap on demand.
+    /// # Errors
+    /// Returns `Locked`, or `InvalidInput` for an invalid page size.
+    pub fn channel_message_page(
+        &self,
+        channel: &str,
+        before: u64,
+        limit: usize,
+    ) -> Result<MessagePage> {
+        let _timing = MessageTiming::start(MessagePhase::Local);
+        ensure_valid(limit > 0 && limit <= 1000, "page")?;
+        let local = self.local(channel)?;
+        let after = local
+            .recent
+            .filter(|(after, _)| before > *after)
+            .map_or(0, |(after, _)| after);
+        let mut items = self.messages_before(channel, before, limit + 1, after)?;
+        let more_local = items.len() > limit;
+        if more_local {
+            items.remove(0);
+        }
+        let more = more_local || after > 0;
+        let next_before = more.then(|| items.first().map_or(after + 1, |m| m.seq));
+        Ok(MessagePage {
+            items,
+            has_more: more,
+            next_before,
+        })
     }
 
     /// The messages of a channel whose text or file name holds `query`,
@@ -4598,7 +4871,7 @@ impl Client {
     pub fn channel_mark(&self, channel: &str, through: u64) -> Result<ChannelView> {
         let me = self.me()?;
         let mut local = self.local(channel)?;
-        local.read = local.read.max(through.min(local.message));
+        local.read = local.read.max(through.min(local.latest()));
         let prefix = format!("{INBOX}{channel}:");
         let after: Vec<Message> = self.workspace.private_after(
             self.keys()?,

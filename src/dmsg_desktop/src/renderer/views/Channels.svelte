@@ -1,5 +1,6 @@
 <script lang="ts">
   import { watchContent } from '../content-refresh'
+  import type { Delivery, MessageDeliveries } from '../message-delivery'
   import Notice from '../components/page/Notice.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
@@ -14,7 +15,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
-  import { bridge, call, closed, code, errorText, onChange, planAction, single } from '../rpc'
+  import { bridge, call, closed, errorText, onChange, planAction, single } from '../rpc'
   import Access from './channels/Access.svelte'
   import { arrange, kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
   import LibraryPicker from './channels/LibraryPicker.svelte'
@@ -36,10 +37,13 @@
    * profile or a letter opens a conversation with its person. Each change
    * comes back through the daemon's `channel/changed`.
    */
-  let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
+  let { status, route, go, deliveries, messageDeliveries }: {
+    status: any; route: string; go: (path: string) => void; deliveries: Delivery[]; messageDeliveries: MessageDeliveries
+  } = $props()
 
   let alive = true
   let openRequest = 0
+  let channelVisit = 0
   let channels = $state<any[]>([])
   let legacyChannels = $state<any[]>([])
   let legacySelected = $state<any>(null)
@@ -50,6 +54,8 @@
   let messages = $state<any[]>([])
   /** Earlier messages exist above the first one shown. */
   let more = $state(false)
+  let nextBefore = $state<number | null>(null)
+  let loadingEarlier = $state(false)
   let files = $state<any[]>([])
   let query = $state('')
   let busy = $state(false)
@@ -61,7 +67,6 @@
   let editing = $state<any>(null)
   /** The daemon's outbox of the open channel, the messages this window sends now, and why the last try failed. */
   let outbox = $state<Outgoing[]>([])
-  let sending = $state<(Outgoing & { channel: string })[]>([])
   let receipts = $state<any>(null)
   let images = $state<Record<number, string>>({})
   let search = $state<{ open: boolean; query: string; results: any[] | null }>({ open: false, query: '', results: null })
@@ -103,9 +108,15 @@
   const can = $derived(powers(ledger, me))
   const listed = $derived(arrange(channels.filter((c) => !query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())), me))
   const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
+  const currentDeliveries = $derived(deliveries.filter(row => row.channel === channel?.id))
+  const shownMessages = $derived.by(() => {
+    const rows = new Map(messages.map((m: any) => [m.seq, m]))
+    for (const row of currentDeliveries) if (row.state === 'confirmed') rows.set(row.message.seq, row.message)
+    return [...rows.values()].sort((a, b) => a.seq - b.seq)
+  })
   const shownOutbox = $derived([
-    ...sending.filter((o) => o.channel === channel?.id && !messages.some((m) => m.message_id === o.message_id)),
-    ...outbox.filter((o) => !sending.some((s) => s.channel === channel?.id && s.message_id === o.message_id))
+    ...currentDeliveries.filter(row => row.state !== 'confirmed' && !shownMessages.some((m: any) => m.message_id === row.message_id)),
+    ...outbox.filter(row => !currentDeliveries.some(pending => pending.message_id === row.message_id))
   ])
   const transferring = $derived(channel?.billing?.lifecycle === 'transferring')
   const shortTime = $derived(new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }))
@@ -162,7 +173,7 @@
   const refreshChannel = single(async (id: string | null = selected) => {
     if (!alive || !unlocked || !id || selected !== id || document.visibilityState !== 'visible' || document.body.inert) return
     let failure = ''
-    try { await call('channel/sync', { id }) }
+    try { await call('channel/sync', { id, recent: true }) }
     catch (e) { failure = closed(e, status) ? 'LOCKED' : errorText(e) }
     if (alive && selected === id) { await reload(); if (alive && selected === id) error = failure }
   })
@@ -198,21 +209,22 @@
    */
   async function open(id: string) {
     const request = ++openRequest
+    const sendRevision = messageDeliveries.revision
     legacySelected = null
     const switching = channel?.id !== id
+    if (selected !== id) { channelVisit++; loadingEarlier = false }
     selected = id
-    const from = switching ? null : Math.min((messages.at(-PAGE)?.seq ?? 1) - 1, channel.message_cursor)
-    const next: any = await call('channel/show', { id })
-    const [list, box] = await Promise.all([
-      from === null
-        ? call<any[]>('channel/messages', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
-        : call<any[]>('channel/messages', { id, after: from, limit: 2 * PAGE }),
+    const [next, page, box] = await Promise.all([
+      call<any>('channel/show', { id }),
+      call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/message_page', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE }),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
     if (!alive || selected !== id || openRequest !== request) return
+    const list = page.items
     if (switching) {
       messages = list
-      more = list.length === PAGE
+      more = page.has_more
+      nextBefore = page.next_before
       reply = editing = null
       images = {}
       highlight = null
@@ -226,11 +238,17 @@
     } else {
       // A local send can be acknowledged before earlier incoming messages
       // arrive. Merge by sequence so those gaps appear in the right place.
+      const oldest = messages[0]?.seq
       const changed = new Map([...messages, ...list].map((m: any) => [m.seq, m]))
       messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
+      if (oldest === undefined || list[0]?.seq <= oldest) {
+        more = page.has_more
+        nextBefore = page.next_before
+      }
     }
     channel = next
     outbox = box
+    messageDeliveries.loaded(id, list.map((m: any) => m.seq), sendRevision)
   }
 
   let receiptsAt = 0
@@ -248,7 +266,7 @@
     files = all.filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 8)
   }
 
-  const read = () => attempt(() => call('channel/sync', { id: channel.id }))
+  const read = () => attempt(() => call('channel/sync', { id: channel.id, recent: true }))
 
   // The composer's text outlives the window: the daemon keeps it a moment after typing stops.
   $effect(() => {
@@ -261,58 +279,37 @@
   })
 
   /** Send one message; it stays in the daemon's outbox until the relay stores it. */
-  async function deliver(id: string, item: Outgoing, params: Record<string, unknown>, file?: { id: string; name: string }) {
-    if (sending.some((o) => o.message_id === item.message_id && o.sending)) return
-    const pending = { ...item, channel: id, draft: { ...params }, file: file ? { ...item.file!, source: file.id } : item.file, sending: true }
-    sending = [...sending.filter((o) => o.message_id !== item.message_id), pending]
-    try {
-      let result: any
-      if (file) {
-        const [source, version] = file.id.split('@')
-        result = await call('channel/send_file', { id, file: source, version, message_id: item.message_id, ...params })
-      } else result = await call('channel/send', { id, message_id: item.message_id, ...params })
-      if (!alive) return
-      if (selected === id && channel?.id === id && result?.message) {
-        openRequest++
-        const changed = new Map([...messages, result.message].map((m: any) => [m.seq, m]))
-        messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
-        outbox = outbox.filter((o) => o.message_id !== item.message_id)
-      } else if (selected === id && channel?.id === id) {
-        // Older daemons do not include the message in the ACK. Keep the
-        // pending row visible until its local history has been loaded.
-        await open(id)
-      }
-      sending = sending.filter((o) => o.message_id !== item.message_id)
-      void reload()
-    } catch (e) {
-      if (!alive) return
-      // Preparation can fail before the daemon has a sealed outbox entry.
-      // Keep the original text, references and ID available for retry.
-      sending = sending.map((o) => o.message_id === item.message_id ? { ...o, sending: false, error: code(e) } : o)
-    }
+  function deliver(id: string, item: Outgoing, params: Record<string, unknown>, file?: { id: string; name: string }) {
+    const draft = JSON.parse(JSON.stringify(params))
+    const [source, version] = file?.id.split('@') ?? []
+    const pending: Outgoing = { ...item, draft, file: file ? { name: file.name, size: item.file?.size ?? 0, source: file.id } : item.file }
+    const payload = { id, message_id: item.message_id, ...draft, ...(file ? { file: source, version } : {}) }
+    void messageDeliveries.submit(id, pending,
+      () => call('channel/queue', payload),
+      () => call(file ? 'channel/send_file' : 'channel/send', payload))
   }
 
   async function send() {
     const id = channel.id
-    const text = (drafts[id] ?? '').trim()
+    const text = drafts[id] ?? ''
     const files = attached[id] ?? []
     if (editing) {
       const target = editing
       editing = null
       drafts[id] = ''
-      if (text && text !== target.text) await deliver(id, { message_id: random(), draft: { text } }, { text, edit_of: ref(target) })
+      if (text.trim() && text !== target.text) deliver(id, { message_id: random(), draft: { text } }, { text, edit_of: ref(target) })
       return
     }
-    if (!text && !files.length) return
+    if (!text.trim() && !files.length) return
     const replyTo = reply ? ref(reply) : null
     drafts[id] = ''
     attached[id] = []
     reply = null
     // A text goes with the first file; each further file goes in a message of its own.
-    if (!files.length) await deliver(id, { message_id: random(), draft: { text } }, { text, reply_to: replyTo })
+    if (!files.length) deliver(id, { message_id: random(), draft: { text } }, { text, reply_to: replyTo })
     for (const [i, file] of files.entries()) {
       const words = i === 0 ? text : ''
-      await deliver(id, { message_id: random(), draft: { text: words }, file: { name: file.name, size: 0 } }, { text: words, reply_to: i === 0 ? replyTo : null }, file)
+      deliver(id, { message_id: random(), draft: { text: words }, file: { name: file.name, size: 0 } }, { text: words, reply_to: i === 0 ? replyTo : null }, file)
     }
   }
 
@@ -327,7 +324,7 @@
   const discard = (item: Outgoing) =>
     attempt(async () => {
       await call('channel/discard', { id: channel.id, message_id: item.message_id })
-      sending = sending.filter((o) => o.message_id !== item.message_id)
+      messageDeliveries.discard(channel.id, item.message_id)
       await reload()
     })
 
@@ -407,11 +404,18 @@
   }
 
   async function earlier() {
-    const first = messages[0]?.seq
-    if (!first) return
-    const list = await call<any[]>('channel/messages', { id: channel.id, before: first, limit: PAGE })
-    messages = [...list, ...messages]
-    more = list.length === PAGE
+    if (!channel || selected !== channel.id || !more || !nextBefore || loadingEarlier) return
+    const id = channel.id, before = nextBefore, visit = channelVisit
+    loadingEarlier = true
+    try {
+      const page = await call<{ items: any[]; has_more: boolean; next_before: number | null }>('channel/earlier', { id, before, limit: PAGE })
+      if (!alive || selected !== id || channelVisit !== visit) return
+      const changed = new Map([...messages, ...page.items].map((m: any) => [m.seq, m]))
+      messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
+      more = page.has_more
+      nextBefore = page.next_before
+    } catch (error) { if (alive && selected === id && channelVisit === visit) fail(error) }
+    finally { if (channelVisit === visit) loadingEarlier = false }
   }
 
   async function find() {
@@ -426,9 +430,11 @@
 
   /** A search result opens with the messages around it. */
   async function jump(seq: number) {
+    channelVisit++; loadingEarlier = false
     const list = await call<any[]>('channel/messages', { id: channel.id, after: Math.max(0, seq - 30), limit: PAGE })
     messages = list
     more = seq > 30
+    nextBefore = more ? messages[0]?.seq ?? null : null
     highlight = seq
     search = { ...search, open: false }
   }
@@ -875,12 +881,13 @@
 
         <Thread
           {channel}
-          {messages}
+          messages={shownMessages}
           outbox={shownOutbox}
           {files}
           {me}
           {receipts}
           {more}
+          {loadingEarlier}
           {highlight}
           {images}
           writes={unlocked && can.writes}

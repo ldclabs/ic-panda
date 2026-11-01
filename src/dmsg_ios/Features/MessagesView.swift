@@ -106,8 +106,8 @@ struct ConversationView: View {
         get { model.drafts[channel.id] ?? "" }
         nonmutating set { model.setDraft(channel: channel.id, text: newValue) }
     }
-    @State private var sending = false
-    @State private var sendingID: String?
+    @State private var queuing = false
+    @State private var queuedAt: ContinuousClock.Instant?
     @State private var outbox: [OutgoingMessage] = []
     @State private var ownerEpoch: UInt64 = 0
     @State private var choosingAttachment = false
@@ -115,6 +115,7 @@ struct ConversationView: View {
     @State private var sharingSecret = false
     @State private var secretPackage: SecretPackageImportView.ChannelSource?
     @State private var hasEarlier = false
+    @State private var nextBefore: UInt64?
     @State private var oldestLoaded: UInt64?
     @State private var preserveMessage: String?
     @State private var nearBottom = true
@@ -133,6 +134,15 @@ struct ConversationView: View {
     @State private var retracting: MessageItem?
     @State private var reporting: ReportTarget?
     struct MessageEdit: Identifiable { let message: MessageItem; var id: String { message.id } }
+    private var shownMessages: [MessageItem] {
+        model.messageSending.messages(channel: channel.id, stored: messages)
+            .filter { !model.blockedAccounts.contains($0.account) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query)) }
+    }
+    private var shownOutbox: [OutgoingMessage] {
+        // A verified local copy can arrive before the original send's ACK.
+        let received = Set(shownMessages.filter { $0.account == model.session?.account }.map(\.id))
+        return model.messageSending.items(channel: channel.id, stored: outbox, received: received)
+    }
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -144,7 +154,7 @@ struct ConversationView: View {
                         NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish."))
                         Button("Retry") { actionTask = Task { await refreshMessages() } }
                             .disabled(refreshing).accessibilityIdentifier("conversation.retry")
-                    } else if messagesKnown && messages.isEmpty && outbox.isEmpty && !refreshing {
+                    } else if messagesKnown && shownMessages.isEmpty && shownOutbox.isEmpty && !hasEarlier && !refreshing {
                         ContentUnavailableView("No messages", image: AppGlyph.channels.assetName)
                             .accessibilityIdentifier("conversation.empty")
                     }
@@ -152,10 +162,10 @@ struct ConversationView: View {
                         Button("Load earlier messages") { actionTask = Task { await loadEarlier() } }
                             .disabled(loadingEarlier).accessibilityIdentifier("conversation.earlier")
                     }
-                    ForEach(messages.filter { !model.blockedAccounts.contains($0.account) }, id: \.id) { message in
+                    ForEach(shownMessages, id: \.id) { message in
                         messageBubble(message)
                             .reminderVisible(.channel(channel.id), watermark: message.sequence,
-                                ready: query.isEmpty && !message.unreadable && message.id == messages.last?.id) {
+                                ready: query.isEmpty && !message.unreadable && message.id == shownMessages.last?.id) {
                                 try? await model.engine?.markRead(channel: channel.id, through: message.sequence)
                             }
                             .id(message.id).accessibilityIdentifier("message.row.\(message.sequence)").contextMenu {
@@ -172,32 +182,53 @@ struct ConversationView: View {
                             }
                         }
                     }
-                    ForEach(outbox, id: \.id) { pending in
+                    // Pending and confirmed rows need distinct IDs so
+                    // LazyVStack replaces the sending UI after an ACK.
+                    ForEach(shownOutbox, id: \.id) { pending in
                         VStack(alignment: .leading, spacing: 8) {
-                            if sendingID == pending.id {
+                            if model.messageSending.active.contains(pending.id) {
                                 ProgressView("Sending")
                                 Text(pending.text)
-                            } else if pending.attempted {
+                            } else if model.messageSending.contains(pending.id) {
+                                Text("Waiting to submit").font(.caption).foregroundStyle(.secondary)
+                                Text(pending.text)
+                            } else if pending.error == "EXECUTION_UNKNOWN" || pending.attempted && pending.error == nil {
                                 NoticeBar(text: String(localized: "Waiting for confirmation: ") + pending.text)
+                            } else if pending.error != nil {
+                                NoticeBar(text: String(localized: "The operation could not be completed. Please try again."))
+                                Text(pending.text)
                             } else {
                                 Text("Waiting to submit").font(.caption).foregroundStyle(.secondary)
                                 Text(pending.text)
                             }
                             if let name = pending.attachmentName { Label(name, systemImage: "doc") }
-                            if sendingID != pending.id {
-                                Button(LocalizedStringKey(pending.attempted ? "Reconcile original send" : "Send queued message")) { actionTask = Task { await deliver(pending.id) } }
-                                    .disabled(sending)
+                            if !model.messageSending.contains(pending.id) {
+                                Button(LocalizedStringKey(pending.attempted ? "Reconcile original send" : "Send queued message")) {
+                                    model.deliverMessage(channel: channel.id, item: pending)
+                                }.accessibilityIdentifier("message.retry.\(pending.id)")
                             }
-                        }
+                        }.id("pending:\(pending.id)").accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("message.pending.\(pending.id)")
                     }
                 }.padding(16)
             }.defaultScrollAnchor(.bottom)
                 .onScrollGeometryChange(for: Bool.self) { geometry in
                     geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 100
                 } action: { _, value in nearBottom = value }
-                .onChange(of: messages.count) { _, _ in
+                .onChange(of: shownMessages.count) { _, _ in
                     if let preserveMessage { proxy.scrollTo(preserveMessage, anchor: .top); self.preserveMessage = nil }
-                    else if nearBottom, let id = messages.last?.id { proxy.scrollTo(id, anchor: .bottom) }
+                    else if nearBottom, let id = shownMessages.last?.id { proxy.scrollTo(id, anchor: .bottom) }
+                }
+                .onChange(of: shownOutbox.count) { old, count in
+                    if count > old, let id = shownOutbox.last?.id {
+                        proxy.scrollTo("pending:\(id)", anchor: .bottom)
+                        if let queuedAt { MessageTiming.record(.queueVisible, since: queuedAt); self.queuedAt = nil }
+                    }
+                }
+                .onChange(of: model.messageSending.revision) { _, _ in
+                    if let confirmation = model.messageSending.lastConfirmation, confirmation.channel == channel.id {
+                        MessageTiming.record(.ackVisible, since: confirmation.at)
+                    }
                 }
         }.background(Theme.paper).navigationTitle(channel.name).navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
@@ -213,7 +244,8 @@ struct ConversationView: View {
                         .accessibilityIdentifier("message.draft")
                     Button { actionTask = Task { await send() } } label: { Image(systemName: "arrow.up").font(.headline).frame(width: 44, height: 44) }
                         .buttonStyle(.borderedProminent).buttonBorderShape(.circle).accessibilityLabel("Send message")
-                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending)
+                        .accessibilityIdentifier("message.send")
+                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || queuing)
                 }.padding(12).background(.bar)
                 }
             }
@@ -357,7 +389,8 @@ struct ConversationView: View {
 
     private func load() async {
         guard !loadingEarlier || query != loadedQuery else { return }
-        let epoch = model.epoch, query = query, request = UUID()
+        let started = ContinuousClock.now
+        let epoch = model.epoch, query = query, request = UUID(), sendRevision = model.messageSending.revision
         messageRequest = request
         let earlier = query.isEmpty && loadedQuery.isEmpty
             ? oldestLoaded ?? (!nearBottom ? messages.first?.sequence : nil) : nil
@@ -375,10 +408,16 @@ struct ConversationView: View {
                 }
             }
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }
-            messages = fresh; hasEarlier = page.hasMore; loadedQuery = query; messagesKnown = true; loadFailed = false
-            guard let engine = model.engine else { return }
+            messages = fresh; hasEarlier = page.hasMore; nextBefore = page.nextBefore
+            loadedQuery = query; messagesKnown = true; loadFailed = false
+            MessageTiming.record(.localPage, since: started)
+            guard let engine = model.engine else {
+                model.messageSending.loaded(channel: channel.id, items: fresh, since: sendRevision)
+                return
+            }
             let pending = try await engine.outbox(channel: channel.id)
             guard epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled else { return }; outbox = pending.items
+            model.messageSending.loaded(channel: channel.id, items: fresh, since: sendRevision)
         } catch {
             if epoch == model.epoch, self.query == query, messageRequest == request, !Task.isCancelled {
                 loadFailed = true; model.report(error)
@@ -387,44 +426,59 @@ struct ConversationView: View {
     }
 
     private func loadEarlier() async {
-        guard hasEarlier, let first = messages.first, first.sequence > 1, !loadingEarlier, query.isEmpty else { return }; let epoch = model.epoch, request = UUID()
+        guard hasEarlier, let before = nextBefore, before > 1, !loadingEarlier, query.isEmpty else { return }
+        let epoch = model.epoch, request = UUID(), first = messages.first
         messageRequest = request
         loadingEarlier = true; defer { loadingEarlier = false }
         do {
-            let page = try await readMessages(before: first.sequence)
+            let page: MessagePage
+            #if DEBUG
+            if model.uiTesting { page = model.conversationFixture(before: before, query: "") }
+            else { page = try await readEarlier(before: before) }
+            #else
+            page = try await readEarlier(before: before)
+            #endif
             guard epoch == model.epoch, query.isEmpty, messageRequest == request, !Task.isCancelled else { return }
-            preserveMessage = first.id; messages = page.items + messages
-            oldestLoaded = messages.first?.sequence; hasEarlier = page.hasMore
-        } catch { model.report(error) }
+            preserveMessage = first?.id
+            let rows = Dictionary((page.items + messages).map { ($0.sequence, $0) }, uniquingKeysWith: { first, _ in first })
+            messages = rows.values.sorted { $0.sequence < $1.sequence }
+            oldestLoaded = messages.first?.sequence; hasEarlier = page.hasMore; nextBefore = page.nextBefore
+        } catch { if epoch == model.epoch, messageRequest == request, !Task.isCancelled { model.report(error) } }
+    }
+
+    private func readEarlier(before: UInt64) async throws -> MessagePage {
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        return try await coreOperation { try await engine.earlierMessages(channel: channel.id, before: before, limit: 100, operation: $0) }
     }
 
     private func send() async {
         model.activity()
-        guard let engine = model.engine, !sending else { return }
+        guard !queuing else { return }
+        queuedAt = .now
         let text = draft, reply = replying
         let persistence = persistTask; persistence?.cancel()
-        sending = true; defer { sending = false; sendingID = nil }
+        queuing = true; defer { queuing = false }
         let epoch = model.epoch
         do {
             await persistence?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
             let id: String
-            if let reply { id = try await engine.queueMessageAction(channel: channel.id, action: "reply", sequence: reply.sequence, digest: reply.digest, text: text) }
-            else { id = try await engine.queueMessage(channel: channel.id, text: text) }
+            #if DEBUG
+            if model.uiTesting { id = UUID().uuidString }
+            else { id = try await queueText(text, reply: reply) }
+            #else
+            id = try await queueText(text, reply: reply)
+            #endif
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            sendingID = id
-            model.clearQueuedDraft(channel: channel.id, sent: text); replying = nil; await load()
-            _ = try await coreOperation { try await engine.sendMessage(channel: channel.id, messageId: id, operation: $0) }
-            if epoch == model.epoch { await load() }
+            model.clearQueuedDraft(channel: channel.id, sent: text); replying = nil
+            model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: text, attachmentName: nil, attempted: false, error: nil))
         } catch { if epoch == model.epoch, !Task.isCancelled { await load(); model.report(error) } }
     }
 
-    private func deliver(_ id: String) async {
-        guard let engine = model.engine, !sending else { return }
-        let epoch = model.epoch
-        sending = true; sendingID = id; defer { sending = false; sendingID = nil }
-        do { _ = try await coreOperation { try await engine.sendMessage(channel: channel.id, messageId: id, operation: $0) }; await load() }
-        catch { if epoch == model.epoch, !Task.isCancelled { model.report(error); await load() } }
+    private func queueText(_ text: String, reply: MessageItem?) async throws -> String {
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        if let reply { return try await engine.queueMessageAction(channel: channel.id, action: "reply", sequence: reply.sequence, digest: reply.digest, text: text) }
+        return try await engine.queueMessage(channel: channel.id, text: text)
     }
 
     private func attach(_ file: LibraryFile) async {
@@ -435,7 +489,9 @@ struct ConversationView: View {
             await persistence?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
             let id = try await engine.queueAttachment(channel: channel.id, file: file.id, text: text)
-            guard epoch == model.epoch, !Task.isCancelled else { return }; model.clearQueuedDraft(channel: channel.id, sent: text); await load(); await deliver(id)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            model.clearQueuedDraft(channel: channel.id, sent: text)
+            model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: text, attachmentName: file.name, attempted: false, error: nil))
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 
@@ -444,7 +500,8 @@ struct ConversationView: View {
         retracting = nil
         do {
             let id = try await engine.queueMessageAction(channel: channel.id, action: "retract", sequence: message.sequence, digest: message.digest, text: "")
-            guard epoch == model.epoch else { return }; await deliver(id)
+            guard epoch == model.epoch else { return }
+            model.deliverMessage(channel: channel.id, item: OutgoingMessage(id: id, text: "", attachmentName: nil, attempted: false, error: nil))
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 
@@ -480,8 +537,9 @@ struct MessageEditView: View {
         working = true; defer { working = false }
         do {
             let id = try await engine.queueMessageAction(channel: channel, action: "edit", sequence: message.sequence, digest: message.digest, text: text)
-            _ = try await coreOperation { try await engine.sendMessage(channel: channel, messageId: id, operation: $0) }
-            guard epoch == model.epoch else { return }; await changed(); dismiss()
+            guard epoch == model.epoch else { return }
+            model.deliverMessage(channel: channel, item: OutgoingMessage(id: id, text: text, attachmentName: nil, attempted: false, error: nil))
+            await changed(); dismiss()
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }

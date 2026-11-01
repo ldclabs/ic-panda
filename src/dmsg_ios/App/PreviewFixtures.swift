@@ -55,7 +55,8 @@ extension SessionModel {
             $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query))
         }
         let limit = ProcessInfo.processInfo.arguments.contains("--ui-channel-history") ? 3 : 100
-        return MessagePage(generation: 0, items: Array(items.suffix(limit)), hasMore: items.count > limit)
+        let page = Array(items.suffix(limit)), more = items.count > limit
+        return MessagePage(generation: 0, items: page, hasMore: more, nextBefore: more ? page.first?.sequence : nil)
     }
 
     func refreshConversationFixture() async throws {
@@ -69,6 +70,7 @@ extension SessionModel {
         }
         try await Task.sleep(for: .milliseconds(200))
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-empty") { return }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-send") { return }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-history") {
             fixtureChannelMessages = (1...5).map { sequence in
                 MessageItem(id: "fixture-\(sequence)", sequence: UInt64(sequence), account: "fixture-peer",
@@ -84,6 +86,26 @@ extension SessionModel {
             digest: "fixture-digest", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)]
         // A verified first page is local, but a later relay request is still pending.
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-slow") { try await Task.sleep(for: .seconds(30)) }
+    }
+
+    func sendConversationFixture(_ item: OutgoingMessage) async throws -> MessageItem {
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-send-held"), fixtureChannelMessages.isEmpty {
+            // Keep the first send pending until the view disappears. This
+            // proves the next draft is usable before confirmation, and that
+            // navigation cannot own or cancel the delivery task.
+            while activeChannel != nil { try await Task.sleep(for: .milliseconds(100)) }
+        }
+        try await Task.sleep(for: .seconds(8))
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-send-failure") {
+            throw MobileError.Failure(code: "EXECUTION_UNKNOWN")
+        }
+        let sequence = (fixtureChannelMessages.last?.sequence ?? 0) + 1
+        let message = MessageItem(id: item.id, sequence: sequence, account: session?.account ?? "fixture-self",
+            text: item.text, createdAtMs: 1_793_513_600_000, attachmentName: item.attachmentName,
+            attachmentMime: nil, attachmentSize: nil, unreadable: false, digest: "fixture-\(item.id)",
+            replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)
+        fixtureChannelMessages.append(message)
+        return message
     }
 
     /// Fictitious catalog data for native store screenshots. The normal UI-test
