@@ -17,6 +17,8 @@
 //! `pnpm install` done for `src/dmsg_connect`.
 #[path = "desktop/connector.rs"]
 mod connector;
+#[path = "desktop/pairing.rs"]
+mod pairing;
 #[path = "desktop/payment_preflight.rs"]
 mod payment_preflight;
 #[path = "desktop/principal_names.rs"]
@@ -1014,6 +1016,8 @@ impl TlsFront {
 /// What a test environment adds to the plain one.
 #[derive(Default)]
 struct Options {
+    /// Exercise an unupgraded user home with its real historical Wasm.
+    pre_policy_user: bool,
     /// Extra `config.toml` text for device B.
     b_policy: &'static str,
     /// Put fault-injecting proxies in front of the relay and the IC gateway.
@@ -1200,6 +1204,10 @@ impl Env {
 
         let deployment = if options.recovery {
             recovery_deployment(&dir)
+        } else if options.pre_policy_user {
+            let wasm = std::env::var_os("DMSG_PRE_RECOVERY_USER_WASM")
+                .expect("build the pre-policy user Wasm first");
+            support::Deployment::start_with_user(None, None, Some(Path::new(&wasm)))
         } else {
             support::Deployment::start()
         };

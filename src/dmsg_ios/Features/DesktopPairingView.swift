@@ -1,4 +1,5 @@
 import SwiftUI
+import DMsgCore
 import VisionKit
 import AVFoundation
 
@@ -15,6 +16,7 @@ struct DesktopPairingView: View {
     @State private var delivery: Delivery?
     @State private var failed = false
     @State private var cameraDenied = false
+    @State private var needsLogin = false
 
     var body: some View {
         Form {
@@ -36,6 +38,10 @@ struct DesktopPairingView: View {
                     .accessibilityIdentifier("pair.desktop.send")
             }
             if working { ProgressView().accessibilityIdentifier("pair.desktop.working") }
+            if needsLogin {
+                NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
+                Button("Continue with Internet Identity") { Task { await model.login() } }.disabled(working || model.busy)
+            }
             if failed {
                 NoticeBar(text: String(localized: "Device request delivery is unconfirmed. Check your connection and the desktop before retrying."))
                 Button("Check authorization") { Task { await refresh() } }.disabled(working)
@@ -83,8 +89,19 @@ struct DesktopPairingView: View {
 
     private func refresh() async {
         guard let engine = model.engine, !working else { return }
+        let epoch = model.epoch
         working = true; defer { working = false }
-        do { _ = try await engine.refreshAccount(); await model.updateSession() }
-        catch { model.report(error) }
+        do {
+            _ = try await engine.refreshAccount()
+            guard epoch == model.epoch else { return }
+            needsLogin = false
+        }
+        catch {
+            guard epoch == model.epoch else { return }
+            if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
+                needsLogin = true
+            } else { model.report(error) }
+        }
+        if epoch == model.epoch { await model.updateSession() }
     }
 }

@@ -97,6 +97,14 @@ impl Deployment {
         initial_time: Option<pocket_ic::Time>,
         before_live: Option<BeforeLive<'_>>,
     ) -> Self {
+        Self::start_with_user(initial_time, before_live, None)
+    }
+
+    pub fn start_with_user(
+        initial_time: Option<pocket_ic::Time>,
+        before_live: Option<BeforeLive<'_>>,
+        user_wasm: Option<&std::path::Path>,
+    ) -> Self {
         let (server, url) = server();
         let mut builder = PocketIcBuilder::new()
             .with_server_url(url)
@@ -138,7 +146,8 @@ impl Deployment {
         let dir = wasm_dir();
         ic.install_canister(
             user,
-            std::fs::read(dir.join("dmsg_user.wasm")).unwrap(),
+            std::fs::read(user_wasm.map_or_else(|| dir.join("dmsg_user.wasm"), PathBuf::from))
+                .unwrap(),
             candid::encode_args((UserInit {
                 issuer_namespace: "https://dmsg.test/u/".into(),
                 environment: Environment::Local,

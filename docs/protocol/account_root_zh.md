@@ -108,6 +108,10 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 v3 的 `recoveryKey` 与 `recovery` 必须同时存在或同时省略，关闭时省略。`ContentRootRef.recovery_enabled` 必须与账户策略及接收者摘要一致。旧 v2 包仍可读取，未完成的 v2 任务保持原套件和摘要；v2 新提交只允许恢复已开启的账户。签名域与 bundle digest 域保持版本 2，body 内的 format 区分格式。
 
+认证状态仍为 schema 4、缺少 `recovery_enabled` 的账户继续生成 v2，保留原有恢复能力并兼容尚未升级的 home；明确的 schema 5 策略才选择 v3。格式选择依据已验证的账户状态，不通过完整性错误触发降级或放宽校验。旧账户未提交的 v3 草稿在对账账户日志后重建：保留仍有效的预留和候选根，为新的不可变上传字节生成新计划；已经提交的包原样打开。
+
+设备加入/撤销与换根是两次提交。设备变更成功后，换根失败继续保持可对账，不能要求重复加入。旧版本已标为失败的审批，仅当它已经获批、开始执行且仍保存上述不兼容草稿时恢复执行。新设备等待自己的根信封；登录已失效时需要重新登录。
+
 公钥、COSE_Encrypt0 与 HPKE envelope 字节使用无填充 base64url；摘要、设备/操作/上传 ID 使用小写 hex。account 为规范的 20 字符 Xid，代次为安全正整数，`securityEpoch` 为预留槽的安全版本。
 
 - `signature` 是设备 Ed25519 对 `digest("dmsg/root-bundle/2", body)` 的签名。签名数学正确不单独证明设备权利；读取当前根还须核对 user 的认证根承诺。

@@ -1253,7 +1253,11 @@ impl Client {
                     .await?;
                 // A new root no revoked device can open (AT21).
                 request.started = true;
-                self.rotate_root().await.map(|_| ())
+                self.save_approval(request)?;
+                self.rotate_root()
+                    .await
+                    .map(|_| ())
+                    .map_err(|_| Error::ExecutionUnknown)
             }
             // Boxed: the copy's client would otherwise sit inside every
             // approval's future, on the runtime's small stacks.
@@ -1277,7 +1281,11 @@ impl Client {
                 self.approve_pairing(&pairing).await?;
                 // A new root the new device opens.
                 request.started = true;
-                self.rotate_root().await.map(|_| ())
+                self.save_approval(request)?;
+                self.rotate_root()
+                    .await
+                    .map(|_| ())
+                    .map_err(|_| Error::ExecutionUnknown)
             }
             Action::Connect { operation, .. } => self.connect_approve(&operation, request).await,
             Action::Checkout { id, digest, fresh } => {
@@ -1437,16 +1445,35 @@ impl Client {
     fn unsettled(&mut self, attestations: bool) -> Result<Vec<Request>> {
         let now = now_ms();
         self.running.retain(|_, at| now < *at + RUN_MS);
-        let rows: Vec<ApprovalRow> = self
-            .workspace
-            .store
-            .approvals(&[State::Executing.name(), State::Unknown.name()])?;
+        let mut states = vec![State::Executing.name(), State::Unknown.name()];
+        if !attestations && self.legacy_root_draft()? {
+            states.push(State::Failed.name());
+        }
+        let rows: Vec<ApprovalRow> = self.workspace.store.approvals(&states)?;
         let mut found = Vec::new();
         for row in rows {
             if self.running.contains_key(&row.id) {
                 continue;
             }
-            let request = self.approval_record(&row.id)?;
+            let mut request = self.approval_record(&row.id)?;
+            if request.state == State::Failed {
+                // Earlier clients made a committed device change terminal
+                // when the legacy home rejected its v3 rotation. Resume only
+                // that persisted, explicitly approved operation and draft.
+                if attestations
+                    || !request.started
+                    || request.decided_at.is_none()
+                    || request.error.as_deref() != Some("INTEGRITY_FAILED")
+                    || !matches!(
+                        request.action,
+                        Action::DevicePair { moved: None, .. } | Action::DeviceRevoke { .. }
+                    )
+                {
+                    continue;
+                }
+                request.state = State::Unknown;
+                self.save_approval(&request)?;
+            }
             let attestation = matches!(
                 request.action,
                 Action::Attest { .. } | Action::AttestAction { .. }
@@ -1557,7 +1584,11 @@ impl Client {
                 } => Box::pin(self.moved_resume(&id)).await,
                 Action::DeviceRevoke { .. } | Action::DevicePair { .. } => {
                     match self.resume().await {
-                        Ok(_) => self.rotate_root().await.map(|_| ()),
+                        Ok(_) => self
+                            .rotate_root()
+                            .await
+                            .map(|_| ())
+                            .map_err(|_| Error::ExecutionUnknown),
                         Err(error) => Err(error),
                     }
                 }

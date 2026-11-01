@@ -1,4 +1,5 @@
 import SwiftUI
+import DMsgCore
 import CoreImage.CIFilterBuiltins
 import VisionKit
 import AVFoundation
@@ -226,9 +227,12 @@ struct DeviceDetail: View {
 
 struct PairView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
     @State private var token: String?
     @State private var expires = Date.distantPast
     @State private var qrImage: UIImage?
+    @State private var needsLogin = false
+    @State private var refreshing = false
     var body: some View {
         List {
             HStack(spacing: 12) {
@@ -248,11 +252,18 @@ struct PairView: View {
                 Button("Copy pairing request") { model.clipboard.copy(token) }
                 Text(expires, style: .relative).font(.caption).foregroundStyle(.secondary)
             }
-            Button("Check authorization") { Task { await refresh() } }
+            Button("Check authorization") { Task { await refresh() } }.disabled(refreshing || model.busy)
+            if needsLogin {
+                NoticeBar(text: String(localized: "Sign in again to unlock your encrypted workspace on this iPhone."))
+                Button("Continue with Internet Identity") { Task { await model.login() } }.disabled(refreshing || model.busy)
+            }
             Button("Create a new pairing request") { Task { await request() } }
             NoticeBar(text: String(localized: "On the authorized device, open Approvals and review this device's full fingerprint, role and permissions. Scanning never approves automatically."))
             NavigationLink("All devices lost?") { RecoveryView() }
         }.privateScreen().navigationTitle("Join account")
+            .onChange(of: model.session?.state) {
+                if let state = model.session?.state, ["logged_out", "locked"].contains(state) { dismiss() }
+            }
     }
 
     private func request() async {
@@ -266,8 +277,23 @@ struct PairView: View {
     }
 
     private func refresh() async {
-        do { _ = try await model.engine?.refreshAccount(); await model.updateSession() }
-        catch { model.report(error) }
+        guard !refreshing else { return }
+        refreshing = true; defer { refreshing = false }
+        let epoch = model.epoch
+        do {
+            _ = try await model.engine?.refreshAccount()
+            guard epoch == model.epoch else { return }
+            needsLogin = false
+        }
+        catch {
+            guard epoch == model.epoch else { return }
+            if let failure = error as? MobileError, case .Failure(let code) = failure, code == "AUTH_REQUIRED" {
+                needsLogin = true
+            } else { model.report(error) }
+        }
+        // An identity transition invalidates the old engine handle even on
+        // failure. Adopt its current state so retry/sign-in can work again.
+        if epoch == model.epoch { await model.updateSession() }
     }
 }
 

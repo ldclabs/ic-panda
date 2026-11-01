@@ -80,6 +80,38 @@ fn old_initial_job() -> RootJob {
     }
 }
 
+#[test]
+fn legacy_retry_rebuilds_only_the_uncommitted_v3_bytes() {
+    let vector = load("root-v2.json");
+    let mut bundle = parse_bundle(&bytes(&vector["generations"][0]["bundle_hex"])).unwrap();
+    bundle.body.format = ROOT_FORMAT.into();
+    bundle.signature = ByteArray::new(sign(
+        &key(&vector["signer"]["seed_hex"]),
+        digest("dmsg/root-bundle/2", &bundle.body).as_slice(),
+    ));
+    let mut job = old_initial_job();
+    job.bytes = Some(ByteBuf::from(canonical(&bundle)));
+    let before = serde_json::to_value(&job).unwrap();
+    for enabled in [true, false] {
+        assert!(!job.legacy_format(Some(enabled)).unwrap());
+        assert_eq!(serde_json::to_value(&job).unwrap(), before);
+    }
+    assert!(job.legacy_format(None).unwrap());
+    assert!(job.bytes.is_none() && job.plan.is_none());
+    let after = serde_json::to_value(&job).unwrap();
+    for field in ["op_id", "expected_generation", "context", "candidate"] {
+        assert_eq!(after[field], before[field]);
+    }
+    assert!(!job.legacy_format(None).unwrap());
+    job.bytes = Some(ByteBuf::from(bytes(
+        &vector["generations"][0]["bundle_hex"],
+    )));
+    assert!(
+        !job.legacy_format(None).unwrap(),
+        "v2 drafts keep their exact bytes"
+    );
+}
+
 struct RootUploadRelay {
     client: std::sync::Mutex<Client>,
     reads: std::sync::Mutex<std::collections::VecDeque<Result<Option<Json>>>>,
@@ -372,7 +404,8 @@ fn wraps_bundles_that_open_with_their_chain() {
         security_epoch: 3,
     };
     let first_root = [41u8; 32];
-    let first = wrap_root(
+    let first = wrap_root_format(
+        LEGACY_FORMAT,
         &context(1),
         &first_root,
         &recipients,
@@ -385,49 +418,65 @@ fn wraps_bundles_that_open_with_their_chain() {
     let sha = hex::encode(*sha256(&first));
     let upload = "61".repeat(32);
     let second_root = [42u8; 32];
-    let second = wrap_root(
-        &context(2),
-        &second_root,
-        &recipients,
-        Some(&recovery),
-        (&signer.0, &signer.1),
-        Some(PreviousLink {
-            digest: &sha,
-            upload_id: &upload,
-            generation: 1,
-            root: &first_root,
-        }),
-    )
-    .unwrap();
-    let bundle = parse_bundle(&second).unwrap();
-    assert!(
-        bundle
-            .body
-            .envelopes
-            .windows(2)
-            .all(|w| w[0].device < w[1].device)
-    );
-    let digests = bundle_digests(&bundle).unwrap();
-    for (device, seed) in &seeds {
-        let (root, history) = open_root(
-            &[second.clone(), first.clone()],
-            &digests.bundle,
-            (account, "local", 2),
-            device,
-            seed,
+    for format in [LEGACY_FORMAT, ROOT_FORMAT] {
+        let second = wrap_root_format(
+            format,
+            &context(2),
+            &second_root,
+            &recipients,
+            Some(&recovery),
+            (&signer.0, &signer.1),
+            Some(PreviousLink {
+                digest: &sha,
+                upload_id: &upload,
+                generation: 1,
+                root: &first_root,
+            }),
         )
         .unwrap();
-        assert_eq!(*root, second_root);
-        assert_eq!(*history[&1], first_root);
-        let (root, _) = open_root(
-            std::slice::from_ref(&first),
-            &first_digest.bundle,
-            (account, "local", 1),
-            device,
-            seed,
-        )
-        .unwrap();
-        assert_eq!(*root, first_root);
+        let bundle = parse_bundle(&second).unwrap();
+        assert!(
+            bundle
+                .body
+                .envelopes
+                .windows(2)
+                .all(|w| w[0].device < w[1].device)
+        );
+        let reference = root_reference(&bundle).unwrap();
+        assert_eq!(
+            reference.suite,
+            if format == LEGACY_FORMAT {
+                "dmsg-root-v2"
+            } else {
+                ROOT_SUITE
+            }
+        );
+        assert_eq!(
+            reference.recovery_enabled,
+            (format == ROOT_FORMAT).then_some(true)
+        );
+        let digests = bundle_digests(&bundle).unwrap();
+        for (device, seed) in &seeds {
+            let (root, history) = open_root(
+                &[second.clone(), first.clone()],
+                &digests.bundle,
+                (account, "local", 2),
+                device,
+                seed,
+            )
+            .unwrap();
+            assert_eq!(*root, second_root);
+            assert_eq!(*history[&1], first_root);
+            let (root, _) = open_root(
+                std::slice::from_ref(&first),
+                &first_digest.bundle,
+                (account, "local", 1),
+                device,
+                seed,
+            )
+            .unwrap();
+            assert_eq!(*root, first_root);
+        }
     }
     // The signer must be a recipient.
     assert!(

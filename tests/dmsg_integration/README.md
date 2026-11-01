@@ -154,3 +154,10 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud \
 Wasm 前置条件与上面的桌面验收相同；没有本地依赖时不能把该 ignored 测试报告为通过。
 
 `desktop_inbox_cache_and_pagination` 验证 25 封免费来信跨页完整读取、发送响应丢失后沿用原订单、已读/归档 ACK 立即更新本地缓存、刷新失败后缓存仍可读取，以及锁定后拒绝缓存读取。`desktop_paid_letters` 继续覆盖付费报价、付款确认、丢失响应、手续费修订和退款。
+
+
+## Legacy-home device pairing (2026-11-01)
+
+`pairing::legacy_home_pairing_rotates_the_root_and_unlocks_the_new_device` uses the real pre-recovery-policy user Wasm to verify v2 root creation, device approval, rotation and historical vault reads. `pairing::legacy_home_recovers_a_device_added_before_its_v3_rotation_failed` first uses the affected release to reproduce a committed device addition followed by a rejected v3 root, then restarts with the fixed daemon and finishes the original approval without enrolling again. It also distinguishes waiting for a root envelope from losing the new device's login.
+
+Build `dmsg_user` from clean commit `3fefe31ff16f1b1296036ff936a6e6ab423f093f` in a separate target directory and set `DMSG_PRE_RECOVERY_USER_WASM` to that Wasm. `DMSG_BROKEN_PAIRING_BIN` names the affected 1.3.1-beta.1 daemon; it only runs with a fresh local test home. Other Wasm, PocketIC and relay prerequisites remain as above. Run with `cargo test --locked -p dmsg_integration --features pocketic-tests --test desktop pairing:: -- --ignored --nocapture --test-threads=1`. This is local protocol evidence, not a production account mutation or a physical iOS camera test.

@@ -108,6 +108,10 @@ Bytes use deterministic CBOR:
 
 In v3, `recoveryKey` and `recovery` appear together or are both omitted while recovery is off. `ContentRootRef.recovery_enabled` must match account policy and the recipients digest. Legacy v2 bundles remain readable; pending v2 jobs retain their original suite and digests, and v2 commits require recovery enabled. Signature and bundle-digest domains remain version 2; the body format discriminates the encoding.
 
+Clients select v2 for certified schema-4 accounts without `recovery_enabled`, preserving their enabled recovery policy and compatibility with unupgraded homes. An explicit schema-5 policy selects v3. This decision comes from verified account state, never from retrying an integrity failure with weaker checks. An uncommitted v3 draft for a legacy account is rebuilt after reconciling its account journal; its live reservation and candidate are retained, while immutable upload bytes receive a new plan. Already committed bundles are opened unchanged.
+
+Device enrollment/revocation and root rotation are separate commits. Once the device change commits, a rotation failure stays reconcilable and must not ask the person to enroll again. Clients also resume affected older approvals marked failed when their persisted, already-approved operation still has the incompatible legacy-account draft. The new device waits for its root envelope; a lost login requires signing in again.
+
 Public keys, COSE_Encrypt0 and HPKE envelope bytes use unpadded base64url; digests and device/operation/upload IDs use lowercase hex. The account is a canonical 20-character Xid, generations are positive safe integers, and `securityEpoch` is the reserved slot's security version.
 
 - `signature` is the device's Ed25519 signature over `digest("dmsg/root-bundle/2", body)`. Mathematical validity alone does not prove device authority; reading the current root also requires the user's certified root commitment.

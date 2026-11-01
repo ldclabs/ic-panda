@@ -36,6 +36,7 @@ use zeroize::Zeroizing;
 pub const ROOT_SUITE: &str = "dmsg-root-v3";
 /// `body.format` of a bundle.
 pub const ROOT_FORMAT: &str = "dmsg-root-bundle/3";
+const LEGACY_FORMAT: &str = "dmsg-root-bundle/2";
 /// Largest bundle.
 pub const MAX_BUNDLE: usize = 64_000;
 /// Most bundles a previous-root chain may hold.
@@ -222,6 +223,30 @@ pub fn wrap_root(
     signer: (&Hash, &Key),
     previous: Option<PreviousLink<'_>>,
 ) -> Result<Vec<u8>> {
+    wrap_root_format(
+        ROOT_FORMAT,
+        context,
+        root,
+        recipients,
+        recovery_key,
+        signer,
+        previous,
+    )
+}
+
+fn wrap_root_format(
+    format: &str,
+    context: &RootContext,
+    root: &Key,
+    recipients: &[Recipient],
+    recovery_key: Option<&RecoveryKey>,
+    signer: (&Hash, &Key),
+    previous: Option<PreviousLink<'_>>,
+) -> Result<Vec<u8>> {
+    ensure(
+        format != LEGACY_FORMAT || recovery_key.is_some(),
+        Error::IntegrityFailed,
+    )?;
     let mut recipients = recipients.to_vec();
     recipients.sort_by_key(|r| r.device);
     recipients.dedup_by_key(|r| r.device);
@@ -272,7 +297,7 @@ pub fn wrap_root(
         entry
     });
     let body = RootBody {
-        format: ROOT_FORMAT.into(),
+        format: format.into(),
         context: context.clone(),
         commitment: commitment(root),
         envelopes,
@@ -591,6 +616,22 @@ struct RootJob {
 }
 
 impl RootJob {
+    /// Schema 4 does not prove that the home accepts v3 commitments. A
+    /// previously prepared v3 draft must get new immutable upload bytes.
+    /// The caller first reconciles the account journal and checks whether
+    /// this exact bundle already committed; committed roots are never rebuilt.
+    fn legacy_format(&mut self, recovery_enabled: Option<bool>) -> Result<bool> {
+        if recovery_enabled.is_none()
+            && let Some(bytes) = &self.bytes
+            && parse_bundle(bytes)?.body.format == ROOT_FORMAT
+        {
+            self.bytes = None;
+            self.plan = None;
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
     /// An unreserved job can continue; a prepared bundle is reusable only
     /// under the reservation and security epoch it was signed for.
     fn reservation_current(&self, slot: Option<&RootReservation>, epoch: u64, now: u64) -> bool {
@@ -647,6 +688,23 @@ struct RootPointer {
 }
 
 impl Client {
+    /// Recognize the interrupted v3 draft produced for a legacy account by
+    /// earlier clients. This only reopens an already-approved root operation;
+    /// rotation still reconciles and verifies fresh certified state.
+    pub(crate) fn legacy_root_draft(&self) -> Result<bool> {
+        if self
+            .security
+            .as_ref()
+            .is_none_or(|s| s.snapshot.schema != 4)
+        {
+            return Ok(false);
+        }
+        match self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)? {
+            Some(mut job) => job.legacy_format(None),
+            None => Ok(false),
+        }
+    }
+
     /// The content-root key of `generation`, checked against the account's
     /// COSE home, the deployment and the master key.
     ///
@@ -897,6 +955,11 @@ impl Client {
     /// and `Error::RecoveryIncomplete` when this device has not opened the
     /// current root yet.
     pub async fn rotate_root(&mut self) -> Result<u64> {
+        if let Err(error) = self.resume().await
+            && error != Error::Expired
+        {
+            return Err(error);
+        }
         let account = self.account()?.clone();
         let mut state = self.refresh(account.home, &account.id).await?;
         let current = state.info.current_root.clone();
@@ -947,6 +1010,9 @@ impl Client {
             job.candidate = None;
             job.bytes = None;
             job.plan = None;
+            save(self, &job)?;
+        }
+        if job.legacy_format(state.info.recovery_enabled)? {
             save(self, &job)?;
         }
         if job.context.is_none() {
@@ -1029,7 +1095,16 @@ impl Client {
                 generation: r.generation,
                 root: &r.root,
             });
-            let bytes = wrap_root(
+            // A missing certified recovery policy is the legacy contract:
+            // recovery stays enabled and both the bytes and commitment use v2.
+            // Only an explicit policy proves support for the v3 root contract.
+            let format = if state.info.recovery_enabled.is_some() {
+                ROOT_FORMAT
+            } else {
+                LEGACY_FORMAT
+            };
+            let bytes = wrap_root_format(
+                format,
                 &context,
                 &candidate,
                 &recipients,
