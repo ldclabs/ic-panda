@@ -6,12 +6,43 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
-## Unreleased
+## [1.3.2] - 2026-11-02
 
+### Sync and offline use
+
+- Start account sync independently of mailbox, backup and mount maintenance,
+  so a newly authorized device can receive its content promptly after unlock.
+  Show first-sync stages, counts and downloaded bytes until the initial
+  baseline is verified; empty lists explain when content is still arriving.
+- Recover missing inbox keys through the same incremental receive path.
+  Manual retries preserve pending uploads and honor server retry deadlines;
+  sync status and Settings share progress and the last successful sync time.
 - Keep normal account sync to one status line, with the last successful sync
   in its tooltip. Failures retain pending work, retry details and storage
   actions. Remove the file sidebar's persistent optional-backup warning;
   device-binding decisions still explain which content is only on this device.
+
+### Files
+
+- Resume explicit cloud backups and queued downloads after locks, restarts
+  and transient failures, retaining the original jobs and acknowledged blocks.
+  Run transfers independently of routine maintenance and remove whole-file
+  desktop timeouts that could interrupt large transfers.
+- Show cloud confirmation and verification separately from transferred bytes.
+  Keep failed jobs available for retry or cancellation, preserve cancellation
+  while earlier work finishes, and offer retry only for saved transfer jobs.
+- Report terminal success or failure for synchronous CLI downloads as well as
+  queued transfers.
+
+### Channels
+
+- Keep pending and delivered outgoing messages on the right. Cache visible
+  participants' names and avatars, and keep titles and actions usable in
+  narrow windows and right-to-left layouts.
+- Align reply, copy, edit, withdrawal and local hiding actions, and remove
+  report and block entries from channel message menus.
+
+### Updates
 
 - After an update waits for unfinished work, offer an explicit restart that
   preserves saved tasks for the new daemon to resume after unlock. This lets
@@ -567,6 +598,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.3.2]: https://github.com/ldclabs/ic-panda/compare/1.3.1...1.3.2
 [1.3.1]: https://github.com/ldclabs/ic-panda/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.2.1...1.3.0
 [1.1.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.2...dmsg-v1.1.0
