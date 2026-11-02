@@ -263,7 +263,7 @@
   /** The library's latest files, read when the attachment menu opens. */
   async function attachments() {
     const all = await call<any[]>('files/search', { query: '' }).catch(() => [])
-    files = all.filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 8)
+    files = all.filter((f) => f.status !== 'cloud_only' && f.size <= 100 * 1024 * 1024).slice(0, 8)
   }
 
   const read = () => attempt(() => call('channel/sync', { id: channel.id, recent: true }))

@@ -22,7 +22,7 @@
     const asked = query
     const timer = setTimeout(async () => {
       const list = await call<any[]>('files/search', { query: asked }).catch(() => [])
-      if (asked === query) found = list.filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 100)
+      if (asked === query) found = list.filter((f) => f.status !== 'cloud_only' && f.size <= 100 * 1024 * 1024).slice(0, 100)
     }, 150)
     return () => clearTimeout(timer)
   })
@@ -41,8 +41,8 @@
   <ul class="mt-2 max-h-80 overflow-y-auto" data-testid="library-results">
     {#each found as file (file.id)}
       <li class="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-wash">
-        <Checkbox bind:checked={() => chosen[file.id] ?? false, (on) => (chosen[file.id] = on)} class="min-w-0 flex-1">
-          <span class="min-w-0 truncate text-[13px]">{file.name}</span>
+        <Checkbox bind:checked={() => chosen[file.id] ?? false, (on) => (chosen[file.id] = on)} class="min-w-0 flex-1 [&>span]:min-w-0">
+          <bdi class="block truncate text-[13px]" title={file.name}>{file.name}</bdi>
         </Checkbox>
         <span class="shrink-0 text-[11px] text-faint">{size(file.size)}</span>
       </li>

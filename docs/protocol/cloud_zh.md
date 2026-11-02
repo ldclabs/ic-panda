@@ -95,7 +95,7 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 
 本地文件库（`dmsg_client::library`）默认上限为 4 GiB，密文块保存在 `blobs/`，不会自动同步。显式云端备份的新预留对有效 Max 会员允许 1000 MiB（1,048,576,000 明文字节），其他档位为 100 MiB；存储包不提升单文件上限，分享与频道附件仍限 100 MiB。已有备份在降级后仍可读取和恢复。Max backup 最多 1000 块、512 KiB manifest，普通上传保持 128 块、64 KiB。配额响应返回 `lifecycle.backup_max_file_bytes`；备份目录除条目数外还受 1 MiB 响应预算约束，短页也须按 `end` / `next_cursor` 继续；`kind=backup` 需用户显式备份，频道附件使用独立加密的分享版本。保险库条目本身不携带文件块；导入或秘密快照的选定附件进入 Files，具体选择与权限见[Secrets 合同](secrets_zh.md)。账户 `kind=file` 上传用于旧版归档部件 `migration_part`。
 
-明文文件块为 1 MiB，密文块预算为 `1 MiB + 64 bytes`，manifest 最多 64 KiB；上传大小按真实密文字节计算并受资源配额约束。超限明确失败，不静默截断。
+明文文件块为 1 MiB，密文块预算为 `1 MiB + 64 bytes`。普通上传的 manifest 最多 64 KiB；有效 Max 会员备份的 manifest 按上述规则允许 512 KiB。上传大小按真实密文字节计算并受资源配额约束。超限明确失败，不静默截断。
 
 上传预留的截止时间最多为中继当前时间之后 24 小时。账户上传计划采用 23 小时 55 分钟的有效期，为时钟偏差留出 5 分钟余量；频道上传继续使用一小时有效期。该余量不放宽请求认证或证书新鲜度要求。
 

@@ -1618,6 +1618,48 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'attachment-limits') {
+    const limit = 100 * 1024 * 1024
+    const allowed = [
+      libraryFile('91'.repeat(32), '100-MiB-boundary.bin', limit),
+      libraryFile('92'.repeat(32), '已备份 · Rapport de collaboration avec un nom de fichier très long.pdf', 2048, 'backed_up'),
+      libraryFile('93'.repeat(32), 'empty-local-file.bin', 0, 'failed')
+    ]
+    library.splice(0, library.length,
+      libraryFile('94'.repeat(32), 'one-byte-over.bin', limit + 1),
+      libraryFile('95'.repeat(32), 'max-local-backup.bin', limit * 10),
+      libraryFile('96'.repeat(32), 'max-backed-up.bin', limit * 10, 'backed_up'),
+      libraryFile('97'.repeat(32), 'cloud-only.bin', 1, 'cloud_only'),
+      ...allowed)
+    await main.getByTestId('channel-list').getByText('Smoke channel', { exact: true }).click()
+    const attachment = main.getByTestId('channel-attachment')
+    await attachment.focus()
+    await main.keyboard.press('Enter')
+    const menu = main.getByTestId('channel-attachment-menu')
+    await menu.locator(`[data-value="${allowed[0].id}"]`).waitFor()
+    assert.deepEqual(await menu.locator('[data-value]').evaluateAll((items) => items.map((item) => item.dataset.value)), allowed.map((file) => file.id))
+    await main.keyboard.press('Escape')
+    assert.ok(await attachment.evaluate((element) => element === document.activeElement))
+    await attachment.click()
+    await main.getByTestId('channel-browse').click()
+    const results = main.getByTestId('library-results')
+    await results.getByText(allowed[0].name, { exact: true }).waitFor()
+    assert.deepEqual(await results.locator('li .truncate').allTextContents(), allowed.map((file) => file.name))
+    await formMatrix(app, main, shots, 'attachment-limits-dialog', '[data-testid="library-picker"]')
+    assert.ok(await results.locator('li').evaluateAll((rows) => rows.every((row) => {
+      const name = row.querySelector('.truncate').getBoundingClientRect()
+      const size = row.lastElementChild.getBoundingClientRect()
+      return getComputedStyle(row).direction === 'rtl' ? name.left >= size.right : name.right <= size.left
+    })), 'long file names leave the size column readable')
+    await results.getByRole('checkbox').first().focus()
+    await main.keyboard.press('Space')
+    await main.getByTestId('library-pick').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('channel-attached').getByText(allowed[0].name, { exact: true }).waitFor()
+    assert.deepEqual(pageErrors, [])
+    console.log('Attachment limits passed: recent files, library picker, 100 MiB boundary, cloud-only exclusion, keyboard and locale/theme/width matrix')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'plan-benefits') {
     await main.evaluate(() => location.hash = '/plan')
     await main.getByTestId('plan-cards').waitFor()
