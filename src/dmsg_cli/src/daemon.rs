@@ -3521,6 +3521,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn synchronous_download_failures_publish_a_terminal_progress_event() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        let mut events = daemon.subscribe_events();
+        let upload = "ab".repeat(32);
+        for (method, kind) in [
+            ("files/cloud_fetch", "fetch"),
+            ("files/cloud_verify", "verify"),
+        ] {
+            assert_eq!(
+                daemon
+                    .call_files(method, &json!({"upload_id":upload}))
+                    .await,
+                Err(Error::NotFound)
+            );
+            let event = events
+                .try_recv()
+                .expect("failed transfer must end its card");
+            assert_eq!(event["type"], "files/progress");
+            assert_eq!(event["data"]["job"], kind);
+            assert_eq!(event["data"]["stage"], "failed");
+            assert_eq!(event["data"]["error"], "NOT_FOUND");
+            assert_eq!(event["data"]["path"], upload);
+        }
+    }
+
+    #[tokio::test]
     async fn the_library_answers_while_a_backup_starts() {
         let dir = dmsg_client::testing::TempDir::new();
         let (daemon, relay, _ic) = stalled(&dir).await;

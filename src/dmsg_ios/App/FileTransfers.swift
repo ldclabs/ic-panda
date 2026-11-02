@@ -70,9 +70,16 @@ final class FileTransfers {
         stop()
         let stamp = generation
         defer { if generation == stamp { stop() } }
-        while !Task.isCancelled, model.unlocked, !model.concealed, generation == stamp {
+        while !Task.isCancelled, model.unlocked, generation == stamp {
+            // The scene can become active before foreground() finishes resuming
+            // the core. Keep the watcher alive until the privacy shield clears.
+            if model.concealed {
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                continue
+            }
             await load(model)
             guard let engine = model.engine, !Task.isCancelled else { return }
+            if model.concealed { continue }
             let now = UInt64(Date.now.timeIntervalSince1970 * 1000), epoch = model.epoch
             // An explicitly delegated OS transfer owns its upload until it is
             // finalized or cancelled; do not race it with foreground uploading.

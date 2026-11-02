@@ -61,6 +61,21 @@ export async function fileTransfersFlow({ app, main, shots, methods, emit, calls
   await waitFor(() => calls.some(c => c.method === 'files/download_retry'))
   await fetch.getByTestId('files-job-cancel').click()
   await fetch.waitFor({ state: 'detached' })
+
+  // Synchronous CLI downloads have no persisted status row. Their terminal
+  // events must finish the same card without offering a queue-only retry.
+  const synchronous = { job: 'fetch', path: '74'.repeat(32), done: 1, total: 1 }
+  emit('files/progress', { ...synchronous, stage: 'verifying' })
+  await fetch.waitFor()
+  emit('files/progress', { ...synchronous, stage: 'failed', error: 'INTEGRITY_FAILED' })
+  await main.waitForFunction(() => document.querySelector('[data-kind="fetch"][data-testid="files-job"]')?.dataset.stage === 'error')
+  assert.equal(await fetch.getByRole('button', { name: 'Retry', exact: true }).count(), 0)
+  await formMatrix(app, main, shots, 'transfer-cli-error', '[data-testid="files-job"][data-kind="fetch"]')
+  emit('files/progress', { ...synchronous, stage: 'verifying' })
+  emit('files/progress', { ...synchronous, stage: 'done' })
+  await main.waitForFunction(() => document.querySelector('[data-kind="fetch"][data-testid="files-job"]')?.dataset.stage === 'done')
+  assert.equal(await fetch.count(), 1)
+
   setSession('locked'); emit('session/changed')
   await main.getByTestId('files-locked').waitFor()
   assert.match(await main.locator('main').innerText().catch(() => main.locator('body').innerText()), /Locking pauses transfers/)

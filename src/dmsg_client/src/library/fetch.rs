@@ -202,21 +202,37 @@ pub async fn run<H: Hold>(h: &H, changed: &mut (dyn FnMut(&FetchJob) + Send)) ->
     let h = &scoped;
     let jobs = h.with(|c| c.files_download_status()).await?;
     let mut report = FetchRun::default();
-    for mut job in jobs {
-        let now = now_ms();
-        if job.stage == "done" {
+    for queued in jobs {
+        let Some(mut job) = h
+            .with(|c| {
+                // A previous transfer may have waited while this one was cancelled
+                // or retried. Read and start the current job in one local step.
+                let Some(mut job): Option<FetchJob> = c
+                    .workspace
+                    .private(c.keys()?, &format!("{PREFIX}{}", queued.upload_id))?
+                else {
+                    return Ok(None);
+                };
+                let now = now_ms();
+                if job.stage == "done" {
+                    return Ok(None);
+                }
+                if job.error.is_some() && job.retry_at.is_none_or(|at| at > now) {
+                    report.pending += 1;
+                    return Ok(None);
+                }
+                job.stage = "downloading".into();
+                job.error = None;
+                job.retry_at = None;
+                job.attempts = job.attempts.saturating_add(1);
+                job.updated_at = now;
+                c.save_fetch(&job)?;
+                Ok(Some(job))
+            })
+            .await?
+        else {
             continue;
-        }
-        if job.error.is_some() && job.retry_at.is_none_or(|at| at > now) {
-            report.pending += 1;
-            continue;
-        }
-        job.stage = "downloading".into();
-        job.error = None;
-        job.retry_at = None;
-        job.attempts = job.attempts.saturating_add(1);
-        job.updated_at = now;
-        h.with(|c| c.save_fetch(&job)).await?;
+        };
         changed(&job);
         let before_bytes = job.bytes;
         let upload = job.upload_id.clone();
@@ -422,6 +438,54 @@ mod tests {
         assert!(c.files_download_status().unwrap()[0].error.is_none());
         c.files_download_cancel(&upload).unwrap();
         assert!(c.files_download_status().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn cancelling_a_queued_download_during_another_transfer_keeps_it_cancelled() {
+        use std::sync::{
+            Mutex,
+            atomic::{AtomicBool, Ordering},
+        };
+
+        struct Shared(Mutex<Client>);
+
+        impl Hold for Shared {
+            async fn with<T: Send>(
+                &self,
+                step: impl FnOnce(&mut Client) -> Result<T> + Send,
+            ) -> Result<T> {
+                step(&mut self.0.lock().unwrap())
+            }
+        }
+
+        let (_dir, mut c, upload, _) = fixture();
+        let cancelled = "ff".repeat(32);
+        let mut entry = c.cloud_entry(&upload).unwrap().unwrap();
+        entry.plan.upload_id = cancelled.clone();
+        c.save_cloud_entry(&cancelled, &entry).unwrap();
+        c.files_download_start(&upload, None, true).unwrap();
+        c.files_download_start(&cancelled, None, true).unwrap();
+        let h = Shared(Mutex::new(c));
+        let once = AtomicBool::new(false);
+        let report = run(&h, &mut |job| {
+            if job.upload_id == upload && !once.swap(true, Ordering::SeqCst) {
+                h.0.lock()
+                    .unwrap()
+                    .files_download_cancel(&cancelled)
+                    .unwrap();
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(report.completed, 1);
+        assert!(
+            h.0.lock()
+                .unwrap()
+                .files_download_status()
+                .unwrap()
+                .iter()
+                .all(|job| job.upload_id != cancelled)
+        );
     }
 
     #[tokio::test]

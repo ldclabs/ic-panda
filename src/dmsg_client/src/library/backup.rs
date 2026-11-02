@@ -591,34 +591,46 @@ pub async fn backup_run<H: Hold>(
         })
         .await?;
     let mut run = BackupRun::default();
-    for (key, mut job) in jobs {
-        let now = now_ms();
-        if job.committed {
-            if h.with(|c| c.settle_backup(&key, &job, now)).await? {
-                let mut completed = view(&job, true);
-                completed.stage = "done".into();
-                progress(&completed);
-                run.completed += 1;
-            } else {
-                run.pending += 1;
-            }
+    for (key, _) in jobs {
+        let Some(mut job) = h
+            .with(|c| {
+                // Earlier jobs wait on the network. A queued job may have been
+                // cancelled or retried since this pass took its inventory.
+                let Some(mut job): Option<BackupJob> = c.workspace.store.library_job(&key)? else {
+                    return Ok(None);
+                };
+                let now = now_ms();
+                if job.committed {
+                    if c.settle_backup(&key, &job, now)? {
+                        let mut completed = view(&job, true);
+                        completed.stage = "done".into();
+                        progress(&completed);
+                        run.completed += 1;
+                    } else {
+                        run.pending += 1;
+                    }
+                    return Ok(None);
+                }
+                if run.paused
+                    || job
+                        .failed_at
+                        .is_some_and(|_| retry_at(&job).is_none_or(|at| now < at))
+                {
+                    run.pending += 1;
+                    return Ok(None);
+                }
+                job.error = None;
+                job.failed_at = None;
+                job.stage = "uploading".into();
+                job.updated_at = now;
+                job.attempts = job.attempts.saturating_add(1);
+                c.workspace.store.set_library_job(&key, &job)?;
+                Ok(Some(job))
+            })
+            .await?
+        else {
             continue;
-        }
-        if run.paused
-            || job
-                .failed_at
-                .is_some_and(|_| retry_at(&job).is_none_or(|at| now < at))
-        {
-            run.pending += 1;
-            continue;
-        }
-        job.error = None;
-        job.failed_at = None;
-        job.stage = "uploading".into();
-        job.updated_at = now;
-        job.attempts = job.attempts.saturating_add(1);
-        h.with(|c| c.workspace.store.set_library_job(&key, &job))
-            .await?;
+        };
         let before_bytes = view(&job, true).bytes;
         let outcome = send_backup(h, &key, &mut job, progress).await;
         let now = now_ms();
@@ -626,6 +638,9 @@ pub async fn backup_run<H: Hold>(
             let Some(mut stored) = c.workspace.store.library_job::<BackupJob>(&key)? else {
                 return Ok(());
             };
+            if stored.plan != job.plan {
+                return Ok(());
+            }
             run.bytes += view(&stored, true).bytes.saturating_sub(before_bytes);
             stored.updated_at = now;
             match outcome {
@@ -766,6 +781,72 @@ mod retry_tests {
     use std::sync::Mutex;
 
     struct Interrupted(Mutex<Client>);
+
+    #[tokio::test]
+    async fn cancelling_a_queued_backup_during_another_transfer_keeps_it_cancelled() {
+        struct Shared {
+            client: Mutex<Client>,
+            plans: std::collections::BTreeMap<String, UploadPlan>,
+            active: String,
+            cancelled: String,
+        }
+
+        impl Hold for Shared {
+            async fn with<T: Send>(
+                &self,
+                step: impl FnOnce(&mut Client) -> Result<T> + Send,
+            ) -> Result<T> {
+                step(&mut self.client.lock().unwrap())
+            }
+
+            async fn find(&self, path: &str) -> Result<Option<Value>> {
+                // The queued backup is cancelled while the first awaits its ACK.
+                let plan = &self.plans[path.rsplit('/').next().unwrap()];
+                if plan.upload_id == self.active {
+                    self.with(|c| c.workspace.store.delete_library_job(&self.cancelled))
+                        .await?;
+                }
+                Ok(Some(serde_json::json!({"status":"committed", "plan":plan})))
+            }
+        }
+
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        for name in ["first.txt", "second.txt"] {
+            let imported = c
+                .files_write(super::super::catalog::ROOT, name, name.as_bytes())
+                .unwrap();
+            let job = c
+                .plan_backup(&imported.file.id, &imported.version, now_ms())
+                .unwrap();
+            c.workspace
+                .store
+                .set_library_job(&job_key(&job.file, &job.version), &job)
+                .unwrap();
+        }
+        let jobs = c.backup_jobs().unwrap();
+        let cancelled = jobs[1].1.clone();
+        let h = Shared {
+            plans: jobs
+                .iter()
+                .map(|(_, job)| (job.plan.upload_id.clone(), job.plan.clone()))
+                .collect(),
+            active: jobs[0].1.plan.upload_id.clone(),
+            cancelled: jobs[1].0.clone(),
+            client: Mutex::new(c),
+        };
+        let report = backup_run(&h, &mut |_| {}).await.unwrap();
+        assert_eq!(report.completed, 1);
+        let c = h.client.lock().unwrap();
+        assert!(c.backup_jobs().unwrap().is_empty());
+        assert!(
+            c.version(&cancelled.file, &cancelled.version)
+                .unwrap()
+                .backup
+                .is_none()
+        );
+    }
+
     impl Hold for Interrupted {
         async fn with<T: Send>(
             &self,

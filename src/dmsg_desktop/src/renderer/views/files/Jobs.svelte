@@ -42,7 +42,7 @@
             class={cn('shrink-0', job.stage === 'done' ? 'text-ok' : job.stage === 'error' ? 'text-danger' : 'text-faint')}
           />
           <b class="min-w-0 flex-1 truncate text-[12.5px] font-medium" title={nameOf(job)} dir="auto">{nameOf(job)}</b>
-          {#if job.kind !== 'add' && ['error', 'retrying', 'paused'].includes(job.stage)}
+          {#if (job.kind === 'backup' || job.upload) && ['error', 'retrying', 'paused'].includes(job.stage)}
             <button class={buttonClass('ghost', 'xs')} onclick={() => onRetry(job)}>{t('retry')}</button>
           {/if}
           {#if job.kind !== 'add' && job.stage !== 'done' && (job.version || job.upload)}

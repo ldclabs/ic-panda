@@ -479,9 +479,10 @@ impl Daemon {
                         to_json(&cloud::cloud_refresh(&scoped).await?)
                     }
                 }
-                "files/cloud_fetch" => {
+                "files/cloud_fetch" | "files/cloud_verify" => {
+                    let verify = method == "files/cloud_verify";
                     let upload = text(params, "upload_id")?;
-                    let target = match params["folder"].is_null() {
+                    let target = match verify || params["folder"].is_null() {
                         true => None,
                         false => Some(folder(
                             &mut *self.client().lock().await,
@@ -491,31 +492,45 @@ impl Daemon {
                     };
                     if params["background"] == true {
                         return Ok(Some(to_json(
-                            &h.with(|c| c.files_download_start(&upload, target.as_deref(), false))
+                            &h.with(|c| c.files_download_start(&upload, target.as_deref(), verify))
                                 .await?,
                         )));
                     }
                     let _turn = self.turn("download").await;
-                    let mut progress = progress("fetch", upload.clone().into());
-                    to_json(
-                        &cloud::cloud_fetch(&h, &upload, target.as_deref(), &mut progress).await?,
-                    )
+                    let job = if verify { "verify" } else { "fetch" };
+                    let mut counts = (0, 0);
+                    let mut progress =
+                        |done, total| {
+                            counts = (done, total);
+                            self.emit("files/progress", json!({
+                            "job": job, "path": upload, "done": done, "total": total,
+                            "stage": if done == total { "verifying" } else { "downloading" },
+                        }));
+                        };
+                    let result = if verify {
+                        cloud::cloud_verify(&h, &upload, &mut progress)
+                            .await
+                            .map(|check| to_json(&check))
+                    } else {
+                        cloud::cloud_fetch(&h, &upload, target.as_deref(), &mut progress)
+                            .await
+                            .map(|file| to_json(&file))
+                    };
+                    let error = match &result {
+                        Ok(value) => value["error"].as_str().map(str::to_owned),
+                        Err(error) => Some(dmsg_client::error_code(error)),
+                    };
+                    // Synchronous CLI calls have no durable download job for the
+                    // desktop to poll. End their card only after verification.
+                    self.emit("files/progress", json!({
+                        "job": job, "path": upload, "done": counts.0, "total": counts.1,
+                        "stage": if error.is_some() { "failed" } else { "done" }, "error": error,
+                    }));
+                    result?
                 }
                 "files/cloud_delete" => {
                     let uploads: Vec<String> = parse(params, "upload_ids")?;
                     json!({"accepted": cloud::cloud_delete(&h, &uploads).await?})
-                }
-                "files/cloud_verify" => {
-                    let upload = text(params, "upload_id")?;
-                    if params["background"] == true {
-                        return Ok(Some(to_json(
-                            &h.with(|c| c.files_download_start(&upload, None, true))
-                                .await?,
-                        )));
-                    }
-                    let _turn = self.turn("download").await;
-                    let mut progress = progress("verify", upload.clone().into());
-                    to_json(&cloud::cloud_verify(&h, &upload, &mut progress).await?)
                 }
                 "files/cloud_usage" => to_json(&cloud::cloud_usage(&h).await?),
                 "files/save_shared" => {
