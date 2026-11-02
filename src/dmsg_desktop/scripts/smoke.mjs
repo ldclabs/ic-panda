@@ -1618,6 +1618,35 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'unfunded-order') {
+    const created = Date.now() - 2 * DAY
+    const id = '88'.repeat(32)
+    checkouts.push({
+      id, sku: 'max', stage: 'accepted', created_at_ms: created,
+      starts_at_ms: created, expires_at_ms: created + 365 * DAY,
+      terms: { method: 'Cash', asset: 'ckUSDC', amount: '200000000', decimals: 6,
+        funding_deadline_ms: created + 30 * 60_000, activation_deadline_ms: created + DAY }
+    })
+    orderViews[id] = {
+      id, method: 'Cash', status: 'RefundCommitted', receipt: false,
+      service_reserve: '0', starts_at_ms: created, expires_at_ms: created + 365 * DAY
+    }
+    await main.evaluate(() => location.hash = '/plan')
+    await main.getByTestId('plan-tab-payments').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('order-state').getByText('Ended', { exact: true }).waitFor()
+    assert.equal(await main.getByTestId('order').locator('button').count(), 0)
+    assert.equal(await main.getByTestId('order-amount').innerText(), '200 ckUSDC')
+    const reads = calls.filter(c => c.method === 'plan/order').length
+    await main.getByTestId('orders-refresh').focus()
+    await main.keyboard.press('Enter')
+    await waitFor(() => calls.filter(c => c.method === 'plan/order').length > reads)
+    assert.equal(await main.getByTestId('order-state').innerText(), 'Ended')
+    await formMatrix(app, main, shots, 'unfunded-order', '[data-testid="plan-orders"]')
+    assert.deepEqual(pageErrors, [])
+    console.log('Unfunded order passed: terminal state without refund promise, keyboard refresh, zh/fr/ar, light/dark, narrow-window screenshots')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'attachment-limits') {
     const limit = 100 * 1024 * 1024
     const allowed = [

@@ -33,10 +33,21 @@ test('an order reads as the service reports it, or as its journal stands before 
   assert.deepEqual(orderState(cash('accepted'), { status: 'AwaitingFunding' }), { label: 'orderAwaitingFunding', tone: 'warn' })
   assert.deepEqual(orderState(cash('accepted'), { status: 'Applied' }), { label: 'orderApplied', tone: 'ok' })
   assert.deepEqual(orderState(panda('accepted'), { status: 'Active' }), { label: 'orderApplied', tone: 'ok' })
-  assert.equal(orderState(cash('accepted'), { status: 'RefundCommitted' }).label, 'orderRefundAvailable')
   assert.equal(orderState(cash('accepted'), { status: 'Closing' }).label, 'sourceClosing')
   assert.equal(orderState(cash('accepted'), { status: 'Cancelled' }).label, 'orderCancelled')
   assert.equal(orderState(cash('strange')).label, 'orderUnknown')
+})
+
+test('an unfunded checkout closed by the service does not promise a refund', () => {
+  const job = cash('accepted', { terms: { method: 'Cash', funding_deadline_ms: now - DAY } })
+  // reconcile_checkout closes an unpaid order after its activation deadline.
+  // The same terminal status also survives refund claims; it is not a balance.
+  for (const receipt of [false, true]) {
+    const order = { status: 'RefundCommitted', receipt, service_reserve: '0' }
+    assert.deepEqual(orderState(job, order), { label: 'orderEnded', tone: 'neutral' })
+    assert.deepEqual(orderActions(job, order, now), [])
+    assert.equal(moving(job, order, now), false)
+  }
 })
 
 test('only what the service still moves is read again', () => {

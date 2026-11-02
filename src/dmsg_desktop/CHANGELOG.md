@@ -6,6 +6,56 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.3.1] - 2026-11-02
+
+### Sync and offline use
+
+- Show saved display data before refreshing it, and retain verified message
+  attachments for offline reading. Cache clearing removes reconstructible
+  data while preserving vault records, messages, library copies and pending work.
+- Enable debounced vault synchronization by default. Message bodies refresh
+  for visible channel and inbox views; file backup and restore remain explicit.
+- Pull incremental account changes after a verified snapshot instead of
+  fetching the full inventory on every sync. Interrupted snapshots resume,
+  while initialization and recovery retain full verification.
+- Keep reads available when uploads hit storage limits or server backpressure.
+  Show pending changes, the last successful cloud sync and retry status
+  separately from the local daemon connection.
+
+### Channels
+
+- Load recent verified messages before older history. Keep sends running
+  across navigation and the composer available while delivery is pending.
+- Reconcile slow or lost acknowledgments using the original message ID.
+  Retrying a queued attachment retains its original file version even if
+  the library copy has changed, preventing duplicate sends and retry conflicts.
+- Separate message refreshes from attachment metadata and delivery-report work.
+
+### Devices and files
+
+- Move device authorization to Devices, with invitations that iOS can scan
+  through an encrypted, short-lived relay mailbox and direct authorization
+  request scanning. Enrollment still requires the existing approval flow.
+- Complete device enrollment on older account homes with compatible root
+  bundles, and resume approved enrollments after partial failures.
+- Support explicit cloud backups up to 1000 MiB per file for eligible Max
+  accounts; Free, Plus and Pro retain the 100 MiB limit. Membership cards
+  show these limits, and existing backups remain restorable after a downgrade.
+- Keep channel attachment pickers within the separate 100 MiB sharing limit.
+  Long filenames leave sizes readable, including in right-to-left layouts.
+- Preserve last-copy deletion protection after cache clearing and keep
+  restore and verification chunks available until their operations finish.
+
+### Desktop fixes
+
+- Keep account selection in the global account switcher and remove alternate
+  account entry points from settings, reminders and the command palette.
+- Use loading rings for sync and unlock progress, and remove optional-backup
+  reminders from Devices.
+- Show closed membership orders as Ended instead of promising a refund.
+  Unpaid orders can enter the same terminal state after a timeout; refund
+  balances and transfers remain available under Payments → Advanced.
+
 ## [1.3.0] - 2026-11-01
 
 ### Updates
@@ -505,6 +555,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.3.1]: https://github.com/ldclabs/ic-panda/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.2.1...1.3.0
 [1.1.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.2...dmsg-v1.1.0
 [1.0.2]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.0.1...dmsg-v1.0.2

@@ -64,7 +64,9 @@ const statusLabels: Record<string, [Label, Tone]> = {
   AwaitingFunding: ['orderAwaitingFunding', 'warn'],
   Applying: ['orderApplying', 'warn'],
   Applied: ['orderApplied', 'ok'],
-  RefundCommitted: ['orderRefundAvailable', 'warn'],
+  // This closes settlement even for an unfunded timeout. Refund balances
+  // and transfers are separate; this status alone promises no money back.
+  RefundCommitted: ['orderEnded', 'neutral'],
   Closing: ['sourceClosing', 'warn'],
   Rejected: ['orderRejected', 'danger'],
   Checking: ['orderChecking', 'warn'],
