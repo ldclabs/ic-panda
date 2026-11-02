@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { syncState } from '../sync-state'
   import { onMount, untrack } from 'svelte'
   import { display, watchDisplays, type Mode } from '../display.svelte'
   import CacheSettings from './CacheSettings.svelte'
@@ -62,6 +63,9 @@
   let pairings = $state<any[] | null>([])
   let invite = $state<any>(null)
   let candidates = $state<any[]>([])
+  let now = $state(Date.now())
+  onMount(() => { const clock = setInterval(() => { now = Date.now() }, 1000); return () => clearInterval(clock) })
+  const syncStatus = $derived(syncState(status, now))
   let error = $state('')
   let actionBusy = $state(false)
   let languageBusy = $state(false)
@@ -301,7 +305,12 @@
                   {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
                 </span>
               </Fact>
-              <Fact label={t('syncState')}>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</Fact>
+              <Fact label={t('syncState')} testid="settings-sync-state">
+                <span>{t(syncStatus.label, { n: syncStatus.pending })}</span>
+                <span class="w-full text-[12px] text-faint">{syncStatus.okAt ? t('syncLastSuccess', { time: when(syncStatus.okAt) }) : t('localOnlyNever')}</span>
+                {#if syncStatus.retryAt}<span class="w-full text-[12px] text-faint">{t('syncRetryAt', { time: when(syncStatus.retryAt) })}</span>{/if}
+                <span class="w-full text-[12px] text-muted">{t('syncScope')}</span>
+              </Fact>
               <Fact label={t('backgroundOnline')}>
                 {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
               </Fact>
@@ -332,7 +341,7 @@
                 </button>
               {/if}
               {#if status?.account}
-                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy || $unlocking || status.syncing} onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
+                <button class={buttonClass('secondary', 'sm')} disabled={actionBusy || $unlocking || status.syncing || syncStatus.paused || syncStatus.coolingDown} data-testid="settings-sync" onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
               {/if}
             </div>
           </Section>

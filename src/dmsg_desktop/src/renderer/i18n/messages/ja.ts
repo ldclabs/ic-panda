@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "初回同期",
+    "syncInitialWaiting": "初回同期を待機中",
+    "syncInventory": "アカウントのコンテンツ一覧を読み込み中…",
+    "syncDownload": "アカウントのコンテンツをダウンロード中…",
+    "syncVerify": "アカウントのコンテンツを検証中…",
+    "syncInboxKeyMissing": "受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。",
+    "syncInitialHint": "初回同期の検証が完了すると、コンテンツが表示されます。",
+    "syncScope": "保管庫とチャンネル一覧を同期します。メッセージは会話または受信トレイ、クラウドバックアップは「ファイル」で確認してください。",
+
     "syncLastSuccess": "前回のクラウド同期：{time}",
     "syncRetryAt": "{time} 以降に再試行",
     "syncStorageBlocked": "アップロード停止中 · 容量不足",

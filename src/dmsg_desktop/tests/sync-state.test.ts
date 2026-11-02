@@ -32,3 +32,21 @@ test('locking pauses content reads and keeps saved progress; old successful reco
   assert.equal(syncState({ state: 'unlocked', last_sync: { at: 100, error: null } }).okAt, 100)
   assert.equal(syncState({ state: 'unlocked', last_sync: { at: 100, upload_error: 'QUOTA_EXCEEDED' } }).okAt, undefined)
 })
+
+test('a new device never claims a verified empty or synced account before its baseline', () => {
+  const status = { state: 'unlocked', sync_initialized: false, last_sync: { ok_at: 100 } }
+  assert.equal(syncState(status).label, 'syncInitialWaiting')
+  const progress = { stage: 'download', entries: 17, total: 240, downloaded_bytes: 262144 }
+  const active = syncState({ ...status, syncing: true, sync_progress: progress })
+  assert.equal(active.label, 'syncInitial')
+  assert.equal(active.stage, 'syncDownload')
+  assert.deepEqual(active.progress, progress)
+  assert.equal(syncState({ ...status, sync_initialized: true }).label, 'accountSynced')
+})
+
+test('server cooldown expires without a new status response and never blocks ordinary owner retries', () => {
+  const status = { state: 'unlocked', last_sync: { error: 'SYNC_BUSY', retry_at: 5000 } }
+  assert.equal(syncState(status, 4999).coolingDown, true)
+  assert.equal(syncState(status, 5000).coolingDown, false)
+  assert.equal(syncState({ ...status, last_sync: { error: 'NETWORK_UNAVAILABLE', retry_at: 5000 } }, 4999).coolingDown, false)
+})

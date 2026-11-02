@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Penyegerakan pertama",
+    "syncInitialWaiting": "Menunggu penyegerakan pertama",
+    "syncInventory": "Membaca senarai kandungan akaun…",
+    "syncDownload": "Memuat turun kandungan akaun…",
+    "syncVerify": "Mengesahkan kandungan akaun…",
+    "syncInboxKeyMissing": "Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.",
+    "syncInitialHint": "Kandungan akan muncul selepas penyegerakan pertama disahkan.",
+    "syncScope": "Menyegerakkan peti besi dan senarai saluran. Buka perbualan atau peti masuk untuk mesej, dan Fail untuk sandaran awan.",
+
     "syncLastSuccess": "Penyegerakan awan terakhir: {time}",
     "syncRetryAt": "Cuba lagi selepas {time}",
     "syncStorageBlocked": "Muat naik dijeda · Storan penuh",

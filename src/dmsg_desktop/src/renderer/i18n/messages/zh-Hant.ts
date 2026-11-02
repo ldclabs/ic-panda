@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "首次同步",
+    "syncInitialWaiting": "等待首次同步",
+    "syncInventory": "正在讀取帳號內容清單…",
+    "syncDownload": "正在下載帳號內容…",
+    "syncVerify": "正在驗證帳號內容…",
+    "syncInboxKeyMissing": "收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。",
+    "syncInitialHint": "首次同步驗證完成後，將顯示帳號內容。",
+    "syncScope": "同步保險庫和頻道列表。開啟對話或收件匣接收訊息，在檔案頁查看雲端備份。",
+
     "syncLastSuccess": "最近雲端同步：{time}",
     "syncRetryAt": "{time} 後重試",
     "syncStorageBlocked": "上傳暫停 · 儲存空間不足",

@@ -5,6 +5,15 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "syncInitial": "First sync",
+    "syncInitialWaiting": "Waiting for first sync",
+    "syncInventory": "Reading account inventory…",
+    "syncDownload": "Downloading account content…",
+    "syncVerify": "Verifying account content…",
+    "syncInboxKeyMissing": "The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.",
+    "syncInitialHint": "Content will appear after the first sync is verified.",
+    "syncScope": "Syncs your vault and channel list. Open conversations or the inbox for messages, and Files for cloud backups.",
+
     "syncLastSuccess": "Last cloud sync: {time}",
     "syncRetryAt": "Retry after {time}",
     "syncStorageBlocked": "Uploads paused · Storage full",

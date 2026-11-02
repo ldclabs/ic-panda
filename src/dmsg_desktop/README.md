@@ -51,6 +51,11 @@ desktop is one of its clients, like the CLI.
   opens it (Log in, Unlock with Touch ID, Fast unlock, or Continue setup in
   Settings); the versions waiting to sync, background online while it is
   on, the daemon connection, and one Lock button while it is unlocked.
+  A new device shows first-sync stages, counts and downloaded bytes until its
+  baseline is verified. Empty Vault and Channel lists explain that wait. The
+  rail and Session settings share retry deadlines and the last successful sync
+  time; account sync covers vault content and channel membership, while message
+  bodies and cloud backup inventory refresh in their respective views.
   Views the device cannot show yet offer the same step. A title bar names
   the view and opens the command palette (⌘K, or Ctrl+K elsewhere), which
   goes to any view and runs the session, appearance and language commands;
@@ -814,3 +819,12 @@ visibility scheduling, draft preservation, keyboard cache clearing and the Chine
 French and Arabic light/dark/minimum-window matrix using an isolated daemon fixture.
 `cargo test -p dmsg_cli real_electron_cached_profile_and_reconnection -- --ignored`
 uses a real daemon and temporary encrypted workspace for the cache/reconnect path.
+
+`DMSG_DESKTOP_SMOKE=sync pnpm test:e2e` covers first-sync progress and empty views,
+navigation while receiving, missing inbox keys, retry cooldown expiry, Session
+settings, pending work, storage limits and keyboard actions. It captures Chinese,
+French and Arabic in both themes at 760×540, plus Chinese at 1180×760, using the
+isolated mock daemon. `cargo test --locked -p dmsg_cli sync` exercises the real
+daemon's sync serialization, progress, receive-only recovery and independent
+content scheduler against local relay fixtures. These checks do not contact
+production accounts or exercise a real cross-device pairing session.

@@ -540,12 +540,14 @@ the daemon then syncs once in the background, even with periodic sync disabled.
 A matching stored root uses the security already checked on unlock without
 contacting the relay. Content sync and flush passes serialize submissions,
 but release the client during network waits so local reads, edits and locking
-remain available. Status includes `syncing` and the last sync error; the log's
+remain available. A dedicated content loop is independent of mailbox, backup
+and mount maintenance. Status includes `syncing` and the last sync error; the log's
 `sync/pass` records each pass's duration and failed stage without content or
 identifiers; `last_sync.stage` also identifies that step. An unlocked account
 automatically retries `NETWORK_UNAVAILABLE`, `UNAVAILABLE` and `EXECUTION_UNKNOWN` failures after
-60 seconds, even with periodic sync disabled. The background loop checks
-every ten seconds when idle; other background work can delay the retry.
+60 seconds, even with periodic sync disabled. The content loop checks every
+second and wakes immediately on unlock or a content hint. After waiting for a
+previous pass it rechecks that pass's server deadline and session state.
 Success clears the failure. Locking pauses these retries; integrity,
 permission and other permanent failures require attention rather than retrying.
 Every write waits for the next sync pass (`dmsg sync`, the scheduled sync, or
@@ -1577,9 +1579,21 @@ verified content cursor; an idle pass creates no export. `sync/status` retains
 pending versions and the last successful time even after a failure. `last_sync`
 includes `retry_at` for automatic retries and `upload_error` when storage limits
 pause uploads while receiving continues. `sync/run` is an owner retry; it can
-resume uploads but still honors a server busy deadline. Simultaneous callers
-share the in-flight result unless newer local work still needs sending.
+resume uploads but still honors a server busy deadline. The upload gate is
+cleared after taking the sync turn, so a preceding automatic pass cannot undo
+the owner's retry. Simultaneous callers share a successful pass when its scope
+is sufficient and no local work still needs sending.
+
+`status` and `sync/status` include `sync_initialized` (the first verified local
+baseline) and `sync_progress` (stage, entries, total, downloaded bytes and page
+counts). `syncing` denotes active work, not a request waiting for its cooldown.
+Progress is scoped to the current session, published through `sync/progress`
+events, and cleared from the running state even when a pass is cancelled.
+An inbox read missing its key joins the same sync turn for receive-only
+recovery, then retries once. It uses the incremental cursor after initialization,
+does not upload drafts, and respects automatic failure/cooldown gates.
 
 `sync/report` records snapshot/incremental mode, page/change/revision counts,
 downloaded bytes, verification/application durations and the upload outcome.
+`sync/start` adds the trigger and queue duration; `sync/progress` logs stage changes.
 These fields contain no content, resource paths, signed URLs or credentials.

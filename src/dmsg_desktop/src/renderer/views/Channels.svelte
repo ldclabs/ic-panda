@@ -629,8 +629,13 @@
           {#if !listed.other.length && !oldChannels.length}
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
               <span class="grid size-11 place-items-center text-faint [&_svg]:size-6"><Icon name="channels" /></span>
-              <p class="text-[13px] text-muted">{query ? t('noMatch', { query }) : t('noChannels')}</p>
-              {#if unlocked && !query}
+              {#if status?.sync_initialized === false && unlocked}
+                <p class="text-[13px] text-muted" data-testid="channels-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</p>
+                <p class="text-[12.5px] text-muted">{t('syncInitialHint')}</p>
+              {:else}
+                <p class="text-[13px] text-muted">{query ? t('noMatch', { query }) : t('noChannels')}</p>
+              {/if}
+              {#if unlocked && !query && status?.sync_initialized !== false}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => ((createTab = 'create'), (creating = true))}>{t('newChannel')}</button>
               {/if}
             </li>

@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncInitial": "首次同步",
+    "syncInitialWaiting": "等待首次同步",
+    "syncInventory": "正在读取账号内容清单…",
+    "syncDownload": "正在下载账号内容…",
+    "syncVerify": "正在验证账号内容…",
+    "syncInboxKeyMissing": "收件箱密钥尚未同步到此设备。请先在开启收信的设备上同步，再在此重试。",
+    "syncInitialHint": "首次同步验证完成后，将显示账号内容。",
+    "syncScope": "同步保险库和频道列表。打开会话或收件箱接收消息，在文件页查看云端备份。",
+
     "syncLastSuccess": "最近云端同步：{time}",
     "syncRetryAt": "{time} 后重试",
     "syncStorageBlocked": "上传暂停 · 存储空间不足",

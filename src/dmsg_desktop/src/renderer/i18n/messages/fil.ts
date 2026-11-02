@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Unang pag-sync",
+    "syncInitialWaiting": "Naghihintay sa unang pag-sync",
+    "syncInventory": "Binabasa ang listahan ng nilalaman ng account…",
+    "syncDownload": "Dina-download ang nilalaman ng account…",
+    "syncVerify": "Bineberipika ang nilalaman ng account…",
+    "syncInboxKeyMissing": "Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.",
+    "syncInitialHint": "Lalabas ang nilalaman matapos maberipika ang unang pag-sync.",
+    "syncScope": "Sini-sync ang vault at listahan ng channel. Buksan ang mga pag-uusap o inbox para sa mensahe, at Files para sa mga cloud backup.",
+
     "syncLastSuccess": "Huling pag-sync sa cloud: {time}",
     "syncRetryAt": "Subukan muli pagkatapos ng {time}",
     "syncStorageBlocked": "Naka-pause ang pag-upload · Puno ang storage",

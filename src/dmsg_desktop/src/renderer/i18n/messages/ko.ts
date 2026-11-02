@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "첫 동기화",
+    "syncInitialWaiting": "첫 동기화 대기 중",
+    "syncInventory": "계정 콘텐츠 목록 읽는 중…",
+    "syncDownload": "계정 콘텐츠 다운로드 중…",
+    "syncVerify": "계정 콘텐츠 확인 중…",
+    "syncInboxKeyMissing": "받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.",
+    "syncInitialHint": "첫 동기화 확인이 완료되면 콘텐츠가 표시됩니다.",
+    "syncScope": "보관함과 채널 목록을 동기화합니다. 메시지는 대화나 받은 편지함에서, 클라우드 백업은 파일에서 확인하세요.",
+
     "syncLastSuccess": "최근 클라우드 동기화: {time}",
     "syncRetryAt": "{time} 이후 재시도",
     "syncStorageBlocked": "업로드 일시 중지 · 저장 공간 부족",

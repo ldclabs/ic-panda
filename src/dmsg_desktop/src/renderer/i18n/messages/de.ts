@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Erste Synchronisierung",
+    "syncInitialWaiting": "Warten auf erste Synchronisierung",
+    "syncInventory": "Kontoinhalt wird erfasst…",
+    "syncDownload": "Kontoinhalt wird heruntergeladen…",
+    "syncVerify": "Kontoinhalt wird überprüft…",
+    "syncInboxKeyMissing": "Der Posteingangsschlüssel wurde noch nicht mit diesem Gerät synchronisiert. Synchronisiere das Gerät, auf dem der Empfang aktiviert wurde, und versuche es hier erneut.",
+    "syncInitialHint": "Inhalte erscheinen nach der Überprüfung der ersten Synchronisierung.",
+    "syncScope": "Synchronisiert Tresor und Kanalliste. Nachrichten stehen in Unterhaltungen oder im Posteingang, Cloud-Backups unter Dateien.",
+
     "syncLastSuccess": "Letzte Cloud-Synchronisierung: {time}",
     "syncRetryAt": "Erneuter Versuch nach {time}",
     "syncStorageBlocked": "Uploads pausiert · Speicher voll",

@@ -70,6 +70,10 @@ use std::sync::{
 use std::time::Duration;
 use tokio::sync::{Mutex, Notify, broadcast};
 
+#[path = "daemon_sync.rs"]
+mod content_sync;
+pub(crate) use content_sync::Trigger as SyncTrigger;
+
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;
 /// How long one background pass uploads a backup before requests waiting
@@ -262,7 +266,9 @@ pub(crate) struct Daemon {
     sync_resumed: AtomicBool,
     syncing: AtomicBool,
     sync_revision: AtomicU64,
-    sync_result: std::sync::Mutex<Option<(u64, Result<dmsg_client::sync::SyncReport>)>>,
+    sync_wake: Notify,
+    sync_progress: std::sync::Mutex<Option<(u64, dmsg_client::sync::SyncProgress)>>,
+    sync_result: std::sync::Mutex<Option<(u64, bool, Result<dmsg_client::sync::SyncReport>)>>,
     /// The latest mailbox pass, refusal codes included; nothing secret.
     last_connect: std::sync::Mutex<Option<Value>>,
     /// The Agent Protocols connectors of the hosted Agent IDs.
@@ -381,6 +387,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         instance: daemon.instance.clone(),
     })?;
     tokio::spawn(background(daemon.clone()));
+    tokio::spawn(content_sync::run(daemon.clone()));
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
     tokio::spawn(crate::display::run(daemon.clone()));
@@ -458,14 +465,9 @@ fn sync_retry_due(client: &Client, now: u64) -> bool {
         })
 }
 
-/// Idle lock, the keyless flush of presigned submissions and the
-/// scheduled sync, including retries. Background work is not activity.
+/// Idle lock, mailbox, file and mount maintenance. Content sync and
+/// presigned submissions have an independent scheduler. Neither is activity.
 async fn background(daemon: Arc<Daemon>) {
-    let mut synced = now_ms();
-    let mut content_seen = None;
-    let mut content_changed = 0;
-    let mut idle_rounds = 0u32;
-    let mut observed_through = None;
     let mut polled = 0;
     // Requests waiting at the last pass; one that expires changes the count.
     let mut waiting = 0;
@@ -482,86 +484,23 @@ async fn background(daemon: Arc<Daemon>) {
             continue;
         }
         let now = now_ms();
-        let (session, requested, retry, content, automatic, last_at) = {
+        let session = {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
             if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
                 client.lock_idle();
             }
             let session = client.session_state();
-            let last_sync = client.last_sync().ok().flatten();
-            let resumed = daemon.sync_resumed.swap(false, Ordering::Relaxed);
-            let repaired_session = resumed
-                && last_sync.as_ref().is_some_and(|s| {
-                    matches!(
-                        s.error.as_deref(),
-                        Some("AUTH_REQUIRED" | "LOCKED" | "REKEY_REQUIRED" | "DEVICE_NOT_APPROVED")
-                    )
-                });
             if session.state != before {
                 crate::logs::write("session/changed", &[("state", &session.state)]);
                 daemon.emit("session/changed", json!({"state": session.state}));
             }
-            (
-                session,
-                daemon.sync_requested.swap(false, Ordering::Relaxed),
-                sync_retry_due(&client, now),
-                (
-                    client.session_state().account,
-                    client.local_change().unwrap_or(0),
-                ),
-                repaired_session
-                    || last_sync
-                        .as_ref()
-                        .is_none_or(|s| s.automatic_at().is_some_and(|at| now >= at)),
-                last_sync.as_ref().map_or(0, |s| s.at),
-            )
+            session
         };
         daemon.check_mount().await;
         daemon.check_secret_mounts().await;
-        let interval = daemon.settings.sync_interval_ms;
-        if content_seen.as_ref() != Some(&content) {
-            content_changed = now;
-            content_seen = Some(content.clone());
-            idle_rounds = 0;
-        }
-        let edited = interval > 0
-            && content.1 > 0
-            && content_changed > synced
-            && now >= content_changed + 500;
-        let periodic = interval.saturating_mul(1 + u64::from(idle_rounds.min(4)));
-
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
-        // The relay is waited on without holding the client where the work
-        // allows it, so that the windows' reads go on meanwhile.
-        if ready
-            && automatic
-            && ((requested && unlocked)
-                || (edited && unlocked)
-                || (retry && !daemon.syncing.load(Ordering::Relaxed))
-                || (periodic > 0 && now >= synced.max(last_at).saturating_add(periodic)))
-        {
-            synced = now;
-            // Recorded in the status; automatic retries share its cooldown.
-            let result = daemon.sync_pass().await;
-            idle_rounds = match &result {
-                Ok(r) if r.sent == 0 && r.pending == 0 && observed_through == Some(r.through) => {
-                    idle_rounds.saturating_add(1)
-                }
-                _ => 0,
-            };
-            if let Ok(report) = &result {
-                observed_through = Some(report.through);
-            }
-            daemon.note_result("sync", &result);
-        } else if automatic {
-            let flushed = daemon.flush_pass().await;
-            daemon.note_result("flush", &flushed);
-            if let Ok(settled @ 1..) = flushed {
-                crate::logs::write("flush", &[("settled", &settled)]);
-            }
-        }
         if ready && now >= polled + CONNECT_POLL_MS {
             polled = now;
             let report = daemon.connect_pass().await;
@@ -727,6 +666,8 @@ impl Daemon {
             sync_resumed: AtomicBool::new(false),
             syncing: AtomicBool::new(false),
             sync_revision: AtomicU64::new(0),
+            sync_wake: Notify::new(),
+            sync_progress: std::sync::Mutex::new(None),
             sync_result: std::sync::Mutex::new(None),
             last_connect: std::sync::Mutex::new(None),
             agents,
@@ -876,6 +817,7 @@ impl Daemon {
     /// Wake the background loop, such as on a hint.
     pub(crate) fn wake(&self) {
         self.wake.notify_one();
+        self.sync_wake.notify_one();
     }
 
     pub(crate) fn client(&self) -> &Mutex<Client> {
@@ -910,86 +852,6 @@ impl Daemon {
             self.sync_requested.store(true, Ordering::Relaxed);
             self.wake();
         }
-    }
-
-    /// Serialize content submissions, but leave the client available to
-    /// local reads, edits and locking throughout every network wait.
-    async fn sync_pass(&self) -> Result<dmsg_client::sync::SyncReport> {
-        let h = self.hold();
-        // Bind the account before waiting for another pass to finish.
-        let observed = self.sync_revision.load(Ordering::Acquire);
-        let (before, generation) = h
-            .with(|c| Ok((c.session_state(), c.session_generation())))
-            .await?;
-        let _turn = self.turn("sync").await;
-        h.with(|c| dmsg_types::ensure(c.session_generation() == generation, Error::Locked))
-            .await?;
-        let pending = h.with(|c| Ok(c.status()?.pending_sync)).await?;
-        if self.sync_revision.load(Ordering::Acquire) != observed
-            && let Some((finished_generation, result)) =
-                self.sync_result.lock().expect("sync result").as_ref()
-            && *finished_generation == generation
-            && (pending == 0 || result.as_ref().map_or(true, |r| r.upload_error.is_some()))
-        {
-            return result.clone();
-        }
-        self.syncing.store(true, Ordering::Relaxed);
-        self.emit("sync/progress", Value::Null);
-        let started = std::time::Instant::now();
-        let started_at = now_ms();
-        let result = dmsg_client::sync::sync(&h).await;
-        let stage = h
-            .with(|c| c.last_sync())
-            .await
-            .ok()
-            .flatten()
-            .filter(|last| last.at >= started_at)
-            .and_then(|last| last.stage)
-            .map(|stage| stage.as_str())
-            .unwrap_or(if result.is_ok() {
-                "complete"
-            } else {
-                "unrecorded"
-            });
-        self.syncing.store(false, Ordering::Relaxed);
-        *self.sync_result.lock().expect("sync result") = Some((generation, result.clone()));
-        self.sync_revision.fetch_add(1, Ordering::Release);
-        if let Ok(report) = &result {
-            crate::logs::write(
-                "sync/report",
-                &[
-                    (
-                        "mode",
-                        &if report.full_snapshot {
-                            "snapshot"
-                        } else {
-                            "incremental"
-                        },
-                    ),
-                    ("pages", &(report.export_pages + report.delta_pages)),
-                    ("changes", &report.changes),
-                    ("revisions", &report.revisions),
-                    ("downloaded_bytes", &report.downloaded_bytes),
-                    ("verify_ms", &report.verify_ms),
-                    ("apply_ms", &report.apply_ms),
-                    ("sent", &report.sent),
-                    ("pending", &report.pending),
-                    ("upload", &report.upload_error.as_deref().unwrap_or("ok")),
-                ],
-            );
-        }
-        crate::logs::result(
-            "sync/pass",
-            &[("stage", &stage), ("ms", &started.elapsed().as_millis())],
-            &result,
-        );
-        // Partial progress and failures also change the local list/status.
-        self.emit("sync/changed", Value::Null);
-        let after = self.client.lock().await.session_state();
-        if before.state != after.state || before.account != after.account {
-            self.emit("session/changed", Value::Null);
-        }
-        result
     }
 
     /// Read the dmsg-connect mailbox without holding the client, then handle
@@ -1194,7 +1056,10 @@ impl Daemon {
         let client = self.client.lock().await;
         let status = client.status()?;
         let recovery = client.recovery_warning()?;
-        let session = format!("{}:{}", self.instance, client.session_generation());
+        let generation = client.session_generation();
+        let initialized = dmsg_client::sync::initialized(&client)?;
+        let progress = self.sync_progress_for(generation);
+        let session = format!("{}:{}", self.instance, generation);
         drop(client);
         let mut value = serde_json::to_value(status).expect("status serializes");
         value["recovery"] = recovery;
@@ -1202,9 +1067,9 @@ impl Daemon {
         value["version"] = env!("CARGO_PKG_VERSION").into();
         value["instance"] = self.instance.clone().into();
         value["port"] = self.port.into();
-        value["syncing"] = (self.syncing.load(Ordering::Relaxed)
-            || self.sync_requested.load(Ordering::Relaxed))
-        .into();
+        value["sync_initialized"] = initialized.into();
+        value["syncing"] = (progress.is_some() && self.syncing.load(Ordering::Relaxed)).into();
+        value["sync_progress"] = to_json(&progress);
         value["hints"] = serde_json::to_value(self.hints.lock().expect("hint state").clone())
             .expect("hint state serializes");
         // While unlocked, when the idle lock comes; the background pass
@@ -1595,8 +1460,10 @@ impl Daemon {
                 .await
             }
             "sync/run" => {
-                self.hold().with(dmsg_client::sync::retry_uploads).await?;
-                let report = self.sync_pass().await?;
+                let report = self
+                    .sync_pass(SyncTrigger::Manual, None)
+                    .await?
+                    .ok_or(Error::Pending)?;
                 Ok(to_json(&report))
             }
             "sync/status" => {
@@ -1608,7 +1475,9 @@ impl Daemon {
                     "last_sync": status.last_sync,
                     "resident": status.resident,
                     "interval_ms": self.settings.sync_interval_ms,
-                    "syncing": self.syncing.load(Ordering::Relaxed) || self.sync_requested.load(Ordering::Relaxed),
+                    "sync_initialized": dmsg_client::sync::initialized(&client)?,
+                    "syncing": self.sync_progress_for(client.session_generation()).is_some() && self.syncing.load(Ordering::Relaxed),
+                    "sync_progress": self.sync_progress_for(client.session_generation()),
                 }))
             }
             "cache/status" => self.hold().with(|c| c.cache_status()).await,
@@ -2403,6 +2272,10 @@ mod recovery_watch_tests;
 mod notifications_tests;
 
 #[cfg(test)]
+#[path = "daemon_sync_tests.rs"]
+mod sync_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::remote::Remote;
@@ -2770,7 +2643,7 @@ mod tests {
     /// A daemon whose relay and user homes take connections and never
     /// answer, with their listeners; its client holds fresh relay state, so
     /// its relay requests sign at once.
-    async fn stalled(
+    pub(super) async fn stalled(
         dir: &dmsg_client::testing::TempDir,
     ) -> (
         Arc<Daemon>,
@@ -2930,11 +2803,11 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(10), async {
             let dir = dmsg_client::testing::TempDir::new();
             let (daemon, relay, _ic) = stalled(&dir).await;
-            let first = tokio::spawn({ let daemon = daemon.clone(); async move { daemon.sync_pass().await } });
+            let first = tokio::spawn({ let daemon = daemon.clone(); async move { daemon.sync_pass(SyncTrigger::Manual, None).await } });
             let (mut socket, _) = relay.accept().await.unwrap();
             let mut request = [0;8192];
             assert!(socket.read(&mut request).await.unwrap() > 0);
-            let second = tokio::spawn({ let daemon = daemon.clone(); async move { daemon.sync_pass().await } });
+            let second = tokio::spawn({ let daemon = daemon.clone(); async move { daemon.sync_pass(SyncTrigger::Manual, None).await } });
             tokio::task::yield_now().await;
             let data = json!({"account":dmsg_client::testing::account().id.to_string(),"scope":"cloud_snapshot","through":0,"counts":[],"content_sync":1,"export_id":"aa".repeat(32),"expires_at":now_ms()+60000});
             let body = json!({"ok":true,"data":data}).to_string();
@@ -2960,7 +2833,7 @@ mod tests {
                 assert_eq!(daemon.settings.sync_interval_ms, dmsg_types::MINUTE);
                 let work = tokio::spawn({
                     let daemon = daemon.clone();
-                    async move { daemon.sync_pass().await }
+                    async move { daemon.sync_pass(SyncTrigger::Manual, None).await }
                 });
                 let (mut socket, _) = relay.accept().await.unwrap();
                 let mut request = [0; 8192];
@@ -2985,7 +2858,7 @@ mod tests {
                 // A successful pass removes the trigger, including when checked later.
                 let work = tokio::spawn({
                     let daemon = daemon.clone();
-                    async move { daemon.sync_pass().await }
+                    async move { daemon.sync_pass(SyncTrigger::Manual, None).await }
                 });
                 for data in [
                     json!({"found":false}),

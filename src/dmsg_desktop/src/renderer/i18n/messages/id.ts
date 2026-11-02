@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Sinkronisasi pertama",
+    "syncInitialWaiting": "Menunggu sinkronisasi pertama",
+    "syncInventory": "Membaca daftar konten akun…",
+    "syncDownload": "Mengunduh konten akun…",
+    "syncVerify": "Memverifikasi konten akun…",
+    "syncInboxKeyMissing": "Kunci kotak masuk belum disinkronkan ke perangkat ini. Sinkronkan perangkat yang mengaktifkan penerimaan pesan, lalu coba lagi di sini.",
+    "syncInitialHint": "Konten akan muncul setelah sinkronisasi pertama diverifikasi.",
+    "syncScope": "Menyinkronkan brankas dan daftar saluran. Buka percakapan atau kotak masuk untuk pesan, dan File untuk cadangan cloud.",
+
     "syncLastSuccess": "Sinkronisasi cloud terakhir: {time}",
     "syncRetryAt": "Coba lagi setelah {time}",
     "syncStorageBlocked": "Unggahan dijeda · Penyimpanan penuh",

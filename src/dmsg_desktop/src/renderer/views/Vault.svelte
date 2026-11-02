@@ -511,7 +511,11 @@
         {:else}
           {#if loaded && (!trash || trashLoaded)}
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center" data-testid="vault-empty">
-              {#if query}
+              {#if status?.sync_initialized === false && unlocked}
+                <Icon name="sync" class="text-faint" />
+                <b class="text-[13.5px] font-semibold" data-testid="vault-initial-sync">{t(status?.syncing ? 'syncInitial' : 'syncInitialWaiting')}</b>
+                <p class="text-[12.5px] text-muted">{t('syncInitialHint')}</p>
+              {:else if query}
                 <p class="text-[13px] text-muted [overflow-wrap:anywhere]">{t('noMatch', { query })}</p>
               {:else if trash}
                 <p class="text-[13px] text-muted">{t('emptyTrash')}</p>

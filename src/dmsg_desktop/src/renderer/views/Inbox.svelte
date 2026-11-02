@@ -96,7 +96,7 @@
       error = ''
     } catch (e) {
       if (!valid(at)) return
-      error = closed(e, status) ? 'LOCKED' : errorText(e)
+      error = closed(e, status) ? 'LOCKED' : code(e) === 'RECOVERY_INCOMPLETE' ? 'RECOVERY_INCOMPLETE' : errorText(e)
       if (error === 'LOCKED') letters = outgoing = []
       else { const cached = await call('inbox/list', { refresh: false }).catch(() => null); if (valid(at) && cached) letters = cached }
     } finally {
@@ -126,9 +126,9 @@
       const observation = await call<{complete: boolean}>('inbox/status')
       if (!valid(at)) return
       loaded = cached.length > 0 || observation.complete
-      error = ''
+      // A cache read does not prove that a failed remote refresh recovered.
     } catch (e) {
-      if (valid(at)) error = closed(e, status) ? 'LOCKED' : errorText(e)
+      if (valid(at)) error = closed(e, status) ? 'LOCKED' : code(e) === 'RECOVERY_INCOMPLETE' ? 'RECOVERY_INCOMPLETE' : errorText(e)
     }
   })
 
@@ -241,7 +241,7 @@
           </Tabs.List>
         </Tabs.Root>
       </div>
-      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error}{#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={refreshing} onclick={() => refreshLetters()}>{t('retry')}</button>{/snippet}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error === 'RECOVERY_INCOMPLETE' ? t('syncInboxKeyMissing') : error}{#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={refreshing} onclick={() => refreshLetters()}>{t('retry')}</button>{/snippet}</Notice>{/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}

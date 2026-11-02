@@ -3,7 +3,7 @@
 //! requests: only a person answers them, in the desktop approval window or
 //! at an interactive terminal.
 
-use crate::daemon::Daemon;
+use crate::daemon::{Daemon, SyncTrigger};
 use crate::params::{absolute, account, number, optional, parse, source, text, to_json};
 use dmsg_client::{
     Client,
@@ -267,7 +267,17 @@ impl Daemon {
                 {
                     return bound.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
                 }
-                return Ok(to_json(&inbox::list(&bound).await?));
+                let letters = match inbox::list(&bound).await {
+                    Err(Error::RecoveryIncomplete) => {
+                        let generation = bound.with(|c| Ok(c.session_generation())).await?;
+                        self.sync_pass(SyncTrigger::Inbox, Some(generation)).await?;
+                        // Recheck the original session before receiving a late result.
+                        bound.with(|_| Ok(())).await?;
+                        inbox::list(&bound).await?
+                    }
+                    result => result?,
+                };
+                return Ok(to_json(&letters));
             }
             "inbox/policy" => {
                 if params["refresh"] == false {

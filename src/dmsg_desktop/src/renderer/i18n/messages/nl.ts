@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Eerste synchronisatie",
+    "syncInitialWaiting": "Wachten op eerste synchronisatie",
+    "syncInventory": "Accountinhoud inventariseren…",
+    "syncDownload": "Accountinhoud downloaden…",
+    "syncVerify": "Accountinhoud verifiëren…",
+    "syncInboxKeyMissing": "De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.",
+    "syncInitialHint": "Inhoud verschijnt nadat de eerste synchronisatie is geverifieerd.",
+    "syncScope": "Synchroniseert de kluis en kanaallijst. Open gesprekken of het postvak voor berichten, en Bestanden voor cloudback-ups.",
+
     "syncLastSuccess": "Laatste cloudsynchronisatie: {time}",
     "syncRetryAt": "Opnieuw proberen na {time}",
     "syncStorageBlocked": "Uploads gepauzeerd · Opslag vol",

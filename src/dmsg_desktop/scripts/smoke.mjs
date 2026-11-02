@@ -371,6 +371,8 @@ let session = 'unlocked'
 let setupPending = false
 let failAccountSetup = false
 let syncing = false
+let syncInitialized = true
+let syncProgress = null
 let lastSync = null
 let pendingSync = 2
 let fastUnlock = false
@@ -435,6 +437,8 @@ function status() {
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
     pending_sync: pendingSync,
     syncing,
+    sync_initialized: syncInitialized,
+    sync_progress: syncProgress,
     last_sync: lastSync,
     background_online: false,
     fast_unlock: fastUnlock,
@@ -1703,6 +1707,41 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {
+    methods['device/moved_list'] = () => []
+    const matrix = [
+      ['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540],
+      ['fr', 'light', 760, 540], ['fr', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]
+    ]
+    const originalLists = Object.fromEntries(['vault/list', 'channel/list', 'legacy/channels'].map(key => [key, methods[key]]))
+    methods['vault/list'] = methods['channel/list'] = () => []
+    methods['legacy/channels'] = () => ({ channels: [], errors: [] })
+    pendingSync = 0
+    syncInitialized = false
+    emit('sync/changed')
+    await main.evaluate(() => location.hash = '/vault')
+    await main.getByTestId('vault-initial-sync').waitFor()
+    assert.match(await main.getByTestId('vault-empty').innerText(), /Waiting for first sync/)
+    syncing = true
+    syncProgress = { stage: 'export_start', entries: 0, total: 0, downloaded_bytes: 0 }
+    emit('sync/progress')
+    await main.getByTestId('gate-sync-progress').waitFor()
+    assert.equal(await main.getByTestId('gate-sync').isDisabled(), true)
+    syncProgress = { stage: 'download', entries: 17, total: 240, downloaded_bytes: 262144 }
+    emit('sync/progress')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync-initial"]')?.textContent.includes('17 / 240'))
+    await formMatrix(app, main, shots, 'sync-initial-vault', '[data-testid="gate-rail"]', matrix)
+    // Navigation cannot turn an account that is still receiving into an empty account.
+    await main.evaluate(() => location.hash = '/channels')
+    await main.getByTestId('channels-initial-sync').waitFor()
+    await formMatrix(app, main, shots, 'sync-initial-channels', '[data-testid="channel-list"]', matrix)
+    syncProgress = { ...syncProgress, stage: 'apply', entries: 240 }
+    emit('sync/progress')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync-progress"]')?.textContent.includes('Verifying'))
+    assert.equal(calls.filter(c => c.method === 'sync/run').length, 0, 'view changes do not restart first sync')
+    syncing = false
+    syncInitialized = true
+    syncProgress = null
+    Object.assign(methods, originalLists)
     const okAt = Date.now() - 60000
     pendingSync = 0
     lastSync = { at: okAt, ok_at: okAt, error: null }
@@ -1720,10 +1759,32 @@ smoke: try {
     assert.doesNotMatch(await main.locator('[data-tooltip-content]').innerText(), /0 versions to sync/)
     await main.keyboard.press('Escape')
     await main.getByTestId('files-search').focus()
-    await formMatrix(app, main, shots, 'sync-healthy', '[data-testid="gate-rail"]', [
-      ['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540],
-      ['fr', 'light', 760, 540], ['fr', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]
-    ])
+    await formMatrix(app, main, shots, 'sync-healthy', '[data-testid="gate-rail"]', matrix)
+
+    // Missing inbox keys stay actionable even when sync/changed reloads an empty cache.
+    const originalInbox = methods['inbox/list']
+    methods['inbox/list'] = p => {
+      if (p.refresh === false) return []
+      throw { code: 'RECOVERY_INCOMPLETE', message: 'Missing inbox key' }
+    }
+    await main.evaluate(() => location.hash = '/inbox')
+    await main.getByTestId('inbox-error').waitFor()
+    assert.match(await main.getByTestId('inbox-error').innerText(), /device that enabled receiving/)
+    const finishCached = hold('inbox/list', p => p.refresh === false)
+    emit('sync/changed')
+    await finishCached()
+    await main.waitForTimeout(100)
+    assert.equal(await main.getByTestId('inbox-error').isVisible(), true)
+    await main.evaluate(() => window.dmsg.setLocale('zh'))
+    await main.waitForFunction(() => document.querySelector('[data-testid="inbox-error"]')?.textContent.includes('密钥'))
+    await formMatrix(app, main, shots, 'sync-inbox-key', '[data-testid="inbox-error"]', matrix)
+    methods['inbox/list'] = originalInbox
+    await main.getByTestId('inbox-error').getByRole('button').focus()
+    await main.keyboard.press('Enter')
+    await main.getByTestId('inbox-error').waitFor({ state: 'detached' })
+    await main.getByTestId('letter').waitFor()
+    await main.evaluate(() => location.hash = '/files')
+    await main.getByTestId('files-list').waitFor()
 
     // A normal queue is already the primary label; a collapsed rail has the
     // same details once, available through keyboard focus as well as hover.
@@ -1771,12 +1832,25 @@ smoke: try {
     assert.equal(calls.filter(c => c.method === 'sync/run').length, before + 1)
     await release()
     await main.waitForFunction(() => !document.querySelector('[data-testid="gate-sync"]')?.disabled)
+    // A server deadline disables both entry points, then expires without another RPC event.
+    lastSync = { at: Date.now(), ok_at: okAt, error: 'SYNC_BUSY', retry_at: Date.now() + 60000 }
+    emit('sync/changed')
+    await main.evaluate(() => location.hash = '/settings/session')
+    await main.getByTestId('settings-sync-state').waitFor()
+    await main.waitForFunction(() => document.querySelector('[data-testid="settings-sync"]')?.disabled)
+    assert.equal(await main.getByTestId('gate-sync').isDisabled(), true)
+    assert.match(await main.getByTestId('settings-sync-state').innerText(), /Last cloud sync/)
+    assert.match(await main.getByTestId('settings-sync-state').innerText(), /cloud backups/)
+    await formMatrix(app, main, shots, 'sync-settings-busy', '[data-testid="settings-sync-state"]', matrix)
+    lastSync = { ...lastSync, retry_at: Date.now() + 2000 }
+    emit('sync/changed')
+    await main.waitForFunction(() => ['settings-sync', 'gate-sync'].every(id => document.querySelector(`[data-testid="${id}"]`)?.disabled === false))
     session = 'locked'
     emit('session/changed')
     await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.disabled)
     assert.equal(await main.getByTestId('gate-sync-pending').isVisible(), true)
     assert.deepEqual(pageErrors, [])
-    console.log('Sync Electron checks passed: concise healthy/queued states, keyboard tooltips, contextual file warning, pending work, failure details, retry, storage limit, lock and locale/theme matrix')
+    console.log('Sync Electron checks passed: initial progress and empty views, navigation, inbox key recovery, cooldown expiry, settings, healthy/queued states, keyboard retries/tooltips, storage limits, lock and locale/theme/width matrix')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'cache') {

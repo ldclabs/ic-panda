@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+  import Progress from '../components/Progress.svelte'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
-  import { when } from '../rpc'
+  import { when, size } from '../rpc'
   import { syncState } from '../sync-state'
   import { lock, nextStep, sync, unlocking } from './session'
 
@@ -22,13 +24,15 @@
   }: { status: any; connected: boolean; connectionError?: string; collapsed?: boolean; mod: string } = $props()
 
   let requested = $state(false)
+  let now = $state(Date.now())
+  onMount(() => { const timer = setInterval(() => { now = Date.now() }, 1000); return () => clearInterval(timer) })
   const syncing = $derived(requested || !!status?.syncing)
 
   const session = $derived<string>(status?.state ?? '')
   const unlocked = $derived(session === 'unlocked')
   /** A login, an unlock or the setup: what opens the device from here. */
   const step = $derived(nextStep(status))
-  const presentation = $derived(syncState({ ...status, syncing }))
+  const presentation = $derived(syncState({ ...status, syncing }, now))
   const pending = $derived(presentation.pending)
   const failed = $derived(presentation.failed)
   const transient = $derived(presentation.transient)
@@ -36,10 +40,10 @@
   const showPending = $derived(pending > 0 && presentation.label !== 'syncPending')
   const lastSuccess = $derived(presentation.okAt ? t('syncLastSuccess', { time: when(presentation.okAt) }) : t('localOnlyNever'))
   const retryText = $derived(presentation.retryAt ? t('syncRetryAt', { time: when(presentation.retryAt) }) : '')
-  const syncHint = $derived([syncText, showPending ? t('syncPending', { n: pending }) : '', lastSuccess, retryText].filter(Boolean).join(' · '))
+  const syncHint = $derived([syncText, presentation.initial && syncing ? t(presentation.stage) : '', showPending ? t('syncPending', { n: pending }) : '', lastSuccess, retryText, t('syncScope')].filter(Boolean).join(' · '))
 
   async function syncNow() {
-    if (syncing) return
+    if (syncing || presentation.coolingDown) return
     requested = true
     try { await sync() } finally { requested = false }
   }
@@ -68,7 +72,7 @@
     {#if status?.account}
       <Tooltip content={syncHint} side="right">
         {#snippet children(props)}
-          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused} onclick={syncNow} data-testid="gate-sync">
+          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused || presentation.coolingDown} onclick={syncNow} data-testid="gate-sync">
             <Icon name={syncing ? 'pending' : 'sync'} class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
@@ -109,7 +113,7 @@
             {...props}
             class={buttonClass('ghost', 'xs', '-my-0.5 h-auto min-h-6 justify-start gap-2 px-0 text-start whitespace-normal')}
             onclick={syncNow}
-            disabled={syncing || $unlocking || presentation.paused}
+            disabled={syncing || $unlocking || presentation.paused || presentation.coolingDown}
             data-testid="gate-sync"
           >
             <Icon name={syncing ? 'pending' : 'sync'} class={cn('shrink-0 text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
@@ -117,6 +121,15 @@
           </button>
         {/snippet}
       </Tooltip>
+      {#if presentation.initial && !presentation.paused}
+        <div class="grid gap-1.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-initial">
+          {#if syncing}
+            <Progress value={presentation.progress?.total > 0 ? presentation.progress.entries : null} max={presentation.progress?.total || 100} label={t(presentation.stage)} testid="gate-sync-progress" />
+          {/if}
+          {#if presentation.progress?.total > 0}<span class="tabular-nums"><bdi dir="ltr">{presentation.progress.entries} / {presentation.progress.total}</bdi></span>{/if}
+          {#if presentation.progress?.downloaded_bytes > 0}<span><Icon name="cloud-down" class="inline size-3" /> {size(presentation.progress.downloaded_bytes)}</span>{/if}
+        </div>
+      {/if}
       {#if failed || showPending || retryText}
         <div class="grid gap-0.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-detail">
           {#if showPending}<span data-testid="gate-sync-pending">{t('syncPending', { n: pending })}</span>{/if}

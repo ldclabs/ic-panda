@@ -398,7 +398,11 @@ inline editors alone handle their own cancel shortcut.
   successful cloud sync is available in the tooltip on hover or keyboard
   focus. Show a pending count separately only when the main label names
   another state; failures also show the last success, retry time and relevant
-  storage action. Optional file backups do not produce a persistent warning
+  storage action. Before the first verified baseline, show the receive/verify
+  stage and available counts in the rail; empty Vault and Channel lists explain
+  that initial sync is pending. A server busy deadline disables retry until it
+  expires. Settings uses the same state and last successful time. Optional file
+  backups do not produce a persistent warning
   in the file sidebar; device-binding decisions retain their local-data warning.
 - **Settings** — show effective settings first. Public profile, device
   capabilities, file preferences and account security each open their own

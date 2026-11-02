@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "syncInitial": "Primera sincronización",
+    "syncInitialWaiting": "Esperando la primera sincronización",
+    "syncInventory": "Leyendo el inventario de la cuenta…",
+    "syncDownload": "Descargando contenido de la cuenta…",
+    "syncVerify": "Verificando contenido de la cuenta…",
+    "syncInboxKeyMissing": "La clave del buzón aún no se ha sincronizado con este dispositivo. Sincroniza el dispositivo que activó la recepción y vuelve a intentarlo aquí.",
+    "syncInitialHint": "El contenido aparecerá tras verificar la primera sincronización.",
+    "syncScope": "Sincroniza la bóveda y la lista de canales. Abre las conversaciones o la bandeja de entrada para los mensajes, y Archivos para las copias en la nube.",
+
     "syncLastSuccess": "Última sincronización en la nube: {time}",
     "syncRetryAt": "Reintentar después de {time}",
     "syncStorageBlocked": "Envíos pausados · Espacio lleno",

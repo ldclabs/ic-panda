@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Đồng bộ lần đầu",
+    "syncInitialWaiting": "Đang chờ đồng bộ lần đầu",
+    "syncInventory": "Đang đọc danh mục nội dung tài khoản…",
+    "syncDownload": "Đang tải nội dung tài khoản…",
+    "syncVerify": "Đang xác minh nội dung tài khoản…",
+    "syncInboxKeyMissing": "Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.",
+    "syncInitialHint": "Nội dung sẽ xuất hiện sau khi lần đồng bộ đầu tiên được xác minh.",
+    "syncScope": "Đồng bộ kho và danh sách kênh. Mở cuộc trò chuyện hoặc hộp thư đến để xem tin nhắn, và Tệp để xem bản sao lưu đám mây.",
+
     "syncLastSuccess": "Lần đồng bộ đám mây gần nhất: {time}",
     "syncRetryAt": "Thử lại sau {time}",
     "syncStorageBlocked": "Tạm dừng tải lên · Hết dung lượng",

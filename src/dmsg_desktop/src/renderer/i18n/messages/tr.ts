@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "İlk eşitleme",
+    "syncInitialWaiting": "İlk eşitleme bekleniyor",
+    "syncInventory": "Hesap içerik listesi okunuyor…",
+    "syncDownload": "Hesap içeriği indiriliyor…",
+    "syncVerify": "Hesap içeriği doğrulanıyor…",
+    "syncInboxKeyMissing": "Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.",
+    "syncInitialHint": "İlk eşitleme doğrulandıktan sonra içerik görünecek.",
+    "syncScope": "Kasayı ve kanal listesini eşitler. Mesajlar için konuşmaları veya gelen kutusunu, bulut yedekleri için Dosyalar bölümünü açın.",
+
     "syncLastSuccess": "Son bulut eşitlemesi: {time}",
     "syncRetryAt": "{time} sonrasında yeniden denenecek",
     "syncStorageBlocked": "Yüklemeler duraklatıldı · Depolama dolu",

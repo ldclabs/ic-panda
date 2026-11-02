@@ -3,6 +3,15 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "syncInitial": "Pierwsza synchronizacja",
+    "syncInitialWaiting": "Oczekiwanie na pierwszą synchronizację",
+    "syncInventory": "Odczytywanie listy zawartości konta…",
+    "syncDownload": "Pobieranie zawartości konta…",
+    "syncVerify": "Weryfikowanie zawartości konta…",
+    "syncInboxKeyMissing": "Klucz skrzynki odbiorczej nie został jeszcze zsynchronizowany z tym urządzeniem. Zsynchronizuj urządzenie, na którym włączono odbieranie, i spróbuj ponownie tutaj.",
+    "syncInitialHint": "Zawartość pojawi się po zweryfikowaniu pierwszej synchronizacji.",
+    "syncScope": "Synchronizuje sejf i listę kanałów. Wiadomości znajdziesz w rozmowach lub skrzynce odbiorczej, a kopie w chmurze w Plikach.",
+
     "syncLastSuccess": "Ostatnia synchronizacja z chmurą: {time}",
     "syncRetryAt": "Ponowna próba po {time}",
     "syncStorageBlocked": "Wysyłanie wstrzymane · Brak miejsca",
