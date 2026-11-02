@@ -107,14 +107,14 @@ extension SessionModel {
                 MessageItem(id: "fixture-\(sequence)", sequence: UInt64(sequence), account: "fixture-peer",
                     text: "History message \(sequence)", createdAtMs: 1_793_513_600_000,
                     attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
-                    digest: "fixture-digest-\(sequence)", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)
+                    digest: "fixture-digest-\(sequence)", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)
             }
             return
         }
         fixtureChannelMessages = [MessageItem(id: "fixture-message", sequence: 1, account: "fixture-peer",
             text: "Hello channel · 频道消息已显示", createdAtMs: 1_793_513_600_000,
             attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
-            digest: "fixture-digest", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)]
+            digest: "fixture-digest", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)]
         // A verified first page is local, but a later relay request is still pending.
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-slow") { try await Task.sleep(for: .seconds(30)) }
     }
@@ -134,7 +134,7 @@ extension SessionModel {
         let message = MessageItem(id: item.id, sequence: sequence, account: session?.account ?? "fixture-self",
             text: item.text, createdAtMs: 1_793_513_600_000, attachmentName: item.attachmentName,
             attachmentMime: nil, attachmentSize: nil, unreadable: false, digest: "fixture-\(item.id)",
-            replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)
+            replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)
         fixtureChannelMessages.append(message)
         return message
     }

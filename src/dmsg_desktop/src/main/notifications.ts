@@ -64,6 +64,10 @@ export class Notifications {
     // Foreground delivery is always a lightweight application hint, without sound.
     if (this.host.foreground()) {
       this.shown.set(plan.system_id, plan.delivery_id)
+      if (plan.category === 'message' && plan.count === null) {
+        this.settle(plan, 'suppressed')
+        return
+      }
       this.host.inApp(plan)
       this.settle(plan, plan.in_app ? 'submitted' : 'suppressed')
       return

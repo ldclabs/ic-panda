@@ -159,7 +159,7 @@ impl Daemon {
                             known.get(id).map(|n| {
                                 (
                                     id.to_string(),
-                                    json!({"name": n.name, "stale": n.stale(now)}),
+                                    json!({"name": n.name, "avatar_url": n.avatar_url, "stale": n.stale(now)}),
                                 )
                             })
                         })

@@ -2488,5 +2488,11 @@
 	<string>सिंक खाते की सामग्री और क्लाउड बैकअप जाँचता है। संदेश पाने के लिए बातचीत या इनबॉक्स खोलें; फ़ाइलें अलग से बहाल करें।</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>क्लाउड बैकअप सूची रीफ़्रेश नहीं हो सकी। फ़ाइलों में फिर प्रयास करें।</string>
+	<key>Hidden message</key>
+	<string>एक संदेश जो तुमने छुपाया</string>
+	<key>Hide on this device</key>
+	<string>इस डिवाइस पर छुपें</string>
+	<key>Show</key>
+	<string>दिखाओ</string>
 </dict>
 </plist>

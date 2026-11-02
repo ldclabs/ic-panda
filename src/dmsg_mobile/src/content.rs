@@ -59,6 +59,16 @@ impl MobileEngine {
 
 #[uniffi::export]
 impl MobileEngine {
+    pub async fn hide_message(&self, channel: String, sequence: u64, hidden: bool) -> Result<()> {
+        self.held(move |h| {
+            Box::pin(async move {
+                h.with(|c| c.channel_hide(&channel, sequence, hidden).map(|_| ()))
+                    .await
+            })
+        })
+        .await
+    }
+
     /// Export only reviewed login fields after independent system confirmation.
     pub async fn export_autofill(&self, items: Vec<CredentialSelection>) -> Result<ObjectSnapshot> {
         ensure_valid(!items.is_empty() && items.len() <= 50, "selection")?;

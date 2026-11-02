@@ -232,6 +232,9 @@
     offs.push(window.dmsg.onEvent((event) => {
       if (event.type !== 'notifications/present' || !isNoticePlan(event.data) || !document.hasFocus()) return
       const plan = event.data
+      // A relay hint also echoes our own sends. It wakes reconciliation, but
+      // cannot yet establish an incoming message worth interrupting the user.
+      if (plan.category === 'message' && plan.count === null) return
       toast(() => notificationBody(locale(), plan.category, plan.count), { testid: 'notification-toast', ms: 6000,
         action: { label: t('open'), run: () => window.dmsg.notificationOpen(plan.account, plan.covered.length === 1 ? plan.covered[0].id : plan.category) } })
     }))

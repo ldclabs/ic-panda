@@ -1,7 +1,7 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
-  import Avatar from '../../components/Avatar.svelte'
+  import ParticipantAvatar from './ParticipantAvatar.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
@@ -100,13 +100,13 @@
     {#each members as member (member.account)}
       {@const editable = member.account !== me && member.role !== 'owner' && (owner || removable(member) || (manages && member.joined_epoch > 1))}
       <li class="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-wash/60">
-        <Avatar id={member.account} name={label(member.account)} />
+        <ParticipantAvatar account={member.account} />
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 items-center gap-1.5">
             <Tooltip content={member.account}>
               {#snippet children(props)}
                 <button {...props} class="min-w-0 truncate text-[13px] font-medium outline-none hover:text-forest focus-visible:underline" onclick={() => copyText(member.account)}>
-                  <bdi>{label(member.account)}</bdi>
+                  <bdi>{label(member.account, false)}</bdi>
                 </button>
               {/snippet}
             </Tooltip>
@@ -185,9 +185,9 @@
       <li class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('openInvitations')}</li>
       {#each open as item (item.id)}
         <li class="flex items-center gap-2.5 rounded-lg px-2 py-1.5" data-testid="open-invitation">
-          <Avatar id={item.account} name={label(item.account)} size="sm" />
+          <ParticipantAvatar account={item.account} size="sm" />
           <div class="min-w-0 flex-1">
-            <p class="truncate text-[12.5px]"><bdi>{label(item.account)}</bdi></p>
+            <p class="truncate text-[12.5px]"><bdi>{label(item.account, false)}</bdi></p>
             <p class="text-[11px] text-faint">{t(roleLabel[item.role] ?? 'roleMember')} · {t('expires')} {when(item.expires_at)}</p>
           </div>
           {#if item.packet}

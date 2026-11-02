@@ -2488,5 +2488,11 @@
 	<string>সিঙ্ক অ্যাকাউন্টের বিষয়বস্তু ও ক্লাউড ব্যাকআপ পরীক্ষা করে। বার্তা পেতে কথোপকথন বা ইনবক্স খুলুন; ফাইল আলাদাভাবে পুনরুদ্ধার করুন।</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>ক্লাউড ব্যাকআপ তালিকা রিফ্রেশ করা যায়নি। ফাইল বিভাগে আবার চেষ্টা করুন।</string>
+	<key>Hidden message</key>
+	<string>আপনি লুকিয়ে রাখা একটি বার্তা</string>
+	<key>Hide on this device</key>
+	<string>এই ডিভাইসে লুকান</string>
+	<key>Show</key>
+	<string>দেখান</string>
 </dict>
 </plist>

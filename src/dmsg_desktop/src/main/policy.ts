@@ -37,6 +37,7 @@ import { DaemonError } from './error.ts'
  * declares at `app/initialize` that only a person's input is activity.
  */
 export const WINDOW_METHODS = new Set([
+  'channel/avatar',
   'notifications/list', 'notifications/status', 'notifications/settings',
   'notifications/settings_set', 'notifications/snooze', 'notifications/clear_recent',
   'secrets/ref',

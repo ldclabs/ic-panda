@@ -2488,5 +2488,11 @@
 	<string>동기화는 계정 콘텐츠와 클라우드 백업을 확인합니다. 메시지를 받으려면 대화나 받은 편지함을 열고, 파일은 별도로 복원하세요.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>클라우드 백업 목록을 새로 고칠 수 없습니다. 파일에서 다시 시도하세요.</string>
+	<key>Hidden message</key>
+	<string>숨겨둔 메시지</string>
+	<key>Hide on this device</key>
+	<string>이 기기에서 숨기기</string>
+	<key>Show</key>
+	<string>쇼</string>
 </dict>
 </plist>

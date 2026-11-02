@@ -2488,5 +2488,11 @@
 	<string>ہم وقت سازی اکاؤنٹ کے مواد اور کلاؤڈ بیک اپ کی جانچ کرتی ہے۔ پیغامات وصول کرنے کے لیے گفتگو یا ان باکس کھولیں؛ فائلیں الگ بحال کریں۔</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>کلاؤڈ بیک اپ کی فہرست تازہ نہیں ہو سکی۔ فائلوں میں دوبارہ کوشش کریں۔</string>
+	<key>Hidden message</key>
+	<string>ایک پیغام جو آپ نے چھپا رکھا ہے</string>
+	<key>Hide on this device</key>
+	<string>اس ڈیوائس پر چھپائیں</string>
+	<key>Show</key>
+	<string>دکھائیں</string>
 </dict>
 </plist>

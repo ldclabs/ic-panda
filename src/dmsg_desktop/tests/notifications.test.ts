@@ -70,6 +70,15 @@ test('new focus converts a pending OS banner to one quiet application hint', () 
   assert.deepEqual(f.results, ['suppressed'])
 })
 
+test('an unverified message hint does not interrupt the foreground or count as presented', () => {
+  const f = fixture()
+  f.focus(true)
+  f.presenter.present(makePlan({ in_app: true, count: null }))
+  assert.equal(f.options.length, 0)
+  assert.equal(f.hints.length, 0)
+  assert.deepEqual(f.results, ['suppressed'])
+})
+
 test('an explicit native failure permits the core to retry the original ID quietly', () => {
   const f = fixture(), plan = makePlan({ sound: true })
   f.presenter.present(plan)

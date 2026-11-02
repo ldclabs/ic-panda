@@ -2488,5 +2488,11 @@
 	<string>Đồng bộ kiểm tra nội dung tài khoản và bản sao lưu đám mây. Mở cuộc trò chuyện hoặc hộp thư đến để nhận tin nhắn; khôi phục tệp riêng.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Không thể làm mới danh sách sao lưu đám mây. Thử lại trong Tệp.</string>
+	<key>Hidden message</key>
+	<string>Một tin nhắn bạn đã ẩn</string>
+	<key>Hide on this device</key>
+	<string>Ẩn trên thiết bị này</string>
+	<key>Show</key>
+	<string>Hiển thị</string>
 </dict>
 </plist>

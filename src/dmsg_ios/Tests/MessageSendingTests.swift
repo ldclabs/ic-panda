@@ -15,7 +15,7 @@ final class MessageSendingTests: XCTestCase {
     private func message(_ id: String, _ seq: UInt64, _ text: String = "confirmed") -> MessageItem {
         MessageItem(id: id, sequence: seq, account: "self", text: text, createdAtMs: 1,
             attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
-            digest: id, replySequence: nil, edited: false, retracted: false, attachmentDeleted: false)
+            digest: id, replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)
     }
 
     private func item(_ id: String) -> OutgoingMessage {

@@ -2488,5 +2488,11 @@
 	<string>同步会检查账号内容和云端备份。打开会话或收件箱以接收消息；文件需单独恢复。</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>无法刷新云端备份清单，请在文件页重试。</string>
+	<key>Hidden message</key>
+	<string>你隐藏的一条消息</string>
+	<key>Hide on this device</key>
+	<string>在本机隐藏</string>
+	<key>Show</key>
+	<string>显示</string>
 </dict>
 </plist>

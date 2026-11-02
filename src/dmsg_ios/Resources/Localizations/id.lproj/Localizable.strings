@@ -2488,5 +2488,11 @@
 	<string>Sinkronisasi memeriksa konten akun dan cadangan cloud. Buka percakapan atau kotak masuk untuk menerima pesan; pulihkan file secara terpisah.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Daftar cadangan cloud tidak dapat diperbarui. Coba lagi di File.</string>
+	<key>Hidden message</key>
+	<string>Pesan yang kamu sembunyikan</string>
+	<key>Hide on this device</key>
+	<string>Sembunyikan di perangkat ini</string>
+	<key>Show</key>
+	<string>Tunjukkan</string>
 </dict>
 </plist>

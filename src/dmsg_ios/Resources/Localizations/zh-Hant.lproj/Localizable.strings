@@ -2488,5 +2488,11 @@
 	<string>同步會檢查帳號內容和雲端備份。開啟對話或收件匣以接收訊息；檔案需個別還原。</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>無法重新整理雲端備份清單，請在檔案頁重試。</string>
+	<key>Hidden message</key>
+	<string>你隱藏的一條訊息</string>
+	<key>Hide on this device</key>
+	<string>在本機隱藏</string>
+	<key>Show</key>
+	<string>顯示</string>
 </dict>
 </plist>

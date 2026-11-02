@@ -201,6 +201,7 @@ pub struct MessageItem {
     pub edited: bool,
     pub retracted: bool,
     pub attachment_deleted: bool,
+    pub hidden: bool,
 }
 
 #[derive(uniffi::Record)]
@@ -249,6 +250,7 @@ impl From<dmsg_client::channel::Message> for MessageItem {
             edited: m.edited_at.is_some(),
             retracted: m.retracted,
             attachment_deleted: m.file_deleted,
+            hidden: m.hidden,
         }
     }
 }

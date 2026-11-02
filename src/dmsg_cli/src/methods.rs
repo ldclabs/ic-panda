@@ -18,7 +18,8 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 73] = [
+pub(crate) const METHODS: [&str; 74] = [
+    "channel/avatar",
     "channel/list",
     "channel/show",
     "channel/delete_legacy_draft",
@@ -106,6 +107,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "channel/search"
         | "channel/preview"
         | "channel/names"
+        | "channel/avatar"
         | "channel/receipts"
         | "channel/draft" => &[],
         // A read position moves only counts, which the views keep themselves.
@@ -126,6 +128,19 @@ impl Daemon {
         // These wait on the relay and the IC without the client.
         let h = self.hold();
         match method {
+            "channel/avatar" => {
+                let url = text(params, "avatar_url")?;
+                let bound = Unlocked::new(&h).await?;
+                let image = if params["refresh"] != true {
+                    bound.with(|c| c.participant_avatar_cached(&url)).await?
+                } else {
+                    let _turn = self.turn("participant-avatars").await;
+                    dmsg_client::display::participant_avatar(&bound, &url).await?
+                };
+                return Ok(image.map_or(Value::Null, |image| {
+                    crate::display::image(&image.mime, &image.bytes)
+                }));
+            }
             "channel/invite" => {
                 let role = match params["role"].as_str().unwrap_or("member") {
                     "member" => Role::Member,

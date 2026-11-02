@@ -2488,5 +2488,11 @@
 	<string>La sincronización comprueba el contenido de la cuenta y las copias en la nube. Abre las conversaciones o la bandeja de entrada para recibir mensajes; restaura los archivos por separado.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>No se pudo actualizar la lista de copias en la nube. Reintenta en Archivos.</string>
+	<key>Hidden message</key>
+	<string>Un mensaje que ocultaste</string>
+	<key>Hide on this device</key>
+	<string>Ocultar en este dispositivo</string>
+	<key>Show</key>
+	<string>Mostrar</string>
 </dict>
 </plist>

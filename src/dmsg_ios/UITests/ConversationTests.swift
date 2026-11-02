@@ -36,6 +36,21 @@ final class ConversationTests: XCTestCase {
         XCTAssertFalse(app.buttons["conversation.retry"].exists)
     }
 
+    func testIncomingMessageMenuMatchesDesktopActions() {
+        let app = open(["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        let message = app.staticTexts["Hello channel · 频道消息已显示"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        message.press(forDuration: 1)
+        for action in ["Reply", "Copy", "Hide on this device"] {
+            XCTAssertTrue(app.buttons[action].waitForExistence(timeout: 3), action)
+        }
+        XCTAssertFalse(app.buttons["Edit message"].exists)
+        XCTAssertFalse(app.buttons["Report content"].exists)
+        XCTAssertFalse(app.buttons["Block this account"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Message menu without reporting or blocking"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     func testHistoryStopsAtTheBeginningWithoutPullToRefresh() {
         let app = open(["--ui-channel-history", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
         let earlier = app.buttons["conversation.earlier"]
@@ -63,6 +78,11 @@ final class ConversationTests: XCTestCase {
         let draft = composer(app), send = app.buttons["message.send"]
         draft.tap(); draft.typeText("First queued message")
         send.tap()
+        let pendingText = app.staticTexts["First queued message"]
+        XCTAssertTrue(pendingText.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(pendingText.frame.midX, app.frame.midX, "The pending message belongs on the outgoing side")
+        let pendingShot = XCTAttachment(screenshot: app.screenshot())
+        pendingShot.name = "Outgoing message stays on the right before confirmation"; pendingShot.lifetime = .keepAlways; add(pendingShot)
         draft.tap(); draft.typeText("Second queued message")
         XCTAssertTrue(send.isEnabled, "waiting for a send must not block the next draft")
         send.tap()
@@ -76,6 +96,7 @@ final class ConversationTests: XCTestCase {
         XCTAssertTrue(channel.waitForExistence(timeout: 5)); channel.tap()
         XCTAssertTrue(app.descendants(matching: .any)["message.row.1"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.descendants(matching: .any)["message.row.2"].waitForExistence(timeout: 20))
+        XCTAssertGreaterThan(app.staticTexts["First queued message"].frame.midX, app.frame.midX)
         XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "message.pending.")).count, 0)
         XCTAssertFalse(app.alerts.firstMatch.exists)
         let shot = XCTAttachment(screenshot: app.screenshot())

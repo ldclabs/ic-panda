@@ -99,11 +99,90 @@ pub struct Avatar {
     pub fetched_at_ms: u64,
 }
 
+#[derive(Default, Serialize, Deserialize)]
+struct CachedAvatar {
+    data: Option<String>,
+    fetched_at_ms: u64,
+    retry_in_ms: u64,
+}
+
+impl CachedAvatar {
+    fn image(&self, url: &str) -> Result<Option<Avatar>> {
+        self.data
+            .as_ref()
+            .map(|data| {
+                let bytes = crate::codec::unb64(data)?;
+                let mime = crate::principal::avatar_type(&bytes)?.to_owned();
+                Ok(Avatar {
+                    url: url.into(),
+                    mime,
+                    bytes,
+                    fetched_at_ms: self.fetched_at_ms,
+                })
+            })
+            .transpose()
+    }
+}
+
+/// Read through a bounded, encrypted image cache. Hosts serialize refreshes,
+/// then recheck this cache so concurrent rows never download the same URL twice.
+/// Failed/missing images have a one-minute cooldown; successful images last a day.
+pub async fn participant_avatar<H: Hold>(h: &H, url: &str) -> Result<Option<Avatar>> {
+    let session = h.with(|c| c.display_session()).await?;
+    let h = &Scoped { inner: h, session };
+    let (scope, saved) = h
+        .with(|c| {
+            Ok((
+                c.cache_scope(crate::cache::Kind::Avatar)?,
+                c.cache_read(crate::cache::Kind::Avatar, url)?,
+            ))
+        })
+        .await?;
+    let mut saved = match saved {
+        Some(snapshot) => {
+            let entry: CachedAvatar =
+                serde_json::from_value(snapshot.data).map_err(|_| Error::IntegrityFailed)?;
+            if !stale(snapshot.observed_at_ms, entry.retry_in_ms, crate::now_ms()) {
+                return entry.image(url);
+            }
+            entry
+        }
+        None => CachedAvatar::default(),
+    };
+    let fetched = crate::principal::avatar(h, url).await;
+    let now = crate::now_ms();
+    saved.retry_in_ms = ABSENT_TTL;
+    match fetched {
+        Ok(Some((_, bytes))) => {
+            saved.data = Some(crate::codec::b64(&bytes));
+            saved.fetched_at_ms = now;
+            saved.retry_in_ms = AVATAR_TTL;
+        }
+        Ok(None) => saved.data = None,
+        Err(_) => { /* Keep a previously verified image during a transient failure. */ }
+    }
+    let image = saved.image(url)?;
+    h.with(|c| {
+        c.cache_save_checked(
+            &scope,
+            crate::cache::Kind::Avatar,
+            url,
+            &serde_json::to_value(saved).map_err(|_| Error::IntegrityFailed)?,
+            now,
+        )
+    })
+    .await?;
+    Ok(image)
+}
+
 /// One name observation; failures are represented by `Result`, never by `None`.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Name {
     /// Empty or unpublished names are absent.
     pub name: Option<String>,
+    /// Published avatar reference from the same certified document.
+    #[serde(default)]
+    pub avatar_url: Option<String>,
     /// Certified document version, absent only for certified missing documents.
     pub updated_at: Option<u64>,
     /// Last accepted observation.
@@ -116,6 +195,7 @@ impl Name {
         let p = Profile::from_document(document, now);
         Self {
             name: p.name,
+            avatar_url: p.avatar_url,
             updated_at: p.updated_at,
             observed_at_ms: now,
         }
@@ -141,6 +221,18 @@ pub fn stale(observed: u64, ttl: u64, now: u64) -> bool {
 }
 
 impl Client {
+    /// Local image bytes, including a stale image usable while refreshing.
+    pub fn participant_avatar_cached(&self, url: &str) -> Result<Option<Avatar>> {
+        self.cache_read(crate::cache::Kind::Avatar, url)?
+            .map(|snapshot| {
+                let entry: CachedAvatar =
+                    serde_json::from_value(snapshot.data).map_err(|_| Error::IntegrityFailed)?;
+                entry.image(url)
+            })
+            .transpose()
+            .map(Option::flatten)
+    }
+
     /// The generation used to distinguish lock/unlock of the same account.
     pub fn session_generation(&self) -> u64 {
         self.session_generation
@@ -306,9 +398,10 @@ impl Client {
             .display_record::<BTreeMap<AccountId, Name>>(NAMES)?
             .unwrap_or_default();
         if names.len() > MAX_NAMES
-            || names
-                .values()
-                .any(|n| n.name.as_ref().is_some_and(|s| s.chars().count() > 80))
+            || names.values().any(|n| {
+                n.name.as_ref().is_some_and(|s| s.chars().count() > 80)
+                    || n.avatar_url.as_ref().is_some_and(|s| s.len() > 2048)
+            })
         {
             self.workspace.store.delete_sealed(NAMES)?;
             return Ok(BTreeMap::new());
@@ -322,7 +415,8 @@ impl Client {
         let mut changed = false;
         for (id, name) in found {
             ensure(
-                name.name.as_ref().is_none_or(|s| s.chars().count() <= 80),
+                name.name.as_ref().is_none_or(|s| s.chars().count() <= 80)
+                    && name.avatar_url.as_ref().is_none_or(|s| s.len() <= 2048),
                 Error::IntegrityFailed,
             )?;
             if names
@@ -331,9 +425,11 @@ impl Client {
             {
                 continue;
             }
-            changed |= names
-                .get(&id)
-                .is_none_or(|n| n.name != name.name || n.updated_at != name.updated_at);
+            changed |= names.get(&id).is_none_or(|n| {
+                n.name != name.name
+                    || n.avatar_url != name.avatar_url
+                    || n.updated_at != name.updated_at
+            });
             names.insert(id, name);
         }
         while names.len() > MAX_NAMES {

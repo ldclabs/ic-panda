@@ -2488,5 +2488,11 @@
 	<string>La sincronizzazione controlla i contenuti dell’account e i backup cloud. Apri conversazioni o posta in arrivo per ricevere messaggi; ripristina i file separatamente.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Impossibile aggiornare l’elenco dei backup cloud. Riprova in File.</string>
+	<key>Hidden message</key>
+	<string>Un messaggio che hai nascosto</string>
+	<key>Hide on this device</key>
+	<string>Nascondi su questo dispositivo</string>
+	<key>Show</key>
+	<string>Mostra</string>
 </dict>
 </plist>

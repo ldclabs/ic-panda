@@ -2488,5 +2488,11 @@
 	<string>تتحقق المزامنة من محتوى الحساب والنسخ الاحتياطية السحابية. افتح المحادثات أو الوارد لاستقبال الرسائل؛ استعد الملفات بشكل منفصل.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>تعذر تحديث قائمة النسخ الاحتياطية السحابية. أعد المحاولة في الملفات.</string>
+	<key>Hidden message</key>
+	<string>رسالة أخفيتها</string>
+	<key>Hide on this device</key>
+	<string>إخفاء على هذا الجهاز</string>
+	<key>Show</key>
+	<string>إظهار</string>
 </dict>
 </plist>

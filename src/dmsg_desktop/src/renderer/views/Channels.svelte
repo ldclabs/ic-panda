@@ -677,15 +677,15 @@
       </ul>
     </section>
 
-    <section class="flex min-w-0 flex-1 flex-col">
+    <section class="@container/conversation flex min-w-0 flex-1 flex-col">
       {#if legacySelected}
         {#key `${legacySelected.archive}:${legacySelected.source}`}
           <LegacyHistory entry={legacySelected} onDeleted={() => { legacySelected = null; void readLegacy() }} />
         {/key}
       {:else if channel}
-        <header class="flex min-h-14 shrink-0 items-center gap-3 border-b border-line px-5 py-2">
-          <Avatar id={channel.id} name={channel.name} size="lg" />
-          <div class="min-w-0 flex-1">
+        <header class="flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-5 py-2 @min-[420px]/conversation:flex-nowrap">
+          <Avatar id={channel.id} name={channel.name} size="lg" class="hidden @min-[420px]/conversation:grid" />
+          <div class="min-w-0 flex-1 basis-full @min-[420px]/conversation:basis-auto">
             <div class="flex min-w-0 items-center gap-2">
               <h2 class="truncate text-[15px] leading-snug font-semibold" data-testid="channel-title">{channel.name}</h2>
               {#if ledger}

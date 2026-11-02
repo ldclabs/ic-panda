@@ -2488,5 +2488,11 @@
 	<string>Синхронизация проверяет данные аккаунта и облачные копии. Откройте разговоры или входящие для получения сообщений; файлы восстанавливаются отдельно.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Не удалось обновить список облачных копий. Повторите попытку в разделе «Файлы».</string>
+	<key>Hidden message</key>
+	<string>Скрытое вами сообщение</string>
+	<key>Hide on this device</key>
+	<string>Скрыть на этом устройстве</string>
+	<key>Show</key>
+	<string>Показать</string>
 </dict>
 </plist>

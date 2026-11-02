@@ -2488,5 +2488,11 @@
 	<string>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Cloud backup list could not be refreshed. Retry in Files.</string>
+	<key>Hidden message</key>
+	<string>A message you hid</string>
+	<key>Hide on this device</key>
+	<string>Hide on this device</string>
+	<key>Show</key>
+	<string>Show</string>
 </dict>
 </plist>

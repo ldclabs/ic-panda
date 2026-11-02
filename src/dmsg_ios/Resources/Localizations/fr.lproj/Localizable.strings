@@ -2488,5 +2488,11 @@
 	<string>La synchronisation vérifie le contenu du compte et les sauvegardes cloud. Ouvrez les conversations ou la boîte de réception pour recevoir les messages ; restaurez les fichiers séparément.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>La liste des sauvegardes cloud n’a pas pu être actualisée. Réessayez dans Fichiers.</string>
+	<key>Hidden message</key>
+	<string>Un message que vous avez masqué</string>
+	<key>Hide on this device</key>
+	<string>Masquer sur cet appareil</string>
+	<key>Show</key>
+	<string>Afficher</string>
 </dict>
 </plist>

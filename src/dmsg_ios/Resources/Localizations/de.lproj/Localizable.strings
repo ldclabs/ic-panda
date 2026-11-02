@@ -2488,5 +2488,11 @@
 	<string>Die Synchronisierung prüft Kontoinhalte und Cloud-Backups. Für Nachrichten Unterhaltungen oder den Posteingang öffnen; Dateien separat wiederherstellen.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Die Cloud-Backup-Liste konnte nicht aktualisiert werden. Unter Dateien erneut versuchen.</string>
+	<key>Hidden message</key>
+	<string>Eine Nachricht, die du versteckt hast</string>
+	<key>Hide on this device</key>
+	<string>Auf diesem Gerät ausblenden</string>
+	<key>Show</key>
+	<string>Zeigen</string>
 </dict>
 </plist>

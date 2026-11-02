@@ -2488,5 +2488,11 @@
 	<string>Synchronisatie controleert accountinhoud en cloudback-ups. Open gesprekken of het postvak om berichten te ontvangen; herstel bestanden apart.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>De lijst met cloudback-ups kon niet worden vernieuwd. Probeer het opnieuw in Bestanden.</string>
+	<key>Hidden message</key>
+	<string>Een bericht dat je hebt verborgen</string>
+	<key>Hide on this device</key>
+	<string>Verbergen op dit apparaat</string>
+	<key>Show</key>
+	<string>Toon</string>
 </dict>
 </plist>

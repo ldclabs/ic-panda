@@ -19,6 +19,8 @@ pub enum Kind {
     Profile,
     /// Own editable profile, including pending publication.
     ProfileEditor,
+    /// Public participant images, keyed by their exact published URL.
+    Avatar,
     /// Account wallet directory.
     Wallets,
     /// Certified entitlement projected for display, never for authorization.
@@ -57,6 +59,7 @@ pub enum Kind {
 pub const KINDS: &[Kind] = &[
     Kind::Profile,
     Kind::ProfileEditor,
+    Kind::Avatar,
     Kind::Wallets,
     Kind::Plan,
     Kind::Catalog,
@@ -81,6 +84,7 @@ impl Kind {
         match self {
             Self::Profile => "profile-document",
             Self::ProfileEditor => "profile-editor",
+            Self::Avatar => "participant-avatars",
             Self::Wallets => "wallets",
             Self::Plan => "plan",
             Self::Catalog => "catalog",
@@ -104,7 +108,7 @@ impl Kind {
     pub fn ttl(self) -> u64 {
         match self {
             Self::Catalog | Self::Assets => 3_600_000,
-            Self::Asset => display::AVATAR_TTL,
+            Self::Asset | Self::Avatar => display::AVATAR_TTL,
             Self::Storage => 300_000,
             _ => 60_000,
         }

@@ -2488,5 +2488,11 @@
 	<string>Eşitleme hesap içeriğini ve bulut yedeklerini denetler. Mesaj almak için konuşmaları veya gelen kutusunu açın; dosyaları ayrı geri yükleyin.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Bulut yedek listesi yenilenemedi. Dosyalar bölümünde tekrar deneyin.</string>
+	<key>Hidden message</key>
+	<string>Sakladığın bir mesaj</string>
+	<key>Hide on this device</key>
+	<string>Bu cihazda gizle</string>
+	<key>Show</key>
+	<string>Göster</string>
 </dict>
 </plist>

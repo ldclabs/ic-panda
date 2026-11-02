@@ -7,7 +7,7 @@
   import { tick } from 'svelte'
   import { uncertainSend, type Outgoing } from '../../message-delivery'
   import { localeDir } from '../../../shared/locales'
-  import Avatar from '../../components/Avatar.svelte'
+  import ParticipantAvatar from './ParticipantAvatar.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
@@ -18,7 +18,7 @@
   import { w } from '../wallet/text'
   import { workflowText } from '../secrets/workflow-text'
   import { bytes, days, MAX_TEXT, packetStep, receiptOf } from './channels'
-  import { label } from './names.svelte'
+  import { label as accountLabel } from './names.svelte'
 
   /**
    * A channel's messages by day and the composer. A message shows as
@@ -188,6 +188,7 @@
   }
 
   const mine = (message: any) => message.account === me
+  const label = (account: string | undefined) => accountLabel(account, false)
   const editable = (message: any) => !!message.text && !message.retracted && !message.unreadable && !message.packet
 
   function edit(message: any) {
@@ -328,17 +329,19 @@
         </div>
       {:else}
         <article
-          class={cn('group relative flex gap-3 px-6 hover:bg-wash/60', compact ? 'py-0.5' : 'pt-2.5 pb-0.5', highlight === message.seq && 'bg-warn-pale/60')}
+          class={cn('group relative flex gap-3 px-4 hover:bg-wash/60', mine(message) && 'flex-row-reverse', compact ? 'py-0.5' : 'pt-2.5 pb-0.5', highlight === message.seq && 'bg-warn-pale/60')}
           data-seq={message.seq}
+          data-mine={mine(message)}
+          dir="ltr"
         >
           {#if compact}
             <time class="w-8 shrink-0 pt-0.5 text-end text-[10.5px] text-faint opacity-0 group-hover:opacity-100">{timeFormat.format(message.stored_at)}</time>
           {:else}
-            <Avatar id={message.account} name={label(message.account)} />
+            <ParticipantAvatar account={message.account} />
           {/if}
-          <div class="min-w-0 flex-1">
+          <div class={cn('flex min-w-0 max-w-[calc(100%-44px)] flex-col', mine(message) ? 'items-end' : 'items-start')}>
             {#if !compact}
-              <div class="flex flex-wrap items-baseline gap-x-2">
+              <div class={cn('flex flex-wrap items-baseline gap-x-2', mine(message) && 'justify-end')}>
                 {@render author(message.account)}
                 {#if message.agent}
                   <span class="inline-flex items-center gap-1 rounded bg-wash px-1 text-[10.5px] text-ink-2" title={message.agent.id} data-testid="message-agent">
@@ -356,7 +359,7 @@
               <p class="text-[13px] text-faint italic" data-testid="message-retracted">{t('retracted')}</p>
             {:else}
               {#if message.text}
-                <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
+                <p dir="auto" class="max-w-xl text-start text-[13.5px] leading-relaxed whitespace-pre-wrap select-text [overflow-wrap:anywhere]">
                   {message.text}{#if message.edited_at}<span class="ms-1 text-[11px] text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
                 </p>
               {/if}
@@ -400,7 +403,7 @@
             {/if}
           </div>
           {#if !message.unreadable}
-            <div class="absolute end-4 -top-3 hidden items-center gap-0.5 rounded-lg border border-line bg-paper p-0.5 group-focus-within:flex group-hover:flex" data-testid="message-actions">
+            <div class="pointer-events-none absolute end-4 -top-3 flex items-center gap-0.5 rounded-lg border border-line bg-paper p-0.5 opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100" data-testid="message-actions" dir={localeDir(locale())}>
               {#if writes && !message.retracted}
                 <Tooltip content={t('replyAction')}>
                   {#snippet children(props)}
@@ -419,6 +422,12 @@
                 <DropdownMenu.Trigger class={iconButtonClass('ghost', 'md')} aria-label={t('moreActions')} data-testid="message-more"><Icon name="more" /></DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content align="end" sideOffset={4} class={cn(menuContentClass, 'min-w-44')}>
+                    {#if writes && !message.retracted}
+                      <DropdownMenu.Item class={menuItemClass} onSelect={() => answer(message)}>{t('replyAction')}</DropdownMenu.Item>
+                    {/if}
+                    {#if message.text && !message.retracted}
+                      <DropdownMenu.Item class={menuItemClass} onSelect={() => copyText(message.text)}>{t('copy')}</DropdownMenu.Item>
+                    {/if}
                     {#if writes && mine(message) && editable(message)}
                       <DropdownMenu.Item class={menuItemClass} onSelect={() => edit(message)} data-testid="message-edit">
                         <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('edit')}</span>
@@ -451,10 +460,10 @@
     {/if}
   {/each}
   {#each outbox as item (item.message_id)}
-    <article class="flex gap-3 px-6 pt-2.5 pb-0.5" data-testid="message-outgoing" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
-      <Avatar id={me ?? ''} name={label(me)} />
-      <div class="min-w-0 flex-1">
-        <div class="flex items-baseline gap-2">
+    <article class="flex flex-row-reverse gap-3 px-4 pt-2.5 pb-0.5" dir="ltr" data-testid="message-outgoing" data-mine="true" data-state={item.queued ? 'queued' : item.sending ? 'sending' : 'failed'}>
+      <ParticipantAvatar account={me ?? ''} />
+      <div class="flex min-w-0 max-w-[calc(100%-44px)] flex-col items-end">
+        <div class="flex flex-wrap items-baseline justify-end gap-2">
           {@render author(me ?? '')}
           {#if item.queued}
             <span class="text-[11px] text-muted">{t('mailQueued')}</span>
@@ -466,7 +475,7 @@
             <span class="inline-flex items-center gap-1 text-[11px] text-danger"><Icon name="warning" class="size-3" />{t('notSent')}{item.error ? ` · ${item.error}` : ''}</span>
           {/if}
         </div>
-        {#if item.draft?.text}<p class="text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
+        {#if item.draft?.text}<p dir="auto" class="max-w-xl text-start text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.draft.text}</p>{/if}
         {#if item.file}<p class="mt-1 inline-flex items-center gap-1.5 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{item.file.name}</p>{/if}
         {#if !item.sending && !item.queued}
           <div class="mt-1 flex gap-1.5">

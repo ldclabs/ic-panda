@@ -318,8 +318,11 @@ restyle a control by hand.
 - **Feedback** — `toast()` notices, above composers and footers; a copied
   secret's notice counts down to the clipboard being cleared. Errors that
   belong to a form stay in the form.
-- **Avatars** — initials (or an ID's first two characters) on a tone that
-  stays with the ID; a tone helps recognition and never means verified.
+- **Avatars** — published images from certified public profiles, with initials
+  (or an ID's first two characters) as the fallback. Participant images load
+  when their rows become visible, through the daemon's bounded, encrypted URL
+  cache; repeated messages and channel visits share the result. The fallback
+  tone stays with the ID; it helps recognition and never means verified.
 
 ### Form control contract
 

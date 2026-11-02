@@ -2488,5 +2488,11 @@
 	<string>Sinusuri ng sync ang nilalaman ng account at mga cloud backup. Buksan ang mga pag-uusap o inbox para tumanggap ng mensahe; i-restore nang hiwalay ang mga file.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Hindi ma-refresh ang listahan ng cloud backup. Subukang muli sa Files.</string>
+	<key>Hidden message</key>
+	<string>Isang mensaheng itinago mo</string>
+	<key>Hide on this device</key>
+	<string>Itago sa device na ito</string>
+	<key>Show</key>
+	<string>Ipakita</string>
 </dict>
 </plist>

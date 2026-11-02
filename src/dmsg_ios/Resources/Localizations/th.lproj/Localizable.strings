@@ -2488,5 +2488,11 @@
 	<string>การซิงค์ตรวจสอบเนื้อหาบัญชีและข้อมูลสำรองบนคลาวด์ เปิดบทสนทนาหรือกล่องขาเข้าเพื่อรับข้อความ และกู้คืนไฟล์แยกต่างหาก</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>รีเฟรชรายการสำรองบนคลาวด์ไม่ได้ โปรดลองใหม่ในไฟล์</string>
+	<key>Hidden message</key>
+	<string>ข้อความที่คุณซ่อนไว้</string>
+	<key>Hide on this device</key>
+	<string>ซ่อนบนอุปกรณ์นี้</string>
+	<key>Show</key>
+	<string>แสดง</string>
 </dict>
 </plist>

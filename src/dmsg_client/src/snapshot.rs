@@ -13,7 +13,7 @@ pub fn kind(name: &str) -> Result<Kind> {
     crate::cache::KINDS
         .iter()
         .copied()
-        .find(|k| k.name() == name && *k != Kind::Asset)
+        .find(|k| k.name() == name && !matches!(k, Kind::Asset | Kind::Avatar))
         .ok_or_else(|| dmsg_types::invalid("display kind"))
 }
 
@@ -85,7 +85,7 @@ pub async fn refresh<H: Hold>(h: &H, kind: Kind, id: &str) -> Result<()> {
         #[allow(deprecated)]
         Kind::Storage => Ok(storage::refresh(h).await?),
         Kind::Usage => serde_json::to_value(cloud::cloud_usage(h).await?),
-        Kind::Asset => return Err(Error::Forbidden),
+        Kind::Asset | Kind::Avatar => return Err(Error::Forbidden),
     }
     .map_err(|_| Error::IntegrityFailed)?;
     h.with(|c| {

@@ -2488,5 +2488,11 @@
 	<string>同期はアカウントのコンテンツとクラウドバックアップを確認します。メッセージを受信するには会話または受信トレイを開き、ファイルは個別に復元してください。</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>クラウドバックアップ一覧を更新できませんでした。「ファイル」で再試行してください。</string>
+	<key>Hidden message</key>
+	<string>あなたが隠したメッセージ</string>
+	<key>Hide on this device</key>
+	<string>このデバイス上で非表示にする</string>
+	<key>Show</key>
+	<string>表示する</string>
 </dict>
 </plist>

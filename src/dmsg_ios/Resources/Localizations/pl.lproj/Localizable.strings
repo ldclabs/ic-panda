@@ -2488,5 +2488,11 @@
 	<string>Synchronizacja sprawdza zawartość konta i kopie w chmurze. Otwórz rozmowy lub skrzynkę odbiorczą, aby odbierać wiadomości; pliki przywracaj osobno.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Nie udało się odświeżyć listy kopii w chmurze. Ponów próbę w Plikach.</string>
+	<key>Hidden message</key>
+	<string>Wiadomość, którą ukryłeś</string>
+	<key>Hide on this device</key>
+	<string>Ukryj na tym urządzeniu</string>
+	<key>Show</key>
+	<string>Pokaż</string>
 </dict>
 </plist>

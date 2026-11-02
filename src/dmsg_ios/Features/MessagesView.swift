@@ -142,7 +142,11 @@ struct ConversationView: View {
     @State private var replying: MessageItem?
     @State private var editingMessage: MessageEdit?
     @State private var retracting: MessageItem?
-    @State private var reporting: ReportTarget?
+    @State private var participants: [String: Participant] = [:]
+    @State private var avatars: [String: UIImage] = [:]
+    @State private var visibleParticipants: Set<String> = []
+    private struct Participant: Decodable { let name: String?; let avatarUrl: String? }
+    private var participantIDs: [String] { Array(visibleParticipants.union([model.session?.account ?? ""])).filter { !$0.isEmpty }.sorted() }
     struct MessageEdit: Identifiable { let message: MessageItem; var id: String { message.id } }
     private var shownMessages: [MessageItem] {
         model.messageSending.messages(channel: channel.id, stored: messages)
@@ -174,27 +178,27 @@ struct ConversationView: View {
                     }
                     ForEach(shownMessages, id: \.id) { message in
                         messageBubble(message)
+                            .onAppear { visibleParticipants.insert(message.account) }
                             .reminderVisible(.channel(channel.id), watermark: message.sequence,
                                 ready: query.isEmpty && !message.unreadable && message.id == shownMessages.last?.id) {
                                 try? await model.engine?.markRead(channel: channel.id, through: message.sequence)
                             }
                             .id(message.id).accessibilityIdentifier("message.row.\(message.sequence)").contextMenu {
-                            if message.account != model.session?.account {
-                                Button("Report content") { reporting = ReportTarget(kind: "channel", account: message.account, resource: channel.id, sequence: message.sequence) }
-                                Button("Block this account", role: .destructive) { Task { await model.blockAccount(message.account, blocked: true) } }
-                            }
-                            if !message.unreadable && !message.retracted {
+                            if !message.hidden && !message.unreadable && !message.retracted {
                                 Button("Reply") { replying = message }
+                                if !message.text.isEmpty { Button("Copy") { UIPasteboard.general.string = message.text } }
                                 if message.account == model.session?.account {
-                                    Button("Edit message") { editingMessage = MessageEdit(message: message) }
+                                    if !message.text.isEmpty { Button("Edit message") { editingMessage = MessageEdit(message: message) } }
                                     Button("Withdraw message", role: .destructive) { retracting = message }
                                 }
                             }
+                            Button(LocalizedStringKey(message.hidden ? "Show" : "Hide on this device")) { actionTask = Task { await hide(message, hidden: !message.hidden) } }
                         }
                     }
                     // Pending and confirmed rows need distinct IDs so
                     // LazyVStack replaces the sending UI after an ACK.
                     ForEach(shownOutbox, id: \.id) { pending in
+                        ConversationMessageRow(own: true, name: participantName(model.session?.account ?? ""), avatar: participantAvatar(model.session?.account ?? "")) {
                         VStack(alignment: .leading, spacing: 8) {
                             if model.messageSending.active.contains(pending.id) {
                                 ProgressView("Sending")
@@ -217,6 +221,7 @@ struct ConversationView: View {
                                     model.deliverMessage(channel: channel.id, item: pending)
                                 }.accessibilityIdentifier("message.retry.\(pending.id)")
                             }
+                        }
                         }.id("pending:\(pending.id)").accessibilityElement(children: .contain)
                             .accessibilityIdentifier("message.pending.\(pending.id)")
                     }
@@ -264,7 +269,6 @@ struct ConversationView: View {
                 NavigationLink { ChannelSettingsView(channel: channel.id) } label: { Label("Conversation settings", systemImage: "gearshape") }
             }
             .searchable(text: $query, prompt: "Search messages")
-            .sheet(item: $reporting) { target in NavigationStack { ReportContentView(target: target) } }
             .sheet(item: $editingMessage) { target in NavigationStack { MessageEditView(channel: channel.id, message: target.message) { await load() } } }
             .confirmationDialog("Withdraw this message?", isPresented: Binding(get: { retracting != nil }, set: { if !$0 { retracting = nil } })) {
                 Button("Withdraw", role: .destructive) { if let message = retracting { actionTask = Task { await withdraw(message) } } }
@@ -278,6 +282,7 @@ struct ConversationView: View {
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
             .sheet(isPresented: $sharingSecret) { NavigationStack { SecretSnapshotItemPicker(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
+            .task(id: "participants:\(model.epoch):\(model.profileRevision):\(participantIDs.joined(separator: ","))") { await loadParticipants() }
             .task(id: "\(channel.id):\(model.contentRevision):\(model.epoch):\(query)") {
                 ownerEpoch = model.epoch; model.activeChannel = channel.id
                 if model.drafts[channel.id] == nil { draft = channel.draft }
@@ -324,31 +329,76 @@ struct ConversationView: View {
     }
 
     private func messageBubble(_ message: MessageItem) -> some View {
-                        HStack {
-                            if message.account == model.session?.account { Spacer(minLength: 36) }
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(message.account).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                                Text(message.retracted ? String(localized: "Message withdrawn") : message.unreadable ? String(localized: "This message could not be verified.") : message.text).textSelection(.enabled)
-                                if let reference = message.replySequence { Text("Reply to message \(reference)").font(.caption).foregroundStyle(.secondary) }
-                                if message.edited { Text("Edited").font(.caption).foregroundStyle(.secondary) }
-                                if let name = message.attachmentName {
-                                    Button {
-                                        if message.attachmentMime == "application/vnd.dmsg.secret-package" {
-                                            secretPackage = .init(channel: channel.id, sequence: message.sequence)
-                                        } else { actionTask = Task { await receiveAttachment(message) } }
-                                    } label: {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Label(name, systemImage: message.attachmentMime == "application/vnd.dmsg.secret-package" ? "lock.doc" : "doc.badge.arrow.down")
-                                            if message.attachmentMime == "application/vnd.dmsg.secret-package" { Text("Preview and choose what to import").font(.caption) }
-                                        }.font(.subheadline).padding(10)
-                                    }.disabled(message.unreadable || message.attachmentDeleted)
-                                        .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
-                                }
-                                Text(Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000), style: .time).font(.caption2).foregroundStyle(.secondary)
-                            }.padding(12).background(message.account == model.session?.account ? Theme.forest.opacity(0.12) : Theme.surface,
-                                                      in: RoundedRectangle(cornerRadius: 16))
-                            if message.account != model.session?.account { Spacer(minLength: 36) }
-                        }
+        ConversationMessageRow(own: message.account == model.session?.account, name: participantName(message.account), avatar: participantAvatar(message.account)) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(participantName(message.account)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                if message.hidden {
+                    Text("Hidden message").foregroundStyle(.secondary)
+                    Button("Show") { actionTask = Task { await hide(message, hidden: false) } }
+                } else {
+                    Text(message.retracted ? String(localized: "Message withdrawn") : message.unreadable ? String(localized: "This message could not be verified.") : message.text).textSelection(.enabled)
+                    if let reference = message.replySequence { Text("Reply to message \(reference)").font(.caption).foregroundStyle(.secondary) }
+                    if message.edited { Text("Edited").font(.caption).foregroundStyle(.secondary) }
+                    if let name = message.attachmentName {
+                        Button {
+                            if message.attachmentMime == "application/vnd.dmsg.secret-package" {
+                                secretPackage = .init(channel: channel.id, sequence: message.sequence)
+                            } else { actionTask = Task { await receiveAttachment(message) } }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label(name, systemImage: message.attachmentMime == "application/vnd.dmsg.secret-package" ? "lock.doc" : "doc.badge.arrow.down")
+                                if message.attachmentMime == "application/vnd.dmsg.secret-package" { Text("Preview and choose what to import").font(.caption) }
+                            }.font(.subheadline).padding(10)
+                        }.disabled(message.unreadable || message.attachmentDeleted)
+                            .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                    }
+                    Text(Date(timeIntervalSince1970: Double(message.createdAtMs) / 1000), style: .time).font(.caption2).foregroundStyle(.secondary)
+                }
+            }.accessibilityIdentifier("message.content.\(message.sequence)")
+        }
+    }
+
+    private func participantName(_ account: String) -> String {
+        participants[account]?.name ?? String(account.prefix(8))
+    }
+
+    private func participantAvatar(_ account: String) -> UIImage? {
+        guard let url = participants[account]?.avatarUrl else { return nil }
+        return avatars[url]
+    }
+
+    private func loadParticipants() async {
+        guard let engine = model.engine, !model.concealed else { return }
+        do { try await Task.sleep(for: .milliseconds(80)) } catch { return }
+        let epoch = model.epoch, accounts = participantIDs
+        for start in stride(from: 0, to: accounts.count, by: 100) {
+            let batch = Array(accounts[start..<min(start + 100, accounts.count)])
+            for refresh in [false, true] {
+                guard epoch == model.epoch, !Task.isCancelled else { return }
+                do {
+                    let snapshot = try await coreOperation { try await engine.channelNames(accounts: batch, refresh: refresh, operation: $0) }
+                    let names: [String: Participant] = try model.decode(snapshot)
+                    guard epoch == model.epoch, !Task.isCancelled else { return }
+                    participants.merge(names) { _, next in next }
+                    var loadedURLs: Set<String> = []
+                    for (account, profile) in names {
+                        guard let url = profile.avatarUrl, loadedURLs.insert(url).inserted else { continue }
+                        let bytes = try? await engine.channelAvatar(account: account, refresh: refresh)
+                        let image = await AvatarImage.decode(bytes)
+                        guard epoch == model.epoch, !Task.isCancelled else { return }
+                        if refresh || image != nil { avatars[url] = image }
+                    }
+                } catch { /* Names and initials remain available when a public image is offline. */ }
+            }
+        }
+    }
+
+    private func hide(_ message: MessageItem, hidden: Bool) async {
+        let epoch = model.epoch
+        do {
+            try await model.engine?.hideMessage(channel: channel.id, sequence: message.sequence, hidden: hidden)
+            if epoch == model.epoch, !Task.isCancelled { await load() }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
 
     private func refreshMessages() async {

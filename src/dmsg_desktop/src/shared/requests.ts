@@ -2,6 +2,7 @@
  * Names such as sync, mark, refresh and ap/call are intentionally not inferred.
  * Unknown/new methods default to mutations until reviewed here. */
 export const READ_METHODS = new Set([
+  'channel/avatar',
   'notifications/list', 'notifications/status', 'notifications/settings',
   'app/initialize', 'daemon/status', 'session/status', 'session/accounts', 'session/login_result',
   'account/show', 'account/security', 'recovery/status', 'device/moved_list',

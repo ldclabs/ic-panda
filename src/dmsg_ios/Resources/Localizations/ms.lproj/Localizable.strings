@@ -2488,5 +2488,11 @@
 	<string>Penyegerakan menyemak kandungan akaun dan sandaran awan. Buka perbualan atau peti masuk untuk menerima mesej; pulihkan fail secara berasingan.</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
 	<string>Senarai sandaran awan tidak dapat disegar semula. Cuba lagi dalam Fail.</string>
+	<key>Hidden message</key>
+	<string>Mesej yang anda sembunyikan</string>
+	<key>Hide on this device</key>
+	<string>Sembunyikan pada peranti ini</string>
+	<key>Show</key>
+	<string>Tunjukkan</string>
 </dict>
 </plist>

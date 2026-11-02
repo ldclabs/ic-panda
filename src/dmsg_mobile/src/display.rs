@@ -2,11 +2,20 @@ use super::*;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-pub(crate) struct ReadTurns(Mutex<BTreeMap<String, Arc<tokio::sync::Mutex<()>>>>);
+pub(crate) struct ReadTurns {
+    lanes: Mutex<BTreeMap<String, Arc<tokio::sync::Mutex<()>>>>,
+    names: Mutex<NameRetries>,
+}
+
+#[derive(Default)]
+struct NameRetries {
+    session: Option<dmsg_client::display::Session>,
+    after: BTreeMap<dmsg_types::AccountId, std::time::Instant>,
+}
 
 impl ReadTurns {
     pub(crate) fn lane(&self, resource: &str) -> Arc<tokio::sync::Mutex<()>> {
-        let mut lanes = self.0.lock().expect("read turns");
+        let mut lanes = self.lanes.lock().expect("read turns");
         lanes.retain(|_, v| Arc::strong_count(v) > 1);
         lanes.entry(resource.into()).or_default().clone()
     }
@@ -14,6 +23,134 @@ impl ReadTurns {
 
 #[uniffi::export]
 impl MobileEngine {
+    /// Fetch a participant's published image without retaining the client lock.
+    pub async fn channel_avatar(&self, account: String, refresh: bool) -> Result<Option<Vec<u8>>> {
+        let account = account
+            .parse::<dmsg_types::AccountId>()
+            .map_err(|_| dmsg_types::invalid("account"))?;
+        let turn = self.read_turns.lane("participant-avatars");
+        self.held(move |h| {
+            Box::pin(async move {
+                let session = h.with(|c| c.display_session()).await?;
+                let scoped = dmsg_client::display::Scoped { inner: h, session };
+                let h = &scoped;
+                let url = h
+                    .with(|c| {
+                        Ok(c.public_names()?
+                            .get(&account)
+                            .and_then(|n| n.avatar_url.clone()))
+                    })
+                    .await?;
+                let Some(url) = url else { return Ok(None) };
+                let image = if refresh {
+                    let _turn = turn.lock().await;
+                    dmsg_client::display::participant_avatar(h, &url).await?
+                } else {
+                    h.with(|c| c.participant_avatar_cached(&url)).await?
+                };
+                h.with(|c| {
+                    ensure(
+                        c.public_names()?
+                            .get(&account)
+                            .and_then(|n| n.avatar_url.as_ref())
+                            == Some(&url),
+                        Error::VersionConflict,
+                    )?;
+                    Ok(image.map(|image| image.bytes))
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    /// Certified participant display fields; local reads stay available offline.
+    pub async fn channel_names(
+        &self,
+        accounts: Vec<String>,
+        refresh: bool,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        ensure_valid(accounts.len() <= 100, "at most 100 accounts")?;
+        let accounts = accounts
+            .into_iter()
+            .map(|s| {
+                s.parse::<dmsg_types::AccountId>()
+                    .map_err(|_| dmsg_types::invalid("account"))
+            })
+            .collect::<dmsg_types::Result<Vec<_>>>()?;
+        let turn = self.read_turns.lane("channel-names");
+        let reads = self.read_turns.clone();
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let session = h.with(|c| c.display_session()).await?;
+                    let scoped = dmsg_client::display::Scoped { inner: h, session };
+                    let h = &scoped;
+                    if refresh {
+                        let _turn = turn.lock().await;
+                        let mut due = h
+                            .with(|c| {
+                                let known = c.public_names()?;
+                                let now = dmsg_client::now_ms();
+                                Ok(accounts
+                                    .iter()
+                                    .filter(|id| known.get(id).is_none_or(|n| n.stale(now)))
+                                    .copied()
+                                    .collect::<Vec<_>>())
+                            })
+                            .await?;
+                        {
+                            let mut retries = reads.names.lock().expect("name retries");
+                            if retries.session != Some(session) {
+                                *retries = NameRetries {
+                                    session: Some(session),
+                                    after: BTreeMap::new(),
+                                };
+                            }
+                            let now = std::time::Instant::now();
+                            retries.after.retain(|_, after| *after > now);
+                            due.retain(|id| !retries.after.contains_key(id));
+                            for id in &due {
+                                retries.after.insert(
+                                    *id,
+                                    now + std::time::Duration::from_millis(
+                                        dmsg_client::display::ABSENT_TTL,
+                                    ),
+                                );
+                            }
+                        }
+                        if !due.is_empty() {
+                            let found = dmsg_client::principal::names(h, &due).await?;
+                            h.with(|c| {
+                                let now = dmsg_client::now_ms();
+                                let names = found
+                                    .into_iter()
+                                    .filter_map(|(id, result)| {
+                                        result.ok().map(|mut n| {
+                                            n.observed_at_ms = now;
+                                            (id, n)
+                                        })
+                                    })
+                                    .collect();
+                                c.keep_public_names(names).map(|_| ())
+                            })
+                            .await?;
+                        }
+                    }
+                    h.with(|c| {
+                        let known = c.public_names()?;
+                        Ok(accounts
+                            .iter()
+                            .filter_map(|id| known.get(id).map(|n| (id.to_string(), n.clone())))
+                            .collect::<BTreeMap<_, _>>())
+                    })
+                    .await
+                })
+            }))
+            .await
+    }
+
     /// Pure local display read, including a missing observation.
     pub async fn cached_display(&self, kind: String, id: String) -> Result<ObjectSnapshot> {
         let kind = dmsg_client::snapshot::kind(&kind)?;
