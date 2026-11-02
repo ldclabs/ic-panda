@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Transfer w kolejce. Postęp znajdziesz w Plikach.",
+    "transferLockPauses": "Blokada wstrzymuje transfery, a odblokowanie je wznawia.",
+    "transferLockOnline": "Tryb online w tle zachowuje klucz podpisu urządzenia, aby kończyć zaszyfrowane kopie podczas blokady. Pobieranie czeka na odblokowanie.",
+    "transferCommitting": "Potwierdzanie kopii w chmurze…",
+
     "syncInitial": "Pierwsza synchronizacja",
     "syncInitialWaiting": "Oczekiwanie na pierwszą synchronizację",
     "syncInventory": "Odczytywanie listy zawartości konta…",

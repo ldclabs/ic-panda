@@ -5,6 +5,12 @@ import { notificationText } from '../../../shared/notification-text.ts'
  * from the parameters `t` gets.
  */
 const messages = {
+    "transferQueued": "Transfer queued. Follow its progress in Files.",
+    "transferLockPauses": "Locking pauses transfers; unlocking resumes them.",
+    "transferLockOnline": "Background online keeps the device signing key to finish sealed backups while locked. Downloads wait for unlock.",
+    "transferCommitting": "Confirming cloud backup…",
+
+
     "syncInitial": "First sync",
     "syncInitialWaiting": "Waiting for first sync",
     "syncInventory": "Reading account inventory…",

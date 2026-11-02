@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "منتقلی قطار میں شامل ہے۔ فائلوں میں پیش رفت دیکھیں۔",
+    "transferLockPauses": "لاک کرنے سے منتقلی رکتی ہے، ان لاک کرنے پر بحال ہوتی ہے۔",
+    "transferLockOnline": "پس منظر آن لائن آلے کی دستخطی کلید محفوظ رکھتا ہے تاکہ لاک کے دوران خفیہ کردہ بیک اپ مکمل ہو۔ ڈاؤن لوڈ ان لاک ہونے کا انتظار کرتے ہیں۔",
+    "transferCommitting": "کلاؤڈ بیک اپ کی تصدیق ہو رہی ہے…",
+
     "syncInitial": "پہلی ہم وقت سازی",
     "syncInitialWaiting": "پہلی ہم وقت سازی کا انتظار",
     "syncInventory": "اکاؤنٹ کے مواد کی فہرست پڑھی جا رہی ہے…",

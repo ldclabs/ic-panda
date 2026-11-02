@@ -1147,6 +1147,36 @@ cancelled or replaced sessions, and lock clears cached backup metadata.
   sweeps were not exercised by this review. Simulator fixtures do not validate
   those hardware or chain paths.
 
+## File backup and download recovery (2026-11-02)
+
+Requested file transfers now belong to the account scene, survive navigation,
+and resume from encrypted local journals after unlocking or returning to the
+foreground. Completed chunks are retained; transient failures respect retry
+deadlines. The UI distinguishes uploading, cloud commit confirmation, downloading
+and verification, and only reports completion after the corresponding core result.
+Explicit URLSession ciphertext transfers retain bounded per-slot retry state and
+do not race the foreground runners; their OS scheduling and unlock-to-finalize
+boundary remain visible in the UI.
+
+- 12 selected XCTest/XCUITest cases passed on iPhone 17 Simulator: file-transfer
+  state, retry deadlines and persistence, content-sync lifecycle, and four UI
+  cases. After the final title and progress presentation changes, the two
+  file-transfer unit tests and all four UI cases passed again. Navigation retains
+  the account-owned progress. English light, Chinese dark, French long labels and
+  Arabic RTL screenshots were exported and inspected. Fixtures model 150 MiB
+  commit/verification phases; they do not transfer that payload over the network.
+- Shared Rust validation passed: client 557 tests (5 ignored), daemon 111 tests
+  (6 ignored), mobile 21 tests; all-target Clippy with `-D warnings` and Rustfmt
+  passed. Regression coverage includes interrupted downloads, cached-chunk reuse,
+  integrity failure, server retry deadlines, per-chunk upload acknowledgement and
+  ambiguous commit reconciliation.
+- Device and simulator Rust artifacts and Swift bindings were rebuilt; source
+  fingerprints verified. The final simulator Debug app built successfully.
+  All 23 localizations passed validation.
+- No physical-device background URLSession delivery, large-file memory/energy
+  measurement, production cloud transfer or release build was performed in this
+  review. Tests do not establish iOS background scheduling guarantees.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

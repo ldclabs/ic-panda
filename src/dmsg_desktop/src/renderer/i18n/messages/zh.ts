@@ -3,6 +3,12 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "transferQueued": "传输已加入队列，可在文件库查看进度。",
+    "transferLockPauses": "锁定时暂停传输，解锁后自动继续。",
+    "transferLockOnline": "后台在线会保留设备签名密钥，锁定后继续已封存的备份；下载等待解锁。",
+    "transferCommitting": "正在确认云端备份…",
+
+
     "syncInitial": "首次同步",
     "syncInitialWaiting": "等待首次同步",
     "syncInventory": "正在读取账号内容清单…",

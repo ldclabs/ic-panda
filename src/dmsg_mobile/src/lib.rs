@@ -949,11 +949,9 @@ impl MobileEngine {
             .run(self.held_object(move |h| {
                 Box::pin(async move {
                     let _turn = turn.lock().await;
-                    dmsg_client::library::backup::backup_run(
-                        h,
-                        Some(15_000),
-                        &mut |_, done, total| progress.report(done, total),
-                    )
+                    dmsg_client::library::backup::backup_run(h, &mut |job| {
+                        progress.report(job.sent, job.chunks)
+                    })
                     .await
                 })
             }))
@@ -1566,29 +1564,48 @@ impl MobileEngine {
         folder: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
-        let progress = operation.clone();
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move {
-                    h.with(|c| {
-                        let entry = c
-                            .files_cloud_list()?
-                            .into_iter()
-                            .find(|e| e.upload_id == upload)
-                            .ok_or(Error::NotFound)?;
-                        ensure(
-                            entry.size.is_some_and(|s| s <= c.config().files_max_bytes),
-                            Error::QuotaExceeded,
-                        )
-                    })
-                    .await?;
-                    dmsg_client::library::cloud::cloud_fetch(
-                        h,
-                        &upload,
-                        Some(&folder),
-                        &mut |done, total| progress.report(done, total),
-                    )
-                    .await
+                    h.with(|c| c.files_download_start(&upload, Some(&folder), false))
+                        .await
+                })
+            }))
+            .await
+    }
+
+    pub async fn download_status(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| Box::pin(async { h.with(|c| c.files_download_status()).await }))
+            .await
+    }
+
+    pub async fn retry_file_transfers(&self) -> Result<()> {
+        self.held(|h| {
+            Box::pin(async {
+                h.with(|c| {
+                    c.files_backup_retry(None, None)?;
+                    c.files_download_retry(None)
+                })
+                .await
+            })
+        })
+        .await
+    }
+
+    pub async fn cancel_download(&self, upload: String) -> Result<()> {
+        self.held(move |h| {
+            Box::pin(async move { h.with(|c| c.files_download_cancel(&upload)).await })
+        })
+        .await
+    }
+
+    pub async fn run_downloads(&self, operation: Arc<OperationToken>) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane("files-download");
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::library::fetch::run(h, &mut |_| {}).await
                 })
             }))
             .await

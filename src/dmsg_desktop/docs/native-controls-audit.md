@@ -122,6 +122,13 @@ DMSG_DESKTOP_SMOKE=forms node scripts/smoke.mjs
 
 本次不代表真实云端交易、硬件身份确认、原生磁盘挂载、跨操作系统或读屏软件验收。运行中的用户客户端和 daemon 未被替换。
 
+## 2026-11-02 文件传输状态复查
+
+- 文件任务统一使用共享 `Progress`：上传字节发完后显示云端确认，下载字节收齐后显示校验，均不提前显示完成。重试、取消、锁定提示及云端备份页面的任务卡片已接入；失败的状态读取保留上次结果，账号切换清理旧任务展示。
+- `pnpm check` 通过（0 errors / 0 warnings），`pnpm test` 169 项通过，`pnpm audit:controls` 为 0 个未批准用法，最终构建通过。
+- 最终构建运行 `DMSG_DESKTOP_SMOKE=transfers node scripts/smoke.mjs`，验证排队、确认/校验阶段、失败重试、键盘 Enter、取消、锁定说明与稳定任务标识。中文明暗、法语长标签、阿拉伯语 RTL 覆盖 760×540 最窄窗口；补充任务卡片边界断言并检查截图，修正长文件名与字节进度的挤压裁切。
+- 截图位于忽略的 `test-results/controls-transfer-*.png`。本次通过真实 Electron renderer/main IPC 和可控 relay fixture 验证，不代表生产云端 100/1000 MiB 吞吐、运行中的用户 daemon 或跨平台验收。
+
 ## 当前全量源码索引
 
 下列行号来自整改后的源码；每个源码位置计一次，循环和共享组件调用不展开。重新扫描可更新 JSON 位置。

@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Overdracht in wachtrij. Volg de voortgang bij Bestanden.",
+    "transferLockPauses": "Vergrendelen pauzeert overdrachten; ontgrendelen hervat ze.",
+    "transferLockOnline": "Online op de achtergrond bewaart de apparaatsleutel voor ondertekening om versleutelde back-ups tijdens vergrendeling te voltooien. Downloads wachten op ontgrendeling.",
+    "transferCommitting": "Cloudback-up bevestigen…",
+
     "syncInitial": "Eerste synchronisatie",
     "syncInitialWaiting": "Wachten op eerste synchronisatie",
     "syncInventory": "Accountinhoud inventariseren…",

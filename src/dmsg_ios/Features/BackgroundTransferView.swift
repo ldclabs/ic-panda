@@ -17,7 +17,7 @@ struct BackgroundTransferSection: View {
                         Text("The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.").font(.footnote)
                     } else if state.paused || state.failure != nil {
                         Text("The transfer paused. Retry the original encrypted blocks.").font(.footnote)
-                        Button("Retry") { do { try BackgroundTransfers.shared.retry(); load() } catch { model.report(error) } }.disabled(working)
+                        Button("Retry") { Task { do { try await BackgroundTransfers.shared.retry(); load() } catch { model.report(error) } } }.disabled(working)
                     } else { Button("Pause transfer") { Task { await BackgroundTransfers.shared.pause(); load() } } }
                     Button("Cancel background transfer", role: .destructive) { Task { await cancel(state) } }.disabled(working)
                 } else {
@@ -62,6 +62,7 @@ struct BackgroundTransferSection: View {
 extension SessionModel {
     func startBackgroundBackup(file: String, version: String) async {
         guard let engine, !busy else { return }; let current = epoch, work = beginBusyOperation(); defer { finishBusyOperation(work) }
+        await fileTransfers.beginHandoff(); defer { fileTransfers.endHandoff() }
         do {
             guard try BackgroundTransfers.shared.store?.snapshot() == nil else { throw CocoaError(.fileWriteFileExists) }
             let result = try await coreOperation { try await engine.backgroundBackup(file: file, version: version, operation: $0) }
@@ -70,6 +71,7 @@ extension SessionModel {
     }
     func startBackgroundDownload(upload: String) async {
         guard let engine, !busy else { return }; let current = epoch, work = beginBusyOperation(); defer { finishBusyOperation(work) }
+        await fileTransfers.beginHandoff(); defer { fileTransfers.endHandoff() }
         do {
             guard try BackgroundTransfers.shared.store?.snapshot() == nil else { throw CocoaError(.fileWriteFileExists) }
             let result = try await coreOperation { try await engine.backgroundDownload(upload: upload, folder: filesFolder, operation: $0) }

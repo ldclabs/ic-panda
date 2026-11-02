@@ -60,6 +60,10 @@ struct DMsgApp: App {
                         do { try await Task.sleep(for: .seconds(2)) } catch { break }
                     }
                 }
+                .task(id: "file-transfers:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    await model.fileTransfers.watch(model)
+                }
                 .task(id: "maintenance:\(scenePhase == .active):\(model.session?.generation ?? 0)") {
                     guard scenePhase == .active, model.unlocked else { return }
                     while !Task.isCancelled {

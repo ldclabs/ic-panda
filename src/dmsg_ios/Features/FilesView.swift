@@ -23,7 +23,7 @@ struct FilesView: View {
         WorkspaceNavigation(selection: $selected) { listSelection in
             List(selection: listSelection) {
                 TransferStatusView()
-                NavigationLink("Transfers") { TransfersView() }
+                NavigationLink("File transfers") { TransfersView() }.accessibilityIdentifier("files.transfers")
                 Section {
                     HStack {
                         Label("Files in this folder", systemImage: "internaldrive")
@@ -161,7 +161,6 @@ struct FileDetailView: View {
     @State private var openedNonce: String?
     @State private var actionTask: Task<Void, Never>?
     struct Opened: Decodable { let path: String; let nonce: String }
-    struct BackupProgress: Decodable { let pending: UInt64; let failed: UInt64; let paused: Bool }
     struct SharedFile: Identifiable { let url: URL; var id: URL { url } }
     var body: some View {
         List {
@@ -194,12 +193,15 @@ struct FileDetailView: View {
         }.privateScreen().navigationTitle("File").navigationBarTitleDisplayMode(.inline)
             .sheet(item: $preview) { file in VerifiedPreview(url: file.url) }
             .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
+            .onChange(of: model.library.files.first(where: { $0.id == file.id })?.canOpen) { _, available in
+                if available == true { restored = true; needsRestore = false }
+            }
             .onChange(of: preview?.id) { before, after in if before != nil && after == nil { cleanup() } }
             .onChange(of: sharing?.id) { before, after in if before != nil && after == nil { cleanup() } }
             .onDisappear { if preview == nil && sharing == nil { actionTask?.cancel(); cleanup() } }
             .confirmationDialog("Back up this file?", isPresented: $confirmBackup) {
                 Button("Back up encrypted copy") { actionTask = Task { await backup() } }
-            } message: { Text("The encrypted version will use cloud storage. Your local copy stays on this device.") }
+            } message: { Text("The encrypted version will use cloud storage. Your local copy stays on this device."); Text("Locking pauses transfers; unlocking resumes them.") }
 
     }
 
@@ -234,7 +236,8 @@ struct FileDetailView: View {
         do {
             _ = try await model.transfer.run(file.name) { try await engine.restoreBackup(upload: backup.id, folder: model.filesFolder, operation: $0) }
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            restored = true; needsRestore = false; await model.refresh()
+            model.notice = String(localized: "Transfer queued. Follow its progress in Files.")
+            await model.fileTransfers.load(model)
         } catch { model.report(error) }
     }
 
@@ -247,14 +250,8 @@ struct FileDetailView: View {
             if admission.skipped.contains(where: { $0.reason == "too_large" }) {
                 throw CocoaError(.fileReadTooLarge)
             }
-            // Continue only this explicit confirmation while the scene is active.
-            repeat {
-                let snapshot = try await model.transfer.run(file.name) { try await engine.runBackups(operation: $0) }
-                guard epoch == model.epoch else { return }
-                let progress: BackupProgress = try model.decode(snapshot)
-                if progress.pending == 0 || progress.failed > 0 || !progress.paused { break }
-            } while !Task.isCancelled && epoch == model.epoch && !model.concealed
-            model.notice = String(localized: "Backup progress saved. Check the file status for completion.")
+            model.notice = String(localized: "Transfer queued. Follow its progress in Files.")
+            await model.fileTransfers.load(model)
             await model.refresh()
         }
         catch { if epoch == model.epoch { model.report(error) } }

@@ -610,6 +610,7 @@ impl Cloud {
         receiver: Option<&str>,
         binary: bool,
     ) -> Result<Reply> {
+        let finalize = url.path().ends_with("/uploads/finalize");
         let mutation = method != reqwest::Method::GET;
         let inventory = !mutation && url.path().contains("/exports/");
         let mut request = self.http.request(method, url);
@@ -628,7 +629,9 @@ impl Cloud {
             .build()
             .map_err(|_| dmsg_types::invalid("request"))?;
         let limit = if binary { MAX_CHUNK } else { MAX_JSON };
-        let policy = if mutation {
+        let policy = if finalize {
+            crate::transport::FINALIZE
+        } else if mutation {
             crate::transport::WRITE
         } else if binary {
             crate::transport::BULK

@@ -46,6 +46,8 @@
 	<string>اکاؤنٹ کی وصولی زیر التواء ہے</string>
 	<key>Account security</key>
 	<string>اکاؤنٹ سیکیورٹی</string>
+	<key>Account synchronization</key>
+	<string>اکاؤنٹ کی ہم وقت سازی</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>اکاؤنٹ، ڈیوائس اور شناختی تحفظ ایک ساتھ تبدیل ہوتے ہیں۔ ایک مطلوبہ منظوری عام تصدیقی ڈائیلاگ میں واپس نہیں آسکتی ہے۔</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>براؤزر کی درخواست</string>
 	<key>Cached data</key>
 	<string>کیش شدہ ڈیٹا</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>کیمرے تک رسائی دستیاب نہیں۔ دعوت چسپاں کریں یا ترتیبات میں کیمرے کی اجازت دیں۔</string>
 	<key>Cancel</key>
 	<string>منسوخ کریں</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>کیش صاف کریں</string>
 	<key>Closed</key>
 	<string>بند</string>
+	<key>Cloud backup file limit</key>
+	<string>کلاؤڈ بیک اپ میں فی فائل حد</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>کلاؤڈ بیک اپ کی فہرست تازہ نہیں ہو سکی۔ فائلوں میں دوبارہ کوشش کریں۔</string>
 	<key>Cloud backups</key>
 	<string>کلاؤڈ بیک اپ</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>کلاؤڈ کو حذف کرنا مکمل ہو گیا</string>
 	<key>Cloud storage</key>
 	<string>کلاؤڈ اسٹوریج</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>دونوں اسکرینوں پر آلے کی ID ملائیں اور کمپیوٹر پر منظوری دیں۔</string>
 	<key>Complete</key>
 	<string>مکمل</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>اس اکاؤنٹ سیکیورٹی تبدیلی کی تصدیق کریں</string>
 	<key>Confirm your completed steps</key>
 	<string>اپنے مکمل مراحل کی تصدیق کریں</string>
+	<key>Confirming cloud backup…</key>
+	<string>کلاؤڈ بیک اپ کی تصدیق ہو رہی ہے…</string>
 	<key>Conflicting version</key>
 	<string>متضاد ورژن</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>آلہ بدلنے کی درخواست کا QR کوڈ</string>
 	<key>Device request</key>
 	<string>ڈیوائس کی درخواست</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>آلے کی درخواست پہنچنے کی تصدیق نہیں ہوئی۔ دوبارہ کوشش سے پہلے کنکشن اور کمپیوٹر دیکھیں۔</string>
 	<key>Device-bound workspace</key>
 	<string>ڈیوائس سے منسلک ورک اسپیس</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>پس منظر میں خفیہ کردہ کاپی ڈاؤن لوڈ کریں</string>
 	<key>Download sessions</key>
 	<string>سیشنز ڈاؤن لوڈ کریں</string>
+	<key>Downloaded</key>
+	<string>ڈاؤن لوڈ شدہ</string>
+	<key>Downloading account content…</key>
+	<string>اکاؤنٹ کا مواد ڈاؤن لوڈ ہو رہا ہے…</string>
 	<key>Downloading encrypted backup</key>
 	<string>انکرپٹڈ بیک اپ ڈاؤن لوڈ ہو رہا ہے</string>
+	<key>Downloads</key>
+	<string>ڈاؤن لوڈ</string>
 	<key>Draft: </key>
 	<string>مسودہ: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>فائل کا نام</string>
 	<key>File not available on this device</key>
 	<string>فائل اس ڈیوائس پر دستیاب نہیں ہے</string>
+	<key>File transfers</key>
+	<string>فائل کی منتقلی</string>
 	<key>File versions</key>
 	<string>فائل ورژن</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>فنگر پرنٹ</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>سیکیورٹی اپ ڈیٹ مکمل ہو رہی ہے۔ نیا مواد اس کے مکمل ہونے تک انتظار کرے گا۔</string>
+	<key>First sync</key>
+	<string>پہلی ہم وقت سازی</string>
 	<key>Folder name</key>
 	<string>فولڈر کا نام</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>کیا آپ نے گمشدہ نتائج کا جائزہ لیا ہے؟</string>
 	<key>Hidden fields differ: </key>
 	<string>پوشیدہ فیلڈز مختلف ہیں: </string>
+	<key>Hidden message</key>
+	<string>ایک پیغام جو آپ نے چھپا رکھا ہے</string>
 	<key>Hidden value</key>
 	<string>پوشیدہ قدر</string>
 	<key>Hide</key>
 	<string>چھپائیں</string>
+	<key>Hide on this device</key>
+	<string>اس ڈیوائس پر چھپائیں</string>
 	<key>Hide sample sender</key>
 	<string>نمونہ بھیجنے والے کو چھپائیں</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>پس منظر میں فوری طور پر لاک کریں</string>
 	<key>Lock workspace</key>
 	<string>کام کی جگہ کو مقفل کریں</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>لاک کرنے سے منتقلی رکتی ہے، ان لاک کرنے پر بحال ہوتی ہے۔</string>
 	<key>Login identities</key>
 	<string>لاگ ان کی شناخت</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>نیا راز</string>
 	<key>Next</key>
 	<string>اگلا</string>
+	<key>Next retry</key>
+	<string>اگلی کوشش</string>
 	<key>No</key>
 	<string>نہیں</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>کوئی آئٹم منسلکات نہیں</string>
 	<key>No letters yet</key>
 	<string>ابھی تک کوئی خط نہیں ہے</string>
+	<key>No messages</key>
+	<string>کوئی پیغامات نہیں</string>
 	<key>No pending backups</key>
 	<string>کوئی زیر التوا بیک اپ نہیں</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>شائع شدہ پالیسی پڑھیں</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>درآمد کے لیے رکھی گئی صرف پڑھنے والی کاپیاں۔ کسی ایک کو حذف کرنے سے پرانے iPhone یا آپ کے اکاؤنٹ پر کوئی اثر نہیں پڑتا۔</string>
+	<key>Reading account inventory…</key>
+	<string>اکاؤنٹ کے مواد کی فہرست پڑھی جا رہی ہے…</string>
 	<key>Ready</key>
 	<string>تیار</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>اس ڈیوائس پر محفوظ کیا گیا۔ تبدیلیاں مطابقت پذیر ہونے کا انتظار کر رہی ہیں۔</string>
 	<key>Saved. Publication is pending.</key>
 	<string>محفوظ کیا گیا۔ اشاعت زیر التواء ہے۔</string>
+	<key>Scan desktop invitation</key>
+	<string>کمپیوٹر کی دعوت اسکین کریں</string>
 	<key>Scan device request</key>
 	<string>اسکین ڈیوائس کی درخواست</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>منتخب کردہ OTP فیلڈز میں دوبارہ قابل استعمال بیج شامل ہے، نہ صرف موجودہ کوڈ۔</string>
 	<key>Selected accounts</key>
 	<string>منتخب اکاؤنٹس</string>
+	<key>Send device request</key>
+	<string>آلے کی درخواست بھیجیں</string>
 	<key>Send free letter</key>
 	<string>مفت خط بھیجیں</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>اشتراک کردہ سنیپ شاٹس</string>
 	<key>Shared with dMsg</key>
 	<string>dMsg کے ساتھ اشتراک کیا گیا</string>
+	<key>Show</key>
+	<string>دکھائیں</string>
 	<key>Show dismissed findings</key>
 	<string>مسترد شدہ نتائج دکھائیں</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>اس آئی فون پر اپنے انکرپٹڈ ورک اسپیس کو غیر مقفل کرنے کے لیے دوبارہ سائن ان کریں۔</string>
 	<key>Sign in to another account</key>
 	<string>دوسرے اکاؤنٹ میں سائن ان کریں</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>نئے آلے پر اسی اکاؤنٹ میں سائن ان کریں، کمپیوٹر کا QR کوڈ اسکین کریں، پھر کمپیوٹر پر جائزہ لے کر منظوری دیں۔</string>
 	<key>Sign out</key>
 	<string>سائن آؤٹ کریں</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>اکاؤنٹ سوئچ کریں</string>
 	<key>Switch to this account</key>
 	<string>اس اکاؤنٹ پر سوئچ کریں</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>ہم وقت سازی اکاؤنٹ کے مواد اور کلاؤڈ بیک اپ کی جانچ کرتی ہے۔ پیغامات وصول کرنے کے لیے گفتگو یا ان باکس کھولیں؛ فائلیں الگ بحال کریں۔</string>
 	<key>Sync conflicts</key>
 	<string>مطابقت پذیری کے تنازعات</string>
+	<key>Sync is waiting for the server.</key>
+	<string>ہم وقت سازی سرور کا انتظار کر رہی ہے۔</string>
 	<key>Sync now</key>
 	<string>ابھی مطابقت پذیری کریں</string>
+	<key>Sync paused</key>
+	<string>ہم وقت سازی موقوف ہے</string>
 	<key>Synced</key>
 	<string>مطابقت پذیر</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>فائل کی کاپیاں دستیاب نہیں ہیں یا ختم ہو چکی ہیں۔ نیا سنیپ شاٹ بنانے کے لیے dMsg کھولیں، پھر دوبارہ کوشش کریں۔</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>فائل لائبریری صرف پرانے آلے پر رہے گی۔ وہاں جو کبھی سنک یا بیک اپ نہیں ہوا، وہ آلہ منسوخ ہونے پر ضائع ہو جائے گا۔</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>دعوت نامہ اس اکاؤنٹ کا پابند ہے۔ لنک کا اشتراک دوسرے اکاؤنٹ تک رسائی کی اجازت نہیں دیتا ہے۔</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>پہلے ملکیتی گفتگو کو منتقل یا محفوظ کریں</string>
 	<key>Transfer proposal</key>
 	<string>منتقلی کی تجویز</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>منتقلی قطار میں شامل ہے۔ فائلوں میں پیش رفت دیکھیں۔</string>
 	<key>Transferred</key>
 	<string>منتقل شدہ</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>اپ لوڈ ہو رہا ہے</string>
 	<key>Uploading encrypted backup</key>
 	<string>انکرپٹڈ بیک اپ اپ لوڈ ہو رہا ہے</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>اپ لوڈ موقوف ہیں۔ کلاؤڈ میں جگہ خالی کر کے دوبارہ کوشش کریں؛ وصولی جاری رہے گی۔</string>
 	<key>Url</key>
 	<string>یو آر ایل</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>محفوظ ذخیرہ</string>
 	<key>Vault tools</key>
 	<string>والٹ ٹولز</string>
+	<key>Verified</key>
+	<string>تصدیق شدہ</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>تصدیق شدہ منسلکہ فائلوں میں محفوظ ہو گیا۔</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>مکمل ڈیوائس اور کلیدی فنگر پرنٹس کی تصدیق کریں۔ یہ کلید اس اکاؤنٹ کی محفوظ کارروائیوں کے لیے ہارڈویئر کی منظوری کو ثابت کرے گی۔</string>
 	<key>Verify the full device fingerprint</key>
 	<string>پورے آلے کے فنگر پرنٹ کی تصدیق کریں</string>
+	<key>Verifying account content…</key>
+	<string>اکاؤنٹ کے مواد کی تصدیق ہو رہی ہے…</string>
+	<key>Verifying…</key>
+	<string>تصدیق ہو رہی ہے…</string>
 	<key>Version history</key>
 	<string>ورژن کی تاریخ</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>براؤزر کی تصدیق کا انتظار ہے</string>
 	<key>Waiting for confirmation: </key>
 	<string>تصدیق کا انتظار: </string>
+	<key>Waiting for first sync</key>
+	<string>پہلی ہم وقت سازی کا انتظار</string>
 	<key>Waiting for notification registration…</key>
 	<string>نوٹیفکیشن کے اندراج کا انتظار ہے…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>بن گئی</string>
 	<key>not available</key>
 	<string>دستیاب نہیں</string>
-	<key>No messages</key>
-	<string>کوئی پیغامات نہیں</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>دونوں اسکرینوں پر آلے کی ID ملائیں اور کمپیوٹر پر منظوری دیں۔</string>
-	<key>Scan desktop invitation</key>
-	<string>کمپیوٹر کی دعوت اسکین کریں</string>
-	<key>Send device request</key>
-	<string>آلے کی درخواست بھیجیں</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>کیمرے تک رسائی دستیاب نہیں۔ دعوت چسپاں کریں یا ترتیبات میں کیمرے کی اجازت دیں۔</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>نئے آلے پر اسی اکاؤنٹ میں سائن ان کریں، کمپیوٹر کا QR کوڈ اسکین کریں، پھر کمپیوٹر پر جائزہ لے کر منظوری دیں۔</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>آلے کی درخواست پہنچنے کی تصدیق نہیں ہوئی۔ دوبارہ کوشش سے پہلے کنکشن اور کمپیوٹر دیکھیں۔</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
-	<key>Cloud backup file limit</key>
-	<string>کلاؤڈ بیک اپ میں فی فائل حد</string>
-	<key>First sync</key>
-	<string>پہلی ہم وقت سازی</string>
-	<key>Sync paused</key>
-	<string>ہم وقت سازی موقوف ہے</string>
-	<key>Waiting for first sync</key>
-	<string>پہلی ہم وقت سازی کا انتظار</string>
-	<key>Account synchronization</key>
-	<string>اکاؤنٹ کی ہم وقت سازی</string>
-	<key>Reading account inventory…</key>
-	<string>اکاؤنٹ کے مواد کی فہرست پڑھی جا رہی ہے…</string>
-	<key>Downloading account content…</key>
-	<string>اکاؤنٹ کا مواد ڈاؤن لوڈ ہو رہا ہے…</string>
-	<key>Verifying account content…</key>
-	<string>اکاؤنٹ کے مواد کی تصدیق ہو رہی ہے…</string>
-	<key>Downloaded</key>
-	<string>ڈاؤن لوڈ شدہ</string>
-	<key>Next retry</key>
-	<string>اگلی کوشش</string>
-	<key>Sync is waiting for the server.</key>
-	<string>ہم وقت سازی سرور کا انتظار کر رہی ہے۔</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>اپ لوڈ موقوف ہیں۔ کلاؤڈ میں جگہ خالی کر کے دوبارہ کوشش کریں؛ وصولی جاری رہے گی۔</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>ہم وقت سازی اکاؤنٹ کے مواد اور کلاؤڈ بیک اپ کی جانچ کرتی ہے۔ پیغامات وصول کرنے کے لیے گفتگو یا ان باکس کھولیں؛ فائلیں الگ بحال کریں۔</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>کلاؤڈ بیک اپ کی فہرست تازہ نہیں ہو سکی۔ فائلوں میں دوبارہ کوشش کریں۔</string>
-	<key>Hidden message</key>
-	<string>ایک پیغام جو آپ نے چھپا رکھا ہے</string>
-	<key>Hide on this device</key>
-	<string>اس ڈیوائس پر چھپائیں</string>
-	<key>Show</key>
-	<string>دکھائیں</string>
 </dict>
 </plist>

@@ -44,6 +44,7 @@ import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
+import { fileTransfersFlow } from './file-transfers-flow.mjs'
 import { successionFlow } from './succession-flow.mjs'
 import { trayFlow } from './tray-flow.mjs'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
@@ -682,6 +683,7 @@ const methods = {
   'transfer/status': () => null,
   'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30, last_check: null }),
   'files/backup_status': () => backupJobs,
+  'files/download_status': () => [],
   'files/backup_cancel': (p) => {
     backupJobs.splice(backupJobs.findIndex((j) => j.file === p.id && j.version === p.version), 1)
     return null
@@ -1522,7 +1524,7 @@ async function formMatrix(app, page, shots, name, selector, matrix = [
     if (!selector.includes('popover')) await page.locator(selector).scrollIntoViewIfNeeded()
     if (name === 'channel-retry') await page.getByTestId('outgoing-retry').scrollIntoViewIfNeeded()
     if (name === 'channel-queued') await page.getByTestId('message-outgoing').last().scrollIntoViewIfNeeded()
-    if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator')) {
+    if (selector.includes('popover') || selector.includes('dialog') || selector.includes('generator') || name.startsWith('transfer-')) {
       await page.waitForFunction((selector) => {
         const r = document.querySelector(selector)?.getBoundingClientRect()
         return r && r.x >= 0 && r.y >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1
@@ -1875,6 +1877,12 @@ smoke: try {
     await approval.getByTestId('approval-origin').waitFor()
     await languagesFlow({ app, main, approval, shots, profile })
     assert.deepEqual(pageErrors, [])
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'transfers') {
+    await fileTransfersFlow({ app, main, shots, methods, emit, calls, waitFor, formMatrix, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('Desktop transfers passed: commit/verify phases, retry/cancel, lock, keyboard, locale/theme/width matrix')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'files') {

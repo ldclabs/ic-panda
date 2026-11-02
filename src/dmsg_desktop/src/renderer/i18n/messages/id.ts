@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Transfer masuk antrean. Pantau di Berkas.",
+    "transferLockPauses": "Penguncian menjeda transfer; membuka kunci melanjutkannya.",
+    "transferLockOnline": "Online di latar belakang menyimpan kunci tanda tangan perangkat untuk menyelesaikan cadangan terenkripsi saat terkunci. Unduhan menunggu kunci dibuka.",
+    "transferCommitting": "Mengonfirmasi cadangan cloud…",
+
     "syncInitial": "Sinkronisasi pertama",
     "syncInitialWaiting": "Menunggu sinkronisasi pertama",
     "syncInventory": "Membaca daftar konten akun…",

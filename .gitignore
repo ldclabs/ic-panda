@@ -4,6 +4,7 @@
 **/*~
 .pnpm-store
 .swiftpm
+.build
 
 # Mac OSX temporary files
 .DS_Store

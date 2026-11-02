@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "転送をキューに追加しました。ファイルで進捗を確認できます。",
+    "transferLockPauses": "ロックすると転送は一時停止し、解除すると再開します。",
+    "transferLockOnline": "バックグラウンドオンラインではデバイス署名鍵を保持し、ロック中も暗号化済みのバックアップを続行します。ダウンロードはロック解除を待ちます。",
+    "transferCommitting": "クラウドバックアップを確認中…",
+
     "syncInitial": "初回同期",
     "syncInitialWaiting": "初回同期を待機中",
     "syncInventory": "アカウントのコンテンツ一覧を読み込み中…",

@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Nakapila ang paglilipat. Tingnan ang progreso sa Mga File.",
+    "transferLockPauses": "Humihinto ang paglilipat kapag naka-lock at nagpapatuloy kapag na-unlock.",
+    "transferLockOnline": "Pinananatili ng background online ang signing key ng device para matapos ang naka-encrypt na backup habang naka-lock. Naghihintay ang download na ma-unlock.",
+    "transferCommitting": "Kinukumpirma ang cloud backup…",
+
     "syncInitial": "Unang pag-sync",
     "syncInitialWaiting": "Naghihintay sa unang pag-sync",
     "syncInventory": "Binabasa ang listahan ng nilalaman ng account…",

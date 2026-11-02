@@ -46,6 +46,8 @@
 	<string>Pemulihan akaun belum selesai</string>
 	<key>Account security</key>
 	<string>Keselamatan akaun</string>
+	<key>Account synchronization</key>
+	<string>Penyegerakan akaun</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>Perlindungan akaun, peranti dan identiti berubah bersama-sama. Kelulusan yang diperlukan tidak boleh kembali kepada dialog pengesahan biasa.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>Permintaan penyemak imbas</string>
 	<key>Cached data</key>
 	<string>Data cache</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Kamera tidak tersedia. Tampal jemputan atau benarkan akses kamera dalam Tetapan.</string>
 	<key>Cancel</key>
 	<string>Batal</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>Kosongkan cache</string>
 	<key>Closed</key>
 	<string>tertutup</string>
+	<key>Cloud backup file limit</key>
+	<string>Had setiap fail sandaran awan</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Senarai sandaran awan tidak dapat disegar semula. Cuba lagi dalam Fail.</string>
 	<key>Cloud backups</key>
 	<string>Sandaran awan</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>Pemadaman awan selesai</string>
 	<key>Cloud storage</key>
 	<string>Storan awan</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Bandingkan ID peranti pada kedua-dua skrin dan luluskan pada komputer.</string>
 	<key>Complete</key>
 	<string>Selesai</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>Sahkan perubahan keselamatan akaun ini</string>
 	<key>Confirm your completed steps</key>
 	<string>Sahkan langkah anda yang telah selesai</string>
+	<key>Confirming cloud backup…</key>
+	<string>Mengesahkan sandaran awan…</string>
 	<key>Conflicting version</key>
 	<string>Versi bercanggah</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>Kod QR permintaan penggantian peranti</string>
 	<key>Device request</key>
 	<string>Permintaan peranti</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Penghantaran permintaan peranti belum disahkan. Semak sambungan dan komputer sebelum mencuba lagi.</string>
 	<key>Device-bound workspace</key>
 	<string>Ruang kerja terikat peranti</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>Muat turun salinan yang disulitkan di latar belakang</string>
 	<key>Download sessions</key>
 	<string>Muat turun sesi</string>
+	<key>Downloaded</key>
+	<string>Dimuat turun</string>
+	<key>Downloading account content…</key>
+	<string>Memuat turun kandungan akaun…</string>
 	<key>Downloading encrypted backup</key>
 	<string>Memuat turun sandaran yang disulitkan</string>
+	<key>Downloads</key>
+	<string>Muat turun</string>
 	<key>Draft: </key>
 	<string>Draf: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>Nama fail</string>
 	<key>File not available on this device</key>
 	<string>Fail tidak tersedia pada peranti ini</string>
+	<key>File transfers</key>
+	<string>Pemindahan fail</string>
 	<key>File versions</key>
 	<string>Versi fail</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>Cap jari</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>Sedang melengkapkan kemas kini keselamatan. Kandungan baharu menunggu sehingga selesai.</string>
+	<key>First sync</key>
+	<string>Penyegerakan pertama</string>
 	<key>Folder name</key>
 	<string>Nama folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>Adakah anda telah menyemak hasil yang hilang?</string>
 	<key>Hidden fields differ: </key>
 	<string>Medan tersembunyi berbeza: </string>
+	<key>Hidden message</key>
+	<string>Mesej yang anda sembunyikan</string>
 	<key>Hidden value</key>
 	<string>Nilai tersembunyi</string>
 	<key>Hide</key>
 	<string>Sembunyikan</string>
+	<key>Hide on this device</key>
+	<string>Sembunyikan pada peranti ini</string>
 	<key>Hide sample sender</key>
 	<string>Sembunyikan penghantar sampel</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>Kunci segera di latar belakang</string>
 	<key>Lock workspace</key>
 	<string>Kunci ruang kerja</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>Penguncian menjeda pemindahan; buka kunci untuk menyambung.</string>
 	<key>Login identities</key>
 	<string>Identiti log masuk</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>Rahsia baru</string>
 	<key>Next</key>
 	<string>Seterusnya</string>
+	<key>Next retry</key>
+	<string>Cubaan seterusnya</string>
 	<key>No</key>
 	<string>Tidak</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>Tiada lampiran item</string>
 	<key>No letters yet</key>
 	<string>Belum ada surat</string>
+	<key>No messages</key>
+	<string>Tiada mesej</string>
 	<key>No pending backups</key>
 	<string>Tiada sandaran yang belum selesai</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>Baca dasar yang diterbitkan</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Salinan baca sahaja yang disimpan untuk diimport. Memadam satu tidak menjejaskan iPhone lama atau akaun anda.</string>
+	<key>Reading account inventory…</key>
+	<string>Membaca senarai kandungan akaun…</string>
 	<key>Ready</key>
 	<string>Sedia</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>Disimpan pada peranti ini. Perubahan sedang menunggu untuk disegerakkan.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Disimpan. Penerbitan belum selesai.</string>
+	<key>Scan desktop invitation</key>
+	<string>Imbas jemputan komputer</string>
 	<key>Scan device request</key>
 	<string>Imbas permintaan peranti</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>Medan OTP yang dipilih termasuk benih boleh guna semula, bukan hanya kod semasa.</string>
 	<key>Selected accounts</key>
 	<string>Akaun terpilih</string>
+	<key>Send device request</key>
+	<string>Hantar permintaan peranti</string>
 	<key>Send free letter</key>
 	<string>Hantar surat percuma</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>Syot kilat dikongsi</string>
 	<key>Shared with dMsg</key>
 	<string>Dikongsi dengan dMsg</string>
+	<key>Show</key>
+	<string>Tunjukkan</string>
 	<key>Show dismissed findings</key>
 	<string>Tunjukkan penemuan yang ditolak</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>Log masuk sekali lagi untuk membuka kunci ruang kerja anda yang disulitkan pada iPhone ini.</string>
 	<key>Sign in to another account</key>
 	<string>Log masuk ke akaun lain</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Log masuk ke akaun yang sama pada peranti baharu, imbas QR komputer, kemudian semak dan luluskan pada komputer.</string>
 	<key>Sign out</key>
 	<string>Log keluar</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>Tukar akaun</string>
 	<key>Switch to this account</key>
 	<string>Beralih ke akaun ini</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Penyegerakan menyemak kandungan akaun dan sandaran awan. Buka perbualan atau peti masuk untuk menerima mesej; pulihkan fail secara berasingan.</string>
 	<key>Sync conflicts</key>
 	<string>Konflik penyegerakan</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Penyegerakan sedang menunggu pelayan.</string>
 	<key>Sync now</key>
 	<string>Segerakkan sekarang</string>
+	<key>Sync paused</key>
+	<string>Penyegerakan dijeda</string>
 	<key>Synced</key>
 	<string>disegerakkan</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>Salinan fail tidak tersedia atau tamat tempoh. Buka dMsg untuk membuat syot kilat baharu, kemudian cuba semula.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Pustaka fail kekal hanya pada peranti lama. Apa sahaja di sana yang tidak pernah disegerakkan atau disandarkan akan hilang setelah peranti itu ditarik balik.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Jemputan terikat pada akaun ini. Berkongsi pautan tidak Membenarkan akses kepada akaun lain.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>Pindahkan atau arkibkan perbualan yang dimiliki terlebih dahulu</string>
 	<key>Transfer proposal</key>
 	<string>Cadangan pemindahan</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>Pemindahan dalam baris gilir. Lihat kemajuan dalam Fail.</string>
 	<key>Transferred</key>
 	<string>Dipindahkan</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>Memuat naik</string>
 	<key>Uploading encrypted backup</key>
 	<string>Memuat naik sandaran yang disulitkan</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Muat naik dijeda. Kosongkan storan awan dan cuba lagi; penerimaan diteruskan.</string>
 	<key>Url</key>
 	<string>Url</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>Peti simpanan</string>
 	<key>Vault tools</key>
 	<string>Alat peti besi</string>
+	<key>Verified</key>
+	<string>disahkan</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>Lampiran yang disahkan disimpan pada Fail.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>Sahkan peranti penuh dan cap jari kunci. Kunci ini akan membuktikan kelulusan perkakasan untuk tindakan yang dilindungi akaun ini.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>Sahkan cap jari peranti penuh</string>
+	<key>Verifying account content…</key>
+	<string>Mengesahkan kandungan akaun…</string>
+	<key>Verifying…</key>
+	<string>Mengesahkan…</string>
 	<key>Version history</key>
 	<string>Sejarah versi</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>Menunggu pengesahan pelayar</string>
 	<key>Waiting for confirmation: </key>
 	<string>Menunggu pengesahan: </string>
+	<key>Waiting for first sync</key>
+	<string>Menunggu penyegerakan pertama</string>
 	<key>Waiting for notification registration…</key>
 	<string>Menunggu pendaftaran pemberitahuan…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>dibuat</string>
 	<key>not available</key>
 	<string>tidak tersedia</string>
-	<key>No messages</key>
-	<string>Tiada mesej</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>Bandingkan ID peranti pada kedua-dua skrin dan luluskan pada komputer.</string>
-	<key>Scan desktop invitation</key>
-	<string>Imbas jemputan komputer</string>
-	<key>Send device request</key>
-	<string>Hantar permintaan peranti</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>Kamera tidak tersedia. Tampal jemputan atau benarkan akses kamera dalam Tetapan.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>Log masuk ke akaun yang sama pada peranti baharu, imbas QR komputer, kemudian semak dan luluskan pada komputer.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>Penghantaran permintaan peranti belum disahkan. Semak sambungan dan komputer sebelum mencuba lagi.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
-	<key>Cloud backup file limit</key>
-	<string>Had setiap fail sandaran awan</string>
-	<key>First sync</key>
-	<string>Penyegerakan pertama</string>
-	<key>Sync paused</key>
-	<string>Penyegerakan dijeda</string>
-	<key>Waiting for first sync</key>
-	<string>Menunggu penyegerakan pertama</string>
-	<key>Account synchronization</key>
-	<string>Penyegerakan akaun</string>
-	<key>Reading account inventory…</key>
-	<string>Membaca senarai kandungan akaun…</string>
-	<key>Downloading account content…</key>
-	<string>Memuat turun kandungan akaun…</string>
-	<key>Verifying account content…</key>
-	<string>Mengesahkan kandungan akaun…</string>
-	<key>Downloaded</key>
-	<string>Dimuat turun</string>
-	<key>Next retry</key>
-	<string>Cubaan seterusnya</string>
-	<key>Sync is waiting for the server.</key>
-	<string>Penyegerakan sedang menunggu pelayan.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>Muat naik dijeda. Kosongkan storan awan dan cuba lagi; penerimaan diteruskan.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>Penyegerakan menyemak kandungan akaun dan sandaran awan. Buka perbualan atau peti masuk untuk menerima mesej; pulihkan fail secara berasingan.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>Senarai sandaran awan tidak dapat disegar semula. Cuba lagi dalam Fail.</string>
-	<key>Hidden message</key>
-	<string>Mesej yang anda sembunyikan</string>
-	<key>Hide on this device</key>
-	<string>Sembunyikan pada peranti ini</string>
-	<key>Show</key>
-	<string>Tunjukkan</string>
 </dict>
 </plist>

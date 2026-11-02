@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Pemindahan dalam baris gilir. Lihat kemajuan dalam Fail.",
+    "transferLockPauses": "Penguncian menjeda pemindahan; buka kunci untuk menyambung.",
+    "transferLockOnline": "Dalam talian di latar mengekalkan kunci tandatangan peranti untuk menyiapkan sandaran disulitkan semasa dikunci. Muat turun menunggu kunci dibuka.",
+    "transferCommitting": "Mengesahkan sandaran awan…",
+
     "syncInitial": "Penyegerakan pertama",
     "syncInitialWaiting": "Menunggu penyegerakan pertama",
     "syncInventory": "Membaca senarai kandungan akaun…",

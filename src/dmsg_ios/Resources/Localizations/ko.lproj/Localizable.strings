@@ -46,6 +46,8 @@
 	<string>계정 복구가 보류 중입니다.</string>
 	<key>Account security</key>
 	<string>계정 보안</string>
+	<key>Account synchronization</key>
+	<string>계정 동기화</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>계정, 장치 및 신원 보호가 함께 변경됩니다. 필수 승인은 일반적인 확인 대화 상자로 돌아갈 수 없습니다.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>브라우저 요청</string>
 	<key>Cached data</key>
 	<string>캐시 데이터</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Cancel</key>
 	<string>취소</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>캐시 지우기</string>
 	<key>Closed</key>
 	<string>휴무</string>
+	<key>Cloud backup file limit</key>
+	<string>클라우드 백업 파일 크기 제한</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>클라우드 백업 목록을 새로 고칠 수 없습니다. 파일에서 다시 시도하세요.</string>
 	<key>Cloud backups</key>
 	<string>클라우드 백업</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>클라우드 삭제 완료</string>
 	<key>Cloud storage</key>
 	<string>클라우드 스토리지</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>두 화면의 기기 ID를 비교한 후 컴퓨터에서 승인하세요.</string>
 	<key>Complete</key>
 	<string>완료</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>이 계정 보안 변경을 확인하세요</string>
 	<key>Confirm your completed steps</key>
 	<string>완료된 단계를 확인하세요.</string>
+	<key>Confirming cloud backup…</key>
+	<string>클라우드 백업 확인 중…</string>
 	<key>Conflicting version</key>
 	<string>충돌하는 버전</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>장치 대체 요청 QR 코드</string>
 	<key>Device request</key>
 	<string>장치 요청</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>기기 요청의 전달이 확인되지 않았습니다. 다시 시도하기 전에 연결과 컴퓨터를 확인하세요.</string>
 	<key>Device-bound workspace</key>
 	<string>장치에 바인딩된 작업 공간</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>백그라운드에서 암호화된 사본 다운로드</string>
 	<key>Download sessions</key>
 	<string>세션 다운로드</string>
+	<key>Downloaded</key>
+	<string>다운로드됨</string>
+	<key>Downloading account content…</key>
+	<string>계정 콘텐츠 다운로드 중…</string>
 	<key>Downloading encrypted backup</key>
 	<string>암호화된 백업 다운로드 중</string>
+	<key>Downloads</key>
+	<string>다운로드</string>
 	<key>Draft: </key>
 	<string>초안: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>파일 이름</string>
 	<key>File not available on this device</key>
 	<string>이 장치에서는 파일을 사용할 수 없습니다.</string>
+	<key>File transfers</key>
+	<string>파일 전송</string>
 	<key>File versions</key>
 	<string>파일 버전</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>지문</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>보안 설정을 업데이트하고 있습니다. 완료될 때까지 새 내용 저장을 기다립니다.</string>
+	<key>First sync</key>
+	<string>첫 동기화</string>
 	<key>Folder name</key>
 	<string>폴더 이름</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>누락된 결과를 검토하셨나요?</string>
 	<key>Hidden fields differ: </key>
 	<string>숨겨진 필드는 다릅니다. </string>
+	<key>Hidden message</key>
+	<string>숨겨둔 메시지</string>
 	<key>Hidden value</key>
 	<string>숨겨진 가치</string>
 	<key>Hide</key>
 	<string>숨기기</string>
+	<key>Hide on this device</key>
+	<string>이 기기에서 숨기기</string>
 	<key>Hide sample sender</key>
 	<string>샘플 보낸 사람 숨기기</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>백그라운드에서 즉시 잠금</string>
 	<key>Lock workspace</key>
 	<string>작업 공간 잠금</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>잠그면 전송이 일시 중지되고 잠금을 해제하면 재개됩니다.</string>
 	<key>Login identities</key>
 	<string>로그인 ID</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>새로운 비밀</string>
 	<key>Next</key>
 	<string>다음 단계</string>
+	<key>Next retry</key>
+	<string>다음 재시도</string>
 	<key>No</key>
 	<string>아니요</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>항목 첨부 없음</string>
 	<key>No letters yet</key>
 	<string>아직 편지가 없습니다</string>
+	<key>No messages</key>
+	<string>메시지 없음</string>
 	<key>No pending backups</key>
 	<string>보류 중인 백업이 없습니다.</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>게시된 정책 읽기</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>가져오기용으로 보관된 읽기 전용 복사본입니다. 삭제해도 이전 iPhone이나 계정에는 영향이 없습니다.</string>
+	<key>Reading account inventory…</key>
+	<string>계정 콘텐츠 목록 읽는 중…</string>
 	<key>Ready</key>
 	<string>진행 가능</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>이 기기에 저장되었습니다. 변경사항이 동기화 대기 중입니다.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>저장되었습니다. 출판이 보류 중입니다.</string>
+	<key>Scan desktop invitation</key>
+	<string>컴퓨터 초대 스캔</string>
 	<key>Scan device request</key>
 	<string>스캔 장치 요청</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>선택된 OTP 필드에는 현재 코드뿐만 아니라 재사용 가능한 시드가 포함됩니다.</string>
 	<key>Selected accounts</key>
 	<string>선택한 계정</string>
+	<key>Send device request</key>
+	<string>기기 요청 보내기</string>
 	<key>Send free letter</key>
 	<string>무료 편지 보내기</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>공유 스냅샷</string>
 	<key>Shared with dMsg</key>
 	<string>dMsg와 공유됨</string>
+	<key>Show</key>
+	<string>쇼</string>
 	<key>Show dismissed findings</key>
 	<string>무시된 발견 항목 표시</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>이 iPhone에서 암호화된 작업 공간을 잠금 해제하려면 다시 로그인하세요.</string>
 	<key>Sign in to another account</key>
 	<string>다른 계정으로 로그인</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>새 기기에서 같은 계정으로 로그인하고 컴퓨터의 QR 코드를 스캔한 다음 컴퓨터에서 확인하고 승인하세요.</string>
 	<key>Sign out</key>
 	<string>로그아웃</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>계정 전환</string>
 	<key>Switch to this account</key>
 	<string>이 계정으로 전환하세요</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>동기화는 계정 콘텐츠와 클라우드 백업을 확인합니다. 메시지를 받으려면 대화나 받은 편지함을 열고, 파일은 별도로 복원하세요.</string>
 	<key>Sync conflicts</key>
 	<string>동기화 충돌</string>
+	<key>Sync is waiting for the server.</key>
+	<string>동기화가 서버를 기다리고 있습니다.</string>
 	<key>Sync now</key>
 	<string>지금 동기화</string>
+	<key>Sync paused</key>
+	<string>동기화 일시 중지됨</string>
 	<key>Synced</key>
 	<string>동기화됨</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>파일 복사본을 사용할 수 없거나 만료되었습니다. dMsg를 열어 새 스냅샷을 생성한 후 다시 시도하세요.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>파일 보관함은 이전 장치에만 남습니다. 이전 장치를 해지하면 동기화나 백업되지 않은 내용은 사라집니다.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>초대가 이 계정에 바인딩되어 있습니다. 링크를 공유해도 다른 계정에 대한 액세스 권한이 부여되지는 않습니다.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>소유한 대화를 먼저 전송하거나 보관처리하세요.</string>
 	<key>Transfer proposal</key>
 	<string>이적 제안</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>전송이 대기열에 추가되었습니다. 파일에서 진행 상황을 확인하세요.</string>
 	<key>Transferred</key>
 	<string>전송됨</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>업로드 중</string>
 	<key>Uploading encrypted backup</key>
 	<string>암호화된 백업 업로드 중</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>업로드가 일시 중지되었습니다. 클라우드 공간을 확보한 후 다시 시도하세요. 수신은 계속됩니다.</string>
 	<key>Url</key>
 	<string>URL</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>금고</string>
 	<key>Vault tools</key>
 	<string>Vault 도구</string>
+	<key>Verified</key>
+	<string>검증됨</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>확인된 첨부파일이 파일에 저장되었습니다.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>전체 장치 및 키 지문을 확인하세요. 이 키는 이 계정의 보호된 작업에 대한 하드웨어 승인을 증명합니다.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>전체 장치 지문 확인</string>
+	<key>Verifying account content…</key>
+	<string>계정 콘텐츠 확인 중…</string>
+	<key>Verifying…</key>
+	<string>확인 중…</string>
 	<key>Version history</key>
 	<string>버전 기록</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>브라우저 확인을 기다리는 중</string>
 	<key>Waiting for confirmation: </key>
 	<string>확인을 기다리는 중: </string>
+	<key>Waiting for first sync</key>
+	<string>첫 동기화 대기 중</string>
 	<key>Waiting for notification registration…</key>
 	<string>알림 등록을 기다리는 중…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>생성됨</string>
 	<key>not available</key>
 	<string>사용 불가</string>
-	<key>No messages</key>
-	<string>메시지 없음</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>두 화면의 기기 ID를 비교한 후 컴퓨터에서 승인하세요.</string>
-	<key>Scan desktop invitation</key>
-	<string>컴퓨터 초대 스캔</string>
-	<key>Send device request</key>
-	<string>기기 요청 보내기</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>새 기기에서 같은 계정으로 로그인하고 컴퓨터의 QR 코드를 스캔한 다음 컴퓨터에서 확인하고 승인하세요.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>기기 요청의 전달이 확인되지 않았습니다. 다시 시도하기 전에 연결과 컴퓨터를 확인하세요.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
-	<key>Cloud backup file limit</key>
-	<string>클라우드 백업 파일 크기 제한</string>
-	<key>First sync</key>
-	<string>첫 동기화</string>
-	<key>Sync paused</key>
-	<string>동기화 일시 중지됨</string>
-	<key>Waiting for first sync</key>
-	<string>첫 동기화 대기 중</string>
-	<key>Account synchronization</key>
-	<string>계정 동기화</string>
-	<key>Reading account inventory…</key>
-	<string>계정 콘텐츠 목록 읽는 중…</string>
-	<key>Downloading account content…</key>
-	<string>계정 콘텐츠 다운로드 중…</string>
-	<key>Verifying account content…</key>
-	<string>계정 콘텐츠 확인 중…</string>
-	<key>Downloaded</key>
-	<string>다운로드됨</string>
-	<key>Next retry</key>
-	<string>다음 재시도</string>
-	<key>Sync is waiting for the server.</key>
-	<string>동기화가 서버를 기다리고 있습니다.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>업로드가 일시 중지되었습니다. 클라우드 공간을 확보한 후 다시 시도하세요. 수신은 계속됩니다.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>동기화는 계정 콘텐츠와 클라우드 백업을 확인합니다. 메시지를 받으려면 대화나 받은 편지함을 열고, 파일은 별도로 복원하세요.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>클라우드 백업 목록을 새로 고칠 수 없습니다. 파일에서 다시 시도하세요.</string>
-	<key>Hidden message</key>
-	<string>숨겨둔 메시지</string>
-	<key>Hide on this device</key>
-	<string>이 기기에서 숨기기</string>
-	<key>Show</key>
-	<string>쇼</string>
 </dict>
 </plist>

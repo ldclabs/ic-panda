@@ -1,9 +1,9 @@
 //! Short-lived, GET-only file downloads. URLs stay in this operation's memory.
 use crate::{cloud::Cloud, hold::Hold};
 use dmsg_types::{Error, Result, ensure};
-use futures_util::future::join_all;
+use futures_util::{StreamExt, stream::FuturesUnordered};
 use serde::Deserialize;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 #[derive(Deserialize, Clone)]
 pub(crate) struct Slot {
@@ -64,21 +64,17 @@ pub(crate) async fn chunks<H: Hold>(
     mut keep: impl FnMut(&mut crate::client::Client, &[(String, String)], Vec<Vec<u8>>) -> Result<()>
     + Send,
 ) -> Result<()> {
-    let relay: Cloud = h
-        .with(|c| {
-            c.keys()?;
-            Ok(c.relay())
-        })
-        .await?;
+    let session = crate::hold::Unlocked::new(h).await?;
+    let h = &session;
+    let relay: Cloud = h.with(|c| Ok(c.relay())).await?;
     let mut grants: BTreeMap<String, Grant> = BTreeMap::new();
-    for group in parts.chunks(8) {
-        h.with(|c| {
-            c.keys()?;
-            Ok(())
-        })
-        .await?;
-        let mut fetch = Vec::new();
-        for (path, digest) in group {
+    let mut pending = FuturesUnordered::new();
+    let mut next = 0;
+    let mut attempts = vec![0; parts.len()];
+    while next < parts.len() || !pending.is_empty() {
+        while next < parts.len() && pending.len() < 8 {
+            h.with(|_| Ok(())).await?;
+            let (path, digest) = &parts[next];
             let (object, part) = location(path)?;
             if grants
                 .get(object)
@@ -86,58 +82,58 @@ pub(crate) async fn chunks<H: Hold>(
             {
                 grants.insert(object.into(), grant(h, object).await?);
             }
-            fetch.push((
-                object.to_owned(),
-                part.to_owned(),
+            let authorization = &grants[object];
+            pending.push(fetch(
+                relay.clone(),
+                next,
+                authorization.expires_at,
+                authorization.slot(object, part, digest)?,
                 digest.clone(),
-                grants[object].slot(object, part, digest)?,
             ));
+            next += 1;
         }
-        let mut received: Vec<Option<Vec<u8>>> = vec![None; fetch.len()];
-        for attempt in 0..2 {
-            let pending: Vec<_> = fetch
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| received[*i].is_none())
-                .collect();
-            let results = join_all(pending.iter().map(|(_, (object, part, digest, _))| {
-                let slot = grants[object].slot(object, part, digest);
-                let relay = &relay;
-                async move { relay.download_slot(&slot?, digest).await }
-            }))
-            .await;
-            let mut renew = BTreeSet::new();
-            for ((index, (object, _, _, _)), result) in pending.into_iter().zip(results) {
-                match result {
-                    Ok(bytes) => received[index] = Some(bytes),
-                    Err(Error::Expired | Error::NotFound | Error::Unavailable(_))
-                        if attempt == 0 =>
-                    {
-                        renew.insert(object.clone());
-                    }
-                    Err(Error::NotFound) => return Err(Error::IntegrityFailed),
-                    Err(error) => return Err(error),
+        let Some((index, expiry, result)) = pending.next().await else {
+            break;
+        };
+        let (path, digest) = &parts[index];
+        match result {
+            Ok(bytes) => {
+                h.with(|c| keep(c, &parts[index..index + 1], vec![bytes]))
+                    .await?
+            }
+            Err(Error::Expired | Error::NotFound | Error::Unavailable(_))
+                if attempts[index] == 0 =>
+            {
+                attempts[index] += 1;
+                let (object, part) = location(path)?;
+                // Concurrent failures under the same grant share one renewal.
+                if grants[object].expires_at == expiry {
+                    grants.insert(object.into(), grant(h, object).await?);
                 }
+                let authorization = &grants[object];
+                pending.push(fetch(
+                    relay.clone(),
+                    index,
+                    authorization.expires_at,
+                    authorization.slot(object, part, digest)?,
+                    digest.clone(),
+                ));
             }
-            if renew.is_empty() {
-                break;
-            }
-            // One renewal per object even when all concurrent blocks fail together.
-            for object in renew {
-                grants.insert(object.clone(), grant(h, &object).await?);
-            }
+            Err(Error::NotFound) => return Err(Error::IntegrityFailed),
+            Err(error) => return Err(error),
         }
-        let results = received
-            .into_iter()
-            .map(|b| b.ok_or(Error::IntegrityFailed))
-            .collect::<Result<Vec<_>>>()?;
-        h.with(|c| {
-            c.keys()?;
-            keep(c, group, results)
-        })
-        .await?;
     }
     Ok(())
+}
+
+async fn fetch(
+    relay: Cloud,
+    index: usize,
+    expiry: u64,
+    slot: Slot,
+    digest: String,
+) -> (usize, u64, Result<Vec<u8>>) {
+    (index, expiry, relay.download_slot(&slot, &digest).await)
 }
 
 pub(crate) async fn one<H: Hold>(h: &H, path: String, digest: &str) -> Result<Vec<u8>> {

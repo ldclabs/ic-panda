@@ -46,6 +46,13 @@ pub(crate) const BULK: Policy = Policy {
     total: Duration::from_secs(60),
     backoff: Duration::from_millis(250),
 };
+pub(crate) const FINALIZE: Policy = Policy {
+    attempts: 1,
+    attempt: Duration::from_secs(40),
+    total: Duration::from_secs(40),
+    backoff: Duration::ZERO,
+};
+
 pub(crate) const WRITE: Policy = Policy {
     attempts: 1,
     attempt: Duration::from_secs(30),

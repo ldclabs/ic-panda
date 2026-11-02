@@ -723,10 +723,10 @@ async fn fetch_chunks<H: Hold>(
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<String> {
     let hold = crate::upload::random_hex();
-    let pin = |c: &Client| {
+    let pin = |c: &Client, now: u64| {
         c.hold_chunks([(
             hold.clone(),
-            now_ms() + DOWNLOAD_HOLD_MS,
+            now + DOWNLOAD_HOLD_MS,
             manifest
                 .file
                 .chunks
@@ -738,22 +738,52 @@ async fn fetch_chunks<H: Hold>(
     let (count, missing) = h
         .with(|c| {
             let missing = c.missing_chunks(upload_id, plan, manifest)?;
-            pin(c)?;
+            pin(c, now_ms())?;
             Ok(missing)
         })
         .await?;
     let mut done = count - missing.len() as u64;
+    let total_bytes: u64 = plan.chunks.iter().map(|c| c.size).sum();
+    let missing_bytes: u64 = missing
+        .iter()
+        .filter_map(|(path, _)| {
+            path.rsplit('/')
+                .next()?
+                .parse::<usize>()
+                .ok()
+                .and_then(|i| plan.chunks.get(i))
+        })
+        .map(|c| c.size)
+        .sum();
+    let mut bytes_done = total_bytes.saturating_sub(missing_bytes);
+    h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "downloading", now_ms()))
+        .await?;
     progress(done, count);
     crate::downloads::chunks(h, &missing, |c, group, fetched| {
+        let now = now_ms();
         for ((_, digest), bytes) in group.iter().zip(fetched) {
             c.blobs()?.put_chunk(digest, &bytes)?;
+            bytes_done += bytes.len() as u64;
         }
-        pin(c)?;
+        pin(c, now)?;
         done += group.len() as u64;
+        c.fetch_progress(
+            upload_id,
+            done,
+            bytes_done,
+            if done == count {
+                "verifying"
+            } else {
+                "downloading"
+            },
+            now,
+        )?;
         progress(done, count);
         Ok(())
     })
     .await?;
+    h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "verifying", now_ms()))
+        .await?;
     super::reading::check_manifest(h, &manifest.file, MAX_BACKUP).await?;
     Ok(hold)
 }
@@ -855,6 +885,26 @@ pub async fn cloud_verify<H: Hold>(
         ok: checked.is_ok(),
         error: checked.err().as_ref().map(crate::error_code),
     })
+}
+
+/// A queued verification retains the original error (including Retry-After),
+/// instead of reducing it to the synchronous inspection RPC's display code.
+pub(crate) async fn verify_download<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<()> {
+    let entry = h
+        .with(|c| c.cloud_entry(upload_id)?.ok_or(Error::NotFound))
+        .await?;
+    let manifest = entry.manifest.as_ref().ok_or(Error::RecoveryIncomplete)?;
+    let hold = fetch_chunks(h, upload_id, &entry.plan, manifest, progress).await?;
+    h.with(|c| {
+        let result = c.verified(upload_id, manifest);
+        c.release_chunks(&hold)?;
+        result
+    })
+    .await
 }
 
 /// The cloud's room as the relay projects it, with what this device knows

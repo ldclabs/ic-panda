@@ -113,6 +113,7 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("lib-open:", Class::Stays),
     ("lib-import:", Class::Stays),
     ("lib-cloud:", Class::Stays),
+    ("lib-fetch:", Class::Stays),
     ("lib-link:", Class::Stays),
     ("backup:", Class::Stays),
     ("mobile-transfer:", Class::Stays),

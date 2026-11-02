@@ -424,7 +424,10 @@ inline editors alone handle their own cancel shortcut.
 - **Adding files** — a job card per file with its chunks done, above the
   library's list; a card for a backup or a fetch the same way. Done when
   the daemon has it encrypted; a backup is its own, explicit step with a
-  confirmation that names what goes and the cloud's room.
+  confirmation that names what goes and the cloud's room. Cloud tasks remain
+  visible on the Cloud backups page too. Transferred bytes do not mean success:
+  show an indeterminate committing/verifying phase until the daemon confirms the
+  result, and keep pause, retry deadline and retry controls on the same card.
 - **Status of a file** — one icon with a tooltip, in the row and as a pill
   in the detail: on this device, backing up, backed up, only in the cloud,
   over the cloud's limit, failed. Never by color alone.

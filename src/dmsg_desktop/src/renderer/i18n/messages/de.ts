@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Übertragung eingereiht. Fortschritt unter Dateien verfolgen.",
+    "transferLockPauses": "Sperren pausiert Übertragungen; Entsperren setzt sie fort.",
+    "transferLockOnline": "Hintergrund-Online behält den Gerätesignaturschlüssel, um verschlüsselte Sicherungen auch gesperrt abzuschließen. Downloads warten auf das Entsperren.",
+    "transferCommitting": "Cloud-Sicherung wird bestätigt…",
+
     "syncInitial": "Erste Synchronisierung",
     "syncInitialWaiting": "Warten auf erste Synchronisierung",
     "syncInventory": "Kontoinhalt wird erfasst…",

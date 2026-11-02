@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "เพิ่มการโอนในคิวแล้ว ติดตามความคืบหน้าในไฟล์",
+    "transferLockPauses": "การล็อกจะพักการโอน และดำเนินต่อเมื่อปลดล็อก",
+    "transferLockOnline": "โหมดออนไลน์เบื้องหลังเก็บคีย์ลงนามอุปกรณ์ไว้เพื่อสำรองข้อมูลที่เข้ารหัสต่อขณะล็อก การดาวน์โหลดรอการปลดล็อก",
+    "transferCommitting": "กำลังยืนยันการสำรองข้อมูลบนคลาวด์…",
+
     "syncInitial": "ซิงค์ครั้งแรก",
     "syncInitialWaiting": "กำลังรอซิงค์ครั้งแรก",
     "syncInventory": "กำลังอ่านรายการเนื้อหาบัญชี…",

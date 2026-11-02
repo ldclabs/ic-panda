@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "transferQueued": "Transfert en attente. Suivez sa progression dans Fichiers.",
+    "transferLockPauses": "Le verrouillage suspend les transferts ; le déverrouillage les reprend.",
+    "transferLockOnline": "Le mode en ligne en arrière-plan conserve la clé de signature de l’appareil pour terminer les sauvegardes chiffrées même verrouillé. Les téléchargements attendent le déverrouillage.",
+    "transferCommitting": "Confirmation de la sauvegarde en ligne…",
+
     "syncInitial": "Première synchronisation",
     "syncInitialWaiting": "En attente de la première synchronisation",
     "syncInventory": "Lecture de l’inventaire du compte…",

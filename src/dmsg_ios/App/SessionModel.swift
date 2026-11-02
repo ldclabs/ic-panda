@@ -63,6 +63,7 @@ final class SessionModel {
     var vaultHasMore = false
     let clipboard = PrivateClipboard()
     let transfer = TransferModel()
+    let fileTransfers = FileTransfers()
     let deviceTransfer = DeviceTransferModel()
     let apple = NativeApple()
     let push = NativePush()
@@ -309,6 +310,7 @@ final class SessionModel {
         if (session?.state == "unlocked" && state.state != "unlocked") ||
             (session?.account != nil && session?.account != state.account) ||
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
+            fileTransfers.stop()
             stopAutomaticSync(.sessionChanged); contentSync = nil
             nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
             epoch &+= 1; viewGeneration &+= 1
@@ -485,6 +487,7 @@ final class SessionModel {
         concealed = true
         recoveryOperation?.cancel()
         epoch &+= 1
+        fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.background()
         engine?.suspend()
@@ -548,6 +551,7 @@ final class SessionModel {
         (try? SystemExports(.files))?.lockFiles()
         lifecycleGeneration &+= 1
         isForeground = false
+        fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.reset()
         recoveryOperation?.cancel(); recoveryRequest = nil; checkingRecovery = false
@@ -584,6 +588,7 @@ final class SessionModel {
         stopAutomaticSync(.locked); contentSync = nil
         notifications.clearVisibility()
         (try? SystemExports(.files))?.lockFiles()
+        fileTransfers.stop()
         transfer.cancel()
         recoveryOperation?.cancel()
         epoch &+= 1

@@ -15,7 +15,7 @@
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
-  import { added, backups, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
+  import { added, backups, downloads, scopeJobs, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Links from './files/Links.svelte'
   import Detail from './files/Detail.svelte'
@@ -100,6 +100,8 @@
   let resolved = $state<Record<string, string>>({})
   let cancelling = false
 
+  $effect(() => scopeJobs(status?.account ?? null))
+
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
   const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && !tag)
@@ -150,11 +152,11 @@
   const failure = (e: unknown) => (code(e) === 'IDEMPOTENCY_CONFLICT' ? t('nameTaken') : errorText(e))
   const fail = (e: unknown) => toast(() => failure(e), planAction(e))
 
-  async function attempt(work: () => Promise<unknown>, done?: string) {
+  async function attempt(work: () => Promise<unknown>, done?: string | (() => string)) {
     busy = true
     try {
       await work()
-      if (done) toast(() => done)
+      if (done) toast(typeof done === 'function' ? done : () => done)
     } catch (e) {
       fail(e)
     } finally {
@@ -216,19 +218,21 @@
 
   const reloadMetadata = single(async () => {
     const account = status?.account
-    const [local, disk, shares, running, tagList] = await Promise.all([
+    const [local, disk, shares, running, tagList, fetchingJobs] = await Promise.all([
       call('files/usage').catch(() => null),
       call('files/mount_status').catch(() => null),
       call('files/share_links').catch(() => []),
-      call('files/backup_status').catch(() => []),
-      call('files/tags').catch(() => [])
+      call<any[]>('files/backup_status').catch(() => null),
+      call('files/tags').catch(() => []),
+      call<any[]>('files/download_status').catch(() => null)
     ])
     if (!unlocked || status?.account !== account) return
     usage = local
     mount = disk
     links = shares
     tags = tagList
-    backups(running)
+    if (running) backups(running)
+    if (fetchingJobs) downloads(fetchingJobs)
   })
 
   /** Show the selected place before loading ancillary counts and cloud quota. */
@@ -561,7 +565,7 @@
       const request: any = await call('files/backup', { ids: backing.ids, all_versions: backing.allVersions })
       backing = null
       if (request.skipped?.length) toast(() => t('backupSkipped', { n: request.skipped.length }))
-    }, t('backupStarted'))
+    }, () => t('backupStarted'))
 
   async function askShare(id: string, version: string | null, name: string) {
     const channels: any[] = await call('channel/list').catch(() => [])
@@ -632,11 +636,11 @@
   })
 
   const refreshCloud = () => attempt(() => call('files/cloud_refresh'))
-  const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder }), t('fetched'))
+  const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder, background: true }), () => t('transferQueued'))
   const verifyBackup = (upload: string) =>
     attempt(async () => {
-      const check: any = await call('files/cloud_verify', { upload_id: upload })
-      toast(() => (check.ok ? t('verified') : `${t('error')}: ${check.error}`))
+      await call('files/cloud_verify', { upload_id: upload, background: true })
+      toast(() => t('transferQueued'))
     })
   const deleteCloud = () =>
     attempt(async () => {
@@ -647,9 +651,12 @@
   /** A cancelled backup leaves its card at once; the daemon keeps the version on this device. */
   const cancelBackup = (job: Job) =>
     attempt(async () => {
-      await call('files/backup_cancel', { id: job.name, version: job.version })
+      if (job.kind === 'backup') await call('files/backup_cancel', { id: job.name, version: job.version })
+      else await call('files/download_cancel', { upload_id: job.upload ?? job.name })
       dismiss(job.key)
     })
+
+  const retryTransfer = (job: Job) => attempt(() => call(job.kind === 'backup' ? 'files/backup_retry' : 'files/download_retry', { id: job.name, version: job.version, upload_id: job.upload ?? job.name }))
 
   /** A copy another program changed: kept as a new version, or let go; the copy is removed either way. */
   const settleCopy = (save: boolean) =>
@@ -660,6 +667,7 @@
     })
 
   onMount(() => {
+    const transferTimer = setInterval(() => { if (unlocked && jobs.some(j => j.kind !== 'add' && j.stage !== 'done')) void reloadMetadata() }, 1000)
     const inventoryTimer = setInterval(() => void refreshInventory(), 60_000)
     const stop = watchDisplays(['usage'], (mode) => refreshCloudUsage(mode))
     const offChange = onChange(['files/changed', 'session/changed'], reload)
@@ -673,6 +681,7 @@
     })
     return () => {
       offChange()
+      clearInterval(transferTimer)
       clearInterval(inventoryTimer)
       stop()
       offWork()
@@ -754,8 +763,8 @@
   ondrop={onDrop}
   data-testid="files"
 >
-  {#if error === 'LOCKED'}
-    <Locked {status} testid="files-locked" />
+  {#if !unlocked || error === 'LOCKED'}
+    <div class="flex flex-1 flex-col items-center justify-center gap-3"><Locked {status} testid="files-locked" /><p class="max-w-lg px-6 text-center text-[12.5px] text-muted">{t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p></div>
   {:else}
     <div class="border-b border-line px-3 py-2 @min-[800px]:hidden">
       <button class={buttonClass('ghost', 'sm')} onclick={() => (placesOpen = true)} data-testid="files-places-open"><Icon name="folder" />{t('files')}</button>
@@ -768,7 +777,7 @@
     {#if scope === 'links'}
       <div class="min-w-0 flex-1">{#key status?.account}<Links {unlocked} />{/key}</div>
     {:else if scope === 'cloud'}
-      <div class="min-w-0 flex-1">
+      <div class="relative min-w-0 flex-1">
         <Cloud
           entries={cloud}
           usage={cloudUsage}
@@ -781,6 +790,7 @@
           onVerify={verifyBackup}
           onDelete={(uploads) => (deletingCloud = uploads)}
         />
+        <Jobs {nameOf} onCancel={cancelBackup} onRetry={retryTransfer} onCancelImport={cancelImport} />
       </div>
     {:else if scope === 'trash'}
       <div class="min-w-0 flex-1">
@@ -960,7 +970,7 @@
             <li bind:this={sentinel} class="py-3 text-center text-[11.5px] text-faint" data-testid="files-more-rows">{t('moreRows', { n: rows.length - shown.length })}</li>
           {/if}
         </ul>
-        <Jobs {nameOf} onCancel={cancelBackup} onCancelImport={cancelImport} />
+        <Jobs {nameOf} onCancel={cancelBackup} onRetry={retryTransfer} onCancelImport={cancelImport} />
       </section>
 
       <div class="min-w-0 flex-1">
@@ -1076,7 +1086,7 @@
 
 <Dialog bind:open={() => !!backing, (next) => !next && (backing = null)} title={t('backupTitle')} icon="cloud-up" testid="files-backup-dialog">
   {#if backing}
-    <p class="text-[13.5px] leading-relaxed">{t('backupHint', { n: backing.count, size: size(backing.bytes) })}</p>
+    <p class="text-[13.5px] leading-relaxed">{t('backupHint', { n: backing.count, size: size(backing.bytes) })} {t(status?.background_online ? 'transferLockOnline' : 'transferLockPauses')}</p>
     <Notice tone={backing.usage?.storage_limit && backing.usage.reserved + backing.usage.committed + backing.bytes > backing.usage.storage_limit ? 'warn' : 'info'} class="mt-3" icon="sync">
       {backing.usage?.storage_limit ? t('cloudRoom', { used: size(backing.usage.reserved + backing.usage.committed), limit: size(backing.usage.storage_limit) }) : t('cloudRoomUnknown')}
     </Notice>

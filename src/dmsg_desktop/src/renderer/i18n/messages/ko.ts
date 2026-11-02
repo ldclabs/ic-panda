@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "전송이 대기열에 추가되었습니다. 파일에서 진행 상황을 확인하세요.",
+    "transferLockPauses": "잠그면 전송이 일시 중지되고 잠금을 해제하면 재개됩니다.",
+    "transferLockOnline": "백그라운드 온라인은 기기 서명 키를 유지하여 잠금 중에도 암호화된 백업을 완료합니다. 다운로드는 잠금 해제를 기다립니다.",
+    "transferCommitting": "클라우드 백업 확인 중…",
+
     "syncInitial": "첫 동기화",
     "syncInitialWaiting": "첫 동기화 대기 중",
     "syncInventory": "계정 콘텐츠 목록 읽는 중…",

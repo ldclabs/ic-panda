@@ -8,8 +8,9 @@ use crate::client::Client;
 use crate::files::{BlobStore, Source};
 use crate::hold::Hold;
 use dmsg_types::{Error, Hash, Result, ensure};
-use futures_util::future::try_join_all;
+use futures_util::{StreamExt, stream};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 /// One ciphertext chunk of a plan.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -170,6 +171,56 @@ pub(crate) async fn upload<H: Hold>(
     source: Source,
     mut progress: impl FnMut(&mut Client, usize) -> Result<()> + Send,
 ) -> Result<Option<String>> {
+    let mut acknowledged: BTreeSet<usize> = (0..sent.min(plan.chunks.len())).collect();
+    upload_parts(
+        h,
+        base,
+        plan,
+        manifest,
+        &acknowledged.clone(),
+        source,
+        |c, event| {
+            match event {
+                PartProgress::Reset => {
+                    acknowledged.clear();
+                    sent = 0;
+                    return progress(c, 0);
+                }
+                PartProgress::Stored(index) => {
+                    acknowledged.insert(index);
+                }
+                PartProgress::Committing => return Ok(()),
+            }
+            let through = (0..plan.chunks.len())
+                .take_while(|i| acknowledged.contains(i))
+                .count();
+            if through != sent {
+                sent = through;
+                progress(c, through)?;
+            }
+            Ok(())
+        },
+    )
+    .await
+}
+
+pub(crate) enum PartProgress {
+    Reset,
+    Stored(usize),
+    Committing,
+}
+
+/// Resume independently acknowledged immutable blocks. Only a failed block is
+/// retried; successful replies are journaled before another slot is admitted.
+pub(crate) async fn upload_parts<H: Hold>(
+    h: &H,
+    base: &str,
+    plan: &UploadPlan,
+    manifest: &[u8],
+    acknowledged: &BTreeSet<usize>,
+    source: Source,
+    mut progress: impl FnMut(&mut Client, PartProgress) -> Result<()> + Send,
+) -> Result<Option<String>> {
     let path = format!("{base}/uploads/{}", plan.upload_id);
     // A pooled connection can close while a large edition is prepared.
     // Recheck this read once with fresh request authentication, keeping the
@@ -208,7 +259,6 @@ pub(crate) async fn upload<H: Hold>(
                 plan.expires_at > now + UPLOAD_MARGIN_MS,
                 Error::ResultExpired,
             )?;
-            sent = 0;
             true
         }
     };
@@ -221,43 +271,60 @@ pub(crate) async fn upload<H: Hold>(
         )
         .await?;
     }
-    // Chunks are independent. Bound file batches to four MiB-sized chunks;
-    // invitations can send eight small envelopes together. Progress advances
-    // only after the whole batch is acknowledged, so a failed batch resumes
-    // safely under the same immutable plan.
+    if previous.is_none() {
+        h.with(|c| progress(c, PartProgress::Reset)).await?;
+    }
     let width = if plan.kind == "envelopes" { 8 } else { 4 };
-    sent = sent.min(plan.chunks.len());
-    let mut manifest_sent = false;
-    for group in plan.chunks[sent..].chunks(width) {
-        let through = sent + group.len();
-        let with_manifest = through == plan.chunks.len();
-        let (relay, requests) = h
-            .signed(|c| {
-                let mut requests = Vec::with_capacity(group.len() + usize::from(with_manifest));
-                for (offset, chunk) in group.iter().enumerate() {
-                    let bytes = c
-                        .source(source)?
-                        .chunk(&chunk.digest)?
-                        .ok_or(Error::RecoveryIncomplete)?;
-                    ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;
-                    requests
-                        .push(c.signed_put(&format!("{path}/chunks/{}", sent + offset), &bytes)?);
+    let count = plan.chunks.len();
+    let parts: Vec<usize> = (0..=count)
+        .filter(|i| previous.is_none() || *i == count || !acknowledged.contains(i))
+        .collect();
+    let mut pending = stream::iter(parts.into_iter().map(|index| {
+        let path = &path;
+        async move {
+            let part = if index == count {
+                "manifest".into()
+            } else {
+                index.to_string()
+            };
+            let path = format!("{path}/chunks/{part}");
+            let mut result = Ok(serde_json::Value::Null);
+            for attempt in 0..3 {
+                result = h
+                    .send(|c| {
+                        if index == count {
+                            return c.signed_put(&path, manifest);
+                        }
+                        let chunk = &plan.chunks[index];
+                        let bytes = c
+                            .source(source)?
+                            .chunk(&chunk.digest)?
+                            .ok_or(Error::RecoveryIncomplete)?;
+                        ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;
+                        c.signed_put(&path, &bytes)
+                    })
+                    .await;
+                match &result {
+                    Err(error @ (Error::Unavailable(_) | Error::ExecutionUnknown))
+                        if attempt < 2 && crate::transport::retry_after(error).is_none() =>
+                    {
+                        futures_timer::Delay::new(std::time::Duration::from_millis(500 << attempt))
+                            .await;
+                    }
+                    _ => break,
                 }
-                if with_manifest {
-                    requests.push(c.signed_put(&format!("{path}/chunks/manifest"), manifest)?);
-                }
-                Ok(requests)
-            })
-            .await?;
-        try_join_all(requests.into_iter().map(|request| relay.send(request))).await?;
-        h.with(|c| progress(c, through)).await?;
-        sent = through;
-        manifest_sent |= with_manifest;
+            }
+            (index, result)
+        }
+    }))
+    .buffer_unordered(width);
+    while let Some((index, result)) = pending.next().await {
+        result?;
+        if index < count {
+            h.with(|c| progress(c, PartProgress::Stored(index))).await?;
+        }
     }
-    if !manifest_sent {
-        h.send(|c| c.signed_put(&format!("{path}/chunks/manifest"), manifest))
-            .await?;
-    }
+    h.with(|c| progress(c, PartProgress::Committing)).await?;
     finalize(h, base, plan).await
 }
 
@@ -268,6 +335,11 @@ pub(crate) async fn finalize<H: Hold>(
     base: &str,
     plan: &UploadPlan,
 ) -> Result<Option<String>> {
+    // Only large backups need a fresh full authorization window. Ordinary
+    // content sync already reconciles its own mutations and keeps its hot path.
+    if plan.chunks.len() > 128 {
+        h.warm(crate::client::Warm::RelayFresh).await?;
+    }
     let result = h
         .post(
             &format!("{base}/uploads/finalize"),
@@ -277,7 +349,24 @@ pub(crate) async fn finalize<H: Hold>(
             },
             &Hash::new(crate::crypto::random_id()),
         )
-        .await?;
+        .await;
+    let result = match result {
+        Ok(result) => result,
+        Err(error @ (Error::ExecutionUnknown | Error::Unavailable(_))) if plan.kind == "backup" => {
+            if let Ok(Some(status)) = h.find(&format!("{base}/uploads/{}", plan.upload_id)).await {
+                let status: UploadStatus =
+                    serde_json::from_value(status).map_err(|_| Error::IntegrityFailed)?;
+                ensure(status.plan == *plan, Error::IdempotencyConflict)?;
+                if status.status == "committed"
+                    && (plan.kind != "avatar" || status.public_url.is_some())
+                {
+                    return Ok(status.public_url);
+                }
+            }
+            return Err(error);
+        }
+        Err(error) => return Err(error),
+    };
     ensure(
         result["upload_id"] == plan.upload_id.as_str()
             && result["digest"] == plan.manifest_digest.as_str()

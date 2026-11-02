@@ -96,18 +96,18 @@
         </div>
       {/if}
     {:else}
-      <div class="grid gap-4">
+      <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         {#each groups as [path, list] (path)}
           <div>
             <h3 class="mb-1.5 flex items-center gap-1.5 px-1 text-[12px] font-medium text-faint"><Icon name="folder" class="size-3.5" />{path === '/' ? t('library') : path}</h3>
-            <ul class="divide-y divide-line">
+            <ul class="min-w-0 divide-y divide-line">
               {#each list as entry (entry.upload_id)}
                 <li class="flex items-center gap-3 px-3 py-2.5" data-upload={entry.upload_id}>
                   <Checkbox checked={picked.includes(entry.upload_id)} onCheckedChange={(on) => toggle(entry.upload_id, on)} disabled={!unlocked} testid="files-cloud-pick" />
                   <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={entry.needs_root ? 'cloud-off' : fileIcon(entry.mime)} /></span>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="truncate text-[13.5px] font-medium">{entry.name ?? entry.upload_id.slice(0, 12) + '…'}</span>
+                      <span class="min-w-0 max-w-full truncate text-[13.5px] font-medium" title={entry.name}>{entry.name ?? entry.upload_id.slice(0, 12) + '…'}</span>
                       {#if entry.local}<Pill tone="ok"><Icon name="drive" />{t('hereToo')}</Pill>{/if}
                       {#if entry.needs_root}<Pill tone="warn"><Icon name="warning" />{t('needsRoot')}</Pill>{/if}
                     </div>

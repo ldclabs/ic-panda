@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Đã xếp hàng truyền. Theo dõi tiến độ trong Tệp.",
+    "transferLockPauses": "Khóa sẽ tạm dừng truyền; mở khóa sẽ tiếp tục.",
+    "transferLockOnline": "Trực tuyến nền giữ khóa ký thiết bị để hoàn tất bản sao mã hóa khi bị khóa. Tải xuống chờ mở khóa.",
+    "transferCommitting": "Đang xác nhận bản sao đám mây…",
+
     "syncInitial": "Đồng bộ lần đầu",
     "syncInitialWaiting": "Đang chờ đồng bộ lần đầu",
     "syncInventory": "Đang đọc danh mục nội dung tài khoản…",

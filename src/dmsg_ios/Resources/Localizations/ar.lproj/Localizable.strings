@@ -46,6 +46,8 @@
 	<string>استرداد الحساب معلّق</string>
 	<key>Account security</key>
 	<string>أمان الحساب</string>
+	<key>Account synchronization</key>
+	<string>مزامنة الحساب</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>تتغيّر حماية الحساب والأجهزة والهويات معًا. لا يمكن استبدال الموافقة المطلوبة بنافذة تأكيد عادية.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>طلب المتصفح</string>
 	<key>Cached data</key>
 	<string>البيانات المخزنة مؤقتًا</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>الكاميرا غير متاحة. الصق الدعوة أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Cancel</key>
 	<string>إلغاء</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>مسح ذاكرة التخزين المؤقت</string>
 	<key>Closed</key>
 	<string>مغلق</string>
+	<key>Cloud backup file limit</key>
+	<string>الحد الأقصى لحجم ملف النسخ السحابي</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>تعذر تحديث قائمة النسخ الاحتياطية السحابية. أعد المحاولة في الملفات.</string>
 	<key>Cloud backups</key>
 	<string>النسخ السحابية</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>اكتمل الحذف من السحابة</string>
 	<key>Cloud storage</key>
 	<string>التخزين السحابي</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
 	<key>Complete</key>
 	<string>اكتمل</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>تأكيد هذا التغيير الأمني للحساب</string>
 	<key>Confirm your completed steps</key>
 	<string>أكّد الخطوات التي أنجزتها</string>
+	<key>Confirming cloud backup…</key>
+	<string>جارٍ تأكيد النسخة السحابية…</string>
 	<key>Conflicting version</key>
 	<string>النسخة المتعارضة</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>رمز QR لطلب استبدال الجهاز</string>
 	<key>Device request</key>
 	<string>طلب الجهاز</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>لم يتم تأكيد وصول طلب الجهاز. تحقق من الاتصال والكمبيوتر قبل إعادة المحاولة.</string>
 	<key>Device-bound workspace</key>
 	<string>مساحة عمل مرتبطة بهذا الجهاز</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>تنزيل نسخة مشفّرة في الخلفية</string>
 	<key>Download sessions</key>
 	<string>جلسات التنزيل</string>
+	<key>Downloaded</key>
+	<string>تم التنزيل</string>
+	<key>Downloading account content…</key>
+	<string>جارٍ تنزيل محتوى الحساب…</string>
 	<key>Downloading encrypted backup</key>
 	<string>جارٍ تنزيل النسخة الاحتياطية المشفّرة</string>
+	<key>Downloads</key>
+	<string>التنزيلات</string>
 	<key>Draft: </key>
 	<string>مسودة: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>اسم الملف</string>
 	<key>File not available on this device</key>
 	<string>الملف غير متاح على هذا الجهاز</string>
+	<key>File transfers</key>
+	<string>نقل الملفات</string>
 	<key>File versions</key>
 	<string>إصدارات الملف</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>البصمة</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>جارٍ إكمال تحديث الأمان. ينتظر المحتوى الجديد حتى يكتمل.</string>
+	<key>First sync</key>
+	<string>المزامنة الأولى</string>
 	<key>Folder name</key>
 	<string>اسم المجلد</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>هل راجعت النتيجة غير المتاحة؟</string>
 	<key>Hidden fields differ: </key>
 	<string>تختلف الحقول المخفية: </string>
+	<key>Hidden message</key>
+	<string>رسالة أخفيتها</string>
 	<key>Hidden value</key>
 	<string>قيمة مخفية</string>
 	<key>Hide</key>
 	<string>إخفاء</string>
+	<key>Hide on this device</key>
+	<string>إخفاء على هذا الجهاز</string>
 	<key>Hide sample sender</key>
 	<string>إخفاء المرسل التجريبي</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>القفل فور الانتقال إلى الخلفية</string>
 	<key>Lock workspace</key>
 	<string>قفل مساحة العمل</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>يوقف القفل عمليات النقل مؤقتًا، وتُستأنف عند إلغاء القفل.</string>
 	<key>Login identities</key>
 	<string>هويات تسجيل الدخول</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>سر جديد</string>
 	<key>Next</key>
 	<string>التالي</string>
+	<key>Next retry</key>
+	<string>المحاولة التالية</string>
 	<key>No</key>
 	<string>لا</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>لا توجد مرفقات للعنصر</string>
 	<key>No letters yet</key>
 	<string>لا توجد رسائل واردة بعد</string>
+	<key>No messages</key>
+	<string>لا توجد رسائل</string>
 	<key>No pending backups</key>
 	<string>لا توجد نسخ احتياطية معلّقة</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>قراءة السياسة المنشورة</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>نسخ للقراءة فقط محفوظة للاستيراد. حذف إحداها لا يؤثر في جهاز iPhone القديم ولا في حسابك.</string>
+	<key>Reading account inventory…</key>
+	<string>جارٍ قراءة قائمة محتوى الحساب…</string>
 	<key>Ready</key>
 	<string>جاهزة</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>محفوظ على هذا الجهاز. تنتظر التغييرات المزامنة.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
+	<key>Scan desktop invitation</key>
+	<string>مسح دعوة الكمبيوتر</string>
 	<key>Scan device request</key>
 	<string>مسح طلب الجهاز</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>تتضمن حقول OTP المحددة المفتاح السري القابل لإعادة الاستخدام، وليس الرمز الحالي فقط.</string>
 	<key>Selected accounts</key>
 	<string>الحسابات المختارة</string>
+	<key>Send device request</key>
+	<string>إرسال طلب الجهاز</string>
 	<key>Send free letter</key>
 	<string>إرسال رسالة مجانية</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>اللقطات المشتركة</string>
 	<key>Shared with dMsg</key>
 	<string>تمت مشاركته مع dMsg</string>
+	<key>Show</key>
+	<string>إظهار</string>
 	<key>Show dismissed findings</key>
 	<string>إظهار النتائج المستبعدة</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>سجّل الدخول مجددًا لفتح مساحة عملك المشفّرة على هذا الـ iPhone.</string>
 	<key>Sign in to another account</key>
 	<string>تسجيل الدخول إلى حساب آخر</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>سجّل الدخول إلى الحساب نفسه على الجهاز الجديد، وامسح رمز QR على الكمبيوتر، ثم راجع الطلب ووافق عليه على الكمبيوتر.</string>
 	<key>Sign out</key>
 	<string>تسجيل الخروج</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>تبديل الحساب</string>
 	<key>Switch to this account</key>
 	<string>التبديل إلى هذا الحساب</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>تتحقق المزامنة من محتوى الحساب والنسخ الاحتياطية السحابية. افتح المحادثات أو الوارد لاستقبال الرسائل؛ استعد الملفات بشكل منفصل.</string>
 	<key>Sync conflicts</key>
 	<string>تعارضات المزامنة</string>
+	<key>Sync is waiting for the server.</key>
+	<string>المزامنة تنتظر الخادم.</string>
 	<key>Sync now</key>
 	<string>مزامنة الآن</string>
+	<key>Sync paused</key>
+	<string>المزامنة متوقفة مؤقتًا</string>
 	<key>Synced</key>
 	<string>تمت المزامنة</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>نسخ الملفات غير متاحة أو منتهية. أنشئ لقطة جديدة في dMsg ثم أعد المحاولة.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>تبقى مكتبة الملفات على الجهاز القديم وحده. وما لم يُزامَن أو يُنسخ احتياطيًا هناك يضيع بعد إلغائه.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>الدعوة مرتبطة بهذا الحساب. مشاركة الرابط لا تمنح حسابًا آخر حق الوصول.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>انقل ملكية محادثاتك أو أرشفها أولًا</string>
 	<key>Transfer proposal</key>
 	<string>اقتراح تحويل</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>أُضيف النقل إلى قائمة الانتظار. تابع تقدمه في الملفات.</string>
 	<key>Transferred</key>
 	<string>المنقول</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>جارٍ الرفع</string>
 	<key>Uploading encrypted backup</key>
 	<string>جارٍ رفع النسخة الاحتياطية المشفّرة</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>الرفع متوقف مؤقتًا. حرّر مساحة سحابية وأعد المحاولة؛ يستمر الاستقبال.</string>
 	<key>Url</key>
 	<string>الرابط</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>الخزنة</string>
 	<key>Vault tools</key>
 	<string>أدوات الخزنة</string>
+	<key>Verified</key>
+	<string>تم التحقق</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>تم التحقق من المرفق وحفظه في الملفات.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>تحقّق من بصمتي الجهاز والمفتاح كاملتين. سيثبت هذا المفتاح الموافقة العتادية على الإجراءات المحمية لهذا الحساب.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>التحقق من بصمة الجهاز كاملةً</string>
+	<key>Verifying account content…</key>
+	<string>جارٍ التحقق من محتوى الحساب…</string>
+	<key>Verifying…</key>
+	<string>جارٍ التحقق…</string>
 	<key>Version history</key>
 	<string>سجل الإصدارات</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>بانتظار تأكيد المتصفح</string>
 	<key>Waiting for confirmation: </key>
 	<string>بانتظار التأكيد: </string>
+	<key>Waiting for first sync</key>
+	<string>بانتظار المزامنة الأولى</string>
 	<key>Waiting for notification registration…</key>
 	<string>بانتظار تسجيل الإشعارات…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>مُنشأ</string>
 	<key>not available</key>
 	<string>غير متاح</string>
-	<key>No messages</key>
-	<string>لا توجد رسائل</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
-	<key>Scan desktop invitation</key>
-	<string>مسح دعوة الكمبيوتر</string>
-	<key>Send device request</key>
-	<string>إرسال طلب الجهاز</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>الكاميرا غير متاحة. الصق الدعوة أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>سجّل الدخول إلى الحساب نفسه على الجهاز الجديد، وامسح رمز QR على الكمبيوتر، ثم راجع الطلب ووافق عليه على الكمبيوتر.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>لم يتم تأكيد وصول طلب الجهاز. تحقق من الاتصال والكمبيوتر قبل إعادة المحاولة.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
-	<key>Cloud backup file limit</key>
-	<string>الحد الأقصى لحجم ملف النسخ السحابي</string>
-	<key>First sync</key>
-	<string>المزامنة الأولى</string>
-	<key>Sync paused</key>
-	<string>المزامنة متوقفة مؤقتًا</string>
-	<key>Waiting for first sync</key>
-	<string>بانتظار المزامنة الأولى</string>
-	<key>Account synchronization</key>
-	<string>مزامنة الحساب</string>
-	<key>Reading account inventory…</key>
-	<string>جارٍ قراءة قائمة محتوى الحساب…</string>
-	<key>Downloading account content…</key>
-	<string>جارٍ تنزيل محتوى الحساب…</string>
-	<key>Verifying account content…</key>
-	<string>جارٍ التحقق من محتوى الحساب…</string>
-	<key>Downloaded</key>
-	<string>تم التنزيل</string>
-	<key>Next retry</key>
-	<string>المحاولة التالية</string>
-	<key>Sync is waiting for the server.</key>
-	<string>المزامنة تنتظر الخادم.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>الرفع متوقف مؤقتًا. حرّر مساحة سحابية وأعد المحاولة؛ يستمر الاستقبال.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>تتحقق المزامنة من محتوى الحساب والنسخ الاحتياطية السحابية. افتح المحادثات أو الوارد لاستقبال الرسائل؛ استعد الملفات بشكل منفصل.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>تعذر تحديث قائمة النسخ الاحتياطية السحابية. أعد المحاولة في الملفات.</string>
-	<key>Hidden message</key>
-	<string>رسالة أخفيتها</string>
-	<key>Hide on this device</key>
-	<string>إخفاء على هذا الجهاز</string>
-	<key>Show</key>
-	<string>إظهار</string>
 </dict>
 </plist>

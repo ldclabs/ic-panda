@@ -46,6 +46,8 @@
 	<string>Восстановление аккаунта ожидает выполнения</string>
 	<key>Account security</key>
 	<string>Безопасность аккаунта</string>
+	<key>Account synchronization</key>
+	<string>Синхронизация аккаунта</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>Защита аккаунта, устройств и личностей меняется совместно. Обязательное подтверждение нельзя заменить обычным диалогом подтверждения.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>Запрос браузера</string>
 	<key>Cached data</key>
 	<string>Кэшированные данные</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
 	<key>Cancel</key>
 	<string>Отмена</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>Очистить кэш</string>
 	<key>Closed</key>
 	<string>Закрыто</string>
+	<key>Cloud backup file limit</key>
+	<string>Предел размера файла облачной копии</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Не удалось обновить список облачных копий. Повторите попытку в разделе «Файлы».</string>
 	<key>Cloud backups</key>
 	<string>Облачные копии</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>Удаление из облака завершено</string>
 	<key>Cloud storage</key>
 	<string>Облачное хранилище</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Сравните ID устройства на обоих экранах и подтвердите на компьютере.</string>
 	<key>Complete</key>
 	<string>Завершено</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>Подтвердить изменение безопасности аккаунта</string>
 	<key>Confirm your completed steps</key>
 	<string>Подтвердите выполненные шаги</string>
+	<key>Confirming cloud backup…</key>
+	<string>Подтверждение облачной копии…</string>
 	<key>Conflicting version</key>
 	<string>Конфликтующая версия</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>QR-код запроса на замену устройства</string>
 	<key>Device request</key>
 	<string>Запрос устройства</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Доставка запроса не подтверждена. Проверьте соединение и компьютер перед повторной попыткой.</string>
 	<key>Device-bound workspace</key>
 	<string>Привязка рабочего пространства к устройству</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>Скачать зашифрованную копию в фоне</string>
 	<key>Download sessions</key>
 	<string>Сеансы скачивания</string>
+	<key>Downloaded</key>
+	<string>Загружено</string>
+	<key>Downloading account content…</key>
+	<string>Загрузка данных аккаунта…</string>
 	<key>Downloading encrypted backup</key>
 	<string>Загрузка зашифрованной резервной копии</string>
+	<key>Downloads</key>
+	<string>Загрузки</string>
 	<key>Draft: </key>
 	<string>Черновик: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>Имя файла</string>
 	<key>File not available on this device</key>
 	<string>Файл недоступен на этом устройстве</string>
+	<key>File transfers</key>
+	<string>Передача файлов</string>
 	<key>File versions</key>
 	<string>Версии файла</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>Отпечаток</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>Завершается обновление безопасности. Новые данные ожидают его окончания.</string>
+	<key>First sync</key>
+	<string>Первая синхронизация</string>
 	<key>Folder name</key>
 	<string>Имя папки</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>Вы проверили отсутствующий результат?</string>
 	<key>Hidden fields differ: </key>
 	<string>Скрытые поля различаются: </string>
+	<key>Hidden message</key>
+	<string>Скрытое вами сообщение</string>
 	<key>Hidden value</key>
 	<string>Скрытое значение</string>
 	<key>Hide</key>
 	<string>Скрыть</string>
+	<key>Hide on this device</key>
+	<string>Скрыть на этом устройстве</string>
 	<key>Hide sample sender</key>
 	<string>Скрыть демонстрационного отправителя</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>Сразу блокировать в фоне</string>
 	<key>Lock workspace</key>
 	<string>Заблокировать рабочее пространство</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>Блокировка приостанавливает передачу, разблокировка возобновляет её.</string>
 	<key>Login identities</key>
 	<string>Учётные записи входа</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>Новый секрет</string>
 	<key>Next</key>
 	<string>Далее</string>
+	<key>Next retry</key>
+	<string>Следующая попытка</string>
 	<key>No</key>
 	<string>Нет</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>У записи нет вложений</string>
 	<key>No letters yet</key>
 	<string>Входящих писем пока нет</string>
+	<key>No messages</key>
+	<string>Сообщений нет</string>
 	<key>No pending backups</key>
 	<string>Нет ожидающих резервных копий</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>Прочитать опубликованную политику</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Копии только для чтения, сохранённые для импорта. Удаление копии не затрагивает старый iPhone и аккаунт.</string>
+	<key>Reading account inventory…</key>
+	<string>Чтение списка данных аккаунта…</string>
 	<key>Ready</key>
 	<string>Готово к запуску</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>Сохранено на этом устройстве. Изменения ожидают синхронизации.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Сохранено. Публикация ожидается.</string>
+	<key>Scan desktop invitation</key>
+	<string>Сканировать приглашение с компьютера</string>
 	<key>Scan device request</key>
 	<string>Сканировать запрос устройства</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>Выбранные поля OTP содержат многоразовый секретный ключ, а не только текущий код.</string>
 	<key>Selected accounts</key>
 	<string>Выбранные аккаунты</string>
+	<key>Send device request</key>
+	<string>Отправить запрос устройства</string>
 	<key>Send free letter</key>
 	<string>Отправить бесплатное письмо</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>Опубликованные снимки</string>
 	<key>Shared with dMsg</key>
 	<string>Передано в dMsg</string>
+	<key>Show</key>
+	<string>Показать</string>
 	<key>Show dismissed findings</key>
 	<string>Показать скрытые результаты</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>Войдите снова, чтобы разблокировать зашифрованное рабочее пространство на этом iPhone.</string>
 	<key>Sign in to another account</key>
 	<string>Войти в другой аккаунт</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Войдите в тот же аккаунт на новом устройстве, отсканируйте QR-код компьютера, затем проверьте и подтвердите запрос на компьютере.</string>
 	<key>Sign out</key>
 	<string>Выйти</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>Сменить аккаунт</string>
 	<key>Switch to this account</key>
 	<string>Переключиться на этот аккаунт</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Синхронизация проверяет данные аккаунта и облачные копии. Откройте разговоры или входящие для получения сообщений; файлы восстанавливаются отдельно.</string>
 	<key>Sync conflicts</key>
 	<string>Конфликты синхронизации</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Синхронизация ожидает сервер.</string>
 	<key>Sync now</key>
 	<string>Синхронизировать</string>
+	<key>Sync paused</key>
+	<string>Синхронизация приостановлена</string>
 	<key>Synced</key>
 	<string>Синхронизировано</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>Копии недоступны или истекли. Создайте новый снимок в dMsg и повторите попытку.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Библиотека файлов останется только на старом устройстве. То, что там не синхронизировалось и не копировалось, пропадёт после его отзыва.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Приглашение привязано к этому аккаунту. Передача ссылки не даёт доступа другому аккаунту.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>Сначала передайте или архивируйте свои беседы</string>
 	<key>Transfer proposal</key>
 	<string>Предложение перевода</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>Передача в очереди. Следите за ходом в разделе «Файлы».</string>
 	<key>Transferred</key>
 	<string>Передано</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>Загрузка</string>
 	<key>Uploading encrypted backup</key>
 	<string>Отправка зашифрованной резервной копии</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Отправка приостановлена. Освободите место в облаке и повторите попытку; приём продолжается.</string>
 	<key>Url</key>
 	<string>URL</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>Хранилище</string>
 	<key>Vault tools</key>
 	<string>Инструменты хранилища</string>
+	<key>Verified</key>
+	<string>проверено</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>Вложение проверено и сохранено в «Файлы».</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>Проверьте полные отпечатки устройства и ключа. Этот ключ будет доказывать аппаратное подтверждение защищённых действий аккаунта.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>Проверить полный отпечаток устройства</string>
+	<key>Verifying account content…</key>
+	<string>Проверка данных аккаунта…</string>
+	<key>Verifying…</key>
+	<string>Проверка…</string>
 	<key>Version history</key>
 	<string>История версий</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>Ожидание подтверждения браузера</string>
 	<key>Waiting for confirmation: </key>
 	<string>Ожидает подтверждения: </string>
+	<key>Waiting for first sync</key>
+	<string>Ожидание первой синхронизации</string>
 	<key>Waiting for notification registration…</key>
 	<string>Ожидание регистрации уведомлений…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>создан</string>
 	<key>not available</key>
 	<string>недоступен</string>
-	<key>No messages</key>
-	<string>Сообщений нет</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>Сравните ID устройства на обоих экранах и подтвердите на компьютере.</string>
-	<key>Scan desktop invitation</key>
-	<string>Сканировать приглашение с компьютера</string>
-	<key>Send device request</key>
-	<string>Отправить запрос устройства</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>Войдите в тот же аккаунт на новом устройстве, отсканируйте QR-код компьютера, затем проверьте и подтвердите запрос на компьютере.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>Доставка запроса не подтверждена. Проверьте соединение и компьютер перед повторной попыткой.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
-	<key>Cloud backup file limit</key>
-	<string>Предел размера файла облачной копии</string>
-	<key>First sync</key>
-	<string>Первая синхронизация</string>
-	<key>Sync paused</key>
-	<string>Синхронизация приостановлена</string>
-	<key>Waiting for first sync</key>
-	<string>Ожидание первой синхронизации</string>
-	<key>Account synchronization</key>
-	<string>Синхронизация аккаунта</string>
-	<key>Reading account inventory…</key>
-	<string>Чтение списка данных аккаунта…</string>
-	<key>Downloading account content…</key>
-	<string>Загрузка данных аккаунта…</string>
-	<key>Verifying account content…</key>
-	<string>Проверка данных аккаунта…</string>
-	<key>Downloaded</key>
-	<string>Загружено</string>
-	<key>Next retry</key>
-	<string>Следующая попытка</string>
-	<key>Sync is waiting for the server.</key>
-	<string>Синхронизация ожидает сервер.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>Отправка приостановлена. Освободите место в облаке и повторите попытку; приём продолжается.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>Синхронизация проверяет данные аккаунта и облачные копии. Откройте разговоры или входящие для получения сообщений; файлы восстанавливаются отдельно.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>Не удалось обновить список облачных копий. Повторите попытку в разделе «Файлы».</string>
-	<key>Hidden message</key>
-	<string>Скрытое вами сообщение</string>
-	<key>Hide on this device</key>
-	<string>Скрыть на этом устройстве</string>
-	<key>Show</key>
-	<string>Показать</string>
 </dict>
 </plist>

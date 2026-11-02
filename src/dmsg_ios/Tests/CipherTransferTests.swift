@@ -47,4 +47,22 @@ final class CipherTransferTests: XCTestCase {
         try store.receive(transfer.id, attempt: 1, slot: "0", temporary: input)
         XCTAssertTrue(try XCTUnwrap(store.snapshot()).ready)
     }
+    func testTransientBlockRetriesAreBoundedAndSurviveRestart() throws {
+        let (store, transfer, _, _) = try fixture()
+        try store.start(transfer)
+        let now = Date.now
+        for n in 1...3 {
+            try store.update(transfer.id) { $0.failed(slot: "0", status: 503, transient: true, now: now) }
+            let state = try XCTUnwrap(CipherTransferStore(root: store.root).snapshot())
+            XCTAssertNil(state.failure)
+            XCTAssertEqual(state.failures?["0"], n)
+            XCTAssertGreaterThan(try XCTUnwrap(state.retryAfter?["0"]), now)
+            XCTAssertFalse(state.ready)
+        }
+        try store.update(transfer.id) { $0.failed(slot: "0", status: 503, transient: true, now: now) }
+        XCTAssertEqual(try store.snapshot()?.failure, "transfer_failed")
+        try store.update(transfer.id) { $0.failure = nil; $0.failed(slot: "0", status: 403, transient: false) }
+        XCTAssertEqual(try store.snapshot()?.failure, "expired")
+    }
+
 }

@@ -19,7 +19,7 @@ async fn participant_images_cache_success_absence_and_failures_until_explicit_cl
             loop {
                 let (mut socket, _) = listener.accept().await.unwrap();
                 let mut request = [0; 4096];
-                socket.read(&mut request).await.unwrap();
+                assert!(socket.read(&mut request).await.unwrap() > 0);
                 calls.fetch_add(1, Ordering::SeqCst);
                 let body = b"RIFF0000WEBPfixture";
                 let head = format!(

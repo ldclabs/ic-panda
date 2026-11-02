@@ -1362,7 +1362,7 @@ async fn backup_jobs_stay_apart_from_the_vault_jobs_and_keep_their_chunks() {
     // The vault's sync jobs read as before, and the failed backup waits for
     // its next attempt instead of going again at once.
     assert_eq!(client.flush().await, Ok(0));
-    let run = super::backup::backup_run(&client.hold(), None, &mut |_, _, _| {})
+    let run = super::backup::backup_run(&client.hold(), &mut |_| {})
         .await
         .unwrap();
     assert_eq!((run.failed, run.pending), (0, 1));
@@ -1820,7 +1820,7 @@ async fn a_failed_backup_batch_keeps_its_checkpoint_and_retries_only_remaining_c
     };
     let server = tokio::spawn(async move {
         let mut batches = Vec::new();
-        for (count, success) in [(4, true), (3, false), (3, true)] {
+        for (count, success) in [(4, true), (3, false), (3, false), (3, false), (3, true)] {
             let mut sockets = Vec::new();
             let mut paths = Vec::new();
             for _ in 0..count {
@@ -1878,13 +1878,13 @@ async fn a_failed_backup_batch_keeps_its_checkpoint_and_retries_only_remaining_c
     let mut progress = Vec::new();
     let failed = tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        backup::backup_run(&h, None, &mut |_, sent, _| progress.push(sent)),
+        backup::backup_run(&h, &mut |job| progress.push(job.sent)),
     )
     .await
     .unwrap()
     .unwrap();
     assert_eq!(failed.failed, 1);
-    assert_eq!(progress, vec![4]);
+    assert_eq!(progress.last(), Some(&4));
     h.with(|c| {
         let mut job: BackupJob = c.workspace.store.library_job(&key)?.unwrap();
         assert_eq!(job.sent, 4);
@@ -1895,18 +1895,20 @@ async fn a_failed_backup_batch_keeps_its_checkpoint_and_retries_only_remaining_c
     .unwrap();
     let retried = tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        backup::backup_run(&h, None, &mut |_, sent, _| progress.push(sent)),
+        backup::backup_run(&h, &mut |job| progress.push(job.sent)),
     )
     .await
     .unwrap()
     .unwrap();
     assert_eq!(retried.completed, 1);
-    assert_eq!(progress, vec![4, 6]);
+    assert_eq!(progress.last(), Some(&6));
     let batches = server.await.unwrap();
     assert_eq!(
         batches,
         vec![
             vec!["0", "1", "2", "3"],
+            vec!["4", "5", "manifest"],
+            vec!["4", "5", "manifest"],
             vec!["4", "5", "manifest"],
             vec!["4", "5", "manifest"]
         ]

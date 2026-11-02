@@ -36,3 +36,19 @@ Inbox, mailbox and file-transfer operations use shared Host steps, releasing the
 client during network waits. Approved account/root changes and payment journals
 retain the existing exclusive mutation runner; ordinary reads do not enter it.
 Notification reconciliation does not download Inbox message bodies.
+
+
+## File transfers (2026-11-02)
+
+`restore_backup` now returns a durable queued download snapshot; it no longer
+returns a restored file before a long RPC finishes. Hosts drive `run_downloads`
+and observe `download_status`, with `retry_file_transfers` and `cancel_download`
+for explicit actions. `run_backups` continues to drive saved uploads without a
+15-second slice. Only terminal verified/committed status means success.
+
+iOS owns these runners at the active unlocked scene, rather than a file detail
+view. Navigation does not cancel them. Lock/background cancels foreground work;
+returning to the unlocked app resumes saved work. Explicit background ciphertext
+handoff remains separate: the OS receives no content/signing keys, retries only
+its original slots a bounded number of times and still requires foreground
+verification/finalization. Foreground runners do not race an OS handoff.

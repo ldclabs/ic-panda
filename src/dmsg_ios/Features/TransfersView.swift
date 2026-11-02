@@ -2,13 +2,6 @@ import SwiftUI
 
 struct TransfersView: View {
     @Environment(SessionModel.self) private var model
-    @State private var jobs: [Job] = []
-    @State private var action: Task<Void, Never>?
-    struct Job: Decodable, Identifiable {
-        let file: String; let version: String; let sent: UInt64; let chunks: UInt64; let error: String?
-        var id: String { file + ":" + version }
-    }
-    struct Run: Decodable { let pending: UInt64; let failed: UInt64; let paused: Bool }
     var body: some View {
         List {
             TransferStatusView()
@@ -16,38 +9,47 @@ struct TransfersView: View {
             NavigationLink("Shared with dMsg") { IncomingSharesView() }
             NavigationLink("Pending imports") { PendingImportsView() }
             Section("Pending backups") {
-                ForEach(jobs) { job in
+                Text("Locking pauses transfers; unlocking resumes them.").font(.footnote).foregroundStyle(.secondary)
+                ForEach(model.fileTransfers.backups) { job in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(job.file).font(.caption.monospaced()).lineLimit(1)
-                        ProgressView(value: Double(job.sent), total: Double(max(1, job.chunks)))
-                        Button("Continue this backup in background") { action = Task { await model.startBackgroundBackup(file: job.file, version: job.version) } }.disabled(model.busy)
-                        if let error = job.error { Text(error).font(.caption).foregroundStyle(.secondary) }
+                        Text(model.library.files.first(where: { $0.id == job.file })?.name ?? String(job.file.prefix(12)) + "…").font(.headline).lineLimit(2)
+                        transferProgress(id: job.id, stage: job.stage, bytes: job.bytes, total: job.totalBytes, error: job.error, retry: job.retryAt)
+                        Button("Continue this backup in background") { Task { await model.startBackgroundBackup(file: job.file, version: job.version) } }.disabled(model.busy || job.stage == "committing")
                     }
                 }
-                if !jobs.isEmpty {
-                    Button("Continue selected backups") { action = Task { await resume() } }.disabled(model.transfer.running)
-                } else { Text("No pending backups").foregroundStyle(.secondary) }
+                if model.fileTransfers.backups.isEmpty { Text("No pending backups").foregroundStyle(.secondary) }
             }
-        }.privateScreen().navigationTitle("Transfers").task { await load() }.refreshable { await load() }
-            .onDisappear { action?.cancel() }
-    }
-    private func load() async {
-        do { if let result = try await model.engine?.backupStatus() { jobs = try model.decode(result) } }
-        catch { model.report(error) }
-    }
-    private func resume() async {
-        guard let engine = model.engine else { return }; let epoch = model.epoch
-        do {
-            try await model.transfer.run(String(localized: "Backing up…")) { token in
-                repeat {
-                    let result = try await engine.runBackups(operation: token)
-                    guard epoch == model.epoch else { throw CancellationError() }
-                    let progress: Run = try model.decode(result)
-                    await load()
-                    if progress.pending == 0 || progress.failed > 0 || !progress.paused { break }
-                } while !Task.isCancelled && !model.concealed
+            Section("Downloads") {
+                ForEach(model.fileTransfers.downloads) { job in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(model.cloudBackups.first(where: { $0.id == job.id })?.name ?? String(localized: "Encrypted backup")).font(.headline)
+                        transferProgress(id: job.id, stage: job.stage, bytes: job.bytes, total: job.totalBytes, error: job.error, retry: job.retryAt)
+                        if job.stage != "done" {
+                            Button("Cancel", role: .destructive) { Task {
+                                do { try await model.engine?.cancelDownload(upload: job.id); await model.fileTransfers.load(model) }
+                                catch { model.report(error) }
+                            } }
+                        }
+                    }
+                }
             }
-            if epoch == model.epoch { await model.refresh() }
-        } catch { if epoch == model.epoch { model.report(error); await load() } }
+            if model.fileTransfers.backups.contains(where: { $0.error != nil }) || model.fileTransfers.downloads.contains(where: { $0.error != nil }) {
+                Button("Retry") { Task {
+                    do { try await model.engine?.retryFileTransfers(); await model.fileTransfers.load(model) }
+                    catch { model.report(error) }
+                } }
+            }
+        }.privateScreen().navigationTitle("File transfers").task { await model.fileTransfers.load(model) }
+            .refreshable { await model.fileTransfers.load(model) }
+    }
+
+    @ViewBuilder
+    private func transferProgress(id: String, stage: String, bytes: UInt64, total: UInt64, error: String?, retry: UInt64?) -> some View {
+        if stage == "committing" || stage == "verifying" { ProgressView().controlSize(.small) }
+        else { ProgressView(value: Double(bytes), total: Double(max(1, total))) }
+        Text(verbatim: "\(ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)) / \(ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .file))").font(.caption).foregroundStyle(.secondary)
+        Text(LocalizedStringKey(stage == "done" ? "Verified" : stage == "committing" ? "Confirming cloud backup…" : stage == "verifying" ? "Verifying…" : stage == "retrying" ? "Waiting" : stage == "paused" ? "Locking pauses transfers; unlocking resumes them." : stage == "queued" ? "Waiting" : stage == "uploading" ? "Backing up…" : "Restoring…")).font(.footnote).accessibilityIdentifier("transfer.stage.\(id)")
+        if let error { Text(error).font(.caption).foregroundStyle(.secondary) }
+        if let retry { Text(Date(timeIntervalSince1970: Double(retry) / 1000), style: .time).font(.caption) }
     }
 }

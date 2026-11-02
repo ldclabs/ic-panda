@@ -22,6 +22,7 @@ pub mod backup;
 pub mod blobs;
 pub mod catalog;
 pub mod cloud;
+pub mod fetch;
 pub mod gc;
 pub mod import;
 pub mod link;
@@ -1289,6 +1290,13 @@ impl Client {
         let mut keep = self.held_chunks(now_ms())?;
         for (_, job) in self.backup_jobs()? {
             keep.extend(job.plan.chunks.into_iter().map(|c| c.digest));
+        }
+        for job in self.files_download_status()? {
+            if job.stage != "done"
+                && let Some(entry) = self.cloud_entry(&job.upload_id)?
+            {
+                keep.extend(entry.plan.chunks.into_iter().map(|c| c.digest));
+            }
         }
         for key in self.workspace.store.sealed_keys("lib-share-job:")? {
             if let Some(job) = self

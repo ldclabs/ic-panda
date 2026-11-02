@@ -41,7 +41,7 @@ type Waiting = { method: string; read: boolean; resolve(value: unknown): void; r
  * written out, the whole library checked. It has no time limit; a daemon
  * that goes away still fails it.
  */
-const UNTIMED = new Set(['files/import', 'files/export', 'files/open', 'files/verify'])
+const UNTIMED = new Set(['files/import', 'files/export', 'files/open', 'files/verify', 'files/cloud_fetch', 'files/cloud_verify', 'files/backup_run'])
 
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */

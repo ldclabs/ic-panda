@@ -58,7 +58,8 @@ struct CloudBackupSection: View {
                available < Int64(backup.bytes) + 8 * 1024 * 1024 { throw CocoaError(.fileWriteOutOfSpace) }
             _ = try await model.transfer.run(backup.name ?? String(localized: "Restoring…")) { try await engine.restoreBackup(upload: backup.id, folder: folder, operation: $0) }
             guard epoch == model.epoch else { return }
-            await model.loadCloudBackups(refresh: false); await model.refresh()
+            model.notice = String(localized: "Transfer queued. Follow its progress in Files.")
+            await model.fileTransfers.load(model)
         } catch { if epoch == model.epoch { model.report(error) } }
     }
 }

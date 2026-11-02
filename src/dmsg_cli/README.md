@@ -1265,7 +1265,8 @@ The daemon listens on `127.0.0.1` only.
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage|local_only`,
   `files/import|export|open|open_list|open_cleanup` (absolute paths),
   `files/share_channel|save_shared`,
-  `files/backup|backup_status|backup_cancel|backup_run`,
+  `files/backup|backup_status|backup_retry|backup_cancel|backup_run`,
+  `files/download_status|download_retry|download_cancel`,
   `files/cloud_list|cloud_refresh|cloud_fetch|cloud_delete|cloud_verify|cloud_usage`, `files/evict`,
   `files/mount {name?}|unmount|mount_status`,
   `files/share_link|share_links|share_revoke`,
@@ -1597,3 +1598,28 @@ does not upload drafts, and respects automatic failure/cooldown gates.
 downloaded bytes, verification/application durations and the upload outcome.
 `sync/start` adds the trigger and queue duration; `sync/progress` logs stage changes.
 These fields contain no content, resource paths, signed URLs or credentials.
+
+
+## File transfer lifecycle (2026-11-02)
+
+The daemon runs explicit backups and queued downloads on independent serialized
+lanes, outside mailbox/idle-lock/content-sync maintenance. A transfer does not
+hold the client mutex while waiting on the network. A backup no longer restarts
+its upload/status lookup every five seconds.
+
+`files/cloud_fetch` and `files/cloud_verify` accept optional `background:true`:
+this stores a local download task and immediately returns its status. Omitting it
+keeps the synchronous RPC response. `files/download_status` returns the durable
+stages, verified bytes, errors and next retry time; `files/download_retry` and
+`files/download_cancel` take `upload_id`. `files/backup_retry` takes optional
+`id`/`version`; a repeated explicit backup request also retries failed existing
+jobs. Retries keep the original IDs and acknowledged blocks.
+
+The desktop queues cloud work and displays transferring, committing, verifying,
+retrying and paused states. Byte completion alone is never success. Status-read
+failures retain the last state, and account changes discard old cards. The old
+synchronous file-transfer RPCs have no whole-file desktop timeout; socket loss
+still reports uncertainty. Default lock pauses transfers; explicit background
+online only lets already sealed backups continue with the resident device key.
+Logs include pass bytes, elapsed time, completed/failed/pending counts and backup
+retry causes/deadlines; `files/progress` is not itself a completion receipt.

@@ -46,6 +46,8 @@
 	<string>Hesap kurtarma işlemi bekleniyor</string>
 	<key>Account security</key>
 	<string>Hesap güvenliği</string>
+	<key>Account synchronization</key>
+	<string>Hesap eşitleme</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>Hesap, cihaz ve kimlik koruması birlikte değişir. Gerekli bir onay sıradan bir onay diyaloğuna dönüşemez.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>Tarayıcı isteği</string>
 	<key>Cached data</key>
 	<string>Önbellek verileri</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Kamera erişimi kullanılamıyor. Daveti yapıştırın veya Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Cancel</key>
 	<string>İptal</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>Önbelleği temizle</string>
 	<key>Closed</key>
 	<string>Kapalı</string>
+	<key>Cloud backup file limit</key>
+	<string>Bulut yedeklemede dosya boyutu sınırı</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Bulut yedek listesi yenilenemedi. Dosyalar bölümünde tekrar deneyin.</string>
 	<key>Cloud backups</key>
 	<string>Bulut yedeklemeleri</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>Bulut silme işlemi tamamlandı</string>
 	<key>Cloud storage</key>
 	<string>Bulut depolama</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
 	<key>Complete</key>
 	<string>Tamamlandı</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>Bu hesap güvenliği değişikliğini onaylayın</string>
 	<key>Confirm your completed steps</key>
 	<string>Tamamlanan adımlarınızı onaylayın</string>
+	<key>Confirming cloud backup…</key>
+	<string>Bulut yedeği doğrulanıyor…</string>
 	<key>Conflicting version</key>
 	<string>Çakışan sürüm</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>Cihaz değiştirme isteği QR kodu</string>
 	<key>Device request</key>
 	<string>Cihaz isteği</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Cihaz isteğinin teslimi doğrulanamadı. Yeniden denemeden önce bağlantıyı ve bilgisayarı kontrol edin.</string>
 	<key>Device-bound workspace</key>
 	<string>Cihaza bağlı çalışma alanı</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>Arka planda şifrelenmiş kopyayı indirin</string>
 	<key>Download sessions</key>
 	<string>Oturumları indir</string>
+	<key>Downloaded</key>
+	<string>İndirilen</string>
+	<key>Downloading account content…</key>
+	<string>Hesap içeriği indiriliyor…</string>
 	<key>Downloading encrypted backup</key>
 	<string>Şifrelenmiş yedekleme indiriliyor</string>
+	<key>Downloads</key>
+	<string>İndirmeler</string>
 	<key>Draft: </key>
 	<string>Taslak: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>Dosya adı</string>
 	<key>File not available on this device</key>
 	<string>Dosya bu cihazda kullanılamıyor</string>
+	<key>File transfers</key>
+	<string>Dosya aktarımları</string>
 	<key>File versions</key>
 	<string>Dosya sürümleri</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>Parmak izi</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>Güvenlik güncellemesi tamamlanıyor. Yeni içerik tamamlanana kadar bekler.</string>
+	<key>First sync</key>
+	<string>İlk eşitleme</string>
 	<key>Folder name</key>
 	<string>Klasör adı</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>Eksik sonucu incelediniz mi?</string>
 	<key>Hidden fields differ: </key>
 	<string>Gizli alanlar farklılık gösterir: </string>
+	<key>Hidden message</key>
+	<string>Sakladığın bir mesaj</string>
 	<key>Hidden value</key>
 	<string>Gizli değer</string>
 	<key>Hide</key>
 	<string>Gizle</string>
+	<key>Hide on this device</key>
+	<string>Bu cihazda gizle</string>
 	<key>Hide sample sender</key>
 	<string>Örnek göndereni gizle</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>Arka planda hemen kilitle</string>
 	<key>Lock workspace</key>
 	<string>Çalışma alanını kilitle</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>Kilitleme aktarımları duraklatır; kilit açılınca devam eder.</string>
 	<key>Login identities</key>
 	<string>Giriş kimlikleri</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>Yeni sır</string>
 	<key>Next</key>
 	<string>Sıradaki</string>
+	<key>Next retry</key>
+	<string>Sonraki deneme</string>
 	<key>No</key>
 	<string>Hayır</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>Öğe eki yok</string>
 	<key>No letters yet</key>
 	<string>Henüz mektup yok</string>
+	<key>No messages</key>
+	<string>Mesaj yok</string>
 	<key>No pending backups</key>
 	<string>Bekleyen yedekleme yok</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>Yayınlanan politikayı okuyun</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>İçe aktarmak için saklanan salt okunur kopyalar. Birini silmek eski iPhone’u veya hesabınızı etkilemez.</string>
+	<key>Reading account inventory…</key>
+	<string>Hesap içerik listesi okunuyor…</string>
 	<key>Ready</key>
 	<string>Hazır</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>Bu cihaza kaydedildi. Değişiklikler senkronize edilmeyi bekliyor.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
+	<key>Scan desktop invitation</key>
+	<string>Bilgisayar davetini tara</string>
 	<key>Scan device request</key>
 	<string>Cihaz isteğini tarayın</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>Seçilen OTP alanları yalnızca geçerli kodu değil, yeniden kullanılabilir çekirdeği içerir.</string>
 	<key>Selected accounts</key>
 	<string>Seçilen hesaplar</string>
+	<key>Send device request</key>
+	<string>Cihaz isteği gönder</string>
 	<key>Send free letter</key>
 	<string>Ücretsiz mektup gönder</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>Paylaşılan anlık görüntüler</string>
 	<key>Shared with dMsg</key>
 	<string>dMsg ile paylaşıldı</string>
+	<key>Show</key>
+	<string>Göster</string>
 	<key>Show dismissed findings</key>
 	<string>Reddedilen bulguları göster</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>Bu iPhone'da şifrelenmiş çalışma alanınızın kilidini açmak için tekrar oturum açın.</string>
 	<key>Sign in to another account</key>
 	<string>Başka bir hesapta oturum açın</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Yeni cihazda aynı hesaba giriş yapın, bilgisayarın QR kodunu tarayın, ardından bilgisayarda inceleyip onaylayın.</string>
 	<key>Sign out</key>
 	<string>Oturumu kapat</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>Hesap değiştir</string>
 	<key>Switch to this account</key>
 	<string>Bu hesaba geç</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Eşitleme hesap içeriğini ve bulut yedeklerini denetler. Mesaj almak için konuşmaları veya gelen kutusunu açın; dosyaları ayrı geri yükleyin.</string>
 	<key>Sync conflicts</key>
 	<string>Çakışmaları senkronize et</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Eşitleme sunucuyu bekliyor.</string>
 	<key>Sync now</key>
 	<string>Şimdi senkronize et</string>
+	<key>Sync paused</key>
+	<string>Eşitleme duraklatıldı</string>
 	<key>Synced</key>
 	<string>Senkronize edildi</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>Dosya kopyaları kullanılamıyor veya süresi dolmuş. Yeni bir anlık görüntü oluşturmak için dMsg'yu açın ve ardından yeniden deneyin.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Dosya kitaplığı yalnızca eski cihazda kalır. Orada hiç eşitlenmemiş ya da yedeklenmemiş olanlar, cihaz iptal edilince kaybolur.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Davetiye bu hesaba bağlıdır. Bağlantının paylaşılması başka bir hesaba erişim izni vermez.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>Önce sahip olunan konuşmaları aktarın veya arşivleyin</string>
 	<key>Transfer proposal</key>
 	<string>Transfer teklifi</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>Aktarım sıraya alındı. İlerlemeyi Dosyalar’da izleyin.</string>
 	<key>Transferred</key>
 	<string>Aktarıldı</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>Yükleniyor</string>
 	<key>Uploading encrypted backup</key>
 	<string>Şifrelenmiş yedekleme yükleniyor</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Yüklemeler duraklatıldı. Bulut alanını boşaltıp tekrar deneyin; alma işlemi sürüyor.</string>
 	<key>Url</key>
 	<string>URL</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>Kasa</string>
 	<key>Vault tools</key>
 	<string>Kasa araçları</string>
+	<key>Verified</key>
+	<string>doğrulandı</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>Doğrulanmış ek, Dosyalar'a kaydedildi.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>Tam cihazı ve anahtar parmak izlerini doğrulayın. Bu anahtar, bu hesabın korunan eylemleri için donanım onayını kanıtlayacaktır.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>Tam cihaz parmak izini doğrulayın</string>
+	<key>Verifying account content…</key>
+	<string>Hesap içeriği doğrulanıyor…</string>
+	<key>Verifying…</key>
+	<string>Doğrulanıyor…</string>
 	<key>Version history</key>
 	<string>Sürüm geçmişi</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>Tarayıcı onayı bekleniyor</string>
 	<key>Waiting for confirmation: </key>
 	<string>Onay bekleniyor: </string>
+	<key>Waiting for first sync</key>
+	<string>İlk eşitleme bekleniyor</string>
 	<key>Waiting for notification registration…</key>
 	<string>Bildirim kaydı bekleniyor…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>oluşturuldu</string>
 	<key>not available</key>
 	<string>kullanılamıyor</string>
-	<key>No messages</key>
-	<string>Mesaj yok</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
-	<key>Scan desktop invitation</key>
-	<string>Bilgisayar davetini tara</string>
-	<key>Send device request</key>
-	<string>Cihaz isteği gönder</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>Kamera erişimi kullanılamıyor. Daveti yapıştırın veya Ayarlar’dan kamera erişimine izin verin.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>Yeni cihazda aynı hesaba giriş yapın, bilgisayarın QR kodunu tarayın, ardından bilgisayarda inceleyip onaylayın.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>Cihaz isteğinin teslimi doğrulanamadı. Yeniden denemeden önce bağlantıyı ve bilgisayarı kontrol edin.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
-	<key>Cloud backup file limit</key>
-	<string>Bulut yedeklemede dosya boyutu sınırı</string>
-	<key>First sync</key>
-	<string>İlk eşitleme</string>
-	<key>Sync paused</key>
-	<string>Eşitleme duraklatıldı</string>
-	<key>Waiting for first sync</key>
-	<string>İlk eşitleme bekleniyor</string>
-	<key>Account synchronization</key>
-	<string>Hesap eşitleme</string>
-	<key>Reading account inventory…</key>
-	<string>Hesap içerik listesi okunuyor…</string>
-	<key>Downloading account content…</key>
-	<string>Hesap içeriği indiriliyor…</string>
-	<key>Verifying account content…</key>
-	<string>Hesap içeriği doğrulanıyor…</string>
-	<key>Downloaded</key>
-	<string>İndirilen</string>
-	<key>Next retry</key>
-	<string>Sonraki deneme</string>
-	<key>Sync is waiting for the server.</key>
-	<string>Eşitleme sunucuyu bekliyor.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>Yüklemeler duraklatıldı. Bulut alanını boşaltıp tekrar deneyin; alma işlemi sürüyor.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>Eşitleme hesap içeriğini ve bulut yedeklerini denetler. Mesaj almak için konuşmaları veya gelen kutusunu açın; dosyaları ayrı geri yükleyin.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>Bulut yedek listesi yenilenemedi. Dosyalar bölümünde tekrar deneyin.</string>
-	<key>Hidden message</key>
-	<string>Sakladığın bir mesaj</string>
-	<key>Hide on this device</key>
-	<string>Bu cihazda gizle</string>
-	<key>Show</key>
-	<string>Göster</string>
 </dict>
 </plist>

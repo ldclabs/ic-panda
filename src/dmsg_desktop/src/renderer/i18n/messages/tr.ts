@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "Aktarım sıraya alındı. İlerlemeyi Dosyalar’da izleyin.",
+    "transferLockPauses": "Kilitleme aktarımları duraklatır; kilit açılınca devam eder.",
+    "transferLockOnline": "Arka planda çevrimiçi modu, kilitliyken şifreli yedekleri tamamlamak için cihaz imza anahtarını saklar. İndirmeler kilidin açılmasını bekler.",
+    "transferCommitting": "Bulut yedeği doğrulanıyor…",
+
     "syncInitial": "İlk eşitleme",
     "syncInitialWaiting": "İlk eşitleme bekleniyor",
     "syncInventory": "Hesap içerik listesi okunuyor…",

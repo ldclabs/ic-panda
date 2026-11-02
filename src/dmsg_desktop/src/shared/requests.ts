@@ -11,7 +11,7 @@ export const READ_METHODS = new Set([
   'device/pair_scan',
   'vault/templates', 'vault/list', 'vault/show', 'vault/tags', 'vault/history', 'vault/conflicts', 'vault/health', 'vault/reveal', 'vault/otp',
   'files/list', 'files/tree', 'files/show', 'files/search', 'files/tags', 'files/preview', 'files/open_list',
-  'files/usage', 'files/local_only', 'files/backup_status', 'files/cloud_list', 'files/cloud_status', 'files/cloud_usage',
+  'files/usage', 'files/local_only', 'files/backup_status', 'files/download_status', 'files/cloud_list', 'files/cloud_status', 'files/cloud_usage',
   'files/mount_status', 'files/preferences', 'files/share_links', 'files/share_quote',
   'sync/status', 'profile/show', 'profile/display', 'cache/status', 'profile/pending', 'profile/resolve', 'profile/avatar_image',
   'approval/list', 'approval/show', 'attest/readiness', 'attest/history', 'attest/usage',

@@ -46,6 +46,8 @@
 	<string>Việc khôi phục tài khoản đang chờ xử lý</string>
 	<key>Account security</key>
 	<string>Bảo mật tài khoản</string>
+	<key>Account synchronization</key>
+	<string>Đồng bộ tài khoản</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>Bảo vệ tài khoản, thiết bị và danh tính thay đổi cùng nhau. Sự phê duyệt bắt buộc không thể quay trở lại hộp thoại xác nhận thông thường.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>Yêu cầu trình duyệt</string>
 	<key>Cached data</key>
 	<string>Dữ liệu bộ nhớ đệm</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>Không thể truy cập camera. Dán lời mời hoặc cho phép truy cập camera trong Cài đặt.</string>
 	<key>Cancel</key>
 	<string>Hủy</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>Xóa bộ nhớ đệm</string>
 	<key>Closed</key>
 	<string>Đã đóng</string>
+	<key>Cloud backup file limit</key>
+	<string>Giới hạn mỗi tệp sao lưu đám mây</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Không thể làm mới danh sách sao lưu đám mây. Thử lại trong Tệp.</string>
 	<key>Cloud backups</key>
 	<string>Sao lưu đám mây</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>Việc xóa đám mây đã hoàn tất</string>
 	<key>Cloud storage</key>
 	<string>Lưu trữ đám mây</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
 	<key>Complete</key>
 	<string>Hoàn tất</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>Xác nhận thay đổi bảo mật tài khoản này</string>
 	<key>Confirm your completed steps</key>
 	<string>Xác nhận các bước đã hoàn thành của bạn</string>
+	<key>Confirming cloud backup…</key>
+	<string>Đang xác nhận bản sao đám mây…</string>
 	<key>Conflicting version</key>
 	<string>Phiên bản xung đột</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>Mã QR yêu cầu thay thế thiết bị</string>
 	<key>Device request</key>
 	<string>Yêu cầu thiết bị</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>Chưa xác nhận yêu cầu thiết bị đã được chuyển đến. Kiểm tra kết nối và máy tính trước khi thử lại.</string>
 	<key>Device-bound workspace</key>
 	<string>Không gian làm việc gắn với thiết bị</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>Tải xuống bản sao được mã hóa ở chế độ nền</string>
 	<key>Download sessions</key>
 	<string>Phiên tải xuống</string>
+	<key>Downloaded</key>
+	<string>Đã tải</string>
+	<key>Downloading account content…</key>
+	<string>Đang tải nội dung tài khoản…</string>
 	<key>Downloading encrypted backup</key>
 	<string>Đang tải xuống bản sao lưu được mã hóa</string>
+	<key>Downloads</key>
+	<string>Tải xuống</string>
 	<key>Draft: </key>
 	<string>Bản nháp: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>Tên tập tin</string>
 	<key>File not available on this device</key>
 	<string>Tệp không có sẵn trên thiết bị này</string>
+	<key>File transfers</key>
+	<string>Truyền tệp</string>
 	<key>File versions</key>
 	<string>Phiên bản tệp</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>Dấu vân tay</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.</string>
+	<key>First sync</key>
+	<string>Đồng bộ lần đầu</string>
 	<key>Folder name</key>
 	<string>Tên thư mục</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>Bạn đã xem lại kết quả còn thiếu chưa?</string>
 	<key>Hidden fields differ: </key>
 	<string>Các trường ẩn khác nhau: </string>
+	<key>Hidden message</key>
+	<string>Một tin nhắn bạn đã ẩn</string>
 	<key>Hidden value</key>
 	<string>Giá trị ẩn</string>
 	<key>Hide</key>
 	<string>Ẩn</string>
+	<key>Hide on this device</key>
+	<string>Ẩn trên thiết bị này</string>
 	<key>Hide sample sender</key>
 	<string>Ẩn người gửi mẫu</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>Khóa ngay lập tức ở chế độ nền</string>
 	<key>Lock workspace</key>
 	<string>Khóa không gian làm việc</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>Khóa sẽ tạm dừng truyền; mở khóa sẽ tiếp tục.</string>
 	<key>Login identities</key>
 	<string>Danh tính đăng nhập</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>Bí mật mới</string>
 	<key>Next</key>
 	<string>Tiếp theo</string>
+	<key>Next retry</key>
+	<string>Lần thử tiếp theo</string>
 	<key>No</key>
 	<string>Không</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>Không có mục đính kèm</string>
 	<key>No letters yet</key>
 	<string>Chưa có chữ cái nào</string>
+	<key>No messages</key>
+	<string>Không có tin nhắn</string>
 	<key>No pending backups</key>
 	<string>Không có bản sao lưu đang chờ xử lý</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>Đọc chính sách đã công bố</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Bản sao chỉ đọc được giữ để nhập. Xóa một bản không ảnh hưởng đến iPhone cũ hay tài khoản của bạn.</string>
+	<key>Reading account inventory…</key>
+	<string>Đang đọc danh mục nội dung tài khoản…</string>
 	<key>Ready</key>
 	<string>Sẵn sàng</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>Đã lưu trên thiết bị này. Các thay đổi đang chờ đồng bộ hóa.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
+	<key>Scan desktop invitation</key>
+	<string>Quét lời mời từ máy tính</string>
 	<key>Scan device request</key>
 	<string>Yêu cầu thiết bị quét</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>Các trường OTP đã chọn bao gồm hạt giống có thể tái sử dụng chứ không chỉ là mã hiện tại.</string>
 	<key>Selected accounts</key>
 	<string>Tài khoản đã chọn</string>
+	<key>Send device request</key>
+	<string>Gửi yêu cầu thiết bị</string>
 	<key>Send free letter</key>
 	<string>Gửi thư miễn phí</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>Ảnh chụp nhanh được chia sẻ</string>
 	<key>Shared with dMsg</key>
 	<string>Đã chia sẻ với dMsg</string>
+	<key>Show</key>
+	<string>Hiển thị</string>
 	<key>Show dismissed findings</key>
 	<string>Hiển thị các phát hiện bị loại bỏ</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>Đăng nhập lại để mở khóa không gian làm việc được mã hóa của bạn trên iPhone này.</string>
 	<key>Sign in to another account</key>
 	<string>Đăng nhập vào tài khoản khác</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Đăng nhập cùng tài khoản trên thiết bị mới, quét mã QR của máy tính rồi kiểm tra và phê duyệt trên máy tính.</string>
 	<key>Sign out</key>
 	<string>Đăng xuất</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>Chuyển đổi tài khoản</string>
 	<key>Switch to this account</key>
 	<string>Chuyển sang tài khoản này</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Đồng bộ kiểm tra nội dung tài khoản và bản sao lưu đám mây. Mở cuộc trò chuyện hoặc hộp thư đến để nhận tin nhắn; khôi phục tệp riêng.</string>
 	<key>Sync conflicts</key>
 	<string>Xung đột đồng bộ hóa</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Đồng bộ đang chờ máy chủ.</string>
 	<key>Sync now</key>
 	<string>Đồng bộ hóa ngay bây giờ</string>
+	<key>Sync paused</key>
+	<string>Đồng bộ tạm dừng</string>
 	<key>Synced</key>
 	<string>Đã đồng bộ hóa</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>Các bản sao tập tin không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới, sau đó thử lại.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Thư viện tệp chỉ còn trên thiết bị cũ. Mọi thứ ở đó chưa từng được đồng bộ hay sao lưu sẽ mất khi thiết bị bị thu hồi.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Lời mời được ràng buộc với tài khoản này. Chia sẻ liên kết không cho phép truy cập vào tài khoản khác.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>Chuyển hoặc lưu trữ các cuộc hội thoại thuộc sở hữu trước</string>
 	<key>Transfer proposal</key>
 	<string>Đề xuất chuyển nhượng</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>Đã xếp hàng truyền. Theo dõi tiến độ trong Tệp.</string>
 	<key>Transferred</key>
 	<string>Đã chuyển</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>Đang tải lên</string>
 	<key>Uploading encrypted backup</key>
 	<string>Đang tải lên bản sao lưu được mã hóa</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Tải lên đã tạm dừng. Giải phóng dung lượng đám mây rồi thử lại; vẫn tiếp tục nhận.</string>
 	<key>Url</key>
 	<string>Url</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>Kho bảo mật</string>
 	<key>Vault tools</key>
 	<string>Công cụ Vault</string>
+	<key>Verified</key>
+	<string>đã xác minh</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>Đã lưu tệp đính kèm đã được xác minh vào Tệp.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>Xác minh đầy đủ dấu vân tay của thiết bị và chìa khóa. Khóa này sẽ chứng minh sự chấp thuận phần cứng đối với các hành động được bảo vệ của tài khoản này.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>Xác minh đầy đủ dấu vân tay của thiết bị</string>
+	<key>Verifying account content…</key>
+	<string>Đang xác minh nội dung tài khoản…</string>
+	<key>Verifying…</key>
+	<string>Đang xác minh…</string>
 	<key>Version history</key>
 	<string>Lịch sử phiên bản</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>Đang chờ xác nhận trình duyệt</string>
 	<key>Waiting for confirmation: </key>
 	<string>Đang chờ xác nhận: </string>
+	<key>Waiting for first sync</key>
+	<string>Đang chờ đồng bộ lần đầu</string>
 	<key>Waiting for notification registration…</key>
 	<string>Đang chờ đăng ký thông báo…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>đã tạo</string>
 	<key>not available</key>
 	<string>không khả dụng</string>
-	<key>No messages</key>
-	<string>Không có tin nhắn</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
-	<key>Scan desktop invitation</key>
-	<string>Quét lời mời từ máy tính</string>
-	<key>Send device request</key>
-	<string>Gửi yêu cầu thiết bị</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>Không thể truy cập camera. Dán lời mời hoặc cho phép truy cập camera trong Cài đặt.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>Đăng nhập cùng tài khoản trên thiết bị mới, quét mã QR của máy tính rồi kiểm tra và phê duyệt trên máy tính.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>Chưa xác nhận yêu cầu thiết bị đã được chuyển đến. Kiểm tra kết nối và máy tính trước khi thử lại.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
-	<key>Cloud backup file limit</key>
-	<string>Giới hạn mỗi tệp sao lưu đám mây</string>
-	<key>First sync</key>
-	<string>Đồng bộ lần đầu</string>
-	<key>Sync paused</key>
-	<string>Đồng bộ tạm dừng</string>
-	<key>Waiting for first sync</key>
-	<string>Đang chờ đồng bộ lần đầu</string>
-	<key>Account synchronization</key>
-	<string>Đồng bộ tài khoản</string>
-	<key>Reading account inventory…</key>
-	<string>Đang đọc danh mục nội dung tài khoản…</string>
-	<key>Downloading account content…</key>
-	<string>Đang tải nội dung tài khoản…</string>
-	<key>Verifying account content…</key>
-	<string>Đang xác minh nội dung tài khoản…</string>
-	<key>Downloaded</key>
-	<string>Đã tải</string>
-	<key>Next retry</key>
-	<string>Lần thử tiếp theo</string>
-	<key>Sync is waiting for the server.</key>
-	<string>Đồng bộ đang chờ máy chủ.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>Tải lên đã tạm dừng. Giải phóng dung lượng đám mây rồi thử lại; vẫn tiếp tục nhận.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>Đồng bộ kiểm tra nội dung tài khoản và bản sao lưu đám mây. Mở cuộc trò chuyện hoặc hộp thư đến để nhận tin nhắn; khôi phục tệp riêng.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>Không thể làm mới danh sách sao lưu đám mây. Thử lại trong Tệp.</string>
-	<key>Hidden message</key>
-	<string>Một tin nhắn bạn đã ẩn</string>
-	<key>Hide on this device</key>
-	<string>Ẩn trên thiết bị này</string>
-	<key>Show</key>
-	<string>Hiển thị</string>
 </dict>
 </plist>

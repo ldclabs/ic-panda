@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    "transferQueued": "أُضيف النقل إلى قائمة الانتظار. تابع تقدمه في الملفات.",
+    "transferLockPauses": "يوقف القفل عمليات النقل مؤقتًا، وتُستأنف عند إلغاء القفل.",
+    "transferLockOnline": "يحتفظ الاتصال في الخلفية بمفتاح توقيع الجهاز لإكمال النسخ المشفرة أثناء القفل. تنتظر التنزيلات إلغاء القفل.",
+    "transferCommitting": "جارٍ تأكيد النسخة السحابية…",
+
     "syncInitial": "المزامنة الأولى",
     "syncInitialWaiting": "بانتظار المزامنة الأولى",
     "syncInventory": "جارٍ قراءة قائمة محتوى الحساب…",

@@ -76,9 +76,6 @@ pub(crate) use content_sync::Trigger as SyncTrigger;
 
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;
-/// How long one background pass uploads a backup before requests waiting
-/// for the client go first; the next pass follows at once.
-const BACKUP_SLICE_MS: u64 = 5_000;
 /// How often the relay mailbox is polled besides hints.
 const CONNECT_POLL_MS: u64 = 30_000;
 /// The library's daily self-check waits for this much quiet at the device.
@@ -387,6 +384,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         instance: daemon.instance.clone(),
     })?;
     tokio::spawn(background(daemon.clone()));
+    tokio::spawn(crate::files_methods::transfers(daemon.clone()));
     tokio::spawn(content_sync::run(daemon.clone()));
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
@@ -473,13 +471,11 @@ async fn background(daemon: Arc<Daemon>) {
     let mut waiting = 0;
     // When the last self-check began, finished or not.
     let mut checking = 0;
-    let mut pause = FLUSH_MS;
     loop {
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_millis(pause)) => {}
+            _ = tokio::time::sleep(Duration::from_millis(FLUSH_MS)) => {}
             _ = daemon.wake.notified() => polled = 0,
         }
-        pause = FLUSH_MS;
         if daemon.stopping() {
             continue;
         }
@@ -526,29 +522,6 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", Value::Null);
                 }
                 waiting = count;
-            }
-        }
-        // Backups a person asked for keep moving while the device key is
-        // there, locked or not, a slice per pass; nothing here starts one.
-        // A pass under way, such as the person's own, runs on without this
-        // loop, which does not wait for it.
-        let backing_up = daemon
-            .client
-            .lock()
-            .await
-            .library_jobs_running()
-            .unwrap_or(false);
-        if ready
-            && backing_up
-            && let Some(turn) = daemon.try_turn("backup")
-        {
-            let run = daemon.backup_pass(turn, Some(BACKUP_SLICE_MS)).await;
-            daemon.note_result("backup", &run);
-            if run.as_ref().is_ok_and(|r| r.completed > 0) {
-                daemon.emit("files/changed", Value::Null);
-            }
-            if run.as_ref().is_ok_and(|r| r.paused) {
-                pause = 0;
             }
         }
         // The library's self-check, once a day while nobody is at the
@@ -875,15 +848,35 @@ impl Daemon {
     pub(crate) async fn backup_pass(
         &self,
         _turn: tokio::sync::OwnedMutexGuard<()>,
-        budget_ms: Option<u64>,
     ) -> Result<dmsg_client::library::backup::BackupRun> {
-        let mut progress = |file: &str, done, total| {
-            self.emit(
-                "files/progress",
-                json!({"job": "backup", "path": file, "done": done, "total": total}),
-            );
+        let started = std::time::Instant::now();
+        let mut last = (String::new(), String::new(), 0u64);
+        let mut progress = |job: &dmsg_client::library::backup::BackupJobView| {
+            if last.0 != job.upload_id
+                || last.1 != job.stage
+                || job.updated_at >= last.2.saturating_add(5_000)
+            {
+                crate::logs::write(
+                    "files/upload_progress",
+                    &[
+                        ("upload", &job.upload_id),
+                        ("stage", &job.stage),
+                        ("bytes", &job.bytes),
+                        ("total", &job.total_bytes),
+                        ("attempt", &job.attempts),
+                        ("ms", &started.elapsed().as_millis()),
+                    ],
+                );
+                last = (job.upload_id.clone(), job.stage.clone(), job.updated_at);
+            }
+            let mut data = to_json(job);
+            data["job"] = "backup".into();
+            data["path"] = job.file.clone().into();
+            data["done"] = job.sent.into();
+            data["total"] = job.chunks.into();
+            self.emit("files/progress", data);
         };
-        dmsg_client::library::backup::backup_run(&self.hold(), budget_ms, &mut progress).await
+        dmsg_client::library::backup::backup_run(&self.hold(), &mut progress).await
     }
 
     /// A person's decision, from the approval window or an interactive

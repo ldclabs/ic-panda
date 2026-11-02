@@ -46,6 +46,8 @@
 	<string>Recuperación de cuenta pendiente</string>
 	<key>Account security</key>
 	<string>Seguridad de la cuenta</string>
+	<key>Account synchronization</key>
+	<string>Sincronización de la cuenta</string>
 	<key>Account, device and identity protection changes together. A required approval cannot fall back to an ordinary confirmation dialog.</key>
 	<string>La protección de la cuenta, los dispositivos y las identidades cambia conjuntamente. Una aprobación obligatoria no puede sustituirse por un diálogo de confirmación normal.</string>
 	<key>Account, devices and identities</key>
@@ -272,6 +274,8 @@
 	<string>Solicitud del navegador</string>
 	<key>Cached data</key>
 	<string>Datos en caché</string>
+	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
+	<string>La cámara no está disponible. Pega la invitación o permite el acceso a la cámara en Ajustes.</string>
 	<key>Cancel</key>
 	<string>Cancelar</string>
 	<key>Cancel background transfer</key>
@@ -368,6 +372,10 @@
 	<string>Borrar caché</string>
 	<key>Closed</key>
 	<string>Cerrado</string>
+	<key>Cloud backup file limit</key>
+	<string>Límite por archivo de copia en la nube</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>No se pudo actualizar la lista de copias en la nube. Reintenta en Archivos.</string>
 	<key>Cloud backups</key>
 	<string>Copias en la nube</string>
 	<key>Cloud backups are kept. This only changes the copy on this device.</key>
@@ -376,6 +384,8 @@
 	<string>Eliminación en la nube completada</string>
 	<key>Cloud storage</key>
 	<string>Almacenamiento en la nube</string>
+	<key>Compare the device ID on both screens and approve on your desktop.</key>
+	<string>Compara el ID del dispositivo en ambas pantallas y aprueba en el ordenador.</string>
 	<key>Complete</key>
 	<string>Completado</string>
 	<key>Complete recovery after waiting period</key>
@@ -400,6 +410,8 @@
 	<string>Confirmar este cambio de seguridad de la cuenta</string>
 	<key>Confirm your completed steps</key>
 	<string>Confirma los pasos completados</string>
+	<key>Confirming cloud backup…</key>
+	<string>Confirmando copia en la nube…</string>
 	<key>Conflicting version</key>
 	<string>Versión en conflicto</string>
 	<key>Connect</key>
@@ -620,6 +632,8 @@
 	<string>Código QR de la solicitud de reemplazo de dispositivo</string>
 	<key>Device request</key>
 	<string>Solicitud de dispositivo</string>
+	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
+	<string>No se ha confirmado la entrega de la solicitud. Comprueba la conexión y el ordenador antes de reintentar.</string>
 	<key>Device-bound workspace</key>
 	<string>Espacio vinculado a este dispositivo</string>
 	<key>Devices</key>
@@ -644,8 +658,14 @@
 	<string>Descargar copia cifrada en segundo plano</string>
 	<key>Download sessions</key>
 	<string>Sesiones de descarga</string>
+	<key>Downloaded</key>
+	<string>Descargado</string>
+	<key>Downloading account content…</key>
+	<string>Descargando contenido de la cuenta…</string>
 	<key>Downloading encrypted backup</key>
 	<string>Descargando copia cifrada</string>
+	<key>Downloads</key>
+	<string>Descargas</string>
 	<key>Draft: </key>
 	<string>Borrador: </string>
 	<key>EVM</key>
@@ -734,6 +754,8 @@
 	<string>Nombre del archivo</string>
 	<key>File not available on this device</key>
 	<string>Archivo no disponible en este dispositivo</string>
+	<key>File transfers</key>
+	<string>Transferencias de archivos</string>
 	<key>File versions</key>
 	<string>Versiones del archivo</string>
 	<key>Files</key>
@@ -752,6 +774,8 @@
 	<string>Huella</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
 	<string>Finalizando la actualización de seguridad. El contenido nuevo espera hasta que termine.</string>
+	<key>First sync</key>
+	<string>Primera sincronización</string>
 	<key>Folder name</key>
 	<string>Nombre de la carpeta</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -782,10 +806,14 @@
 	<string>¿Has revisado el resultado no disponible?</string>
 	<key>Hidden fields differ: </key>
 	<string>Los campos ocultos difieren: </string>
+	<key>Hidden message</key>
+	<string>Un mensaje que ocultaste</string>
 	<key>Hidden value</key>
 	<string>Valor oculto</string>
 	<key>Hide</key>
 	<string>Ocultar</string>
+	<key>Hide on this device</key>
+	<string>Ocultar en este dispositivo</string>
 	<key>Hide sample sender</key>
 	<string>Ocultar remitente de ejemplo</string>
 	<key>Historical version</key>
@@ -976,6 +1004,8 @@
 	<string>Bloquear inmediatamente en segundo plano</string>
 	<key>Lock workspace</key>
 	<string>Bloquear espacio de trabajo</string>
+	<key>Locking pauses transfers; unlocking resumes them.</key>
+	<string>El bloqueo pausa las transferencias; el desbloqueo las reanuda.</string>
 	<key>Login identities</key>
 	<string>Identidades de acceso</string>
 	<key>Manage Apple subscriptions</key>
@@ -1068,6 +1098,8 @@
 	<string>Nuevo secreto</string>
 	<key>Next</key>
 	<string>Siguiente</string>
+	<key>Next retry</key>
+	<string>Próximo intento</string>
 	<key>No</key>
 	<string>No</string>
 	<key>No activity on this device</key>
@@ -1094,6 +1126,8 @@
 	<string>El elemento no tiene adjuntos</string>
 	<key>No letters yet</key>
 	<string>Aún no hay mensajes recibidos</string>
+	<key>No messages</key>
+	<string>No hay mensajes</string>
 	<key>No pending backups</key>
 	<string>No hay copias pendientes</string>
 	<key>No recent use observed on this device</key>
@@ -1356,6 +1390,8 @@
 	<string>Leer la política publicada</string>
 	<key>Read-only copies kept for importing. Deleting one does not affect the old iPhone or your account.</key>
 	<string>Copias de solo lectura guardadas para importar. Eliminar una no afecta al iPhone anterior ni a tu cuenta.</string>
+	<key>Reading account inventory…</key>
+	<string>Leyendo el inventario de la cuenta…</string>
 	<key>Ready</key>
 	<string>Listo</string>
 	<key>Reason</key>
@@ -1736,6 +1772,8 @@
 	<string>Guardado en este dispositivo. Hay cambios pendientes de sincronizar.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Guardado. Publicación pendiente.</string>
+	<key>Scan desktop invitation</key>
+	<string>Escanear invitación del ordenador</string>
 	<key>Scan device request</key>
 	<string>Escanear solicitud de dispositivo</string>
 	<key>Scopes, one per line</key>
@@ -1780,6 +1818,8 @@
 	<string>Los campos OTP seleccionados incluyen la clave secreta reutilizable, no solo el código actual.</string>
 	<key>Selected accounts</key>
 	<string>Cuentas seleccionadas</string>
+	<key>Send device request</key>
+	<string>Enviar solicitud del dispositivo</string>
 	<key>Send free letter</key>
 	<string>Enviar mensaje gratuito</string>
 	<key>Send message</key>
@@ -1838,6 +1878,8 @@
 	<string>Instantáneas compartidas</string>
 	<key>Shared with dMsg</key>
 	<string>Compartido con dMsg</string>
+	<key>Show</key>
+	<string>Mostrar</string>
 	<key>Show dismissed findings</key>
 	<string>Mostrar hallazgos descartados</string>
 	<key>Show sample password</key>
@@ -1854,6 +1896,8 @@
 	<string>Vuelve a iniciar sesión para desbloquear tu espacio de trabajo cifrado en este iPhone.</string>
 	<key>Sign in to another account</key>
 	<string>Iniciar sesión en otra cuenta</string>
+	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
+	<string>Inicia sesión con la misma cuenta en el dispositivo nuevo, escanea el QR del ordenador y revisa y aprueba allí la solicitud.</string>
 	<key>Sign out</key>
 	<string>Cerrar sesión</string>
 	<key>Sign out of this account?</key>
@@ -1938,10 +1982,16 @@
 	<string>Cambiar de cuenta</string>
 	<key>Switch to this account</key>
 	<string>Cambiar a esta cuenta</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>La sincronización comprueba el contenido de la cuenta y las copias en la nube. Abre las conversaciones o la bandeja de entrada para recibir mensajes; restaura los archivos por separado.</string>
 	<key>Sync conflicts</key>
 	<string>Conflictos de sincronización</string>
+	<key>Sync is waiting for the server.</key>
+	<string>La sincronización está esperando al servidor.</string>
 	<key>Sync now</key>
 	<string>Sincronizar ahora</string>
+	<key>Sync paused</key>
+	<string>Sincronización en pausa</string>
 	<key>Synced</key>
 	<string>Sincronizado</string>
 	<key>Syncing…</key>
@@ -1974,6 +2024,8 @@
 	<string>Las copias no están disponibles o caducaron. Crea otra instantánea en dMsg y reintenta.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>La biblioteca de archivos queda solo en el dispositivo anterior. Lo que nunca se sincronizó ni respaldó allí se pierde al revocarlo.</string>
+	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
+	<string>La clave del buzón aún no se ha sincronizado con este dispositivo. Sincroniza el dispositivo que activó la recepción y vuelve a intentarlo aquí.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>La invitación está vinculada a esta cuenta. Compartir el enlace no concede acceso a otra cuenta.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
@@ -2136,6 +2188,8 @@
 	<string>Transfiere o archiva primero tus conversaciones</string>
 	<key>Transfer proposal</key>
 	<string>Propuesta de transferencia</string>
+	<key>Transfer queued. Follow its progress in Files.</key>
+	<string>Transferencia en cola. Consulta el progreso en Archivos.</string>
 	<key>Transferred</key>
 	<string>Transferido</string>
 	<key>Transferring</key>
@@ -2180,6 +2234,8 @@
 	<string>Subiendo</string>
 	<key>Uploading encrypted backup</key>
 	<string>Subiendo copia cifrada</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Las cargas están pausadas. Libera espacio en la nube y reintenta; la recepción continúa.</string>
 	<key>Url</key>
 	<string>URL</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
@@ -2208,6 +2264,8 @@
 	<string>Bóveda</string>
 	<key>Vault tools</key>
 	<string>Herramientas de la bóveda</string>
+	<key>Verified</key>
+	<string>verificado</string>
 	<key>Verified attachment saved to Files.</key>
 	<string>Adjunto verificado y guardado en Archivos.</string>
 	<key>Verified package fingerprint</key>
@@ -2218,6 +2276,10 @@
 	<string>Verifica las huellas completas del dispositivo y de la clave. Esta clave acreditará la aprobación por hardware de las acciones protegidas de la cuenta.</string>
 	<key>Verify the full device fingerprint</key>
 	<string>Verificar la huella completa del dispositivo</string>
+	<key>Verifying account content…</key>
+	<string>Verificando contenido de la cuenta…</string>
+	<key>Verifying…</key>
+	<string>Verificando…</string>
 	<key>Version history</key>
 	<string>Historial de versiones</string>
 	<key>Versions</key>
@@ -2236,6 +2298,8 @@
 	<string>Esperando confirmación del navegador</string>
 	<key>Waiting for confirmation: </key>
 	<string>Esperando confirmación: </string>
+	<key>Waiting for first sync</key>
+	<string>Esperando la primera sincronización</string>
 	<key>Waiting for notification registration…</key>
 	<string>Esperando registro de notificaciones…</string>
 	<key>Waiting for the other device</key>
@@ -2444,55 +2508,5 @@
 	<string>creada</string>
 	<key>not available</key>
 	<string>no disponible</string>
-	<key>No messages</key>
-	<string>No hay mensajes</string>
-	<key>Compare the device ID on both screens and approve on your desktop.</key>
-	<string>Compara el ID del dispositivo en ambas pantallas y aprueba en el ordenador.</string>
-	<key>Scan desktop invitation</key>
-	<string>Escanear invitación del ordenador</string>
-	<key>Send device request</key>
-	<string>Enviar solicitud del dispositivo</string>
-	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
-	<string>La cámara no está disponible. Pega la invitación o permite el acceso a la cámara en Ajustes.</string>
-	<key>Sign in to the same account on the new device, scan the desktop QR code, then review and approve on the desktop.</key>
-	<string>Inicia sesión con la misma cuenta en el dispositivo nuevo, escanea el QR del ordenador y revisa y aprueba allí la solicitud.</string>
-	<key>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</key>
-	<string>No se ha confirmado la entrega de la solicitud. Comprueba la conexión y el ordenador antes de reintentar.</string>
-	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
-	<string>La clave del buzón aún no se ha sincronizado con este dispositivo. Sincroniza el dispositivo que activó la recepción y vuelve a intentarlo aquí.</string>
-	<key>Cloud backup file limit</key>
-	<string>Límite por archivo de copia en la nube</string>
-	<key>First sync</key>
-	<string>Primera sincronización</string>
-	<key>Sync paused</key>
-	<string>Sincronización en pausa</string>
-	<key>Waiting for first sync</key>
-	<string>Esperando la primera sincronización</string>
-	<key>Account synchronization</key>
-	<string>Sincronización de la cuenta</string>
-	<key>Reading account inventory…</key>
-	<string>Leyendo el inventario de la cuenta…</string>
-	<key>Downloading account content…</key>
-	<string>Descargando contenido de la cuenta…</string>
-	<key>Verifying account content…</key>
-	<string>Verificando contenido de la cuenta…</string>
-	<key>Downloaded</key>
-	<string>Descargado</string>
-	<key>Next retry</key>
-	<string>Próximo intento</string>
-	<key>Sync is waiting for the server.</key>
-	<string>La sincronización está esperando al servidor.</string>
-	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
-	<string>Las cargas están pausadas. Libera espacio en la nube y reintenta; la recepción continúa.</string>
-	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
-	<string>La sincronización comprueba el contenido de la cuenta y las copias en la nube. Abre las conversaciones o la bandeja de entrada para recibir mensajes; restaura los archivos por separado.</string>
-	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
-	<string>No se pudo actualizar la lista de copias en la nube. Reintenta en Archivos.</string>
-	<key>Hidden message</key>
-	<string>Un mensaje que ocultaste</string>
-	<key>Hide on this device</key>
-	<string>Ocultar en este dispositivo</string>
-	<key>Show</key>
-	<string>Mostrar</string>
 </dict>
 </plist>

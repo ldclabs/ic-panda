@@ -3,6 +3,11 @@ import type { Catalog } from './en'
 
 export default {
   "messages": {
+    "transferQueued": "傳輸已加入佇列，可在檔案庫查看進度。",
+    "transferLockPauses": "鎖定時暫停傳輸，解鎖後自動繼續。",
+    "transferLockOnline": "背景在線會保留裝置簽名金鑰，鎖定後繼續已封存的備份；下載等待解鎖。",
+    "transferCommitting": "正在確認雲端備份…",
+
     "syncInitial": "首次同步",
     "syncInitialWaiting": "等待首次同步",
     "syncInventory": "正在讀取帳號內容清單…",

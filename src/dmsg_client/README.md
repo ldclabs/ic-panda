@@ -33,7 +33,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`content`] | Encrypted object versions, the cloud object container, upload manifests and local writes; a version on a stale base is a conflict copy |
 | [`vault`] | Items and their versions: add, edit, trash, restore, local search, conflict copies and their resolution |
 | [`files`] | The file format: 1 MiB chunks with deterministic nonces under a per-version key, verified reads and exports, and the `BlobStore` trait over where chunks live (the store's `chunks` table or the library's directory) |
-| [`library`] | dMsg Files: the local encrypted file library. Folders, files and versions as sealed records indexed in memory while unlocked; chunks as files in `blobs/`; resumable imports with type sniffing and thumbnails; opened copies with change detection; the trash and chunk collection; shared editions under their own keys; what the daemon's loopback WebDAV mount and agents need (paths, single chunks and byte ranges read chunk by chunk, copies, an editor's safe save as a version); share links for people outside dMsg (`share` editions, manifests sealed under the share key, Argon2id password wraps, the links' records); explicit backups as `kind=backup` uploads, in passes the caller may bound in time, the account's backup inventory, fetching, deleting and verifying cloud copies, and freeing verified versions. Nothing syncs by itself and no deletion crosses to the other side |
+| [`library`] | dMsg Files: the local encrypted file library. Folders, files and versions as sealed records indexed in memory while unlocked; chunks as files in `blobs/`; resumable imports with type sniffing and thumbnails; opened copies with change detection; the trash and chunk collection; shared editions under their own keys; what the daemon's loopback WebDAV mount and agents need (paths, single chunks and byte ranges read chunk by chunk, copies, an editor's safe save as a version); share links for people outside dMsg (`share` editions, manifests sealed under the share key, Argon2id password wraps, the links' records); explicit backups as `kind=backup` uploads, with durable per-block acknowledgements and host-owned runners, the account's backup inventory, fetching, deleting and verifying cloud copies, and freeing verified versions. Nothing syncs by itself and no deletion crosses to the other side |
 | [`sync`] | Content jobs, resumable uploads, incremental pages, resumable verified baseline snapshots, conflict copies and tombstones |
 | [`principal`] | Official PrincipalDocument, directory-certified JSON shared with the web page, journaled on-chain display updates, and immutable public avatar uploads; network reads use Hold |
 | [`approval`] | The approval center: requests from the desktop, the CLI, agents and web pages, decided only by a person; their states, deadlines and limits |
@@ -784,3 +784,23 @@ pairing and transfer still work. Losing every authorized device while recovery
 is off makes uploaded content unrecoverable even with the login. Enabling later
 requires an existing device and only takes effect for recovery after its new root
 commits. Disabling cannot recall keys or content already delivered.
+
+
+## Resumable file transfers (2026-11-02)
+
+Explicit backups reuse their immutable upload ID and independently acknowledged
+ciphertext blocks. The bounded upload/download windows refill as each request
+completes. Lock pauses foreground work without a retry cooldown; a transient
+failure retries after 2 seconds, exponentially up to 60 seconds, respecting a
+server retry deadline. Explicit retry clears the cooldown without resealing.
+Only a confirmed cloud commit settles a backup. A lost backup finalize response
+is reconciled against the same upload; large backups obtain fresh authorization
+before finalization and use its separate 40-second HTTP budget.
+
+`library::fetch` stores requested downloads in encrypted `lib-fetch:` records.
+They remain local to the requesting device, pin cached blocks, deduplicate an
+unfinished upload, and resume on unlock or host restart. Verified byte progress
+is separate from the final whole-file integrity check and catalog update. Failed
+integrity checks never mark a task done. Completed task records age out when new
+work is queued. These jobs require a host runner; they do not start network work
+merely because the core was opened.

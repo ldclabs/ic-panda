@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 46] = [
+pub(crate) const METHODS: [&str; 50] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -60,6 +60,10 @@ pub(crate) const METHODS: [&str; 46] = [
     "files/save_shared",
     "files/backup",
     "files/backup_status",
+    "files/backup_retry",
+    "files/download_status",
+    "files/download_retry",
+    "files/download_cancel",
     "files/backup_cancel",
     "files/backup_run",
     "files/cloud_list",
@@ -91,6 +95,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/usage"
         | "files/local_only"
         | "files/backup_status"
+        | "files/download_status"
         | "files/cloud_list"
         | "files/cloud_status"
         | "files/cloud_usage"
@@ -294,6 +299,19 @@ impl Daemon {
             "files/storage" => client.files_storage(),
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
+            "files/download_status" => Ok(to_json(&client.files_download_status()?)),
+            "files/backup_retry" => {
+                client.files_backup_retry(params["id"].as_str(), params["version"].as_str())?;
+                Ok(json!({"queued":true}))
+            }
+            "files/download_retry" => {
+                client.files_download_retry(params["upload_id"].as_str())?;
+                Ok(json!({"queued":true}))
+            }
+            "files/download_cancel" => {
+                client.files_download_cancel(&text(params, "upload_id")?)?;
+                Ok(json!({"cancelled":true}))
+            }
             "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
             "files/cloud_status" => client.files_cloud_observation(),
             "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
@@ -442,7 +460,7 @@ impl Daemon {
                 }
                 "files/backup_run" => {
                     let turn = self.turn("backup").await;
-                    to_json(&self.backup_pass(turn, None).await?)
+                    to_json(&self.backup_pass(turn).await?)
                 }
                 "files/cloud_refresh" => {
                     let requested = dmsg_client::now_ms();
@@ -471,6 +489,13 @@ impl Daemon {
                             true,
                         )?),
                     };
+                    if params["background"] == true {
+                        return Ok(Some(to_json(
+                            &h.with(|c| c.files_download_start(&upload, target.as_deref(), false))
+                                .await?,
+                        )));
+                    }
+                    let _turn = self.turn("download").await;
                     let mut progress = progress("fetch", upload.clone().into());
                     to_json(
                         &cloud::cloud_fetch(&h, &upload, target.as_deref(), &mut progress).await?,
@@ -482,6 +507,13 @@ impl Daemon {
                 }
                 "files/cloud_verify" => {
                     let upload = text(params, "upload_id")?;
+                    if params["background"] == true {
+                        return Ok(Some(to_json(
+                            &h.with(|c| c.files_download_start(&upload, None, true))
+                                .await?,
+                        )));
+                    }
+                    let _turn = self.turn("download").await;
                     let mut progress = progress("verify", upload.clone().into());
                     to_json(&cloud::cloud_verify(&h, &upload, &mut progress).await?)
                 }
@@ -498,4 +530,136 @@ impl Daemon {
         };
         answer().await.transpose()
     }
+}
+
+/// File transfers have their own lanes: slow network I/O never delays idle lock,
+/// mailbox maintenance, content sync, or local library requests.
+pub(crate) async fn transfers(daemon: std::sync::Arc<Daemon>) {
+    let downloads = {
+        let daemon = daemon.clone();
+        async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                if daemon.stopping() {
+                    continue;
+                }
+                let h = daemon.hold();
+                let ready = h
+                    .with(|c| {
+                        let now = dmsg_client::now_ms();
+                        Ok(c.session_state().state == "unlocked"
+                            && c.files_download_status()?.iter().any(|j| {
+                                j.stage != "done"
+                                    && (j.error.is_none() || j.retry_at.is_some_and(|at| at <= now))
+                            }))
+                    })
+                    .await
+                    .unwrap_or(false);
+                if !ready {
+                    continue;
+                }
+                let Some(_turn) = daemon.try_turn("download") else {
+                    continue;
+                };
+                let started = std::time::Instant::now();
+                let result = dmsg_client::library::fetch::run(&h, &mut |job| {
+                    let mut data = to_json(job);
+                    data["job"] = (if job.verify { "verify" } else { "fetch" }).into();
+                    data["path"] = job.upload_id.clone().into();
+                    // Live callbacks count blocks. The status snapshot supplies
+                    // exact bytes, including cached and out-of-order blocks.
+                    if matches!(job.stage.as_str(), "downloading" | "verifying") {
+                        data.as_object_mut().expect("fetch job").remove("bytes");
+                    }
+                    daemon.emit("files/progress", data);
+                    if matches!(job.stage.as_str(), "done" | "failed" | "retrying") {
+                        crate::logs::write(
+                            "files/download_result",
+                            &[
+                                ("upload", &job.upload_id),
+                                ("stage", &job.stage),
+                                ("bytes", &job.bytes),
+                                ("attempt", &job.attempts),
+                                ("error", &job.error.as_deref().unwrap_or("")),
+                            ],
+                        );
+                    }
+                })
+                .await;
+                if let Ok(run) = &result {
+                    crate::logs::write(
+                        "files/download",
+                        &[
+                            ("bytes", &run.bytes),
+                            ("completed", &run.completed),
+                            ("failed", &run.failed),
+                            ("pending", &run.pending),
+                            ("ms", &started.elapsed().as_millis()),
+                        ],
+                    );
+                }
+                daemon.note_result("download", &result);
+                daemon.emit("files/changed", Value::Null);
+            }
+        }
+    };
+    let backups = async {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if daemon.stopping() {
+                continue;
+            }
+            let ready = daemon
+                .hold()
+                .with(|c| {
+                    let session = c.session_state();
+                    let now = dmsg_client::now_ms();
+                    Ok((session.state == "unlocked" || session.resident)
+                        && c.files_backup_status()?
+                            .iter()
+                            .any(|j| j.error.is_none() || j.retry_at.is_some_and(|at| at <= now)))
+                })
+                .await
+                .unwrap_or(false);
+            if !ready {
+                continue;
+            }
+            let Some(turn) = daemon.try_turn("backup") else {
+                continue;
+            };
+            let started = std::time::Instant::now();
+            let result = daemon.backup_pass(turn).await;
+            if let Ok(run) = &result {
+                crate::logs::write(
+                    "files/backup",
+                    &[
+                        ("bytes", &run.bytes),
+                        ("completed", &run.completed),
+                        ("failed", &run.failed),
+                        ("pending", &run.pending),
+                        ("paused", &run.paused),
+                        ("ms", &started.elapsed().as_millis()),
+                    ],
+                );
+            }
+            if let Ok(jobs) = daemon.hold().with(|c| c.files_backup_status()).await {
+                for job in jobs.into_iter().filter(|j| j.error.is_some()) {
+                    crate::logs::write(
+                        "files/backup_retry",
+                        &[
+                            ("upload", &job.upload_id),
+                            ("stage", &job.stage),
+                            ("attempt", &job.attempts),
+                            ("bytes", &job.bytes),
+                            ("error", &job.error.as_deref().unwrap_or("")),
+                            ("retry_at", &job.retry_at.unwrap_or(0)),
+                        ],
+                    );
+                }
+            }
+            daemon.note_result("backup", &result);
+            daemon.emit("files/changed", Value::Null);
+        }
+    };
+    tokio::join!(backups, downloads);
 }

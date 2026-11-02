@@ -334,7 +334,8 @@ async fn concurrent_upload(kind: &str) {
     .expect("envelopes must not wait for each other's ACK")
     .unwrap();
     server.await.unwrap();
-    assert_eq!(progress, vec![3]);
+    assert_eq!(progress.last(), Some(&3));
+    assert!(progress.windows(2).all(|p| p[0] < p[1]));
 }
 
 #[tokio::test]
@@ -413,4 +414,194 @@ async fn upload_status_retries_one_unavailable_read_without_repeating_a_mutation
         assert_eq!(result.is_ok(), succeeds);
         assert_eq!(h.calls.load(Ordering::SeqCst), calls);
     }
+}
+
+#[tokio::test]
+async fn a_slow_failed_block_does_not_stall_or_reupload_acknowledged_neighbors() {
+    use crate::testing::{TempDir, relay_to, unlocked, warm};
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        sync::{Arc, Mutex},
+    };
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    struct Uploading {
+        client: Mutex<Client>,
+        plan: UploadPlan,
+    }
+    impl Hold for Uploading {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Ok(Some(
+                serde_json::json!({"status":"staging","plan":self.plan}),
+            ))
+        }
+        async fn post<P: Serialize + Sync>(
+            &self,
+            _: &str,
+            _: &str,
+            _: &P,
+            _: &Hash,
+        ) -> Result<Value> {
+            Ok(
+                serde_json::json!({"upload_id":self.plan.upload_id,"object_id":self.plan.object_id,"version_id":self.plan.version_id,"digest":self.plan.manifest_digest}),
+            )
+        }
+    }
+    let dir = TempDir::new();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut client = unlocked(&dir.0, false, None);
+    relay_to(
+        &mut client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    warm(&mut client);
+    let (mut plan, _) = fixture("backup", false);
+    plan.expires_at = crate::now_ms() + 600_000;
+    for n in 0..6u8 {
+        let bytes = vec![n; 32];
+        let digest = hex::encode(*crate::codec::sha256(&bytes));
+        client.workspace.store.put_chunk(&digest, &bytes).unwrap();
+        plan.chunks.push(ChunkRef {
+            digest,
+            size: bytes.len() as u64,
+        });
+    }
+    let requests = Arc::new(Mutex::new(BTreeMap::<String, usize>::new()));
+    let seen = requests.clone();
+    let server = tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let seen = seen.clone();
+            tokio::spawn(async move {
+                let mut bytes = Vec::new();
+                let part = loop {
+                    let mut buf = [0; 8192];
+                    let n = socket.read(&mut buf).await.unwrap();
+                    if n == 0 {
+                        return;
+                    }
+                    bytes.extend_from_slice(&buf[..n]);
+                    let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") else {
+                        continue;
+                    };
+                    let head = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                    let length: usize = head
+                        .lines()
+                        .find_map(|l| l.strip_prefix("content-length:"))
+                        .unwrap()
+                        .trim()
+                        .parse()
+                        .unwrap();
+                    if bytes.len() < end + 4 + length {
+                        continue;
+                    }
+                    break head
+                        .split_whitespace()
+                        .nth(1)
+                        .unwrap()
+                        .rsplit('/')
+                        .next()
+                        .unwrap()
+                        .to_owned();
+                };
+                let count = {
+                    let mut seen = seen.lock().unwrap();
+                    let n = seen.entry(part.clone()).or_default();
+                    *n += 1;
+                    *n
+                };
+                let failed = part == "0" && count <= 3;
+                if part == "0" {
+                    tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+                }
+                let (status, body) = if failed {
+                    (
+                        503,
+                        r#"{"ok":false,"error":{"code":"UNAVAILABLE","message":"retry"}}"#,
+                    )
+                } else {
+                    (200, r#"{"ok":true,"data":{}}"#)
+                };
+                let _ = socket.write_all(format!("HTTP/1.1 {status} Test\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",body.len()).as_bytes()).await;
+            });
+        }
+    });
+    let h = Uploading {
+        client: Mutex::new(client),
+        plan: plan.clone(),
+    };
+    let mut acknowledged = BTreeSet::new();
+    let first = upload_parts(
+        &h,
+        "/v1/accounts/test",
+        &plan,
+        b"manifest",
+        &BTreeSet::new(),
+        Source::Store,
+        |_, event| {
+            if let PartProgress::Stored(index) = event {
+                acknowledged.insert(index);
+            }
+            Ok(())
+        },
+    )
+    .await;
+    assert!(matches!(first, Err(Error::Unavailable(_))));
+    assert_eq!(acknowledged, BTreeSet::from([1, 2, 3, 4, 5]));
+    upload_parts(
+        &h,
+        "/v1/accounts/test",
+        &plan,
+        b"manifest",
+        &acknowledged,
+        Source::Store,
+        |_, _| Ok(()),
+    )
+    .await
+    .unwrap();
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests["0"], 4);
+    for n in 1..6 {
+        assert_eq!(requests[&n.to_string()], 1);
+    }
+    server.abort();
+}
+
+#[tokio::test]
+async fn a_lost_backup_commit_is_confirmed_immediately_under_the_original_plan() {
+    struct Lost {
+        plan: UploadPlan,
+    }
+    impl Hold for Lost {
+        async fn with<T: Send>(
+            &self,
+            _: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            panic!("no reupload")
+        }
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Ok(Some(
+                serde_json::json!({"status":"committed","plan":self.plan}),
+            ))
+        }
+        async fn post<P: Serialize + Sync>(
+            &self,
+            _: &str,
+            _: &str,
+            _: &P,
+            _: &Hash,
+        ) -> Result<Value> {
+            Err(Error::ExecutionUnknown)
+        }
+    }
+    let (plan, _) = fixture("backup", false);
+    assert_eq!(
+        finalize(&Lost { plan: plan.clone() }, "/v1/accounts/test", &plan).await,
+        Ok(None)
+    );
 }

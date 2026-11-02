@@ -12,6 +12,20 @@ struct CipherTransferState: Codable, Sendable {
     var failure: String?
     var paused = false
     var attempt = 0
+    var failures: [String: Int]?
+    var retryAfter: [String: Date]?
+
+    mutating func failed(slot: String, status: Int?, transient: Bool, now: Date = .now) {
+        if now.timeIntervalSince1970 * 1000 >= Double(transfer.expiresAt) || status == 403 {
+            failure = "expired"; return
+        }
+        let count = (failures?[slot] ?? 0) + 1
+        if failures == nil { failures = [:] }; failures?[slot] = count
+        if transient, count <= 3 {
+            if retryAfter == nil { retryAfter = [:] }
+            retryAfter?[slot] = now.addingTimeInterval(Double(1 << count))
+        } else { failure = "transfer_failed" }
+    }
     var ready: Bool { completed.count == transfer.parts.count }
 }
 
@@ -123,9 +137,10 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
         if let state = try? store?.snapshot() { try? store?.update(state.transfer.id) { $0.paused = true } }
         let tasks = await session.allTasks; for task in tasks { task.cancel() }; changed()
     }
-    func retry() throws {
+    func retry() async throws {
+        await pause()
         guard let store, let state = try store.snapshot(), Double(state.transfer.expiresAt) > Date.now.timeIntervalSince1970 * 1000 else { throw CocoaError(.userCancelled) }
-        try store.update(state.transfer.id) { $0.failure = nil; $0.paused = false; $0.attempt += 1 }; schedule(); changed()
+        try store.update(state.transfer.id) { $0.failure = nil; $0.paused = false; $0.attempt += 1; $0.failures = nil; $0.retryAfter = nil }; schedule(); changed()
     }
     func discard(_ transfer: CipherTransfer) async throws { await pause(); try store?.discard(transfer); changed() }
     private func changed() { NotificationCenter.default.post(name: .dmsgCipherTransfer, object: nil) }
@@ -156,6 +171,7 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
                     guard let path = try? store.path(state.transfer, part.slot), FileManager.default.fileExists(atPath: path.path) else { try? store.update(state.transfer.id) { $0.failure = "missing_ciphertext" }; changed(); return }
                     task = session.uploadTask(with: request, fromFile: path)
                 } else { task = session.downloadTask(with: request) }
+                task.earliestBeginDate = state.retryAfter?[part.slot]
                 task.taskDescription = state.transfer.id + ":" + String(state.attempt) + ":" + part.slot; task.resume()
             }
         }
@@ -167,7 +183,8 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         guard let (id,attempt,slot) = taskPart(downloadTask) else { return }
         do {
-            guard let response = downloadTask.response as? HTTPURLResponse, (200..<300).contains(response.statusCode), let store else { throw CocoaError(.fileReadUnknown) }
+            guard let response = downloadTask.response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else { return }
+            guard let store else { throw CocoaError(.fileReadUnknown) }
             // Consume the temporary URL before returning to URLSession.
             try store.receive(id, attempt: attempt, slot: slot, temporary: location)
         } catch { try? store?.update(id) { if $0.attempt == attempt && !$0.paused { $0.failure = "download_verification_failed" } }; changed() }
@@ -176,8 +193,14 @@ final class BackgroundTransfers: NSObject, URLSessionDownloadDelegate, URLSessio
         guard let (id,attempt,slot) = taskPart(task) else { return }
         try? store?.update(id) { value in
             guard !value.paused, value.attempt == attempt else { return }
-            if error != nil || !((task.response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false) { value.failure = "transfer_failed" }
-            else if value.transfer.method == "PUT" { value.completed.insert(slot) }
+            let status = (task.response as? HTTPURLResponse)?.statusCode
+            if error != nil || !(status.map { (200..<300).contains($0) } ?? false) {
+                let network = (error as? URLError).map { [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed].contains($0.code) } ?? false
+                value.failed(slot: slot, status: status, transient: network || [408, 429, 500, 502, 503, 504].contains(status ?? 0))
+            } else {
+                if value.transfer.method == "PUT" { value.completed.insert(slot) }
+                value.retryAfter?[slot] = nil; value.failures?[slot] = nil
+            }
         }
         changed(); schedule()
     }

@@ -9,7 +9,7 @@
 //! the sealed manifest and how many chunks went. The job needs no key to
 //! continue, so a locked device with the resident signing key finishes it;
 //! the version record is updated once the device is unlocked. A failed
-//! attempt waits [`RETRY_MS`] for the next. Nothing creates a job but
+//! transient attempt starts its bounded backoff at [`RETRY_MS`]. Nothing creates a job but
 //! [`backup`]: not an import, not an edit, not a cloud
 //! inventory refresh, and a backup the person deleted from the cloud is not
 //! uploaded again.
@@ -21,8 +21,8 @@ use crate::content::{ManifestContent, empty_file, seal_manifest};
 use crate::files::{BlobStore, FileManifest, MAX_BACKUP, MAX_FILE, Source};
 use crate::hold::Hold;
 use crate::now_ms;
-use crate::upload::{ChunkRef, UploadPlan, cancel_upload, random_hex, upload};
-use dmsg_types::{Error, MINUTE, Result, ensure, user::VaultWriteState};
+use crate::upload::{ChunkRef, PartProgress, UploadPlan, cancel_upload, random_hex, upload_parts};
+use dmsg_types::{Error, Result, ensure, user::VaultWriteState};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -31,7 +31,7 @@ pub const BACKUP: &str = "backup";
 /// The format of a backup manifest's content.
 pub const BACKUP_FORMAT: &str = "dmsg-backup/1";
 /// A failed backup waits this long before its next attempt.
-pub const RETRY_MS: u64 = 5 * MINUTE;
+pub const RETRY_MS: u64 = 2_000;
 
 /// What a backup's sealed manifest carries: the file and where it was.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -65,13 +65,19 @@ pub(crate) struct BackupJob {
     pub(crate) plan: UploadPlan,
     pub(crate) manifest: ByteBuf,
     pub(crate) sent: u64,
+    #[serde(default)]
+    pub(crate) acknowledged: std::collections::BTreeSet<usize>,
+    #[serde(default)]
+    pub(crate) attempts: u32,
+    #[serde(default)]
+    pub(crate) stage: String,
+    #[serde(default)]
+    pub(crate) updated_at: u64,
     pub(crate) created_at: u64,
     /// The error code of the last attempt, if it failed.
     pub(crate) error: Option<String>,
     /// When the last attempt failed.
     pub(crate) failed_at: Option<u64>,
-    /// The plan was replaced once after it lapsed.
-    pub(crate) replanned: bool,
     /// Committed on the relay; the version record follows once unlocked.
     pub(crate) committed: bool,
 }
@@ -97,6 +103,18 @@ pub struct BackupJobView {
     pub error: Option<String>,
     /// Committed; waiting for the device to unlock.
     pub committed: bool,
+    /// Attempts since the last explicit retry.
+    pub attempts: u32,
+    /// Queued, uploading, committing, paused, retrying, failed or done.
+    pub stage: String,
+    /// Next automatic retry, in Unix milliseconds.
+    pub retry_at: Option<u64>,
+    /// Last durable progress update, in Unix milliseconds.
+    pub updated_at: u64,
+    /// Acknowledged ciphertext bytes.
+    pub bytes: u64,
+    /// Total ciphertext bytes.
+    pub total_bytes: u64,
 }
 
 /// A version a backup request left out, and why.
@@ -118,6 +136,7 @@ pub struct BackupRequest {
     /// Versions left out.
     pub skipped: Vec<Skipped>,
     /// Plaintext bytes the started jobs will put in the cloud.
+    /// Acknowledged ciphertext bytes.
     pub bytes: u64,
 }
 
@@ -130,12 +149,13 @@ pub struct BackupRun {
     pub failed: u64,
     /// Jobs left, failed ones included.
     pub pending: u64,
-    /// The pass stopped at its time budget; the next one goes on from the
-    /// last chunk sent.
+    /// The pass paused because the device locked.
     pub paused: bool,
+    /// Newly acknowledged bytes retained during this pass.
+    pub bytes: u64,
 }
 
-fn view(job: &BackupJob) -> BackupJobView {
+fn view(job: &BackupJob, can_sign: bool) -> BackupJobView {
     BackupJobView {
         file: job.file.clone(),
         version: job.version.clone(),
@@ -146,6 +166,31 @@ fn view(job: &BackupJob) -> BackupJobView {
         created_at: job.created_at,
         error: job.error.clone(),
         committed: job.committed,
+        attempts: job.attempts,
+        stage: if !can_sign {
+            "paused".into()
+        } else if job.committed {
+            "committing".into()
+        } else if job.error.is_some() {
+            if retry_at(job).is_some() {
+                "retrying"
+            } else {
+                "failed"
+            }
+            .into()
+        } else if job.stage.is_empty() {
+            "queued".into()
+        } else {
+            job.stage.clone()
+        },
+        retry_at: retry_at(job),
+        updated_at: job.updated_at,
+        bytes: acknowledged(job)
+            .iter()
+            .filter_map(|i| job.plan.chunks.get(*i))
+            .map(|c| c.size)
+            .sum(),
+        total_bytes: job.plan.chunks.iter().map(|c| c.size).sum(),
     }
 }
 
@@ -179,7 +224,7 @@ impl Client {
         Ok(self
             .backup_jobs()?
             .iter()
-            .map(|(_, job)| view(job))
+            .map(|(_, job)| view(job, self.signing().is_ok()))
             .collect())
     }
 
@@ -259,10 +304,13 @@ impl Client {
             plan,
             manifest: ByteBuf::from(sealed),
             sent: 0,
+            acknowledged: Default::default(),
+            attempts: 0,
+            stage: "queued".into(),
+            updated_at: now,
             created_at: now,
             error: None,
             failed_at: None,
-            replanned: false,
             committed: false,
         })
     }
@@ -310,10 +358,28 @@ impl Client {
         let mut jobs = Vec::new();
         for (file, version_id) in targets {
             let version = self.version(&file, &version_id)?;
+            let key = job_key(&file, &version_id);
+            if let Some(mut pending) = self.workspace.store.library_job::<BackupJob>(&key)? {
+                if pending.error.is_some() {
+                    pending.error = None;
+                    pending.failed_at = None;
+                    pending.attempts = 0;
+                    pending.stage = "queued".into();
+                    pending.updated_at = now;
+                    self.workspace.store.set_library_job(&key, &pending)?;
+                    request.bytes += pending.size;
+                    request.started.push(view(&pending, true));
+                } else {
+                    request.skipped.push(Skipped {
+                        file,
+                        version: version_id,
+                        reason: "in_progress",
+                    });
+                }
+                continue;
+            }
             let reason = if version.backup.is_some() {
                 Some("backed_up")
-            } else if self.backup_state(&file, &version_id)?.is_some() {
-                Some("in_progress")
             } else if version.size > max_file_bytes {
                 Some("too_large")
             } else if !version.local {
@@ -455,25 +521,68 @@ async fn backup_checked<H: Hold>(
         Ok(())
     })
     .await?;
-    request.started = jobs.iter().map(view).collect();
+    request
+        .started
+        .extend(jobs.iter().map(|job| view(job, true)));
     Ok(request)
 }
 
-/// One pass over the backup jobs: upload what is left of each, commit, and
-/// record the version's backup. Works locked with a resident device key;
-/// the version record then follows at the next pass after an unlock. A job
-/// that failed less than [`RETRY_MS`] ago waits. With `budget_ms`, no batch
-/// starts after that long and the pass says it `paused`. Each batch waits
-/// on the relay without the client. `progress(file, sent, chunks)` follows
-/// each upload.
-///
-/// # Errors
-/// Returns `Error::Locked` without a signing key; a job's own failure is
-/// recorded in the job and counted, never returned.
+fn acknowledged(job: &BackupJob) -> std::collections::BTreeSet<usize> {
+    if job.acknowledged.is_empty() {
+        (0..job.sent as usize).collect()
+    } else {
+        job.acknowledged.clone()
+    }
+}
+
+fn retry_at(job: &BackupJob) -> Option<u64> {
+    job.failed_at
+        .filter(|_| {
+            matches!(
+                job.error.as_deref(),
+                Some(
+                    "UNAVAILABLE"
+                        | "NETWORK_UNAVAILABLE"
+                        | "SYNC_BUSY"
+                        | "EXECUTION_UNKNOWN"
+                        | "POLICY_STALE"
+                        | "AUTH_REQUIRED"
+                )
+            )
+        })
+        .map(|at| {
+            at.saturating_add((RETRY_MS << job.attempts.saturating_sub(1).min(5)).min(60_000))
+        })
+}
+
+impl Client {
+    /// Explicit retry reuses each original upload and its acknowledged chunks.
+    ///
+    /// # Errors
+    /// Returns session or storage errors.
+    pub fn files_backup_retry(&self, file: Option<&str>, version: Option<&str>) -> Result<()> {
+        self.keys()?;
+        let now = now_ms();
+        for (key, mut job) in self.backup_jobs()? {
+            if file.is_none_or(|f| f == job.file) && version.is_none_or(|v| v == job.version) {
+                job.error = None;
+                job.failed_at = None;
+                job.attempts = 0;
+                job.stage = "queued".into();
+                job.updated_at = now;
+                self.workspace.store.set_library_job(&key, &job)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Run saved backups continuously. The caller serializes passes; network waits
+/// never hold Client. Lock pauses without a failure cooldown, and retries keep
+/// the original upload and every independently acknowledged block.
 pub async fn backup_run<H: Hold>(
     h: &H,
-    budget_ms: Option<u64>,
-    progress: &mut (dyn FnMut(&str, u64, u64) + Send),
+    progress: &mut (dyn FnMut(&BackupJobView) + Send),
 ) -> Result<BackupRun> {
     let jobs = h
         .with(|c| {
@@ -481,154 +590,146 @@ pub async fn backup_run<H: Hold>(
             c.backup_jobs()
         })
         .await?;
-    let deadline = budget_ms.map(|ms| now_ms().saturating_add(ms));
     let mut run = BackupRun::default();
     for (key, mut job) in jobs {
-        // Each job's time is read after the uploads before it.
         let now = now_ms();
         if job.committed {
             if h.with(|c| c.settle_backup(&key, &job, now)).await? {
+                let mut completed = view(&job, true);
+                completed.stage = "done".into();
+                progress(&completed);
                 run.completed += 1;
             } else {
                 run.pending += 1;
             }
             continue;
         }
-        if run.paused || job.failed_at.is_some_and(|at| now < at + RETRY_MS) {
+        if run.paused
+            || job
+                .failed_at
+                .is_some_and(|_| retry_at(&job).is_none_or(|at| now < at))
+        {
             run.pending += 1;
             continue;
         }
-        let mut paused = false;
-        let outcome = send_backup(h, &key, &mut job, deadline, &mut paused, progress).await;
+        job.error = None;
+        job.failed_at = None;
+        job.stage = "uploading".into();
+        job.updated_at = now;
+        job.attempts = job.attempts.saturating_add(1);
+        h.with(|c| c.workspace.store.set_library_job(&key, &job))
+            .await?;
+        let before_bytes = view(&job, true).bytes;
+        let outcome = send_backup(h, &key, &mut job, progress).await;
         let now = now_ms();
-        match outcome {
-            // Its chunks so far are recorded; nothing failed.
-            Err(_) if paused => {
-                run.paused = true;
-                run.pending += 1;
-            }
-            Ok(()) => {
-                job.committed = true;
-                job.error = None;
-                job.failed_at = None;
-                let settled = h
-                    .with(|c| {
-                        c.workspace.store.set_library_job(&key, &job)?;
-                        c.settle_backup(&key, &job, now)
-                    })
-                    .await?;
-                if settled {
-                    run.completed += 1;
-                } else {
+        h.with(|c| {
+            let Some(mut stored) = c.workspace.store.library_job::<BackupJob>(&key)? else {
+                return Ok(());
+            };
+            run.bytes += view(&stored, true).bytes.saturating_sub(before_bytes);
+            stored.updated_at = now;
+            match outcome {
+                Ok(()) => {
+                    stored.committed = true;
+                    stored.error = None;
+                    stored.failed_at = None;
+                    c.workspace.store.set_library_job(&key, &stored)?;
+                    if c.settle_backup(&key, &stored, now)? {
+                        let mut completed = view(&stored, true);
+                        completed.stage = "done".into();
+                        progress(&completed);
+                        run.completed += 1;
+                    } else {
+                        run.pending += 1;
+                    }
+                }
+                Err(ref error) if matches!(error, Error::Locked) || c.signing().is_err() => {
+                    stored.stage = "paused".into();
+                    stored.error = None;
+                    stored.failed_at = None;
+                    c.workspace.store.set_library_job(&key, &stored)?;
+                    run.paused = true;
+                    run.pending += 1;
+                }
+                Err(error) => {
+                    stored.error = Some(crate::error_code(&error));
+                    stored.failed_at = Some(now);
+                    stored.stage = "failed".into();
+                    if let Some(delay) = crate::transport::retry_after(&error) {
+                        // Keep the server's minimum retry time, with the same job.
+                        stored.failed_at = Some(now.saturating_add(delay).saturating_sub(RETRY_MS));
+                        stored.attempts = 1;
+                    }
+                    c.workspace.store.set_library_job(&key, &stored)?;
+                    run.failed += 1;
                     run.pending += 1;
                 }
             }
-            Err(error) => {
-                job.error = Some(crate::error_code(&error));
-                job.failed_at = Some(now);
-                // A job cancelled meanwhile stays gone.
-                h.with(
-                    |c| match c.workspace.store.library_job::<BackupJob>(&key)? {
-                        Some(stored) => {
-                            // Progress was persisted by each completed upload
-                            // batch. An error must not overwrite it with the
-                            // cursor from before this pass.
-                            let failed = BackupJob {
-                                error: job.error.clone(),
-                                failed_at: job.failed_at,
-                                ..stored
-                            };
-                            c.workspace.store.set_library_job(&key, &failed)
-                        }
-                        None => Ok(()),
-                    },
-                )
-                .await?;
-                run.failed += 1;
-                run.pending += 1;
-            }
-        }
+            Ok(())
+        })
+        .await?;
     }
     Ok(run)
 }
 
-/// Upload one job, resuming after the chunks it recorded; a lapsed plan is
-/// replaced once, which needs the device unlocked. Past `deadline` it stops
-/// after a recorded chunk and sets `paused`.
 async fn send_backup<H: Hold>(
     h: &H,
     key: &str,
     job: &mut BackupJob,
-    deadline: Option<u64>,
-    paused: &mut bool,
-    progress: &mut (dyn FnMut(&str, u64, u64) + Send),
+    progress: &mut (dyn FnMut(&BackupJobView) + Send),
 ) -> Result<()> {
     let base = h.with(|c| c.base()).await?;
-    let chunks = job.plan.chunks.len() as u64;
-    let file = job.file.clone();
-    let mut step = |client: &mut Client, sent: usize| {
-        progress(&file, sent as u64, chunks);
-        let mut stored: BackupJob = client
-            .workspace
-            .store
-            .library_job(key)?
-            .ok_or(Error::IntegrityFailed)?;
-        stored.sent = sent as u64;
-        client.workspace.store.set_library_job(key, &stored)?;
-        if (sent as u64) < chunks && deadline.is_some_and(|d| now_ms() >= d) {
-            *paused = true;
-            return Err(Error::Pending);
+    for attempt in 0..2 {
+        let plan = job.plan.clone();
+        let outcome = upload_parts(
+            h,
+            &base,
+            &plan,
+            &job.manifest,
+            &acknowledged(job),
+            Source::Library,
+            |c, event| {
+                let mut stored: BackupJob =
+                    c.workspace.store.library_job(key)?.ok_or(Error::NotFound)?;
+                ensure(stored.plan == plan, Error::VersionConflict)?;
+                match event {
+                    PartProgress::Reset => {
+                        stored.acknowledged.clear();
+                        stored.sent = 0;
+                    }
+                    PartProgress::Stored(index) => {
+                        stored.acknowledged = acknowledged(&stored);
+                        stored.acknowledged.insert(index);
+                        stored.sent = stored.acknowledged.len() as u64;
+                        stored.stage = "uploading".into();
+                    }
+                    PartProgress::Committing => stored.stage = "committing".into(),
+                }
+                stored.updated_at = now_ms();
+                c.workspace.store.set_library_job(key, &stored)?;
+                progress(&view(&stored, c.signing().is_ok()));
+                Ok(())
+            },
+        )
+        .await;
+        match outcome {
+            Ok(_) => return Ok(()),
+            Err(Error::ResultExpired)
+                if attempt == 0 && h.with(|c| Ok(c.keys.is_some())).await? =>
+            {
+                cancel_upload(h, &job.plan.upload_id).await?;
+                *job = h
+                    .with(|c| {
+                        let fresh = c.plan_backup(&job.file, &job.version, now_ms())?;
+                        c.workspace.store.set_library_job(key, &fresh)?;
+                        Ok(fresh)
+                    })
+                    .await?;
+            }
+            Err(error) => return Err(error),
         }
-        Ok(())
-    };
-    let sent = job.sent as usize;
-    match upload(
-        h,
-        &base,
-        &job.plan,
-        &job.manifest,
-        sent,
-        Source::Library,
-        &mut step,
-    )
-    .await
-    {
-        Ok(_) => {
-            job.sent = chunks;
-            Ok(())
-        }
-        Err(Error::ResultExpired) if !job.replanned && h.with(|c| Ok(c.keys.is_some())).await? => {
-            cancel_upload(h, &job.plan.upload_id).await?;
-            let fresh = h
-                .with(|c| {
-                    let fresh = c.plan_backup(&job.file, &job.version, now_ms())?;
-                    let replanned = BackupJob {
-                        plan: fresh.plan,
-                        manifest: fresh.manifest,
-                        sent: 0,
-                        replanned: true,
-                        ..job.clone()
-                    };
-                    c.workspace.store.set_library_job(key, &replanned)?;
-                    Ok(replanned)
-                })
-                .await?;
-            *job = fresh;
-            upload(
-                h,
-                &base,
-                &job.plan,
-                &job.manifest,
-                0,
-                Source::Library,
-                &mut step,
-            )
-            .await?;
-            job.sent = chunks;
-            Ok(())
-        }
-        Err(error) => Err(error),
     }
+    unreachable!()
 }
 
 /// Cancel a version's backup in flight: the staging upload is cancelled on
@@ -656,4 +757,68 @@ pub async fn backup_cancel<H: Hold>(h: &H, file: &str, version: &str) -> Result<
         .await?;
     cancel_upload(h, &job.plan.upload_id).await?;
     h.with(|c| c.workspace.store.delete_library_job(&key)).await
+}
+
+#[cfg(test)]
+mod retry_tests {
+    use super::*;
+    use serde_json::Value;
+    use std::sync::Mutex;
+
+    struct Interrupted(Mutex<Client>);
+    impl Hold for Interrupted {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.0.lock().unwrap())
+        }
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Err(Error::Locked)
+        }
+    }
+
+    #[tokio::test]
+    async fn lock_pauses_without_a_failure_deadline_and_manual_retry_reuses_the_plan() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let source = dir.path("lock.txt");
+        std::fs::write(&source, b"resume me").unwrap();
+        let imported = c
+            .files_import(&source, super::super::catalog::ROOT, false, &mut |_, _| {})
+            .unwrap();
+        let job = c
+            .plan_backup(&imported.file.id, &imported.version, now_ms())
+            .unwrap();
+        let key = job_key(&job.file, &job.version);
+        c.workspace.store.set_library_job(&key, &job).unwrap();
+        let h = Interrupted(Mutex::new(c));
+        let result = backup_run(&h, &mut |_| {}).await.unwrap();
+        assert!(result.paused);
+        assert_eq!(result.failed, 0);
+        h.with(|c| {
+            let mut stored: BackupJob = c.workspace.store.library_job(&key)?.unwrap();
+            assert!(stored.error.is_none() && stored.failed_at.is_none());
+            stored.error = Some("UNAVAILABLE".into());
+            stored.failed_at = Some(now_ms());
+            stored.attempts = 1;
+            for code in ["UNAVAILABLE", "NETWORK_UNAVAILABLE", "SYNC_BUSY"] {
+                stored.error = Some(code.into());
+                assert_eq!(retry_at(&stored), stored.failed_at.map(|at| at + 2000));
+            }
+            c.workspace.store.set_library_job(&key, &stored)?;
+            let (request, new_jobs) =
+                c.plan_backups(std::slice::from_ref(&job.file), false, MAX_BACKUP, now_ms())?;
+            assert!(new_jobs.is_empty());
+            assert!(request.skipped.is_empty());
+            assert_eq!(request.started[0].upload_id, job.plan.upload_id);
+            c.files_backup_retry(Some(&job.file), Some(&job.version))?;
+            let retried: BackupJob = c.workspace.store.library_job(&key)?.unwrap();
+            assert_eq!(retried.plan, job.plan);
+            assert!(retried.failed_at.is_none() && retried.error.is_none());
+            Ok(())
+        })
+        .await
+        .unwrap();
+    }
 }
