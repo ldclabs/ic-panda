@@ -151,14 +151,14 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
     return { records: 12, bytes: 1_250_000 }
   }
 
+  const localReads = count('files/local_only')
   await go('/settings/devices')
   await main.getByTestId('devices').waitFor()
-  const risk = main.getByTestId('devices-local-only')
-  await risk.waitFor()
-  const riskText = await risk.innerText()
-  for (const part of ['3 file versions', '2 changes', 'more than 7 days']) assert.ok(riskText.includes(part), `${part} in ${riskText}`)
+  assert.equal(await main.getByTestId('devices-local-only').count(), 0, 'optional file backups do not warn on Devices')
   await main.getByTestId('succession').getByText('No handovers on this device.').waitFor()
   await main.getByTestId('device-transfer').getByText('No transfer yet.').waitFor()
+  assert.equal(count('files/local_only'), localReads, 'Devices does not load a backup inventory')
+  await matrix('devices-overview', '[data-testid="devices"]')
   assert.equal(await main.locator('input:visible, textarea:visible').count(), 0, 'the page has no open forms')
 
   // The old device reviews the new device's request with the keyboard; editing it drops the shown review.
@@ -469,5 +469,5 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   await main.getByTestId('moved-import').click()
   await main.getByTestId('moved-notice').getByText('Imported 12 records', { exact: false }).waitFor()
   assert.deepEqual(last('device/moved_import').params, { id: `${account}-56565656`, succession: 'b3'.repeat(32) })
-  console.log('Succession: review and approval, both sides\' steps, transfers, leaving behind, revocation, native addresses and key root, local-only notices, the new Mac\'s request and 16 matrix screenshots passed')
+  console.log('Succession: review and approval, both sides\' steps, transfers, leaving behind, revocation, native addresses and key root, local-only notices, the new Mac\'s request and 20 matrix screenshots passed')
 }

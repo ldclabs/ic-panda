@@ -2070,8 +2070,8 @@
 	<string>এই ডিভাইসটি আপনার ব্যক্তিগত সামগ্রী পেতে পারে৷ অনুমোদনের পরে মাস্টার বিষয়বস্তু-এনক্রিপশন কী পুনরায় বিতরণ করা আবশ্যক।</string>
 	<key>This device replaces</key>
 	<string>এই ডিভাইস যার জায়গা নিচ্ছে</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>এই ফাইলটি 100 MiB সীমা অতিক্রম করেছে৷</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>এই ফাইলটি এই কাজের জন্য অনুমোদিত আকারের সীমা অতিক্রম করেছে।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>এই ইতিহাস এই ডিভাইসের অন্তর্গত. এটি ডেস্কটপ-স্থানীয় CLI, SSH বা অন্য ডিভাইস থেকে ফাইল-মাউন্ট অনুমোদন মিরর করে না।</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>ডিভাইসের অনুরোধ পৌঁছানোর বিষয়টি নিশ্চিত নয়। আবার চেষ্টা করার আগে সংযোগ ও কম্পিউটার পরীক্ষা করুন।</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>ইনবক্সের কী এখনও এই ডিভাইসে সিঙ্ক হয়নি। যে ডিভাইসে বার্তা গ্রহণ চালু করেছিলেন সেটি সিঙ্ক করুন, তারপর এখানে আবার চেষ্টা করুন।</string>
+	<key>Cloud backup file limit</key>
+	<string>ক্লাউড ব্যাকআপে প্রতি ফাইলের সীমা</string>
 </dict>
 </plist>

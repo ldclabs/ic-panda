@@ -11,6 +11,22 @@ final class CipherTransferTests: XCTestCase {
         let input = root.appending(path: "download"); try bytes.write(to: input)
         return (store,transfer,input,bytes)
     }
+    func testThousandChunkTransferMetadataSurvivesRestart() throws {
+        let (store, sample, _, _) = try fixture()
+        var parts = (0..<1000).map { index in
+            CipherTransfer.Part(slot: String(index), size: 1024 * 1024 + 64,
+                digest: sample.parts[0].digest, url: sample.parts[0].url)
+        }
+        parts.append(.init(slot: "manifest", size: 512 * 1024, digest: sample.parts[0].digest, url: sample.parts[0].url))
+        let transfer = CipherTransfer(id: sample.id, account: sample.account, device: sample.device,
+            method: "PUT", uploadId: sample.uploadId, expiresAt: sample.expiresAt, parts: parts)
+        try store.start(transfer)
+        XCTAssertEqual(try CipherTransferStore(root: store.root).snapshot()?.transfer.parts.count, 1001)
+        parts.append(.init(slot: "1000", size: 1, digest: sample.parts[0].digest, url: sample.parts[0].url))
+        XCTAssertThrowsError(try store.validate(CipherTransfer(id: sample.id, account: sample.account,
+            device: sample.device, method: "PUT", uploadId: sample.uploadId,
+            expiresAt: sample.expiresAt, parts: parts)))
+    }
     func testRestartRetainsOnlyBoundedCiphertextAndTaskProgress() throws {
         let (store,transfer,input,bytes) = try fixture()
         try store.start(transfer); try store.receive(transfer.id, attempt: 0, slot: "0", temporary: input)

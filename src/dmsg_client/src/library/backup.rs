@@ -18,7 +18,7 @@ use super::catalog::Backup;
 use super::{BACKUP_JOB, Client};
 use crate::codec::sha256;
 use crate::content::{ManifestContent, empty_file, seal_manifest};
-use crate::files::{BlobStore, FileManifest, MAX_FILE, Source};
+use crate::files::{BlobStore, FileManifest, MAX_BACKUP, MAX_FILE, Source};
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, cancel_upload, random_hex, upload};
@@ -192,6 +192,7 @@ impl Client {
         now: u64,
     ) -> Result<BackupJob> {
         let (file, version, manifest) = self.library_manifest(file_id, Some(version_id))?;
+        ensure(manifest.size <= MAX_BACKUP, Error::QuotaExceeded)?;
         let path = self.catalog()?.path(&file.folder);
         let account = self.account()?.id.to_string();
         let roots = self.roots()?;
@@ -273,6 +274,7 @@ impl Client {
         &mut self,
         ids: &[String],
         all_versions: bool,
+        max_file_bytes: u64,
         now: u64,
     ) -> Result<(BackupRequest, Vec<BackupJob>)> {
         let mut targets: Vec<(String, String)> = Vec::new();
@@ -312,7 +314,7 @@ impl Client {
                 Some("backed_up")
             } else if self.backup_state(&file, &version_id)?.is_some() {
                 Some("in_progress")
-            } else if version.size > MAX_FILE {
+            } else if version.size > max_file_bytes {
                 Some("too_large")
             } else if !version.local {
                 Some("not_local")
@@ -364,7 +366,7 @@ impl Client {
 
 /// Back up files and folders to the cloud: each file's current version, or
 /// every version with `all_versions`; folders recursively. A version
-/// already backed up, in flight, over the cloud's 100 MiB bound or not on
+/// already backed up, in flight, over the membership's cloud backup bound or not on
 /// this device is skipped and named. Persist the jobs and return; the daemon
 /// runs them in the background, locked too with a resident device key.
 ///
@@ -397,6 +399,12 @@ async fn backup_checked<H: Hold>(
         security.snapshot.vault_write_state == VaultWriteState::Ready,
         Error::RekeyRequired,
     )?;
+    let usage = super::cloud::cloud_usage(h).await?;
+    let max_file_bytes = usage.backup_max_file_bytes.ok_or(Error::MembershipStale)?;
+    ensure(
+        matches!(max_file_bytes, MAX_FILE | MAX_BACKUP),
+        Error::IntegrityFailed,
+    )?;
     let (mut request, jobs) = h
         .with(|c| {
             if let Some((id, version)) = expected {
@@ -405,13 +413,12 @@ async fn backup_checked<H: Hold>(
                     Error::VersionConflict,
                 )?;
             }
-            c.plan_backups(ids, all_versions, now_ms())
+            c.plan_backups(ids, all_versions, max_file_bytes, now_ms())
         })
         .await?;
     if !jobs.is_empty() {
         // The cloud's room, as the relay projects it; the relay checks
         // again at each reservation.
-        let usage = super::cloud::cloud_usage(h).await?;
         if let Some(limit) = usage.storage_limit {
             let planned: u64 = jobs
                 .iter()

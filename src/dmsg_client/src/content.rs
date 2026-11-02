@@ -34,6 +34,16 @@ pub const MAX_OBJECT: usize = 200_000;
 pub(crate) const MAX_CONTAINER: usize = crate::cloud::MAX_CHUNK;
 /// Largest sealed upload manifest.
 pub(crate) const MAX_MANIFEST: usize = 65_536;
+/// Backup manifests repeat both the upload plan and up to 1000 file chunks.
+pub(crate) const MAX_BACKUP_MANIFEST: usize = 512 * 1024;
+
+fn manifest_limit(plan: &UploadPlan) -> usize {
+    if plan.kind == BACKUP {
+        MAX_BACKUP_MANIFEST
+    } else {
+        MAX_MANIFEST
+    }
+}
 
 /// One encrypted object version.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -295,8 +305,9 @@ pub fn seal_manifest(
     plan: &mut UploadPlan,
     content: ManifestContent<'_>,
 ) -> Vec<u8> {
-    let value =
-        |bytes: Vec<u8>| decode_value(&bytes, MAX_MANIFEST).expect("canonical CBOR decodes");
+    let value = |bytes: Vec<u8>| {
+        decode_value(&bytes, manifest_limit(plan)).expect("canonical CBOR decodes")
+    };
     let manifest = Manifest {
         format: "dmsg-cloud-manifest/1".into(),
         account_id: account.into(),
@@ -334,7 +345,7 @@ pub fn open_manifest(root: &Key, account: &str, plan: &UploadPlan, bytes: &[u8])
         Error::IntegrityFailed,
     )?;
     let plain = open_bytes(root, bytes, &manifest_context(account, plan))?;
-    let manifest: Manifest = decode(&plain, MAX_MANIFEST)?;
+    let manifest: Manifest = decode(&plain, manifest_limit(plan))?;
     ensure(
         manifest.format == "dmsg-cloud-manifest/1"
             && manifest.account_id == account
@@ -356,7 +367,7 @@ pub fn open_manifest(root: &Key, account: &str, plan: &UploadPlan, bytes: &[u8])
             Ok(Opened::File(file))
         }
         (BACKUP, Some(content)) => {
-            let backup: BackupManifest = decode(&canonical(&content), MAX_MANIFEST)?;
+            let backup: BackupManifest = decode(&canonical(&content), MAX_BACKUP_MANIFEST)?;
             ensure(backup.format == BACKUP_FORMAT, Error::IntegrityFailed)?;
             Ok(Opened::Backup(backup))
         }

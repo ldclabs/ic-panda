@@ -2070,8 +2070,8 @@
 	<string>Este dispositivo pode receber seu conteúdo privado. A raiz do conteúdo deve ser redistribuída após aprovação.</string>
 	<key>This device replaces</key>
 	<string>Este dispositivo substitui</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Este arquivo excede o limite de 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Este arquivo excede o limite de tamanho para esta operação.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Este histórico pertence a este dispositivo. Ele não espelha CLI local de desktop, SSH ou aprovações de montagem de arquivo de outro dispositivo.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>A entrega da solicitação não foi confirmada. Verifique a conexão e o computador antes de tentar novamente.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>A chave da caixa de entrada ainda não foi sincronizada com este dispositivo. Sincronize o dispositivo que ativou o recebimento e tente novamente aqui.</string>
+	<key>Cloud backup file limit</key>
+	<string>Limite por arquivo de backup na nuvem</string>
 </dict>
 </plist>

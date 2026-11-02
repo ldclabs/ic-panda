@@ -564,7 +564,7 @@
         <p class="text-[13.5px] text-muted">{t('approvalLocked')}</p>
         {#if status?.state === 'locked' && status.fast_unlock}
           <button class={buttonClass('primary')} disabled={unlocking} aria-busy={unlocking} onclick={unlockHere} data-testid="approval-unlock">
-            <Icon name={unlocking ? 'sync' : 'unlock'} class={unlocking ? 'motion-safe:animate-spin' : ''} />{t(unlocking ? 'unlocking' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
+            <Icon name={unlocking ? 'pending' : 'unlock'} class={unlocking ? 'motion-safe:animate-spin' : ''} />{t(unlocking ? 'unlocking' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
           </button>
         {/if}
         <button class={buttonClass('ghost', 'sm')} onclick={() => showMain(status?.state === 'locked' && status.fast_unlock ? '/approvals' : '/login')} data-testid="approval-main">

@@ -2070,8 +2070,8 @@
 	<string>이 장치는 귀하의 비공개 콘텐츠를 수신할 수 있습니다. 콘텐츠 루트는 승인 후 재배포되어야 합니다.</string>
 	<key>This device replaces</key>
 	<string>이 장치가 대체하는 장치</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>이 파일은 100 MiB 제한을 초과합니다.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>이 파일은 이 작업에 허용된 크기 제한을 초과합니다.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>이 기록은 이 장치에 속합니다. 데스크탑-로컬 CLI, SSH 또는 다른 장치의 파일 마운트 승인을 미러링하지 않습니다.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>기기 요청의 전달이 확인되지 않았습니다. 다시 시도하기 전에 연결과 컴퓨터를 확인하세요.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
+	<key>Cloud backup file limit</key>
+	<string>클라우드 백업 파일 크기 제한</string>
 </dict>
 </plist>

@@ -146,7 +146,6 @@ struct DevicesView: View {
     @Environment(SessionModel.self) private var model
     @State private var display = DisplayLoad()
     @State private var devices: [DeviceInfo] = []
-    @State private var local: LocalOnly?
     @State private var copies: [MovedCopy] = []
     @State private var handovers: [Succession] = []
     struct AccountDevices: Decodable { let devices: [DeviceInfo] }
@@ -158,7 +157,6 @@ struct DevicesView: View {
                 NavigationLink("Replace a device") { SuccessionsView() }.accessibilityIdentifier("devices.succession")
                 NavigationLink("Transfer between devices") { DeviceTransferView() }.accessibilityIdentifier("devices.transfer")
             }
-            LocalOnlySection(value: local, always: true)
             MovedImportSection(copies: copies, handovers: handovers) { await load() }
             Section("Authorized devices") {
                 ForEach(devices) { device in
@@ -180,7 +178,6 @@ struct DevicesView: View {
     private func load(force: Bool = false) async {
         guard let engine = model.engine else { return }
         await display.load(model, kind: "account-summary", force: force) { (account: AccountDevices) in devices = account.devices }
-        local = await LocalOnly.load(model)
         let account = model.session?.account
         let moved: [MovedCopy] = (try? model.decode(try await engine.movedCopies())) ?? []
         copies = moved.filter { $0.account != nil && $0.account == account }

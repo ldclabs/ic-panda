@@ -2070,8 +2070,8 @@
 	<string>Dit apparaat kan je privé-inhoud ontvangen. De hoofdsleutel voor inhoudsversleuteling moet na goedkeuring opnieuw worden gedistribueerd.</string>
 	<key>This device replaces</key>
 	<string>Dit apparaat vervangt</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Dit bestand overschrijdt de limiet van 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Dit bestand overschrijdt de maximale grootte voor deze bewerking.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Deze geschiedenis hoort bij dit apparaat. Het weerspiegelt geen desktop-lokale CLI, SSH of goedkeuringen voor het koppelen van bestanden vanaf een ander apparaat.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>De bezorging van het apparaatverzoek is niet bevestigd. Controleer de verbinding en de computer voordat je opnieuw probeert.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.</string>
+	<key>Cloud backup file limit</key>
+	<string>Bestandsgroottelimiet voor cloudback-ups</string>
 </dict>
 </plist>

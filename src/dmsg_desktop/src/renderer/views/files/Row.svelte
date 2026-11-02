@@ -166,7 +166,7 @@
             <ContextMenu.Item class={menuItemClass} onSelect={onExport} disabled={status === 'cloud_only'}>
               <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
             </ContextMenu.Item>
-            <ContextMenu.Item class={menuItemClass} onSelect={onShare} disabled={status === 'cloud_only' || status === 'too_large'}>
+            <ContextMenu.Item class={menuItemClass} onSelect={onShare} disabled={status === 'cloud_only' || entry.size > 100 * 1024 * 1024}>
               <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
             </ContextMenu.Item>
             <ContextMenu.Item class={menuItemClass} onSelect={onStar}>

@@ -77,8 +77,10 @@ struct PrivateFiles: Sendable {
         var copyError: Error?
         NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { source in
             do {
-                let values = try source.resourceValues(forKeys: [.fileSizeKey])
-                guard let size = values.fileSize, size <= 100 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+                // URL resource values can retain a size from an earlier import of this path.
+                let attributes = try FileManager.default.attributesOfItem(atPath: source.path)
+                guard let size = (attributes[.size] as? NSNumber)?.intValue,
+                      size >= 0, size <= (purpose == "file" ? 1000 : 100) * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
                 let available = try staging.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage
                 if let available, available < Int64(size) * 3 + 8 * 1024 * 1024 { throw CocoaError(.fileWriteOutOfSpace) }
                 try FileManager.default.copyItem(at: source, to: destination)

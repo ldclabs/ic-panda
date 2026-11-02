@@ -694,6 +694,7 @@ const methods = {
     reserved: 0,
     committed: 1300,
     storage_limit: 104857600,
+    backup_max_file_bytes: 100 * 1024 * 1024,
     status: 'within_limit',
     channel_limit: 3,
     active_channels: 2,
@@ -1617,6 +1618,18 @@ smoke: try {
   const pageErrors = []
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.getByTestId('channel-list').waitFor()
+  if (process.env.DMSG_DESKTOP_SMOKE === 'plan-benefits') {
+    await main.evaluate(() => location.hash = '/plan')
+    await main.getByTestId('plan-cards').waitFor()
+    for (const tier of ['plus', 'pro', 'max']) {
+      assert.match(await main.getByTestId(`plan-${tier}-backup-limit`).innerText(), tier === 'max' ? /1000 MiB/ : /100 MiB/)
+    }
+    await waitFor(async () => (await main.getByTestId('plan-backup-limit').innerText()).includes('100 MiB'))
+    await formMatrix(app, main, shots, 'plan-backup-limits', '[data-testid="plan-cards"]')
+    assert.deepEqual(pageErrors, [])
+    console.log('Plan backup limits passed: Free/Plus/Pro 100 MiB, Max 1000 MiB, locale/theme/narrow-window screenshots')
+    break smoke
+  }
   if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {
     const okAt = Date.now() - 60000
     lastSync = { at: Date.now(), ok_at: okAt, error: 'NETWORK_UNAVAILABLE', retry_at: Date.now() + 15000 }

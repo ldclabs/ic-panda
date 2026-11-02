@@ -20,9 +20,11 @@ use zeroize::Zeroizing;
 
 /// Plaintext bytes per chunk.
 pub const CHUNK: usize = 1024 * 1024;
-/// Largest file the cloud contract carries: a vault attachment of the
-/// legacy migration, a backup or a shared file.
+/// Default cloud file limit; also the shared-file and legacy migration bound.
 pub const MAX_FILE: u64 = 100 * 1024 * 1024;
+/// Largest cloud backup, admitted only for an eligible Max membership.
+/// Reading existing backups does not depend on current membership.
+pub const MAX_BACKUP: u64 = 1000 * 1024 * 1024;
 
 /// Where ciphertext chunks live, by the SHA-256 of their bytes.
 pub trait BlobStore {

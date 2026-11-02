@@ -791,7 +791,7 @@ final class SessionModel {
         if let error = error as? CocoaError {
             if error.code == .userCancelled { return }
             if error.code == .fileWriteOutOfSpace { self.error = String(localized: "Not enough storage on this device."); return }
-            if error.code == .fileReadTooLarge { self.error = String(localized: "This file exceeds the 100 MiB limit."); return }
+            if error.code == .fileReadTooLarge { self.error = String(localized: "This file exceeds the size limit for this operation."); return }
         }
         if let core = error as? MobileError {
             switch core {

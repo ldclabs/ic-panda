@@ -31,7 +31,7 @@
     <span class="grid size-12 place-items-center text-faint [&_svg]:size-6"><Icon name="lock" /></span>
     <p class="text-[13.5px] text-muted" role="status">{$unlocking ? t('unlocking') : t(hint)}</p>
     {#if step}
-      <button class={buttonClass('primary')} onclick={step.run} disabled={$unlocking} aria-busy={$unlocking} data-testid="locked-step"><Icon name={$unlocking ? 'sync' : step.icon} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : t(step.label)}</button>
+      <button class={buttonClass('primary')} onclick={step.run} disabled={$unlocking} aria-busy={$unlocking} data-testid="locked-step"><Icon name={$unlocking ? 'pending' : step.icon} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : t(step.label)}</button>
     {/if}
     {#if locked && status.fast_unlock}
       <button class={buttonClass('ghost', 'sm')} disabled={$unlocking} onclick={() => startLogin()} data-testid="locked-login">{t('loginWithIi')}</button>

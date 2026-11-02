@@ -2070,8 +2070,8 @@
 	<string>このデバイスはあなたのプライベートコンテンツを受信する可能性があります。コンテンツルートは承認後に再配布する必要があります。</string>
 	<key>This device replaces</key>
 	<string>このデバイスが置き換える相手</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>このファイルは 100 MiB 制限を超えています。</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>このファイルは、この操作で許可されるサイズの上限を超えています。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>この履歴はこのデバイスに属します。デスクトップローカル CLI、SSH、または別のデバイスからのファイルマウント承認はミラーリングされません。</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>デバイスのリクエストが届いたか確認できません。再試行の前に接続とパソコンを確認してください。</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。</string>
+	<key>Cloud backup file limit</key>
+	<string>クラウドバックアップのファイル上限</string>
 </dict>
 </plist>

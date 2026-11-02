@@ -2070,8 +2070,8 @@
 	<string>Perangkat ini mungkin menerima konten pribadi Anda. Akar konten harus didistribusikan ulang setelah disetujui.</string>
 	<key>This device replaces</key>
 	<string>Perangkat ini menggantikan</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>File ini melebihi batas 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>File ini melebihi batas ukuran untuk operasi ini.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Riwayat ini milik perangkat ini. Itu tidak mencerminkan CLI lokal-desktop, SSH, atau persetujuan pemasangan file dari perangkat lain.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Pengiriman permintaan perangkat belum dikonfirmasi. Periksa koneksi dan komputer sebelum mencoba lagi.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Kunci kotak masuk belum disinkronkan ke perangkat ini. Sinkronkan perangkat yang mengaktifkan penerimaan pesan, lalu coba lagi di sini.</string>
+	<key>Cloud backup file limit</key>
+	<string>Batas per file cadangan cloud</string>
 </dict>
 </plist>

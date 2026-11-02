@@ -15,7 +15,6 @@
   import { bridge, call, errorText, onChange, single, when } from '../rpc'
   import DeviceTransfer from './DeviceTransfer.svelte'
   import DeviceAuthorization from './DeviceAuthorization.svelte'
-  import LocalOnly from './LocalOnly.svelte'
   import Succession from './Succession.svelte'
 
   /**
@@ -169,7 +168,6 @@
   </Section>
 {/if}
 {#if status?.state === 'unlocked'}
-  <LocalOnly always testid="devices-local-only" />
   <Succession {go} onTransfer={(role, task) => (role === 'receive' ? transfer?.receive(task) : transfer?.send(task))} />
   <DeviceTransfer bind:this={transfer} />
 {/if}

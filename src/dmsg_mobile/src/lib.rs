@@ -176,7 +176,7 @@ impl MobileEngine {
         let platform: Arc<dyn Platform> = Arc::from(platform);
         let adapter = Arc::new(platform::Adapter(platform.clone()));
 
-        config.files_max_bytes = 100 * 1024 * 1024;
+        config.files_max_bytes = dmsg_client::files::MAX_BACKUP;
         let directory = PathBuf::from(directory);
         let staging = PathBuf::from(staging);
         ensure_valid(

@@ -2070,8 +2070,8 @@
 	<string>這台裝置可能獲得你的私密內容。批准後仍需完成內容根分發。</string>
 	<key>This device replaces</key>
 	<string>本裝置取代</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>檔案超過 100 MiB 限制。</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>此檔案超過此操作允許的大小上限。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>此歷史記錄僅屬於本裝置，不會映象其他裝置上的桌面本機 CLI、SSH 或檔案掛載審批。</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>尚未確認裝置請求已送達。請先檢查網路與桌面端狀態，再決定是否重試。</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
+	<key>Cloud backup file limit</key>
+	<string>雲端備份單檔上限</string>
 </dict>
 </plist>

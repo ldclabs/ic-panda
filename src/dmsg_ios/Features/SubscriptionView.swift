@@ -30,6 +30,14 @@ struct SubscriptionView: View {
                     Button("Retry") { Task { await load() } }
                 }
             }
+            Section("Cloud backup file limit") {
+                ForEach(["Free", "Plus", "Pro", "Max"], id: \.self) { tier in
+                    LabeledContent {
+                        Text(verbatim: tier == "Max" ? "1000 MiB" : "100 MiB")
+                    } label: { Text(verbatim: tier) }
+                        .accessibilityIdentifier("plan.backup-limit.\(tier)")
+                }
+            }
             if model.purchases.enabled {
                 Section("App Store subscriptions") {
                     productRows(model.purchases.products.filter { $0.type == .autoRenewable })

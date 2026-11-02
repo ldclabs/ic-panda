@@ -59,3 +59,24 @@ fn print_download_vector() {
     )
     .unwrap();
 }
+
+#[test]
+fn a_thousand_chunk_grant_reaches_the_last_chunk_but_remains_bounded() {
+    let upload_id = "ab".repeat(32);
+    let part = Slot {
+        url: "https://example.test/object".into(),
+        digest: "cd".repeat(32),
+        size: crate::cloud::MAX_CHUNK as u64,
+    };
+    let mut grant = Grant {
+        upload_id: upload_id.clone(),
+        expires_at: u64::MAX,
+        manifest: part.clone(),
+        chunks: vec![part.clone(); 1000],
+    };
+    let object = format!("/v1/accounts/test/objects/{upload_id}");
+    assert!(grant.slot(&object, "999", &part.digest).is_ok());
+    assert!(grant.slot(&object, "1000", &part.digest).is_err());
+    grant.chunks.push(part.clone());
+    assert!(grant.slot(&object, "0", &part.digest).is_err());
+}

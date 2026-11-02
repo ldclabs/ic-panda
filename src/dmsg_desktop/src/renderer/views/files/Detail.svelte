@@ -240,10 +240,10 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={() => onExport(null)}>
                   <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onShare(null)}>
+                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)}>
                   <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onLink(null)} data-testid="files-link">
+                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onLink(null)} data-testid="files-link">
                   <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
                 </DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">

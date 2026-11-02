@@ -1727,7 +1727,7 @@ async fn backup_planning_returns_a_durable_job_without_uploading_it() {
         async fn get(&self, path: &str) -> Result<serde_json::Value> {
             assert!(path.ends_with("/quota"));
             Ok(
-                serde_json::json!({"reserved":0,"committed":0,"lifecycle":{"storage_limit":100_000_000}}),
+                serde_json::json!({"reserved":0,"committed":0,"lifecycle":{"storage_limit":100_000_000,"backup_max_file_bytes":MAX_FILE}}),
             )
         }
 
@@ -2031,4 +2031,95 @@ fn local_only_counts_local_versions_without_a_backup() {
     assert_eq!((only.versions, only.bytes), (2, kept.1 + backed.1));
     assert_eq!((only.unbacked_versions, only.unbacked_bytes), (1, kept.1));
     assert_eq!(only.last_sync_ok_at, None);
+}
+
+#[tokio::test]
+async fn max_backup_admission_and_thousand_chunk_manifest_round_trip() {
+    use crate::content::{Opened, open_manifest};
+    use crate::files::MAX_BACKUP;
+    use crate::hold::Hold;
+    struct Tier {
+        client: std::sync::Mutex<Client>,
+        limit: Option<u64>,
+    }
+    impl Hold for Tier {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+        async fn get(&self, path: &str) -> Result<serde_json::Value> {
+            assert!(path.ends_with("/quota"));
+            Ok(serde_json::json!({"reserved":0,"committed":0,"lifecycle":{
+                "storage_limit":10_000_000_000u64,"backup_max_file_bytes":self.limit
+            }}))
+        }
+        async fn send(
+            &self,
+            _: impl FnMut(&mut Client) -> Result<crate::cloud::Prepared> + Send,
+        ) -> Result<serde_json::Value> {
+            panic!("planning must not upload")
+        }
+    }
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut c);
+    let imported = c
+        .files_import(
+            &write(&dir, "boundary.bin", &vec![7; CHUNK]),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let id = imported.file.id;
+    let mut version = c.version(&id, &imported.version).unwrap();
+    // Synthetic metadata exercises the full-size plan without allocating a GiB.
+    version.size = MAX_BACKUP;
+    version.chunks = vec![version.chunks[0].clone(); 1000];
+    c.save_version(&id, &imported.version, &version).unwrap();
+    let mut h = Tier {
+        client: std::sync::Mutex::new(c),
+        limit: None,
+    };
+    assert_eq!(
+        backup::backup(&h, std::slice::from_ref(&id), false)
+            .await
+            .unwrap_err(),
+        Error::MembershipStale
+    );
+    h.limit = Some(MAX_FILE);
+    let denied = backup::backup(&h, std::slice::from_ref(&id), false)
+        .await
+        .unwrap();
+    assert!(denied.started.is_empty());
+    assert_eq!(denied.skipped[0].reason, "too_large");
+    h.limit = Some(MAX_BACKUP);
+    let allowed = backup::backup(&h, std::slice::from_ref(&id), false)
+        .await
+        .unwrap();
+    assert_eq!(allowed.started[0].chunks, 1000);
+    let mut c = h.client.lock().unwrap();
+    let jobs = c.backup_jobs().unwrap();
+    let job = &jobs[0].1;
+    assert!(
+        job.manifest.len() > 65_536 && job.manifest.len() <= crate::content::MAX_BACKUP_MANIFEST
+    );
+    let account = c.account().unwrap().id.to_string();
+    let root = c.roots().unwrap().key(job.plan.root_generation).unwrap();
+    let Opened::Backup(opened) = open_manifest(root, &account, &job.plan, &job.manifest).unwrap()
+    else {
+        panic!("backup")
+    };
+    assert_eq!(opened.file.size, MAX_BACKUP);
+    assert_eq!(opened.file.chunks.len(), 1000);
+    assert_eq!(version.status(), "local");
+    version.size = MAX_BACKUP + 1;
+    assert_eq!(version.status(), "too_large");
+    c.save_version(&id, &imported.version, &version).unwrap();
+    assert!(matches!(
+        c.plan_backup(&id, &imported.version, 1),
+        Err(Error::QuotaExceeded)
+    ));
 }

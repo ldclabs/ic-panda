@@ -2070,8 +2070,8 @@
 	<string>To urządzenie może odbierać Twoje prywatne treści. Główny klucz szyfrowania treści musi zostać ponownie rozpowszechniony po zatwierdzeniu.</string>
 	<key>This device replaces</key>
 	<string>To urządzenie zastępuje</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Ten plik przekracza limit 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Ten plik przekracza limit rozmiaru dla tej operacji.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ta historia należy do tego urządzenia. Nie odzwierciedla lokalnego interfejsu CLI na komputerze stacjonarnym, SSH ani zatwierdzeń montowania plików z innego urządzenia.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Dostarczenie prośby nie zostało potwierdzone. Sprawdź połączenie i komputer przed ponowną próbą.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Klucz skrzynki odbiorczej nie został jeszcze zsynchronizowany z tym urządzeniem. Zsynchronizuj urządzenie, na którym włączono odbieranie, i spróbuj ponownie tutaj.</string>
+	<key>Cloud backup file limit</key>
+	<string>Limit rozmiaru pliku kopii w chmurze</string>
 </dict>
 </plist>

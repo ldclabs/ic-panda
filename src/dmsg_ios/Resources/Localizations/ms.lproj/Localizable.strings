@@ -2070,8 +2070,8 @@
 	<string>Peranti ini mungkin menerima kandungan peribadi anda. Kunci penyulitan kandungan induk mesti diedarkan semula selepas diluluskan.</string>
 	<key>This device replaces</key>
 	<string>Peranti ini menggantikan</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Fail ini melebihi had 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Fail ini melebihi had saiz untuk operasi ini.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Sejarah ini kepunyaan peranti ini. Ia tidak mencerminkan CLI setempat desktop, SSH atau kelulusan pemasangan fail daripada peranti lain.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Penghantaran permintaan peranti belum disahkan. Semak sambungan dan komputer sebelum mencuba lagi.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
+	<key>Cloud backup file limit</key>
+	<string>Had setiap fail sandaran awan</string>
 </dict>
 </plist>

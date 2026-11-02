@@ -4,7 +4,7 @@
 //! files while the device is unlocked. Nothing about the catalog is
 //! written in plain text: not a name, a tag, a note or a size.
 
-use crate::files::{FileChunk, FileManifest, MAX_FILE};
+use crate::files::{FileChunk, FileManifest, MAX_BACKUP};
 use crate::upload::ChunkRef;
 use crate::workspace::{Keys, Workspace};
 use dmsg_types::{Error, Result, ensure};
@@ -179,7 +179,7 @@ impl Version {
         match (&self.backup, self.local) {
             (Some(_), false) => "cloud_only",
             (Some(_), true) => "backed_up",
-            (None, _) if self.size > MAX_FILE => "too_large",
+            (None, _) if self.size > MAX_BACKUP => "too_large",
             (None, _) => "local",
         }
     }

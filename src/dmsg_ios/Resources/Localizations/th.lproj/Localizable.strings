@@ -2070,8 +2070,8 @@
 	<string>อุปกรณ์นี้อาจรับเนื้อหาส่วนตัวของคุณ คีย์การเข้ารหัสเนื้อหาหลักต้องได้รับการแจกจ่ายซ้ำหลังจากได้รับการอนุมัติ</string>
 	<key>This device replaces</key>
 	<string>อุปกรณ์นี้แทนที่</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>ไฟล์นี้เกินขีดจำกัด 100 MiB</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>ไฟล์นี้มีขนาดเกินขีดจำกัดสำหรับการดำเนินการนี้</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ประวัตินี้เป็นของอุปกรณ์นี้ ไม่จำลอง CLI, SSH ภายในเดสก์ท็อป หรือการอนุมัติการติดตั้งไฟล์จากอุปกรณ์อื่น</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>ยังยืนยันไม่ได้ว่าคำขอของอุปกรณ์ส่งถึงแล้ว ตรวจสอบการเชื่อมต่อและคอมพิวเตอร์ก่อนลองอีกครั้ง</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>คีย์กล่องขาเข้ายังไม่ได้ซิงค์กับอุปกรณ์นี้ โปรดซิงค์อุปกรณ์ที่เปิดใช้การรับจดหมาย แล้วลองอีกครั้งที่นี่</string>
+	<key>Cloud backup file limit</key>
+	<string>ขนาดสูงสุดต่อไฟล์สำรองบนคลาวด์</string>
 </dict>
 </plist>

@@ -2070,8 +2070,8 @@
 	<string>Dieses Gerät empfängt möglicherweise Ihre privaten Inhalte. Der Inhaltsstamm muss nach der Genehmigung neu verteilt werden.</string>
 	<key>This device replaces</key>
 	<string>Dieses Gerät ersetzt</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Diese Datei überschreitet den Grenzwert von 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Diese Datei überschreitet die Größenbeschränkung für diesen Vorgang.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Dieser Verlauf gehört zu diesem Gerät. Es werden keine Desktop-lokalen CLI-, SSH- oder Datei-Mount-Genehmigungen von einem anderen Gerät gespiegelt.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Die Zustellung der Geräteanfrage ist unbestätigt. Prüfen Sie Verbindung und Computer, bevor Sie es erneut versuchen.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Der Posteingangsschlüssel wurde noch nicht mit diesem Gerät synchronisiert. Synchronisiere das Gerät, auf dem der Empfang aktiviert wurde, und versuche es hier erneut.</string>
+	<key>Cloud backup file limit</key>
+	<string>Dateigrößenlimit für Cloud-Backups</string>
 </dict>
 </plist>

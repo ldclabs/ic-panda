@@ -290,8 +290,11 @@ Apple Distribution。本地分发签名需要证书及其私钥；自动签名�
 
 Production trust parameters come from `dmsg_client/production.toml`, also used
 by the desktop. No deep link can replace endpoints, roots or canister pins.
-The app's core enforces a 100 MiB import limit; this is an initial engineering
-limit, not a measured minimum-device performance guarantee.
+The file library accepts document imports up to 1000 MiB. New cloud backups
+allow 1000 MiB for eligible Max memberships and 100 MiB for other tiers; existing
+backups remain restorable after a downgrade. Photo staging, vault imports and
+explicit File Provider exports retain their separate 100 MiB limits. These are
+engineering bounds, not measured minimum-device performance guarantees.
 Secret packages have a separate 8 MiB payload ceiling, checked before downloads,
 against cached previews, before approval and again on import. This is not a peak
 RSS budget: chunk/manifest buffers and password derivation also consume memory.
@@ -421,8 +424,9 @@ moving them, and local content moves with a device transfer or a copy import, or
 is left behind (`successionSkip`), which the revocation lists. Stopping
 (`successionCancel`) keeps what was done. What only this device holds
 (`localOnly`: versions without a cloud backup, unsynced changes, the last
-successful sync) shows in Devices and warns in Files and before binding the
-workspace to this device.
+successful sync) is available during device replacement and warns in Files and
+before binding the workspace to this device. The Devices overview does not show
+a backup reminder: file-library cloud backups are optional.
 
 Device transfers move the file library between devices of the account over
 the local network (dmsg-device-transfer/1). The core runs the TCP listener or

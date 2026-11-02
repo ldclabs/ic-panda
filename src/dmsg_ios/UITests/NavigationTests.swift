@@ -93,6 +93,10 @@ import XCTest
         assertReadOnlyPlan(language: "zh-Hans", locale: "zh_CN", accountTitle: "我的", dark: true)
     }
 
+    func testReadOnlyPlanInDarkArabic() {
+        assertReadOnlyPlan(language: "ar", locale: "ar_SA", accountTitle: "الحساب", dark: true)
+    }
+
     private func assertReadOnlyPlan(language: String, locale: String, accountTitle: String, dark: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
@@ -102,7 +106,15 @@ import XCTest
         let plan = app.buttons["account.plan"]
         for _ in 0..<6 where !plan.isHittable { app.swipeUp() }
         XCTAssertTrue(plan.isHittable); plan.tap()
-        XCTAssertTrue(app.staticTexts["plan.purchases-disabled"].waitForExistence(timeout: 5))
+        for tier in ["Free", "Plus", "Pro", "Max"] {
+            let limit = app.descendants(matching: .any).matching(identifier: "plan.backup-limit.\(tier)").firstMatch
+            for _ in 0..<4 where !limit.isHittable { app.swipeUp() }
+            XCTAssertTrue(limit.exists)
+            XCTAssertTrue(limit.label.contains(tier == "Max" ? "1000 MiB" : "100 MiB"))
+        }
+        let disabled = app.staticTexts["plan.purchases-disabled"]
+        for _ in 0..<4 where !disabled.isHittable { app.swipeUp() }
+        XCTAssertTrue(disabled.exists)
         // LabeledContent exposes its localized label and value as one element.
         let currentPlan = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Free")).firstMatch
         XCTAssertTrue(currentPlan.exists)

@@ -32,7 +32,9 @@ fn location(path: &str) -> Result<(&str, &str)> {
 impl Grant {
     fn slot(&self, object: &str, part: &str, digest: &str) -> Result<Slot> {
         ensure(
-            object.ends_with(&format!("/objects/{}", self.upload_id)) && self.chunks.len() <= 128,
+            object.ends_with(&format!("/objects/{}", self.upload_id))
+                && self.chunks.len()
+                    <= (crate::files::MAX_BACKUP / crate::files::CHUNK as u64) as usize,
             Error::IntegrityFailed,
         )?;
         let slot = if part == "manifest" {

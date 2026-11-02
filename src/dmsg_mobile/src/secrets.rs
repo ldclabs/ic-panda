@@ -10,7 +10,7 @@ use serde_json::json;
 use std::sync::Arc;
 use zeroize::{Zeroize, Zeroizing};
 
-/// Whole-package buffers are capped independently of the 100 MiB Files limit.
+/// Whole-package buffers are capped independently of the Files import limit.
 /// This is a payload ceiling, not a total-memory guarantee: one MiB chunk
 /// buffers and the bounded JSON manifest are additional allocations. Password
 /// wrapping uses the existing 19 MiB Argon2 workspace in a separate phase.

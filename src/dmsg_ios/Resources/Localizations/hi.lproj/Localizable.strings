@@ -2070,8 +2070,8 @@
 	<string>यह उपकरण आपकी निजी सामग्री प्राप्त कर सकता है. अनुमोदन के बाद सामग्री रूट को पुनर्वितरित किया जाना चाहिए।</string>
 	<key>This device replaces</key>
 	<string>यह उपकरण इसकी जगह लेता है</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>यह फ़ाइल 100 MiB सीमा से अधिक है।</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>यह फ़ाइल इस कार्रवाई के लिए अनुमत आकार सीमा से बड़ी है।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ये इतिहास इसी डिवाइस का है. यह डेस्कटॉप-स्थानीय CLI, SSH या किसी अन्य डिवाइस से फ़ाइल-माउंट अनुमोदन को प्रतिबिंबित नहीं करता है।</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>डिवाइस अनुरोध पहुँचने की पुष्टि नहीं हुई है। दोबारा कोशिश करने से पहले कनेक्शन और कंप्यूटर जाँचें।</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>इनबॉक्स की कुंजी अभी इस डिवाइस पर सिंक नहीं हुई है। जिस डिवाइस पर संदेश प्राप्त करना चालू किया था, उसे सिंक करें, फिर यहाँ दोबारा कोशिश करें।</string>
+	<key>Cloud backup file limit</key>
+	<string>क्लाउड बैकअप में प्रति फ़ाइल सीमा</string>
 </dict>
 </plist>

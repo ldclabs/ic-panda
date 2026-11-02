@@ -2070,8 +2070,8 @@
 	<string>یہ آلہ آپ کا نجی مواد وصول کر سکتا ہے۔ ماسٹر مواد-انکرپشن کلید کو منظوری کے بعد دوبارہ تقسیم کیا جانا چاہیے۔</string>
 	<key>This device replaces</key>
 	<string>یہ آلہ اس کی جگہ لیتا ہے</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>یہ فائل 100 MiB کی حد سے زیادہ ہے۔</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>یہ فائل اس کارروائی کے لیے اجازت یافتہ سائز کی حد سے زیادہ ہے۔</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>یہ سرگزشت اس ڈیوائس سے تعلق رکھتی ہے۔ یہ ڈیسک ٹاپ-لوکل CLI، SSH یا کسی دوسرے آلے سے فائل ماؤنٹ کی منظوریوں کی عکس بندی نہیں کرتا ہے۔</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>آلے کی درخواست پہنچنے کی تصدیق نہیں ہوئی۔ دوبارہ کوشش سے پہلے کنکشن اور کمپیوٹر دیکھیں۔</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
+	<key>Cloud backup file limit</key>
+	<string>کلاؤڈ بیک اپ میں فی فائل حد</string>
 </dict>
 </plist>

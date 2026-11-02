@@ -200,6 +200,22 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertTrue(try file("failed", local: true).canOpen, "a failed backup must not hide the local copy")
     }
 
+    func testDocumentImportAllows1000MiBButVaultImportKeepsItsOwnBound() throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let files = try PrivateFiles(base: base)
+        let source = base.appending(path: "large.bin")
+        XCTAssertTrue(FileManager.default.createFile(atPath: source.path, contents: nil))
+        let handle = try FileHandle(forWritingTo: source)
+        defer { try? handle.close() }
+        try handle.truncate(atOffset: 1000 * 1024 * 1024)
+        let staged = try files.importDocument(source, account: "040g2081040g2081040g")
+        XCTAssertEqual(try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize, 1000 * 1024 * 1024)
+        try files.finishImport(staged)
+        XCTAssertThrowsError(try files.importDocument(source, account: "040g2081040g2081040g", purpose: "vault"))
+        try handle.truncate(atOffset: 1000 * 1024 * 1024 + 1)
+        XCTAssertThrowsError(try files.importDocument(source, account: "040g2081040g2081040g"))
+    }
     func testStagingStoresDestinationAndStartupRemovesOnlyPreviewCopies() throws {
         let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: base) }

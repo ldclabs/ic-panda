@@ -2070,8 +2070,8 @@
 	<string>قد يحصل هذا الجهاز على محتواك الخاص. يجب إعادة توزيع مفتاح جذر المحتوى بعد الموافقة.</string>
 	<key>This device replaces</key>
 	<string>يحلّ هذا الجهاز محل</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>يتجاوز هذا الملف الحد البالغ 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>يتجاوز هذا الملف الحد الأقصى للحجم المسموح به لهذه العملية.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>هذا السجل خاص بهذا الجهاز. ولا يعكس موافقات CLI أو SSH أو تركيب الملفات المحلية على حاسوب آخر.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>لم يتم تأكيد وصول طلب الجهاز. تحقق من الاتصال والكمبيوتر قبل إعادة المحاولة.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
+	<key>Cloud backup file limit</key>
+	<string>الحد الأقصى لحجم ملف النسخ السحابي</string>
 </dict>
 </plist>

@@ -322,7 +322,7 @@
             </dl>
             <div class="mt-3 flex flex-wrap gap-1.5">
               {#if status?.state === 'locked'}
-                <button class={buttonClass('primary', 'sm')} disabled={$unlocking} aria-busy={$unlocking} onclick={() => unlock(status)}><Icon name={$unlocking ? 'sync' : 'unlock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : status.fast_unlock ? t('fastUnlock') : t('login')}</button>
+                <button class={buttonClass('primary', 'sm')} disabled={$unlocking} aria-busy={$unlocking} onclick={() => unlock(status)}><Icon name={$unlocking ? 'pending' : 'unlock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : status.fast_unlock ? t('fastUnlock') : t('login')}</button>
               {/if}
               {#if unlocked}
                 <button class={buttonClass('secondary', 'sm')} disabled={actionBusy} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>

@@ -1,5 +1,48 @@
 # iOS implementation validation
 
+## Max backup capacity (2026-11-02)
+
+New explicit cloud backups use the relay's current per-file admission limit:
+1000 MiB for eligible Max memberships, 100 MiB for other tiers. Unknown limits
+fail with `MEMBERSHIP_STALE`; existing backups restore independently of the
+current tier. The client keeps the shared-file/secret-package bounds separate.
+The library supports 1000-chunk plans and 512 KiB backup manifests. iOS document
+imports accept 1000 MiB, and background transfer metadata supports 1001 slots
+including the manifest. Photo staging, vault imports and explicit File Provider
+exports retain their own limits.
+
+The new sparse-file import test initially exposed cached URL size metadata:
+reusing a URL after the source grew could bypass the staging size check. Staging
+now reads current filesystem attributes. The unchanged regression passes at
+1000 MiB and rejects one byte more; vault import still rejects that large file.
+iOS also handles a skipped oversized backup as an error instead of reporting
+saved progress.
+
+Validation on the local working tree: client 548 tests and mobile 17 tests passed;
+5 client tests were explicitly ignored. CLI passed 105 tests with 6 explicitly
+ignored when run serially; the Secure Enclave key-creation test failed in parallel
+but passed independently and in the serial suite. All-target Clippy with warnings
+denied and Rust formatting passed. Desktop type checks, 159 tests, build and an
+isolated Electron size/backup/share-action matrix passed (Chinese/French/Arabic,
+light/dark and minimum window); 23-language resources passed validation.
+The membership display now lists 100 MiB for Free/Plus/Pro and 1000 MiB for Max.
+Desktop current limits use the relay response; plan comparison cards and the iOS
+comparison list label the tier policy explicitly. The `plan-benefits` Electron
+suite passed with Chinese/French/Arabic theme/width screenshots. Three iOS plan UI
+tests passed (English light, Chinese dark and Arabic dark), with all four tier
+values asserted. These UI fixtures do not verify production prices or purchases.
+Both ARM64 native slices and Swift bindings were rebuilt. On iPhone 17e / iOS 27.0
+Simulator, all 59 Swift unit tests passed, including large document staging,
+thousand-chunk metadata reopening and the real bridge load. The result bundle
+is `dmsg-max-backup-verified.xcresult` from this local run.
+
+The large Rust upload/manifest and download-grant boundary tests use synthetic
+metadata; sparse-file staging does not measure encryption or network throughput.
+No physical-device 1000 MiB encrypted upload/restore, public-network end-to-end,
+minimum-device memory/power qualification, production deployment or release
+packaging/upload was performed.
+
+
 ## Inbox receiving and retry (2026-11-02)
 
 A missing synced inbox key previously surfaced as `NOT_FOUND`; mobile inbox

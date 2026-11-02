@@ -2070,8 +2070,8 @@
 	<string>This device may receive your private content. The content root must be redistributed after approval.</string>
 	<key>This device replaces</key>
 	<string>This device replaces</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>This file exceeds the 100 MiB limit.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>This file exceeds the size limit for this operation.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Device request delivery is unconfirmed. Check your connection and the desktop before retrying.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</string>
+	<key>Cloud backup file limit</key>
+	<string>Cloud backup file limit</string>
 </dict>
 </plist>

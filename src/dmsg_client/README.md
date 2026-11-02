@@ -202,7 +202,11 @@ Shared editions are also re-encrypted in chunk-sized steps, and password
 derivation runs outside the lock. Temporary chunk references protect an
 edition from collection until its upload plan has been journaled.
 
-Backup planning persists jobs and returns without waiting for uploads.
+Backup planning queries the relay’s current per-file limit, persists jobs and
+returns without waiting for uploads. Eligible Max memberships can create
+1000 MiB backups; other tiers retain 100 MiB. Existing backups restore up to
+1000 MiB regardless of current membership. Backup manifests and download grants
+support 1000 chunks; sharing and secret-package limits remain independent.
 Ordinary uploads send four chunks at a time, with progress recorded only
 after a complete acknowledged batch. Failed passes preserve that cursor.
 Existing upload reservations resume until their actual plan/lease deadline;

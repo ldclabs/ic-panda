@@ -4,6 +4,11 @@ import UniformTypeIdentifiers
 import QuickLook
 import PhotosUI
 
+private struct BackupAdmission: Decodable {
+    struct Skipped: Decodable { let reason: String }
+    let skipped: [Skipped]
+}
+
 struct FilesView: View {
     @Environment(SessionModel.self) private var model
     @State private var selected: String?
@@ -237,7 +242,11 @@ struct FileDetailView: View {
         working = true; defer { working = false }; let epoch = model.epoch
         do {
             guard let engine = model.engine else { return }
-            _ = try await engine.backupFile(id: file.id, expectedVersion: file.current)
+            let admission: BackupAdmission = try model.decode(
+                try await engine.backupFile(id: file.id, expectedVersion: file.current))
+            if admission.skipped.contains(where: { $0.reason == "too_large" }) {
+                throw CocoaError(.fileReadTooLarge)
+            }
             // Continue only this explicit confirmation while the scene is active.
             repeat {
                 let snapshot = try await model.transfer.run(file.name) { try await engine.runBackups(operation: $0) }

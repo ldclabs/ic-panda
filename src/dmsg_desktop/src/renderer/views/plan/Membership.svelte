@@ -232,6 +232,7 @@
     </div>
     {#if plan?.limits}
       <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted" data-testid="plan-benefits">
+        <li data-testid="plan-backup-limit">{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{cloud?.backup_max_file_bytes != null ? `${cloud.backup_max_file_bytes / 1048576} MiB` : '—'}</bdi></li>
         <li>{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</li>
         <li data-testid="plan-device-limit">{t('deviceSlots', { n: plan.limits.active_devices ?? '—' })}</li>
         <li data-testid="plan-wallet-limit">{t('teamWalletSlots', { n: walletLimit ?? '—' })}</li>
@@ -258,6 +259,7 @@
             <p><span class="text-[22px] font-semibold tabular-nums">{price(p.price_cents)}</span> <span class="text-[12px] text-faint">/ {t('year')}</span></p>
             <ul class="grid gap-1 text-[12px] text-muted">
               <li class="flex items-center gap-1.5"><Icon name="sync" class="size-3.5 text-faint" />{size(p.limits.storage_bytes)}</li>
+              <li class="flex items-start gap-1.5" data-testid={`plan-${value}-backup-limit`}><Icon name="file" class="mt-0.5 size-3.5 shrink-0 text-faint" /><span>{t('backupFileLimit')}: <bdi class="whitespace-nowrap">{p.plan_id === 'Max' ? '1000 MiB' : '100 MiB'}</bdi></span></li>
               <li class="flex items-center gap-1.5"><Icon name="channels" class="size-3.5 text-faint" />{t('channelSlots', { n: p.limits.active_channels })}</li>
               <li class="flex items-center gap-1.5"><Icon name="signature" class="size-3.5 text-faint" />{t('executionUnits', { n: p.limits.monthly_execution_units })}</li>
               <li class="flex items-center gap-1.5" data-testid={`plan-${value}-devices`}><Icon name="device" class="size-3.5 shrink-0 text-faint" />{t('deviceSlots', { n: p.limits.active_devices ?? '—' })}</li>

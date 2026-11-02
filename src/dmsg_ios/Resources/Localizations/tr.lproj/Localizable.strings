@@ -2070,8 +2070,8 @@
 	<string>Bu cihaz özel içeriğinizi alabilir. İçerik kökü onaylandıktan sonra yeniden dağıtılmalıdır.</string>
 	<key>This device replaces</key>
 	<string>Bu cihazın yerini aldığı cihaz</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Bu dosya 100 MiB sınırını aşıyor.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Bu dosya, bu işlem için izin verilen boyut sınırını aşıyor.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Bu geçmiş bu cihaza aittir. Başka bir cihazdan masaüstü yerel CLI, SSH veya dosya bağlama onaylarını yansıtmaz.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Cihaz isteğinin teslimi doğrulanamadı. Yeniden denemeden önce bağlantıyı ve bilgisayarı kontrol edin.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
+	<key>Cloud backup file limit</key>
+	<string>Bulut yedeklemede dosya boyutu sınırı</string>
 </dict>
 </plist>

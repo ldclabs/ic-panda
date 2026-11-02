@@ -60,7 +60,7 @@
           onclick={() => (unlocked ? lock() : step?.run())}
           data-testid="gate-toggle"
         >
-          <Icon name={$unlocking ? 'sync' : unlocked ? 'unlock' : 'lock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />
+          <Icon name={$unlocking ? 'pending' : unlocked ? 'unlock' : 'lock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />
         </button>
       {/snippet}
     </Tooltip>
@@ -68,7 +68,7 @@
       <Tooltip content={`${syncText} · ${syncHint}`} side="right">
         {#snippet children(props)}
           <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused} onclick={syncNow}>
-            <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
+            <Icon name={syncing ? 'pending' : 'sync'} class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
         {/snippet}
@@ -111,7 +111,7 @@
             disabled={syncing || $unlocking || presentation.paused}
             data-testid="gate-sync"
           >
-            <Icon name="sync" class={cn('shrink-0 text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
+            <Icon name={syncing ? 'pending' : 'sync'} class={cn('shrink-0 text-faint', syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             <span role="status" class={cn(syncing && 'shimmer', failed && (transient ? 'text-warn' : 'text-danger'))}>{syncText}</span>
           </button>
         {/snippet}

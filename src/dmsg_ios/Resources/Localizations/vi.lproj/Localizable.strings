@@ -2070,8 +2070,8 @@
 	<string>Thiết bị này có thể nhận được nội dung riêng tư của bạn. Khóa mã hóa nội dung chính phải được phân phối lại sau khi được phê duyệt.</string>
 	<key>This device replaces</key>
 	<string>Thiết bị này thay thế</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Tệp này vượt quá giới hạn 100 MiB.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Tệp này vượt quá giới hạn kích thước cho thao tác này.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Lịch sử này thuộc về thiết bị này. Nó không phản ánh phê duyệt CLI, SSH trên máy tính để bàn cục bộ hoặc phê duyệt gắn tệp từ thiết bị khác.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Chưa xác nhận yêu cầu thiết bị đã được chuyển đến. Kiểm tra kết nối và máy tính trước khi thử lại.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
+	<key>Cloud backup file limit</key>
+	<string>Giới hạn mỗi tệp sao lưu đám mây</string>
 </dict>
 </plist>

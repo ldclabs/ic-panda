@@ -2070,8 +2070,8 @@
 	<string>Maaaring matanggap ng device na ito ang iyong pribadong nilalaman. Dapat na muling ipamahagi ang master content-encryption key pagkatapos ng pag-apruba.</string>
 	<key>This device replaces</key>
 	<string>Pinapalitan ng device na ito ang</string>
-	<key>This file exceeds the 100 MiB limit.</key>
-	<string>Ang file na ito ay lumampas sa 100 MiB na limitasyon.</string>
+	<key>This file exceeds the size limit for this operation.</key>
+	<string>Lumampas ang file na ito sa limitasyon ng laki para sa operasyong ito.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ang kasaysayang ito ay kabilang sa device na ito. Hindi nito sinasalamin ang mga pag-apruba sa desktop-local CLI, SSH o file-mount mula sa isa pang device.</string>
 	<key>This iPhone</key>
@@ -2460,5 +2460,7 @@
 	<string>Hindi pa kumpirmado ang pagdating ng kahilingan. Suriin ang koneksyon at computer bago subukang muli.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.</string>
+	<key>Cloud backup file limit</key>
+	<string>Limitasyon bawat file sa cloud backup</string>
 </dict>
 </plist>

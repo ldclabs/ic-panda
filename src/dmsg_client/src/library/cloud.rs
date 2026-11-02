@@ -23,7 +23,7 @@ use crate::codec::sha256;
 use crate::content::{Opened, empty_file, open_manifest};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
-use crate::files::{BlobStore, MAX_FILE};
+use crate::files::{BlobStore, MAX_BACKUP};
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
@@ -152,6 +152,8 @@ pub struct CloudUsage {
     pub committed: u64,
     /// The plan's storage limit, when the relay knows it.
     pub storage_limit: Option<u64>,
+    /// Current membership's maximum plaintext bytes per new cloud backup.
+    pub backup_max_file_bytes: Option<u64>,
     /// `within_limit`, `over_limit` or `unknown`.
     pub status: String,
     /// The plan's active-channel limit, when the relay knows it.
@@ -452,7 +454,7 @@ impl Client {
         manifest: &BackupManifest,
     ) -> Result<(u64, Vec<(String, String)>)> {
         let file = &manifest.file;
-        ensure(file.size <= MAX_FILE, Error::IntegrityFailed)?;
+        ensure(file.size <= MAX_BACKUP, Error::IntegrityFailed)?;
         let empty = hex::encode(*sha256(&empty_file()));
         let planned: Vec<&str> = plan.chunks.iter().map(|c| c.digest.as_str()).collect();
         let own: Vec<&str> = file.chunks.iter().map(|c| c.digest.as_str()).collect();
@@ -752,7 +754,7 @@ async fn fetch_chunks<H: Hold>(
         Ok(())
     })
     .await?;
-    super::reading::check_manifest(h, &manifest.file, MAX_FILE).await?;
+    super::reading::check_manifest(h, &manifest.file, MAX_BACKUP).await?;
     Ok(hold)
 }
 
@@ -868,6 +870,7 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
             reserved: quota["reserved"].as_u64().unwrap_or(0),
             committed: quota["committed"].as_u64().unwrap_or(0),
             storage_limit: quota["lifecycle"]["storage_limit"].as_u64(),
+            backup_max_file_bytes: quota["lifecycle"]["backup_max_file_bytes"].as_u64(),
             status: quota["lifecycle"]["status"]
                 .as_str()
                 .unwrap_or("unknown")

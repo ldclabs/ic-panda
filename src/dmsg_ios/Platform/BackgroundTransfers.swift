@@ -28,7 +28,7 @@ final class CipherTransferStore: @unchecked Sendable {
     private var index: URL { root.appending(path: "transfer.json") }
     private func read() throws -> CipherTransferState? {
         guard FileManager.default.fileExists(atPath: index.path) else { return nil }
-        guard (try index.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 128 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+        guard (try index.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 2 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
         let value = try JSONDecoder().decode(CipherTransferState.self, from: Data(contentsOf: index)); try validate(value.transfer); return value
     }
     func snapshot() throws -> CipherTransferState? { try lock.withLock { try read() } }
@@ -37,7 +37,7 @@ final class CipherTransferStore: @unchecked Sendable {
     }
     func validate(_ transfer: CipherTransfer) throws {
         let hex: (String) -> Bool = { $0.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil }
-        guard hex(transfer.id), hex(transfer.uploadId), ["GET","PUT"].contains(transfer.method), !transfer.parts.isEmpty, transfer.parts.count <= 101,
+        guard hex(transfer.id), hex(transfer.uploadId), ["GET","PUT"].contains(transfer.method), !transfer.parts.isEmpty, transfer.parts.count <= 1001,
               Set(transfer.parts.map(\.slot)).count == transfer.parts.count,
               transfer.parts.allSatisfy({ part in
                   let validSlot = part.slot == "manifest" || part.slot.range(of: "^(0|[1-9][0-9]{0,2})$", options: .regularExpression) != nil
