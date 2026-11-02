@@ -8,11 +8,12 @@ in `icp.yaml`) and domain, has no login and never touches Internet Identity.
 
 | Path | Role |
 | --- | --- |
+| `/` | Direct-visit overview: browser connection guidance, links to open or get dMsg, and this browser's connected accounts; shares the bridge page |
 | `/v1/` | The bridge window: the hello from `window.opener`, the origin the browser reports, one nonce and proof per command, results to that origin only |
 | `/v1/pair#…` | The page a device opens to connect this browser to an account; the fragment is cleared as soon as it is read |
 | `/app/pair`, `/app/request` | Native app links, with a browser fallback to open dMsg or the App Store |
 
-All four pages share the restrained palette and Gate logo from the
+All five pages share the restrained palette and Gate logo from the
 [website design system](../dmsg_frontend/DESIGN.md), with light/dark themes,
 responsive layouts and visible keyboard focus. `web/public/` contains the
 logo variants and SVG/ICO favicons; Vite copies them to the asset root.
@@ -61,6 +62,8 @@ The build writes `dist/.ic-assets.json5` with the headers of connect-v1 §2.2
 no-referrer`; the asset canister's own security policy is disabled so it
 injects nothing that conflicts) and `dist/.well-known/ic-domains` from
 `domains`. `DMSG_CONNECT_OUT` changes the output directory.
+The build includes `dist/index.html` for `/`; upload the rebuilt assets to
+make the root entry available on an existing deployment.
 
 ```sh
 pnpm --dir packages/dmsg-sdk build           # the bridge imports dmsg-sdk

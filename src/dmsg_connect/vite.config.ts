@@ -1,6 +1,7 @@
 /**
- * Builds connect.dmsg.net: `/v1/` (the bridge window) and `/v1/pair` (the
- * pairing page). The environment comes from a JSON file
+ * Builds connect.dmsg.net: `/` (the direct-visit entry), `/v1/` (the bridge
+ * window), `/v1/pair` (pairing) and the native app links. The environment
+ * comes from a JSON file
  * (`DMSG_CONNECT_CONFIG`, default `connect.config.json`) and is inlined at
  * build time; a Staging or Production build refuses missing or non-HTTPS
  * values. The response headers of connect-v1 §2.2 go to
@@ -116,6 +117,7 @@ export default defineConfig({
     modulePreload: { polyfill: false },
     rollupOptions: {
       input: {
+        home: resolve('web/index.html'),
         bridge: resolve('web/v1/index.html'),
         pair: resolve('web/v1/pair/index.html'),
         nativePair: resolve('web/app/pair/index.html'),

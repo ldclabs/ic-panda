@@ -1,7 +1,7 @@
 /**
- * `/v1/`: the bridge window an application opens (connect-v1 §4). It
- * answers only `window.opener`, at the origin the browser reports, and
- * shows what is happening; approval always happens in dMsg.
+ * `/` and `/v1/`: a direct-visit overview or the bridge window an application
+ * opens (connect-v1 §4). It answers only `window.opener`, at the origin the
+ * browser reports, and shows what is happening; approval always happens in dMsg.
  */
 import { nativeLink } from '../src/native-link.ts'
 import { xidText } from '../src/bridge.ts'
@@ -48,6 +48,11 @@ else if (!window.opener) {
   const list = accounts()
   status.replaceChildren(t('noOpener'))
   activity.replaceChildren(
+    el('p', {}, t('pairInApp')),
+    el('div', { class: 'actions' },
+      el('a', { class: 'button', href: nativeLink('pair', undefined, undefined, mobile), 'data-testid': 'open-dmsg' }, t('openDmsg')),
+      el('a', { class: 'button secondary', href: 'https://dmsg.net/', 'data-testid': 'download-dmsg' }, t('getDmsg'))
+    ),
     el('h2', {}, t('paired')),
     list.length ? el('ul', {}, ...list.map((a) => el('li', { class: 'mono' }, a))) : el('p', { class: 'muted' }, t('none'))
   )
