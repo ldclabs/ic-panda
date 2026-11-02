@@ -117,11 +117,19 @@ export class Updates {
         await shell.openExternal(`${RELEASES}/tag/${release.version}`)
         return
       }
-      const stopped = await stopForUpdate(call)
-      if (!stopped.stopped) {
-        await dialog.showMessageBox({ type: 'info', message: text.updateLater, detail: text.updateBusy(describe(stopped.inFlight, text)) })
-        return
-      }
+      const stopped = await stopForUpdate(call, async (inFlight) => {
+        const { response } = await dialog.showMessageBox({
+          type: 'warning',
+          message: text.updateBlocked,
+          detail: text.updateBusy(describe(inFlight, text)),
+          buttons: [text.later, text.restartToUpdate(release.version)],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true
+        })
+        return response === 1
+      })
+      if (!stopped) return
       prepared = true
       await quit()
       this.resumeInstallation = resume
@@ -130,7 +138,9 @@ export class Updates {
     } catch (error) {
       this.resumeInstallation = undefined
       if (prepared) await resume()
-      throw error
+      // The tray has no page to render a rejected promise. Both entry points
+      // show the failure and keep the downloaded release available to retry.
+      await dialog.showMessageBox({ type: 'error', message: text.updateFailed, detail: error instanceof Error ? error.message : String(error) })
     } finally {
       if (!installing) this.session?.endApply()
     }

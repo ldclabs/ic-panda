@@ -428,9 +428,10 @@ export async function successionFlow({ app, main, shots, methods, wallets, accou
   await main.getByTestId('succession').getByText('Handover complete.', { exact: false }).waitFor()
   assert.equal(await main.getByTestId('succession-task').getByRole('button', { name: 'Stop handover', exact: true }).count(), 0)
 
-  // Files and the strict device binding say what only this device holds.
+  // Optional backups do not warn in Files; strict device binding still names
+  // what losing this device would lose before the person changes it.
   await go('/files')
-  await main.getByTestId('files-local-only').waitFor()
+  assert.equal(await main.getByTestId('files-local-only').count(), 0)
   await go('/settings/security')
   await main.getByTestId('device-bound-toggle').click()
   await main.getByTestId('device-bound-local-only').waitFor()

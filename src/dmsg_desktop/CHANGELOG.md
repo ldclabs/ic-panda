@@ -6,6 +6,18 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## Unreleased
+
+- Keep normal account sync to one status line, with the last successful sync
+  in its tooltip. Failures retain pending work, retry details and storage
+  actions. Remove the file sidebar's persistent optional-backup warning;
+  device-binding decisions still explain which content is only on this device.
+
+- After an update waits for unfinished work, offer an explicit restart that
+  preserves saved tasks for the new daemon to resume after unlock. This lets
+  users install a fix when an older version cannot finish a pending rotation.
+  Deferring remains the default; a failed stop request cannot trigger installation.
+
 ## [1.3.1] - 2026-11-02
 
 ### Sync and offline use

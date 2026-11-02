@@ -27,7 +27,7 @@ const text: Text = {
   downloadUpdate: (version: string) => `Télécharger dMsg ${version}…`,
   later: 'Plus tard',
   upToDate: (version: string) => `dMsg ${version} est à jour`,
-  updateFailed: 'dMsg n’a pas pu rechercher de mises à jour',
+  updateFailed: "La mise à jour de dMsg a échoué",
   updateAvailable: (version: string) => `dMsg ${version} est disponible`,
   updateDownloading: 'Elle se télécharge en arrière-plan ; choisissez ensuite « Redémarrer et mettre à jour ».',
   updateManual:
@@ -37,9 +37,8 @@ const text: Text = {
   eventsArrived: (n: number) => `Vos agents ont reçu ${n} nouvel(s) événement(s).`,
   agentMailArrived: (n: number) => `Vos agents ont reçu ${n} nouveau(x) courrier(s).`,
   refreshDue: 'L’abonnement aux événements d’un agent doit être renouvelé.',
-  updateLater: 'dMsg se mettra à jour une fois les opérations en cours terminées',
-  updateBusy: (busy: string) =>
-    `Encore en cours : ${busy}. Déverrouillez dMsg pour qu’il termine, puis choisissez à nouveau « Redémarrer et mettre à jour ».`,
+  updateBlocked: "dMsg a encore des opérations inachevées",
+  updateBusy: (busy: string) => `Opérations inachevées : ${busy}. Réessayez plus tard ou redémarrez pour mettre à jour maintenant. Vos tâches sont enregistrées et reprendront après le déverrouillage de dMsg mis à jour.`,
   inFlightApprovals: (n: number) => `${n} demande(s) approuvée(s) dont le résultat n’est pas établi`,
   inFlightAccount: 'une mise à jour du compte dont le résultat est inconnu',
   inFlightRoot: 'une rotation de la racine',

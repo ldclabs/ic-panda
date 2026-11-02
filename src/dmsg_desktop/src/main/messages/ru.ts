@@ -27,7 +27,7 @@ const text: Text = {
   downloadUpdate: (version: string) => `Скачать dMsg ${version}…`,
   later: 'Позже',
   upToDate: (version: string) => `dMsg ${version} — последняя версия`,
-  updateFailed: 'dMsg не удалось проверить обновления',
+  updateFailed: "Не удалось обновить dMsg",
   updateAvailable: (version: string) => `Доступна версия dMsg ${version}`,
   updateDownloading: 'Обновление загружается в фоне; затем выберите «Перезапустить и обновить».',
   updateManual:
@@ -37,9 +37,8 @@ const text: Text = {
   eventsArrived: (n: number) => `Ваши агенты получили новые события: ${n}.`,
   agentMailArrived: (n: number) => `Ваши агенты получили новые письма: ${n}.`,
   refreshDue: 'Подписку агента на события пора продлить.',
-  updateLater: 'dMsg обновится, когда завершатся текущие операции',
-  updateBusy: (busy: string) =>
-    `Ещё выполняется: ${busy}. Разблокируйте dMsg, чтобы операции завершились, затем снова выберите «Перезапустить и обновить».`,
+  updateBlocked: "В dMsg остались незавершённые операции",
+  updateBusy: (busy: string) => `Не завершено: ${busy}. Повторите попытку позже или перезапустите приложение для обновления сейчас. Задачи сохранены и продолжатся после разблокировки обновлённого dMsg.`,
   inFlightApprovals: (n: number) => `одобренные запросы без окончательного результата: ${n}`,
   inFlightAccount: 'обновление аккаунта с неизвестным результатом',
   inFlightRoot: 'смена корня',

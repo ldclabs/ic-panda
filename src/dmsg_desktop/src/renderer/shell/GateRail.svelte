@@ -33,9 +33,10 @@
   const failed = $derived(presentation.failed)
   const transient = $derived(presentation.transient)
   const syncText = $derived(t(presentation.label, { n: pending }))
+  const showPending = $derived(pending > 0 && presentation.label !== 'syncPending')
   const lastSuccess = $derived(presentation.okAt ? t('syncLastSuccess', { time: when(presentation.okAt) }) : t('localOnlyNever'))
   const retryText = $derived(presentation.retryAt ? t('syncRetryAt', { time: when(presentation.retryAt) }) : '')
-  const syncHint = $derived([syncText, t('syncPending', { n: pending }), lastSuccess, retryText].filter(Boolean).join(' · '))
+  const syncHint = $derived([syncText, showPending ? t('syncPending', { n: pending }) : '', lastSuccess, retryText].filter(Boolean).join(' · '))
 
   async function syncNow() {
     if (syncing) return
@@ -65,9 +66,9 @@
       {/snippet}
     </Tooltip>
     {#if status?.account}
-      <Tooltip content={`${syncText} · ${syncHint}`} side="right">
+      <Tooltip content={syncHint} side="right">
         {#snippet children(props)}
-          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused} onclick={syncNow}>
+          <button {...props} class={iconButtonClass('ghost', 'md', 'relative')} aria-label={syncText} disabled={syncing || $unlocking || presentation.paused} onclick={syncNow} data-testid="gate-sync">
             <Icon name={syncing ? 'pending' : 'sync'} class={cn(syncing && 'motion-safe:animate-spin', failed && (transient ? 'text-warn' : 'text-danger'))} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
@@ -116,14 +117,16 @@
           </button>
         {/snippet}
       </Tooltip>
-      <div class="grid gap-0.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-detail">
-        <span data-testid="gate-sync-pending">{t('syncPending', { n: pending })}</span>
-        <span data-testid="gate-sync-success">{lastSuccess}</span>
-        {#if retryText}<span data-testid="gate-sync-retry">{retryText}</span>{/if}
-        {#if status?.last_sync?.upload_error === 'QUOTA_EXCEEDED'}
-          <button class={buttonClass('ghost', 'xs', 'h-auto justify-start px-0 text-start whitespace-normal')} onclick={() => (location.hash = '/plan')} data-testid="gate-sync-storage">{t('openPlan')}</button>
-        {/if}
-      </div>
+      {#if failed || showPending || retryText}
+        <div class="grid gap-0.5 ps-6 text-[11.5px] text-faint" data-testid="gate-sync-detail">
+          {#if showPending}<span data-testid="gate-sync-pending">{t('syncPending', { n: pending })}</span>{/if}
+          {#if failed}<span data-testid="gate-sync-success">{lastSuccess}</span>{/if}
+          {#if retryText}<span data-testid="gate-sync-retry">{retryText}</span>{/if}
+          {#if status?.last_sync?.upload_error === 'QUOTA_EXCEEDED'}
+            <button class={buttonClass('ghost', 'xs', 'h-auto justify-start px-0 text-start whitespace-normal')} onclick={() => (location.hash = '/plan')} data-testid="gate-sync-storage">{t('openPlan')}</button>
+          {/if}
+        </div>
+      {/if}
     {/if}
     {#if status?.background_online}
       <div class="flex min-h-6 items-center gap-2 text-gem" data-testid="gate-background">

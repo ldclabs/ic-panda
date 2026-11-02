@@ -372,6 +372,7 @@ let setupPending = false
 let failAccountSetup = false
 let syncing = false
 let lastSync = null
+let pendingSync = 2
 let fastUnlock = false
 /** Whether this device approves formal signatures, as the readiness check reports it. */
 let formalApprove = true
@@ -432,7 +433,7 @@ function status() {
     recovery: recoveryWarning,
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
-    pending_sync: 2,
+    pending_sync: pendingSync,
     syncing,
     last_sync: lastSync,
     background_online: false,
@@ -1503,13 +1504,13 @@ function hold(method, matches) {
     send()
   }
 }
-/** Picks an option of a dropdown menu (`components/Select.svelte`, the language menu) by its value. */
-async function formMatrix(app, page, shots, name, selector) {
+/** Capture language, theme and window-size combinations, checking for overflow. */
+async function formMatrix(app, page, shots, name, selector, matrix = [
+  ['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540],
+  ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540]
+]) {
   const window = await app.browserWindow(page)
-  for (const [locale, theme, width, height] of [
-    ['zh', 'light', 1180, 760], ['zh', 'dark', 760, 540],
-    ['fr', 'light', 760, 540], ['ar', 'dark', 760, 540]
-  ]) {
+  for (const [locale, theme, width, height] of matrix) {
     await window.evaluate((window, [width, height]) => window.setContentSize(width, height), [width, height])
     await page.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
     await page.waitForSelector(`html[lang|="${locale}"]`)
@@ -1703,6 +1704,51 @@ smoke: try {
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'sync') {
     const okAt = Date.now() - 60000
+    pendingSync = 0
+    lastSync = { at: okAt, ok_at: okAt, error: null }
+    const localOnly = { versions: 22, bytes: 111300000, unbacked_versions: 19, unbacked_bytes: 53900, pending_sync: 0, last_sync_ok_at: okAt }
+    methods['files/local_only'] = () => localOnly
+    emit('sync/changed')
+    await main.evaluate(() => location.hash = '/files')
+    await main.getByTestId('files-list').waitFor()
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Account synced'))
+    assert.equal(await main.getByTestId('gate-sync-detail').count(), 0)
+    assert.equal(await main.getByTestId('files-local-only').count(), 0)
+    assert.equal(calls.filter(c => c.method === 'files/local_only').length, 0, 'opening Files does not query a removed notice')
+    await main.getByTestId('gate-sync').focus()
+    await main.locator('[data-tooltip-content]').filter({ hasText: 'Last cloud sync' }).waitFor()
+    assert.doesNotMatch(await main.locator('[data-tooltip-content]').innerText(), /0 versions to sync/)
+    await main.keyboard.press('Escape')
+    await main.getByTestId('files-search').focus()
+    await formMatrix(app, main, shots, 'sync-healthy', '[data-testid="gate-rail"]', [
+      ['zh', 'light', 1180, 760], ['zh', 'light', 760, 540], ['zh', 'dark', 760, 540],
+      ['fr', 'light', 760, 540], ['fr', 'dark', 760, 540], ['ar', 'light', 760, 540], ['ar', 'dark', 760, 540]
+    ])
+
+    // A normal queue is already the primary label; a collapsed rail has the
+    // same details once, available through keyboard focus as well as hover.
+    pendingSync = 2
+    emit('sync/changed')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('2 versions to sync'))
+    assert.equal(await main.getByTestId('gate-sync-detail').count(), 0)
+    await main.getByTestId('sidebar-toggle').click()
+    await main.getByTestId('gate-sync').focus()
+    await main.locator('[data-tooltip-content]').filter({ hasText: 'Last cloud sync' }).waitFor()
+    assert.equal((await main.locator('[data-tooltip-content]').innerText()).match(/2 versions to sync/g)?.length, 1)
+    await main.keyboard.press('Escape')
+    await main.getByTestId('sidebar-toggle').click()
+
+    // The warning still belongs to the device-binding decision, where it
+    // explains what losing access to the device would lose.
+    await main.evaluate(() => location.hash = '/settings/security')
+    await main.getByTestId('device-bound-toggle').click()
+    await main.getByTestId('device-bound-local-only').waitFor()
+    assert.match(await main.getByTestId('device-bound-local-only').innerText(), /19/)
+    await main.keyboard.press('Escape')
+    await main.getByTestId('security-editor').waitFor({ state: 'detached' })
+    await main.evaluate(() => location.hash = '/files')
+    await main.getByTestId('files-list').waitFor()
+
     lastSync = { at: Date.now(), ok_at: okAt, error: 'NETWORK_UNAVAILABLE', retry_at: Date.now() + 15000 }
     emit('sync/changed')
     await main.getByTestId('gate-sync-retry').waitFor()
@@ -1720,6 +1766,8 @@ smoke: try {
     await main.keyboard.press('Enter')
     await waitFor(() => typeof held.get('sync/run') === 'function')
     assert.equal(await main.getByTestId('gate-sync').isDisabled(), true)
+    assert.equal(await main.getByTestId('gate-sync-pending').isVisible(), true)
+    assert.equal(await main.getByTestId('gate-sync-success').count(), 0)
     assert.equal(calls.filter(c => c.method === 'sync/run').length, before + 1)
     await release()
     await main.waitForFunction(() => !document.querySelector('[data-testid="gate-sync"]')?.disabled)
@@ -1728,7 +1776,7 @@ smoke: try {
     await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.disabled)
     assert.equal(await main.getByTestId('gate-sync-pending').isVisible(), true)
     assert.deepEqual(pageErrors, [])
-    console.log('Sync Electron checks passed: pending work, last success, retry, storage limit, keyboard, lock and locale/theme matrix')
+    console.log('Sync Electron checks passed: concise healthy/queued states, keyboard tooltips, contextual file warning, pending work, failure details, retry, storage limit, lock and locale/theme matrix')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'cache') {

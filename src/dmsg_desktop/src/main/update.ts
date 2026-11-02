@@ -1,8 +1,8 @@
 /**
  * Applying an update stops the daemon first, the way `dmsg update` does: the
  * daemon stops only when nothing approved, no account update and no root
- * rotation is left unsettled (plan DT10). The desktop waits up to a minute
- * and otherwise leaves the update for later; nothing is lost either way.
+ * rotation is left unsettled (plan DT10). After a minute, the person can
+ * defer or explicitly interrupt: the saved work resumes in the new daemon.
  */
 import type { Text } from './text'
 
@@ -11,8 +11,6 @@ export interface InFlight {
   account_update?: boolean
   root_rotation?: boolean
 }
-
-export type Stopped = { stopped: true } | { stopped: false; inFlight: InFlight }
 
 /** What is in flight, for people. */
 export function describe(inFlight: InFlight | undefined, text: Text): string {
@@ -24,25 +22,28 @@ export function describe(inFlight: InFlight | undefined, text: Text): string {
 }
 
 /**
- * Ask the daemon to stop once idle, every two seconds until `waitMs`. A daemon
- * that does not answer is not running, which is as good as stopped.
+ * Ask the daemon to stop once idle, every two seconds until `waitMs`. Only
+ * an explicit choice may interrupt unfinished work. Errors and lost replies
+ * do not prove the daemon stopped, so they must not allow installation.
  */
 export async function stopForUpdate(
   call: (method: string, params: unknown) => Promise<unknown>,
+  confirmInterrupt: (inFlight: InFlight) => Promise<boolean>,
   waitMs = 60_000,
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   now: () => number = Date.now
-): Promise<Stopped> {
+): Promise<boolean> {
   const deadline = now() + waitMs
+  let ifIdle = true
   for (;;) {
-    let reply: { stopped?: boolean; in_flight?: InFlight }
-    try {
-      reply = (await call('daemon/stop', { if_idle: true })) as typeof reply
-    } catch {
-      return { stopped: true }
+    const reply = await call('daemon/stop', { if_idle: ifIdle }) as { stopped?: boolean; in_flight?: InFlight } | null
+    if (reply?.stopped === true) return true
+    if (reply?.stopped !== false || !ifIdle) throw new Error('The dMsg daemon did not confirm that it stopped.')
+    if (now() >= deadline) {
+      if (!await confirmInterrupt(reply.in_flight ?? {})) return false
+      ifIdle = false
+    } else {
+      await sleep(2_000)
     }
-    if (reply.stopped) return { stopped: true }
-    if (now() >= deadline) return { stopped: false, inFlight: reply.in_flight ?? {} }
-    await sleep(2_000)
   }
 }

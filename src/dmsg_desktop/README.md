@@ -595,8 +595,12 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   offer "Restart to Update", which first stops the daemon with
   `daemon/stop {if_idle: true}` (`src/main/update.ts`): only when no approved
   request, account update or root rotation is left unsettled, asking every two
-  seconds for a minute; otherwise it says what is in flight and keeps both
-  running. The new app installs and starts its own `dmsg`.
+  seconds for a minute. If work remains, the native prompt offers Later
+  (the default and Escape action) or an explicit restart using
+  `daemon/stop {if_idle: false}`. The latter preserves the journal so the new
+  daemon can resume it after unlock, including when the update fixes a stuck
+  operation. RPC failures never count as a confirmed stop. The new app
+  installs and starts its own `dmsg`.
 - Stable is the default, even for a manually installed beta. Settings › About
   dMsg › Receive Beta updates saves the channel in this profile's
   `update-channel` file; it does not sync between accounts or devices. Beta

@@ -394,6 +394,12 @@ inline editors alone handle their own cancel shortcut.
 
 ### Patterns
 
+- **Sync status** — the gate rail keeps normal sync to one line. The last
+  successful cloud sync is available in the tooltip on hover or keyboard
+  focus. Show a pending count separately only when the main label names
+  another state; failures also show the last success, retry time and relevant
+  storage action. Optional file backups do not produce a persistent warning
+  in the file sidebar; device-binding decisions retain their local-data warning.
 - **Settings** — show effective settings first. Public profile, device
   capabilities, file preferences and account security each open their own
   editor. Language and appearance stay immediate choices. Hide migration

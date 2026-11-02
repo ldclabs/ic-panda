@@ -69,6 +69,17 @@ fn legacy_home_recovers_a_device_added_before_its_v3_rotation_failed() {
     assert_eq!(partial["devices"].as_array().unwrap().len(), 2);
     assert_eq!(partial["root_generation"], 1);
     assert_eq!(partial["vault_write_state"], "RekeyRequired");
+    // The old release no longer retries the failed approval, but its saved
+    // root job blocks idle-only updates indefinitely, even while unlocked.
+    for _ in 0..2 {
+        let stopped = env
+            .a
+            .rpc(&env.http, "daemon/stop", json!({"if_idle": true}))
+            .unwrap();
+        assert_eq!(stopped["stopped"], false);
+        assert_eq!(stopped["in_flight"]["root_rotation"], true);
+        assert_eq!(stopped["in_flight"]["approvals"], 0);
+    }
     assert_eq!(env.b.run(&["unlock"])["state"], "root_required");
     // A real lock loses the login, whereas waiting for the root does not.
     env.b.run(&["lock"]);
@@ -78,6 +89,9 @@ fn legacy_home_recovers_a_device_added_before_its_v3_rotation_failed() {
         "root_required"
     );
 
+    // The desktop's explicit restart choice uses this graceful stop. The
+    // journal must survive so the new release finishes the original approval.
+    env.a.run(&["stop"]);
     env.a.bin = fixed;
     env.restart(0);
     env.a.login(&env.http, 41).unwrap();
@@ -98,5 +112,12 @@ fn legacy_home_recovers_a_device_added_before_its_v3_rotation_failed() {
     assert_eq!(env.b.run(&["unlock"])["state"], "unlocked");
     env.b.run(&["sync"]);
     assert!(titles(&env.b).contains(&"before-interrupted-pairing".into()));
+    assert_eq!(
+        env.a
+            .rpc(&env.http, "daemon/stop", json!({"if_idle": true}))
+            .unwrap()["stopped"],
+        true,
+        "the recovered root must no longer block future updates"
+    );
     env.finish();
 }
