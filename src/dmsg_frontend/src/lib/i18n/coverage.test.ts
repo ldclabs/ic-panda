@@ -36,6 +36,8 @@ const invariantText = new Set([
   'vetKeys ↗',
   '_____-_____-_____-_____-cai',
   'SHA-256',
+  // IEC binary size unit, kept identical across locales.
+  'MiB',
   'x'
 ])
 const labelAttributes = new Set([

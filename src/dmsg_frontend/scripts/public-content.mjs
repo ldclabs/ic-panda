@@ -115,14 +115,14 @@ export function rewriteLinks(markdown, sourcePath) {
 
 function membershipTable(membership, zh) {
   const heading = zh
-    ? '| 会员 | USD / 年 | 加密云存储 | 活跃设备 | 活跃频道 | 正式签名 / 月 | 钱包名额 |'
-    : '| Plan | USD / year | Encrypted cloud storage | Active devices | Active channels | Formal signatures / month | Wallet slots |'
+    ? '| 会员 | USD / 年 | 加密云存储 | 云端备份单文件上限 | 活跃设备 | 活跃频道 | 正式签名 / 月 | 钱包名额 |'
+    : '| Plan | USD / year | Encrypted cloud storage | Cloud backup file limit | Active devices | Active channels | Formal signatures / month | Wallet slots |'
   return (
-    `${zh ? '公开价格核对日期' : 'Public pricing checked'}: ${membership.checkedAt}\n\n${heading}\n| --- | ---: | --- | ---: | ---: | ---: | ---: |\n` +
+    `${zh ? '公开价格核对日期' : 'Public pricing checked'}: ${membership.checkedAt}\n\n${heading}\n| --- | ---: | --- | --- | ---: | ---: | ---: | ---: |\n` +
     membership.plans
       .map(
         (plan) =>
-          `| ${plan.name} | ${plan.usd} | ${plan.storage} ${plan.unit} | ${plan.devices} | ${plan.channels} | ${plan.signatures} | ${plan.wallets} |`
+          `| ${plan.name} | ${plan.usd} | ${plan.storage} ${plan.unit} | ${plan.backupFileMiB} MiB | ${plan.devices} | ${plan.channels} | ${plan.signatures} | ${plan.wallets} |`
       )
       .join('\n')
   )

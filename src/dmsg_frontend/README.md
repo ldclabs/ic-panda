@@ -21,7 +21,10 @@ another language for the app; the reading pages explicitly identify their langua
 Edit `content/overview.md` and `content/overview.zh.md` together when product
 behavior changes. Membership figures are shared with the landing page in
 `src/lib/components/landing/membership.json`; retain the actual configuration
-review date and verify live terms before changing prices. Installation links follow
+review date and verify live terms before changing prices. Backup file limits
+follow the public cloud contract (100 MiB for Free/Plus/Pro, 1000 MiB for Max)
+and appear in both the interactive and generated static comparisons; this policy
+update does not change the recorded pricing review date. Installation links follow
 the latest release without duplicating its version. `scripts/public-content.mjs`
 copies only an explicit allowlist of public repository documents into `/_/docs/`;
 links to other snapshotted documents resolve locally and other relative links

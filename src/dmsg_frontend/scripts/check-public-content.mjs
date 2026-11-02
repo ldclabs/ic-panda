@@ -31,6 +31,17 @@ for (const path of ['index.html', '_/about.html', '_/about.zh.html']) {
     4,
     `${path}: shared membership figures`
   )
+  for (const row of document.querySelectorAll('table tbody tr')) {
+    const cells = [...row.querySelectorAll('td')].map((cell) =>
+      cell.textContent.trim()
+    )
+    assert.equal(cells.length, 8, `${path}: complete plan comparison`)
+    assert.equal(
+      cells[3],
+      cells[0] === 'Max' ? '1000 MiB' : '100 MiB',
+      `${path}: ${cells[0]} backup limit`
+    )
+  }
   assert.equal(
     document.querySelector('link[rel="describedby"]')?.getAttribute('href'),
     '/llms.txt'

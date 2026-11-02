@@ -7,7 +7,8 @@
   // Public marketing snapshot, checked 2026-10-28: effective commerce catalog
   // v2 (uwist-sqaaa-aaaaj-qsjyq-cai), wallet hub get_hub_config
   // (ghcje-dyaaa-aaaas-qg7va-cai), and dmsg_types::billing::PlanId::device_limit.
-  // Recheck both services when updating these figures; Rust's default catalog
+  // Backup file limits follow the public cloud contract (2026-11-02).
+  // Recheck both services when updating their figures; Rust's default catalog
   // is not the live catalog. Checkout always confirms current terms in the app.
   const { plans } = membership
 
@@ -63,6 +64,11 @@
             <div class="storage"
               ><dt>{$t('Encrypted cloud storage')}</dt><dd
                 ><bdi>{number.format(plan.storage)} {plan.unit}</bdi></dd
+              ></div
+            >
+            <div class="backup-limit"
+              ><dt>{$t('Cloud backup file limit')}</dt><dd
+                ><bdi>{number.format(plan.backupFileMiB)} MiB</bdi></dd
               ></div
             >
             <div
@@ -125,10 +131,9 @@
         )}</p
       >
       <p
-        >{$t(
-          'Prices and limits checked on {date}. Confirm current terms in the app.',
-          { date: checkedAt }
-        )}</p
+        >{$t('Prices checked on {date}. Confirm current terms in the app.', {
+          date: checkedAt
+        })}</p
       >
     </div>
   </div>
@@ -142,7 +147,7 @@
   }
   .plan {
     display: grid;
-    grid-row: span 6;
+    grid-row: span 7;
     grid-template-rows: subgrid;
     min-width: 0;
     padding: 32px 24px;
@@ -193,7 +198,7 @@
   }
   dl {
     display: grid;
-    grid-row: span 5;
+    grid-row: span 6;
     grid-template-rows: subgrid;
     margin: 0;
   }

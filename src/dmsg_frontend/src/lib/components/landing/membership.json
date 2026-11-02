@@ -10,7 +10,8 @@
       "channels": 5,
       "signatures": 5,
       "wallets": 0,
-      "audience": "For everyday essentials."
+      "audience": "For everyday essentials.",
+      "backupFileMiB": 100
     },
     {
       "name": "Plus",
@@ -21,7 +22,8 @@
       "channels": 20,
       "signatures": 20,
       "wallets": 1,
-      "audience": "For a growing personal workspace."
+      "audience": "For a growing personal workspace.",
+      "backupFileMiB": 100
     },
     {
       "name": "Pro",
@@ -32,7 +34,8 @@
       "channels": 100,
       "signatures": 100,
       "wallets": 3,
-      "audience": "For work and collaboration."
+      "audience": "For work and collaboration.",
+      "backupFileMiB": 100
     },
     {
       "name": "Max",
@@ -43,7 +46,8 @@
       "channels": 10000,
       "signatures": 10000,
       "wallets": 10,
-      "audience": "For larger teams and workloads."
+      "audience": "For larger teams and workloads.",
+      "backupFileMiB": 1000
     }
   ]
 }
