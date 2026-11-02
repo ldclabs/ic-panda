@@ -1,5 +1,6 @@
 import type { ReaderCheckpoint } from './checkpoint'
 import { Principal } from '@icp-sdk/core/principal'
+import { sha3_256 } from '@noble/hashes/sha3.js'
 import {
   binary,
   digest,
@@ -514,12 +515,15 @@ export class LegacyReader {
       missing.length === 0 && Number(info.filled) === size && count === chunks.length
     const bytes = new Uint8Array(complete ? size : 0)
     if (complete) chunks.forEach((chunk) => bytes.set(chunk.bytes, chunk.index * OSS_CHUNK))
-    if (complete && info.hash?.length)
+    if (complete && info.hash?.length) {
+      // The legacy OSS uploader hashes the stored bytes with SHA3-256:
+      // plaintext avatars or encrypted attachments. Archive digests use SHA-256.
       requireLegacy(
-        digest(bytes) === digestBytes(binary(info.hash[0])),
+        digestBytes(sha3_256(bytes)) === digestBytes(binary(info.hash[0])),
         'corrupt',
         'OSS ciphertext hash mismatch'
       )
+    }
     const after = await this.call('bucket', bucket, 'get_file_info', [
       id,
       token ? [token] : []

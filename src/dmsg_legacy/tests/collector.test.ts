@@ -7,6 +7,7 @@ import { AesGcmKey } from '@ldclabs/cose-ts/aesgcm'
 import { Encrypt0Message } from '@ldclabs/cose-ts/encrypt0'
 import { Header } from '@ldclabs/cose-ts/header'
 import { argon2idAsync } from '@noble/hashes/argon2.js'
+import { createHash } from 'node:crypto'
 import {
   LegacyReader,
   collectArchive,
@@ -70,6 +71,7 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
     await local.put('Keys', await encrypt(master, kek.toBytes()), `KEK:${source}:1`)
     const plaintext = new Uint8Array(OSS_CHUNK + 23).fill(37),
       ciphertext = await encrypt(dek, plaintext)
+    const avatar = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
     const message = {
       id: 1,
       kind: 0,
@@ -144,7 +146,12 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
           switch (method) {
             case 'get_user':
               return {
-                Ok: { id: user, profile_canister: canister, cose_canister: [], image: '' }
+                Ok: {
+                  id: user,
+                  profile_canister: canister,
+                  cose_canister: [],
+                  image: `https://${source}.icp0.io/f/41`
+                }
               }
             case 'get_profile':
               return { Ok: { bio: 'legacy profile' } }
@@ -165,6 +172,17 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
             case 'get_folder_info':
               return { Ok: { id: 1, files: [0] } }
             case 'get_file_info':
+              if (args[0] === 41)
+                return {
+                  Ok: {
+                    id: 41,
+                    parent: 0,
+                    size: BigInt(avatar.length),
+                    filled: BigInt(avatar.length),
+                    chunks: 1,
+                    hash: [createHash('sha3-256').update(avatar).digest()]
+                  }
+                }
               return {
                 Ok: {
                   id: 0,
@@ -173,10 +191,11 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
                   size: BigInt(ciphertext.length),
                   filled: BigInt(ciphertext.length),
                   chunks: 2,
-                  hash: []
+                  hash: [createHash('sha3-256').update(ciphertext).digest()]
                 }
               }
             case 'get_file_chunks':
+              if (args[0] === 41) return { Ok: [[0, avatar]] }
               return {
                 Ok: [
                   [args[1], ciphertext.slice(args[1] * OSS_CHUNK, (args[1] + 1) * OSS_CHUNK)]
@@ -206,6 +225,16 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
     const recovered = decodeArchive(plain),
       report = await verifyArchiveContent(recovered)
     expect(report.partial).toBe(false)
+    expect(recovered.inventory.gaps).toEqual([])
+    const image = recovered.inventory.objects.find((object) => object.kind === 'avatar')!
+    expect(readObservation(image.bytes).bytes).toEqual(avatar)
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({
+        source: `${source}/avatar/41`,
+        result: 'source_plaintext',
+        plaintextDigest: createHash('sha256').update(avatar).digest('hex')
+      })
+    )
     expect(report.messages[0]?.file?.name).toBe('old.bin')
     expect(
       report.messages.some(

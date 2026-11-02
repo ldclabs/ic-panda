@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto'
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { openDB, deleteDB } from 'idb'
 import { Principal } from '@icp-sdk/core/principal'
@@ -202,7 +203,8 @@ describe('legacy reader has no business write path', () => {
     const key = AesGcmKey.fromSecret(new Uint8Array(32).fill(9))
     const plain = new Uint8Array(OSS_CHUNK + 33).fill(3)
     const encrypted = await encrypt(key, plain)
-    const hash = Uint8Array.from(digest(encrypted).match(/../g)!, (x) => parseInt(x, 16))
+    // The legacy OSS uploader stores SHA3-256, independently of archive digests.
+    const hash = createHash('sha3-256').update(encrypted).digest()
     let corrupt = false
     const r = reader(async (method, args) =>
       method === 'get_file_info'
@@ -226,11 +228,57 @@ describe('legacy reader has no business write path', () => {
     const file = await r.file(canister, 1, new Uint8Array([1]))
     expect(file.chunks.map((c) => c.size)).toEqual([OSS_CHUNK, encrypted.length - OSS_CHUNK])
     expect(await legacyDecrypt(key, file.bytes)).toEqual(plain)
+    expect(file.digest).toBe(createHash('sha256').update(encrypted).digest('hex'))
+    expect(file.chunks.map((chunk) => chunk.digest)).toEqual([
+      createHash('sha256').update(encrypted.slice(0, OSS_CHUNK)).digest('hex'),
+      createHash('sha256').update(encrypted.slice(OSS_CHUNK)).digest('hex')
+    ])
     corrupt = true
     await expect(r.file(canister, 1, new Uint8Array([1]))).rejects.toMatchObject({
       code: 'missing'
     })
   })
+
+  it.each([128, OSS_CHUNK + 33])(
+    'checks the legacy SHA3-256 source hash for %i bytes and rejects altered bytes or hashes',
+    async (size) => {
+      const original = Uint8Array.from({ length: size }, (_, i) => i % 251)
+      const expected = createHash('sha3-256').update(original).digest()
+      let content = original.slice()
+      let hash: number[][] = [Array.from(expected)]
+      const r = reader(async (method, args) => ({
+        Ok:
+          method === 'get_file_info'
+            ? {
+                size: BigInt(size),
+                filled: BigInt(size),
+                chunks: Math.ceil(size / OSS_CHUNK),
+                hash
+              }
+            : [[args[1], content.slice(args[1] * OSS_CHUNK, (args[1] + 1) * OSS_CHUNK)]]
+      }))
+      const file = await r.file(canister, 41, null)
+      expect(file.bytes).toEqual(original)
+      expect(file.digest).toBe(createHash('sha256').update(original).digest('hex'))
+
+      // A content change with the same size must still be refused.
+      content[0] ^= 1
+      await expect(r.file(canister, 41, null)).rejects.toMatchObject({ code: 'corrupt' })
+      content = original.slice()
+      hash[0][0] ^= 1
+      await expect(r.file(canister, 41, null)).rejects.toMatchObject({ code: 'corrupt' })
+
+      // Do not silently accept archive SHA-256 as an alternative source hash.
+      hash = [Array.from(createHash('sha256').update(original).digest())]
+      await expect(r.file(canister, 41, null)).rejects.toMatchObject({ code: 'corrupt' })
+      hash = [Array.from(expected.slice(1))]
+      await expect(r.file(canister, 41, null)).rejects.toMatchObject({ code: 'corrupt' })
+
+      // Historical objects without an optional source hash remain readable.
+      hash = []
+      expect((await r.file(canister, 41, null)).bytes).toEqual(original)
+    }
+  )
 })
 describe('legacy unlock never initializes or replaces keys', () => {
   const original = {

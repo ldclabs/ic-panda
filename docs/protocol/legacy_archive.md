@@ -14,6 +14,8 @@ COSE settings fall back to the historical namespace-owned path only after explic
 
 Legacy files use whole-file COSE_Encrypt0. OSS transport fragments are 256 KiB, with the actual length for the final fragment. Reads verify indices, lengths, gaps, available source hashes and metadata before/after copying, then perform whole-file AEAD after reassembly. These transport fragments must not be described as independently authenticated chunks of the new format.
 
+The legacy dMsg uploader writes SHA3-256 of the stored bytes to OSS `FileInfo.hash` (plaintext for avatars, ciphertext for attachments). Validate that optional source hash with SHA3-256. Archive object, file and fragment digests remain SHA-256; they are separate from the OSS source hash.
+
 ## `dmsg-legacy-archive/1`
 
 The format is bounded CBOR, with fields governed by the strict schema in `src/dmsg_legacy/src/archive.ts`:

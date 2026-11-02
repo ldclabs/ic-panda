@@ -14,6 +14,8 @@ COSE 设置仅在明确 NotFound 时读取历史 namespace-owned 路径；权限
 
 旧文件格式为整文件 COSE_Encrypt0。OSS 传输片为 256 KiB，最后一片使用实际长度。读取验证索引、长度、缺口、可用的源哈希及复制前后元数据；重组后才进行整文件 AEAD。不得将这些传输片标为新格式的独立认证块。
 
+旧 dMsg 上传器将存储字节的 SHA3-256 写入 OSS `FileInfo.hash`（头像为明文，附件为密文）。该可选源哈希使用 SHA3-256 校验；档案内部的对象、文件及传输片摘要仍使用 SHA-256，与 OSS 源哈希分别处理。
+
 ## `dmsg-legacy-archive/1`
 
 格式为有界 CBOR，字段以 `src/dmsg_legacy/src/archive.ts` 的严格 schema 为准：
