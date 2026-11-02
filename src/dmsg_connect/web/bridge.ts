@@ -13,10 +13,10 @@ const SAFARI_IDLE_MS = 5 * 86_400_000
 const CREATE = ['authenticate', 'signDocument', 'signAction', 'checkout']
 
 const main = document.querySelector('main')!
-const status = el('p', { class: 'status', 'data-testid': 'status' })
-const activity = el('section', { class: 'activity', 'data-testid': 'activity' })
+const status = el('p', { class: 'status', role: 'status', 'data-testid': 'status' })
+const activity = el('section', { class: 'activity', 'aria-live': 'polite', 'data-testid': 'activity' })
 const prompt = el('section', { class: 'prompt' })
-main.append(status, prompt, activity)
+main.append(el('h1', {}, t('title')), status, prompt, activity)
 document.title = t('title')
 
 /** The person's choice among `options`, in the window. */

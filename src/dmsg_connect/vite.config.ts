@@ -97,7 +97,7 @@ const config = load()
 export default defineConfig({
   root: resolve('web'),
   base: '/',
-  publicDir: false,
+  publicDir: resolve('web/public'),
   define: {
     __DMSG_CONNECT__: JSON.stringify({
       environment: config.environment,

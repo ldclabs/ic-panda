@@ -78,6 +78,7 @@ export function browserLabel(): string {
 
 const zh = {
   title: 'dMsg 连接',
+  deviceApproval: '请在 dMsg 客户端中确认请求。',
   unsupported: '此浏览器不受支持。请使用 Chrome、Edge 133、Firefox 130、Safari 17 或更新版本。',
   noOpener: '这个窗口由应用打开，用来把请求交给你的 dMsg。',
   paired: '此浏览器已连接的账户',
@@ -100,11 +101,13 @@ const zh = {
   pairDone: '此浏览器已连接账户',
   pairClose: '可以关闭此页面。',
   pairMissing: '请从 dMsg 的“连接浏览器”打开此页面。',
+  pairInApp: '在 dMsg 设置中选择“连接浏览器”以继续。',
   otherEnvironment: '链接来自其他环境。',
   invalid: '链接无效或已过期，请在 dMsg 中重新连接。'
 }
 const en: typeof zh = {
   title: 'dMsg Connect',
+  deviceApproval: 'Confirm requests in the dMsg app.',
   unsupported: 'This browser is not supported. Use Chrome or Edge 133, Firefox 130, Safari 17 or later.',
   noOpener: 'Applications open this window to hand their requests to your dMsg.',
   paired: 'Accounts connected in this browser',
@@ -127,6 +130,7 @@ const en: typeof zh = {
   pairDone: 'This browser is connected to account',
   pairClose: 'You can close this page.',
   pairMissing: 'Open this page from “Connect a browser” in dMsg.',
+  pairInApp: 'In dMsg settings, choose “Connect a browser” to continue.',
   otherEnvironment: 'The link is from another environment.',
   invalid: 'The link is invalid or has expired. Connect again in dMsg.'
 }
@@ -134,6 +138,8 @@ const en: typeof zh = {
 const table = navigator.language.toLowerCase().startsWith('zh') ? zh : en
 export const t = (key: keyof typeof zh) => table[key]
 document.documentElement.lang = table === zh ? 'zh-Hans' : 'en'
+const footer = document.querySelector('footer p')
+if (footer) footer.textContent = t('deviceApproval')
 
 /** An element with text and children; never HTML from data. */
 export function el(tag: string, props: Record<string, string> = {}, ...children: (Node | string)[]): HTMLElement {

@@ -1,15 +1,29 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="no-referrer" />
-    <title>dMsg</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>dMsg Connect</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../style.css" />
     <script type="module" src="../bridge.ts"></script>
   </head>
   <body>
-    <header><span class="logo">dMsg</span> <span class="muted">connect</span></header>
+    <header>
+      <picture>
+        <source srcset="/logo-dark.svg" media="(prefers-color-scheme: dark)" />
+        <img class="brand-mark" src="/logo.svg" width="26" height="30" alt="" />
+      </picture>
+      <span class="wordmark">dMsg</span>
+      <span class="brand-label">Connect</span>
+    </header>
     <main></main>
+    <footer>
+      <p>Confirm requests in the dMsg app.</p>
+      <a href="https://dmsg.net/">dMsg · ICPanda DAO</a>
+    </footer>
   </body>
 </html>

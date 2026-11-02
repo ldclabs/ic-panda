@@ -10,6 +10,14 @@ in `icp.yaml`) and domain, has no login and never touches Internet Identity.
 | --- | --- |
 | `/v1/` | The bridge window: the hello from `window.opener`, the origin the browser reports, one nonce and proof per command, results to that origin only |
 | `/v1/pair#…` | The page a device opens to connect this browser to an account; the fragment is cleared as soon as it is read |
+| `/app/pair`, `/app/request` | Native app links, with a browser fallback to open dMsg or the App Store |
+
+All four pages share the restrained palette and Gate logo from the
+[website design system](../dmsg_frontend/DESIGN.md), with light/dark themes,
+responsive layouts and visible keyboard focus. `web/public/` contains the
+logo variants and SVG/ICO favicons; Vite copies them to the asset root.
+The SVGs use presentation attributes so they work with the existing CSP
+without inline styles or external resources.
 
 ## Modules
 
@@ -23,7 +31,7 @@ in `icp.yaml`) and domain, has no login and never touches Internet Identity.
 | `src/bridge.ts` | Pairing and grant checks, the eight methods with the §4.5 checks (`dmsg-sdk` validators), sealing, reply verification and pinning, recovery without a local record |
 | `src/store.ts` | Pairings and operations in IndexedDB `dmsg-connect:<environment>` (keys stay CryptoKey objects), or in memory |
 | `src/page.ts` | The window's frames (§4.2–§4.3), without DOM |
-| `web/` | The two pages (`shared.ts`, `bridge.ts`, `pair.ts`), plain DOM, no inline script or style |
+| `web/` | The bridge, pairing and native-link pages (`shared.ts`, `bridge.ts`, `pair.ts`, `native.ts`), plain DOM, no inline script or style |
 
 The bridge trusts only what is signed by the page's session key or certified
 by the IC; the relay is a mailbox. Replies open only with HPKE in auth mode
