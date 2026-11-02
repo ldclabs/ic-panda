@@ -2462,5 +2462,31 @@
 	<string>La chiave della posta in arrivo non è ancora sincronizzata con questo dispositivo. Sincronizza il dispositivo che ha attivato la ricezione, poi riprova qui.</string>
 	<key>Cloud backup file limit</key>
 	<string>Limite per file del backup cloud</string>
+	<key>First sync</key>
+	<string>Prima sincronizzazione</string>
+	<key>Sync paused</key>
+	<string>Sincronizzazione in pausa</string>
+	<key>Waiting for first sync</key>
+	<string>In attesa della prima sincronizzazione</string>
+	<key>Account synchronization</key>
+	<string>Sincronizzazione account</string>
+	<key>Reading account inventory…</key>
+	<string>Lettura dell’inventario dell’account…</string>
+	<key>Downloading account content…</key>
+	<string>Download dei contenuti dell’account…</string>
+	<key>Verifying account content…</key>
+	<string>Verifica dei contenuti dell’account…</string>
+	<key>Downloaded</key>
+	<string>Scaricato</string>
+	<key>Next retry</key>
+	<string>Prossimo tentativo</string>
+	<key>Sync is waiting for the server.</key>
+	<string>La sincronizzazione è in attesa del server.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>I caricamenti sono in pausa. Libera spazio nel cloud e riprova; la ricezione continua.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>La sincronizzazione controlla i contenuti dell’account e i backup cloud. Apri conversazioni o posta in arrivo per ricevere messaggi; ripristina i file separatamente.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Impossibile aggiornare l’elenco dei backup cloud. Riprova in File.</string>
 </dict>
 </plist>

@@ -15,6 +15,7 @@ struct MessagesView: View {
                 Picker("Messages", selection: $mode) { Text("Channels").tag(0); Text("Inbox").tag(1) }
                     .pickerStyle(.segmented).listRowBackground(Color.clear)
                 if mode == 0 {
+                    ContentSyncStatusView().listRowBackground(Color.clear).listRowSeparator(.hidden)
                     ForEach(model.channels, id: \.id) { channel in
                         NavigationLink(value: channel.id) {
                             HStack(spacing: 10) {
@@ -28,7 +29,7 @@ struct MessagesView: View {
                             }
                         }.compactObjectRow().accessibilityIdentifier("channel.row.\(channel.id)")
                     }
-                    if model.channels.isEmpty { ContentUnavailableView("No conversations yet", image: AppGlyph.channels.assetName, description: Text("Your authorized channels appear after synchronization.")) }
+                    if model.channels.isEmpty && model.contentSync?.initialized == true { ContentUnavailableView("No conversations yet", image: AppGlyph.channels.assetName, description: Text("Your authorized channels appear after synchronization.")) }
                 } else {
                     Toggle("Archived", isOn: $archived).accessibilityIdentifier("inbox.archived")
                     let visible = inbox.letters.filter { $0.archived == archived && !model.blockedAccounts.contains($0.sender) }

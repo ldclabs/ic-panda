@@ -2462,5 +2462,31 @@
 	<string>受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。</string>
 	<key>Cloud backup file limit</key>
 	<string>クラウドバックアップのファイル上限</string>
+	<key>First sync</key>
+	<string>初回同期</string>
+	<key>Sync paused</key>
+	<string>同期を一時停止中</string>
+	<key>Waiting for first sync</key>
+	<string>初回同期を待機中</string>
+	<key>Account synchronization</key>
+	<string>アカウントの同期</string>
+	<key>Reading account inventory…</key>
+	<string>アカウントのコンテンツ一覧を読み込み中…</string>
+	<key>Downloading account content…</key>
+	<string>アカウントのコンテンツをダウンロード中…</string>
+	<key>Verifying account content…</key>
+	<string>アカウントのコンテンツを検証中…</string>
+	<key>Downloaded</key>
+	<string>ダウンロード済み</string>
+	<key>Next retry</key>
+	<string>次の再試行</string>
+	<key>Sync is waiting for the server.</key>
+	<string>同期はサーバーを待機しています。</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>アップロードは一時停止中です。クラウドの空き容量を確保して再試行してください。受信は継続します。</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>同期はアカウントのコンテンツとクラウドバックアップを確認します。メッセージを受信するには会話または受信トレイを開き、ファイルは個別に復元してください。</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>クラウドバックアップ一覧を更新できませんでした。「ファイル」で再試行してください。</string>
 </dict>
 </plist>

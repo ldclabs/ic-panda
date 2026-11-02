@@ -2462,5 +2462,31 @@
 	<string>Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.</string>
 	<key>Cloud backup file limit</key>
 	<string>Limitasyon bawat file sa cloud backup</string>
+	<key>First sync</key>
+	<string>Unang pag-sync</string>
+	<key>Sync paused</key>
+	<string>Naka-pause ang pag-sync</string>
+	<key>Waiting for first sync</key>
+	<string>Naghihintay sa unang pag-sync</string>
+	<key>Account synchronization</key>
+	<string>Pag-sync ng account</string>
+	<key>Reading account inventory…</key>
+	<string>Binabasa ang listahan ng nilalaman ng account…</string>
+	<key>Downloading account content…</key>
+	<string>Dina-download ang nilalaman ng account…</string>
+	<key>Verifying account content…</key>
+	<string>Bineberipika ang nilalaman ng account…</string>
+	<key>Downloaded</key>
+	<string>Na-download</string>
+	<key>Next retry</key>
+	<string>Susunod na pagsubok</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Naghihintay sa server ang pag-sync.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Naka-pause ang mga upload. Magbakante ng cloud storage at subukang muli; nagpapatuloy ang pagtanggap.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Sinusuri ng sync ang nilalaman ng account at mga cloud backup. Buksan ang mga pag-uusap o inbox para tumanggap ng mensahe; i-restore nang hiwalay ang mga file.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Hindi ma-refresh ang listahan ng cloud backup. Subukang muli sa Files.</string>
 </dict>
 </plist>

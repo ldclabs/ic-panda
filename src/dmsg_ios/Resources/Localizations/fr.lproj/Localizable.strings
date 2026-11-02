@@ -2462,5 +2462,31 @@
 	<string>La clé de la boîte de réception n’a pas encore été synchronisée sur cet appareil. Synchronisez l’appareil qui a activé la réception, puis réessayez ici.</string>
 	<key>Cloud backup file limit</key>
 	<string>Taille maximale par fichier sauvegardé</string>
+	<key>First sync</key>
+	<string>Première synchronisation</string>
+	<key>Sync paused</key>
+	<string>Synchronisation en pause</string>
+	<key>Waiting for first sync</key>
+	<string>En attente de la première synchronisation</string>
+	<key>Account synchronization</key>
+	<string>Synchronisation du compte</string>
+	<key>Reading account inventory…</key>
+	<string>Lecture de l’inventaire du compte…</string>
+	<key>Downloading account content…</key>
+	<string>Téléchargement du contenu du compte…</string>
+	<key>Verifying account content…</key>
+	<string>Vérification du contenu du compte…</string>
+	<key>Downloaded</key>
+	<string>Téléchargé</string>
+	<key>Next retry</key>
+	<string>Prochaine tentative</string>
+	<key>Sync is waiting for the server.</key>
+	<string>La synchronisation attend le serveur.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Les envois sont suspendus. Libérez de l’espace cloud et réessayez ; la réception continue.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>La synchronisation vérifie le contenu du compte et les sauvegardes cloud. Ouvrez les conversations ou la boîte de réception pour recevoir les messages ; restaurez les fichiers séparément.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>La liste des sauvegardes cloud n’a pas pu être actualisée. Réessayez dans Fichiers.</string>
 </dict>
 </plist>

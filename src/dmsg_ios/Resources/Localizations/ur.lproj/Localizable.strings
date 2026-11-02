@@ -2462,5 +2462,31 @@
 	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
 	<key>Cloud backup file limit</key>
 	<string>کلاؤڈ بیک اپ میں فی فائل حد</string>
+	<key>First sync</key>
+	<string>پہلی ہم وقت سازی</string>
+	<key>Sync paused</key>
+	<string>ہم وقت سازی موقوف ہے</string>
+	<key>Waiting for first sync</key>
+	<string>پہلی ہم وقت سازی کا انتظار</string>
+	<key>Account synchronization</key>
+	<string>اکاؤنٹ کی ہم وقت سازی</string>
+	<key>Reading account inventory…</key>
+	<string>اکاؤنٹ کے مواد کی فہرست پڑھی جا رہی ہے…</string>
+	<key>Downloading account content…</key>
+	<string>اکاؤنٹ کا مواد ڈاؤن لوڈ ہو رہا ہے…</string>
+	<key>Verifying account content…</key>
+	<string>اکاؤنٹ کے مواد کی تصدیق ہو رہی ہے…</string>
+	<key>Downloaded</key>
+	<string>ڈاؤن لوڈ شدہ</string>
+	<key>Next retry</key>
+	<string>اگلی کوشش</string>
+	<key>Sync is waiting for the server.</key>
+	<string>ہم وقت سازی سرور کا انتظار کر رہی ہے۔</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>اپ لوڈ موقوف ہیں۔ کلاؤڈ میں جگہ خالی کر کے دوبارہ کوشش کریں؛ وصولی جاری رہے گی۔</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>ہم وقت سازی اکاؤنٹ کے مواد اور کلاؤڈ بیک اپ کی جانچ کرتی ہے۔ پیغامات وصول کرنے کے لیے گفتگو یا ان باکس کھولیں؛ فائلیں الگ بحال کریں۔</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>کلاؤڈ بیک اپ کی فہرست تازہ نہیں ہو سکی۔ فائلوں میں دوبارہ کوشش کریں۔</string>
 </dict>
 </plist>

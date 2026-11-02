@@ -2462,5 +2462,31 @@
 	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
 	<key>Cloud backup file limit</key>
 	<string>Had setiap fail sandaran awan</string>
+	<key>First sync</key>
+	<string>Penyegerakan pertama</string>
+	<key>Sync paused</key>
+	<string>Penyegerakan dijeda</string>
+	<key>Waiting for first sync</key>
+	<string>Menunggu penyegerakan pertama</string>
+	<key>Account synchronization</key>
+	<string>Penyegerakan akaun</string>
+	<key>Reading account inventory…</key>
+	<string>Membaca senarai kandungan akaun…</string>
+	<key>Downloading account content…</key>
+	<string>Memuat turun kandungan akaun…</string>
+	<key>Verifying account content…</key>
+	<string>Mengesahkan kandungan akaun…</string>
+	<key>Downloaded</key>
+	<string>Dimuat turun</string>
+	<key>Next retry</key>
+	<string>Cubaan seterusnya</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Penyegerakan sedang menunggu pelayan.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Muat naik dijeda. Kosongkan storan awan dan cuba lagi; penerimaan diteruskan.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Penyegerakan menyemak kandungan akaun dan sandaran awan. Buka perbualan atau peti masuk untuk menerima mesej; pulihkan fail secara berasingan.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Senarai sandaran awan tidak dapat disegar semula. Cuba lagi dalam Fail.</string>
 </dict>
 </plist>

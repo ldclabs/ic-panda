@@ -2462,5 +2462,31 @@
 	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
 	<key>Cloud backup file limit</key>
 	<string>雲端備份單檔上限</string>
+	<key>First sync</key>
+	<string>首次同步</string>
+	<key>Sync paused</key>
+	<string>同步已暫停</string>
+	<key>Waiting for first sync</key>
+	<string>等待首次同步</string>
+	<key>Account synchronization</key>
+	<string>帳號同步</string>
+	<key>Reading account inventory…</key>
+	<string>正在讀取帳號內容清單…</string>
+	<key>Downloading account content…</key>
+	<string>正在下載帳號內容…</string>
+	<key>Verifying account content…</key>
+	<string>正在驗證帳號內容…</string>
+	<key>Downloaded</key>
+	<string>已下載</string>
+	<key>Next retry</key>
+	<string>下次重試</string>
+	<key>Sync is waiting for the server.</key>
+	<string>同步正在等待伺服器。</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>上傳已暫停。請釋放雲端空間後重試；內容接收仍會繼續。</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>同步會檢查帳號內容和雲端備份。開啟對話或收件匣以接收訊息；檔案需個別還原。</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>無法重新整理雲端備份清單，請在檔案頁重試。</string>
 </dict>
 </plist>

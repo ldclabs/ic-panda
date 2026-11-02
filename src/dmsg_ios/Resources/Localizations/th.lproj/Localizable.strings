@@ -2462,5 +2462,31 @@
 	<string>คีย์กล่องขาเข้ายังไม่ได้ซิงค์กับอุปกรณ์นี้ โปรดซิงค์อุปกรณ์ที่เปิดใช้การรับจดหมาย แล้วลองอีกครั้งที่นี่</string>
 	<key>Cloud backup file limit</key>
 	<string>ขนาดสูงสุดต่อไฟล์สำรองบนคลาวด์</string>
+	<key>First sync</key>
+	<string>ซิงค์ครั้งแรก</string>
+	<key>Sync paused</key>
+	<string>หยุดซิงค์ชั่วคราว</string>
+	<key>Waiting for first sync</key>
+	<string>กำลังรอซิงค์ครั้งแรก</string>
+	<key>Account synchronization</key>
+	<string>การซิงค์บัญชี</string>
+	<key>Reading account inventory…</key>
+	<string>กำลังอ่านรายการเนื้อหาบัญชี…</string>
+	<key>Downloading account content…</key>
+	<string>กำลังดาวน์โหลดเนื้อหาบัญชี…</string>
+	<key>Verifying account content…</key>
+	<string>กำลังตรวจสอบเนื้อหาบัญชี…</string>
+	<key>Downloaded</key>
+	<string>ดาวน์โหลดแล้ว</string>
+	<key>Next retry</key>
+	<string>ลองใหม่ครั้งถัดไป</string>
+	<key>Sync is waiting for the server.</key>
+	<string>การซิงค์กำลังรอเซิร์ฟเวอร์</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>หยุดอัปโหลดชั่วคราว โปรดเพิ่มพื้นที่ว่างบนคลาวด์แล้วลองใหม่ โดยยังรับเนื้อหาต่อไป</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>การซิงค์ตรวจสอบเนื้อหาบัญชีและข้อมูลสำรองบนคลาวด์ เปิดบทสนทนาหรือกล่องขาเข้าเพื่อรับข้อความ และกู้คืนไฟล์แยกต่างหาก</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>รีเฟรชรายการสำรองบนคลาวด์ไม่ได้ โปรดลองใหม่ในไฟล์</string>
 </dict>
 </plist>

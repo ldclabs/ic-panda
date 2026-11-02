@@ -2462,5 +2462,31 @@
 	<string>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</string>
 	<key>Cloud backup file limit</key>
 	<string>Cloud backup file limit</string>
+	<key>First sync</key>
+	<string>First sync</string>
+	<key>Sync paused</key>
+	<string>Sync paused</string>
+	<key>Waiting for first sync</key>
+	<string>Waiting for first sync</string>
+	<key>Account synchronization</key>
+	<string>Account synchronization</string>
+	<key>Reading account inventory…</key>
+	<string>Reading account inventory…</string>
+	<key>Downloading account content…</key>
+	<string>Downloading account content…</string>
+	<key>Verifying account content…</key>
+	<string>Verifying account content…</string>
+	<key>Downloaded</key>
+	<string>Downloaded</string>
+	<key>Next retry</key>
+	<string>Next retry</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Sync is waiting for the server.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Uploads are paused. Free cloud storage and retry; receiving continues.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Cloud backup list could not be refreshed. Retry in Files.</string>
 </dict>
 </plist>

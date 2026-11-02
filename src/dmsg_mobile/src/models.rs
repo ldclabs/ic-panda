@@ -29,7 +29,7 @@ impl SessionSnapshot {
             approvals_waiting: value.approvals_waiting,
             fast_unlock: value.fast_unlock,
             setup_pending: value.setup_pending,
-            last_sync_at_ms: value.last_sync.as_ref().map(|s| s.at),
+            last_sync_at_ms: value.last_sync.as_ref().and_then(|s| s.succeeded_at()),
             sync_error: value.last_sync.and_then(|s| s.error.or(s.upload_error)),
         }
     }

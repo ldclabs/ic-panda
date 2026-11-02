@@ -2462,5 +2462,31 @@
 	<string>La clave del buzón aún no se ha sincronizado con este dispositivo. Sincroniza el dispositivo que activó la recepción y vuelve a intentarlo aquí.</string>
 	<key>Cloud backup file limit</key>
 	<string>Límite por archivo de copia en la nube</string>
+	<key>First sync</key>
+	<string>Primera sincronización</string>
+	<key>Sync paused</key>
+	<string>Sincronización en pausa</string>
+	<key>Waiting for first sync</key>
+	<string>Esperando la primera sincronización</string>
+	<key>Account synchronization</key>
+	<string>Sincronización de la cuenta</string>
+	<key>Reading account inventory…</key>
+	<string>Leyendo el inventario de la cuenta…</string>
+	<key>Downloading account content…</key>
+	<string>Descargando contenido de la cuenta…</string>
+	<key>Verifying account content…</key>
+	<string>Verificando contenido de la cuenta…</string>
+	<key>Downloaded</key>
+	<string>Descargado</string>
+	<key>Next retry</key>
+	<string>Próximo intento</string>
+	<key>Sync is waiting for the server.</key>
+	<string>La sincronización está esperando al servidor.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Las cargas están pausadas. Libera espacio en la nube y reintenta; la recepción continúa.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>La sincronización comprueba el contenido de la cuenta y las copias en la nube. Abre las conversaciones o la bandeja de entrada para recibir mensajes; restaura los archivos por separado.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>No se pudo actualizar la lista de copias en la nube. Reintenta en Archivos.</string>
 </dict>
 </plist>

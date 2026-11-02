@@ -2462,5 +2462,31 @@
 	<string>ইনবক্সের কী এখনও এই ডিভাইসে সিঙ্ক হয়নি। যে ডিভাইসে বার্তা গ্রহণ চালু করেছিলেন সেটি সিঙ্ক করুন, তারপর এখানে আবার চেষ্টা করুন।</string>
 	<key>Cloud backup file limit</key>
 	<string>ক্লাউড ব্যাকআপে প্রতি ফাইলের সীমা</string>
+	<key>First sync</key>
+	<string>প্রথম সিঙ্ক</string>
+	<key>Sync paused</key>
+	<string>সিঙ্ক বিরতিতে আছে</string>
+	<key>Waiting for first sync</key>
+	<string>প্রথম সিঙ্কের অপেক্ষায়</string>
+	<key>Account synchronization</key>
+	<string>অ্যাকাউন্ট সিঙ্ক</string>
+	<key>Reading account inventory…</key>
+	<string>অ্যাকাউন্টের বিষয়বস্তুর তালিকা পড়া হচ্ছে…</string>
+	<key>Downloading account content…</key>
+	<string>অ্যাকাউন্টের বিষয়বস্তু ডাউনলোড হচ্ছে…</string>
+	<key>Verifying account content…</key>
+	<string>অ্যাকাউন্টের বিষয়বস্তু যাচাই হচ্ছে…</string>
+	<key>Downloaded</key>
+	<string>ডাউনলোড হয়েছে</string>
+	<key>Next retry</key>
+	<string>পরবর্তী চেষ্টা</string>
+	<key>Sync is waiting for the server.</key>
+	<string>সিঙ্ক সার্ভারের অপেক্ষায় আছে।</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>আপলোড বিরতিতে আছে। ক্লাউডে জায়গা খালি করে আবার চেষ্টা করুন; গ্রহণ চলতে থাকবে।</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>সিঙ্ক অ্যাকাউন্টের বিষয়বস্তু ও ক্লাউড ব্যাকআপ পরীক্ষা করে। বার্তা পেতে কথোপকথন বা ইনবক্স খুলুন; ফাইল আলাদাভাবে পুনরুদ্ধার করুন।</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>ক্লাউড ব্যাকআপ তালিকা রিফ্রেশ করা যায়নি। ফাইল বিভাগে আবার চেষ্টা করুন।</string>
 </dict>
 </plist>

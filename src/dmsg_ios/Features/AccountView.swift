@@ -77,6 +77,17 @@ struct AccountView: View {
             }
             Section {
                 LanguageSettingsLink()
+                ContentSyncStatusView(always: true)
+                Text("Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if model.loadingCloudBackups {
+                    HStack { Text("Cloud backups"); Spacer(); ProgressView() }
+                } else if model.cloudBackupsKnown && !model.cloudBackupsFailed {
+                    Label("Cloud backups", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                }
+                if model.cloudBackupsFailed {
+                    NoticeBar(text: String(localized: "Cloud backup list could not be refreshed. Retry in Files."))
+                }
                 Button { Task { await model.synchronize() } } label: {
                     Label {
                         if model.synchronizing { Text("Syncing…") } else { Text("Sync now") }
@@ -85,7 +96,7 @@ struct AccountView: View {
                             ProgressView().controlSize(.small).tint(Theme.forest).accessibilityHidden(true)
                         } else { Image(systemName: "arrow.triangle.2.circlepath") }
                     }
-                }.disabled(model.busy).accessibilityIdentifier("account.sync")
+                }.disabled(model.busy || model.syncCoolingDown).accessibilityIdentifier("account.sync")
                 Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }
                 Button("Sign out", role: .destructive) { signingOut = true }
             }

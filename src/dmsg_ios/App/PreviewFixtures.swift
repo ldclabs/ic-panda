@@ -20,6 +20,14 @@ extension SessionModel {
                 VaultItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
                 VaultItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])
+        if ProcessInfo.processInfo.arguments.contains("--ui-first-sync") {
+            if let session { installFixtures(session, items: []) }; channels = []
+            contentSync = .fixture(running: true, entries: 17, total: 240, bytes: 262144)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-sync-paused") {
+            if let session { installFixtures(session, items: []) }; channels = []
+            contentSync = .fixture(error: "SYNC_BUSY", retry: UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-sync-short-pause") ? 10_000 : 90_000))
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-detail-navigation") {
             vault.insert(VaultItem(id: "fixture-managed", revision: "1", kind: "key", title: "dMsg controller #1",
                 subtitle: "", notes: "", favorite: false, tags: ["dmsg-controller"], synced: true, conflict: false,
@@ -162,6 +170,18 @@ extension SessionModel {
             LibraryFile(id: "fixture-notes", name: text("Research notes.md", "研究笔记.md"), mime: "text/markdown", size: 8192, current: "1", sha256: "", status: "local", versions: 1),
             LibraryFile(id: "fixture-image", name: text("Design reference.png", "设计参考.png"), mime: "image/png", size: 1_572_864, current: "1", sha256: "", status: "backed_up", versions: 1),
         ])
+    }
+}
+#endif
+
+#if DEBUG
+extension ContentSyncStatus {
+    static func fixture(running: Bool = false, initialized: Bool = false, entries: UInt64 = 0,
+                        total: UInt64 = 0, bytes: UInt64 = 0, error: String? = nil,
+                        retry: UInt64? = nil, success: UInt64? = nil) -> ContentSyncStatus {
+        ContentSyncStatus(running: running, initialized: initialized, stage: "download", entries: entries,
+            total: total, downloadedBytes: bytes, elapsedMs: 2500, lastAttemptAtMs: nil,
+            lastSuccessAtMs: success, retryAtMs: retry, retryRequired: error != nil, error: error)
     }
 }
 #endif

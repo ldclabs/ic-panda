@@ -2462,5 +2462,31 @@
 	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
 	<key>Cloud backup file limit</key>
 	<string>클라우드 백업 파일 크기 제한</string>
+	<key>First sync</key>
+	<string>첫 동기화</string>
+	<key>Sync paused</key>
+	<string>동기화 일시 중지됨</string>
+	<key>Waiting for first sync</key>
+	<string>첫 동기화 대기 중</string>
+	<key>Account synchronization</key>
+	<string>계정 동기화</string>
+	<key>Reading account inventory…</key>
+	<string>계정 콘텐츠 목록 읽는 중…</string>
+	<key>Downloading account content…</key>
+	<string>계정 콘텐츠 다운로드 중…</string>
+	<key>Verifying account content…</key>
+	<string>계정 콘텐츠 확인 중…</string>
+	<key>Downloaded</key>
+	<string>다운로드됨</string>
+	<key>Next retry</key>
+	<string>다음 재시도</string>
+	<key>Sync is waiting for the server.</key>
+	<string>동기화가 서버를 기다리고 있습니다.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>업로드가 일시 중지되었습니다. 클라우드 공간을 확보한 후 다시 시도하세요. 수신은 계속됩니다.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>동기화는 계정 콘텐츠와 클라우드 백업을 확인합니다. 메시지를 받으려면 대화나 받은 편지함을 열고, 파일은 별도로 복원하세요.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>클라우드 백업 목록을 새로 고칠 수 없습니다. 파일에서 다시 시도하세요.</string>
 </dict>
 </plist>

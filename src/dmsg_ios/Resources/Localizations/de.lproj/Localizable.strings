@@ -2462,5 +2462,31 @@
 	<string>Der Posteingangsschlüssel wurde noch nicht mit diesem Gerät synchronisiert. Synchronisiere das Gerät, auf dem der Empfang aktiviert wurde, und versuche es hier erneut.</string>
 	<key>Cloud backup file limit</key>
 	<string>Dateigrößenlimit für Cloud-Backups</string>
+	<key>First sync</key>
+	<string>Erste Synchronisierung</string>
+	<key>Sync paused</key>
+	<string>Synchronisierung pausiert</string>
+	<key>Waiting for first sync</key>
+	<string>Warten auf erste Synchronisierung</string>
+	<key>Account synchronization</key>
+	<string>Kontosynchronisierung</string>
+	<key>Reading account inventory…</key>
+	<string>Kontoinhalt wird erfasst…</string>
+	<key>Downloading account content…</key>
+	<string>Kontoinhalt wird heruntergeladen…</string>
+	<key>Verifying account content…</key>
+	<string>Kontoinhalt wird überprüft…</string>
+	<key>Downloaded</key>
+	<string>Heruntergeladen</string>
+	<key>Next retry</key>
+	<string>Nächster Versuch</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Die Synchronisierung wartet auf den Server.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Uploads sind pausiert. Cloud-Speicher freigeben und erneut versuchen; der Empfang läuft weiter.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Die Synchronisierung prüft Kontoinhalte und Cloud-Backups. Für Nachrichten Unterhaltungen oder den Posteingang öffnen; Dateien separat wiederherstellen.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Die Cloud-Backup-Liste konnte nicht aktualisiert werden. Unter Dateien erneut versuchen.</string>
 </dict>
 </plist>

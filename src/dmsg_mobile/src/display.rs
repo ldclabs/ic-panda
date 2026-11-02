@@ -86,6 +86,7 @@ mod tests {
             staging: dir.path("staging"),
             approval_turn: Arc::default(),
             read_turns: Arc::default(),
+            sync_tracker: Arc::default(),
             transfers: Arc::default(),
         })
     }

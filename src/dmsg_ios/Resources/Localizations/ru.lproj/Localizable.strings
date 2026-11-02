@@ -2462,5 +2462,31 @@
 	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
 	<key>Cloud backup file limit</key>
 	<string>Предел размера файла облачной копии</string>
+	<key>First sync</key>
+	<string>Первая синхронизация</string>
+	<key>Sync paused</key>
+	<string>Синхронизация приостановлена</string>
+	<key>Waiting for first sync</key>
+	<string>Ожидание первой синхронизации</string>
+	<key>Account synchronization</key>
+	<string>Синхронизация аккаунта</string>
+	<key>Reading account inventory…</key>
+	<string>Чтение списка данных аккаунта…</string>
+	<key>Downloading account content…</key>
+	<string>Загрузка данных аккаунта…</string>
+	<key>Verifying account content…</key>
+	<string>Проверка данных аккаунта…</string>
+	<key>Downloaded</key>
+	<string>Загружено</string>
+	<key>Next retry</key>
+	<string>Следующая попытка</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Синхронизация ожидает сервер.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Отправка приостановлена. Освободите место в облаке и повторите попытку; приём продолжается.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Синхронизация проверяет данные аккаунта и облачные копии. Откройте разговоры или входящие для получения сообщений; файлы восстанавливаются отдельно.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Не удалось обновить список облачных копий. Повторите попытку в разделе «Файлы».</string>
 </dict>
 </plist>

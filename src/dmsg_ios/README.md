@@ -36,6 +36,27 @@ policy. The recovery screen disables request/completion while the policy is off.
 Cloud backups remain available, but losing all authorized devices while recovery
 is off makes their content unrecoverable even with the login.
 
+## Account synchronization
+
+After device approval and root unlock, a new iPhone verifies a complete account
+snapshot before publishing its contents. Its inventory and ciphertext progress
+survive interruption; later passes receive only changes. Ordinary navigation and
+editing do not cancel the session's automatic pass. A manual sync waits for an
+existing pass, retaining explicit upload retries and server backpressure.
+
+Automatic sync is enabled by default while the app is foreground and unlocked.
+Failures use the core's retry deadline without adding a separate one-minute wait.
+The vault, channel list and account screen show initial synchronization, progress,
+failure, next retry and actual last success separately from an empty account.
+Backgrounding, locking and account changes cancel old work; returning resumes it.
+
+**Sync now** checks account content and the cloud backup inventory independently.
+Conversation bodies and inbox letters refresh in their own views; files are
+restored explicitly. Inbox key recovery uses the same content lane and cooldown,
+receives incrementally after initialization, and never uploads local drafts.
+Content-sync console records contain only fixed trigger/stage/error categories,
+counts, byte totals and timings, including cancellation and queue time.
+
 ## Notifications
 
 The inbox shows verified letters saved on this device while refreshing. If the

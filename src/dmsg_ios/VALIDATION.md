@@ -1,5 +1,61 @@
 # iOS implementation validation
 
+## New-device synchronization continuity (2026-11-02)
+
+Completed the six-item review of the locally archived build 9:
+
+- Navigation and ordinary editing only record activity; account/lifecycle changes
+  cancel the automatic pass. Manual sync joins an existing full pass, but still
+  sends local work after an inbox-only receive.
+- Automatic retries use the core deadline instead of adding a 60-second UI gate.
+  Server cooldown is visible, and its retry control becomes available on expiry
+  even when the status record itself has not changed.
+- Inbox key recovery shares the sync lane, cooldown and result accounting. An
+  existing baseline uses incremental pages; recovery never uploads local drafts.
+- Initial sync, verified inventory progress, ciphertext bytes, failures, next
+  retry and actual last success are exposed through a named mobile status API.
+  Vault/channel views distinguish initialization from a verified empty account.
+- Manual sync refreshes account content and cloud backup inventory independently.
+  A cached file-list read cannot supersede a pending network refresh. Conversation
+  and inbox message reception and explicit file restoration remain separate.
+- Fixed-category diagnostics record trigger, queue wait, phase, counts, bytes,
+  cancellation, failure and retry time without account IDs or content.
+
+Validation performed:
+
+- Rust client/mobile/CLI suites: **549 + 21 + 105 passed**, with the existing
+  **11 ignored** tests retained. Final focused sync runs: **36 client + 8 mobile**
+  passed. All-target Clippy with `-D warnings`, formatting and diff checks passed.
+- A loopback regression resumes a preverified 240-entry inventory containing
+  120 encrypted vault items, interrupts after downloading some chunks, checks
+  that no unverified item was published, then completes without redownloading
+  saved chunks. The final measured run took 678 ms, received another 154,294
+  bytes and reused 5,316 bytes. Requests have an artificial 5 ms body delay;
+  this is a resumability test, not a production latency claim or an IC proof test.
+- Both ARM64 device and simulator debug cores and UniFFI bindings rebuilt; source
+  fingerprint verification passed. The source-change guard rejected an earlier
+  in-flight build, which was rebuilt from the final Rust sources.
+- Xcode 27.2, iPhone 17e / iOS 27.0: **61 Swift unit tests and 17 distinct UI tests**
+  passed across the primary and focused runs. Coverage includes the real Rust
+  cancellation token after navigation/background, retry deadlines, manual sync
+  progress, initial sync, inbox retry and existing conversation behavior.
+- The primary MCP call exceeded its 300-second response wait; the continuing
+  xcodebuild completed successfully. Its final log and result bundle were checked.
+  Results are in `.build/SyncReviewTests.xcresult`, `.build/SyncReviewRetry.xcresult`
+  and `.build/SyncReviewFinal.xcresult`. The final targeted build has no warnings.
+- Ten sync screenshots were exported to `.build/SyncReviewScreens` and inspected:
+  English light, Chinese light/dark, French long copy, Arabic RTL, progress,
+  cooldown and account scope. New status copy fits the existing theme and layout;
+  the existing French vault type picker still abbreviates its password label.
+- All 18 iOS script tests, 23-language resources/compiler extraction, notification
+  copy parity and icon checks passed.
+
+Not run: physical-device pairing and synchronization with a newly authorized iPhone, production network timing,
+PocketIC/private Worker acceptance, the unrelated UI suites, Release/TestFlight
+packaging or deployment. These results do not establish a production root cause
+for the reported ten-minute wait. Implementation and validation: Codex
+<codex@openai.com>.
+
 ## Max backup capacity (2026-11-02)
 
 New explicit cloud backups use the relay's current per-file admission limit:

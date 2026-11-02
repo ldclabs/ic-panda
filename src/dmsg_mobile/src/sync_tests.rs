@@ -6,6 +6,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 struct Fixture {
     engine: MobileEngine,
     uploads: Arc<AtomicU64>,
+    exports: Arc<AtomicU64>,
+    deltas: Arc<AtomicU64>,
+    delay_page: Arc<AtomicU64>,
+    fail_delta: Arc<Mutex<Option<String>>>,
     server: tokio::task::JoinHandle<()>,
     _dir: testing::TempDir,
 }
@@ -22,6 +26,14 @@ impl Fixture {
         testing::warm(&mut client);
         let uploads = Arc::new(AtomicU64::new(0));
         let requests = uploads.clone();
+        let exports = Arc::new(AtomicU64::new(0));
+        let export_count = exports.clone();
+        let deltas = Arc::new(AtomicU64::new(0));
+        let delta_count = deltas.clone();
+        let delay_page = Arc::new(AtomicU64::new(0));
+        let page_delay = delay_page.clone();
+        let fail_delta = Arc::new(Mutex::new(None::<String>));
+        let delta_error = fail_delta.clone();
         let mut first_error = first_error.map(str::to_owned);
         let server = tokio::spawn(async move {
             loop {
@@ -47,7 +59,10 @@ impl Fixture {
                 let request = String::from_utf8_lossy(&bytes);
                 let mut fields = request.lines().next().unwrap().split_whitespace();
                 let (method, path) = (fields.next().unwrap(), fields.next().unwrap());
-                let body = if path.ends_with("/exports") {
+                let body = if path.starts_with("/v1/inboxes/") {
+                    json!({"ok":false,"error":{"code":"RECOVERY_INCOMPLETE"}})
+                } else if path.ends_with("/exports") {
+                    export_count.fetch_add(1, Ordering::SeqCst);
                     match first_error.take() {
                         Some(code) => {
                             json!({"ok":false,"error":{"code":code,"retry_after_ms":90_000}})
@@ -61,10 +76,19 @@ impl Fixture {
                 } else if path.ends_with("/close") {
                     json!({"ok":true,"data":{"closed":true}})
                 } else if path.contains("/exports/") {
+                    tokio::time::sleep(std::time::Duration::from_millis(
+                        page_delay.load(Ordering::SeqCst),
+                    ))
+                    .await;
                     json!({"ok":true,"data":{"entries":[],"next_cursor":0,"inventory_end":true}})
                 } else if path.contains("/content/changes?") {
-                    json!({"ok":true,"data":{"content_sync":1,"account":testing::account().id.to_string(),
+                    delta_count.fetch_add(1, Ordering::SeqCst);
+                    if let Some(code) = delta_error.lock().unwrap().take() {
+                        json!({"ok":false,"error":{"code":code,"retry_after_ms":90_000}})
+                    } else {
+                        json!({"ok":true,"data":{"content_sync":1,"account":testing::account().id.to_string(),
                         "entries":[],"through":0,"next_cursor":0,"end":true}})
+                    }
                 } else if method == "POST" && path.ends_with("/uploads") {
                     requests.fetch_add(1, Ordering::SeqCst);
                     json!({"ok":false,"error":{"code":"QUOTA_EXCEEDED"}})
@@ -88,9 +112,14 @@ impl Fixture {
                 staging: dir.path("staging"),
                 approval_turn: Arc::default(),
                 read_turns: Arc::default(),
+                sync_tracker: Arc::default(),
                 transfers: Arc::default(),
             },
             uploads,
+            exports,
+            deltas,
+            delay_page,
+            fail_delta,
             server,
             _dir: dir,
         }
@@ -178,4 +207,147 @@ async fn manual_sync_still_honors_server_backpressure() {
         serde_json::from_str(&engine.sync(true, OperationToken::new()).await.unwrap().json)
             .unwrap();
     assert_eq!(paused["paused"], true);
+}
+
+#[tokio::test]
+async fn repeated_missing_inbox_keys_use_deltas_without_uploading_or_restarting_exports() {
+    let fixture = Fixture::new(None).await;
+    let engine = &fixture.engine;
+    engine.sync(true, OperationToken::new()).await.unwrap();
+    engine
+        .host
+        .with(|c| {
+            c.vault_create(
+                "note",
+                &dmsg_client::vault::Changes {
+                    title: Some("unsent draft".into()),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    for _ in 0..3 {
+        tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        assert!(matches!(engine.inbox(true).await,
+            Err(MobileError::Failure { code }) if code == "RECOVERY_INCOMPLETE"));
+    }
+    assert_eq!(fixture.exports.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.deltas.load(Ordering::SeqCst), 3);
+    assert_eq!(fixture.uploads.load(Ordering::SeqCst), 0);
+    assert_eq!(engine.session_state().await.unwrap().pending_sync, 1);
+}
+
+#[tokio::test]
+async fn inbox_key_recovery_obeys_account_backpressure_and_preserves_failure_status() {
+    let fixture = Fixture::new(Some("SYNC_BUSY")).await;
+    let engine = &fixture.engine;
+    engine
+        .sync(true, OperationToken::new())
+        .await
+        .err()
+        .unwrap();
+    let failed = engine.content_sync_status().await.unwrap();
+    assert!(!failed.initialized && failed.retry_required);
+    assert!(failed.last_success_at_ms.is_none());
+    assert!(failed.retry_at_ms.unwrap() > dmsg_client::now_ms());
+    for _ in 0..3 {
+        assert!(engine.inbox(true).await.is_err());
+    }
+    assert_eq!(fixture.exports.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.deltas.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        engine
+            .content_sync_status()
+            .await
+            .unwrap()
+            .last_attempt_at_ms,
+        failed.last_attempt_at_ms
+    );
+}
+
+#[tokio::test]
+async fn manual_request_joins_an_automatic_snapshot_and_status_is_readable_during_network_wait() {
+    let fixture = Fixture::new(None).await;
+    fixture.delay_page.store(200, Ordering::SeqCst);
+    let engine = &fixture.engine;
+    let automatic = engine.sync(true, OperationToken::new());
+    let manual = async {
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            loop {
+                let status = engine.content_sync_status().await.unwrap();
+                if status.running && status.stage == "export_page" {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let status = engine.content_sync_status().await.unwrap();
+        assert!(!status.initialized && status.last_success_at_ms.is_none());
+        serde_json::from_str::<Value>(
+            &engine
+                .sync(false, OperationToken::new())
+                .await
+                .unwrap()
+                .json,
+        )
+        .unwrap()
+    };
+    let (first, joined) = tokio::join!(automatic, manual);
+    first.unwrap();
+    assert_eq!(joined["coalesced"], true);
+    assert_eq!(fixture.exports.load(Ordering::SeqCst), 1);
+    let completed = engine.content_sync_status().await.unwrap();
+    assert!(completed.initialized && !completed.running && completed.last_success_at_ms.is_some());
+    *fixture.fail_delta.lock().unwrap() = Some("SYNC_BUSY".into());
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+    engine
+        .sync(false, OperationToken::new())
+        .await
+        .err()
+        .unwrap();
+    let failed = engine.content_sync_status().await.unwrap();
+    assert_eq!(failed.last_success_at_ms, completed.last_success_at_ms);
+    assert_eq!(
+        engine.session_state().await.unwrap().last_sync_at_ms,
+        completed.last_success_at_ms
+    );
+}
+
+#[tokio::test]
+async fn manual_sync_after_inbox_recovery_still_uploads_pending_changes() {
+    let fixture = Fixture::new(None).await;
+    fixture.delay_page.store(200, Ordering::SeqCst);
+    let engine = &fixture.engine;
+    engine
+        .host
+        .with(|c| {
+            c.vault_create(
+                "note",
+                &dmsg_client::vault::Changes {
+                    title: Some("owner asked to upload".into()),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    let manual = async {
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while engine.content_sync_status().await.unwrap().stage != "export_page" {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        engine.sync(false, OperationToken::new()).await.unwrap()
+    };
+    let (inbox, sent) = tokio::join!(engine.inbox(true), manual);
+    assert!(inbox.is_err());
+    let report: Value = serde_json::from_str(&sent.json).unwrap();
+    assert_eq!(report["upload_error"], "QUOTA_EXCEEDED");
+    assert_eq!(fixture.exports.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.uploads.load(Ordering::SeqCst), 1);
 }

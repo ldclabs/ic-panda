@@ -2462,5 +2462,31 @@
 	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
 	<key>Cloud backup file limit</key>
 	<string>Bulut yedeklemede dosya boyutu sınırı</string>
+	<key>First sync</key>
+	<string>İlk eşitleme</string>
+	<key>Sync paused</key>
+	<string>Eşitleme duraklatıldı</string>
+	<key>Waiting for first sync</key>
+	<string>İlk eşitleme bekleniyor</string>
+	<key>Account synchronization</key>
+	<string>Hesap eşitleme</string>
+	<key>Reading account inventory…</key>
+	<string>Hesap içerik listesi okunuyor…</string>
+	<key>Downloading account content…</key>
+	<string>Hesap içeriği indiriliyor…</string>
+	<key>Verifying account content…</key>
+	<string>Hesap içeriği doğrulanıyor…</string>
+	<key>Downloaded</key>
+	<string>İndirilen</string>
+	<key>Next retry</key>
+	<string>Sonraki deneme</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Eşitleme sunucuyu bekliyor.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Yüklemeler duraklatıldı. Bulut alanını boşaltıp tekrar deneyin; alma işlemi sürüyor.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Eşitleme hesap içeriğini ve bulut yedeklerini denetler. Mesaj almak için konuşmaları veya gelen kutusunu açın; dosyaları ayrı geri yükleyin.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Bulut yedek listesi yenilenemedi. Dosyalar bölümünde tekrar deneyin.</string>
 </dict>
 </plist>

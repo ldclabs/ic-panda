@@ -38,7 +38,8 @@ async fn cross_page_objects_apply_only_new_versions_and_gc_keeps_the_entire_base
     let after = relay.snapshot();
     let plan = after.plans.last().unwrap().clone();
     relay.cache(&client).unwrap();
-    let mut stage = SyncStage::DeltaPage;
+    let mut noop = |_: &SyncProgress| {};
+    let mut stage = Observer::new(&mut noop);
     let mut report = SyncReport::default();
     client
         .workspace
@@ -115,7 +116,8 @@ async fn an_ack_cannot_advance_past_an_omitted_revision_and_a_retry_keeps_other_
     );
     assert_eq!(client.workspace.store.meta::<u64>(CURSOR).unwrap(), Some(0));
     let mut report = SyncReport::default();
-    let mut stage = SyncStage::DeltaPage;
+    let mut noop = |_: &SyncProgress| {};
+    let mut stage = Observer::new(&mut noop);
     let entries = all
         .plans
         .iter()
@@ -169,7 +171,7 @@ async fn invalid_new_content_does_not_advance_the_cursor_or_move_heads() {
         apply_incremental_page(
             &client.hold(),
             &page(entries, all.through, true),
-            &mut SyncStage::DeltaPage,
+            &mut Observer::new(&mut |_| {}),
             &mut SyncReport::default()
         )
         .await
@@ -300,4 +302,176 @@ async fn a_failed_close_does_not_fail_or_delay_subsequent_incremental_reads() {
     assert_eq!(report.delta_pages, 1);
     assert!(!report.full_snapshot);
     server.await.unwrap();
+}
+
+#[tokio::test]
+async fn first_baseline_resumes_downloads_with_progress_before_publishing_120_items() {
+    use std::sync::Arc;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let source_dir = TempDir::new();
+    let target_dir = TempDir::new();
+    let mut source = unlocked(&source_dir.0, false, None);
+    let mut client = unlocked(&target_dir.0, false, None);
+    for n in 0..120 {
+        source
+            .vault_create("note", &item(&format!("entry {n}")))
+            .unwrap();
+    }
+    let mut relay = Relay::default();
+    relay.accept(&mut source);
+    let snapshot = relay.snapshot();
+    relay.cache(&source).unwrap();
+    // Resume after inventory verification, with no payloads downloaded yet.
+    // Signature/page validation has separate wire-vector coverage.
+    let mut parts = BTreeMap::new();
+    let base = client.base().unwrap();
+    for (i, plan) in snapshot.plans.iter().enumerate() {
+        client
+            .workspace
+            .store
+            .sync_stage(i as u64 * 2 + 1, &Entry::Object(plan.clone()))
+            .unwrap();
+        for (name, digest) in plan
+            .chunks
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (i.to_string(), &c.digest))
+            .chain([("manifest".into(), &plan.manifest_digest)])
+        {
+            parts.insert(
+                format!("{base}/objects/{}/chunks/{name}", plan.upload_id),
+                source.workspace.store.chunk(digest).unwrap().unwrap(),
+            );
+        }
+    }
+    for (i, (revision, conflict)) in snapshot.revisions.iter().enumerate() {
+        client
+            .workspace
+            .store
+            .sync_stage(
+                i as u64 * 2 + 2,
+                &Entry::Revision(revision.clone(), *conflict),
+            )
+            .unwrap();
+    }
+    let total_bytes: u64 = parts.values().map(|b| b.len() as u64).sum();
+    let job = FullJob {
+        request_id: Hash::new([1; 32]),
+        export_id: "aa".repeat(32),
+        attempted: true,
+        start: Some(
+            json!({"through":240,"counts":[{"kind":"object","n":120},{"kind":"revision","n":120}],"expires_at":now_ms()+60_000}),
+        ),
+        cursor: 240,
+        counts: BTreeMap::from([("object".into(), 120), ("revision".into(), 120)]),
+        complete: false,
+        close_id: Hash::new([2; 32]),
+        close_retry_at: 0,
+    };
+    client.workspace.store.set_meta(FULL, &job).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    crate::testing::relay_to(
+        &mut client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    crate::testing::warm(&mut client);
+    let parts = Arc::new(parts);
+    let server = tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let parts = parts.clone();
+            tokio::spawn(async move {
+                let mut bytes = Vec::new();
+                while !bytes.windows(4).any(|w| w == b"\r\n\r\n") {
+                    let mut buf = [0; 8192];
+                    let n = socket.read(&mut buf).await.unwrap();
+                    if n == 0 {
+                        return;
+                    }
+                    bytes.extend_from_slice(&buf[..n]);
+                }
+                let text = String::from_utf8_lossy(&bytes);
+                let path = text
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap();
+                let content_type = if parts.contains_key(path) {
+                    "application/octet-stream"
+                } else {
+                    "application/json"
+                };
+                let body = if let Some(data) = parts.get(path) {
+                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                    data.clone()
+                } else if path.ends_with("/close") {
+                    json!({"ok":true,"data":{"closed":true}})
+                        .to_string()
+                        .into_bytes()
+                } else {
+                    assert!(
+                        path.contains("/exports/") && path.ends_with("?after=240&limit=100"),
+                        "unexpected request {path}"
+                    );
+                    json!({"ok":true,"data":{"entries":[],"next_cursor":240,"inventory_end":true}})
+                        .to_string()
+                        .into_bytes()
+                };
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                );
+                if socket.write_all(header.as_bytes()).await.is_ok() {
+                    let _ = socket.write_all(&body).await;
+                }
+            });
+        }
+    });
+    let started = std::time::Instant::now();
+    let (ready, mut wait) = tokio::sync::watch::channel(false);
+    {
+        let hold = client.hold();
+        let mut notify = |p: &SyncProgress| {
+            if p.downloaded_bytes > 0 {
+                ready.send_replace(true);
+            }
+        };
+        tokio::select! {
+            biased;
+            _=wait.changed()=>{},
+            result=sync_observed(&hold,true,&mut notify)=>panic!("completed before cancellation: {result:?}"),
+            _=tokio::time::sleep(std::time::Duration::from_secs(5))=>panic!("no download progress"),
+        }
+    }
+    assert!(!initialized(&client).unwrap());
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    let cached = client.workspace.store.chunk_digests().unwrap();
+    let saved_bytes: u64 = cached
+        .iter()
+        .map(|d| client.workspace.store.chunk(d).unwrap().unwrap().len() as u64)
+        .sum();
+    assert!(saved_bytes > 0 && saved_bytes < total_bytes);
+    let mut progress = Vec::new();
+    let report = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        sync_observed(&client.hold(), true, &mut |p| progress.push(p.clone())),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(report.revisions, 120);
+    assert_eq!(report.downloaded_bytes, total_bytes - saved_bytes);
+    assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 120);
+    assert!(initialized(&client).unwrap());
+    assert!(progress.iter().any(|p| p.total == 240 && p.entries == 240));
+    assert_eq!(progress.last().unwrap().stage, SyncStage::Finish);
+    eprintln!(
+        "120-item resumed baseline: elapsed_ms={} downloaded_bytes={} reused_bytes={}",
+        started.elapsed().as_millis(),
+        report.downloaded_bytes,
+        saved_bytes
+    );
+    server.abort();
 }

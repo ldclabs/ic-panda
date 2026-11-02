@@ -46,6 +46,13 @@ struct DMsgApp: App {
                         do { try await Task.sleep(for: .seconds(60)) } catch { break }
                     }
                 }
+                .task(id: "sync-status:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    while !Task.isCancelled {
+                        await model.updateSyncStatus()
+                        do { try await Task.sleep(for: .seconds(model.contentSync?.running == true ? 1 : 2)) } catch { break }
+                    }
+                }
                 .task(id: model.unlocked && model.automaticSyncEnabled && scenePhase == .active) {
                     guard model.automaticSyncEnabled, model.unlocked, scenePhase == .active else { return }
                     while !Task.isCancelled {

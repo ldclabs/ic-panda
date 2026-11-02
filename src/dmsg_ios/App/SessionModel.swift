@@ -16,6 +16,8 @@ final class SessionModel {
     var busy = false
     private(set) var unlocking = false
     private(set) var synchronizing = false
+    var contentSync: ContentSyncStatus?
+    private var syncClock = Date.now
     var error: String?
     var notice: String?
     var reminderEntry: ReminderEntry?
@@ -102,11 +104,16 @@ final class SessionModel {
     let uiTesting = false
     #endif
 
+    var syncCoolingDown: Bool {
+        contentSync?.error == "SYNC_BUSY" && (contentSync?.retryAtMs ?? 0) > UInt64(syncClock.timeIntervalSince1970 * 1000)
+    }
+
     var unlocked: Bool { session?.state == "unlocked" }
     var automaticSyncEnabled: Bool { session?.account.map { !manualSyncAccounts.contains($0) } ?? false }
 
     #if DEBUG
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
+        contentSync = .fixture(initialized: true)
         session = state; vault = items; favorites = Array(items.filter(\.favorite).prefix(4))
         if let account = state.account {
             notifications.installFixtures(account: account)
@@ -273,7 +280,7 @@ final class SessionModel {
         }
     }
 
-    func activity() { lastActivity = .now; automaticOperation?.cancel(); recoveryOperation?.cancel() }
+    func activity() { lastActivity = .now }
 
     /// A device transfer moved bytes, which keeps the app from locking for idleness.
     func transferMoved() { lastActivity = .now }
@@ -302,6 +309,8 @@ final class SessionModel {
         if (session?.state == "unlocked" && state.state != "unlocked") ||
             (session?.account != nil && session?.account != state.account) ||
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
+            stopAutomaticSync(.sessionChanged); contentSync = nil
+            nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
             epoch &+= 1; viewGeneration &+= 1
             vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
@@ -324,7 +333,7 @@ final class SessionModel {
     /// which this device keeps for that account.
     func setAutomaticSync(_ enabled: Bool) {
         guard let account = session?.account else { return }
-        if enabled { manualSyncAccounts.remove(account); nextAutomaticSync = nil } else { manualSyncAccounts.insert(account); automaticOperation?.cancel() }
+        if enabled { manualSyncAccounts.remove(account); nextAutomaticSync = nil } else { manualSyncAccounts.insert(account); stopAutomaticSync(.disabled) }
         if let files {
             do { try writePreferences(at: files.root) }
             catch { report(error) }
@@ -350,11 +359,13 @@ final class SessionModel {
         guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning,
               let account = session?.account else { return }
         guard let engine else { return }
+        await updateSyncStatus()
         let change = try? await engine.localChange()
         let edited = change != nil && change != lastLocalChange && change != 0
-        if !edited, let nextAutomaticSync, ContinuousClock.now < nextAutomaticSync { return }
+        guard ContentSyncPolicy.isDue(status: contentSync, edited: edited,
+            idleDue: nextAutomaticSync.map { ContinuousClock.now >= $0 } ?? true,
+            now: UInt64(Date.now.timeIntervalSince1970 * 1000)) else { return }
         lastLocalChange = change
-        nextAutomaticSync = .now.advanced(by: .seconds(60))
         if !syncIntroduced.contains(account) {
             // Said once per account, where it first syncs by itself.
             syncIntroduced.insert(account)
@@ -364,18 +375,47 @@ final class SessionModel {
                 catch { report(error) }
             }
         }
+        await runAutomaticSync { try await self.syncPass(operation: $0, automatic: true) }
+    }
+
+    /// The pass belongs to the account session, so navigation never cancels it.
+    func runAutomaticSync(_ work: @MainActor (OperationToken) async throws -> Void) async {
+        guard !automaticPassRunning else { return }
         automaticPassRunning = true
         let operation = OperationToken(), current = epoch
         automaticOperation = operation
         defer { automaticOperation = nil; automaticPassRunning = false }
         do {
-            try await withTaskCancellationHandler {
-                try await syncPass(operation: operation, automatic: true)
-            } onCancel: { operation.cancel() }
+            try await withTaskCancellationHandler { try await work(operation) }
+                onCancel: { operation.cancel() }
         } catch {
             if current == epoch, let failure = error as? MobileError, case .Failure(let code) = failure,
                code == "DEVICE_NOT_APPROVED" { report(error) }
         }
+    }
+
+    private func stopAutomaticSync(_ reason: ContentSyncEvent) {
+        automaticOperation?.cancel()
+        nextAutomaticSync = nil
+        ContentSyncLog.record(reason)
+    }
+
+    func updateSyncStatus() async {
+        guard unlocked, !concealed else { return }
+        // The deadline must expire even when an otherwise equal status snapshot
+        // does not notify Observation, including with automatic sync disabled.
+        syncClock = .now
+        guard let engine else { return }
+        let current = epoch
+        do {
+            let status = try await engine.contentSyncStatus()
+            guard current == epoch, !Task.isCancelled else { return }
+            let changed = contentSync?.lastAttemptAtMs != status.lastAttemptAtMs || contentSync?.initialized != status.initialized
+            contentSync = status
+            // Inbox recovery also applies account content; publish it without
+            // waiting for a separate automatic pass to finish.
+            if changed { contentRevision &+= 1; await refresh() }
+        } catch { /* Lifecycle changes invalidate the handle; the next visit reloads it. */ }
     }
 
     /// Vault completion is published before any independent service work.
@@ -384,17 +424,19 @@ final class SessionModel {
         let current = epoch
         do {
             let value = try await engine.sync(automatic: automatic, operation: operation)
-            struct Report: Decodable { let through: UInt64?; let sent: UInt64? }
+            guard current == epoch, !Task.isCancelled else { throw CancellationError() }
+            struct Report: Decodable { let through: UInt64?; let sent: UInt64?; let paused: Bool?; let coalesced: Bool? }
             let report: Report = try decode(value)
-            if report.through != lastSyncThrough || (report.sent ?? 0) > 0 {
-                nextAutomaticSync = .now.advanced(by: .seconds(30))
+            if report.paused != true && report.coalesced != true {
+                let changed = report.through != nil && report.through != lastSyncThrough || (report.sent ?? 0) > 0
+                nextAutomaticSync = .now.advanced(by: .seconds(changed ? 30 : 60))
             }
             lastSyncThrough = report.through ?? lastSyncThrough
-            guard current == epoch else { throw CancellationError() }
             contentRevision &+= 1
+            await updateSyncStatus()
             await updateSession()
         } catch {
-            if current == epoch { contentRevision &+= 1; await updateSession() }
+            if current == epoch { contentRevision &+= 1; await updateSyncStatus(); await updateSession() }
             throw error
         }
     }
@@ -432,9 +474,10 @@ final class SessionModel {
         if unlocked && !concealed && lastActivity.duration(to: .now) >= .seconds(15 * 60) { await lock() }
     }
 
-    func inactive() { lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
+    func inactive() { stopAutomaticSync(.inactive); lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
 
     func background() {
+        stopAutomaticSync(.background)
         automaticUnlock.rearm()
         nextAutomaticSync = nil
         lifecycleGeneration &+= 1
@@ -500,6 +543,7 @@ final class SessionModel {
     }
 
     func protectedDataUnavailable() {
+        stopAutomaticSync(.locked); contentSync = nil
         automaticUnlock.rearm()
         (try? SystemExports(.files))?.lockFiles()
         lifecycleGeneration &+= 1
@@ -537,6 +581,7 @@ final class SessionModel {
     }
 
     private func clearContent(clearClipboard: Bool) {
+        stopAutomaticSync(.locked); contentSync = nil
         notifications.clearVisibility()
         (try? SystemExports(.files))?.lockFiles()
         transfer.cancel()
@@ -675,15 +720,25 @@ final class SessionModel {
     }
 
     func synchronize() async {
-        activity()
-        guard engine != nil, !busy else { return }
+        activity(); syncClock = .now
+        guard engine != nil, !busy, !syncCoolingDown else { return }
         let operation = beginBusyOperation(synchronizing: true), current = epoch
         defer { finishBusyOperation(operation) }
+        async let backups: Void = refreshSyncBackups()
         do { try await coreOperation { try await syncPass(operation: $0, automatic: false) } }
         catch { if current == epoch { await updateSession(); report(error) } }
+        await backups
+    }
+
+    private func refreshSyncBackups() async {
+        // An independent result: a catalog failure cannot hide verified vault data.
+        do { try await coreOperation { try await fetchCloudBackups(refresh: true, operation: $0) } }
+        catch { /* fetchCloudBackups keeps its retryable failure state. */ }
     }
 
     func loadCloudBackups(refresh: Bool) async {
+        // Reading a cache must not replace the identity of an in-flight refresh.
+        if !refresh && loadingCloudBackups { return }
         let current = epoch
         do { try await coreOperation { try await fetchCloudBackups(refresh: refresh, operation: $0) } }
         catch { if current == epoch { report(error) } }
@@ -819,6 +874,7 @@ final class SessionModel {
                 else if code == "NETWORK_UNAVAILABLE" { self.error = String(localized: "Connection unavailable. Your saved content stays on this device.") }
                 else if code == "UNAVAILABLE" { self.error = String(localized: "This operation is temporarily unavailable. Your saved data is kept.") }
                 else if code == "LOCAL_STORAGE_UNAVAILABLE" { self.error = String(localized: "Local storage is unavailable. Unlock this device and try again; do not reset the workspace to recover an interrupted operation.") }
+                else if code == "SYNC_BUSY" { self.error = String(localized: "Sync is waiting for the server.") }
                 else if code == "QUOTA_EXCEEDED" { self.error = String(localized: "This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.") }
                 else if code == "UNSUPPORTED_PROTOCOL" { self.error = String(localized: "This action is not supported on this device. Secret snapshots must use their dedicated import flow.") }
                 else { self.error = String(localized: "The operation could not be completed.") + " (\(code))" }

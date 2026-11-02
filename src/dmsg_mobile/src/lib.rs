@@ -25,6 +25,8 @@ pub use wallet::{WalletChange, WalletTransfer};
 mod secrets;
 mod security;
 mod session;
+mod sync;
+pub use sync::ContentSyncStatus;
 mod succession;
 mod transfer;
 
@@ -98,6 +100,7 @@ pub struct MobileEngine {
     staging: PathBuf,
     approval_turn: Arc<tokio::sync::Mutex<()>>,
     read_turns: Arc<display::ReadTurns>,
+    sync_tracker: Arc<sync::Tracker>,
     /// The device transfer, shared by every view of the engine.
     transfers: Arc<dmsg_client::transfer::Transfers>,
 }
@@ -207,6 +210,7 @@ impl MobileEngine {
             staging,
             approval_turn: Arc::new(tokio::sync::Mutex::new(())),
             read_turns: Arc::new(display::ReadTurns::default()),
+            sync_tracker: Arc::default(),
             transfers: Arc::default(),
         }))
     }
@@ -271,6 +275,7 @@ impl MobileEngine {
             staging: self.staging.clone(),
             approval_turn: self.approval_turn.clone(),
             read_turns: self.read_turns.clone(),
+            sync_tracker: self.sync_tracker.clone(),
             transfers: self.transfers.clone(),
         }))
     }
@@ -891,45 +896,6 @@ impl MobileEngine {
         .await
     }
 
-    /// Automatic passes honor failure pauses; an owner retry resumes uploads
-    /// and rechecks repaired failures, while still honoring server backpressure.
-    pub async fn sync(
-        &self,
-        automatic: bool,
-        operation: Arc<OperationToken>,
-    ) -> Result<ObjectSnapshot> {
-        let turn = self.read_turns.lane("sync");
-        let requested = dmsg_client::now_ms();
-        operation
-            .run(self.held_object(move |h| {
-                Box::pin(async move {
-                    let _turn = turn.lock().await;
-                    if !automatic {
-                        h.with(dmsg_client::sync::retry_uploads).await?;
-                    }
-                    if let Some(last) = h.with(|c| c.last_sync()).await?
-                        && last.at >= requested
-                        && last.error.is_none()
-                        && (automatic || last.upload_error.is_none())
-                    {
-                        return Ok(serde_json::json!({"coalesced":true}));
-                    }
-                    if automatic
-                        && let Some(last) = h.with(|c| c.last_sync()).await?
-                        && last.error.is_some()
-                        && last
-                            .automatic_at()
-                            .is_none_or(|at| at > dmsg_client::now_ms())
-                    {
-                        return Ok(serde_json::json!({"paused":true,"last_sync":last}));
-                    }
-                    serde_json::to_value(dmsg_client::sync::sync(h).await?)
-                        .map_err(|_| Error::IntegrityFailed)
-                })
-            }))
-            .await
-    }
-
     pub async fn local_change(&self) -> Result<u64> {
         self.held(|h| Box::pin(async { h.with(|c| c.local_change()).await }))
             .await
@@ -1324,6 +1290,8 @@ impl MobileEngine {
         let requested = dmsg_client::now_ms();
         let turn = self.read_turns.lane("inbox");
         let sync_turn = self.read_turns.lane("sync");
+        let tracker = self.sync_tracker.clone();
+        let generation = self.host.generation();
         self.held_object(move |h| {
             Box::pin(async move {
                 if refresh {
@@ -1345,7 +1313,17 @@ impl MobileEngine {
                             // then retry the same uncommitted inbox page.
                             {
                                 let _sync = sync_turn.lock().await;
-                                dmsg_client::sync::pull_metadata(h).await?;
+                                // A pass that finished while we waited already checked
+                                // the missing key. Coalesce it; otherwise receive only
+                                // new content, with the ordinary cooldown and status.
+                                sync::content_pass(
+                                    h,
+                                    &tracker,
+                                    generation,
+                                    requested,
+                                    sync::Trigger::Inbox,
+                                )
+                                .await?;
                             }
                             dmsg_client::inbox::list(h).await
                         }

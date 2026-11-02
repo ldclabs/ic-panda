@@ -2462,5 +2462,31 @@
 	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 	<key>Cloud backup file limit</key>
 	<string>الحد الأقصى لحجم ملف النسخ السحابي</string>
+	<key>First sync</key>
+	<string>المزامنة الأولى</string>
+	<key>Sync paused</key>
+	<string>المزامنة متوقفة مؤقتًا</string>
+	<key>Waiting for first sync</key>
+	<string>بانتظار المزامنة الأولى</string>
+	<key>Account synchronization</key>
+	<string>مزامنة الحساب</string>
+	<key>Reading account inventory…</key>
+	<string>جارٍ قراءة قائمة محتوى الحساب…</string>
+	<key>Downloading account content…</key>
+	<string>جارٍ تنزيل محتوى الحساب…</string>
+	<key>Verifying account content…</key>
+	<string>جارٍ التحقق من محتوى الحساب…</string>
+	<key>Downloaded</key>
+	<string>تم التنزيل</string>
+	<key>Next retry</key>
+	<string>المحاولة التالية</string>
+	<key>Sync is waiting for the server.</key>
+	<string>المزامنة تنتظر الخادم.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>الرفع متوقف مؤقتًا. حرّر مساحة سحابية وأعد المحاولة؛ يستمر الاستقبال.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>تتحقق المزامنة من محتوى الحساب والنسخ الاحتياطية السحابية. افتح المحادثات أو الوارد لاستقبال الرسائل؛ استعد الملفات بشكل منفصل.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>تعذر تحديث قائمة النسخ الاحتياطية السحابية. أعد المحاولة في الملفات.</string>
 </dict>
 </plist>

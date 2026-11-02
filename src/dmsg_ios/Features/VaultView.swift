@@ -14,17 +14,12 @@ struct VaultView: View {
         @Bindable var model = model
         WorkspaceNavigation(selection: $selected) { listSelection in
             List(selection: listSelection) {
-                if model.session?.syncError != nil {
-                    VStack(alignment: .leading, spacing: 4) {
-                        NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish."))
-                        if let timestamp = model.session?.lastSyncAtMs {
-                            Text(Date(timeIntervalSince1970: Double(timestamp) / 1000), style: .relative).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
+                ContentSyncStatusView().listRowBackground(Color.clear).listRowSeparator(.hidden)
                 if (model.session?.pendingSync ?? 0) > 0 {
-                    NoticeBar(text: String(localized: "Saved on this device. Changes are waiting to sync."))
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    VStack(alignment: .leading, spacing: 4) {
+                        LabeledContent("Waiting to sync", value: (model.session?.pendingSync ?? 0).formatted()).font(.footnote)
+                        NoticeBar(text: String(localized: "Saved on this device. Changes are waiting to sync."))
+                    }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
                 if (model.session?.conflicts ?? 0) > 0 {
                     NavigationLink { ConflictsView() } label: { Label("Review sync conflicts", systemImage: "arrow.triangle.branch") }
@@ -61,7 +56,7 @@ struct VaultView: View {
                     }
                     if model.vaultHasMore { Button("Load more") { Task { await model.loadVault(more: true) } }.disabled(model.loadingVault) }
                 }
-                if shown.isEmpty {
+                if shown.isEmpty && model.contentSync?.initialized == true && !model.loadingVault {
                     ContentUnavailableView.search(text: model.search)
                         .listRowBackground(Color.clear)
                 }

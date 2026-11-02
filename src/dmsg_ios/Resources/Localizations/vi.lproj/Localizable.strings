@@ -2462,5 +2462,31 @@
 	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 	<key>Cloud backup file limit</key>
 	<string>Giới hạn mỗi tệp sao lưu đám mây</string>
+	<key>First sync</key>
+	<string>Đồng bộ lần đầu</string>
+	<key>Sync paused</key>
+	<string>Đồng bộ tạm dừng</string>
+	<key>Waiting for first sync</key>
+	<string>Đang chờ đồng bộ lần đầu</string>
+	<key>Account synchronization</key>
+	<string>Đồng bộ tài khoản</string>
+	<key>Reading account inventory…</key>
+	<string>Đang đọc danh mục nội dung tài khoản…</string>
+	<key>Downloading account content…</key>
+	<string>Đang tải nội dung tài khoản…</string>
+	<key>Verifying account content…</key>
+	<string>Đang xác minh nội dung tài khoản…</string>
+	<key>Downloaded</key>
+	<string>Đã tải</string>
+	<key>Next retry</key>
+	<string>Lần thử tiếp theo</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Đồng bộ đang chờ máy chủ.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Tải lên đã tạm dừng. Giải phóng dung lượng đám mây rồi thử lại; vẫn tiếp tục nhận.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Đồng bộ kiểm tra nội dung tài khoản và bản sao lưu đám mây. Mở cuộc trò chuyện hoặc hộp thư đến để nhận tin nhắn; khôi phục tệp riêng.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Không thể làm mới danh sách sao lưu đám mây. Thử lại trong Tệp.</string>
 </dict>
 </plist>

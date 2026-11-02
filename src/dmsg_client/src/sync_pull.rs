@@ -60,7 +60,7 @@ pub(super) fn committed(store: &Store, through: u64, complete: bool) -> Result<(
 
 pub(super) async fn run<H: Hold>(
     h: &H,
-    stage: &mut SyncStage,
+    stage: &mut Observer<'_>,
     report: &mut SyncReport,
 ) -> Result<()> {
     let (baseline, pending_snapshot) = h
@@ -254,9 +254,9 @@ pub(super) fn require_full(store: &Store) -> Result<()> {
 }
 
 /// A full inventory is mandatory before the first incremental cursor is written.
-pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> {
+pub(super) async fn full<H: Hold>(h: &H, stage: &mut Observer<'_>) -> Result<SyncReport> {
     close(h).await?;
-    *stage = SyncStage::ExportStart;
+    stage.stage(SyncStage::ExportStart);
     let (base, account) = h.with(|c| Ok((c.base()?, c.account()?.id))).await?;
     let mut job = h
         .with(|c| {
@@ -330,6 +330,17 @@ pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncRe
     }
     let start = job.start.as_ref().ok_or(Error::IntegrityFailed)?;
     let through = start["through"].as_u64().ok_or(Error::IntegrityFailed)?;
+    stage.progress.entries = job.counts.values().sum();
+    stage.progress.total = start["counts"]
+        .as_array()
+        .ok_or(Error::IntegrityFailed)?
+        .iter()
+        .try_fold(0u64, |total, c| {
+            total
+                .checked_add(c["n"].as_u64().ok_or(Error::IntegrityFailed)?)
+                .ok_or(Error::IntegrityFailed)
+        })?;
+    stage.emit();
     let trust = h.trust().await?;
     let mut epochs = BTreeMap::new();
     let mut report = SyncReport {
@@ -338,7 +349,7 @@ pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncRe
         ..SyncReport::default()
     };
     loop {
-        *stage = SyncStage::ExportPage;
+        stage.stage(SyncStage::ExportPage);
         let reply = h
             .get(&format!(
                 "{base}/exports/{}?after={}&limit=100",
@@ -362,10 +373,11 @@ pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncRe
             true,
         )?;
         report.export_pages += 1;
+        stage.progress.export_pages += 1;
         report.verify_ms += page.verify_ms;
         let part = snapshot(page.entries.iter().map(|(_, e)| e.clone()), through)?;
-        *stage = SyncStage::Download;
-        report.downloaded_bytes += cache(h, &part.plans).await?;
+        stage.stage(SyncStage::Download);
+        report.downloaded_bytes += cache(h, &part.plans, stage).await?;
         for (kind, count) in &page.counts {
             *job.counts.entry(kind.clone()).or_default() += count;
         }
@@ -379,6 +391,8 @@ pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncRe
             })
         })
         .await?;
+        stage.progress.entries = job.counts.values().sum();
+        stage.emit();
         if page.end {
             break;
         }
@@ -412,9 +426,9 @@ pub(super) async fn full<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncRe
             Ok((snapshot(entries, through)?, retired))
         })
         .await?;
-    *stage = SyncStage::Download;
-    report.downloaded_bytes += cache(h, &complete.plans).await?;
-    *stage = SyncStage::Apply;
+    stage.stage(SyncStage::Download);
+    report.downloaded_bytes += cache(h, &complete.plans, stage).await?;
+    stage.stage(SyncStage::Apply);
     let (revisions, elapsed) = h
         .with(|c| {
             let start = std::time::Instant::now();
@@ -515,12 +529,16 @@ fn plan_for_revision(store: &Store, revision: &Revision) -> Result<UploadPlan> {
     Ok(plan)
 }
 
-async fn incremental<H: Hold>(h: &H, stage: &mut SyncStage, report: &mut SyncReport) -> Result<()> {
+async fn incremental<H: Hold>(
+    h: &H,
+    stage: &mut Observer<'_>,
+    report: &mut SyncReport,
+) -> Result<()> {
     let (base, account) = h.with(|c| Ok((c.base()?, c.account()?.id))).await?;
     let trust = h.trust().await?;
     let mut epochs = BTreeMap::new();
     loop {
-        *stage = SyncStage::DeltaPage;
+        stage.stage(SyncStage::DeltaPage);
         let (after, target) = h
             .with(|c| {
                 Ok((
@@ -550,6 +568,7 @@ async fn incremental<H: Hold>(h: &H, stage: &mut SyncStage, report: &mut SyncRep
         )?;
         let page = parse_page(&trust, &account, &mut epochs, &value, after, through, false)?;
         report.delta_pages += 1;
+        stage.progress.delta_pages += 1;
         report.verify_ms += page.verify_ms;
         h.with(|c| c.workspace.store.set_meta(TARGET, &through))
             .await?;
@@ -563,7 +582,7 @@ async fn incremental<H: Hold>(h: &H, stage: &mut SyncStage, report: &mut SyncRep
 async fn apply_incremental_page<H: Hold>(
     h: &H,
     page: &Page,
-    stage: &mut SyncStage,
+    stage: &mut Observer<'_>,
     report: &mut SyncReport,
 ) -> Result<()> {
     let mut part = snapshot(page.entries.iter().map(|(_, e)| e.clone()), page.cursor)?;
@@ -598,8 +617,8 @@ async fn apply_incremental_page<H: Hold>(
         })
         .await?;
     part.plans = plans;
-    *stage = SyncStage::Download;
-    report.downloaded_bytes += cache(h, &part.plans).await?;
+    stage.stage(SyncStage::Download);
+    report.downloaded_bytes += cache(h, &part.plans, stage).await?;
     let files = h
         .with(|c| {
             let mut files = Vec::new();
@@ -625,7 +644,7 @@ async fn apply_incremental_page<H: Hold>(
             Ok(files)
         })
         .await?;
-    report.downloaded_bytes += cache(h, &files).await?;
+    report.downloaded_bytes += cache(h, &files, stage).await?;
     part.plans.extend(files);
     let retired: Vec<String> = page
         .entries
@@ -635,7 +654,7 @@ async fn apply_incremental_page<H: Hold>(
             _ => None,
         })
         .collect();
-    *stage = SyncStage::Apply;
+    stage.stage(SyncStage::Apply);
     let (revisions, elapsed) = h
         .with(|c| {
             validate_retirements(c, &retired)?;
@@ -648,6 +667,8 @@ async fn apply_incremental_page<H: Hold>(
         .await?;
     report.revisions += revisions;
     report.changes += page.entries.len();
+    stage.progress.entries += page.entries.len() as u64;
+    stage.emit();
     report.apply_ms += elapsed;
     report.through = page.cursor;
     Ok(())

@@ -2462,5 +2462,31 @@
 	<string>De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.</string>
 	<key>Cloud backup file limit</key>
 	<string>Bestandsgroottelimiet voor cloudback-ups</string>
+	<key>First sync</key>
+	<string>Eerste synchronisatie</string>
+	<key>Sync paused</key>
+	<string>Synchronisatie gepauzeerd</string>
+	<key>Waiting for first sync</key>
+	<string>Wachten op eerste synchronisatie</string>
+	<key>Account synchronization</key>
+	<string>Accountsynchronisatie</string>
+	<key>Reading account inventory…</key>
+	<string>Accountinhoud inventariseren…</string>
+	<key>Downloading account content…</key>
+	<string>Accountinhoud downloaden…</string>
+	<key>Verifying account content…</key>
+	<string>Accountinhoud verifiëren…</string>
+	<key>Downloaded</key>
+	<string>Gedownload</string>
+	<key>Next retry</key>
+	<string>Volgende poging</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Synchronisatie wacht op de server.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Uploads zijn gepauzeerd. Maak cloudruimte vrij en probeer opnieuw; ontvangen gaat door.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Synchronisatie controleert accountinhoud en cloudback-ups. Open gesprekken of het postvak om berichten te ontvangen; herstel bestanden apart.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>De lijst met cloudback-ups kon niet worden vernieuwd. Probeer het opnieuw in Bestanden.</string>
 </dict>
 </plist>

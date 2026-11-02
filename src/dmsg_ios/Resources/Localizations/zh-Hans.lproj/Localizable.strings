@@ -2462,5 +2462,31 @@
 	<string>收件箱密钥尚未同步到此设备。请先在开启收信的设备上同步，再在此重试。</string>
 	<key>Cloud backup file limit</key>
 	<string>云端备份单文件上限</string>
+	<key>First sync</key>
+	<string>首次同步</string>
+	<key>Sync paused</key>
+	<string>同步已暂停</string>
+	<key>Waiting for first sync</key>
+	<string>等待首次同步</string>
+	<key>Account synchronization</key>
+	<string>账号同步</string>
+	<key>Reading account inventory…</key>
+	<string>正在读取账号内容清单…</string>
+	<key>Downloading account content…</key>
+	<string>正在下载账号内容…</string>
+	<key>Verifying account content…</key>
+	<string>正在验证账号内容…</string>
+	<key>Downloaded</key>
+	<string>已下载</string>
+	<key>Next retry</key>
+	<string>下次重试</string>
+	<key>Sync is waiting for the server.</key>
+	<string>同步正在等待服务器。</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>上传已暂停。请释放云端空间后重试；内容接收仍会继续。</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>同步会检查账号内容和云端备份。打开会话或收件箱以接收消息；文件需单独恢复。</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>无法刷新云端备份清单，请在文件页重试。</string>
 </dict>
 </plist>

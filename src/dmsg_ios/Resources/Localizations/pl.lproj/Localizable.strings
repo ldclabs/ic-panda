@@ -2462,5 +2462,31 @@
 	<string>Klucz skrzynki odbiorczej nie został jeszcze zsynchronizowany z tym urządzeniem. Zsynchronizuj urządzenie, na którym włączono odbieranie, i spróbuj ponownie tutaj.</string>
 	<key>Cloud backup file limit</key>
 	<string>Limit rozmiaru pliku kopii w chmurze</string>
+	<key>First sync</key>
+	<string>Pierwsza synchronizacja</string>
+	<key>Sync paused</key>
+	<string>Synchronizacja wstrzymana</string>
+	<key>Waiting for first sync</key>
+	<string>Oczekiwanie na pierwszą synchronizację</string>
+	<key>Account synchronization</key>
+	<string>Synchronizacja konta</string>
+	<key>Reading account inventory…</key>
+	<string>Odczytywanie listy zawartości konta…</string>
+	<key>Downloading account content…</key>
+	<string>Pobieranie zawartości konta…</string>
+	<key>Verifying account content…</key>
+	<string>Weryfikowanie zawartości konta…</string>
+	<key>Downloaded</key>
+	<string>Pobrano</string>
+	<key>Next retry</key>
+	<string>Następna próba</string>
+	<key>Sync is waiting for the server.</key>
+	<string>Synchronizacja czeka na serwer.</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>Wysyłanie wstrzymano. Zwolnij miejsce w chmurze i ponów próbę; odbieranie trwa nadal.</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>Synchronizacja sprawdza zawartość konta i kopie w chmurze. Otwórz rozmowy lub skrzynkę odbiorczą, aby odbierać wiadomości; pliki przywracaj osobno.</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>Nie udało się odświeżyć listy kopii w chmurze. Ponów próbę w Plikach.</string>
 </dict>
 </plist>

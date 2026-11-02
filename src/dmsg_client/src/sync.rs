@@ -264,6 +264,66 @@ impl SyncStage {
     }
 }
 
+/// Content-free progress for a running pass. Counts survive a resumed snapshot.
+#[derive(Clone, Debug, Serialize)]
+pub struct SyncProgress {
+    /// The current network or verification phase.
+    pub stage: SyncStage,
+    /// Inventory entries downloaded and verified so far.
+    pub entries: u64,
+    /// Inventory entries expected in a full snapshot; zero for incremental reads.
+    pub total: u64,
+    /// Newly received ciphertext bytes in this pass.
+    pub downloaded_bytes: u64,
+    /// Full snapshot pages received in this pass.
+    pub export_pages: u64,
+    /// Incremental pages received in this pass.
+    pub delta_pages: u64,
+}
+
+impl Default for SyncProgress {
+    fn default() -> Self {
+        Self {
+            stage: SyncStage::Security,
+            entries: 0,
+            total: 0,
+            downloaded_bytes: 0,
+            export_pages: 0,
+            delta_pages: 0,
+        }
+    }
+}
+
+struct Observer<'a> {
+    progress: SyncProgress,
+    notify: &'a mut (dyn FnMut(&SyncProgress) + Send),
+}
+
+impl<'a> Observer<'a> {
+    fn new(notify: &'a mut (dyn FnMut(&SyncProgress) + Send)) -> Self {
+        Self {
+            progress: SyncProgress::default(),
+            notify,
+        }
+    }
+
+    fn stage(&mut self, stage: SyncStage) {
+        self.progress.stage = stage;
+        self.emit();
+    }
+
+    fn emit(&mut self) {
+        (self.notify)(&self.progress);
+    }
+}
+
+/// Whether the workspace has finished verifying its first content baseline.
+/// # Errors
+/// Local storage errors.
+pub fn initialized(client: &Client) -> Result<bool> {
+    Ok(client.workspace.store.meta::<u64>(pull::CURSOR)?.is_some())
+}
+
 fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u64) -> UploadPlan {
     UploadPlan {
         management: None,
@@ -914,14 +974,27 @@ impl Client {
 /// # Errors
 /// As [`Client::sync`]. A lock or account switch interrupts an unlocked pass.
 pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
+    sync_observed(h, false, &mut |_| {}).await
+}
+
+/// Synchronize content with progress; receiving alone never reconciles or sends local jobs.
+/// Both modes establish a full baseline only when needed, then use incremental pages,
+/// and record the same failure/backoff state for the host scheduler.
+/// # Errors
+/// As [`sync`].
+pub async fn sync_observed<H: Hold>(
+    h: &H,
+    receive_only: bool,
+    notify: &mut (dyn FnMut(&SyncProgress) + Send),
+) -> Result<SyncReport> {
     // A pass must not apply an old response after lock, logout or an account
     // switch. The generation also distinguishes locking and reopening the
     // same account while a request is in flight.
     let generation = h.with(|c| Ok(c.session_generation)).await?;
     let session = SyncSession { h, generation };
     let started = std::time::Instant::now();
-    let mut stage = SyncStage::Security;
-    let mut result = sync_once(&session, &mut stage).await;
+    let mut stage = Observer::new(notify);
+    let mut result = sync_once(&session, receive_only, &mut stage).await;
     if matches!(result, Err(Error::PolicyStale)) {
         session
             .with(|c| {
@@ -929,7 +1002,7 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
                 Ok(())
             })
             .await?;
-        result = sync_once(&session, &mut stage).await;
+        result = sync_once(&session, receive_only, &mut stage).await;
     }
     if matches!(result, Err(Error::DeviceNotApproved)) {
         let security = crate::account::refreshed_security(&session).await?;
@@ -992,7 +1065,7 @@ pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
                 &LastSync {
                     at: now,
                     error,
-                    stage: result.is_err().then_some(stage),
+                    stage: result.is_err().then_some(stage.progress.stage),
                     ok_at,
                     upload_error,
                     failures,
@@ -1030,7 +1103,8 @@ pub async fn pull_metadata<H: Hold>(h: &H) -> Result<usize> {
         Ok(())
     })
     .await?;
-    let mut stage = SyncStage::ExportStart;
+    let mut noop = |_: &SyncProgress| {};
+    let mut stage = Observer::new(&mut noop);
     let report = pull::full(&h, &mut stage).await?;
     Ok(report.revisions)
 }
@@ -1046,8 +1120,12 @@ impl<H: Hold> Hold for SyncSession<'_, H> {
     }
 }
 
-async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> {
-    *stage = SyncStage::Security;
+async fn sync_once<H: Hold>(
+    h: &H,
+    receive_only: bool,
+    stage: &mut Observer<'_>,
+) -> Result<SyncReport> {
+    stage.stage(SyncStage::Security);
     h.with(|c| c.signing().map(|_| ())).await?;
     h.signed(Client::fresh).await?;
     let unlocked = h
@@ -1060,8 +1138,10 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
             Ok(c.keys.is_some())
         })
         .await?;
-    *stage = SyncStage::Reconcile;
-    reconcile(h).await?;
+    stage.stage(SyncStage::Reconcile);
+    if !receive_only {
+        reconcile(h).await?;
+    }
     let mut report = SyncReport::default();
     if unlocked {
         pull::run(h, stage, &mut report).await?;
@@ -1076,11 +1156,11 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
             })
             .await?;
     }
-    *stage = SyncStage::Upload;
+    stage.stage(SyncStage::Upload);
     let paused = h
         .with(|c| c.workspace.store.meta::<String>(pull::UPLOAD_BLOCKED))
         .await?;
-    let (sent, blocked) = if paused.is_some() {
+    let (sent, blocked) = if receive_only || paused.is_some() {
         report.upload_error = paused;
         (0, 0)
     } else {
@@ -1093,7 +1173,7 @@ async fn sync_once<H: Hold>(h: &H, stage: &mut SyncStage) -> Result<SyncReport> 
     if unlocked && sent + blocked > 0 {
         pull::run(h, stage, &mut report).await?;
     }
-    *stage = SyncStage::Finish;
+    stage.stage(SyncStage::Finish);
     if unlocked {
         pull::close_completed(h).await;
     }
@@ -1451,14 +1531,16 @@ async fn send_upload<H: Hold>(
 /// file chunk it lacks; nothing is opened yet.
 /// Download the manifests and chunks of committed uploads that the
 /// store lacks; every one is checked against its digest.
-async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<u64> {
-    let (missing, files, bytes) = h
+async fn cache<H: Hold>(h: &H, plans: &[UploadPlan], stage: &mut Observer<'_>) -> Result<u64> {
+    let (missing, files, missing_sizes, file_sizes, bytes) = h
         .with(|c| {
             let base = c.base()?;
             let mut seen = BTreeSet::new();
             let mut bytes = 0;
             let mut missing = Vec::new();
             let mut files = Vec::new();
+            let mut missing_sizes = Vec::new();
+            let mut file_sizes = Vec::new();
             for plan in plans {
                 let parts = plan
                     .chunks
@@ -1476,17 +1558,34 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<u64> {
                         let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
                         if matches!(plan.kind.as_str(), "file" | "backup" | "share") {
                             files.push((path, digest.clone()));
+                            file_sizes.push(size);
                         } else {
                             missing.push((path, digest.clone()));
+                            missing_sizes.push(size);
                         }
                     }
                 }
             }
-            Ok((missing, files, bytes))
+            Ok((missing, files, missing_sizes, file_sizes, bytes))
         })
         .await?;
-    crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await?;
-    crate::upload::download_file_chunks(h, Source::Store, &files, |_| {}).await?;
+    let mut received = 0;
+    crate::upload::download_chunks(h, Source::Store, &missing, |count| {
+        stage.progress.downloaded_bytes += missing_sizes[received..received + count]
+            .iter()
+            .sum::<u64>();
+        received += count;
+        stage.emit();
+    })
+    .await?;
+    received = 0;
+    crate::upload::download_file_chunks(h, Source::Store, &files, |count| {
+        stage.progress.downloaded_bytes +=
+            file_sizes[received..received + count].iter().sum::<u64>();
+        received += count;
+        stage.emit();
+    })
+    .await?;
     Ok(bytes)
 }
 

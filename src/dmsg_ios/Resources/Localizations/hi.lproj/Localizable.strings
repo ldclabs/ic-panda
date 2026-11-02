@@ -2462,5 +2462,31 @@
 	<string>इनबॉक्स की कुंजी अभी इस डिवाइस पर सिंक नहीं हुई है। जिस डिवाइस पर संदेश प्राप्त करना चालू किया था, उसे सिंक करें, फिर यहाँ दोबारा कोशिश करें।</string>
 	<key>Cloud backup file limit</key>
 	<string>क्लाउड बैकअप में प्रति फ़ाइल सीमा</string>
+	<key>First sync</key>
+	<string>पहला सिंक</string>
+	<key>Sync paused</key>
+	<string>सिंक रुका हुआ है</string>
+	<key>Waiting for first sync</key>
+	<string>पहले सिंक की प्रतीक्षा</string>
+	<key>Account synchronization</key>
+	<string>खाता सिंक्रनाइज़ेशन</string>
+	<key>Reading account inventory…</key>
+	<string>खाते की सामग्री सूची पढ़ी जा रही है…</string>
+	<key>Downloading account content…</key>
+	<string>खाते की सामग्री डाउनलोड हो रही है…</string>
+	<key>Verifying account content…</key>
+	<string>खाते की सामग्री सत्यापित हो रही है…</string>
+	<key>Downloaded</key>
+	<string>डाउनलोड हुआ</string>
+	<key>Next retry</key>
+	<string>अगला प्रयास</string>
+	<key>Sync is waiting for the server.</key>
+	<string>सिंक सर्वर की प्रतीक्षा कर रहा है।</string>
+	<key>Uploads are paused. Free cloud storage and retry; receiving continues.</key>
+	<string>अपलोड रुके हुए हैं। क्लाउड में जगह खाली करके फिर प्रयास करें; प्राप्त करना जारी है।</string>
+	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
+	<string>सिंक खाते की सामग्री और क्लाउड बैकअप जाँचता है। संदेश पाने के लिए बातचीत या इनबॉक्स खोलें; फ़ाइलें अलग से बहाल करें।</string>
+	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
+	<string>क्लाउड बैकअप सूची रीफ़्रेश नहीं हो सकी। फ़ाइलों में फिर प्रयास करें।</string>
 </dict>
 </plist>
