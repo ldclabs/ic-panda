@@ -110,7 +110,10 @@ struct FileMoveView: View {
         }.privateScreen().navigationTitle("Move to another folder")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(working) } }
             .sheet(isPresented: $choosing) { NavigationStack {
-                FileFolderPicker(excluding: Set(items.filter(\.folder).map(\.id))) { id, name in folder = id; folderName = name; outcomes = [:]; destinationChosen = true }
+                FileFolderPicker(excluding: Set(items.filter(\.folder).map(\.id))) { id, name in
+                    if folder != id { completed = []; outcomes = [:] }
+                    folder = id; folderName = name; destinationChosen = true
+                }
             } }
             .onAppear { visible = true }.onDisappear { visible = false }.interactiveDismissDisabled(working)
     }

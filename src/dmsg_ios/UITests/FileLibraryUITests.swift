@@ -118,6 +118,42 @@ final class FileLibraryUITests: XCTestCase {
         capture(app, "Local copy removed with restore available")
     }
 
+    func testSidebarSelectionReplacesTheFileDetail() throws {
+        let app = launch()
+        tap(app.buttons["file.item.fixture-local"], in: app)
+        XCTAssertTrue(app.buttons["file.evict"].waitForExistence(timeout: 5))
+        let next = app.buttons["file.item.fixture-video"]
+        guard next.isHittable else { throw XCTSkip("Requires the expanded file sidebar") }
+        next.tap()
+        let title = app.descendants(matching: .any)["file.detail.title"].firstMatch
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "Product walkthrough.mp4"), evaluatedWith: title)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(app.buttons["file.evict"].exists)
+        capture(app, "Sidebar selection shows the selected file")
+    }
+
+    func testChangingDestinationAfterPartialMoveMovesTheWholeSelection() {
+        let app = launch(["--ui-files-move-failure"])
+        app.buttons["files.tools"].tap(); app.buttons["Select files"].tap()
+        tap(app.buttons["file.item.fixture-local"], in: app)
+        tap(app.buttons["file.item.fixture-video"], in: app)
+        app.buttons["files.selection.actions"].tap(); app.buttons["Move to another folder"].tap()
+        tap(app.buttons["Choose folder"], in: app)
+        tap(app.buttons["files.folder.fixture-folder"], in: app)
+        tap(app.buttons["files.folder.choose"], in: app)
+        tap(app.buttons["files.move.save"], in: app)
+        XCTAssertTrue(app.staticTexts["Moved"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Connection unavailable. Your saved content stays on this device."].exists)
+        tap(app.buttons["Choose folder"], in: app)
+        tap(app.buttons["files.folder.choose"], in: app)
+        tap(app.buttons["files.move.save"], in: app)
+        XCTAssertTrue(app.buttons["files.move.save"].waitForNonExistence(timeout: 5))
+        app.navigationBars["Move to another folder"].buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["file.item.fixture-video"].exists)
+        capture(app, "Both files follow the changed move destination")
+    }
+
     func testFolderCreationNavigationAndTrashRestore() {
         let app = launch()
         app.buttons["files.add"].tap(); app.buttons["New folder"].tap()

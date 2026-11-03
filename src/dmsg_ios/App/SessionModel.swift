@@ -135,6 +135,7 @@ final class SessionModel {
     var fixtureFileLoads = 0
     var fixtureFileCloudLoads = 0
     var fixtureFileSaves = 0
+    var fixtureFileMoveFailed = false
     var fixtureVaultItems: [VaultItem] = []
     var fixtureVaultHistory: [String: [VaultItem]] = [:]
     var fixtureVaultSaveAttempts = 0

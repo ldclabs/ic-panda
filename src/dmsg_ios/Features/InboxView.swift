@@ -86,7 +86,7 @@ struct InboxDetail: View {
                 Button("Report content") { reporting = true }
                 Button(LocalizedStringKey(model.blockedAccounts.contains(letter.sender) ? "Unblock" : "Block this account"), role: .destructive) { blocking = true }.disabled(working)
             }
-        }.privateScreen().navigationTitle("Inbox").navigationBarTitleDisplayMode(.inline)
+        }.accessibilityIdentifier("inbox.detail").privateScreen().navigationTitle("Inbox").navigationBarTitleDisplayMode(.inline)
             .onChange(of: source) { _, value in letter = value }
             .sheet(isPresented: $reporting) { NavigationStack { ReportContentView(target: ReportTarget(kind: "inbox", account: letter.sender, resource: letter.id)) } }
             .sheet(isPresented: $composing) { NavigationStack { LetterComposerView(recipient: letter.sender) } }

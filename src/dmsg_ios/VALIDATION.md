@@ -1,5 +1,58 @@
 # iOS implementation validation
 
+## Review of eb6caf1 and 90c33e7 (2026-11-04)
+
+Reset the file-detail lifetime when the split-view selection changes. Conversation
+and secret attachment entry points now reload library details, and conversation
+attachment availability is invalidated when the library changes. Reply previews
+respect hidden/unreadable originals. Channel managers retain the invitation path
+that can complete a required key rotation, while publishing remains paused.
+Changing a batch move's destination resets its completed items and outcomes;
+retrying the same destination retains successful items.
+
+Validation performed with Xcode **27.2 (27B52)**:
+
+- `cargo test --locked -p dmsg_client --lib`: **564 passed, 5 existing ignored**.
+  `cargo test --locked -p dmsg_mobile`: **23 passed**, including invitation
+  availability checked against the core control permissions for each role and
+  active/rotating/archived states. Mobile all-target Clippy with `-D warnings`,
+  client/mobile formatting and diff whitespace checks passed.
+- Rebuilt the Debug device and Simulator Rust slices and UniFFI bridge; native
+  artifact hashes and source fingerprint verification passed. The simulator
+  Debug link reported the large `__eh_frame` warning, and targets without App
+  Intents reported skipped metadata extraction. This is not a signed archive.
+- **4 distinct new iPad Pro 13-inch (M4) / iOS 18.4 UI regressions passed**:
+  selecting another file, removing/restoring a conversation attachment, hiding
+  an original message's reply preview, and changing a partially completed batch
+  move's destination. The selection test first reproduced the old-detail bug.
+  Final passing cases are in `Review-messaging-files-ipad-direct.xcresult`
+  (3 passed; its remaining failure was the test's ambiguous Done selector) and
+  `Review-messaging-files-move-verified.xcresult` (1 passed after fixing that
+  selector). Earlier fixture expectations and presentation waits were corrected.
+  A packaged-tool run executed only one of four requested cases; its success is
+  not counted as four cases. The direct Xcode results were checked individually.
+- On **iPhone SE (3rd generation) / iOS 18.4**, all **95 Swift unit tests** and
+  **19 distinct selected UI tests** passed across the final results. The main
+  `Review-messaging-files-phone.xcresult` passed 95 unit and 18 UI cases; its
+  French large-text case failed because a collection index changed during
+  navigation. The Inbox detail list now has a stable accessibility identifier,
+  and `Review-messaging-files-layout-final.xcresult` passed all 3 language cases
+  after the selector fix. Across phone and iPad there are **20 distinct passing
+  UI cases**, not a complete run of the application's UI suite. Coverage includes
+  drafts/sent letters, queued sends across navigation, reply hiding, attachment
+  composition/restoration, version restore, rename retry and changed batch
+  destinations. Exported screenshots were inspected for those flows, Chinese
+  dark mode, Arabic RTL and maximum Dynamic Type; the selected file accessibility
+  description/hit-region audit passed. Keyboard entry/submission is automated,
+  rather than physical-keyboard acceptance.
+- All **23 localization catalogs**, compiler-extracted strings, and **18 iOS
+  tooling tests** passed. No localized copy or public protocol fields changed.
+
+The UI runs use DEBUG fixtures. No production messages or file mutations, real
+two-device delivery/restore, physical-device background transfers, manual
+VoiceOver/physical-keyboard acceptance, or signed distribution archive were run.
+Review, fixes and validation: Codex <noreply@openai.com>.
+
 ## File library and backup workflows (2026-11-03)
 
 Completed the implementation items F01–F22 in `IMPLEMENTATION_CHECKLIST_zh.md`.

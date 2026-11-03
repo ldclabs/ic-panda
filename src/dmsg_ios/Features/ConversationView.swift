@@ -204,12 +204,13 @@ struct ConversationView: View {
                     attachment = file
                 } }
             }
-            .sheet(item: $openingFile) { file in NavigationStack { FileDetailView(file: file).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openingFile = nil } } } } }
+            .sheet(item: $openingFile) { file in NavigationStack { FileDetailDestination(id: file.id, version: file.current).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { openingFile = nil } } } } }
             .sheet(isPresented: $inviting) { NavigationStack { ChannelInvitationView(channel: channel.id) } }
             .sheet(isPresented: $sharingSecret) { NavigationStack { SecretSnapshotItemPicker(channel: channel.id) } }
             .sheet(item: $secretPackage) { source in NavigationStack { SecretPackageImportView(source: source) } }
             .task(id: "participants:\(model.epoch):\(model.profileRevision):\(participantIDs.joined(separator: ","))") { await loadParticipants() }
-            .task(id: "\(channel.id):\(model.contentRevision):\(model.epoch):\(query)") {
+            .onChange(of: model.filesRevision) { _, _ in receivedFiles = [:] }
+            .task(id: "\(channel.id):\(model.contentRevision):\(model.filesRevision):\(model.epoch):\(query)") {
                 ownerEpoch = model.epoch; model.activeChannel = channel.id
                 if model.drafts[channel.id] == nil { draft = channel.draft }
                 if !query.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
@@ -295,7 +296,7 @@ struct ConversationView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 if let original = messages.first(where: { $0.sequence == reference }) {
                                     Text(participantName(original.account)).font(.caption.bold())
-                                    Text(original.retracted ? String(localized: "Message withdrawn") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
+                                    Text(original.hidden ? String(localized: "Hidden message") : original.retracted ? String(localized: "Message withdrawn") : original.unreadable ? String(localized: "This message could not be verified.") : original.text.isEmpty ? original.attachmentName ?? "" : original.text).font(.caption).lineLimit(2)
                                 } else { Text("Reply to message \(reference)").font(.caption) }
                             }.padding(8).frame(maxWidth: .infinity, alignment: .leading).background(Theme.forest.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                         }.buttonStyle(.plain).accessibilityLabel("Open original message")
@@ -445,6 +446,11 @@ struct ConversationView: View {
             loadedQuery = query; messagesKnown = true; loadFailed = false
             MessageTiming.record(.localPage, since: started)
             guard let engine = model.engine else {
+                #if DEBUG
+                if model.uiTesting, ProcessInfo.processInfo.arguments.contains("--ui-channel-saved-attachment") {
+                    receivedFiles[1] = model.fixtureFiles.first { $0.id == "fixture-local" && $0.canOpen }
+                }
+                #endif
                 model.messageSending.loaded(channel: channel.id, items: fresh, since: sendRevision)
                 return
             }

@@ -1024,16 +1024,10 @@ impl MobileEngine {
                             let can_publish = v.ledger.as_ref().is_some_and(|l| {
                                 dmsg_client::channel_log::may_publish(l, &account)
                             });
-                            let can_invite = v.ledger.as_ref().is_some_and(|l| {
-                                l.status == dmsg_client::channel_log::Status::Active
-                                    && l.members.get(&account).is_some_and(|m| {
-                                        matches!(
-                                            m.role,
-                                            dmsg_client::channel_log::Role::Owner
-                                                | dmsg_client::channel_log::Role::Admin
-                                        )
-                                    })
-                            });
+                            let can_invite = v
+                                .ledger
+                                .as_ref()
+                                .is_some_and(|l| messaging::can_invite_to_channel(l, &account));
                             Ok(ChannelItem {
                                 last_at: v
                                     .last

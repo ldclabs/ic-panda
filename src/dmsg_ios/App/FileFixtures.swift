@@ -101,6 +101,10 @@ extension SessionModel {
     }
 
     func moveFileFixture(_ id: String, folder: String) throws {
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-move-failure"), id == "fixture-video", !fixtureFileMoveFailed {
+            fixtureFileMoveFailed = true
+            throw MobileError.Failure(code: "UNAVAILABLE")
+        }
         if let index = fixtureFiles.firstIndex(where: { $0.id == id }) { fixtureFiles[index].folder = folder }
         else if let index = fixtureFileFolders.firstIndex(where: { $0.id == id }) { fixtureFileFolders[index].parent = folder }
         else { throw MobileError.Failure(code: "NOT_FOUND") }

@@ -1,5 +1,17 @@
 //! Typed messaging actions; no arbitrary RPC or unprotected draft storage.
 use super::*;
+use dmsg_client::channel_log;
+
+pub(super) fn can_invite_to_channel(ledger: &channel_log::Ledger, account: &str) -> bool {
+    // Invitations can finish a required rotation before sealing the invitee's key.
+    ledger.status != channel_log::Status::Archived
+        && ledger.members.get(account).is_some_and(|member| {
+            matches!(
+                member.role,
+                channel_log::Role::Owner | channel_log::Role::Admin
+            )
+        })
+}
 
 #[derive(uniffi::Record)]
 pub struct LetterDraftInput {
@@ -175,5 +187,51 @@ impl MobileEngine {
             })
             .await
             .map_err(Into::into)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use channel_log::{Action, ChannelType, Control, Genesis, Role, Status};
+
+    #[test]
+    fn invitation_availability_matches_control_permissions_during_rotation() {
+        let account = "040g2081040g2081040g";
+        let mut ledger = channel_log::start(
+            &Genesis {
+                channel_id: "a1".repeat(32),
+                nonce: "b1".repeat(32),
+                kind: ChannelType::Collaboration,
+            },
+            account,
+            &"c1".repeat(32),
+        )
+        .unwrap();
+        let control = Control {
+            expected_head: ledger.head.clone(),
+            expected_acl_version: ledger.acl_version,
+            action: Action::Invite {
+                invitation_id: "d1".repeat(32),
+                account: "040g2082040g2082040g".into(),
+                role: Role::Member,
+                expires_at: 2_000,
+                envelope_upload: None,
+            },
+        };
+        for status in [Status::Active, Status::RotationRequired, Status::Archived] {
+            ledger.status = status;
+            for role in [Role::Owner, Role::Admin, Role::Member, Role::Publisher] {
+                ledger.members.get_mut(account).unwrap().role = role;
+                let permitted =
+                    channel_log::advance(&ledger, &control, account, &"e1".repeat(32), 1_000)
+                        .is_ok();
+                assert_eq!(can_invite_to_channel(&ledger, account), permitted);
+                if status == Status::RotationRequired {
+                    assert!(!channel_log::may_publish(&ledger, account));
+                }
+            }
+        }
+        assert!(!can_invite_to_channel(&ledger, "040g2082040g2082040g"));
     }
 }

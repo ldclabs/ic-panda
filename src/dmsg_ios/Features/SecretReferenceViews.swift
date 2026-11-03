@@ -62,7 +62,7 @@ struct SecretItemAttachmentsView: View {
             if let listing {
                 ForEach(listing.files) { entry in
                     if let file = entry.details?.file {
-                        NavigationLink { FileDetailView(file: file) } label: { FileRow(file: file) }
+                        NavigationLink { FileDetailDestination(id: file.id) } label: { FileRow(file: file) }
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Attachment unavailable on this device", systemImage: "doc.badge.ellipsis")

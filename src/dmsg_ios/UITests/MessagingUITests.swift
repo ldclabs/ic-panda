@@ -77,6 +77,36 @@ final class MessagingUITests: XCTestCase {
         XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "plan.pdf")).firstMatch.waitForExistence(timeout: 5))
         capture(app, "Search matches an attachment filename")
     }
+
+    func testSavedAttachmentRefreshesAfterEvictionAndRestore() {
+        let app = start(["--ui-channel", "--ui-channel-attachment", "--ui-channel-saved-attachment", "--ui-files-rich"])
+        let channel = app.buttons["channel.row.fixture-channel"]
+        XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()
+        let attachment = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "plan.pdf")).firstMatch
+        XCTAssertTrue(attachment.waitForExistence(timeout: 5)); attachment.tap()
+        let evict = app.buttons["file.evict"]
+        XCTAssertTrue(evict.waitForExistence(timeout: 5)); evict.tap()
+        app.sheets.buttons["Remove local copy"].tap()
+        let restore = app.buttons["file.restore"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Preview file"].isEnabled)
+        restore.tap()
+        let preview = app.buttons["Preview file"]
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: preview)
+        waitForExpectations(timeout: 5)
+        capture(app, "Conversation attachment reflects its restored local version")
+    }
+
+    func testReplyPreviewDoesNotRevealAHiddenMessage() {
+        let app = start(["--ui-channel", "--ui-channel-hidden-reply"])
+        let channel = app.buttons["channel.row.fixture-channel"]
+        XCTAssertTrue(channel.waitForExistence(timeout: 10)); channel.tap()
+        let reply = app.buttons["Open original message"]
+        XCTAssertTrue(reply.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts.matching(identifier: "A message you hid").count, 2)
+        XCTAssertFalse(app.staticTexts["Hidden original text"].exists)
+        capture(app, "Reply preview preserves local message hiding")
+    }
 }
 
 @MainActor
@@ -101,11 +131,12 @@ final class MessagingLayoutUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         capture(app, "Letters · \(language) · \(large ? "accessibility" : "standard")")
         row.tap()
+        let detail = app.collectionViews["inbox.detail"]
+        XCTAssertTrue(detail.waitForExistence(timeout: 5))
         // Lists materialize offscreen rows lazily, especially at AX text sizes.
         for _ in 0..<4 {
             if app.buttons["inbox.reply"].exists && app.buttons["inbox.reply"].isHittable { break }
-            let lists = app.collectionViews
-            lists.element(boundBy: max(0, lists.count - 1)).swipeUp()
+            detail.swipeUp()
         }
         XCTAssertTrue(app.buttons["inbox.reply"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inbox.reply"].isHittable)

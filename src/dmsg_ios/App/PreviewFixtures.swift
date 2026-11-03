@@ -72,6 +72,7 @@ extension SessionModel {
         if ProcessInfo.processInfo.arguments.contains("--ui-vault-empty") { vault = [] }
         fixtureVaultItems = vault
         prepareFileFixtures()
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-saved-attachment") { selectedTab = .messages }
     }
 
     /// Model an incoming revision after detail loading, without a network account.
@@ -140,6 +141,17 @@ extension SessionModel {
                     attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
                     digest: "fixture-digest-\(sequence)", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)
             }
+            return
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-channel-hidden-reply") {
+            fixtureChannelMessages = [
+                MessageItem(id: "fixture-hidden", sequence: 1, account: "fixture-peer", text: "Hidden original text",
+                    createdAtMs: 1_793_513_600_000, attachmentName: nil, attachmentMime: nil, attachmentSize: nil,
+                    unreadable: false, digest: "fixture-hidden", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: true),
+                MessageItem(id: "fixture-reply", sequence: 2, account: "fixture-peer", text: "Reply to a hidden message",
+                    createdAtMs: 1_793_513_600_001, attachmentName: nil, attachmentMime: nil, attachmentSize: nil,
+                    unreadable: false, digest: "fixture-reply", replySequence: 1, edited: false, retracted: false, attachmentDeleted: false, hidden: false),
+            ]
             return
         }
         fixtureChannelMessages = [MessageItem(id: "fixture-message", sequence: 1, account: "fixture-peer",

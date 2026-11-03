@@ -51,7 +51,7 @@ struct FilesView: View {
                 }
                 .task { await model.loadCloudBackups(refresh: true); await model.fileTransfers.load(model) }
         } detail: { id in
-            if let id { FileDetailDestination(id: id) }
+            if let id { FileDetailDestination(id: id).id(id) }
             else { ContentUnavailableView("Select a file", image: AppGlyph.file.assetName) }
         }
         .onChange(of: model.filesScope) { _, _ in selected = nil; model.filesSearch = ""; selecting = false; selection = [] }
