@@ -134,6 +134,8 @@
 	<string>Perangkat administrator diperlukan untuk mengubah keamanan akun.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Perangkat administrator diperlukan untuk menerbitkan profil ini.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Pengganti kosong akan menghapus nilai tersimpan.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Siapa pun yang memiliki tautan lengkap dan kata sandi yang diperlukan dapat mengambilnya kembali dalam batasannya.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Pilih versi mana yang akan disimpan. Sejarah yang ada dipertahankan; rahasia tidak pernah ditimpa secara diam-diam.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Pilih siapa yang boleh mengirimi Anda surat gratis. Akun yang diblokir akan tetap diblokir sampai Anda membatalkan pemblokirannya.</string>
+	<key>Clear</key>
+	<string>Kosongkan</string>
 	<key>Clear cached data</key>
 	<string>Hapus cache</string>
+	<key>Clear filters</key>
+	<string>Hapus filter</string>
+	<key>Clear selection</key>
+	<string>Hapus pilihan</string>
 	<key>Close invitation</key>
 	<string>Tutup undangan</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Penyimpanan awan</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Bandingkan ID perangkat di kedua layar dan setujui di komputer.</string>
+	<key>Compare with current</key>
+	<string>Bandingkan dengan versi saat ini</string>
 	<key>Complete</key>
 	<string>Selesai</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Disalin</string>
 	<key>Copied for 30 seconds</key>
 	<string>Disalin selama 30 detik</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Disalin. Kode akan segera kedaluwarsa.</string>
 	<key>Copies from other iPhones</key>
 	<string>Salinan dari iPhone lain</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Salinan tetap di perangkat ini dan kedaluwarsa dalam 30 detik.</string>
 	<key>Copy</key>
 	<string>Salin</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Buang salinan bertahap</string>
 	<key>Discard this staged copy?</key>
 	<string>Buang salinan bertahap ini?</string>
+	<key>Discard unsaved changes?</key>
+	<string>Hapus perubahannya?</string>
+	<key>Dismiss</key>
+	<string>Tutup</string>
 	<key>Dismiss this observation</key>
 	<string>Abaikan pengamatan ini</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Mesin</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Biometrik yang terdaftar berubah. Daftarkan kunci pengganti sebelum mengandalkan kunci ini.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Masukkan kunci penyiapan atau URL otpauth.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Masukkan ID akun yang valid.</string>
+	<key>Enter a valid date.</key>
+	<string>Masukkan tanggal yang valid.</string>
+	<key>Enter a valid email address.</key>
+	<string>Masukkan alamat email yang valid.</string>
+	<key>Enter a valid website address.</key>
+	<string>Masukkan alamat situs web yang valid.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Masukkan jumlah positif dengan presisi yang didukung aset.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>Bidang</string>
 	<key>Field name</key>
 	<string>Nama bidang</string>
+	<key>Field name is required.</key>
+	<string>Nama kolom wajib diisi.</string>
 	<key>Field reference</key>
 	<string>Referensi lapangan</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Berkas diimpor.</string>
 	<key>Files in this folder</key>
 	<string>File dalam folder ini</string>
+	<key>Filters</key>
+	<string>Filter brankas</string>
 	<key>Fingerprint</key>
 	<string>Sidik jari</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Bekukan dompet</string>
 	<key>From block %llu</key>
 	<string>Mulai blok %llu</string>
+	<key>Generate password</key>
+	<string>Buat kata sandi</string>
 	<key>Grant delegation</key>
 	<string>Delegasi izin</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Sertakan catatan</string>
 	<key>Include this message's text</key>
 	<string>Sertakan teks pesan ini</string>
+	<key>Incomplete</key>
+	<string>Tidak lengkap</string>
 	<key>Inspect pairing request</key>
 	<string>Periksa permintaan pemasangan</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Integritas</string>
 	<key>Interrupted</key>
 	<string>Terganggu</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Kunci penyiapan atau URL otpauth tidak valid.</string>
 	<key>Inventory fingerprint</key>
 	<string>Sidik jari inventaris</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Pertahankan versi saat ini</string>
 	<key>Keep draft and leave</key>
 	<string>Simpan draf dan keluar</string>
+	<key>Keep existing value</key>
+	<string>Pertahankan nilai yang ada</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Simpan rahasia, percakapan, dan file Anda bersama-sama. Hanya perangkat resmi Anda yang dapat membukanya.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Ditinggalkan</string>
 	<key>Left out</key>
 	<string>Dilewati</string>
+	<key>Length</key>
+	<string>Panjangnya</string>
 	<key>License Key</key>
 	<string>Kunci Lisensi</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Label anggota</string>
 	<key>Members</key>
 	<string>Anggota</string>
+	<key>Merge individual fields</key>
+	<string>Gabungkan kolom satu per satu</string>
 	<key>Message</key>
 	<string>Pesan</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Batas eksekusi bulanan</string>
 	<key>Monthly execution units</key>
 	<string>Unit eksekusi bulanan</string>
+	<key>More types</key>
+	<string>Jenis</string>
 	<key>Move a native address</key>
 	<string>Pindahkan alamat native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Memindahkan pustaka berkas ke perangkat lain dari akun ini di jaringan yang sama, terenkripsi ujung ke ujung. Biarkan kedua perangkat tetap terbuka kuncinya hingga selesai.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Pindah dari perangkat lama? Perangkat ini mengambil alih peran, kunci, dan dompetnya, lalu perangkat lama dicabut.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Memindahkan ke Sampah tidak mengosongkan penyimpanan cloud.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Pindah ke perangkat baru: perangkat baru meminta untuk menggantikan perangkat lama, perangkat lama menyetujui, lalu keduanya melakukan serah terima langkah demi langkah.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Tidak ada kredensial</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Tidak ada ketergantungan yang tercatat pada perangkat ini.</string>
+	<key>No favorites</key>
+	<string>Belum ada favorit</string>
+	<key>No fields or notes</key>
+	<string>Belum ada yang tertulis.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Tidak ada temuan dari pemeriksaan perangkat ini.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Tidak ada impor yang terputus</string>
 	<key>No item attachments</key>
 	<string>Tidak ada lampiran barang</string>
+	<key>No items</key>
+	<string>Belum ada catatan</string>
 	<key>No letters yet</key>
 	<string>Belum ada surat</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>ID perangkat penerima</string>
 	<key>Receiving policy</key>
 	<string>Menerima kebijakan</string>
+	<key>Recently updated</key>
+	<string>Baru diperbarui</string>
 	<key>Recipient</key>
 	<string>Penerima</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Hapus pengikatan perangkat</string>
 	<key>Remove device binding?</key>
 	<string>Hapus pengikatan perangkat?</string>
+	<key>Remove favorite</key>
+	<string>Hapus bintang</string>
 	<key>Remove field</key>
 	<string>Hapus bidang</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>Kunci SSH</string>
 	<key>Save</key>
 	<string>Simpan</string>
+	<key>Save merged version</key>
+	<string>Simpan gabungan</string>
+	<key>Save merged version?</key>
+	<string>Simpan versi gabungan?</string>
 	<key>Save name</key>
 	<string>Simpan nama</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Disimpan di perangkat ini. Perubahan menunggu untuk disinkronkan.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Disimpan. Publikasi sedang menunggu.</string>
+	<key>Scan QR code</key>
+	<string>Pindai dengan kamera</string>
 	<key>Scan desktop invitation</key>
 	<string>Pindai undangan komputer</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Pilih bidang untuk dibagikan</string>
 	<key>Select login items</key>
 	<string>Pilih item masuk</string>
+	<key>Select non-duplicates</key>
+	<string>Pilih yang bukan duplikat</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Pilih hingga 1.000 catatan per impor.</string>
 	<key>Selected</key>
 	<string>Dipilih</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Bidang OTP yang dipilih menyertakan benih yang dapat digunakan kembali, bukan hanya kode saat ini.</string>
 	<key>Selected accounts</key>
 	<string>Akun yang dipilih</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Bagian yang dipilih menggunakan versi yang berkonflik. Bagian lain mempertahankan versi saat ini.</string>
 	<key>Send device request</key>
 	<string>Kirim permintaan perangkat</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Tunjukkan</string>
 	<key>Show dismissed findings</key>
 	<string>Tampilkan temuan yang ditolak</string>
+	<key>Show draft</key>
+	<string>Tunjukkan apa yang Anda ketik</string>
 	<key>Show share link</key>
 	<string>Tampilkan tautan berbagi</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Tanda tangan terkumpul</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Tanda tangan dari cosigner %@ tidak lagi cocok dengan kunci mereka saat ini dan disisihkan; mereka perlu menandatangani lagi.</string>
+	<key>Skipped</key>
+	<string>Dilewati</string>
 	<key>Snapshot</key>
 	<string>Cuplikan</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Sebagian penggunaan tidak dapat diperbarui. Nilai yang tidak tersedia bukan nol.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Beberapa dompet belum selesai. Jalankan langkah ini lagi untuk menyelesaikannya.</string>
+	<key>Sort</key>
+	<string>Sortir</string>
 	<key>Source address</key>
 	<string>Alamat sumber</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Ganti akun</string>
 	<key>Switch to this account</key>
 	<string>Beralih ke akun ini</string>
+	<key>Symbols</key>
+	<string>Simbol</string>
 	<key>Sync and storage</key>
 	<string>Sinkronisasi dan penyimpanan</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Integrasi sistem</string>
 	<key>System permission</key>
 	<string>Izin sistem</string>
+	<key>Tags</key>
+	<string>Tag</string>
 	<key>Tags, separated by commas</key>
 	<string>Tag, dipisahkan dengan koma</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>Perangkat ini mungkin menerima konten pribadi Anda. Akar konten harus didistribusikan ulang setelah disetujui.</string>
 	<key>This device replaces</key>
 	<string>Perangkat ini menggantikan</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>Kolom ini tetap terlihat sampai Anda menyembunyikannya atau meninggalkan layar ini.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>File ini melebihi batas ukuran untuk operasi ini.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Inventaris ini mencakup referensi dan catatan pengiriman pada perangkat ini. Itu tidak mencari perangkat lain atau file proyek sewenang-wenang.</string>
 	<key>This is not the device in the request.</key>
 	<string>Ini bukan perangkat dalam permintaan.</string>
+	<key>This item is no longer available.</key>
+	<string>Item ini tidak lagi tersedia.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Kunci ini dikelola oleh dMsg dan tidak dapat disalin atau diedit.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Untuk menggantikan iPhone lama, sisihkan salinannya lalu masuk, kemudian pilih Gantikan iPhone lama pada salinan; setelah iPhone ini bergabung, impor berkas dari salinan tersebut di Perangkat.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Untuk menggunakan akun Anda yang ada di iPhone ini, setujui perangkat ini dari salah satu perangkat resmi Anda.</string>
+	<key>Total</key>
+	<string>Jumlah</string>
 	<key>Transfer between devices</key>
 	<string>Transfer antarperangkat</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Gunakan versi yang bertentangan</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Gunakan icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol atau sol:mint.</string>
+	<key>Use password</key>
+	<string>Gunakan kata sandi</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Gunakan otentikasi sistem untuk membuka kunci ruang kerja terenkripsi di iPhone ini.</string>
 	<key>Use this folder</key>

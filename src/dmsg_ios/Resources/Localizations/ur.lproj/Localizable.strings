@@ -134,6 +134,8 @@
 	<string>اکاؤنٹ کی حفاظت بدلنے کے لیے منتظم کا آلہ درکار ہے۔</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>یہ پروفائل شائع کرنے کے لیے منتظم کا آلہ درکار ہے۔</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>خالی متبادل محفوظ شدہ قدر کو مٹا دے گا۔</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>کوئی بھی شخص جس کے پاس مکمل لنک اور مطلوبہ پاس ورڈ ہے وہ اسے اپنی حدود میں حاصل کر سکتا ہے۔</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>منتخب کریں کہ کون سا ورژن رکھنا ہے۔ موجودہ تاریخ برقرار ہے؛ راز کبھی بھی خاموشی سے اوور رائٹ نہیں ہوتے۔</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>منتخب کریں کہ کون آپ کو مفت خط بھیج سکتا ہے۔ مسدود اکاؤنٹس اس وقت تک مسدود رہیں گے جب تک کہ آپ انہیں غیر مسدود نہ کر دیں۔</string>
+	<key>Clear</key>
+	<string>صاف کریں</string>
 	<key>Clear cached data</key>
 	<string>کیش صاف کریں</string>
+	<key>Clear filters</key>
+	<string>فلٹر صاف کریں</string>
+	<key>Clear selection</key>
+	<string>انتخاب صاف کریں</string>
 	<key>Close invitation</key>
 	<string>دعوت بند کریں</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>کلاؤڈ اسٹوریج</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>دونوں اسکرینوں پر آلے کی ID ملائیں اور کمپیوٹر پر منظوری دیں۔</string>
+	<key>Compare with current</key>
+	<string>موجودہ ورژن سے موازنہ کریں</string>
 	<key>Complete</key>
 	<string>مکمل</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>کاپی ہو گیا</string>
 	<key>Copied for 30 seconds</key>
 	<string>30 سیکنڈ کے لیے کاپی کیا گیا</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>کاپی ہو گیا۔ کوڈ جلد ختم ہو جائے گا۔</string>
 	<key>Copies from other iPhones</key>
 	<string>دوسرے iPhone سے کاپیاں</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>کاپیاں اسی آلے پر رہتی ہیں اور 30 سیکنڈ کے اندر ختم ہو جاتی ہیں۔</string>
 	<key>Copy</key>
 	<string>کاپی کریں</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>اسٹیج شدہ کاپی کو ضائع کریں</string>
 	<key>Discard this staged copy?</key>
 	<string>اس مرحلہ وار کاپی کو مسترد کریں؟</string>
+	<key>Discard unsaved changes?</key>
+	<string>تبدیلیوں کو مسترد کریں؟</string>
+	<key>Dismiss</key>
+	<string>بند کریں</string>
 	<key>Dismiss this observation</key>
 	<string>اس مشاہدے کو مسترد کریں</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>انجن</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>اندراج شدہ بائیو میٹرکس کو تبدیل کر دیا گیا۔ اس کلید پر انحصار کرنے سے پہلے ایک متبادل کلید رجسٹر کریں۔</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>سیٹ اپ کلید یا otpauth URL درج کریں۔</string>
 	<key>Enter a valid account ID.</key>
 	<string>درست اکاؤنٹ ID درج کریں۔</string>
+	<key>Enter a valid date.</key>
+	<string>ایک درست تاریخ درج کریں۔</string>
+	<key>Enter a valid email address.</key>
+	<string>درست ای میل پتہ درج کریں۔</string>
+	<key>Enter a valid website address.</key>
+	<string>درست ویب سائٹ پتہ درج کریں۔</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>اثاثہ کی تائید شدہ درستگی کے ساتھ ایک مثبت رقم درج کریں۔</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>میدان</string>
 	<key>Field name</key>
 	<string>فیلڈ کا نام</string>
+	<key>Field name is required.</key>
+	<string>خانے کا نام ضروری ہے۔</string>
 	<key>Field reference</key>
 	<string>فیلڈ حوالہ</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>فائلیں درآمد ہو گئیں۔</string>
 	<key>Files in this folder</key>
 	<string>اس فولڈر میں فائلیں</string>
+	<key>Filters</key>
+	<string>والٹ فلٹرز</string>
 	<key>Fingerprint</key>
 	<string>فنگر پرنٹ</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>پرس منجمد کریں</string>
 	<key>From block %llu</key>
 	<string>بلاک %llu سے</string>
+	<key>Generate password</key>
+	<string>پاس ورڈ بنائیں</string>
 	<key>Grant delegation</key>
 	<string>وفد کو اختیار دیں</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>نوٹ شامل کریں</string>
 	<key>Include this message's text</key>
 	<string>اس پیغام کا متن شامل کریں</string>
+	<key>Incomplete</key>
+	<string>نامکمل</string>
 	<key>Inspect pairing request</key>
 	<string>جوڑا بنانے کی درخواست کا معائنہ کریں</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>سالمیت</string>
 	<key>Interrupted</key>
 	<string>خلل ڈالا</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>سیٹ اپ کلید یا otpauth URL درست نہیں۔</string>
 	<key>Inventory fingerprint</key>
 	<string>انوینٹری فنگر پرنٹ</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>موجودہ ورژن رکھیں</string>
 	<key>Keep draft and leave</key>
 	<string>مسودہ رکھ کر نکلیں</string>
+	<key>Keep existing value</key>
+	<string>موجودہ قدر برقرار رکھیں</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>اپنے راز، گفتگو اور فائلیں ساتھ رکھیں۔ صرف آپ کے مجاز آلات ہی انہیں کھول سکتے ہیں۔</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>پیچھے چھوڑا گیا</string>
 	<key>Left out</key>
 	<string>چھوڑے گئے</string>
+	<key>Length</key>
+	<string>لمبائی</string>
 	<key>License Key</key>
 	<string>لائسنس کی کلید</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>ممبر کا لیبل</string>
 	<key>Members</key>
 	<string>ممبران</string>
+	<key>Merge individual fields</key>
+	<string>خانوں کو الگ الگ ضم کریں</string>
 	<key>Message</key>
 	<string>پیغام</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>ماہانہ عمل درآمد کی حد</string>
 	<key>Monthly execution units</key>
 	<string>ماہانہ آپریشن یونٹس</string>
+	<key>More types</key>
+	<string>اقسام</string>
 	<key>Move a native address</key>
 	<string>مقامی پتہ منتقل کریں</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>فائل لائبریری کو اسی نیٹ ورک پر اس اکاؤنٹ کے دوسرے آلے پر اینڈ ٹو اینڈ خفیہ کاری کے ساتھ منتقل کرتا ہے۔ مکمل ہونے تک دونوں آلات کو ان لاک رکھیں۔</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>پرانے آلے سے منتقل ہو رہے ہیں؟ یہ آلہ اس کا کردار، کلیدیں اور والٹس سنبھال لے گا، پھر پرانا منسوخ ہو جائے گا۔</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>ردی کی ٹوکری میں منتقل کرنے سے کلاؤڈ اسٹوریج خالی نہیں ہوتا۔</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>نئے آلے پر منتقلی: نیا آلہ پرانے کی جگہ لینے کی درخواست کرتا ہے، پرانا منظوری دیتا ہے، پھر دونوں مرحلہ وار حوالگی کرتے ہیں۔</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>کوئی اسناد نہیں</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>اس ڈیوائس پر کوئی انحصار ریکارڈ نہیں کیا گیا ہے۔</string>
+	<key>No favorites</key>
+	<string>کوئی پسندیدہ نہیں</string>
+	<key>No fields or notes</key>
+	<string>ابھی تک کچھ نہیں لکھا۔</string>
 	<key>No findings from this device's checks.</key>
 	<string>اس ڈیوائس کے چیک سے کوئی پتہ نہیں چلا۔</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>کوئی رکاوٹ نہیں درآمدات</string>
 	<key>No item attachments</key>
 	<string>کوئی آئٹم منسلکات نہیں</string>
+	<key>No items</key>
+	<string>ابھی تک کوئی ریکارڈ نہیں ہے</string>
 	<key>No letters yet</key>
 	<string>ابھی تک کوئی خط نہیں ہے</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>وصول کرنے والے آلے کی ID</string>
 	<key>Receiving policy</key>
 	<string>وصول کرنے کی پالیسی</string>
+	<key>Recently updated</key>
+	<string>حال ہی میں تبدیل شدہ</string>
 	<key>Recipient</key>
 	<string>وصول کنندہ</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>ڈیوائس بائنڈنگ کو ہٹا دیں</string>
 	<key>Remove device binding?</key>
 	<string>ڈیوائس بائنڈنگ کو ہٹائیں؟</string>
+	<key>Remove favorite</key>
+	<string>اُن اسٹار</string>
 	<key>Remove field</key>
 	<string>فیلڈ کو ہٹا دیں</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH کلید</string>
 	<key>Save</key>
 	<string>محفوظ کریں</string>
+	<key>Save merged version</key>
+	<string>انضمام کو محفوظ کریں</string>
+	<key>Save merged version?</key>
+	<string>ضم شدہ ورژن محفوظ کریں؟</string>
 	<key>Save name</key>
 	<string>نام محفوظ کریں</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>اس ڈیوائس پر محفوظ کیا گیا۔ تبدیلیاں مطابقت پذیر ہونے کا انتظار کر رہی ہیں۔</string>
 	<key>Saved. Publication is pending.</key>
 	<string>محفوظ کیا گیا۔ اشاعت زیر التواء ہے۔</string>
+	<key>Scan QR code</key>
+	<string>کیمرے سے اسکین کریں</string>
 	<key>Scan desktop invitation</key>
 	<string>کمپیوٹر کی دعوت اسکین کریں</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>اشتراک کرنے کے لیے فیلڈز منتخب کریں</string>
 	<key>Select login items</key>
 	<string>لاگ ان آئٹمز کو منتخب کریں</string>
+	<key>Select non-duplicates</key>
+	<string>غیر مکرر ریکارڈ منتخب کریں</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>ہر درآمد میں زیادہ سے زیادہ 1,000 ریکارڈ منتخب کریں۔</string>
 	<key>Selected</key>
 	<string>منتخب</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>منتخب کردہ OTP فیلڈز میں دوبارہ قابل استعمال بیج شامل ہے، نہ صرف موجودہ کوڈ۔</string>
 	<key>Selected accounts</key>
 	<string>منتخب اکاؤنٹس</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>منتخب حصے متصادم ورژن استعمال کریں گے۔ باقی حصے موجودہ ورژن برقرار رکھیں گے۔</string>
 	<key>Send device request</key>
 	<string>آلے کی درخواست بھیجیں</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>دکھائیں</string>
 	<key>Show dismissed findings</key>
 	<string>مسترد شدہ نتائج دکھائیں</string>
+	<key>Show draft</key>
+	<string>دکھائیں جو آپ نے ٹائپ کیا ہے</string>
 	<key>Show share link</key>
 	<string>شیئر لنک دکھائیں</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>جمع شدہ دستخط</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>مشترکہ دستخط کنندگان %@ کے دستخط اب ان کی موجودہ کلیدوں سے مطابقت نہیں رکھتے اس لیے الگ رکھ دیے گئے؛ انہیں دوبارہ دستخط کرنا ہوں گے۔</string>
+	<key>Skipped</key>
+	<string>چھوڑے گئے</string>
 	<key>Snapshot</key>
 	<string>سنیپ شاٹ</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>استعمال کا کچھ ڈیٹا تازہ نہیں ہوا۔ غیر دستیاب قدر صفر نہیں ہے۔</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>کچھ والٹس ابھی مکمل نہیں ہوئے۔ مکمل کرنے کے لیے مرحلہ دوبارہ چلائیں۔</string>
+	<key>Sort</key>
+	<string>چھانٹنا</string>
 	<key>Source address</key>
 	<string>ماخذ کا پتہ</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>اکاؤنٹ سوئچ کریں</string>
 	<key>Switch to this account</key>
 	<string>اس اکاؤنٹ پر سوئچ کریں</string>
+	<key>Symbols</key>
+	<string>علامتیں</string>
 	<key>Sync and storage</key>
 	<string>ہم وقت سازی اور ذخیرہ</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>سسٹم انضمام</string>
 	<key>System permission</key>
 	<string>سسٹم کی اجازت</string>
+	<key>Tags</key>
+	<string>ٹیگز</string>
 	<key>Tags, separated by commas</key>
 	<string>ٹیگز، کوما سے الگ</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>یہ آلہ آپ کا نجی مواد وصول کر سکتا ہے۔ ماسٹر مواد-انکرپشن کلید کو منظوری کے بعد دوبارہ تقسیم کیا جانا چاہیے۔</string>
 	<key>This device replaces</key>
 	<string>یہ آلہ اس کی جگہ لیتا ہے</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>یہ خانہ اس وقت تک نظر آئے گا جب تک آپ اسے چھپائیں یا یہ اسکرین چھوڑیں۔</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>یہ فائل اس کارروائی کے لیے اجازت یافتہ سائز کی حد سے زیادہ ہے۔</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>اس انوینٹری میں اس ڈیوائس پر حوالہ جات اور ترسیل کے ریکارڈ شامل ہیں۔ یہ دوسرے آلات یا من مانی پروجیکٹ فائلوں کو تلاش نہیں کرتا ہے۔</string>
 	<key>This is not the device in the request.</key>
 	<string>یہ درخواست والا آلہ نہیں ہے۔</string>
+	<key>This item is no longer available.</key>
+	<string>یہ آئٹم اب دستیاب نہیں ہے۔</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>یہ کلید dMsg کے زیر انتظام ہے اور اسے کاپی یا ترمیم نہیں کیا جا سکتا۔</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>اس کے بجائے پرانے iPhone کی جگہ لینے کے لیے کاپی کو الگ رکھیں اور سائن ان کریں، پھر کاپی پر «پرانے iPhone کی جگہ لیں» منتخب کریں؛ یہ iPhone شامل ہو جائے تو آلات میں کاپی کی فائلیں درآمد کریں۔</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>اس آئی فون پر اپنا موجودہ اکاؤنٹ استعمال کرنے کے لیے، اپنے مجاز آلات میں سے کسی ایک سے اس ڈیوائس کو منظور کریں۔</string>
+	<key>Total</key>
+	<string>کل</string>
 	<key>Transfer between devices</key>
 	<string>آلات کے درمیان منتقلی</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>متضاد ورژن استعمال کریں</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>آئی سی پی، آئی سی آر سی: لیجر، بی ٹی سی، ای وی ایم: چین، ای وی ایم: چین: ٹوکن، سول یا سول: منٹ استعمال کریں۔</string>
+	<key>Use password</key>
+	<string>یہ پاس ورڈ استعمال کریں</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>اس آئی فون پر انکرپٹڈ ورک اسپیس کو غیر مقفل کرنے کے لیے سسٹم کی توثیق کا استعمال کریں۔</string>
 	<key>Use this folder</key>

@@ -134,6 +134,8 @@
 	<string>アカウントのセキュリティ変更には管理者デバイスが必要です。</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>このプロフィールの公開には管理者デバイスが必要です。</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>空の値で置き換えると、保存済みの値が消去されます。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>完全なリンクと必要なパスワードを持っている人は誰でも、制限内でそれを取得できます。</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>保持するバージョンを選択します。既存の履歴は保持されます。シークレットがサイレントに上書きされることはありません。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>無料の手紙を送ってくれる相手を選択してください。ブロックされたアカウントは、ブロックを解除するまでブロックされたままになります。</string>
+	<key>Clear</key>
+	<string>クリア</string>
 	<key>Clear cached data</key>
 	<string>キャッシュを消去</string>
+	<key>Clear filters</key>
+	<string>フィルターを解除</string>
+	<key>Clear selection</key>
+	<string>選択をクリアします</string>
 	<key>Close invitation</key>
 	<string>招待を終了</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>クラウドストレージ</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>両方の画面でデバイスIDを照合し、パソコンで承認してください。</string>
+	<key>Compare with current</key>
+	<string>現在のバージョンと比較</string>
 	<key>Complete</key>
 	<string>完了</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>コピーされました</string>
 	<key>Copied for 30 seconds</key>
 	<string>30秒間コピーされました</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>コピーしました。コードはまもなく期限切れになります。</string>
 	<key>Copies from other iPhones</key>
 	<string>他の iPhone からのコピー</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>コピーはこの端末にのみ保持され、30秒以内に期限切れになります。</string>
 	<key>Copy</key>
 	<string>コピー</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>ステージングされたコピーを破棄する</string>
 	<key>Discard this staged copy?</key>
 	<string>この段階的に作成されたコピーを破棄しますか?</string>
+	<key>Discard unsaved changes?</key>
+	<string>変更を破棄しますか?</string>
+	<key>Dismiss</key>
+	<string>閉じる</string>
 	<key>Dismiss this observation</key>
 	<string>この観察を却下する</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>エンジン</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>登録された生体認証が変更されました。このキーを信頼する前に、代替キーを登録してください。</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>設定キーまたは otpauth URL を入力してください。</string>
 	<key>Enter a valid account ID.</key>
 	<string>有効なアカウントIDを入力してください。</string>
+	<key>Enter a valid date.</key>
+	<string>有効な日付を入力してください。</string>
+	<key>Enter a valid email address.</key>
+	<string>有効なメールアドレスを入力してください。</string>
+	<key>Enter a valid website address.</key>
+	<string>有効なウェブサイトのアドレスを入力してください。</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>アセットでサポートされている精度で正の金額を入力します。</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>フィールド</string>
 	<key>Field name</key>
 	<string>フィールド名</string>
+	<key>Field name is required.</key>
+	<string>フィールド名を入力してください。</string>
 	<key>Field reference</key>
 	<string>フィールド参照</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>ファイルを取り込みました。</string>
 	<key>Files in this folder</key>
 	<string>このフォルダー内のファイル</string>
+	<key>Filters</key>
+	<string>ボールトフィルター</string>
 	<key>Fingerprint</key>
 	<string>指紋</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>ウォレットを凍結する</string>
 	<key>From block %llu</key>
 	<string>ブロック %llu から</string>
+	<key>Generate password</key>
+	<string>パスワードを生成</string>
 	<key>Grant delegation</key>
 	<string>補助金代表団</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>メモを含める</string>
 	<key>Include this message's text</key>
 	<string>このメッセージのテキストを含める</string>
+	<key>Incomplete</key>
+	<string>不完全</string>
 	<key>Inspect pairing request</key>
 	<string>ペアリング要求の検査</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>誠実さ</string>
 	<key>Interrupted</key>
 	<string>中断されました</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>設定キーまたは otpauth URL が無効です。</string>
 	<key>Inventory fingerprint</key>
 	<string>インベントリのフィンガープリント</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>現在のバージョンを維持する</string>
 	<key>Keep draft and leave</key>
 	<string>下書きを保持して戻る</string>
+	<key>Keep existing value</key>
+	<string>既存の値を保持</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>秘密、会話、ファイルをまとめて保管します。許可されたデバイスのみがそれらを開くことができます。</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>残置</string>
 	<key>Left out</key>
 	<string>除外</string>
+	<key>Length</key>
+	<string>長さ</string>
 	<key>License Key</key>
 	<string>ライセンスキー</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>メンバーラベル</string>
 	<key>Members</key>
 	<string>メンバー</string>
+	<key>Merge individual fields</key>
+	<string>フィールドごとに統合</string>
 	<key>Message</key>
 	<string>メッセージ</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>月間実行枠の上限</string>
 	<key>Monthly execution units</key>
 	<string>月次実行単位</string>
+	<key>More types</key>
+	<string>種類</string>
 	<key>Move a native address</key>
 	<string>ネイティブアドレスを移す</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>同じネットワーク上にあるこのアカウントの別のデバイスへ、ファイルライブラリをエンドツーエンド暗号化で移します。終わるまで両方のデバイスをロック解除したままにしてください。</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>古いデバイスから移行しますか？このデバイスがその役割、キー、ウォレットを引き継ぎ、その後古いデバイスは取り消されます。</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>ゴミ箱に移動してもクラウド容量は解放されません。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>新しいデバイスへの移行：新しいデバイスが古いデバイスの置き換えを依頼し、古いデバイスが承認したあと、両方で順に引き継ぎます。</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>資格情報がありません</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>このデバイスには依存関係が記録されていません。</string>
+	<key>No favorites</key>
+	<string>お気に入りはありません</string>
+	<key>No fields or notes</key>
+	<string>まだ何も書かれていません。</string>
 	<key>No findings from this device's checks.</key>
 	<string>このデバイスのチェックでは検出結果はありませんでした。</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>輸入の中断なし</string>
 	<key>No item attachments</key>
 	<string>アイテムの添付はありません</string>
+	<key>No items</key>
+	<string>まだ記録がありません</string>
 	<key>No letters yet</key>
 	<string>まだ文字はありません</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>受信側デバイス ID</string>
 	<key>Receiving policy</key>
 	<string>受信ポリシー</string>
+	<key>Recently updated</key>
+	<string>最近更新した項目</string>
 	<key>Recipient</key>
 	<string>受信者</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>デバイスバインドを削除する</string>
 	<key>Remove device binding?</key>
 	<string>デバイスのバインドを削除しますか?</string>
+	<key>Remove favorite</key>
+	<string>スターを外す</string>
 	<key>Remove field</key>
 	<string>フィールドを削除</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSHキー</string>
 	<key>Save</key>
 	<string>保存</string>
+	<key>Save merged version</key>
+	<string>マージを保存</string>
+	<key>Save merged version?</key>
+	<string>統合したバージョンを保存しますか？</string>
 	<key>Save name</key>
 	<string>名前を保存する</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>このデバイスに保存されます。変更は同期を待機しています。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>保存されました。出版は保留中です。</string>
+	<key>Scan QR code</key>
+	<string>カメラでスキャン</string>
 	<key>Scan desktop invitation</key>
 	<string>パソコンの招待をスキャン</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>共有するフィールドを選択してください</string>
 	<key>Select login items</key>
 	<string>ログイン項目を選択する</string>
+	<key>Select non-duplicates</key>
+	<string>重複しない項目を選択</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>1回のインポートで最大1,000件を選択できます。</string>
 	<key>Selected</key>
 	<string>選択済み</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>選択した OTP フィールドには、現在のコードだけでなく、再利用可能なシードが含まれます。</string>
 	<key>Selected accounts</key>
 	<string>選択したアカウント</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>選択した部分には競合バージョンを使用し、それ以外は現在のバージョンを保持します。</string>
 	<key>Send device request</key>
 	<string>デバイスのリクエストを送信</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>表示する</string>
 	<key>Show dismissed findings</key>
 	<string>却下された調査結果を表示する</string>
+	<key>Show draft</key>
+	<string>入力した内容を表示する</string>
 	<key>Show share link</key>
 	<string>共有リンクを表示</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>集まった署名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>共同署名者 %@ の署名は現在のキーと一致しなくなったため保留されました。もう一度署名する必要があります。</string>
+	<key>Skipped</key>
+	<string>スキップ</string>
 	<key>Snapshot</key>
 	<string>スナップショット</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>一部の使用量を更新できませんでした。取得できない値はゼロを意味しません。</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>まだ完了していないウォレットがあります。もう一度この手順を実行してください。</string>
+	<key>Sort</key>
+	<string>並べ替え</string>
 	<key>Source address</key>
 	<string>送信元アドレス</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>アカウントを切り替える</string>
 	<key>Switch to this account</key>
 	<string>このアカウントに切り替えます</string>
+	<key>Symbols</key>
+	<string>記号</string>
 	<key>Sync and storage</key>
 	<string>同期とストレージ</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>システム統合</string>
 	<key>System permission</key>
 	<string>システム権限</string>
+	<key>Tags</key>
+	<string>タグ</string>
 	<key>Tags, separated by commas</key>
 	<string>カンマで区切られたタグ</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>このデバイスはあなたのプライベートコンテンツを受信する可能性があります。コンテンツルートは承認後に再配布する必要があります。</string>
 	<key>This device replaces</key>
 	<string>このデバイスが置き換える相手</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>このフィールドは、非表示にするか画面を離れるまで表示されます。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>このファイルは、この操作で許可されるサイズの上限を超えています。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>このインベントリには、このデバイスの参照と配送記録が含まれます。他のデバイスや任意のプロジェクト ファイルは検索されません。</string>
 	<key>This is not the device in the request.</key>
 	<string>依頼にあるデバイスではありません。</string>
+	<key>This item is no longer available.</key>
+	<string>この項目は利用できなくなりました。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>このキーは dMsg によって管理されており、コピーまたは編集することはできません。</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>代わりに古い iPhone を置き換えるには、コピーを退避してサインインし、コピーで「古い iPhone を置き換える」を選びます。この iPhone が参加したら、「デバイス」でコピーのファイルを取り込みます。</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>この iPhone で既存のアカウントを使用するには、承認されたデバイスの 1 つからこのデバイスを承認してください。</string>
+	<key>Total</key>
+	<string>合計</string>
 	<key>Transfer between devices</key>
 	<string>デバイス間の転送</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>競合するバージョンを使用する</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol または sol:mint を使用します。</string>
+	<key>Use password</key>
+	<string>このパスワードを使用</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>システム認証を使用して、この iPhone 上の暗号化されたワークスペースのロックを解除します。</string>
 	<key>Use this folder</key>

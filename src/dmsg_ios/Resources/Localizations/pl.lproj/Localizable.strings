@@ -134,6 +134,8 @@
 	<string>Zmiana zabezpieczeń konta wymaga urządzenia administratora.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Do opublikowania tego profilu wymagane jest urządzenie administratora.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Pusty zamiennik usunie zapisaną wartość.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Każdy, kto ma pełny link i wymagane hasło, może je odzyskać w jego granicach.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Wybierz wersję, którą chcesz zachować. Istniejąca historia zostaje zachowana; tajemnice nigdy nie są dyskretnie nadpisywane.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Wybierz, kto może wysyłać Ci bezpłatne listy. Zablokowane konta pozostają zablokowane do czasu ich odblokowania.</string>
+	<key>Clear</key>
+	<string>Wyczyść</string>
 	<key>Clear cached data</key>
 	<string>Wyczyść pamięć podręczną</string>
+	<key>Clear filters</key>
+	<string>Wyczyść filtry</string>
+	<key>Clear selection</key>
+	<string>Wyczyść zaznaczenie</string>
 	<key>Close invitation</key>
 	<string>Zamknij zaproszenie</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Przechowywanie w chmurze</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Porównaj identyfikator urządzenia na obu ekranach i zatwierdź na komputerze.</string>
+	<key>Compare with current</key>
+	<string>Porównaj z bieżącą wersją</string>
 	<key>Complete</key>
 	<string>Zakończone</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Skopiowano</string>
 	<key>Copied for 30 seconds</key>
 	<string>Kopiowane przez 30 sekund</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Skopiowano. Kod wkrótce wygaśnie.</string>
 	<key>Copies from other iPhones</key>
 	<string>Kopie z innych iPhone’ów</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Kopie pozostają na tym urządzeniu i wygasają w ciągu 30 sekund.</string>
 	<key>Copy</key>
 	<string>Kopiuj</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Odrzuć kopię wystawioną</string>
 	<key>Discard this staged copy?</key>
 	<string>Odrzucić tę wystawioną kopię?</string>
+	<key>Discard unsaved changes?</key>
+	<string>Odrzucić zmiany?</string>
+	<key>Dismiss</key>
+	<string>Zamknij</string>
 	<key>Dismiss this observation</key>
 	<string>Odrzuć tę obserwację</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Silnik</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Zarejestrowane dane biometryczne uległy zmianie. Zarejestruj klucz zastępczy, zanim będziesz polegał na tym kluczu.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Wprowadź klucz konfiguracji lub adres URL otpauth.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Wpisz prawidłowy ID konta.</string>
+	<key>Enter a valid date.</key>
+	<string>Wprowadź prawidłową datę.</string>
+	<key>Enter a valid email address.</key>
+	<string>Wprowadź poprawny adres e-mail.</string>
+	<key>Enter a valid website address.</key>
+	<string>Wprowadź poprawny adres strony internetowej.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Wprowadź kwotę dodatnią z obsługiwaną dokładnością zasobu.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>Pole</string>
 	<key>Field name</key>
 	<string>Nazwa pola</string>
+	<key>Field name is required.</key>
+	<string>Nazwa pola jest wymagana.</string>
 	<key>Field reference</key>
 	<string>Odniesienie do pola</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Pliki zaimportowane.</string>
 	<key>Files in this folder</key>
 	<string>Pliki w tym folderze</string>
+	<key>Filters</key>
+	<string>Filtry skarbca</string>
 	<key>Fingerprint</key>
 	<string>Odcisk palca</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Zamroź portfel</string>
 	<key>From block %llu</key>
 	<string>Od bloku %llu</string>
+	<key>Generate password</key>
+	<string>Wygeneruj hasło</string>
 	<key>Grant delegation</key>
 	<string>Autoryzuj delegację</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Dołącz notatki</string>
 	<key>Include this message's text</key>
 	<string>Dołącz tekst tej wiadomości</string>
+	<key>Incomplete</key>
+	<string>Niekompletne</string>
 	<key>Inspect pairing request</key>
 	<string>Sprawdź żądanie parowania</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Uczciwość</string>
 	<key>Interrupted</key>
 	<string>Przerwano</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Nieprawidłowy klucz konfiguracji lub adres URL otpauth.</string>
 	<key>Inventory fingerprint</key>
 	<string>Odcisk palca inwentarza</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Zachowaj aktualną wersję</string>
 	<key>Keep draft and leave</key>
 	<string>Zachowaj szkic i wyjdź</string>
+	<key>Keep existing value</key>
+	<string>Zachowaj obecną wartość</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Trzymaj swoje sekrety, rozmowy i pliki w jednym miejscu. Tylko autoryzowane urządzenia mogą je otworzyć.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Pozostawione</string>
 	<key>Left out</key>
 	<string>Pominięte</string>
+	<key>Length</key>
+	<string>Długość</string>
 	<key>License Key</key>
 	<string>Klucz licencyjny</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Etykieta członka</string>
 	<key>Members</key>
 	<string>Członkowie</string>
+	<key>Merge individual fields</key>
+	<string>Scal poszczególne pola</string>
 	<key>Message</key>
 	<string>Wiadomość</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Miesięczny limit wykonań</string>
 	<key>Monthly execution units</key>
 	<string>Miesięczne jednostki operacyjne</string>
+	<key>More types</key>
+	<string>Typy</string>
 	<key>Move a native address</key>
 	<string>Przenieś adres natywny</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Przenosi bibliotekę plików na inne urządzenie tego konta w tej samej sieci, z szyfrowaniem end-to-end. Do końca trzymaj oba urządzenia odblokowane.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Przechodzisz ze starego urządzenia? To urządzenie przejmie jego rolę, klucze i portfele, a potem stare zostanie unieważnione.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Przeniesienie do kosza nie zwalnia miejsca w chmurze.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Przejście na nowe urządzenie: nowe prosi o zastąpienie starego, stare to zatwierdza, a potem oba krok po kroku przekazują sobie wszystko.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Brak poświadczeń</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Na tym urządzeniu nie zarejestrowano żadnych zależności.</string>
+	<key>No favorites</key>
+	<string>Brak ulubionych</string>
+	<key>No fields or notes</key>
+	<string>Jeszcze nic nie napisano.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Brak wyników kontroli tego urządzenia.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Żadnych przerw w imporcie</string>
 	<key>No item attachments</key>
 	<string>Brak załączników do elementów</string>
+	<key>No items</key>
+	<string>Nie ma jeszcze żadnych rekordów</string>
 	<key>No letters yet</key>
 	<string>Nie ma jeszcze żadnych listów</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>Identyfikator urządzenia odbierającego</string>
 	<key>Receiving policy</key>
 	<string>Zasady otrzymywania</string>
+	<key>Recently updated</key>
+	<string>Ostatnio zmienione</string>
 	<key>Recipient</key>
 	<string>Odbiorca</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Usuń powiązanie urządzenia</string>
 	<key>Remove device binding?</key>
 	<string>Usunąć powiązanie urządzenia?</string>
+	<key>Remove favorite</key>
+	<string>Usuń gwiazdkę</string>
 	<key>Remove field</key>
 	<string>Usuń pole</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>Klucz SSH</string>
 	<key>Save</key>
 	<string>Zapisz</string>
+	<key>Save merged version</key>
+	<string>Zapisz połączenie</string>
+	<key>Save merged version?</key>
+	<string>Zapisać scaloną wersję?</string>
 	<key>Save name</key>
 	<string>Zapisz nazwę</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Zapisano na tym urządzeniu. Zmiany czekają na synchronizację.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Zapisano. Publikacja jest w oczekiwaniu.</string>
+	<key>Scan QR code</key>
+	<string>Skanuj aparatem</string>
 	<key>Scan desktop invitation</key>
 	<string>Skanuj zaproszenie z komputera</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Wybierz pola do udostępnienia</string>
 	<key>Select login items</key>
 	<string>Wybierz elementy logowania</string>
+	<key>Select non-duplicates</key>
+	<string>Wybierz rekordy bez duplikatów</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Wybierz do 1 000 rekordów na jeden import.</string>
 	<key>Selected</key>
 	<string>Wybrane</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Wybrane pola OTP zawierają materiał siewny wielokrotnego użytku, a nie tylko bieżący kod.</string>
 	<key>Selected accounts</key>
 	<string>Wybrane konta</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Wybrane części używają wersji konfliktowej. Pozostałe zachowują bieżącą wersję.</string>
 	<key>Send device request</key>
 	<string>Wyślij prośbę urządzenia</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Pokaż</string>
 	<key>Show dismissed findings</key>
 	<string>Pokaż odrzucone ustalenia</string>
+	<key>Show draft</key>
+	<string>Pokaż co wpisałeś</string>
 	<key>Show share link</key>
 	<string>Pokaż link do udostępniania</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Zebrane podpisy</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Podpisy współpodpisujących %@ nie pasują już do ich bieżących kluczy i zostały odłożone; muszą podpisać ponownie.</string>
+	<key>Skipped</key>
+	<string>Pominięte</string>
 	<key>Snapshot</key>
 	<string>Migawka</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Nie udało się odświeżyć części danych użycia. Brak wartości nie oznacza zera.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Niektóre portfele nie są jeszcze gotowe. Uruchom krok ponownie, aby dokończyć.</string>
+	<key>Sort</key>
+	<string>Sortuj</string>
 	<key>Source address</key>
 	<string>Adres źródłowy</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Zmień konto</string>
 	<key>Switch to this account</key>
 	<string>Przełącz na to konto</string>
+	<key>Symbols</key>
+	<string>Symbole</string>
 	<key>Sync and storage</key>
 	<string>Synchronizacja i miejsce</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Integracje systemowe</string>
 	<key>System permission</key>
 	<string>Zezwolenie systemowe</string>
+	<key>Tags</key>
+	<string>Tagi</string>
 	<key>Tags, separated by commas</key>
 	<string>Tagi oddzielone przecinkami</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>To urządzenie może odbierać Twoje prywatne treści. Główny klucz szyfrowania treści musi zostać ponownie rozpowszechniony po zatwierdzeniu.</string>
 	<key>This device replaces</key>
 	<string>To urządzenie zastępuje</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>To pole pozostanie widoczne, dopóki go nie ukryjesz lub nie opuścisz tego ekranu.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Ten plik przekracza limit rozmiaru dla tej operacji.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Ten spis obejmuje referencje i dokumentację dostaw tego urządzenia. Nie przeszukuje innych urządzeń ani dowolnych plików projektów.</string>
 	<key>This is not the device in the request.</key>
 	<string>To nie jest urządzenie z prośby.</string>
+	<key>This item is no longer available.</key>
+	<string>Ten element nie jest już dostępny.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Ten klucz jest zarządzany przez dMsg i nie można go kopiować ani edytować.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Aby zamiast tego zastąpić stary iPhone, odłóż kopię i zaloguj się, a potem wybierz Zastąp stary iPhone przy kopii; gdy ten iPhone dołączy, zaimportuj jej pliki w Urządzeniach.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Aby korzystać z istniejącego konta na tym iPhonie, zatwierdź to urządzenie na jednym z autoryzowanych urządzeń.</string>
+	<key>Total</key>
+	<string>Razem</string>
 	<key>Transfer between devices</key>
 	<string>Przesyłanie między urządzeniami</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Użyj sprzecznej wersji</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Użyj icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol lub sol:mint.</string>
+	<key>Use password</key>
+	<string>Użyj hasła</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Użyj uwierzytelniania systemowego, aby odblokować zaszyfrowany obszar roboczy na tym iPhonie.</string>
 	<key>Use this folder</key>

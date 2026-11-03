@@ -2,7 +2,7 @@ import SwiftUI
 import VisionKit
 
 /// This scanner only returns text to a review form. It cannot approve a device.
-struct PairingScanner: UIViewControllerRepresentable {
+struct QRCodeScanner: UIViewControllerRepresentable {
     let receive: (String) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(receive: receive) }
     func makeUIViewController(context: Context) -> DataScannerViewController {

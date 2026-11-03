@@ -1311,6 +1311,89 @@ boundary remain visible in the UI.
   measurement, production cloud transfer or release build was performed in this
   review. Tests do not establish iOS background scheduling guarantees.
 
+## Vault browsing, details and editing (2026-11-03)
+
+The 23-task vault audit is implemented across the native screens and shared core.
+The old four-item favorites grid is removed; ordinary recovery/sync messages no
+longer insert or remove list rows. The toolbar retains the complete status and
+explicit recovery/conflict/retry actions. Existing fonts, colors, navigation and
+managed-key restrictions are retained.
+
+| Audit task | Delivered behavior |
+| --- | --- |
+| H01 | Overlay status feedback, fixed toolbar entry, persistent urgent state and one active copy/save feedback host, including sheets and split columns. |
+| H02 | Full searchable/paginated Favorites scope, no independent four-item query; Chinese uses 收藏. |
+| H03 | Scrollable All/Favorites/Passwords/Note scopes, all 11 types, complete-query counts, selected type and type-aware creation. |
+| H04 | Query-bound asynchronous results, pagination, distinct first-sync/loading/failure/empty/search states and recovery actions. |
+| H05 | Exact-tag filtering, full-inventory name/update sorting, safe type-specific summaries and favorite/conflict/sync markers. |
+| D01 | Per-value absolute OTP expiry, independent of later field operations; clipboard lifetime never extends the code's validity. |
+| D02 | Tombstone metadata, deletion returns to browsing, trash detail is read-only and offers restore. |
+| D03 | Current detail follows revision/content changes, conceals revealed fields and announces an update; an open editor retains its draft and original expected revision. |
+| D04 | Session-scoped dirty drafts, Cancel/swipe discard decision, preserved inputs on failure, disabled mutation during saving and compatible type changes. |
+| D05 | Ordered field sections, field reorder/delete and named custom fields. |
+| D06 | Type, favorite, tags, update date, version/sync state and attachment count with direct editing and management entries. |
+| D07 | Long/multiline/large-text values get separate action rows; machine-readable values use LTR; contextual accessible controls retain 44-point targets. |
+| D08 | Separate contextual reveal/copy confirmations, waiting/failure/success feedback and local clipboard expiry. |
+| D09 | Typed keyboards, optional date/month picker with explicit commit/cancel, inline validation, retained/replaced/cleared secret semantics and persistent labels. |
+| D10 | Historical timestamp/device/sync/conflict metadata, current/version comparison and selected-field merge with expected-revision checking. |
+| D11 | Managed-key and historical read-only explanations, unavailable/retry/empty states and no reveal/copy action for known empty fields. |
+| F01 | Import totals, duplicate/skipped/incomplete/selection counts, search, nonduplicate selection, retryable staged preview and links to imported records. |
+| F02 | Trash/history/conflict lists distinguish loading, failure and empty results; restoring has progress and feedback. |
+| F03 | Local secure password generation and reviewed OTP setup-key/URI/QR entry. |
+| F04 | Login detail links to explicit AutoFill snapshot selection; expiry and system authentication remain unchanged. |
+| F05 | Local findings resolve item/field names and offer edit/detail/dependency actions; editing uses the same protected draft sheet. |
+| Q01 | Real encrypted-core inventory/tombstone/conflict regressions plus an operational UI fixture for filtering, saving, deletion, OTP, incoming revisions and drafts. |
+| Q02 | All 23 language catalogs, small/regular-width screens, light/dark, Arabic RTL and maximum accessibility text, keyboard shortcuts and native accessibility audit. |
+
+The core tests browse 135 encrypted items across all 11 types, including nine
+favorites and multiple pages. They verify that filters apply before pagination,
+counts cover the entire query, update sorting changes after editing, conflict
+markers clear after resolution, tombstones stay out of the main list, locking
+interrupts reads, and summaries do not include hidden values. The mobile test
+uses real create/delete/restore operations and verifies masked native metadata.
+
+- Rust client: 560 passed, five existing ignored tests; mobile: 22 passed.
+  All-target Clippy for both crates with `-D warnings` and Rustfmt passed.
+  Device/simulator ARM64 libraries and Swift bindings were rebuilt, and the debug
+  native artifact/source fingerprint verified.
+- Swift: all 81 unit tests passed. All 14 vault UI cases passed across the
+  acceptance batch and corrected targeted reruns on iPhone 16e / iOS 18.4;
+  recovery navigation and both synchronization/cooldown cases also passed.
+  UI regression scope includes complete
+  favorites, draft discard/retry, OTP expiry after copying another field,
+  deletion, stable row position while feedback disappears, optional date
+  cancellation, an incoming revision refreshing current detail without replacing
+  an open draft, keyboard creation/save and native accessibility checks for hit
+  regions, traits and sufficient element descriptions. The incoming-draft test
+  initially queried an inaccessible underlying list; its final assertion checks
+  preserved input during the incoming update and the latest head after discard.
+- iPhone SE (third generation), iOS 18.4: Chinese dark browsing/detail/editor,
+  optional date cancellation, Arabic RTL synchronization, Chinese dark sync and
+  maximum Arabic accessibility text passed. iPad Pro 13-inch, iOS 18.4: rapid
+  selection, complete favorites and a single visible copy notice passed.
+  Exported screenshots were inspected; this caught and removed an empty recovery
+  row in the status sheet and overlapping scaled field-action icons.
+- iPhone Duo, iOS 27.1: repeated managed-secret/file navigation, background
+  recovery, explicit snapshot selection across rotation and leaving a pending
+  detail read passed. The last case was rerun after making the test wait for the
+  system's separate BackButton instead of tapping the first toolbar action.
+- Debug and Release simulator configurations built. Release excludes all
+  presentation fixtures; this compilation used the locally rebuilt debug Rust
+  library and is not a distribution-archive validation. All 23 localizations
+  passed resource/compiler-extraction checks, all 31 business icons matched the
+  shared source, and notification-copy checks passed for all 23 languages.
+
+UI fixtures perform local in-memory mutations and do not access a production
+account. They establish native state and interaction behavior, not cloud delivery
+or physical-device security. Real camera scanning, VoiceOver speech, cross-app
+clipboard expiry, biometric AutoFill, live imports/sharing, cross-device cloud
+conflicts, minimum-device performance and physical Duo posture changes were not
+exercised. Native accessibility checks cover the stated categories, not a blanket
+accessibility certification. No App Store archive, distribution signing or
+production deployment is implied by simulator builds.
+
+Implementation and validation: Codex <noreply@openai.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

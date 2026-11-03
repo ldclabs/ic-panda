@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+@preconcurrency import DMsgCore
 
 struct VaultImportView: View {
     var pending: PrivateFiles.PendingImport? = nil
@@ -11,6 +12,10 @@ struct VaultImportView: View {
     @State private var selected: Set<UInt32> = []
     @State private var working = false
     @State private var completed = false
+    @State private var query = ""
+    @State private var failed = false
+    @State private var imported: [String] = []
+    @State private var importedTitles: [String: String] = [:]
     struct Preview: Decodable {
         struct Item: Decodable, Identifiable { let index: UInt32; let title: String; let username: String; let duplicate: Bool; var id: UInt32 { index } }
         let format: String; let digest: String; let skipped: Int; let incomplete: Int; let items: [Item]
@@ -20,12 +25,28 @@ struct VaultImportView: View {
             NoticeBar(text: String(localized: "Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added."))
             Button("Choose password export") { picking = true }.disabled(working)
             if working { ProgressView() }
-            if completed { Label("Import completed", systemImage: "checkmark.circle") }
+            if completed {
+                Label("Import completed", systemImage: "checkmark.circle")
+                ForEach(imported, id: \.self) { id in
+                    NavigationLink(importedTitles[id] ?? String(localized: "Open secret")) { VaultDetailView(id: id) }
+                }
+            }
+            if failed, handle != nil { Button("Retry preview") { Task { await retryPreview() } } }
             if let preview {
+                Section {
+                    LabeledContent("Total", value: preview.items.count.formatted())
+                    LabeledContent("Already present", value: preview.items.filter(\.duplicate).count.formatted())
+                    LabeledContent("Skipped", value: preview.skipped.formatted())
+                    LabeledContent("Incomplete", value: preview.incomplete.formatted())
+                    LabeledContent("Selected", value: selected.count.formatted())
+                    Button("Select non-duplicates") { selected = Set(preview.items.filter { !$0.duplicate }.prefix(1000).map(\.index)) }
+                    Button("Clear selection") { selected = [] }
+                    Text("Select up to 1,000 records per import.").font(.footnote).foregroundStyle(.secondary)
+                }
                 if preview.skipped > 0 || preview.incomplete > 0 {
                     NoticeBar(text: String(localized: "Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here."))
                 }
-                ForEach(preview.items) { item in
+                ForEach(preview.items.filter { query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) || $0.username.localizedCaseInsensitiveContains(query) }) { item in
                     Toggle(isOn: Binding(get: { selected.contains(item.index) }, set: { if $0 { selected.insert(item.index) } else { selected.remove(item.index) } })) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.title).font(.headline)
@@ -34,9 +55,9 @@ struct VaultImportView: View {
                         }
                     }
                 }
-                Button("Import selected records") { Task { await commit() } }.disabled(working || selected.isEmpty)
+                Button("Import selected records") { Task { await commit() } }.disabled(working || selected.isEmpty || selected.count > 1000)
             }
-        }.privateScreen().navigationTitle("Import passwords")
+        }.disabled(working).privateScreen().navigationTitle("Import passwords").searchable(text: $query)
             .task { if let pending, handle == nil { await resume(pending) } }
             .fileImporter(isPresented: $picking, allowedContentTypes: [.item]) { result in Task { await inspect(result) } }
     }
@@ -53,9 +74,9 @@ struct VaultImportView: View {
     private func inspect(_ result: Result<URL, Error>) async {
         guard let files = model.files, let engine = model.engine, let account = model.session?.account else { return }
         let epoch = model.epoch; working = true; defer { working = false }
-        preview = nil; selected = []; completed = false
         do {
             let url = try result.get()
+            preview = nil; selected = []; completed = false; failed = false; imported = []; importedTitles = [:]
             let copy = try await Task.detached { try files.importDocument(url, account: account, purpose: "vault") }.value
             guard epoch == model.epoch else { return }
             staged = copy
@@ -63,15 +84,27 @@ struct VaultImportView: View {
             handle = name
             let result = try await coreOperation { try await engine.vaultImportPreview(name: name, operation: $0) }
             guard epoch == model.epoch else { return }; preview = try model.decode(result)
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch { if epoch == model.epoch { failed = true; model.report(error) } }
+    }
+
+    private func retryPreview() async {
+        guard let handle, let engine = model.engine else { return }
+        let epoch = model.epoch; working = true; failed = false; defer { working = false }
+        do {
+            let result = try await coreOperation { try await engine.vaultImportPreview(name: handle, operation: $0) }
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            preview = try model.decode(result)
+        } catch { if epoch == model.epoch { failed = true; model.report(error) } }
     }
     private func commit() async {
         guard let preview, let handle, let engine = model.engine, !working else { return }
         let epoch = model.epoch, picks = selected.sorted(); working = true; defer { working = false }
         do {
-            _ = try await coreOperation { try await engine.vaultImportSelected(name: handle, digest: preview.digest, picks: picks, operation: $0) }
+            let result = try await coreOperation { try await engine.vaultImportSelected(name: handle, digest: preview.digest, picks: picks, operation: $0) }
             if let staged { try model.files?.finishImport(staged) }
             guard epoch == model.epoch else { return }
+            imported = try model.decode(result)
+            importedTitles = Dictionary(uniqueKeysWithValues: zip(imported, picks.map { index in preview.items.first { $0.index == index }?.title ?? String(localized: "Open secret") }))
             self.preview = nil; selected = []; completed = true; await model.updateSession()
         } catch { if epoch == model.epoch { model.report(error) } }
     }

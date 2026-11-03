@@ -16,12 +16,15 @@ struct RecoveryObservation: Decodable, Equatable {
 struct RecoveryNotice: View {
     @Environment(SessionModel.self) private var model
     @State private var reviewing = false
+    @MainActor static func isVisible(_ model: SessionModel, at date: Date) -> Bool {
+        model.session?.account != nil && !model.concealed &&
+            (model.recoveryWarning?.pending == true || model.recoveryWarning == nil ||
+             model.recoveryWarning?.isStale(at: date) == true || model.recoveryRefreshFailed)
+    }
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             let observation = model.recoveryWarning
-            if model.session?.account != nil, !model.concealed,
-               observation?.pending == true || observation == nil ||
-                observation?.isStale(at: timeline.date) == true || model.recoveryRefreshFailed {
+            if Self.isVisible(model, at: timeline.date) {
                 HStack(alignment: .center, spacing: 10) {
                     Image(systemName: observation?.pending == true ? "exclamationmark.shield" : "shield.lefthalf.filled")
                         .foregroundStyle(observation?.pending == true ? .orange : Theme.forest)

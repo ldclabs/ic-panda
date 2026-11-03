@@ -33,139 +33,139 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "امسح طلب اقتران جهاز dMsg لمراجعته."
+            "value": "مسح رموز QR لمراجعتها."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan a dMsg device pairing request for review."
+            "value": "Scan QR codes for review."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escanea una solicitud de emparejamiento de dMsg para revisarla."
+            "value": "Escanear códigos QR para revisarlos."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scannez une demande d’association d’appareil dMsg pour l’examiner."
+            "value": "Scanner des codes QR pour vérification."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сканируйте запрос сопряжения устройства dMsg для проверки."
+            "value": "Сканирование QR-кодов для проверки."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "扫描 dMsg 设备配对请求，以便核对。"
+            "value": "扫描二维码，以便核对。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "掃描 dMsg 設備配對請求，以便覈對。"
+            "value": "掃描 QR 碼，以便核對。"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "समीक्षा के लिए dMsg डिवाइस पेयरिंग अनुरोध को स्कैन करें।"
+            "value": "समीक्षा के लिए QR कोड स्कैन करें।"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pindai permintaan pemasangan perangkat dMsg untuk ditinjau."
+            "value": "Pindai kode QR untuk ditinjau."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Digitalize uma solicitação de emparelhamento de dispositivo dMsg para revisão."
+            "value": "Escanear códigos QR para revisão."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "レビューのために dMsg デバイス ペアリング リクエストをスキャンします。"
+            "value": "確認のためにQRコードをスキャンします。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scannen Sie eine dMsg-Gerätekopplungsanfrage zur Überprüfung."
+            "value": "QR-Codes zur Prüfung scannen."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "검토를 위해 dMsg 장치 페어링 요청을 스캔하세요."
+            "value": "확인을 위해 QR 코드를 스캔합니다."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scansiona una richiesta di associazione del dispositivo dMsg per la revisione."
+            "value": "Scansiona codici QR per verificarli."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "İncelenmek üzere bir dMsg cihaz eşleştirme talebini tarayın."
+            "value": "İncelemek için QR kodlarını tarayın."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quét yêu cầu ghép nối thiết bị dMsg để xem xét."
+            "value": "Quét mã QR để kiểm tra."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "สแกนคำขอจับคู่อุปกรณ์ dMsg เพื่อตรวจสอบ"
+            "value": "สแกนคิวอาร์โค้ดเพื่อตรวจสอบ"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zeskanuj prośbę o parowanie urządzenia dMsg w celu sprawdzenia."
+            "value": "Skanowanie kodów QR do sprawdzenia."
           }
         },
         "fil": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mag-scan ng dMsg na kahilingan sa pagpapares ng device para sa pagsusuri."
+            "value": "Mag-scan ng mga QR code para suriin."
           }
         },
         "ms": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imbas permintaan berpasangan peranti dMsg untuk semakan."
+            "value": "Imbas kod QR untuk semakan."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "পর্যালোচনার জন্য একটি dMsg ডিভাইস জোড়ার অনুরোধ স্ক্যান করুন।"
+            "value": "পর্যালোচনার জন্য QR কোড স্ক্যান করুন।"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan een dMsg-apparaatkoppelingsverzoek ter beoordeling."
+            "value": "QR-codes scannen om te controleren."
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "جائزہ کے لیے dMsg ڈیوائس جوڑا بنانے کی درخواست کو اسکین کریں۔"
+            "value": "جائزے کے لیے QR کوڈ اسکین کریں۔"
           }
         }
       }

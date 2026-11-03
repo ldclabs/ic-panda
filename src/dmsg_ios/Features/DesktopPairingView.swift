@@ -57,7 +57,7 @@ struct DesktopPairingView: View {
         }.privateScreen().navigationTitle("Scan desktop invitation").navigationBarTitleDisplayMode(.inline)
             .onChange(of: invitation) { delivery = nil; failed = false }
             .sheet(isPresented: $scanning) {
-                PairingScanner { text in
+                QRCodeScanner { text in
                     invitation = text; delivery = nil; scanning = false; attempt = UUID()
                 }
             }

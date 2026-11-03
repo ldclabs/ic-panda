@@ -134,6 +134,8 @@
 	<string>অ্যাকাউন্টের নিরাপত্তা বদলাতে প্রশাসকের ডিভাইস প্রয়োজন।</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>এই প্রোফাইল প্রকাশ করতে প্রশাসকের ডিভাইস প্রয়োজন।</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>খালি প্রতিস্থাপন সংরক্ষিত মান মুছে দেবে।</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>সম্পূর্ণ লিঙ্ক এবং প্রয়োজনীয় পাসওয়ার্ড সহ যে কেউ তার সীমার মধ্যে এটি পুনরুদ্ধার করতে পারেন।</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>কোন সংস্করণ রাখতে হবে তা বেছে নিন। বিদ্যমান ইতিহাস ধরে রাখা হয়; গোপনীয়তা কখনই নীরবে মুছে যায় না।</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>কে আপনাকে বিনামূল্যে চিঠি পাঠাতে পারে তা চয়ন করুন৷ অবরুদ্ধ অ্যাকাউন্টগুলি অবরুদ্ধ থাকবে যতক্ষণ না আপনি তাদের অবরোধ মুক্ত করবেন।</string>
+	<key>Clear</key>
+	<string>পরিষ্কার করুন</string>
 	<key>Clear cached data</key>
 	<string>ক্যাশ মুছুন</string>
+	<key>Clear filters</key>
+	<string>ফিল্টার মুছুন</string>
+	<key>Clear selection</key>
+	<string>নির্বাচন সরান</string>
 	<key>Close invitation</key>
 	<string>আমন্ত্রণ বন্ধ করুন</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>ক্লাউড স্টোরেজ</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>দুই পর্দায় ডিভাইসের ID মিলিয়ে কম্পিউটারে অনুমোদন দিন।</string>
+	<key>Compare with current</key>
+	<string>বর্তমান সংস্করণের সঙ্গে তুলনা</string>
 	<key>Complete</key>
 	<string>সম্পন্ন</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>কপি হয়েছে</string>
 	<key>Copied for 30 seconds</key>
 	<string>30 সেকেন্ডের জন্য অনুলিপি করা হয়েছে</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>কপি হয়েছে। কোডটির মেয়াদ শীঘ্রই শেষ হবে।</string>
 	<key>Copies from other iPhones</key>
 	<string>অন্য iPhone থেকে কপি</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>কপিগুলো এই ডিভাইসেই থাকে এবং ৩০ সেকেন্ডের মধ্যে মেয়াদ শেষ হয়।</string>
 	<key>Copy</key>
 	<string>কপি করুন</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>স্টেজড কপি বাতিল করুন</string>
 	<key>Discard this staged copy?</key>
 	<string>এই স্টেজড কপি বাতিল করবেন?</string>
+	<key>Discard unsaved changes?</key>
+	<string>পরিবর্তনগুলি বাতিল করবেন?</string>
+	<key>Dismiss</key>
+	<string>বন্ধ করুন</string>
 	<key>Dismiss this observation</key>
 	<string>এই পর্যবেক্ষণ খারিজ</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>ইঞ্জিন</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>নথিভুক্ত বায়োমেট্রিক্স পরিবর্তিত হয়েছে। এই কীটির উপর নির্ভর করার আগে একটি প্রতিস্থাপন কী নিবন্ধন করুন।</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>সেটআপ কী বা otpauth URL লিখুন।</string>
 	<key>Enter a valid account ID.</key>
 	<string>সঠিক অ্যাকাউন্ট ID লিখুন।</string>
+	<key>Enter a valid date.</key>
+	<string>একটি বৈধ তারিখ লিখুন।</string>
+	<key>Enter a valid email address.</key>
+	<string>একটি সঠিক ইমেইল ঠিকানা লিখুন।</string>
+	<key>Enter a valid website address.</key>
+	<string>একটি সঠিক ওয়েবসাইট ঠিকানা লিখুন।</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>সম্পদের সমর্থিত নির্ভুলতার সাথে একটি ইতিবাচক পরিমাণ লিখুন।</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>মাঠ</string>
 	<key>Field name</key>
 	<string>ক্ষেত্রের নাম</string>
+	<key>Field name is required.</key>
+	<string>ফিল্ডের নাম দিতে হবে।</string>
 	<key>Field reference</key>
 	<string>ক্ষেত্রের রেফারেন্স</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>ফাইল আমদানি হয়েছে।</string>
 	<key>Files in this folder</key>
 	<string>এই ফোল্ডারে ফাইল</string>
+	<key>Filters</key>
+	<string>ভল্ট ফিল্টার</string>
 	<key>Fingerprint</key>
 	<string>আঙুলের ছাপ</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>মানিব্যাগ ফ্রিজ করুন</string>
 	<key>From block %llu</key>
 	<string>ব্লক %llu থেকে</string>
+	<key>Generate password</key>
+	<string>পাসওয়ার্ড তৈরি করুন</string>
 	<key>Grant delegation</key>
 	<string>প্রতিনিধি দল অনুমোদন করুন</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>নোট অন্তর্ভুক্ত করুন</string>
 	<key>Include this message's text</key>
 	<string>এই বার্তার পাঠ্য অন্তর্ভুক্ত করুন</string>
+	<key>Incomplete</key>
+	<string>অসম্পূর্ণ</string>
 	<key>Inspect pairing request</key>
 	<string>পেয়ারিং অনুরোধ পরিদর্শন করুন</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>সততা</string>
 	<key>Interrupted</key>
 	<string>বাধাপ্রাপ্ত</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>সেটআপ কী বা otpauth URL সঠিক নয়।</string>
 	<key>Inventory fingerprint</key>
 	<string>ইনভেন্টরি ফিঙ্গারপ্রিন্ট</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>বর্তমান সংস্করণ রাখুন</string>
 	<key>Keep draft and leave</key>
 	<string>খসড়া রেখে বের হন</string>
+	<key>Keep existing value</key>
+	<string>বিদ্যমান মান রাখুন</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>আপনার গোপনীয়তা, কথোপকথন এবং ফাইল একসাথে রাখুন। শুধুমাত্র আপনার অনুমোদিত ডিভাইসগুলি সেগুলি খুলতে পারে৷</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>রেখে যাওয়া</string>
 	<key>Left out</key>
 	<string>বাদ গেছে</string>
+	<key>Length</key>
+	<string>দৈর্ঘ্য</string>
 	<key>License Key</key>
 	<string>লাইসেন্স কী</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>সদস্য লেবেল</string>
 	<key>Members</key>
 	<string>সদস্যরা</string>
+	<key>Merge individual fields</key>
+	<string>প্রতিটি ফিল্ড আলাদা করে মার্জ করুন</string>
 	<key>Message</key>
 	<string>বার্তা</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>মাসিক নির্বাহের সীমা</string>
 	<key>Monthly execution units</key>
 	<string>মাসিক অপারেশন ইউনিট</string>
+	<key>More types</key>
+	<string>প্রকারভেদ</string>
 	<key>Move a native address</key>
 	<string>নেটিভ ঠিকানা সরান</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>ফাইল লাইব্রেরি একই নেটওয়ার্কে এই অ্যাকাউন্টের অন্য ডিভাইসে এন্ড-টু-এন্ড এনক্রিপশনে সরায়। শেষ না হওয়া পর্যন্ত দুটো ডিভাইসই আনলক রাখুন।</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>পুরনো ডিভাইস থেকে আসছেন? এই ডিভাইস তার ভূমিকা, কী ও ওয়ালেট নেবে, তারপর পুরনোটি বাতিল হবে।</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>ট্র্যাশে সরালে ক্লাউড স্টোরেজ খালি হয় না।</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>নতুন ডিভাইসে যাওয়া: নতুন ডিভাইস পুরনোটির জায়গা নেওয়ার অনুরোধ করে, পুরনোটি অনুমোদন দেয়, তারপর দুটো ধাপে ধাপে হস্তান্তর করে।</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>কোন শংসাপত্র নেই</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>এই ডিভাইসে কোনো নির্ভরতা রেকর্ড করা হয়নি।</string>
+	<key>No favorites</key>
+	<string>কোনো পছন্দের আইটেম নেই</string>
+	<key>No fields or notes</key>
+	<string>এখনো কিছু লেখা হয়নি।</string>
 	<key>No findings from this device's checks.</key>
 	<string>এই ডিভাইসের চেক থেকে কোন অনুসন্ধান.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>কোন বিঘ্নিত আমদানি</string>
 	<key>No item attachments</key>
 	<string>কোন আইটেম সংযুক্তি</string>
+	<key>No items</key>
+	<string>এখনও কোন রেকর্ড নেই</string>
 	<key>No letters yet</key>
 	<string>এখনো কোনো চিঠি নেই</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>গ্রহণকারী ডিভাইসের ID</string>
 	<key>Receiving policy</key>
 	<string>নীতি গ্রহণ</string>
+	<key>Recently updated</key>
+	<string>সম্প্রতি পরিবর্তিত</string>
 	<key>Recipient</key>
 	<string>প্রাপক</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>ডিভাইস বাঁধাই সরান</string>
 	<key>Remove device binding?</key>
 	<string>ডিভাইস বাইন্ডিং সরাবেন?</string>
+	<key>Remove favorite</key>
+	<string>তারা বাদ দিন</string>
 	<key>Remove field</key>
 	<string>ক্ষেত্র সরান</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH কী</string>
 	<key>Save</key>
 	<string>সংরক্ষণ করুন</string>
+	<key>Save merged version</key>
+	<string>একত্রীকরণ সংরক্ষণ করুন</string>
+	<key>Save merged version?</key>
+	<string>মার্জ করা সংস্করণ সংরক্ষণ করবেন?</string>
 	<key>Save name</key>
 	<string>নাম সংরক্ষণ করুন</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>এই ডিভাইসে সংরক্ষিত. পরিবর্তনগুলি সিঙ্কের জন্য অপেক্ষা করছে৷</string>
 	<key>Saved. Publication is pending.</key>
 	<string>সংরক্ষিত প্রকাশনা বাকি আছে।</string>
+	<key>Scan QR code</key>
+	<string>ক্যামেরা দিয়ে স্ক্যান করুন</string>
 	<key>Scan desktop invitation</key>
 	<string>কম্পিউটারের আমন্ত্রণ স্ক্যান করুন</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>ভাগ করার জন্য ক্ষেত্র নির্বাচন করুন</string>
 	<key>Select login items</key>
 	<string>লগইন আইটেম নির্বাচন করুন</string>
+	<key>Select non-duplicates</key>
+	<string>ডুপ্লিকেট নয় এমন রেকর্ড বাছুন</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>প্রতি আমদানিতে সর্বোচ্চ ১,০০০ রেকর্ড বাছুন।</string>
 	<key>Selected</key>
 	<string>নির্বাচিত</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>নির্বাচিত OTP ক্ষেত্রগুলিতে পুনঃব্যবহারযোগ্য বীজ অন্তর্ভুক্ত, শুধুমাত্র একটি বর্তমান কোড নয়।</string>
 	<key>Selected accounts</key>
 	<string>নির্বাচিত অ্যাকাউন্ট</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>বাছাই করা অংশগুলো বিরোধপূর্ণ সংস্করণ ব্যবহার করবে। বাকি অংশে বর্তমান সংস্করণ থাকবে।</string>
 	<key>Send device request</key>
 	<string>ডিভাইসের অনুরোধ পাঠান</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>দেখান</string>
 	<key>Show dismissed findings</key>
 	<string>খারিজ ফলাফল দেখান</string>
+	<key>Show draft</key>
+	<string>আপনি কি টাইপ করেছেন তা দেখান</string>
 	<key>Show share link</key>
 	<string>শেয়ার লিঙ্ক দেখান</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>সংগৃহীত স্বাক্ষর</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>সহ-স্বাক্ষরকারী %@-এর স্বাক্ষর আর তাঁদের বর্তমান কী-এর সঙ্গে মেলে না, তাই আলাদা রাখা হয়েছে; তাঁদের আবার স্বাক্ষর করতে হবে।</string>
+	<key>Skipped</key>
+	<string>বাদ দেওয়া হয়েছে</string>
 	<key>Snapshot</key>
 	<string>স্ন্যাপশট</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>কিছু ব্যবহার তথ্য রিফ্রেশ হয়নি। অনুপলব্ধ মান শূন্য নয়।</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>কিছু ওয়ালেট এখনো শেষ হয়নি। শেষ করতে ধাপটি আবার চালান।</string>
+	<key>Sort</key>
+	<string>সাজান</string>
 	<key>Source address</key>
 	<string>উৎস ঠিকানা</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>অ্যাকাউন্ট পরিবর্তন করুন</string>
 	<key>Switch to this account</key>
 	<string>এই অ্যাকাউন্টে স্যুইচ করুন</string>
+	<key>Symbols</key>
+	<string>প্রতীক</string>
 	<key>Sync and storage</key>
 	<string>সিঙ্ক ও স্টোরেজ</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>সিস্টেম ইন্টিগ্রেশন</string>
 	<key>System permission</key>
 	<string>সিস্টেমের অনুমতি</string>
+	<key>Tags</key>
+	<string>ট্যাগ</string>
 	<key>Tags, separated by commas</key>
 	<string>ট্যাগ, কমা দ্বারা পৃথক</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>এই ডিভাইসটি আপনার ব্যক্তিগত সামগ্রী পেতে পারে৷ অনুমোদনের পরে মাস্টার বিষয়বস্তু-এনক্রিপশন কী পুনরায় বিতরণ করা আবশ্যক।</string>
 	<key>This device replaces</key>
 	<string>এই ডিভাইস যার জায়গা নিচ্ছে</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>আপনি লুকিয়ে না ফেলা বা এই স্ক্রিন ছেড়ে না যাওয়া পর্যন্ত ফিল্ডটি দেখা যাবে।</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>এই ফাইলটি এই কাজের জন্য অনুমোদিত আকারের সীমা অতিক্রম করেছে।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>এই ইনভেন্টরি এই ডিভাইসে রেফারেন্স এবং ডেলিভারি রেকর্ড কভার করে। এটি অন্যান্য ডিভাইস বা নির্বিচারে প্রকল্প ফাইল অনুসন্ধান করে না।</string>
 	<key>This is not the device in the request.</key>
 	<string>এটি অনুরোধের ডিভাইস নয়।</string>
+	<key>This item is no longer available.</key>
+	<string>এই আইটেমটি আর পাওয়া যাচ্ছে না।</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>এই কী dMsg দ্বারা পরিচালিত হয় এবং অনুলিপি বা সম্পাদনা করা যায় না।</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>এর বদলে পুরনো iPhone প্রতিস্থাপন করতে কপিটি আলাদা রেখে সাইন ইন করুন, তারপর কপিতে «পুরনো iPhone প্রতিস্থাপন করুন» বেছে নিন; এই iPhone যুক্ত হলে ডিভাইসে গিয়ে কপির ফাইল আমদানি করুন।</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>এই iPhone এ আপনার বিদ্যমান অ্যাকাউন্ট ব্যবহার করতে, আপনার অনুমোদিত ডিভাইসগুলির একটি থেকে এই ডিভাইসটিকে অনুমোদন করুন৷</string>
+	<key>Total</key>
+	<string>মোট</string>
 	<key>Transfer between devices</key>
 	<string>ডিভাইসের মধ্যে স্থানান্তর</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>বিরোধপূর্ণ সংস্করণ ব্যবহার করুন</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>আইসিপি, আইসিআরসি:লেজার, বিটিসি, ইভিএম:চেইন, ইভিএম:চেইন:টোকেন, সল বা সল:মিন্ট ব্যবহার করুন।</string>
+	<key>Use password</key>
+	<string>এই পাসওয়ার্ড ব্যবহার করুন</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>এই আইফোনে এনক্রিপ্ট করা ওয়ার্কস্পেস আনলক করতে সিস্টেম প্রমাণীকরণ ব্যবহার করুন।</string>
 	<key>Use this folder</key>

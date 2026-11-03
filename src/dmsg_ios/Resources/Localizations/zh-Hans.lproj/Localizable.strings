@@ -134,6 +134,8 @@
 	<string>更改账户安全设置需要管理员设备。</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>发布此公开资料需要管理员设备。</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>空的替换值会清除已保存的内容。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>持有完整链接及所需密码的人，都可在限制范围内取回内容。</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>选择要保留的版本。现有历史会继续保存，秘密不会被静默覆盖。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>选择谁可以向你免费发送来信。已屏蔽账号会保持屏蔽，直到你解除。</string>
+	<key>Clear</key>
+	<string>清除</string>
 	<key>Clear cached data</key>
 	<string>清理缓存</string>
+	<key>Clear filters</key>
+	<string>清除筛选</string>
+	<key>Clear selection</key>
+	<string>取消选择</string>
 	<key>Close invitation</key>
 	<string>结束邀请</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>云端空间</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>核对两端显示的设备 ID，并在桌面确认授权。</string>
+	<key>Compare with current</key>
+	<string>与当前版本比较</string>
 	<key>Complete</key>
 	<string>已完成</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>已复制</string>
 	<key>Copied for 30 seconds</key>
 	<string>已复制，30 秒后过期</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>已复制，验证码即将过期。</string>
 	<key>Copies from other iPhones</key>
 	<string>来自其他 iPhone 的副本</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>复制内容仅保留在本机，并在 30 秒内过期。</string>
 	<key>Copy</key>
 	<string>复制</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>丢弃暂存副本</string>
 	<key>Discard this staged copy?</key>
 	<string>丢弃此暂存副本？</string>
+	<key>Discard unsaved changes?</key>
+	<string>放弃修改？</string>
+	<key>Dismiss</key>
+	<string>关闭</string>
 	<key>Dismiss this observation</key>
 	<string>忽略此次观察结果</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>数据库引擎</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>已录入的生物识别信息发生变化。依赖此钥匙前，请注册替代钥匙。</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>输入设置密钥或 otpauth 链接。</string>
 	<key>Enter a valid account ID.</key>
 	<string>请输入有效的账户 ID。</string>
+	<key>Enter a valid date.</key>
+	<string>请输入有效日期。</string>
+	<key>Enter a valid email address.</key>
+	<string>请输入有效的邮箱地址。</string>
+	<key>Enter a valid website address.</key>
+	<string>请输入有效的网站地址。</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>请输入正数，且不要超过资产精度。</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -775,15 +801,17 @@
 	<key>Failed</key>
 	<string>失败</string>
 	<key>Favorite</key>
-	<string>常用</string>
+	<string>收藏</string>
 	<key>Favorites</key>
-	<string>常用</string>
+	<string>收藏</string>
 	<key>Fee</key>
 	<string>手续费</string>
 	<key>Field</key>
 	<string>字段</string>
 	<key>Field name</key>
 	<string>字段名称</string>
+	<key>Field name is required.</key>
+	<string>请填写字段名称。</string>
 	<key>Field reference</key>
 	<string>字段引用</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>文件已导入。</string>
 	<key>Files in this folder</key>
 	<string>此文件夹中的文件</string>
+	<key>Filters</key>
+	<string>保险库筛选</string>
 	<key>Fingerprint</key>
 	<string>指纹</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>冻结钱包</string>
 	<key>From block %llu</key>
 	<string>自区块 %llu 起</string>
+	<key>Generate password</key>
+	<string>生成密码</string>
 	<key>Grant delegation</key>
 	<string>授予委托</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>包含备注</string>
 	<key>Include this message's text</key>
 	<string>附上此消息正文</string>
+	<key>Incomplete</key>
+	<string>不完整</string>
 	<key>Inspect pairing request</key>
 	<string>核对配对请求</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>完整性</string>
 	<key>Interrupted</key>
 	<string>已中断</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>设置密钥或 otpauth 链接无效。</string>
 	<key>Inventory fingerprint</key>
 	<string>清单指纹</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>保留当前版本</string>
 	<key>Keep draft and leave</key>
 	<string>保留草稿并离开</string>
+	<key>Keep existing value</key>
+	<string>保留现有内容</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>把秘密、对话与文件放在一起，只有你授权的设备才能打开。</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>已留下</string>
 	<key>Left out</key>
 	<string>未传</string>
+	<key>Length</key>
+	<string>长度</string>
 	<key>License Key</key>
 	<string>许可证密钥</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>成员标签</string>
 	<key>Members</key>
 	<string>成员列表</string>
+	<key>Merge individual fields</key>
+	<string>逐字段合并</string>
 	<key>Message</key>
 	<string>发送私信</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>每月执行额度上限</string>
 	<key>Monthly execution units</key>
 	<string>每月执行额度</string>
+	<key>More types</key>
+	<string>类型</string>
 	<key>Move a native address</key>
 	<string>迁移原生地址</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>在同一网络内把文件库传到此账户的另一台设备，全程端到端加密。完成前请保持两台设备都已解锁。</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>从旧设备换过来？本设备将接替它的角色、钥匙和钱包，随后撤销旧设备。</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>移入回收站不会释放云端空间。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>换用新设备：新设备请求替换旧设备，旧设备批准后，两台设备逐步完成交接。</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>没有凭证</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>此设备尚未记录依赖。</string>
+	<key>No favorites</key>
+	<string>暂无收藏</string>
+	<key>No fields or notes</key>
+	<string>还没有内容。</string>
 	<key>No findings from this device's checks.</key>
 	<string>此设备的检查没有发现问题。</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>没有中断的导入</string>
 	<key>No item attachments</key>
 	<string>条目暂无附件</string>
+	<key>No items</key>
+	<string>暂无记录</string>
 	<key>No letters yet</key>
 	<string>还没有来信</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>接收设备 ID</string>
 	<key>Receiving policy</key>
 	<string>收信规则</string>
+	<key>Recently updated</key>
+	<string>最近修改</string>
 	<key>Recipient</key>
 	<string>收件人</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>移除本机绑定</string>
 	<key>Remove device binding?</key>
 	<string>移除本机绑定？</string>
+	<key>Remove favorite</key>
+	<string>取消星标</string>
 	<key>Remove field</key>
 	<string>删除字段</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH 密钥</string>
 	<key>Save</key>
 	<string>保存</string>
+	<key>Save merged version</key>
+	<string>保存合并结果</string>
+	<key>Save merged version?</key>
+	<string>保存合并后的版本？</string>
 	<key>Save name</key>
 	<string>保存名称</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>已保存到本机，正在等待同步。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已保存，等待发布。</string>
+	<key>Scan QR code</key>
+	<string>使用摄像头扫描</string>
 	<key>Scan desktop invitation</key>
 	<string>扫描桌面邀请</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>选择要分享的字段</string>
 	<key>Select login items</key>
 	<string>选择登录项</string>
+	<key>Select non-duplicates</key>
+	<string>选择非重复条目</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>每次最多导入 1,000 条记录。</string>
 	<key>Selected</key>
 	<string>已选择</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>所选一次性密码字段包含可重复使用的种子密钥，不仅是当前验证码。</string>
 	<key>Selected accounts</key>
 	<string>指定账号</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>选中的部分采用冲突版本，其余部分保留当前版本。</string>
 	<key>Send device request</key>
 	<string>发送设备请求</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>显示</string>
 	<key>Show dismissed findings</key>
 	<string>显示已忽略的发现</string>
+	<key>Show draft</key>
+	<string>显示输入内容</string>
 	<key>Show share link</key>
 	<string>显示分享链接</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>已收集的签名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>协签人 %@ 的签名与其当前密钥不再匹配，已被搁置，需要重新签名。</string>
+	<key>Skipped</key>
+	<string>已跳过</string>
 	<key>Snapshot</key>
 	<string>快照</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>部分用量未能刷新。无法获取的数值不代表零。</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>还有钱包未完成。请再执行一次此步骤。</string>
+	<key>Sort</key>
+	<string>排序</string>
 	<key>Source address</key>
 	<string>来源地址</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>切换账户</string>
 	<key>Switch to this account</key>
 	<string>切换到此账号</string>
+	<key>Symbols</key>
+	<string>符号</string>
 	<key>Sync and storage</key>
 	<string>同步与存储</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>系统集成</string>
 	<key>System permission</key>
 	<string>系统权限</string>
+	<key>Tags</key>
+	<string>标签</string>
 	<key>Tags, separated by commas</key>
 	<string>标签，以逗号分隔</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>这台设备可能获得你的私密内容。批准后仍需完成内容根分发。</string>
 	<key>This device replaces</key>
 	<string>本设备替换</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>该字段将保持可见，直到你隐藏它或离开此页面。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>此文件超过了此操作允许的大小上限。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>此清单涵盖本设备的引用和交付记录，不会搜索其他设备或任意项目文件。</string>
 	<key>This is not the device in the request.</key>
 	<string>这不是请求中的设备。</string>
+	<key>This item is no longer available.</key>
+	<string>此条目已不可用。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>此密钥由 dMsg 管理，不能复制或编辑。</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>如果要改为替换旧 iPhone：先将副本放到一边并登录，再在副本上选择“替换旧 iPhone”；本机加入后，再在“设备”中导入副本中的文件。</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。</string>
+	<key>Total</key>
+	<string>合计</string>
 	<key>Transfer between devices</key>
 	<string>设备间直传</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>采用冲突版本</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>使用 icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol 或 sol:mint。</string>
+	<key>Use password</key>
+	<string>使用此密码</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>使用系统验证，即可解锁这台 iPhone 上的加密工作区。</string>
 	<key>Use this folder</key>

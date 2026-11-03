@@ -134,6 +134,8 @@
 	<string>變更帳戶安全設定需要管理員裝置。</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>發佈此公開資料需要管理員裝置。</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>空白的替換值會清除已儲存的內容。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>持有完整連結及所需密碼的人，都可在限制範圍內取回內容。</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>選擇要保留的版本。現有歷史會繼續儲存，秘密不會被靜默覆蓋。</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>選擇誰可以向你免費傳送來信。已封鎖帳號會保持封鎖，直到你解除。</string>
+	<key>Clear</key>
+	<string>清除</string>
 	<key>Clear cached data</key>
 	<string>清除快取</string>
+	<key>Clear filters</key>
+	<string>清除篩選</string>
+	<key>Clear selection</key>
+	<string>取消選擇</string>
 	<key>Close invitation</key>
 	<string>結束邀請</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>雲端空間</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>核對兩端顯示的裝置 ID，並在桌面確認授權。</string>
+	<key>Compare with current</key>
+	<string>與目前版本比較</string>
 	<key>Complete</key>
 	<string>已完成</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>已複製</string>
 	<key>Copied for 30 seconds</key>
 	<string>已複製，30 秒後過期</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>已複製，驗證碼即將到期。</string>
 	<key>Copies from other iPhones</key>
 	<string>來自其他 iPhone 的副本</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>複製內容僅保留在本機，並於 30 秒內到期。</string>
 	<key>Copy</key>
 	<string>複製</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>丟棄暫存副本</string>
 	<key>Discard this staged copy?</key>
 	<string>丟棄此暫存副本？</string>
+	<key>Discard unsaved changes?</key>
+	<string>放棄修改？</string>
+	<key>Dismiss</key>
+	<string>關閉</string>
 	<key>Dismiss this observation</key>
 	<string>忽略此次觀察結果</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>資料庫引擎</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>已錄入的生物識別資訊發生變化。依賴此鑰匙前，請註冊替代鑰匙。</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>輸入設定金鑰或 otpauth 連結。</string>
 	<key>Enter a valid account ID.</key>
 	<string>請輸入有效的帳戶 ID。</string>
+	<key>Enter a valid date.</key>
+	<string>請輸入有效日期。</string>
+	<key>Enter a valid email address.</key>
+	<string>請輸入有效的電子郵件地址。</string>
+	<key>Enter a valid website address.</key>
+	<string>請輸入有效的網站網址。</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>請輸入正數，且不要超過資產精度。</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -775,15 +801,17 @@
 	<key>Failed</key>
 	<string>失敗</string>
 	<key>Favorite</key>
-	<string>常用</string>
+	<string>收藏</string>
 	<key>Favorites</key>
-	<string>常用</string>
+	<string>收藏</string>
 	<key>Fee</key>
 	<string>手續費</string>
 	<key>Field</key>
 	<string>欄位</string>
 	<key>Field name</key>
 	<string>欄位名稱</string>
+	<key>Field name is required.</key>
+	<string>請填寫欄位名稱。</string>
 	<key>Field reference</key>
 	<string>欄位引用</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>檔案已匯入。</string>
 	<key>Files in this folder</key>
 	<string>此資料夾中的檔案</string>
+	<key>Filters</key>
+	<string>保險庫篩選</string>
 	<key>Fingerprint</key>
 	<string>指紋</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>凍結錢包</string>
 	<key>From block %llu</key>
 	<string>自區塊 %llu 起</string>
+	<key>Generate password</key>
+	<string>產生密碼</string>
 	<key>Grant delegation</key>
 	<string>授予委託</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>包含備註</string>
 	<key>Include this message's text</key>
 	<string>附上此訊息正文</string>
+	<key>Incomplete</key>
+	<string>不完整</string>
 	<key>Inspect pairing request</key>
 	<string>核對配對請求</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>完整性</string>
 	<key>Interrupted</key>
 	<string>已中斷</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>設定金鑰或 otpauth 連結無效。</string>
 	<key>Inventory fingerprint</key>
 	<string>清單指紋</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>保留當前版本</string>
 	<key>Keep draft and leave</key>
 	<string>保留草稿並離開</string>
+	<key>Keep existing value</key>
+	<string>保留現有內容</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>把秘密、對話與檔案放在一起，只有你授權的裝置才能開啟。</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>已留下</string>
 	<key>Left out</key>
 	<string>未傳</string>
+	<key>Length</key>
+	<string>長度</string>
 	<key>License Key</key>
 	<string>許可證金鑰</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>成員標籤</string>
 	<key>Members</key>
 	<string>成員列表</string>
+	<key>Merge individual fields</key>
+	<string>逐欄位合併</string>
 	<key>Message</key>
 	<string>傳送私信</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>每月執行額度上限</string>
 	<key>Monthly execution units</key>
 	<string>每月執行額度</string>
+	<key>More types</key>
+	<string>型別</string>
 	<key>Move a native address</key>
 	<string>遷移原生地址</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>在同一網路內把檔案庫傳到此帳戶的另一台裝置，全程端對端加密。完成前請讓兩台裝置都保持解鎖。</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>從舊裝置換過來？本裝置將接替它的角色、鑰匙和錢包，隨後撤銷舊裝置。</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>移至垃圾桶不會釋出雲端空間。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>換用新裝置：新裝置請求取代舊裝置，舊裝置批准後，兩台裝置逐步完成交接。</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>沒有憑證</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>此裝置尚未記錄依賴。</string>
+	<key>No favorites</key>
+	<string>尚無收藏</string>
+	<key>No fields or notes</key>
+	<string>還沒有內容。</string>
 	<key>No findings from this device's checks.</key>
 	<string>此裝置的檢查沒有發現問題。</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>沒有中斷的匯入</string>
 	<key>No item attachments</key>
 	<string>條目暫無附件</string>
+	<key>No items</key>
+	<string>暫無記錄</string>
 	<key>No letters yet</key>
 	<string>還沒有來信</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>接收裝置 ID</string>
 	<key>Receiving policy</key>
 	<string>收信規則</string>
+	<key>Recently updated</key>
+	<string>最近修改</string>
 	<key>Recipient</key>
 	<string>收件人</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>移除本機繫結</string>
 	<key>Remove device binding?</key>
 	<string>移除本機繫結？</string>
+	<key>Remove favorite</key>
+	<string>取消星標</string>
 	<key>Remove field</key>
 	<string>刪除欄位</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH 金鑰</string>
 	<key>Save</key>
 	<string>儲存</string>
+	<key>Save merged version</key>
+	<string>儲存合併結果</string>
+	<key>Save merged version?</key>
+	<string>儲存合併後的版本？</string>
 	<key>Save name</key>
 	<string>儲存名稱</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>已儲存到本機，正在等待同步。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已儲存，等待發布。</string>
+	<key>Scan QR code</key>
+	<string>使用相機掃描</string>
 	<key>Scan desktop invitation</key>
 	<string>掃描桌面邀請</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>選擇要分享的欄位</string>
 	<key>Select login items</key>
 	<string>選擇登入項</string>
+	<key>Select non-duplicates</key>
+	<string>選取非重複項目</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>每次最多匯入 1,000 筆記錄。</string>
 	<key>Selected</key>
 	<string>已選擇</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>所選一次性密碼欄位包含可重複使用的種子金鑰，不僅是當前驗證碼。</string>
 	<key>Selected accounts</key>
 	<string>指定帳號</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>選取的部分採用衝突版本，其餘部分保留目前版本。</string>
 	<key>Send device request</key>
 	<string>傳送裝置請求</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>顯示</string>
 	<key>Show dismissed findings</key>
 	<string>顯示已忽略的發現</string>
+	<key>Show draft</key>
+	<string>顯示輸入內容</string>
 	<key>Show share link</key>
 	<string>顯示分享連結</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>已收集的簽名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>協簽人 %@ 的簽名與其目前的金鑰不再相符，已被擱置，需要重新簽名。</string>
+	<key>Skipped</key>
+	<string>已略過</string>
 	<key>Snapshot</key>
 	<string>快照</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>部分用量無法重新整理。無法取得的數值不代表零。</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>還有錢包未完成。請再執行一次此步驟。</string>
+	<key>Sort</key>
+	<string>排序</string>
 	<key>Source address</key>
 	<string>來源地址</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>切換帳戶</string>
 	<key>Switch to this account</key>
 	<string>切換到此帳號</string>
+	<key>Symbols</key>
+	<string>符號</string>
 	<key>Sync and storage</key>
 	<string>同步與儲存</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>系統整合</string>
 	<key>System permission</key>
 	<string>系統權限</string>
+	<key>Tags</key>
+	<string>標籤</string>
 	<key>Tags, separated by commas</key>
 	<string>標籤，以逗號分隔</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>這台裝置可能獲得你的私密內容。批准後仍需完成內容根分發。</string>
 	<key>This device replaces</key>
 	<string>本裝置取代</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>此欄位會保持可見，直到你將它隱藏或離開此頁面。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>此檔案超過此操作允許的大小上限。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>此清單涵蓋本裝置的引用和交付記錄，不會搜尋其他裝置或任意專案檔案。</string>
 	<key>This is not the device in the request.</key>
 	<string>這不是請求中的裝置。</string>
+	<key>This item is no longer available.</key>
+	<string>此項目已無法使用。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>此金鑰由 dMsg 管理，不能複製或編輯。</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>若要改為取代舊 iPhone：先將副本放到一旁並登入，再於副本選擇「取代舊 iPhone」；本機加入後，再於「裝置」中匯入副本中的檔案。</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>要在這台 iPhone 上使用已有帳號，請在一台已授權裝置上批准此裝置。</string>
+	<key>Total</key>
+	<string>合計</string>
 	<key>Transfer between devices</key>
 	<string>裝置間直傳</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>採用衝突版本</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>使用 icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol 或 sol:mint。</string>
+	<key>Use password</key>
+	<string>使用此密碼</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>使用系統驗證，即可解鎖這台 iPhone 上的加密工作區。</string>
 	<key>Use this folder</key>

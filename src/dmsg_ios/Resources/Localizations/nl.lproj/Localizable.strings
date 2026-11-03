@@ -134,6 +134,8 @@
 	<string>Een beheerdersapparaat is nodig om de accountbeveiliging te wijzigen.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Een beheerdersapparaat is vereist om dit profiel te publiceren.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Een lege vervanging wist de opgeslagen waarde.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Iedereen met de volledige link en het vereiste wachtwoord kan deze binnen zijn grenzen ophalen.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Kies welke versie je wilt behouden. Bestaande historie blijft behouden; geheimen worden nooit stilletjes overschreven.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Kies wie je gratis brieven mag sturen. Geblokkeerde accounts blijven geblokkeerd totdat je ze deblokkeert.</string>
+	<key>Clear</key>
+	<string>Wissen</string>
 	<key>Clear cached data</key>
 	<string>Cache wissen</string>
+	<key>Clear filters</key>
+	<string>Filters wissen</string>
+	<key>Clear selection</key>
+	<string>Selectie wissen</string>
 	<key>Close invitation</key>
 	<string>Uitnodiging sluiten</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Cloudopslag</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Vergelijk de apparaat-ID op beide schermen en keur goed op de computer.</string>
+	<key>Compare with current</key>
+	<string>Vergelijken met huidige versie</string>
 	<key>Complete</key>
 	<string>Voltooid</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Gekopieerd</string>
 	<key>Copied for 30 seconds</key>
 	<string>Gekopieerd gedurende 30 seconden</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Gekopieerd. De code verloopt binnenkort.</string>
 	<key>Copies from other iPhones</key>
 	<string>Kopieën van andere iPhones</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Kopieën blijven op dit apparaat en verlopen binnen 30 seconden.</string>
 	<key>Copy</key>
 	<string>Kopiëren</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Gooi de geënsceneerde kopie weg</string>
 	<key>Discard this staged copy?</key>
 	<string>Deze geënsceneerde kopie weggooien?</string>
+	<key>Discard unsaved changes?</key>
+	<string>De wijzigingen negeren?</string>
+	<key>Dismiss</key>
+	<string>Sluiten</string>
 	<key>Dismiss this observation</key>
 	<string>Negeer deze observatie</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Motor</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Ingeschreven biometrie is gewijzigd. Registreer een vervangende sleutel voordat je op deze sleutel vertrouwt.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Voer een instelsleutel of otpauth-URL in.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Voer een geldige account-ID in.</string>
+	<key>Enter a valid date.</key>
+	<string>Voer een geldige datum in.</string>
+	<key>Enter a valid email address.</key>
+	<string>Voer een geldig e-mailadres in.</string>
+	<key>Enter a valid website address.</key>
+	<string>Voer een geldig websiteadres in.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Voer een positief bedrag in met de ondersteunde precisie van het activum.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>Veld</string>
 	<key>Field name</key>
 	<string>Veldnaam</string>
+	<key>Field name is required.</key>
+	<string>Een veldnaam is vereist.</string>
 	<key>Field reference</key>
 	<string>Veldreferentie</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Bestanden geïmporteerd.</string>
 	<key>Files in this folder</key>
 	<string>Bestanden in deze map</string>
+	<key>Filters</key>
+	<string>Kluisfilters</string>
 	<key>Fingerprint</key>
 	<string>Vingerafdruk</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Bevries portemonnee</string>
 	<key>From block %llu</key>
 	<string>Vanaf blok %llu</string>
+	<key>Generate password</key>
+	<string>Wachtwoord genereren</string>
 	<key>Grant delegation</key>
 	<string>Delegatie autoriseren</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Voeg notities toe</string>
 	<key>Include this message's text</key>
 	<string>Voeg de tekst van dit bericht toe</string>
+	<key>Incomplete</key>
+	<string>Onvolledig</string>
 	<key>Inspect pairing request</key>
 	<string>Koppelingsverzoek controleren</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Integriteit</string>
 	<key>Interrupted</key>
 	<string>Onderbroken</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Ongeldige instelsleutel of otpauth-URL.</string>
 	<key>Inventory fingerprint</key>
 	<string>Inventaris vingerafdruk</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Behoud de huidige versie</string>
 	<key>Keep draft and leave</key>
 	<string>Concept bewaren en verlaten</string>
+	<key>Keep existing value</key>
+	<string>Bestaande waarde behouden</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Houd je geheimen, gesprekken en bestanden bij elkaar. Alleen je geautoriseerde apparaten kunnen ze openen.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Achtergelaten</string>
 	<key>Left out</key>
 	<string>Overgeslagen</string>
+	<key>Length</key>
+	<string>Lengte</string>
 	<key>License Key</key>
 	<string>Licentiesleutel</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Lidmaatschapslabel</string>
 	<key>Members</key>
 	<string>Leden</string>
+	<key>Merge individual fields</key>
+	<string>Afzonderlijke velden samenvoegen</string>
 	<key>Message</key>
 	<string>Bericht</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Maandelijkse uitvoeringslimiet</string>
 	<key>Monthly execution units</key>
 	<string>Maandelijkse bedrijfseenheden</string>
+	<key>More types</key>
+	<string>Soorten</string>
 	<key>Move a native address</key>
 	<string>Een native adres verplaatsen</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Verplaatst de bestandsbibliotheek end-to-end versleuteld naar een ander apparaat van dit account in hetzelfde netwerk. Houd beide apparaten ontgrendeld tot het klaar is.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Kom je van een oud apparaat? Dit apparaat neemt de rol, sleutels en wallets over, waarna het oude wordt ingetrokken.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Verplaatsen naar de prullenmand maakt geen cloudopslag vrij.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Overstappen op een nieuw apparaat: het nieuwe apparaat vraagt een oud apparaat te vervangen, het oude keurt dat goed en daarna dragen ze stap voor stap over.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Geen inloggegevens</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Er zijn geen afhankelijkheden geregistreerd op dit apparaat.</string>
+	<key>No favorites</key>
+	<string>Geen favorieten</string>
+	<key>No fields or notes</key>
+	<string>Nog niets geschreven.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Geen bevindingen uit de controles van dit apparaat.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Geen onderbroken import</string>
 	<key>No item attachments</key>
 	<string>Geen itembijlagen</string>
+	<key>No items</key>
+	<string>Nog geen gegevens</string>
 	<key>No letters yet</key>
 	<string>Nog geen brieven</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>ID van het ontvangende apparaat</string>
 	<key>Receiving policy</key>
 	<string>Ontvangstbeleid</string>
+	<key>Recently updated</key>
+	<string>Onlangs gewijzigd</string>
 	<key>Recipient</key>
 	<string>Ontvanger</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Apparaatbinding verwijderen</string>
 	<key>Remove device binding?</key>
 	<string>Apparaatbinding verwijderen?</string>
+	<key>Remove favorite</key>
+	<string>Ster verwijderen</string>
 	<key>Remove field</key>
 	<string>Veld verwijderen</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH-sleutel</string>
 	<key>Save</key>
 	<string>Opslaan</string>
+	<key>Save merged version</key>
+	<string>Samenvoeging opslaan</string>
+	<key>Save merged version?</key>
+	<string>Samengevoegde versie opslaan?</string>
 	<key>Save name</key>
 	<string>Naam opslaan</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Opgeslagen op dit apparaat. Wijzigingen wachten op synchronisatie.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Opgeslagen. Publicatie is in behandeling.</string>
+	<key>Scan QR code</key>
+	<string>Scannen met camera</string>
 	<key>Scan desktop invitation</key>
 	<string>Uitnodiging van computer scannen</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Selecteer velden om te delen</string>
 	<key>Select login items</key>
 	<string>Selecteer inlogitems</string>
+	<key>Select non-duplicates</key>
+	<string>Niet-dubbele records selecteren</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Selecteer maximaal 1.000 records per import.</string>
 	<key>Selected</key>
 	<string>Geselecteerd</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Geselecteerde OTP-velden bevatten het herbruikbare zaad, niet alleen een huidige code.</string>
 	<key>Selected accounts</key>
 	<string>Geselecteerde rekeningen</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Geselecteerde delen gebruiken de conflicterende versie. Andere delen behouden de huidige versie.</string>
 	<key>Send device request</key>
 	<string>Apparaatverzoek verzenden</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Toon</string>
 	<key>Show dismissed findings</key>
 	<string>Toon afgewezen bevindingen</string>
+	<key>Show draft</key>
+	<string>Laat zien wat je hebt getypt</string>
 	<key>Show share link</key>
 	<string>Deellink tonen</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Verzamelde handtekeningen</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Handtekeningen van medeondertekenaars %@ passen niet meer bij hun huidige sleutels en zijn apart gezet; zij moeten opnieuw ondertekenen.</string>
+	<key>Skipped</key>
+	<string>Overgeslagen</string>
 	<key>Snapshot</key>
 	<string>Momentopname</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Sommige gebruiksgegevens konden niet worden vernieuwd. Ontbrekende waarden zijn niet nul.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Sommige wallets zijn nog niet klaar. Voer de stap opnieuw uit om af te ronden.</string>
+	<key>Sort</key>
+	<string>Sorteren</string>
 	<key>Source address</key>
 	<string>Bron adres</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Van account wisselen</string>
 	<key>Switch to this account</key>
 	<string>Schakel over naar dit account</string>
+	<key>Symbols</key>
+	<string>Symbolen</string>
 	<key>Sync and storage</key>
 	<string>Synchronisatie en opslag</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Systeemintegraties</string>
 	<key>System permission</key>
 	<string>Systeemtoestemming</string>
+	<key>Tags</key>
+	<string>Labels</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, gescheiden door komma's</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>Dit apparaat kan je privé-inhoud ontvangen. De hoofdsleutel voor inhoudsversleuteling moet na goedkeuring opnieuw worden gedistribueerd.</string>
 	<key>This device replaces</key>
 	<string>Dit apparaat vervangt</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>Dit veld blijft zichtbaar totdat je het verbergt of dit scherm verlaat.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Dit bestand overschrijdt de maximale grootte voor deze bewerking.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Deze inventaris omvat referenties en leveringsgegevens op dit apparaat. Er wordt niet gezocht naar andere apparaten of willekeurige projectbestanden.</string>
 	<key>This is not the device in the request.</key>
 	<string>Dit is niet het apparaat uit het verzoek.</string>
+	<key>This item is no longer available.</key>
+	<string>Dit item is niet meer beschikbaar.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Deze sleutel wordt beheerd door dMsg en kan niet worden gekopieerd of bewerkt.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Wil je de oude iPhone liever vervangen, zet de kopie dan opzij en log in; kies daarna Oude iPhone vervangen bij de kopie en importeer de bestanden onder Apparaten zodra deze iPhone is toegevoegd.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Als je je bestaande account op deze iPhone wilt gebruiken, moet je dit apparaat goedkeuren vanaf een van je geautoriseerde apparaten.</string>
+	<key>Total</key>
+	<string>Totaal</string>
 	<key>Transfer between devices</key>
 	<string>Overdracht tussen apparaten</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Conflicterende versie gebruiken</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Gebruik icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol of sol:mint.</string>
+	<key>Use password</key>
+	<string>Wachtwoord gebruiken</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Gebruik systeemauthenticatie om de gecodeerde werkruimte op deze iPhone te ontgrendelen.</string>
 	<key>Use this folder</key>

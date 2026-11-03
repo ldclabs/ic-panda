@@ -134,6 +134,8 @@
 	<string>계정 보안을 변경하려면 관리자 기기가 필요합니다.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>이 프로필을 게시하려면 관리자 기기가 필요합니다.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>빈 값으로 바꾸면 저장된 값이 지워집니다.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>전체 링크와 필수 비밀번호를 아는 사람은 누구나 한도 내에서 링크를 검색할 수 있습니다.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>유지할 버전을 선택하세요. 기존 기록은 유지됩니다. 비밀은 자동으로 덮어쓰여지지 않습니다.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>무료 편지를 보낼 수 있는 사람을 선택하세요. 차단된 계정은 차단을 해제할 때까지 차단된 상태로 유지됩니다.</string>
+	<key>Clear</key>
+	<string>지우기</string>
 	<key>Clear cached data</key>
 	<string>캐시 지우기</string>
+	<key>Clear filters</key>
+	<string>필터 지우기</string>
+	<key>Clear selection</key>
+	<string>선택 취소</string>
 	<key>Close invitation</key>
 	<string>초대 종료</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>클라우드 스토리지</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>두 화면의 기기 ID를 비교한 후 컴퓨터에서 승인하세요.</string>
+	<key>Compare with current</key>
+	<string>현재 버전과 비교</string>
 	<key>Complete</key>
 	<string>완료</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>복사됨</string>
 	<key>Copied for 30 seconds</key>
 	<string>30초 동안 복사됨</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>복사했습니다. 코드가 곧 만료됩니다.</string>
 	<key>Copies from other iPhones</key>
 	<string>다른 iPhone의 복사본</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>복사한 내용은 이 기기에만 남으며 30초 이내에 만료됩니다.</string>
 	<key>Copy</key>
 	<string>복사</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>준비된 사본 삭제</string>
 	<key>Discard this staged copy?</key>
 	<string>이 단계적 사본을 삭제하시겠습니까?</string>
+	<key>Discard unsaved changes?</key>
+	<string>변경사항을 삭제하시겠습니까?</string>
+	<key>Dismiss</key>
+	<string>닫기</string>
 	<key>Dismiss this observation</key>
 	<string>이 관찰을 닫습니다</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>엔진</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>등록된 생체 인식이 변경되었습니다. 이 키를 사용하기 전에 대체 키를 등록하세요.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>설정 키 또는 otpauth URL을 입력하세요.</string>
 	<key>Enter a valid account ID.</key>
 	<string>올바른 계정 ID를 입력하세요.</string>
+	<key>Enter a valid date.</key>
+	<string>유효한 날짜를 입력하세요.</string>
+	<key>Enter a valid email address.</key>
+	<string>유효한 이메일 주소를 입력하세요.</string>
+	<key>Enter a valid website address.</key>
+	<string>유효한 웹사이트 주소를 입력하세요.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>자산이 지원하는 정밀도로 양수 금액을 입력하세요.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>필드</string>
 	<key>Field name</key>
 	<string>필드 이름</string>
+	<key>Field name is required.</key>
+	<string>필드 이름이 필요합니다.</string>
 	<key>Field reference</key>
 	<string>현장 참조</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>파일을 가져왔습니다.</string>
 	<key>Files in this folder</key>
 	<string>이 폴더의 파일</string>
+	<key>Filters</key>
+	<string>볼트 필터</string>
 	<key>Fingerprint</key>
 	<string>지문</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>지갑 동결</string>
 	<key>From block %llu</key>
 	<string>블록 %llu부터</string>
+	<key>Generate password</key>
+	<string>비밀번호 생성</string>
 	<key>Grant delegation</key>
 	<string>위임 위임</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>메모 포함</string>
 	<key>Include this message's text</key>
 	<string>이 메시지의 텍스트를 포함하세요</string>
+	<key>Incomplete</key>
+	<string>불완전</string>
 	<key>Inspect pairing request</key>
 	<string>페어링 요청 검사</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>무결성</string>
 	<key>Interrupted</key>
 	<string>중단됨</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>설정 키 또는 otpauth URL이 올바르지 않습니다.</string>
 	<key>Inventory fingerprint</key>
 	<string>인벤토리 지문</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>현재 버전 유지</string>
 	<key>Keep draft and leave</key>
 	<string>초안을 유지하고 나가기</string>
+	<key>Keep existing value</key>
+	<string>기존 값 유지</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>비밀, 대화, 파일을 함께 보관하세요. 승인된 장치만 열 수 있습니다.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>남겨 둠</string>
 	<key>Left out</key>
 	<string>제외됨</string>
+	<key>Length</key>
+	<string>길이</string>
 	<key>License Key</key>
 	<string>라이센스 키</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>회원 라벨</string>
 	<key>Members</key>
 	<string>회원</string>
+	<key>Merge individual fields</key>
+	<string>필드별 병합</string>
 	<key>Message</key>
 	<string>메시지</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>월간 실행 한도</string>
 	<key>Monthly execution units</key>
 	<string>월별 실행 단위</string>
+	<key>More types</key>
+	<string>유형</string>
 	<key>Move a native address</key>
 	<string>네이티브 주소 옮기기</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>같은 네트워크에 있는 이 계정의 다른 장치로 파일 보관함을 종단 간 암호화하여 옮깁니다. 끝날 때까지 두 장치를 모두 잠금 해제 상태로 두세요.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>이전 장치에서 옮겨 오나요? 이 장치가 그 역할, 키, 지갑을 넘겨받고 이후 이전 장치는 해지됩니다.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>휴지통으로 옮겨도 클라우드 저장 공간은 확보되지 않습니다.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>새 장치로 옮기기: 새 장치가 이전 장치의 대체를 요청하고 이전 장치가 승인하면, 두 장치가 단계별로 인계합니다.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>자격 증명 없음</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>이 장치에는 종속성이 기록되지 않았습니다.</string>
+	<key>No favorites</key>
+	<string>즐겨찾기 없음</string>
+	<key>No fields or notes</key>
+	<string>아직 작성된 내용이 없습니다.</string>
 	<key>No findings from this device's checks.</key>
 	<string>이 기기를 검사한 결과가 없습니다.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>수입이 중단되지 않음</string>
 	<key>No item attachments</key>
 	<string>항목 첨부 없음</string>
+	<key>No items</key>
+	<string>아직 기록이 없습니다</string>
 	<key>No letters yet</key>
 	<string>아직 편지가 없습니다</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>받는 장치 ID</string>
 	<key>Receiving policy</key>
 	<string>수령정책</string>
+	<key>Recently updated</key>
+	<string>최근 수정</string>
 	<key>Recipient</key>
 	<string>수신자</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>장치 바인딩 제거</string>
 	<key>Remove device binding?</key>
 	<string>기기 결합을 삭제하시겠습니까?</string>
+	<key>Remove favorite</key>
+	<string>별표 해제</string>
 	<key>Remove field</key>
 	<string>필드 삭제</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH 키</string>
 	<key>Save</key>
 	<string>저장</string>
+	<key>Save merged version</key>
+	<string>병합 저장</string>
+	<key>Save merged version?</key>
+	<string>병합된 버전을 저장할까요?</string>
 	<key>Save name</key>
 	<string>이름 저장</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>이 기기에 저장되었습니다. 변경사항이 동기화 대기 중입니다.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>저장되었습니다. 출판이 보류 중입니다.</string>
+	<key>Scan QR code</key>
+	<string>카메라로 스캔</string>
 	<key>Scan desktop invitation</key>
 	<string>컴퓨터 초대 스캔</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>공유할 필드 선택</string>
 	<key>Select login items</key>
 	<string>로그인 항목 선택</string>
+	<key>Select non-duplicates</key>
+	<string>중복되지 않은 항목 선택</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>한 번에 최대 1,000개 기록을 가져올 수 있습니다.</string>
 	<key>Selected</key>
 	<string>선택됨</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>선택된 OTP 필드에는 현재 코드뿐만 아니라 재사용 가능한 시드가 포함됩니다.</string>
 	<key>Selected accounts</key>
 	<string>선택한 계정</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>선택한 부분에는 충돌 버전을 사용하고 나머지는 현재 버전을 유지합니다.</string>
 	<key>Send device request</key>
 	<string>기기 요청 보내기</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>쇼</string>
 	<key>Show dismissed findings</key>
 	<string>무시된 발견 항목 표시</string>
+	<key>Show draft</key>
+	<string>입력한 내용 표시</string>
 	<key>Show share link</key>
 	<string>공유 링크 표시</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>수집된 서명</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>공동 서명자 %@의 서명이 현재 키와 더 이상 일치하지 않아 보류되었습니다. 다시 서명해야 합니다.</string>
+	<key>Skipped</key>
+	<string>건너뜀</string>
 	<key>Snapshot</key>
 	<string>스냅샷</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>일부 사용량을 새로 고치지 못했습니다. 확인할 수 없는 값은 0이 아닙니다.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>아직 끝나지 않은 지갑이 있습니다. 이 단계를 다시 실행하세요.</string>
+	<key>Sort</key>
+	<string>정렬</string>
 	<key>Source address</key>
 	<string>소스 주소</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>계정 전환</string>
 	<key>Switch to this account</key>
 	<string>이 계정으로 전환하세요</string>
+	<key>Symbols</key>
+	<string>기호</string>
 	<key>Sync and storage</key>
 	<string>동기화 및 저장 공간</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>시스템 통합</string>
 	<key>System permission</key>
 	<string>시스템 권한</string>
+	<key>Tags</key>
+	<string>태그</string>
 	<key>Tags, separated by commas</key>
 	<string>쉼표로 구분된 태그</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>이 장치는 귀하의 비공개 콘텐츠를 수신할 수 있습니다. 콘텐츠 루트는 승인 후 재배포되어야 합니다.</string>
 	<key>This device replaces</key>
 	<string>이 장치가 대체하는 장치</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>이 필드는 숨기거나 이 화면을 나갈 때까지 표시됩니다.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>이 파일은 이 작업에 허용된 크기 제한을 초과합니다.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>이 재고에는 이 장치에 대한 참조 및 배송 기록이 포함됩니다. 다른 장치나 임의의 프로젝트 파일은 검색하지 않습니다.</string>
 	<key>This is not the device in the request.</key>
 	<string>요청에 있는 장치가 아닙니다.</string>
+	<key>This item is no longer available.</key>
+	<string>이 항목은 더 이상 사용할 수 없습니다.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>이 키는 dMsg에 의해 관리되며 복사하거나 편집할 수 없습니다.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>대신 이전 iPhone을 대체하려면 복사본을 따로 두고 로그인한 다음, 복사본에서 '이전 iPhone 대체'를 선택하세요. 이 iPhone이 가입하면 장치에서 복사본의 파일을 가져오세요.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>이 iPhone에서 기존 계정을 사용하려면 인증된 장치 중 하나에서 이 장치를 승인하세요.</string>
+	<key>Total</key>
+	<string>합계</string>
 	<key>Transfer between devices</key>
 	<string>장치 간 전송</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>충돌하는 버전 사용</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol 또는 sol:mint를 사용하세요.</string>
+	<key>Use password</key>
+	<string>이 비밀번호 사용</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>시스템 인증을 사용하여 이 iPhone의 암호화된 작업 공간을 잠금 해제하세요.</string>
 	<key>Use this folder</key>

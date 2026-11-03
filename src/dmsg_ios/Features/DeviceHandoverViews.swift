@@ -393,7 +393,7 @@ struct SuccessionReviewView: View {
             }
         }.privateScreen().navigationTitle("Review a request").navigationBarTitleDisplayMode(.inline)
             .task(id: model.session?.generation) { local = await LocalOnly.load(model) }
-            .sheet(isPresented: $scanning) { PairingScanner { text in token = text; scanning = false; Task { await check() } } }
+            .sheet(isPresented: $scanning) { QRCodeScanner { text in token = text; scanning = false; Task { await check() } } }
             .navigationDestination(isPresented: Binding(get: { created != nil }, set: { if !$0 { created = nil } })) {
                 if let created { ApprovalDetailView(request: created) }
             }

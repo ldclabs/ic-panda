@@ -4,6 +4,8 @@ import SwiftUI
 @preconcurrency import DMsgCore
 
 struct SystemExportsView: View {
+    var initialCredential: VaultItem? = nil
+    @State private var initialized = false
     @Environment(SessionModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectingCredentials = false
@@ -54,6 +56,7 @@ struct SystemExportsView: View {
                 guard scenePhase == .active else { return }
                 let epoch = model.epoch
                 refreshSnapshots()
+                if !initialized { initialized = true; if let initialCredential { credentials = [initialCredential] } }
                 let state = await ASCredentialIdentityStore.shared.state()
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 autoFillEnabled = state.isEnabled

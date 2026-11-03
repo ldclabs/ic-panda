@@ -20,6 +20,8 @@ final class SessionModel {
     private var syncClock = Date.now
     var error: String?
     var notice: String?
+    /// Visible screens form a presentation stack; only its last screen shows feedback.
+    var noticeHosts: [UUID] = []
     var reminderEntry: ReminderEntry?
     var vault: [VaultItem] = []
     var channels: [ChannelItem] = []
@@ -27,8 +29,14 @@ final class SessionModel {
     var activeChannel: String?
     private(set) var contentRevision: UInt64 = 0
     private(set) var profileRevision: UInt64 = 0
-    private(set) var favorites: [VaultItem] = []
     var vaultFilter = "all"
+    var vaultTag = ""
+    var vaultSort = "updated"
+    private(set) var vaultCounts = VaultCounts()
+    private(set) var vaultLoaded = false
+    private(set) var vaultFailed = false
+    var vaultQueryKey: String { [search, vaultFilter, vaultTag, vaultSort].joined(separator: "\u{0}") }
+    var vaultQueryIsCurrent: Bool { vaultQuery == vaultQueryKey }
     private(set) var loadingVault = false
     private var vaultRequest: UUID?
     private var vaultQuery = ""
@@ -101,6 +109,10 @@ final class SessionModel {
     private var seenRecoveryDigests: [String: String] = [:]
     #if DEBUG
     let uiTesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    var fixtureVaultItems: [VaultItem] = []
+    var fixtureVaultHistory: [String: [VaultItem]] = [:]
+    var fixtureVaultSaveAttempts = 0
+    var fixtureVaultRefreshScheduled = false
     var fixtureChannelMessages: [MessageItem] = []
     var fixtureChannelRefreshes = 0
     var fixtureInboxLetters: [InboxLetter] = []
@@ -119,7 +131,7 @@ final class SessionModel {
     #if DEBUG
     func installFixtures(_ state: SessionSnapshot, items: [VaultItem]) {
         contentSync = .fixture(initialized: true)
-        session = state; vault = items; favorites = Array(items.filter(\.favorite).prefix(4))
+        session = state; vault = items; fixtureVaultItems = items
         if let account = state.account {
             notifications.installFixtures(account: account)
             recoveryWarning = RecoveryObservation(account: account, pending: false, digest: nil,
@@ -379,7 +391,7 @@ final class SessionModel {
             stopAutomaticSync(.sessionChanged); contentSync = nil
             nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
             epoch &+= 1; viewGeneration &+= 1
-            vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
+            vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
         }
         if let old = session?.account, old != state.account { invalidateSystemExports() }
@@ -626,7 +638,7 @@ final class SessionModel {
         busyOperation = nil; synchronizing = false; unlocking = false
         privacyShield.show()
         concealed = true; epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
-        vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
         clearCloudBackups()
         if let engine { engine.suspend(); engine.lockNow(); closing = Task { _ = try? await engine.close() } }
         engine = nil; security?.cancelPresence()
@@ -660,7 +672,7 @@ final class SessionModel {
         epoch &+= 1
         nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
-        vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
+        vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()
         busy = false; notice = nil; error = nil
         busyOperation = nil; synchronizing = false; unlocking = false
@@ -766,28 +778,35 @@ final class SessionModel {
     }
 
     func loadVault(more: Bool = false) async {
-        guard unlocked, let engine, !more || !loadingVault else { return }
-        let current = epoch, query = search, kind = vaultFilter, request = UUID()
-        let queryKey = query + "\u{0}" + kind
-        let count = more ? 60 : (queryKey == vaultQuery ? max(60, vault.count) : 60)
+        guard unlocked, !more || !loadingVault else { return }
+        let current = epoch, key = vaultQueryKey, request = UUID()
+        let count = more ? 60 : (key == vaultQuery ? max(60, vault.count) : 60)
         let offset = more ? vault.count : 0
-        vaultRequest = request; loadingVault = true
+        vaultRequest = request; loadingVault = true; vaultFailed = false
         defer { if vaultRequest == request { vaultRequest = nil; loadingVault = false } }
         do {
-            var items: [VaultItem] = [], hasMore = false
-            repeat {
-                let size = min(100, count - items.count)
-                let page = try await engine.vaultPage(query: query, kind: kind == "all" ? nil : kind,
-                    favoritesOnly: false, offset: UInt32(offset + items.count), limit: UInt32(size))
-                guard current == epoch, request == vaultRequest, query == search, kind == vaultFilter, !Task.isCancelled else { return }
-                items += page.items; hasMore = page.hasMore
-                if !hasMore { break }
-            } while items.count < count
-            vault = more ? vault + items : items; vaultHasMore = hasMore; vaultQuery = queryKey
-            let starred = try await engine.vaultPage(query: "", kind: nil, favoritesOnly: true, offset: 0, limit: 4)
-            guard current == epoch, request == vaultRequest, !Task.isCancelled else { return }
-            favorites = starred.items
-        } catch { if current == epoch, request == vaultRequest { report(error) } }
+            #if DEBUG
+            if uiTesting {
+                let page = fixtureVaultPage(offset: offset, limit: count)
+                vault = more ? vault + page.items : page.items
+                vaultCounts = page.counts; vaultHasMore = page.more
+                vaultLoaded = true; vaultQuery = key
+                return
+            }
+            #endif
+            guard let engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+            let result = try await engine.browseVault(request: VaultBrowseRequest(query: search,
+                kind: ["all", "favorites"].contains(vaultFilter) ? nil : vaultFilter,
+                favorites: vaultFilter == "favorites", tag: vaultTag.isEmpty ? nil : vaultTag,
+                sort: vaultSort, offset: UInt32(offset), limit: UInt32(min(count, 10_000)), trash: false))
+            guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
+            let page: VaultBrowsePage = try decode(result)
+            vault = more ? vault + page.items.map(\.item) : page.items.map(\.item)
+            vaultCounts = VaultCounts(total: page.total, all: page.all, favorites: page.favorites, kinds: page.kinds, tags: page.tags)
+            vaultHasMore = page.hasMore; vaultLoaded = true; vaultQuery = key
+        } catch {
+            if current == epoch, request == vaultRequest, !Task.isCancelled { vaultFailed = true }
+        }
     }
 
     func synchronize() async {
@@ -927,7 +946,7 @@ final class SessionModel {
                 // lifecycle already clears views when it requests a lock.
                 if code == "LOCKED" { return }
                 if code == "DEVICE_NOT_APPROVED" {
-                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; favorites = []; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
+                    epoch &+= 1; viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []; vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; session = nil
                     clearCloudBackups()
                     let engine = engine
                     Task { _ = try? await engine?.lock() }

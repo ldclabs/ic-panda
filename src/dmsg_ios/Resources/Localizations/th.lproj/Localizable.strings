@@ -134,6 +134,8 @@
 	<string>ต้องใช้อุปกรณ์ผู้ดูแลเพื่อเปลี่ยนความปลอดภัยของบัญชี</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>ต้องใช้อุปกรณ์ผู้ดูแลระบบเพื่อเผยแพร่โปรไฟล์นี้</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>การแทนที่ด้วยค่าว่างจะลบค่าที่บันทึกไว้</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>ใครก็ตามที่มีลิงก์ที่สมบูรณ์และรหัสผ่านที่จำเป็นสามารถเรียกค้นได้ภายในขีดจำกัด</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>เลือกเวอร์ชันที่จะเก็บไว้ ประวัติศาสตร์ที่มีอยู่จะถูกเก็บรักษาไว้ ความลับไม่เคยถูกเขียนทับอย่างเงียบๆ</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>เลือกผู้ที่อาจส่งจดหมายถึงคุณฟรี บัญชีที่ถูกบล็อกจะยังคงถูกบล็อกจนกว่าคุณจะปลดบล็อก</string>
+	<key>Clear</key>
+	<string>ล้าง</string>
 	<key>Clear cached data</key>
 	<string>ล้างแคช</string>
+	<key>Clear filters</key>
+	<string>ล้างตัวกรอง</string>
+	<key>Clear selection</key>
+	<string>ล้างการเลือก</string>
 	<key>Close invitation</key>
 	<string>ปิดคำเชิญ</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>ที่เก็บข้อมูลบนคลาวด์</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>เปรียบเทียบ ID อุปกรณ์บนทั้งสองหน้าจอ แล้วอนุมัติบนคอมพิวเตอร์</string>
+	<key>Compare with current</key>
+	<string>เปรียบเทียบกับเวอร์ชันปัจจุบัน</string>
 	<key>Complete</key>
 	<string>เสร็จสมบูรณ์</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>คัดลอกแล้ว</string>
 	<key>Copied for 30 seconds</key>
 	<string>คัดลอกเป็นเวลา 30 วินาที</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>คัดลอกแล้ว รหัสจะหมดอายุในไม่ช้า</string>
 	<key>Copies from other iPhones</key>
 	<string>สำเนาจาก iPhone เครื่องอื่น</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>สำเนาจะอยู่บนอุปกรณ์นี้และหมดอายุภายใน 30 วินาที</string>
 	<key>Copy</key>
 	<string>คัดลอก</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>ทิ้งสำเนาแบบจัดฉาก</string>
 	<key>Discard this staged copy?</key>
 	<string>ทิ้งสำเนาแบบทีละขั้นนี้ไหม</string>
+	<key>Discard unsaved changes?</key>
+	<string>ยกเลิกการเปลี่ยนแปลงใช่ไหม</string>
+	<key>Dismiss</key>
+	<string>ปิด</string>
 	<key>Dismiss this observation</key>
 	<string>ยกเลิกข้อสังเกตนี้</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>เครื่องยนต์</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>ข้อมูลไบโอเมตริกซ์ที่ลงทะเบียนมีการเปลี่ยนแปลง ลงทะเบียนคีย์ทดแทนก่อนที่จะใช้คีย์นี้</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>ป้อนคีย์ตั้งค่าหรือ URL otpauth</string>
 	<key>Enter a valid account ID.</key>
 	<string>กรอก ID บัญชีที่ถูกต้อง</string>
+	<key>Enter a valid date.</key>
+	<string>ป้อนวันที่ที่ถูกต้อง</string>
+	<key>Enter a valid email address.</key>
+	<string>ป้อนที่อยู่อีเมลที่ถูกต้อง</string>
+	<key>Enter a valid website address.</key>
+	<string>ป้อนที่อยู่เว็บไซต์ที่ถูกต้อง</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>ป้อนจำนวนบวกด้วยความแม่นยำที่รองรับของเนื้อหา</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>สนาม</string>
 	<key>Field name</key>
 	<string>ชื่อฟิลด์</string>
+	<key>Field name is required.</key>
+	<string>ต้องระบุชื่อช่องข้อมูล</string>
 	<key>Field reference</key>
 	<string>การอ้างอิงภาคสนาม</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>นำเข้าไฟล์แล้ว</string>
 	<key>Files in this folder</key>
 	<string>ไฟล์ในโฟลเดอร์นี้</string>
+	<key>Filters</key>
+	<string>ตัวกรองห้องนิรภัย</string>
 	<key>Fingerprint</key>
 	<string>ลายนิ้วมือ</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>แช่แข็งกระเป๋าสตางค์</string>
 	<key>From block %llu</key>
 	<string>ตั้งแต่บล็อก %llu</string>
+	<key>Generate password</key>
+	<string>สร้างรหัสผ่าน</string>
 	<key>Grant delegation</key>
 	<string>อนุมัติการมอบหมาย</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>รวมบันทึก</string>
 	<key>Include this message's text</key>
 	<string>รวมข้อความของข้อความนี้</string>
+	<key>Incomplete</key>
+	<string>ไม่ครบถ้วน</string>
 	<key>Inspect pairing request</key>
 	<string>ตรวจสอบคำขอจับคู่</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>ความซื่อสัตย์</string>
 	<key>Interrupted</key>
 	<string>ขัดจังหวะ</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>คีย์ตั้งค่าหรือ URL otpauth ไม่ถูกต้อง</string>
 	<key>Inventory fingerprint</key>
 	<string>ลายนิ้วมือสินค้าคงคลัง</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>เก็บเวอร์ชันปัจจุบันไว้</string>
 	<key>Keep draft and leave</key>
 	<string>เก็บฉบับร่างแล้วออก</string>
+	<key>Keep existing value</key>
+	<string>เก็บค่าเดิม</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>เก็บความลับ การสนทนา และไฟล์ของคุณไว้ด้วยกัน เฉพาะอุปกรณ์ที่ได้รับอนุญาตของคุณเท่านั้นที่สามารถเปิดได้</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>ทิ้งไว้</string>
 	<key>Left out</key>
 	<string>ข้าม</string>
+	<key>Length</key>
+	<string>ความยาว</string>
 	<key>License Key</key>
 	<string>รหัสใบอนุญาต</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>ป้ายสมาชิก</string>
 	<key>Members</key>
 	<string>สมาชิก</string>
+	<key>Merge individual fields</key>
+	<string>รวมช่องข้อมูลทีละช่อง</string>
 	<key>Message</key>
 	<string>ข้อความ</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>ขีดจำกัดการดำเนินการรายเดือน</string>
 	<key>Monthly execution units</key>
 	<string>หน่วยปฏิบัติการรายเดือน</string>
+	<key>More types</key>
+	<string>ประเภท</string>
 	<key>Move a native address</key>
 	<string>ย้ายที่อยู่ native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>ย้ายคลังไฟล์ไปยังอุปกรณ์อื่นของบัญชีนี้บนเครือข่ายเดียวกัน โดยเข้ารหัสตั้งแต่ต้นทางถึงปลายทาง เปิดล็อกอุปกรณ์ทั้งสองไว้จนกว่าจะเสร็จ</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>ย้ายมาจากอุปกรณ์เก่าใช่ไหม อุปกรณ์นี้จะรับช่วงบทบาท คีย์ และกระเป๋าเงินของอุปกรณ์นั้น จากนั้นอุปกรณ์เก่าจะถูกเพิกถอน</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>การย้ายไปถังขยะไม่ได้เพิ่มพื้นที่ว่างบนคลาวด์</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>ย้ายไปยังอุปกรณ์ใหม่: อุปกรณ์ใหม่ขอแทนที่อุปกรณ์เก่า อุปกรณ์เก่าอนุมัติ จากนั้นทั้งสองส่งมอบงานทีละขั้นตอน</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>ไม่มีข้อมูลรับรอง</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>ไม่มีการบันทึกการอ้างอิงบนอุปกรณ์นี้</string>
+	<key>No favorites</key>
+	<string>ยังไม่มีรายการโปรด</string>
+	<key>No fields or notes</key>
+	<string>ไม่มีอะไรเขียนเลย</string>
 	<key>No findings from this device's checks.</key>
 	<string>ไม่พบผลจากการตรวจสอบอุปกรณ์นี้</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>ไม่มีการนำเข้าที่ถูกขัดจังหวะ</string>
 	<key>No item attachments</key>
 	<string>ไม่มีการแนบรายการ</string>
+	<key>No items</key>
+	<string>ยังไม่มีบันทึก</string>
 	<key>No letters yet</key>
 	<string>ยังไม่มีจดหมายเลย</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>ID อุปกรณ์ผู้รับ</string>
 	<key>Receiving policy</key>
 	<string>นโยบายการรับ</string>
+	<key>Recently updated</key>
+	<string>แก้ไขล่าสุด</string>
 	<key>Recipient</key>
 	<string>ผู้รับ</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>ลบการเชื่อมโยงอุปกรณ์</string>
 	<key>Remove device binding?</key>
 	<string>นำการเชื่อมโยงอุปกรณ์ออกใช่ไหม</string>
+	<key>Remove favorite</key>
+	<string>ยกเลิกการติดดาว</string>
 	<key>Remove field</key>
 	<string>ลบฟิลด์</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>คีย์ SSH</string>
 	<key>Save</key>
 	<string>บันทึก</string>
+	<key>Save merged version</key>
+	<string>บันทึกการรวม</string>
+	<key>Save merged version?</key>
+	<string>บันทึกเวอร์ชันที่รวมแล้วหรือไม่</string>
 	<key>Save name</key>
 	<string>บันทึกชื่อ</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>บันทึกไว้ในอุปกรณ์นี้ การเปลี่ยนแปลงกำลังรอการซิงค์</string>
 	<key>Saved. Publication is pending.</key>
 	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
+	<key>Scan QR code</key>
+	<string>สแกนด้วยกล้อง</string>
 	<key>Scan desktop invitation</key>
 	<string>สแกนคำเชิญจากคอมพิวเตอร์</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>เลือกฟิลด์ที่จะแชร์</string>
 	<key>Select login items</key>
 	<string>เลือกรายการเข้าสู่ระบบ</string>
+	<key>Select non-duplicates</key>
+	<string>เลือกรายการที่ไม่ซ้ำ</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>เลือกได้สูงสุด 1,000 รายการต่อการนำเข้าหนึ่งครั้ง</string>
 	<key>Selected</key>
 	<string>เลือกแล้ว</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>ฟิลด์ OTP ที่เลือกจะรวมเมล็ดพันธุ์ที่นำมาใช้ซ้ำได้ ไม่ใช่แค่โค้ดปัจจุบัน</string>
 	<key>Selected accounts</key>
 	<string>บัญชีที่เลือก</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>ส่วนที่เลือกจะใช้เวอร์ชันที่ขัดแย้ง ส่วนอื่นจะเก็บเวอร์ชันปัจจุบันไว้</string>
 	<key>Send device request</key>
 	<string>ส่งคำขอของอุปกรณ์</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>แสดง</string>
 	<key>Show dismissed findings</key>
 	<string>แสดงผลการสืบค้นที่ถูกปิด</string>
+	<key>Show draft</key>
+	<string>แสดงสิ่งที่คุณพิมพ์</string>
 	<key>Show share link</key>
 	<string>แสดงลิงก์แชร์</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>ลายเซ็นที่รวบรวมแล้ว</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>ลายเซ็นของผู้ลงนามร่วม %@ ไม่ตรงกับคีย์ปัจจุบันแล้วและถูกพักไว้ ต้องลงนามใหม่</string>
+	<key>Skipped</key>
+	<string>ข้ามแล้ว</string>
 	<key>Snapshot</key>
 	<string>สแนปชอต</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>อัปเดตการใช้งานบางส่วนไม่ได้ ค่าที่ไม่มีข้อมูลไม่ได้หมายถึงศูนย์</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>กระเป๋าเงินบางรายการยังไม่เสร็จ เรียกใช้ขั้นตอนนี้อีกครั้งเพื่อให้เสร็จ</string>
+	<key>Sort</key>
+	<string>จัดเรียง</string>
 	<key>Source address</key>
 	<string>ที่อยู่ต้นทาง</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>สลับบัญชี</string>
 	<key>Switch to this account</key>
 	<string>เปลี่ยนไปใช้บัญชีนี้</string>
+	<key>Symbols</key>
+	<string>สัญลักษณ์</string>
 	<key>Sync and storage</key>
 	<string>การซิงค์และพื้นที่จัดเก็บ</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>บูรณาการระบบ</string>
 	<key>System permission</key>
 	<string>สิทธิ์ของระบบ</string>
+	<key>Tags</key>
+	<string>แท็ก</string>
 	<key>Tags, separated by commas</key>
 	<string>แท็ก คั่นด้วยเครื่องหมายจุลภาค</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>อุปกรณ์นี้อาจรับเนื้อหาส่วนตัวของคุณ คีย์การเข้ารหัสเนื้อหาหลักต้องได้รับการแจกจ่ายซ้ำหลังจากได้รับการอนุมัติ</string>
 	<key>This device replaces</key>
 	<string>อุปกรณ์นี้แทนที่</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>ช่องข้อมูลนี้จะมองเห็นได้จนกว่าคุณจะซ่อนหรือออกจากหน้าจอนี้</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>ไฟล์นี้มีขนาดเกินขีดจำกัดสำหรับการดำเนินการนี้</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>สินค้าคงคลังนี้ครอบคลุมถึงข้อมูลอ้างอิงและบันทึกการจัดส่งบนอุปกรณ์นี้ ไม่ค้นหาอุปกรณ์อื่นหรือไฟล์โครงการโดยพลการ</string>
 	<key>This is not the device in the request.</key>
 	<string>นี่ไม่ใช่อุปกรณ์ในคำขอ</string>
+	<key>This item is no longer available.</key>
+	<string>รายการนี้ไม่พร้อมใช้งานแล้ว</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>คีย์นี้ได้รับการจัดการโดย dMsg และไม่สามารถคัดลอกหรือแก้ไขได้</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>หากต้องการแทนที่ iPhone เครื่องเก่าแทน ให้แยกสำเนาไว้แล้วลงชื่อเข้าใช้ จากนั้นเลือก แทนที่ iPhone เครื่องเก่า ที่สำเนา เมื่อ iPhone เครื่องนี้เข้าร่วมแล้ว ให้นำเข้าไฟล์จากสำเนาใน อุปกรณ์</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>หากต้องการใช้บัญชีที่มีอยู่ของคุณบน iPhone เครื่องนี้ ให้อนุมัติอุปกรณ์นี้จากหนึ่งในอุปกรณ์ที่ได้รับอนุญาตของคุณ</string>
+	<key>Total</key>
+	<string>รวม</string>
 	<key>Transfer between devices</key>
 	<string>ถ่ายโอนระหว่างอุปกรณ์</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>ใช้เวอร์ชันที่ขัดแย้งกัน</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>ใช้ icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol หรือ sol:mint</string>
+	<key>Use password</key>
+	<string>ใช้รหัสผ่านนี้</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>ใช้การรับรองความถูกต้องของระบบเพื่อปลดล็อคพื้นที่ทำงานที่เข้ารหัสบน iPhone นี้</string>
 	<key>Use this folder</key>

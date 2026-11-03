@@ -134,6 +134,8 @@
 	<string>Hesap güvenliğini değiştirmek için yönetici cihazı gerekir.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Bu profili yayımlamak için yönetici cihazı gerekir.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Boş bir yeni değer, kayıtlı değeri siler.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Bağlantının tamamına ve gerekli parolaya sahip olan herkes, kendi sınırları dahilinde bu bağlantıyı geri alabilir.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Hangi sürümün tutulacağını seçin. Mevcut geçmiş korunur; sırların üzerine asla sessizce yazılmaz.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Size kimin ücretsiz mektup gönderebileceğini seçin. Engellenen hesaplar siz engellemeyi kaldırıncaya kadar engellenmiş olarak kalır.</string>
+	<key>Clear</key>
+	<string>Temizle</string>
 	<key>Clear cached data</key>
 	<string>Önbelleği temizle</string>
+	<key>Clear filters</key>
+	<string>Filtreleri temizle</string>
+	<key>Clear selection</key>
+	<string>Seçimi temizle</string>
 	<key>Close invitation</key>
 	<string>Daveti kapat</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Bulut depolama</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
+	<key>Compare with current</key>
+	<string>Geçerli sürümle karşılaştır</string>
 	<key>Complete</key>
 	<string>Tamamlandı</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Kopyalandı</string>
 	<key>Copied for 30 seconds</key>
 	<string>30 saniye boyunca kopyalandı</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Kopyalandı. Kodun süresi yakında dolacak.</string>
 	<key>Copies from other iPhones</key>
 	<string>Diğer iPhone’lardan kopyalar</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Kopyalar bu cihazda kalır ve en geç 30 saniye içinde sona erer.</string>
 	<key>Copy</key>
 	<string>Kopyala</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Aşamalı kopyayı sil</string>
 	<key>Discard this staged copy?</key>
 	<string>Bu aşamalı kopya silinsin mi?</string>
+	<key>Discard unsaved changes?</key>
+	<string>Değişiklikler silinsin mi?</string>
+	<key>Dismiss</key>
+	<string>Kapat</string>
 	<key>Dismiss this observation</key>
 	<string>Bu gözlemi reddet</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Motor</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Kayıtlı biyometri değişti. Bu anahtara güvenmeden önce bir yedek anahtar kaydedin.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Kurulum anahtarını veya otpauth URL’sini girin.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Geçerli bir hesap kimliği girin.</string>
+	<key>Enter a valid date.</key>
+	<string>Geçerli bir tarih girin.</string>
+	<key>Enter a valid email address.</key>
+	<string>Geçerli bir e-posta adresi girin.</string>
+	<key>Enter a valid website address.</key>
+	<string>Geçerli bir web sitesi adresi girin.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Varlığın desteklenen hassasiyetiyle pozitif bir tutar girin.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>Alan</string>
 	<key>Field name</key>
 	<string>Alan adı</string>
+	<key>Field name is required.</key>
+	<string>Alan adı zorunludur.</string>
 	<key>Field reference</key>
 	<string>Alan referansı</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Dosyalar içe aktarıldı.</string>
 	<key>Files in this folder</key>
 	<string>Bu klasördeki dosyalar</string>
+	<key>Filters</key>
+	<string>Kasa filtreleri</string>
 	<key>Fingerprint</key>
 	<string>Parmak izi</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Cüzdanı dondur</string>
 	<key>From block %llu</key>
 	<string>%llu numaralı bloktan itibaren</string>
+	<key>Generate password</key>
+	<string>Parola oluştur</string>
 	<key>Grant delegation</key>
 	<string>Yetki heyeti</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Notları dahil et</string>
 	<key>Include this message's text</key>
 	<string>Bu mesajın metnini ekle</string>
+	<key>Incomplete</key>
+	<string>Eksik</string>
 	<key>Inspect pairing request</key>
 	<string>Eşleştirme isteğini inceleyin</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Dürüstlük</string>
 	<key>Interrupted</key>
 	<string>Kesintiye uğradı</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Geçersiz kurulum anahtarı veya otpauth URL’si.</string>
 	<key>Inventory fingerprint</key>
 	<string>Envanter parmak izi</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Mevcut sürümü koru</string>
 	<key>Keep draft and leave</key>
 	<string>Taslağı tut ve çık</string>
+	<key>Keep existing value</key>
+	<string>Mevcut değeri koru</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Sırlarınızı, konuşmalarınızı ve dosyalarınızı bir arada tutun. Bunları yalnızca yetkili cihazlarınız açabilir.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Geride bırakıldı</string>
 	<key>Left out</key>
 	<string>Atlandı</string>
+	<key>Length</key>
+	<string>Uzunluk</string>
 	<key>License Key</key>
 	<string>Lisans Anahtarı</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Üye etiketi</string>
 	<key>Members</key>
 	<string>Üyeler</string>
+	<key>Merge individual fields</key>
+	<string>Alanları tek tek birleştir</string>
 	<key>Message</key>
 	<string>Mesaj</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Aylık yürütme sınırı</string>
 	<key>Monthly execution units</key>
 	<string>Aylık yürütme birimleri</string>
+	<key>More types</key>
+	<string>Türler</string>
 	<key>Move a native address</key>
 	<string>Yerel adresi taşı</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Dosya kitaplığını aynı ağdaki bu hesaba ait başka bir cihaza uçtan uca şifreli olarak taşır. Bitene kadar iki cihazın da kilidini açık tutun.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Eski bir cihazdan mı geçiyorsunuz? Bu cihaz onun rolünü, anahtarlarını ve cüzdanlarını devralır, ardından eskisi iptal edilir.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Çöp kutusuna taşımak bulut depolama alanını boşaltmaz.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Yeni cihaza geçiş: yeni cihaz eskisinin yerine geçmeyi ister, eski cihaz onaylar, ardından ikisi adım adım devreder.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Kimlik bilgisi yok</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Bu cihazda kayıtlı bağımlılık yok.</string>
+	<key>No favorites</key>
+	<string>Favori yok</string>
+	<key>No fields or notes</key>
+	<string>Henüz yazılı bir şey yok.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Bu cihazın kontrollerinde bulgu yok.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Kesintisiz ithalat yok</string>
 	<key>No item attachments</key>
 	<string>Öğe eki yok</string>
+	<key>No items</key>
+	<string>Henüz kayıt yok</string>
 	<key>No letters yet</key>
 	<string>Henüz mektup yok</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>Alan cihazın kimliği</string>
 	<key>Receiving policy</key>
 	<string>Alma politikası</string>
+	<key>Recently updated</key>
+	<string>Son değiştirilenler</string>
 	<key>Recipient</key>
 	<string>Alıcı</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Cihaz bağlamayı kaldır</string>
 	<key>Remove device binding?</key>
 	<string>Cihaz bağlaması kaldırılsın mı?</string>
+	<key>Remove favorite</key>
+	<string>Yıldızı kaldır</string>
 	<key>Remove field</key>
 	<string>Alanı kaldır</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>SSH anahtarı</string>
 	<key>Save</key>
 	<string>Kaydet</string>
+	<key>Save merged version</key>
+	<string>Birleştirmeyi kaydet</string>
+	<key>Save merged version?</key>
+	<string>Birleştirilmiş sürüm kaydedilsin mi?</string>
 	<key>Save name</key>
 	<string>Adı kaydet</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Bu cihaza kaydedildi. Değişiklikler senkronize edilmeyi bekliyor.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
+	<key>Scan QR code</key>
+	<string>Kamerayla tara</string>
 	<key>Scan desktop invitation</key>
 	<string>Bilgisayar davetini tara</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Paylaşılacak alanları seçin</string>
 	<key>Select login items</key>
 	<string>Oturum açma öğelerini seçin</string>
+	<key>Select non-duplicates</key>
+	<string>Yinelenmeyenleri seç</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Her içe aktarmada en fazla 1.000 kayıt seçin.</string>
 	<key>Selected</key>
 	<string>Seçilen</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Seçilen OTP alanları yalnızca geçerli kodu değil, yeniden kullanılabilir çekirdeği içerir.</string>
 	<key>Selected accounts</key>
 	<string>Seçilen hesaplar</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Seçilen bölümler çakışan sürümü kullanır. Diğer bölümler geçerli sürümü korur.</string>
 	<key>Send device request</key>
 	<string>Cihaz isteği gönder</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Göster</string>
 	<key>Show dismissed findings</key>
 	<string>Reddedilen bulguları göster</string>
+	<key>Show draft</key>
+	<string>Ne yazdığınızı gösterin</string>
 	<key>Show share link</key>
 	<string>Paylaşım bağlantısını göster</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Toplanan imzalar</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Ortak imzacılar %@ imzaları artık geçerli anahtarlarıyla eşleşmiyor ve bir kenara ayrıldı; yeniden imzalamaları gerekiyor.</string>
+	<key>Skipped</key>
+	<string>Atlananlar</string>
 	<key>Snapshot</key>
 	<string>Anlık Görüntü</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Bazı kullanım verileri yenilenemedi. Alınamayan değerler sıfır değildir.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Bazı cüzdanlar henüz bitmedi. Tamamlamak için adımı yeniden çalıştırın.</string>
+	<key>Sort</key>
+	<string>Sırala</string>
 	<key>Source address</key>
 	<string>Kaynak adresi</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Hesap değiştir</string>
 	<key>Switch to this account</key>
 	<string>Bu hesaba geç</string>
+	<key>Symbols</key>
+	<string>Semboller</string>
 	<key>Sync and storage</key>
 	<string>Eşitleme ve depolama</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Sistem entegrasyonları</string>
 	<key>System permission</key>
 	<string>Sistem izni</string>
+	<key>Tags</key>
+	<string>Etiketler</string>
 	<key>Tags, separated by commas</key>
 	<string>Virgülle ayrılmış etiketler</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>Bu cihaz özel içeriğinizi alabilir. İçerik kökü onaylandıktan sonra yeniden dağıtılmalıdır.</string>
 	<key>This device replaces</key>
 	<string>Bu cihazın yerini aldığı cihaz</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>Bu alan, siz gizleyene veya bu ekrandan ayrılana kadar görünür kalır.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Bu dosya, bu işlem için izin verilen boyut sınırını aşıyor.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Bu envanter, bu cihazdaki referansları ve teslimat kayıtlarını kapsar. Diğer cihazları veya rastgele proje dosyalarını aramaz.</string>
 	<key>This is not the device in the request.</key>
 	<string>Bu, istekteki cihaz değil.</string>
+	<key>This item is no longer available.</key>
+	<string>Bu öğe artık kullanılamıyor.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Bu anahtar dMsg tarafından yönetilir ve kopyalanamaz veya düzenlenemez.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Bunun yerine eski iPhone’un yerine geçmek için kopyayı kenara koyup giriş yapın, ardından kopyada Eski iPhone’un yerine geç’i seçin; bu iPhone katıldığında kopyanın dosyalarını Cihazlar’da içe aktarın.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Mevcut hesabınızı bu iPhone'da kullanmak için bu cihazı yetkili cihazlarınızdan birinden onaylayın.</string>
+	<key>Total</key>
+	<string>Toplam</string>
 	<key>Transfer between devices</key>
 	<string>Cihazlar arası aktarım</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Çakışan sürümü kullan</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol veya sol:mint kullanın.</string>
+	<key>Use password</key>
+	<string>Parolayı kullan</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Bu iPhone'daki şifrelenmiş çalışma alanının kilidini açmak için sistem kimlik doğrulamasını kullanın.</string>
 	<key>Use this folder</key>

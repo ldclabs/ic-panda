@@ -101,7 +101,7 @@ struct PairApprovalView: View {
             NoticeBar(text: String(localized: "This creates a pending request. It does not authorize the device."))
         }.disabled(working).privateScreen().navigationTitle("Add device")
             .onChange(of: token) { _, _ in preview = nil; device = ""; inspected = "" }
-            .sheet(isPresented: $scanning) { PairingScanner { text in token = text; scanning = false; Task { await inspect() } } }
+            .sheet(isPresented: $scanning) { QRCodeScanner { text in token = text; scanning = false; Task { await inspect() } } }
             .navigationDestination(isPresented: Binding(get: { created != nil }, set: { if !$0 { created = nil } })) {
                 if let created { ApprovalDetailView(request: created) }
             }

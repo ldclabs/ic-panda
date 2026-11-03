@@ -13,8 +13,6 @@ struct RootView: View {
                 if model.environment == "staging" {
                     Text("Test environment · Separate accounts and test purchases").font(.caption.weight(.semibold)).padding(8).frame(maxWidth: .infinity).background(.orange.opacity(0.12))
                 }
-                RecoveryNotice()
-                    .fixedSize(horizontal: false, vertical: true)
                 Group {
                     if model.unlocked {
                         TabView(selection: $model.selectedTab) {
@@ -31,14 +29,6 @@ struct RootView: View {
                     else { NavigationStack { AccessView() } }
                 }.frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            if let notice = model.notice, !model.concealed {
-                VStack { Spacer(); NoticeBar(text: notice).padding(.horizontal, 20).padding(.bottom, 86) }
-                    .allowsHitTesting(false)
-                    .task(id: notice) {
-                        try? await Task.sleep(for: .seconds(4))
-                        if model.notice == notice { model.notice = nil }
-                    }
-            }
             if let plan = model.notifications.presented, !model.concealed {
                 VStack {
                     Spacer()
@@ -59,6 +49,10 @@ struct RootView: View {
                 Image(systemName: "lock.shield").font(.largeTitle).foregroundStyle(Theme.forest)
                     .accessibilityLabel("Private workspace hidden")
             }
+        }
+        .overlay(alignment: .bottom) {
+            WorkspaceFeedback()
+            if model.noticeHosts.isEmpty { TransientNotice().padding(.bottom, model.unlocked ? 82 : 12) }
         }
         .alert("dMsg", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK", role: .cancel) { model.error = nil }
@@ -97,6 +91,7 @@ struct ApprovalButton: View {
     @Environment(\.openApprovals) private var open
     var body: some View {
         HStack {
+        WorkspaceStatusButton()
         ReminderButton()
         Button(action: open) {
             Label("Approvals", glyph: .approvals)

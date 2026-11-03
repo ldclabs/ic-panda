@@ -6,6 +6,41 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## Vault browsing and details
+
+The vault uses a single list with All, Favorites, Passwords, Notes and a complete
+type picker. Favorites have no four-item limit. Search, exact tags, type and
+favorite filters are applied before sorting and pagination; counts describe the
+whole query. Sorting retains only non-hidden summaries while releasing the client
+between decryptions. The old duplicate Favorites grid and its separate read are
+removed. Empty, loading and failed reads have distinct actions.
+
+Recovery and synchronization feedback use overlays and a persistent toolbar
+entry, so background status changes do not move list rows. That entry retains
+progress, pending counts, failures, retry deadlines and the last successful sync.
+Critical notices stay available after dismissal; copy/save feedback also appears
+inside sheets. Displayed OTP expiry is independent of other field operations,
+and an OTP clipboard copy expires no later than its displayed validity.
+
+Details show type, tags, modification time, version state and ordered field
+sections. Long values and accessibility text move actions below the value.
+Copy/reveal confirmations name the item and field; hidden values are never loaded
+by list browsing. Managed keys remain read-only, tombstones have an explicit trash
+state, and current details refresh on content/version changes without replacing an
+open editor's draft. Historical versions show their timestamp and can be compared
+with the current version. Conflict resolution supports individual metadata and
+field choices and checks the expected current revision before saving.
+
+Editors keep dirty drafts within the unlocked account session, confirm discard
+from Cancel or a swipe, preserve edits when changing type, and disable mutation
+while saving. Failures retain the draft with a visible retryable error. Fields can
+be reordered; date, month, email, website and OTP inputs have suitable input and
+validation. Password generation is local, and QR scanning only fills an OTP draft
+for review. AutoFill remains an explicit selected snapshot with its existing
+24-hour expiry and system authentication. Import summaries expose selection,
+duplicates and incomplete records, then link to the imported items; trash and
+history lists distinguish an unavailable read from an empty result.
+
 ## Account and settings
 
 Account groups identity and security, synchronization and storage, and app settings.
@@ -324,9 +359,10 @@ Apple Distribution。本地分发签名需要证书及其私钥；自动签名�
 - System authentication with the fixed HTTPS callback, account initialization,
   device pairing by text/share/QR, second-login binding, account switching,
   device revocation and delayed recovery through the existing core.
-- Vault search, compact favorites, field-level reveal/copy, TOTP, editing,
-  conflict selection, field references, attachment relationships and local/sync
-  status. App-managed keys remain read-only.
+- Vault search, full favorites and type filters, field-level reveal/copy, TOTP,
+  draft editing, version comparison and field-level conflict choices, field
+  references, attachments, trash and local/sync status. App-managed keys remain
+  read-only.
 - Channels, invitations, messages, encrypted durable send intents and immutable
   attachments. Retries retain the original message ID after restart. Incoming
   attachments are verified and re-encrypted a chunk at a time. The inbox has

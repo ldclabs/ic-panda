@@ -66,6 +66,9 @@ pub struct VaultItem {
     pub reserved: bool,
     pub files: Vec<String>,
     pub fields: Vec<VaultField>,
+    pub deleted: bool,
+    pub created_at: u64,
+    pub updated_at: u64,
 }
 
 impl VaultItem {
@@ -82,13 +85,7 @@ impl From<VaultEntry> for VaultItem {
     fn from(entry: VaultEntry) -> Self {
         let reserved = entry.item.reserved();
         let entry = entry.masked(false);
-        let subtitle = entry
-            .item
-            .fields
-            .iter()
-            .find(|f| !f.hidden() && !f.value.is_empty())
-            .map(|f| f.value.clone())
-            .unwrap_or_default();
+        let subtitle = dmsg_client::vault::reading::subtitle(&entry.item);
         Self {
             id: entry.id,
             revision: entry.revision,
@@ -101,6 +98,9 @@ impl From<VaultEntry> for VaultItem {
             synced: entry.synced,
             conflict: entry.conflict,
             reserved,
+            deleted: entry.deleted,
+            created_at: entry.item.created_at,
+            updated_at: entry.item.updated_at,
             files: entry.item.files,
             fields: entry
                 .item
@@ -133,6 +133,46 @@ pub struct VaultPage {
 pub struct VaultDetail {
     pub generation: u64,
     pub item: VaultItem,
+}
+
+#[cfg(test)]
+mod vault_display_tests {
+    use super::*;
+    use dmsg_client::{
+        testing::{TempDir, unlocked},
+        vault::{Changes, FieldChange},
+    };
+
+    #[test]
+    fn native_details_preserve_tombstones_and_timestamps_without_revealing_values() {
+        let directory = TempDir::new();
+        let mut client = unlocked(&directory.0, false, None);
+        let entry = client
+            .vault_create(
+                "login",
+                &Changes {
+                    title: Some("Example".into()),
+                    fields: Some(vec![FieldChange {
+                        id: Some("password".into()),
+                        value: Some("private value".into()),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let created = entry.item.created_at;
+        let detail = VaultItem::from(entry.clone());
+        assert!(!detail.deleted);
+        assert_eq!(detail.created_at, created);
+        assert!(detail.fields.iter().all(|f| f.value != "private value"));
+        let deleted = VaultItem::from(client.vault_delete(&entry.id).unwrap());
+        assert!(deleted.deleted);
+        assert_eq!(deleted.created_at, created);
+        let restored = VaultItem::from(client.vault_restore(&entry.id).unwrap());
+        assert!(!restored.deleted);
+        assert_ne!(restored.revision, deleted.revision);
+    }
 }
 
 #[derive(uniffi::Record)]

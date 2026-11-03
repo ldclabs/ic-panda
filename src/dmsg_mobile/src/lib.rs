@@ -29,6 +29,8 @@ mod sync;
 pub use sync::ContentSyncStatus;
 mod succession;
 mod transfer;
+mod vault;
+pub use vault::VaultBrowseRequest;
 
 #[cfg(test)]
 mod sync_tests;
@@ -730,11 +732,17 @@ impl MobileEngine {
             .host
             .run_at(generation, move |c| {
                 Box::pin(async move {
-                    match revision {
+                    let is_current = revision.is_none();
+                    let mut item = match revision {
                         Some(revision) => c.vault_version(&id, &revision),
                         None => c.vault_show(&id),
                     }
-                    .map(VaultItem::from)
+                    .map(VaultItem::from)?;
+                    if is_current {
+                        item.conflict |=
+                            dmsg_client::vault::reading::conflict_ids(c)?.contains(&id);
+                    }
+                    Ok(item)
                 })
             })
             .await?;
@@ -878,10 +886,18 @@ impl MobileEngine {
     pub async fn resolve_conflict(
         &self,
         key: String,
+        expected_revision: String,
         keep_current: bool,
     ) -> Result<ObjectSnapshot> {
         self.object(move |c| {
             Box::pin(async move {
+                let (id, _) = key
+                    .split_once(':')
+                    .ok_or_else(|| dmsg_types::invalid("conflict"))?;
+                ensure(
+                    c.vault_show(id)?.revision == expected_revision,
+                    Error::VersionConflict,
+                )?;
                 c.vault_resolve(
                     &key,
                     &if keep_current {

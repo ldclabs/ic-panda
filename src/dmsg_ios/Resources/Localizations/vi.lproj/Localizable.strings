@@ -134,6 +134,8 @@
 	<string>Cần thiết bị quản trị viên để thay đổi bảo mật tài khoản.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Cần thiết bị quản trị viên để công bố hồ sơ này.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Giá trị thay thế trống sẽ xóa giá trị đã lưu.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Bất kỳ ai có liên kết đầy đủ và mật khẩu được yêu cầu đều có thể truy xuất nó trong giới hạn của nó.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Chọn phiên bản nào để giữ. Lịch sử hiện tại được giữ lại; bí mật không bao giờ được ghi đè âm thầm.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Chọn người có thể gửi thư miễn phí cho bạn. Các tài khoản bị chặn vẫn bị chặn cho đến khi bạn bỏ chặn chúng.</string>
+	<key>Clear</key>
+	<string>Xóa</string>
 	<key>Clear cached data</key>
 	<string>Xóa bộ nhớ đệm</string>
+	<key>Clear filters</key>
+	<string>Xóa bộ lọc</string>
+	<key>Clear selection</key>
+	<string>Bỏ chọn</string>
 	<key>Close invitation</key>
 	<string>Đóng lời mời</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Lưu trữ đám mây</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
+	<key>Compare with current</key>
+	<string>So sánh với phiên bản hiện tại</string>
 	<key>Complete</key>
 	<string>Hoàn tất</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Đã sao chép</string>
 	<key>Copied for 30 seconds</key>
 	<string>Sao chép trong 30 giây</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Đã sao chép. Mã sắp hết hạn.</string>
 	<key>Copies from other iPhones</key>
 	<string>Bản sao từ iPhone khác</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Bản sao chỉ ở trên thiết bị này và hết hạn trong vòng 30 giây.</string>
 	<key>Copy</key>
 	<string>Sao chép</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Loại bỏ bản sao theo giai đoạn</string>
 	<key>Discard this staged copy?</key>
 	<string>Hủy bản sao dàn dựng này?</string>
+	<key>Discard unsaved changes?</key>
+	<string>Hủy các thay đổi?</string>
+	<key>Dismiss</key>
+	<string>Đóng</string>
 	<key>Dismiss this observation</key>
 	<string>Loại bỏ quan sát này</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Động cơ</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Sinh trắc học đã đăng ký đã thay đổi. Đăng ký khóa thay thế trước khi dựa vào khóa này.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Nhập khóa thiết lập hoặc URL otpauth.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Nhập ID tài khoản hợp lệ.</string>
+	<key>Enter a valid date.</key>
+	<string>Nhập một ngày hợp lệ.</string>
+	<key>Enter a valid email address.</key>
+	<string>Nhập địa chỉ email hợp lệ.</string>
+	<key>Enter a valid website address.</key>
+	<string>Nhập địa chỉ trang web hợp lệ.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Nhập số tiền dương với độ chính xác được hỗ trợ của nội dung.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>trường</string>
 	<key>Field name</key>
 	<string>Tên trường</string>
+	<key>Field name is required.</key>
+	<string>Tên trường là bắt buộc.</string>
 	<key>Field reference</key>
 	<string>Tham chiếu trường</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Đã nhập tệp.</string>
 	<key>Files in this folder</key>
 	<string>Các tập tin trong thư mục này</string>
+	<key>Filters</key>
+	<string>Bộ lọc vault</string>
 	<key>Fingerprint</key>
 	<string>Dấu vân tay</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Đóng băng ví</string>
 	<key>From block %llu</key>
 	<string>Từ khối %llu</string>
+	<key>Generate password</key>
+	<string>Tạo mật khẩu</string>
 	<key>Grant delegation</key>
 	<string>Ủy quyền ủy quyền</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Bao gồm ghi chú</string>
 	<key>Include this message's text</key>
 	<string>Bao gồm nội dung của tin nhắn này</string>
+	<key>Incomplete</key>
+	<string>Chưa đầy đủ</string>
 	<key>Inspect pairing request</key>
 	<string>Kiểm tra yêu cầu ghép nối</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Tính chính trực</string>
 	<key>Interrupted</key>
 	<string>Bị gián đoạn</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Khóa thiết lập hoặc URL otpauth không hợp lệ.</string>
 	<key>Inventory fingerprint</key>
 	<string>Dấu vân tay hàng tồn kho</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Giữ phiên bản hiện tại</string>
 	<key>Keep draft and leave</key>
 	<string>Giữ bản nháp và rời đi</string>
+	<key>Keep existing value</key>
+	<string>Giữ giá trị hiện có</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Giữ bí mật, cuộc trò chuyện và tập tin của bạn cùng nhau. Chỉ những thiết bị được ủy quyền của bạn mới có thể mở chúng.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Đã bỏ lại</string>
 	<key>Left out</key>
 	<string>Bị bỏ qua</string>
+	<key>Length</key>
+	<string>Chiều dài</string>
 	<key>License Key</key>
 	<string>Khóa cấp phép</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Nhãn thành viên</string>
 	<key>Members</key>
 	<string>Thành viên</string>
+	<key>Merge individual fields</key>
+	<string>Hợp nhất từng trường</string>
 	<key>Message</key>
 	<string>Tin nhắn</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Giới hạn thực thi hằng tháng</string>
 	<key>Monthly execution units</key>
 	<string>Đơn vị hoạt động hàng tháng</string>
+	<key>More types</key>
+	<string>Các loại</string>
 	<key>Move a native address</key>
 	<string>Chuyển một địa chỉ native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Chuyển thư viện tệp sang thiết bị khác của tài khoản này trên cùng mạng, mã hóa đầu cuối. Giữ cả hai thiết bị ở trạng thái mở khóa cho đến khi xong.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Chuyển từ thiết bị cũ? Thiết bị này tiếp nhận vai trò, khóa và ví của nó, rồi thiết bị cũ bị thu hồi.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Chuyển vào Thùng rác không giải phóng dung lượng đám mây.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Chuyển sang thiết bị mới: thiết bị mới yêu cầu thay thế thiết bị cũ, thiết bị cũ phê duyệt, rồi cả hai bàn giao từng bước.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Không có thông tin xác thực</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Không có sự phụ thuộc nào được ghi lại trên thiết bị này.</string>
+	<key>No favorites</key>
+	<string>Chưa có mục yêu thích</string>
+	<key>No fields or notes</key>
+	<string>Chưa có gì được viết.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Không có kết quả nào từ quá trình kiểm tra thiết bị này.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Không bị gián đoạn nhập khẩu</string>
 	<key>No item attachments</key>
 	<string>Không có mục đính kèm</string>
+	<key>No items</key>
+	<string>Chưa có hồ sơ nào</string>
 	<key>No letters yet</key>
 	<string>Chưa có chữ cái nào</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>ID thiết bị nhận</string>
 	<key>Receiving policy</key>
 	<string>Chính sách tiếp nhận</string>
+	<key>Recently updated</key>
+	<string>Mới sửa đổi</string>
 	<key>Recipient</key>
 	<string>Người nhận</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Xóa ràng buộc thiết bị</string>
 	<key>Remove device binding?</key>
 	<string>Xóa ràng buộc thiết bị?</string>
+	<key>Remove favorite</key>
+	<string>Bỏ dấu sao</string>
 	<key>Remove field</key>
 	<string>Xóa trường</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>Phím SSH</string>
 	<key>Save</key>
 	<string>Lưu</string>
+	<key>Save merged version</key>
+	<string>Lưu hợp nhất</string>
+	<key>Save merged version?</key>
+	<string>Lưu phiên bản đã hợp nhất?</string>
 	<key>Save name</key>
 	<string>Lưu tên</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Đã lưu trên thiết bị này. Các thay đổi đang chờ đồng bộ hóa.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
+	<key>Scan QR code</key>
+	<string>Quét bằng camera</string>
 	<key>Scan desktop invitation</key>
 	<string>Quét lời mời từ máy tính</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Chọn trường để chia sẻ</string>
 	<key>Select login items</key>
 	<string>Chọn mục đăng nhập</string>
+	<key>Select non-duplicates</key>
+	<string>Chọn bản ghi không trùng lặp</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Chọn tối đa 1.000 bản ghi cho mỗi lần nhập.</string>
 	<key>Selected</key>
 	<string>Đã chọn</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Các trường OTP đã chọn bao gồm hạt giống có thể tái sử dụng chứ không chỉ là mã hiện tại.</string>
 	<key>Selected accounts</key>
 	<string>Tài khoản đã chọn</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Các phần đã chọn dùng phiên bản xung đột. Các phần còn lại giữ phiên bản hiện tại.</string>
 	<key>Send device request</key>
 	<string>Gửi yêu cầu thiết bị</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Hiển thị</string>
 	<key>Show dismissed findings</key>
 	<string>Hiển thị các phát hiện bị loại bỏ</string>
+	<key>Show draft</key>
+	<string>Hiển thị nội dung bạn đã nhập</string>
 	<key>Show share link</key>
 	<string>Hiển thị liên kết chia sẻ</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Chữ ký đã thu thập</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Chữ ký của người đồng ký %@ không còn khớp với khóa hiện tại của họ và đã bị gác lại; họ cần ký lại.</string>
+	<key>Skipped</key>
+	<string>Đã bỏ qua</string>
 	<key>Snapshot</key>
 	<string>Ảnh chụp nhanh</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Không thể làm mới một số dữ liệu sử dụng. Giá trị chưa có không có nghĩa là bằng không.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Một số ví chưa xong. Chạy lại bước này để hoàn tất.</string>
+	<key>Sort</key>
+	<string>Sắp xếp</string>
 	<key>Source address</key>
 	<string>Địa chỉ nguồn</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Chuyển đổi tài khoản</string>
 	<key>Switch to this account</key>
 	<string>Chuyển sang tài khoản này</string>
+	<key>Symbols</key>
+	<string>Ký hiệu</string>
 	<key>Sync and storage</key>
 	<string>Đồng bộ và lưu trữ</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Tích hợp hệ thống</string>
 	<key>System permission</key>
 	<string>Quyền hệ thống</string>
+	<key>Tags</key>
+	<string>Thẻ</string>
 	<key>Tags, separated by commas</key>
 	<string>Thẻ, cách nhau bằng dấu phẩy</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>Thiết bị này có thể nhận được nội dung riêng tư của bạn. Khóa mã hóa nội dung chính phải được phân phối lại sau khi được phê duyệt.</string>
 	<key>This device replaces</key>
 	<string>Thiết bị này thay thế</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>Trường này sẽ hiển thị cho đến khi bạn ẩn nó hoặc rời màn hình này.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Tệp này vượt quá giới hạn kích thước cho thao tác này.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Khoảng không quảng cáo này bao gồm các tài liệu tham khảo và hồ sơ giao hàng trên thiết bị này. Nó không tìm kiếm các thiết bị khác hoặc các tập tin dự án tùy ý.</string>
 	<key>This is not the device in the request.</key>
 	<string>Đây không phải thiết bị trong yêu cầu.</string>
+	<key>This item is no longer available.</key>
+	<string>Mục này không còn khả dụng.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Khóa này được quản lý bởi dMsg và không thể sao chép hoặc chỉnh sửa.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Để thay thế iPhone cũ, hãy để riêng bản sao rồi đăng nhập, sau đó chọn Thay thế iPhone cũ trên bản sao; khi iPhone này đã tham gia, hãy nhập tệp từ bản sao trong Thiết bị.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Để sử dụng tài khoản hiện có của bạn trên iPhone này, hãy phê duyệt thiết bị này từ một trong các thiết bị được ủy quyền của bạn.</string>
+	<key>Total</key>
+	<string>Tổng cộng</string>
 	<key>Transfer between devices</key>
 	<string>Chuyển giữa các thiết bị</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Sử dụng phiên bản xung đột</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Sử dụng icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol hoặc sol:mint.</string>
+	<key>Use password</key>
+	<string>Dùng mật khẩu</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Sử dụng xác thực hệ thống để mở khóa không gian làm việc được mã hóa trên iPhone này.</string>
 	<key>Use this folder</key>

@@ -4,6 +4,241 @@
 use super::{Filter, VaultEntry, health};
 use crate::{Client, content::VAULT, hold::Hold};
 use dmsg_types::{Error, Result, ensure};
+use serde::Serialize;
+use std::collections::BTreeMap;
+
+/// Item IDs with unresolved copies, read without decrypting other items.
+pub fn conflict_ids(client: &Client) -> Result<std::collections::BTreeSet<String>> {
+    client.roots()?;
+    Ok(client
+        .workspace
+        .store
+        .conflicts(VAULT)?
+        .into_iter()
+        .map(|row| row.item)
+        .collect())
+}
+
+/// Safe list metadata. Hidden values and full field bodies never accumulate
+/// while sorting the complete local inventory.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Summary {
+    /// Stable item ID.
+    pub id: String,
+    /// Immutable version ID.
+    pub revision: String,
+    /// Vault type.
+    pub kind: String,
+    /// Display title.
+    pub title: String,
+    /// A non-hidden preview, at most 160 characters.
+    pub subtitle: String,
+    /// Explicitly starred by the user.
+    pub favorite: bool,
+    /// User labels.
+    pub tags: Vec<String>,
+    /// This version has a relay acknowledgement.
+    pub synced: bool,
+    /// This version conflicts with another head.
+    pub conflict: bool,
+    /// Managed by dMsg and read-only.
+    pub reserved: bool,
+    /// The current version is a tombstone.
+    pub deleted: bool,
+    /// Item creation time in milliseconds.
+    pub created_at: u64,
+    /// Item modification time in milliseconds.
+    pub updated_at: u64,
+}
+
+/// Pick a useful, non-hidden preview for each type.
+pub fn subtitle(item: &super::Item) -> String {
+    let preferred = match item.kind.as_str() {
+        "login" | "api" => "username",
+        "ssh" => "fingerprint",
+        "wallet" => "address",
+        "card" => "cardholder",
+        "identity" => "name",
+        "server" => "url",
+        "database" => "host",
+        "license" => "licensed_to",
+        _ => "",
+    };
+    let value = item
+        .fields
+        .iter()
+        .find(|f| f.id == preferred && !f.hidden() && !f.value.is_empty())
+        .or_else(|| {
+            item.fields
+                .iter()
+                .find(|f| !f.hidden() && !f.value.is_empty())
+        })
+        .map(|f| f.value.as_str())
+        .unwrap_or(if item.kind == "note" { &item.notes } else { "" });
+    value
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .chars()
+        .take(160)
+        .collect()
+}
+
+impl From<VaultEntry> for Summary {
+    fn from(entry: VaultEntry) -> Self {
+        Self {
+            subtitle: subtitle(&entry.item),
+            reserved: entry.item.reserved(),
+            id: entry.id,
+            revision: entry.revision,
+            kind: entry.item.kind,
+            title: entry.item.title,
+            favorite: entry.item.favorite,
+            tags: entry.item.tags,
+            synced: entry.synced,
+            conflict: entry.conflict,
+            deleted: entry.deleted,
+            created_at: entry.item.created_at,
+            updated_at: entry.item.updated_at,
+        }
+    }
+}
+
+/// Local browsing options, applied before pagination.
+pub struct BrowseQuery {
+    /// Search and trash scope.
+    pub filter: Filter,
+    /// Vault type.
+    pub kind: Option<String>,
+    /// Require a star, or count starred matches in a result.
+    pub favorites: bool,
+    /// An exact tag to match.
+    pub tag: Option<String>,
+    /// `title` (ascending) or `updated` (newest first).
+    pub sort: String,
+    /// Matching rows to skip after sorting.
+    pub offset: usize,
+    /// Maximum number of rows to return.
+    pub limit: usize,
+}
+
+/// A page and full-query navigation counts.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowsePage {
+    /// The requested page of safe summaries.
+    pub items: Vec<Summary>,
+    /// Matching rows before pagination.
+    pub total: usize,
+    /// Query and tag matches across all types.
+    pub all: usize,
+    /// Require a star, or count starred matches in a result.
+    pub favorites: usize,
+    /// Query and tag matches by type.
+    pub kinds: BTreeMap<String, usize>,
+    /// User labels.
+    pub tags: Vec<String>,
+    /// More matching rows follow this page.
+    pub has_more: bool,
+}
+
+/// Filter and sort before pagination, with counts for the complete query.
+/// Only safe summaries are retained; each decryption releases the client.
+pub async fn browse<H: Hold>(h: &H, query: &BrowseQuery) -> Result<BrowsePage> {
+    dmsg_types::ensure_valid(query.limit > 0 && query.limit <= 10_000, "page")?;
+    dmsg_types::ensure_valid(matches!(query.sort.as_str(), "title" | "updated"), "sort")?;
+    dmsg_types::ensure_valid(
+        query
+            .kind
+            .as_ref()
+            .is_none_or(|k| super::TYPES.contains(&k.as_str())),
+        "kind",
+    )?;
+    let session = h.with(|c| Session::start(c)).await?;
+    let conflicts = h
+        .with(|c| {
+            session.check(c)?;
+            conflict_ids(c)
+        })
+        .await?;
+    let mut after = String::new();
+    let mut items = Vec::new();
+    let mut all = 0;
+    let mut favorites = 0;
+    let mut kinds = BTreeMap::new();
+    let mut tags = std::collections::BTreeSet::new();
+    loop {
+        let rows = h
+            .with(|c| {
+                session.check(c)?;
+                c.workspace.store.head_objects_after(VAULT, &after, 64)
+            })
+            .await?;
+        if rows.is_empty() {
+            break;
+        }
+        for row in rows {
+            after = row.item.clone();
+            let entry = h
+                .with(|c| {
+                    session.check(c)?;
+                    c.vault_list_entry(&row, &query.filter)
+                })
+                .await?;
+            let Some(entry) = entry else {
+                continue;
+            };
+            tags.extend(entry.item.tags.iter().cloned());
+            if query
+                .tag
+                .as_ref()
+                .is_some_and(|tag| !entry.item.tags.contains(tag))
+            {
+                continue;
+            }
+            all += 1;
+            favorites += usize::from(entry.item.favorite);
+            *kinds.entry(entry.item.kind.clone()).or_default() += 1;
+            if query
+                .kind
+                .as_ref()
+                .is_none_or(|kind| *kind == entry.item.kind)
+                && (!query.favorites || entry.item.favorite)
+            {
+                let mut summary = Summary::from(entry);
+                summary.conflict |= conflicts.contains(&summary.id);
+                items.push(summary);
+            }
+        }
+    }
+    h.with(|c| session.check(c)).await?;
+    if query.sort == "title" {
+        items.sort_by_cached_key(|e| (e.title.to_lowercase(), e.id.clone()));
+    } else {
+        items.sort_by(|a, b| {
+            b.updated_at
+                .cmp(&a.updated_at)
+                .then_with(|| a.id.cmp(&b.id))
+        });
+    }
+    let total = items.len();
+    let has_more = query.offset.saturating_add(query.limit) < total;
+    let items = items
+        .into_iter()
+        .skip(query.offset)
+        .take(query.limit)
+        .collect();
+    Ok(BrowsePage {
+        items,
+        total,
+        all,
+        favorites,
+        kinds,
+        tags: tags.into_iter().collect(),
+        has_more,
+    })
+}
 
 /// The unlocked session and root in which a local vault operation began.
 pub struct Session {
@@ -284,6 +519,131 @@ mod tests {
             started.elapsed()
         );
     }
+    #[tokio::test]
+    async fn browse_counts_and_order_cover_the_inventory_without_hidden_values() {
+        let dir = TempDir::new();
+        let mut c = unlocked(&dir.0, false, None);
+        let items = (0..135)
+            .map(|i| {
+                let mut item = super::super::Item::new(
+                    super::super::TYPES[i % 11],
+                    &format!("Entry {i:03}"),
+                    1,
+                );
+                item.favorite = i < 9;
+                item.tags = vec![if i % 2 == 0 { "work" } else { "personal" }.into()];
+                item.fields = vec![super::super::Field::new(
+                    "secret",
+                    "concealed",
+                    "never-in-summary",
+                )];
+                item
+            })
+            .collect();
+        c.vault_add_all(items).unwrap();
+        let mut query = BrowseQuery {
+            filter: Filter::default(),
+            kind: None,
+            favorites: false,
+            tag: None,
+            sort: "title".into(),
+            offset: 0,
+            limit: 60,
+        };
+        let first = browse(&c.hold(), &query).await.unwrap();
+        assert_eq!(
+            (first.all, first.favorites, first.total, first.kinds.len()),
+            (135, 9, 135, 11)
+        );
+        assert_eq!(first.items[0].title, "Entry 000");
+        assert_eq!(first.items[59].title, "Entry 059");
+        assert!(first.has_more);
+        assert!(
+            !serde_json::to_string(&first)
+                .unwrap()
+                .contains("never-in-summary")
+        );
+        query.offset = 60;
+        assert_eq!(
+            browse(&c.hold(), &query).await.unwrap().items[0].title,
+            "Entry 060"
+        );
+        query.offset = 0;
+        query.favorites = true;
+        assert_eq!(browse(&c.hold(), &query).await.unwrap().items.len(), 9);
+        query.tag = Some("work".into());
+        query.kind = Some("login".into());
+        let scoped = browse(&c.hold(), &query).await.unwrap();
+        assert_eq!((scoped.all, scoped.total), (68, 1));
+        query = BrowseQuery {
+            filter: Filter::default(),
+            kind: None,
+            favorites: false,
+            tag: None,
+            sort: "updated".into(),
+            offset: 0,
+            limit: 60,
+        };
+        c.vault_edit(
+            &first.items[59].id,
+            None,
+            &super::super::Changes {
+                title: Some("Newest change".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            browse(&c.hold(), &query).await.unwrap().items[0].title,
+            "Newest change"
+        );
+        let id = &first.items[0].id;
+        let base = &first.items[0].revision;
+        c.vault_edit(
+            id,
+            Some(base),
+            &super::super::Changes {
+                title: Some("Current".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let copy = c
+            .vault_edit(
+                id,
+                Some(base),
+                &super::super::Changes {
+                    title: Some("Conflicting".into()),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        assert!(
+            browse(&c.hold(), &query)
+                .await
+                .unwrap()
+                .items
+                .iter()
+                .find(|e| e.id == *id)
+                .unwrap()
+                .conflict
+        );
+        c.vault_resolve(
+            &format!("{}:{}", copy.id, copy.revision),
+            &super::super::Keep::Current,
+        )
+        .unwrap();
+        assert!(!conflict_ids(&c).unwrap().contains(id));
+        c.vault_delete(id).unwrap();
+        assert_eq!(browse(&c.hold(), &query).await.unwrap().all, 134);
+        query.filter.trash = true;
+        let trash = browse(&c.hold(), &query).await.unwrap();
+        assert!(trash.items[0].deleted);
+        assert_eq!(trash.items[0].id, *id);
+        c.lock();
+        assert_eq!(browse(&c.hold(), &query).await.err(), Some(Error::Locked));
+    }
+
     #[tokio::test]
     async fn paging_applies_type_favorites_and_query_before_the_offset() {
         let dir = TempDir::new();

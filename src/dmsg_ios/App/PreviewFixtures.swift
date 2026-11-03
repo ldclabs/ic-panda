@@ -14,11 +14,11 @@ extension SessionModel {
             SessionSnapshot(generation: 0, sequence: 0, state: access ? (pairing ? "pairing_required" : "root_required") : "unlocked", account: "040g2081040g2081040g", deviceId: "fixture-device",
                             pendingSync: storeScreens ? 0 : 2, conflicts: 0, approvalsWaiting: 1, fastUnlock: access, setupPending: false, lastSyncAtMs: nil, syncError: nil),
             items: [
-                VaultItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
+                vaultFixtureItem(id: "fixture-github", revision: "1", kind: "login", title: "GitHub", subtitle: "lin@studio.example", notes: chinese ? "个人开发账号" : "Personal development account", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [],
                           fields: [VaultField(id: "username", kind: "text", label: "Username", section: "", value: "lin@studio.example", concealed: false),
                                    VaultField(id: "password", kind: "concealed", label: "Password", section: "", value: "••••••••", concealed: true)]),
-                VaultItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
-                VaultItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
+                vaultFixtureItem(id: "fixture-mail", revision: "1", kind: "login", title: chinese ? "工作邮箱" : "Work email", subtitle: "hello@studio.example", notes: "", favorite: true, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: []),
+                vaultFixtureItem(id: "fixture-note", revision: "1", kind: "note", title: chinese ? "项目笔记" : "Project notes", subtitle: chinese ? "记录尚未完成的想法" : "A place for unfinished ideas", notes: "", favorite: false, tags: [], synced: storeScreens, conflict: false, reserved: false, files: [], fields: []),
             ])
         if ProcessInfo.processInfo.arguments.contains("--ui-first-sync") {
             if let session { installFixtures(session, items: []) }; channels = []
@@ -29,7 +29,7 @@ extension SessionModel {
             contentSync = .fixture(error: "SYNC_BUSY", retry: UInt64(Date.now.timeIntervalSince1970 * 1000) + (ProcessInfo.processInfo.arguments.contains("--ui-sync-short-pause") ? 10_000 : 90_000))
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-detail-navigation") {
-            vault.insert(VaultItem(id: "fixture-managed", revision: "1", kind: "key", title: "dMsg controller #1",
+            vault.insert(vaultFixtureItem(id: "fixture-managed", revision: "1", kind: "key", title: "dMsg controller #1",
                 subtitle: "", notes: "", favorite: false, tags: ["dmsg-controller"], synced: true, conflict: false,
                 reserved: true, files: [], fields: [VaultField(id: "key", kind: "concealed", label: "Key",
                     section: "", value: "••••••••", concealed: true)]), at: 0)
@@ -56,6 +56,32 @@ extension SessionModel {
             recordRecoveryObservation(RecoveryObservation(account: account, pending: true,
                 digest: "fixture-recovery", observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000) + 1,
                 stale: false), for: account)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-vault-rich") {
+            vault += (0..<75).map { index in
+                vaultFixtureItem(id: "fixture-rich-\(index)", revision: "1", kind: vaultKinds()[index % 11],
+                    title: String(format: "Entry %02d", index), subtitle: "example.org", notes: "", favorite: index < 8,
+                    tags: [index % 2 == 0 ? "work" : "personal"], synced: true, conflict: false, reserved: false, files: [],
+                    fields: [VaultField(id: "username", kind: "text", label: "", section: "Account", value: "user@example.org", concealed: false),
+                             VaultField(id: "otp", kind: "otp", label: "", section: "Security", value: "JBSWY3DPEHPK3PXP", concealed: true)])
+            }
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-vault-empty") { vault = [] }
+        fixtureVaultItems = vault
+    }
+
+    /// Model an incoming revision after detail loading, without a network account.
+    func scheduleVaultFixtureRefresh(id: String) {
+        guard id == "fixture-github", !fixtureVaultRefreshScheduled,
+              ProcessInfo.processInfo.arguments.contains("--ui-vault-refresh") else { return }
+        fixtureVaultRefreshScheduled = true
+        let epoch = epoch
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            guard let self, self.epoch == epoch, self.unlocked,
+                  let index = self.fixtureVaultItems.firstIndex(where: { $0.id == id }) else { return }
+            self.fixtureVaultItems[index] = self.fixtureVaultItems[index].replacing(revision: "remote-2", title: "GitHub updated")
+            await self.loadVault()
         }
     }
 
@@ -154,7 +180,7 @@ extension SessionModel {
             ("identity", "identity", text("Travel documents", "旅行证件"), text("Personal reference", "个人资料")),
         ]
         vault += items.map { id, kind, title, subtitle in
-            VaultItem(id: "fixture-" + id, revision: "1", kind: kind, title: title, subtitle: subtitle,
+            vaultFixtureItem(id: "fixture-" + id, revision: "1", kind: kind, title: title, subtitle: subtitle,
                       notes: "", favorite: false, tags: [], synced: true, conflict: false, reserved: false, files: [], fields: [])
         }
         channels = [
@@ -170,6 +196,51 @@ extension SessionModel {
             LibraryFile(id: "fixture-notes", name: text("Research notes.md", "研究笔记.md"), mime: "text/markdown", size: 8192, current: "1", sha256: "", status: "local", versions: 1),
             LibraryFile(id: "fixture-image", name: text("Design reference.png", "设计参考.png"), mime: "image/png", size: 1_572_864, current: "1", sha256: "", status: "backed_up", versions: 1),
         ])
+    }
+}
+func vaultFixtureItem(id: String, revision: String, kind: String, title: String, subtitle: String, notes: String,
+    favorite: Bool, tags: [String], synced: Bool, conflict: Bool, reserved: Bool, files: [String], fields: [VaultField]) -> VaultItem {
+    VaultItem(id: id, revision: revision, kind: kind, title: title, subtitle: subtitle, notes: notes,
+        favorite: favorite, tags: tags, synced: synced, conflict: conflict, reserved: reserved, files: files,
+        fields: fields, deleted: false, createdAt: 1_793_534_400_000, updatedAt: 1_793_534_400_000)
+}
+
+extension SessionModel {
+    func saveVaultFixture(target: VaultEditorTarget, edit: VaultEdit) throws {
+        fixtureVaultSaveAttempts += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-vault-save-failure") && fixtureVaultSaveAttempts == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let previous = fixtureVaultItems.first { $0.id == target.id }
+        let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
+        let id = previous?.id ?? "fixture-created"
+        let fields = edit.fields.map { field in
+            VaultField(id: field.id, kind: field.kind, label: field.label, section: field.section,
+                value: field.value ?? previous?.fields.first(where: { $0.id == field.id })?.value ?? "",
+                concealed: ["concealed", "otp"].contains(field.kind))
+        }
+        let item = VaultItem(id: id, revision: UUID().uuidString, kind: edit.kind, title: edit.title,
+            subtitle: fields.first(where: { !$0.concealed })?.value ?? "", notes: edit.notes, favorite: edit.favorite,
+            tags: edit.tags, synced: false, conflict: false, reserved: false, files: edit.files ?? previous?.files ?? [],
+            fields: fields, deleted: false, createdAt: previous?.createdAt ?? now, updatedAt: now)
+        if let previous { fixtureVaultHistory[id, default: []].append(previous) }
+        fixtureVaultItems.removeAll { $0.id == id }; fixtureVaultItems.append(item)
+    }
+
+    func fixtureVaultPage(offset: Int, limit: Int) -> (items: [VaultItem], counts: VaultCounts, more: Bool) {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        let inventory = fixtureVaultItems.filter { item in
+            !item.deleted && (query.isEmpty || ([item.title, item.notes] + item.tags + item.fields.filter { !$0.concealed }.map(\.value)).contains { $0.localizedCaseInsensitiveContains(query) })
+        }
+        let tags = Array(Set(inventory.flatMap(\.tags))).sorted()
+        let tagged = inventory.filter { vaultTag.isEmpty || $0.tags.contains(vaultTag) }
+        var counts = VaultCounts(all: tagged.count, favorites: tagged.filter(\.favorite).count, tags: tags)
+        for item in tagged { counts.kinds[item.kind, default: 0] += 1 }
+        var filtered = tagged.filter { vaultFilter == "all" || (vaultFilter == "favorites" ? $0.favorite : $0.kind == vaultFilter) }
+        filtered.sort { a, b in
+            if vaultSort == "title" { return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending }
+            return a.updatedAt == b.updatedAt ? a.id < b.id : a.updatedAt > b.updatedAt
+        }
+        counts.total = filtered.count
+        return (Array(filtered.dropFirst(offset).prefix(limit)), counts, offset + limit < filtered.count)
     }
 }
 #endif

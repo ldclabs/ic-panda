@@ -134,6 +134,8 @@
 	<string>Для изменения безопасности аккаунта требуется устройство администратора.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>Для публикации этого профиля требуется устройство администратора.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>Пустое новое значение удалит сохранённое значение.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Любой, у кого есть полная ссылка и необходимый пароль, может получить содержимое в пределах заданных ограничений.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>Выберите версию для сохранения. История остаётся доступной; секреты не перезаписываются без вашего решения.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>Выберите, кто может писать вам бесплатно. Заблокированные аккаунты останутся заблокированными до отмены блокировки.</string>
+	<key>Clear</key>
+	<string>Очистить</string>
 	<key>Clear cached data</key>
 	<string>Очистить кэш</string>
+	<key>Clear filters</key>
+	<string>Сбросить фильтры</string>
+	<key>Clear selection</key>
+	<string>Снять выделение</string>
 	<key>Close invitation</key>
 	<string>Закрыть приглашение</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>Облачное хранилище</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Сравните ID устройства на обоих экранах и подтвердите на компьютере.</string>
+	<key>Compare with current</key>
+	<string>Сравнить с текущей версией</string>
 	<key>Complete</key>
 	<string>Завершено</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>Скопировано</string>
 	<key>Copied for 30 seconds</key>
 	<string>Скопировано на 30 секунд</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>Скопировано. Срок действия кода скоро истечёт.</string>
 	<key>Copies from other iPhones</key>
 	<string>Копии с других iPhone</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>Копии остаются на этом устройстве и удаляются не позднее чем через 30 секунд.</string>
 	<key>Copy</key>
 	<string>Копировать</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>Удалить подготовленную копию</string>
 	<key>Discard this staged copy?</key>
 	<string>Удалить эту подготовленную копию?</string>
+	<key>Discard unsaved changes?</key>
+	<string>Отменить изменения?</string>
+	<key>Dismiss</key>
+	<string>Закрыть</string>
 	<key>Dismiss this observation</key>
 	<string>Скрыть это наблюдение</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>Движок</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Зарегистрированная биометрия изменилась. Зарегистрируйте новый ключ, прежде чем полагаться на этот.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>Введите ключ настройки или URL otpauth.</string>
 	<key>Enter a valid account ID.</key>
 	<string>Введите корректный ID аккаунта.</string>
+	<key>Enter a valid date.</key>
+	<string>Введите корректную дату.</string>
+	<key>Enter a valid email address.</key>
+	<string>Введите действительный адрес электронной почты.</string>
+	<key>Enter a valid website address.</key>
+	<string>Введите действительный адрес сайта.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>Введите положительную сумму допустимой точности.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>Поле</string>
 	<key>Field name</key>
 	<string>Название поля</string>
+	<key>Field name is required.</key>
+	<string>Укажите название поля.</string>
 	<key>Field reference</key>
 	<string>Ссылка на поле</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>Файлы импортированы.</string>
 	<key>Files in this folder</key>
 	<string>Файлы в этой папке</string>
+	<key>Filters</key>
+	<string>Фильтры хранилища</string>
 	<key>Fingerprint</key>
 	<string>Отпечаток</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>Заморозить кошелёк</string>
 	<key>From block %llu</key>
 	<string>С блока %llu</string>
+	<key>Generate password</key>
+	<string>Создать пароль</string>
 	<key>Grant delegation</key>
 	<string>Выдать делегирование</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>Включить заметки</string>
 	<key>Include this message's text</key>
 	<string>Приложить текст сообщения</string>
+	<key>Incomplete</key>
+	<string>Неполные</string>
 	<key>Inspect pairing request</key>
 	<string>Проверить запрос сопряжения</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>Целостность</string>
 	<key>Interrupted</key>
 	<string>Прервано</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>Недействительный ключ настройки или URL otpauth.</string>
 	<key>Inventory fingerprint</key>
 	<string>Отпечаток списка</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>Сохранить текущую версию</string>
 	<key>Keep draft and leave</key>
 	<string>Сохранить черновик и выйти</string>
+	<key>Keep existing value</key>
+	<string>Сохранить прежнее значение</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Храните секреты, разговоры и файлы вместе. Открыть их могут только ваши авторизованные устройства.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>Оставлено</string>
 	<key>Left out</key>
 	<string>Пропущено</string>
+	<key>Length</key>
+	<string>Длина</string>
 	<key>License Key</key>
 	<string>Лицензионный ключ</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>Метка участника</string>
 	<key>Members</key>
 	<string>Участники</string>
+	<key>Merge individual fields</key>
+	<string>Объединить отдельные поля</string>
 	<key>Message</key>
 	<string>Сообщение</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>Месячный лимит выполнения</string>
 	<key>Monthly execution units</key>
 	<string>Месячные единицы выполнения</string>
+	<key>More types</key>
+	<string>Типы</string>
 	<key>Move a native address</key>
 	<string>Перенос нативного адреса</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>Переносит библиотеку файлов на другое устройство этого аккаунта в той же сети со сквозным шифрованием. Держите оба устройства разблокированными до конца.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>Переходите со старого устройства? Это устройство примет его роль, ключи и кошельки, затем старое будет отозвано.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>Перемещение в корзину не освобождает место в облаке.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Переход на новое устройство: новое просит заменить старое, старое одобряет, затем оба шаг за шагом передают дела.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>Учётных данных нет</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>На этом устройстве нет записанных зависимостей.</string>
+	<key>No favorites</key>
+	<string>Нет избранного</string>
+	<key>No fields or notes</key>
+	<string>Пока пусто.</string>
 	<key>No findings from this device's checks.</key>
 	<string>Проверки на этом устройстве не выявили проблем.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>Нет прерванных импортов</string>
 	<key>No item attachments</key>
 	<string>У записи нет вложений</string>
+	<key>No items</key>
+	<string>Записей пока нет</string>
 	<key>No letters yet</key>
 	<string>Входящих писем пока нет</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>Идентификатор принимающего устройства</string>
 	<key>Receiving policy</key>
 	<string>Правила получения</string>
+	<key>Recently updated</key>
+	<string>Недавно изменённые</string>
 	<key>Recipient</key>
 	<string>Получатель</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>Удалить привязку к устройству</string>
 	<key>Remove device binding?</key>
 	<string>Удалить привязку к устройству?</string>
+	<key>Remove favorite</key>
+	<string>Убрать из избранного</string>
 	<key>Remove field</key>
 	<string>Удалить поле</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>Ключ SSH</string>
 	<key>Save</key>
 	<string>Сохранить</string>
+	<key>Save merged version</key>
+	<string>Сохранить объединение</string>
+	<key>Save merged version?</key>
+	<string>Сохранить объединённую версию?</string>
 	<key>Save name</key>
 	<string>Сохранить имя</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>Сохранено на этом устройстве. Изменения ожидают синхронизации.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Сохранено. Публикация ожидается.</string>
+	<key>Scan QR code</key>
+	<string>Сканировать камерой</string>
 	<key>Scan desktop invitation</key>
 	<string>Сканировать приглашение с компьютера</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>Поля для передачи</string>
 	<key>Select login items</key>
 	<string>Выбрать учётные записи</string>
+	<key>Select non-duplicates</key>
+	<string>Выбрать без дубликатов</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>Выберите до 1 000 записей за один импорт.</string>
 	<key>Selected</key>
 	<string>Выбрано</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Выбранные поля OTP содержат многоразовый секретный ключ, а не только текущий код.</string>
 	<key>Selected accounts</key>
 	<string>Выбранные аккаунты</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>Выбранные части берутся из конфликтующей версии. Остальные сохраняются из текущей версии.</string>
 	<key>Send device request</key>
 	<string>Отправить запрос устройства</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>Показать</string>
 	<key>Show dismissed findings</key>
 	<string>Показать скрытые результаты</string>
+	<key>Show draft</key>
+	<string>Показать введённое</string>
 	<key>Show share link</key>
 	<string>Показать ссылку для доступа</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>Собрано подписей</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Подписи соподписантов %@ больше не соответствуют их текущим ключам и отложены; им нужно подписать заново.</string>
+	<key>Skipped</key>
+	<string>Пропущено</string>
 	<key>Snapshot</key>
 	<string>Снимок</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>Не удалось обновить часть данных использования. Недоступные значения не равны нулю.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Часть кошельков ещё не готова. Выполните шаг ещё раз.</string>
+	<key>Sort</key>
+	<string>Сортировка</string>
 	<key>Source address</key>
 	<string>Исходный адрес</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>Сменить аккаунт</string>
 	<key>Switch to this account</key>
 	<string>Переключиться на этот аккаунт</string>
+	<key>Symbols</key>
+	<string>Символы</string>
 	<key>Sync and storage</key>
 	<string>Синхронизация и хранение</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>Системные интеграции</string>
 	<key>System permission</key>
 	<string>Системное разрешение</string>
+	<key>Tags</key>
+	<string>Теги</string>
 	<key>Tags, separated by commas</key>
 	<string>Метки через запятую</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>Это устройство может получить ваши личные данные. После одобрения необходимо заново распределить корневой ключ содержимого.</string>
 	<key>This device replaces</key>
 	<string>Это устройство заменяет</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>Поле будет видно, пока вы не скроете его или не покинете этот экран.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Размер этого файла превышает допустимый предел для этой операции.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>Список охватывает ссылки и записи передачи на этом устройстве. Другие устройства и произвольные файлы проектов не проверяются.</string>
 	<key>This is not the device in the request.</key>
 	<string>Это не устройство из запроса.</string>
+	<key>This item is no longer available.</key>
+	<string>Эта запись больше недоступна.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Этот ключ управляется dMsg, его нельзя копировать или изменять.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>Чтобы вместо этого заменить старый iPhone, отложите копию и войдите, затем выберите «Заменить старый iPhone» у копии; когда этот iPhone присоединится, импортируйте её файлы в разделе «Устройства».</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>Чтобы использовать существующий аккаунт на этом iPhone, одобрите это устройство с одного из авторизованных устройств.</string>
+	<key>Total</key>
+	<string>Итого</string>
 	<key>Transfer between devices</key>
 	<string>Передача между устройствами</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>Использовать конфликтующую версию</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Используйте icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol или sol:mint.</string>
+	<key>Use password</key>
+	<string>Использовать пароль</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>Используйте системную аутентификацию, чтобы разблокировать зашифрованное рабочее пространство на этом iPhone.</string>
 	<key>Use this folder</key>

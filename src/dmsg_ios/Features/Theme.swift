@@ -39,9 +39,15 @@ extension View {
 
 private struct PrivateScreen: ViewModifier {
     @Environment(SessionModel.self) private var model
+    @State private var noticeHost = UUID()
     func body(content: Content) -> some View {
         content.scrollDismissesKeyboard(.interactively).scrollContentBackground(.hidden).background(Theme.paper).privacySensitive()
             .listSectionSpacing(.compact)
-            .onAppear { model.activity() }
+            .overlay(alignment: .bottom) { if model.noticeHosts.last == noticeHost { TransientNotice() } }
+            .onAppear {
+                model.noticeHosts.removeAll { $0 == noticeHost }; model.noticeHosts.append(noticeHost)
+                model.activity()
+            }
+            .onDisappear { model.noticeHosts.removeAll { $0 == noticeHost } }
     }
 }

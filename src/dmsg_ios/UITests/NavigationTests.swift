@@ -10,7 +10,10 @@ import XCTest
 
     private func back(_ app: XCUIApplication) {
         let rail = app.buttons["BackButton"].firstMatch
-        if rail.exists { rail.tap() }
+        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 {
+            XCTAssertTrue(rail.waitForExistence(timeout: 3)); rail.tap()
+        }
+        else if rail.exists { rail.tap() }
         else { app.navigationBars.buttons.element(boundBy: 0).tap() }
     }
 
@@ -160,7 +163,7 @@ import XCTest
                 guard detail.waitForExistence(timeout: 5) else { XCTFail("Secret detail did not finish loading: \(id)"); return }
                 XCTAssertEqual(detail.label, title)
                 if id == "fixture-managed" {
-                    XCTAssertFalse(app.buttons["vault.reveal.key"].isEnabled)
+                    XCTAssertFalse(app.buttons["vault.reveal.key"].exists)
                     if iteration == 0 { capture(app, name: "Managed secret · \(language)") }
                 }
                 back(app)
@@ -210,7 +213,7 @@ import XCTest
         let detail = app.staticTexts["vault.detail.title"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
         XCTAssertEqual(detail.label, "Project notes")
-        select("vault.favorite.fixture-github")
+        select("vault.item.fixture-github")
         let github = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "GitHub"), object: detail)
         XCTAssertEqual(XCTWaiter.wait(for: [github], timeout: 5), .completed)
         capture(app, name: "iPad selection and favorites")
@@ -256,6 +259,7 @@ import XCTest
         item.tap()
         XCTAssertFalse(app.staticTexts["fixture-secret"].exists)
         XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["vault.value.password"].value as? String, "Hidden value")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Secret fields remain concealed"
         attachment.lifetime = .keepAlways
@@ -289,12 +293,12 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(ar)", "-AppleLocale", "ar",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
-        let item = app.buttons["vault.favorite.fixture-github"]
+        let item = app.buttons["vault.item.fixture-github"]
         XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
         XCTAssertEqual(app.staticTexts["vault.detail.title"].label, "GitHub")
         let reveal = app.buttons["vault.reveal.password"]
-        XCTAssertTrue(reveal.waitForExistence(timeout: 5))
-        if !reveal.isHittable { app.swipeUp() }
+        for _ in 0..<6 where !reveal.exists || !reveal.isHittable { app.swipeUp() }
+        XCTAssertTrue(reveal.exists)
         XCTAssertTrue(reveal.isHittable)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Arabic accessibility layout"
@@ -349,7 +353,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-recovery-pending", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Account recovery is pending"].waitForExistence(timeout: 5))
+        let status = app.buttons["workspace.status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertEqual(status.label, "Account recovery is pending")
         let item = app.buttons["vault.item.fixture-github"]
         XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
         XCTAssertTrue(app.buttons["vault.reveal.password"].waitForExistence(timeout: 5))

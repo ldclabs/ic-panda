@@ -25,7 +25,7 @@
 	<key>UIPrefersShowingLanguageSettings</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan a dMsg device pairing request for review.</string>
+	<string>Scan QR codes for review.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock your private workspace and confirm the request you reviewed.</string>
 	<key>NSLocalNetworkUsageDescription</key>

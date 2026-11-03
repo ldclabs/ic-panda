@@ -8,18 +8,24 @@ final class SyncUITests: XCTestCase {
                                "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         if dark { app.launchArguments.append("--ui-dark") }
         app.launch()
+        let status = app.buttons["workspace.status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 8)); status.tap()
         XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 8))
         if paused { XCTAssertTrue(app.buttons["sync.retry"].exists) }
         else { XCTAssertTrue(app.staticTexts["sync.entries"].exists) }
         let vault = XCTAttachment(screenshot: app.screenshot())
         vault.name = "First sync \(language) \(dark ? "dark" : "light") \(paused ? "paused" : "running")"
         vault.lifetime = .keepAlways; add(vault)
+        app.buttons["workspace.status.done"].tap()
         // Tab changes keep the session-owned progress visible.
         let tabs = app.tabBars.buttons
         XCTAssertEqual(tabs.count, 4)
         tabs.element(boundBy: 1).tap()
         XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 5))
         tabs.element(boundBy: 3).tap()
+        let settings = app.buttons["account.sync-settings"]
+        for _ in 0..<4 where !settings.isHittable { app.swipeUp() }
+        XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
         let sync = app.buttons["account.sync"]
         for _ in 0..<7 where !sync.isHittable { app.swipeUp() }
         XCTAssertTrue(sync.isHittable)
@@ -33,6 +39,8 @@ final class SyncUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-sync-paused", "--ui-sync-short-pause", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
+        let status = app.buttons["workspace.status"].firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 5)); status.tap()
         let retry = app.buttons["sync.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         XCTAssertFalse(retry.isEnabled)

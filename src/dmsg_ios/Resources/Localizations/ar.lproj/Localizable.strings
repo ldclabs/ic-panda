@@ -134,6 +134,8 @@
 	<string>يلزم جهاز مسؤول لتغيير أمان الحساب.</string>
 	<key>An administrator device is required to publish this profile.</key>
 	<string>يلزم جهاز مسؤول لنشر هذا الملف الشخصي.</string>
+	<key>An empty replacement clears the saved value.</key>
+	<string>سيؤدي البديل الفارغ إلى مسح القيمة المحفوظة.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>يمكن لأي شخص يملك الرابط الكامل وكلمة المرور المطلوبة استرجاع المحتوى ضمن الحدود المحددة.</string>
 	<key>Anyone, free of charge</key>
@@ -398,8 +400,14 @@
 	<string>اختر النسخة التي تريد الاحتفاظ بها. يبقى السجل محفوظًا، ولا تُستبدل الأسرار دون قرار منك.</string>
 	<key>Choose who may send you free letters. Blocked accounts remain blocked until you unblock them.</key>
 	<string>اختر من يمكنه مراسلتك مجانًا. تبقى الحسابات المحظورة كذلك حتى تلغي حظرها.</string>
+	<key>Clear</key>
+	<string>مسح</string>
 	<key>Clear cached data</key>
 	<string>مسح ذاكرة التخزين المؤقت</string>
+	<key>Clear filters</key>
+	<string>مسح عوامل التصفية</string>
+	<key>Clear selection</key>
+	<string>إلغاء التحديد</string>
 	<key>Close invitation</key>
 	<string>إغلاق الدعوة</string>
 	<key>Closed</key>
@@ -418,6 +426,8 @@
 	<string>التخزين السحابي</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
+	<key>Compare with current</key>
+	<string>المقارنة بالإصدار الحالي</string>
 	<key>Complete</key>
 	<string>اكتمل</string>
 	<key>Complete recovery after waiting period</key>
@@ -496,8 +506,12 @@
 	<string>تم النسخ</string>
 	<key>Copied for 30 seconds</key>
 	<string>نُسخ لمدة 30 ثانية</string>
+	<key>Copied. The code expires shortly.</key>
+	<string>تم النسخ. ستنتهي صلاحية الرمز قريبًا.</string>
 	<key>Copies from other iPhones</key>
 	<string>نسخ من أجهزة iPhone أخرى</string>
+	<key>Copies stay on this device and expire within 30 seconds.</key>
+	<string>تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها خلال 30 ثانية.</string>
 	<key>Copy</key>
 	<string>نسخ</string>
 	<key>Copy account ID</key>
@@ -686,6 +700,10 @@
 	<string>تجاهل النسخة المؤقتة</string>
 	<key>Discard this staged copy?</key>
 	<string>هل تريد تجاهل هذه النسخة المؤقتة؟</string>
+	<key>Discard unsaved changes?</key>
+	<string>تجاهل التغييرات؟</string>
+	<key>Dismiss</key>
+	<string>إغلاق</string>
 	<key>Dismiss this observation</key>
 	<string>استبعاد هذه الملاحظة</string>
 	<key>Dismiss this observation?</key>
@@ -738,8 +756,16 @@
 	<string>المحرّك</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>تغيّرت القياسات الحيوية المسجلة. سجّل مفتاحًا بديلًا قبل الاعتماد على هذا المفتاح.</string>
+	<key>Enter a setup key or otpauth URL.</key>
+	<string>أدخل مفتاح الإعداد أو رابط otpauth.</string>
 	<key>Enter a valid account ID.</key>
 	<string>أدخل معرّف حساب صالحًا.</string>
+	<key>Enter a valid date.</key>
+	<string>أدخل تاريخًا صالحًا.</string>
+	<key>Enter a valid email address.</key>
+	<string>أدخل عنوان بريد إلكتروني صالحًا.</string>
+	<key>Enter a valid website address.</key>
+	<string>أدخل عنوان موقع إلكتروني صالحًا.</string>
 	<key>Enter an exact amount within the asset's precision.</key>
 	<string>أدخل مبلغًا موجبًا بدقة الأصل.</string>
 	<key>Enter the session code the receiving device shows.</key>
@@ -784,6 +810,8 @@
 	<string>الحقل</string>
 	<key>Field name</key>
 	<string>اسم الحقل</string>
+	<key>Field name is required.</key>
+	<string>اسم الحقل مطلوب.</string>
 	<key>Field reference</key>
 	<string>مرجع الحقل</string>
 	<key>Field reference and dependencies</key>
@@ -814,6 +842,8 @@
 	<string>تم استيراد الملفات.</string>
 	<key>Files in this folder</key>
 	<string>ملفات هذا المجلد</string>
+	<key>Filters</key>
+	<string>عوامل تصفية الخزنة</string>
 	<key>Fingerprint</key>
 	<string>البصمة</string>
 	<key>Finishing the security update. New content waits until it completes.</key>
@@ -830,6 +860,8 @@
 	<string>تجميد المحفظة</string>
 	<key>From block %llu</key>
 	<string>من الكتلة %llu</string>
+	<key>Generate password</key>
+	<string>إنشاء كلمة مرور</string>
 	<key>Grant delegation</key>
 	<string>منح تفويض</string>
 	<key>Handled on another device</key>
@@ -928,6 +960,8 @@
 	<string>تضمين الملاحظات</string>
 	<key>Include this message's text</key>
 	<string>إرفاق نص هذه الرسالة</string>
+	<key>Incomplete</key>
+	<string>غير مكتمل</string>
 	<key>Inspect pairing request</key>
 	<string>مراجعة طلب الاقتران</string>
 	<key>Inspect this version</key>
@@ -938,6 +972,8 @@
 	<string>سلامة المحتوى</string>
 	<key>Interrupted</key>
 	<string>انقطع</string>
+	<key>Invalid setup key or otpauth URL.</key>
+	<string>مفتاح الإعداد أو رابط otpauth غير صالح.</string>
 	<key>Inventory fingerprint</key>
 	<string>بصمة الجرد</string>
 	<key>Invite member</key>
@@ -966,6 +1002,8 @@
 	<string>الاحتفاظ بالنسخة الحالية</string>
 	<key>Keep draft and leave</key>
 	<string>الاحتفاظ بالمسودة والمغادرة</string>
+	<key>Keep existing value</key>
+	<string>الاحتفاظ بالقيمة الحالية</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>اجمع أسرارك ومحادثاتك وملفاتك معًا. لا تفتحها إلا أجهزتك المفوّضة.</string>
 	<key>Key</key>
@@ -1002,6 +1040,8 @@
 	<string>متروكة</string>
 	<key>Left out</key>
 	<string>لم تُنقل</string>
+	<key>Length</key>
+	<string>الطول</string>
 	<key>License Key</key>
 	<string>مفتاح الترخيص</string>
 	<key>Licensed To</key>
@@ -1078,6 +1118,8 @@
 	<string>تسمية العضو</string>
 	<key>Members</key>
 	<string>الأعضاء</string>
+	<key>Merge individual fields</key>
+	<string>دمج الحقول بشكل منفرد</string>
 	<key>Message</key>
 	<string>رسالة</string>
 	<key>Message settings</key>
@@ -1092,6 +1134,8 @@
 	<string>حد التنفيذ الشهري</string>
 	<key>Monthly execution units</key>
 	<string>وحدات التنفيذ الشهرية</string>
+	<key>More types</key>
+	<string>الأنواع</string>
 	<key>Move a native address</key>
 	<string>نقل عنوان أصلي</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
@@ -1114,6 +1158,8 @@
 	<string>ينقل مكتبة الملفات إلى جهاز آخر لهذا الحساب على الشبكة نفسها، مشفّرة من طرف إلى طرف. أبقِ الجهازين غير مقفلين حتى ينتهي.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
 	<string>هل تنتقل من جهاز قديم؟ يتولى هذا الجهاز دوره ومفاتيحه ومحافظه، ثم يُلغى القديم.</string>
+	<key>Moving to Trash does not free cloud storage.</key>
+	<string>النقل إلى سلة المهملات لا يحرر مساحة في التخزين السحابي.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>الانتقال إلى جهاز جديد: يطلب الجهاز الجديد أن يحلّ محل جهاز قديم، فيوافق القديم، ثم يتسلّم الجديد خطوة بخطوة.</string>
 	<key>Multisig wallets</key>
@@ -1176,6 +1222,10 @@
 	<string>لا توجد بيانات اعتماد</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>لا توجد اعتماديات مسجلة على هذا الجهاز.</string>
+	<key>No favorites</key>
+	<string>لا توجد مفضلات</string>
+	<key>No fields or notes</key>
+	<string>لا شيء مكتوب بعد.</string>
 	<key>No findings from this device's checks.</key>
 	<string>لم تظهر نتائج في فحوص هذا الجهاز.</string>
 	<key>No handovers on this device.</key>
@@ -1184,6 +1234,8 @@
 	<string>لا توجد عمليات استيراد متوقفة</string>
 	<key>No item attachments</key>
 	<string>لا توجد مرفقات للعنصر</string>
+	<key>No items</key>
+	<string>لا سجلات بعد</string>
 	<key>No letters yet</key>
 	<string>لا توجد رسائل واردة بعد</string>
 	<key>No messages</key>
@@ -1482,6 +1534,8 @@
 	<string>معرّف الجهاز المستلم</string>
 	<key>Receiving policy</key>
 	<string>سياسة الاستلام</string>
+	<key>Recently updated</key>
+	<string>المعدلة مؤخرًا</string>
 	<key>Recipient</key>
 	<string>المستلم</string>
 	<key>Recipient account ID</key>
@@ -1558,6 +1612,8 @@
 	<string>إزالة الارتباط بالجهاز</string>
 	<key>Remove device binding?</key>
 	<string>إزالة الارتباط بالجهاز؟</string>
+	<key>Remove favorite</key>
+	<string>إزالة النجمة</string>
 	<key>Remove field</key>
 	<string>إزالة الحقل</string>
 	<key>Remove local data</key>
@@ -1820,6 +1876,10 @@
 	<string>مفتاح SSH</string>
 	<key>Save</key>
 	<string>حفظ</string>
+	<key>Save merged version</key>
+	<string>حفظ الدمج</string>
+	<key>Save merged version?</key>
+	<string>حفظ الإصدار المدمج؟</string>
 	<key>Save name</key>
 	<string>حفظ الاسم</string>
 	<key>Save receiving policy</key>
@@ -1850,6 +1910,8 @@
 	<string>محفوظ على هذا الجهاز. تنتظر التغييرات المزامنة.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
+	<key>Scan QR code</key>
+	<string>المسح بالكاميرا</string>
 	<key>Scan desktop invitation</key>
 	<string>مسح دعوة الكمبيوتر</string>
 	<key>Scan device request</key>
@@ -1894,12 +1956,18 @@
 	<string>اختر الحقول للمشاركة</string>
 	<key>Select login items</key>
 	<string>اختيار بيانات الدخول</string>
+	<key>Select non-duplicates</key>
+	<string>تحديد السجلات غير المكررة</string>
+	<key>Select up to 1,000 records per import.</key>
+	<string>يمكن تحديد ما يصل إلى 1,000 سجل لكل عملية استيراد.</string>
 	<key>Selected</key>
 	<string>المحدد</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>تتضمن حقول OTP المحددة المفتاح السري القابل لإعادة الاستخدام، وليس الرمز الحالي فقط.</string>
 	<key>Selected accounts</key>
 	<string>الحسابات المختارة</string>
+	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
+	<string>تستخدم الأجزاء المحددة الإصدار المتعارض. وتحتفظ الأجزاء الأخرى بالإصدار الحالي.</string>
 	<key>Send device request</key>
 	<string>إرسال طلب الجهاز</string>
 	<key>Send free letter</key>
@@ -1968,6 +2036,8 @@
 	<string>إظهار</string>
 	<key>Show dismissed findings</key>
 	<string>إظهار النتائج المستبعدة</string>
+	<key>Show draft</key>
+	<string>أظهر ما كتبته</string>
 	<key>Show share link</key>
 	<string>إظهار رابط المشاركة</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1992,6 +2062,8 @@
 	<string>التوقيعات المجمَّعة</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>لم تعد توقيعات الموقّعين المشاركين %@ مطابقة لمفاتيحهم الحالية فتمت تنحيتها؛ يجب أن يوقّعوا مرة أخرى.</string>
+	<key>Skipped</key>
+	<string>تم تخطيها</string>
 	<key>Snapshot</key>
 	<string>لقطة</string>
 	<key>Snapshot link</key>
@@ -2010,6 +2082,8 @@
 	<string>تعذّر تحديث بعض بيانات الاستخدام. القيم غير المتاحة لا تعني صفرًا.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>بعض المحافظ لم تكتمل بعد. نفّذ الخطوة مرة أخرى لإنهائها.</string>
+	<key>Sort</key>
+	<string>ترتيب</string>
 	<key>Source address</key>
 	<string>عنوان المصدر</string>
 	<key>Source address %u</key>
@@ -2070,6 +2144,8 @@
 	<string>تبديل الحساب</string>
 	<key>Switch to this account</key>
 	<string>التبديل إلى هذا الحساب</string>
+	<key>Symbols</key>
+	<string>رموز</string>
 	<key>Sync and storage</key>
 	<string>المزامنة والتخزين</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
@@ -2092,6 +2168,8 @@
 	<string>تكامل النظام</string>
 	<key>System permission</key>
 	<string>إذن النظام</string>
+	<key>Tags</key>
+	<string>الوسوم</string>
 	<key>Tags, separated by commas</key>
 	<string>وسوم مفصولة بفواصل</string>
 	<key>Terms of service</key>
@@ -2210,6 +2288,8 @@
 	<string>قد يحصل هذا الجهاز على محتواك الخاص. يجب إعادة توزيع مفتاح جذر المحتوى بعد الموافقة.</string>
 	<key>This device replaces</key>
 	<string>يحلّ هذا الجهاز محل</string>
+	<key>This field will be visible until you hide it or leave this screen.</key>
+	<string>سيظل هذا الحقل ظاهرًا حتى تخفيه أو تغادر هذه الشاشة.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>يتجاوز هذا الملف الحد الأقصى للحجم المسموح به لهذه العملية.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
@@ -2224,6 +2304,8 @@
 	<string>يشمل هذا الجرد المراجع وسجلات التسليم على هذا الجهاز. ولا يبحث في الأجهزة الأخرى أو في ملفات المشاريع غير المحددة.</string>
 	<key>This is not the device in the request.</key>
 	<string>هذا ليس الجهاز الوارد في الطلب.</string>
+	<key>This item is no longer available.</key>
+	<string>لم يعد هذا العنصر متاحًا.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>يدير dMsg هذا المفتاح ولا يمكن نسخه أو تعديله.</string>
 	<key>This letter was withdrawn.</key>
@@ -2264,6 +2346,8 @@
 	<string>لاستبدال جهاز iPhone القديم بدلًا من ذلك، ضع النسخة جانبًا وسجّل الدخول، ثم اختر «استبدال جهاز iPhone القديم» على النسخة؛ وبعد انضمام هذا الـ iPhone استورد ملفاتها من الأجهزة.</string>
 	<key>To use your existing account on this iPhone, approve this device from one of your authorized devices.</key>
 	<string>لاستخدام حسابك الحالي على هذا الـ iPhone، وافق على هذا الجهاز من أحد أجهزتك المصرّح لها.</string>
+	<key>Total</key>
+	<string>الإجمالي</string>
 	<key>Transfer between devices</key>
 	<string>النقل بين الأجهزة</string>
 	<key>Transfer or archive owned conversations first</key>
@@ -2338,6 +2422,8 @@
 	<string>استخدام النسخة المتعارضة</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>استخدم icp أو icrc:ledger أو btc أو evm:chain أو evm:chain:token أو sol أو sol:mint.</string>
+	<key>Use password</key>
+	<string>استخدام كلمة المرور</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
 	<string>استخدم مصادقة النظام لفتح مساحة العمل المشفّرة على هذا الـ iPhone.</string>
 	<key>Use this folder</key>

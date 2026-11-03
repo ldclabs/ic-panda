@@ -1,8 +1,11 @@
 import SwiftUI
+@preconcurrency import DMsgCore
 
 struct SecretHealthView: View {
     @Environment(SessionModel.self) private var model
     @State private var report: SecretHealthReport?
+    @State private var subjects: [String: VaultItem] = [:]
+    @State private var editing: VaultEditorTarget?
     @State private var includeDismissed = false
     @State private var dismissing: SecretHealthReport.Finding?
     @State private var working = false
@@ -21,6 +24,12 @@ struct SecretHealthView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(Date(timeIntervalSince1970: Double(finding.observedAt) / 1000), style: .date).font(.caption).foregroundStyle(.secondary)
                             if let field = finding.field {
+                                if let item = subjects[finding.subject] {
+                                    Text(item.title).font(.subheadline.weight(.medium))
+                                    Text(item.fields.first(where: { $0.id == field }).map(vaultFieldTitle) ?? vaultFieldName(field)).font(.caption)
+                                    if item.canEdit { Button("Edit item") { editing = VaultEditorTarget(item: item) } }
+                                }
+                                Text(secretNextAction(finding.action)).font(.footnote).foregroundStyle(.secondary)
                                 NavigationLink("Review field and dependencies") { SecretFieldReferenceView(itemID: finding.subject, fieldID: field) }
                                 NavigationLink("Open secret") { VaultDetailView(id: finding.subject) }
                             } else {
@@ -49,6 +58,7 @@ struct SecretHealthView: View {
             } else if loading { ProgressView() }
             else { Button("Retry") { Task { await load() } } }
         }.privateScreen().navigationTitle("Local security review").navigationBarTitleDisplayMode(.inline).task { await load() }.refreshable { await load() }
+            .sheet(item: $editing, onDismiss: { Task { await load() } }) { target in NavigationStack { VaultEditor(target: target) } }
             .confirmationDialog("Dismiss this observation?", isPresented: Binding(get: { dismissing != nil }, set: { if !$0 { dismissing = nil } })) {
                 Button("Dismiss this observation") { if let finding = dismissing { Task { await dismiss(finding) } } }
             } message: { Text("This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.") }
@@ -58,7 +68,14 @@ struct SecretHealthView: View {
         let epoch = model.epoch
         do {
             guard let result = try await model.engine?.secretHealth(), epoch == model.epoch, !Task.isCancelled else { return }
-            report = try model.decode(result)
+            let loaded: SecretHealthReport = try model.decode(result)
+            report = loaded
+            for id in Set(loaded.findings.filter { $0.field != nil }.map(\.subject)) {
+                if let item = try? await model.readVaultItem(id: id) {
+                    guard epoch == model.epoch, !Task.isCancelled else { return }
+                    subjects[id] = item
+                }
+            }
         } catch { if epoch == model.epoch { model.report(error) } }
     }
     private func dismiss(_ finding: SecretHealthReport.Finding) async {
