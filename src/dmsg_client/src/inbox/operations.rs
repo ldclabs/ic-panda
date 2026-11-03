@@ -118,15 +118,28 @@ pub async fn order<H: Hold>(h: &H, recipient: &AccountId, order: &str) -> Result
 /// # Errors
 /// As [`Client::inbox_mark`].
 pub async fn mark<H: Hold>(h: &H, order: &str, read: bool, archived: bool) -> Result<Json> {
+    // Preserve the existing desktop/CLI contract. Native mailbox organization
+    // uses mark_contact with an explicit, separate reopening choice.
+    mark_contact(h, order, read, archived, archived).await
+}
+
+/// Reopening direct contact is an explicit choice, separate from organizing mail.
+pub async fn mark_contact<H: Hold>(
+    h: &H,
+    order: &str,
+    read: bool,
+    archived: bool,
+    reopen_contact: bool,
+) -> Result<Json> {
     ensure_valid(crate::channel_log::is_hash(order), "order")?;
     let h = Unlocked::new(h).await?;
     let me = h.account;
     let result = post(
         &h,
-        &format!("mark:{order}:{read}:{archived}"),
+        &format!("mark:{order}:{read}:{archived}:{reopen_contact}"),
         &format!("/v1/inboxes/{me}/mark"),
         "dmsg/inbox/mark/v1",
-        json!({"order_id":order,"read":read,"archived":archived,"reopen_contact":archived}),
+        json!({"order_id":order,"read":read,"archived":archived,"reopen_contact":reopen_contact}),
         true,
     )
     .await?;

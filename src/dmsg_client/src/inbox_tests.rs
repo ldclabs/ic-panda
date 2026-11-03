@@ -217,7 +217,7 @@ async fn read_archive_and_restore_acknowledgements_update_the_cached_letter() {
     c.inbox_page_settle(0, &json!({"entries":[row],"next_cursor":1}), &trust)
         .unwrap();
     let letter = c.inbox_cached().unwrap().remove(0);
-    let replies: Vec<_> = [(true, false), (true, true), (true, false)]
+    let replies: Vec<_> = [(true, false), (true, true), (true, false), (true, false)]
         .into_iter()
         .map(|(read, archived)| {
             (
@@ -274,13 +274,26 @@ async fn read_archive_and_restore_acknowledgements_update_the_cached_letter() {
         }
     });
     for (read, archived) in [(true, false), (true, true), (true, false)] {
-        mark(&c.hold(), &letter.order_id, read, archived)
+        mark_contact(&c.hold(), &letter.order_id, read, archived, false)
             .await
             .unwrap();
         let saved = c.inbox_cached().unwrap().remove(0);
         assert_eq!((saved.read, saved.archived), (read, archived));
         assert_eq!(saved.text, letter.text);
+        let job: Operation = c
+            .inbox_job(&format!("mark:{}:{read}:{archived}:false", letter.order_id))
+            .unwrap()
+            .unwrap();
+        assert_eq!(job.payload["reopen_contact"], false);
     }
+    mark_contact(&c.hold(), &letter.order_id, true, false, true)
+        .await
+        .unwrap();
+    let reopened: Operation = c
+        .inbox_job(&format!("mark:{}:true:false:true", letter.order_id))
+        .unwrap()
+        .unwrap();
+    assert_eq!(reopened.payload["reopen_contact"], true);
     server.await.unwrap();
 }
 

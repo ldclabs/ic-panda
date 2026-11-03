@@ -10,9 +10,9 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
-    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:] } }
+    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset() } }
     var concealed = true
     var busy = false
     private(set) var unlocking = false
@@ -50,6 +50,7 @@ final class SessionModel {
     private(set) var accountIdentities: [String: LocalAccountIdentity] = [:]
     private(set) var deviceLabels: [String: String] = [:]
     let messageSending = MessageSending()
+    let letters = LetterWorkspace()
     private var dirtyDrafts: Set<String> = []
     var library: LibraryListing = .empty
     private(set) var cloudBackups: [CloudBackup] = []
@@ -119,6 +120,7 @@ final class SessionModel {
     var fixtureChannelRefreshes = 0
     var fixtureInboxLetters: [InboxLetter] = []
     var fixtureInboxRefreshes = 0
+    var fixtureInboxComplete = false
     #else
     let uiTesting = false
     #endif
@@ -559,6 +561,9 @@ final class SessionModel {
     func inactive() { stopAutomaticSync(.inactive); lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
 
     func background() {
+        let letterDrafts = letters.pendingInputs
+        let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
+        let account = session?.account
         stopAutomaticSync(.background)
         automaticUnlock.rearm()
         nextAutomaticSync = nil
@@ -573,8 +578,14 @@ final class SessionModel {
         engine?.suspend()
         backgroundAt = .now
         if immediateBackgroundLock {
+            let engine = engine
             clearContent(clearClipboard: false)
-            engine?.lockNow()
+            if let account, !letterDrafts.isEmpty || !messageDrafts.isEmpty {
+                closing = Task {
+                    do { _ = try await engine?.lockWithDrafts(account: account, drafts: messageDrafts, letters: letterDrafts) }
+                    catch { engine?.lockNow() }
+                }
+            } else { engine?.lockNow() }
         }
     }
 
@@ -611,6 +622,7 @@ final class SessionModel {
         guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active, !Task.isCancelled else { return }
         uncoverIfActive()
         if unlocked {
+            await letters.flush(self)
             let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
             let current = epoch
             do {
@@ -651,12 +663,13 @@ final class SessionModel {
         if clearClipboard { lifecycleGeneration &+= 1 }
         let account = session?.account, engine = engine
         let drafts = dirtyDrafts.compactMap { channel in self.drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
-        let flush = clearClipboard && unlocked && account != nil && !drafts.isEmpty
+        let letterDrafts = letters.pendingInputs
+        let flush = unlocked && account != nil && (!drafts.isEmpty || !letterDrafts.isEmpty)
         clearContent(clearClipboard: clearClipboard)
         deviceTransfer.reset()
         let work = beginBusyOperation(); defer { finishBusyOperation(work) }
         do {
-            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts)) }
+            if flush, let account { try adopt(try await engine?.lockWithDrafts(account: account, drafts: drafts, letters: letterDrafts)) }
             else { try adopt(try await engine?.lock()) }
         } catch {
             _ = try? await engine?.lock()

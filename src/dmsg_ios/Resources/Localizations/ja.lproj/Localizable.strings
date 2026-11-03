@@ -34,6 +34,8 @@
 	<string>dMsgについて</string>
 	<key>Accept approved binding</key>
 	<string>承認されたバインディングを受け入れる</string>
+	<key>Accepted by service</key>
+	<string>サービスが受理済み</string>
 	<key>Access granted</key>
 	<string>アクセスが許可されました</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>すべてのデバイスを紛失しましたか?</string>
 	<key>All files</key>
 	<string>すべてのファイル</string>
+	<key>Allow another letter</key>
+	<string>次の手紙を許可</string>
 	<key>Allow key rotation</key>
 	<string>キーのローテーションを許可する</string>
+	<key>Allow this account to send another letter?</key>
+	<string>このアカウントから次の手紙を受け取りますか？</string>
 	<key>Allowed</key>
 	<string>許可される</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>古いアドレスをアーカイブ</string>
 	<key>Archived</key>
 	<string>アーカイブ済み</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>アーカイブはこの手紙を整理するだけです。連絡を再開するには、次の手紙を別途許可してください。</string>
 	<key>Arrives</key>
 	<string>受取額</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>権限の確認</string>
 	<key>Check deletion status</key>
 	<string>削除ステータスを確認する</string>
+	<key>Check delivery status</key>
+	<string>配信状況を確認</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>入力の長さを確認し、HTTPSリンクに名前を付けてください。</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>秘密を選択してください</string>
 	<key>Choose a version</key>
 	<string>バージョンを選択してください</string>
+	<key>Choose an account</key>
+	<string>アカウントを選択</string>
 	<key>Choose an attachment</key>
 	<string>添付ファイルを選択してください</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>会話名</string>
 	<key>Conversation settings</key>
 	<string>会話設定</string>
+	<key>Conversations</key>
+	<string>会話</string>
 	<key>Copied</key>
 	<string>コピーされました</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>無効</string>
 	<key>Discard</key>
 	<string>廃棄する</string>
+	<key>Discard draft</key>
+	<string>廃棄する</string>
 	<key>Discard staged copy</key>
 	<string>ステージングされたコピーを破棄する</string>
+	<key>Discard this draft?</key>
+	<string>変更を破棄しますか?</string>
 	<key>Discard this staged copy?</key>
 	<string>この段階的に作成されたコピーを破棄しますか?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>暗号化されたバックアップをダウンロードする</string>
 	<key>Downloads</key>
 	<string>ダウンロード</string>
+	<key>Draft saved</key>
+	<string>下書きを保存済み</string>
 	<key>Draft: </key>
 	<string>草案: </string>
+	<key>Drafts</key>
+	<string>下書き</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>下書きと送信済みの手紙はこのデバイスに保存されます。</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>各モバイル パッケージは、選択された添付ファイルを含めて 8 MiB に制限されています。最終的な承認には、正確な不変の選択と宛先が示されます。</string>
+	<key>Edit draft</key>
+	<string>編集</string>
 	<key>Edit item</key>
 	<string>項目を編集する</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>セキュリティ設定を更新中です。完了まで新しい内容の保存を待機します。</string>
 	<key>First sync</key>
 	<string>初回同期</string>
+	<key>Folder</key>
+	<string>フォルダー</string>
 	<key>Folder name</key>
 	<string>フォルダ名</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>ドキュメントをインポートしてこのデバイスで暗号化します。クラウド バックアップは別のアクションです。</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>添付する前に、[ファイル] にファイルをインポートします。</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>添付するファイルまたは写真を読み込んでください。</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>暗号化されていない 1Password、Bitwarden、またはブラウザーのパスワード エクスポートをインポートします。ソースはこのデバイス上に残ります。選択したレコードのみが追加されます。</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>インベントリのフィンガープリント</string>
 	<key>Invite member</key>
 	<string>メンバーを招待する</string>
+	<key>Invite to a conversation</key>
+	<string>会話に招待</string>
 	<key>Issued credentials</key>
 	<string>発行された認証情報</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>最後に知られているクラウドの状態</string>
 	<key>Last successful sync</key>
 	<string>最後の同期成功</string>
+	<key>Latest messages</key>
+	<string>最新のメッセージ</string>
 	<key>Leave behind</key>
 	<string>残しておく</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>除外</string>
 	<key>Length</key>
 	<string>長さ</string>
+	<key>Letters</key>
+	<string>手紙</string>
 	<key>License Key</key>
 	<string>ライセンスキー</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>サブスクリプションを管理する</string>
 	<key>Mark as read</key>
 	<string>既読としてマークする</string>
+	<key>Mark as unread</key>
+	<string>未読にする</string>
 	<key>Maximum fee</key>
 	<string>手数料の上限</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>このデバイスではアクティビティがありません</string>
 	<key>No agents</key>
 	<string>エージェントがありません</string>
+	<key>No archived letters</key>
+	<string>アーカイブ済みの手紙はありません</string>
 	<key>No background transfer</key>
 	<string>バックグラウンド転送なし</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>まだ記録がありません</string>
 	<key>No letters yet</key>
 	<string>まだ文字はありません</string>
+	<key>No matching accounts</key>
+	<string>一致する結果がありません</string>
+	<key>No matching results</key>
+	<string>一致する結果がありません</string>
 	<key>No messages</key>
 	<string>メッセージはありません</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>スナップショットがありません</string>
 	<key>No snapshots on this device</key>
 	<string>このデバイスにはスナップショットがありません</string>
+	<key>Not delivered</key>
+	<string>配達されませんでした</string>
 	<key>Not enabled</key>
 	<string>有効になっていません</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>ブラウザで招待状を開く</string>
 	<key>Open notification settings</key>
 	<string>通知設定を開く</string>
+	<key>Open original message</key>
+	<string>元のメッセージを開く</string>
 	<key>Open private workspace</key>
 	<string>プライベートワークスペースを開く</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>結果は利用できなくなりました</string>
 	<key>Outputs swept</key>
 	<string>移す出力</string>
+	<key>Owner</key>
+	<string>オーナー</string>
 	<key>Package size</key>
 	<string>パッケージサイズ</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>転送を一時停止する</string>
 	<key>Payment card</key>
 	<string>支払いカード</string>
+	<key>Payment required</key>
+	<string>支払いが必要</string>
 	<key>Payments</key>
 	<string>支払い</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>秘密鍵</string>
 	<key>Private workspace hidden</key>
 	<string>非表示のプライベートワークスペース</string>
+	<key>Processing</key>
+	<string>処理中</string>
 	<key>Proposal %llu</key>
 	<string>提案 %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>これらの詳細を一般に公開しますか?</string>
 	<key>Published</key>
 	<string>発行済み</string>
+	<key>Publisher</key>
+	<string>出版社</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>会話の鍵を更新している間、投稿は一時停止されます。</string>
 	<key>Purchased</key>
 	<string>購入済み</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>保存済みのプロフィールを公開しました。下書きはまだ送信されていません。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>保存されました。出版は保留中です。</string>
+	<key>Saving draft…</key>
+	<string>下書きを保存中…</string>
 	<key>Scan QR code</key>
 	<string>カメラでスキャン</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>スコープ、1 行に 1 つ</string>
 	<key>Screenshots may contain private information.</key>
 	<string>スクリーンショットには個人情報が含まれる場合があります。</string>
+	<key>Search</key>
+	<string>検索</string>
 	<key>Search files</key>
 	<string>ファイルの検索</string>
 	<key>Search messages</key>
 	<string>メッセージを検索する</string>
 	<key>Search your vault</key>
 	<string>金庫を検索する</string>
+	<key>Searches messages saved on this device.</key>
+	<string>このデバイスに保存されたメッセージを検索します。</string>
 	<key>Secret</key>
 	<string>秘密</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>選択した部分には競合バージョンを使用し、それ以外は現在のバージョンを保持します。</string>
 	<key>Send device request</key>
 	<string>デバイスのリクエストを送信</string>
+	<key>Send failed</key>
+	<string>送信に失敗</string>
 	<key>Send free letter</key>
 	<string>無料のレターを送る</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>送信者アカウント</string>
 	<key>Sending</key>
 	<string>送信</string>
+	<key>Sent letters</key>
+	<string>送信された手紙</string>
 	<key>Server</key>
 	<string>サーバー</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>サービスによる受理は、受信者が手紙を読んだことを意味しません。</string>
 	<key>Session code</key>
 	<string>セッションコード</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>古いアドレスから移す</string>
 	<key>Switch account</key>
 	<string>アカウントを切り替える</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>参加する前に招待されたアカウントに切り替えてください。</string>
 	<key>Switch to this account</key>
 	<string>このアカウントに切り替えます</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>今すぐ同期する</string>
 	<key>Sync paused</key>
 	<string>同期を一時停止中</string>
+	<key>Sync this conversation before sending.</key>
+	<string>送信する前にこの会話を同期してください。</string>
 	<key>Synced</key>
 	<string>同期済み</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>招待状はこのアカウントにバインドされています。リンクを共有しても、別のアカウントへのアクセスは許可されません。</string>
+	<key>The invitation is invalid.</key>
+	<string>招待が無効です。</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>会話への参加を選択すると招待が検証されます。</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>最後に検証された観測値が保持されます。現在の状況は確認できませんでした。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>操作を完了できませんでした。もう一度試してください。</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>操作がキャンセルされたか、許可されていません。</string>
+	<key>The original message is not available on this device.</key>
+	<string>元の内容はこのデバイスでは利用できません。</string>
+	<key>The original text is not available on this device.</key>
+	<string>元の内容はこのデバイスでは利用できません。</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>ローカルネットワークでもう一方のデバイスが見つかりませんでした。アドレスを入力してください。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>これにより、ローカルのロック解除保護が変更されます。システム認証が必要な場合があります。アカウントの回復や他のデバイスは変更されません。</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>これにより、どのアカウント アクションにハードウェア署名が必要かが変更されます。保護を無効にすると、ハードウェア証明なしでこれらのアクションが許可されます。</string>
+	<key>This conversation is archived.</key>
+	<string>チャンネルはアーカイブされます。新しいメッセージはありません。</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>これにより、保留中のリクエストが作成されます。デバイスは認証されません。</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>この項目は利用できなくなりました。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>このキーは dMsg によって管理されており、コピーまたは編集することはできません。</string>
+	<key>This letter is too long.</key>
+	<string>内容が長すぎます。</string>
 	<key>This letter was withdrawn.</key>
 	<string>この手紙は取り下げられた。</string>
 	<key>This message could not be verified.</key>
 	<string>このメッセージは確認できませんでした。</string>
+	<key>This message is too long.</key>
+	<string>内容が長すぎます。</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>これは、このデバイス上のこの正確な検出結果とリビジョンを非表示にするだけです。資格情報を修復したり、将来の変更を却下したりすることはありません。</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>ワークスペースをロック解除</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg ワークスペースのロックを解除します</string>
+	<key>Unread messages</key>
+	<string>未読</string>
+	<key>Unread only</key>
+	<string>未読</string>
 	<key>Unrestricted delegation authority</key>
 	<string>無制限の委任権限</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>承認待ち</string>
 	<key>Waiting for browser confirmation</key>
 	<string>ブラウザの確認を待っています</string>
+	<key>Waiting for confirmation</key>
+	<string>確認を待っています</string>
 	<key>Waiting for confirmation: </key>
 	<string>確認を待っています: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>はい</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>あなたは不変の履歴バージョンを表示しています。</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>この会話では閲覧のみが許可されています。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>プロバイダーの変更は自分で行います。 dMsg はステートメントを記録し、ローカル リビジョンをチェックします。アップストリームの作成、テスト、または取り消しを検証することはできません。</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>あなたのプライベートワークスペース。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>購入は確認を待っています。購入を復元して、再度支払いを行わずに再試行します。</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>受信ルールは引き続き適用されます。連絡先やチャンネルメンバーは追加されません。</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>レポートと明示的に含めたテキストはモデレーション チームに送信されます。他のプライベート コンテンツやキーは含まれません。</string>
 	<key>Your reports</key>

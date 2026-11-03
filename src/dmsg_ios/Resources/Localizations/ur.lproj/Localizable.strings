@@ -34,6 +34,8 @@
 	<string>dMsg کے بارے میں</string>
 	<key>Accept approved binding</key>
 	<string>منظور شدہ پابند قبول کریں</string>
+	<key>Accepted by service</key>
+	<string>سروس نے قبول کر لیا</string>
 	<key>Access granted</key>
 	<string>رسائی دی گئی</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>تمام آلات کھو گئے؟</string>
 	<key>All files</key>
 	<string>تمام فائلیں</string>
+	<key>Allow another letter</key>
+	<string>ایک اور خط کی اجازت دیں</string>
 	<key>Allow key rotation</key>
 	<string>کلید کو گھمانے کی اجازت دیں</string>
+	<key>Allow this account to send another letter?</key>
+	<string>کیا اس اکاؤنٹ کو ایک اور خط بھیجنے کی اجازت دیں؟</string>
 	<key>Allowed</key>
 	<string>اجازت ہے</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>پرانا پتہ محفوظ کریں</string>
 	<key>Archived</key>
 	<string>محفوظ شدہ</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>آرکائیو کرنا صرف اس خط کو منظم کرتا ہے۔ رابطہ دوبارہ کھولنے کے لیے الگ سے ایک اور خط کی اجازت دیں۔</string>
 	<key>Arrives</key>
 	<string>پہنچے گا</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>اجازت چیک کریں</string>
 	<key>Check deletion status</key>
 	<string>حذف کرنے کی حیثیت چیک کریں</string>
+	<key>Check delivery status</key>
+	<string>ترسیل کی حالت دیکھیں</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>خانے کی لمبائی جانچیں اور نام والے HTTPS روابط استعمال کریں۔</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>ایک راز کا انتخاب کریں</string>
 	<key>Choose a version</key>
 	<string>ایک ورژن منتخب کریں</string>
+	<key>Choose an account</key>
+	<string>اکاؤنٹ منتخب کریں</string>
 	<key>Choose an attachment</key>
 	<string>ایک منسلکہ منتخب کریں</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>گفتگو کا نام</string>
 	<key>Conversation settings</key>
 	<string>بات چیت کی ترتیبات</string>
+	<key>Conversations</key>
+	<string>بات چیت</string>
 	<key>Copied</key>
 	<string>کاپی ہو گیا</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>غیر فعال</string>
 	<key>Discard</key>
 	<string>رد کر دیں</string>
+	<key>Discard draft</key>
+	<string>رد کر دیں</string>
 	<key>Discard staged copy</key>
 	<string>اسٹیج شدہ کاپی کو ضائع کریں</string>
+	<key>Discard this draft?</key>
+	<string>تبدیلیوں کو مسترد کریں؟</string>
 	<key>Discard this staged copy?</key>
 	<string>اس مرحلہ وار کاپی کو مسترد کریں؟</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>انکرپٹڈ بیک اپ ڈاؤن لوڈ ہو رہا ہے</string>
 	<key>Downloads</key>
 	<string>ڈاؤن لوڈ</string>
+	<key>Draft saved</key>
+	<string>مسودہ محفوظ ہو گیا</string>
 	<key>Draft: </key>
 	<string>مسودہ: </string>
+	<key>Drafts</key>
+	<string>مسودہ</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>مسودے اور بھیجے گئے خطوط اس آلے پر محفوظ ہوتے ہیں۔</string>
 	<key>EVM</key>
 	<string>ای وی ایم</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>ہر موبائل پیکیج 8 MiB تک محدود ہے، بشمول منتخب منسلکات۔ حتمی منظوری درست ناقابل تغیر انتخاب اور منزل کو ظاہر کرتی ہے۔</string>
+	<key>Edit draft</key>
+	<string>ترمیم کریں</string>
 	<key>Edit item</key>
 	<string>آئٹم میں ترمیم کریں</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>سیکیورٹی اپ ڈیٹ مکمل ہو رہی ہے۔ نیا مواد اس کے مکمل ہونے تک انتظار کرے گا۔</string>
 	<key>First sync</key>
 	<string>پہلی ہم وقت سازی</string>
+	<key>Folder</key>
+	<string>فولڈرز</string>
 	<key>Folder name</key>
 	<string>فولڈر کا نام</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>اس آلہ پر ایک دستاویز کو انکرپٹ کرنے کے لیے درآمد کریں۔ کلاؤڈ بیک اپ ایک الگ عمل ہے۔</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>فائل کو منسلک کرنے سے پہلے اسے فائلوں میں درآمد کریں۔</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>منسلک کرنے کے لیے فائل یا تصویر درآمد کریں۔</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>ایک غیر خفیہ کردہ 1 پاس ورڈ، بٹ وارڈن یا براؤزر پاس ورڈ برآمد درآمد کریں۔ ماخذ اس آلہ پر رہتا ہے؛ صرف منتخب ریکارڈز شامل کیے جاتے ہیں۔</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>انوینٹری فنگر پرنٹ</string>
 	<key>Invite member</key>
 	<string>ممبر کو مدعو کریں</string>
+	<key>Invite to a conversation</key>
+	<string>گفتگو میں مدعو کریں</string>
 	<key>Issued credentials</key>
 	<string>جاری کردہ اسناد</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>آخری معلوم بادل کی حالت</string>
 	<key>Last successful sync</key>
 	<string>آخری کامیاب سنک</string>
+	<key>Latest messages</key>
+	<string>تازہ ترین پیغامات</string>
 	<key>Leave behind</key>
 	<string>پیچھے چھوڑیں</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>چھوڑے گئے</string>
 	<key>Length</key>
 	<string>لمبائی</string>
+	<key>Letters</key>
+	<string>خطوط</string>
 	<key>License Key</key>
 	<string>لائسنس کی کلید</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>سبسکرپشنز کا نظم کریں</string>
 	<key>Mark as read</key>
 	<string>پڑھا ہوا نشان زد کریں</string>
+	<key>Mark as unread</key>
+	<string>بغیر پڑھا نشان لگائیں</string>
 	<key>Maximum fee</key>
 	<string>زیادہ سے زیادہ فیس</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>اس آلہ پر کوئی سرگرمی نہیں ہے</string>
 	<key>No agents</key>
 	<string>کوئی ایجنٹ نہیں</string>
+	<key>No archived letters</key>
+	<string>کوئی محفوظ شدہ خط نہیں</string>
 	<key>No background transfer</key>
 	<string>کوئی پس منظر کی منتقلی نہیں ہے</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>ابھی تک کوئی ریکارڈ نہیں ہے</string>
 	<key>No letters yet</key>
 	<string>ابھی تک کوئی خط نہیں ہے</string>
+	<key>No matching accounts</key>
+	<string>کوئی مماثل نتیجہ نہیں</string>
+	<key>No matching results</key>
+	<string>کوئی مماثل نتیجہ نہیں</string>
 	<key>No messages</key>
 	<string>کوئی پیغامات نہیں</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>کوئی اسنیپ شاٹ نہیں</string>
 	<key>No snapshots on this device</key>
 	<string>اس آلہ پر کوئی سنیپ شاٹس نہیں ہیں</string>
+	<key>Not delivered</key>
+	<string>نہیں پہنچایا</string>
 	<key>Not enabled</key>
 	<string>فعال نہیں ہے</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>براؤزر میں دعوت نامہ کھولیں</string>
 	<key>Open notification settings</key>
 	<string>اطلاع کی ترتیبات کھولیں</string>
+	<key>Open original message</key>
+	<string>اصل پیغام کھولیں</string>
 	<key>Open private workspace</key>
 	<string>نجی کام کی جگہ کھولیں</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>نتیجہ اب دستیاب نہیں ہے</string>
 	<key>Outputs swept</key>
 	<string>منتقل ہونے والے آؤٹ پٹس</string>
+	<key>Owner</key>
+	<string>مالک</string>
 	<key>Package size</key>
 	<string>پیکیج کا سائز</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>منتقلی روک دیں</string>
 	<key>Payment card</key>
 	<string>ادائیگی کارڈ</string>
+	<key>Payment required</key>
+	<string>ادائیگی درکار ہے</string>
 	<key>Payments</key>
 	<string>ادائیگیاں</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>نجی کلید</string>
 	<key>Private workspace hidden</key>
 	<string>پرائیویٹ ورک اسپیس پوشیدہ ہے</string>
+	<key>Processing</key>
+	<string>کارروائی جاری ہے</string>
 	<key>Proposal %llu</key>
 	<string>تجویز %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>ان تفصیلات کو عوامی طور پر شائع کریں؟</string>
 	<key>Published</key>
 	<string>شائع شدہ</string>
+	<key>Publisher</key>
+	<string>پبلشر</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>گفتگو کی کلیدیں تازہ ہونے کے دوران اشاعت رکی رہتی ہے۔</string>
 	<key>Purchased</key>
 	<string>خریدا گیا</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>محفوظ پروفائل شائع ہو گیا ہے۔ آپ کا مسودہ ابھی جمع نہیں ہوا۔</string>
 	<key>Saved. Publication is pending.</key>
 	<string>محفوظ کیا گیا۔ اشاعت زیر التواء ہے۔</string>
+	<key>Saving draft…</key>
+	<string>مسودہ محفوظ ہو رہا ہے…</string>
 	<key>Scan QR code</key>
 	<string>کیمرے سے اسکین کریں</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>دائرہ کار، ایک فی سطر</string>
 	<key>Screenshots may contain private information.</key>
 	<string>اسکرین شاٹس میں نجی معلومات ہوسکتی ہیں۔</string>
+	<key>Search</key>
+	<string>تلاش کریں</string>
 	<key>Search files</key>
 	<string>فائلیں تلاش کریں</string>
 	<key>Search messages</key>
 	<string>پیغامات تلاش کریں</string>
 	<key>Search your vault</key>
 	<string>اپنی والٹ تلاش کریں</string>
+	<key>Searches messages saved on this device.</key>
+	<string>اس آلے پر محفوظ پیغامات تلاش کرتا ہے۔</string>
 	<key>Secret</key>
 	<string>خفیہ معلومات</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>منتخب حصے متصادم ورژن استعمال کریں گے۔ باقی حصے موجودہ ورژن برقرار رکھیں گے۔</string>
 	<key>Send device request</key>
 	<string>آلے کی درخواست بھیجیں</string>
+	<key>Send failed</key>
+	<string>بھیجنا ناکام رہا</string>
 	<key>Send free letter</key>
 	<string>مفت خط بھیجیں</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>بھیجنے والا اکاؤنٹ</string>
 	<key>Sending</key>
 	<string>ارسال</string>
+	<key>Sent letters</key>
+	<string>خطوط بھیجے</string>
 	<key>Server</key>
 	<string>سرور</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>سروس کی قبولیت کا مطلب یہ نہیں کہ وصول کنندہ نے آپ کا خط پڑھ لیا ہے۔</string>
 	<key>Session code</key>
 	<string>سیشن کوڈ</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>پرانا پتہ خالی کریں</string>
 	<key>Switch account</key>
 	<string>اکاؤنٹ سوئچ کریں</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>شامل ہونے سے پہلے مدعو اکاؤنٹ پر جائیں۔</string>
 	<key>Switch to this account</key>
 	<string>اس اکاؤنٹ پر سوئچ کریں</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>ابھی مطابقت پذیری کریں</string>
 	<key>Sync paused</key>
 	<string>ہم وقت سازی موقوف ہے</string>
+	<key>Sync this conversation before sending.</key>
+	<string>بھیجنے سے پہلے اس گفتگو کو ہم آہنگ کریں۔</string>
 	<key>Synced</key>
 	<string>مطابقت پذیر</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>دعوت نامہ اس اکاؤنٹ کا پابند ہے۔ لنک کا اشتراک دوسرے اکاؤنٹ تک رسائی کی اجازت نہیں دیتا ہے۔</string>
+	<key>The invitation is invalid.</key>
+	<string>دعوت درست نہیں ہے۔</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>گفتگو میں شامل ہونے کا انتخاب کرنے پر دعوت کی تصدیق ہوتی ہے۔</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>آخری تصدیق شدہ مشاہدہ رکھا گیا ہے۔ موجودہ صورتحال کی تصدیق نہیں ہو سکی۔</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>آپریشن مکمل نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>آپریشن منسوخ کر دیا گیا یا اس کی اجازت نہیں ہے۔</string>
+	<key>The original message is not available on this device.</key>
+	<string>اصل مواد اس آلے پر دستیاب نہیں ہے۔</string>
+	<key>The original text is not available on this device.</key>
+	<string>اصل مواد اس آلے پر دستیاب نہیں ہے۔</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>دوسرا آلہ مقامی نیٹ ورک پر نہیں ملا۔ اس کا پتہ درج کریں۔</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>یہ مقامی غیر مقفل تحفظ کو تبدیل کرتا ہے۔ سسٹم کی توثیق کی ضرورت ہو سکتی ہے۔ کوئی اکاؤنٹ ریکوری یا دیگر ڈیوائس تبدیل نہیں کی گئی ہے۔</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>یہ تبدیل کرتا ہے کہ کون سے اکاؤنٹ کے اعمال کے لیے ہارڈ ویئر کے دستخط کی ضرورت ہوتی ہے۔ تحفظ کو غیر فعال کرنا اس ہارڈ ویئر کے ثبوت کے بغیر ان کارروائیوں کی اجازت دیتا ہے۔</string>
+	<key>This conversation is archived.</key>
+	<string>چینل محفوظ شدہ ہے؛ کوئی نیا پیغام نہیں</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>یہ ایک زیر التواء درخواست پیدا کرتا ہے۔ یہ آلہ کو اجازت نہیں دیتا ہے۔</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>یہ آئٹم اب دستیاب نہیں ہے۔</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>یہ کلید dMsg کے زیر انتظام ہے اور اسے کاپی یا ترمیم نہیں کیا جا سکتا۔</string>
+	<key>This letter is too long.</key>
+	<string>مواد بہت طویل ہے۔</string>
 	<key>This letter was withdrawn.</key>
 	<string>یہ خط واپس لے لیا گیا۔</string>
 	<key>This message could not be verified.</key>
 	<string>اس پیغام کی تصدیق نہیں ہو سکی۔</string>
+	<key>This message is too long.</key>
+	<string>مواد بہت طویل ہے۔</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>یہ صرف اس آلہ پر درست تلاش اور نظرثانی کو چھپاتا ہے۔ یہ کسی سند کی مرمت یا مستقبل کی تبدیلیوں کو مسترد نہیں کرتا ہے۔</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>ورک اسپیس ان لاک کریں</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>اپنے dMsg ورک اسپیس کو غیر مقفل کریں</string>
+	<key>Unread messages</key>
+	<string>ان پڑھ</string>
+	<key>Unread only</key>
+	<string>ان پڑھ</string>
 	<key>Unrestricted delegation authority</key>
 	<string>غیر محدود وفد کی اتھارٹی</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>منظوری کا انتظار ہے</string>
 	<key>Waiting for browser confirmation</key>
 	<string>براؤزر کی تصدیق کا انتظار ہے</string>
+	<key>Waiting for confirmation</key>
+	<string>تصدیق کا انتظار</string>
 	<key>Waiting for confirmation: </key>
 	<string>تصدیق کا انتظار: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>ہاں</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>آپ ایک ناقابل تغیر تاریخی ورژن دیکھ رہے ہیں۔</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>آپ کو اس گفتگو میں صرف پڑھنے کی اجازت ہے۔</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>آپ خود فراہم کنندہ تبدیلیاں انجام دیتے ہیں۔ dMsg آپ کے بیانات کو ریکارڈ کرتا ہے اور مقامی نظرثانی کو چیک کرتا ہے۔ یہ اپ اسٹریم تخلیق، جانچ یا منسوخی کی تصدیق نہیں کر سکتا۔</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>آپ کی نجی کام کی جگہ۔</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>آپ کی خریداری تصدیق کے منتظر ہے۔ دوبارہ ادائیگی کیے بغیر دوبارہ کوشش کرنے کے لیے خریداریوں کو بحال کریں۔</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>آپ کے وصولی کے اصول لاگو رہیں گے۔ اس سے کوئی رابطہ یا چینل کا رکن شامل نہیں ہوتا۔</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>آپ کی رپورٹ اور کوئی بھی متن جو آپ واضح طور پر شامل کرتے ہیں ماڈریشن ٹیم کو بھیج دیا جائے گا۔ دیگر نجی مواد اور چابیاں شامل نہیں ہیں۔</string>
 	<key>Your reports</key>

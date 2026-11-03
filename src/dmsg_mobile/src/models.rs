@@ -217,6 +217,13 @@ pub struct ChannelItem {
     pub unread: u64,
     pub draft: String,
     pub preview: String,
+    pub last_at: u64,
+    pub muted: bool,
+    pub status: String,
+    pub can_publish: bool,
+    pub can_invite: bool,
+    pub pending_sends: u64,
+    pub read_through: u64,
 }
 
 #[derive(uniffi::Record)]

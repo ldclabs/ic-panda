@@ -1443,6 +1443,66 @@ distribution archive/signing and production deployment were not rerun.
 
 Review, fixes and validation: Codex <noreply@openai.com>.
 
+## 2026-11-03 messaging and letter workflows
+
+Implemented the 22 messaging audit items listed in
+`IMPLEMENTATION_CHECKLIST_zh.md`: sent history, encrypted local drafts, pending
+send management, explicit contact reopening, invitation routing, conversation
+search and reply navigation, attachment composition, permissions, form state,
+identity display and localized accessible controls. Sender history and drafts
+remain device-local; this change does not claim replicated sent history.
+
+Validation performed:
+
+- `cargo test --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli`: 698 tests
+  passed (564 client, 22 mobile, 112 CLI), with 11 existing ignored tests. The
+  three letter tests were rerun successfully after consolidating draft-save
+  timestamps. Coverage includes persisted drafts, atomic draft-to-intent moves,
+  original-request retries, uncertain send status, contact reopening, attachment
+  filename search beyond 100 matches and attachment reply references.
+- `cargo clippy --locked -p dmsg_client -p dmsg_mobile -p dmsg_cli --all-targets
+  -- -D warnings`, Rust formatting and `git diff --check` passed.
+- Rebuilt the native device/simulator libraries and Swift bindings; native
+  artifact fingerprint verification passed. All 23 localization resource and
+  Swift-extraction checks, notification-copy checks and 31 shared-icon checks
+  passed.
+- iPhone 16e / iOS 18.4: all 86 Swift unit tests and all 19 selected message UI
+  tests passed (105 total, `dmsg-messaging-final.xcresult`). The UI suites cover
+  inbox and conversation flows, draft restoration, sending and reopening a sent
+  letter, attachment selection before sending, filename search, changed
+  invitation input, read-only permissions, Chinese dark mode, Arabic RTL and
+  French accessibility-size text.
+- iPhone SE (3rd generation) / iOS 18.4: all three layout cases passed, including
+  opening a letter, scrolling and replying in Chinese dark mode, Arabic RTL and
+  French accessibility-size text. This device's successful run is recorded in
+  `dmsg-messaging-layout-verified.xcresult`; that multi-device bundle also contains
+  an earlier failing iPad run and is not an overall passing bundle.
+- iPad Pro 13-inch (M4) / iOS 18.4: the final four cases passed in
+  `dmsg-messaging-ipad-final.xcresult` (the three layout cases plus saving a draft,
+  sending and reopening it). These runs found and verified fixes for the hidden
+  initial messages sidebar and a mismatch between letter selection tags and
+  detail routes. The split-view changes were verified in this final iPad run
+  after the iPhone runs above.
+- After the final draft-write ordering and suspended-operation cleanup fixes,
+  all 86 Swift unit tests and five messaging UI cases passed again on iPhone 16e
+  (91 total, `dmsg-messaging-draft-final.xcresult`). Done now joins the existing
+  autosave queue, and suspension releases stale in-progress controls while
+  retaining unsaved drafts for foreground recovery.
+- Exported screenshots were inspected for small-screen and iPad letter lists,
+  received/sent details, reply composition, Chinese dark mode, Arabic RTL and
+  French accessibility-size layouts. The large-text sender/copy controls use
+  separate rows. These screenshots use presentation fixtures, not live accounts.
+
+An initial simulator-tool wait timed out while Xcode continued running; final
+results were collected from the completed command-line runs and result bundles.
+Earlier UI failures from navigation timing, localized selection and offscreen
+lazy rows were corrected before the successful runs above. No production letters
+were sent. Physical-device APNs/background behavior, real two-device delivery,
+manual VoiceOver/physical-keyboard navigation and a distribution archive were
+not exercised in this pass and remain separate acceptance checks.
+
+Implementation and validation: Codex <noreply@openai.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a
@@ -1471,7 +1531,8 @@ claim that every P0–P3 milestone or the App Store release is complete**.
 - Agent administration, wallet execution, purchasing, system extensions,
   long-running background transfers and mobile-browser connect redirects retain
   separate implementation/release gates. Paid-letter approvals are disabled;
-  the inbox currently supports receiving, reading and archiving, not composing.
+  free letters support receiving, composing, local drafts and sender history;
+  paid sending remains disabled.
 - Minimum-device performance and large-file memory budgets, Duo physical Touch ID,
   live activities/camera reserved regions, App Store account deletion,
   reporting/blocking, privacy labels and distribution review remain unverified or

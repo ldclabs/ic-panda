@@ -34,6 +34,8 @@
 	<string>Giới thiệu về dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Chấp nhận ràng buộc đã được phê duyệt</string>
+	<key>Accepted by service</key>
+	<string>Dịch vụ đã chấp nhận</string>
 	<key>Access granted</key>
 	<string>Đã cấp quyền truy cập</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>Tất cả các thiết bị bị mất?</string>
 	<key>All files</key>
 	<string>Tất cả các tập tin</string>
+	<key>Allow another letter</key>
+	<string>Cho phép thư tiếp theo</string>
 	<key>Allow key rotation</key>
 	<string>Cho phép xoay phím</string>
+	<key>Allow this account to send another letter?</key>
+	<string>Cho phép tài khoản này gửi thư tiếp theo?</string>
 	<key>Allowed</key>
 	<string>Được phép</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>Lưu trữ địa chỉ cũ</string>
 	<key>Archived</key>
 	<string>Đã lưu trữ</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>Lưu trữ chỉ sắp xếp thư này. Hãy cho phép thư tiếp theo riêng biệt để mở lại liên hệ.</string>
 	<key>Arrives</key>
 	<string>Nhận được</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>Kiểm tra ủy quyền</string>
 	<key>Check deletion status</key>
 	<string>Kiểm tra trạng thái xóa</string>
+	<key>Check delivery status</key>
+	<string>Kiểm tra gửi thư</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Kiểm tra độ dài các trường và đặt tên cho liên kết HTTPS.</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>Chọn một bí mật</string>
 	<key>Choose a version</key>
 	<string>Chọn một phiên bản</string>
+	<key>Choose an account</key>
+	<string>Chọn tài khoản</string>
 	<key>Choose an attachment</key>
 	<string>Chọn tệp đính kèm</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>Tên cuộc trò chuyện</string>
 	<key>Conversation settings</key>
 	<string>Cài đặt cuộc trò chuyện</string>
+	<key>Conversations</key>
+	<string>Cuộc trò chuyện</string>
 	<key>Copied</key>
 	<string>Đã sao chép</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>Đã tắt</string>
 	<key>Discard</key>
 	<string>Loại bỏ</string>
+	<key>Discard draft</key>
+	<string>Loại bỏ</string>
 	<key>Discard staged copy</key>
 	<string>Loại bỏ bản sao theo giai đoạn</string>
+	<key>Discard this draft?</key>
+	<string>Hủy các thay đổi?</string>
 	<key>Discard this staged copy?</key>
 	<string>Hủy bản sao dàn dựng này?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>Đang tải xuống bản sao lưu được mã hóa</string>
 	<key>Downloads</key>
 	<string>Tải xuống</string>
+	<key>Draft saved</key>
+	<string>Đã lưu bản nháp</string>
 	<key>Draft: </key>
 	<string>Bản nháp: </string>
+	<key>Drafts</key>
+	<string>Bản nháp</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>Bản nháp và thư đã gửi được lưu trên thiết bị này.</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Mỗi gói di động được giới hạn ở 8 MiB, bao gồm các tệp đính kèm được chọn. Sự phê duyệt cuối cùng cho thấy sự lựa chọn và đích đến chính xác không thể thay đổi.</string>
+	<key>Edit draft</key>
+	<string>Sửa</string>
 	<key>Edit item</key>
 	<string>Chỉnh sửa mục</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>Đang hoàn tất cập nhật bảo mật. Nội dung mới sẽ chờ đến khi hoàn tất.</string>
 	<key>First sync</key>
 	<string>Đồng bộ lần đầu</string>
+	<key>Folder</key>
+	<string>Thư mục</string>
 	<key>Folder name</key>
 	<string>Tên thư mục</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>Nhập tài liệu để mã hóa nó trên thiết bị này. Sao lưu đám mây là một hành động riêng biệt.</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>Nhập tệp vào Tệp trước khi đính kèm.</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>Nhập tệp hoặc ảnh để đính kèm.</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>Nhập bản xuất mật khẩu 1Password, Bitwarden hoặc trình duyệt không được mã hóa. Nguồn vẫn ở trên thiết bị này; chỉ những bản ghi đã chọn mới được thêm vào.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>Dấu vân tay hàng tồn kho</string>
 	<key>Invite member</key>
 	<string>Mời thành viên</string>
+	<key>Invite to a conversation</key>
+	<string>Mời vào cuộc trò chuyện</string>
 	<key>Issued credentials</key>
 	<string>Thông tin xác thực đã được cấp</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>Trạng thái đám mây được biết đến lần cuối</string>
 	<key>Last successful sync</key>
 	<string>Lần đồng bộ thành công gần nhất</string>
+	<key>Latest messages</key>
+	<string>Tin nhắn mới nhất</string>
 	<key>Leave behind</key>
 	<string>Bỏ lại</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>Bị bỏ qua</string>
 	<key>Length</key>
 	<string>Chiều dài</string>
+	<key>Letters</key>
+	<string>chữ cái</string>
 	<key>License Key</key>
 	<string>Khóa cấp phép</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>Quản lý đăng ký</string>
 	<key>Mark as read</key>
 	<string>Đánh dấu là đã đọc</string>
+	<key>Mark as unread</key>
+	<string>Đánh dấu chưa đọc</string>
 	<key>Maximum fee</key>
 	<string>Phí tối đa</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>Không có hoạt động nào trên thiết bị này</string>
 	<key>No agents</key>
 	<string>Không có tác tử</string>
+	<key>No archived letters</key>
+	<string>Không có thư lưu trữ</string>
 	<key>No background transfer</key>
 	<string>Không chuyển nền</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>Chưa có hồ sơ nào</string>
 	<key>No letters yet</key>
 	<string>Chưa có chữ cái nào</string>
+	<key>No matching accounts</key>
+	<string>Không có kết quả phù hợp</string>
+	<key>No matching results</key>
+	<string>Không có kết quả phù hợp</string>
 	<key>No messages</key>
 	<string>Không có tin nhắn</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>Không có bản chụp</string>
 	<key>No snapshots on this device</key>
 	<string>Không có ảnh chụp nhanh trên thiết bị này</string>
+	<key>Not delivered</key>
+	<string>Chưa giao</string>
 	<key>Not enabled</key>
 	<string>Chưa bật</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>Mở lời mời trong trình duyệt</string>
 	<key>Open notification settings</key>
 	<string>Mở cài đặt thông báo</string>
+	<key>Open original message</key>
+	<string>Mở tin nhắn gốc</string>
 	<key>Open private workspace</key>
 	<string>Mở không gian làm việc riêng tư</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>Kết quả không còn nữa</string>
 	<key>Outputs swept</key>
 	<string>Output được quét</string>
+	<key>Owner</key>
+	<string>chủ sở hữu</string>
 	<key>Package size</key>
 	<string>Kích thước gói</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>Tạm dừng chuyển</string>
 	<key>Payment card</key>
 	<string>Thẻ thanh toán</string>
+	<key>Payment required</key>
+	<string>Cần thanh toán</string>
 	<key>Payments</key>
 	<string>Thanh toán</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>Khóa riêng</string>
 	<key>Private workspace hidden</key>
 	<string>Không gian làm việc riêng tư bị ẩn</string>
+	<key>Processing</key>
+	<string>Đang xử lý</string>
 	<key>Proposal %llu</key>
 	<string>Đề xuất %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>Xuất bản những chi tiết này một cách công khai?</string>
 	<key>Published</key>
 	<string>Đã xuất bản</string>
+	<key>Publisher</key>
+	<string>Nhà xuất bản</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>Tạm dừng đăng trong khi cập nhật khóa cuộc trò chuyện.</string>
 	<key>Purchased</key>
 	<string>Đã mua</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>Hồ sơ đã lưu đã được công bố. Bản nháp của bạn chưa được gửi.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
+	<key>Saving draft…</key>
+	<string>Đang lưu bản nháp…</string>
 	<key>Scan QR code</key>
 	<string>Quét bằng camera</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>Phạm vi, một phạm vi trên mỗi dòng</string>
 	<key>Screenshots may contain private information.</key>
 	<string>Ảnh chụp màn hình có thể chứa thông tin cá nhân.</string>
+	<key>Search</key>
+	<string>Tìm kiếm</string>
 	<key>Search files</key>
 	<string>Tìm kiếm tập tin</string>
 	<key>Search messages</key>
 	<string>Tìm kiếm tin nhắn</string>
 	<key>Search your vault</key>
 	<string>Tìm kiếm kho tiền của bạn</string>
+	<key>Searches messages saved on this device.</key>
+	<string>Tìm trong tin nhắn được lưu trên thiết bị này.</string>
 	<key>Secret</key>
 	<string>Thông tin bí mật</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>Các phần đã chọn dùng phiên bản xung đột. Các phần còn lại giữ phiên bản hiện tại.</string>
 	<key>Send device request</key>
 	<string>Gửi yêu cầu thiết bị</string>
+	<key>Send failed</key>
+	<string>Gửi thất bại</string>
 	<key>Send free letter</key>
 	<string>Gửi thư miễn phí</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>Tài khoản người gửi</string>
 	<key>Sending</key>
 	<string>Đang gửi</string>
+	<key>Sent letters</key>
+	<string>Thư đã gửi</string>
 	<key>Server</key>
 	<string>Máy chủ</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>Dịch vụ chấp nhận không có nghĩa là người nhận đã đọc thư.</string>
 	<key>Session code</key>
 	<string>Mã phiên</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>Quét địa chỉ cũ</string>
 	<key>Switch account</key>
 	<string>Chuyển đổi tài khoản</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>Chuyển sang tài khoản được mời trước khi tham gia.</string>
 	<key>Switch to this account</key>
 	<string>Chuyển sang tài khoản này</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>Đồng bộ hóa ngay bây giờ</string>
 	<key>Sync paused</key>
 	<string>Đồng bộ tạm dừng</string>
+	<key>Sync this conversation before sending.</key>
+	<string>Đồng bộ cuộc trò chuyện này trước khi gửi.</string>
 	<key>Synced</key>
 	<string>Đã đồng bộ hóa</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Lời mời được ràng buộc với tài khoản này. Chia sẻ liên kết không cho phép truy cập vào tài khoản khác.</string>
+	<key>The invitation is invalid.</key>
+	<string>Lời mời không hợp lệ.</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>Lời mời được xác minh khi bạn chọn tham gia cuộc trò chuyện.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Quan sát được xác minh cuối cùng được lưu giữ. Trạng thái hiện tại không thể được xác nhận.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>Hoạt động không thể hoàn thành. Vui lòng thử lại.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>Hoạt động đã bị hủy hoặc không được phép.</string>
+	<key>The original message is not available on this device.</key>
+	<string>Nội dung gốc không có trên thiết bị này.</string>
+	<key>The original text is not available on this device.</key>
+	<string>Nội dung gốc không có trên thiết bị này.</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>Không tìm thấy thiết bị kia trên mạng cục bộ. Hãy nhập địa chỉ của nó.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>Điều này thay đổi bảo vệ mở khóa cục bộ. Xác thực hệ thống có thể được yêu cầu. Không có phục hồi tài khoản hoặc thiết bị khác được thay đổi.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Điều này thay đổi những hành động tài khoản nào yêu cầu chữ ký phần cứng. Việc tắt tính năng bảo vệ sẽ cho phép những hành động đó mà không cần bằng chứng phần cứng đó.</string>
+	<key>This conversation is archived.</key>
+	<string>Kênh được lưu trữ; không có tin nhắn mới.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>Điều này tạo ra một yêu cầu đang chờ xử lý. Nó không ủy quyền cho thiết bị.</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>Mục này không còn khả dụng.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Khóa này được quản lý bởi dMsg và không thể sao chép hoặc chỉnh sửa.</string>
+	<key>This letter is too long.</key>
+	<string>Nội dung quá dài.</string>
 	<key>This letter was withdrawn.</key>
 	<string>Bức thư này đã được rút lại.</string>
 	<key>This message could not be verified.</key>
 	<string>Không thể xác minh tin nhắn này.</string>
+	<key>This message is too long.</key>
+	<string>Nội dung quá dài.</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>Điều này chỉ ẩn việc phát hiện và sửa đổi chính xác này trên thiết bị này. Nó không sửa chữa thông tin xác thực hoặc loại bỏ những thay đổi trong tương lai.</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>Mở khóa không gian làm việc</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Mở khóa không gian làm việc dMsg của bạn</string>
+	<key>Unread messages</key>
+	<string>Chưa đọc</string>
+	<key>Unread only</key>
+	<string>Chưa đọc</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Quyền ủy quyền không hạn chế</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>Đang chờ phê duyệt</string>
 	<key>Waiting for browser confirmation</key>
 	<string>Đang chờ xác nhận trình duyệt</string>
+	<key>Waiting for confirmation</key>
+	<string>Đang chờ xác nhận</string>
 	<key>Waiting for confirmation: </key>
 	<string>Đang chờ xác nhận: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>Có</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>Bạn đang xem một phiên bản lịch sử bất biến.</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>Bạn chỉ có quyền đọc cuộc trò chuyện này.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Bạn tự thực hiện thay đổi nhà cung cấp. dMsg ghi lại các tuyên bố của bạn và kiểm tra các sửa đổi cục bộ; nó không thể xác minh việc tạo, kiểm tra hoặc thu hồi ngược dòng.</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>Không gian làm việc riêng tư của bạn.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Việc mua hàng của bạn đang chờ xác nhận. Khôi phục mua hàng để thử lại mà không phải trả tiền lại.</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>Quy tắc nhận thư vẫn áp dụng. Thao tác này không thêm liên hệ hay thành viên kênh.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>Báo cáo của bạn và bất kỳ văn bản nào bạn đưa vào một cách rõ ràng sẽ được gửi đến nhóm kiểm duyệt. Nội dung và khóa riêng tư khác không được bao gồm.</string>
 	<key>Your reports</key>

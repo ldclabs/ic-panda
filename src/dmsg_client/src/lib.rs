@@ -37,6 +37,7 @@ pub mod ic;
 pub mod inbox;
 pub mod legacy;
 pub mod legacy_proof;
+pub mod letters;
 pub mod library;
 pub mod login;
 pub mod mail_push;

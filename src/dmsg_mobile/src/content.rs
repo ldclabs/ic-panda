@@ -200,17 +200,7 @@ impl MobileEngine {
     }
 
     pub async fn search_messages(&self, channel: String, query: String) -> Result<MessagePage> {
-        let generation = self.host.generation();
-        let items = self
-            .host
-            .run(move |c| Box::pin(async move { c.channel_search(&channel, &query, 100) }))
-            .await?;
-        Ok(MessagePage {
-            generation,
-            items: items.into_iter().map(MessageItem::from).collect(),
-            has_more: false,
-            next_before: None,
-        })
+        self.search_messages_page(channel, query, None).await
     }
 
     pub async fn queue_message_action(
@@ -379,9 +369,13 @@ impl MobileEngine {
         id: String,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane(&format!("letter:{id}"));
         operation
             .run(self.held_object(move |h| {
-                Box::pin(async move { dmsg_client::outbox::send_free_letter(h, &id).await })
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::outbox::send_free_letter(h, &id).await
+                })
             }))
             .await
     }

@@ -6,6 +6,38 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## Messaging
+
+Messages groups conversations and letters. Letters have Inbox, Sent, Pending,
+Drafts and Archived folders, local search and bounded list presentation. The iPad
+split view initially shows the messages sidebar and routes selected letters to
+their details. Drafts
+and outgoing text/status remain encrypted in the account's local workspace;
+these sender records are device-local, not replicated history. They also remain
+on the source device during the current record-transfer flow. Older sender
+journals without text or a timestamp remain visible without invented values.
+Draft input is saved while editing and flushed on an explicit lock. Queueing
+validates the same 6,000 UTF-8-byte limit and invitation format as submission,
+then atomically moves the draft to the original send intent. Retries keep its ID
+and bytes; only an intent with no prepared contact request can return to editing.
+Service acceptance is distinct from delivery or reading.
+
+On iOS, archiving only changes organization. Allow another letter is a separate
+confirmed action and does not add a contact or channel member. Existing desktop
+and CLI mark behavior is preserved. Letter details can reply to the sender or
+create an account-bound invitation to an existing/new conversation. Incoming
+channel links are retained through login and reviewed before the core verifies
+and accepts them; links never authorize joining by themselves.
+
+Conversation rows show recent activity, unread, mute, draft and pending-send
+states. The verified ledger controls publishing and invitation affordances.
+Search includes attachment names and pages beyond 100 results. Timelines show
+dates, unread boundaries and reply previews with navigation to the original.
+Attachments remain in the composer until Send, including the reply reference.
+System files and photos can be imported there; received attachments show progress
+and open the verified local library copy. Settings preserve edits during refresh,
+and reminder routes display available local messages before awaiting the network.
+
 ## Vault browsing and details
 
 The vault uses a single list with All, Favorites, Passwords, Notes and a complete

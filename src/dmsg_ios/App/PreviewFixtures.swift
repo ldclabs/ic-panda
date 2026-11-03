@@ -47,6 +47,9 @@ extension SessionModel {
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-channel") {
             channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
+            if ProcessInfo.processInfo.arguments.contains("--ui-channel-readonly") {
+                channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "", lastAt: 0, muted: false, status: "active", canPublish: false, canInvite: false, pendingSends: 0, readThrough: 0)]
+            }
             selectedTab = .messages
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-inbox") { selectedTab = .messages }
@@ -98,8 +101,9 @@ extension SessionModel {
                     state: "visible", text: "A verified letter · 已验证来信", createdAt: 1_793_534_400_000,
                     read: false, archived: false, abortReason: nil)]
             }
+            fixtureInboxComplete = true
         }
-        return InboxSnapshot(letters: fixtureInboxLetters, complete: refresh || fixtureInboxRefreshes > 1)
+        return InboxSnapshot(letters: fixtureInboxLetters, complete: fixtureInboxComplete)
     }
 
     func markInboxFixture(order: String, read: Bool, archived: Bool) {
@@ -109,7 +113,7 @@ extension SessionModel {
 
     func conversationFixture(before: UInt64?, query: String) -> MessagePage {
         let items = fixtureChannelMessages.filter {
-            $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query))
+            $0.sequence < (before ?? .max) && (query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) || $0.attachmentName?.localizedCaseInsensitiveContains(query) == true)
         }
         let limit = ProcessInfo.processInfo.arguments.contains("--ui-channel-history") ? 3 : 100
         let page = Array(items.suffix(limit)), more = items.count > limit
@@ -139,7 +143,7 @@ extension SessionModel {
         }
         fixtureChannelMessages = [MessageItem(id: "fixture-message", sequence: 1, account: "fixture-peer",
             text: "Hello channel · 频道消息已显示", createdAtMs: 1_793_513_600_000,
-            attachmentName: nil, attachmentMime: nil, attachmentSize: nil, unreadable: false,
+            attachmentName: ProcessInfo.processInfo.arguments.contains("--ui-channel-attachment") ? "plan.pdf" : nil, attachmentMime: "application/pdf", attachmentSize: 2048, unreadable: false,
             digest: "fixture-digest", replySequence: nil, edited: false, retracted: false, attachmentDeleted: false, hidden: false)]
         // A verified first page is local, but a later relay request is still pending.
         if ProcessInfo.processInfo.arguments.contains("--ui-channel-slow") { try await Task.sleep(for: .seconds(30)) }

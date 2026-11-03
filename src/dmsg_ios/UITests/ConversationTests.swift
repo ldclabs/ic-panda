@@ -88,8 +88,9 @@ final class ConversationTests: XCTestCase {
         send.tap()
         // Leave the detail first: the software keyboard covers the tab bar.
         // Tapping an offscreen tab can hit a keyboard key without navigating.
-        app.buttons["BackButton"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Vault"].isHittable)
+        app.navigationBars.buttons.firstMatch.tap()
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: app.tabBars.buttons["Vault"])
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
         app.tabBars.buttons["Vault"].tap()
         app.tabBars.buttons["Messages"].tap()
         let channel = app.buttons["channel.row.fixture-channel"]

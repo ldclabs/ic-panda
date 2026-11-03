@@ -14,6 +14,7 @@ struct DMsgApp: App {
                 #endif
                 .task { await model.start() }
                 .onOpenURL { url in
+                    if let invitation = ChannelInvitationLink(url) { ChannelNavigation.shared.pending = invitation }
                     if let link = ConnectLink(url) { ConnectNavigation.shared.pending = link }
                     if url.scheme == "dmsg", url.host == "open", let destination = WorkspaceDestination(rawValue: url.lastPathComponent), url.query == nil, url.fragment == nil { IntentNavigation.shared.destination = destination }
                 }

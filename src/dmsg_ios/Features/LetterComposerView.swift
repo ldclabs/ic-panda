@@ -1,49 +1,100 @@
 import SwiftUI
+@preconcurrency import DMsgCore
 
 struct LetterComposerView: View {
+    let initial: LetterDraft
     @Environment(SessionModel.self) private var model
-    @State private var recipient = ""
-    @State private var text = ""
-    @State private var invitation = ""
-    @State private var id = NativeApple.requestID()
-    @State private var prepared = false
-    @State private var working = false
-    @State private var result: DisplayValue?
-    @State private var pending: [Pending] = []
-    struct Pending: Decodable, Identifiable { let id: String; let recipient: String }
+    @Environment(\.dismiss) private var dismiss
+    @State private var discarding = false
+    @State private var leaving = false
+
+    init(recipient: String = "", draft: LetterDraft? = nil) { initial = draft ?? LetterDraft(recipient: recipient) }
+    private var draft: LetterDraft { model.letters.drafts[initial.id] ?? initial }
+    private var working: Bool { model.letters.working.contains(initial.id) }
+    private var queued: SentLetter? { model.letters.history.first { $0.id == initial.id } }
+    private func binding(_ key: WritableKeyPath<LetterDraft, String>) -> Binding<String> {
+        Binding(get: { draft[keyPath: key] }, set: { value in var next = draft; next[keyPath: key] = value; model.letters.update(next, model: model) })
+    }
+
     var body: some View {
-        Form {
-            Section("New free letter") {
-                TextField("Recipient account ID", text: $recipient).textInputAutocapitalization(.never).autocorrectionDisabled()
-                TextField("Contact invitation, if provided", text: $invitation).textInputAutocapitalization(.never).autocorrectionDisabled()
-                TextField("Message", text: $text, axis: .vertical).lineLimit(5...12)
-            }.disabled(prepared || working)
-            NoticeBar(text: String(localized: "Only free contact is supported here. This action cannot pay or approve a recipient's fee."))
-            Button(LocalizedStringKey(prepared ? "Retry original letter" : "Send free letter")) { Task { await send() } }
-                .disabled(working || result != nil || recipient.count != 20 || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            if let result { CanonicalDetails(value: result) }
-            if !pending.isEmpty {
-                Section("Pending letters") {
-                    ForEach(pending) { letter in
-                        VStack(alignment: .leading, spacing: 6) {
-                            FingerprintRow(title: "Recipient", value: letter.recipient)
-                            Button("Retry original letter") { Task {
-                                do { if let engine = model.engine { _ = try await coreOperation { try await engine.sendFreeLetter(id: letter.id, operation: $0) } }; await load() }
-                                catch { model.report(error) }
-                            } }.disabled(working)
+        Group {
+            if let queued { SentLetterContent(source: queued) }
+            else {
+                Form {
+                    Section("New free letter") {
+                        MessageRecipientField(title: "Recipient account ID", account: binding(\.recipient))
+                        SettingsField("Contact invitation, if provided", invalid: !draft.invitationValid) {
+                            TextField("Contact invitation, if provided", text: Binding(get: { draft.invitation ?? "" }, set: { value in
+                                var next = draft; next.invitation = value.isEmpty ? nil : value; model.letters.update(next, model: model)
+                            })).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
                         }
+                        if !draft.invitationValid { Text("The invitation is invalid.").font(.caption).foregroundStyle(.red) }
+                        SettingsField("Message", counter: "\(draft.text.utf8.count) / 6000", invalid: draft.text.utf8.count > 6000) {
+                            TextField("Message", text: binding(\.text), axis: .vertical).lineLimit(5...12).accessibilityIdentifier("letter.text")
+                        }
+                        if draft.text.utf8.count > 6000 { Text("This letter is too long.").font(.caption).foregroundStyle(.red) }
+                    }.disabled(working)
+                    NoticeBar(text: String(localized: "Only free contact is supported here. This action cannot pay or approve a recipient's fee."))
+                    Text("Drafts and sent letters are saved on this device.").font(.footnote).foregroundStyle(.secondary)
+                    if let error = model.letters.failures[initial.id] { NoticeBar(text: error) }
+                    if working { ProgressView("Sending") }
+                    else {
+                        SettingsAction("Send free letter", prominent: true) { model.letters.send(draft, id: draft.id, model: model) }
+                            .disabled(!draft.valid).accessibilityIdentifier("letter.send")
+                    }
+                    if !draft.empty {
+                        Text(model.letters.dirty.contains(initial.id) ? "Saving draft…" : "Draft saved").font(.caption).foregroundStyle(.secondary)
+                        SettingsAction("Discard draft", role: .destructive) { discarding = true }.disabled(working)
                     }
                 }
             }
-        }.privateScreen().navigationTitle("Write a letter").task { await load() }
+        }.privateScreen().navigationTitle("Write a letter").navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { Task {
+                leaving = true; await model.letters.flush(model); leaving = false
+                if !model.letters.dirty.contains(initial.id) { dismiss() }
+            } }.disabled(leaving) } }
+            .interactiveDismissDisabled(model.letters.dirty.contains(initial.id))
+            .task { if model.letters.drafts[initial.id] == nil && !initial.empty && queued == nil { model.letters.update(initial, model: model) } }
+            .confirmationDialog("Discard this draft?", isPresented: $discarding, titleVisibility: .visible) {
+                Button("Discard draft", role: .destructive) { Task { if await model.letters.discard(initial.id, model: model) { dismiss() } } }
+            }
     }
-    private func send() async {
-        guard let engine = model.engine, !working else { return }; working = true; defer { working = false }; model.activity()
-        do {
-            if !prepared { try await engine.queueFreeLetter(id: id, recipient: recipient, text: text, invitation: invitation.isEmpty ? nil : invitation); prepared = true }
-            result = try model.decode(try await coreOperation { try await engine.sendFreeLetter(id: id, operation: $0) })
-            await load()
-        } catch { model.report(error) }
+}
+
+struct SentLetterDetail: View {
+    let source: SentLetter
+    var body: some View { SentLetterContent(source: source).privateScreen().navigationTitle("Sent letters").navigationBarTitleDisplayMode(.inline) }
+}
+
+struct SentLetterContent: View {
+    let source: SentLetter
+    @Environment(SessionModel.self) private var model
+    @State private var editing: LetterDraft?
+    private var letter: SentLetter { model.letters.history.first { $0.id == source.id } ?? source }
+    private var working: Bool { model.letters.working.contains(letter.id) }
+    var body: some View {
+        List {
+            Section("Recipient") {
+                MessageIdentity(account: letter.recipient, showID: true)
+                if let date = letter.createdAt { Text(Date(timeIntervalSince1970: Double(date) / 1000), format: .dateTime).font(.caption).foregroundStyle(.secondary) }
+            }
+            Section {
+                if let text = letter.text { Text(text).textSelection(.enabled) }
+                else { Text("The original text is not available on this device.").foregroundStyle(.secondary) }
+            }
+            Section("Status") {
+                Label(letterStateTitle(letter.state), systemImage: letter.state == "visible" ? "checkmark.circle" : "clock")
+                if letter.state == "visible" { Text("Service acceptance does not mean the recipient has read your letter.").font(.footnote).foregroundStyle(.secondary) }
+                if let error = model.letters.failures[letter.id] { NoticeBar(text: error) }
+                else if let error = letter.error { NoticeBar(text: InboxLoading.message(DMsgCore.MobileError.Failure(code: error))) }
+                if working { ProgressView() }
+                if letter.pending {
+                    SettingsAction("Retry original letter", prominent: true) { model.letters.send(nil, id: letter.id, model: model) }.disabled(working)
+                    if letter.editable { SettingsAction("Edit draft") { Task { editing = await model.letters.edit(letter.id, model: model) } }.disabled(working) }
+                } else { SettingsAction("Check delivery status") { Task { await model.letters.check(letter.id, model: model) } }.disabled(working) }
+            }
+            DisclosureGroup("Details") { Text(letter.id).font(.caption.monospaced()).textSelection(.enabled).environment(\.layoutDirection, .leftToRight) }
+        }.sheet(item: $editing) { draft in NavigationStack { LetterComposerView(draft: draft) } }
     }
-    private func load() async { do { if let value = try await model.engine?.pendingLetters() { pending = try model.decode(value) } } catch { model.report(error) } }
 }

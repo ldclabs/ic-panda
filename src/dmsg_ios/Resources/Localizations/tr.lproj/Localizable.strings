@@ -34,6 +34,8 @@
 	<string>dMsg Hakkında</string>
 	<key>Accept approved binding</key>
 	<string>Onaylanmış bağlamayı kabul et</string>
+	<key>Accepted by service</key>
+	<string>Hizmet tarafından kabul edildi</string>
 	<key>Access granted</key>
 	<string>Erişim verildi</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>Tüm cihazlar mı kayboldu?</string>
 	<key>All files</key>
 	<string>Tüm dosyalar</string>
+	<key>Allow another letter</key>
+	<string>Başka bir mektuba izin ver</string>
 	<key>Allow key rotation</key>
 	<string>Anahtar rotasyonuna izin ver</string>
+	<key>Allow this account to send another letter?</key>
+	<string>Bu hesabın başka bir mektup göndermesine izin verilsin mi?</string>
 	<key>Allowed</key>
 	<string>İzin verildi</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>Eski adresi arşivle</string>
 	<key>Archived</key>
 	<string>Arşivlendi</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>Arşivleme yalnızca bu mektubu düzenler. İletişimi yeniden açmak için başka bir mektuba ayrıca izin verin.</string>
 	<key>Arrives</key>
 	<string>Ulaşan</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>Yetkilendirmeyi kontrol edin</string>
 	<key>Check deletion status</key>
 	<string>Silme durumunu kontrol edin</string>
+	<key>Check delivery status</key>
+	<string>Teslimatı kontrol et</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Alan uzunluklarını kontrol edin ve adlandırılmış HTTPS bağlantıları kullanın.</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>Bir sır seç</string>
 	<key>Choose a version</key>
 	<string>Bir sürüm seçin</string>
+	<key>Choose an account</key>
+	<string>Hesap seç</string>
 	<key>Choose an attachment</key>
 	<string>Bir ek seçin</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>Görüşme adı</string>
 	<key>Conversation settings</key>
 	<string>Konuşma ayarları</string>
+	<key>Conversations</key>
+	<string>Konuşma</string>
 	<key>Copied</key>
 	<string>Kopyalandı</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>Devre dışı</string>
 	<key>Discard</key>
 	<string>At</string>
+	<key>Discard draft</key>
+	<string>At</string>
 	<key>Discard staged copy</key>
 	<string>Aşamalı kopyayı sil</string>
+	<key>Discard this draft?</key>
+	<string>Değişiklikler silinsin mi?</string>
 	<key>Discard this staged copy?</key>
 	<string>Bu aşamalı kopya silinsin mi?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>Şifrelenmiş yedekleme indiriliyor</string>
 	<key>Downloads</key>
 	<string>İndirmeler</string>
+	<key>Draft saved</key>
+	<string>Taslak kaydedildi</string>
 	<key>Draft: </key>
 	<string>Taslak: </string>
+	<key>Drafts</key>
+	<string>Taslak</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>Taslaklar ve gönderilen mektuplar bu cihazda saklanır.</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Her mobil paket, seçilen eklentiler de dahil olmak üzere 8 MiB ile sınırlıdır. Nihai onay, kesin değişmez seçimi ve hedefi gösterir.</string>
+	<key>Edit draft</key>
+	<string>Düzenle</string>
 	<key>Edit item</key>
 	<string>Öğeyi düzenle</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>Güvenlik güncellemesi tamamlanıyor. Yeni içerik tamamlanana kadar bekler.</string>
 	<key>First sync</key>
 	<string>İlk eşitleme</string>
+	<key>Folder</key>
+	<string>Klasörler</string>
 	<key>Folder name</key>
 	<string>Klasör adı</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>Bu cihazda şifrelemek için bir belgeyi içe aktarın. Bulut yedekleme ayrı bir işlemdir.</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>Bir dosyayı eklemeden önce Dosyalar'a aktarın.</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>Eklemek için bir dosya veya fotoğraf içe aktarın.</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>Şifrelenmemiş bir 1Password, Bitwarden veya tarayıcı şifresi aktarımını içe aktarın. Kaynak bu cihazda kalır; yalnızca seçilen kayıtlar eklenir.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>Envanter parmak izi</string>
 	<key>Invite member</key>
 	<string>Üyeyi davet et</string>
+	<key>Invite to a conversation</key>
+	<string>Sohbete davet et</string>
 	<key>Issued credentials</key>
 	<string>Verilen kimlik bilgileri</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>Bilinen son bulut durumu</string>
 	<key>Last successful sync</key>
 	<string>Son başarılı eşitleme</string>
+	<key>Latest messages</key>
+	<string>Son mesajlar</string>
 	<key>Leave behind</key>
 	<string>Geride bırak</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>Atlandı</string>
 	<key>Length</key>
 	<string>Uzunluk</string>
+	<key>Letters</key>
+	<string>Mektuplar</string>
 	<key>License Key</key>
 	<string>Lisans Anahtarı</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>Abonelikleri yönet</string>
 	<key>Mark as read</key>
 	<string>Okundu olarak işaretle</string>
+	<key>Mark as unread</key>
+	<string>Okunmadı olarak işaretle</string>
 	<key>Maximum fee</key>
 	<string>Azami ücret</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>Bu cihazda etkinlik yok</string>
 	<key>No agents</key>
 	<string>Aracı yok</string>
+	<key>No archived letters</key>
+	<string>Arşivlenmiş mektup yok</string>
 	<key>No background transfer</key>
 	<string>Arka plan aktarımı yok</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>Henüz kayıt yok</string>
 	<key>No letters yet</key>
 	<string>Henüz mektup yok</string>
+	<key>No matching accounts</key>
+	<string>Eşleşen sonuç yok</string>
+	<key>No matching results</key>
+	<string>Eşleşen sonuç yok</string>
 	<key>No messages</key>
 	<string>Mesaj yok</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>Anlık görüntü yok</string>
 	<key>No snapshots on this device</key>
 	<string>Bu cihazda anlık görüntü yok</string>
+	<key>Not delivered</key>
+	<string>Teslim edilmedi</string>
 	<key>Not enabled</key>
 	<string>Etkin değil</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>Davetiyeyi tarayıcıda aç</string>
 	<key>Open notification settings</key>
 	<string>Bildirim ayarlarını aç</string>
+	<key>Open original message</key>
+	<string>Özgün mesajı aç</string>
 	<key>Open private workspace</key>
 	<string>Özel çalışma alanını aç</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>Sonuç artık mevcut değil</string>
 	<key>Outputs swept</key>
 	<string>Taşınan çıktılar</string>
+	<key>Owner</key>
+	<string>Sahip</string>
 	<key>Package size</key>
 	<string>Paket boyutu</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>Aktarımı duraklat</string>
 	<key>Payment card</key>
 	<string>Ödeme kartı</string>
+	<key>Payment required</key>
+	<string>Ödeme gerekli</string>
 	<key>Payments</key>
 	<string>Ödemeler</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>Özel Anahtar</string>
 	<key>Private workspace hidden</key>
 	<string>Özel çalışma alanı gizlendi</string>
+	<key>Processing</key>
+	<string>İşleniyor</string>
 	<key>Proposal %llu</key>
 	<string>Teklif %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>Bu ayrıntılar herkese açık olarak yayınlansın mı?</string>
 	<key>Published</key>
 	<string>Yayınlandı</string>
+	<key>Publisher</key>
+	<string>Yayıncı</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>Sohbet anahtarları güncellenirken yayınlama duraklatılır.</string>
 	<key>Purchased</key>
 	<string>Satın alındı</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>Kaydedilen profil yayımlandı. Taslağınız henüz gönderilmedi.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
+	<key>Saving draft…</key>
+	<string>Taslak kaydediliyor…</string>
 	<key>Scan QR code</key>
 	<string>Kamerayla tara</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>Kapsamlar, her satıra bir tane</string>
 	<key>Screenshots may contain private information.</key>
 	<string>Ekran görüntüleri özel bilgiler içerebilir.</string>
+	<key>Search</key>
+	<string>Ara</string>
 	<key>Search files</key>
 	<string>Dosyaları arayın</string>
 	<key>Search messages</key>
 	<string>Mesajlarda ara</string>
 	<key>Search your vault</key>
 	<string>Kasanızı arayın</string>
+	<key>Searches messages saved on this device.</key>
+	<string>Bu cihazda saklanan mesajları arar.</string>
 	<key>Secret</key>
 	<string>Gizli</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>Seçilen bölümler çakışan sürümü kullanır. Diğer bölümler geçerli sürümü korur.</string>
 	<key>Send device request</key>
 	<string>Cihaz isteği gönder</string>
+	<key>Send failed</key>
+	<string>Gönderilemedi</string>
 	<key>Send free letter</key>
 	<string>Ücretsiz mektup gönder</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>Gönderen hesabı</string>
 	<key>Sending</key>
 	<string>Gönderme</string>
+	<key>Sent letters</key>
+	<string>Gönderilen mektuplar</string>
 	<key>Server</key>
 	<string>Sunucu</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>Hizmetin kabul etmesi, alıcının mektubunuzu okuduğu anlamına gelmez.</string>
 	<key>Session code</key>
 	<string>Oturum kodu</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>Eski adresi boşalt</string>
 	<key>Switch account</key>
 	<string>Hesap değiştir</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>Katılmadan önce davet edilen hesaba geçin.</string>
 	<key>Switch to this account</key>
 	<string>Bu hesaba geç</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>Şimdi senkronize et</string>
 	<key>Sync paused</key>
 	<string>Eşitleme duraklatıldı</string>
+	<key>Sync this conversation before sending.</key>
+	<string>Göndermeden önce bu sohbeti eşitleyin.</string>
 	<key>Synced</key>
 	<string>Senkronize edildi</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Davetiye bu hesaba bağlıdır. Bağlantının paylaşılması başka bir hesaba erişim izni vermez.</string>
+	<key>The invitation is invalid.</key>
+	<string>Davet geçersiz.</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>Sohbete katılmayı seçtiğinizde davet doğrulanır.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Son doğrulanan gözlem saklanır. Mevcut durum doğrulanamadı.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>İşlem tamamlanamadı. Lütfen tekrar deneyin.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>İşlem iptal edildi veya izin verilmiyor.</string>
+	<key>The original message is not available on this device.</key>
+	<string>Özgün içerik bu cihazda kullanılamıyor.</string>
+	<key>The original text is not available on this device.</key>
+	<string>Özgün içerik bu cihazda kullanılamıyor.</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>Diğer cihaz yerel ağda bulunamadı. Adresini girin.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>Bu, yerel kilit açma korumasını değiştirir. Sistem kimlik doğrulaması gerekebilir. Hiçbir hesap kurtarma işlemi veya başka bir cihaz değiştirilmez.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Bu, hangi hesap eylemlerinin donanım imzası gerektirdiğini değiştirir. Korumanın devre dışı bırakılması, donanım kanıtı olmadan bu eylemlere izin verir.</string>
+	<key>This conversation is archived.</key>
+	<string>Kanal arşivlendi; yeni mesaj yok.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>Bu, bekleyen bir istek oluşturur. Cihaza yetki vermez.</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>Bu öğe artık kullanılamıyor.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Bu anahtar dMsg tarafından yönetilir ve kopyalanamaz veya düzenlenemez.</string>
+	<key>This letter is too long.</key>
+	<string>İçerik çok uzun.</string>
 	<key>This letter was withdrawn.</key>
 	<string>Bu mektup geri çekildi.</string>
 	<key>This message could not be verified.</key>
 	<string>Bu mesaj doğrulanamadı.</string>
+	<key>This message is too long.</key>
+	<string>İçerik çok uzun.</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>Bu yalnızca bu cihazdaki kesin bulguyu ve revizyonu gizler. Bir kimlik bilgisini onarmaz veya gelecekteki değişiklikleri göz ardı etmez.</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>Çalışma alanının kilidini aç</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg çalışma alanınızın kilidini açın</string>
+	<key>Unread messages</key>
+	<string>Okunmamış</string>
+	<key>Unread only</key>
+	<string>Okunmamış</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Sınırsız delegasyon yetkisi</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>Onay bekleniyor</string>
 	<key>Waiting for browser confirmation</key>
 	<string>Tarayıcı onayı bekleniyor</string>
+	<key>Waiting for confirmation</key>
+	<string>Onay bekleniyor</string>
 	<key>Waiting for confirmation: </key>
 	<string>Onay bekleniyor: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>Evet</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>Değişmez bir tarihsel versiyonu görüntülüyorsunuz.</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>Bu sohbete yalnızca okuma erişiminiz var.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Sağlayıcı değişikliklerini kendiniz gerçekleştirirsiniz. dMsg ekstrelerinizi kaydeder ve yerel revizyonları kontrol eder; yukarı akış oluşturmayı, test etmeyi veya iptal etmeyi doğrulayamaz.</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>Özel çalışma alanınız.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Satın alma işleminiz onay bekliyor. Tekrar ödeme yapmadan yeniden denemek için satın alma işlemlerini geri yükleyin.</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>Alım kurallarınız geçerliliğini korur. Bu işlem kişi veya kanal üyesi eklemez.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>Raporunuz ve açıkça eklediğiniz metinler moderasyon ekibine gönderilecektir. Diğer özel içerik ve anahtarlar dahil değildir.</string>
 	<key>Your reports</key>

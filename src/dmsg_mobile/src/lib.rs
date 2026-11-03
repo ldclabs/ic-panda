@@ -10,7 +10,9 @@ pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
 mod display;
 mod error;
+mod messaging;
 mod models;
+pub use messaging::LetterDraftInput;
 mod notifications;
 pub use notifications::{
     NotificationPresentationContext, NotificationPresentationResult, ReminderScope, VisibleReminder,
@@ -288,6 +290,7 @@ impl MobileEngine {
         &self,
         account: String,
         drafts: Vec<MessageDraft>,
+        letters: Vec<LetterDraftInput>,
     ) -> Result<SessionSnapshot> {
         ensure_valid(drafts.len() <= 100, "drafts")?;
         let transition = self.host.begin_transition()?;
@@ -317,6 +320,16 @@ impl MobileEngine {
                         )?;
                         for draft in drafts {
                             c.channel_draft(&draft.channel, &draft.text)?;
+                        }
+                        let now = dmsg_client::now_ms();
+                        for draft in letters {
+                            c.save_letter_draft_at(
+                                &draft.id,
+                                &draft.recipient,
+                                &draft.text,
+                                draft.invitation,
+                                now,
+                            )?;
                         }
                         Ok(())
                     })();
@@ -985,17 +998,62 @@ impl MobileEngine {
             .host
             .run_at(generation, |c| {
                 Box::pin(async {
-                    Ok(c.channel_list()?
+                    let account = c.session_state().account.ok_or(Error::AuthRequired)?;
+                    let mut items = c
+                        .channel_list()?
                         .into_iter()
                         .filter(|v| !v.hidden)
-                        .map(|v| ChannelItem {
-                            id: v.id,
-                            name: v.name,
-                            unread: v.unread,
-                            draft: v.draft,
-                            preview: v.last.map(|m| m.text).unwrap_or_default(),
+                        .map(|v| {
+                            let pending = c.message_intents(&v.id)?;
+                            let can_publish = v.ledger.as_ref().is_some_and(|l| {
+                                dmsg_client::channel_log::may_publish(l, &account)
+                            });
+                            let can_invite = v.ledger.as_ref().is_some_and(|l| {
+                                l.status == dmsg_client::channel_log::Status::Active
+                                    && l.members.get(&account).is_some_and(|m| {
+                                        matches!(
+                                            m.role,
+                                            dmsg_client::channel_log::Role::Owner
+                                                | dmsg_client::channel_log::Role::Admin
+                                        )
+                                    })
+                            });
+                            Ok(ChannelItem {
+                                last_at: v
+                                    .last
+                                    .as_ref()
+                                    .map_or(0, |m| m.stored_at)
+                                    .max(pending.iter().map(|i| i.created_at).max().unwrap_or(0)),
+                                muted: v.muted,
+                                status: v
+                                    .ledger
+                                    .as_ref()
+                                    .map(|l| match l.status {
+                                        dmsg_client::channel_log::Status::Active => "active",
+                                        dmsg_client::channel_log::Status::Archived => "archived",
+                                        _ => "rotation_required",
+                                    })
+                                    .unwrap_or("unavailable")
+                                    .into(),
+                                can_publish,
+                                can_invite,
+                                pending_sends: pending.len() as u64,
+                                read_through: v.read,
+                                id: v.id,
+                                name: v.name,
+                                unread: v.unread,
+                                draft: v.draft,
+                                preview: v.last.map(|m| m.text).unwrap_or_default(),
+                            })
                         })
-                        .collect())
+                        .collect::<dmsg_types::Result<Vec<_>>>()?;
+                    items.sort_by(|a, b| {
+                        b.last_at
+                            .cmp(&a.last_at)
+                            .then(a.name.cmp(&b.name))
+                            .then(a.id.cmp(&b.id))
+                    });
+                    Ok(items)
                 })
             })
             .await?;
@@ -1279,6 +1337,7 @@ impl MobileEngine {
         sequence: u64,
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
+        let progress = operation.clone();
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move {
@@ -1287,7 +1346,7 @@ impl MobileEngine {
                         &channel,
                         sequence,
                         "root",
-                        &mut |_, _| {},
+                        &mut |done, total| progress.report(done, total),
                     )
                     .await
                 })
@@ -1357,8 +1416,12 @@ impl MobileEngine {
         read: bool,
         archived: bool,
     ) -> Result<ObjectSnapshot> {
+        let turn = self.read_turns.lane(&format!("inbox-mark:{order}"));
         self.held_object(move |h| {
-            Box::pin(async move { dmsg_client::inbox::mark(h, &order, read, archived).await })
+            Box::pin(async move {
+                let _turn = turn.lock().await;
+                dmsg_client::inbox::mark_contact(h, &order, read, archived, false).await
+            })
         })
         .await
     }

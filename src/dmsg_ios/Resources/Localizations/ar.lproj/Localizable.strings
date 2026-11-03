@@ -34,6 +34,8 @@
 	<string>حول dMsg</string>
 	<key>Accept approved binding</key>
 	<string>قبول الربط المعتمد</string>
+	<key>Accepted by service</key>
+	<string>قبلتها الخدمة</string>
 	<key>Access granted</key>
 	<string>تم منح الوصول</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>هل فقدت جميع الأجهزة؟</string>
 	<key>All files</key>
 	<string>كل الملفات</string>
+	<key>Allow another letter</key>
+	<string>السماح برسالة أخرى</string>
 	<key>Allow key rotation</key>
 	<string>السماح بتدوير المفاتيح</string>
+	<key>Allow this account to send another letter?</key>
+	<string>هل تريد السماح لهذا الحساب بإرسال رسالة أخرى؟</string>
 	<key>Allowed</key>
 	<string>مسموح</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>أرشفة العنوان القديم</string>
 	<key>Archived</key>
 	<string>المؤرشفة</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>الأرشفة تنظم هذه الرسالة فقط. اسمح برسالة أخرى بشكل منفصل لإعادة فتح التواصل.</string>
 	<key>Arrives</key>
 	<string>يصل</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>التحقق من التفويض</string>
 	<key>Check deletion status</key>
 	<string>التحقق من حالة الحذف</string>
+	<key>Check delivery status</key>
+	<string>التحقق من التسليم</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>تحقق من طول الحقول واستخدم روابط HTTPS مسمّاة.</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>اختيار سر</string>
 	<key>Choose a version</key>
 	<string>اختيار نسخة</string>
+	<key>Choose an account</key>
+	<string>اختيار حساب</string>
 	<key>Choose an attachment</key>
 	<string>اختيار مرفق</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>اسم المحادثة</string>
 	<key>Conversation settings</key>
 	<string>إعدادات المحادثة</string>
+	<key>Conversations</key>
+	<string>محادثة</string>
 	<key>Copied</key>
 	<string>تم النسخ</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>معطّل</string>
 	<key>Discard</key>
 	<string>تجاهل</string>
+	<key>Discard draft</key>
+	<string>تجاهل</string>
 	<key>Discard staged copy</key>
 	<string>تجاهل النسخة المؤقتة</string>
+	<key>Discard this draft?</key>
+	<string>تجاهل التغييرات؟</string>
 	<key>Discard this staged copy?</key>
 	<string>هل تريد تجاهل هذه النسخة المؤقتة؟</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>جارٍ تنزيل النسخة الاحتياطية المشفّرة</string>
 	<key>Downloads</key>
 	<string>التنزيلات</string>
+	<key>Draft saved</key>
+	<string>تم حفظ المسودة</string>
 	<key>Draft: </key>
 	<string>مسودة: </string>
+	<key>Drafts</key>
+	<string>مسودة</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>تُحفظ المسودات والرسائل المرسلة على هذا الجهاز.</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>الحد الأقصى لكل حزمة على الهاتف هو 8 MiB، بما في ذلك المرفقات المحددة. تعرض الموافقة النهائية المحتوى الثابت المحدد بدقة ووجهته.</string>
+	<key>Edit draft</key>
+	<string>تعديل</string>
 	<key>Edit item</key>
 	<string>تعديل العنصر</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>جارٍ إكمال تحديث الأمان. ينتظر المحتوى الجديد حتى يكتمل.</string>
 	<key>First sync</key>
 	<string>المزامنة الأولى</string>
+	<key>Folder</key>
+	<string>المجلدات</string>
 	<key>Folder name</key>
 	<string>اسم المجلد</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>استورد مستندًا لتشفيره على هذا الجهاز. النسخ الاحتياطي السحابي إجراء منفصل.</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>استورد ملفًا في قسم الملفات قبل إرفاقه.</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>استورد ملفًا أو صورة لإرفاقها.</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>استورد ملف كلمات مرور غير مشفّر من 1Password أو Bitwarden أو المتصفح. يبقى المصدر على هذا الجهاز وتُضاف السجلات المختارة فقط.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>بصمة الجرد</string>
 	<key>Invite member</key>
 	<string>دعوة عضو</string>
+	<key>Invite to a conversation</key>
+	<string>دعوة إلى محادثة</string>
 	<key>Issued credentials</key>
 	<string>بيانات الاعتماد الصادرة</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>آخر حالة معروفة في السحابة</string>
 	<key>Last successful sync</key>
 	<string>آخر مزامنة ناجحة</string>
+	<key>Latest messages</key>
+	<string>أحدث الرسائل</string>
 	<key>Leave behind</key>
 	<string>تركها</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>لم تُنقل</string>
 	<key>Length</key>
 	<string>الطول</string>
+	<key>Letters</key>
+	<string>الرسائل</string>
 	<key>License Key</key>
 	<string>مفتاح الترخيص</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>إدارة الاشتراكات</string>
 	<key>Mark as read</key>
 	<string>وضع علامة كمقروءة</string>
+	<key>Mark as unread</key>
+	<string>وضع علامة كغير مقروءة</string>
 	<key>Maximum fee</key>
 	<string>الحد الأقصى للرسوم</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>لا يوجد نشاط على هذا الجهاز</string>
 	<key>No agents</key>
 	<string>لا يوجد وكلاء</string>
+	<key>No archived letters</key>
+	<string>لا توجد رسائل مؤرشفة</string>
 	<key>No background transfer</key>
 	<string>لا يوجد نقل في الخلفية</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>لا سجلات بعد</string>
 	<key>No letters yet</key>
 	<string>لا توجد رسائل واردة بعد</string>
+	<key>No matching accounts</key>
+	<string>لا توجد نتائج مطابقة</string>
+	<key>No matching results</key>
+	<string>لا توجد نتائج مطابقة</string>
 	<key>No messages</key>
 	<string>لا توجد رسائل</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>لا توجد لقطة</string>
 	<key>No snapshots on this device</key>
 	<string>لا توجد لقطات على هذا الجهاز</string>
+	<key>Not delivered</key>
+	<string>لم تُسلَّم</string>
 	<key>Not enabled</key>
 	<string>غير مفعّل</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>فتح الدعوة في المتصفح</string>
 	<key>Open notification settings</key>
 	<string>فتح إعدادات الإشعارات</string>
+	<key>Open original message</key>
+	<string>فتح الرسالة الأصلية</string>
 	<key>Open private workspace</key>
 	<string>فتح مساحة العمل الخاصة</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>النتيجة لم تعد متاحة</string>
 	<key>Outputs swept</key>
 	<string>المخرجات المنقولة</string>
+	<key>Owner</key>
+	<string>المالك</string>
 	<key>Package size</key>
 	<string>حجم الحزمة</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>إيقاف النقل مؤقتًا</string>
 	<key>Payment card</key>
 	<string>بطاقة دفع</string>
+	<key>Payment required</key>
+	<string>الدفع مطلوب</string>
 	<key>Payments</key>
 	<string>المدفوعات</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>المفتاح الخاص</string>
 	<key>Private workspace hidden</key>
 	<string>مساحة العمل الخاصة مخفية</string>
+	<key>Processing</key>
+	<string>جارٍ المعالجة</string>
 	<key>Proposal %llu</key>
 	<string>الاقتراح %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>هل تريد نشر هذه التفاصيل للعامة؟</string>
 	<key>Published</key>
 	<string>منشور</string>
+	<key>Publisher</key>
+	<string>ناشر</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>تم إيقاف النشر مؤقتًا أثناء تحديث مفاتيح المحادثة.</string>
 	<key>Purchased</key>
 	<string>تاريخ الشراء</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>تم نشر الملف الشخصي المحفوظ. لم تُرسل مسودتك بعد.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
+	<key>Saving draft…</key>
+	<string>جارٍ حفظ المسودة…</string>
 	<key>Scan QR code</key>
 	<string>المسح بالكاميرا</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>النطاقات، واحد في كل سطر</string>
 	<key>Screenshots may contain private information.</key>
 	<string>قد تحتوي لقطات الشاشة على معلومات خاصة.</string>
+	<key>Search</key>
+	<string>بحث</string>
 	<key>Search files</key>
 	<string>البحث في الملفات</string>
 	<key>Search messages</key>
 	<string>البحث في الرسائل</string>
 	<key>Search your vault</key>
 	<string>البحث في خزنتك</string>
+	<key>Searches messages saved on this device.</key>
+	<string>يبحث في الرسائل المحفوظة على هذا الجهاز.</string>
 	<key>Secret</key>
 	<string>السر</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>تستخدم الأجزاء المحددة الإصدار المتعارض. وتحتفظ الأجزاء الأخرى بالإصدار الحالي.</string>
 	<key>Send device request</key>
 	<string>إرسال طلب الجهاز</string>
+	<key>Send failed</key>
+	<string>فشل الإرسال</string>
 	<key>Send free letter</key>
 	<string>إرسال رسالة مجانية</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>حساب المرسل</string>
 	<key>Sending</key>
 	<string>إرسال</string>
+	<key>Sent letters</key>
+	<string>الرسائل المُرسَلة</string>
 	<key>Server</key>
 	<string>خادم</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>قبول الخدمة لا يعني أن المستلم قرأ رسالتك.</string>
 	<key>Session code</key>
 	<string>رمز الجلسة</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>تفريغ العنوان القديم</string>
 	<key>Switch account</key>
 	<string>تبديل الحساب</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>بدّل إلى الحساب المدعو قبل الانضمام.</string>
 	<key>Switch to this account</key>
 	<string>التبديل إلى هذا الحساب</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>مزامنة الآن</string>
 	<key>Sync paused</key>
 	<string>المزامنة متوقفة مؤقتًا</string>
+	<key>Sync this conversation before sending.</key>
+	<string>زامن هذه المحادثة قبل الإرسال.</string>
 	<key>Synced</key>
 	<string>تمت المزامنة</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>الدعوة مرتبطة بهذا الحساب. مشاركة الرابط لا تمنح حسابًا آخر حق الوصول.</string>
+	<key>The invitation is invalid.</key>
+	<string>الدعوة غير صالحة.</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>يتم التحقق من الدعوة عند اختيار الانضمام إلى المحادثة.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>تم الاحتفاظ بآخر ملاحظة متحقق منها. تعذّر تأكيد الحالة الحالية.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>تعذّر إكمال العملية. يُرجى المحاولة مجددًا.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>أُلغيت العملية أو أنها غير مسموحة.</string>
+	<key>The original message is not available on this device.</key>
+	<string>المحتوى الأصلي غير متاح على هذا الجهاز.</string>
+	<key>The original text is not available on this device.</key>
+	<string>المحتوى الأصلي غير متاح على هذا الجهاز.</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>لم يُعثر على الجهاز الآخر في الشبكة المحلية. أدخل عنوانه.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>يغيّر هذا حماية فك القفل المحلي وقد يتطلب مصادقة النظام. لا يغيّر استرداد الحساب أو أي جهاز آخر.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>يغيّر هذا إجراءات الحساب التي تتطلب توقيعًا عتاديًا. تعطيل الحماية يسمح بهذه الإجراءات دون ذلك الإثبات العتادي.</string>
+	<key>This conversation is archived.</key>
+	<string>القناة مؤرشفة؛ لا رسائل جديدة.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>يؤدي هذا إلى إنشاء طلب معلّق، ولا يفوّض الجهاز.</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>لم يعد هذا العنصر متاحًا.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>يدير dMsg هذا المفتاح ولا يمكن نسخه أو تعديله.</string>
+	<key>This letter is too long.</key>
+	<string>المحتوى طويل جدًا.</string>
 	<key>This letter was withdrawn.</key>
 	<string>تم سحب هذه الرسالة.</string>
 	<key>This message could not be verified.</key>
 	<string>تعذّر التحقق من هذه الرسالة.</string>
+	<key>This message is too long.</key>
+	<string>المحتوى طويل جدًا.</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>يخفي هذا النتيجة المحددة وإصدارها على هذا الجهاز فقط. ولا يصلح بيانات الاعتماد أو يستبعد التغييرات المستقبلية.</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>فتح مساحة العمل</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>فتح قفل مساحة عمل dMsg</string>
+	<key>Unread messages</key>
+	<string>غير مقروءة</string>
+	<key>Unread only</key>
+	<string>غير مقروءة</string>
 	<key>Unrestricted delegation authority</key>
 	<string>صلاحيات تفويض غير مقيّدة</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>بانتظار الموافقة</string>
 	<key>Waiting for browser confirmation</key>
 	<string>بانتظار تأكيد المتصفح</string>
+	<key>Waiting for confirmation</key>
+	<string>بانتظار التأكيد</string>
 	<key>Waiting for confirmation: </key>
 	<string>بانتظار التأكيد: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>نعم</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>أنت تعرض نسخة تاريخية ثابتة.</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>لديك صلاحية القراءة فقط في هذه المحادثة.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>تنفّذ تغييرات المزود بنفسك. يسجّل dMsg إفاداتك ويفحص الإصدارات المحلية؛ ولا يستطيع التحقق من الإنشاء أو الاختبار أو الإبطال لدى المزود.</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>مساحة عملك الخاصة.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>عملية الشراء بانتظار التأكيد. استعد المشتريات لإعادة المحاولة دون دفع جديد.</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>تظل قواعد الاستلام سارية. لا يضيف هذا جهة اتصال أو عضوًا إلى القناة.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>سيُرسل البلاغ والنص الذي ترفقه صراحةً إلى فريق المراجعة. لا يُضمّن أي محتوى خاص آخر أو مفاتيح.</string>
 	<key>Your reports</key>

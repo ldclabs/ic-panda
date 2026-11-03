@@ -34,6 +34,8 @@
 	<string>關於 dMsg</string>
 	<key>Accept approved binding</key>
 	<string>接受已批准的繫結</string>
+	<key>Accepted by service</key>
+	<string>服務已接受</string>
 	<key>Access granted</key>
 	<string>已授予存取權</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>所有裝置都丟失了？</string>
 	<key>All files</key>
 	<string>全部檔案</string>
+	<key>Allow another letter</key>
+	<string>允許再次來信</string>
 	<key>Allow key rotation</key>
 	<string>允許輪換金鑰</string>
+	<key>Allow this account to send another letter?</key>
+	<string>允許此帳號再次來信？</string>
 	<key>Allowed</key>
 	<string>已允許</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>封存舊地址</string>
 	<key>Archived</key>
 	<string>已歸檔</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>封存只整理這封信。若要重新開放聯絡，請另外選擇允許再次來信。</string>
 	<key>Arrives</key>
 	<string>到帳</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>檢查授權狀態</string>
 	<key>Check deletion status</key>
 	<string>查詢刪除狀態</string>
+	<key>Check delivery status</key>
+	<string>查看投遞狀態</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>請檢查欄位長度，並為 HTTPS 連結填寫名稱。</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>選擇秘密條目</string>
 	<key>Choose a version</key>
 	<string>選擇版本</string>
+	<key>Choose an account</key>
+	<string>選擇帳號</string>
 	<key>Choose an attachment</key>
 	<string>選擇附件</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>對話名稱</string>
 	<key>Conversation settings</key>
 	<string>會話設定</string>
+	<key>Conversations</key>
+	<string>對話</string>
 	<key>Copied</key>
 	<string>已複製</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>已停用</string>
 	<key>Discard</key>
 	<string>丟棄</string>
+	<key>Discard draft</key>
+	<string>丟棄</string>
 	<key>Discard staged copy</key>
 	<string>丟棄暫存副本</string>
+	<key>Discard this draft?</key>
+	<string>放棄修改？</string>
 	<key>Discard this staged copy?</key>
 	<string>丟棄此暫存副本？</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>正在下載加密備份</string>
 	<key>Downloads</key>
 	<string>下載</string>
+	<key>Draft saved</key>
+	<string>草稿已儲存</string>
 	<key>Draft: </key>
 	<string>草稿：</string>
+	<key>Drafts</key>
+	<string>草稿</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>草稿和已傳送的信件儲存在此裝置上。</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>每個移動端包上限為 8 MiB，含所選附件。最終審批會顯示確切且不可變的內容選擇與目標位置。</string>
+	<key>Edit draft</key>
+	<string>編輯</string>
 	<key>Edit item</key>
 	<string>編輯條目</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>正在完成安全設定更新；完成前暫緩儲存新內容。</string>
 	<key>First sync</key>
 	<string>首次同步</string>
+	<key>Folder</key>
+	<string>資料夾</string>
 	<key>Folder name</key>
 	<string>資料夾名稱</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>匯入檔案後將在本機加密儲存，雲端備份需要單獨操作。</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>請先在檔案庫中匯入檔案，再選擇附件。</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>匯入檔案或照片以加入附件。</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>匯入未加密的 1Password、Bitwarden 或瀏覽器密碼匯出檔案。原始檔僅保留在本機，只新增你選擇的記錄。</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>清單指紋</string>
 	<key>Invite member</key>
 	<string>邀請成員</string>
+	<key>Invite to a conversation</key>
+	<string>邀請進入對話</string>
 	<key>Issued credentials</key>
 	<string>已簽發憑證</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>最近已知的雲端狀態</string>
 	<key>Last successful sync</key>
 	<string>最近一次成功同步</string>
+	<key>Latest messages</key>
+	<string>最新訊息</string>
 	<key>Leave behind</key>
 	<string>留在舊裝置</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>未傳</string>
 	<key>Length</key>
 	<string>長度</string>
+	<key>Letters</key>
+	<string>信件</string>
 	<key>License Key</key>
 	<string>許可證金鑰</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>管理訂閱</string>
 	<key>Mark as read</key>
 	<string>標記為已讀</string>
+	<key>Mark as unread</key>
+	<string>標示為未讀</string>
 	<key>Maximum fee</key>
 	<string>費用上限</string>
 	<key>Maximum fee in base units</key>
@@ -1123,7 +1161,7 @@
 	<key>Merge individual fields</key>
 	<string>逐欄位合併</string>
 	<key>Message</key>
-	<string>傳送私信</string>
+	<string>訊息</string>
 	<key>Message settings</key>
 	<string>訊息設定</string>
 	<key>Message withdrawn</key>
@@ -1193,7 +1231,7 @@
 	<key>New folder</key>
 	<string>新建資料夾</string>
 	<key>New free letter</key>
-	<string>新建免費來信</string>
+	<string>新增免費信件</string>
 	<key>New revision</key>
 	<string>新版本</string>
 	<key>New secret</key>
@@ -1210,6 +1248,8 @@
 	<string>此裝置暫無活動</string>
 	<key>No agents</key>
 	<string>沒有智慧體</string>
+	<key>No archived letters</key>
+	<string>沒有已封存的信件</string>
 	<key>No background transfer</key>
 	<string>沒有背景傳輸</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>暫無記錄</string>
 	<key>No letters yet</key>
 	<string>還沒有來信</string>
+	<key>No matching accounts</key>
+	<string>沒有符合的結果</string>
+	<key>No matching results</key>
+	<string>沒有符合的結果</string>
 	<key>No messages</key>
 	<string>沒有訊息</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>沒有快照</string>
 	<key>No snapshots on this device</key>
 	<string>此裝置尚無快照</string>
+	<key>Not delivered</key>
+	<string>未送達</string>
 	<key>Not enabled</key>
 	<string>未開啟</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>在瀏覽器開啟邀請</string>
 	<key>Open notification settings</key>
 	<string>開啟通知設定</string>
+	<key>Open original message</key>
+	<string>開啟原始訊息</string>
 	<key>Open private workspace</key>
 	<string>開啟私密工作區</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>執行結果已不可用</string>
 	<key>Outputs swept</key>
 	<string>掃出的輸出</string>
+	<key>Owner</key>
+	<string>所有者</string>
 	<key>Package size</key>
 	<string>包大小</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>暫停傳輸</string>
 	<key>Payment card</key>
 	<string>銀行卡</string>
+	<key>Payment required</key>
+	<string>需要付費</string>
 	<key>Payments</key>
 	<string>付款</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>私鑰</string>
 	<key>Private workspace hidden</key>
 	<string>私密內容已遮擋</string>
+	<key>Processing</key>
+	<string>處理中</string>
 	<key>Proposal %llu</key>
 	<string>提案 %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>公開發布這些資料？</string>
 	<key>Published</key>
 	<string>已釋出</string>
+	<key>Publisher</key>
+	<string>釋出者</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>對話金鑰更新期間暫停發布。</string>
 	<key>Purchased</key>
 	<string>購買日期</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>已儲存的個人資料已發佈。你的草稿尚未提交。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已儲存，等待發布。</string>
+	<key>Saving draft…</key>
+	<string>正在儲存草稿…</string>
 	<key>Scan QR code</key>
 	<string>使用相機掃描</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>範圍，每行一個</string>
 	<key>Screenshots may contain private information.</key>
 	<string>截圖可能包含私密資訊。</string>
+	<key>Search</key>
+	<string>搜尋</string>
 	<key>Search files</key>
 	<string>搜尋檔案</string>
 	<key>Search messages</key>
 	<string>搜尋訊息</string>
 	<key>Search your vault</key>
 	<string>搜尋保險庫</string>
+	<key>Searches messages saved on this device.</key>
+	<string>搜尋此裝置已儲存的訊息。</string>
 	<key>Secret</key>
 	<string>秘密詳情</string>
 	<key>Secret package link</key>
@@ -1974,8 +2038,10 @@
 	<string>選取的部分採用衝突版本，其餘部分保留目前版本。</string>
 	<key>Send device request</key>
 	<string>傳送裝置請求</string>
+	<key>Send failed</key>
+	<string>傳送失敗</string>
 	<key>Send free letter</key>
-	<string>傳送免費來信</string>
+	<string>傳送免費信件</string>
 	<key>Send message</key>
 	<string>傳送訊息</string>
 	<key>Send queued message</key>
@@ -1990,8 +2056,12 @@
 	<string>傳送者帳戶</string>
 	<key>Sending</key>
 	<string>傳送</string>
+	<key>Sent letters</key>
+	<string>已發出的信</string>
 	<key>Server</key>
 	<string>伺服器</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>服務接受來信不表示收件人已經閱讀。</string>
 	<key>Session code</key>
 	<string>工作階段碼</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>掃出舊地址</string>
 	<key>Switch account</key>
 	<string>切換帳戶</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>請先切換至受邀帳號再加入。</string>
 	<key>Switch to this account</key>
 	<string>切換到此帳號</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>立即同步</string>
 	<key>Sync paused</key>
 	<string>同步已暫停</string>
+	<key>Sync this conversation before sending.</key>
+	<string>傳送前請先同步此對話。</string>
 	<key>Synced</key>
 	<string>已同步</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>邀請與這個帳戶繫結，分享連結不會向其他帳戶授予權限。</string>
+	<key>The invitation is invalid.</key>
+	<string>邀請無效。</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>選擇加入對話時會驗證邀請。</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>已保留最近一次驗證結果，當前狀態尚無法確認。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>操作未能完成，請重試。</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>操作已取消，或當前沒有權限。</string>
+	<key>The original message is not available on this device.</key>
+	<string>此裝置上沒有原始內容。</string>
+	<key>The original text is not available on this device.</key>
+	<string>此裝置上沒有原始內容。</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>在區域網路中找不到另一台裝置。請輸入它的地址。</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>這會改變本機解鎖保護，可能需要系統認證；不會變更帳戶恢復或其他裝置。</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>這會改變哪些帳戶操作需要硬體簽名。關閉保護後，這些操作無需該硬體證明即可執行。</string>
+	<key>This conversation is archived.</key>
+	<string>頻道已歸檔，不能發訊息。</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>這一步僅建立待審批請求，不會授權裝置。</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>此項目已無法使用。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>此金鑰由 dMsg 管理，不能複製或編輯。</string>
+	<key>This letter is too long.</key>
+	<string>內容過長。</string>
 	<key>This letter was withdrawn.</key>
 	<string>這封來信已撤回。</string>
 	<key>This message could not be verified.</key>
 	<string>無法驗證這條訊息。</string>
+	<key>This message is too long.</key>
+	<string>內容過長。</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>這隻會在此裝置隱藏本次發現及其對應版本，不會修復憑據，也不會忽略之後的變更。</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>解鎖工作區</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>解鎖你的 dMsg 保險庫</string>
+	<key>Unread messages</key>
+	<string>未讀</string>
+	<key>Unread only</key>
+	<string>未讀</string>
 	<key>Unrestricted delegation authority</key>
 	<string>不受限的委託權限</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>等待批准</string>
 	<key>Waiting for browser confirmation</key>
 	<string>等待瀏覽器確認</string>
+	<key>Waiting for confirmation</key>
+	<string>等待結果確認</string>
 	<key>Waiting for confirmation: </key>
 	<string>等待結果確認：</string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>是</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>正在檢視不可變的歷史版本。</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>你對此對話只有讀取權限。</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>服務提供方的變更由你自行完成。dMsg 記錄你的宣告並檢查本機版本，無法核實上游憑據是否已建立、測試或撤銷。</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>你的私密工作臺。</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>購買正在等待確認。請恢復購買以重試，無須再次付款。</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>現有收信規則仍然有效。此操作不會新增聯絡人或頻道成員。</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>舉報及你明確附上的正文會發送給處理團隊，不包含其他私密內容或金鑰。</string>
 	<key>Your reports</key>

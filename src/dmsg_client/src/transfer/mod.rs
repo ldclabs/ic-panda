@@ -144,6 +144,8 @@ pub const PREFIXES: &[(&str, Class)] = &[
     ("inbox-job:", Class::Stays),
     ("inbox-letter:", Class::Stays),
     ("letter-intent:", Class::Stays),
+    ("letter-draft:", Class::Stays),
+    ("letter-status:", Class::Stays),
     ("send-intent:", Class::Stays),
     // Approvals, attestations, connections and grants of this device.
     ("approval:", Class::Stays),

@@ -138,9 +138,10 @@ private struct ReminderDestinationView: View {
         Group {
             if destination.account != model.session?.account || !model.unlocked { NoticeBar(text: NoticeCopy.text("noticeSwitch")) }
             else if ended { ContentUnavailableView(NoticeCopy.text("noticeEnded"), systemImage: "clock") }
-            else if failed { VStack { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")); Button("Retry") { Task { await load() } } }.padding() }
+            else if failed && !ready { VStack { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")); Button("Retry") { Task { await load() } } }.padding() }
             else if !ready { ProgressView() }
             else {
+                if failed { NoticeBar(text: String(localized: "Showing saved content. The latest sync did not finish.")) }
                 switch destination.target {
                 case .channel: if let channel { ConversationView(channel: channel) }
                 case .inbox: if let letter { InboxDetail(letter: letter, changed: {}) }
@@ -156,7 +157,7 @@ private struct ReminderDestinationView: View {
         }.privateScreen().task(id: model.epoch) { await load() }
     }
     private func load() async {
-        ready = false; ended = false; failed = false
+        ready = channel != nil || letter != nil; ended = false; failed = false
         guard model.session?.account == destination.account, model.unlocked, let engine = model.engine else { ended = model.uiTesting; return }
         let epoch = model.epoch
         do {
@@ -167,9 +168,12 @@ private struct ReminderDestinationView: View {
             var nextEnded = false
             switch destination.target {
             case .channel(let id):
+                if let cached = try? await engine.channels(), let saved = cached.items.first(where: { $0.id == id }), epoch == model.epoch, !Task.isCancelled { channel = saved; ready = true }
                 _ = try await coreOperation { try await engine.refreshChannel(channel: id, operation: $0) }
                 nextChannel = try await engine.channels().items.first { $0.id == id }; nextEnded = nextChannel == nil
             case .inbox(let id):
+                if let value = try? await engine.inbox(refresh: false), let cached = try? model.decode(value) as [InboxLetter],
+                   let saved = cached.first(where: { $0.orderId == id }), epoch == model.epoch, !Task.isCancelled { letter = saved; ready = true }
                 let rows: [InboxLetter] = try model.decode(try await engine.inbox(refresh: true)); nextLetter = rows.first { $0.orderId == id }; nextEnded = nextLetter == nil
             case .approval(let id): nextApproval = try model.decode(try await engine.approval(id: id))
             case .wallet(let wallet, let proposal): if let id = UInt64(proposal) { _ = try await engine.walletProposal(wallet: wallet, proposal: id) } else { nextEnded = true }

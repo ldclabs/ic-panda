@@ -15,7 +15,7 @@
 //! deadline the payer recovers the funds from the canister alone.
 
 mod operations;
-pub use operations::{configure, escrow, mark, order, refund, request, revise, send};
+pub use operations::{configure, escrow, mark, mark_contact, order, refund, request, revise, send};
 
 use crate::client::Client;
 use crate::cloud::{Evidence, sign_command};
@@ -406,6 +406,12 @@ impl Client {
             }));
         }
         Ok(list)
+    }
+
+    pub(crate) fn inbox_has_outgoing(&self, order: &str) -> Result<bool> {
+        Ok(self
+            .inbox_job::<Outgoing>(&format!("outgoing:{order}"))?
+            .is_some())
     }
 
     /// The commitment to a quoted letter's terms a person approves.

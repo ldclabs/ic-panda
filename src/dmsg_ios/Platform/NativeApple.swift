@@ -103,7 +103,7 @@ final class NativeApple {
         _ = try await engine.submitPurchase(installation: files.installation, jws: jws, proof: proof, requestId: Self.requestID())
     }
 
-    static func requestID() -> String { (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased() }
+    nonisolated static func requestID() -> String { (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased() }
     private func decode<T: Decodable>(_ snapshot: ObjectSnapshot) throws -> T {
         try Task.checkCancellation()
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase

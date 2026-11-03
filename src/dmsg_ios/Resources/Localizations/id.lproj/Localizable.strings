@@ -34,6 +34,8 @@
 	<string>Tentang dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Terima pengikatan yang disetujui</string>
+	<key>Accepted by service</key>
+	<string>Diterima layanan</string>
 	<key>Access granted</key>
 	<string>Akses diberikan</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>Semua perangkat hilang?</string>
 	<key>All files</key>
 	<string>Semua file</string>
+	<key>Allow another letter</key>
+	<string>Izinkan surat lain</string>
 	<key>Allow key rotation</key>
 	<string>Izinkan rotasi kunci</string>
+	<key>Allow this account to send another letter?</key>
+	<string>Izinkan akun ini mengirim surat lain?</string>
 	<key>Allowed</key>
 	<string>Diizinkan</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>Arsipkan alamat lama</string>
 	<key>Archived</key>
 	<string>Diarsipkan</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>Pengarsipan hanya merapikan surat ini. Izinkan surat lain secara terpisah untuk membuka kembali kontak.</string>
 	<key>Arrives</key>
 	<string>Diterima</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>Periksa otorisasi</string>
 	<key>Check deletion status</key>
 	<string>Periksa status penghapusan</string>
+	<key>Check delivery status</key>
+	<string>Periksa pengiriman</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Periksa panjang kolom dan gunakan tautan HTTPS bernama.</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>Pilih sebuah rahasia</string>
 	<key>Choose a version</key>
 	<string>Pilih versi</string>
+	<key>Choose an account</key>
+	<string>Pilih akun</string>
 	<key>Choose an attachment</key>
 	<string>Pilih lampiran</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>Nama percakapan</string>
 	<key>Conversation settings</key>
 	<string>Pengaturan percakapan</string>
+	<key>Conversations</key>
+	<string>Percakapan</string>
 	<key>Copied</key>
 	<string>Disalin</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>Dinonaktifkan</string>
 	<key>Discard</key>
 	<string>Buang</string>
+	<key>Discard draft</key>
+	<string>Buang</string>
 	<key>Discard staged copy</key>
 	<string>Buang salinan bertahap</string>
+	<key>Discard this draft?</key>
+	<string>Hapus perubahannya?</string>
 	<key>Discard this staged copy?</key>
 	<string>Buang salinan bertahap ini?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>Mengunduh cadangan terenkripsi</string>
 	<key>Downloads</key>
 	<string>Unduhan</string>
+	<key>Draft saved</key>
+	<string>Draf tersimpan</string>
 	<key>Draft: </key>
 	<string>Draf: </string>
+	<key>Drafts</key>
+	<string>Draf</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>Draf dan surat terkirim disimpan di perangkat ini.</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Setiap paket seluler dibatasi hingga 8 MiB, termasuk lampiran yang dipilih. Persetujuan akhir menunjukkan pilihan dan tujuan yang tidak dapat diubah.</string>
+	<key>Edit draft</key>
+	<string>Sunting</string>
 	<key>Edit item</key>
 	<string>Sunting barang</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>Menyelesaikan pembaruan keamanan. Konten baru menunggu hingga selesai.</string>
 	<key>First sync</key>
 	<string>Sinkronisasi pertama</string>
+	<key>Folder</key>
+	<string>Folder</string>
 	<key>Folder name</key>
 	<string>Nama folder</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>Impor dokumen untuk mengenkripsinya di perangkat ini. Pencadangan cloud adalah tindakan terpisah.</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>Impor file di Files sebelum melampirkannya.</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>Impor file atau foto untuk dilampirkan.</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>Impor ekspor kata sandi 1Password, Bitwarden, atau browser yang tidak terenkripsi. Sumbernya tetap ada di perangkat ini; hanya rekaman terpilih yang ditambahkan.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>Sidik jari inventaris</string>
 	<key>Invite member</key>
 	<string>Undang anggota</string>
+	<key>Invite to a conversation</key>
+	<string>Undang ke percakapan</string>
 	<key>Issued credentials</key>
 	<string>Kredensial yang diterbitkan</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>Status cloud terakhir yang diketahui</string>
 	<key>Last successful sync</key>
 	<string>Sinkronisasi terakhir yang berhasil</string>
+	<key>Latest messages</key>
+	<string>Pesan terbaru</string>
 	<key>Leave behind</key>
 	<string>Tinggalkan</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>Dilewati</string>
 	<key>Length</key>
 	<string>Panjangnya</string>
+	<key>Letters</key>
+	<string>Surat</string>
 	<key>License Key</key>
 	<string>Kunci Lisensi</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>Kelola langganan</string>
 	<key>Mark as read</key>
 	<string>Tandai sebagai telah dibaca</string>
+	<key>Mark as unread</key>
+	<string>Tandai belum dibaca</string>
 	<key>Maximum fee</key>
 	<string>Biaya maksimum</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>Tidak ada aktivitas di perangkat ini</string>
 	<key>No agents</key>
 	<string>Tidak ada agen</string>
+	<key>No archived letters</key>
+	<string>Tidak ada surat yang diarsipkan</string>
 	<key>No background transfer</key>
 	<string>Tidak ada transfer latar belakang</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>Belum ada catatan</string>
 	<key>No letters yet</key>
 	<string>Belum ada surat</string>
+	<key>No matching accounts</key>
+	<string>Tidak ada hasil yang cocok</string>
+	<key>No matching results</key>
+	<string>Tidak ada hasil yang cocok</string>
 	<key>No messages</key>
 	<string>Tidak ada pesan</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>Tidak ada snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>Tidak ada snapshot di perangkat ini</string>
+	<key>Not delivered</key>
+	<string>Tidak terkirim</string>
 	<key>Not enabled</key>
 	<string>Tidak diaktifkan</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>Buka undangan di browser</string>
 	<key>Open notification settings</key>
 	<string>Buka pengaturan notifikasi</string>
+	<key>Open original message</key>
+	<string>Buka pesan asli</string>
 	<key>Open private workspace</key>
 	<string>Buka ruang kerja pribadi</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>Hasil tidak lagi tersedia</string>
 	<key>Outputs swept</key>
 	<string>Output yang disapu</string>
+	<key>Owner</key>
+	<string>Pemilik</string>
 	<key>Package size</key>
 	<string>Ukuran paket</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>Jeda transfer</string>
 	<key>Payment card</key>
 	<string>Kartu pembayaran</string>
+	<key>Payment required</key>
+	<string>Pembayaran diperlukan</string>
 	<key>Payments</key>
 	<string>Pembayaran</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>Kunci Pribadi</string>
 	<key>Private workspace hidden</key>
 	<string>Ruang kerja pribadi disembunyikan</string>
+	<key>Processing</key>
+	<string>Memproses</string>
 	<key>Proposal %llu</key>
 	<string>Usulan %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>Publikasikan detail ini secara publik?</string>
 	<key>Published</key>
 	<string>Diterbitkan</string>
+	<key>Publisher</key>
+	<string>Penerbit</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>Penerbitan dijeda saat kunci percakapan diperbarui.</string>
 	<key>Purchased</key>
 	<string>Dibeli</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>Profil tersimpan telah dipublikasikan. Draf Anda belum dikirim.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Disimpan. Publikasi sedang menunggu.</string>
+	<key>Saving draft…</key>
+	<string>Menyimpan draf…</string>
 	<key>Scan QR code</key>
 	<string>Pindai dengan kamera</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>Cakupan, satu per baris</string>
 	<key>Screenshots may contain private information.</key>
 	<string>Tangkapan layar mungkin berisi informasi pribadi.</string>
+	<key>Search</key>
+	<string>Cari</string>
 	<key>Search files</key>
 	<string>Cari file</string>
 	<key>Search messages</key>
 	<string>Cari pesan</string>
 	<key>Search your vault</key>
 	<string>Cari brankas Anda</string>
+	<key>Searches messages saved on this device.</key>
+	<string>Mencari pesan yang tersimpan di perangkat ini.</string>
 	<key>Secret</key>
 	<string>Rahasia</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>Bagian yang dipilih menggunakan versi yang berkonflik. Bagian lain mempertahankan versi saat ini.</string>
 	<key>Send device request</key>
 	<string>Kirim permintaan perangkat</string>
+	<key>Send failed</key>
+	<string>Gagal mengirim</string>
 	<key>Send free letter</key>
 	<string>Kirim surat gratis</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>Akun pengirim</string>
 	<key>Sending</key>
 	<string>Mengirim</string>
+	<key>Sent letters</key>
+	<string>Mengirim surat</string>
 	<key>Server</key>
 	<string>pelayan</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>Penerimaan oleh layanan tidak berarti penerima telah membaca surat Anda.</string>
 	<key>Session code</key>
 	<string>Kode sesi</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>Sapu alamat lama</string>
 	<key>Switch account</key>
 	<string>Ganti akun</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>Beralih ke akun yang diundang sebelum bergabung.</string>
 	<key>Switch to this account</key>
 	<string>Beralih ke akun ini</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>Sinkronkan sekarang</string>
 	<key>Sync paused</key>
 	<string>Sinkronisasi dijeda</string>
+	<key>Sync this conversation before sending.</key>
+	<string>Sinkronkan percakapan ini sebelum mengirim.</string>
 	<key>Synced</key>
 	<string>Disinkronkan</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>Kunci kotak masuk belum disinkronkan ke perangkat ini. Sinkronkan perangkat yang mengaktifkan penerimaan pesan, lalu coba lagi di sini.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>Undangan terikat ke akun ini. Membagikan tautan tidak memberikan akses ke akun lain.</string>
+	<key>The invitation is invalid.</key>
+	<string>Undangan tidak valid.</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>Undangan diverifikasi saat Anda memilih Gabung percakapan.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Pengamatan terverifikasi terakhir disimpan. Status saat ini tidak dapat dikonfirmasi.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>Operasi tidak dapat diselesaikan. Silakan coba lagi.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>Operasi dibatalkan atau tidak diizinkan.</string>
+	<key>The original message is not available on this device.</key>
+	<string>Konten asli tidak tersedia di perangkat ini.</string>
+	<key>The original text is not available on this device.</key>
+	<string>Konten asli tidak tersedia di perangkat ini.</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>Perangkat lain tidak ditemukan di jaringan lokal. Masukkan alamatnya.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>Ini mengubah perlindungan buka kunci lokal. Otentikasi sistem mungkin diperlukan. Tidak ada pemulihan akun atau perangkat lain yang diubah.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Ini mengubah tindakan akun mana yang memerlukan tanda tangan perangkat keras. Menonaktifkan perlindungan mengizinkan tindakan tersebut tanpa bukti perangkat keras tersebut.</string>
+	<key>This conversation is archived.</key>
+	<string>Saluran ini diarsipkan; tidak ada pesan baru.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>Ini menciptakan permintaan yang tertunda. Itu tidak mengotorisasi perangkat.</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>Item ini tidak lagi tersedia.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Kunci ini dikelola oleh dMsg dan tidak dapat disalin atau diedit.</string>
+	<key>This letter is too long.</key>
+	<string>Konten terlalu panjang.</string>
 	<key>This letter was withdrawn.</key>
 	<string>Surat ini ditarik.</string>
 	<key>This message could not be verified.</key>
 	<string>Pesan ini tidak dapat diverifikasi.</string>
+	<key>This message is too long.</key>
+	<string>Konten terlalu panjang.</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>Ini hanya menyembunyikan temuan dan revisi persis pada perangkat ini. Itu tidak memperbaiki kredensial atau mengabaikan perubahan di masa depan.</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>Buka ruang kerja</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Buka kunci ruang kerja dMsg Anda</string>
+	<key>Unread messages</key>
+	<string>Belum dibaca</string>
+	<key>Unread only</key>
+	<string>Belum dibaca</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Wewenang delegasi yang tidak dibatasi</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>Menunggu persetujuan</string>
 	<key>Waiting for browser confirmation</key>
 	<string>Menunggu konfirmasi browser</string>
+	<key>Waiting for confirmation</key>
+	<string>Menunggu konfirmasi</string>
 	<key>Waiting for confirmation: </key>
 	<string>Menunggu konfirmasi: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>Ya</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>Anda sedang melihat versi sejarah yang tidak dapat diubah.</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>Anda hanya memiliki akses baca ke percakapan ini.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Anda melakukan sendiri perubahan penyedia. dMsg mencatat pernyataan Anda dan memeriksa revisi lokal; itu tidak dapat memverifikasi pembuatan, pengujian, atau pencabutan hulu.</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>Ruang kerja pribadi Anda.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Pembelian Anda sedang menunggu konfirmasi. Pulihkan pembelian untuk mencoba lagi tanpa membayar lagi.</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>Aturan penerimaan Anda tetap berlaku. Ini tidak menambahkan kontak atau anggota kanal.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>Laporan Anda dan teks apa pun yang Anda sertakan secara eksplisit akan dikirim ke tim moderasi. Konten dan kunci pribadi lainnya tidak disertakan.</string>
 	<key>Your reports</key>

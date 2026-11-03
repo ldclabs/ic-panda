@@ -4,6 +4,8 @@ use crate::{Client, channel, hold::Hold};
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 
+pub use crate::letters::send_free_letter;
+
 const PREFIX: &str = "send-intent:";
 const LIMIT: usize = 100;
 
@@ -96,11 +98,33 @@ impl Client {
     /// # Errors
     /// As [`Self::queue_message`], or `NotFound` for a missing file.
     pub fn queue_attachment(&mut self, channel: &str, file: &str, text: &str) -> Result<Intent> {
+        self.queue_attachment_reply(channel, file, text, None)
+    }
+
+    /// Queue an attachment with the same verified reply reference as a text draft.
+    pub fn queue_attachment_reply(
+        &mut self,
+        channel: &str,
+        file: &str,
+        text: &str,
+        reply_to: Option<channel::MessageRef>,
+    ) -> Result<Intent> {
+        if let Some(reference) = &reply_to {
+            let original =
+                self.channel_messages_before(channel, reference.seq.saturating_add(1), 1)?;
+            ensure(
+                original
+                    .first()
+                    .is_some_and(|m| m.seq == reference.seq && m.digest == reference.digest),
+                Error::VersionConflict,
+            )?;
+        }
         let details = self.files_show(file)?;
         self.queue_intent(
             channel,
             &channel::Draft {
                 text: text.into(),
+                reply_to,
                 ..Default::default()
             },
             Some(Attachment {
@@ -273,93 +297,4 @@ mod tests {
         client.lock();
         assert_eq!(client.message_intents(&channel), Err(Error::Locked));
     }
-}
-
-#[derive(Serialize, Deserialize)]
-struct LetterIntent {
-    recipient: String,
-    text: String,
-    invitation: Option<String>,
-    result: Option<serde_json::Value>,
-}
-const LETTER_INTENT: &str = "letter-intent:";
-
-impl Client {
-    /// Persist the exact free letter before its first relay request.
-    pub fn queue_free_letter(
-        &self,
-        id: &str,
-        recipient: &str,
-        text: &str,
-        invitation: Option<String>,
-    ) -> Result<()> {
-        crate::upload::hex_id(id)?;
-        recipient
-            .parse::<dmsg_types::AccountId>()
-            .map_err(|_| dmsg_types::invalid("recipient"))?;
-        ensure_valid(!text.trim().is_empty() && text.len() <= 16 * 1024, "letter")?;
-        let key = format!("{LETTER_INTENT}{id}");
-        if let Some(old) = self.workspace.private::<LetterIntent>(self.keys()?, &key)? {
-            return ensure(
-                old.recipient == recipient && old.text == text && old.invitation == invitation,
-                Error::IdempotencyConflict,
-            );
-        }
-        self.workspace.put_private(
-            self.keys()?,
-            &key,
-            &LetterIntent {
-                recipient: recipient.into(),
-                text: text.into(),
-                invitation,
-                result: None,
-            },
-        )
-    }
-
-    /// Pending letters, with only the metadata needed to resume them.
-    pub fn pending_letters(&self) -> Result<Vec<serde_json::Value>> {
-        let mut result = Vec::new();
-        for key in self.workspace.store.sealed_keys(LETTER_INTENT)? {
-            if let Some(letter) = self.workspace.private::<LetterIntent>(self.keys()?, &key)?
-                && letter.result.is_none()
-            {
-                result.push(serde_json::json!({"id":key.trim_start_matches(LETTER_INTENT),"recipient":letter.recipient}));
-            }
-        }
-        Ok(result)
-    }
-}
-
-/// Submit a free letter with its original order ID. A paid quote is not approved.
-pub async fn send_free_letter<H: Hold>(h: &H, id: &str) -> Result<serde_json::Value> {
-    let h = crate::hold::Unlocked::new(h).await?;
-    let key = format!("{LETTER_INTENT}{id}");
-    let mut letter = h
-        .with(|c| {
-            c.workspace
-                .private::<LetterIntent>(c.keys()?, &key)?
-                .ok_or(Error::NotFound)
-        })
-        .await?;
-    if let Some(result) = letter.result {
-        return Ok(result);
-    }
-    let recipient = letter
-        .recipient
-        .parse()
-        .map_err(|_| Error::IntegrityFailed)?;
-    let result = crate::inbox::send(
-        &h,
-        &recipient,
-        &letter.text,
-        Some(id),
-        letter.invitation.as_deref(),
-        false,
-    )
-    .await?;
-    letter.result = Some(result.clone());
-    h.with(|c| c.workspace.put_private(c.keys()?, &key, &letter))
-        .await?;
-    Ok(result)
 }

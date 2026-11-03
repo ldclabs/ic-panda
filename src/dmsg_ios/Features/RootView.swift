@@ -8,6 +8,7 @@ struct RootView: View {
     var body: some View {
         @Bindable var model = model
         @Bindable var connect = ConnectNavigation.shared
+        @Bindable var channelNavigation = ChannelNavigation.shared
         ZStack {
             VStack(spacing: 0) {
                 if model.environment == "staging" {
@@ -59,6 +60,9 @@ struct RootView: View {
         } message: { Text(model.error ?? "") }
         .sheet(item: $connect.pending) { link in NavigationStack { ConnectLandingView(link: link) } }
         .sheet(item: $model.reminderEntry) { entry in NavigationStack { RemindersView(entry: entry) } }
+        .sheet(item: Binding(get: { model.unlocked ? channelNavigation.pending : nil }, set: { if model.unlocked { channelNavigation.pending = $0 } })) { invitation in
+            NavigationStack { ConversationSetupView(invitation: invitation.value) { _ in model.selectedTab = .messages } }
+        }
         .onChange(of: connect.pending) { _, _ in showApprovals = false; showIncoming = false }
         .sheet(isPresented: $showIncoming) { NavigationStack { IncomingSharesView() }.opacity(model.unlocked ? 1 : 0).allowsHitTesting(model.unlocked) }
         .task { routeIntent() }

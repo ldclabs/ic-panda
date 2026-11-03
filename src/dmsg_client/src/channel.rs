@@ -2256,7 +2256,16 @@ pub async fn save_regular_shared<H: Hold>(
     folder: &str,
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<Imported> {
-    save_shared_in(h, channel, seq, folder, progress, true).await
+    let h = crate::hold::Unlocked::new(h).await?;
+    if let Some(file) = h.with(|c| c.channel_saved_attachment(channel, seq)).await? {
+        return Ok(Imported {
+            version: file.current.clone(),
+            file,
+            resumed: true,
+            duplicate_of: vec![],
+        });
+    }
+    save_shared_in(&h, channel, seq, folder, progress, true).await
 }
 
 async fn save_shared_in<H: Hold>(
@@ -4823,12 +4832,53 @@ impl Client {
         })
     }
 
+    /// An already imported ordinary attachment, available without a network read.
+    pub fn channel_saved_attachment(
+        &mut self,
+        channel: &str,
+        seq: u64,
+    ) -> Result<Option<crate::library::catalog::FileView>> {
+        base(channel)?;
+        let message = self.attachment_message(channel, seq)?;
+        if message
+            .file
+            .as_ref()
+            .is_none_or(|f| f.mime == crate::secrets::package::MIME)
+        {
+            return Ok(None);
+        }
+        let files = self.catalog()?.files.clone();
+        for (id, file) in files {
+            if file.trashed_at.is_some() {
+                continue;
+            }
+            let version = self.version(&id, &file.current)?;
+            if version.local
+                && matches!(&version.origin, Origin::SharedIn { channel: source, seq: number } if source == channel && *number == seq)
+            {
+                return Ok(Some(self.catalog()?.file_view(&id, &file, &version)));
+            }
+        }
+        Ok(None)
+    }
+
     /// The messages of a channel whose text or file name holds `query`,
     /// newest first, at most `limit`.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn channel_search(&self, channel: &str, query: &str, limit: usize) -> Result<Vec<Message>> {
+        self.channel_search_before(channel, query, u64::MAX, limit)
+    }
+
+    /// Search older verified local messages, including attachment names.
+    pub fn channel_search_before(
+        &self,
+        channel: &str,
+        query: &str,
+        before: u64,
+        limit: usize,
+    ) -> Result<Vec<Message>> {
         base(channel)?;
         let query = query.trim().to_lowercase();
         ensure_valid(!query.is_empty() && query.chars().count() <= 200, "query")?;
@@ -4847,7 +4897,8 @@ impl Client {
             };
             from = last.seq;
             found.extend(page.into_iter().filter(|m| {
-                !m.amends()
+                m.seq < before
+                    && !m.amends()
                     && !m.retracted
                     && !m.hidden
                     && (m.text.to_lowercase().contains(&query)

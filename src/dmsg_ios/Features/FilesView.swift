@@ -116,17 +116,7 @@ struct FilesView: View {
     private func importFile(_ result: Result<URL, Error>) async {
         let epoch = model.epoch
         do {
-            guard let paths = model.files, let engine = model.engine, let account = model.session?.account else { return }
-            let folder = model.filesFolder
-            let url = try result.get()
-            let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder) }.value
-            guard epoch == model.epoch else {
-                if !FileManager.default.fileExists(atPath: paths.workspace.appending(path: "accounts").appending(path: account).path) { try? paths.finishImport(staged) }
-                return
-            }
-            let handle = account + "/" + staged.deletingLastPathComponent().lastPathComponent + "/" + staged.lastPathComponent
-            _ = try await model.transfer.run(staged.lastPathComponent) { try await engine.importFile(name: handle, folder: folder, sharedId: nil, operation: $0) }
-            try paths.finishImport(staged)
+            _ = try await model.importLibraryDocument(result.get(), folder: model.filesFolder)
             if epoch == model.epoch { await model.refresh() }
         } catch { if epoch == model.epoch { model.report(error) } }
     }

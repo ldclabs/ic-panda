@@ -34,6 +34,8 @@
 	<string>Sobre dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Aceitar encadernação aprovada</string>
+	<key>Accepted by service</key>
+	<string>Aceito pelo serviço</string>
 	<key>Access granted</key>
 	<string>Acesso concedido</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>Todos os dispositivos foram perdidos?</string>
 	<key>All files</key>
 	<string>Todos os arquivos</string>
+	<key>Allow another letter</key>
+	<string>Permitir outra carta</string>
 	<key>Allow key rotation</key>
 	<string>Permitir rotação de chave</string>
+	<key>Allow this account to send another letter?</key>
+	<string>Permitir que esta conta envie outra carta?</string>
 	<key>Allowed</key>
 	<string>Permitido</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>Arquivar o endereço antigo</string>
 	<key>Archived</key>
 	<string>Arquivado</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>Arquivar apenas organiza esta carta. Permita outra carta separadamente para reabrir o contato.</string>
 	<key>Arrives</key>
 	<string>Chega</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>Verifique a autorização</string>
 	<key>Check deletion status</key>
 	<string>Verifique o status de exclusão</string>
+	<key>Check delivery status</key>
+	<string>Verificar entrega</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>Verifique o tamanho dos campos e use links HTTPS com nome.</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>Escolha um segredo</string>
 	<key>Choose a version</key>
 	<string>Escolha uma versão</string>
+	<key>Choose an account</key>
+	<string>Escolher uma conta</string>
 	<key>Choose an attachment</key>
 	<string>Escolha um anexo</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>Nome da conversa</string>
 	<key>Conversation settings</key>
 	<string>Configurações de conversa</string>
+	<key>Conversations</key>
+	<string>Conversa</string>
 	<key>Copied</key>
 	<string>Copiado</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>Desativado</string>
 	<key>Discard</key>
 	<string>Descartar</string>
+	<key>Discard draft</key>
+	<string>Descartar</string>
 	<key>Discard staged copy</key>
 	<string>Descartar cópia preparada</string>
+	<key>Discard this draft?</key>
+	<string>Descartar as alterações?</string>
 	<key>Discard this staged copy?</key>
 	<string>Descartar esta cópia preparada?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>Baixando backup criptografado</string>
 	<key>Downloads</key>
 	<string>Downloads</string>
+	<key>Draft saved</key>
+	<string>Rascunho salvo</string>
 	<key>Draft: </key>
 	<string>Rascunho: </string>
+	<key>Drafts</key>
+	<string>Rascunho</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>Rascunhos e cartas enviadas são salvos neste dispositivo.</string>
 	<key>EVM</key>
 	<string>EVM</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>Cada pacote móvel é limitado a 8 MiB, incluindo acessórios selecionados. A aprovação final mostra a seleção e o destino exatos e imutáveis.</string>
+	<key>Edit draft</key>
+	<string>Editar</string>
 	<key>Edit item</key>
 	<string>Editar item</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>Concluindo a atualização de segurança. Novos conteúdos aguardam o término.</string>
 	<key>First sync</key>
 	<string>Primeira sincronização</string>
+	<key>Folder</key>
+	<string>Pastas</string>
 	<key>Folder name</key>
 	<string>Nome da pasta</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>Importe um documento para criptografá-lo neste dispositivo. O backup na nuvem é uma ação separada.</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>Importe um arquivo em Arquivos antes de anexá-lo.</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>Importe um arquivo ou foto para anexá-lo.</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>Importe uma exportação não criptografada de 1Password, Bitwarden ou senha do navegador. A fonte permanece neste dispositivo; apenas os registros selecionados são adicionados.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>Impressão digital do inventário</string>
 	<key>Invite member</key>
 	<string>Convidar membro</string>
+	<key>Invite to a conversation</key>
+	<string>Convidar para conversa</string>
 	<key>Issued credentials</key>
 	<string>Credenciais emitidas</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>Último estado de nuvem conhecido</string>
 	<key>Last successful sync</key>
 	<string>Última sincronização bem-sucedida</string>
+	<key>Latest messages</key>
+	<string>Mensagens recentes</string>
 	<key>Leave behind</key>
 	<string>Deixar para trás</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>Deixados de fora</string>
 	<key>Length</key>
 	<string>Comprimento</string>
+	<key>Letters</key>
+	<string>Cartas</string>
 	<key>License Key</key>
 	<string>Chave de licença</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>Gerenciar assinaturas</string>
 	<key>Mark as read</key>
 	<string>Marcar como lido</string>
+	<key>Mark as unread</key>
+	<string>Marcar como não lida</string>
 	<key>Maximum fee</key>
 	<string>Taxa máxima</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>Nenhuma atividade neste dispositivo</string>
 	<key>No agents</key>
 	<string>Nenhum agente</string>
+	<key>No archived letters</key>
+	<string>Nenhuma carta arquivada</string>
 	<key>No background transfer</key>
 	<string>Sem transferência em segundo plano</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>Ainda não há registros</string>
 	<key>No letters yet</key>
 	<string>Nenhuma carta ainda</string>
+	<key>No matching accounts</key>
+	<string>Nenhum resultado correspondente</string>
+	<key>No matching results</key>
+	<string>Nenhum resultado correspondente</string>
 	<key>No messages</key>
 	<string>Nenhuma mensagem</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>Nenhum snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>Não há instantâneos neste dispositivo</string>
+	<key>Not delivered</key>
+	<string>Não entregue</string>
 	<key>Not enabled</key>
 	<string>Não ativado</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>Abra o convite no navegador</string>
 	<key>Open notification settings</key>
 	<string>Abra as configurações de notificação</string>
+	<key>Open original message</key>
+	<string>Abrir mensagem original</string>
 	<key>Open private workspace</key>
 	<string>Abrir espaço de trabalho privado</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>Resultado não está mais disponível</string>
 	<key>Outputs swept</key>
 	<string>Saídas varridas</string>
+	<key>Owner</key>
+	<string>Proprietário</string>
 	<key>Package size</key>
 	<string>Tamanho do pacote</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>Pausar transferência</string>
 	<key>Payment card</key>
 	<string>Cartão de pagamento</string>
+	<key>Payment required</key>
+	<string>Pagamento necessário</string>
 	<key>Payments</key>
 	<string>Pagamentos</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>Chave privada</string>
 	<key>Private workspace hidden</key>
 	<string>Espaço de trabalho privado oculto</string>
+	<key>Processing</key>
+	<string>Processando</string>
 	<key>Proposal %llu</key>
 	<string>Proposta %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>Publicar esses detalhes publicamente?</string>
 	<key>Published</key>
 	<string>Publicado</string>
+	<key>Publisher</key>
+	<string>Editora</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>A publicação está pausada enquanto as chaves da conversa são atualizadas.</string>
 	<key>Purchased</key>
 	<string>Comprado</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>O perfil salvo foi publicado. Seu rascunho ainda não foi enviado.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Salvo. A publicação está pendente.</string>
+	<key>Saving draft…</key>
+	<string>Salvando rascunho…</string>
 	<key>Scan QR code</key>
 	<string>Escanear com a câmera</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>Escopos, um por linha</string>
 	<key>Screenshots may contain private information.</key>
 	<string>As capturas de tela podem conter informações privadas.</string>
+	<key>Search</key>
+	<string>Pesquisar</string>
 	<key>Search files</key>
 	<string>Pesquisar arquivos</string>
 	<key>Search messages</key>
 	<string>Pesquisar mensagens</string>
 	<key>Search your vault</key>
 	<string>Pesquise seu cofre</string>
+	<key>Searches messages saved on this device.</key>
+	<string>Pesquisa mensagens salvas neste dispositivo.</string>
 	<key>Secret</key>
 	<string>Segredo</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>As partes selecionadas usam a versão em conflito. As demais mantêm a versão atual.</string>
 	<key>Send device request</key>
 	<string>Enviar solicitação do dispositivo</string>
+	<key>Send failed</key>
+	<string>Falha ao enviar</string>
 	<key>Send free letter</key>
 	<string>Envie carta grátis</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>Conta do remetente</string>
 	<key>Sending</key>
 	<string>Enviando</string>
+	<key>Sent letters</key>
+	<string>Cartas enviadas</string>
 	<key>Server</key>
 	<string>Servidor</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>A aceitação pelo serviço não significa que o destinatário leu sua carta.</string>
 	<key>Session code</key>
 	<string>Código de sessão</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>Varrer o endereço antigo</string>
 	<key>Switch account</key>
 	<string>Trocar de conta</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>Mude para a conta convidada antes de entrar.</string>
 	<key>Switch to this account</key>
 	<string>Mudar para esta conta</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>Sincronize agora</string>
 	<key>Sync paused</key>
 	<string>Sincronização pausada</string>
+	<key>Sync this conversation before sending.</key>
+	<string>Sincronize esta conversa antes de enviar.</string>
 	<key>Synced</key>
 	<string>Sincronizado</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>A chave da caixa de entrada ainda não foi sincronizada com este dispositivo. Sincronize o dispositivo que ativou o recebimento e tente novamente aqui.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>O convite está vinculado a esta conta. Compartilhar o link não concede acesso a outra conta.</string>
+	<key>The invitation is invalid.</key>
+	<string>O convite é inválido.</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>O convite é verificado quando você escolhe Entrar na conversa.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>A última observação verificada é mantida. O status atual não pôde ser confirmado.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>A operação não pôde ser concluída. Por favor, tente novamente.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>A operação foi cancelada ou não é permitida.</string>
+	<key>The original message is not available on this device.</key>
+	<string>O conteúdo original não está disponível neste dispositivo.</string>
+	<key>The original text is not available on this device.</key>
+	<string>O conteúdo original não está disponível neste dispositivo.</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>O outro dispositivo não foi encontrado na rede local. Digite o endereço dele.</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>Isso altera a proteção de desbloqueio local. A autenticação do sistema pode ser necessária. Nenhuma recuperação de conta ou outro dispositivo é alterado.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Isso altera quais ações da conta exigem uma assinatura de hardware. Desativar a proteção permite essas ações sem essa prova de hardware.</string>
+	<key>This conversation is archived.</key>
+	<string>O canal está arquivado; sem novas mensagens.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>Isso cria uma solicitação pendente. Não autoriza o dispositivo.</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>Este item não está mais disponível.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>Esta chave é gerenciada por dMsg e não pode ser copiada ou editada.</string>
+	<key>This letter is too long.</key>
+	<string>O conteúdo é muito longo.</string>
 	<key>This letter was withdrawn.</key>
 	<string>Esta carta foi retirada.</string>
 	<key>This message could not be verified.</key>
 	<string>Esta mensagem não pôde ser verificada.</string>
+	<key>This message is too long.</key>
+	<string>O conteúdo é muito longo.</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>Isso apenas oculta essa descoberta e revisão exatas neste dispositivo. Ele não repara uma credencial nem descarta alterações futuras.</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>Desbloquear espaço de trabalho</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Desbloqueie seu espaço de trabalho dMsg</string>
+	<key>Unread messages</key>
+	<string>Não lido</string>
+	<key>Unread only</key>
+	<string>Não lido</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Autoridade de delegação irrestrita</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>Aguardando aprovação</string>
 	<key>Waiting for browser confirmation</key>
 	<string>Aguardando confirmação do navegador</string>
+	<key>Waiting for confirmation</key>
+	<string>Aguardando confirmação</string>
 	<key>Waiting for confirmation: </key>
 	<string>Aguardando confirmação: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>Sim</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>Você está visualizando uma versão histórica imutável.</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>Você tem acesso somente de leitura a esta conversa.</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>Você mesmo realiza alterações de provedor. dMsg registra suas declarações e verifica as revisões locais; ele não pode verificar a criação, teste ou revogação upstream.</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>Seu espaço de trabalho privado.</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>Sua compra está aguardando confirmação. Restaure as compras para tentar novamente sem pagar novamente.</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>Suas regras de recebimento continuam válidas. Isso não adiciona um contato ou membro ao canal.</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>Seu relatório e qualquer texto que você incluir explicitamente serão enviados à equipe de moderação. Outros conteúdos e chaves privadas não estão incluídos.</string>
 	<key>Your reports</key>

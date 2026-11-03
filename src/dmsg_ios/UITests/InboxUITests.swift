@@ -2,7 +2,7 @@ import XCTest
 
 @MainActor
 final class InboxUITests: XCTestCase {
-    private func open(_ arguments: [String] = [], inbox: String = "Inbox") -> XCUIApplication {
+    private func open(_ arguments: [String] = [], inbox: String = "Letters") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-inbox"] + arguments
         app.launch()
@@ -17,7 +17,7 @@ final class InboxUITests: XCTestCase {
     }
 
     func testMissingKeyRetryLoadsAndReadArchiveRestoreUpdateImmediately() {
-        let app = open(["--ui-inbox-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"], inbox: "来信")
+        let app = open(["--ui-inbox-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"], inbox: "信件")
         let retry = app.buttons["inbox.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any)["inbox.empty"].exists)
@@ -29,17 +29,13 @@ final class InboxUITests: XCTestCase {
         row.tap()
         let read = app.buttons["inbox.read"]
         XCTAssertTrue(read.waitForExistence(timeout: 5)); read.tap()
-        let readUpdated = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: read)
-        XCTAssertEqual(XCTWaiter.wait(for: [readUpdated], timeout: 5), .completed)
+        XCTAssertEqual(read.label, "标为未读")
         app.buttons["inbox.archive"].tap()
         XCTAssertTrue(app.buttons["恢复"].waitForExistence(timeout: 5))
-        app.buttons["BackButton"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.descendants(matching: .any)["inbox.empty"].waitForExistence(timeout: 5))
-        // SwiftUI exposes both the full row and the actual switch. Tapping
-        // the row's center hits its empty space, not the control on the edge.
-        let archived = app.switches["inbox.archived"].switches.firstMatch
-        XCTAssertTrue(archived.exists); archived.tap()
-        XCTAssertEqual(archived.value as? String, "1")
+        app.buttons["letters.folder"].tap()
+        app.buttons["已归档"].tap()
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
         app.buttons["inbox.archive"].tap()
         XCTAssertTrue(app.buttons["归档"].waitForExistence(timeout: 5))
@@ -62,7 +58,7 @@ final class InboxUITests: XCTestCase {
     }
 
     func testArabicFailureAndRetryKeepTheLetterReadable() {
-        let app = open(["--ui-inbox-failure", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"], inbox: "صندوق الوارد")
+        let app = open(["--ui-inbox-failure", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"], inbox: "الرسائل")
         let retry = app.buttons["inbox.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         capture(app, "Inbox missing key · Arabic RTL")

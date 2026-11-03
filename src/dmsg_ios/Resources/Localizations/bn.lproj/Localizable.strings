@@ -34,6 +34,8 @@
 	<string>dMsg সম্পর্কে</string>
 	<key>Accept approved binding</key>
 	<string>অনুমোদিত বাঁধাই গ্রহণ করুন</string>
+	<key>Accepted by service</key>
+	<string>পরিষেবা গ্রহণ করেছে</string>
 	<key>Access granted</key>
 	<string>অ্যাক্সেস দেওয়া হয়েছে</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -112,8 +114,12 @@
 	<string>সব ডিভাইস হারিয়ে গেছে?</string>
 	<key>All files</key>
 	<string>সমস্ত ফাইল</string>
+	<key>Allow another letter</key>
+	<string>আরেকটি চিঠির অনুমতি দিন</string>
 	<key>Allow key rotation</key>
 	<string>কী ঘোরানোর অনুমতি দিন</string>
+	<key>Allow this account to send another letter?</key>
+	<string>এই অ্যাকাউন্টকে আরেকটি চিঠি পাঠাতে দেবেন?</string>
 	<key>Allowed</key>
 	<string>অনুমোদিত</string>
 	<key>Allowed account IDs, one per line</key>
@@ -192,6 +198,8 @@
 	<string>পুরনো ঠিকানা আর্কাইভ করুন</string>
 	<key>Archived</key>
 	<string>সংরক্ষণাগারভুক্ত</string>
+	<key>Archiving only organizes this letter. Allow another letter separately to reopen contact.</key>
+	<string>আর্কাইভ করা শুধু এই চিঠিটি সাজায়। আবার যোগাযোগ খুলতে আলাদাভাবে আরেকটি চিঠির অনুমতি দিন।</string>
 	<key>Arrives</key>
 	<string>পৌঁছাবে</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
@@ -366,6 +374,8 @@
 	<string>অনুমোদন চেক করুন</string>
 	<key>Check deletion status</key>
 	<string>মুছে ফেলার স্থিতি পরীক্ষা করুন</string>
+	<key>Check delivery status</key>
+	<string>বিতরণের অবস্থা দেখুন</string>
 	<key>Check field lengths and use named HTTPS links.</key>
 	<string>ফিল্ডের দৈর্ঘ্য যাচাই করুন এবং নামযুক্ত HTTPS লিংক ব্যবহার করুন।</string>
 	<key>Check project references and any copies already delivered.</key>
@@ -388,6 +398,8 @@
 	<string>একটি গোপন চয়ন করুন</string>
 	<key>Choose a version</key>
 	<string>একটি সংস্করণ চয়ন করুন</string>
+	<key>Choose an account</key>
+	<string>অ্যাকাউন্ট বাছুন</string>
 	<key>Choose an attachment</key>
 	<string>একটি সংযুক্তি চয়ন করুন</string>
 	<key>Choose avatar</key>
@@ -504,6 +516,8 @@
 	<string>কথোপকথনের নাম</string>
 	<key>Conversation settings</key>
 	<string>কথোপকথন সেটিংস</string>
+	<key>Conversations</key>
+	<string>কথোপকথন</string>
 	<key>Copied</key>
 	<string>কপি হয়েছে</string>
 	<key>Copied for 30 seconds</key>
@@ -698,8 +712,12 @@
 	<string>বন্ধ</string>
 	<key>Discard</key>
 	<string>বাতিল করুন</string>
+	<key>Discard draft</key>
+	<string>বাতিল করুন</string>
 	<key>Discard staged copy</key>
 	<string>স্টেজড কপি বাতিল করুন</string>
+	<key>Discard this draft?</key>
+	<string>পরিবর্তনগুলি বাতিল করবেন?</string>
 	<key>Discard this staged copy?</key>
 	<string>এই স্টেজড কপি বাতিল করবেন?</string>
 	<key>Discard unsaved changes?</key>
@@ -726,12 +744,20 @@
 	<string>এনক্রিপ্ট করা ব্যাকআপ ডাউনলোড করা হচ্ছে</string>
 	<key>Downloads</key>
 	<string>ডাউনলোড</string>
+	<key>Draft saved</key>
+	<string>খসড়া সংরক্ষিত</string>
 	<key>Draft: </key>
 	<string>খসড়া: </string>
+	<key>Drafts</key>
+	<string>খসড়া</string>
+	<key>Drafts and sent letters are saved on this device.</key>
+	<string>খসড়া ও পাঠানো চিঠি এই ডিভাইসে সংরক্ষিত থাকে।</string>
 	<key>EVM</key>
 	<string>ইভিএম</string>
 	<key>Each mobile package is limited to 8 MiB, including selected attachments. The final approval shows the exact immutable selection and destination.</key>
 	<string>প্রতিটি মোবাইল প্যাকেজ 8 MiB এর মধ্যে সীমাবদ্ধ, নির্বাচিত সংযুক্তিগুলি সহ৷ চূড়ান্ত অনুমোদন সঠিক অপরিবর্তনীয় নির্বাচন এবং গন্তব্য দেখায়।</string>
+	<key>Edit draft</key>
+	<string>সম্পাদনা করুন</string>
 	<key>Edit item</key>
 	<string>আইটেম সম্পাদনা করুন</string>
 	<key>Edit member</key>
@@ -852,6 +878,8 @@
 	<string>নিরাপত্তা আপডেট শেষ হচ্ছে। ততক্ষণ নতুন বিষয়বস্তু সংরক্ষণ অপেক্ষায় থাকবে।</string>
 	<key>First sync</key>
 	<string>প্রথম সিঙ্ক</string>
+	<key>Folder</key>
+	<string>ফোল্ডার</string>
 	<key>Folder name</key>
 	<string>ফোল্ডারের নাম</string>
 	<key>For a key this device does not hold, such as one on a lost device. After members approve, the new key takes effect 24 hours later.</key>
@@ -918,6 +946,8 @@
 	<string>এই ডিভাইসে এনক্রিপ্ট করতে একটি নথি আমদানি করুন৷ ক্লাউড ব্যাকআপ একটি পৃথক ক্রিয়া।</string>
 	<key>Import a file in Files before attaching it.</key>
 	<string>এটি সংযুক্ত করার আগে ফাইলগুলিতে একটি ফাইল আমদানি করুন।</string>
+	<key>Import a file or photo to attach it.</key>
+	<string>সংযুক্ত করতে একটি ফাইল বা ছবি আমদানি করুন।</string>
 	<key>Import an unencrypted 1Password, Bitwarden or browser password export. The source stays on this device; only selected records are added.</key>
 	<string>একটি এনক্রিপ্ট করা 1 পাসওয়ার্ড, বিটওয়ার্ডেন বা ব্রাউজার পাসওয়ার্ড রপ্তানি আমদানি করুন। উৎস এই ডিভাইসে থাকে; শুধুমাত্র নির্বাচিত রেকর্ড যোগ করা হয়.</string>
 	<key>Import completed</key>
@@ -980,6 +1010,8 @@
 	<string>ইনভেন্টরি ফিঙ্গারপ্রিন্ট</string>
 	<key>Invite member</key>
 	<string>সদস্যকে আমন্ত্রণ জানান</string>
+	<key>Invite to a conversation</key>
+	<string>কথোপকথনে আমন্ত্রণ জানান</string>
 	<key>Issued credentials</key>
 	<string>ইস্যুকৃত শংসাপত্র</string>
 	<key>Item attachments</key>
@@ -1028,6 +1060,8 @@
 	<string>সর্বশেষ পরিচিত মেঘ রাষ্ট্র</string>
 	<key>Last successful sync</key>
 	<string>শেষ সফল সিঙ্ক</string>
+	<key>Latest messages</key>
+	<string>সর্বশেষ বার্তা</string>
 	<key>Leave behind</key>
 	<string>রেখে যান</string>
 	<key>Leave conversation</key>
@@ -1044,6 +1078,8 @@
 	<string>বাদ গেছে</string>
 	<key>Length</key>
 	<string>দৈর্ঘ্য</string>
+	<key>Letters</key>
+	<string>চিঠিপত্র</string>
 	<key>License Key</key>
 	<string>লাইসেন্স কী</string>
 	<key>Licensed To</key>
@@ -1106,6 +1142,8 @@
 	<string>সদস্যতা পরিচালনা করুন</string>
 	<key>Mark as read</key>
 	<string>পঠিত হিসাবে চিহ্নিত করুন</string>
+	<key>Mark as unread</key>
+	<string>অপঠিত হিসেবে চিহ্নিত করুন</string>
 	<key>Maximum fee</key>
 	<string>সর্বোচ্চ ফি</string>
 	<key>Maximum fee in base units</key>
@@ -1210,6 +1248,8 @@
 	<string>এই ডিভাইসে কোনো কার্যকলাপ নেই</string>
 	<key>No agents</key>
 	<string>কোনো এজেন্ট নেই</string>
+	<key>No archived letters</key>
+	<string>কোনো আর্কাইভ করা চিঠি নেই</string>
 	<key>No background transfer</key>
 	<string>কোনো ব্যাকগ্রাউন্ড ট্রান্সফার নেই</string>
 	<key>No blocked accounts</key>
@@ -1240,6 +1280,10 @@
 	<string>এখনও কোন রেকর্ড নেই</string>
 	<key>No letters yet</key>
 	<string>এখনো কোনো চিঠি নেই</string>
+	<key>No matching accounts</key>
+	<string>মিলে যাওয়া ফলাফল নেই</string>
+	<key>No matching results</key>
+	<string>মিলে যাওয়া ফলাফল নেই</string>
 	<key>No messages</key>
 	<string>কোনো বার্তা নেই</string>
 	<key>No pending backups</key>
@@ -1260,6 +1304,8 @@
 	<string>কোনো স্ন্যাপশট নেই</string>
 	<key>No snapshots on this device</key>
 	<string>এই ডিভাইসে কোনো স্ন্যাপশট নেই</string>
+	<key>Not delivered</key>
+	<string>বিতরণ করা হয়নি</string>
 	<key>Not enabled</key>
 	<string>সক্রিয় করা হয়নি</string>
 	<key>Not enough storage on this device.</key>
@@ -1340,6 +1386,8 @@
 	<string>ব্রাউজারে আমন্ত্রণ খুলুন</string>
 	<key>Open notification settings</key>
 	<string>বিজ্ঞপ্তি সেটিংস খুলুন</string>
+	<key>Open original message</key>
+	<string>মূল বার্তা খুলুন</string>
 	<key>Open private workspace</key>
 	<string>ব্যক্তিগত কর্মক্ষেত্র খুলুন</string>
 	<key>Open public profile</key>
@@ -1364,6 +1412,8 @@
 	<string>ফলাফল আর উপলব্ধ নেই</string>
 	<key>Outputs swept</key>
 	<string>সরানো আউটপুট</string>
+	<key>Owner</key>
+	<string>মালিক</string>
 	<key>Package size</key>
 	<string>প্যাকেজের আকার</string>
 	<key>Parent folder</key>
@@ -1396,6 +1446,8 @@
 	<string>স্থানান্তর বিরাম দিন</string>
 	<key>Payment card</key>
 	<string>পেমেন্ট কার্ড</string>
+	<key>Payment required</key>
+	<string>অর্থ প্রদান প্রয়োজন</string>
 	<key>Payments</key>
 	<string>পেমেন্ট</string>
 	<key>Pending backups</key>
@@ -1452,6 +1504,8 @@
 	<string>ব্যক্তিগত কী</string>
 	<key>Private workspace hidden</key>
 	<string>ব্যক্তিগত কর্মক্ষেত্র লুকানো</string>
+	<key>Processing</key>
+	<string>প্রক্রিয়াধীন</string>
 	<key>Proposal %llu</key>
 	<string>প্রস্তাব %llu</string>
 	<key>Proposal created</key>
@@ -1502,6 +1556,10 @@
 	<string>এই বিবরণ সর্বজনীনভাবে প্রকাশ করবেন?</string>
 	<key>Published</key>
 	<string>প্রকাশিত হয়েছে</string>
+	<key>Publisher</key>
+	<string>প্রকাশক</string>
+	<key>Publishing is paused while conversation keys are updated.</key>
+	<string>কথোপকথনের কী হালনাগাদের সময় প্রকাশ বন্ধ থাকে।</string>
 	<key>Purchased</key>
 	<string>ক্রয় করা হয়েছে</string>
 	<key>Purchases are not currently available.</key>
@@ -1914,6 +1972,8 @@
 	<string>সংরক্ষিত প্রোফাইল প্রকাশিত হয়েছে। আপনার খসড়া এখনও জমা দেওয়া হয়নি।</string>
 	<key>Saved. Publication is pending.</key>
 	<string>সংরক্ষিত প্রকাশনা বাকি আছে।</string>
+	<key>Saving draft…</key>
+	<string>খসড়া সংরক্ষণ হচ্ছে…</string>
 	<key>Scan QR code</key>
 	<string>ক্যামেরা দিয়ে স্ক্যান করুন</string>
 	<key>Scan desktop invitation</key>
@@ -1924,12 +1984,16 @@
 	<string>স্কোপ, প্রতি লাইনে একটি</string>
 	<key>Screenshots may contain private information.</key>
 	<string>স্ক্রিনশট ব্যক্তিগত তথ্য থাকতে পারে.</string>
+	<key>Search</key>
+	<string>খুঁজুন</string>
 	<key>Search files</key>
 	<string>ফাইল অনুসন্ধান করুন</string>
 	<key>Search messages</key>
 	<string>বার্তা অনুসন্ধান করুন</string>
 	<key>Search your vault</key>
 	<string>আপনার ভল্ট অনুসন্ধান করুন</string>
+	<key>Searches messages saved on this device.</key>
+	<string>এই ডিভাইসে সংরক্ষিত বার্তা খোঁজে।</string>
 	<key>Secret</key>
 	<string>গোপন তথ্য</string>
 	<key>Secret package link</key>
@@ -1974,6 +2038,8 @@
 	<string>বাছাই করা অংশগুলো বিরোধপূর্ণ সংস্করণ ব্যবহার করবে। বাকি অংশে বর্তমান সংস্করণ থাকবে।</string>
 	<key>Send device request</key>
 	<string>ডিভাইসের অনুরোধ পাঠান</string>
+	<key>Send failed</key>
+	<string>পাঠানো ব্যর্থ হয়েছে</string>
 	<key>Send free letter</key>
 	<string>বিনামূল্যে চিঠি পাঠান</string>
 	<key>Send message</key>
@@ -1990,8 +2056,12 @@
 	<string>প্রেরকের অ্যাকাউন্ট</string>
 	<key>Sending</key>
 	<string>প্রেরণ</string>
+	<key>Sent letters</key>
+	<string>চিঠি পাঠিয়েছে</string>
 	<key>Server</key>
 	<string>সার্ভার</string>
+	<key>Service acceptance does not mean the recipient has read your letter.</key>
+	<string>পরিষেবা গ্রহণ করেছে মানেই প্রাপক আপনার চিঠি পড়েছেন তা নয়।</string>
 	<key>Session code</key>
 	<string>সেশন কোড</string>
 	<key>Set up device co-signing for your own assets, or invite others to manage funds together.</key>
@@ -2146,6 +2216,8 @@
 	<string>পুরনো ঠিকানা খালি করুন</string>
 	<key>Switch account</key>
 	<string>অ্যাকাউন্ট পরিবর্তন করুন</string>
+	<key>Switch to the invited account before joining.</key>
+	<string>যোগদানের আগে আমন্ত্রিত অ্যাকাউন্টে যান।</string>
 	<key>Switch to this account</key>
 	<string>এই অ্যাকাউন্টে স্যুইচ করুন</string>
 	<key>Symbols</key>
@@ -2162,6 +2234,8 @@
 	<string>এখন সিঙ্ক করুন</string>
 	<key>Sync paused</key>
 	<string>সিঙ্ক বিরতিতে আছে</string>
+	<key>Sync this conversation before sending.</key>
+	<string>পাঠানোর আগে এই কথোপকথন সিঙ্ক করুন।</string>
 	<key>Synced</key>
 	<string>সিঙ্ক করা হয়েছে</string>
 	<key>Syncing…</key>
@@ -2198,6 +2272,10 @@
 	<string>ইনবক্সের কী এখনও এই ডিভাইসে সিঙ্ক হয়নি। যে ডিভাইসে বার্তা গ্রহণ চালু করেছিলেন সেটি সিঙ্ক করুন, তারপর এখানে আবার চেষ্টা করুন।</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
 	<string>আমন্ত্রণ এই অ্যাকাউন্টে আবদ্ধ। লিঙ্ক শেয়ার করা অন্য অ্যাকাউন্টে অ্যাক্সেসের অনুমতি দেয় না।</string>
+	<key>The invitation is invalid.</key>
+	<string>আমন্ত্রণটি অবৈধ।</string>
+	<key>The invitation is verified when you choose Join conversation.</key>
+	<string>কথোপকথনে যোগদানের বিকল্প বাছলে আমন্ত্রণ যাচাই হয়।</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>সর্বশেষ যাচাইকৃত পর্যবেক্ষণ রাখা হয়। বর্তমান অবস্থা নিশ্চিত করা যায়নি.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
@@ -2222,6 +2300,10 @@
 	<string>অপারেশন সম্পন্ন করা যায়নি। আবার চেষ্টা করুন.</string>
 	<key>The operation was cancelled or is not permitted.</key>
 	<string>অপারেশন বাতিল করা হয়েছে বা অনুমোদিত নয়.</string>
+	<key>The original message is not available on this device.</key>
+	<string>মূল বিষয়বস্তু এই ডিভাইসে নেই।</string>
+	<key>The original text is not available on this device.</key>
+	<string>মূল বিষয়বস্তু এই ডিভাইসে নেই।</string>
 	<key>The other device was not found on the local network. Enter its address.</key>
 	<string>স্থানীয় নেটওয়ার্কে অন্য ডিভাইসটি পাওয়া যায়নি। এর ঠিকানা লিখুন।</string>
 	<key>The outcome is uncertain. Check the original job before attempting anything again.</key>
@@ -2270,6 +2352,8 @@
 	<string>এটি স্থানীয় আনলক সুরক্ষা পরিবর্তন করে। সিস্টেম প্রমাণীকরণ প্রয়োজন হতে পারে. কোনো অ্যাকাউন্ট পুনরুদ্ধার বা অন্য ডিভাইস পরিবর্তন করা হয় না.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>এটি পরিবর্তন করে যে কোন অ্যাকাউন্টের জন্য একটি হার্ডওয়্যার স্বাক্ষর প্রয়োজন। সুরক্ষা অক্ষম করা সেই হার্ডওয়্যার প্রমাণ ছাড়াই সেই ক্রিয়াগুলিকে অনুমতি দেয়৷</string>
+	<key>This conversation is archived.</key>
+	<string>চ্যানেল আর্কাইভ করা হয়; কোন নতুন বার্তা নেই</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
 	<string>এটি একটি মুলতুবি অনুরোধ তৈরি করে। এটি ডিভাইসটিকে অনুমোদন করে না।</string>
 	<key>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</key>
@@ -2312,10 +2396,14 @@
 	<string>এই আইটেমটি আর পাওয়া যাচ্ছে না।</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
 	<string>এই কী dMsg দ্বারা পরিচালিত হয় এবং অনুলিপি বা সম্পাদনা করা যায় না।</string>
+	<key>This letter is too long.</key>
+	<string>বিষয়বস্তু খুব দীর্ঘ।</string>
 	<key>This letter was withdrawn.</key>
 	<string>এই চিঠি প্রত্যাহার করা হয়েছে।</string>
 	<key>This message could not be verified.</key>
 	<string>এই বার্তা যাচাই করা যায়নি.</string>
+	<key>This message is too long.</key>
+	<string>বিষয়বস্তু খুব দীর্ঘ।</string>
 	<key>This only hides this exact finding and revision on this device. It does not repair a credential or dismiss future changes.</key>
 	<string>এটি শুধুমাত্র এই ডিভাইসে এই সঠিক অনুসন্ধান এবং সংশোধন লুকিয়ে রাখে। এটি কোনও শংসাপত্র মেরামত করে না বা ভবিষ্যতের পরিবর্তনগুলি খারিজ করে না।</string>
 	<key>This operation exceeds its size or capacity limit. Secret snapshots on this device are limited to 8 MiB.</key>
@@ -2400,6 +2488,10 @@
 	<string>কর্মক্ষেত্র আনলক করুন</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>আপনার dMsg ওয়ার্কস্পেস আনলক করুন</string>
+	<key>Unread messages</key>
+	<string>অপঠিত</string>
+	<key>Unread only</key>
+	<string>অপঠিত</string>
 	<key>Unrestricted delegation authority</key>
 	<string>অপ্রতিরোধ্য প্রতিনিধি কর্তৃপক্ষ</string>
 	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
@@ -2478,6 +2570,8 @@
 	<string>অনুমোদনের অপেক্ষায়</string>
 	<key>Waiting for browser confirmation</key>
 	<string>ব্রাউজার নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে</string>
+	<key>Waiting for confirmation</key>
+	<string>নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে</string>
 	<key>Waiting for confirmation: </key>
 	<string>নিশ্চিতকরণের জন্য অপেক্ষা করা হচ্ছে: </string>
 	<key>Waiting for first sync</key>
@@ -2544,6 +2638,8 @@
 	<string>হ্যাঁ</string>
 	<key>You are viewing an immutable historical version.</key>
 	<string>আপনি একটি অপরিবর্তনীয় ঐতিহাসিক সংস্করণ দেখছেন।</string>
+	<key>You have read-only access to this conversation.</key>
+	<string>এই কথোপকথনে আপনার কেবল পড়ার অনুমতি আছে।</string>
 	<key>You perform provider changes yourself. dMsg records your statements and checks local revisions; it cannot verify upstream creation, testing or revocation.</key>
 	<string>আপনি নিজেকে প্রদানকারী পরিবর্তন সঞ্চালন. dMsg আপনার বিবৃতি রেকর্ড করে এবং স্থানীয় সংশোধন পরীক্ষা করে; এটি আপস্ট্রিম সৃষ্টি, পরীক্ষা বা প্রত্যাহার যাচাই করতে পারে না।</string>
 	<key>Your assets. Your approval rules.</key>
@@ -2570,6 +2666,8 @@
 	<string>আপনার ব্যক্তিগত কর্মক্ষেত্র।</string>
 	<key>Your purchase is awaiting confirmation. Restore purchases to retry without paying again.</key>
 	<string>আপনার ক্রয় নিশ্চিতকরণের জন্য অপেক্ষা করছে। আবার অর্থ প্রদান না করে পুনরায় চেষ্টা করার জন্য কেনাকাটা পুনরুদ্ধার করুন।</string>
+	<key>Your receiving rules still apply. This does not add a contact or a channel member.</key>
+	<string>আপনার গ্রহণের নিয়ম কার্যকর থাকবে। এটি কোনো যোগাযোগ বা চ্যানেল সদস্য যোগ করে না।</string>
 	<key>Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included.</key>
 	<string>আপনার প্রতিবেদন এবং আপনি স্পষ্টভাবে অন্তর্ভুক্ত যে কোনো পাঠ্য মডারেশন টিমের কাছে পাঠানো হবে। অন্যান্য ব্যক্তিগত বিষয়বস্তু এবং কী অন্তর্ভুক্ত করা হয় না।</string>
 	<key>Your reports</key>

@@ -491,6 +491,67 @@ fn reference(message: &Message) -> MessageRef {
 }
 
 #[test]
+fn attachment_search_pages_preserve_all_matches_and_reply_targets() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let channel = "ab".repeat(32);
+    crate::testing::joined_channel(&mut client, &channel);
+    let me = client.me().unwrap();
+    let mut local = Local::default();
+    for seq in 1..=105 {
+        let message = Message {
+            file: Some(FileRef {
+                upload_id: "a".repeat(64),
+                file_id: "file".into(),
+                version: "version".into(),
+                epoch: 1,
+                manifest_digest: "b".repeat(64),
+                name: "project-plan.pdf".into(),
+                size: 1,
+                mime: "application/pdf".into(),
+                key: "key".into(),
+            }),
+            ..written(seq, &me, "No keyword in the body")
+        };
+        keep(&client, &channel, &mut local, &message);
+    }
+    let first = client
+        .channel_search_before(&channel, " plan.PDF ", u64::MAX, 100)
+        .unwrap();
+    assert_eq!(first.len(), 100);
+    let second = client
+        .channel_search_before(&channel, "plan.pdf", first.last().unwrap().seq, 100)
+        .unwrap();
+    assert_eq!(
+        second.iter().map(|m| m.seq).collect::<Vec<_>>(),
+        [5, 4, 3, 2, 1]
+    );
+    let original = kept(&client, &channel, 1);
+    let path = dir.0.join("attachment.txt");
+    std::fs::write(&path, "attachment").unwrap();
+    let file = client
+        .files_import(&path, "root", true, &mut |_, _| {})
+        .unwrap();
+    let intent = client
+        .queue_attachment_reply(
+            &channel,
+            &file.file.id,
+            "reply body",
+            Some(reference(&original)),
+        )
+        .unwrap();
+    assert_eq!(intent.reply_to, Some(reference(&original)));
+    let wrong = MessageRef {
+        seq: 1,
+        digest: "ff".repeat(32),
+    };
+    assert!(matches!(
+        client.queue_attachment_reply(&channel, &file.file.id, "reply", Some(wrong)),
+        Err(Error::VersionConflict)
+    ));
+}
+
+#[test]
 fn edits_and_withdrawals_reach_their_authors_messages_in_any_order() {
     use crate::testing::{TempDir, unlocked};
 

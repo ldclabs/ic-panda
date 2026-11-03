@@ -6,6 +6,8 @@ import SwiftUI
 struct WorkspaceNavigation<Sidebar: View, Detail: View>: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Binding var selection: String?
+    var sidebarInitiallyVisible = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @ViewBuilder var sidebar: (Binding<String?>?) -> Sidebar
     @ViewBuilder var detail: (String?) -> Detail
 
@@ -19,12 +21,13 @@ struct WorkspaceNavigation<Sidebar: View, Detail: View>: View {
                     .navigationDestination(for: String.self) { detail($0) }
             }
         } else {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 sidebar($selection)
             } detail: {
                 detail(selection)
             }
             .navigationSplitViewStyle(.balanced)
+            .onAppear { if sidebarInitiallyVisible && selection == nil { columnVisibility = .all } }
         }
     }
 }
