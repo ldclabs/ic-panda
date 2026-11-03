@@ -30,6 +30,8 @@
 	<string>Kredensial API</string>
 	<key>About</key>
 	<string>Tentang</string>
+	<key>About dMsg</key>
+	<string>Tentang dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Terima pengikatan yang disetujui</string>
 	<key>Access granted</key>
@@ -54,10 +56,14 @@
 	<string>Akun, perangkat, dan identitas</string>
 	<key>Accounts</key>
 	<string>Akun</string>
+	<key>Active</key>
+	<string>Aktif</string>
 	<key>Active conversations</key>
 	<string>Percakapan aktif</string>
 	<key>Activity on this device</key>
 	<string>Aktivitas di perangkat ini</string>
+	<key>Add account</key>
+	<string>Tambah akun</string>
 	<key>Add device</key>
 	<string>Tambahkan perangkat</string>
 	<key>Add field</key>
@@ -66,20 +72,20 @@
 	<string>Tambahkan ke buku alamat</string>
 	<key>Add item</key>
 	<string>Tambahkan barang</string>
-	<key>Add message to demo</key>
-	<string>Tambahkan pesan ke demo</string>
+	<key>Add link</key>
+	<string>Tambahkan tautan</string>
 	<key>Add one-time code</key>
 	<string>Tambahkan kode satu kali</string>
 	<key>Add protector</key>
 	<string>Tambah pelindung</string>
 	<key>Add receiving address</key>
 	<string>Tambahkan alamat penerima</string>
-	<key>Add sample login</key>
-	<string>Tambahkan contoh login</string>
 	<key>Add the new address</key>
 	<string>Tambahkan alamat baru</string>
 	<key>Added</key>
 	<string>Ditambahkan</string>
+	<key>Additional reserve / rent</key>
+	<string>Cadangan/sewa tambahan</string>
 	<key>Address</key>
 	<string>Alamat</string>
 	<key>Address label</key>
@@ -90,6 +96,8 @@
 	<string>Persetujuan administratif %u</string>
 	<key>Administrator</key>
 	<string>Administrator</string>
+	<key>Advanced</key>
+	<string>Lanjutan</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Setelah menyetujui permintaan dompet, buat permintaan penggantian baru di perangkat baru.</string>
 	<key>Agent ID</key>
@@ -116,10 +124,16 @@
 	<string>Sudah diimpor</string>
 	<key>Already present</key>
 	<string>Sudah hadir</string>
+	<key>Amount</key>
+	<string>Jumlah</string>
 	<key>Amount in base units</key>
 	<string>Jumlah dalam satuan dasar</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
 	<string>Pemulihan akun sedang menunggu. Tinjau di Keamanan akun.</string>
+	<key>An administrator device is required to change account security.</key>
+	<string>Perangkat administrator diperlukan untuk mengubah keamanan akun.</string>
+	<key>An administrator device is required to publish this profile.</key>
+	<string>Perangkat administrator diperlukan untuk menerbitkan profil ini.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Siapa pun yang memiliki tautan lengkap dan kata sandi yang diperlukan dapat mengambilnya kembali dalam batasannya.</string>
 	<key>Anyone, free of charge</key>
@@ -180,6 +194,10 @@
 	<string>Diterima</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>Minta administrator untuk mengikat login ini ke akun Anda yang ada. Otorisasi perangkat adalah langkah terpisah.</string>
+	<key>Asset</key>
+	<string>Aset</string>
+	<key>Asset details are unavailable. Retry before entering an amount.</key>
+	<string>Detail aset tidak tersedia. Coba lagi sebelum memasukkan jumlah.</string>
 	<key>Asset identifier</key>
 	<string>Pengidentifikasi aset</string>
 	<key>Attach</key>
@@ -220,6 +238,8 @@
 	<string>Cuplikan IsiOtomatis diperbarui</string>
 	<key>Automatic foreground sync</key>
 	<string>Sinkronisasi latar depan otomatis</string>
+	<key>Available after</key>
+	<string>Tersedia setelahnya</string>
 	<key>Back</key>
 	<string>Kembali</string>
 	<key>Back up encrypted copy</key>
@@ -244,6 +264,10 @@
 	<string>Kemajuan pencadangan disimpan. Periksa status file untuk penyelesaian.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
 	<string>Cadangan dalam antrean. Biarkan dMsg tetap terbuka untuk menyelesaikan pengunggahan.</string>
+	<key>Backups found</key>
+	<string>Cadangan</string>
+	<key>Balance</key>
+	<string>Saldo</string>
 	<key>Bind another Internet Identity</key>
 	<string>Ikat Internet Identity lainnya</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -274,6 +298,8 @@
 	<string>Permintaan peramban</string>
 	<key>Cached data</key>
 	<string>Data cache</string>
+	<key>Cached data cleared</key>
+	<string>Cache dihapus</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera tidak tersedia. Tempel undangan atau izinkan akses kamera di Pengaturan.</string>
 	<key>Cancel</key>
@@ -328,12 +354,16 @@
 	<string>Cuplikan saluran</string>
 	<key>Channels</key>
 	<string>Saluran</string>
+	<key>Check account IDs and remove duplicates.</key>
+	<string>Periksa ID akun dan hapus duplikat.</string>
 	<key>Check addresses</key>
 	<string>Periksa alamat</string>
 	<key>Check authorization</key>
 	<string>Periksa otorisasi</string>
 	<key>Check deletion status</key>
 	<string>Periksa status penghapusan</string>
+	<key>Check field lengths and use named HTTPS links.</key>
+	<string>Periksa panjang kolom dan gunakan tautan HTTPS bernama.</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Periksa referensi proyek dan salinan apa pun yang sudah dikirimkan.</string>
 	<key>Check recovery status</key>
@@ -370,6 +400,8 @@
 	<string>Pilih siapa yang boleh mengirimi Anda surat gratis. Akun yang diblokir akan tetap diblokir sampai Anda membatalkan pemblokirannya.</string>
 	<key>Clear cached data</key>
 	<string>Hapus cache</string>
+	<key>Close invitation</key>
+	<string>Tutup undangan</string>
 	<key>Closed</key>
 	<string>Tertutup</string>
 	<key>Cloud backup file limit</key>
@@ -430,6 +462,8 @@
 	<string>Undangan kontak, jika disediakan</string>
 	<key>Contact support</key>
 	<string>Hubungi dukungan</string>
+	<key>Content signing</key>
+	<string>Penandatanganan konten</string>
 	<key>Continue import</key>
 	<string>Lanjutkan impor</string>
 	<key>Continue password import</key>
@@ -452,20 +486,28 @@
 	<string>Pengendali dan delegasi</string>
 	<key>Conversation</key>
 	<string>Percakapan</string>
+	<key>Conversation limit</key>
+	<string>Batas percakapan</string>
 	<key>Conversation name</key>
 	<string>Nama percakapan</string>
 	<key>Conversation settings</key>
 	<string>Pengaturan percakapan</string>
+	<key>Copied</key>
+	<string>Disalin</string>
 	<key>Copied for 30 seconds</key>
 	<string>Disalin selama 30 detik</string>
 	<key>Copies from other iPhones</key>
 	<string>Salinan dari iPhone lain</string>
 	<key>Copy</key>
 	<string>Salin</string>
+	<key>Copy account ID</key>
+	<string>Salin ID akun</string>
 	<key>Copy address</key>
 	<string>Salin alamat</string>
 	<key>Copy binding request</key>
 	<string>Salin permintaan pengikatan</string>
+	<key>Copy device ID</key>
+	<string>Salin ID perangkat</string>
 	<key>Copy enrollment request</key>
 	<string>Salin permintaan pendaftaran</string>
 	<key>Copy for 30 seconds</key>
@@ -542,6 +584,8 @@
 	<string>Rotasi kredensial</string>
 	<key>Current</key>
 	<string>Saat ini</string>
+	<key>Current account</key>
+	<string>Akun saat ini</string>
 	<key>Current local dependencies</key>
 	<string>Ketergantungan lokal saat ini</string>
 	<key>Current login</key>
@@ -592,12 +636,6 @@
 	<string>Status penghapusan</string>
 	<key>Deliver a secret to a local process</key>
 	<string>Kirimkan rahasia ke proses lokal</string>
-	<key>Demo approved · No signature created</key>
-	<string>Demo disetujui · Tidak ada tanda tangan yang dibuat</string>
-	<key>Demo rejected · No signature created</key>
-	<string>Demo ditolak · Tidak ada tanda tangan yang dibuat</string>
-	<key>Demo section</key>
-	<string>Bagian demo</string>
 	<key>Dependencies on this device</key>
 	<string>Ketergantungan pada perangkat ini</string>
 	<key>Describe the issue</key>
@@ -612,6 +650,8 @@
 	<string>Tujuan</string>
 	<key>Destination folder</key>
 	<string>Folder tujuan</string>
+	<key>Details</key>
+	<string>Detail</string>
 	<key>Device</key>
 	<string>Perangkat</string>
 	<key>Device ID</key>
@@ -686,6 +726,8 @@
 	<string>Surel</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Aktifkan dMsg di pengaturan IsiOtomatis</string>
+	<key>Enabled</key>
+	<string>Diaktifkan</string>
 	<key>Encrypted backup</key>
 	<string>Cadangan terenkripsi</string>
 	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
@@ -696,16 +738,18 @@
 	<string>Mesin</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Biometrik yang terdaftar berubah. Daftarkan kunci pengganti sebelum mengandalkan kunci ini.</string>
+	<key>Enter a valid account ID.</key>
+	<string>Masukkan ID akun yang valid.</string>
+	<key>Enter an exact amount within the asset's precision.</key>
+	<string>Masukkan jumlah positif dengan presisi yang didukung aset.</string>
 	<key>Enter the session code the receiving device shows.</key>
 	<string>Masukkan kode sesi yang ditampilkan perangkat penerima.</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>Masukkan ID akun yang valid, satu per baris.</string>
 	<key>Error details</key>
 	<string>Detail kesalahan</string>
-	<key>Example document</key>
-	<string>Contoh dokumen</string>
-	<key>Example login</key>
-	<string>Contoh masuk</string>
+	<key>Estimated fee</key>
+	<string>Perkiraan biaya</string>
 	<key>Execute</key>
 	<string>Jalankan</string>
 	<key>Execute approved proposal</key>
@@ -814,8 +858,6 @@
 	<string>Sembunyikan</string>
 	<key>Hide on this device</key>
 	<string>Sembunyikan di perangkat ini</string>
-	<key>Hide sample sender</key>
-	<string>Sembunyikan pengirim sampel</string>
 	<key>Historical version</key>
 	<string>Versi sejarah</string>
 	<key>Host</key>
@@ -874,8 +916,6 @@
 	<string>Impor rahasia yang dipilih</string>
 	<key>In Trash</key>
 	<string>Di Sampah</string>
-	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>Dalam laporan nyata, layanan menerima alasan Anda dan pengidentifikasi akun/sumber daya. Teks pesan disertakan hanya jika Anda secara eksplisit memilih untuk mengungkapkannya.</string>
 	<key>In progress</key>
 	<string>Sedang berlangsung</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
@@ -892,6 +932,8 @@
 	<string>Periksa permintaan pemasangan</string>
 	<key>Inspect this version</key>
 	<string>Periksa versi ini</string>
+	<key>Insufficient balance</key>
+	<string>Saldo token tidak mencukupi.</string>
 	<key>Integrity</key>
 	<string>Integritas</string>
 	<key>Interrupted</key>
@@ -906,6 +948,8 @@
 	<string>Lampiran barang</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Referensi item dapat disinkronkan sebelum filenya. Hanya file yang tersedia di perangkat ini yang dapat ditambahkan ke snapshot baru.</string>
+	<key>Items</key>
+	<string>Item</string>
 	<key>Join</key>
 	<string>Bergabunglah</string>
 	<key>Join account</key>
@@ -920,6 +964,8 @@
 	<string>Simpan perangkat berizin yang bisa dibuka untuk pindah perangkat. Jika semuanya hilang, memulihkan login tidak memulihkan konten cloud.</string>
 	<key>Keep current version</key>
 	<string>Pertahankan versi saat ini</string>
+	<key>Keep draft and leave</key>
+	<string>Simpan draf dan keluar</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Simpan rahasia, percakapan, dan file Anda bersama-sama. Hanya perangkat resmi Anda yang dapat membukanya.</string>
 	<key>Key</key>
@@ -948,6 +994,8 @@
 	<string>Tinggalkan percakapan</string>
 	<key>Leave empty to keep existing value</key>
 	<string>Biarkan kosong untuk mempertahankan nilai yang ada</string>
+	<key>Leave this form?</key>
+	<string>Keluar dari formulir ini?</string>
 	<key>Leave this step behind?</key>
 	<string>Tinggalkan langkah ini?</string>
 	<key>Left behind</key>
@@ -960,8 +1008,8 @@
 	<string>Berlisensi Untuk</string>
 	<key>Link limits</key>
 	<string>Batas tautan</string>
-	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>Permintaan langsung menunjukkan asal terverifikasi dan muatan penuhnya serta memerlukan persetujuan sistem atau perangkat keras yang dikonfigurasi.</string>
+	<key>Links</key>
+	<string>Tautan</string>
 	<key>Load earlier activity</key>
 	<string>Muat aktivitas sebelumnya</string>
 	<key>Load earlier messages</key>
@@ -972,16 +1020,14 @@
 	<string>Muat lebih banyak</string>
 	<key>Loading the verified request…</key>
 	<string>Memuat permintaan terverifikasi…</string>
+	<key>Loading…</key>
+	<string>Memuat…</string>
 	<key>Local</key>
 	<string>Lokal</string>
 	<key>Local content</key>
 	<string>Konten lokal</string>
 	<key>Local delivery record</key>
 	<string>Catatan pengiriman lokal</string>
-	<key>Local demo</key>
-	<string>Demo lokal</string>
-	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>Demo lokal · Data fiktif · Reset saat ditutup</string>
 	<key>Local dependencies</key>
 	<string>Ketergantungan lokal</string>
 	<key>Local dependency</key>
@@ -1018,8 +1064,12 @@
 	<string>Kelola langganan</string>
 	<key>Mark as read</key>
 	<string>Tandai sebagai telah dibaca</string>
+	<key>Maximum fee</key>
+	<string>Biaya maksimum</string>
 	<key>Maximum fee in base units</key>
 	<string>Biaya maksimum dalam satuan dasar</string>
+	<key>Member</key>
+	<string>Anggota</string>
 	<key>Member account ID</key>
 	<string>ID akun anggota</string>
 	<key>Member account or Principal</key>
@@ -1030,12 +1080,16 @@
 	<string>Anggota</string>
 	<key>Message</key>
 	<string>Pesan</string>
+	<key>Message settings</key>
+	<string>Pengaturan pesan</string>
 	<key>Message withdrawn</key>
 	<string>Pesan ditarik</string>
 	<key>Messages</key>
 	<string>Pesan</string>
 	<key>Month</key>
 	<string>Bulan</string>
+	<key>Monthly execution limit</key>
+	<string>Batas eksekusi bulanan</string>
 	<key>Monthly execution units</key>
 	<string>Unit eksekusi bulanan</string>
 	<key>Move a native address</key>
@@ -1102,8 +1156,12 @@
 	<string>Percobaan berikutnya</string>
 	<key>No</key>
 	<string>Tidak</string>
+	<key>No accounts</key>
+	<string>Tidak ada akun</string>
 	<key>No activity on this device</key>
 	<string>Tidak ada aktivitas di perangkat ini</string>
+	<key>No agents</key>
+	<string>Tidak ada agen</string>
 	<key>No background transfer</key>
 	<string>Tidak ada transfer latar belakang</string>
 	<key>No blocked accounts</key>
@@ -1114,6 +1172,8 @@
 	<string>Tidak ada browser yang terhubung</string>
 	<key>No conversations yet</key>
 	<string>Belum ada percakapan</string>
+	<key>No credentials</key>
+	<string>Tidak ada kredensial</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Tidak ada ketergantungan yang tercatat pada perangkat ini.</string>
 	<key>No findings from this device's checks.</key>
@@ -1132,12 +1192,18 @@
 	<string>Tidak ada cadangan yang tertunda</string>
 	<key>No recent use observed on this device</key>
 	<string>Tidak ada penggunaan terbaru yang diamati pada perangkat ini</string>
+	<key>No recovery request</key>
+	<string>Tidak ada permintaan pemulihan</string>
 	<key>No registered approval key</key>
 	<string>Tidak ada kunci persetujuan terdaftar</string>
+	<key>No reports</key>
+	<string>Belum ada catatan</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Tidak ada pemberi tanda tangan yang dipilih berarti tidak ada kebijakan tanda tangan tambahan. Tinjau proposal lengkap sebelum menyetujui.</string>
 	<key>No shared items waiting</key>
 	<string>Tidak ada item bersama yang menunggu</string>
+	<key>No snapshot</key>
+	<string>Tidak ada snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>Tidak ada snapshot di perangkat ini</string>
 	<key>Not enabled</key>
@@ -1222,6 +1288,8 @@
 	<string>Buka pengaturan notifikasi</string>
 	<key>Open private workspace</key>
 	<string>Buka ruang kerja pribadi</string>
+	<key>Open public profile</key>
+	<string>Buka profil publik</string>
 	<key>Open secret</key>
 	<string>Buka rahasia</string>
 	<key>Open workspace</key>
@@ -1306,6 +1374,8 @@
 	<string>Siapkan snapshot yang dipilih</string>
 	<key>Prepared on this device</key>
 	<string>Disiapkan di perangkat ini</string>
+	<key>Preview</key>
+	<string>Pratinjau</string>
 	<key>Preview and choose what to import</key>
 	<string>Pratinjau dan pilih apa yang akan diimpor</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
@@ -1314,8 +1384,8 @@
 	<string>Pratinjau berkas</string>
 	<key>Preview package</key>
 	<string>Paket pratinjau</string>
-	<key>Preview reporting disclosure</key>
-	<string>Pratinjau pengungkapan pelaporan</string>
+	<key>Preview transfer</key>
+	<string>Pratinjau transfer</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>Kredensial dan salinan yang dikirimkan sebelumnya bersifat independen. Cabut delegasi secara terpisah jika diperlukan.</string>
 	<key>Principal</key>
@@ -1330,6 +1400,8 @@
 	<string>Ruang kerja pribadi disembunyikan</string>
 	<key>Proposal %llu</key>
 	<string>Usulan %llu</string>
+	<key>Proposal created</key>
+	<string>Proposal dibuat</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
 	<string>Proposal dibuat. Tinjau di daftar proposal dompet.</string>
 	<key>Proposals</key>
@@ -1382,6 +1454,8 @@
 	<string>Pembelian saat ini tidak tersedia.</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Pemberitahuan push tidak diaktifkan di build ini. Buka dMsg untuk menyinkronkan.</string>
+	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
+	<string>Buka cepat membuka ruang kerja. Pengikatan membatasi perangkat yang dapat membukanya. Persetujuan perangkat keras melindungi tindakan akun sensitif.</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Buka kunci cepat dengan otentikasi sistem</string>
 	<key>Read from a desktop file mapping</key>
@@ -1446,6 +1520,8 @@
 	<string>Segarkan saldo</string>
 	<key>Refresh dependencies</key>
 	<string>Segarkan dependensi</string>
+	<key>Refresh the preview before continuing.</key>
+	<string>Segarkan pratinjau sebelum melanjutkan.</string>
 	<key>Register a hardware approval key</key>
 	<string>Daftarkan kunci persetujuan perangkat keras</string>
 	<key>Register an SSH binding</key>
@@ -1464,8 +1540,10 @@
 	<string>Tolak permintaan ini?</string>
 	<key>Rejected</key>
 	<string>Ditolak</string>
-	<key>Release 1.0 is ready for review.</key>
-	<string>Rilis 1.0 siap untuk ditinjau.</string>
+	<key>Reload saved profile</key>
+	<string>Muat ulang profil tersimpan</string>
+	<key>Remaining</key>
+	<string>tersisa</string>
 	<key>Remove</key>
 	<string>Hapus</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1474,6 +1552,8 @@
 	<string>Hapus snapshot aplikasi File</string>
 	<key>Remove attachment reference</key>
 	<string>Hapus referensi lampiran</string>
+	<key>Remove avatar</key>
+	<string>Hapus avatar</string>
 	<key>Remove device binding</key>
 	<string>Hapus pengikatan perangkat</string>
 	<key>Remove device binding?</key>
@@ -1488,6 +1568,8 @@
 	<string>Hapus data akun ini dari perangkat ini?</string>
 	<key>Remove this account's local data</key>
 	<string>Hapus data lokal akun ini</string>
+	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
+	<string>Hapus ruang kerja terenkripsi dan login tersimpan di perangkat ini. Akun layanan dan perangkat lain tetap tersedia. Perubahan belum tersinkron dan file tanpa cadangan akan hilang.</string>
 	<key>Remove this local agent</key>
 	<string>Hapus agen lokal ini</string>
 	<key>Remove this local agent?</key>
@@ -1520,8 +1602,6 @@
 	<string>Laporan diterima untuk ditinjau</string>
 	<key>Reported account</key>
 	<string>Akun yang dilaporkan</string>
-	<key>Reporting disclosure</key>
-	<string>Pengungkapan pelaporan</string>
 	<key>Request ID</key>
 	<string>Minta ID</string>
 	<key>Request account deletion</key>
@@ -1534,8 +1614,6 @@
 	<string>Permintaan dari perangkat baru</string>
 	<key>Request recovery</key>
 	<string>Minta pemulihan</string>
-	<key>Request source</key>
-	<string>Sumber permintaan</string>
 	<key>Requested permissions</key>
 	<string>Izin yang diminta</string>
 	<key>Requests that need your decision appear here.</key>
@@ -1544,8 +1622,12 @@
 	<string>Memerlukan persetujuan perangkat keras</string>
 	<key>Require this device to unlock</key>
 	<string>Wajibkan perangkat ini untuk membuka kuncinya</string>
+	<key>Required approvals</key>
+	<string>Persetujuan yang diperlukan</string>
 	<key>Required cosignatures %u</key>
 	<string>Tanda tangan yang diperlukan %u</string>
+	<key>Reserved for uploads</key>
+	<string>Dicadangkan untuk unggahan</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Selesaikan operasi akun yang tertunda sebelum menghapus akun ini.</string>
 	<key>Restore</key>
@@ -1662,6 +1744,8 @@
 	<string>Tinjau konflik sinkronisasi</string>
 	<key>Review the agent's authorization on its originating device.</key>
 	<string>Tinjau otorisasi agen pada perangkat aslinya.</string>
+	<key>Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.</key>
+	<string>Periksa aset, tujuan, saldo, dan biaya sebelum membuat proposal. Dana tidak berpindah sampai persetujuan dan eksekusi dompet selesai.</string>
 	<key>Review the complete request</key>
 	<string>Tinjau permintaan lengkap</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
@@ -1734,14 +1818,6 @@
 	<string>Pengikatan SSH perlu ditinjau</string>
 	<key>SSH key</key>
 	<string>Kunci SSH</string>
-	<key>Safety and support</key>
-	<string>Keamanan dan dukungan</string>
-	<key>Sample action: sign a release announcement</key>
-	<string>Contoh tindakan: menandatangani pengumuman rilis</string>
-	<key>Sample login</key>
-	<string>Contoh masuk</string>
-	<key>Sample password</key>
-	<string>Contoh kata sandi</string>
 	<key>Save</key>
 	<string>Simpan</string>
 	<key>Save name</key>
@@ -1762,6 +1838,8 @@
 	<string>Disimpan</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
 	<string>Disimpan sebagai versi terpisah. Tinjau konflik sinkronisasi.</string>
+	<key>Saved data changed. Reload it, then review your preserved draft before publishing.</key>
+	<string>Data tersimpan berubah. Muat ulang, lalu periksa draf yang dipertahankan sebelum menerbitkan.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>Disimpan untuk dMsg. Buka aplikasi untuk meninjau dan mengimpor item ini.</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
@@ -1804,6 +1882,8 @@
 	<string>Pilih file</string>
 	<key>Select a secret</key>
 	<string>Pilih sebuah rahasia</string>
+	<key>Select an asset</key>
+	<string>Pilih aset</string>
 	<key>Select attachments to import</key>
 	<string>Pilih lampiran yang akan diimpor</string>
 	<key>Select attachments to share</key>
@@ -1814,6 +1894,8 @@
 	<string>Pilih bidang untuk dibagikan</string>
 	<key>Select login items</key>
 	<string>Pilih item masuk</string>
+	<key>Selected</key>
+	<string>Dipilih</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Bidang OTP yang dipilih menyertakan benih yang dapat digunakan kembali, bukan hanya kode saat ini.</string>
 	<key>Selected accounts</key>
@@ -1846,6 +1928,10 @@
 	<string>Siapkan akun ini</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Siapkan iPhone ini sebagai perangkat baru</string>
+	<key>Settings</key>
+	<string>Pengaturan</string>
+	<key>Share</key>
+	<string>Bagikan</string>
 	<key>Share a copy</key>
 	<string>Bagikan salinannya</string>
 	<key>Share binding request</key>
@@ -1882,8 +1968,6 @@
 	<string>Tunjukkan</string>
 	<key>Show dismissed findings</key>
 	<string>Tampilkan temuan yang ditolak</string>
-	<key>Show sample password</key>
-	<string>Tampilkan contoh kata sandi</string>
 	<key>Show share link</key>
 	<string>Tampilkan tautan berbagi</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1908,12 +1992,6 @@
 	<string>Tanda tangan terkumpul</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Tanda tangan dari cosigner %@ tidak lagi cocok dengan kunci mereka saat ini dan disisihkan; mereka perlu menandatangani lagi.</string>
-	<key>Simulate approval</key>
-	<string>Simulasikan persetujuan</string>
-	<key>Simulate rejection</key>
-	<string>Simulasikan penolakan</string>
-	<key>Simulate this approval?</key>
-	<string>Simulasikan persetujuan ini?</string>
 	<key>Snapshot</key>
 	<string>Cuplikan</string>
 	<key>Snapshot link</key>
@@ -1928,8 +2006,12 @@
 	<string>Beberapa berkas hanya ada di iPhone ini, tanpa cadangan cloud atau sinkronisasi terbaru.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Beberapa rekaman sumber atau properti tidak didukung. Impor ini hanya menyalin kolom yang dipilih; lampiran arsip, kunci sandi, dan riwayat tidak diimpor di sini.</string>
+	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
+	<string>Sebagian penggunaan tidak dapat diperbarui. Nilai yang tidak tersedia bukan nol.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Beberapa dompet belum selesai. Jalankan langkah ini lagi untuk menyelesaikannya.</string>
+	<key>Source address</key>
+	<string>Alamat sumber</string>
 	<key>Source address %u</key>
 	<string>Alamat sumber %u</string>
 	<key>Spam</key>
@@ -1964,6 +2046,8 @@
 	<string>Dihentikan</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>Penyimpanan adalah pembelian satu kali untuk jangka waktu berlangganan saat ini dan tidak diperpanjang secara otomatis.</string>
+	<key>Storage limit</key>
+	<string>Batas penyimpanan</string>
 	<key>Storage packs</key>
 	<string>Paket penyimpanan</string>
 	<key>Storage purchases require an active App Store subscription.</key>
@@ -1974,6 +2058,10 @@
 	<string>Kirim laporan</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Langganan diperpanjang secara otomatis kecuali dibatalkan di pengaturan akun Apple Anda. Menghapus akun dMsg Anda tidak membatalkan langganan Apple.</string>
+	<key>Suggested fee</key>
+	<string>Biaya yang disarankan</string>
+	<key>Suspended</key>
+	<string>Ditangguhkan</string>
 	<key>Sweep path</key>
 	<string>Jalur penyapuan</string>
 	<key>Sweep the old address</key>
@@ -1982,6 +2070,8 @@
 	<string>Ganti akun</string>
 	<key>Switch to this account</key>
 	<string>Beralih ke akun ini</string>
+	<key>Sync and storage</key>
+	<string>Sinkronisasi dan penyimpanan</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
 	<string>Sinkronisasi memeriksa konten akun dan cadangan cloud. Buka percakapan atau kotak masuk untuk menerima pesan; pulihkan file secara terpisah.</string>
 	<key>Sync conflicts</key>
@@ -2016,8 +2106,6 @@
 	<string>Salinan tetap ada di iPhone ini, hanya baca, untuk diimpor. Lalu iPhone ini bergabung ke akun Anda sebagai perangkat baru: masuk, lalu setujui dari perangkat lain atau pulihkan akun. iPhone lama tetap berfungsi.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Versi terenkripsi akan menggunakan penyimpanan cloud. Salinan lokal Anda tetap ada di perangkat ini.</string>
-	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
-	<string>Cakupan dan audiens yang eksplisit di atas juga berlaku untuk kredensial ini. Otoritas pengontrol yang tidak dibatasi tidak pernah membuat kredensial tidak dibatasi.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>Kredensial yang diekspor tidak tersedia atau kedaluwarsa. Buka dMsg untuk membuat snapshot baru.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
@@ -2032,8 +2120,8 @@
 	<string>Pengamatan terverifikasi terakhir disimpan. Status saat ini tidak dapat dikonfirmasi.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Kunci pengikatan lokal tidak tersedia. Simpan ruang kerja ini dan tinjau opsi pemulihan Anda sebelum menguncinya.</string>
-	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>Tur lokal tersedia untuk semua orang. Untuk menguji pembuatan akun, sinkronisasi, pembelian, notifikasi, dan otorisasi perangkat keras, keluar dari tur dan masuk melalui Internet Identity.</string>
+	<key>The maximum fee is below the estimate.</key>
+	<string>Plafon biaya berada di bawah perkiraan.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Batas paket seluler adalah 8 MiB. Pratinjau memeriksa paket sebelum Anda memilih apa yang akan diimpor.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
@@ -2070,8 +2158,8 @@
 	<string>Item yang dipilih tidak dapat dipentaskan. Buka dMsg dan coba impor ke sana.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>Salinan sumber terputus. Buang dan pilih sumbernya lagi.</string>
-	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>Penerapan pengujian tidak dikonfigurasi. Demo lokal dan kebijakan privasi tetap tersedia.</string>
+	<key>The test deployment is not configured.</key>
+	<string>Penerapan pengujian belum dikonfigurasi.</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
 	<string>Otorisasi transfer telah habis masa berlakunya. Batalkan tugas ini, lalu lanjutkan pencadangan asli di latar depan atau mulai pengunduhan baru.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
@@ -2098,8 +2186,6 @@
 	<string>Hal ini tidak dapat dibatalkan. Keluar saja tidak menghapus akun.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
 	<string>Ini mengubah perlindungan buka kunci lokal. Otentikasi sistem mungkin diperlukan. Tidak ada pemulihan akun atau perangkat lain yang diubah.</string>
-	<key>This changes only the local sample.</key>
-	<string>Ini hanya mengubah sampel lokal.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Ini mengubah tindakan akun mana yang memerlukan tanda tangan perangkat keras. Menonaktifkan perlindungan mengizinkan tindakan tersebut tanpa bukti perangkat keras tersebut.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2112,6 +2198,8 @@
 	<string>Perangkat ini memiliki perubahan yang belum disinkronkan. Simpan semua yang Anda perlukan sebelum menghapus akun.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Perangkat ini tidak memiliki kunci cosigner untuk proposal ini.</string>
+	<key>This device is authorized</key>
+	<string>Perangkat ini diizinkan</string>
 	<key>This device is replaced by</key>
 	<string>Perangkat ini digantikan oleh</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
@@ -2134,8 +2222,6 @@
 	<string>Kunci iPhone ini</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>Inventaris ini mencakup referensi dan catatan pengiriman pada perangkat ini. Itu tidak mencari perangkat lain atau file proyek sewenang-wenang.</string>
-	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>Ini adalah dokumen fiktif untuk tur lokal. Di akun Anda, file yang dipilih dienkripsi pada perangkat sebelum dicadangkan. Transfer latar belakang hanya menangani blok terenkripsi; penyelesaian membutuhkan akun asli yang tidak terkunci.</string>
 	<key>This is not the device in the request.</key>
 	<string>Ini bukan perangkat dalam permintaan.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
@@ -2152,8 +2238,6 @@
 	<string>Operasi ini untuk sementara tidak tersedia. Data Anda yang disimpan disimpan.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Paket ini telah diimpor ke perangkat ini. Salinan yang ada tetap independen.</string>
-	<key>This preview sends nothing.</key>
-	<string>Pratinjau ini tidak mengirimkan apa pun.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Profil ini bersifat publik. Jangan sertakan rahasia atau informasi kontak pribadi.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2168,8 +2252,6 @@
 	<string>Tindakan ini meminta diakhirinya pengambilan di masa mendatang. Salinan yang sudah disimpan tetap dapat digunakan. Publikasi yang belum pasti tetap harus direkonsiliasi.</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>Cuplikan ini perlu mendapat perhatian. Periksa statusnya sebelum melanjutkan.</string>
-	<key>This tour does not upload files or register system integrations.</key>
-	<string>Tur ini tidak mengunggah file atau mendaftarkan integrasi sistem.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Ini melacak pekerjaan Anda di perangkat ini. Itu tidak membuat, menguji atau mencabut kredensial di penyedianya.</string>
 	<key>This wallet's key</key>
@@ -2200,14 +2282,14 @@
 	<string>Sampah</string>
 	<key>Trash is empty</key>
 	<string>Sampah kosong</string>
-	<key>Try the local demo</key>
-	<string>Coba demo lokal</string>
 	<key>Two versions need your decision</key>
 	<string>Dua versi memerlukan keputusan Anda</string>
 	<key>Type</key>
 	<string>Ketik</string>
 	<key>Type this account ID to confirm</key>
 	<string>Ketik ID akun ini untuk mengonfirmasi</string>
+	<key>URL</key>
+	<string>URL</string>
 	<key>Unbind</key>
 	<string>Lepas ikatan</string>
 	<key>Unblock</key>
@@ -2226,10 +2308,16 @@
 	<string>Buka kunci iPhone ini untuk membuka dMsg.</string>
 	<key>Unlock with system authentication</key>
 	<string>Buka kunci dengan otentikasi sistem</string>
+	<key>Unlock workspace</key>
+	<string>Buka ruang kerja</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Buka kunci ruang kerja dMsg Anda</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Wewenang delegasi yang tidak dibatasi</string>
+	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
+	<string>Maksimal 8 cakupan dan 4 audiens. Gunakan origin HTTPS atau ID Agen; wildcard tidak diizinkan.</string>
+	<key>Updated</key>
+	<string>Diperbarui</string>
 	<key>Uploading</key>
 	<string>Mengunggah</string>
 	<key>Uploading encrypted backup</key>
@@ -2238,6 +2326,8 @@
 	<string>Unggahan dijeda. Kosongkan penyimpanan cloud lalu coba lagi; penerimaan tetap berjalan.</string>
 	<key>Url</key>
 	<string>Url</string>
+	<key>Usage</key>
+	<string>Penggunaan</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gunakan kata sandi dari snapshot yang Anda ekspor secara eksplisit di dMsg.</string>
 	<key>Use a secret through a device policy</key>
@@ -2246,8 +2336,6 @@
 	<string>Gunakan kunci penandatanganan SSH</string>
 	<key>Use conflicting version</key>
 	<string>Gunakan versi yang bertentangan</string>
-	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>Gunakan data fiktif di sini. Menutup tur akan membuang perubahan Anda.</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Gunakan icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol atau sol:mint.</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2256,6 +2344,8 @@
 	<string>Gunakan folder ini</string>
 	<key>Use this password for:</key>
 	<string>Gunakan kata sandi ini untuk:</string>
+	<key>Used</key>
+	<string>Terpakai</string>
 	<key>Username</key>
 	<string>Nama pengguna</string>
 	<key>Value</key>
@@ -2280,6 +2370,8 @@
 	<string>Memverifikasi konten akun…</string>
 	<key>Verifying…</key>
 	<string>Memverifikasi…</string>
+	<key>Version</key>
+	<string>Versi</string>
 	<key>Version history</key>
 	<string>Riwayat versi</string>
 	<key>Versions</key>
@@ -2306,6 +2398,8 @@
 	<string>Menunggu perangkat lain</string>
 	<key>Waiting for your decision</key>
 	<string>Menunggu keputusan Anda</string>
+	<key>Waiting period</key>
+	<string>Masa tunggu</string>
 	<key>Waiting to submit</key>
 	<string>Menunggu untuk diserahkan</string>
 	<key>Waiting to sync</key>
@@ -2336,8 +2430,6 @@
 	<string>Situs web</string>
 	<key>Welcome back.</key>
 	<string>Selamat datang kembali.</string>
-	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>Selamat datang di demo lokal. Pesan-pesan ini tetap ada di layar ini.</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Saat dMsg terbuka dan tidak terkunci, brankas disinkronkan otomatis. Pesan diperbarui saat percakapan atau kotak masuk dibuka. Pencadangan file tetap memerlukan konfirmasi terpisah. Sinkronisasi otomatis dapat dinonaktifkan kapan saja.</string>
 	<key>Who may contact you</key>
@@ -2354,8 +2446,6 @@
 	<string>Ruang kerja disalin dari iPhone lain</string>
 	<key>Workspace destination</key>
 	<string>Tujuan ruang kerja</string>
-	<key>Write a demo message</key>
-	<string>Tulis pesan demo</string>
 	<key>Write a letter</key>
 	<string>Tulis surat</string>
 	<key>Write a message</key>
@@ -2376,6 +2466,8 @@
 	<string>Paket Anda saat ini dikelola di luar App Store. Tunggu hingga berakhir sebelum memulai langganan App Store.</string>
 	<key>Your decision applies only to this request.</key>
 	<string>Keputusan Anda hanya berlaku untuk permintaan ini.</string>
+	<key>Your draft stays until this workspace locks. Nothing is submitted.</key>
+	<string>Draf disimpan hingga ruang kerja terkunci. Tidak ada yang dikirim.</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
 	<string>File terenkripsi Anda tetap ada di sini. Login tersimpan dan buka kunci cepat dihapus.</string>
 	<key>Your existing device makes the final decision.</key>

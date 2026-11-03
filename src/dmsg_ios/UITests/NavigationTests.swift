@@ -200,13 +200,17 @@ import XCTest
         app.launchArguments = ["--ui-testing", "--ui-detail-navigation", "--ui-slow-vault", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         guard app.frame.width > 700 else { throw XCTSkip("Requires a regular-width iPad") }
-        let managed = app.buttons["vault.item.fixture-managed"]
-        XCTAssertTrue(managed.waitForExistence(timeout: 5)); managed.tap()
-        app.buttons["vault.item.fixture-note"].tap()
+        func select(_ identifier: String) {
+            let row = app.buttons[identifier]
+            if !row.isHittable { app.buttons["ToggleSidebar"].tap() }
+            XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        }
+        select("vault.item.fixture-managed")
+        select("vault.item.fixture-note")
         let detail = app.staticTexts["vault.detail.title"]
         XCTAssertTrue(detail.waitForExistence(timeout: 5))
         XCTAssertEqual(detail.label, "Project notes")
-        app.buttons["vault.favorite.fixture-github"].tap()
+        select("vault.favorite.fixture-github")
         let github = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "GitHub"), object: detail)
         XCTAssertEqual(XCTWaiter.wait(for: [github], timeout: 5), .completed)
         capture(app, name: "iPad selection and favorites")
@@ -331,6 +335,9 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         tab(app, symbol: "Glyph-account", title: "Account").tap()
+        let advanced = app.buttons["account.advanced"]
+        for _ in 0..<6 where !advanced.isHittable { app.swipeUp() }
+        advanced.tap()
         let hardware = app.buttons["account.hardware"]
         for _ in 0..<4 where !hardware.isHittable { app.swipeUp() }
         XCTAssertTrue(hardware.waitForExistence(timeout: 5)); hardware.tap()
@@ -365,6 +372,9 @@ import XCTest
         XCTAssertTrue(app.images["account.avatar"].exists)
         let header = XCTAttachment(screenshot: app.screenshot())
         header.name = "Account public profile"; header.lifetime = .keepAlways; add(header)
+        let syncSettings = app.buttons["account.sync-settings"]
+        for _ in 0..<5 where !syncSettings.isHittable { app.swipeUp() }
+        syncSettings.tap()
         let sync = app.buttons["account.sync"]
         for _ in 0..<4 where !sync.isHittable { app.swipeUp() }
         XCTAssertTrue(sync.exists)
@@ -403,7 +413,7 @@ import XCTest
         XCTAssertEqual(app.switches.count, 0)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Dark Arabic large-text access actions"; shot.lifetime = .keepAlways; add(shot)
-        for identifier in ["settings.language", "access.demo", "access.privacy"] {
+        for identifier in ["settings.language", "access.privacy"] {
             let link = app.buttons[identifier]
             for _ in 0..<6 where !link.isHittable { app.swipeUp() }
             XCTAssertTrue(link.isHittable)
@@ -454,28 +464,18 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Dark Chinese account with a long public name"; shot.lifetime = .keepAlways; add(shot)
     }
-    func testPublicDemoAndOfflinePrivacyNeverEnterARealWorkspace() {
+    func testAccessHasNoDemoAndPrivacyIsAvailableOffline() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let demo = app.buttons["access.demo"]
-        XCTAssertTrue(demo.waitForExistence(timeout: 5))
-        for _ in 0..<4 { if demo.isHittable { break }; app.swipeUp() }
-        demo.tap()
-        XCTAssertTrue(app.staticTexts["Local demo · Fictitious data · Resets when closed"].waitForExistence(timeout: 5))
-        app.buttons["demo.login"].firstMatch.tap()
-        XCTAssertTrue(app.secureTextFields["Sample password"].waitForExistence(timeout: 5))
-        let sample = XCTAttachment(screenshot: app.screenshot())
-        sample.name = "Public local demo with fictional credentials"; sample.lifetime = .keepAlways; add(sample)
-        back(app)
-        back(app)
-        XCTAssertTrue(app.buttons["login.start"].exists)
+        XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["access.demo"].exists)
+        XCTAssertFalse(app.buttons["Contact support"].exists)
         let privacy = app.buttons["access.privacy"]
-        for _ in 0..<4 { if privacy.isHittable { break }; app.swipeUp() }
+        for _ in 0..<6 where !privacy.isHittable { app.swipeUp() }
         privacy.tap()
         XCTAssertTrue(app.staticTexts["dMsg Privacy Policy"].waitForExistence(timeout: 5))
-        let policy = XCTAttachment(screenshot: app.screenshot())
-        policy.name = "Privacy available before login"; policy.lifetime = .keepAlways; add(policy)
+        XCTAssertTrue(app.buttons["Contact support"].exists)
     }
 
     func testDeviceHandoverEntriesInEnglish() { handover(language: "en", locale: "en_US", account: "Account", dark: false) }

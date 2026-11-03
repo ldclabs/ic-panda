@@ -1,5 +1,139 @@
 # iOS implementation validation
 
+## Account switcher names (2026-11-03)
+
+The switcher now reads names for every local account from the existing certified
+public-name API used by desktop, first from the local core cache and then through
+its normal refresh/TTL path. This fills names for accounts created before the
+Swift identity cache existed, without opening their encrypted workspaces. Known
+names persist in protected local preferences; missing responses do not erase them.
+The current account retains its own newer profile name when publication is pending.
+
+Rows show a name above the full ID, or the ID alone when no name is published.
+The current account is a selected, non-interactive information row with a green
+checkmark, so its name stays readable instead of inheriting a disabled button's
+fade. Other accounts keep full-row selection and the existing unlock behavior.
+
+Validation: **9 account-settings unit tests and 2 UI tests passed** in
+`AccountNames-Tests.xcresult`. The added unit regression checks older-account
+name hydration, rename/removal, own-profile precedence and rejected late writes
+after locking. The English/light and Chinese/dark UI tests passed again after
+fixing current-row contrast (`AccountNames-Final.xcresult`, **2/2**); exported
+screenshots were inspected. All 23 localization catalogs/compiler extraction and
+diff whitespace checks passed. The fixtures exercise named and unnamed accounts.
+Final Debug test compilation and Release ARM64 Simulator compilation passed
+without reported warnings or errors (Xcode 27.2; Release signing disabled).
+
+The Rust/native API did not change and its suites were not rerun. Live production
+name retrieval, real account switching and physical-device checks were not run.
+Implementation and validation: Codex <noreply@openai.com>.
+
+## Centered account actions and direct ID copy (2026-11-03)
+
+Standalone actions in Account and its related settings forms now use a shared
+native-button component with centered labels. Primary publish/save actions use
+the prominent system style. Navigation and field content retain leading alignment;
+actions belonging to an individual item retain their contextual placement.
+Destructive roles, disabled states and confirmation steps are unchanged. Row
+separators keep a consistent leading inset rather than following centered text.
+
+Account and the public-profile editor now show a direct account-ID copy button
+with a 44-point target, a localized accessibility label, the complete ID as its
+accessibility value, and copy feedback. Copying is separate from navigation and
+uses the existing device-local clipboard behavior.
+
+Follow-up validation:
+
+- **7 distinct UI regressions passed** across `AccountActions-Phone.xcresult`
+  (4/4) and `AccountActions-Copy.xcresult` (4/4; one repeated test). They cover
+  the independent copy action, profile draft navigation, AutoFill selection,
+  local-removal gating, member recovery dispute, and notification saving in
+  English and Arabic RTL. No real account or financial operation was performed.
+- Final **Debug and Release ARM64 Simulator builds passed without warnings or
+  errors** with Xcode 27.2. An initial PhotosPicker label isolation warning and
+  its first attempted fix were resolved by keeping the picker label native.
+- Inspected Chinese light screenshots of centered lock/sign-out, direct ID copy,
+  and profile publication in enabled and disabled states; also inspected the
+  dark Account footer on a 375-point iPhone SE at accessibility XXXL text size.
+  Native button labels wrap and remain reachable. Arabic notification screenshots
+  were reviewed for RTL layout; the automated test exercised the save action.
+- All 23 localization catalogs, compiler-extracted strings and diff whitespace
+  checks passed. No new localized copy or core behavior was introduced.
+
+The earlier Rust and Swift-unit results below were not rerun for this UI-only
+follow-up. No physical-device, signed archive, TestFlight or App Store action was
+performed. Validation: Codex <noreply@openai.com>.
+
+## Account settings and form completion (2026-11-03)
+
+Removed the public local tour and the combined safety/support screen, including
+the login shortcuts. Offline privacy and contact information remain reachable;
+reporting/blocking moved to message settings and service-account deletion remains
+under account security. Historical tour references below describe previous builds.
+Full App Review account access remains a separate release responsibility.
+
+The Account screen now groups identity/security, synchronization/storage and app
+settings. This delivery covers public profile links and avatars, local-account
+removal, cloud/execution usage, device labels and permissions, recovery state,
+AutoFill/File Provider snapshot status and selection, receiving rules, browser
+invitation closure, agent delegations and exact-amount wallet previews. Settings
+forms retain drafts only within the unlocked session. Failed reads remain distinct
+from verified empty states; editing invalidates previews, and asynchronous results
+are checked against the originating session.
+
+Validation performed on the local working tree:
+
+- `cargo check --locked -p dmsg_mobile`, client/mobile all-target Clippy with
+  `-D warnings`, formatting and diff whitespace checks passed.
+- All **21 mobile Rust tests** passed. The focused browser-candidate regression
+  passed after changing it to exercise the real invitation-forget method; deleting
+  the local invitation secret still prevents later approval of a fetched candidate.
+- Both optimized ARM64 device and Simulator cores and UniFFI bindings rebuilt.
+  Release native artifact hashes and the Rust source fingerprint were verified.
+- Xcode **27.2 (27B52)** compiled the app and extensions in **Release** for ARM64
+  Simulator with `CODE_SIGNING_ALLOWED=NO`; the build succeeded with no reported
+  warnings or errors. This was a compile check, not a signed device archive.
+- All **74 Swift unit tests** passed in `AccountImprovements-Tests4.xcresult`,
+  including exact monetary amounts, public-link encoding, draft version retention,
+  lock-time draft clearing, recovery wire decoding and export-header compatibility.
+- Navigation, notification and new account-settings UI suites were run on iPhone
+  16e / iOS 18.4. The initial run found a hidden AutoFill Done button while searching
+  and test assumptions about virtualized rows, switch hit targets and cache fixtures.
+  The button now stays in a bottom action area; the corrected focused run passed
+  **6/6** (`AccountImprovements-Tests5.xcresult`). The pre-login notification check
+  uses the normal native core; account-editing tests use DEBUG fixtures.
+- On iPhone SE (3rd generation) / iOS 18.4, all **4 selected UI checks** passed:
+  cross-search AutoFill selection, ordinary-member recovery dispute, Arabic RTL
+  with accessibility-size text, and a long Chinese account header in dark mode
+  (`AccountImprovements-SE.xcresult`).
+- The initial iPad Pro 13-inch / iOS 18.4 run passed profile draft restoration,
+  usage and the long dark account header. AutoFill search placement and an existing
+  test's assumption of an always-visible split-view sidebar needed adjustment.
+  Both focused checks then passed (**2/2**, `AccountImprovements-iPadRetry.xcresult`).
+  Across these runs, **46 distinct UI tests** have a passing final result; these are
+  the Navigation, Notifications and AccountSettings suites, not every iOS UI suite.
+- On iPhone Duo / iOS 27.1, AutoFill and the long dark Chinese account header
+  passed. The profile-draft test initially searched only the navigation bar for
+  Back; this OS puts it in the floating toolbar. Using the button's accessibility
+  label fixed the test and its focused retry passed (**1/1**). Results are in
+  `AccountImprovements-Duo.xcresult` and `AccountImprovements-DuoRetry.xcresult`.
+- Exported screenshots were inspected for Chinese light/dark, English forms,
+  Arabic RTL with large text, SE compact width, iPad sheets and Duo toolbars.
+  Search and Done remain visible in the AutoFill picker and draft labels stay
+  visible after typing. This does not replace a complete spoken VoiceOver audit.
+- All **18 iOS build-script tests**, 23-language resources and Swift compiler
+  extraction, notification-copy parity and 31 shared-icon checks passed. Node emits
+  the existing typeless-module warning for the shared notification source.
+
+No physical-device authentication, multi-device recovery/pairing, actual account
+removal, production profile publication, live wallet transaction, APNs delivery,
+StoreKit purchase, private Worker/PocketIC acceptance, TestFlight packaging/upload
+or App Store submission was performed. Desktop code was not changed and its UI
+suite was not rerun. Simulator fixtures do not establish production-service or
+hardware acceptance.
+
+Implementation and validation: Codex <noreply@openai.com>.
+
 ## New-device synchronization continuity (2026-11-02)
 
 Completed the six-item review of the locally archived build 9:

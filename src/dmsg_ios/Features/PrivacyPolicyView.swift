@@ -5,6 +5,7 @@ struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
                 ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
                     if paragraph.hasPrefix("# ") { Text(String(paragraph.dropFirst(2))).font(.title.bold()) }
                     else if paragraph.hasPrefix("## ") { Text(String(paragraph.dropFirst(3))).font(.title3.bold()) }

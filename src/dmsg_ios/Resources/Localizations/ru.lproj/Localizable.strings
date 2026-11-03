@@ -29,7 +29,9 @@
 	<key>API credential</key>
 	<string>API-ключ</string>
 	<key>About</key>
-	<string>Объект оценки</string>
+	<string>О себе</string>
+	<key>About dMsg</key>
+	<string>О dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Принять одобренную привязку</string>
 	<key>Access granted</key>
@@ -54,10 +56,14 @@
 	<string>Аккаунт, устройства и личности</string>
 	<key>Accounts</key>
 	<string>Аккаунты</string>
+	<key>Active</key>
+	<string>Активен</string>
 	<key>Active conversations</key>
 	<string>Активные беседы</string>
 	<key>Activity on this device</key>
 	<string>Действия на этом устройстве</string>
+	<key>Add account</key>
+	<string>Добавить аккаунт</string>
 	<key>Add device</key>
 	<string>Добавить устройство</string>
 	<key>Add field</key>
@@ -66,20 +72,20 @@
 	<string>Добавить его в адресную книгу</string>
 	<key>Add item</key>
 	<string>Добавить запись</string>
-	<key>Add message to demo</key>
-	<string>Добавить демонстрационное сообщение</string>
+	<key>Add link</key>
+	<string>Добавить ссылку</string>
 	<key>Add one-time code</key>
 	<string>Добавить одноразовый код</string>
 	<key>Add protector</key>
 	<string>Добавить защитный ключ</string>
 	<key>Add receiving address</key>
 	<string>Добавить адрес получения</string>
-	<key>Add sample login</key>
-	<string>Добавить пример учётной записи</string>
 	<key>Add the new address</key>
 	<string>Добавить новый адрес</string>
 	<key>Added</key>
 	<string>добавлено</string>
+	<key>Additional reserve / rent</key>
+	<string>Резерв / рента</string>
 	<key>Address</key>
 	<string>Адрес</string>
 	<key>Address label</key>
@@ -90,6 +96,8 @@
 	<string>Одобрений администраторов: %u</string>
 	<key>Administrator</key>
 	<string>Администратор</string>
+	<key>Advanced</key>
+	<string>Дополнительно</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>После одобрения запросов кошельков создайте новый запрос на замену на новом устройстве.</string>
 	<key>Agent ID</key>
@@ -116,10 +124,16 @@
 	<string>Уже импортировано</string>
 	<key>Already present</key>
 	<string>Уже существует</string>
+	<key>Amount</key>
+	<string>Сумма</string>
 	<key>Amount in base units</key>
 	<string>Сумма в базовых единицах</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
 	<string>Ожидает выполнения запрос восстановления аккаунта. Проверьте его в разделе безопасности аккаунта.</string>
+	<key>An administrator device is required to change account security.</key>
+	<string>Для изменения безопасности аккаунта требуется устройство администратора.</string>
+	<key>An administrator device is required to publish this profile.</key>
+	<string>Для публикации этого профиля требуется устройство администратора.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Любой, у кого есть полная ссылка и необходимый пароль, может получить содержимое в пределах заданных ограничений.</string>
 	<key>Anyone, free of charge</key>
@@ -180,6 +194,10 @@
 	<string>Поступит</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>Попросите администратора привязать эту учётную запись входа к существующему аккаунту. Авторизация устройства выполняется отдельно.</string>
+	<key>Asset</key>
+	<string>Актив</string>
+	<key>Asset details are unavailable. Retry before entering an amount.</key>
+	<string>Данные актива недоступны. Повторите загрузку перед вводом суммы.</string>
 	<key>Asset identifier</key>
 	<string>Идентификатор актива</string>
 	<key>Attach</key>
@@ -220,6 +238,8 @@
 	<string>Снимок автозаполнения обновлён</string>
 	<key>Automatic foreground sync</key>
 	<string>Автосинхронизация в открытом приложении</string>
+	<key>Available after</key>
+	<string>Доступен после</string>
 	<key>Back</key>
 	<string>Назад</string>
 	<key>Back up encrypted copy</key>
@@ -244,6 +264,10 @@
 	<string>Прогресс сохранён. Проверьте состояние файла, чтобы узнать о завершении.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
 	<string>Резервная копия в очереди. Не закрывайте dMsg до окончания загрузки.</string>
+	<key>Backups found</key>
+	<string>Резервные копии</string>
+	<key>Balance</key>
+	<string>Баланс</string>
 	<key>Bind another Internet Identity</key>
 	<string>Привязать другую Internet Identity</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -274,6 +298,8 @@
 	<string>Запрос браузера</string>
 	<key>Cached data</key>
 	<string>Кэшированные данные</string>
+	<key>Cached data cleared</key>
+	<string>Кэш очищен</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
 	<key>Cancel</key>
@@ -328,12 +354,16 @@
 	<string>Снимок канала</string>
 	<key>Channels</key>
 	<string>Каналы</string>
+	<key>Check account IDs and remove duplicates.</key>
+	<string>Проверьте ID аккаунтов и удалите дубликаты.</string>
 	<key>Check addresses</key>
 	<string>Проверить адреса</string>
 	<key>Check authorization</key>
 	<string>Проверить авторизацию</string>
 	<key>Check deletion status</key>
 	<string>Проверить состояние удаления</string>
+	<key>Check field lengths and use named HTTPS links.</key>
+	<string>Проверьте длину полей и укажите названия для HTTPS-ссылок.</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Проверьте ссылки проекта и уже переданные копии.</string>
 	<key>Check recovery status</key>
@@ -370,6 +400,8 @@
 	<string>Выберите, кто может писать вам бесплатно. Заблокированные аккаунты останутся заблокированными до отмены блокировки.</string>
 	<key>Clear cached data</key>
 	<string>Очистить кэш</string>
+	<key>Close invitation</key>
+	<string>Закрыть приглашение</string>
 	<key>Closed</key>
 	<string>Закрыто</string>
 	<key>Cloud backup file limit</key>
@@ -430,6 +462,8 @@
 	<string>Приглашение к общению, если есть</string>
 	<key>Contact support</key>
 	<string>Связаться с поддержкой</string>
+	<key>Content signing</key>
+	<string>Подпись содержимого</string>
 	<key>Continue import</key>
 	<string>Продолжить импорт</string>
 	<key>Continue password import</key>
@@ -452,20 +486,28 @@
 	<string>Контроллеры и делегирования</string>
 	<key>Conversation</key>
 	<string>Разговор</string>
+	<key>Conversation limit</key>
+	<string>Лимит бесед</string>
 	<key>Conversation name</key>
 	<string>Название разговора</string>
 	<key>Conversation settings</key>
 	<string>Настройки беседы</string>
+	<key>Copied</key>
+	<string>Скопировано</string>
 	<key>Copied for 30 seconds</key>
 	<string>Скопировано на 30 секунд</string>
 	<key>Copies from other iPhones</key>
 	<string>Копии с других iPhone</string>
 	<key>Copy</key>
 	<string>Копировать</string>
+	<key>Copy account ID</key>
+	<string>Копировать ID аккаунта</string>
 	<key>Copy address</key>
 	<string>Скопировать адрес</string>
 	<key>Copy binding request</key>
 	<string>Копировать запрос привязки</string>
+	<key>Copy device ID</key>
+	<string>Копировать ID устройства</string>
 	<key>Copy enrollment request</key>
 	<string>Скопировать запрос регистрации</string>
 	<key>Copy for 30 seconds</key>
@@ -542,6 +584,8 @@
 	<string>Ротация учётных данных</string>
 	<key>Current</key>
 	<string>Текущее</string>
+	<key>Current account</key>
+	<string>Текущий аккаунт</string>
 	<key>Current local dependencies</key>
 	<string>Текущие локальные зависимости</string>
 	<key>Current login</key>
@@ -592,12 +636,6 @@
 	<string>Состояние удаления</string>
 	<key>Deliver a secret to a local process</key>
 	<string>Передать секрет локальному процессу</string>
-	<key>Demo approved · No signature created</key>
-	<string>Демо одобрено · Подпись не создана</string>
-	<key>Demo rejected · No signature created</key>
-	<string>Демо отклонено · Подпись не создана</string>
-	<key>Demo section</key>
-	<string>Раздел демонстрации</string>
 	<key>Dependencies on this device</key>
 	<string>Зависимости на этом устройстве</string>
 	<key>Describe the issue</key>
@@ -612,6 +650,8 @@
 	<string>Назначение</string>
 	<key>Destination folder</key>
 	<string>Папка назначения</string>
+	<key>Details</key>
+	<string>Подробности</string>
 	<key>Device</key>
 	<string>Устройство</string>
 	<key>Device ID</key>
@@ -686,6 +726,8 @@
 	<string>Эл. почта</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Включить dMsg в настройках автозаполнения</string>
+	<key>Enabled</key>
+	<string>Включено</string>
 	<key>Encrypted backup</key>
 	<string>Зашифрованная копия</string>
 	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
@@ -696,16 +738,18 @@
 	<string>Движок</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>Зарегистрированная биометрия изменилась. Зарегистрируйте новый ключ, прежде чем полагаться на этот.</string>
+	<key>Enter a valid account ID.</key>
+	<string>Введите корректный ID аккаунта.</string>
+	<key>Enter an exact amount within the asset's precision.</key>
+	<string>Введите положительную сумму допустимой точности.</string>
 	<key>Enter the session code the receiving device shows.</key>
 	<string>Введите код сеанса, который показывает принимающее устройство.</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>Введите действительные ID аккаунтов, по одному в строке.</string>
 	<key>Error details</key>
 	<string>Подробности ошибки</string>
-	<key>Example document</key>
-	<string>Пример документа</string>
-	<key>Example login</key>
-	<string>Пример учётной записи</string>
+	<key>Estimated fee</key>
+	<string>Оценка комиссии</string>
 	<key>Execute</key>
 	<string>Выполнить</string>
 	<key>Execute approved proposal</key>
@@ -814,8 +858,6 @@
 	<string>Скрыть</string>
 	<key>Hide on this device</key>
 	<string>Скрыть на этом устройстве</string>
-	<key>Hide sample sender</key>
-	<string>Скрыть демонстрационного отправителя</string>
 	<key>Historical version</key>
 	<string>Историческая версия</string>
 	<key>Host</key>
@@ -874,8 +916,6 @@
 	<string>Импортировать выбранные секреты</string>
 	<key>In Trash</key>
 	<string>В корзине</string>
-	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>При настоящей жалобе служба получает причину и идентификаторы аккаунта и ресурса. Текст передаётся лишь с вашего явного согласия.</string>
 	<key>In progress</key>
 	<string>В процессе</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
@@ -892,6 +932,8 @@
 	<string>Проверить запрос сопряжения</string>
 	<key>Inspect this version</key>
 	<string>Просмотреть эту версию</string>
+	<key>Insufficient balance</key>
+	<string>Недостаточно токенов.</string>
 	<key>Integrity</key>
 	<string>Целостность</string>
 	<key>Interrupted</key>
@@ -906,6 +948,8 @@
 	<string>Вложения записи</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>Ссылки на файлы могут синхронизироваться раньше самих файлов. В новый снимок можно добавить только файлы, доступные на этом устройстве.</string>
+	<key>Items</key>
+	<string>Элементы</string>
 	<key>Join</key>
 	<string>Присоединиться</string>
 	<key>Join account</key>
@@ -920,6 +964,8 @@
 	<string>Для смены устройства сохраните авторизованное устройство, которое можете разблокировать. Если все они потеряны, восстановление входа не вернёт облачные данные.</string>
 	<key>Keep current version</key>
 	<string>Сохранить текущую версию</string>
+	<key>Keep draft and leave</key>
+	<string>Сохранить черновик и выйти</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Храните секреты, разговоры и файлы вместе. Открыть их могут только ваши авторизованные устройства.</string>
 	<key>Key</key>
@@ -948,6 +994,8 @@
 	<string>Покинуть беседу</string>
 	<key>Leave empty to keep existing value</key>
 	<string>Оставьте пустым, чтобы сохранить текущее значение</string>
+	<key>Leave this form?</key>
+	<string>Выйти из формы?</string>
 	<key>Leave this step behind?</key>
 	<string>Пропустить этот шаг?</string>
 	<key>Left behind</key>
@@ -960,8 +1008,8 @@
 	<string>Владелец лицензии</string>
 	<key>Link limits</key>
 	<string>Ограничения ссылки</string>
-	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>Реальные запросы показывают проверенный источник и полное содержимое и требуют настроенного системного или аппаратного одобрения.</string>
+	<key>Links</key>
+	<string>Ссылки</string>
 	<key>Load earlier activity</key>
 	<string>Загрузить более ранние действия</string>
 	<key>Load earlier messages</key>
@@ -972,16 +1020,14 @@
 	<string>Загрузить ещё</string>
 	<key>Loading the verified request…</key>
 	<string>Загрузка проверенного запроса…</string>
+	<key>Loading…</key>
+	<string>Загрузка…</string>
 	<key>Local</key>
 	<string>Локально</string>
 	<key>Local content</key>
 	<string>Локальное содержимое</string>
 	<key>Local delivery record</key>
 	<string>Запись локальной передачи</string>
-	<key>Local demo</key>
-	<string>Локальная демонстрация</string>
-	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>Локальное демо · Вымышленные данные · Сброс при закрытии</string>
 	<key>Local dependencies</key>
 	<string>Локальные зависимости</string>
 	<key>Local dependency</key>
@@ -1018,8 +1064,12 @@
 	<string>Управлять подписками</string>
 	<key>Mark as read</key>
 	<string>Отметить как прочитанное</string>
+	<key>Maximum fee</key>
+	<string>Максимальная комиссия</string>
 	<key>Maximum fee in base units</key>
 	<string>Максимальная комиссия в минимальных единицах</string>
+	<key>Member</key>
+	<string>Участник</string>
 	<key>Member account ID</key>
 	<string>ID аккаунта участника</string>
 	<key>Member account or Principal</key>
@@ -1030,12 +1080,16 @@
 	<string>Участники</string>
 	<key>Message</key>
 	<string>Сообщение</string>
+	<key>Message settings</key>
+	<string>Настройки сообщений</string>
 	<key>Message withdrawn</key>
 	<string>Сообщение отозвано</string>
 	<key>Messages</key>
 	<string>Сообщения</string>
 	<key>Month</key>
 	<string>Месяц</string>
+	<key>Monthly execution limit</key>
+	<string>Месячный лимит выполнения</string>
 	<key>Monthly execution units</key>
 	<string>Месячные единицы выполнения</string>
 	<key>Move a native address</key>
@@ -1102,8 +1156,12 @@
 	<string>Следующая попытка</string>
 	<key>No</key>
 	<string>Нет</string>
+	<key>No accounts</key>
+	<string>Нет аккаунтов</string>
 	<key>No activity on this device</key>
 	<string>На этом устройстве нет действий</string>
+	<key>No agents</key>
+	<string>Нет агентов</string>
 	<key>No background transfer</key>
 	<string>Нет фоновой передачи</string>
 	<key>No blocked accounts</key>
@@ -1114,6 +1172,8 @@
 	<string>Нет подключённых браузеров</string>
 	<key>No conversations yet</key>
 	<string>Разговоров пока нет</string>
+	<key>No credentials</key>
+	<string>Учётных данных нет</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>На этом устройстве нет записанных зависимостей.</string>
 	<key>No findings from this device's checks.</key>
@@ -1132,12 +1192,18 @@
 	<string>Нет ожидающих резервных копий</string>
 	<key>No recent use observed on this device</key>
 	<string>На этом устройстве не замечено недавнего использования</string>
+	<key>No recovery request</key>
+	<string>Нет запроса на восстановление</string>
 	<key>No registered approval key</key>
 	<string>Нет зарегистрированного ключа подтверждения</string>
+	<key>No reports</key>
+	<string>Записей пока нет</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Без выбранных соподписантов дополнительная политика совместной подписи не применяется. Проверьте всё предложение перед одобрением.</string>
 	<key>No shared items waiting</key>
 	<string>Нет ожидающих общих элементов</string>
+	<key>No snapshot</key>
+	<string>Нет снимка</string>
 	<key>No snapshots on this device</key>
 	<string>На этом устройстве нет снимков</string>
 	<key>Not enabled</key>
@@ -1222,6 +1288,8 @@
 	<string>Открыть настройки уведомлений</string>
 	<key>Open private workspace</key>
 	<string>Открыть личное рабочее пространство</string>
+	<key>Open public profile</key>
+	<string>Открыть публичный профиль</string>
 	<key>Open secret</key>
 	<string>Открыть секрет</string>
 	<key>Open workspace</key>
@@ -1306,6 +1374,8 @@
 	<string>Подготовить выбранный снимок</string>
 	<key>Prepared on this device</key>
 	<string>Подготовлено на этом устройстве</string>
+	<key>Preview</key>
+	<string>Просмотр</string>
 	<key>Preview and choose what to import</key>
 	<string>Просмотреть и выбрать данные для импорта</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
@@ -1314,8 +1384,8 @@
 	<string>Просмотреть файл</string>
 	<key>Preview package</key>
 	<string>Просмотреть пакет</string>
-	<key>Preview reporting disclosure</key>
-	<string>Посмотреть раскрытие данных в жалобе</string>
+	<key>Preview transfer</key>
+	<string>Предпросмотр перевода</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>Переданные полномочия и копии независимы. При необходимости отзовите делегирования отдельно.</string>
 	<key>Principal</key>
@@ -1330,6 +1400,8 @@
 	<string>Частное пространство скрыто</string>
 	<key>Proposal %llu</key>
 	<string>Предложение %llu</string>
+	<key>Proposal created</key>
+	<string>Предложение создано</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
 	<string>Предложение создано. Откройте его в списке предложений кошелька.</string>
 	<key>Proposals</key>
@@ -1382,6 +1454,8 @@
 	<string>Покупки сейчас недоступны.</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>В этой сборке push-уведомления не включены. Откройте dMsg для синхронизации.</string>
+	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
+	<string>Быстрая разблокировка открывает рабочее пространство. Привязка ограничивает устройства, которые могут его открыть. Аппаратное одобрение защищает важные действия аккаунта.</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Быстрое разблокирование системной проверкой</string>
 	<key>Read from a desktop file mapping</key>
@@ -1446,6 +1520,8 @@
 	<string>Обновить балансы</string>
 	<key>Refresh dependencies</key>
 	<string>Обновить зависимости</string>
+	<key>Refresh the preview before continuing.</key>
+	<string>Обновите предпросмотр перед продолжением.</string>
 	<key>Register a hardware approval key</key>
 	<string>Зарегистрировать ключ аппаратного подтверждения</string>
 	<key>Register an SSH binding</key>
@@ -1464,8 +1540,10 @@
 	<string>Отклонить этот запрос?</string>
 	<key>Rejected</key>
 	<string>Отклонено</string>
-	<key>Release 1.0 is ready for review.</key>
-	<string>Версия 1.0 готова к проверке.</string>
+	<key>Reload saved profile</key>
+	<string>Загрузить сохранённый профиль</string>
+	<key>Remaining</key>
+	<string>осталось</string>
 	<key>Remove</key>
 	<string>Убрать</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1474,6 +1552,8 @@
 	<string>Удалить снимок приложения «Файлы»</string>
 	<key>Remove attachment reference</key>
 	<string>Удалить ссылку на вложение</string>
+	<key>Remove avatar</key>
+	<string>Удалить аватар</string>
 	<key>Remove device binding</key>
 	<string>Удалить привязку к устройству</string>
 	<key>Remove device binding?</key>
@@ -1488,6 +1568,8 @@
 	<string>Удалить данные этого аккаунта с устройства?</string>
 	<key>Remove this account's local data</key>
 	<string>Удалить локальные данные аккаунта</string>
+	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
+	<string>Удаляет зашифрованное рабочее пространство и сохранённый вход на этом устройстве. Аккаунт сервиса и другие устройства сохраняются. Несинхронизированные изменения и файлы без резервной копии будут потеряны.</string>
 	<key>Remove this local agent</key>
 	<string>Удалить локального агента</string>
 	<key>Remove this local agent?</key>
@@ -1520,8 +1602,6 @@
 	<string>Жалоба получена для рассмотрения</string>
 	<key>Reported account</key>
 	<string>Аккаунт, на который подана жалоба</string>
-	<key>Reporting disclosure</key>
-	<string>Раскрытие данных в жалобе</string>
 	<key>Request ID</key>
 	<string>ID запроса</string>
 	<key>Request account deletion</key>
@@ -1534,8 +1614,6 @@
 	<string>Запрос нового устройства</string>
 	<key>Request recovery</key>
 	<string>Запросить восстановление</string>
-	<key>Request source</key>
-	<string>Источник запроса</string>
 	<key>Requested permissions</key>
 	<string>Запрашиваемые права</string>
 	<key>Requests that need your decision appear here.</key>
@@ -1544,8 +1622,12 @@
 	<string>Требовать аппаратное подтверждение</string>
 	<key>Require this device to unlock</key>
 	<string>Требовать это устройство для разблокировки</string>
+	<key>Required approvals</key>
+	<string>Нужно одобрений</string>
 	<key>Required cosignatures %u</key>
 	<string>Необходимо соподписей: %u</string>
+	<key>Reserved for uploads</key>
+	<string>Зарезервировано для загрузки</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Завершите ожидающую операцию аккаунта перед его удалением.</string>
 	<key>Restore</key>
@@ -1662,6 +1744,8 @@
 	<string>Разрешить конфликты синхронизации</string>
 	<key>Review the agent's authorization on its originating device.</key>
 	<string>Проверьте разрешения агента на его исходном устройстве.</string>
+	<key>Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.</key>
+	<string>Проверьте актив, получателя, баланс и комиссию до создания предложения. Средства переводятся только после одобрений и выполнения кошельком.</string>
 	<key>Review the complete request</key>
 	<string>Проверить запрос полностью</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
@@ -1734,14 +1818,6 @@
 	<string>Нужно проверить привязку SSH</string>
 	<key>SSH key</key>
 	<string>Ключ SSH</string>
-	<key>Safety and support</key>
-	<string>Безопасность и поддержка</string>
-	<key>Sample action: sign a release announcement</key>
-	<string>Пример действия: подписать объявление о выпуске</string>
-	<key>Sample login</key>
-	<string>Пример учётной записи</string>
-	<key>Sample password</key>
-	<string>Демонстрационный пароль</string>
 	<key>Save</key>
 	<string>Сохранить</string>
 	<key>Save name</key>
@@ -1762,6 +1838,8 @@
 	<string>Сохранено</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
 	<string>Сохранено отдельной версией. Проверьте конфликты синхронизации.</string>
+	<key>Saved data changed. Reload it, then review your preserved draft before publishing.</key>
+	<string>Сохранённые данные изменились. Загрузите их заново и проверьте сохранённый черновик перед публикацией.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>Сохранено для dMsg. Откройте приложение для проверки и импорта.</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
@@ -1804,6 +1882,8 @@
 	<string>Выбрать файл</string>
 	<key>Select a secret</key>
 	<string>Выбрать секрет</string>
+	<key>Select an asset</key>
+	<string>Выберите актив</string>
 	<key>Select attachments to import</key>
 	<string>Вложения для импорта</string>
 	<key>Select attachments to share</key>
@@ -1814,6 +1894,8 @@
 	<string>Поля для передачи</string>
 	<key>Select login items</key>
 	<string>Выбрать учётные записи</string>
+	<key>Selected</key>
+	<string>Выбрано</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>Выбранные поля OTP содержат многоразовый секретный ключ, а не только текущий код.</string>
 	<key>Selected accounts</key>
@@ -1846,6 +1928,10 @@
 	<string>Настроить этот аккаунт</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Настроить этот iPhone как новое устройство</string>
+	<key>Settings</key>
+	<string>Настройки</string>
+	<key>Share</key>
+	<string>Отправить</string>
 	<key>Share a copy</key>
 	<string>Поделиться копией</string>
 	<key>Share binding request</key>
@@ -1882,8 +1968,6 @@
 	<string>Показать</string>
 	<key>Show dismissed findings</key>
 	<string>Показать скрытые результаты</string>
-	<key>Show sample password</key>
-	<string>Показать демонстрационный пароль</string>
 	<key>Show share link</key>
 	<string>Показать ссылку для доступа</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1908,12 +1992,6 @@
 	<string>Собрано подписей</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Подписи соподписантов %@ больше не соответствуют их текущим ключам и отложены; им нужно подписать заново.</string>
-	<key>Simulate approval</key>
-	<string>Имитировать одобрение</string>
-	<key>Simulate rejection</key>
-	<string>Имитировать отклонение</string>
-	<key>Simulate this approval?</key>
-	<string>Имитировать это одобрение?</string>
 	<key>Snapshot</key>
 	<string>Снимок</string>
 	<key>Snapshot link</key>
@@ -1928,8 +2006,12 @@
 	<string>Некоторые файлы есть только на этом iPhone — без облачной копии и недавней синхронизации.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Некоторые записи или свойства не поддерживаются. Импортируются лишь выбранные поля, без вложений архива, ключей доступа и истории.</string>
+	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
+	<string>Не удалось обновить часть данных использования. Недоступные значения не равны нулю.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Часть кошельков ещё не готова. Выполните шаг ещё раз.</string>
+	<key>Source address</key>
+	<string>Исходный адрес</string>
 	<key>Source address %u</key>
 	<string>Исходный адрес %u</string>
 	<key>Spam</key>
@@ -1964,6 +2046,8 @@
 	<string>Остановлено</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>Хранилище приобретается один раз на текущий период подписки и автоматически не продлевается.</string>
+	<key>Storage limit</key>
+	<string>Лимит хранилища</string>
 	<key>Storage packs</key>
 	<string>Пакеты хранилища</string>
 	<key>Storage purchases require an active App Store subscription.</key>
@@ -1974,6 +2058,10 @@
 	<string>Отправить жалобу</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Подписки продлеваются автоматически, пока вы не отмените их в аккаунте Apple. Удаление аккаунта dMsg не отменяет подписку Apple.</string>
+	<key>Suggested fee</key>
+	<string>Рекомендуемая комиссия</string>
+	<key>Suspended</key>
+	<string>Приостановлен</string>
 	<key>Sweep path</key>
 	<string>Путь перевода</string>
 	<key>Sweep the old address</key>
@@ -1982,6 +2070,8 @@
 	<string>Сменить аккаунт</string>
 	<key>Switch to this account</key>
 	<string>Переключиться на этот аккаунт</string>
+	<key>Sync and storage</key>
+	<string>Синхронизация и хранение</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
 	<string>Синхронизация проверяет данные аккаунта и облачные копии. Откройте разговоры или входящие для получения сообщений; файлы восстанавливаются отдельно.</string>
 	<key>Sync conflicts</key>
@@ -2016,8 +2106,6 @@
 	<string>Копия остаётся на этом iPhone только для чтения, чтобы её можно было импортировать. Затем этот iPhone присоединяется к аккаунту как новое устройство: войдите, затем одобрите его с другого устройства или восстановите аккаунт. Старый iPhone продолжает работать.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>Зашифрованная версия займёт место в облаке. Локальная копия останется на этом устройстве.</string>
-	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
-	<string>Указанные области и получатели также ограничивают эти полномочия. Неограниченные права контроллера не делают полномочия неограниченными.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>Экспортированные данные недоступны или истекли. Откройте dMsg и создайте новый снимок.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
@@ -2032,8 +2120,8 @@
 	<string>Последнее проверенное наблюдение сохранено. Текущее состояние подтвердить не удалось.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Ключ локальной привязки недоступен. Сохраните рабочую область и проверьте способы восстановления перед блокировкой.</string>
-	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>Локальная демонстрация доступна всем. Для проверки создания аккаунтов, синхронизации, покупок, уведомлений и аппаратной авторизации выйдите из неё и войдите через Internet Identity.</string>
+	<key>The maximum fee is below the estimate.</key>
+	<string>Лимит ниже оценки.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Размер мобильного пакета ограничен 8 MiB. Предпросмотр проверяет пакет до выбора импортируемых данных.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
@@ -2070,8 +2158,8 @@
 	<string>Не удалось подготовить элементы. Попробуйте импортировать их из dMsg.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>Копирование прервано. Удалите копию и выберите источник заново.</string>
-	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>Тестовое окружение не настроено. Локальное демо и политика конфиденциальности доступны.</string>
+	<key>The test deployment is not configured.</key>
+	<string>Тестовое развёртывание не настроено.</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
 	<string>Разрешение передачи истекло. Отмените задачу и продолжите исходное копирование в открытом приложении либо начните новую загрузку.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
@@ -2098,8 +2186,6 @@
 	<string>Это действие необратимо. Выход из аккаунта сам по себе его не удаляет.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
 	<string>Это изменяет защиту локальной разблокировки и может потребовать системной аутентификации. Восстановление аккаунта и другие устройства не изменяются.</string>
-	<key>This changes only the local sample.</key>
-	<string>Меняется только локальный пример.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Это меняет перечень действий аккаунта, требующих аппаратной подписи. Отключение защиты разрешает эти действия без аппаратного доказательства.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2112,6 +2198,8 @@
 	<string>На устройстве есть несинхронизированные изменения. Сохраните нужное перед удалением аккаунта.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>На этом устройстве нет ключа соподписанта для этого предложения.</string>
+	<key>This device is authorized</key>
+	<string>Это устройство авторизовано</string>
 	<key>This device is replaced by</key>
 	<string>Это устройство заменяется на</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
@@ -2134,8 +2222,6 @@
 	<string>Ключи этого iPhone</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>Список охватывает ссылки и записи передачи на этом устройстве. Другие устройства и произвольные файлы проектов не проверяются.</string>
-	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>Это вымышленный документ. В настоящем аккаунте файлы шифруются на устройстве до копирования. В фоне передаются лишь зашифрованные блоки; для завершения нужен разблокированный исходный аккаунт.</string>
 	<key>This is not the device in the request.</key>
 	<string>Это не устройство из запроса.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
@@ -2152,8 +2238,6 @@
 	<string>Операция временно недоступна. Сохранённые данные не удалены.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Этот пакет уже импортировался на это устройство. Существующие копии остаются независимыми.</string>
-	<key>This preview sends nothing.</key>
-	<string>Этот просмотр ничего не отправляет.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Этот профиль общедоступен. Не включайте секреты или личные контактные данные.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2168,8 +2252,6 @@
 	<string>Будет запрошено прекращение дальнейшего получения данных. Уже сохранённые копии останутся доступны. Неизвестный результат публикации всё равно нужно проверить.</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>Этот снимок требует внимания. Проверьте его состояние, прежде чем продолжить.</string>
-	<key>This tour does not upload files or register system integrations.</key>
-	<string>Демонстрация не загружает файлы и не подключает системные интеграции.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Здесь фиксируются ваши действия на этом устройстве. Учётные данные у поставщика не создаются, не проверяются и не отзываются автоматически.</string>
 	<key>This wallet's key</key>
@@ -2200,14 +2282,14 @@
 	<string>Корзина</string>
 	<key>Trash is empty</key>
 	<string>Корзина пуста</string>
-	<key>Try the local demo</key>
-	<string>Открыть локальную демонстрацию</string>
 	<key>Two versions need your decision</key>
 	<string>Две версии ожидают вашего решения</string>
 	<key>Type</key>
 	<string>Тип</string>
 	<key>Type this account ID to confirm</key>
 	<string>Введите ID аккаунта для подтверждения</string>
+	<key>URL</key>
+	<string>URL</string>
 	<key>Unbind</key>
 	<string>Отвязать</string>
 	<key>Unblock</key>
@@ -2226,10 +2308,16 @@
 	<string>Разблокируйте этот iPhone, чтобы открыть dMsg.</string>
 	<key>Unlock with system authentication</key>
 	<string>Разблокировать системной проверкой</string>
+	<key>Unlock workspace</key>
+	<string>Разблокировать рабочее пространство</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Разблокировать пространство dMsg</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Неограниченные права делегирования</string>
+	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
+	<string>До 8 областей и 4 аудиторий. Используйте HTTPS-источники или ID агентов, без подстановочных знаков.</string>
+	<key>Updated</key>
+	<string>Изменено</string>
 	<key>Uploading</key>
 	<string>Загрузка</string>
 	<key>Uploading encrypted backup</key>
@@ -2238,6 +2326,8 @@
 	<string>Отправка приостановлена. Освободите место в облаке и повторите попытку; приём продолжается.</string>
 	<key>Url</key>
 	<string>URL</string>
+	<key>Usage</key>
+	<string>Использование</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Используйте пароль из снимка, явно экспортированного в dMsg.</string>
 	<key>Use a secret through a device policy</key>
@@ -2246,8 +2336,6 @@
 	<string>Использовать ключ подписи SSH</string>
 	<key>Use conflicting version</key>
 	<string>Использовать конфликтующую версию</string>
-	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>Используйте вымышленные данные. Закрытие демонстрации удалит изменения.</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Используйте icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol или sol:mint.</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2256,6 +2344,8 @@
 	<string>Использовать эту папку</string>
 	<key>Use this password for:</key>
 	<string>Использовать этот пароль для:</string>
+	<key>Used</key>
+	<string>Использовано</string>
 	<key>Username</key>
 	<string>Имя пользователя</string>
 	<key>Value</key>
@@ -2280,6 +2370,8 @@
 	<string>Проверка данных аккаунта…</string>
 	<key>Verifying…</key>
 	<string>Проверка…</string>
+	<key>Version</key>
+	<string>Версия</string>
 	<key>Version history</key>
 	<string>История версий</string>
 	<key>Versions</key>
@@ -2306,6 +2398,8 @@
 	<string>Ожидание другого устройства</string>
 	<key>Waiting for your decision</key>
 	<string>Ожидает вашего решения</string>
+	<key>Waiting period</key>
+	<string>Период ожидания</string>
 	<key>Waiting to submit</key>
 	<string>Ожидает отправки</string>
 	<key>Waiting to sync</key>
@@ -2336,8 +2430,6 @@
 	<string>Сайт</string>
 	<key>Welcome back.</key>
 	<string>С возвращением.</string>
-	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>Добро пожаловать в локальное демо. Эти сообщения остаются на этом экране.</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Пока dMsg открыт и разблокирован, сейф синхронизируется автоматически. Сообщения обновляются при открытии беседы или входящих. Резервное копирование файлов требует отдельного подтверждения. Автоматическую синхронизацию можно отключить в любое время.</string>
 	<key>Who may contact you</key>
@@ -2354,8 +2446,6 @@
 	<string>Рабочее пространство скопировано с другого iPhone</string>
 	<key>Workspace destination</key>
 	<string>Раздел рабочего пространства</string>
-	<key>Write a demo message</key>
-	<string>Написать демонстрационное сообщение</string>
 	<key>Write a letter</key>
 	<string>Написать письмо</string>
 	<key>Write a message</key>
@@ -2376,6 +2466,8 @@
 	<string>Текущий тариф оформлен вне App Store. Дождитесь его окончания перед оформлением подписки App Store.</string>
 	<key>Your decision applies only to this request.</key>
 	<string>Ваше решение относится только к этому запросу.</string>
+	<key>Your draft stays until this workspace locks. Nothing is submitted.</key>
+	<string>Черновик хранится до блокировки рабочего пространства. Ничего не отправляется.</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
 	<string>Зашифрованные файлы останутся здесь. Сохранённый вход и быстрое разблокирование будут удалены.</string>
 	<key>Your existing device makes the final decision.</key>

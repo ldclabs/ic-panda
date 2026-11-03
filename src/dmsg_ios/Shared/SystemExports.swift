@@ -13,6 +13,8 @@ struct ExportHeader: Codable, Sendable {
     let purpose: ExportPurpose
     let accountHash: String
     let expires: UInt64
+    var createdAt: UInt64? = nil
+    var count: Int? = nil
 }
 struct CredentialExport: Codable, Identifiable, Sendable { let id: String; let title: String; let username: String; let origin: String }
 struct FileExport: Codable, Identifiable, Sendable { let id: String; let name: String; let size: UInt64; let sha256: String; let parts: Int; let modified: UInt64 }
@@ -64,7 +66,7 @@ struct SystemExports: Sendable {
     }
     func prepareCredentials(_ entries: [CredentialInput], account: String, expires: UInt64) throws -> PreparedExport {
         guard purpose == .credentials, !entries.isEmpty, entries.count <= 50 else { throw CocoaError(.coderInvalidValue) }
-        let prepared = try prepare(account: account, expires: expires)
+        let prepared = try prepare(account: account, expires: expires, count: entries.count)
         var committed = false; defer { if !committed { discard(prepared) } }
         var metadata: [CredentialExport] = []
         for entry in entries {
@@ -79,7 +81,7 @@ struct SystemExports: Sendable {
         guard purpose == .files, !entries.isEmpty, entries.count <= 10,
               entries.allSatisfy({ $0.size <= 100 * 1024 * 1024 }),
               entries.reduce(UInt64(0), { $0 + $1.size }) <= 200 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
-        let prepared = try prepare(account: account, expires: expires)
+        let prepared = try prepare(account: account, expires: expires, count: entries.count)
         var committed = false; defer { if !committed { discard(prepared) } }
         var metadata: [FileExport] = []
         for entry in entries {
@@ -96,10 +98,10 @@ struct SystemExports: Sendable {
         }
         try seal(encode(metadata), name: "manifest", prepared: prepared); committed = true; return prepared
     }
-    private func prepare(account: String, expires: UInt64) throws -> PreparedExport {
+    private func prepare(account: String, expires: UInt64, count: Int) throws -> PreparedExport {
         let now = UInt64(Date.now.timeIntervalSince1970 * 1000)
         guard expires > now, expires - now <= 86_400_000 else { throw CocoaError(.coderInvalidValue) }
-        let header = ExportHeader(id: UUID().uuidString, purpose: purpose, accountHash: IncomingShares.accountHash(account), expires: expires)
+        let header = ExportHeader(id: UUID().uuidString, purpose: purpose, accountHash: IncomingShares.accountHash(account), expires: expires, createdAt: now, count: count)
         let directory = try directory(header)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.protectionKey: FileProtectionType.complete])
         return PreparedExport(header: header, key: SymmetricKey(size: .bits256), directory: directory)

@@ -124,7 +124,7 @@ struct NoticeGlobalPreference: Codable, Equatable {
     var revision: UInt64; var enabled: Bool; var pausedUntil: UInt64?; var quietHours: NoticeQuietHours?
     var securityException: Bool; var badge: String
 }
-struct NoticePreferences: Decodable, Equatable {
+struct NoticePreferences: Codable, Equatable {
     var global: NoticeGlobalPreference; var account: NoticeAccountPreference?; var accountId: String?
     var remoteSupported: Bool; var globalPendingSync: Bool?; var globalConflict: Bool?; var accountConflict: Bool?
     var pending: Bool { globalPendingSync == true || (account.map { $0.revision > $0.remoteRevision } ?? false) }

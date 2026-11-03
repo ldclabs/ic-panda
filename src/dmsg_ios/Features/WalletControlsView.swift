@@ -137,7 +137,7 @@ struct WalletControlsView: View {
     }
 }
 
-private func walletRoleTitle(_ role: String) -> String {
+func walletRoleTitle(_ role: String) -> String {
     switch role {
     case "Admin": String(localized: "Administrator")
     case "Approver": String(localized: "Approver")

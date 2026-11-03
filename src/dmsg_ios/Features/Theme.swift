@@ -40,7 +40,7 @@ extension View {
 private struct PrivateScreen: ViewModifier {
     @Environment(SessionModel.self) private var model
     func body(content: Content) -> some View {
-        content.scrollContentBackground(.hidden).background(Theme.paper).privacySensitive()
+        content.scrollDismissesKeyboard(.interactively).scrollContentBackground(.hidden).background(Theme.paper).privacySensitive()
             .listSectionSpacing(.compact)
             .onAppear { model.activity() }
     }

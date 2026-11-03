@@ -1680,6 +1680,7 @@ impl MobileEngine {
         description: String,
         expected_updated_at: i64,
         avatar_url: Option<String>,
+        links_json: Option<String>,
     ) -> Result<ObjectSnapshot> {
         let text = |value: String| Some(value.trim().to_string()).filter(|v| !v.is_empty());
         let (name, description) = (text(name), text(description));
@@ -1694,6 +1695,10 @@ impl MobileEngine {
                 document.description = description;
                 if let Some(avatar) = avatar_url {
                     document.avatar_url = (!avatar.is_empty()).then_some(avatar);
+                }
+                if let Some(links) = links_json {
+                    document.links = serde_json::from_str(&links)
+                        .map_err(|_| dmsg_types::invalid("profile links"))?;
                 }
                 let info = c.publish_document(&document).await?;
                 Ok(serde_json::json!({

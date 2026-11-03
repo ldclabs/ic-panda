@@ -14,6 +14,7 @@ struct NotificationSettingsView: View {
     /// Other local accounts already receiving notifications on this device.
     @State private var others: [String] = []
     @State private var linking = false
+    @State private var draftEpoch: UInt64 = 0
     private var dirty: Bool { draft?.global != saved?.global || draft?.account != saved?.account }
     private var scope: String { "\(model.epoch):\(model.session?.account ?? "")" }
     var body: some View {
@@ -21,7 +22,7 @@ struct NotificationSettingsView: View {
             Section {
                 LabeledContent("System permission", value: status)
                 Button("Open notification settings") { if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) } }
-                Button(NoticeCopy.text("noticeTest")) { Task { await test() } }.accessibilityIdentifier("notifications.test")
+                SettingsAction(LocalizedStringKey(NoticeCopy.text("noticeTest"))) { Task { await test() } }.accessibilityIdentifier("notifications.test")
             }
             if draft != nil {
                 Section(NoticeCopy.text("noticeSettings")) {
@@ -75,21 +76,22 @@ struct NotificationSettingsView: View {
                     if saved?.remoteSupported == false { NoticeBar(text: NoticeCopy.text("noticeRemote")) }
                     if saved?.pending == true { NoticeBar(text: NoticeCopy.text("noticePending")); Text(NoticeCopy.text("noticePendingHint")).font(.footnote).foregroundStyle(.secondary) }
                     if let registration = model.push.status { NoticeBar(text: registration) }
-                    Button(saved?.conflict == true ? String(localized: "Retry") : String(localized: "Save settings")) { Task { await save() } }
+                    SettingsAction(LocalizedStringKey(saved?.conflict == true ? "Retry" : "Save settings"), prominent: true) { Task { await save() } }
                         .disabled(!dirty && saved?.conflict != true).accessibilityIdentifier("notifications.save")
-                    Button("Retry registration") { Task { await model.push.refresh(model); await load(preserve: true) } }
+                    SettingsAction("Retry registration") { Task { await model.push.refresh(model); await load(preserve: true) } }
                 }
-            } else if !loading { Button("Retry") { Task { await load() } } }
+            } else if !loading { SettingsAction("Retry") { Task { await load() } } }
             if loading || working || model.push.working { ProgressView() }
             if failed { NoticeBar(text: String(localized: "Connection unavailable. Your saved content stays on this device.")) }
         }
-        .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings"))
+        .disabled(working).privateScreen().navigationTitle(NoticeCopy.text("noticeSettings")).confirmLeavingDraft(dirty)
         .confirmationDialog(NoticeCopy.text("noticeLinkTitle"), isPresented: $linking, titleVisibility: .visible) {
             Button(NoticeCopy.text("noticeLinkConfirm")) { Task { await save(linked: true) } }
         } message: {
             Text(NoticeCopy.text("noticeLinkBody") + "\n\n" + NoticeCopy.text("noticeLinkAccounts") + "\n" + others.joined(separator: "\n"))
         }
-        .task(id: scope) { await load() }
+        .task(id: scope) { draftEpoch = model.epoch; await load() }
+        .onDisappear { if dirty, let draft { model.keepFormDraft("notifications", value: draft, epoch: draftEpoch) } }
         .refreshable { await model.notifications.refresh(model, receive: true); await load(preserve: dirty) }
         .accessibilityIdentifier("notifications.settings")
     }
@@ -123,7 +125,10 @@ struct NotificationSettingsView: View {
                 counts = try model.decode(try await engine.notificationStatus())
             }
             guard current == scope, request == token, !Task.isCancelled else { return }
-            saved = next; if !preserve || draft == nil { draft = next }
+            saved = next; if !preserve || draft == nil {
+                let restored = model.formDraft("notifications", as: NoticePreferences.self)
+                if let restored, restored.accountId == next.accountId { draft = restored } else { draft = next }
+            }
             others = (counts?.accounts ?? []).filter { $0.enabled && $0.account != next.accountId }.map(\.account)
         } catch { if current == scope { failed = true } }
     }
@@ -139,7 +144,7 @@ struct NotificationSettingsView: View {
             guard current == scope, !Task.isCancelled else { return }
             if model.uiTesting {
                 value.global.revision += 1; value.account?.revision += 1; value.globalPendingSync = true
-                model.notifications.saveFixture(value); self.saved = value; draft = value; return
+                model.notifications.saveFixture(value); self.saved = value; draft = value; model.settingsDrafts.removeValue(forKey: "notifications"); return
             }
             guard let engine = model.engine else { return }
             if value.global != saved.global || saved.globalConflict == true {
@@ -150,7 +155,7 @@ struct NotificationSettingsView: View {
                 value.account = try model.decode(try await engine.notificationSetAccount(selected: id, expected: saved.account?.revision ?? 0, settingsJson: NoticeEncoding.json(account)))
             }
             guard current == scope, !Task.isCancelled else { return }
-            self.saved = value; draft = value
+            self.saved = value; draft = value; model.settingsDrafts.removeValue(forKey: "notifications")
             await model.push.refresh(model); await model.notifications.refresh(model, receive: true)
             await load()
         } catch { if current == scope { await load(preserve: true); model.report(error) } }

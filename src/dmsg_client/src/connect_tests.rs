@@ -532,9 +532,7 @@ fn browser_candidates_keep_mac_expiry_and_consumption_checks_after_network_reads
         c.verified_candidates(id, &data, invitation.expires_at),
         Err(Error::Expired)
     ));
-    c.workspace
-        .delete_private(&format!("{INVITE}{id}"))
-        .unwrap();
+    c.forget_connect_invitation(id).unwrap();
     assert!(matches!(
         c.verified_candidates(id, &data, now),
         Err(Error::NotFound)

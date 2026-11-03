@@ -28,8 +28,8 @@ struct ReportContentView: View {
             if target.kind != "account" { Toggle("Include this message's text", isOn: $disclose) }
             NoticeBar(text: String(localized: "Your report and any text you explicitly include will be sent to the moderation team. Other private content and keys are not included."))
             if received { Label("Report received for review", systemImage: "checkmark.circle") }
-            else { Button(LocalizedStringKey(reportID == nil ? "Submit report" : "Retry this report")) { Task { await submit() } } }
-            Button("Block this account", role: .destructive) { Task { await model.blockAccount(target.account, blocked: true) } }
+            else { SettingsAction(LocalizedStringKey(reportID == nil ? "Submit report" : "Retry this report"), prominent: true) { Task { await submit() } } }
+            SettingsAction("Block this account", role: .destructive) { Task { await model.blockAccount(target.account, blocked: true) } }
             Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
         }.disabled(working).privateScreen().navigationTitle("Report content")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
@@ -55,46 +55,92 @@ struct ReportContentView: View {
     }
 }
 
-struct SafetySettingsView: View {
-    @Environment(SessionModel.self) private var model
-    @State private var reports: [Report] = []
-    struct Report: Decodable, Identifiable { let id: String; let state: String; let resolution: String? }
+struct MessageSettingsView: View {
     var body: some View {
         List {
-            Section("Blocked accounts") {
-                ForEach(model.blockedAccounts.sorted(), id: \.self) { account in
-                    VStack(alignment: .leading, spacing: 8) {
-                        FingerprintRow(title: "Account ID", value: account)
-                        Button("Unblock") { Task { await model.blockAccount(account, blocked: false) } }
-                    }
-                }
-                if model.blockedAccounts.isEmpty { Text("No blocked accounts").foregroundStyle(.secondary) }
-                Text("Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.").font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Your reports") {
-                ForEach(reports) { report in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(LocalizedStringKey(report.state == "reviewed" ? "Reviewed" : report.state == "pending" ? "Waiting to submit" : "Received for review"))
-                        if let resolution = report.resolution { Text(resolution).font(.footnote) }
-                        if report.state == "pending" { Button("Retry this report") { Task {
-                            do { if let engine = model.engine { _ = try await coreOperation { try await engine.submitReport(id: report.id, operation: $0) } }; await load() }
-                            catch { model.report(error) }
-                        } } }
-                    }
-                }
-            }
-            Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!)
-        }.privateScreen().navigationTitle("Safety and support").task { await load() }.refreshable { await load() }
+            NavigationLink("Inbox settings") { InboxSettingsView() }
+            NavigationLink("Blocked accounts") { BlockedAccountsView() }.accessibilityIdentifier("messages.blocked")
+            NavigationLink("Your reports") { ReportsView() }.accessibilityIdentifier("messages.reports")
+        }.privateScreen().navigationTitle("Message settings")
     }
-    private func load() async {
-        await model.loadBlockedAccounts()
-        do {
-            if let local = try await model.engine?.reportHistory(refresh: false) { reports = try model.decode(local) }
-            if let remote = try await model.engine?.reportHistory(refresh: true) {
-                let updates: [Report] = try model.decode(remote)
-                let ids = Set(updates.map(\.id)); reports = updates + reports.filter { !ids.contains($0.id) }
+}
+
+struct BlockedAccountsView: View {
+    @Environment(SessionModel.self) private var model
+    @State private var loading = false
+    @State private var failed = false
+    @State private var working = false
+
+    var body: some View {
+        List {
+            SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
+            ForEach(model.blockedAccounts.sorted(), id: \.self) { account in
+                VStack(alignment: .leading, spacing: 8) {
+                    FingerprintRow(title: "Account ID", value: account)
+                    Button("Unblock") { Task { await unblock(account) } }.disabled(working)
+                }
             }
-        } catch { model.report(error) }
+            if !loading && !failed && model.blockedAccounts.isEmpty { ContentUnavailableView("No blocked accounts", systemImage: "person.slash") }
+            Text("Blocked senders are hidden on this device. Online blocks also prevent new direct contact and invitations; existing shared copies are not recalled.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }.privateScreen().navigationTitle("Blocked accounts").task { await load() }.refreshable { await load() }
+    }
+
+    private func load() async {
+        guard !loading else { return }; loading = true
+        failed = !(await model.loadBlockedAccounts()); loading = false
+    }
+
+    private func unblock(_ account: String) async {
+        guard !working else { return }; working = true; defer { working = false }
+        if await model.blockAccount(account, blocked: false) { model.notice = String(localized: "Saved") }
+    }
+}
+
+struct ReportsView: View {
+    @Environment(SessionModel.self) private var model
+    @State private var reports: [Report] = []
+    @State private var loading = false
+    @State private var failed = false
+    @State private var working = false
+    struct Report: Decodable, Identifiable { let id: String; let state: String; let resolution: String? }
+
+    var body: some View {
+        List {
+            SettingsLoadStatus(loading: loading, failed: failed) { Task { await load() } }
+            ForEach(reports) { report in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(LocalizedStringKey(report.state == "reviewed" ? "Reviewed" : report.state == "pending" ? "Waiting to submit" : "Received for review"))
+                    FingerprintRow(title: "Request ID", value: report.id)
+                    if let resolution = report.resolution { Text(resolution).font(.footnote) }
+                    if report.state == "pending" { Button("Retry this report") { Task { await retry(report) } }.disabled(working) }
+                }
+            }
+            if !loading && !failed && reports.isEmpty { ContentUnavailableView("No reports", systemImage: "flag") }
+        }.privateScreen().navigationTitle("Your reports").task { await load() }.refreshable { await load() }
+    }
+
+    private func load() async {
+        guard !loading else { return }; loading = true; failed = false
+        let epoch = model.epoch; defer { loading = false }
+        if model.uiTesting { return }
+        do {
+            guard let engine = model.engine else { throw CancellationError() }
+            let local: [Report] = try model.decode(try await engine.reportHistory(refresh: false))
+            guard epoch == model.epoch, !Task.isCancelled else { return }; reports = local
+            let remote: [Report] = try model.decode(try await engine.reportHistory(refresh: true))
+            guard epoch == model.epoch, !Task.isCancelled else { return }
+            let ids = Set(remote.map(\.id)); reports = remote + reports.filter { !ids.contains($0.id) }
+        } catch { if epoch == model.epoch, !Task.isCancelled { failed = true } }
+    }
+
+    private func retry(_ report: Report) async {
+        guard let engine = model.engine, !working else { return }
+        let epoch = model.epoch; working = true; defer { working = false }
+        do {
+            _ = try await coreOperation { try await engine.submitReport(id: report.id, operation: $0) }
+            if epoch == model.epoch { await load() }
+        } catch { if epoch == model.epoch { model.report(error) } }
     }
 }
 
@@ -126,9 +172,9 @@ struct AccountDeletionView: View {
                 Section("Deletion status") {
                     Text(LocalizedStringKey(job.state == "deleted" ? "Cloud deletion completed" : "Deletion is in progress"))
                     FingerprintRow(title: "Request ID", value: job.id)
-                    Button("Check deletion status") { Task { await checkStatus() } }
+                    SettingsAction("Check deletion status") { Task { await checkStatus() } }
                 }
-                if job.state == "deleted" { Button("Remove this account's local data", role: .destructive) { removingLocal = true } }
+                if job.state == "deleted" { SettingsAction("Remove this account's local data", role: .destructive) { removingLocal = true } }
             } else if let preview {
                 FingerprintRow(title: "Account ID", value: preview.details.account)
                 if preview.details.pendingSync > 0 { NoticeBar(text: String(localized: "This device has changes that have not synced. Save anything you need before deleting the account.")) }
@@ -147,10 +193,10 @@ struct AccountDeletionView: View {
                     }
                 }
                 TextField("Type this account ID to confirm", text: $confirmation).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight)
-                Button("Request account deletion", role: .destructive) { confirming = true }
+                SettingsAction("Request account deletion", role: .destructive) { confirming = true }
                     .disabled(working || confirmation != preview.details.account || preview.details.pendingAccountOperation || !preview.details.ownedChannels.isEmpty || ((!preview.details.wallets.isEmpty || !preview.details.walletsAvailable) && !reviewedWallets))
             } else if working { ProgressView() }
-            else { Button("Review deletion") { Task { await load() } } }
+            else { SettingsAction("Review deletion") { Task { await load() } } }
             NavigationLink("Privacy policy") { PrivacyPolicyView() }
         }.privateScreen().navigationTitle("Delete account").task { await load() }
             .refreshable { await load() }.manageSubscriptionsSheet(isPresented: $managingSubscriptions)

@@ -29,7 +29,9 @@
 	<key>API credential</key>
 	<string>API 凭据</string>
 	<key>About</key>
-	<string>针对的贡献</string>
+	<string>简介</string>
+	<key>About dMsg</key>
+	<string>关于 dMsg</string>
 	<key>Accept approved binding</key>
 	<string>接受已批准的绑定</string>
 	<key>Access granted</key>
@@ -54,10 +56,14 @@
 	<string>账户、设备与身份</string>
 	<key>Accounts</key>
 	<string>账户</string>
+	<key>Active</key>
+	<string>活跃</string>
 	<key>Active conversations</key>
 	<string>活动会话</string>
 	<key>Activity on this device</key>
 	<string>本设备活动</string>
+	<key>Add account</key>
+	<string>添加账户</string>
 	<key>Add device</key>
 	<string>添加设备</string>
 	<key>Add field</key>
@@ -66,20 +72,20 @@
 	<string>加入地址簿</string>
 	<key>Add item</key>
 	<string>新增条目</string>
-	<key>Add message to demo</key>
-	<string>添加演示消息</string>
+	<key>Add link</key>
+	<string>添加链接</string>
 	<key>Add one-time code</key>
 	<string>添加一次性验证码</string>
 	<key>Add protector</key>
 	<string>添加保护钥匙</string>
 	<key>Add receiving address</key>
 	<string>添加收款地址</string>
-	<key>Add sample login</key>
-	<string>添加示例登录项</string>
 	<key>Add the new address</key>
 	<string>添加新地址</string>
 	<key>Added</key>
 	<string>加入于</string>
+	<key>Additional reserve / rent</key>
+	<string>额外储备／租金</string>
 	<key>Address</key>
 	<string>地址</string>
 	<key>Address label</key>
@@ -90,6 +96,8 @@
 	<string>管理操作批准数 %u</string>
 	<key>Administrator</key>
 	<string>管理员</string>
+	<key>Advanced</key>
+	<string>高级</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>批准钱包请求后，请在新设备上重新生成替换请求。</string>
 	<key>Agent ID</key>
@@ -116,10 +124,16 @@
 	<string>已导入</string>
 	<key>Already present</key>
 	<string>已存在</string>
+	<key>Amount</key>
+	<string>金额</string>
 	<key>Amount in base units</key>
 	<string>金额（最小单位）</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
 	<string>有一个账户恢复请求正在等待执行，请到“账户安全”中审阅。</string>
+	<key>An administrator device is required to change account security.</key>
+	<string>更改账户安全设置需要管理员设备。</string>
+	<key>An administrator device is required to publish this profile.</key>
+	<string>发布此公开资料需要管理员设备。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>持有完整链接及所需密码的人，都可在限制范围内取回内容。</string>
 	<key>Anyone, free of charge</key>
@@ -180,6 +194,10 @@
 	<string>到账</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>请管理员将这个登录身份绑定到已有账户。设备授权需要单独完成。</string>
+	<key>Asset</key>
+	<string>资产</string>
+	<key>Asset details are unavailable. Retry before entering an amount.</key>
+	<string>无法获取资产信息，请重试后再输入金额。</string>
 	<key>Asset identifier</key>
 	<string>资产标识</string>
 	<key>Attach</key>
@@ -220,6 +238,8 @@
 	<string>自动填充快照已更新</string>
 	<key>Automatic foreground sync</key>
 	<string>前台自动同步</string>
+	<key>Available after</key>
+	<string>可用时间</string>
 	<key>Back</key>
 	<string>后退</string>
 	<key>Back up encrypted copy</key>
@@ -244,6 +264,10 @@
 	<string>备份进度已保存，请在文件状态中查看是否完成。</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
 	<string>备份已加入队列，请保持 dMsg 打开以完成上传。</string>
+	<key>Backups found</key>
+	<string>备份数量</string>
+	<key>Balance</key>
+	<string>余额</string>
 	<key>Bind another Internet Identity</key>
 	<string>绑定另一个 Internet Identity</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -274,6 +298,8 @@
 	<string>浏览器请求</string>
 	<key>Cached data</key>
 	<string>缓存数据</string>
+	<key>Cached data cleared</key>
+	<string>缓存已清理</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>无法使用摄像头。请粘贴邀请，或在系统设置中允许访问摄像头。</string>
 	<key>Cancel</key>
@@ -328,12 +354,16 @@
 	<string>频道快照</string>
 	<key>Channels</key>
 	<string>频道</string>
+	<key>Check account IDs and remove duplicates.</key>
+	<string>请核对账户 ID，并移除重复项。</string>
 	<key>Check addresses</key>
 	<string>检查地址</string>
 	<key>Check authorization</key>
 	<string>检查授权状态</string>
 	<key>Check deletion status</key>
 	<string>查询删除状态</string>
+	<key>Check field lengths and use named HTTPS links.</key>
+	<string>请检查字段长度，并为 HTTPS 链接填写名称。</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>检查项目引用及已经交付的副本。</string>
 	<key>Check recovery status</key>
@@ -370,6 +400,8 @@
 	<string>选择谁可以向你免费发送来信。已屏蔽账号会保持屏蔽，直到你解除。</string>
 	<key>Clear cached data</key>
 	<string>清理缓存</string>
+	<key>Close invitation</key>
+	<string>结束邀请</string>
 	<key>Closed</key>
 	<string>关闭</string>
 	<key>Cloud backup file limit</key>
@@ -430,6 +462,8 @@
 	<string>联系邀请（如有）</string>
 	<key>Contact support</key>
 	<string>联系支持</string>
+	<key>Content signing</key>
+	<string>内容签名</string>
 	<key>Continue import</key>
 	<string>继续导入</string>
 	<key>Continue password import</key>
@@ -452,20 +486,28 @@
 	<string>控制器与委托</string>
 	<key>Conversation</key>
 	<string>对话</string>
+	<key>Conversation limit</key>
+	<string>会话数量上限</string>
 	<key>Conversation name</key>
 	<string>对话名称</string>
 	<key>Conversation settings</key>
 	<string>会话设置</string>
+	<key>Copied</key>
+	<string>已复制</string>
 	<key>Copied for 30 seconds</key>
 	<string>已复制，30 秒后过期</string>
 	<key>Copies from other iPhones</key>
 	<string>来自其他 iPhone 的副本</string>
 	<key>Copy</key>
 	<string>复制</string>
+	<key>Copy account ID</key>
+	<string>复制账户 ID</string>
 	<key>Copy address</key>
 	<string>复制地址</string>
 	<key>Copy binding request</key>
 	<string>复制绑定请求</string>
+	<key>Copy device ID</key>
+	<string>复制设备 ID</string>
 	<key>Copy enrollment request</key>
 	<string>复制登记请求</string>
 	<key>Copy for 30 seconds</key>
@@ -542,6 +584,8 @@
 	<string>凭据轮换</string>
 	<key>Current</key>
 	<string>当前</string>
+	<key>Current account</key>
+	<string>当前账户</string>
 	<key>Current local dependencies</key>
 	<string>当前本地依赖</string>
 	<key>Current login</key>
@@ -592,12 +636,6 @@
 	<string>删除状态</string>
 	<key>Deliver a secret to a local process</key>
 	<string>向本地进程交付秘密</string>
-	<key>Demo approved · No signature created</key>
-	<string>演示已批准 · 未创建签名</string>
-	<key>Demo rejected · No signature created</key>
-	<string>演示已拒绝 · 未创建签名</string>
-	<key>Demo section</key>
-	<string>演示内容</string>
 	<key>Dependencies on this device</key>
 	<string>此设备上的依赖</string>
 	<key>Describe the issue</key>
@@ -612,6 +650,8 @@
 	<string>目标位置</string>
 	<key>Destination folder</key>
 	<string>目标文件夹</string>
+	<key>Details</key>
+	<string>详情</string>
 	<key>Device</key>
 	<string>设备</string>
 	<key>Device ID</key>
@@ -686,6 +726,8 @@
 	<string>邮箱</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>在自动填充设置中启用 dMsg</string>
+	<key>Enabled</key>
+	<string>已启用</string>
 	<key>Encrypted backup</key>
 	<string>加密备份</string>
 	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
@@ -696,16 +738,18 @@
 	<string>数据库引擎</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>已录入的生物识别信息发生变化。依赖此钥匙前，请注册替代钥匙。</string>
+	<key>Enter a valid account ID.</key>
+	<string>请输入有效的账户 ID。</string>
+	<key>Enter an exact amount within the asset's precision.</key>
+	<string>请输入正数，且不要超过资产精度。</string>
 	<key>Enter the session code the receiving device shows.</key>
 	<string>输入接收设备显示的会话码。</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>请输入有效账号 ID，每行一个。</string>
 	<key>Error details</key>
 	<string>错误详情</string>
-	<key>Example document</key>
-	<string>示例文档</string>
-	<key>Example login</key>
-	<string>示例登录项</string>
+	<key>Estimated fee</key>
+	<string>预计手续费</string>
 	<key>Execute</key>
 	<string>执行</string>
 	<key>Execute approved proposal</key>
@@ -814,8 +858,6 @@
 	<string>隐藏</string>
 	<key>Hide on this device</key>
 	<string>在本机隐藏</string>
-	<key>Hide sample sender</key>
-	<string>隐藏示例发送者</string>
 	<key>Historical version</key>
 	<string>历史版本</string>
 	<key>Host</key>
@@ -874,8 +916,6 @@
 	<string>导入所选秘密内容</string>
 	<key>In Trash</key>
 	<string>已在回收站</string>
-	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>真实举报会向服务发送举报原因及账号、资源标识。仅在你明确选择披露时才包含消息正文。</string>
 	<key>In progress</key>
 	<string>进行中</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
@@ -892,6 +932,8 @@
 	<string>核对配对请求</string>
 	<key>Inspect this version</key>
 	<string>查看这个版本</string>
+	<key>Insufficient balance</key>
+	<string>余额不足</string>
 	<key>Integrity</key>
 	<string>完整性</string>
 	<key>Interrupted</key>
@@ -906,6 +948,8 @@
 	<string>条目附件</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>条目引用可能先于文件同步。只有此设备上可用的文件才能加入新快照。</string>
+	<key>Items</key>
+	<string>条目数</string>
 	<key>Join</key>
 	<string>加入</string>
 	<key>Join account</key>
@@ -920,6 +964,8 @@
 	<string>换机需要一台仍可解锁的授权设备。丢失全部授权设备后，即使找回登录，也无法恢复云端内容。</string>
 	<key>Keep current version</key>
 	<string>保留当前版本</string>
+	<key>Keep draft and leave</key>
+	<string>保留草稿并离开</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>把秘密、对话与文件放在一起，只有你授权的设备才能打开。</string>
 	<key>Key</key>
@@ -948,6 +994,8 @@
 	<string>退出会话</string>
 	<key>Leave empty to keep existing value</key>
 	<string>留空以保留现有内容</string>
+	<key>Leave this form?</key>
+	<string>离开此表单？</string>
 	<key>Leave this step behind?</key>
 	<string>跳过这一步？</string>
 	<key>Left behind</key>
@@ -960,8 +1008,8 @@
 	<string>授权给</string>
 	<key>Link limits</key>
 	<string>链接限制</string>
-	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>真实请求会显示已验证来源及完整载荷，并要求配置的系统或硬件批准。</string>
+	<key>Links</key>
+	<string>链接</string>
 	<key>Load earlier activity</key>
 	<string>加载更早的活动</string>
 	<key>Load earlier messages</key>
@@ -972,16 +1020,14 @@
 	<string>加载更多</string>
 	<key>Loading the verified request…</key>
 	<string>正在加载已验证的请求…</string>
+	<key>Loading…</key>
+	<string>正在读取…</string>
 	<key>Local</key>
 	<string>本机</string>
 	<key>Local content</key>
 	<string>本机内容</string>
 	<key>Local delivery record</key>
 	<string>本地交付记录</string>
-	<key>Local demo</key>
-	<string>本地演示</string>
-	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>本地演示 · 虚构数据 · 关闭后重置</string>
 	<key>Local dependencies</key>
 	<string>本地依赖</string>
 	<key>Local dependency</key>
@@ -1003,7 +1049,7 @@
 	<key>Lock immediately in background</key>
 	<string>进入后台立即锁定</string>
 	<key>Lock workspace</key>
-	<string>锁定保险库</string>
+	<string>锁定工作区</string>
 	<key>Locking pauses transfers; unlocking resumes them.</key>
 	<string>锁定时暂停传输，解锁后自动继续。</string>
 	<key>Login identities</key>
@@ -1018,8 +1064,12 @@
 	<string>管理订阅</string>
 	<key>Mark as read</key>
 	<string>标记为已读</string>
+	<key>Maximum fee</key>
+	<string>费用上限</string>
 	<key>Maximum fee in base units</key>
 	<string>最高费用（最小单位）</string>
+	<key>Member</key>
+	<string>成员</string>
 	<key>Member account ID</key>
 	<string>目标成员账户 ID</string>
 	<key>Member account or Principal</key>
@@ -1030,12 +1080,16 @@
 	<string>成员列表</string>
 	<key>Message</key>
 	<string>发送私信</string>
+	<key>Message settings</key>
+	<string>消息设置</string>
 	<key>Message withdrawn</key>
 	<string>消息已撤回</string>
 	<key>Messages</key>
 	<string>消息</string>
 	<key>Month</key>
 	<string>年月</string>
+	<key>Monthly execution limit</key>
+	<string>每月执行额度上限</string>
 	<key>Monthly execution units</key>
 	<string>每月执行额度</string>
 	<key>Move a native address</key>
@@ -1102,8 +1156,12 @@
 	<string>下次重试</string>
 	<key>No</key>
 	<string>否</string>
+	<key>No accounts</key>
+	<string>没有账户</string>
 	<key>No activity on this device</key>
 	<string>此设备暂无活动</string>
+	<key>No agents</key>
+	<string>没有智能体</string>
 	<key>No background transfer</key>
 	<string>没有后台传输</string>
 	<key>No blocked accounts</key>
@@ -1114,6 +1172,8 @@
 	<string>没有已连接的浏览器</string>
 	<key>No conversations yet</key>
 	<string>还没有对话</string>
+	<key>No credentials</key>
+	<string>没有凭证</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>此设备尚未记录依赖。</string>
 	<key>No findings from this device's checks.</key>
@@ -1132,12 +1192,18 @@
 	<string>没有待处理备份</string>
 	<key>No recent use observed on this device</key>
 	<string>此设备近期未观察到使用记录</string>
+	<key>No recovery request</key>
+	<string>没有恢复请求</string>
 	<key>No registered approval key</key>
 	<string>未注册批准钥匙</string>
+	<key>No reports</key>
+	<string>暂无举报</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>不选择联合签名者，表示不设置额外协签策略。批准前请核对完整提案。</string>
 	<key>No shared items waiting</key>
 	<string>没有待接收的分享内容</string>
+	<key>No snapshot</key>
+	<string>没有快照</string>
 	<key>No snapshots on this device</key>
 	<string>此设备尚无快照</string>
 	<key>Not enabled</key>
@@ -1222,6 +1288,8 @@
 	<string>打开通知设置</string>
 	<key>Open private workspace</key>
 	<string>打开私密工作区</string>
+	<key>Open public profile</key>
+	<string>打开公开主页</string>
 	<key>Open secret</key>
 	<string>打开秘密条目</string>
 	<key>Open workspace</key>
@@ -1306,6 +1374,8 @@
 	<string>准备所选快照</string>
 	<key>Prepared on this device</key>
 	<string>已在此设备准备</string>
+	<key>Preview</key>
+	<string>预览</string>
 	<key>Preview and choose what to import</key>
 	<string>预览并选择要导入的内容</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
@@ -1314,8 +1384,8 @@
 	<string>预览文件</string>
 	<key>Preview package</key>
 	<string>预览包内容</string>
-	<key>Preview reporting disclosure</key>
-	<string>预览举报披露说明</string>
+	<key>Preview transfer</key>
+	<string>预览转账</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>已交付的凭证和副本相互独立，请按需单独撤销委托。</string>
 	<key>Principal</key>
@@ -1330,6 +1400,8 @@
 	<string>私密内容已遮挡</string>
 	<key>Proposal %llu</key>
 	<string>提案 %llu</string>
+	<key>Proposal created</key>
+	<string>提案已发起</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
 	<string>提案已创建，请在钱包提案列表中查看。</string>
 	<key>Proposals</key>
@@ -1382,6 +1454,8 @@
 	<string>购买暂不可用。</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>此版本尚未启用推送通知，请打开 dMsg 同步。</string>
+	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
+	<string>快速解锁用于打开工作区；设备绑定限制可解锁的设备；硬件审批保护敏感账户操作。</string>
 	<key>Quick unlock with system authentication</key>
 	<string>使用系统验证快速解锁</string>
 	<key>Read from a desktop file mapping</key>
@@ -1446,6 +1520,8 @@
 	<string>刷新余额</string>
 	<key>Refresh dependencies</key>
 	<string>刷新依赖</string>
+	<key>Refresh the preview before continuing.</key>
+	<string>请刷新预览后再继续。</string>
 	<key>Register a hardware approval key</key>
 	<string>注册硬件批准钥匙</string>
 	<key>Register an SSH binding</key>
@@ -1464,8 +1540,10 @@
 	<string>拒绝这个请求？</string>
 	<key>Rejected</key>
 	<string>已拒绝</string>
-	<key>Release 1.0 is ready for review.</key>
-	<string>1.0 版本已准备好供审核。</string>
+	<key>Reload saved profile</key>
+	<string>重新加载已保存资料</string>
+	<key>Remaining</key>
+	<string>剩余</string>
 	<key>Remove</key>
 	<string>移除成员</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1474,6 +1552,8 @@
 	<string>移除 Files 应用快照</string>
 	<key>Remove attachment reference</key>
 	<string>移除附件引用</string>
+	<key>Remove avatar</key>
+	<string>移除头像</string>
 	<key>Remove device binding</key>
 	<string>移除本机绑定</string>
 	<key>Remove device binding?</key>
@@ -1488,6 +1568,8 @@
 	<string>从此设备移除此账号的数据？</string>
 	<key>Remove this account's local data</key>
 	<string>移除此账号的本机数据</string>
+	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
+	<string>移除此设备上的加密工作区和已保存登录。服务账户及其他设备不受影响。未同步的更改和未备份的文件将丢失。</string>
 	<key>Remove this local agent</key>
 	<string>移除此本机 Agent</string>
 	<key>Remove this local agent?</key>
@@ -1520,8 +1602,6 @@
 	<string>举报已收到，等待处理</string>
 	<key>Reported account</key>
 	<string>被举报账号</string>
-	<key>Reporting disclosure</key>
-	<string>举报披露说明</string>
 	<key>Request ID</key>
 	<string>请求 ID</string>
 	<key>Request account deletion</key>
@@ -1534,8 +1614,6 @@
 	<string>新设备的请求</string>
 	<key>Request recovery</key>
 	<string>申请恢复</string>
-	<key>Request source</key>
-	<string>请求来源</string>
 	<key>Requested permissions</key>
 	<string>申请的权限</string>
 	<key>Requests that need your decision appear here.</key>
@@ -1544,8 +1622,12 @@
 	<string>要求硬件批准</string>
 	<key>Require this device to unlock</key>
 	<string>解锁必须使用此设备</string>
+	<key>Required approvals</key>
+	<string>所需批准数</string>
 	<key>Required cosignatures %u</key>
 	<string>所需联合签名数 %u</string>
+	<key>Reserved for uploads</key>
+	<string>上传预留</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>请先处理待定账号操作，再删除此账号。</string>
 	<key>Restore</key>
@@ -1662,6 +1744,8 @@
 	<string>处理同步冲突</string>
 	<key>Review the agent's authorization on its originating device.</key>
 	<string>请在 Agent 的来源设备上检查其授权。</string>
+	<key>Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.</key>
+	<string>创建提案前请核对资产、收款地址、余额和费用。完成钱包审批与执行后才会转移资金。</string>
 	<key>Review the complete request</key>
 	<string>核对完整请求</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
@@ -1734,14 +1818,6 @@
 	<string>SSH 绑定需要检查</string>
 	<key>SSH key</key>
 	<string>SSH 密钥</string>
-	<key>Safety and support</key>
-	<string>安全与支持</string>
-	<key>Sample action: sign a release announcement</key>
-	<string>示例操作：签署发布公告</string>
-	<key>Sample login</key>
-	<string>示例登录项</string>
-	<key>Sample password</key>
-	<string>示例密码</string>
 	<key>Save</key>
 	<string>保存</string>
 	<key>Save name</key>
@@ -1762,6 +1838,8 @@
 	<string>已保存</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
 	<string>已保存为独立版本，请处理同步冲突。</string>
+	<key>Saved data changed. Reload it, then review your preserved draft before publishing.</key>
+	<string>已保存的资料有变化。请重新加载，再核对保留的草稿后发布。</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>已为 dMsg 暂存。请打开应用查看并导入。</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
@@ -1804,6 +1882,8 @@
 	<string>选择一个文件</string>
 	<key>Select a secret</key>
 	<string>选择一个秘密</string>
+	<key>Select an asset</key>
+	<string>选择资产</string>
 	<key>Select attachments to import</key>
 	<string>选择要导入的附件</string>
 	<key>Select attachments to share</key>
@@ -1814,6 +1894,8 @@
 	<string>选择要分享的字段</string>
 	<key>Select login items</key>
 	<string>选择登录项</string>
+	<key>Selected</key>
+	<string>已选择</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>所选一次性密码字段包含可重复使用的种子密钥，不仅是当前验证码。</string>
 	<key>Selected accounts</key>
@@ -1846,6 +1928,10 @@
 	<string>初始化账户</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>将这台 iPhone 设为新设备</string>
+	<key>Settings</key>
+	<string>设置</string>
+	<key>Share</key>
+	<string>分享</string>
 	<key>Share a copy</key>
 	<string>分享副本</string>
 	<key>Share binding request</key>
@@ -1882,8 +1968,6 @@
 	<string>显示</string>
 	<key>Show dismissed findings</key>
 	<string>显示已忽略的发现</string>
-	<key>Show sample password</key>
-	<string>显示示例密码</string>
 	<key>Show share link</key>
 	<string>显示分享链接</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1908,12 +1992,6 @@
 	<string>已收集的签名</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>协签人 %@ 的签名与其当前密钥不再匹配，已被搁置，需要重新签名。</string>
-	<key>Simulate approval</key>
-	<string>演练批准</string>
-	<key>Simulate rejection</key>
-	<string>演练拒绝</string>
-	<key>Simulate this approval?</key>
-	<string>演练此批准？</string>
 	<key>Snapshot</key>
 	<string>快照</string>
 	<key>Snapshot link</key>
@@ -1928,8 +2006,12 @@
 	<string>有些文件只在这台 iPhone 上，没有云端备份或近期同步。</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>部分源记录或属性不受支持。此处只导入所选字段，不导入归档附件、通行密钥和历史记录。</string>
+	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
+	<string>部分用量未能刷新。无法获取的数值不代表零。</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>还有钱包未完成。请再执行一次此步骤。</string>
+	<key>Source address</key>
+	<string>来源地址</string>
 	<key>Source address %u</key>
 	<string>来源地址 %u</string>
 	<key>Spam</key>
@@ -1964,6 +2046,8 @@
 	<string>已停止</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>存储包为当前订阅周期的一次性购买，不会自动续费。</string>
+	<key>Storage limit</key>
+	<string>存储容量上限</string>
 	<key>Storage packs</key>
 	<string>存储包</string>
 	<key>Storage purchases require an active App Store subscription.</key>
@@ -1974,6 +2058,10 @@
 	<string>提交举报</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>订阅会自动续费，除非你在 Apple 账号设置中取消。删除 dMsg 账号不会取消 Apple 订阅。</string>
+	<key>Suggested fee</key>
+	<string>建议费用</string>
+	<key>Suspended</key>
+	<string>已暂停</string>
 	<key>Sweep path</key>
 	<string>扫币路径</string>
 	<key>Sweep the old address</key>
@@ -1982,6 +2070,8 @@
 	<string>切换账户</string>
 	<key>Switch to this account</key>
 	<string>切换到此账号</string>
+	<key>Sync and storage</key>
+	<string>同步与存储</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
 	<string>同步会检查账号内容和云端备份。打开会话或收件箱以接收消息；文件需单独恢复。</string>
 	<key>Sync conflicts</key>
@@ -2016,8 +2106,6 @@
 	<string>副本以只读方式保留在本机，供导入使用。随后本机作为新设备加入账号：登录后，由另一台设备批准，或恢复账号。旧 iPhone 照常使用。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>加密版本将占用云端空间，本机副本会继续保留。</string>
-	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
-	<string>上述明确范围和接收方也适用于此凭证。控制器拥有不受限权限，并不代表凭证不受限制。</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>导出的凭据不可用或已到期，请打开 dMsg 创建新快照。</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
@@ -2032,8 +2120,8 @@
 	<string>已保留最近一次验证结果，当前状态尚无法确认。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>本机绑定钥匙不可用。请保留此工作区，并在锁定前检查恢复方式。</string>
-	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>所有人都可使用本地演示。要测试账号创建、同步、购买、通知和硬件授权，请退出演示并通过 Internet Identity 登录。</string>
+	<key>The maximum fee is below the estimate.</key>
+	<string>手续费上限低于估算值。</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>移动端包大小上限为 8 MiB。预览会先验证包，再由你选择导入内容。</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
@@ -2070,8 +2158,8 @@
 	<string>无法暂存所选内容，请打开 dMsg 后尝试导入。</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>源文件复制已中断，请丢弃此副本并重新选择来源。</string>
-	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>测试环境尚未配置，仍可使用本地演示和隐私政策。</string>
+	<key>The test deployment is not configured.</key>
+	<string>测试部署尚未配置。</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
 	<string>传输授权已到期。请取消此任务，再在前台继续原备份或启动新下载。</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
@@ -2098,8 +2186,6 @@
 	<string>此操作无法撤销。仅退出登录不会删除账号。</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
 	<string>这会改变本地解锁保护，可能需要系统认证；不会变更账户恢复或其他设备。</string>
-	<key>This changes only the local sample.</key>
-	<string>这只会更改本地示例。</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>这会改变哪些账户操作需要硬件签名。关闭保护后，这些操作无需该硬件证明即可执行。</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2112,6 +2198,8 @@
 	<string>此设备有未同步的修改，请在删除账号前保存需要的内容。</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>本机没有此提案可用的联合签名密钥。</string>
+	<key>This device is authorized</key>
+	<string>此设备已获授权</string>
 	<key>This device is replaced by</key>
 	<string>本设备由以下设备替换</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
@@ -2134,8 +2222,6 @@
 	<string>本 iPhone 的钥匙</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>此清单涵盖本设备的引用和交付记录，不会搜索其他设备或任意项目文件。</string>
-	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>这是本地演示的虚构文档。在真实账号中，所选文件会在设备上加密后备份。后台只传输密文块，完成时需解锁原账号。</string>
 	<key>This is not the device in the request.</key>
 	<string>这不是请求中的设备。</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
@@ -2152,8 +2238,6 @@
 	<string>此操作暂时不可用，已保存的数据会保留。</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>此包已经在本设备导入过。已有副本保持独立。</string>
-	<key>This preview sends nothing.</key>
-	<string>此预览不会发送任何内容。</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>这些资料将公开展示，请勿填写秘密或私密联系方式。</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2168,8 +2252,6 @@
 	<string>这会请求停止之后的内容取回。已保存的副本仍可使用；结果不确定的发布仍需对账。</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>此快照需要处理。继续前，请先核查其状态。</string>
-	<key>This tour does not upload files or register system integrations.</key>
-	<string>此演示不会上传文件或注册系统集成。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>这只记录你在此设备上的工作，不会替你在服务提供方创建、测试或撤销凭据。</string>
 	<key>This wallet's key</key>
@@ -2200,14 +2282,14 @@
 	<string>回收站</string>
 	<key>Trash is empty</key>
 	<string>回收站为空</string>
-	<key>Try the local demo</key>
-	<string>体验本地演示</string>
 	<key>Two versions need your decision</key>
 	<string>两个版本等待你决定</string>
 	<key>Type</key>
 	<string>类型</string>
 	<key>Type this account ID to confirm</key>
 	<string>输入此账号 ID 以确认</string>
+	<key>URL</key>
+	<string>网址</string>
 	<key>Unbind</key>
 	<string>解绑</string>
 	<key>Unblock</key>
@@ -2226,10 +2308,16 @@
 	<string>请先解锁 iPhone，再打开 dMsg。</string>
 	<key>Unlock with system authentication</key>
 	<string>使用系统验证解锁</string>
+	<key>Unlock workspace</key>
+	<string>解锁工作区</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>解锁你的 dMsg 保险库</string>
 	<key>Unrestricted delegation authority</key>
 	<string>不受限的委托权限</string>
+	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
+	<string>最多 8 个权限范围和 4 个依赖方。依赖方使用 HTTPS 源或 Agent ID，不允许通配符。</string>
+	<key>Updated</key>
+	<string>更新于</string>
 	<key>Uploading</key>
 	<string>正在上传</string>
 	<key>Uploading encrypted backup</key>
@@ -2238,6 +2326,8 @@
 	<string>上传已暂停。请释放云端空间后重试；内容接收仍会继续。</string>
 	<key>Url</key>
 	<string>网址</string>
+	<key>Usage</key>
+	<string>用量</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>使用你在 dMsg 中明确导出的快照里的密码。</string>
 	<key>Use a secret through a device policy</key>
@@ -2246,8 +2336,6 @@
 	<string>使用 SSH 签名钥匙</string>
 	<key>Use conflicting version</key>
 	<string>采用冲突版本</string>
-	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>请在此使用虚构数据，关闭演示会丢弃修改。</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>使用 icp、icrc:ledger、btc、evm:chain、evm:chain:token、sol 或 sol:mint。</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2256,6 +2344,8 @@
 	<string>使用此文件夹</string>
 	<key>Use this password for:</key>
 	<string>为以下对象使用此密码：</string>
+	<key>Used</key>
+	<string>已使用</string>
 	<key>Username</key>
 	<string>用户名</string>
 	<key>Value</key>
@@ -2280,6 +2370,8 @@
 	<string>正在验证账号内容…</string>
 	<key>Verifying…</key>
 	<string>核对中…</string>
+	<key>Version</key>
+	<string>版本</string>
 	<key>Version history</key>
 	<string>版本历史</string>
 	<key>Versions</key>
@@ -2306,6 +2398,8 @@
 	<string>等待另一台设备</string>
 	<key>Waiting for your decision</key>
 	<string>等待你决定</string>
+	<key>Waiting period</key>
+	<string>等待期</string>
 	<key>Waiting to submit</key>
 	<string>等待提交</string>
 	<key>Waiting to sync</key>
@@ -2336,8 +2430,6 @@
 	<string>网站</string>
 	<key>Welcome back.</key>
 	<string>欢迎回来。</string>
-	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>欢迎体验本地演示，这些消息仅保留在此页面。</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg 打开且已解锁时，保险库会自动同步。进入会话或收件箱后才会更新消息。文件备份仍需单独确认。你可以随时关闭自动同步。</string>
 	<key>Who may contact you</key>
@@ -2354,8 +2446,6 @@
 	<string>从另一台 iPhone 复制来的工作区</string>
 	<key>Workspace destination</key>
 	<string>工作区目标</string>
-	<key>Write a demo message</key>
-	<string>输入演示消息</string>
 	<key>Write a letter</key>
 	<string>写信</string>
 	<key>Write a message</key>
@@ -2376,6 +2466,8 @@
 	<string>当前套餐由 App Store 之外的渠道管理，请待其到期后再开通 App Store 订阅。</string>
 	<key>Your decision applies only to this request.</key>
 	<string>你的决定仅适用于本次请求。</string>
+	<key>Your draft stays until this workspace locks. Nothing is submitted.</key>
+	<string>草稿会保留到工作区锁定，不会提交任何内容。</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
 	<string>加密文件会继续保留，保存的登录与快速解锁材料将被移除。</string>
 	<key>Your existing device makes the final decision.</key>

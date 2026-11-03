@@ -29,7 +29,7 @@ struct WalletsView: View {
                 }
             }
             Section("Join an existing wallet") {
-                TextField("Wallet canister ID", text: $walletID).textInputAutocapitalization(.never).autocorrectionDisabled()
+                SettingsField("Wallet canister ID") { TextField("Wallet canister ID", text: $walletID).textInputAutocapitalization(.never).autocorrectionDisabled().environment(\.layoutDirection, .leftToRight) }
                 Button("Review joining wallet") { Task { await join() } }.disabled(walletID.isEmpty || working)
             }
             Section {
@@ -218,53 +218,6 @@ struct WalletProposalView: View {
             if let approval: ApprovalView = try? model.decode(result) { request = approval }
             await load()
         } catch { model.report(error); await load() }
-    }
-}
-
-struct WalletTransferView: View {
-    let wallet: String
-    @Environment(SessionModel.self) private var model
-    @State private var from: UInt32 = 0
-    @State private var asset = "icp"
-    @State private var recipient = ""
-    @State private var amount = ""
-    @State private var maxFee = ""
-    @State private var working = false
-    @State private var requestID = NativeApple.requestID()
-    @State private var attempted = false
-    @State private var result: DisplayValue?
-    var body: some View {
-        Form {
-            Section("Transfer proposal") {
-                Stepper("Source address \(from)", value: $from, in: 0...1000)
-                TextField("Asset identifier", text: $asset).textInputAutocapitalization(.never).autocorrectionDisabled()
-                Text("Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.").font(.caption).foregroundStyle(.secondary)
-                TextField("Recipient address", text: $recipient, axis: .vertical).textInputAutocapitalization(.never).autocorrectionDisabled()
-                TextField("Amount in base units", text: $amount).keyboardType(.numberPad)
-                TextField("Maximum fee in base units", text: $maxFee).keyboardType(.numberPad)
-            }.disabled(working || attempted)
-            NoticeBar(text: String(localized: "This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers."))
-            Button(LocalizedStringKey(attempted ? "Reconcile original proposal" : "Create transfer proposal")) { Task { await submit() } }.disabled(working || result != nil || amount.isEmpty || maxFee.isEmpty || recipient.isEmpty)
-            if let result { CanonicalDetails(value: result) }
-        }.privateScreen().navigationTitle("Propose transfer")
-    }
-    private func submit() async {
-        guard let engine = model.engine, !working else { return }; working = true; defer { working = false }; model.activity()
-        do {
-            let value: ObjectSnapshot
-            if attempted { value = try await engine.resumeWalletProposal(requestId: requestID) }
-            else {
-                attempted = true
-                value = try await engine.walletTransfer(transfer: WalletTransfer(wallet: wallet, from: from, asset: asset, recipient: recipient, amount: amount, maxFee: maxFee, memo: nil, requestId: requestID))
-            }
-            result = try model.decode(value)
-        } catch {
-            if let state = try? await engine.walletProposalAttempt(requestId: requestID) {
-                attempted = state == "pending" || state == "completed"
-                if !attempted { requestID = NativeApple.requestID() }
-            }
-            model.report(error)
-        }
     }
 }
 

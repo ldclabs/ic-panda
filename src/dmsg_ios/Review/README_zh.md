@@ -1,6 +1,6 @@
 # iOS 审核与服务验收
 
-记录日期：2026-10-30（补充服务端通知入口；保留各构建的原验证范围）。这里描述提交审核前实际要执行的步骤，不表示 Apple 已批准该应用或服务已经部署。
+记录日期：2026-11-03（更新账户与消息设置路径、完整审核访问要求；保留各构建的原验证范围）。这里描述提交审核前实际要执行的步骤，不表示 Apple 已批准该应用或服务已经部署。
 
 ## 应用标识
 
@@ -12,9 +12,9 @@
 - App Store Connect 商品尚未创建。应用 SKU 与 Apple ID **不是**商品 ID。不得用示例 ID 冒充已配置商品。
 - iOS 免费来信可发送；链上付费来信发送保持关闭。多签钱包是独立的资产管理功能，不用于解锁 iOS 数字服务。
 
-## 审核登录与演示
+## 审核登录与完整访问
 
-登录页的“体验本地演示”对所有人可见，在 Release 中保留。演示可以编辑虚构登录项、尝试消息编辑与屏蔽、查看文件示例和演练审批；它不接触真实工作区，不访问网络，不创建签名、订单或推送订阅，关闭后丢弃示例修改。它是一份产品导览，**不替代真实账号的完整审核访问**，也不能被描述为已经满足 Apple 的完整演示模式要求。
+应用已移除公开离线导览及其登录、账户入口。审核访问仍按 Apple 2.1 单独准备：在 App Store Connect 提供正常登录、初始化、第二个账号及第二台设备的完整复现步骤与所需资源，确保审核期间服务可用。注册入口可见、离线样例或截图均不能单独证明已满足完整访问要求；需要固定审核访问安排时按审核反馈提供，不在客户端添加认证绕过。
 
 真实功能始终走正式的 Internet Identity 和设备授权流程，无审核口令、隐藏超级用户或跳过签名验证的入口。完整验收按以下顺序进行：
 
@@ -22,11 +22,11 @@
 2. 保存一项虚构登录记录、导入一个测试文件、创建测试频道，并在第二个测试账号中发送一封免费来信。不要把真实用户数据放入审核资料。
 3. 使用第二台设备完成正常设备授权，验证同步、撤销与原账号恢复。上述操作使用真实线上账号与存储；账号删除会真实关闭该账号，不是模拟操作。不要提交私钥或把审核身份加入代码。
 4. 本次构建不提供内购入口，也不会重放已有 StoreKit 沙盒交易。生产 canister 拒绝沙盒交易的校验保持不变。
-5. 在审核备注中说明 passkey 自助注册、首台设备初始化及多人功能的复现步骤，并保证线上服务在审核期间可用。如果 Apple 另行要求固定审核访问方式，再按其反馈安排；当前本地导览不冒充完整账号功能。
+5. 在审核备注中说明 passkey 自助注册、首台设备初始化及多人功能的复现步骤，并保证线上服务在审核期间可用。如果 Apple 另行要求固定审核访问方式，再按其反馈安排；提交前核对审核人员能实际完成上述功能。
 
 审核备注可使用以下公开说明，并填写实际联系人：
 
-> dMsg connects to its production services, including when installed through TestFlight. No shared test account or username/password is required. Choose “Continue with Internet Identity”, create or sign in to an Internet Identity with your own passkey, then choose “Set up this account” to create a dMsg account. A new account's first device needs no other device's approval; adding a device to an existing account follows normal device authorization. Use a second self-registered account to test messaging. In-app purchases and StoreKit transaction processing are disabled in this build; existing plan and usage information remain available. The public “Try the local demo” is an offline tour with fictitious data, not full account access. Account deletion is under Account → Delete account and affects the real production account. Reporting is in a message context menu; blocking and report status are under Account → Safety and support. The privacy policy is available before login and offline. Paid on-chain letter sending is unavailable on iOS.
+> dMsg connects to its production services, including when installed through TestFlight. Sign-in uses Internet Identity and passkeys. Provide the review team with complete access instructions and any required test resources in App Store Connect. Choose “Continue with Internet Identity”, create or sign in to an Internet Identity with your own passkey, then choose “Set up this account” to create a dMsg account. A new account's first device needs no other device's approval; adding a device to an existing account follows normal device authorization. Use a second self-registered account to test messaging. In-app purchases and StoreKit transaction processing are disabled in this build; existing plan and usage information remain available. Account deletion is under Account → Account security → Delete account and affects the real production account. Reporting is in a message context menu; blocking and report status are under Messages → Message settings. The privacy policy is available before login and offline, with a contact link at the top. Contact details and terms are also under Account → About dMsg. Paid on-chain letter sending is unavailable on iOS.
 
 不要把未填写的说明或占位联系方式提交给 Apple。
 

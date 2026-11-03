@@ -6,6 +6,41 @@ The local implementation brief is `misc/dMsg_iOS_technical_architecture_zh.md`
 v0.4 and the compact layouts in `misc/dmsg-ios-uiux` (these are not public
 build dependencies).
 
+## Account and settings
+
+Account groups identity and security, synchronization and storage, and app settings.
+Advanced contains agents, wallets, browser connections, hardware approval and local
+activity. Pending approvals and unsynced changes have direct entries. Device names
+and public account thumbnails are kept in this device's protected preferences.
+The account switcher reads public names for every local account through the same
+certified-name cache used by desktop, then refreshes them without switching or
+unlocking the other workspaces. Names appear above the full account ID; an unnamed
+account keeps its ID as the label. Failed refreshes preserve known names.
+
+Settings navigation rows and field content use leading alignment. Standalone
+actions center their labels, with native prominent buttons for primary actions
+such as publishing or saving; destructive actions retain their red text and
+confirmation steps. Account IDs have a direct copy button on Account and the
+public-profile editor, separate from profile navigation.
+
+The public offline tour has been removed. Blocking and report history live under
+Messages → Message settings. Privacy remains available offline before sign-in;
+contact information is accessible there and under Account → About dMsg. Removing
+local account data is separate from deleting the service account and first shows
+unsynced work and file versions without a backup.
+
+Profile links and avatar changes remain drafts until publication. Profile edits
+keep their expected version across navigation; a conflict requires reloading and
+reviewing the preserved draft. Settings drafts stay only in the unlocked session
+and are cleared on lock or account transitions. Usage reads cloud and execution
+counts independently; unavailable values are never displayed as zero.
+
+AutoFill selection survives searches and reopening its picker. Export status shows
+counts and expiry without opening secrets or bypassing system authentication.
+Wallet transfer forms use existing asset metadata and fee preview, exact decimal
+conversion and the original proposal journal for uncertain outcomes. A preview
+creates no approval, transaction or automatic execution.
+
 ## Multisig wallets
 
 Manage personal or shared assets across chains. Set approval thresholds and
@@ -357,8 +392,8 @@ automatically populated during a build. The small `InfoPlist.xcstrings` and
 
 The access screen explains the next step for the current account state: first
 sign-in, workspace creation, approving this iPhone for an existing account, or
-unlocking a saved workspace. Its Language/demo links and privacy/support links
-form two compact rows, falling back to vertical layouts when text needs room.
+unlocking a saved workspace. Language and privacy links remain accessible before
+sign-in and adapt to large text. The privacy page starts with a contact link.
 
 Mobile login and login binding always use the `dmsg.net` identity domain. The
 mobile UI and bridge no longer offer the `panda.fans` selector; old-account and
@@ -576,8 +611,8 @@ This tree is development code, not an App Store release assertion. In particular
    widgets, App Intents, browser app-hop navigation and bounded background ciphertext
    transfers are implemented. Existing product-level wallet creation pause and the
    paid-letter sending gate remain. iOS is not a persistent agent daemon.
-6. Service-account deletion, report/block, offline/privacy pages and a public local
-   demo are implemented. The offline tour never authenticates or purchases. Real
+6. Service-account deletion, report/block and offline privacy are implemented.
+   The public tour has been removed; App Review still needs full account access. Real
    review account access, signing, merchant/provider configuration and device
    acceptance remain release tasks, detailed in [Review/README_zh.md](Review/README_zh.md).
 

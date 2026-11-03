@@ -5,6 +5,7 @@ struct AccountProfile: Decodable {
     let description: String?
     let avatarUrl: String?
     let updatedAt: Int64
+    var links: [PublicProfileLink]? = nil
 
     var displayName: String? {
         guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }

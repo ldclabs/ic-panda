@@ -30,6 +30,8 @@
 	<string>API 자격 증명</string>
 	<key>About</key>
 	<string>소개</string>
+	<key>About dMsg</key>
+	<string>dMsg 소개</string>
 	<key>Accept approved binding</key>
 	<string>승인된 바인딩 수락</string>
 	<key>Access granted</key>
@@ -54,10 +56,14 @@
 	<string>계정, 장치 및 ID</string>
 	<key>Accounts</key>
 	<string>계정</string>
+	<key>Active</key>
+	<string>활성</string>
 	<key>Active conversations</key>
 	<string>활성 대화</string>
 	<key>Activity on this device</key>
 	<string>이 기기에서의 활동</string>
+	<key>Add account</key>
+	<string>계정 추가</string>
 	<key>Add device</key>
 	<string>장치 추가</string>
 	<key>Add field</key>
@@ -66,20 +72,20 @@
 	<string>주소록에 추가</string>
 	<key>Add item</key>
 	<string>항목 추가</string>
-	<key>Add message to demo</key>
-	<string>데모에 메시지 추가</string>
+	<key>Add link</key>
+	<string>링크 추가</string>
 	<key>Add one-time code</key>
 	<string>일회성 코드 추가</string>
 	<key>Add protector</key>
 	<string>보호 키 추가</string>
 	<key>Add receiving address</key>
 	<string>수신 주소 추가</string>
-	<key>Add sample login</key>
-	<string>샘플 로그인 추가</string>
 	<key>Add the new address</key>
 	<string>새 주소 추가</string>
 	<key>Added</key>
 	<string>추가됨</string>
+	<key>Additional reserve / rent</key>
+	<string>추가예치금/임대료</string>
 	<key>Address</key>
 	<string>주소</string>
 	<key>Address label</key>
@@ -90,6 +96,8 @@
 	<string>행정 승인 %u</string>
 	<key>Administrator</key>
 	<string>관리자</string>
+	<key>Advanced</key>
+	<string>고급</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>지갑 요청을 승인한 후 새 기기에서 교체 요청을 다시 생성하세요.</string>
 	<key>Agent ID</key>
@@ -116,10 +124,16 @@
 	<string>이미 가져옴</string>
 	<key>Already present</key>
 	<string>이미 존재함</string>
+	<key>Amount</key>
+	<string>금액</string>
 	<key>Amount in base units</key>
 	<string>기본 단위 금액</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
 	<string>계정 복구가 보류 중입니다. 계정 보안에서 검토하세요.</string>
+	<key>An administrator device is required to change account security.</key>
+	<string>계정 보안을 변경하려면 관리자 기기가 필요합니다.</string>
+	<key>An administrator device is required to publish this profile.</key>
+	<string>이 프로필을 게시하려면 관리자 기기가 필요합니다.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>전체 링크와 필수 비밀번호를 아는 사람은 누구나 한도 내에서 링크를 검색할 수 있습니다.</string>
 	<key>Anyone, free of charge</key>
@@ -180,6 +194,10 @@
 	<string>받는 금액</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>관리자에게 이 로그인을 기존 계정에 연결하도록 요청하세요. 장치 승인은 별도의 단계입니다.</string>
+	<key>Asset</key>
+	<string>자산</string>
+	<key>Asset details are unavailable. Retry before entering an amount.</key>
+	<string>자산 정보를 불러올 수 없습니다. 다시 시도한 후 금액을 입력하세요.</string>
 	<key>Asset identifier</key>
 	<string>자산 식별자</string>
 	<key>Attach</key>
@@ -220,6 +238,8 @@
 	<string>자동완성 스냅샷이 업데이트되었습니다.</string>
 	<key>Automatic foreground sync</key>
 	<string>자동 포그라운드 동기화</string>
+	<key>Available after</key>
+	<string>이후 사용 가능</string>
 	<key>Back</key>
 	<string>뒤로</string>
 	<key>Back up encrypted copy</key>
@@ -244,6 +264,10 @@
 	<string>백업 진행 상황이 저장되었습니다. 파일 상태를 확인하여 완료하세요.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
 	<string>백업이 대기 중입니다. 업로드를 완료하려면 dMsg를 열어두세요.</string>
+	<key>Backups found</key>
+	<string>백업</string>
+	<key>Balance</key>
+	<string>잔액</string>
 	<key>Bind another Internet Identity</key>
 	<string>다른 Internet Identity 바인딩</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -274,6 +298,8 @@
 	<string>브라우저 요청</string>
 	<key>Cached data</key>
 	<string>캐시 데이터</string>
+	<key>Cached data cleared</key>
+	<string>캐시를 지웠습니다</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Cancel</key>
@@ -328,12 +354,16 @@
 	<string>채널 스냅샷</string>
 	<key>Channels</key>
 	<string>채널</string>
+	<key>Check account IDs and remove duplicates.</key>
+	<string>계정 ID를 확인하고 중복 항목을 제거하세요.</string>
 	<key>Check addresses</key>
 	<string>주소 확인</string>
 	<key>Check authorization</key>
 	<string>승인 확인</string>
 	<key>Check deletion status</key>
 	<string>삭제 상태 확인</string>
+	<key>Check field lengths and use named HTTPS links.</key>
+	<string>필드 길이를 확인하고 HTTPS 링크에 이름을 입력하세요.</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>프로젝트 참조와 이미 전달된 사본을 확인하세요.</string>
 	<key>Check recovery status</key>
@@ -370,6 +400,8 @@
 	<string>무료 편지를 보낼 수 있는 사람을 선택하세요. 차단된 계정은 차단을 해제할 때까지 차단된 상태로 유지됩니다.</string>
 	<key>Clear cached data</key>
 	<string>캐시 지우기</string>
+	<key>Close invitation</key>
+	<string>초대 종료</string>
 	<key>Closed</key>
 	<string>휴무</string>
 	<key>Cloud backup file limit</key>
@@ -430,6 +462,8 @@
 	<string>연락처 초대장(제공된 경우)</string>
 	<key>Contact support</key>
 	<string>지원팀에 문의</string>
+	<key>Content signing</key>
+	<string>콘텐츠 서명</string>
 	<key>Continue import</key>
 	<string>계속 가져오기</string>
 	<key>Continue password import</key>
@@ -452,20 +486,28 @@
 	<string>컨트롤러 및 위임</string>
 	<key>Conversation</key>
 	<string>대화</string>
+	<key>Conversation limit</key>
+	<string>대화 수 한도</string>
 	<key>Conversation name</key>
 	<string>대화 이름</string>
 	<key>Conversation settings</key>
 	<string>대화 설정</string>
+	<key>Copied</key>
+	<string>복사됨</string>
 	<key>Copied for 30 seconds</key>
 	<string>30초 동안 복사됨</string>
 	<key>Copies from other iPhones</key>
 	<string>다른 iPhone의 복사본</string>
 	<key>Copy</key>
 	<string>복사</string>
+	<key>Copy account ID</key>
+	<string>계정 ID 복사</string>
 	<key>Copy address</key>
 	<string>주소 복사</string>
 	<key>Copy binding request</key>
 	<string>복사 제본 요청</string>
+	<key>Copy device ID</key>
+	<string>기기 ID 복사</string>
 	<key>Copy enrollment request</key>
 	<string>등록 요청 복사</string>
 	<key>Copy for 30 seconds</key>
@@ -542,6 +584,8 @@
 	<string>자격증명 순환</string>
 	<key>Current</key>
 	<string>현재</string>
+	<key>Current account</key>
+	<string>현재 계정</string>
 	<key>Current local dependencies</key>
 	<string>현재 로컬 종속성</string>
 	<key>Current login</key>
@@ -592,12 +636,6 @@
 	<string>삭제 상태</string>
 	<key>Deliver a secret to a local process</key>
 	<string>로컬 프로세스에 비밀 전달</string>
-	<key>Demo approved · No signature created</key>
-	<string>데모 승인됨 · 서명이 생성되지 않음</string>
-	<key>Demo rejected · No signature created</key>
-	<string>데모가 거부됨 · 서명이 생성되지 않음</string>
-	<key>Demo section</key>
-	<string>데모 섹션</string>
 	<key>Dependencies on this device</key>
 	<string>이 장치에 대한 종속성</string>
 	<key>Describe the issue</key>
@@ -612,6 +650,8 @@
 	<string>목적지</string>
 	<key>Destination folder</key>
 	<string>대상 폴더</string>
+	<key>Details</key>
+	<string>세부정보</string>
 	<key>Device</key>
 	<string>장치</string>
 	<key>Device ID</key>
@@ -686,6 +726,8 @@
 	<string>이메일</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>자동완성 설정에서 dMsg 활성화</string>
+	<key>Enabled</key>
+	<string>활성화됨</string>
 	<key>Encrypted backup</key>
 	<string>암호화된 백업</string>
 	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
@@ -696,16 +738,18 @@
 	<string>엔진</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>등록된 생체 인식이 변경되었습니다. 이 키를 사용하기 전에 대체 키를 등록하세요.</string>
+	<key>Enter a valid account ID.</key>
+	<string>올바른 계정 ID를 입력하세요.</string>
+	<key>Enter an exact amount within the asset's precision.</key>
+	<string>자산이 지원하는 정밀도로 양수 금액을 입력하세요.</string>
 	<key>Enter the session code the receiving device shows.</key>
 	<string>받는 장치에 표시된 세션 코드를 입력하세요.</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>유효한 계정 ID를 한 줄에 하나씩 입력하세요.</string>
 	<key>Error details</key>
 	<string>오류 세부정보</string>
-	<key>Example document</key>
-	<string>예시 문서</string>
-	<key>Example login</key>
-	<string>로그인 예시</string>
+	<key>Estimated fee</key>
+	<string>예상 수수료</string>
 	<key>Execute</key>
 	<string>실행</string>
 	<key>Execute approved proposal</key>
@@ -814,8 +858,6 @@
 	<string>숨기기</string>
 	<key>Hide on this device</key>
 	<string>이 기기에서 숨기기</string>
-	<key>Hide sample sender</key>
-	<string>샘플 보낸 사람 숨기기</string>
 	<key>Historical version</key>
 	<string>역사적인 버전</string>
 	<key>Host</key>
@@ -874,8 +916,6 @@
 	<string>선택한 비밀 가져오기</string>
 	<key>In Trash</key>
 	<string>휴지통에</string>
-	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>실제 보고서에서 서비스는 귀하의 사유와 계정/자원 식별자를 수신합니다. 메시지 텍스트는 명시적으로 공개를 선택한 경우에만 포함됩니다.</string>
 	<key>In progress</key>
 	<string>진행 중</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
@@ -892,6 +932,8 @@
 	<string>페어링 요청 검사</string>
 	<key>Inspect this version</key>
 	<string>이 버전을 검사하세요</string>
+	<key>Insufficient balance</key>
+	<string>토큰 잔액이 부족합니다.</string>
 	<key>Integrity</key>
 	<string>무결성</string>
 	<key>Interrupted</key>
@@ -906,6 +948,8 @@
 	<string>아이템 첨부</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>항목 참조는 파일보다 먼저 동기화될 수 있습니다. 이 장치에서 사용 가능한 파일만 새 스냅샷에 추가할 수 있습니다.</string>
+	<key>Items</key>
+	<string>항목 수</string>
 	<key>Join</key>
 	<string>가입</string>
 	<key>Join account</key>
@@ -920,6 +964,8 @@
 	<string>기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.</string>
 	<key>Keep current version</key>
 	<string>현재 버전 유지</string>
+	<key>Keep draft and leave</key>
+	<string>초안을 유지하고 나가기</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>비밀, 대화, 파일을 함께 보관하세요. 승인된 장치만 열 수 있습니다.</string>
 	<key>Key</key>
@@ -948,6 +994,8 @@
 	<string>대화 나가기</string>
 	<key>Leave empty to keep existing value</key>
 	<string>기존 값을 유지하려면 비워 두세요.</string>
+	<key>Leave this form?</key>
+	<string>이 양식에서 나갈까요?</string>
 	<key>Leave this step behind?</key>
 	<string>이 단계를 건너뛸까요?</string>
 	<key>Left behind</key>
@@ -960,8 +1008,8 @@
 	<string>라이센스가 부여된 대상</string>
 	<key>Link limits</key>
 	<string>링크 제한</string>
-	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>실시간 요청에는 확인된 원본과 전체 페이로드가 표시되며 구성된 시스템 또는 하드웨어 승인이 필요합니다.</string>
+	<key>Links</key>
+	<string>링크</string>
 	<key>Load earlier activity</key>
 	<string>이전 활동 로드</string>
 	<key>Load earlier messages</key>
@@ -972,16 +1020,14 @@
 	<string>더 로드하기</string>
 	<key>Loading the verified request…</key>
 	<string>확인된 요청 로드 중…</string>
+	<key>Loading…</key>
+	<string>로드 중…</string>
 	<key>Local</key>
 	<string>지역</string>
 	<key>Local content</key>
 	<string>로컬 콘텐츠</string>
 	<key>Local delivery record</key>
 	<string>현지 배송 기록</string>
-	<key>Local demo</key>
-	<string>로컬 데모</string>
-	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>로컬 데모 · 가상 데이터 · 닫으면 재설정됨</string>
 	<key>Local dependencies</key>
 	<string>로컬 의존성</string>
 	<key>Local dependency</key>
@@ -1018,8 +1064,12 @@
 	<string>구독 관리</string>
 	<key>Mark as read</key>
 	<string>읽음으로 표시</string>
+	<key>Maximum fee</key>
+	<string>최대 수수료</string>
 	<key>Maximum fee in base units</key>
 	<string>기본 단위의 최대 수수료</string>
+	<key>Member</key>
+	<string>회원</string>
 	<key>Member account ID</key>
 	<string>회원 계정 ID</string>
 	<key>Member account or Principal</key>
@@ -1030,12 +1080,16 @@
 	<string>회원</string>
 	<key>Message</key>
 	<string>메시지</string>
+	<key>Message settings</key>
+	<string>메시지 설정</string>
 	<key>Message withdrawn</key>
 	<string>메시지가 철회되었습니다.</string>
 	<key>Messages</key>
 	<string>메시지</string>
 	<key>Month</key>
 	<string>월</string>
+	<key>Monthly execution limit</key>
+	<string>월간 실행 한도</string>
 	<key>Monthly execution units</key>
 	<string>월별 실행 단위</string>
 	<key>Move a native address</key>
@@ -1102,8 +1156,12 @@
 	<string>다음 재시도</string>
 	<key>No</key>
 	<string>아니요</string>
+	<key>No accounts</key>
+	<string>계정 없음</string>
 	<key>No activity on this device</key>
 	<string>이 기기에 활동이 없습니다</string>
+	<key>No agents</key>
+	<string>에이전트 없음</string>
 	<key>No background transfer</key>
 	<string>백그라운드 전송 없음</string>
 	<key>No blocked accounts</key>
@@ -1114,6 +1172,8 @@
 	<string>연결된 브라우저 없음</string>
 	<key>No conversations yet</key>
 	<string>아직 대화가 없습니다.</string>
+	<key>No credentials</key>
+	<string>자격 증명 없음</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>이 장치에는 종속성이 기록되지 않았습니다.</string>
 	<key>No findings from this device's checks.</key>
@@ -1132,12 +1192,18 @@
 	<string>보류 중인 백업이 없습니다.</string>
 	<key>No recent use observed on this device</key>
 	<string>이 기기에서는 최근 사용이 관찰되지 않았습니다.</string>
+	<key>No recovery request</key>
+	<string>복구 요청 없음</string>
 	<key>No registered approval key</key>
 	<string>등록된 승인키가 없습니다.</string>
+	<key>No reports</key>
+	<string>아직 기록이 없습니다</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>선택한 공동 서명자가 없다는 것은 추가 공동 서명 정책이 없음을 의미합니다. 승인하기 전에 전체 제안을 검토하세요.</string>
 	<key>No shared items waiting</key>
 	<string>대기 중인 공유 항목이 없습니다.</string>
+	<key>No snapshot</key>
+	<string>스냅샷 없음</string>
 	<key>No snapshots on this device</key>
 	<string>이 기기에는 스냅샷이 없습니다.</string>
 	<key>Not enabled</key>
@@ -1222,6 +1288,8 @@
 	<string>알림 설정 열기</string>
 	<key>Open private workspace</key>
 	<string>개인 작업 공간 열기</string>
+	<key>Open public profile</key>
+	<string>공개 프로필 열기</string>
 	<key>Open secret</key>
 	<string>비밀 공개</string>
 	<key>Open workspace</key>
@@ -1306,6 +1374,8 @@
 	<string>선택한 스냅샷 준비</string>
 	<key>Prepared on this device</key>
 	<string>이 기기에서 준비됨</string>
+	<key>Preview</key>
+	<string>미리보기</string>
 	<key>Preview and choose what to import</key>
 	<string>가져올 항목을 미리 보고 선택하세요.</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
@@ -1314,8 +1384,8 @@
 	<string>미리보기 파일</string>
 	<key>Preview package</key>
 	<string>미리보기 패키지</string>
-	<key>Preview reporting disclosure</key>
-	<string>보고 공개 미리보기</string>
+	<key>Preview transfer</key>
+	<string>이체 미리 보기</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>이전에 전달된 자격 증명과 복사본은 독립적입니다. 필요한 경우 위임을 별도로 취소합니다.</string>
 	<key>Principal</key>
@@ -1330,6 +1400,8 @@
 	<string>비공개 작업공간이 숨겨져 있습니다.</string>
 	<key>Proposal %llu</key>
 	<string>제안 %llu</string>
+	<key>Proposal created</key>
+	<string>제안이 생성되었습니다.</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
 	<string>제안이 생성되었습니다. 지갑의 제안 목록에서 검토해보세요.</string>
 	<key>Proposals</key>
@@ -1382,6 +1454,8 @@
 	<string>현재 구매가 불가능합니다.</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>이 빌드에서는 푸시 알림이 활성화되지 않습니다. dMsg를 열어 동기화하세요.</string>
+	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
+	<string>빠른 잠금 해제는 작업 공간을 엽니다. 기기 바인딩은 잠금을 해제할 수 있는 기기를 제한합니다. 하드웨어 승인은 민감한 계정 작업을 보호합니다.</string>
 	<key>Quick unlock with system authentication</key>
 	<string>시스템 인증을 통한 빠른 잠금 해제</string>
 	<key>Read from a desktop file mapping</key>
@@ -1446,6 +1520,8 @@
 	<string>잔액 새로 고침</string>
 	<key>Refresh dependencies</key>
 	<string>종속성 새로 고침</string>
+	<key>Refresh the preview before continuing.</key>
+	<string>계속하기 전에 미리 보기를 새로 고치세요.</string>
 	<key>Register a hardware approval key</key>
 	<string>하드웨어 승인키 등록</string>
 	<key>Register an SSH binding</key>
@@ -1464,8 +1540,10 @@
 	<string>이 요청을 거부하시겠습니까?</string>
 	<key>Rejected</key>
 	<string>거부됨</string>
-	<key>Release 1.0 is ready for review.</key>
-	<string>릴리스 1.0이 검토 준비가 되었습니다.</string>
+	<key>Reload saved profile</key>
+	<string>저장된 프로필 다시 불러오기</string>
+	<key>Remaining</key>
+	<string>남은</string>
 	<key>Remove</key>
 	<string>제거</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1474,6 +1552,8 @@
 	<string>파일 앱 스냅샷 제거</string>
 	<key>Remove attachment reference</key>
 	<string>첨부파일 참조 삭제</string>
+	<key>Remove avatar</key>
+	<string>아바타 삭제</string>
 	<key>Remove device binding</key>
 	<string>장치 바인딩 제거</string>
 	<key>Remove device binding?</key>
@@ -1488,6 +1568,8 @@
 	<string>이 기기에서 이 계정의 데이터를 삭제하시겠습니까?</string>
 	<key>Remove this account's local data</key>
 	<string>이 계정의 로컬 데이터 삭제</string>
+	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
+	<string>이 기기의 암호화된 작업 공간과 저장된 로그인을 제거합니다. 서비스 계정과 다른 기기는 유지됩니다. 동기화되지 않은 변경 사항과 백업하지 않은 파일은 사라집니다.</string>
 	<key>Remove this local agent</key>
 	<string>이 로컬 에이전트 제거</string>
 	<key>Remove this local agent?</key>
@@ -1520,8 +1602,6 @@
 	<string>검토를 위해 접수된 보고서</string>
 	<key>Reported account</key>
 	<string>신고된 계정</string>
-	<key>Reporting disclosure</key>
-	<string>공개 보고</string>
 	<key>Request ID</key>
 	<string>요청 ID</string>
 	<key>Request account deletion</key>
@@ -1534,8 +1614,6 @@
 	<string>새 장치의 요청</string>
 	<key>Request recovery</key>
 	<string>복구 요청</string>
-	<key>Request source</key>
-	<string>요청 소스</string>
 	<key>Requested permissions</key>
 	<string>요청된 권한</string>
 	<key>Requests that need your decision appear here.</key>
@@ -1544,8 +1622,12 @@
 	<string>하드웨어 승인 필요</string>
 	<key>Require this device to unlock</key>
 	<string>잠금을 해제하려면 이 장치가 필요합니다.</string>
+	<key>Required approvals</key>
+	<string>필수 승인</string>
 	<key>Required cosignatures %u</key>
 	<string>필수 공동 서명 %u</string>
+	<key>Reserved for uploads</key>
+	<string>업로드 예약 용량</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>이 계정을 삭제하기 전에 보류 중인 계정 작업을 해결하세요.</string>
 	<key>Restore</key>
@@ -1662,6 +1744,8 @@
 	<string>동기화 충돌 검토</string>
 	<key>Review the agent's authorization on its originating device.</key>
 	<string>원래 장치에서 에이전트의 승인을 검토합니다.</string>
+	<key>Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.</key>
+	<string>제안 생성 전에 자산, 받는 주소, 잔액, 수수료를 확인하세요. 지갑 승인과 실행이 완료되어야 자금이 이동합니다.</string>
 	<key>Review the complete request</key>
 	<string>전체 요청 검토</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
@@ -1734,14 +1818,6 @@
 	<string>SSH 바인딩 검토가 필요함</string>
 	<key>SSH key</key>
 	<string>SSH 키</string>
-	<key>Safety and support</key>
-	<string>안전 및 지원</string>
-	<key>Sample action: sign a release announcement</key>
-	<string>샘플 작업: 릴리스 발표에 서명</string>
-	<key>Sample login</key>
-	<string>샘플 로그인</string>
-	<key>Sample password</key>
-	<string>샘플 비밀번호</string>
 	<key>Save</key>
 	<string>저장</string>
 	<key>Save name</key>
@@ -1762,6 +1838,8 @@
 	<string>저장됨</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
 	<string>별도의 버전으로 저장되었습니다. 동기화 충돌을 검토하세요.</string>
+	<key>Saved data changed. Reload it, then review your preserved draft before publishing.</key>
+	<string>저장된 데이터가 변경되었습니다. 다시 불러온 뒤 보존된 초안을 확인하고 게시하세요.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>dMsg용으로 저장되었습니다. 앱을 열어 이러한 항목을 검토하고 가져오세요.</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
@@ -1804,6 +1882,8 @@
 	<string>파일 선택</string>
 	<key>Select a secret</key>
 	<string>비밀을 선택하세요</string>
+	<key>Select an asset</key>
+	<string>자산 선택</string>
 	<key>Select attachments to import</key>
 	<string>가져올 첨부파일 선택</string>
 	<key>Select attachments to share</key>
@@ -1814,6 +1894,8 @@
 	<string>공유할 필드 선택</string>
 	<key>Select login items</key>
 	<string>로그인 항목 선택</string>
+	<key>Selected</key>
+	<string>선택됨</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>선택된 OTP 필드에는 현재 코드뿐만 아니라 재사용 가능한 시드가 포함됩니다.</string>
 	<key>Selected accounts</key>
@@ -1846,6 +1928,10 @@
 	<string>이 계정을 설정하세요</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>이 iPhone을 새 기기로 설정</string>
+	<key>Settings</key>
+	<string>설정</string>
+	<key>Share</key>
+	<string>공유</string>
 	<key>Share a copy</key>
 	<string>사본 공유</string>
 	<key>Share binding request</key>
@@ -1882,8 +1968,6 @@
 	<string>쇼</string>
 	<key>Show dismissed findings</key>
 	<string>무시된 발견 항목 표시</string>
-	<key>Show sample password</key>
-	<string>샘플 비밀번호 표시</string>
 	<key>Show share link</key>
 	<string>공유 링크 표시</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1908,12 +1992,6 @@
 	<string>수집된 서명</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>공동 서명자 %@의 서명이 현재 키와 더 이상 일치하지 않아 보류되었습니다. 다시 서명해야 합니다.</string>
-	<key>Simulate approval</key>
-	<string>승인 시뮬레이션</string>
-	<key>Simulate rejection</key>
-	<string>거절 시뮬레이션</string>
-	<key>Simulate this approval?</key>
-	<string>이 승인을 시뮬레이션하시겠습니까?</string>
 	<key>Snapshot</key>
 	<string>스냅샷</string>
 	<key>Snapshot link</key>
@@ -1928,8 +2006,12 @@
 	<string>일부 파일은 이 iPhone에만 있으며 클라우드 백업이나 최근 동기화가 없습니다.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>일부 소스 레코드 또는 속성은 지원되지 않습니다. 이 가져오기는 선택한 필드만 복사합니다. 아카이브 첨부 파일, 암호 키 및 기록은 여기로 가져오지 않습니다.</string>
+	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
+	<string>일부 사용량을 새로 고치지 못했습니다. 확인할 수 없는 값은 0이 아닙니다.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>아직 끝나지 않은 지갑이 있습니다. 이 단계를 다시 실행하세요.</string>
+	<key>Source address</key>
+	<string>소스 주소</string>
 	<key>Source address %u</key>
 	<string>소스 주소 %u</string>
 	<key>Spam</key>
@@ -1964,6 +2046,8 @@
 	<string>중지됨</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>스토리지는 현재 구독 기간에 대한 일회성 구매이며 자동으로 갱신되지 않습니다.</string>
+	<key>Storage limit</key>
+	<string>저장 공간 한도</string>
 	<key>Storage packs</key>
 	<string>스토리지 팩</string>
 	<key>Storage purchases require an active App Store subscription.</key>
@@ -1974,6 +2058,10 @@
 	<string>보고서 제출</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Apple 계정 설정에서 취소하지 않는 한 구독은 자동으로 갱신됩니다. dMsg 계정을 삭제해도 Apple 구독은 취소되지 않습니다.</string>
+	<key>Suggested fee</key>
+	<string>권장 수수료</string>
+	<key>Suspended</key>
+	<string>정지됨</string>
 	<key>Sweep path</key>
 	<string>이동 경로</string>
 	<key>Sweep the old address</key>
@@ -1982,6 +2070,8 @@
 	<string>계정 전환</string>
 	<key>Switch to this account</key>
 	<string>이 계정으로 전환하세요</string>
+	<key>Sync and storage</key>
+	<string>동기화 및 저장 공간</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
 	<string>동기화는 계정 콘텐츠와 클라우드 백업을 확인합니다. 메시지를 받으려면 대화나 받은 편지함을 열고, 파일은 별도로 복원하세요.</string>
 	<key>Sync conflicts</key>
@@ -2016,8 +2106,6 @@
 	<string>복사본은 가져오기에 쓸 수 있도록 이 iPhone에 읽기 전용으로 남습니다. 그런 다음 이 iPhone이 새 기기로 계정에 추가됩니다. 로그인한 뒤 다른 기기에서 승인하거나 계정을 복구하세요. 이전 iPhone은 계속 작동합니다.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>암호화된 버전은 클라우드 저장소를 사용합니다. 로컬 복사본은 이 장치에 유지됩니다.</string>
-	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
-	<string>위의 명시적인 범위와 대상도 이 자격 증명에 적용됩니다. 무제한 컨트롤러 권한은 자격 증명을 무제한으로 만들지 않습니다.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>내보낸 자격 증명을 사용할 수 없거나 만료되었습니다. dMsg를 열어 새 스냅샷을 생성하세요.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
@@ -2032,8 +2120,8 @@
 	<string>마지막으로 확인된 관찰이 유지됩니다. 현재 상태를 확인할 수 없습니다.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>로컬 바인딩 키를 사용할 수 없습니다. 이 작업 공간을 유지하고 잠그기 전에 복구 옵션을 검토하세요.</string>
-	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>현지 투어는 누구나 이용할 수 있습니다. 계정 생성, 동기화, 구매, 알림 및 하드웨어 인증을 테스트하려면 둘러보기를 종료하고 Internet Identity를 통해 로그인하세요.</string>
+	<key>The maximum fee is below the estimate.</key>
+	<string>수수료 상한선은 예상 금액보다 낮습니다.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>모바일 패키지 제한은 8 MiB입니다. 미리보기는 가져올 항목을 선택하기 전에 패키지를 확인합니다.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
@@ -2070,8 +2158,8 @@
 	<string>선택한 항목을 준비할 수 없습니다. dMsg를 열고 거기로 가져와 보십시오.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>소스 복사가 중단되었습니다. 이를 폐기하고 소스를 다시 선택하십시오.</string>
-	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>테스트 배포가 구성되지 않았습니다. 로컬 데모 및 개인 정보 보호 정책은 계속 사용할 수 있습니다.</string>
+	<key>The test deployment is not configured.</key>
+	<string>테스트 배포가 구성되지 않았습니다.</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
 	<string>이전 승인이 만료되었습니다. 이 작업을 취소한 다음 포그라운드에서 원래 백업을 계속하거나 새 다운로드를 시작하십시오.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
@@ -2098,8 +2186,6 @@
 	<string>이 작업은 취소할 수 없습니다. 로그아웃만으로는 계정이 삭제되지 않습니다.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
 	<string>그러면 로컬 잠금 해제 보호가 변경됩니다. 시스템 인증이 필요할 수 있습니다. 계정 복구나 기타 장치가 변경되지 않습니다.</string>
-	<key>This changes only the local sample.</key>
-	<string>이렇게 하면 로컬 샘플만 변경됩니다.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>이로 인해 하드웨어 서명이 필요한 계정 작업이 변경됩니다. 보호를 비활성화하면 하드웨어 증명 없이도 해당 작업이 허용됩니다.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2112,6 +2198,8 @@
 	<string>이 기기에는 동기화되지 않은 변경사항이 있습니다. 계정을 삭제하기 전에 필요한 모든 것을 저장하세요.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>이 기기에는 이 제안에 사용할 공동 서명 키가 없습니다.</string>
+	<key>This device is authorized</key>
+	<string>이 기기는 승인되었습니다</string>
 	<key>This device is replaced by</key>
 	<string>이 장치를 대체하는 장치</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
@@ -2134,8 +2222,6 @@
 	<string>이 iPhone의 키</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>이 재고에는 이 장치에 대한 참조 및 배송 기록이 포함됩니다. 다른 장치나 임의의 프로젝트 파일은 검색하지 않습니다.</string>
-	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>현지투어를 위한 가상의 문서입니다. 귀하의 계정에서 선택한 파일은 백업 전에 장치에서 암호화됩니다. 백그라운드 전송은 암호화된 블록만 처리합니다. 마무리하려면 원래 잠금 해제된 계정이 필요합니다.</string>
 	<key>This is not the device in the request.</key>
 	<string>요청에 있는 장치가 아닙니다.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
@@ -2152,8 +2238,6 @@
 	<string>이 작업을 일시적으로 사용할 수 없습니다. 저장된 데이터는 보관됩니다.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>이 패키지는 이미 이 장치로 가져왔습니다. 기존 복사본은 독립적으로 유지됩니다.</string>
-	<key>This preview sends nothing.</key>
-	<string>이 미리보기는 아무 것도 보내지 않습니다.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>이 프로필은 공개입니다. 비밀이나 개인 연락처 정보를 포함하지 마세요.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2168,8 +2252,6 @@
 	<string>이는 향후 검색을 종료하도록 요청합니다. 이미 저장된 복사본은 계속 사용할 수 있습니다. 불확실한 출판물은 여전히 ​​조정되어야 합니다.</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>이 스냅샷에는 주의가 필요합니다. 계속하기 전에 상태를 확인하세요.</string>
-	<key>This tour does not upload files or register system integrations.</key>
-	<string>이 투어는 파일을 업로드하거나 시스템 통합을 등록하지 않습니다.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>이 장치에서의 작업을 추적합니다. 공급자에서는 자격 증명을 생성, 테스트 또는 취소하지 않습니다.</string>
 	<key>This wallet's key</key>
@@ -2200,14 +2282,14 @@
 	<string>휴지통</string>
 	<key>Trash is empty</key>
 	<string>휴지통이 비어 있습니다.</string>
-	<key>Try the local demo</key>
-	<string>로컬 데모를 사용해 보세요</string>
 	<key>Two versions need your decision</key>
 	<string>두 가지 버전에 대한 결정이 필요합니다</string>
 	<key>Type</key>
 	<string>유형</string>
 	<key>Type this account ID to confirm</key>
 	<string>확인하려면 이 계정 ID를 입력하세요.</string>
+	<key>URL</key>
+	<string>URL</string>
 	<key>Unbind</key>
 	<string>연결 해제</string>
 	<key>Unblock</key>
@@ -2226,10 +2308,16 @@
 	<string>dMsg를 열려면 이 iPhone을 잠금 해제하세요.</string>
 	<key>Unlock with system authentication</key>
 	<string>시스템 인증으로 잠금 해제</string>
+	<key>Unlock workspace</key>
+	<string>작업 공간 잠금 해제</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>dMsg 작업 공간 잠금 해제</string>
 	<key>Unrestricted delegation authority</key>
 	<string>무제한 위임 권한</string>
+	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
+	<string>범위는 최대 8개, 대상은 최대 4개입니다. HTTPS 출처나 Agent ID를 사용하세요. 와일드카드는 허용되지 않습니다.</string>
+	<key>Updated</key>
+	<string>업데이트됨</string>
 	<key>Uploading</key>
 	<string>업로드 중</string>
 	<key>Uploading encrypted backup</key>
@@ -2238,6 +2326,8 @@
 	<string>업로드가 일시 중지되었습니다. 클라우드 공간을 확보한 후 다시 시도하세요. 수신은 계속됩니다.</string>
 	<key>Url</key>
 	<string>URL</string>
+	<key>Usage</key>
+	<string>사용법</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>dMsg에서 명시적으로 내보낸 스냅샷의 비밀번호를 사용하세요.</string>
 	<key>Use a secret through a device policy</key>
@@ -2246,8 +2336,6 @@
 	<string>SSH 서명 키 사용</string>
 	<key>Use conflicting version</key>
 	<string>충돌하는 버전 사용</string>
-	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>여기서는 가상의 데이터를 사용하세요. 둘러보기를 닫으면 변경사항이 삭제됩니다.</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol 또는 sol:mint를 사용하세요.</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2256,6 +2344,8 @@
 	<string>이 폴더를 사용하세요</string>
 	<key>Use this password for:</key>
 	<string>다음 용도로 이 비밀번호를 사용하세요.</string>
+	<key>Used</key>
+	<string>사용량</string>
 	<key>Username</key>
 	<string>사용자 이름</string>
 	<key>Value</key>
@@ -2280,6 +2370,8 @@
 	<string>계정 콘텐츠 확인 중…</string>
 	<key>Verifying…</key>
 	<string>확인 중…</string>
+	<key>Version</key>
+	<string>버전</string>
 	<key>Version history</key>
 	<string>버전 기록</string>
 	<key>Versions</key>
@@ -2306,6 +2398,8 @@
 	<string>다른 장치를 기다리는 중</string>
 	<key>Waiting for your decision</key>
 	<string>당신의 결정을 기다리고 있습니다</string>
+	<key>Waiting period</key>
+	<string>대기 기간</string>
 	<key>Waiting to submit</key>
 	<string>제출 대기 중</string>
 	<key>Waiting to sync</key>
@@ -2336,8 +2430,6 @@
 	<string>웹사이트</string>
 	<key>Welcome back.</key>
 	<string>돌아온 것을 환영합니다.</string>
-	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>로컬 데모에 오신 것을 환영합니다. 이러한 메시지는 이 화면에 남아 있습니다.</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg가 열려 있고 잠금 해제되어 있으면 보관함이 자동으로 동기화됩니다. 대화나 받은 편지함을 열면 메시지가 업데이트됩니다. 파일 백업에는 별도의 확인이 필요합니다. 자동 동기화는 언제든지 끌 수 있습니다.</string>
 	<key>Who may contact you</key>
@@ -2354,8 +2446,6 @@
 	<string>다른 iPhone에서 복사된 작업 공간</string>
 	<key>Workspace destination</key>
 	<string>작업공간 대상</string>
-	<key>Write a demo message</key>
-	<string>데모 메시지 작성</string>
 	<key>Write a letter</key>
 	<string>편지 쓰기</string>
 	<key>Write a message</key>
@@ -2376,6 +2466,8 @@
 	<string>현재 계획은 App Store 외부에서 관리됩니다. App Store 구독을 시작하기 전에 끝날 때까지 기다리십시오.</string>
 	<key>Your decision applies only to this request.</key>
 	<string>귀하의 결정은 이 요청에만 적용됩니다.</string>
+	<key>Your draft stays until this workspace locks. Nothing is submitted.</key>
+	<string>작업 공간이 잠길 때까지 초안을 유지합니다. 아무것도 제출되지 않습니다.</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
 	<string>암호화된 파일은 여기에 남아 있습니다. 저장된 로그인 및 빠른 잠금 해제가 제거됩니다.</string>
 	<key>Your existing device makes the final decision.</key>

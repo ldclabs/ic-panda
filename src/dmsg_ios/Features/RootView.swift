@@ -308,28 +308,16 @@ private struct MovedCopiesSection: View {
 
 private struct AccessFooter: View {
     var body: some View {
-        VStack(spacing: 0) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 24) { workspaceLinks }.fixedSize(horizontal: true, vertical: false)
-                VStack(spacing: 0) { workspaceLinks }
-            }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 24) { supportLinks }.fixedSize(horizontal: true, vertical: false)
-                VStack(spacing: 0) { supportLinks }
-            }.foregroundStyle(.secondary)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 24) { links }.fixedSize(horizontal: true, vertical: false)
+            VStack(spacing: 0) { links }
         }.font(.footnote).multilineTextAlignment(.center).frame(maxWidth: .infinity)
     }
 
-    @ViewBuilder private var workspaceLinks: some View {
+    @ViewBuilder private var links: some View {
         LanguageSettingsLink(iconSize: 14).frame(minHeight: 44)
-        NavigationLink("Try the local demo") { LocalDemoView() }
-            .frame(minHeight: 44).accessibilityIdentifier("access.demo")
-    }
-
-    @ViewBuilder private var supportLinks: some View {
         NavigationLink("Privacy policy") { PrivacyPolicyView() }
             .frame(minHeight: 44).accessibilityIdentifier("access.privacy")
-        Link("Contact support", destination: URL(string: "https://dmsg.net/_/support")!).frame(minHeight: 44)
     }
 }
 

@@ -780,6 +780,15 @@ impl Client {
         Ok(Json::Array(invitations))
     }
 
+    /// Stop this device from approving an unused browser invitation.
+    /// The relay's unapproved mailbox expires at its original deadline.
+    pub fn forget_connect_invitation(&mut self, invite: &str) -> Result<()> {
+        let id = hex_hash(&Json::String(invite.into()))?;
+        self.keys()?;
+        self.workspace
+            .delete_private(&format!("{INVITE}{}", hex::encode(*id)))
+    }
+
     /// Locate an already verified relay request; links never create approvals.
     /// # Errors
     /// Returns `Locked` or an invalid request ID error.

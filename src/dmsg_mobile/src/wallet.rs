@@ -15,6 +15,35 @@ pub struct WalletTransfer {
 
 #[uniffi::export]
 impl MobileEngine {
+    pub async fn wallet_assets(&self, wallet: String) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&wallet)?;
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::desktop::assets(h, wallet, false).await })
+        })
+        .await
+    }
+
+    pub async fn preview_wallet_transfer(
+        &self,
+        transfer: WalletTransfer,
+    ) -> Result<ObjectSnapshot> {
+        let wallet = wallet::parse_wallet(&transfer.wallet)?;
+        let input = wallet::desktop::TransferInput {
+            from: transfer.from,
+            asset: transfer.asset,
+            outputs: vec![wallet::desktop::OutputInput {
+                to: transfer.recipient,
+                amount: transfer.amount,
+            }],
+            max_fee: (!transfer.max_fee.is_empty()).then_some(transfer.max_fee),
+            memo: transfer.memo,
+        };
+        self.held_object(move |h| {
+            Box::pin(async move { wallet::desktop::preview(h, wallet, input).await })
+        })
+        .await
+    }
+
     pub async fn wallets(&self) -> Result<ObjectSnapshot> {
         self.held_object(|h| Box::pin(async { wallet::list(h).await }))
             .await

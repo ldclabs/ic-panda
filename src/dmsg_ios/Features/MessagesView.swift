@@ -52,6 +52,9 @@ struct MessagesView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
                     ToolbarItem(placement: .primaryAction) {
+                        NavigationLink { MessageSettingsView() } label: { Label("Message settings", systemImage: "slider.horizontal.3") }.accessibilityIdentifier("messages.settings")
+                    }
+                    ToolbarItem(placement: .primaryAction) {
                         if mode == 0 { Button("New conversation", systemImage: "plus") { creating = true } }
                         else { NavigationLink { LetterComposerView() } label: { Label("Write a letter", systemImage: "square.and.pencil") } }
                     }

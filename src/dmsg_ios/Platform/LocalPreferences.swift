@@ -1,5 +1,10 @@
 import Foundation
 
+struct LocalAccountIdentity: Codable, Equatable {
+    var name: String?
+    var avatar: Data?
+}
+
 struct LocalPreferences: Codable, Equatable {
     var immediateBackgroundLock = false
     /// Accounts that turned automatic sync off; every other account syncs
@@ -10,6 +15,9 @@ struct LocalPreferences: Codable, Equatable {
     var syncIntroduced: Set<String>?
     /// Accounts whose security-alert prompt was set aside.
     var notificationSetupDismissed: Set<String>?
+    /// Public identity thumbnails in the protected, device-local preferences.
+    var accountIdentities: [String: LocalAccountIdentity]?
+    var deviceLabels: [String: String]?
     static func read(at root: URL) throws -> Self {
         let file = root.appending(path: "privacy-preferences.json")
         guard FileManager.default.fileExists(atPath: file.path) else { return Self() }

@@ -8,6 +8,18 @@ struct SubscriptionView: View {
         struct Term: Decodable { let endsAtMs: UInt64; let method: String }
         let plan: String; let source: String; let limits: Limits; let current: Term?
     }
+    struct Usage: Decodable {
+        struct Cloud: Decodable {
+            let committed: UInt64; let reserved: UInt64; let storageLimit: UInt64?
+            let activeChannels: UInt64?; let channelLimit: UInt64?
+            var remaining: UInt64? { storageLimit.map { $0 > committed && $0 - committed > reserved ? $0 - committed - reserved : 0 } }
+        }
+        struct Execution: Decodable { let month: UInt32; let allowed: UInt64; let charged: UInt64; let remaining: UInt64 }
+        let cloud: Cloud?; let execution: Execution?; let cloudError: String?; let executionError: String?
+    }
+    @State private var usage: Usage?
+    @State private var usageFailed = false
+    @State private var usageLoading = false
     @State private var display = DisplayLoad()
     @State private var plan: Plan?
     @State private var managing = false
@@ -19,17 +31,38 @@ struct SubscriptionView: View {
             Section("Current plan and limits") {
                 if let plan {
                     LabeledContent("Plan", value: plan.plan)
-                    LabeledContent("Cloud storage", value: ByteCountFormatter.string(fromByteCount: Int64(clamping: plan.limits.storageBytes), countStyle: .file))
-                    LabeledContent("Active conversations", value: plan.limits.activeChannels.formatted())
-                    LabeledContent("Monthly execution units", value: plan.limits.monthlyExecutionUnits.formatted())
+                    LabeledContent("Storage limit", value: binarySize(plan.limits.storageBytes))
+                    LabeledContent("Conversation limit", value: plan.limits.activeChannels.formatted())
+                    LabeledContent("Monthly execution limit", value: plan.limits.monthlyExecutionUnits.formatted())
                     if let term = plan.current { LabeledContent("Current term ends") { Text(Date(timeIntervalSince1970: Double(term.endsAtMs) / 1000), style: .date) } }
                     if plan.source == "Unverifiable" { NoticeBar(text: String(localized: "Your current entitlement could not be refreshed. Retry when the verification service is available.")) }
                 } else if loading { ProgressView() }
                 if failed {
                     Text("Your current entitlement could not be refreshed. Retry when the verification service is available.").foregroundStyle(.secondary)
-                    Button("Retry") { Task { await load() } }
+                    SettingsAction("Retry") { Task { await load() } }
                 }
             }
+            Section("Usage") {
+                if usageLoading { ProgressView() }
+                if let cloud = usage?.cloud {
+                    LabeledContent("Used", value: binarySize(cloud.committed))
+                    LabeledContent("Reserved for uploads", value: binarySize(cloud.reserved))
+                    if let remaining = cloud.remaining { LabeledContent("Remaining", value: binarySize(remaining)) }
+                    if let limit = cloud.storageLimit, limit > 0 { ProgressView(value: min(Double(cloud.committed) + Double(cloud.reserved), Double(limit)), total: Double(limit)).accessibilityLabel("Cloud storage") }
+                    if let used = cloud.activeChannels, let limit = cloud.channelLimit {
+                        LabeledContent("Active conversations", value: "\(used.formatted()) / \(limit.formatted())")
+                    }
+                }
+                if let execution = usage?.execution {
+                    LabeledContent("Monthly execution units", value: "\(execution.charged.formatted()) / \(execution.allowed.formatted())")
+                    LabeledContent("Remaining", value: execution.remaining.formatted())
+                    Text(verbatim: "UTC · \(execution.month / 100)-\(String(format: "%02d", execution.month % 100))").font(.caption).foregroundStyle(.secondary)
+                }
+                if usageFailed || usage?.cloudError != nil || usage?.executionError != nil {
+                    NoticeBar(text: String(localized: "Some usage could not be refreshed. Unavailable values are not zero."))
+                    SettingsAction("Retry") { Task { await loadUsage() } }.disabled(usageLoading)
+                }
+            }.accessibilityIdentifier("plan.usage")
             Section("Cloud backup file limit") {
                 ForEach(["Free", "Plus", "Pro", "Max"], id: \.self) { tier in
                     LabeledContent {
@@ -48,7 +81,7 @@ struct SubscriptionView: View {
                     }
                     if model.purchases.products.isEmpty { Text("Purchases are not currently available.").foregroundStyle(.secondary) }
                     if model.purchases.pending { NoticeBar(text: String(localized: "Your purchase is awaiting confirmation. Restore purchases to retry without paying again.")) }
-                    Button("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
+                    SettingsAction("Restore purchases") { Task { await model.purchases.restore(model) } }.disabled(model.purchases.working)
                         .accessibilityIdentifier("plan.restore")
                     Button("Manage subscriptions") { managing = true }.accessibilityIdentifier("plan.manage")
                     Text("Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.").font(.footnote).foregroundStyle(.secondary)
@@ -105,12 +138,25 @@ struct SubscriptionView: View {
         if model.uiTesting {
             plan = Plan(plan: "Free", source: "Free", limits: Plan.Limits(storageBytes: 104857600,
                 activeChannels: 2, monthlyExecutionUnits: 3), current: nil)
+            usage = Usage(cloud: Usage.Cloud(committed: 10485760, reserved: 1048576, storageLimit: 104857600, activeChannels: 1, channelLimit: 2), execution: Usage.Execution(month: 202611, allowed: 3, charged: 1, remaining: 2), cloudError: nil, executionError: nil)
             return
         }
         #endif
+        async let counts: Void = loadUsage()
         async let saved: Void = display.load(model, kind: "plan", force: force) { (next: Plan) in plan = next }
         async let products: Void = model.purchases.load(model)
-        _ = await (saved, products)
+        _ = await (saved, products, counts)
         failed = display.failed
     }
+
+    private func loadUsage() async {
+        guard let engine = model.engine, !usageLoading else { return }
+        let epoch = model.epoch; usageLoading = true; usageFailed = false
+        defer { usageLoading = false }
+        do {
+            let value: Usage = try model.decode(try await engine.accountUsage())
+            guard epoch == model.epoch, !Task.isCancelled else { return }; usage = value
+        } catch { if epoch == model.epoch, !Task.isCancelled { usageFailed = true } }
+    }
+
 }

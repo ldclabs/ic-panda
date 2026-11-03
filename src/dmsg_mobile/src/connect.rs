@@ -17,6 +17,13 @@ impl MobileEngine {
             .await
     }
 
+    pub async fn forget_browser_invitation(&self, invite: String) -> Result<()> {
+        self.host
+            .run(move |c| Box::pin(async move { c.forget_connect_invitation(&invite) }))
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn browser_candidates(&self, invite: String) -> Result<ObjectSnapshot> {
         self.held_object(move |h| {
             Box::pin(async move { dmsg_client::connect::candidates(h, &invite).await })

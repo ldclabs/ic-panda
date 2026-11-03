@@ -413,6 +413,25 @@ impl MobileEngine {
         self.held_object(|h| Box::pin(async { dmsg_client::commerce::plan_status(h, false).await }))
             .await
     }
+
+    /// Independent usage reads: a failed lane remains unknown, never zero.
+    pub async fn account_usage(&self) -> Result<ObjectSnapshot> {
+        self.held_object(|h| {
+            Box::pin(async {
+                let (cloud, execution) = tokio::join!(
+                    library::cloud::cloud_usage(h),
+                    dmsg_client::attest::execution_usage(h)
+                );
+                Ok(json!({
+                    "cloud": cloud.as_ref().ok(),
+                    "execution": execution.as_ref().ok(),
+                    "cloud_error": cloud.as_ref().err().map(dmsg_client::error_code),
+                    "execution_error": execution.as_ref().err().map(dmsg_client::error_code),
+                }))
+            })
+        })
+        .await
+    }
 }
 
 #[uniffi::export]

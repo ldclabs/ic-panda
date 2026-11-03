@@ -10,7 +10,7 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); settingsDrafts = [:] } }
     private(set) var viewGeneration: UInt64 = 0
     var concealed = true
     var busy = false
@@ -35,6 +35,10 @@ final class SessionModel {
     /// Navigation/layout may recreate a detail column; drafts belong to the
     /// account session and are also persisted by the core.
     var drafts: [String: String] = [:]
+    /// In-memory form drafts never cross a lock or account transition.
+    var settingsDrafts: [String: Data] = [:]
+    private(set) var accountIdentities: [String: LocalAccountIdentity] = [:]
+    private(set) var deviceLabels: [String: String] = [:]
     let messageSending = MessageSending()
     private var dirtyDrafts: Set<String> = []
     var library: LibraryListing = .empty
@@ -151,6 +155,8 @@ final class SessionModel {
             manualSyncAccounts = preferences.manualSyncAccounts ?? []
             syncIntroduced = preferences.syncIntroduced ?? []
             notificationSetupDismissed = preferences.notificationSetupDismissed ?? []
+            accountIdentities = preferences.accountIdentities ?? [:]
+            deviceLabels = preferences.deviceLabels ?? [:]
             immediateBackgroundLock = preferences.immediateBackgroundLock
             let security = AppleSecurity(installation: files.installation, environment: deployment.name)
             let engine: MobileEngine
@@ -174,17 +180,74 @@ final class SessionModel {
 
     func profileDidChange() { profileRevision &+= 1 }
 
-    func loadBlockedAccounts() async {
-        let current = epoch
-        do { if let values = try await engine?.blockedAccounts(), current == epoch { blockedAccounts = Set(values) } }
-        catch { if current == epoch { report(error) } }
+    func rememberIdentity(name: String?, avatar: Data?) {
+        guard unlocked, let account = session?.account else { return }
+        let identity = LocalAccountIdentity(name: name, avatar: avatar)
+        guard accountIdentities[account] != identity else { return }
+        accountIdentities[account] = identity
+        if let files {
+            do { try writePreferences(at: files.root) } catch { report(error) }
+        }
     }
 
-    func blockAccount(_ account: String, blocked: Bool) async {
+    func rememberAccountNames(_ names: [String: String?], epoch: UInt64) {
+        guard unlocked, epoch == self.epoch else { return }
+        var changed = false
+        for (account, name) in names {
+            // The current account's own profile can be newer than its public
+            // directory publication, just as in the desktop switcher.
+            if account == session?.account, accountIdentities[account]?.name != nil { continue }
+            let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let identity = LocalAccountIdentity(name: trimmed?.isEmpty == false ? trimmed : nil,
+                                                avatar: accountIdentities[account]?.avatar)
+            if accountIdentities[account] != identity { accountIdentities[account] = identity; changed = true }
+        }
+        if changed, let files {
+            do { try writePreferences(at: files.root) } catch { report(error) }
+        }
+    }
+
+    func deviceLabel(_ device: String) -> String? {
+        guard let account = session?.account else { return nil }
+        return deviceLabels[account + "/" + device]
+    }
+
+    func setDeviceLabel(_ device: String, label: String) {
+        guard unlocked, let account = session?.account else { return }
+        let value = String(label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80))
+        deviceLabels[account + "/" + device] = value.isEmpty ? nil : value
+        if let files { do { try writePreferences(at: files.root) } catch { report(error) } }
+    }
+
+    func formDraft<T: Decodable>(_ key: String, as: T.Type) -> T? {
+        settingsDrafts[key].flatMap { try? JSONDecoder().decode(T.self, from: $0) }
+    }
+
+    func keepFormDraft<T: Encodable>(_ key: String, value: T, epoch: UInt64) {
+        guard unlocked, epoch == self.epoch else { return }
+        settingsDrafts[key] = try? JSONEncoder().encode(value)
+    }
+
+    @discardableResult
+    func loadBlockedAccounts() async -> Bool {
+        if uiTesting { return true }
         let current = epoch
-        do { _ = try await engine?.setBlockedAccount(account: account, blocked: blocked) }
-        catch { if current == epoch { report(error) } }
-        if current == epoch { await loadBlockedAccounts() }
+        do {
+            guard let values = try await engine?.blockedAccounts(), current == epoch else { return false }
+            blockedAccounts = Set(values); return true
+        } catch { return false }
+    }
+
+    @discardableResult
+    func blockAccount(_ account: String, blocked: Bool) async -> Bool {
+        let current = epoch
+        do {
+            guard let engine else { return false }
+            _ = try await engine.setBlockedAccount(account: account, blocked: blocked)
+            guard current == epoch else { return false }
+            if blocked { blockedAccounts.insert(account) } else { blockedAccounts.remove(account) }
+            return true
+        } catch { if current == epoch { report(error) }; return false }
     }
 
     var integrationReset: Task<Void, Never>?
@@ -214,6 +277,8 @@ final class SessionModel {
                 for entry in try incoming.list() where entry.accountHash == IncomingShares.accountHash(account) { try incoming.remove(entry) }
             }
             manualSyncAccounts.remove(account); syncIntroduced.remove(account); notificationSetupDismissed.remove(account)
+            accountIdentities.removeValue(forKey: account)
+            deviceLabels = deviceLabels.filter { !$0.key.hasPrefix(account + "/") }
             try writePreferences(at: files.root)
             let staging = files.staging.appending(path: account)
             if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
@@ -354,7 +419,8 @@ final class SessionModel {
 
     private func writePreferences(at root: URL) throws {
         try LocalPreferences(immediateBackgroundLock: immediateBackgroundLock, manualSyncAccounts: manualSyncAccounts,
-                             syncIntroduced: syncIntroduced, notificationSetupDismissed: notificationSetupDismissed).write(at: root)
+                             syncIntroduced: syncIntroduced, notificationSetupDismissed: notificationSetupDismissed,
+                             accountIdentities: accountIdentities, deviceLabels: deviceLabels).write(at: root)
     }
 
     func automaticSyncPass() async {
@@ -866,7 +932,7 @@ final class SessionModel {
                     let engine = engine
                     Task { _ = try? await engine?.lock() }
                 }
-                if code == "TEST_DEPLOYMENT_UNAVAILABLE" { self.error = String(localized: "The test deployment is not configured. The local demo and privacy policy remain available.") }
+                if code == "TEST_DEPLOYMENT_UNAVAILABLE" { self.error = String(localized: "The test deployment is not configured.") }
                 else if code == "APP_INTEGRITY_UNAVAILABLE" { self.error = String(localized: "App verification is unavailable on this device. Your saved content remains available.") }
                 else if code == "FORBIDDEN" { self.error = String(localized: "The operation was cancelled or is not permitted.") }
                 else if code == "VERSION_CONFLICT" { self.error = String(localized: "The record changed. Refresh and review your edits before saving again.") }

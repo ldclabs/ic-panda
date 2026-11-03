@@ -29,7 +29,9 @@
 	<key>API credential</key>
 	<string>Credenziale API</string>
 	<key>About</key>
-	<string>Circa</string>
+	<string>Presentazione</string>
+	<key>About dMsg</key>
+	<string>Informazioni su dMsg</string>
 	<key>Accept approved binding</key>
 	<string>Accetta l'associazione approvata</string>
 	<key>Access granted</key>
@@ -54,10 +56,14 @@
 	<string>Account, dispositivi e identità</string>
 	<key>Accounts</key>
 	<string>Conti</string>
+	<key>Active</key>
+	<string>Attivo</string>
 	<key>Active conversations</key>
 	<string>Conversazioni attive</string>
 	<key>Activity on this device</key>
 	<string>Attività su questo dispositivo</string>
+	<key>Add account</key>
+	<string>Aggiungi account</string>
 	<key>Add device</key>
 	<string>Aggiungi dispositivo</string>
 	<key>Add field</key>
@@ -66,20 +72,20 @@
 	<string>Aggiungilo alla rubrica</string>
 	<key>Add item</key>
 	<string>Aggiungi elemento</string>
-	<key>Add message to demo</key>
-	<string>Aggiungi messaggio alla demo</string>
+	<key>Add link</key>
+	<string>Aggiungi collegamento</string>
 	<key>Add one-time code</key>
 	<string>Aggiungi un codice monouso</string>
 	<key>Add protector</key>
 	<string>Aggiungi protezione</string>
 	<key>Add receiving address</key>
 	<string>Aggiungi l'indirizzo di ricezione</string>
-	<key>Add sample login</key>
-	<string>Aggiungi accesso di esempio</string>
 	<key>Add the new address</key>
 	<string>Aggiungi il nuovo indirizzo</string>
 	<key>Added</key>
 	<string>Aggiunto</string>
+	<key>Additional reserve / rent</key>
+	<string>Riserva/affitto aggiuntivi</string>
 	<key>Address</key>
 	<string>Indirizzo</string>
 	<key>Address label</key>
@@ -90,6 +96,8 @@
 	<string>Approvazioni amministrative %u</string>
 	<key>Administrator</key>
 	<string>Amministratore</string>
+	<key>Advanced</key>
+	<string>Avanzato</string>
 	<key>After approving the wallet requests, generate a new replacement request on the new device.</key>
 	<string>Dopo aver approvato le richieste dei portafogli, genera una nuova richiesta di sostituzione sul nuovo dispositivo.</string>
 	<key>Agent ID</key>
@@ -116,10 +124,16 @@
 	<string>Già importato</string>
 	<key>Already present</key>
 	<string>Già presente</string>
+	<key>Amount</key>
+	<string>Importo</string>
 	<key>Amount in base units</key>
 	<string>Importo in unità base</string>
 	<key>An account recovery is pending. Review it in Account security.</key>
 	<string>È in sospeso il recupero dell'account. Controllalo in Sicurezza dell'account.</string>
+	<key>An administrator device is required to change account security.</key>
+	<string>Serve un dispositivo amministratore per modificare la sicurezza dell’account.</string>
+	<key>An administrator device is required to publish this profile.</key>
+	<string>Per pubblicare questo profilo è necessario un dispositivo amministratore.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Chiunque abbia il collegamento completo e la password richiesta può recuperarlo entro i suoi limiti.</string>
 	<key>Anyone, free of charge</key>
@@ -180,6 +194,10 @@
 	<string>Arriva</string>
 	<key>Ask an administrator to bind this login to your existing account. Device authorization is a separate step.</key>
 	<string>Chiedi a un amministratore di associare questo accesso al tuo account esistente. L'autorizzazione del dispositivo è un passaggio separato.</string>
+	<key>Asset</key>
+	<string>Risorsa</string>
+	<key>Asset details are unavailable. Retry before entering an amount.</key>
+	<string>Dettagli dell’asset non disponibili. Riprova prima di inserire l’importo.</string>
 	<key>Asset identifier</key>
 	<string>Identificatore della risorsa</string>
 	<key>Attach</key>
@@ -220,6 +238,8 @@
 	<string>Istantanea di compilazione automatica aggiornata</string>
 	<key>Automatic foreground sync</key>
 	<string>Sincronizzazione automatica in primo piano</string>
+	<key>Available after</key>
+	<string>Disponibile dopo</string>
 	<key>Back</key>
 	<string>Indietro</string>
 	<key>Back up encrypted copy</key>
@@ -244,6 +264,10 @@
 	<string>Avanzamento del backup salvato. Controllare lo stato del file per il completamento.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
 	<string>Backup in coda. Mantieni dMsg aperto per completare il caricamento.</string>
+	<key>Backups found</key>
+	<string>Backup</string>
+	<key>Balance</key>
+	<string>Saldo</string>
 	<key>Bind another Internet Identity</key>
 	<string>Associa un altro Internet Identity</string>
 	<key>Bind this workspace to this iPhone?</key>
@@ -274,6 +298,8 @@
 	<string>Richiesta del browser</string>
 	<key>Cached data</key>
 	<string>Dati nella cache</string>
+	<key>Cached data cleared</key>
+	<string>Cache svuotata</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>La fotocamera non è disponibile. Incolla l’invito o consenti l’accesso alla fotocamera in Impostazioni.</string>
 	<key>Cancel</key>
@@ -328,12 +354,16 @@
 	<string>Istantanea del canale</string>
 	<key>Channels</key>
 	<string>Canali</string>
+	<key>Check account IDs and remove duplicates.</key>
+	<string>Controlla gli ID account e rimuovi i duplicati.</string>
 	<key>Check addresses</key>
 	<string>Controlla gli indirizzi</string>
 	<key>Check authorization</key>
 	<string>Controlla l'autorizzazione</string>
 	<key>Check deletion status</key>
 	<string>Controlla lo stato dell'eliminazione</string>
+	<key>Check field lengths and use named HTTPS links.</key>
+	<string>Controlla la lunghezza dei campi e assegna nomi ai link HTTPS.</string>
 	<key>Check project references and any copies already delivered.</key>
 	<string>Verifica i riferimenti del progetto e le eventuali copie già consegnate.</string>
 	<key>Check recovery status</key>
@@ -370,6 +400,8 @@
 	<string>Scegli chi può inviarti lettere gratuite. Gli account bloccati rimangono tali finché non li sblocchi.</string>
 	<key>Clear cached data</key>
 	<string>Svuota cache</string>
+	<key>Close invitation</key>
+	<string>Chiudi invito</string>
 	<key>Closed</key>
 	<string>Chiuso</string>
 	<key>Cloud backup file limit</key>
@@ -430,6 +462,8 @@
 	<string>Invito di contatto, se fornito</string>
 	<key>Contact support</key>
 	<string>Contatta l'assistenza</string>
+	<key>Content signing</key>
+	<string>Firma dei contenuti</string>
 	<key>Continue import</key>
 	<string>Continua l'importazione</string>
 	<key>Continue password import</key>
@@ -452,20 +486,28 @@
 	<string>Controller e delegazioni</string>
 	<key>Conversation</key>
 	<string>Conversazione</string>
+	<key>Conversation limit</key>
+	<string>Limite conversazioni</string>
 	<key>Conversation name</key>
 	<string>Nome della conversazione</string>
 	<key>Conversation settings</key>
 	<string>Impostazioni di conversazione</string>
+	<key>Copied</key>
+	<string>Copiato</string>
 	<key>Copied for 30 seconds</key>
 	<string>Copiato per 30 secondi</string>
 	<key>Copies from other iPhones</key>
 	<string>Copie da altri iPhone</string>
 	<key>Copy</key>
 	<string>Copia</string>
+	<key>Copy account ID</key>
+	<string>Copia ID account</string>
 	<key>Copy address</key>
 	<string>Copia indirizzo</string>
 	<key>Copy binding request</key>
 	<string>Copia richiesta vincolante</string>
+	<key>Copy device ID</key>
+	<string>Copia ID dispositivo</string>
 	<key>Copy enrollment request</key>
 	<string>Copia richiesta di iscrizione</string>
 	<key>Copy for 30 seconds</key>
@@ -542,6 +584,8 @@
 	<string>Rotazione delle credenziali</string>
 	<key>Current</key>
 	<string>Corrente</string>
+	<key>Current account</key>
+	<string>Account attuale</string>
 	<key>Current local dependencies</key>
 	<string>Dipendenze locali attuali</string>
 	<key>Current login</key>
@@ -592,12 +636,6 @@
 	<string>Stato di eliminazione</string>
 	<key>Deliver a secret to a local process</key>
 	<string>Fornire un segreto a un processo locale</string>
-	<key>Demo approved · No signature created</key>
-	<string>Demo approvata · Nessuna firma creata</string>
-	<key>Demo rejected · No signature created</key>
-	<string>Demo rifiutata · Nessuna firma creata</string>
-	<key>Demo section</key>
-	<string>Sezione dimostrativa</string>
 	<key>Dependencies on this device</key>
 	<string>Dipendenze su questo dispositivo</string>
 	<key>Describe the issue</key>
@@ -612,6 +650,8 @@
 	<string>Destinazione</string>
 	<key>Destination folder</key>
 	<string>Cartella di destinazione</string>
+	<key>Details</key>
+	<string>Dettagli</string>
 	<key>Device</key>
 	<string>Dispositivo</string>
 	<key>Device ID</key>
@@ -686,6 +726,8 @@
 	<string>E-mail</string>
 	<key>Enable dMsg in AutoFill settings</key>
 	<string>Abilita dMsg nelle impostazioni di Compilazione automatica</string>
+	<key>Enabled</key>
+	<string>Abilitato</string>
 	<key>Encrypted backup</key>
 	<string>Backup crittografato</string>
 	<key>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</key>
@@ -696,16 +738,18 @@
 	<string>Motore</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
 	<string>I dati biometrici registrati sono cambiati. Registrare una chiave sostitutiva prima di fare affidamento su questa chiave.</string>
+	<key>Enter a valid account ID.</key>
+	<string>Inserisci un ID account valido.</string>
+	<key>Enter an exact amount within the asset's precision.</key>
+	<string>Inserisci un importo positivo con la precisione supportata della risorsa.</string>
 	<key>Enter the session code the receiving device shows.</key>
 	<string>Inserisci il codice di sessione mostrato dal dispositivo che riceve.</string>
 	<key>Enter valid account IDs, one per line.</key>
 	<string>Inserisci ID account validi, uno per riga.</string>
 	<key>Error details</key>
 	<string>Dettagli dell'errore</string>
-	<key>Example document</key>
-	<string>Documento di esempio</string>
-	<key>Example login</key>
-	<string>Esempio di accesso</string>
+	<key>Estimated fee</key>
+	<string>Tariffa stimata</string>
 	<key>Execute</key>
 	<string>Esegui</string>
 	<key>Execute approved proposal</key>
@@ -814,8 +858,6 @@
 	<string>Nasconditi</string>
 	<key>Hide on this device</key>
 	<string>Nascondi su questo dispositivo</string>
-	<key>Hide sample sender</key>
-	<string>Nascondi il mittente del campione</string>
 	<key>Historical version</key>
 	<string>Versione storica</string>
 	<key>Host</key>
@@ -874,8 +916,6 @@
 	<string>Importa i segreti selezionati</string>
 	<key>In Trash</key>
 	<string>Nel cestino</string>
-	<key>In a real report, the service receives your reason and the account/resource identifiers. Message text is included only if you explicitly choose to disclose it.</key>
-	<string>In un vero e proprio report, il servizio riceve la tua motivazione e gli identificatori dell'account/risorsa. Il testo del messaggio viene incluso solo se scegli esplicitamente di divulgarlo.</string>
 	<key>In progress</key>
 	<string>In corso</string>
 	<key>In-app purchases are disabled in this build. Your current plan and usage remain available.</key>
@@ -892,6 +932,8 @@
 	<string>Ispeziona la richiesta di abbinamento</string>
 	<key>Inspect this version</key>
 	<string>Ispeziona questa versione</string>
+	<key>Insufficient balance</key>
+	<string>Saldo gettoni insufficiente.</string>
 	<key>Integrity</key>
 	<string>Integrità</string>
 	<key>Interrupted</key>
@@ -906,6 +948,8 @@
 	<string>Allegati all'articolo</string>
 	<key>Item references can sync before their files. Only files available on this device can be added to a new snapshot.</key>
 	<string>I riferimenti agli elementi possono essere sincronizzati prima dei relativi file. Solo i file disponibili su questo dispositivo possono essere aggiunti a una nuova istantanea.</string>
+	<key>Items</key>
+	<string>Elementi</string>
 	<key>Join</key>
 	<string>Partecipa</string>
 	<key>Join account</key>
@@ -920,6 +964,8 @@
 	<string>Conserva un dispositivo autorizzato che puoi sbloccare per cambiare dispositivo. Se li perdi tutti, recuperare l’accesso non ripristina i contenuti cloud.</string>
 	<key>Keep current version</key>
 	<string>Mantieni la versione corrente</string>
+	<key>Keep draft and leave</key>
+	<string>Mantieni bozza ed esci</string>
 	<key>Keep your secrets, conversations and files together. Only your authorized devices can open them.</key>
 	<string>Mantieni insieme i tuoi segreti, le tue conversazioni e i tuoi file. Solo i tuoi dispositivi autorizzati possono aprirli.</string>
 	<key>Key</key>
@@ -948,6 +994,8 @@
 	<string>Lascia la conversazione</string>
 	<key>Leave empty to keep existing value</key>
 	<string>Lasciare vuoto per mantenere il valore esistente</string>
+	<key>Leave this form?</key>
+	<string>Uscire dal modulo?</string>
 	<key>Leave this step behind?</key>
 	<string>Lasciare indietro questo passaggio?</string>
 	<key>Left behind</key>
@@ -960,8 +1008,8 @@
 	<string>Concesso in licenza a</string>
 	<key>Link limits</key>
 	<string>Limiti di collegamento</string>
-	<key>Live requests show their verified origin and full payload and require the configured system or hardware approval.</key>
-	<string>Le richieste in tempo reale mostrano la loro origine verificata e il carico utile completo e richiedono l'approvazione del sistema configurato o dell'hardware.</string>
+	<key>Links</key>
+	<string>Collegamenti</string>
 	<key>Load earlier activity</key>
 	<string>Carica l'attività precedente</string>
 	<key>Load earlier messages</key>
@@ -972,16 +1020,14 @@
 	<string>Carica di più</string>
 	<key>Loading the verified request…</key>
 	<string>Caricamento della richiesta verificata...</string>
+	<key>Loading…</key>
+	<string>Caricamento…</string>
 	<key>Local</key>
 	<string>Locale</string>
 	<key>Local content</key>
 	<string>Contenuti locali</string>
 	<key>Local delivery record</key>
 	<string>Registro di consegna locale</string>
-	<key>Local demo</key>
-	<string>Dimostrazione locale</string>
-	<key>Local demo · Fictitious data · Resets when closed</key>
-	<string>Demo locale · Dati fittizi · Si ripristina quando viene chiuso</string>
 	<key>Local dependencies</key>
 	<string>Dipendenze locali</string>
 	<key>Local dependency</key>
@@ -1018,8 +1064,12 @@
 	<string>Gestisci gli abbonamenti</string>
 	<key>Mark as read</key>
 	<string>Segna come letto</string>
+	<key>Maximum fee</key>
+	<string>Commissione massima</string>
 	<key>Maximum fee in base units</key>
 	<string>Tariffa massima in unità base</string>
+	<key>Member</key>
+	<string>Membro</string>
 	<key>Member account ID</key>
 	<string>ID dell'account membro</string>
 	<key>Member account or Principal</key>
@@ -1030,12 +1080,16 @@
 	<string>Membri</string>
 	<key>Message</key>
 	<string>Messaggio</string>
+	<key>Message settings</key>
+	<string>Impostazioni messaggi</string>
 	<key>Message withdrawn</key>
 	<string>Messaggio ritirato</string>
 	<key>Messages</key>
 	<string>Messaggi</string>
 	<key>Month</key>
 	<string>Mese</string>
+	<key>Monthly execution limit</key>
+	<string>Limite mensile di esecuzione</string>
 	<key>Monthly execution units</key>
 	<string>Unità di esecuzione mensili</string>
 	<key>Move a native address</key>
@@ -1102,8 +1156,12 @@
 	<string>Prossimo tentativo</string>
 	<key>No</key>
 	<string>No</string>
+	<key>No accounts</key>
+	<string>Nessun account</string>
 	<key>No activity on this device</key>
 	<string>Nessuna attività su questo dispositivo</string>
+	<key>No agents</key>
+	<string>Nessun agente</string>
 	<key>No background transfer</key>
 	<string>Nessun trasferimento in background</string>
 	<key>No blocked accounts</key>
@@ -1114,6 +1172,8 @@
 	<string>Nessun browser connesso</string>
 	<key>No conversations yet</key>
 	<string>Nessuna conversazione ancora</string>
+	<key>No credentials</key>
+	<string>Nessuna credenziale</string>
 	<key>No dependencies recorded on this device.</key>
 	<string>Nessuna dipendenza registrata su questo dispositivo.</string>
 	<key>No findings from this device's checks.</key>
@@ -1132,12 +1192,18 @@
 	<string>Nessun backup in sospeso</string>
 	<key>No recent use observed on this device</key>
 	<string>Nessun utilizzo recente osservato su questo dispositivo</string>
+	<key>No recovery request</key>
+	<string>Nessuna richiesta di recupero</string>
 	<key>No registered approval key</key>
 	<string>Nessuna chiave di approvazione registrata</string>
+	<key>No reports</key>
+	<string>Nessun record ancora</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Nessun cofirmatario selezionato significa nessuna politica di cofirma aggiuntiva. Esaminare la proposta completa prima di approvarla.</string>
 	<key>No shared items waiting</key>
 	<string>Nessun elemento condiviso in attesa</string>
+	<key>No snapshot</key>
+	<string>Nessuna istantanea</string>
 	<key>No snapshots on this device</key>
 	<string>Nessuno snapshot su questo dispositivo</string>
 	<key>Not enabled</key>
@@ -1222,6 +1288,8 @@
 	<string>Apri le impostazioni di notifica</string>
 	<key>Open private workspace</key>
 	<string>Apri uno spazio di lavoro privato</string>
+	<key>Open public profile</key>
+	<string>Apri profilo pubblico</string>
 	<key>Open secret</key>
 	<string>Segreto di Pulcinella</string>
 	<key>Open workspace</key>
@@ -1306,6 +1374,8 @@
 	<string>Prepara l'istantanea selezionata</string>
 	<key>Prepared on this device</key>
 	<string>Preparato su questo dispositivo</string>
+	<key>Preview</key>
+	<string>Anteprima</string>
 	<key>Preview and choose what to import</key>
 	<string>Visualizza l'anteprima e scegli cosa importare</string>
 	<key>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</key>
@@ -1314,8 +1384,8 @@
 	<string>File di anteprima</string>
 	<key>Preview package</key>
 	<string>Pacchetto in anteprima</string>
-	<key>Preview reporting disclosure</key>
-	<string>Anteprima dell'informativa sui rapporti</string>
+	<key>Preview transfer</key>
+	<string>Anteprima trasferimento</string>
 	<key>Previously delivered credentials and copies are independent. Revoke delegations separately where required.</key>
 	<string>Le credenziali e le copie consegnate in precedenza sono indipendenti. Revocare le deleghe separatamente ove richiesto.</string>
 	<key>Principal</key>
@@ -1330,6 +1400,8 @@
 	<string>Area di lavoro privata nascosta</string>
 	<key>Proposal %llu</key>
 	<string>Proposta %llu</string>
+	<key>Proposal created</key>
+	<string>Proposta creata</string>
 	<key>Proposal created. Review it in the wallet's proposal list.</key>
 	<string>Proposta creata. Controllalo nell'elenco delle proposte del portafoglio.</string>
 	<key>Proposals</key>
@@ -1382,6 +1454,8 @@
 	<string>Gli acquisti non sono al momento disponibili.</string>
 	<key>Push notifications are not enabled in this build. Open dMsg to synchronize.</key>
 	<string>Le notifiche push non sono abilitate in questa build. Apri dMsg per sincronizzare.</string>
+	<key>Quick unlock opens this workspace. Device binding limits which device can unlock it. Hardware approval protects sensitive account actions.</key>
+	<string>Lo sblocco rapido apre lo spazio di lavoro. Il vincolo limita i dispositivi che possono sbloccarlo. L’approvazione hardware protegge le azioni sensibili dell’account.</string>
 	<key>Quick unlock with system authentication</key>
 	<string>Sblocco rapido con autenticazione del sistema</string>
 	<key>Read from a desktop file mapping</key>
@@ -1446,6 +1520,8 @@
 	<string>Aggiornare i saldi</string>
 	<key>Refresh dependencies</key>
 	<string>Aggiorna le dipendenze</string>
+	<key>Refresh the preview before continuing.</key>
+	<string>Aggiorna l’anteprima prima di continuare.</string>
 	<key>Register a hardware approval key</key>
 	<string>Registrare una chiave di approvazione hardware</string>
 	<key>Register an SSH binding</key>
@@ -1464,8 +1540,10 @@
 	<string>Rifiutare questa richiesta?</string>
 	<key>Rejected</key>
 	<string>Rifiutato</string>
-	<key>Release 1.0 is ready for review.</key>
-	<string>La versione 1.0 è pronta per la revisione.</string>
+	<key>Reload saved profile</key>
+	<string>Ricarica il profilo salvato</string>
+	<key>Remaining</key>
+	<string>rimanente</string>
 	<key>Remove</key>
 	<string>Rimuovi</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1474,6 +1552,8 @@
 	<string>Rimuovi l'istantanea dell'app File</string>
 	<key>Remove attachment reference</key>
 	<string>Rimuovere il riferimento all'allegato</string>
+	<key>Remove avatar</key>
+	<string>Rimuovi l'avatar</string>
 	<key>Remove device binding</key>
 	<string>Rimuovere il collegamento del dispositivo</string>
 	<key>Remove device binding?</key>
@@ -1488,6 +1568,8 @@
 	<string>Rimuovere i dati di questo account da questo dispositivo?</string>
 	<key>Remove this account's local data</key>
 	<string>Rimuovi i dati locali di questo account</string>
+	<key>Remove this device's encrypted workspace and saved login. Your service account and other devices remain available. Unsynced changes and files without a backup will be lost.</key>
+	<string>Rimuove lo spazio cifrato e l’accesso salvato da questo dispositivo. L’account del servizio e gli altri dispositivi restano disponibili. Modifiche non sincronizzate e file senza backup andranno persi.</string>
 	<key>Remove this local agent</key>
 	<string>Rimuovi questo agente locale</string>
 	<key>Remove this local agent?</key>
@@ -1520,8 +1602,6 @@
 	<string>Rapporto ricevuto per la revisione</string>
 	<key>Reported account</key>
 	<string>Conto segnalato</string>
-	<key>Reporting disclosure</key>
-	<string>Segnalazione di divulgazione</string>
 	<key>Request ID</key>
 	<string>Richiedi un documento d'identità</string>
 	<key>Request account deletion</key>
@@ -1534,8 +1614,6 @@
 	<string>Richiesta del nuovo dispositivo</string>
 	<key>Request recovery</key>
 	<string>Richiedi il recupero</string>
-	<key>Request source</key>
-	<string>Richiedi fonte</string>
 	<key>Requested permissions</key>
 	<string>Autorizzazioni richieste</string>
 	<key>Requests that need your decision appear here.</key>
@@ -1544,8 +1622,12 @@
 	<string>Richiede l'approvazione dell'hardware</string>
 	<key>Require this device to unlock</key>
 	<string>Richiedi questo dispositivo per lo sblocco</string>
+	<key>Required approvals</key>
+	<string>Approvazioni necessarie</string>
 	<key>Required cosignatures %u</key>
 	<string>Cofirme obbligatorie %u</string>
+	<key>Reserved for uploads</key>
+	<string>Riservato ai caricamenti</string>
 	<key>Resolve the pending account operation before deleting this account.</key>
 	<string>Risolvi l'operazione sull'account in sospeso prima di eliminare questo account.</string>
 	<key>Restore</key>
@@ -1662,6 +1744,8 @@
 	<string>Esamina i conflitti di sincronizzazione</string>
 	<key>Review the agent's authorization on its originating device.</key>
 	<string>Esamina l'autorizzazione dell'agente sul dispositivo di origine.</string>
+	<key>Review the asset, destination, balance and fee before creating a proposal. No funds move until the wallet's approvals and execution are complete.</key>
+	<string>Verifica asset, destinazione, saldo e commissione prima di creare la proposta. I fondi si muovono solo dopo approvazioni ed esecuzione del portafoglio.</string>
 	<key>Review the complete request</key>
 	<string>Esaminare la richiesta completa</string>
 	<key>Review the current key and renew the SSH binding on its originating device.</key>
@@ -1734,14 +1818,6 @@
 	<string>La rilegatura SSH necessita di revisione</string>
 	<key>SSH key</key>
 	<string>Chiave SSH</string>
-	<key>Safety and support</key>
-	<string>Sicurezza e supporto</string>
-	<key>Sample action: sign a release announcement</key>
-	<string>Azione di esempio: firmare un annuncio di rilascio</string>
-	<key>Sample login</key>
-	<string>Accesso di esempio</string>
-	<key>Sample password</key>
-	<string>Password di esempio</string>
 	<key>Save</key>
 	<string>Salva</string>
 	<key>Save name</key>
@@ -1762,6 +1838,8 @@
 	<string>Salvato</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
 	<string>Salvato come versione separata. Esamina i conflitti di sincronizzazione.</string>
+	<key>Saved data changed. Reload it, then review your preserved draft before publishing.</key>
+	<string>I dati salvati sono cambiati. Ricaricali e controlla la bozza conservata prima di pubblicare.</string>
 	<key>Saved for dMsg. Open the app to review and import these items.</key>
 	<string>Salvato per dMsg. Apri l'app per rivedere e importare questi elementi.</string>
 	<key>Saved locally first. Sync status is shown separately.</key>
@@ -1804,6 +1882,8 @@
 	<string>Seleziona un file</string>
 	<key>Select a secret</key>
 	<string>Seleziona un segreto</string>
+	<key>Select an asset</key>
+	<string>Seleziona un asset</string>
 	<key>Select attachments to import</key>
 	<string>Seleziona gli allegati da importare</string>
 	<key>Select attachments to share</key>
@@ -1814,6 +1894,8 @@
 	<string>Seleziona i campi da condividere</string>
 	<key>Select login items</key>
 	<string>Seleziona gli elementi di accesso</string>
+	<key>Selected</key>
+	<string>Selezionati</string>
 	<key>Selected OTP fields include the reusable seed, not just a current code.</key>
 	<string>I campi OTP selezionati includono il seme riutilizzabile, non solo un codice corrente.</string>
 	<key>Selected accounts</key>
@@ -1846,6 +1928,10 @@
 	<string>Configura questo account</string>
 	<key>Set up this iPhone as a new device</key>
 	<string>Configura questo iPhone come nuovo dispositivo</string>
+	<key>Settings</key>
+	<string>Impostazioni</string>
+	<key>Share</key>
+	<string>Condividi</string>
 	<key>Share a copy</key>
 	<string>Condividi una copia</string>
 	<key>Share binding request</key>
@@ -1882,8 +1968,6 @@
 	<string>Mostra</string>
 	<key>Show dismissed findings</key>
 	<string>Mostra risultati respinti</string>
-	<key>Show sample password</key>
-	<string>Mostra password di esempio</string>
 	<key>Show share link</key>
 	<string>Mostra collegamento di condivisione</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -1908,12 +1992,6 @@
 	<string>Firme raccolte</string>
 	<key>Signatures from cosigners %@ no longer match their current keys and were set aside; they need to sign again.</key>
 	<string>Le firme dei cofirmatari %@ non corrispondono più alle loro chiavi attuali e sono state messe da parte; devono firmare di nuovo.</string>
-	<key>Simulate approval</key>
-	<string>Simula l'approvazione</string>
-	<key>Simulate rejection</key>
-	<string>Simulare il rifiuto</string>
-	<key>Simulate this approval?</key>
-	<string>Simulare questa approvazione?</string>
 	<key>Snapshot</key>
 	<string>Istantanea</string>
 	<key>Snapshot link</key>
@@ -1928,8 +2006,12 @@
 	<string>Alcuni file esistono solo su questo iPhone, senza backup nel cloud né sincronizzazione recente.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Alcuni record o proprietà di origine non sono supportati. Questa importazione copia solo i campi selezionati; gli allegati di archivio, le passkey e la cronologia non vengono importati qui.</string>
+	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
+	<string>Alcuni dati di utilizzo non sono stati aggiornati. I valori non disponibili non sono zero.</string>
 	<key>Some wallets are not done yet. Run the step again to finish.</key>
 	<string>Alcuni wallet non sono ancora pronti. Esegui di nuovo il passaggio per finire.</string>
+	<key>Source address</key>
+	<string>Indirizzo di origine</string>
 	<key>Source address %u</key>
 	<string>Indirizzo di origine %u</string>
 	<key>Spam</key>
@@ -1964,6 +2046,8 @@
 	<string>Interrotto</string>
 	<key>Storage is a one-time purchase for the current subscription term and does not renew automatically.</key>
 	<string>Lo spazio di archiviazione è un acquisto una tantum per il periodo di abbonamento corrente e non si rinnova automaticamente.</string>
+	<key>Storage limit</key>
+	<string>Limite di archiviazione</string>
 	<key>Storage packs</key>
 	<string>Confezioni di stoccaggio</string>
 	<key>Storage purchases require an active App Store subscription.</key>
@@ -1974,6 +2058,10 @@
 	<string>Invia rapporto</string>
 	<key>Subscriptions renew automatically unless cancelled in your Apple account settings. Deleting your dMsg account does not cancel an Apple subscription.</key>
 	<string>Gli abbonamenti si rinnovano automaticamente a meno che non vengano annullati nelle impostazioni del tuo account Apple. L'eliminazione del tuo account dMsg non annulla un abbonamento Apple.</string>
+	<key>Suggested fee</key>
+	<string>Commissione suggerita</string>
+	<key>Suspended</key>
+	<string>Sospeso</string>
 	<key>Sweep path</key>
 	<string>Percorso di spostamento</string>
 	<key>Sweep the old address</key>
@@ -1982,6 +2070,8 @@
 	<string>Cambia account</string>
 	<key>Switch to this account</key>
 	<string>Passa a questo account</string>
+	<key>Sync and storage</key>
+	<string>Sincronizzazione e archiviazione</string>
 	<key>Sync checks account content and cloud backups. Open conversations or the inbox to receive messages; restore files separately.</key>
 	<string>La sincronizzazione controlla i contenuti dell’account e i backup cloud. Apri conversazioni o posta in arrivo per ricevere messaggi; ripristina i file separatamente.</string>
 	<key>Sync conflicts</key>
@@ -2016,8 +2106,6 @@
 	<string>La copia resta su questo iPhone, in sola lettura, per l’importazione. Poi questo iPhone si unisce al tuo account come nuovo dispositivo: accedi, quindi approvalo da un altro dispositivo o recupera l’account. Il vecchio iPhone continua a funzionare.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
 	<string>La versione crittografata utilizzerà l'archiviazione nel cloud. La tua copia locale rimane su questo dispositivo.</string>
-	<key>The explicit scopes and audiences above also apply to this credential. Unrestricted controller authority never makes a credential unrestricted.</key>
-	<string>Gli ambiti e i destinatari espliciti di cui sopra si applicano anche a questa credenziale. L'autorità del controller senza restrizioni non rende mai una credenziale senza restrizioni.</string>
 	<key>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</key>
 	<string>Le credenziali esportate non sono disponibili o sono scadute. Apri dMsg per creare una nuova istantanea.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
@@ -2032,8 +2120,8 @@
 	<string>Viene conservata l'ultima osservazione verificata. Non è stato possibile confermare lo stato attuale.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>La chiave di associazione locale non è disponibile. Conserva questa area di lavoro e rivedi le opzioni di ripristino prima di bloccarla.</string>
-	<key>The local tour is available to everyone. To test account creation, synchronization, purchases, notifications and hardware authorization, leave the tour and sign in through Internet Identity.</key>
-	<string>Il tour locale è disponibile per tutti. Per testare la creazione dell'account, la sincronizzazione, gli acquisti, le notifiche e l'autorizzazione dell'hardware, esci dal tour e accedi tramite Internet Identity.</string>
+	<key>The maximum fee is below the estimate.</key>
+	<string>Il tetto tariffario è inferiore alla stima.</string>
 	<key>The mobile package limit is 8 MiB. Preview checks the package before you choose what to import.</key>
 	<string>Il limite del pacchetto mobile è 8 MiB. L'anteprima controlla il pacchetto prima di scegliere cosa importare.</string>
 	<key>The new device takes over the old device's wallet bindings, one approval per wallet.</key>
@@ -2070,8 +2158,8 @@
 	<string>Impossibile organizzare gli elementi selezionati. Apri dMsg e prova a importarli lì.</string>
 	<key>The source copy was interrupted. Discard it and select the source again.</key>
 	<string>La copia di origine è stata interrotta. Scartarlo e selezionare nuovamente la fonte.</string>
-	<key>The test deployment is not configured. The local demo and privacy policy remain available.</key>
-	<string>La distribuzione di prova non è configurata. La demo locale e l'informativa sulla privacy rimangono disponibili.</string>
+	<key>The test deployment is not configured.</key>
+	<string>La distribuzione di test non è configurata.</string>
 	<key>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</key>
 	<string>L'autorizzazione al trasferimento è scaduta. Annulla questa attività, quindi continua il backup originale in primo piano o avvia un nuovo download.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
@@ -2098,8 +2186,6 @@
 	<string>Questa operazione non può essere annullata. La sola disconnessione non elimina un account.</string>
 	<key>This changes local unlock protection. System authentication may be required. No account recovery or other device is changed.</key>
 	<string>Ciò modifica la protezione di sblocco locale. Potrebbe essere richiesta l'autenticazione del sistema. Nessun ripristino dell'account o altro dispositivo viene modificato.</string>
-	<key>This changes only the local sample.</key>
-	<string>Ciò modifica solo il campione locale.</string>
 	<key>This changes which account actions require a hardware signature. Disabling protection permits those actions without that hardware proof.</key>
 	<string>Ciò cambia quali azioni dell'account richiedono una firma hardware. La disabilitazione della protezione consente tali azioni senza la prova hardware.</string>
 	<key>This creates a pending request. It does not authorize the device.</key>
@@ -2112,6 +2198,8 @@
 	<string>Questo dispositivo presenta modifiche che non sono state sincronizzate. Salva tutto ciò di cui hai bisogno prima di eliminare l'account.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Questo dispositivo non ha una chiave di cofirma per questa proposta.</string>
+	<key>This device is authorized</key>
+	<string>Questo dispositivo è autorizzato</string>
 	<key>This device is replaced by</key>
 	<string>Questo dispositivo è sostituito da</string>
 	<key>This device keeps its own encrypted workspace. Content that has not synced cannot be recovered from another device.</key>
@@ -2134,8 +2222,6 @@
 	<string>Chiavi di questo iPhone</string>
 	<key>This inventory covers references and delivery records on this device. It does not search other devices or arbitrary project files.</key>
 	<string>Questo inventario comprende referenze e registrazioni di consegna su questo dispositivo. Non esegue la ricerca su altri dispositivi o file di progetto arbitrari.</string>
-	<key>This is a fictitious document for the local tour. In your account, selected files are encrypted on the device before backup. Background transfers handle only the encrypted blocks; finishing requires the original unlocked account.</key>
-	<string>Questo è un documento fittizio per il tour locale. Nel tuo account, i file selezionati vengono crittografati sul dispositivo prima del backup. I trasferimenti in background gestiscono solo i blocchi crittografati; la finitura richiede l'account sbloccato originale.</string>
 	<key>This is not the device in the request.</key>
 	<string>Non è il dispositivo della richiesta.</string>
 	<key>This key is managed by dMsg and cannot be copied or edited.</key>
@@ -2152,8 +2238,6 @@
 	<string>Questa operazione è temporaneamente non disponibile. I tuoi dati salvati vengono conservati.</string>
 	<key>This package has already been imported on this device. Existing copies remain independent.</key>
 	<string>Questo pacchetto è già stato importato su questo dispositivo. Le copie esistenti rimangono indipendenti.</string>
-	<key>This preview sends nothing.</key>
-	<string>Questa anteprima non invia nulla.</string>
 	<key>This profile is public. Do not include secrets or private contact information.</key>
 	<string>Questo profilo è pubblico. Non includere segreti o informazioni di contatto private.</string>
 	<key>This records that you checked the outcome manually. It does not mark the operation successful or run it again.</key>
@@ -2168,8 +2252,6 @@
 	<string>Ciò richiede la fine del recupero futuro. Le copie già salvate rimangono utilizzabili. Una pubblicazione incerta deve ancora essere conciliata.</string>
 	<key>This snapshot needs attention. Check its status before continuing.</key>
 	<string>Questa istantanea richiede attenzione. Controllane lo stato prima di continuare.</string>
-	<key>This tour does not upload files or register system integrations.</key>
-	<string>Questo tour non carica file né registra integrazioni di sistema.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Questo tiene traccia del tuo lavoro su questo dispositivo. Non crea, testa o revoca le credenziali presso il proprio fornitore.</string>
 	<key>This wallet's key</key>
@@ -2200,14 +2282,14 @@
 	<string>Cestino</string>
 	<key>Trash is empty</key>
 	<string>Il cestino è vuoto</string>
-	<key>Try the local demo</key>
-	<string>Prova la demo locale</string>
 	<key>Two versions need your decision</key>
 	<string>Due versioni necessitano della tua decisione</string>
 	<key>Type</key>
 	<string>Digitare</string>
 	<key>Type this account ID to confirm</key>
 	<string>Digita questo ID account per confermare</string>
+	<key>URL</key>
+	<string>URL</string>
 	<key>Unbind</key>
 	<string>Scollega</string>
 	<key>Unblock</key>
@@ -2226,10 +2308,16 @@
 	<string>Sblocca questo iPhone per aprire dMsg.</string>
 	<key>Unlock with system authentication</key>
 	<string>Sblocca con l'autenticazione del sistema</string>
+	<key>Unlock workspace</key>
+	<string>Sblocca spazio di lavoro</string>
 	<key>Unlock your dMsg workspace</key>
 	<string>Sblocca il tuo spazio di lavoro dMsg</string>
 	<key>Unrestricted delegation authority</key>
 	<string>Potere di delega illimitata</string>
+	<key>Up to 8 scopes and 4 audiences. Use HTTPS origins or Agent IDs; wildcards are not allowed.</key>
+	<string>Massimo 8 ambiti e 4 destinatari. Usa origini HTTPS o ID agente; i caratteri jolly non sono consentiti.</string>
+	<key>Updated</key>
+	<string>Aggiornato</string>
 	<key>Uploading</key>
 	<string>Caricamento</string>
 	<key>Uploading encrypted backup</key>
@@ -2238,6 +2326,8 @@
 	<string>I caricamenti sono in pausa. Libera spazio nel cloud e riprova; la ricezione continua.</string>
 	<key>Url</key>
 	<string>URL</string>
+	<key>Usage</key>
+	<string>Utilizzo</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Utilizza una password dallo snapshot esportato esplicitamente in dMsg.</string>
 	<key>Use a secret through a device policy</key>
@@ -2246,8 +2336,6 @@
 	<string>Utilizza una chiave di firma SSH</string>
 	<key>Use conflicting version</key>
 	<string>Utilizza la versione in conflitto</string>
-	<key>Use fictitious data here. Closing the tour discards your changes.</key>
-	<string>Utilizza dati fittizi qui. La chiusura del tour annulla le modifiche.</string>
 	<key>Use icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol or sol:mint.</key>
 	<string>Utilizza icp, icrc:ledger, btc, evm:chain, evm:chain:token, sol o sol:mint.</string>
 	<key>Use system authentication to unlock the encrypted workspace on this iPhone.</key>
@@ -2256,6 +2344,8 @@
 	<string>Usa questa cartella</string>
 	<key>Use this password for:</key>
 	<string>Utilizza questa password per:</string>
+	<key>Used</key>
+	<string>Usato</string>
 	<key>Username</key>
 	<string>Nome utente</string>
 	<key>Value</key>
@@ -2280,6 +2370,8 @@
 	<string>Verifica dei contenuti dell’account…</string>
 	<key>Verifying…</key>
 	<string>Verifica…</string>
+	<key>Version</key>
+	<string>Versione</string>
 	<key>Version history</key>
 	<string>Cronologia delle versioni</string>
 	<key>Versions</key>
@@ -2306,6 +2398,8 @@
 	<string>In attesa dell’altro dispositivo</string>
 	<key>Waiting for your decision</key>
 	<string>Aspetto la tua decisione</string>
+	<key>Waiting period</key>
+	<string>Periodo di attesa</string>
 	<key>Waiting to submit</key>
 	<string>In attesa di presentare</string>
 	<key>Waiting to sync</key>
@@ -2336,8 +2430,6 @@
 	<string>Sito web</string>
 	<key>Welcome back.</key>
 	<string>Bentornato.</string>
-	<key>Welcome to the local demo. These messages stay in this screen.</key>
-	<string>Benvenuti alla demo locale. Questi messaggi rimangono in questa schermata.</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Quando dMsg è aperto e sbloccato, la cassaforte si sincronizza automaticamente. I messaggi si aggiornano aprendo la conversazione o la posta in arrivo. Il backup dei file richiede una conferma separata. Puoi disattivare la sincronizzazione automatica in qualsiasi momento.</string>
 	<key>Who may contact you</key>
@@ -2354,8 +2446,6 @@
 	<string>Spazio di lavoro copiato da un altro iPhone</string>
 	<key>Workspace destination</key>
 	<string>Destinazione dell'area di lavoro</string>
-	<key>Write a demo message</key>
-	<string>Scrivi un messaggio dimostrativo</string>
 	<key>Write a letter</key>
 	<string>Scrivi una lettera</string>
 	<key>Write a message</key>
@@ -2376,6 +2466,8 @@
 	<string>Il tuo piano attuale è gestito al di fuori di App Store. Attendi fino al termine prima di iniziare un abbonamento App Store.</string>
 	<key>Your decision applies only to this request.</key>
 	<string>La tua decisione si applica solo a questa richiesta.</string>
+	<key>Your draft stays until this workspace locks. Nothing is submitted.</key>
+	<string>La bozza resta fino al blocco dello spazio di lavoro. Nulla viene inviato.</string>
 	<key>Your encrypted files remain here. Saved login and quick unlock are removed.</key>
 	<string>I tuoi file crittografati rimangono qui. L'accesso salvato e lo sblocco rapido vengono rimossi.</string>
 	<key>Your existing device makes the final decision.</key>

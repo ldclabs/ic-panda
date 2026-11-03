@@ -14,11 +14,11 @@ struct DisplayCacheView: View {
         List {
             Text("Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.")
                 .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("cache.explanation")
-            if let bytes { LabeledContent("On this device", value: ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .file)) }
+            if let bytes { LabeledContent("On this device", value: ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .binary)) }
             if working { ProgressView() }
-            Button("Clear cached data") { Task { await clear() } }.accessibilityIdentifier("cache.clear")
+            SettingsAction("Clear cached data") { Task { await clear() } }.accessibilityIdentifier("cache.clear")
                 .disabled(working || bytes == nil || bytes == 0 || failed)
-            if failed { Button("Retry") { Task { await load() } } }
+            if failed { SettingsAction("Retry") { Task { await load() } } }
         }.privateScreen().navigationTitle("Cached data").task { await load() }
     }
 
@@ -34,7 +34,7 @@ struct DisplayCacheView: View {
     private func clear() async {
         guard let engine = model.engine, !working else { return }
         working = true
-        do { try await engine.clearDisplayCache(); await load() }
+        do { try await engine.clearDisplayCache(); await load(); model.notice = String(localized: "Cached data cleared") }
         catch { failed = true; model.report(error) }
         working = false
     }
