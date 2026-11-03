@@ -416,8 +416,9 @@ Production trust parameters come from `dmsg_client/production.toml`, also used
 by the desktop. No deep link can replace endpoints, roots or canister pins.
 The file library accepts document imports up to 1000 MiB. New cloud backups
 allow 1000 MiB for eligible Max memberships and 100 MiB for other tiers; existing
-backups remain restorable after a downgrade. Photo staging, vault imports and
-explicit File Provider exports retain their separate 100 MiB limits. These are
+backups remain restorable after a downgrade. Photo/video library staging accepts
+1000 MiB too; conversation attachments, vault imports and explicit File Provider
+exports retain their separate 100 MiB limits. These are
 engineering bounds, not measured minimum-device performance guarantees.
 Secret packages have a separate 8 MiB payload ceiling, checked before downloads,
 against cached previews, before approval and again on import. This is not a peak
@@ -791,3 +792,34 @@ explanation in English, Chinese, French and Arabic, dark/light appearance, long
 profile names, manual-sync presentation, file detail/cloud inventory and read-only
 plans. These are synthetic UI fixtures; physical hardware unlock, prolonged
 background execution and live two-device cloud tests were not run.
+
+### File library and backup workflows (2026-11-03)
+
+Files separates the device's library from the account's cloud backup inventory.
+Each scope has its own search results; names, dates and sizes can be sorted.
+Refreshing the cloud list never backs up local files. Its saved observation time,
+refresh failure and retry action share one status row. Local risk information
+counts file versions without backups, separately from account synchronization.
+
+Cloud rows show version dates and source devices. Details identify the original
+location and the restore destination; existing file versions stay with their local
+file record. Historical versions remain selectable, and opening waits for an
+explicit restore and full verification. Background transfer is a secondary,
+explicitly confirmed choice and still needs final verification in the original
+account. The task page prioritizes active transfers, preserves committing and
+verifying stages, and supplies task-specific retries and cancellation.
+
+The library supports folder naming/moving/trashing, multiple file imports,
+photo/video selection, and per-file outcomes for batch backup/move/trash actions.
+Interrupted imports retain their original staging record for continuation. Backup
+admission distinguishes existing backups, running jobs, size limits and missing
+local copies instead of always claiming a queued transfer. A local copy can be
+removed only after the core refreshes the inventory and checks its verified backup;
+its file record and restore action remain available. Trash displays the configured
+retention period and removal dates. Cloud deletion is separate and warns when this
+device has no copy.
+
+The existing theme and compact file rows are reused. Maximum Dynamic Type uses a
+wrapping scope menu; the local warning keeps its count and a labelled help control.
+All added copy is included in the 23 supported languages. The implementation and
+actual simulator/device coverage are recorded in `VALIDATION.md`.

@@ -16,6 +16,8 @@
 	<string>A channel snapshot is available to members with access to this epoch, including later history grants. It has no link expiry, download-session limit or recall.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>A file or folder with this name already exists.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>About</string>
 	<key>About dMsg</key>
 	<string>About dMsg</string>
+	<key>About files and backups</key>
+	<string>About files and backups</string>
 	<key>Accept approved binding</key>
 	<string>Accept approved binding</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Account, devices and identities</string>
 	<key>Accounts</key>
 	<string>Accounts</string>
+	<key>Actions</key>
+	<string>Actions</string>
 	<key>Active</key>
 	<string>Active</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Backed up</string>
 	<key>Background ciphertext transfer</key>
 	<string>Background ciphertext transfer</string>
+	<key>Background download</key>
+	<string>Background download</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Background signing and resident agent capabilities are separate from this workspace lock.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Backing up…</string>
 	<key>Backup failed</key>
 	<string>Backup failed</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Backup list could not be refreshed</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Backup progress saved. Check the file status for completion.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Check recovery status</string>
 	<key>Check request</key>
 	<string>Check request</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Check the name and destination folder, then try again.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Check this device's activity before deciding whether access is still needed.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Checklist completed</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Choose Back up to cloud from a local file to create your first backup.</string>
 	<key>Choose a credential for:</key>
 	<string>Choose a credential for:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Choose avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</string>
+	<key>Choose folder</key>
+	<string>Choose folder</string>
 	<key>Choose password export</key>
 	<string>Choose password export</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Clear cached data</string>
 	<key>Clear filters</key>
 	<string>Clear filters</string>
+	<key>Clear search</key>
+	<string>Clear search</string>
 	<key>Clear selection</key>
 	<string>Clear selection</string>
 	<key>Close invitation</key>
 	<string>Close invitation</string>
 	<key>Closed</key>
 	<string>Closed</string>
+	<key>Cloud backup</key>
+	<string>Cloud backup</string>
 	<key>Cloud backup file limit</key>
 	<string>Cloud backup file limit</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Cloud deletion completed</string>
 	<key>Cloud storage</key>
 	<string>Cloud storage</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Compare the device ID on both screens and approve on your desktop.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Complete recovery after waiting period</string>
 	<key>Completed</key>
 	<string>Completed</string>
+	<key>Completed downloads</key>
+	<string>Completed downloads</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Configure a desktop file mapping</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers and delegations</string>
 	<key>Conversation</key>
 	<string>Conversation</string>
+	<key>Conversation attachments</key>
+	<string>Conversation attachments</string>
 	<key>Conversation limit</key>
 	<string>Conversation limit</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Copies stay on this device and expire within 30 seconds.</string>
 	<key>Copy</key>
 	<string>Copy</string>
+	<key>Copy SHA-256</key>
+	<string>Copy SHA-256</string>
 	<key>Copy account ID</key>
 	<string>Copy account ID</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Database</string>
 	<key>Date</key>
 	<string>Date</string>
+	<key>Days before removal</key>
+	<string>Days before removal</string>
 	<key>Delegations</key>
 	<string>Delegations</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Delete copy</string>
 	<key>Delete this cloud backup?</key>
 	<string>Delete this cloud backup?</string>
+	<key>Deleted</key>
+	<string>Deleted</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Encrypted display data, attachment copies and cloud file lists can be downloaded again. Clearing keeps your vault, messages, library files and unsynced work.</string>
 	<key>Encrypting</key>
 	<string>Encrypting</string>
+	<key>Encrypting on this device…</key>
+	<string>Encrypting on this device…</string>
 	<key>Engine</key>
 	<string>Engine</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>File name</string>
 	<key>File not available on this device</key>
 	<string>File not available on this device</string>
+	<key>File tools</key>
+	<string>File tools</string>
 	<key>File transfers</key>
 	<string>File transfers</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Import passwords</string>
 	<key>Import photo</key>
 	<string>Import photo</string>
+	<key>Import photos or videos</key>
+	<string>Import photos or videos</string>
 	<key>Import secret package</key>
 	<string>Import secret package</string>
 	<key>Import selected records</key>
 	<string>Import selected records</string>
 	<key>Import selected secrets</key>
 	<string>Import selected secrets</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Imported to this device. Cloud backup is a separate action.</string>
 	<key>In Trash</key>
 	<string>In Trash</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · after the delay</string>
 	<key>Language</key>
 	<string>Language</string>
+	<key>Largest first</key>
+	<string>Largest first</string>
 	<key>Last known cloud state</key>
 	<string>Last known cloud state</string>
+	<key>Last refreshed</key>
+	<string>Last refreshed</string>
 	<key>Last successful sync</key>
 	<string>Last successful sync</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Message withdrawn</string>
 	<key>Messages</key>
 	<string>Messages</string>
+	<key>Modified</key>
+	<string>Modified</string>
 	<key>Month</key>
 	<string>Month</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Move to this device</string>
 	<key>Moved</key>
 	<string>Moved</string>
+	<key>Moved to Trash</key>
+	<string>Moved to Trash</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Moving to Trash does not free cloud storage.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</string>
+	<key>Moving…</key>
+	<string>Moving…</string>
 	<key>Multisig wallets</key>
 	<string>Multisig wallets</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>New revision</string>
 	<key>New secret</key>
 	<string>New secret</string>
+	<key>Newest first</key>
+	<string>Newest first</string>
 	<key>Next</key>
 	<string>Next</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>No</string>
 	<key>No accounts</key>
 	<string>No accounts</string>
+	<key>No active transfers</key>
+	<string>No active transfers</string>
 	<key>No activity on this device</key>
 	<string>No activity on this device</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>No background transfer</string>
 	<key>No blocked accounts</key>
 	<string>No blocked accounts</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>No cloud backup is available for this version.</string>
 	<key>No cloud backups</key>
 	<string>No cloud backups</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>No favorites</string>
 	<key>No fields or notes</key>
 	<string>No fields or notes</string>
+	<key>No file versions</key>
+	<string>No file versions</string>
+	<key>No files in this folder</key>
+	<string>No files in this folder</string>
 	<key>No findings from this device's checks.</key>
 	<string>No findings from this device's checks.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>No snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>No snapshots on this device</string>
+	<key>No transfer was started.</key>
+	<string>No transfer was started.</string>
 	<key>Not delivered</key>
 	<string>Not delivered</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Open dMsg. Unlocking and approvals still require your interaction in the app.</string>
 	<key>Open invitation in browser</key>
 	<string>Open invitation in browser</string>
+	<key>Open local file</key>
+	<string>Open local file</string>
 	<key>Open notification settings</key>
 	<string>Open notification settings</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Open public profile</string>
 	<key>Open secret</key>
 	<string>Open secret</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Open the original account to verify and finish this download.</string>
 	<key>Open workspace</key>
 	<string>Open workspace</string>
 	<key>Optional password</key>
 	<string>Optional password</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Original folder</string>
 	<key>Original revision</key>
 	<string>Original revision</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Permissions</string>
 	<key>Phone</key>
 	<string>Phone</string>
+	<key>Photos and videos</key>
+	<string>Photos and videos</string>
 	<key>Phrase</key>
 	<string>Phrase</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Prepare selected snapshot</string>
 	<key>Prepared on this device</key>
 	<string>Prepared on this device</string>
+	<key>Preparing and copying file…</key>
+	<string>Preparing and copying file…</string>
+	<key>Preparing backups…</key>
+	<string>Preparing backups…</string>
 	<key>Preview</key>
 	<string>Preview</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Preview downloads and verifies the package on this device and uses a download session. Choose the receiving device before continuing.</string>
 	<key>Preview file</key>
 	<string>Preview file</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Preview is unavailable for this file type. Share a copy to open it in another app.</string>
 	<key>Preview package</key>
 	<string>Preview package</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Recovery waiting period</string>
 	<key>Refresh</key>
 	<string>Refresh</string>
+	<key>Refresh backup list</key>
+	<string>Refresh backup list</string>
 	<key>Refresh balances</key>
 	<string>Refresh balances</string>
 	<key>Refresh dependencies</key>
 	<string>Refresh dependencies</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Refresh the preview before continuing.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Refresh to check cloud backups</string>
+	<key>Refreshing backups…</key>
+	<string>Refreshing backups…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</string>
 	<key>Register a hardware approval key</key>
 	<string>Register a hardware approval key</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Reload saved profile</string>
 	<key>Remaining</key>
 	<string>Remaining</string>
+	<key>Removal date</key>
+	<string>Removal date</string>
 	<key>Remove</key>
 	<string>Remove</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Remove favorite</string>
 	<key>Remove field</key>
 	<string>Remove field</string>
+	<key>Remove local copy</key>
+	<string>Remove local copy</string>
+	<key>Remove local copy?</key>
+	<string>Remove local copy?</string>
 	<key>Remove local data</key>
 	<string>Remove local data</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Remove this local agent?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</string>
+	<key>Rename</key>
+	<string>Rename</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Repair the unavailable field reference on its originating device.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Restore this version as a new current version?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Restore this version from cloud backups before opening it.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Restore this version to this device before backing it up.</string>
 	<key>Restore to this device</key>
 	<string>Restore to this device</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Restoring downloads and verifies the selected version before it can be opened.</string>
 	<key>Restoring…</key>
 	<string>Restoring…</string>
 	<key>Result</key>
 	<string>Result</string>
 	<key>Result unconfirmed</key>
 	<string>Result unconfirmed</string>
+	<key>Results</key>
+	<string>Results</string>
 	<key>Resume</key>
 	<string>Resume</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Saved. Publication is pending.</string>
 	<key>Saving draft…</key>
 	<string>Saving draft…</string>
+	<key>Saving…</key>
+	<string>Saving…</string>
 	<key>Scan QR code</key>
 	<string>Scan QR code</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Screenshots may contain private information.</string>
 	<key>Search</key>
 	<string>Search</string>
+	<key>Search cloud backups</key>
+	<string>Search cloud backups</string>
 	<key>Search files</key>
 	<string>Search files</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Select fields to import</string>
 	<key>Select fields to share</key>
 	<string>Select fields to share</string>
+	<key>Select files</key>
+	<string>Select files</string>
 	<key>Select login items</key>
 	<string>Select login items</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Selected OTP fields include the reusable seed, not just a current code.</string>
 	<key>Selected accounts</key>
 	<string>Selected accounts</string>
+	<key>Selected files</key>
+	<string>Selected files</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Selected parts use the conflicting version. Other parts keep the current version.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Some wallets are not done yet. Run the step again to finish.</string>
 	<key>Sort</key>
 	<string>Sort</string>
+	<key>Sort by</key>
+	<string>Sort by</string>
 	<key>Source address</key>
 	<string>Source address</string>
 	<key>Source address %u</key>
 	<string>Source address %u</string>
+	<key>Source device</key>
+	<string>Source device</string>
 	<key>Spam</key>
 	<string>Spam</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>The exported credentials are unavailable or expired. Open dMsg to create a new snapshot.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>The file or folder is no longer available. Refresh the list.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>The transfer paused. Retry the original encrypted blocks.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>The verified cloud backup and file record are kept. Download this version again to open it on this device.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>This device has changes that have not synced. Save anything you need before deleting the account.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>This device has no cosigner key for this proposal.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>This device has no local copy. Deleting this backup may remove your only recoverable copy.</string>
 	<key>This device is authorized</key>
 	<string>This device is authorized</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>This field will be visible until you hide it or leave this screen.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>This file exceeds the size limit for this operation.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>This file exceeds your current cloud backup file limit.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>This file is in Trash. Restore it before opening it.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>This snapshot needs attention. Check its status before continuing.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>This version already has a transfer in progress.</string>
+	<key>This version is already backed up.</key>
+	<string>This version is already backed up.</string>
 	<key>This wallet's key</key>
 	<string>This wallet's key</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Total</string>
 	<key>Transfer between devices</key>
 	<string>Transfer between devices</string>
+	<key>Transfer needs attention</key>
+	<string>Transfer needs attention</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Transfer or archive owned conversations first</string>
+	<key>Transfer paused</key>
+	<string>Transfer paused</string>
 	<key>Transfer proposal</key>
 	<string>Transfer proposal</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Transfer queued. Follow its progress in Files.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Transfer status could not be refreshed. Saved tasks are kept.</string>
 	<key>Transferred</key>
 	<string>Transferred</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Usage</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Use a name of 1–255 characters without slashes or control characters.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Use a password from the snapshot you explicitly exported in dMsg.</string>
 	<key>Use a secret through a device policy</key>

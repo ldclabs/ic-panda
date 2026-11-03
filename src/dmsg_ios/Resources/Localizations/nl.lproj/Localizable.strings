@@ -16,6 +16,8 @@
 	<string>Er is een kanaalmomentopname beschikbaar voor leden met toegang tot dit tijdperk, inclusief toegangsrechten voor latere geschiedenis. Er is geen vervaldatum van de link, geen downloadsessielimiet of terugroepactie.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Een downloadsessie is een ophaalvergoeding, geen telling van het aantal gelezen bestanden. Bij het verlopen of intrekken kunnen reeds opgeslagen kopieën niet worden gewist.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>Er bestaat al een bestand of map met deze naam.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>Het L1 van een native adres is gebonden aan de sleutel van één apparaat, dus dit apparaat krijgt een eigen adres en de munten gaan daarheen. Elke stap is een voorstel dat de leden goedkeuren.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>Over mij</string>
 	<key>About dMsg</key>
 	<string>Over dMsg</string>
+	<key>About files and backups</key>
+	<string>Over bestanden en back-ups</string>
 	<key>Accept approved binding</key>
 	<string>Accepteer goedgekeurde binding</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Account, apparaten en identiteiten</string>
 	<key>Accounts</key>
 	<string>Accounts</string>
+	<key>Actions</key>
+	<string>Acties</string>
 	<key>Active</key>
 	<string>Actief</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Er is een back-up gemaakt</string>
 	<key>Background ciphertext transfer</key>
 	<string>Achtergrondcijfertekstoverdracht</string>
+	<key>Background download</key>
+	<string>Download op de achtergrond</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>De mogelijkheden voor ondertekening op de achtergrond en de mogelijkheden voor residente agenten staan los van deze werkruimtevergrendeling.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Een back-up maken…</string>
 	<key>Backup failed</key>
 	<string>Back-up mislukt</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Back-uplijst kon niet worden vernieuwd</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Back-upvoortgang opgeslagen. Controleer de bestandsstatus op voltooiing.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Controleer de herstelstatus</string>
 	<key>Check request</key>
 	<string>Verzoek controleren</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Controleer de naam en doelmap en probeer het opnieuw.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Controleer de activiteit van dit apparaat voordat je beslist of er nog steeds toegang nodig is.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Controlelijst voltooid</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Checklist ingevuld op basis van je afschriften. De upstreamstatus blijft alleen onafhankelijk verifieerbaar bij de provider.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Kies Back-up in de cloud bij een lokaal bestand om je eerste back-up te maken.</string>
 	<key>Choose a credential for:</key>
 	<string>Kies een referentie voor:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Kies avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Kies precies wat deze onafhankelijke momentopname bevat. Bronbewerkingen hebben geen invloed op reeds verzonden kopieën.</string>
+	<key>Choose folder</key>
+	<string>Map kiezen</string>
 	<key>Choose password export</key>
 	<string>Kies voor wachtwoordexport</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Cache wissen</string>
 	<key>Clear filters</key>
 	<string>Filters wissen</string>
+	<key>Clear search</key>
+	<string>Zoekopdracht wissen</string>
 	<key>Clear selection</key>
 	<string>Selectie wissen</string>
 	<key>Close invitation</key>
 	<string>Uitnodiging sluiten</string>
 	<key>Closed</key>
 	<string>Gesloten</string>
+	<key>Cloud backup</key>
+	<string>Cloudback-up</string>
 	<key>Cloud backup file limit</key>
 	<string>Bestandsgroottelimiet voor cloudback-ups</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Cloudverwijdering voltooid</string>
 	<key>Cloud storage</key>
 	<string>Cloudopslag</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>De limiet voor cloudopslag of bestandsgrootte is overschreden. Controleer je abonnement en de back-upgrootte.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Vergelijk de apparaat-ID op beide schermen en keur goed op de computer.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Volledig herstel na wachttijd</string>
 	<key>Completed</key>
 	<string>Voltooid</string>
+	<key>Completed downloads</key>
+	<string>Voltooide downloads</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Configureer een bureaubladbestandstoewijzing</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers en delegaties</string>
 	<key>Conversation</key>
 	<string>Gesprek</string>
+	<key>Conversation attachments</key>
+	<string>Gespreksbijlagen</string>
 	<key>Conversation limit</key>
 	<string>Gesprekslimiet</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Kopieën blijven op dit apparaat en verlopen binnen 30 seconden.</string>
 	<key>Copy</key>
 	<string>Kopiëren</string>
+	<key>Copy SHA-256</key>
+	<string>SHA-256 kopiëren</string>
 	<key>Copy account ID</key>
 	<string>Account-ID kopiëren</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Database</string>
 	<key>Date</key>
 	<string>Datum</string>
+	<key>Days before removal</key>
+	<string>Bewaartermijn in dagen</string>
 	<key>Delegations</key>
 	<string>delegaties</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Kopie verwijderen</string>
 	<key>Delete this cloud backup?</key>
 	<string>Deze cloudback-up verwijderen?</string>
+	<key>Deleted</key>
+	<string>Verwijderd op</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Als je je dMsg-account verwijdert, wordt een Apple-abonnement niet opgezegd. Annuleer het in je Apple-accountinstellingen om de verlenging te stoppen.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Versleutelde weergavegegevens, bijlagen in cache en bestandslijsten uit de cloud kunnen opnieuw worden gedownload. De kluis, berichten, lokale bibliotheek en niet-gesynchroniseerd werk blijven behouden.</string>
 	<key>Encrypting</key>
 	<string>Versleutelen</string>
+	<key>Encrypting on this device…</key>
+	<string>Versleutelen op dit apparaat…</string>
 	<key>Engine</key>
 	<string>Motor</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Bestandsnaam</string>
 	<key>File not available on this device</key>
 	<string>Bestand niet beschikbaar op dit apparaat</string>
+	<key>File tools</key>
+	<string>Bestandshulpmiddelen</string>
 	<key>File transfers</key>
 	<string>Bestandsoverdrachten</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Wachtwoorden importeren</string>
 	<key>Import photo</key>
 	<string>Foto importeren</string>
+	<key>Import photos or videos</key>
+	<string>Foto’s of video’s importeren</string>
 	<key>Import secret package</key>
 	<string>Geheim pakket importeren</string>
 	<key>Import selected records</key>
 	<string>Geselecteerde records importeren</string>
 	<key>Import selected secrets</key>
 	<string>Importeer geselecteerde geheimen</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Geïmporteerd op dit apparaat. Een cloudback-up maken is een aparte actie.</string>
 	<key>In Trash</key>
 	<string>In de prullenbak</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · na de wachttijd</string>
 	<key>Language</key>
 	<string>Taal</string>
+	<key>Largest first</key>
+	<string>Grootste eerst</string>
 	<key>Last known cloud state</key>
 	<string>Laatst bekende cloudstatus</string>
+	<key>Last refreshed</key>
+	<string>Laatst vernieuwd</string>
 	<key>Last successful sync</key>
 	<string>Laatste geslaagde synchronisatie</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Bericht ingetrokken</string>
 	<key>Messages</key>
 	<string>Berichten</string>
+	<key>Modified</key>
+	<string>Gewijzigd op</string>
 	<key>Month</key>
 	<string>Maand</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Naar dit apparaat verplaatsen</string>
 	<key>Moved</key>
 	<string>Verplaatst</string>
+	<key>Moved to Trash</key>
+	<string>Verplaatst naar prullenmand</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Verplaatst de bestandsbibliotheek end-to-end versleuteld naar een ander apparaat van dit account in hetzelfde netwerk. Houd beide apparaten ontgrendeld tot het klaar is.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Verplaatsen naar de prullenmand maakt geen cloudopslag vrij.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Overstappen op een nieuw apparaat: het nieuwe apparaat vraagt een oud apparaat te vervangen, het oude keurt dat goed en daarna dragen ze stap voor stap over.</string>
+	<key>Moving…</key>
+	<string>Verplaatsen…</string>
 	<key>Multisig wallets</key>
 	<string>Multisig-wallets</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Nieuwe revisie</string>
 	<key>New secret</key>
 	<string>Nieuw geheim</string>
+	<key>Newest first</key>
+	<string>Nieuwste eerst</string>
 	<key>Next</key>
 	<string>Volgende</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Nee</string>
 	<key>No accounts</key>
 	<string>Geen accounts</string>
+	<key>No active transfers</key>
+	<string>Geen actieve overdrachten</string>
 	<key>No activity on this device</key>
 	<string>Geen activiteit op dit apparaat</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Geen achtergrondoverdracht</string>
 	<key>No blocked accounts</key>
 	<string>Geen geblokkeerde accounts</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Er is geen cloudback-up beschikbaar voor deze versie.</string>
 	<key>No cloud backups</key>
 	<string>Geen cloudback-ups</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Geen favorieten</string>
 	<key>No fields or notes</key>
 	<string>Nog niets geschreven.</string>
+	<key>No file versions</key>
+	<string>Geen bestandsversies</string>
+	<key>No files in this folder</key>
+	<string>Geen bestanden in deze map</string>
 	<key>No findings from this device's checks.</key>
 	<string>Geen bevindingen uit de controles van dit apparaat.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Geen momentopname</string>
 	<key>No snapshots on this device</key>
 	<string>Geen momentopnamen op dit apparaat</string>
+	<key>No transfer was started.</key>
+	<string>Er is geen overdracht gestart.</string>
 	<key>Not delivered</key>
 	<string>Niet geleverd</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Open dMsg. Voor het ontgrendelen en goedkeuren is nog steeds je interactie in de app vereist.</string>
 	<key>Open invitation in browser</key>
 	<string>Uitnodiging openen in browser</string>
+	<key>Open local file</key>
+	<string>Lokaal bestand openen</string>
 	<key>Open notification settings</key>
 	<string>Meldingsinstellingen openen</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Openbaar profiel openen</string>
 	<key>Open secret</key>
 	<string>Open geheim</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Open het oorspronkelijke account om deze download te controleren en af te ronden.</string>
 	<key>Open workspace</key>
 	<string>Open werkruimte</string>
 	<key>Optional password</key>
 	<string>Optioneel wachtwoord</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Optioneel. Alleen als het andere apparaat niet automatisch wordt gevonden, bijvoorbeeld 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Oorspronkelijke map</string>
 	<key>Original revision</key>
 	<string>Originele herziening</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Toestemmingen</string>
 	<key>Phone</key>
 	<string>Telefoon</string>
+	<key>Photos and videos</key>
+	<string>Foto’s en video’s</string>
 	<key>Phrase</key>
 	<string>Zin</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Bereid de geselecteerde momentopname voor</string>
 	<key>Prepared on this device</key>
 	<string>Voorbereid op dit apparaat</string>
+	<key>Preparing and copying file…</key>
+	<string>Bestand voorbereiden en kopiëren…</string>
+	<key>Preparing backups…</key>
+	<string>Back-ups voorbereiden…</string>
 	<key>Preview</key>
 	<string>Voorbeeld</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Preview downloadt en verifieert het pakket op dit apparaat en maakt gebruik van een downloadsessie. Kies het ontvangende apparaat voordat je doorgaat.</string>
 	<key>Preview file</key>
 	<string>Voorbeeldbestand</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Voor dit bestandstype is geen voorvertoning beschikbaar. Deel een kopie om het in een andere app te openen.</string>
 	<key>Preview package</key>
 	<string>Voorbeeldpakket</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Wachttijd voor herstel</string>
 	<key>Refresh</key>
 	<string>Vernieuwen</string>
+	<key>Refresh backup list</key>
+	<string>Back-uplijst vernieuwen</string>
 	<key>Refresh balances</key>
 	<string>Ververs saldi</string>
 	<key>Refresh dependencies</key>
 	<string>Afhankelijkheden vernieuwen</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Vernieuw het voorbeeld voordat je doorgaat.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Vernieuw om cloudback-ups te bekijken</string>
+	<key>Refreshing backups…</key>
+	<string>Back-ups vernieuwen…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>De lijst vernieuwen maakt geen back-up van lokale bestanden. Kies Back-up in de cloud voor de bestanden die je wilt beschermen.</string>
 	<key>Register a hardware approval key</key>
 	<string>Registreer een hardwaregoedkeuringssleutel</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Opgeslagen profiel herladen</string>
 	<key>Remaining</key>
 	<string>resterend</string>
+	<key>Removal date</key>
+	<string>Verwijderdatum</string>
 	<key>Remove</key>
 	<string>Verwijderen</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Ster verwijderen</string>
 	<key>Remove field</key>
 	<string>Veld verwijderen</string>
+	<key>Remove local copy</key>
+	<string>Lokale kopie verwijderen</string>
+	<key>Remove local copy?</key>
+	<string>Lokale kopie verwijderen?</string>
 	<key>Remove local data</key>
 	<string>Verwijder lokale gegevens</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Deze lokale agent verwijderen?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Als je een referentie verwijdert, wordt het bestand niet verwijderd. Bestaande referenties blijven behouden, zelfs als hun bestanden ontbreken op dit apparaat.</string>
+	<key>Rename</key>
+	<string>Naam wijzigen</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Herstel de niet-beschikbare veldreferentie op het oorspronkelijke apparaat.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Deze versie herstellen als een nieuwe huidige versie?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Herstel deze versie vanaf cloudback-ups voordat je deze opent.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Herstel deze versie op dit apparaat voordat je een back-up maakt.</string>
 	<key>Restore to this device</key>
 	<string>Herstel naar dit apparaat</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Bij herstel wordt de gekozen versie gedownload en gecontroleerd voordat je die kunt openen.</string>
 	<key>Restoring…</key>
 	<string>Herstellen…</string>
 	<key>Result</key>
 	<string>Resultaat</string>
 	<key>Result unconfirmed</key>
 	<string>Resultaat onbevestigd</string>
+	<key>Results</key>
+	<string>Resultaten</string>
 	<key>Resume</key>
 	<string>Hervatten</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Opgeslagen. Publicatie is in behandeling.</string>
 	<key>Saving draft…</key>
 	<string>Concept opslaan…</string>
+	<key>Saving…</key>
+	<string>Opslaan…</string>
 	<key>Scan QR code</key>
 	<string>Scannen met camera</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Schermafbeeldingen kunnen privégegevens bevatten.</string>
 	<key>Search</key>
 	<string>Zoeken</string>
+	<key>Search cloud backups</key>
+	<string>Cloudback-ups doorzoeken</string>
 	<key>Search files</key>
 	<string>Zoek bestanden</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Selecteer velden om te importeren</string>
 	<key>Select fields to share</key>
 	<string>Selecteer velden om te delen</string>
+	<key>Select files</key>
+	<string>Bestanden selecteren</string>
 	<key>Select login items</key>
 	<string>Selecteer inlogitems</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Geselecteerde OTP-velden bevatten het herbruikbare zaad, niet alleen een huidige code.</string>
 	<key>Selected accounts</key>
 	<string>Geselecteerde rekeningen</string>
+	<key>Selected files</key>
+	<string>Geselecteerde bestanden</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Geselecteerde delen gebruiken de conflicterende versie. Andere delen behouden de huidige versie.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Sommige wallets zijn nog niet klaar. Voer de stap opnieuw uit om af te ronden.</string>
 	<key>Sort</key>
 	<string>Sorteren</string>
+	<key>Sort by</key>
+	<string>Sorteren op</string>
 	<key>Source address</key>
 	<string>Bron adres</string>
 	<key>Source address %u</key>
 	<string>Bronadres %u</string>
+	<key>Source device</key>
+	<string>Bronapparaat</string>
 	<key>Spam</key>
 	<string>Spam</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>De geëxporteerde inloggegevens zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>De bestandskopieën zijn niet beschikbaar of verlopen. Open dMsg om een ​​nieuwe momentopname te maken en probeer het opnieuw.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Het bestand kon niet worden gecontroleerd. Probeer de download opnieuw; een onvolledige kopie kan niet worden geopend.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>De bestandsbibliotheek blijft alleen op het oude apparaat. Wat daar nooit is gesynchroniseerd of geback-upt, gaat verloren zodra het wordt ingetrokken.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Het bestand of de map is niet meer beschikbaar. Vernieuw de lijst.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>De overdrachtsmachtiging is verlopen. Annuleer deze taak en zet de oorspronkelijke back-up op de voorgrond voort of start een nieuwe download.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>De overdracht is onderbroken. Probeer de originele gecodeerde blokken opnieuw.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>De gecontroleerde cloudback-up en bestandsvermelding blijven behouden. Download deze versie opnieuw om die op dit apparaat te openen.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>De portemonnee controleert het huidige beleid en goedkeuringen. Voor dit exacte plan wordt een vereiste hardwarehandtekening gevraagd.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>Dit apparaat heeft wijzigingen die niet zijn gesynchroniseerd. Bewaar alles wat je nodig heeft voordat je het account verwijdert.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Dit apparaat heeft geen medeondertekeningssleutel voor dit voorstel.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>Dit apparaat heeft geen lokale kopie. Als je deze back-up verwijdert, verdwijnt mogelijk je enige herstelbare kopie.</string>
 	<key>This device is authorized</key>
 	<string>Dit apparaat is geautoriseerd</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Dit veld blijft zichtbaar totdat je het verbergt of dit scherm verlaat.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Dit bestand overschrijdt de maximale grootte voor deze bewerking.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Dit bestand overschrijdt de huidige bestandsgroottelimiet voor cloudback-ups.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Dit bestand staat in de prullenmand. Herstel het voordat je het opent.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Deze geschiedenis hoort bij dit apparaat. Het weerspiegelt geen desktop-lokale CLI, SSH of goedkeuringen voor het koppelen van bestanden vanaf een ander apparaat.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Deze momentopname heeft aandacht nodig. Controleer de status voordat je doorgaat.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Hiermee wordt je werk op dit apparaat bijgehouden. Er worden geen inloggegevens aangemaakt, getest of ingetrokken bij hun provider.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>Voor deze versie is al een overdracht bezig.</string>
+	<key>This version is already backed up.</key>
+	<string>Van deze versie is al een back-up gemaakt.</string>
 	<key>This wallet's key</key>
 	<string>Sleutel van deze wallet</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Totaal</string>
 	<key>Transfer between devices</key>
 	<string>Overdracht tussen apparaten</string>
+	<key>Transfer needs attention</key>
+	<string>Overdracht vereist aandacht</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Draag eerst eigen gesprekken over of archiveer ze</string>
+	<key>Transfer paused</key>
+	<string>Overdracht gepauzeerd</string>
 	<key>Transfer proposal</key>
 	<string>Overdrachtsvoorstel</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Overdracht in wachtrij. Volg de voortgang bij Bestanden.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>De overdrachtsstatus kon niet worden vernieuwd. Opgeslagen taken blijven behouden.</string>
 	<key>Transferred</key>
 	<string>Overgedragen</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Gebruik</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Gebruik een naam van 1–255 tekens zonder schuine strepen of besturingstekens.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gebruik een wachtwoord uit de momentopname die je expliciet hebt geëxporteerd in dMsg.</string>
 	<key>Use a secret through a device policy</key>

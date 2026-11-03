@@ -16,6 +16,8 @@
 	<string>ایک چینل کا سنیپ شاٹ ان ممبران کے لیے دستیاب ہے جو اس دور تک رسائی رکھتے ہیں، بشمول بعد کی تاریخ تک رسائی کی اجازت۔ اس میں کوئی لنک ایکسپائری، ڈاؤن لوڈ سیشن کی حد یا واپسی نہیں ہے۔</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>ڈاؤن لوڈ سیشن ایک بازیافت الاؤنس ہے، فائل پڑھنے کی گنتی نہیں۔ میعاد ختم یا منسوخی پہلے سے محفوظ شدہ کاپیاں نہیں مٹا سکتی۔</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>اس نام کی فائل یا فولڈر پہلے سے موجود ہے۔</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>مقامی پتے کا L1 ایک ہی آلے کی کلید سے بندھا ہوتا ہے، اس لیے یہ آلہ اپنا پتہ لیتا ہے اور سکے وہاں منتقل ہوتے ہیں۔ ہر مرحلہ ایک تجویز ہے جسے ارکان منظور کرتے ہیں۔</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>تعارف</string>
 	<key>About dMsg</key>
 	<string>dMsg کے بارے میں</string>
+	<key>About files and backups</key>
+	<string>فائلوں اور بیک اپ کے بارے میں</string>
 	<key>Accept approved binding</key>
 	<string>منظور شدہ پابند قبول کریں</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>اکاؤنٹ، آلات اور شناخت</string>
 	<key>Accounts</key>
 	<string>اکاؤنٹس</string>
+	<key>Actions</key>
+	<string>کارروائیاں</string>
 	<key>Active</key>
 	<string>فعال</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>بیک اپ لیا گیا</string>
 	<key>Background ciphertext transfer</key>
 	<string>بیک گراؤنڈ سائفر ٹیکسٹ ٹرانسفر</string>
+	<key>Background download</key>
+	<string>پس منظر میں ڈاؤن لوڈ</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>پس منظر پر دستخط اور رہائشی ایجنٹ کی صلاحیتیں اس ورک اسپیس لاک سے الگ ہیں۔</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>بیک اپ لیا جا رہا ہے…</string>
 	<key>Backup failed</key>
 	<string>بیک اپ ناکام</string>
+	<key>Backup list could not be refreshed</key>
+	<string>بیک اپ فہرست تازہ نہیں ہو سکی</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>بیک اپ کی پیش رفت محفوظ ہو گئی۔ تکمیل کے لیے فائل کی حیثیت کو چیک کریں۔</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>بحالی کی حیثیت چیک کریں</string>
 	<key>Check request</key>
 	<string>درخواست جانچیں</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>نام اور منزل کے فولڈر کو چیک کر کے دوبارہ کوشش کریں۔</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>یہ فیصلہ کرنے سے پہلے کہ رسائی کی ضرورت ہے یا نہیں اس آلہ کی سرگرمی چیک کریں۔</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>چیک لسٹ مکمل ہو گئی</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>آپ کے بیانات سے مکمل چیک لسٹ۔ اپ اسٹریم کی حیثیت صرف فراہم کنندہ کے ساتھ آزادانہ طور پر قابل تصدیق رہتی ہے۔</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>پہلا بیک اپ بنانے کے لیے مقامی فائل پر کلاؤڈ میں بیک اپ منتخب کریں۔</string>
 	<key>Choose a credential for:</key>
 	<string>اس کے لیے ایک سند کا انتخاب کریں:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>اوتار کا انتخاب کریں</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>بالکل منتخب کریں کہ اس آزاد اسنیپ شاٹ میں کیا ہے۔ ماخذ کی ترامیم سے پہلے سے بھیجی گئی کاپیاں تبدیل نہیں ہوں گی۔</string>
+	<key>Choose folder</key>
+	<string>فولڈر منتخب کریں</string>
 	<key>Choose password export</key>
 	<string>پاس ورڈ برآمد کا انتخاب کریں</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>کیش صاف کریں</string>
 	<key>Clear filters</key>
 	<string>فلٹر صاف کریں</string>
+	<key>Clear search</key>
+	<string>تلاش صاف کریں</string>
 	<key>Clear selection</key>
 	<string>انتخاب صاف کریں</string>
 	<key>Close invitation</key>
 	<string>دعوت بند کریں</string>
 	<key>Closed</key>
 	<string>بند</string>
+	<key>Cloud backup</key>
+	<string>کلاؤڈ بیک اپ</string>
 	<key>Cloud backup file limit</key>
 	<string>کلاؤڈ بیک اپ میں فی فائل حد</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>کلاؤڈ کو حذف کرنا مکمل ہو گیا</string>
 	<key>Cloud storage</key>
 	<string>کلاؤڈ اسٹوریج</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>کلاؤڈ اسٹوریج یا فائل کے سائز کی حد تجاوز ہو گئی ہے۔ اپنا پلان اور بیک اپ کا سائز دیکھیں۔</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>دونوں اسکرینوں پر آلے کی ID ملائیں اور کمپیوٹر پر منظوری دیں۔</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>انتظار کی مدت کے بعد مکمل بحالی</string>
 	<key>Completed</key>
 	<string>مکمل</string>
+	<key>Completed downloads</key>
+	<string>مکمل ڈاؤن لوڈ</string>
 	<key>Configure a desktop file mapping</key>
 	<string>ڈیسک ٹاپ فائل میپنگ کو ترتیب دیں</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers اور وفود</string>
 	<key>Conversation</key>
 	<string>بات چیت</string>
+	<key>Conversation attachments</key>
+	<string>گفتگو کے منسلکات</string>
 	<key>Conversation limit</key>
 	<string>گفتگو کی حد</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>کاپیاں اسی آلے پر رہتی ہیں اور 30 سیکنڈ کے اندر ختم ہو جاتی ہیں۔</string>
 	<key>Copy</key>
 	<string>کاپی کریں</string>
+	<key>Copy SHA-256</key>
+	<string>SHA-256 کاپی کریں</string>
 	<key>Copy account ID</key>
 	<string>اکاؤنٹ ID کاپی کریں</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>ڈیٹا بیس</string>
 	<key>Date</key>
 	<string>تاریخ</string>
+	<key>Days before removal</key>
+	<string>رکھنے کی مدت (دن)</string>
 	<key>Delegations</key>
 	<string>وفود</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>کاپی حذف کریں</string>
 	<key>Delete this cloud backup?</key>
 	<string>اس کلاؤڈ بیک اپ کو حذف کریں؟</string>
+	<key>Deleted</key>
+	<string>حذف کرنے کی تاریخ</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>اپنے dMsg اکاؤنٹ کو حذف کرنے سے ایپل کی رکنیت منسوخ نہیں ہوتی ہے۔ تجدید کو روکنے کے لیے اسے اپنے Apple اکاؤنٹ کی ترتیبات میں منسوخ کریں۔</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>خفیہ کردہ نمائشی ڈیٹا، کیش شدہ منسلکات اور کلاؤڈ فائلوں کی فہرستیں دوبارہ ڈاؤن لوڈ کی جا سکتی ہیں۔ والٹ، پیغامات، مقامی فائل لائبریری اور غیر مطابقت پذیر کام محفوظ رہیں گے۔</string>
 	<key>Encrypting</key>
 	<string>خفیہ کاری</string>
+	<key>Encrypting on this device…</key>
+	<string>اس آلے پر خفیہ کاری ہو رہی ہے…</string>
 	<key>Engine</key>
 	<string>انجن</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>فائل کا نام</string>
 	<key>File not available on this device</key>
 	<string>فائل اس ڈیوائس پر دستیاب نہیں ہے</string>
+	<key>File tools</key>
+	<string>فائل کے ٹولز</string>
 	<key>File transfers</key>
 	<string>فائل کی منتقلی</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>پاس ورڈ درآمد کریں</string>
 	<key>Import photo</key>
 	<string>تصویر درآمد کریں</string>
+	<key>Import photos or videos</key>
+	<string>تصاویر یا ویڈیوز درآمد کریں</string>
 	<key>Import secret package</key>
 	<string>خفیہ پیکج درآمد کریں</string>
 	<key>Import selected records</key>
 	<string>منتخب ریکارڈز درآمد کریں</string>
 	<key>Import selected secrets</key>
 	<string>منتخب کردہ راز درآمد کریں</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>اس آلے پر درآمد ہو گیا۔ کلاؤڈ بیک اپ الگ کارروائی ہے۔</string>
 	<key>In Trash</key>
 	<string>ردی کی ٹوکری میں</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · مدت کے بعد</string>
 	<key>Language</key>
 	<string>زبان</string>
+	<key>Largest first</key>
+	<string>سب سے بڑی پہلے</string>
 	<key>Last known cloud state</key>
 	<string>آخری معلوم بادل کی حالت</string>
+	<key>Last refreshed</key>
+	<string>آخری تازہ کاری</string>
 	<key>Last successful sync</key>
 	<string>آخری کامیاب سنک</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>پیغام واپس لے لیا گیا</string>
 	<key>Messages</key>
 	<string>پیغامات</string>
+	<key>Modified</key>
+	<string>تبدیلی کی تاریخ</string>
 	<key>Month</key>
 	<string>مہینہ</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>اس آلے پر منتقل کریں</string>
 	<key>Moved</key>
 	<string>منتقل ہو گیا</string>
+	<key>Moved to Trash</key>
+	<string>ردی کی ٹوکری میں منتقل ہو گیا</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>فائل لائبریری کو اسی نیٹ ورک پر اس اکاؤنٹ کے دوسرے آلے پر اینڈ ٹو اینڈ خفیہ کاری کے ساتھ منتقل کرتا ہے۔ مکمل ہونے تک دونوں آلات کو ان لاک رکھیں۔</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>ردی کی ٹوکری میں منتقل کرنے سے کلاؤڈ اسٹوریج خالی نہیں ہوتا۔</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>نئے آلے پر منتقلی: نیا آلہ پرانے کی جگہ لینے کی درخواست کرتا ہے، پرانا منظوری دیتا ہے، پھر دونوں مرحلہ وار حوالگی کرتے ہیں۔</string>
+	<key>Moving…</key>
+	<string>منتقل ہو رہا ہے…</string>
 	<key>Multisig wallets</key>
 	<string>ملٹی سگ والیٹس</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>نئی نظر ثانی</string>
 	<key>New secret</key>
 	<string>نیا راز</string>
+	<key>Newest first</key>
+	<string>تازہ ترین پہلے</string>
 	<key>Next</key>
 	<string>اگلا</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>نہیں</string>
 	<key>No accounts</key>
 	<string>کوئی اکاؤنٹ نہیں</string>
+	<key>No active transfers</key>
+	<string>کوئی فعال منتقلی نہیں</string>
 	<key>No activity on this device</key>
 	<string>اس آلہ پر کوئی سرگرمی نہیں ہے</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>کوئی پس منظر کی منتقلی نہیں ہے</string>
 	<key>No blocked accounts</key>
 	<string>کوئی بلاک شدہ اکاؤنٹس نہیں</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>اس ورژن کا کوئی کلاؤڈ بیک اپ دستیاب نہیں۔</string>
 	<key>No cloud backups</key>
 	<string>کوئی کلاؤڈ بیک اپ نہیں ہے</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>کوئی پسندیدہ نہیں</string>
 	<key>No fields or notes</key>
 	<string>ابھی تک کچھ نہیں لکھا۔</string>
+	<key>No file versions</key>
+	<string>فائل کا کوئی ورژن نہیں</string>
+	<key>No files in this folder</key>
+	<string>اس فولڈر میں کوئی فائل نہیں</string>
 	<key>No findings from this device's checks.</key>
 	<string>اس ڈیوائس کے چیک سے کوئی پتہ نہیں چلا۔</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>کوئی اسنیپ شاٹ نہیں</string>
 	<key>No snapshots on this device</key>
 	<string>اس آلہ پر کوئی سنیپ شاٹس نہیں ہیں</string>
+	<key>No transfer was started.</key>
+	<string>کوئی منتقلی شروع نہیں ہوئی۔</string>
 	<key>Not delivered</key>
 	<string>نہیں پہنچایا</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>dMsg کھولیں۔ غیر مقفل کرنے اور منظوریوں کے لیے اب بھی ایپ میں آپ کے تعامل کی ضرورت ہے۔</string>
 	<key>Open invitation in browser</key>
 	<string>براؤزر میں دعوت نامہ کھولیں</string>
+	<key>Open local file</key>
+	<string>مقامی فائل کھولیں</string>
 	<key>Open notification settings</key>
 	<string>اطلاع کی ترتیبات کھولیں</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>عوامی پروفائل کھولیں</string>
 	<key>Open secret</key>
 	<string>کھلا راز</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>اس ڈاؤن لوڈ کی تصدیق اور تکمیل کے لیے اصل اکاؤنٹ کھولیں۔</string>
 	<key>Open workspace</key>
 	<string>کام کی جگہ کھولیں</string>
 	<key>Optional password</key>
 	<string>اختیاری پاس ورڈ</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>اختیاری۔ صرف اس صورت میں جب دوسرا آلہ خود بخود نہ ملے، مثلاً 192.168.1.20:52000۔</string>
+	<key>Original folder</key>
+	<string>اصل فولڈر</string>
 	<key>Original revision</key>
 	<string>اصل نظرثانی</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>اجازتیں</string>
 	<key>Phone</key>
 	<string>فون</string>
+	<key>Photos and videos</key>
+	<string>تصاویر اور ویڈیوز</string>
 	<key>Phrase</key>
 	<string>جملہ</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>منتخب سنیپ شاٹ تیار کریں</string>
 	<key>Prepared on this device</key>
 	<string>اس ڈیوائس پر تیار</string>
+	<key>Preparing and copying file…</key>
+	<string>فائل تیار اور کاپی ہو رہی ہے…</string>
+	<key>Preparing backups…</key>
+	<string>بیک اپ تیار ہو رہے ہیں…</string>
 	<key>Preview</key>
 	<string>پیش نظارہ</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>اس ڈیوائس پر ڈاؤن لوڈز کا پیش نظارہ اور پیکج کی تصدیق کرتا ہے اور ڈاؤن لوڈ سیشن کا استعمال کرتا ہے۔ جاری رکھنے سے پہلے وصول کرنے والا آلہ منتخب کریں۔</string>
 	<key>Preview file</key>
 	<string>پیش نظارہ فائل</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>اس قسم کی فائل کا پیش نظارہ دستیاب نہیں۔ دوسری ایپ میں کھولنے کے لیے ایک کاپی شیئر کریں۔</string>
 	<key>Preview package</key>
 	<string>پیش نظارہ پیکج</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>وصولی کے انتظار کی مدت</string>
 	<key>Refresh</key>
 	<string>تازہ کریں</string>
+	<key>Refresh backup list</key>
+	<string>بیک اپ فہرست تازہ کریں</string>
 	<key>Refresh balances</key>
 	<string>بیلنس ریفریش کریں</string>
 	<key>Refresh dependencies</key>
 	<string>انحصار کو تازہ کریں</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>آگے بڑھنے سے پہلے پیش منظر تازہ کریں۔</string>
+	<key>Refresh to check cloud backups</key>
+	<string>کلاؤڈ بیک اپ دیکھنے کے لیے تازہ کریں</string>
+	<key>Refreshing backups…</key>
+	<string>بیک اپ تازہ ہو رہے ہیں…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>فہرست تازہ کرنے سے مقامی فائلوں کا بیک اپ نہیں بنتا۔ محفوظ رکھنے والی فائلوں کے لیے کلاؤڈ میں بیک اپ منتخب کریں۔</string>
 	<key>Register a hardware approval key</key>
 	<string>ہارڈ ویئر کی منظوری کی کلید کو رجسٹر کریں</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>محفوظ پروفائل دوبارہ لوڈ کریں</string>
 	<key>Remaining</key>
 	<string>باقی</string>
+	<key>Removal date</key>
+	<string>مستقل ہٹانے کی تاریخ</string>
 	<key>Remove</key>
 	<string>ہٹائیں</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>اُن اسٹار</string>
 	<key>Remove field</key>
 	<string>فیلڈ کو ہٹا دیں</string>
+	<key>Remove local copy</key>
+	<string>مقامی کاپی ہٹائیں</string>
+	<key>Remove local copy?</key>
+	<string>مقامی کاپی ہٹائیں؟</string>
 	<key>Remove local data</key>
 	<string>مقامی ڈیٹا کو ہٹا دیں</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>اس مقامی ایجنٹ کو ہٹائیں؟</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>کسی حوالہ کو ہٹانے سے فائل حذف نہیں ہوتی ہے۔ موجودہ حوالہ جات اس وقت بھی رکھے جاتے ہیں جب ان کی فائلیں اس ڈیوائس پر غائب ہوں۔</string>
+	<key>Rename</key>
+	<string>نام بدلیں</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>اس کے شروع ہونے والے آلہ پر غیر دستیاب فیلڈ ریفرنس کی مرمت کریں۔</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>اس ورژن کو نئے موجودہ ورژن کے طور پر بحال کریں؟</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>اس ورژن کو کھولنے سے پہلے کلاؤڈ بیک اپ سے بحال کریں۔</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>بیک اپ سے پہلے اس ورژن کو آلے پر بحال کریں۔</string>
 	<key>Restore to this device</key>
 	<string>اس آلہ پر بحال کریں</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>بحالی منتخب ورژن کو ڈاؤن لوڈ اور اس کی تصدیق کرتی ہے، پھر اسے کھولا جا سکتا ہے۔</string>
 	<key>Restoring…</key>
 	<string>بحال ہو رہا ہے…</string>
 	<key>Result</key>
 	<string>نتیجہ</string>
 	<key>Result unconfirmed</key>
 	<string>نتیجہ غیر مصدقہ</string>
+	<key>Results</key>
+	<string>نتائج</string>
 	<key>Resume</key>
 	<string>دوبارہ شروع کریں</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>محفوظ کیا گیا۔ اشاعت زیر التواء ہے۔</string>
 	<key>Saving draft…</key>
 	<string>مسودہ محفوظ ہو رہا ہے…</string>
+	<key>Saving…</key>
+	<string>محفوظ ہو رہا ہے…</string>
 	<key>Scan QR code</key>
 	<string>کیمرے سے اسکین کریں</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>اسکرین شاٹس میں نجی معلومات ہوسکتی ہیں۔</string>
 	<key>Search</key>
 	<string>تلاش کریں</string>
+	<key>Search cloud backups</key>
+	<string>کلاؤڈ بیک اپ تلاش کریں</string>
 	<key>Search files</key>
 	<string>فائلیں تلاش کریں</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>درآمد کرنے کے لیے فیلڈز منتخب کریں</string>
 	<key>Select fields to share</key>
 	<string>اشتراک کرنے کے لیے فیلڈز منتخب کریں</string>
+	<key>Select files</key>
+	<string>فائلیں منتخب کریں</string>
 	<key>Select login items</key>
 	<string>لاگ ان آئٹمز کو منتخب کریں</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>منتخب کردہ OTP فیلڈز میں دوبارہ قابل استعمال بیج شامل ہے، نہ صرف موجودہ کوڈ۔</string>
 	<key>Selected accounts</key>
 	<string>منتخب اکاؤنٹس</string>
+	<key>Selected files</key>
+	<string>منتخب فائلیں</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>منتخب حصے متصادم ورژن استعمال کریں گے۔ باقی حصے موجودہ ورژن برقرار رکھیں گے۔</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>کچھ والٹس ابھی مکمل نہیں ہوئے۔ مکمل کرنے کے لیے مرحلہ دوبارہ چلائیں۔</string>
 	<key>Sort</key>
 	<string>چھانٹنا</string>
+	<key>Sort by</key>
+	<string>ترتیب دیں</string>
 	<key>Source address</key>
 	<string>ماخذ کا پتہ</string>
 	<key>Source address %u</key>
 	<string>ماخذ کا پتہ %u</string>
+	<key>Source device</key>
+	<string>ماخذ آلہ</string>
 	<key>Spam</key>
 	<string>سپیم</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>برآمد شدہ اسناد دستیاب نہیں ہیں یا ختم ہو چکی ہیں۔ نیا سنیپ شاٹ بنانے کے لیے dMsg کھولیں۔</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>فائل کی کاپیاں دستیاب نہیں ہیں یا ختم ہو چکی ہیں۔ نیا سنیپ شاٹ بنانے کے لیے dMsg کھولیں، پھر دوبارہ کوشش کریں۔</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>فائل کی تصدیق نہیں ہو سکی۔ دوبارہ ڈاؤن لوڈ کریں؛ نامکمل کاپی نہیں کھولی جا سکتی۔</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>فائل لائبریری صرف پرانے آلے پر رہے گی۔ وہاں جو کبھی سنک یا بیک اپ نہیں ہوا، وہ آلہ منسوخ ہونے پر ضائع ہو جائے گا۔</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>فائل یا فولڈر اب دستیاب نہیں۔ فہرست تازہ کریں۔</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>ان باکس کی کلید ابھی اس آلے پر ہم وقت نہیں ہوئی۔ جس آلے پر پیغامات وصول کرنا فعال کیا تھا اسے ہم وقت کریں، پھر یہاں دوبارہ کوشش کریں۔</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>منتقلی کی اجازت ختم ہو گئی۔ اس کام کو منسوخ کریں، پھر پیش منظر میں اصل بیک اپ جاری رکھیں یا نیا ڈاؤن لوڈ شروع کریں۔</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>منتقلی روک دی گئی۔ اصل خفیہ کردہ بلاکس کی دوبارہ کوشش کریں۔</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>تصدیق شدہ کلاؤڈ بیک اپ اور فائل کا ریکارڈ برقرار رہیں گے۔ اس آلے پر کھولنے کے لیے یہ ورژن دوبارہ ڈاؤن لوڈ کریں۔</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>پرس اپنی موجودہ پالیسی اور منظوریوں کو چیک کرتا ہے۔ اس قطعی منصوبے کے لیے مطلوبہ ہارڈویئر دستخط کی درخواست کی گئی ہے۔</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>اس ڈیوائس میں ایسی تبدیلیاں ہیں جو مطابقت پذیر نہیں ہوئی ہیں۔ اکاؤنٹ کو حذف کرنے سے پہلے اپنی ضرورت کی ہر چیز کو محفوظ کریں۔</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>اس آلے میں اس تجویز کے لیے کوئی مشترکہ دستخطی کلید نہیں ہے۔</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>اس آلے پر مقامی کاپی نہیں۔ یہ بیک اپ حذف کرنے سے آپ کی واحد قابلِ بحالی کاپی ختم ہو سکتی ہے۔</string>
 	<key>This device is authorized</key>
 	<string>یہ آلہ مجاز ہے</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>یہ خانہ اس وقت تک نظر آئے گا جب تک آپ اسے چھپائیں یا یہ اسکرین چھوڑیں۔</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>یہ فائل اس کارروائی کے لیے اجازت یافتہ سائز کی حد سے زیادہ ہے۔</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>یہ فائل کلاؤڈ بیک اپ کے موجودہ فائل سائز کی حد سے بڑی ہے۔</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>یہ فائل ردی کی ٹوکری میں ہے۔ کھولنے سے پہلے بحال کریں۔</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>یہ سرگزشت اس ڈیوائس سے تعلق رکھتی ہے۔ یہ ڈیسک ٹاپ-لوکل CLI، SSH یا کسی دوسرے آلے سے فائل ماؤنٹ کی منظوریوں کی عکس بندی نہیں کرتا ہے۔</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>اس سنیپ شاٹ پر توجہ کی ضرورت ہے۔ جاری رکھنے سے پہلے اس کی حیثیت چیک کریں۔</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>یہ اس ڈیوائس پر آپ کے کام کو ٹریک کرتا ہے۔ یہ ان کے فراہم کنندہ پر اسناد تخلیق، جانچ یا منسوخ نہیں کرتا ہے۔</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>اس ورژن کی منتقلی پہلے ہی جاری ہے۔</string>
+	<key>This version is already backed up.</key>
+	<string>اس ورژن کا بیک اپ پہلے ہی موجود ہے۔</string>
 	<key>This wallet's key</key>
 	<string>اس والٹ کی کلید</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>کل</string>
 	<key>Transfer between devices</key>
 	<string>آلات کے درمیان منتقلی</string>
+	<key>Transfer needs attention</key>
+	<string>منتقلی پر توجہ درکار ہے</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>پہلے ملکیتی گفتگو کو منتقل یا محفوظ کریں</string>
+	<key>Transfer paused</key>
+	<string>منتقلی موقوف ہے</string>
 	<key>Transfer proposal</key>
 	<string>منتقلی کی تجویز</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>منتقلی قطار میں شامل ہے۔ فائلوں میں پیش رفت دیکھیں۔</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>منتقلی کی حالت تازہ نہیں ہو سکی۔ محفوظ کردہ کام برقرار رہیں گے۔</string>
 	<key>Transferred</key>
 	<string>منتقل شدہ</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>یو آر ایل</string>
 	<key>Usage</key>
 	<string>استعمال</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>۱–۲۵۵ حروف کا نام استعمال کریں جس میں سلیش یا کنٹرول حروف نہ ہوں۔</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>اسنیپ شاٹ سے پاس ورڈ استعمال کریں جو آپ نے واضح طور پر dMsg میں برآمد کیا ہے۔</string>
 	<key>Use a secret through a device policy</key>

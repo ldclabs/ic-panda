@@ -1,261 +1,271 @@
 import SwiftUI
-@preconcurrency import DMsgCore
-import UniformTypeIdentifiers
-import QuickLook
 import PhotosUI
-
-private struct BackupAdmission: Decodable {
-    struct Skipped: Decodable { let reason: String }
-    let skipped: [Skipped]
-}
 
 struct FilesView: View {
     @Environment(SessionModel.self) private var model
+    @Environment(\.dynamicTypeSize) private var textSize
     @State private var selected: String?
     @State private var importing = false
-    @State private var photo: PhotosPickerItem?
-    @State private var newFolder = false
-    @State private var folderName = ""
-    @State private var trash = false
-    @State private var removing: LibraryFile?
-    @State private var local: LocalOnly?
+    @State private var photos: [PhotosPickerItem] = []
+    @State private var sheet: FileLibrarySheet?
+    @State private var selecting = false
+    @State private var selection: Set<String> = []
+    @State private var removing: [LibraryItemTarget] = []
+    @State private var working = false
+    @State private var importingPhotos = false
+
+    private var files: [LibraryFile] { model.filesSort.files(model.library.files) }
+    private var targets: [LibraryItemTarget] {
+        model.library.folders.map { LibraryItemTarget(id: $0.id, name: $0.name, folder: true) }
+        + files.map { LibraryItemTarget(id: $0.id, name: $0.name, folder: false) }
+    }
+    private var chosen: [LibraryItemTarget] { targets.filter { selection.contains($0.id) } }
+
     var body: some View {
-        WorkspaceNavigation(selection: $selected) { listSelection in
-            List(selection: listSelection) {
-                TransferStatusView()
-                NavigationLink("File transfers") { TransfersView() }.accessibilityIdentifier("files.transfers")
-                Section {
-                    HStack {
-                        Label("Files in this folder", systemImage: "internaldrive")
-                        Spacer()
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(model.library.files.reduce(0) { $0 + $1.size }), countStyle: .file)).foregroundStyle(.secondary)
-                    }.font(.subheadline).padding(.vertical, 4)
-                    LocalOnlyWarning(value: local)
-                    if !model.library.folders.isEmpty {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
-                            ForEach(model.library.folders) { folder in
-                                Button { openFolder(folder.id) } label: {
-                                    Label { Text(folder.name) } icon: { AppGlyph.folder.image }.font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(14).background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
-                                }.buttonStyle(.plain)
-                            }
-                        }.listRowBackground(Color.clear)
+        @Bindable var model = model
+        WorkspaceNavigation(selection: $selected, sidebarInitiallyVisible: true) { listSelection in
+            VStack(spacing: 0) {
+                if !textSize.isAccessibilitySize { FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort) }
+                List(selection: selecting ? nil : listSelection) {
+                    if textSize.isAccessibilitySize {
+                        FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort).buttonStyle(.borderless)
+                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
                     }
+                    transferEntry
+                    if model.filesScope == .local { localContent }
+                    else { CloudBackupSection(query: model.filesSearch, sort: model.filesSort) }
+                }.listStyle(.plain)
+                    .refreshable {
+                        if model.filesScope == .cloud { await model.loadCloudBackups(refresh: true) }
+                        else { await model.loadFiles() }
+                        await model.fileTransfers.load(model)
+                    }
+                    .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
+            }.privateScreen().navigationTitle(model.filesScope == .local ? model.library.folder?.name ?? String(localized: "Files") : String(localized: "Files"))
+                .searchable(text: $model.filesSearch, placement: .navigationBarDrawer(displayMode: .always), prompt: model.filesScope == .cloud ? "Search cloud backups" : "Search files")
+                .toolbar { toolbar }
+                .task(id: model.filesQueryKey) {
+                    try? await Task.sleep(for: .milliseconds(200))
+                    guard !Task.isCancelled else { return }
+                    await model.loadFiles()
                 }
-                Section("On this device") {
-                    ForEach(model.library.files) { file in
-                        NavigationLink(value: file.id) { FileRow(file: file) }.compactObjectRow()
-                            .contextMenu { Button("Move to Trash", role: .destructive) { removing = file } }
-                    }
-                    if model.library.files.isEmpty && model.cloudBackups.isEmpty && !model.loadingCloudBackups && !model.cloudBackupsFailed {
-                        Text("Import a document to encrypt it on this device. Cloud backup is a separate action.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-                CloudBackupSection()
-                NoticeBar(text: String(localized: "Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup."))
-                    .listRowBackground(Color.clear)
-            }.listStyle(.plain).privateScreen().navigationTitle(model.library.folder?.name ?? String(localized: "Files"))
-                .searchable(text: Binding(get: { model.filesSearch }, set: { model.filesSearch = $0 }), prompt: "Search files")
-                .task(id: model.filesSearch) { try? await Task.sleep(for: .milliseconds(200)); if !Task.isCancelled { await model.refresh() } }
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        if let folder = model.library.folder { Button("Back", systemImage: "chevron.backward") { openFolder(folder.parent ?? "root") } }
-                        else { ApprovalButton() }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu("Import", systemImage: "plus") {
-                            Button("Import file", systemImage: "doc") { importing = true }
-                            PhotosPicker(selection: $photo, matching: .images) { Label("Import photo", systemImage: "photo") }
-                            Button("New folder", systemImage: "folder.badge.plus") { newFolder = true }
-                            Button("Trash", systemImage: "trash") { trash = true }
-                        }.disabled(model.filesFolder != (model.library.folder?.id ?? "root"))
-                    }
-                }.task { await model.refresh(); await model.loadCloudBackups(refresh: true); local = await LocalOnly.load(model) }
-                .refreshable {
-                    await model.loadCloudBackups(refresh: true)
-                    await model.refresh()
-                    local = await LocalOnly.load(model)
-                }
-                .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { result in
-                    Task { await importFile(result) }
-                }
-                .onChange(of: photo) { _, selected in Task {
-                    let epoch = model.epoch
-                    do {
-                        guard let selected, let imported = try await selected.loadTransferable(type: PhotoImport.self) else { return }
-                        defer { imported.finish() }
-                        guard epoch == model.epoch else { return }
-                        await importFile(.success(imported.file))
-                    } catch { if epoch == model.epoch { model.report(error) } }
-                } }
+                .task { await model.loadCloudBackups(refresh: true); await model.fileTransfers.load(model) }
         } detail: { id in
-            if let file = model.library.files.first(where: { $0.id == id }) { FileDetailView(file: file).id(file.id) }
+            if let id { FileDetailDestination(id: id) }
             else { ContentUnavailableView("Select a file", image: AppGlyph.file.assetName) }
         }
+        .onChange(of: model.filesScope) { _, _ in selected = nil; model.filesSearch = ""; selecting = false; selection = [] }
+        .onChange(of: model.filesSearch) { _, _ in selection = [] }
+        .onChange(of: targets.map(\.id)) { _, ids in selection.formIntersection(ids) }
         .onChange(of: selected) { _, value in if value != nil { model.activity() } }
-        .sheet(isPresented: $trash) { NavigationStack { FileTrashView() } }
-        .confirmationDialog("Move this local file to Trash?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
-            Button("Move to Trash", role: .destructive) { if let removing { Task {
-                do { try await model.engine?.trashFile(id: removing.id); self.removing = nil; await model.refresh() }
-                catch { model.report(error) }
-            } } }
+        .sheet(item: $sheet) { value in
+            NavigationStack {
+                switch value {
+                case .trash: FileTrashView()
+                case .help: FileLibraryHelpView()
+                case .rename(let target): FileNameEditor(target: target, parent: model.filesFolder)
+                case .create: FileNameEditor(target: nil, parent: model.filesFolder)
+                case .backup(let files): FileBackupView(files: files)
+                case .move(let targets): FileMoveView(items: targets)
+                case .results(let values): FileResultsView(results: values)
+                case .imports(let urls, let folder): FileImportView(urls: urls, folder: folder) { file in
+                    model.filesScope = .local; model.filesFolder = folder; model.filesSearch = ""; selected = file.id
+                }
+                }
+            }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls): if !urls.isEmpty { sheet = .imports(urls, model.filesFolder) }
+            case .failure(let error): model.reportFileError(error)
+            }
+        }
+        .onChange(of: photos) { _, values in if !values.isEmpty { Task { await importPhotos(values) } } }
+        .confirmationDialog("Move to Trash", isPresented: Binding(get: { !removing.isEmpty }, set: { if !$0 { removing = [] } }), titleVisibility: .visible) {
+            Button("Move to Trash", role: .destructive) { let values = removing; removing = []; Task { await trash(values) } }
         } message: { Text("Cloud backups are kept. This only changes the copy on this device.") }
-        .alert("New folder", isPresented: $newFolder) {
-            TextField("Folder name", text: $folderName)
-            Button("Cancel", role: .cancel) { folderName = "" }
-            Button("Create") { Task {
-                do { _ = try await model.engine?.createFolder(parent: model.filesFolder, name: folderName); folderName = ""; await model.refresh() }
-                catch { model.report(error) }
-            } }
+    }
+
+    @ViewBuilder private var localContent: some View {
+        if model.filesQueryIsCurrent {
+            if let folder = model.library.folder {
+                Button { openFolder(folder.parent ?? "root") } label: {
+                    Label("Parent folder", systemImage: "arrow.up").font(.subheadline)
+                }.accessibilityIdentifier("files.parent")
+                Text(([String(localized: "Files")] + (folder.path ?? []) + [folder.name]).joined(separator: " / "))
+                    .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                    .listRowSeparator(.hidden)
+            }
+            if let local = model.filesLocalOnly, local.unbackedVersions > 0 {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .top) {
+                        Label { Text("Without a cloud backup") + Text(verbatim: " · \(local.unbackedVersions.formatted()) · \(fileSize(UInt64(max(0, local.unbackedBytes))))") }
+                            icon: { Image(systemName: "exclamationmark.icloud") }
+                        if textSize.isAccessibilitySize {
+                            Button { sheet = .help } label: { Image(systemName: "info.circle").font(.system(size: 18)).frame(width: 44, height: 44) }
+                                .buttonStyle(.borderless).accessibilityLabel("About files and backups")
+                        }
+                    }
+                    if !textSize.isAccessibilitySize {
+                        Text("Local files are not backed up automatically. Uninstalling dMsg removes files that have no cloud backup.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }.font(.footnote).accessibilityIdentifier("files.unbacked")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
+            ForEach(model.library.folders) { folder in
+                let target = LibraryItemTarget(id: folder.id, name: folder.name, folder: true)
+                Button { if selecting { toggle(folder.id) } else { openFolder(folder.id) } } label: {
+                    HStack(spacing: 10) {
+                        if selecting { selectionIcon(folder.id) }
+                        FileSummaryRow(name: folder.name, mime: "inode/directory", subtitle: String(localized: "Folder"))
+                        if !selecting { Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary) }
+                    }.contentShape(Rectangle())
+                }.buttonStyle(.plain).compactObjectRow().accessibilityIdentifier("folder.item.\(folder.id)")
+                    .contextMenu { itemMenu(target) }
+            }
+            ForEach(files) { file in
+                Group {
+                    if selecting {
+                        Button { toggle(file.id) } label: { HStack(spacing: 10) { selectionIcon(file.id); FileRow(file: file) } }
+                            .buttonStyle(.plain).accessibilityAddTraits(selection.contains(file.id) ? .isSelected : [])
+                    } else { NavigationLink(value: file.id) { FileRow(file: file) } }
+                }.compactObjectRow().accessibilityIdentifier("file.item.\(file.id)")
+                    .contextMenu {
+                        Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { sheet = .backup([file]) }
+                        itemMenu(LibraryItemTarget(id: file.id, name: file.name, folder: false))
+                    }
+            }
         }
-    }
-
-    private func openFolder(_ id: String) { model.activity(); selected = nil; model.library = .empty; model.filesFolder = id; Task { await model.refresh() } }
-
-    private func importFile(_ result: Result<URL, Error>) async {
-        let epoch = model.epoch
-        do {
-            _ = try await model.importLibraryDocument(result.get(), folder: model.filesFolder)
-            if epoch == model.epoch { await model.refresh() }
-        } catch { if epoch == model.epoch { model.report(error) } }
-    }
-}
-
-struct FileRow: View {
-    let file: LibraryFile
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    var body: some View {
-        HStack(spacing: 10) {
-            ObjectIcon(glyph: file.mime.hasPrefix("image/") ? .image : .file)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(file.name).font(.body.weight(.medium)).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file) + " · " + file.statusLabel)
-                    .font(.caption).foregroundStyle(.secondary)
+        if model.filesLoading || !model.filesQueryIsCurrent && !model.filesFailed { ProgressView("Loading…") }
+        if model.filesFailed {
+            FileInlineFailure(message: String(localized: "The operation could not be completed. Please try again.")) { Task { await model.loadFiles() } }
+        } else if model.filesLoaded && model.filesQueryIsCurrent && targets.isEmpty && !model.filesLoading {
+            if !model.filesSearch.isEmpty {
+                ContentUnavailableView.search(text: model.filesSearch)
+                Button("Clear search") { model.filesSearch = "" }
+            } else {
+                ContentUnavailableView("No files in this folder", image: AppGlyph.folder.assetName,
+                    description: Text("Import a document to encrypt it on this device. Cloud backup is a separate action."))
+                SettingsAction("Import file", systemImage: "plus") { importing = true }
+                if !model.cloudBackups.isEmpty {
+                    SettingsAction("Cloud backups", systemImage: "icloud") { model.filesScope = .cloud }
+                }
             }
         }
     }
-}
 
-struct FileDetailView: View {
-    let file: LibraryFile
-    var historical = false
-    @Environment(SessionModel.self) private var model
-    @State private var preview: SharedFile?
-    @State private var sharing: SharedFile?
-    @State private var restored = false
-    @State private var needsRestore = false
-    @State private var confirmBackup = false
-    @State private var working = false
-    @State private var openedNonce: String?
-    @State private var actionTask: Task<Void, Never>?
-    struct Opened: Decodable { let path: String; let nonce: String }
-    struct SharedFile: Identifiable { let url: URL; var id: URL { url } }
-    var body: some View {
-        List {
-            HStack(spacing: 14) {
-                AppGlyph.file.image.resizable().scaledToFit().frame(width: 36, height: 36).foregroundStyle(Theme.forest).frame(width: 80, height: 94)
-                    .background(Theme.forest.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(file.name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file)).font(.subheadline).foregroundStyle(.secondary)
-                    Text(restored ? String(localized: "On this device") : needsRestore ? String(localized: "File not available on this device") : file.statusLabel).font(.caption).foregroundStyle(Theme.forest)
-                }
-            }.listRowBackground(Color.clear).listRowSeparator(.hidden)
-            Section {
-                Button("Preview file", systemImage: "doc.text.magnifyingglass") { actionTask = Task { await open(share: false) } }.disabled(needsRestore || (!file.canOpen && !restored))
-                Button("Share a copy", systemImage: "square.and.arrow.up") { actionTask = Task { await open(share: true) } }.disabled(needsRestore || (!file.canOpen && !restored))
-                if needsRestore || (!file.canOpen && !restored) {
-                    Button("Restore to this device") { actionTask = Task { await restore() } }
-                }
-                if !historical {
-                    Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { confirmBackup = true }
-                    NavigationLink("Manage file") { FileManagementView(file: file) }
-                    NavigationLink("File versions") { FileVersionsView(file: file) }
-                }
-            }.disabled(working)
+    private var transferEntry: some View {
+        Section {
             TransferStatusView()
-            Section("Integrity") { LabeledContent("SHA-256") { Text(file.sha256).font(.caption.monospaced()).textSelection(.enabled) } }
-
-            NoticeBar(text: String(localized: "Shared copies leave dMsg's protection and cannot be recalled."))
-                .listRowBackground(Color.clear)
-        }.privateScreen().navigationTitle("File").navigationBarTitleDisplayMode(.inline)
-            .sheet(item: $preview) { file in VerifiedPreview(url: file.url) }
-            .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
-            .onChange(of: model.library.files.first(where: { $0.id == file.id })?.canOpen) { _, available in
-                if available == true { restored = true; needsRestore = false }
+            if importingPhotos { ProgressView("Preparing and copying file…") }
+            NavigationLink { TransfersView() } label: {
+                HStack {
+                    Label("File transfers", systemImage: "arrow.up.arrow.down")
+                    Spacer()
+                    if model.fileTransfers.activeCount > 0 { Text(model.fileTransfers.activeCount.formatted()).monospacedDigit() }
+                }.font(.subheadline)
+            }.accessibilityIdentifier("files.transfers")
+            if model.filesPendingImports > 0 {
+                NavigationLink { PendingImportsView() } label: { LabeledContent("Pending imports", value: model.filesPendingImports.formatted()) }
             }
-            .onChange(of: preview?.id) { before, after in if before != nil && after == nil { cleanup() } }
-            .onChange(of: sharing?.id) { before, after in if before != nil && after == nil { cleanup() } }
-            .onDisappear { if preview == nil && sharing == nil { actionTask?.cancel(); cleanup() } }
-            .confirmationDialog("Back up this file?", isPresented: $confirmBackup) {
-                Button("Back up encrypted copy") { actionTask = Task { await backup() } }
-            } message: { Text("The encrypted version will use cloud storage. Your local copy stays on this device."); Text("Locking pauses transfers; unlocking resumes them.") }
-
-    }
-
-    private func open(share: Bool) async {
-        model.activity()
-        working = true; defer { working = false }; let epoch = model.epoch
-        do {
-            guard let engine = model.engine else { return }
-            let result = try await coreOperation { try await engine.openFile(id: file.id, version: file.current, operation: $0) }
-            guard epoch == model.epoch, !Task.isCancelled, !model.concealed else { return }
-            let opened: Opened = try model.decode(result)
-            openedNonce = opened.nonce
-            let url = URL(fileURLWithPath: opened.path)
-            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
-            if share { sharing = SharedFile(url: url) } else { preview = SharedFile(url: url) }
-        } catch {
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            if case MobileError.Failure(let code) = error, ["NOT_FOUND", "INTEGRITY_FAILED"].contains(code) { needsRestore = true }
-            model.report(error)
+            if model.filesSharedImports > 0 {
+                NavigationLink { IncomingSharesView() } label: { LabeledContent("Shared with dMsg", value: model.filesSharedImports.formatted()) }
+            }
         }
     }
 
-    private func restore() async {
-        guard let engine = model.engine else { return }
-        let epoch = model.epoch
+    @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu("Import", systemImage: "plus") {
+                Button("Import file", systemImage: "doc") { importing = true }
+                PhotosPicker(selection: $photos, maxSelectionCount: 30, matching: .any(of: [.images, .videos])) {
+                    Label("Import photos or videos", systemImage: "photo.on.rectangle")
+                }
+                Button("New folder", systemImage: "folder.badge.plus") { sheet = .create }
+            }.disabled(working || importingPhotos || model.transfer.running || !model.filesQueryIsCurrent)
+                .accessibilityIdentifier("files.add")
+            Menu("File tools", systemImage: "ellipsis.circle") {
+                if model.filesScope == .local {
+                    Button(selecting ? "Done" : "Select files", systemImage: "checkmark.circle") { selecting.toggle(); selection = [] }
+                        .disabled(targets.isEmpty || !model.filesQueryIsCurrent)
+                }
+                Button("Trash", systemImage: "trash") { sheet = .trash }
+                NavigationLink("Pending imports") { PendingImportsView() }
+                NavigationLink("Shared with dMsg") { IncomingSharesView() }
+                Button("About files and backups", systemImage: "info.circle") { sheet = .help }
+            }.accessibilityIdentifier("files.tools")
+        }
+    }
+
+    private var selectionBar: some View {
+        HStack {
+            Text(selection.count.formatted()).font(.subheadline.monospacedDigit()).accessibilityLabel("Selected files")
+            Spacer()
+            Menu("Actions", systemImage: "ellipsis.circle") {
+                Button("Back up to cloud", systemImage: "icloud.and.arrow.up") {
+                    sheet = .backup(files.filter { selection.contains($0.id) })
+                }.disabled(chosen.contains { $0.folder })
+                Button("Move to another folder", systemImage: "folder") { sheet = .move(chosen) }
+                Button("Move to Trash", systemImage: "trash", role: .destructive) { removing = chosen }
+            }.disabled(selection.isEmpty || working).frame(minWidth: 44, minHeight: 44).accessibilityIdentifier("files.selection.actions")
+            Button("Done") { selecting = false; selection = [] }.frame(minHeight: 44)
+        }.padding(.horizontal, 20).background(Theme.paper).accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private func itemMenu(_ target: LibraryItemTarget) -> some View {
+        Button("Rename", systemImage: "pencil") { sheet = .rename(target) }
+        Button("Move to another folder", systemImage: "folder") { sheet = .move([target]) }
+        Button("Move to Trash", systemImage: "trash", role: .destructive) { removing = [target] }
+    }
+
+    private func selectionIcon(_ id: String) -> some View {
+        Image(systemName: selection.contains(id) ? "checkmark.circle.fill" : "circle").foregroundStyle(Theme.forest).accessibilityHidden(true)
+    }
+
+    private func toggle(_ id: String) { if !selection.insert(id).inserted { selection.remove(id) } }
+
+    private func openFolder(_ id: String) {
+        model.activity(); selected = nil; selection = []; model.filesSearch = ""; model.filesFolder = id
+    }
+
+    private func trash(_ values: [LibraryItemTarget]) async {
+        guard !working else { return }; let stamp = model.epoch
         working = true; defer { working = false }
-        await model.loadCloudBackups(refresh: true)
-        guard epoch == model.epoch, !Task.isCancelled else { return }
-        guard let backup = model.cloudBackups.first(where: { $0.fileId == file.id && $0.versionId == file.current }) else {
-            model.notice = String(localized: "File not available on this device"); return
-        }
-        do {
-            _ = try await model.transfer.run(file.name) { try await engine.restoreBackup(upload: backup.id, folder: model.filesFolder, operation: $0) }
-            guard epoch == model.epoch, !Task.isCancelled else { return }
-            model.notice = String(localized: "Transfer queued. Follow its progress in Files.")
-            await model.fileTransfers.load(model)
-        } catch { model.report(error) }
-    }
-
-    private func backup() async {
-        working = true; defer { working = false }; let epoch = model.epoch
-        do {
-            guard let engine = model.engine else { return }
-            let admission: BackupAdmission = try model.decode(
-                try await engine.backupFile(id: file.id, expectedVersion: file.current))
-            if admission.skipped.contains(where: { $0.reason == "too_large" }) {
-                throw CocoaError(.fileReadTooLarge)
+        var results: [FileActionResult] = []
+        for target in values {
+            guard stamp == model.epoch, !Task.isCancelled else { return }
+            do {
+                try await model.trashLibraryItem(target.id)
+                results.append(FileActionResult(name: target.name, message: String(localized: "Moved to Trash")))
+            } catch {
+                guard stamp == model.epoch, let message = model.fileFailureMessage(error) else { return }
+                results.append(FileActionResult(name: target.name, message: message, failed: true))
             }
-            model.notice = String(localized: "Transfer queued. Follow its progress in Files.")
-            await model.fileTransfers.load(model)
-            await model.refresh()
         }
-        catch { if epoch == model.epoch { model.report(error) } }
+        guard stamp == model.epoch, !Task.isCancelled else { return }
+        await model.loadFiles(); selection = []; selecting = false; sheet = .results(results)
     }
 
-    private func cleanup() {
-        guard let nonce = openedNonce else { return }; openedNonce = nil
-        let engine = model.engine
-        Task { try? await engine?.closeFile(nonce: nonce) }
+    private func importPhotos(_ values: [PhotosPickerItem]) async {
+        guard !importingPhotos else { return }; let stamp = model.epoch, folder = model.filesFolder
+        importingPhotos = true; defer { importingPhotos = false; photos = [] }
+        var results: [FileActionResult] = []
+        for value in values {
+            guard stamp == model.epoch, !Task.isCancelled else { return }
+            do {
+                guard let copy = try await value.loadTransferable(type: PhotoImport.self) else { throw CocoaError(.fileReadUnknown) }
+                defer { copy.finish() }
+                guard stamp == model.epoch, !Task.isCancelled else { return }
+                let file = try await model.importLibraryDocument(copy.file, folder: folder)
+                results.append(FileActionResult(name: file.name, message: String(localized: "Imported to this device. Cloud backup is a separate action.")))
+            } catch {
+                guard stamp == model.epoch, let message = model.fileFailureMessage(error) else { return }
+                results.append(FileActionResult(name: String(localized: "Photos and videos"), message: message, failed: true))
+            }
+        }
+        guard stamp == model.epoch, !Task.isCancelled else { return }
+        await model.loadFiles(); sheet = .results(results)
     }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController { UIActivityViewController(activityItems: items, applicationActivities: nil) }
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

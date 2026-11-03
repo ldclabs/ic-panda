@@ -10,6 +10,7 @@ pub use content::{ChannelMemberChange, CredentialSelection};
 mod diagnostics;
 mod display;
 mod error;
+mod file_library;
 mod messaging;
 mod models;
 pub use messaging::LetterDraftInput;
@@ -46,6 +47,7 @@ pub use models::*;
 pub use operation::{OperationToken, TransferProgress};
 pub use platform::{Agreement, Platform, SigningKey};
 pub use secrets::{SecretAttachmentSelection, SecretPackageSelection, SecretSnapshotInput};
+use serde_json::json;
 use session::ScopedHost;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{
@@ -988,8 +990,22 @@ impl MobileEngine {
     }
 
     pub async fn backup_status(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| Box::pin(async { c.files_backup_status() }))
-            .await
+        self.object(|c| {
+            Box::pin(async {
+                let mut values = Vec::new();
+                for job in c.files_backup_status()? {
+                    let name = c
+                        .files_show(&job.file)
+                        .ok()
+                        .map(|details| details.file.name);
+                    let mut value = json!(job);
+                    value["name"] = json!(name);
+                    values.push(value);
+                }
+                Ok(values)
+            })
+        })
+        .await
     }
 
     pub async fn channels(&self) -> Result<ChannelPage> {
@@ -1578,8 +1594,14 @@ impl MobileEngine {
     }
 
     pub async fn file_trash(&self) -> Result<ObjectSnapshot> {
-        self.object(|c| Box::pin(async { c.files_list("root", true) }))
-            .await
+        self.object(|c| {
+            Box::pin(async {
+                let mut value = json!(c.files_list("root", true)?);
+                value["trash_days"] = json!(c.config().files_trash_days);
+                Ok(value)
+            })
+        })
+        .await
     }
 
     pub async fn restore_file(&self, id: String) -> Result<()> {

@@ -71,6 +71,7 @@ extension SessionModel {
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-vault-empty") { vault = [] }
         fixtureVaultItems = vault
+        prepareFileFixtures()
     }
 
     /// Model an incoming revision after detail loading, without a network account.

@@ -16,6 +16,8 @@
 	<string>لقطة القناة متاحة للأعضاء المخوّلين بالوصول إلى هذه الحقبة، بما في ذلك من يُمنحون وصولًا إلى السجل لاحقًا. لا تتضمن انتهاء صلاحية للرابط أو حدًا لجلسات التنزيل، ولا يمكن استرجاعها من المستلمين.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>جلسة التنزيل تمنح إذنًا بالاسترجاع، ولا تحسب مرات قراءة الملف. انتهاء الصلاحية أو الإبطال لا يمحو النسخ المحفوظة سابقًا.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>يوجد ملف أو مجلد بهذا الاسم بالفعل.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>يرتبط L1 للعنوان الأصلي بمفتاح جهاز واحد، لذا يحصل هذا الجهاز على عنوان خاص به وتُنقل العملات إليه. كل خطوة مقترح يوافق عليه الأعضاء.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>نبذة</string>
 	<key>About dMsg</key>
 	<string>حول dMsg</string>
+	<key>About files and backups</key>
+	<string>حول الملفات والنسخ الاحتياطية</string>
 	<key>Accept approved binding</key>
 	<string>قبول الربط المعتمد</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>الحساب والأجهزة والهويات</string>
 	<key>Accounts</key>
 	<string>الحسابات</string>
+	<key>Actions</key>
+	<string>الإجراءات</string>
 	<key>Active</key>
 	<string>نشط</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>منسوخ احتياطيًا</string>
 	<key>Background ciphertext transfer</key>
 	<string>نقل المحتوى المشفّر في الخلفية</string>
+	<key>Background download</key>
+	<string>تنزيل في الخلفية</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>التوقيع في الخلفية وصلاحيات الوكلاء المقيمين منفصلة عن قفل مساحة العمل هذا.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>جارٍ النسخ…</string>
 	<key>Backup failed</key>
 	<string>فشل النسخ الاحتياطي</string>
+	<key>Backup list could not be refreshed</key>
+	<string>تعذر تحديث قائمة النسخ الاحتياطية</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>حُفظ التقدم. تحقّق من حالة الملف لمعرفة اكتمال النسخ.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>التحقق من حالة الاسترداد</string>
 	<key>Check request</key>
 	<string>التحقق من الطلب</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>تحقق من الاسم ومجلد الوجهة ثم أعد المحاولة.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>راجع نشاط هذا الجهاز قبل تحديد ما إذا كان الوصول لا يزال ضروريًا.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>اكتملت القائمة</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>اكتملت القائمة استنادًا إلى إفاداتك. لا يزال التحقق المستقل من الحالة لدى المزود متاحًا من خلاله فقط.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>اختر النسخ الاحتياطي إلى السحابة من ملف محلي لإنشاء أول نسخة احتياطية.</string>
 	<key>Choose a credential for:</key>
 	<string>اختر بيانات الدخول لـ:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>اختيار صورة شخصية</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>اختر بدقة محتوى هذه اللقطة المستقلة. تعديل المصدر لن يغيّر النسخ المرسلة سابقًا.</string>
+	<key>Choose folder</key>
+	<string>اختيار مجلد</string>
 	<key>Choose password export</key>
 	<string>اختيار ملف تصدير كلمات المرور</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>مسح ذاكرة التخزين المؤقت</string>
 	<key>Clear filters</key>
 	<string>مسح عوامل التصفية</string>
+	<key>Clear search</key>
+	<string>مسح البحث</string>
 	<key>Clear selection</key>
 	<string>إلغاء التحديد</string>
 	<key>Close invitation</key>
 	<string>إغلاق الدعوة</string>
 	<key>Closed</key>
 	<string>مغلق</string>
+	<key>Cloud backup</key>
+	<string>نسخة احتياطية سحابية</string>
 	<key>Cloud backup file limit</key>
 	<string>الحد الأقصى لحجم ملف النسخ السحابي</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>اكتمل الحذف من السحابة</string>
 	<key>Cloud storage</key>
 	<string>التخزين السحابي</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>تم تجاوز سعة التخزين السحابي أو حد حجم الملف. راجع خطتك وحجم النسخة الاحتياطية.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>قارن معرّف الجهاز على الشاشتين ووافق على الكمبيوتر.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>إكمال الاسترداد بعد فترة الانتظار</string>
 	<key>Completed</key>
 	<string>مكتمل</string>
+	<key>Completed downloads</key>
+	<string>التنزيلات المكتملة</string>
 	<key>Configure a desktop file mapping</key>
 	<string>إعداد ربط ملفات الحاسوب</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>المتحكمات والتفويضات</string>
 	<key>Conversation</key>
 	<string>محادثة</string>
+	<key>Conversation attachments</key>
+	<string>مرفقات المحادثات</string>
 	<key>Conversation limit</key>
 	<string>حد المحادثات</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>تبقى النسخ على هذا الجهاز وتنتهي صلاحيتها خلال 30 ثانية.</string>
 	<key>Copy</key>
 	<string>نسخ</string>
+	<key>Copy SHA-256</key>
+	<string>نسخ SHA-256</string>
 	<key>Copy account ID</key>
 	<string>نسخ معرّف الحساب</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>قاعدة البيانات</string>
 	<key>Date</key>
 	<string>تاريخ</string>
+	<key>Days before removal</key>
+	<string>أيام الاحتفاظ</string>
 	<key>Delegations</key>
 	<string>التفويضات</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>حذف النسخة</string>
 	<key>Delete this cloud backup?</key>
 	<string>هل تريد حذف هذه النسخة السحابية؟</string>
+	<key>Deleted</key>
+	<string>تاريخ الحذف</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>حذف حساب dMsg لا يلغي اشتراك Apple. ألغِه في إعدادات حساب Apple لإيقاف التجديد.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>يمكن تنزيل بيانات العرض المشفرة والمرفقات المخزنة مؤقتًا وقوائم الملفات السحابية مجددًا. يبقى المخزن والرسائل ومكتبة الملفات المحلية والعمل غير المتزامن محفوظًا.</string>
 	<key>Encrypting</key>
 	<string>جارٍ التشفير</string>
+	<key>Encrypting on this device…</key>
+	<string>جارٍ التشفير على هذا الجهاز…</string>
 	<key>Engine</key>
 	<string>المحرّك</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>اسم الملف</string>
 	<key>File not available on this device</key>
 	<string>الملف غير متاح على هذا الجهاز</string>
+	<key>File tools</key>
+	<string>أدوات الملفات</string>
 	<key>File transfers</key>
 	<string>نقل الملفات</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>استيراد كلمات المرور</string>
 	<key>Import photo</key>
 	<string>استيراد صورة</string>
+	<key>Import photos or videos</key>
+	<string>استيراد صور أو فيديوهات</string>
 	<key>Import secret package</key>
 	<string>استيراد حزمة أسرار</string>
 	<key>Import selected records</key>
 	<string>استيراد السجلات المختارة</string>
 	<key>Import selected secrets</key>
 	<string>استيراد الأسرار المحددة</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>تم الاستيراد إلى هذا الجهاز. النسخ الاحتياطي السحابي إجراء منفصل.</string>
 	<key>In Trash</key>
 	<string>في سلة المهملات</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · بعد المهلة</string>
 	<key>Language</key>
 	<string>اللغة</string>
+	<key>Largest first</key>
+	<string>الأكبر أولاً</string>
 	<key>Last known cloud state</key>
 	<string>آخر حالة معروفة في السحابة</string>
+	<key>Last refreshed</key>
+	<string>آخر تحديث</string>
 	<key>Last successful sync</key>
 	<string>آخر مزامنة ناجحة</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>سُحبت الرسالة</string>
 	<key>Messages</key>
 	<string>الرسائل</string>
+	<key>Modified</key>
+	<string>تاريخ التعديل</string>
 	<key>Month</key>
 	<string>شهر</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>النقل إلى هذا الجهاز</string>
 	<key>Moved</key>
 	<string>نُقل</string>
+	<key>Moved to Trash</key>
+	<string>تم النقل إلى سلة المهملات</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>ينقل مكتبة الملفات إلى جهاز آخر لهذا الحساب على الشبكة نفسها، مشفّرة من طرف إلى طرف. أبقِ الجهازين غير مقفلين حتى ينتهي.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>النقل إلى سلة المهملات لا يحرر مساحة في التخزين السحابي.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>الانتقال إلى جهاز جديد: يطلب الجهاز الجديد أن يحلّ محل جهاز قديم، فيوافق القديم، ثم يتسلّم الجديد خطوة بخطوة.</string>
+	<key>Moving…</key>
+	<string>جارٍ النقل…</string>
 	<key>Multisig wallets</key>
 	<string>محافظ متعددة التوقيعات</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>الإصدار الجديد</string>
 	<key>New secret</key>
 	<string>سر جديد</string>
+	<key>Newest first</key>
+	<string>الأحدث أولاً</string>
 	<key>Next</key>
 	<string>التالي</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>لا</string>
 	<key>No accounts</key>
 	<string>لا توجد حسابات</string>
+	<key>No active transfers</key>
+	<string>لا توجد عمليات نقل نشطة</string>
 	<key>No activity on this device</key>
 	<string>لا يوجد نشاط على هذا الجهاز</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>لا يوجد نقل في الخلفية</string>
 	<key>No blocked accounts</key>
 	<string>لا توجد حسابات محظورة</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>لا توجد نسخة احتياطية سحابية متاحة لهذا الإصدار.</string>
 	<key>No cloud backups</key>
 	<string>لا توجد نسخ سحابية</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>لا توجد مفضلات</string>
 	<key>No fields or notes</key>
 	<string>لا شيء مكتوب بعد.</string>
+	<key>No file versions</key>
+	<string>لا توجد إصدارات للملف</string>
+	<key>No files in this folder</key>
+	<string>لا توجد ملفات في هذا المجلد</string>
 	<key>No findings from this device's checks.</key>
 	<string>لم تظهر نتائج في فحوص هذا الجهاز.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>لا توجد لقطة</string>
 	<key>No snapshots on this device</key>
 	<string>لا توجد لقطات على هذا الجهاز</string>
+	<key>No transfer was started.</key>
+	<string>لم تبدأ أي عملية نقل.</string>
 	<key>Not delivered</key>
 	<string>لم تُسلَّم</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>فتح dMsg. يظل فتح القفل والموافقات بحاجة إلى تفاعلك داخل التطبيق.</string>
 	<key>Open invitation in browser</key>
 	<string>فتح الدعوة في المتصفح</string>
+	<key>Open local file</key>
+	<string>فتح الملف المحلي</string>
 	<key>Open notification settings</key>
 	<string>فتح إعدادات الإشعارات</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>فتح الملف العام</string>
 	<key>Open secret</key>
 	<string>فتح السر</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>افتح الحساب الأصلي للتحقق من هذا التنزيل وإتمامه.</string>
 	<key>Open workspace</key>
 	<string>فتح مساحة العمل</string>
 	<key>Optional password</key>
 	<string>كلمة مرور اختيارية</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>اختياري. فقط إذا لم يُعثر على الجهاز الآخر تلقائيًا، مثل 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>المجلد الأصلي</string>
 	<key>Original revision</key>
 	<string>الإصدار الأصلي</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>الأذونات</string>
 	<key>Phone</key>
 	<string>الهاتف</string>
+	<key>Photos and videos</key>
+	<string>الصور والفيديوهات</string>
 	<key>Phrase</key>
 	<string>العبارة السرية</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>إعداد اللقطة المحددة</string>
 	<key>Prepared on this device</key>
 	<string>تم الإعداد على هذا الجهاز</string>
+	<key>Preparing and copying file…</key>
+	<string>جارٍ تجهيز الملف ونسخه…</string>
+	<key>Preparing backups…</key>
+	<string>جارٍ تجهيز النسخ الاحتياطية…</string>
 	<key>Preview</key>
 	<string>معاينة</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>تُنزّل المعاينة الحزمة وتتحقق منها على هذا الجهاز وتستخدم جلسة تنزيل. اختر جهاز الاستلام قبل المتابعة.</string>
 	<key>Preview file</key>
 	<string>معاينة الملف</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>المعاينة غير متاحة لهذا النوع من الملفات. شارك نسخة لفتحها في تطبيق آخر.</string>
 	<key>Preview package</key>
 	<string>معاينة الحزمة</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>فترة انتظار الاسترداد</string>
 	<key>Refresh</key>
 	<string>تحديث</string>
+	<key>Refresh backup list</key>
+	<string>تحديث قائمة النسخ الاحتياطية</string>
 	<key>Refresh balances</key>
 	<string>تحديث الأرصدة</string>
 	<key>Refresh dependencies</key>
 	<string>تحديث الاعتماديات</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>حدّث المعاينة قبل المتابعة.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>حدّث للاطلاع على النسخ الاحتياطية السحابية</string>
+	<key>Refreshing backups…</key>
+	<string>جارٍ تحديث النسخ الاحتياطية…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>تحديث القائمة لا ينسخ الملفات المحلية احتياطياً. اختر النسخ الاحتياطي إلى السحابة للملفات التي تريد حمايتها.</string>
 	<key>Register a hardware approval key</key>
 	<string>تسجيل مفتاح موافقة عتادية</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>إعادة تحميل الملف المحفوظ</string>
 	<key>Remaining</key>
 	<string>متبقية</string>
+	<key>Removal date</key>
+	<string>تاريخ الإزالة</string>
 	<key>Remove</key>
 	<string>إزالة</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>إزالة النجمة</string>
 	<key>Remove field</key>
 	<string>إزالة الحقل</string>
+	<key>Remove local copy</key>
+	<string>إزالة النسخة المحلية</string>
+	<key>Remove local copy?</key>
+	<string>إزالة النسخة المحلية؟</string>
 	<key>Remove local data</key>
 	<string>إزالة البيانات المحلية</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>هل تريد إزالة هذا الوكيل المحلي؟</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>إزالة المرجع لا تحذف الملف. تُحفظ المراجع الموجودة حتى عندما تكون ملفاتها غير موجودة على هذا الجهاز.</string>
+	<key>Rename</key>
+	<string>إعادة تسمية</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>أصلح مرجع الحقل غير المتاح على الجهاز الأصلي.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>هل تريد استعادة هذا الإصدار كإصدار حالي جديد؟</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>استعد هذا الإصدار من النسخ السحابية قبل فتحه.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>استعد هذا الإصدار إلى الجهاز قبل نسخه احتياطياً.</string>
 	<key>Restore to this device</key>
 	<string>الاستعادة على هذا الجهاز</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>تُنزّل الاستعادة الإصدار المحدد وتتحقق منه قبل السماح بفتحه.</string>
 	<key>Restoring…</key>
 	<string>جارٍ الاسترداد…</string>
 	<key>Result</key>
 	<string>النتيجة</string>
 	<key>Result unconfirmed</key>
 	<string>النتيجة غير مؤكدة</string>
+	<key>Results</key>
+	<string>النتائج</string>
 	<key>Resume</key>
 	<string>استئناف</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
 	<key>Saving draft…</key>
 	<string>جارٍ حفظ المسودة…</string>
+	<key>Saving…</key>
+	<string>جارٍ الحفظ…</string>
 	<key>Scan QR code</key>
 	<string>المسح بالكاميرا</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>قد تحتوي لقطات الشاشة على معلومات خاصة.</string>
 	<key>Search</key>
 	<string>بحث</string>
+	<key>Search cloud backups</key>
+	<string>البحث في النسخ الاحتياطية السحابية</string>
 	<key>Search files</key>
 	<string>البحث في الملفات</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>اختر الحقول للاستيراد</string>
 	<key>Select fields to share</key>
 	<string>اختر الحقول للمشاركة</string>
+	<key>Select files</key>
+	<string>اختيار الملفات</string>
 	<key>Select login items</key>
 	<string>اختيار بيانات الدخول</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>تتضمن حقول OTP المحددة المفتاح السري القابل لإعادة الاستخدام، وليس الرمز الحالي فقط.</string>
 	<key>Selected accounts</key>
 	<string>الحسابات المختارة</string>
+	<key>Selected files</key>
+	<string>الملفات المحددة</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>تستخدم الأجزاء المحددة الإصدار المتعارض. وتحتفظ الأجزاء الأخرى بالإصدار الحالي.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>بعض المحافظ لم تكتمل بعد. نفّذ الخطوة مرة أخرى لإنهائها.</string>
 	<key>Sort</key>
 	<string>ترتيب</string>
+	<key>Sort by</key>
+	<string>ترتيب حسب</string>
 	<key>Source address</key>
 	<string>عنوان المصدر</string>
 	<key>Source address %u</key>
 	<string>عنوان المصدر %u</string>
+	<key>Source device</key>
+	<string>الجهاز المصدر</string>
 	<key>Spam</key>
 	<string>رسائل مزعجة</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>بيانات الدخول المصدّرة غير متاحة أو منتهية. افتح dMsg لإنشاء لقطة جديدة.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>نسخ الملفات غير متاحة أو منتهية. أنشئ لقطة جديدة في dMsg ثم أعد المحاولة.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>تعذر التحقق من الملف. أعد تنزيله؛ لا يمكن فتح نسخة غير مكتملة.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>تبقى مكتبة الملفات على الجهاز القديم وحده. وما لم يُزامَن أو يُنسخ احتياطيًا هناك يضيع بعد إلغائه.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>لم يعد الملف أو المجلد متاحاً. حدّث القائمة.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>انتهى تفويض النقل. ألغِ المهمة ثم تابع النسخة الأصلية في الواجهة أو ابدأ تنزيلًا جديدًا.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>توقف النقل مؤقتًا. أعد محاولة الكتل المشفّرة الأصلية.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>تبقى النسخة السحابية التي تم التحقق منها وسجل الملف محفوظين. أعد تنزيل هذا الإصدار لفتحه على الجهاز.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>تتحقق المحفظة من سياستها وموافقاتها الحالية. ويُطلب التوقيع العتادي اللازم لهذه الخطة المحددة.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>على هذا الجهاز تغييرات لم تُزامَن. احفظ ما تحتاجه قبل حذف الحساب.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>لا يملك هذا الجهاز مفتاح توقيع مشترك لهذا الاقتراح.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>لا توجد نسخة محلية على هذا الجهاز. قد يؤدي حذف هذه النسخة الاحتياطية إلى فقدان نسختك الوحيدة القابلة للاستعادة.</string>
 	<key>This device is authorized</key>
 	<string>هذا الجهاز مخوّل</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>سيظل هذا الحقل ظاهرًا حتى تخفيه أو تغادر هذه الشاشة.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>يتجاوز هذا الملف الحد الأقصى للحجم المسموح به لهذه العملية.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>يتجاوز هذا الملف الحد الحالي لحجم ملف النسخ الاحتياطي السحابي.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>هذا الملف في سلة المهملات. استعده قبل فتحه.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>هذا السجل خاص بهذا الجهاز. ولا يعكس موافقات CLI أو SSH أو تركيب الملفات المحلية على حاسوب آخر.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>تحتاج هذه اللقطة إلى انتباهك. تحقّق من حالتها قبل المتابعة.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>يتتبع هذا عملك على هذا الجهاز. ولا ينشئ بيانات اعتماد لدى مزودها أو يختبرها أو يبطلها.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>توجد عملية نقل جارية لهذا الإصدار بالفعل.</string>
+	<key>This version is already backed up.</key>
+	<string>تم نسخ هذا الإصدار احتياطياً بالفعل.</string>
 	<key>This wallet's key</key>
 	<string>مفتاح هذه المحفظة</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>الإجمالي</string>
 	<key>Transfer between devices</key>
 	<string>النقل بين الأجهزة</string>
+	<key>Transfer needs attention</key>
+	<string>عملية النقل تحتاج إلى انتباهك</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>انقل ملكية محادثاتك أو أرشفها أولًا</string>
+	<key>Transfer paused</key>
+	<string>النقل متوقف مؤقتاً</string>
 	<key>Transfer proposal</key>
 	<string>اقتراح تحويل</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>أُضيف النقل إلى قائمة الانتظار. تابع تقدمه في الملفات.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>تعذر تحديث حالة النقل. تبقى المهام المحفوظة.</string>
 	<key>Transferred</key>
 	<string>المنقول</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>الرابط</string>
 	<key>Usage</key>
 	<string>الاستخدام</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>استخدم اسماً من 1 إلى 255 حرفاً دون شرطات مائلة أو أحرف تحكم.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>استخدم كلمة مرور من اللقطة التي صدّرتها صراحةً في dMsg.</string>
 	<key>Use a secret through a device policy</key>

@@ -16,6 +16,8 @@
 	<string>একটি চ্যানেল স্ন্যাপশট এই যুগে অ্যাক্সেস সহ সদস্যদের জন্য উপলব্ধ, পরবর্তী ইতিহাস অ্যাক্সেস অনুমতি সহ। এটির কোন লিংক এক্সপায়ারি, ডাউনলোড-সেশন লিমিট বা রিকল নেই।</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>একটি ডাউনলোড সেশন হল একটি পুনরুদ্ধার ভাতা, ফাইল পড়ার সংখ্যা নয়। মেয়াদ বা প্রত্যাহার ইতিমধ্যে সংরক্ষিত কপি মুছে ফেলতে পারে না।</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>এই নামে একটি ফাইল বা ফোল্ডার ইতিমধ্যেই আছে।</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>নেটিভ ঠিকানার L1 একটিমাত্র ডিভাইসের কীর সঙ্গে বাঁধা, তাই এই ডিভাইস নিজের ঠিকানা পায় এবং কয়েন সেখানে সরে যায়। প্রতিটি ধাপ সদস্যদের অনুমোদনসাপেক্ষ একটি প্রস্তাব।</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>পরিচিতি</string>
 	<key>About dMsg</key>
 	<string>dMsg সম্পর্কে</string>
+	<key>About files and backups</key>
+	<string>ফাইল ও ব্যাকআপ সম্পর্কে</string>
 	<key>Accept approved binding</key>
 	<string>অনুমোদিত বাঁধাই গ্রহণ করুন</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>অ্যাকাউন্ট, ডিভাইস এবং পরিচয়</string>
 	<key>Accounts</key>
 	<string>অ্যাকাউন্ট</string>
+	<key>Actions</key>
+	<string>কাজ</string>
 	<key>Active</key>
 	<string>সক্রিয়</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>ব্যাক আপ</string>
 	<key>Background ciphertext transfer</key>
 	<string>পটভূমি সাইফারটেক্সট স্থানান্তর</string>
+	<key>Background download</key>
+	<string>পটভূমিতে ডাউনলোড</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>ব্যাকগ্রাউন্ড সাইনিং এবং রেসিডেন্ট এজেন্টের ক্ষমতা এই ওয়ার্কস্পেস লক থেকে আলাদা।</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>ব্যাক আপ করা হচ্ছে...</string>
 	<key>Backup failed</key>
 	<string>ব্যাকআপ ব্যর্থ</string>
+	<key>Backup list could not be refreshed</key>
+	<string>ব্যাকআপ তালিকা রিফ্রেশ করা যায়নি</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>ব্যাকআপ অগ্রগতি সংরক্ষণ করা হয়েছে৷ সমাপ্তির জন্য ফাইলের স্থিতি পরীক্ষা করুন।</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>পুনরুদ্ধারের স্থিতি পরীক্ষা করুন</string>
 	<key>Check request</key>
 	<string>অনুরোধ যাচাই</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>নাম ও গন্তব্য ফোল্ডার পরীক্ষা করে আবার চেষ্টা করুন।</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>অ্যাক্সেস এখনও প্রয়োজন কিনা তা সিদ্ধান্ত নেওয়ার আগে এই ডিভাইসের কার্যকলাপ পরীক্ষা করুন৷</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>চেকলিস্ট সম্পন্ন হয়েছে</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>আপনার বিবৃতি থেকে চেকলিস্ট সম্পন্ন. আপস্ট্রিম অবস্থা শুধুমাত্র প্রদানকারীর সাথে স্বাধীনভাবে যাচাইযোগ্য থাকে।</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>প্রথম ব্যাকআপ তৈরি করতে স্থানীয় ফাইলে ক্লাউডে ব্যাকআপ নির্বাচন করুন।</string>
 	<key>Choose a credential for:</key>
 	<string>এর জন্য একটি শংসাপত্র চয়ন করুন:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>অবতার বেছে নিন</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>এই স্বাধীন স্ন্যাপশটে ঠিক কী আছে তা বেছে নিন। উৎস সম্পাদনা ইতিমধ্যে পাঠানো কপি পরিবর্তন করবে না.</string>
+	<key>Choose folder</key>
+	<string>ফোল্ডার বেছে নিন</string>
 	<key>Choose password export</key>
 	<string>পাসওয়ার্ড এক্সপোর্ট নির্বাচন করুন</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>ক্যাশ মুছুন</string>
 	<key>Clear filters</key>
 	<string>ফিল্টার মুছুন</string>
+	<key>Clear search</key>
+	<string>অনুসন্ধান মুছুন</string>
 	<key>Clear selection</key>
 	<string>নির্বাচন সরান</string>
 	<key>Close invitation</key>
 	<string>আমন্ত্রণ বন্ধ করুন</string>
 	<key>Closed</key>
 	<string>বন্ধ</string>
+	<key>Cloud backup</key>
+	<string>ক্লাউড ব্যাকআপ</string>
 	<key>Cloud backup file limit</key>
 	<string>ক্লাউড ব্যাকআপে প্রতি ফাইলের সীমা</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>ক্লাউড মোছা সম্পূর্ণ হয়েছে৷</string>
 	<key>Cloud storage</key>
 	<string>ক্লাউড স্টোরেজ</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>ক্লাউড স্টোরেজ বা ফাইলের আকারের সীমা ছাড়িয়ে গেছে। আপনার প্ল্যান ও ব্যাকআপের আকার দেখুন।</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>দুই পর্দায় ডিভাইসের ID মিলিয়ে কম্পিউটারে অনুমোদন দিন।</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>অপেক্ষার সময় পরে সম্পূর্ণ পুনরুদ্ধার</string>
 	<key>Completed</key>
 	<string>সম্পন্ন</string>
+	<key>Completed downloads</key>
+	<string>সম্পন্ন ডাউনলোড</string>
 	<key>Configure a desktop file mapping</key>
 	<string>একটি ডেস্কটপ ফাইল ম্যাপিং কনফিগার করুন</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers এবং প্রতিনিধি দল</string>
 	<key>Conversation</key>
 	<string>কথোপকথন</string>
+	<key>Conversation attachments</key>
+	<string>কথোপকথনের সংযুক্তি</string>
 	<key>Conversation limit</key>
 	<string>কথোপকথনের সীমা</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>কপিগুলো এই ডিভাইসেই থাকে এবং ৩০ সেকেন্ডের মধ্যে মেয়াদ শেষ হয়।</string>
 	<key>Copy</key>
 	<string>কপি করুন</string>
+	<key>Copy SHA-256</key>
+	<string>SHA-256 কপি করুন</string>
 	<key>Copy account ID</key>
 	<string>অ্যাকাউন্ট ID কপি করুন</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>ডাটাবেস</string>
 	<key>Date</key>
 	<string>তারিখ</string>
+	<key>Days before removal</key>
+	<string>রাখার সময় (দিন)</string>
 	<key>Delegations</key>
 	<string>প্রতিনিধি দল</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>কপি মুছুন</string>
 	<key>Delete this cloud backup?</key>
 	<string>এই ক্লাউড ব্যাকআপ মুছবেন?</string>
+	<key>Deleted</key>
+	<string>মুছে ফেলার তারিখ</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>আপনার dMsg অ্যাকাউন্ট মুছে ফেলা একটি Apple সদস্যতা বাতিল করে না। পুনর্নবীকরণ বন্ধ করতে আপনার Apple অ্যাকাউন্ট সেটিংসে এটি বাতিল করুন।</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>এনক্রিপ্ট করা প্রদর্শন ডেটা, ক্যাশ করা সংযুক্তি এবং ক্লাউড ফাইলের তালিকা আবার ডাউনলোড করা যাবে। ভল্ট, বার্তা, স্থানীয় ফাইল লাইব্রেরি এবং সিঙ্ক না হওয়া কাজ অক্ষত থাকবে।</string>
 	<key>Encrypting</key>
 	<string>এনক্রিপ্ট করা হচ্ছে</string>
+	<key>Encrypting on this device…</key>
+	<string>এই ডিভাইসে এনক্রিপ্ট করা হচ্ছে…</string>
 	<key>Engine</key>
 	<string>ইঞ্জিন</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>ফাইলের নাম</string>
 	<key>File not available on this device</key>
 	<string>এই ডিভাইসে ফাইল উপলব্ধ নেই৷</string>
+	<key>File tools</key>
+	<string>ফাইলের সরঞ্জাম</string>
 	<key>File transfers</key>
 	<string>ফাইল স্থানান্তর</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>পাসওয়ার্ড আমদানি করুন</string>
 	<key>Import photo</key>
 	<string>ছবি আমদানি করুন</string>
+	<key>Import photos or videos</key>
+	<string>ছবি বা ভিডিও আমদানি করুন</string>
 	<key>Import secret package</key>
 	<string>গোপন প্যাকেজ আমদানি করুন</string>
 	<key>Import selected records</key>
 	<string>নির্বাচিত রেকর্ড আমদানি করুন</string>
 	<key>Import selected secrets</key>
 	<string>নির্বাচিত গোপনীয়তা আমদানি করুন</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>এই ডিভাইসে আমদানি হয়েছে। ক্লাউড ব্যাকআপ আলাদাভাবে করতে হবে।</string>
 	<key>In Trash</key>
 	<string>ট্র্যাশে</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · অপেক্ষার পরে</string>
 	<key>Language</key>
 	<string>ভাষা</string>
+	<key>Largest first</key>
+	<string>বড়গুলো আগে</string>
 	<key>Last known cloud state</key>
 	<string>সর্বশেষ পরিচিত মেঘ রাষ্ট্র</string>
+	<key>Last refreshed</key>
+	<string>সর্বশেষ রিফ্রেশ</string>
 	<key>Last successful sync</key>
 	<string>শেষ সফল সিঙ্ক</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>বার্তা প্রত্যাহার করা হয়েছে</string>
 	<key>Messages</key>
 	<string>বার্তা</string>
+	<key>Modified</key>
+	<string>পরিবর্তনের তারিখ</string>
 	<key>Month</key>
 	<string>মাস</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>এই ডিভাইসে সরান</string>
 	<key>Moved</key>
 	<string>সরানো হয়েছে</string>
+	<key>Moved to Trash</key>
+	<string>ট্র্যাশে সরানো হয়েছে</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>ফাইল লাইব্রেরি একই নেটওয়ার্কে এই অ্যাকাউন্টের অন্য ডিভাইসে এন্ড-টু-এন্ড এনক্রিপশনে সরায়। শেষ না হওয়া পর্যন্ত দুটো ডিভাইসই আনলক রাখুন।</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>ট্র্যাশে সরালে ক্লাউড স্টোরেজ খালি হয় না।</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>নতুন ডিভাইসে যাওয়া: নতুন ডিভাইস পুরনোটির জায়গা নেওয়ার অনুরোধ করে, পুরনোটি অনুমোদন দেয়, তারপর দুটো ধাপে ধাপে হস্তান্তর করে।</string>
+	<key>Moving…</key>
+	<string>সরানো হচ্ছে…</string>
 	<key>Multisig wallets</key>
 	<string>মাল্টিসিগ ওয়ালেট</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>নতুন রিভিশন</string>
 	<key>New secret</key>
 	<string>নতুন রহস্য</string>
+	<key>Newest first</key>
+	<string>নতুনগুলো আগে</string>
 	<key>Next</key>
 	<string>পরবর্তী</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>না</string>
 	<key>No accounts</key>
 	<string>কোনো অ্যাকাউন্ট নেই</string>
+	<key>No active transfers</key>
+	<string>কোনো সক্রিয় স্থানান্তর নেই</string>
 	<key>No activity on this device</key>
 	<string>এই ডিভাইসে কোনো কার্যকলাপ নেই</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>কোনো ব্যাকগ্রাউন্ড ট্রান্সফার নেই</string>
 	<key>No blocked accounts</key>
 	<string>কোনো ব্লক করা অ্যাকাউন্ট নেই</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>এই সংস্করণের কোনো ক্লাউড ব্যাকআপ উপলব্ধ নেই।</string>
 	<key>No cloud backups</key>
 	<string>কোনো ক্লাউড ব্যাকআপ নেই</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>কোনো পছন্দের আইটেম নেই</string>
 	<key>No fields or notes</key>
 	<string>এখনো কিছু লেখা হয়নি।</string>
+	<key>No file versions</key>
+	<string>ফাইলের কোনো সংস্করণ নেই</string>
+	<key>No files in this folder</key>
+	<string>এই ফোল্ডারে কোনো ফাইল নেই</string>
 	<key>No findings from this device's checks.</key>
 	<string>এই ডিভাইসের চেক থেকে কোন অনুসন্ধান.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>কোনো স্ন্যাপশট নেই</string>
 	<key>No snapshots on this device</key>
 	<string>এই ডিভাইসে কোনো স্ন্যাপশট নেই</string>
+	<key>No transfer was started.</key>
+	<string>কোনো স্থানান্তর শুরু হয়নি।</string>
 	<key>Not delivered</key>
 	<string>বিতরণ করা হয়নি</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>dMsg খুলুন। আনলক এবং অনুমোদনের জন্য এখনও অ্যাপে আপনার মিথস্ক্রিয়া প্রয়োজন।</string>
 	<key>Open invitation in browser</key>
 	<string>ব্রাউজারে আমন্ত্রণ খুলুন</string>
+	<key>Open local file</key>
+	<string>স্থানীয় ফাইল খুলুন</string>
 	<key>Open notification settings</key>
 	<string>বিজ্ঞপ্তি সেটিংস খুলুন</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>সর্বজনীন প্রোফাইল খুলুন</string>
 	<key>Open secret</key>
 	<string>ওপেন সিক্রেট</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>এই ডাউনলোড যাচাই ও সম্পন্ন করতে মূল অ্যাকাউন্ট খুলুন।</string>
 	<key>Open workspace</key>
 	<string>কর্মক্ষেত্র খুলুন</string>
 	<key>Optional password</key>
 	<string>ঐচ্ছিক পাসওয়ার্ড</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>ঐচ্ছিক। শুধু অন্য ডিভাইস স্বয়ংক্রিয়ভাবে না পাওয়া গেলে, যেমন 192.168.1.20:52000।</string>
+	<key>Original folder</key>
+	<string>মূল ফোল্ডার</string>
 	<key>Original revision</key>
 	<string>মূল সংশোধন</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>অনুমতি</string>
 	<key>Phone</key>
 	<string>ফোন</string>
+	<key>Photos and videos</key>
+	<string>ছবি ও ভিডিও</string>
 	<key>Phrase</key>
 	<string>বাক্যাংশ</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>নির্বাচিত স্ন্যাপশট প্রস্তুত করুন</string>
 	<key>Prepared on this device</key>
 	<string>এই ডিভাইসে প্রস্তুত</string>
+	<key>Preparing and copying file…</key>
+	<string>ফাইল প্রস্তুত ও কপি করা হচ্ছে…</string>
+	<key>Preparing backups…</key>
+	<string>ব্যাকআপ প্রস্তুত করা হচ্ছে…</string>
 	<key>Preview</key>
 	<string>পূর্বরূপ</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>ডাউনলোডের পূর্বরূপ দেখুন এবং এই ডিভাইসে প্যাকেজ যাচাই করে এবং একটি ডাউনলোড সেশন ব্যবহার করে। চালিয়ে যাওয়ার আগে রিসিভিং ডিভাইসটি বেছে নিন।</string>
 	<key>Preview file</key>
 	<string>পূর্বরূপ ফাইল</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>এই ধরনের ফাইলের পূর্বরূপ নেই। অন্য অ্যাপে খুলতে একটি কপি শেয়ার করুন।</string>
 	<key>Preview package</key>
 	<string>পূর্বরূপ প্যাকেজ</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>পুনরুদ্ধারের অপেক্ষার সময়কাল</string>
 	<key>Refresh</key>
 	<string>রিফ্রেশ করুন</string>
+	<key>Refresh backup list</key>
+	<string>ব্যাকআপ তালিকা রিফ্রেশ করুন</string>
 	<key>Refresh balances</key>
 	<string>ব্যালেন্স রিফ্রেশ করুন</string>
 	<key>Refresh dependencies</key>
 	<string>নির্ভরতা রিফ্রেশ করুন</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>এগোনোর আগে পূর্বরূপ রিফ্রেশ করুন।</string>
+	<key>Refresh to check cloud backups</key>
+	<string>ক্লাউড ব্যাকআপ দেখতে রিফ্রেশ করুন</string>
+	<key>Refreshing backups…</key>
+	<string>ব্যাকআপ রিফ্রেশ করা হচ্ছে…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>তালিকা রিফ্রেশ করলে স্থানীয় ফাইলের ব্যাকআপ হয় না। সুরক্ষিত রাখতে চান এমন ফাইলে ক্লাউডে ব্যাকআপ নির্বাচন করুন।</string>
 	<key>Register a hardware approval key</key>
 	<string>একটি হার্ডওয়্যার অনুমোদন কী নিবন্ধন করুন</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>সংরক্ষিত প্রোফাইল আবার লোড করুন</string>
 	<key>Remaining</key>
 	<string>বাকি</string>
+	<key>Removal date</key>
+	<string>স্থায়ীভাবে সরানোর তারিখ</string>
 	<key>Remove</key>
 	<string>সরান</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>তারা বাদ দিন</string>
 	<key>Remove field</key>
 	<string>ক্ষেত্র সরান</string>
+	<key>Remove local copy</key>
+	<string>স্থানীয় কপি সরান</string>
+	<key>Remove local copy?</key>
+	<string>স্থানীয় কপি সরাবেন?</string>
 	<key>Remove local data</key>
 	<string>স্থানীয় তথ্য সরান</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>এই স্থানীয় এজেন্টকে সরাবেন?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>একটি রেফারেন্স মুছে ফেলা ফাইল মুছে ফেলা হয় না. এই ডিভাইসে তাদের ফাইলগুলি অনুপস্থিত থাকা সত্ত্বেও বিদ্যমান রেফারেন্সগুলি রাখা হয়৷</string>
+	<key>Rename</key>
+	<string>নাম পরিবর্তন করুন</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>এর উদ্ভব ডিভাইসে অনুপলব্ধ ক্ষেত্রের রেফারেন্স মেরামত করুন।</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>এই সংস্করণটিকে একটি নতুন বর্তমান সংস্করণ হিসাবে পুনরুদ্ধার করবেন?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>এটি খোলার আগে ক্লাউড ব্যাকআপ থেকে এই সংস্করণটি পুনরুদ্ধার করুন।</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>ব্যাকআপের আগে এই সংস্করণটি ডিভাইসে পুনরুদ্ধার করুন।</string>
 	<key>Restore to this device</key>
 	<string>এই ডিভাইসে পুনরুদ্ধার করুন</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>পুনরুদ্ধারের সময় নির্বাচিত সংস্করণ ডাউনলোড ও যাচাই হয়, তারপর সেটি খোলা যায়।</string>
 	<key>Restoring…</key>
 	<string>পুনরুদ্ধার করা হচ্ছে...</string>
 	<key>Result</key>
 	<string>ফলাফল</string>
 	<key>Result unconfirmed</key>
 	<string>ফলাফল অনিশ্চিত</string>
+	<key>Results</key>
+	<string>ফলাফল</string>
 	<key>Resume</key>
 	<string>আবার শুরু করুন</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>সংরক্ষিত প্রকাশনা বাকি আছে।</string>
 	<key>Saving draft…</key>
 	<string>খসড়া সংরক্ষণ হচ্ছে…</string>
+	<key>Saving…</key>
+	<string>সংরক্ষণ করা হচ্ছে…</string>
 	<key>Scan QR code</key>
 	<string>ক্যামেরা দিয়ে স্ক্যান করুন</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>স্ক্রিনশট ব্যক্তিগত তথ্য থাকতে পারে.</string>
 	<key>Search</key>
 	<string>খুঁজুন</string>
+	<key>Search cloud backups</key>
+	<string>ক্লাউড ব্যাকআপ খুঁজুন</string>
 	<key>Search files</key>
 	<string>ফাইল অনুসন্ধান করুন</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>আমদানি করতে ক্ষেত্র নির্বাচন করুন</string>
 	<key>Select fields to share</key>
 	<string>ভাগ করার জন্য ক্ষেত্র নির্বাচন করুন</string>
+	<key>Select files</key>
+	<string>ফাইল বেছে নিন</string>
 	<key>Select login items</key>
 	<string>লগইন আইটেম নির্বাচন করুন</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>নির্বাচিত OTP ক্ষেত্রগুলিতে পুনঃব্যবহারযোগ্য বীজ অন্তর্ভুক্ত, শুধুমাত্র একটি বর্তমান কোড নয়।</string>
 	<key>Selected accounts</key>
 	<string>নির্বাচিত অ্যাকাউন্ট</string>
+	<key>Selected files</key>
+	<string>নির্বাচিত ফাইল</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>বাছাই করা অংশগুলো বিরোধপূর্ণ সংস্করণ ব্যবহার করবে। বাকি অংশে বর্তমান সংস্করণ থাকবে।</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>কিছু ওয়ালেট এখনো শেষ হয়নি। শেষ করতে ধাপটি আবার চালান।</string>
 	<key>Sort</key>
 	<string>সাজান</string>
+	<key>Sort by</key>
+	<string>সাজানোর ক্রম</string>
 	<key>Source address</key>
 	<string>উৎস ঠিকানা</string>
 	<key>Source address %u</key>
 	<string>উৎস ঠিকানা %u</string>
+	<key>Source device</key>
+	<string>উৎস ডিভাইস</string>
 	<key>Spam</key>
 	<string>স্প্যাম</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>রপ্তানিকৃত শংসাপত্রগুলি অনুপলব্ধ বা মেয়াদোত্তীর্ণ৷ একটি নতুন স্ন্যাপশট তৈরি করতে dMsg খুলুন৷</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>ফাইলের অনুলিপিগুলি অনুপলব্ধ বা মেয়াদোত্তীর্ণ। একটি নতুন স্ন্যাপশট তৈরি করতে dMsg খুলুন, তারপর আবার চেষ্টা করুন৷</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>ফাইল যাচাই করা যায়নি। আবার ডাউনলোড করুন; অসম্পূর্ণ কপি খোলা যায় না।</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>ফাইল লাইব্রেরি শুধু পুরনো ডিভাইসে থাকবে। সেখানে যা কখনো সিঙ্ক বা ব্যাকআপ হয়নি, ডিভাইস বাতিল হলে তা হারিয়ে যাবে।</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>ফাইল বা ফোল্ডার আর উপলব্ধ নেই। তালিকা রিফ্রেশ করুন।</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>ইনবক্সের কী এখনও এই ডিভাইসে সিঙ্ক হয়নি। যে ডিভাইসে বার্তা গ্রহণ চালু করেছিলেন সেটি সিঙ্ক করুন, তারপর এখানে আবার চেষ্টা করুন।</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>স্থানান্তর অনুমোদনের মেয়াদ শেষ হয়েছে। এই টাস্কটি বাতিল করুন, তারপরে ফোরগ্রাউন্ডে আসল ব্যাকআপ চালিয়ে যান বা একটি নতুন ডাউনলোড শুরু করুন।</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>স্থানান্তর বিরাম দেওয়া হয়েছে৷ মূল এনক্রিপ্ট করা ব্লক পুনরায় চেষ্টা করুন.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>যাচাইকৃত ক্লাউড ব্যাকআপ ও ফাইলের রেকর্ড থাকবে। এই ডিভাইসে খুলতে সংস্করণটি আবার ডাউনলোড করুন।</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>ওয়ালেট তার বর্তমান নীতি এবং অনুমোদন পরীক্ষা করে। এই সঠিক পরিকল্পনার জন্য একটি প্রয়োজনীয় হার্ডওয়্যার স্বাক্ষর অনুরোধ করা হয়েছে।</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>এই ডিভাইসটিতে এমন পরিবর্তন রয়েছে যা সিঙ্ক হয়নি৷ অ্যাকাউন্ট মুছে ফেলার আগে আপনার প্রয়োজনীয় কিছু সংরক্ষণ করুন।</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>এই প্রস্তাবের জন্য এই ডিভাইসে কোনো সহ-স্বাক্ষর কী নেই।</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>এই ডিভাইসে স্থানীয় কপি নেই। এই ব্যাকআপ মুছলে আপনার একমাত্র পুনরুদ্ধারযোগ্য কপি হারিয়ে যেতে পারে।</string>
 	<key>This device is authorized</key>
 	<string>এই ডিভাইসটি অনুমোদিত</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>আপনি লুকিয়ে না ফেলা বা এই স্ক্রিন ছেড়ে না যাওয়া পর্যন্ত ফিল্ডটি দেখা যাবে।</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>এই ফাইলটি এই কাজের জন্য অনুমোদিত আকারের সীমা অতিক্রম করেছে।</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>এই ফাইল বর্তমান ক্লাউড ব্যাকআপের ফাইল আকারের সীমা ছাড়িয়ে গেছে।</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>এই ফাইল ট্র্যাশে আছে। খোলার আগে পুনরুদ্ধার করুন।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>এই ইতিহাস এই ডিভাইসের অন্তর্গত. এটি ডেস্কটপ-স্থানীয় CLI, SSH বা অন্য ডিভাইস থেকে ফাইল-মাউন্ট অনুমোদন মিরর করে না।</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>এই স্ন্যাপশট মনোযোগ প্রয়োজন. চালিয়ে যাওয়ার আগে এর স্থিতি পরীক্ষা করুন।</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>এটি এই ডিভাইসে আপনার কাজ ট্র্যাক করে। এটি তাদের প্রদানকারীতে শংসাপত্র তৈরি, পরীক্ষা বা প্রত্যাহার করে না।</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>এই সংস্করণের স্থানান্তর ইতিমধ্যেই চলছে।</string>
+	<key>This version is already backed up.</key>
+	<string>এই সংস্করণের ব্যাকআপ ইতিমধ্যেই আছে।</string>
 	<key>This wallet's key</key>
 	<string>এই ওয়ালেটের কী</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>মোট</string>
 	<key>Transfer between devices</key>
 	<string>ডিভাইসের মধ্যে স্থানান্তর</string>
+	<key>Transfer needs attention</key>
+	<string>স্থানান্তরে মনোযোগ প্রয়োজন</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>প্রথমে মালিকানাধীন কথোপকথন স্থানান্তর বা সংরক্ষণাগার করুন</string>
+	<key>Transfer paused</key>
+	<string>স্থানান্তর স্থগিত</string>
 	<key>Transfer proposal</key>
 	<string>স্থানান্তরের প্রস্তাব</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>স্থানান্তর সারিতে যোগ হয়েছে। ফাইলে অগ্রগতি দেখুন।</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>স্থানান্তরের অবস্থা রিফ্রেশ করা যায়নি। সংরক্ষিত কাজগুলো থাকবে।</string>
 	<key>Transferred</key>
 	<string>স্থানান্তরিত</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>ইউআরএল</string>
 	<key>Usage</key>
 	<string>ব্যবহার</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>স্ল্যাশ বা নিয়ন্ত্রণ অক্ষর ছাড়া ১–২৫৫ অক্ষরের নাম ব্যবহার করুন।</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>আপনি স্পষ্টভাবে dMsg-এ রপ্তানি করা স্ন্যাপশট থেকে একটি পাসওয়ার্ড ব্যবহার করুন৷</string>
 	<key>Use a secret through a device policy</key>

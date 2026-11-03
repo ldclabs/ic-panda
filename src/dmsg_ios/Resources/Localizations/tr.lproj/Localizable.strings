@@ -16,6 +16,8 @@
 	<string>Daha sonraki geçmiş izinleri de dahil olmak üzere, bu döneme erişimi olan üyelere bir kanal anlık görüntüsü sunulur. Bağlantının sona ermesi, indirme oturumu sınırı veya geri çağırma yoktur.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Bir indirme oturumu, dosya okumalarının sayısı değil, bir alma iznidir. Sürenin sona ermesi veya iptal edilmesi, önceden kaydedilmiş kopyaları silemez.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>Bu ada sahip bir dosya veya klasör zaten var.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>Yerel bir adresin L1’i tek bir cihazın anahtarına bağlıdır; bu yüzden bu cihaz kendi adresini alır ve coinler oraya taşınır. Her adım üyelerin onayladığı bir tekliftir.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>Hakkında</string>
 	<key>About dMsg</key>
 	<string>dMsg Hakkında</string>
+	<key>About files and backups</key>
+	<string>Dosyalar ve yedekler hakkında</string>
 	<key>Accept approved binding</key>
 	<string>Onaylanmış bağlamayı kabul et</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Hesap, cihazlar ve kimlikler</string>
 	<key>Accounts</key>
 	<string>Hesaplar</string>
+	<key>Actions</key>
+	<string>İşlemler</string>
 	<key>Active</key>
 	<string>Aktif</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Yedeklendi</string>
 	<key>Background ciphertext transfer</key>
 	<string>Arka planda şifreli metin aktarımı</string>
+	<key>Background download</key>
+	<string>Arka planda indirme</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Arka planda imzalama ve yerleşik aracı özellikleri bu çalışma alanı kilidinden ayrıdır.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Yedekleniyor…</string>
 	<key>Backup failed</key>
 	<string>Yedekleme başarısız</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Yedek listesi yenilenemedi</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Yedekleme ilerlemesi kaydedildi. Tamamlanmak üzere dosya durumunu kontrol edin.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Kurtarma durumunu kontrol edin</string>
 	<key>Check request</key>
 	<string>İsteği kontrol et</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Adı ve hedef klasörü kontrol edip tekrar deneyin.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Erişimin hâlâ gerekli olup olmadığına karar vermeden önce bu cihazın etkinliğini kontrol edin.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Kontrol listesi tamamlandı</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>İfadelerinizden tamamlanan kontrol listesi. Yukarı akış durumu yalnızca sağlayıcı tarafından bağımsız olarak doğrulanabilir durumda kalır.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>İlk yedeğinizi oluşturmak için yerel bir dosyada Buluta yedekle seçeneğini kullanın.</string>
 	<key>Choose a credential for:</key>
 	<string>Aşağıdakiler için bir kimlik bilgisi seçin:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Avatar seç</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Bu bağımsız anlık görüntünün tam olarak ne içerdiğini seçin. Kaynak düzenlemeleri önceden gönderilmiş olan kopyaları değiştirmeyecektir.</string>
+	<key>Choose folder</key>
+	<string>Klasör seç</string>
 	<key>Choose password export</key>
 	<string>Şifre dışa aktarmayı seçin</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Önbelleği temizle</string>
 	<key>Clear filters</key>
 	<string>Filtreleri temizle</string>
+	<key>Clear search</key>
+	<string>Aramayı temizle</string>
 	<key>Clear selection</key>
 	<string>Seçimi temizle</string>
 	<key>Close invitation</key>
 	<string>Daveti kapat</string>
 	<key>Closed</key>
 	<string>Kapalı</string>
+	<key>Cloud backup</key>
+	<string>Bulut yedeği</string>
 	<key>Cloud backup file limit</key>
 	<string>Bulut yedeklemede dosya boyutu sınırı</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Bulut silme işlemi tamamlandı</string>
 	<key>Cloud storage</key>
 	<string>Bulut depolama</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Bulut depolama veya dosya boyutu sınırı aşıldı. Planınızı ve yedek boyutunu kontrol edin.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Bekleme süresinden sonra tam iyileşme</string>
 	<key>Completed</key>
 	<string>Tamamlandı</string>
+	<key>Completed downloads</key>
+	<string>Tamamlanan indirmeler</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Masaüstü dosya eşlemesini yapılandırma</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Kontrolörler ve delegasyonlar</string>
 	<key>Conversation</key>
 	<string>Konuşma</string>
+	<key>Conversation attachments</key>
+	<string>Sohbet ekleri</string>
 	<key>Conversation limit</key>
 	<string>Görüşme sınırı</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Kopyalar bu cihazda kalır ve en geç 30 saniye içinde sona erer.</string>
 	<key>Copy</key>
 	<string>Kopyala</string>
+	<key>Copy SHA-256</key>
+	<string>SHA-256 kopyala</string>
 	<key>Copy account ID</key>
 	<string>Hesap kimliğini kopyala</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Veritabanı</string>
 	<key>Date</key>
 	<string>Tarih</string>
+	<key>Days before removal</key>
+	<string>Saklama süresi (gün)</string>
 	<key>Delegations</key>
 	<string>Heyetler</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Kopyayı sil</string>
 	<key>Delete this cloud backup?</key>
 	<string>Bu bulut yedeklemesi silinsin mi?</string>
+	<key>Deleted</key>
+	<string>Silinme tarihi</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>dMsg hesabınızı silmek Apple aboneliğinizi iptal etmez. Yenilemeyi durdurmak için Apple hesap ayarlarınızdan iptal edin.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Şifreli görüntüleme verileri, önbellekteki ekler ve bulut dosya listeleri yeniden indirilebilir. Kasa, mesajlar, yerel dosya kitaplığı ve eşitlenmemiş çalışmalar korunur.</string>
 	<key>Encrypting</key>
 	<string>Şifreleme</string>
+	<key>Encrypting on this device…</key>
+	<string>Bu cihazda şifreleniyor…</string>
 	<key>Engine</key>
 	<string>Motor</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Dosya adı</string>
 	<key>File not available on this device</key>
 	<string>Dosya bu cihazda kullanılamıyor</string>
+	<key>File tools</key>
+	<string>Dosya araçları</string>
 	<key>File transfers</key>
 	<string>Dosya aktarımları</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Şifreleri içe aktar</string>
 	<key>Import photo</key>
 	<string>Fotoğrafı içe aktar</string>
+	<key>Import photos or videos</key>
+	<string>Fotoğraf veya video içe aktar</string>
 	<key>Import secret package</key>
 	<string>Gizli paketi içe aktar</string>
 	<key>Import selected records</key>
 	<string>Seçilen kayıtları içe aktar</string>
 	<key>Import selected secrets</key>
 	<string>Seçilen gizli dizileri içe aktar</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Bu cihaza aktarıldı. Bulut yedekleme ayrı bir işlemdir.</string>
 	<key>In Trash</key>
 	<string>Çöp Kutusunda</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · bekleme süresinden sonra</string>
 	<key>Language</key>
 	<string>Dil</string>
+	<key>Largest first</key>
+	<string>Önce en büyük</string>
 	<key>Last known cloud state</key>
 	<string>Bilinen son bulut durumu</string>
+	<key>Last refreshed</key>
+	<string>Son yenileme</string>
 	<key>Last successful sync</key>
 	<string>Son başarılı eşitleme</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Mesaj geri çekildi</string>
 	<key>Messages</key>
 	<string>Mesajlar</string>
+	<key>Modified</key>
+	<string>Değiştirilme tarihi</string>
 	<key>Month</key>
 	<string>Ay</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Bu cihaza taşı</string>
 	<key>Moved</key>
 	<string>Taşındı</string>
+	<key>Moved to Trash</key>
+	<string>Çöp kutusuna taşındı</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Dosya kitaplığını aynı ağdaki bu hesaba ait başka bir cihaza uçtan uca şifreli olarak taşır. Bitene kadar iki cihazın da kilidini açık tutun.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Çöp kutusuna taşımak bulut depolama alanını boşaltmaz.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Yeni cihaza geçiş: yeni cihaz eskisinin yerine geçmeyi ister, eski cihaz onaylar, ardından ikisi adım adım devreder.</string>
+	<key>Moving…</key>
+	<string>Taşınıyor…</string>
 	<key>Multisig wallets</key>
 	<string>Çok imzalı cüzdanlar</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Yeni revizyon</string>
 	<key>New secret</key>
 	<string>Yeni sır</string>
+	<key>Newest first</key>
+	<string>Önce en yeni</string>
 	<key>Next</key>
 	<string>Sıradaki</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Hayır</string>
 	<key>No accounts</key>
 	<string>Hesap yok</string>
+	<key>No active transfers</key>
+	<string>Etkin aktarım yok</string>
 	<key>No activity on this device</key>
 	<string>Bu cihazda etkinlik yok</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Arka plan aktarımı yok</string>
 	<key>No blocked accounts</key>
 	<string>Engellenen hesap yok</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Bu sürüm için kullanılabilir bulut yedeği yok.</string>
 	<key>No cloud backups</key>
 	<string>Bulut yedeklemesi yok</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Favori yok</string>
 	<key>No fields or notes</key>
 	<string>Henüz yazılı bir şey yok.</string>
+	<key>No file versions</key>
+	<string>Dosya sürümü yok</string>
+	<key>No files in this folder</key>
+	<string>Bu klasörde dosya yok</string>
 	<key>No findings from this device's checks.</key>
 	<string>Bu cihazın kontrollerinde bulgu yok.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Anlık görüntü yok</string>
 	<key>No snapshots on this device</key>
 	<string>Bu cihazda anlık görüntü yok</string>
+	<key>No transfer was started.</key>
+	<string>Hiçbir aktarım başlatılmadı.</string>
 	<key>Not delivered</key>
 	<string>Teslim edilmedi</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>dMsg'yu açın. Kilit açma ve onaylar yine de uygulamadaki etkileşiminizi gerektirir.</string>
 	<key>Open invitation in browser</key>
 	<string>Davetiyeyi tarayıcıda aç</string>
+	<key>Open local file</key>
+	<string>Yerel dosyayı aç</string>
 	<key>Open notification settings</key>
 	<string>Bildirim ayarlarını aç</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Herkese açık profili aç</string>
 	<key>Open secret</key>
 	<string>Sırrı aç</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Bu indirmeyi doğrulayıp tamamlamak için asıl hesabı açın.</string>
 	<key>Open workspace</key>
 	<string>Çalışma alanını aç</string>
 	<key>Optional password</key>
 	<string>İsteğe bağlı şifre</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>İsteğe bağlı. Yalnızca diğer cihaz otomatik bulunamazsa; örneğin 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Asıl klasör</string>
 	<key>Original revision</key>
 	<string>Orijinal revizyon</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>İzinler</string>
 	<key>Phone</key>
 	<string>Telefon</string>
+	<key>Photos and videos</key>
+	<string>Fotoğraflar ve videolar</string>
 	<key>Phrase</key>
 	<string>İfade</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Seçilen anlık görüntüyü hazırla</string>
 	<key>Prepared on this device</key>
 	<string>Bu cihazda hazırlandı</string>
+	<key>Preparing and copying file…</key>
+	<string>Dosya hazırlanıyor ve kopyalanıyor…</string>
+	<key>Preparing backups…</key>
+	<string>Yedekler hazırlanıyor…</string>
 	<key>Preview</key>
 	<string>Önizleme</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Önizleme, bu cihazdaki paketi indirip doğrular ve bir indirme oturumu kullanır. Devam etmeden önce alıcı cihazı seçin.</string>
 	<key>Preview file</key>
 	<string>Dosyayı önizleyin</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Bu dosya türü için önizleme yok. Başka bir uygulamada açmak için bir kopya paylaşın.</string>
 	<key>Preview package</key>
 	<string>Paketi önizleyin</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>İyileşme bekleme süresi</string>
 	<key>Refresh</key>
 	<string>Yenile</string>
+	<key>Refresh backup list</key>
+	<string>Yedek listesini yenile</string>
 	<key>Refresh balances</key>
 	<string>Bakiyeleri yenile</string>
 	<key>Refresh dependencies</key>
 	<string>Bağımlılıkları yenile</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Devam etmeden önce önizlemeyi yenileyin.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Bulut yedeklerini kontrol etmek için yenileyin</string>
+	<key>Refreshing backups…</key>
+	<string>Yedekler yenileniyor…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Listeyi yenilemek yerel dosyaları yedeklemez. Korumak istediğiniz dosyalarda Buluta yedekle seçeneğini kullanın.</string>
 	<key>Register a hardware approval key</key>
 	<string>Donanım onay anahtarını kaydetme</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Kayıtlı profili yeniden yükle</string>
 	<key>Remaining</key>
 	<string>kalan</string>
+	<key>Removal date</key>
+	<string>Kaldırılma tarihi</string>
 	<key>Remove</key>
 	<string>Kaldır</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Yıldızı kaldır</string>
 	<key>Remove field</key>
 	<string>Alanı kaldır</string>
+	<key>Remove local copy</key>
+	<string>Yerel kopyayı kaldır</string>
+	<key>Remove local copy?</key>
+	<string>Yerel kopya kaldırılsın mı?</string>
 	<key>Remove local data</key>
 	<string>Yerel verileri kaldır</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Bu yerel temsilci kaldırılsın mı?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Bir referansın kaldırılması dosyayı silmez. Mevcut referanslar, dosyaları bu cihazda eksik olsa bile tutulur.</string>
+	<key>Rename</key>
+	<string>Yeniden adlandır</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Kaynak cihazındaki kullanılamayan alan referansını onarın.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Bu sürüm yeni ve güncel bir sürüm olarak geri yüklensin mi?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Bu sürümü açmadan önce bulut yedeklemelerinden geri yükleyin.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Yedeklemeden önce bu sürümü cihaza geri yükleyin.</string>
 	<key>Restore to this device</key>
 	<string>Bu cihaza geri yükle</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Geri yükleme, seçilen sürümü açılabilmesi için indirir ve doğrular.</string>
 	<key>Restoring…</key>
 	<string>Geri yükleniyor…</string>
 	<key>Result</key>
 	<string>Sonuç</string>
 	<key>Result unconfirmed</key>
 	<string>Sonuç onaylanmadı</string>
+	<key>Results</key>
+	<string>Sonuçlar</string>
 	<key>Resume</key>
 	<string>Sürdür</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
 	<key>Saving draft…</key>
 	<string>Taslak kaydediliyor…</string>
+	<key>Saving…</key>
+	<string>Kaydediliyor…</string>
 	<key>Scan QR code</key>
 	<string>Kamerayla tara</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Ekran görüntüleri özel bilgiler içerebilir.</string>
 	<key>Search</key>
 	<string>Ara</string>
+	<key>Search cloud backups</key>
+	<string>Bulut yedeklerinde ara</string>
 	<key>Search files</key>
 	<string>Dosyaları arayın</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>İçe aktarılacak alanları seçin</string>
 	<key>Select fields to share</key>
 	<string>Paylaşılacak alanları seçin</string>
+	<key>Select files</key>
+	<string>Dosyaları seç</string>
 	<key>Select login items</key>
 	<string>Oturum açma öğelerini seçin</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Seçilen OTP alanları yalnızca geçerli kodu değil, yeniden kullanılabilir çekirdeği içerir.</string>
 	<key>Selected accounts</key>
 	<string>Seçilen hesaplar</string>
+	<key>Selected files</key>
+	<string>Seçili dosyalar</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Seçilen bölümler çakışan sürümü kullanır. Diğer bölümler geçerli sürümü korur.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Bazı cüzdanlar henüz bitmedi. Tamamlamak için adımı yeniden çalıştırın.</string>
 	<key>Sort</key>
 	<string>Sırala</string>
+	<key>Sort by</key>
+	<string>Sıralama ölçütü</string>
 	<key>Source address</key>
 	<string>Kaynak adresi</string>
 	<key>Source address %u</key>
 	<string>Kaynak adresi %u</string>
+	<key>Source device</key>
+	<string>Kaynak cihaz</string>
 	<key>Spam</key>
 	<string>Spam</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>Dışa aktarılan kimlik bilgileri kullanılamıyor veya süresi dolmuş. Yeni bir anlık görüntü oluşturmak için dMsg'yu açın.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Dosya kopyaları kullanılamıyor veya süresi dolmuş. Yeni bir anlık görüntü oluşturmak için dMsg'yu açın ve ardından yeniden deneyin.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Dosya doğrulanamadı. İndirmeyi tekrar deneyin; eksik bir kopya açılamaz.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Dosya kitaplığı yalnızca eski cihazda kalır. Orada hiç eşitlenmemiş ya da yedeklenmemiş olanlar, cihaz iptal edilince kaybolur.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Dosya veya klasör artık kullanılamıyor. Listeyi yenileyin.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Gelen kutusu anahtarı henüz bu cihazla eşitlenmedi. Alımı etkinleştirdiğiniz cihazı eşitleyin, ardından burada tekrar deneyin.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>Aktarım yetkisinin süresi doldu. Bu görevi iptal edin, ardından orijinal yedeklemeye ön planda devam edin veya yeni bir indirme işlemi başlatın.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Aktarım duraklatıldı. Orijinal şifreli blokları yeniden deneyin.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>Doğrulanmış bulut yedeği ve dosya kaydı korunur. Bu cihazda açmak için sürümü tekrar indirin.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>M-cüzdan mevcut politikasını ve onaylarını kontrol eder. Tam olarak bu plan için gerekli donanım imzası isteniyor.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>Bu cihazda senkronize edilmemiş değişiklikler var. Hesabı silmeden önce ihtiyacınız olan her şeyi kaydedin.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Bu cihazda bu teklif için ortak imza anahtarı yok.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>Bu cihazda yerel kopya yok. Bu yedeği silmek, kurtarılabilir tek kopyanızı kaldırabilir.</string>
 	<key>This device is authorized</key>
 	<string>Bu cihaz yetkili</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Bu alan, siz gizleyene veya bu ekrandan ayrılana kadar görünür kalır.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Bu dosya, bu işlem için izin verilen boyut sınırını aşıyor.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Bu dosya mevcut bulut yedekleme dosya boyutu sınırını aşıyor.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Bu dosya çöp kutusunda. Açmadan önce geri yükleyin.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Bu geçmiş bu cihaza aittir. Başka bir cihazdan masaüstü yerel CLI, SSH veya dosya bağlama onaylarını yansıtmaz.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Bu anlık görüntünün dikkat edilmesi gerekiyor. Devam etmeden önce durumunu kontrol edin.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Bu, bu cihazdaki çalışmanızı izler. Sağlayıcılarında kimlik bilgileri oluşturmaz, test etmez veya iptal etmez.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>Bu sürüm için zaten bir aktarım sürüyor.</string>
+	<key>This version is already backed up.</key>
+	<string>Bu sürüm zaten yedeklendi.</string>
 	<key>This wallet's key</key>
 	<string>Bu cüzdanın anahtarı</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Toplam</string>
 	<key>Transfer between devices</key>
 	<string>Cihazlar arası aktarım</string>
+	<key>Transfer needs attention</key>
+	<string>Aktarım ilgilenmenizi gerektiriyor</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Önce sahip olunan konuşmaları aktarın veya arşivleyin</string>
+	<key>Transfer paused</key>
+	<string>Aktarım duraklatıldı</string>
 	<key>Transfer proposal</key>
 	<string>Transfer teklifi</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Aktarım sıraya alındı. İlerlemeyi Dosyalar’da izleyin.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Aktarım durumu yenilenemedi. Kaydedilmiş görevler korunur.</string>
 	<key>Transferred</key>
 	<string>Aktarıldı</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Kullanım</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Eğik çizgi veya kontrol karakteri içermeyen, 1–255 karakter uzunluğunda bir ad kullanın.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>dMsg'da açıkça dışa aktardığınız anlık görüntüden bir parola kullanın.</string>
 	<key>Use a secret through a device policy</key>

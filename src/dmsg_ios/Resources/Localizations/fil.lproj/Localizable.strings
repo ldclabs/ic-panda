@@ -16,6 +16,8 @@
 	<string>Available ang snapshot ng channel sa mga miyembrong may access sa panahong ito, kasama ang mga pahintulot sa pag-access sa kasaysayan sa ibang pagkakataon. Wala itong pag-expire ng link, limitasyon ng download-session o pag-recall.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Ang session sa pag-download ay isang retrieval allowance, hindi bilang ng mga nabasang file. Ang pag-expire o pagbawi ay hindi makakapagbura ng mga kopyang na-save na.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>May file o folder na may ganitong pangalan.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>Nakatali ang L1 ng native address sa key ng iisang device, kaya kukuha ang device na ito ng sariling address at doon ililipat ang mga coin. Bawat hakbang ay panukalang inaaprubahan ng mga miyembro.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>Tungkol</string>
 	<key>About dMsg</key>
 	<string>Tungkol sa dMsg</string>
+	<key>About files and backups</key>
+	<string>Tungkol sa mga file at backup</string>
 	<key>Accept approved binding</key>
 	<string>Tanggapin ang naaprubahang pagbubuklod</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Account, mga device at pagkakakilanlan</string>
 	<key>Accounts</key>
 	<string>Mga account</string>
+	<key>Actions</key>
+	<string>Mga aksyon</string>
 	<key>Active</key>
 	<string>Aktibo</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Naka-back up</string>
 	<key>Background ciphertext transfer</key>
 	<string>Paglilipat ng ciphertext sa background</string>
+	<key>Background download</key>
+	<string>Pag-download sa background</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Ang background signing at resident agent na kakayahan ay hiwalay sa workspace lock na ito.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Bina-back up…</string>
 	<key>Backup failed</key>
 	<string>Nabigo ang backup</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Hindi ma-refresh ang listahan ng mga backup</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Na-save ang pag-unlad ng backup. Suriin ang katayuan ng file para sa pagkumpleto.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Suriin ang katayuan sa pagbawi</string>
 	<key>Check request</key>
 	<string>Suriin ang kahilingan</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Suriin ang pangalan at destinasyong folder, saka subukang muli.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Suriin ang aktibidad ng device na ito bago magpasya kung kailangan pa rin ng access.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Nakumpleto ang checklist</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Nakumpleto ang checklist mula sa iyong mga pahayag. Ang upstream status ay nananatiling independyenteng mabe-verify lamang sa provider.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Piliin ang I-back up sa cloud sa isang lokal na file para gawin ang unang backup.</string>
 	<key>Choose a credential for:</key>
 	<string>Pumili ng kredensyal para sa:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Pumili ng avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Piliin kung ano mismo ang nilalaman ng independent snapshot na ito. Hindi babaguhin ng mga pag-edit ng pinagmulan ang mga kopyang naipadala na.</string>
+	<key>Choose folder</key>
+	<string>Pumili ng folder</string>
 	<key>Choose password export</key>
 	<string>Piliin ang pag-export ng password</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Burahin ang cache</string>
 	<key>Clear filters</key>
 	<string>I-clear ang mga filter</string>
+	<key>Clear search</key>
+	<string>Burahin ang paghahanap</string>
 	<key>Clear selection</key>
 	<string>Alisin ang pagpili</string>
 	<key>Close invitation</key>
 	<string>Isara ang imbitasyon</string>
 	<key>Closed</key>
 	<string>sarado</string>
+	<key>Cloud backup</key>
+	<string>Backup sa cloud</string>
 	<key>Cloud backup file limit</key>
 	<string>Limitasyon bawat file sa cloud backup</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Nakumpleto ang pagtanggal ng ulap</string>
 	<key>Cloud storage</key>
 	<string>Imbakan ng ulap</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Lumampas sa limitasyon ng cloud storage o laki ng file. Suriin ang iyong plan at laki ng backup.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Ihambing ang device ID sa dalawang screen at aprubahan sa computer.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Kumpletuhin ang pagbawi pagkatapos ng panahon ng paghihintay</string>
 	<key>Completed</key>
 	<string>Nakumpleto</string>
+	<key>Completed downloads</key>
+	<string>Mga nakumpletong download</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Mag-configure ng desktop file mapping</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers at mga delegasyon</string>
 	<key>Conversation</key>
 	<string>Pag-uusap</string>
+	<key>Conversation attachments</key>
+	<string>Mga kalakip sa pag-uusap</string>
 	<key>Conversation limit</key>
 	<string>Limitasyon ng pag-uusap</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Nananatili ang mga kopya sa device na ito at mag-e-expire sa loob ng 30 segundo.</string>
 	<key>Copy</key>
 	<string>Kopyahin</string>
+	<key>Copy SHA-256</key>
+	<string>Kopyahin ang SHA-256</string>
 	<key>Copy account ID</key>
 	<string>Kopyahin ang account ID</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Database</string>
 	<key>Date</key>
 	<string>Petsa</string>
+	<key>Days before removal</key>
+	<string>Mga araw ng pagpapanatili</string>
 	<key>Delegations</key>
 	<string>Mga delegasyon</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Burahin ang kopya</string>
 	<key>Delete this cloud backup?</key>
 	<string>I-delete ang cloud backup na ito?</string>
+	<key>Deleted</key>
+	<string>Petsa ng pagbura</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Ang pagtanggal sa iyong dMsg account ay hindi makakansela ng isang Apple subscription. Kanselahin ito sa iyong mga setting ng Apple account upang ihinto ang pag-renew.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Maaaring i-download muli ang naka-encrypt na display data, naka-cache na attachment, at listahan ng cloud file. Mananatili ang vault, mga mensahe, lokal na library, at hindi pa naka-sync na gawain.</string>
 	<key>Encrypting</key>
 	<string>Pag-encrypt</string>
+	<key>Encrypting on this device…</key>
+	<string>Ini-encrypt sa device na ito…</string>
 	<key>Engine</key>
 	<string>makina</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Pangalan ng file</string>
 	<key>File not available on this device</key>
 	<string>Hindi available ang file sa device na ito</string>
+	<key>File tools</key>
+	<string>Mga tool sa file</string>
 	<key>File transfers</key>
 	<string>Paglilipat ng mga file</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Mag-import ng mga password</string>
 	<key>Import photo</key>
 	<string>Mag-import ng larawan</string>
+	<key>Import photos or videos</key>
+	<string>Mag-import ng mga larawan o video</string>
 	<key>Import secret package</key>
 	<string>Mag-import ng lihim na pakete</string>
 	<key>Import selected records</key>
 	<string>Mag-import ng mga napiling tala</string>
 	<key>Import selected secrets</key>
 	<string>Mag-import ng mga napiling lihim</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Na-import sa device na ito. Hiwalay na aksyon ang pag-backup sa cloud.</string>
 	<key>In Trash</key>
 	<string>Sa Basura</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · pagkatapos ng delay</string>
 	<key>Language</key>
 	<string>Wika</string>
+	<key>Largest first</key>
+	<string>Pinakamalaki muna</string>
 	<key>Last known cloud state</key>
 	<string>Huling kilalang cloud state</string>
+	<key>Last refreshed</key>
+	<string>Huling refresh</string>
 	<key>Last successful sync</key>
 	<string>Huling matagumpay na sync</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Inalis ang mensahe</string>
 	<key>Messages</key>
 	<string>Mga mensahe</string>
+	<key>Modified</key>
+	<string>Petsa ng pagbabago</string>
 	<key>Month</key>
 	<string>buwan</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Ilipat sa device na ito</string>
 	<key>Moved</key>
 	<string>Nailipat na</string>
+	<key>Moved to Trash</key>
+	<string>Inilipat sa Basurahan</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Inililipat ang file library sa ibang device ng account na ito sa parehong network, naka-encrypt end to end. Panatilihing naka-unlock ang dalawang device hanggang matapos.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Hindi nagpapalaya ng cloud storage ang paglipat sa Basurahan.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Paglipat sa bagong device: humihiling ang bagong device na palitan ang luma, inaaprubahan ito ng lumang device, saka nagpapasahan ang dalawa nang hakbang-hakbang.</string>
+	<key>Moving…</key>
+	<string>Inililipat…</string>
 	<key>Multisig wallets</key>
 	<string>Mga multisig wallet</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Bagong rebisyon</string>
 	<key>New secret</key>
 	<string>Bagong sikreto</string>
+	<key>Newest first</key>
+	<string>Pinakabago muna</string>
 	<key>Next</key>
 	<string>Susunod</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Hindi</string>
 	<key>No accounts</key>
 	<string>Walang account</string>
+	<key>No active transfers</key>
+	<string>Walang aktibong paglilipat</string>
 	<key>No activity on this device</key>
 	<string>Walang aktibidad sa device na ito</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Walang background transfer</string>
 	<key>No blocked accounts</key>
 	<string>Walang mga naka-block na account</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Walang available na cloud backup para sa bersyong ito.</string>
 	<key>No cloud backups</key>
 	<string>Walang cloud backup</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Walang paborito</string>
 	<key>No fields or notes</key>
 	<string>Wala pang nakasulat.</string>
+	<key>No file versions</key>
+	<string>Walang bersyon ng file</string>
+	<key>No files in this folder</key>
+	<string>Walang file sa folder na ito</string>
 	<key>No findings from this device's checks.</key>
 	<string>Walang natuklasan mula sa mga pagsusuri ng device na ito.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Walang snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>Walang mga snapshot sa device na ito</string>
+	<key>No transfer was started.</key>
+	<string>Walang sinimulang paglilipat.</string>
 	<key>Not delivered</key>
 	<string>Hindi naihatid</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Buksan ang dMsg. Ang pag-unlock at pag-apruba ay nangangailangan pa rin ng iyong pakikipag-ugnayan sa app.</string>
 	<key>Open invitation in browser</key>
 	<string>Buksan ang imbitasyon sa browser</string>
+	<key>Open local file</key>
+	<string>Buksan ang lokal na file</string>
 	<key>Open notification settings</key>
 	<string>Buksan ang mga setting ng notification</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Buksan ang pampublikong profile</string>
 	<key>Open secret</key>
 	<string>Buksan ang lihim</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Buksan ang orihinal na account para beripikahin at tapusin ang download na ito.</string>
 	<key>Open workspace</key>
 	<string>Buksan ang workspace</string>
 	<key>Optional password</key>
 	<string>Opsyonal na password</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Opsyonal. Kapag hindi awtomatikong nakita ang kabilang device, halimbawa 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Orihinal na folder</string>
 	<key>Original revision</key>
 	<string>Orihinal na rebisyon</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Mga pahintulot</string>
 	<key>Phone</key>
 	<string>Telepono</string>
+	<key>Photos and videos</key>
+	<string>Mga larawan at video</string>
 	<key>Phrase</key>
 	<string>Parirala</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Ihanda ang napiling snapshot</string>
 	<key>Prepared on this device</key>
 	<string>Inihanda sa device na ito</string>
+	<key>Preparing and copying file…</key>
+	<string>Inihahanda at kinokopya ang file…</string>
+	<key>Preparing backups…</key>
+	<string>Inihahanda ang mga backup…</string>
 	<key>Preview</key>
 	<string>Silipin</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>I-preview ang mga pag-download at i-verify ang package sa device na ito at gumagamit ng session sa pag-download. Piliin ang receiving device bago magpatuloy.</string>
 	<key>Preview file</key>
 	<string>I-preview ang file</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Walang preview para sa ganitong uri ng file. Magbahagi ng kopya para buksan ito sa ibang app.</string>
 	<key>Preview package</key>
 	<string>I-preview ang package</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Panahon ng paghihintay sa pagbawi</string>
 	<key>Refresh</key>
 	<string>I-refresh</string>
+	<key>Refresh backup list</key>
+	<string>I-refresh ang listahan ng mga backup</string>
 	<key>Refresh balances</key>
 	<string>I-refresh ang mga balanse</string>
 	<key>Refresh dependencies</key>
 	<string>I-refresh ang mga dependency</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>I-refresh ang preview bago magpatuloy.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>I-refresh para tingnan ang mga cloud backup</string>
+	<key>Refreshing backups…</key>
+	<string>Nire-refresh ang mga backup…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Hindi bina-back up ng pag-refresh ng listahan ang mga lokal na file. Piliin ang I-back up sa cloud para sa mga file na gusto mong protektahan.</string>
 	<key>Register a hardware approval key</key>
 	<string>Magrehistro ng hardware approval key</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>I-load muli ang naka-save na profile</string>
 	<key>Remaining</key>
 	<string>natitira</string>
+	<key>Removal date</key>
+	<string>Petsa ng pag-alis</string>
 	<key>Remove</key>
 	<string>Alisin</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Alisin ang bituin</string>
 	<key>Remove field</key>
 	<string>Alisin ang field</string>
+	<key>Remove local copy</key>
+	<string>Alisin ang lokal na kopya</string>
+	<key>Remove local copy?</key>
+	<string>Alisin ang lokal na kopya?</string>
 	<key>Remove local data</key>
 	<string>Alisin ang lokal na data</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Alisin ang lokal na agent na ito?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Ang pag-alis ng reference ay hindi nagtatanggal ng file. Ang mga kasalukuyang sanggunian ay pinapanatili kahit na nawawala ang kanilang mga file sa device na ito.</string>
+	<key>Rename</key>
+	<string>Palitan ang pangalan</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Ayusin ang hindi available na field reference sa pinagmulan nitong device.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Ibalik ang bersyong ito bilang bagong kasalukuyang bersyon?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>I-restore ang bersyong ito mula sa mga cloud backup bago ito buksan.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Ibalik muna ang bersyong ito sa device bago ito i-back up.</string>
 	<key>Restore to this device</key>
 	<string>I-restore sa device na ito</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Dina-download at bineberipika ng pagbabalik ang napiling bersyon bago ito mabuksan.</string>
 	<key>Restoring…</key>
 	<string>Nire-restore…</string>
 	<key>Result</key>
 	<string>Resulta</string>
 	<key>Result unconfirmed</key>
 	<string>Hindi nakumpirma ang resulta</string>
+	<key>Results</key>
+	<string>Mga resulta</string>
 	<key>Resume</key>
 	<string>Ituloy</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Nai-save. Nakabinbin ang publikasyon.</string>
 	<key>Saving draft…</key>
 	<string>Sine-save ang draft…</string>
+	<key>Saving…</key>
+	<string>Sine-save…</string>
 	<key>Scan QR code</key>
 	<string>I-scan gamit ang camera</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Maaaring naglalaman ang mga screenshot ng pribadong impormasyon.</string>
 	<key>Search</key>
 	<string>Maghanap</string>
+	<key>Search cloud backups</key>
+	<string>Maghanap sa mga cloud backup</string>
 	<key>Search files</key>
 	<string>Maghanap ng mga file</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Pumili ng mga field na ii-import</string>
 	<key>Select fields to share</key>
 	<string>Pumili ng mga field na ibabahagi</string>
+	<key>Select files</key>
+	<string>Pumili ng mga file</string>
 	<key>Select login items</key>
 	<string>Pumili ng mga item sa pag-log in</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Kasama sa mga napiling field ng OTP ang reusable seed, hindi lang isang kasalukuyang code.</string>
 	<key>Selected accounts</key>
 	<string>Mga napiling account</string>
+	<key>Selected files</key>
+	<string>Mga napiling file</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Gagamitin ng mga napiling bahagi ang magkasalungat na bersyon. Pananatilihin ng iba ang kasalukuyang bersyon.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Hindi pa tapos ang ilang wallet. Patakbuhin muli ang hakbang para matapos.</string>
 	<key>Sort</key>
 	<string>Pagbukud-bukurin</string>
+	<key>Sort by</key>
+	<string>Ayusin ayon sa</string>
 	<key>Source address</key>
 	<string>Address ng pinagmulan</string>
 	<key>Source address %u</key>
 	<string>Pinagmulan na address %u</string>
+	<key>Source device</key>
+	<string>Pinagmulang device</string>
 	<key>Spam</key>
 	<string>Spam</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>Ang mga na-export na kredensyal ay hindi magagamit o nag-expire. Buksan ang dMsg para gumawa ng bagong snapshot.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Ang mga kopya ng file ay hindi magagamit o nag-expire. Buksan ang dMsg para gumawa ng bagong snapshot, pagkatapos ay subukang muli.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Hindi maberipika ang file. Subukang i-download muli; hindi mabubuksan ang hindi kumpletong kopya.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Mananatili lang sa lumang device ang file library. Mawawala ang anumang hindi kailanman na-sync o na-back up doon kapag binawi na ito.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Hindi na available ang file o folder. I-refresh ang listahan.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>Nag-expire ang awtorisasyon sa paglipat. Kanselahin ang gawaing ito, pagkatapos ay ipagpatuloy ang orihinal na backup sa foreground o magsimula ng bagong pag-download.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Naka-pause ang paglipat. Subukang muli ang orihinal na naka-encrypt na mga bloke.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>Mananatili ang beripikadong cloud backup at rekord ng file. I-download muli ang bersyong ito para buksan sa device na ito.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>Sinusuri ng wallet ang kasalukuyang patakaran at mga pag-apruba nito. Ang isang kinakailangang lagda ng hardware ay hinihiling para sa eksaktong planong ito.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>Ang device na ito ay may mga pagbabagong hindi naka-sync. I-save ang anumang kailangan mo bago tanggalin ang account.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Walang cosigner key ang device na ito para sa panukalang ito.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>Walang lokal na kopya sa device na ito. Maaaring mawala ang nag-iisang mababawi mong kopya kapag binura ang backup na ito.</string>
 	<key>This device is authorized</key>
 	<string>Awtorisado ang device na ito</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Makikita ang field na ito hanggang itago mo ito o umalis sa screen na ito.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Lumampas ang file na ito sa limitasyon ng laki para sa operasyong ito.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Lumampas ang file na ito sa kasalukuyang limitasyon ng laki ng file para sa cloud backup.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Nasa Basurahan ang file na ito. Ibalik muna bago buksan.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ang kasaysayang ito ay kabilang sa device na ito. Hindi nito sinasalamin ang mga pag-apruba sa desktop-local CLI, SSH o file-mount mula sa isa pang device.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Ang snapshot na ito ay nangangailangan ng pansin. Suriin ang katayuan nito bago magpatuloy.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Sinusubaybayan nito ang iyong trabaho sa device na ito. Hindi ito gumagawa, sumusubok o nagpapawalang-bisa ng mga kredensyal sa kanilang provider.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>May kasalukuyang paglilipat na para sa bersyong ito.</string>
+	<key>This version is already backed up.</key>
+	<string>May backup na ang bersyong ito.</string>
 	<key>This wallet's key</key>
 	<string>Key ng wallet na ito</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Kabuuan</string>
 	<key>Transfer between devices</key>
 	<string>Paglipat sa pagitan ng mga device</string>
+	<key>Transfer needs attention</key>
+	<string>Kailangan ng pansin ang paglilipat</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Ilipat o i-archive muna ang mga pag-uusap na pagmamay-ari</string>
+	<key>Transfer paused</key>
+	<string>Naka-pause ang paglilipat</string>
 	<key>Transfer proposal</key>
 	<string>Panukala sa paglipat</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Nakapila ang paglilipat. Tingnan ang progreso sa Mga File.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Hindi ma-refresh ang katayuan ng paglilipat. Mananatili ang mga na-save na gawain.</string>
 	<key>Transferred</key>
 	<string>Nailipat</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Paggamit</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Gumamit ng pangalang may 1–255 character na walang slash o control character.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Gumamit ng password mula sa snapshot na tahasan mong na-export sa dMsg.</string>
 	<key>Use a secret through a device policy</key>

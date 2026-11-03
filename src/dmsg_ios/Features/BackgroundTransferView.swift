@@ -2,40 +2,42 @@ import SwiftUI
 @preconcurrency import DMsgCore
 
 struct BackgroundTransferSection: View {
+    @Binding var active: Bool
     @Environment(SessionModel.self) private var model
     @State private var state: CipherTransferState?
     @State private var working = false
     var body: some View {
-        Section("Background ciphertext transfer") {
-            Text("Only the selected encrypted file can transfer while dMsg is locked. iOS controls scheduling; force quitting stops delivery until you open the app again. Open the original account to verify and finish.").font(.footnote).foregroundStyle(.secondary)
+        Group {
             if let state {
-                if state.transfer.account == model.session?.account {
-                    Text(LocalizedStringKey(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup"))
-                    ProgressView(value: Double(state.completed.count), total: Double(state.transfer.parts.count))
-                    if state.ready { Button("Verify and finish") { Task { await finish(state) } }.disabled(working) }
-                    else if Double(state.transfer.expiresAt) <= Date.now.timeIntervalSince1970 * 1000 {
-                        Text("The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.").font(.footnote)
-                    } else if state.paused || state.failure != nil {
-                        Text("The transfer paused. Retry the original encrypted blocks.").font(.footnote)
-                        Button("Retry") { Task { do { try await BackgroundTransfers.shared.retry(); load() } catch { model.report(error) } } }.disabled(working)
-                    } else { Button("Pause transfer") { Task { await BackgroundTransfers.shared.pause(); load() } } }
-                    Button("Cancel background transfer", role: .destructive) { Task { await cancel(state) } }.disabled(working)
-                } else {
-                    Text("A background transfer belongs to another account. Switch to that account to finish or cancel it.").font(.footnote)
-                    Button("Stop this device's transfer", role: .destructive) { Task {
-                        do { try await BackgroundTransfers.shared.discard(state.transfer); load() } catch { model.report(error) }
-                    } }
+                Section("Background ciphertext transfer") {
+                    if state.transfer.account == model.session?.account {
+                        Text(LocalizedStringKey(state.transfer.method == "PUT" ? "Uploading encrypted backup" : "Downloading encrypted backup"))
+                        ProgressView(value: Double(state.completed.count), total: Double(state.transfer.parts.count))
+                        if state.ready { Button("Verify and finish") { Task { await finish(state) } }.disabled(working) }
+                        else if Double(state.transfer.expiresAt) <= Date.now.timeIntervalSince1970 * 1000 {
+                            Text("The transfer authorization expired. Cancel this task, then continue the original backup in the foreground or start a new download.").font(.footnote)
+                        } else if state.paused || state.failure != nil {
+                            Text("The transfer paused. Retry the original encrypted blocks.").font(.footnote)
+                            Button("Retry") { Task { do { try await BackgroundTransfers.shared.retry(); load() } catch { model.reportFileError(error) } } }.disabled(working)
+                        } else { Button("Pause transfer") { Task { await BackgroundTransfers.shared.pause(); load() } } }
+                        Button("Cancel background transfer", role: .destructive) { Task { await cancel(state) } }.disabled(working)
+                    } else {
+                        Text("A background transfer belongs to another account. Switch to that account to finish or cancel it.").font(.footnote)
+                        Button("Stop this device's transfer", role: .destructive) { Task {
+                            do { try await BackgroundTransfers.shared.discard(state.transfer); load() } catch { model.reportFileError(error) }
+                        } }
+                    }
+                    if working { ProgressView() }
                 }
-            } else { Text("No background transfer").foregroundStyle(.secondary) }
-            if working { ProgressView() }
+            }
         }.task { load() }.onReceive(NotificationCenter.default.publisher(for: .dmsgCipherTransfer).receive(on: RunLoop.main)) { _ in load() }
     }
-    private func load() { state = try? BackgroundTransfers.shared.store?.snapshot() }
+    private func load() { state = try? BackgroundTransfers.shared.store?.snapshot(); active = state != nil }
     private func cancel(_ state: CipherTransferState) async {
         guard let engine = model.engine, !working else { return }; working = true; defer { working = false; load() }
         await BackgroundTransfers.shared.pause()
         do { try await engine.backgroundRevoke(id: state.transfer.id); try await BackgroundTransfers.shared.discard(state.transfer) }
-        catch { model.report(error) }
+        catch { model.reportFileError(error) }
     }
     private func finish(_ state: CipherTransferState) async {
         guard let engine = model.engine, let store = BackgroundTransfers.shared.store, !working else { return }
@@ -55,7 +57,7 @@ struct BackgroundTransferSection: View {
             try await coreOperation { try await engine.backgroundFinish(id: state.transfer.id, operation: $0) }
             try await BackgroundTransfers.shared.discard(state.transfer)
             guard epoch == model.epoch else { return }; await model.refresh(); await model.loadCloudBackups(refresh: true)
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch { if epoch == model.epoch { model.reportFileError(error) } }
     }
 }
 
@@ -67,16 +69,16 @@ extension SessionModel {
             guard try BackgroundTransfers.shared.store?.snapshot() == nil else { throw CocoaError(.fileWriteFileExists) }
             let result = try await coreOperation { try await engine.backgroundBackup(file: file, version: version, operation: $0) }
             try await stageBackground(result, engine: engine, epoch: current)
-        } catch { if current == epoch { report(error) } }
+        } catch { if current == epoch { reportFileError(error) } }
     }
-    func startBackgroundDownload(upload: String) async {
+    func startBackgroundDownload(upload: String, folder: String) async {
         guard let engine, !busy else { return }; let current = epoch, work = beginBusyOperation(); defer { finishBusyOperation(work) }
         await fileTransfers.beginHandoff(); defer { fileTransfers.endHandoff() }
         do {
             guard try BackgroundTransfers.shared.store?.snapshot() == nil else { throw CocoaError(.fileWriteFileExists) }
-            let result = try await coreOperation { try await engine.backgroundDownload(upload: upload, folder: filesFolder, operation: $0) }
+            let result = try await coreOperation { try await engine.backgroundDownload(upload: upload, folder: folder, operation: $0) }
             try await stageBackground(result, engine: engine, epoch: current)
-        } catch { if current == epoch { report(error) } }
+        } catch { if current == epoch { reportFileError(error) } }
     }
     private func stageBackground(_ result: ObjectSnapshot, engine: MobileEngine, epoch: UInt64) async throws {
         let transfer: CipherTransfer = try decode(result)
@@ -99,6 +101,6 @@ extension SessionModel {
         guard let state = try? BackgroundTransfers.shared.store?.snapshot(), state.transfer.account == account else { return }
         await BackgroundTransfers.shared.pause()
         try? await engine?.backgroundRevoke(id: state.transfer.id)
-        do { try await BackgroundTransfers.shared.discard(state.transfer) } catch { report(error) }
+        do { try await BackgroundTransfers.shared.discard(state.transfer) } catch { reportFileError(error) }
     }
 }

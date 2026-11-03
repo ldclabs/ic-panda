@@ -42,8 +42,9 @@ Notification reconciliation does not download Inbox message bodies.
 
 `restore_backup` now returns a durable queued download snapshot; it no longer
 returns a restored file before a long RPC finishes. Hosts drive `run_downloads`
-and observe `download_status`, with `retry_file_transfers` and `cancel_download`
-for explicit actions. `run_backups` continues to drive saved uploads without a
+and observe `download_status`. The iOS task list uses `retry_backup`,
+`retry_download`, `cancel_backup` and `cancel_download` for one selected task;
+`retry_file_transfers` remains available for callers explicitly retrying all work. `run_backups` continues to drive saved uploads without a
 15-second slice. Only terminal verified/committed status means success.
 
 iOS owns these runners at the active unlocked scene, rather than a file detail

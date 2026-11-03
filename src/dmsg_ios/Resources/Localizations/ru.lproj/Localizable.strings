@@ -16,6 +16,8 @@
 	<string>Снимок канала доступен участникам с доступом к этой эпохе, включая получивших доступ к истории позднее. У него нет срока действия ссылки, лимита сеансов скачивания или возможности изъятия.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Сеанс скачивания разрешает получение данных, а не учитывает чтения файла. Истечение срока или отзыв не удаляют уже сохранённые копии.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>Файл или папка с таким именем уже существует.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>L1 нативного адреса привязан к ключу одного устройства, поэтому это устройство получает собственный адрес, и средства переводятся на него. Каждый шаг — предложение, которое одобряют участники.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>О себе</string>
 	<key>About dMsg</key>
 	<string>О dMsg</string>
+	<key>About files and backups</key>
+	<string>О файлах и резервных копиях</string>
 	<key>Accept approved binding</key>
 	<string>Принять одобренную привязку</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Аккаунт, устройства и личности</string>
 	<key>Accounts</key>
 	<string>Аккаунты</string>
+	<key>Actions</key>
+	<string>Действия</string>
 	<key>Active</key>
 	<string>Активен</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Есть копия в облаке</string>
 	<key>Background ciphertext transfer</key>
 	<string>Фоновая передача шифротекста</string>
+	<key>Background download</key>
+	<string>Фоновая загрузка</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Подпись в фоне и возможности постоянно работающих агентов не связаны с блокировкой рабочего пространства.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Копируется…</string>
 	<key>Backup failed</key>
 	<string>Ошибка резервного копирования</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Не удалось обновить список резервных копий</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Прогресс сохранён. Проверьте состояние файла, чтобы узнать о завершении.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Проверить восстановление</string>
 	<key>Check request</key>
 	<string>Проверить запрос</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Проверьте имя и папку назначения и повторите попытку.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Проверьте действия на этом устройстве, прежде чем решать, нужен ли ещё доступ.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Список выполнен</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Список выполнен согласно вашим подтверждениям. Состояние у поставщика по-прежнему нужно проверять отдельно у него.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Выберите «Сохранить в облако» у локального файла, чтобы создать первую резервную копию.</string>
 	<key>Choose a credential for:</key>
 	<string>Выберите учётные данные для:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Выбрать аватар</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Выберите точное содержимое независимого снимка. Изменения оригинала не затронут уже отправленные копии.</string>
+	<key>Choose folder</key>
+	<string>Выбрать папку</string>
 	<key>Choose password export</key>
 	<string>Выбрать экспорт паролей</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Очистить кэш</string>
 	<key>Clear filters</key>
 	<string>Сбросить фильтры</string>
+	<key>Clear search</key>
+	<string>Очистить поиск</string>
 	<key>Clear selection</key>
 	<string>Снять выделение</string>
 	<key>Close invitation</key>
 	<string>Закрыть приглашение</string>
 	<key>Closed</key>
 	<string>Закрыто</string>
+	<key>Cloud backup</key>
+	<string>Облачная резервная копия</string>
 	<key>Cloud backup file limit</key>
 	<string>Предел размера файла облачной копии</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Удаление из облака завершено</string>
 	<key>Cloud storage</key>
 	<string>Облачное хранилище</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Превышен лимит облачного хранилища или размера файла. Проверьте тариф и размер копии.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Сравните ID устройства на обоих экранах и подтвердите на компьютере.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Завершить восстановление после ожидания</string>
 	<key>Completed</key>
 	<string>Выполнено</string>
+	<key>Completed downloads</key>
+	<string>Завершённые загрузки</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Настроить сопоставление файлов на компьютере</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Контроллеры и делегирования</string>
 	<key>Conversation</key>
 	<string>Разговор</string>
+	<key>Conversation attachments</key>
+	<string>Вложения бесед</string>
 	<key>Conversation limit</key>
 	<string>Лимит бесед</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Копии остаются на этом устройстве и удаляются не позднее чем через 30 секунд.</string>
 	<key>Copy</key>
 	<string>Копировать</string>
+	<key>Copy SHA-256</key>
+	<string>Копировать SHA-256</string>
 	<key>Copy account ID</key>
 	<string>Копировать ID аккаунта</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>База данных</string>
 	<key>Date</key>
 	<string>Дата</string>
+	<key>Days before removal</key>
+	<string>Срок хранения в днях</string>
 	<key>Delegations</key>
 	<string>Делегирования</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Удалить копию</string>
 	<key>Delete this cloud backup?</key>
 	<string>Удалить эту облачную копию?</string>
+	<key>Deleted</key>
+	<string>Дата удаления</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Удаление аккаунта dMsg не отменяет подписку Apple. Отключите продление в настройках аккаунта Apple.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Зашифрованные данные отображения, кэш вложений и списки облачных файлов можно загрузить повторно. Сейф, сообщения, локальная библиотека и несинхронизированные изменения сохранятся.</string>
 	<key>Encrypting</key>
 	<string>Шифрование</string>
+	<key>Encrypting on this device…</key>
+	<string>Шифрование на этом устройстве…</string>
 	<key>Engine</key>
 	<string>Движок</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Имя файла</string>
 	<key>File not available on this device</key>
 	<string>Файл недоступен на этом устройстве</string>
+	<key>File tools</key>
+	<string>Инструменты для файлов</string>
 	<key>File transfers</key>
 	<string>Передача файлов</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Импортировать пароли</string>
 	<key>Import photo</key>
 	<string>Импортировать фото</string>
+	<key>Import photos or videos</key>
+	<string>Импорт фото или видео</string>
 	<key>Import secret package</key>
 	<string>Импортировать пакет секретов</string>
 	<key>Import selected records</key>
 	<string>Импортировать выбранные записи</string>
 	<key>Import selected secrets</key>
 	<string>Импортировать выбранные секреты</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Импортировано на это устройство. Облачное резервное копирование выполняется отдельно.</string>
 	<key>In Trash</key>
 	<string>В корзине</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · после задержки</string>
 	<key>Language</key>
 	<string>Язык</string>
+	<key>Largest first</key>
+	<string>Сначала большие</string>
 	<key>Last known cloud state</key>
 	<string>Последнее известное состояние в облаке</string>
+	<key>Last refreshed</key>
+	<string>Последнее обновление</string>
 	<key>Last successful sync</key>
 	<string>Последняя успешная синхронизация</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Сообщение отозвано</string>
 	<key>Messages</key>
 	<string>Сообщения</string>
+	<key>Modified</key>
+	<string>Дата изменения</string>
 	<key>Month</key>
 	<string>Месяц</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Перенести на это устройство</string>
 	<key>Moved</key>
 	<string>Перенесено</string>
+	<key>Moved to Trash</key>
+	<string>Перемещено в корзину</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Переносит библиотеку файлов на другое устройство этого аккаунта в той же сети со сквозным шифрованием. Держите оба устройства разблокированными до конца.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Перемещение в корзину не освобождает место в облаке.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Переход на новое устройство: новое просит заменить старое, старое одобряет, затем оба шаг за шагом передают дела.</string>
+	<key>Moving…</key>
+	<string>Перемещение…</string>
 	<key>Multisig wallets</key>
 	<string>Мультиподписные кошельки</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Новая версия</string>
 	<key>New secret</key>
 	<string>Новый секрет</string>
+	<key>Newest first</key>
+	<string>Сначала новые</string>
 	<key>Next</key>
 	<string>Далее</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Нет</string>
 	<key>No accounts</key>
 	<string>Нет аккаунтов</string>
+	<key>No active transfers</key>
+	<string>Нет активных передач</string>
 	<key>No activity on this device</key>
 	<string>На этом устройстве нет действий</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Нет фоновой передачи</string>
 	<key>No blocked accounts</key>
 	<string>Нет заблокированных аккаунтов</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Для этой версии нет доступной облачной резервной копии.</string>
 	<key>No cloud backups</key>
 	<string>Облачных копий нет</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Нет избранного</string>
 	<key>No fields or notes</key>
 	<string>Пока пусто.</string>
+	<key>No file versions</key>
+	<string>Нет версий файла</string>
+	<key>No files in this folder</key>
+	<string>В этой папке нет файлов</string>
 	<key>No findings from this device's checks.</key>
 	<string>Проверки на этом устройстве не выявили проблем.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Нет снимка</string>
 	<key>No snapshots on this device</key>
 	<string>На этом устройстве нет снимков</string>
+	<key>No transfer was started.</key>
+	<string>Передача не была запущена.</string>
 	<key>Not delivered</key>
 	<string>Не доставлено</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Открыть dMsg. Разблокировка и одобрения по-прежнему требуют действий в приложении.</string>
 	<key>Open invitation in browser</key>
 	<string>Открыть приглашение в браузере</string>
+	<key>Open local file</key>
+	<string>Открыть локальный файл</string>
 	<key>Open notification settings</key>
 	<string>Открыть настройки уведомлений</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Открыть публичный профиль</string>
 	<key>Open secret</key>
 	<string>Открыть секрет</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Откройте исходный аккаунт, чтобы проверить и завершить эту загрузку.</string>
 	<key>Open workspace</key>
 	<string>Открыть рабочее пространство</string>
 	<key>Optional password</key>
 	<string>Пароль (необязательно)</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Необязательно. Только если другое устройство не находится автоматически, например 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Исходная папка</string>
 	<key>Original revision</key>
 	<string>Исходная версия</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Права</string>
 	<key>Phone</key>
 	<string>Телефон</string>
+	<key>Photos and videos</key>
+	<string>Фото и видео</string>
 	<key>Phrase</key>
 	<string>Секретная фраза</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Подготовить выбранный снимок</string>
 	<key>Prepared on this device</key>
 	<string>Подготовлено на этом устройстве</string>
+	<key>Preparing and copying file…</key>
+	<string>Подготовка и копирование файла…</string>
+	<key>Preparing backups…</key>
+	<string>Подготовка резервных копий…</string>
 	<key>Preview</key>
 	<string>Просмотр</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Предпросмотр загружает и проверяет пакет на этом устройстве, используя сеанс загрузки. Выберите принимающее устройство, прежде чем продолжить.</string>
 	<key>Preview file</key>
 	<string>Просмотреть файл</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Предпросмотр этого типа файла недоступен. Поделитесь копией, чтобы открыть её в другом приложении.</string>
 	<key>Preview package</key>
 	<string>Просмотреть пакет</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Период ожидания восстановления</string>
 	<key>Refresh</key>
 	<string>Обновить</string>
+	<key>Refresh backup list</key>
+	<string>Обновить список копий</string>
 	<key>Refresh balances</key>
 	<string>Обновить балансы</string>
 	<key>Refresh dependencies</key>
 	<string>Обновить зависимости</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Обновите предпросмотр перед продолжением.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Обновите список для проверки облачных копий</string>
+	<key>Refreshing backups…</key>
+	<string>Обновление резервных копий…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Обновление списка не создаёт резервных копий локальных файлов. Выберите «Сохранить в облако» для нужных файлов.</string>
 	<key>Register a hardware approval key</key>
 	<string>Зарегистрировать ключ аппаратного подтверждения</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Загрузить сохранённый профиль</string>
 	<key>Remaining</key>
 	<string>осталось</string>
+	<key>Removal date</key>
+	<string>Дата окончательного удаления</string>
 	<key>Remove</key>
 	<string>Убрать</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Убрать из избранного</string>
 	<key>Remove field</key>
 	<string>Удалить поле</string>
+	<key>Remove local copy</key>
+	<string>Удалить локальную копию</string>
+	<key>Remove local copy?</key>
+	<string>Удалить локальную копию?</string>
 	<key>Remove local data</key>
 	<string>Удалить локальные данные</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Удалить этого локального агента?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Удаление ссылки не удаляет файл. Существующие ссылки сохраняются, даже если файлов нет на этом устройстве.</string>
+	<key>Rename</key>
+	<string>Переименовать</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Исправьте ссылку на недоступное поле на исходном устройстве.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Восстановить эту версию как новую текущую?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Перед открытием восстановите версию из облачной копии.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Восстановите эту версию на устройство перед резервным копированием.</string>
 	<key>Restore to this device</key>
 	<string>Восстановить на этом устройстве</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>При восстановлении выбранная версия загружается и проверяется перед открытием.</string>
 	<key>Restoring…</key>
 	<string>Восстановление…</string>
 	<key>Result</key>
 	<string>Результат</string>
 	<key>Result unconfirmed</key>
 	<string>Результат не подтверждён</string>
+	<key>Results</key>
+	<string>Результаты</string>
 	<key>Resume</key>
 	<string>Продолжить</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Сохранено. Публикация ожидается.</string>
 	<key>Saving draft…</key>
 	<string>Сохранение черновика…</string>
+	<key>Saving…</key>
+	<string>Сохранение…</string>
 	<key>Scan QR code</key>
 	<string>Сканировать камерой</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Снимки экрана могут содержать личные данные.</string>
 	<key>Search</key>
 	<string>Поиск</string>
+	<key>Search cloud backups</key>
+	<string>Поиск облачных копий</string>
 	<key>Search files</key>
 	<string>Искать файлы</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Поля для импорта</string>
 	<key>Select fields to share</key>
 	<string>Поля для передачи</string>
+	<key>Select files</key>
+	<string>Выбрать файлы</string>
 	<key>Select login items</key>
 	<string>Выбрать учётные записи</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Выбранные поля OTP содержат многоразовый секретный ключ, а не только текущий код.</string>
 	<key>Selected accounts</key>
 	<string>Выбранные аккаунты</string>
+	<key>Selected files</key>
+	<string>Выбранные файлы</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Выбранные части берутся из конфликтующей версии. Остальные сохраняются из текущей версии.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Часть кошельков ещё не готова. Выполните шаг ещё раз.</string>
 	<key>Sort</key>
 	<string>Сортировка</string>
+	<key>Sort by</key>
+	<string>Сортировка</string>
 	<key>Source address</key>
 	<string>Исходный адрес</string>
 	<key>Source address %u</key>
 	<string>Исходный адрес %u</string>
+	<key>Source device</key>
+	<string>Исходное устройство</string>
 	<key>Spam</key>
 	<string>Спам</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>Экспортированные данные недоступны или истекли. Откройте dMsg и создайте новый снимок.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Копии недоступны или истекли. Создайте новый снимок в dMsg и повторите попытку.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Не удалось проверить файл. Повторите загрузку: неполную копию нельзя открыть.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Библиотека файлов останется только на старом устройстве. То, что там не синхронизировалось и не копировалось, пропадёт после его отзыва.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Файл или папка больше недоступны. Обновите список.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>Разрешение передачи истекло. Отмените задачу и продолжите исходное копирование в открытом приложении либо начните новую загрузку.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Передача приостановлена. Повторите передачу исходных зашифрованных блоков.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>Проверенная облачная копия и запись файла сохраняются. Скачайте эту версию снова, чтобы открыть её на устройстве.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>Кошелёк проверяет текущую политику и одобрения. При необходимости аппаратная подпись запрашивается именно для этого плана.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>На устройстве есть несинхронизированные изменения. Сохраните нужное перед удалением аккаунта.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>На этом устройстве нет ключа соподписанта для этого предложения.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>На этом устройстве нет локальной копии. Удаление этой резервной копии может лишить вас единственной восстанавливаемой копии.</string>
 	<key>This device is authorized</key>
 	<string>Это устройство авторизовано</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Поле будет видно, пока вы не скроете его или не покинете этот экран.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Размер этого файла превышает допустимый предел для этой операции.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Этот файл превышает текущий лимит размера файла для облачного резервного копирования.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Этот файл в корзине. Восстановите его перед открытием.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Эта история относится к данному устройству. Локальные подтверждения CLI, SSH и монтирования файлов с другого компьютера здесь не отображаются.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Этот снимок требует внимания. Проверьте его состояние, прежде чем продолжить.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Здесь фиксируются ваши действия на этом устройстве. Учётные данные у поставщика не создаются, не проверяются и не отзываются автоматически.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>Для этой версии уже выполняется передача.</string>
+	<key>This version is already backed up.</key>
+	<string>Эта версия уже сохранена в резервной копии.</string>
 	<key>This wallet's key</key>
 	<string>Ключ этого кошелька</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Итого</string>
 	<key>Transfer between devices</key>
 	<string>Передача между устройствами</string>
+	<key>Transfer needs attention</key>
+	<string>Передача требует внимания</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Сначала передайте или архивируйте свои беседы</string>
+	<key>Transfer paused</key>
+	<string>Передача приостановлена</string>
 	<key>Transfer proposal</key>
 	<string>Предложение перевода</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Передача в очереди. Следите за ходом в разделе «Файлы».</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Не удалось обновить статус передачи. Сохранённые задачи остаются.</string>
 	<key>Transferred</key>
 	<string>Передано</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Использование</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Используйте имя длиной 1–255 символов без косых черт и управляющих символов.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Используйте пароль из снимка, явно экспортированного в dMsg.</string>
 	<key>Use a secret through a device policy</key>

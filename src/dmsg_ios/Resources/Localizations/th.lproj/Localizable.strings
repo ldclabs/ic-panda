@@ -16,6 +16,8 @@
 	<string>สมาชิกที่มีสิทธิ์เข้าถึงยุคนี้สามารถดูภาพรวมของช่องได้ รวมถึงสิทธิ์ในการเข้าถึงประวัติในภายหลังด้วย ลิงก์ไม่มีวันหมดอายุ การจำกัดเซสชันการดาวน์โหลด หรือการเรียกคืน</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>เซสชันการดาวน์โหลดเป็นสิทธิ์ในการเรียกข้อมูล ไม่ใช่จำนวนการอ่านไฟล์ การหมดอายุหรือการเพิกถอนไม่สามารถลบสำเนาที่บันทึกไว้แล้วได้</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>มีไฟล์หรือโฟลเดอร์ชื่อนี้อยู่แล้ว</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>L1 ของที่อยู่ native ผูกกับคีย์ของอุปกรณ์เครื่องเดียว อุปกรณ์นี้จึงได้ที่อยู่ของตนเองและเหรียญจะย้ายไปที่นั่น แต่ละขั้นตอนเป็นข้อเสนอที่สมาชิกอนุมัติ</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>เกี่ยวกับ</string>
 	<key>About dMsg</key>
 	<string>เกี่ยวกับ dMsg</string>
+	<key>About files and backups</key>
+	<string>เกี่ยวกับไฟล์และข้อมูลสำรอง</string>
 	<key>Accept approved binding</key>
 	<string>ยอมรับการผูกมัดที่ได้รับอนุมัติ</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>บัญชี อุปกรณ์ และตัวตน</string>
 	<key>Accounts</key>
 	<string>บัญชี</string>
+	<key>Actions</key>
+	<string>การดำเนินการ</string>
 	<key>Active</key>
 	<string>ใช้งานอยู่</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>สำรองข้อมูลแล้ว</string>
 	<key>Background ciphertext transfer</key>
 	<string>การถ่ายโอนข้อความไซเฟอร์พื้นหลัง</string>
+	<key>Background download</key>
+	<string>ดาวน์โหลดในเบื้องหลัง</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>ความสามารถของการลงนามในเบื้องหลังและความสามารถของเอเจนต์ประจำจะแยกจากการล็อกพื้นที่ทำงานนี้</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>กำลังสำรองข้อมูล...</string>
 	<key>Backup failed</key>
 	<string>สำรองข้อมูลไม่สำเร็จ</string>
+	<key>Backup list could not be refreshed</key>
+	<string>ไม่สามารถรีเฟรชรายการข้อมูลสำรองได้</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>บันทึกความคืบหน้าในการสำรองข้อมูลแล้ว ตรวจสอบสถานะไฟล์ว่าเสร็จสมบูรณ์</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>ตรวจสอบสถานะการกู้คืน</string>
 	<key>Check request</key>
 	<string>ตรวจสอบคำขอ</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>ตรวจสอบชื่อและโฟลเดอร์ปลายทาง แล้วลองอีกครั้ง</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>ตรวจสอบกิจกรรมของอุปกรณ์นี้ก่อนที่จะตัดสินใจว่ายังจำเป็นต้องเข้าถึงหรือไม่</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>รายการตรวจสอบเสร็จสมบูรณ์</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>รายการตรวจสอบเสร็จสมบูรณ์จากใบแจ้งยอดของคุณ สถานะอัปสตรีมยังคงตรวจสอบได้โดยอิสระกับผู้ให้บริการเท่านั้น</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>เลือกสำรองข้อมูลไปยังคลาวด์จากไฟล์ในเครื่องเพื่อสร้างข้อมูลสำรองครั้งแรก</string>
 	<key>Choose a credential for:</key>
 	<string>เลือกข้อมูลรับรองสำหรับ:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>เลือกรูปประจำตัว</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>เลือกสิ่งที่สแน็ปช็อตอิสระนี้ประกอบด้วยอะไรบ้าง การแก้ไขแหล่งที่มาจะไม่เปลี่ยนสำเนาที่ส่งไปแล้ว</string>
+	<key>Choose folder</key>
+	<string>เลือกโฟลเดอร์</string>
 	<key>Choose password export</key>
 	<string>เลือกส่งออกรหัสผ่าน</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>ล้างแคช</string>
 	<key>Clear filters</key>
 	<string>ล้างตัวกรอง</string>
+	<key>Clear search</key>
+	<string>ล้างการค้นหา</string>
 	<key>Clear selection</key>
 	<string>ล้างการเลือก</string>
 	<key>Close invitation</key>
 	<string>ปิดคำเชิญ</string>
 	<key>Closed</key>
 	<string>ปิดแล้ว</string>
+	<key>Cloud backup</key>
+	<string>ข้อมูลสำรองบนคลาวด์</string>
 	<key>Cloud backup file limit</key>
 	<string>ขนาดสูงสุดต่อไฟล์สำรองบนคลาวด์</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>การลบคลาวด์เสร็จสมบูรณ์</string>
 	<key>Cloud storage</key>
 	<string>ที่เก็บข้อมูลบนคลาวด์</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>เกินขีดจำกัดพื้นที่คลาวด์หรือขนาดไฟล์ โปรดตรวจสอบแพ็กเกจและขนาดข้อมูลสำรอง</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>เปรียบเทียบ ID อุปกรณ์บนทั้งสองหน้าจอ แล้วอนุมัติบนคอมพิวเตอร์</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>การกู้คืนเสร็จสมบูรณ์หลังจากระยะเวลารอคอย</string>
 	<key>Completed</key>
 	<string>เสร็จสิ้น</string>
+	<key>Completed downloads</key>
+	<string>ดาวน์โหลดเสร็จแล้ว</string>
 	<key>Configure a desktop file mapping</key>
 	<string>กำหนดค่าการแมปไฟล์เดสก์ท็อป</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers และการมอบหมาย</string>
 	<key>Conversation</key>
 	<string>การสนทนา</string>
+	<key>Conversation attachments</key>
+	<string>ไฟล์แนบการสนทนา</string>
 	<key>Conversation limit</key>
 	<string>ขีดจำกัดการสนทนา</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>สำเนาจะอยู่บนอุปกรณ์นี้และหมดอายุภายใน 30 วินาที</string>
 	<key>Copy</key>
 	<string>คัดลอก</string>
+	<key>Copy SHA-256</key>
+	<string>คัดลอก SHA-256</string>
 	<key>Copy account ID</key>
 	<string>คัดลอก ID บัญชี</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>ฐานข้อมูล</string>
 	<key>Date</key>
 	<string>วันที่</string>
+	<key>Days before removal</key>
+	<string>จำนวนวันที่เก็บไว้</string>
 	<key>Delegations</key>
 	<string>การมอบหมาย</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>ลบสำเนา</string>
 	<key>Delete this cloud backup?</key>
 	<string>ลบข้อมูลสำรองบนคลาวด์นี้ใช่ไหม</string>
+	<key>Deleted</key>
+	<string>วันที่ลบ</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>การลบบัญชี dMsg ของคุณไม่ได้เป็นการยกเลิกการสมัครสมาชิก Apple ยกเลิกในการตั้งค่าบัญชี Apple ของคุณเพื่อหยุดการต่ออายุ</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>ดาวน์โหลดข้อมูลการแสดงผลที่เข้ารหัส ไฟล์แนบในแคช และรายการไฟล์คลาวด์ใหม่ได้ คลังลับ ข้อความ คลังไฟล์ในเครื่อง และงานที่ยังไม่ซิงค์จะยังคงอยู่</string>
 	<key>Encrypting</key>
 	<string>กำลังเข้ารหัส</string>
+	<key>Encrypting on this device…</key>
+	<string>กำลังเข้ารหัสบนอุปกรณ์นี้…</string>
 	<key>Engine</key>
 	<string>เครื่องยนต์</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>ชื่อไฟล์</string>
 	<key>File not available on this device</key>
 	<string>ไฟล์ไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
+	<key>File tools</key>
+	<string>เครื่องมือไฟล์</string>
 	<key>File transfers</key>
 	<string>การโอนไฟล์</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>นำเข้ารหัสผ่าน</string>
 	<key>Import photo</key>
 	<string>นำเข้ารูปภาพ</string>
+	<key>Import photos or videos</key>
+	<string>นำเข้ารูปภาพหรือวิดีโอ</string>
 	<key>Import secret package</key>
 	<string>นำเข้าแพ็คเกจลับ</string>
 	<key>Import selected records</key>
 	<string>นำเข้าบันทึกที่เลือก</string>
 	<key>Import selected secrets</key>
 	<string>นำเข้าข้อมูลลับที่เลือก</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>นำเข้าสู่อุปกรณ์นี้แล้ว การสำรองข้อมูลบนคลาวด์ต้องดำเนินการแยกต่างหาก</string>
 	<key>In Trash</key>
 	<string>ในถังขยะ</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · หลังระยะหน่วง</string>
 	<key>Language</key>
 	<string>ภาษา</string>
+	<key>Largest first</key>
+	<string>ใหญ่ที่สุดก่อน</string>
 	<key>Last known cloud state</key>
 	<string>สถานะคลาวด์ที่ทราบล่าสุด</string>
+	<key>Last refreshed</key>
+	<string>รีเฟรชล่าสุด</string>
 	<key>Last successful sync</key>
 	<string>การซิงค์ที่สำเร็จครั้งล่าสุด</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>ถอนข้อความแล้ว</string>
 	<key>Messages</key>
 	<string>ข้อความ</string>
+	<key>Modified</key>
+	<string>วันที่แก้ไข</string>
 	<key>Month</key>
 	<string>เดือน</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>ย้ายมาที่อุปกรณ์นี้</string>
 	<key>Moved</key>
 	<string>ย้ายแล้ว</string>
+	<key>Moved to Trash</key>
+	<string>ย้ายไปถังขยะแล้ว</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>ย้ายคลังไฟล์ไปยังอุปกรณ์อื่นของบัญชีนี้บนเครือข่ายเดียวกัน โดยเข้ารหัสตั้งแต่ต้นทางถึงปลายทาง เปิดล็อกอุปกรณ์ทั้งสองไว้จนกว่าจะเสร็จ</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>การย้ายไปถังขยะไม่ได้เพิ่มพื้นที่ว่างบนคลาวด์</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>ย้ายไปยังอุปกรณ์ใหม่: อุปกรณ์ใหม่ขอแทนที่อุปกรณ์เก่า อุปกรณ์เก่าอนุมัติ จากนั้นทั้งสองส่งมอบงานทีละขั้นตอน</string>
+	<key>Moving…</key>
+	<string>กำลังย้าย…</string>
 	<key>Multisig wallets</key>
 	<string>กระเป๋าเงินหลายลายเซ็น</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>การแก้ไขใหม่</string>
 	<key>New secret</key>
 	<string>ความลับใหม่</string>
+	<key>Newest first</key>
+	<string>ใหม่ที่สุดก่อน</string>
 	<key>Next</key>
 	<string>ถัดไป</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>ไม่</string>
 	<key>No accounts</key>
 	<string>ไม่มีบัญชี</string>
+	<key>No active transfers</key>
+	<string>ไม่มีการถ่ายโอนที่กำลังทำงาน</string>
 	<key>No activity on this device</key>
 	<string>ไม่มีกิจกรรมบนอุปกรณ์นี้</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>ไม่มีการถ่ายโอนพื้นหลัง</string>
 	<key>No blocked accounts</key>
 	<string>ไม่มีบัญชีที่ถูกบล็อก</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>ไม่มีข้อมูลสำรองบนคลาวด์สำหรับเวอร์ชันนี้</string>
 	<key>No cloud backups</key>
 	<string>ไม่มีการสำรองข้อมูลบนคลาวด์</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>ยังไม่มีรายการโปรด</string>
 	<key>No fields or notes</key>
 	<string>ไม่มีอะไรเขียนเลย</string>
+	<key>No file versions</key>
+	<string>ไม่มีเวอร์ชันของไฟล์</string>
+	<key>No files in this folder</key>
+	<string>ไม่มีไฟล์ในโฟลเดอร์นี้</string>
 	<key>No findings from this device's checks.</key>
 	<string>ไม่พบผลจากการตรวจสอบอุปกรณ์นี้</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>ไม่มีสแนปช็อต</string>
 	<key>No snapshots on this device</key>
 	<string>ไม่มีสแนปชอตบนอุปกรณ์นี้</string>
+	<key>No transfer was started.</key>
+	<string>ไม่ได้เริ่มการถ่ายโอน</string>
 	<key>Not delivered</key>
 	<string>ไม่ได้จัดส่ง</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>เปิด dMsg การปลดล็อกและการอนุมัติยังคงต้องมีการโต้ตอบจากคุณในแอป</string>
 	<key>Open invitation in browser</key>
 	<string>เปิดคำเชิญในเบราว์เซอร์</string>
+	<key>Open local file</key>
+	<string>เปิดไฟล์ในเครื่อง</string>
 	<key>Open notification settings</key>
 	<string>เปิดการตั้งค่าการแจ้งเตือน</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>เปิดโปรไฟล์สาธารณะ</string>
 	<key>Open secret</key>
 	<string>เปิดความลับ</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>เปิดบัญชีเดิมเพื่อตรวจสอบและดาวน์โหลดให้เสร็จสมบูรณ์</string>
 	<key>Open workspace</key>
 	<string>เปิดพื้นที่ทำงาน</string>
 	<key>Optional password</key>
 	<string>รหัสผ่านเพิ่มเติม</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>ไม่บังคับ ใช้เมื่อไม่พบอุปกรณ์อีกเครื่องโดยอัตโนมัติเท่านั้น เช่น 192.168.1.20:52000</string>
+	<key>Original folder</key>
+	<string>โฟลเดอร์เดิม</string>
 	<key>Original revision</key>
 	<string>การแก้ไขต้นฉบับ</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>สิทธิ์</string>
 	<key>Phone</key>
 	<string>โทรศัพท์</string>
+	<key>Photos and videos</key>
+	<string>รูปภาพและวิดีโอ</string>
 	<key>Phrase</key>
 	<string>วลี</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>เตรียมสแนปชอตที่เลือก</string>
 	<key>Prepared on this device</key>
 	<string>เตรียมไว้บนอุปกรณ์นี้</string>
+	<key>Preparing and copying file…</key>
+	<string>กำลังเตรียมและคัดลอกไฟล์…</string>
+	<key>Preparing backups…</key>
+	<string>กำลังเตรียมข้อมูลสำรอง…</string>
 	<key>Preview</key>
 	<string>ดูตัวอย่าง</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>ดูตัวอย่างการดาวน์โหลดและยืนยันแพ็กเกจบนอุปกรณ์นี้และใช้เซสชันการดาวน์โหลด เลือกอุปกรณ์รับก่อนดำเนินการต่อ</string>
 	<key>Preview file</key>
 	<string>ดูตัวอย่างไฟล์</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>ไม่สามารถแสดงตัวอย่างไฟล์ชนิดนี้ได้ แชร์สำเนาเพื่อเปิดในแอปอื่น</string>
 	<key>Preview package</key>
 	<string>ดูตัวอย่างแพ็คเกจ</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>ระยะเวลารอคอยการฟื้นตัว</string>
 	<key>Refresh</key>
 	<string>รีเฟรช</string>
+	<key>Refresh backup list</key>
+	<string>รีเฟรชรายการข้อมูลสำรอง</string>
 	<key>Refresh balances</key>
 	<string>รีเฟรชยอดคงเหลือ</string>
 	<key>Refresh dependencies</key>
 	<string>รีเฟรชการอ้างอิง</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>รีเฟรชตัวอย่างก่อนดำเนินการต่อ</string>
+	<key>Refresh to check cloud backups</key>
+	<string>รีเฟรชเพื่อตรวจสอบข้อมูลสำรองบนคลาวด์</string>
+	<key>Refreshing backups…</key>
+	<string>กำลังรีเฟรชข้อมูลสำรอง…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>การรีเฟรชรายการไม่ได้สำรองไฟล์ในเครื่อง เลือกสำรองข้อมูลไปยังคลาวด์สำหรับไฟล์ที่ต้องการปกป้อง</string>
 	<key>Register a hardware approval key</key>
 	<string>ลงทะเบียนคีย์การอนุมัติฮาร์ดแวร์</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>โหลดโปรไฟล์ที่บันทึกใหม่</string>
 	<key>Remaining</key>
 	<string>คงเหลือ</string>
+	<key>Removal date</key>
+	<string>วันที่นำออก</string>
 	<key>Remove</key>
 	<string>นำออก</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>ยกเลิกการติดดาว</string>
 	<key>Remove field</key>
 	<string>ลบฟิลด์</string>
+	<key>Remove local copy</key>
+	<string>นำสำเนาในเครื่องออก</string>
+	<key>Remove local copy?</key>
+	<string>นำสำเนาในเครื่องออกหรือไม่?</string>
 	<key>Remove local data</key>
 	<string>ลบข้อมูลในเครื่อง</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>ลบเอเจนต์ท้องถิ่นนี้หรือไม่</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>การลบข้อมูลอ้างอิงจะไม่ลบไฟล์ ข้อมูลอ้างอิงที่มีอยู่จะถูกเก็บไว้แม้ว่าไฟล์จะหายไปในอุปกรณ์นี้ก็ตาม</string>
+	<key>Rename</key>
+	<string>เปลี่ยนชื่อ</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>ซ่อมแซมการอ้างอิงฟิลด์ที่ไม่พร้อมใช้งานบนอุปกรณ์ต้นทาง</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>คืนค่าเวอร์ชันนี้เป็นเวอร์ชันปัจจุบันใหม่หรือไม่</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>กู้คืนเวอร์ชันนี้จากข้อมูลสำรองบนคลาวด์ก่อนที่จะเปิด</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>กู้คืนเวอร์ชันนี้สู่อุปกรณ์ก่อนสำรองข้อมูล</string>
 	<key>Restore to this device</key>
 	<string>คืนค่าไปยังอุปกรณ์นี้</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>การกู้คืนจะดาวน์โหลดและตรวจสอบเวอร์ชันที่เลือกก่อนจึงจะเปิดได้</string>
 	<key>Restoring…</key>
 	<string>กำลังคืนค่า...</string>
 	<key>Result</key>
 	<string>ผลลัพธ์</string>
 	<key>Result unconfirmed</key>
 	<string>ผลลัพธ์ไม่ได้รับการยืนยัน</string>
+	<key>Results</key>
+	<string>ผลลัพธ์</string>
 	<key>Resume</key>
 	<string>ดำเนินการต่อ</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
 	<key>Saving draft…</key>
 	<string>กำลังบันทึกฉบับร่าง…</string>
+	<key>Saving…</key>
+	<string>กำลังบันทึก…</string>
 	<key>Scan QR code</key>
 	<string>สแกนด้วยกล้อง</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>ภาพหน้าจออาจมีข้อมูลส่วนตัว</string>
 	<key>Search</key>
 	<string>ค้นหา</string>
+	<key>Search cloud backups</key>
+	<string>ค้นหาข้อมูลสำรองบนคลาวด์</string>
 	<key>Search files</key>
 	<string>ค้นหาไฟล์</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>เลือกฟิลด์ที่จะนำเข้า</string>
 	<key>Select fields to share</key>
 	<string>เลือกฟิลด์ที่จะแชร์</string>
+	<key>Select files</key>
+	<string>เลือกไฟล์</string>
 	<key>Select login items</key>
 	<string>เลือกรายการเข้าสู่ระบบ</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>ฟิลด์ OTP ที่เลือกจะรวมเมล็ดพันธุ์ที่นำมาใช้ซ้ำได้ ไม่ใช่แค่โค้ดปัจจุบัน</string>
 	<key>Selected accounts</key>
 	<string>บัญชีที่เลือก</string>
+	<key>Selected files</key>
+	<string>ไฟล์ที่เลือก</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>ส่วนที่เลือกจะใช้เวอร์ชันที่ขัดแย้ง ส่วนอื่นจะเก็บเวอร์ชันปัจจุบันไว้</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>กระเป๋าเงินบางรายการยังไม่เสร็จ เรียกใช้ขั้นตอนนี้อีกครั้งเพื่อให้เสร็จ</string>
 	<key>Sort</key>
 	<string>จัดเรียง</string>
+	<key>Sort by</key>
+	<string>จัดเรียงตาม</string>
 	<key>Source address</key>
 	<string>ที่อยู่ต้นทาง</string>
 	<key>Source address %u</key>
 	<string>ที่อยู่ต้นทาง %u</string>
+	<key>Source device</key>
+	<string>อุปกรณ์ต้นทาง</string>
 	<key>Spam</key>
 	<string>สแปม</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>ข้อมูลรับรองที่ส่งออกไม่พร้อมใช้งานหรือหมดอายุ เปิด dMsg เพื่อสร้างสแน็ปช็อตใหม่</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>สำเนาไฟล์ไม่พร้อมใช้งานหรือหมดอายุ เปิด dMsg เพื่อสร้างสแน็ปช็อตใหม่ จากนั้นลองอีกครั้ง</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>ไม่สามารถตรวจสอบไฟล์ได้ โปรดลองดาวน์โหลดอีกครั้ง สำเนาที่ไม่สมบูรณ์ไม่สามารถเปิดได้</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>คลังไฟล์จะยังอยู่บนอุปกรณ์เก่าเท่านั้น สิ่งที่ไม่เคยซิงค์หรือสำรองไว้ที่นั่นจะสูญหายเมื่ออุปกรณ์ถูกเพิกถอน</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>ไฟล์หรือโฟลเดอร์ไม่พร้อมใช้งานแล้ว โปรดรีเฟรชรายการ</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>คีย์กล่องขาเข้ายังไม่ได้ซิงค์กับอุปกรณ์นี้ โปรดซิงค์อุปกรณ์ที่เปิดใช้การรับจดหมาย แล้วลองอีกครั้งที่นี่</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>ใบอนุญาตการโอนหมดอายุ ยกเลิกงานนี้ จากนั้นสำรองข้อมูลเดิมต่อในเบื้องหน้าหรือเริ่มการดาวน์โหลดใหม่</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>การโอนหยุดชั่วคราว ลองบล็อกที่เข้ารหัสเดิมอีกครั้ง</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>ข้อมูลสำรองบนคลาวด์ที่ตรวจสอบแล้วและระเบียนไฟล์จะยังคงอยู่ ดาวน์โหลดเวอร์ชันนี้อีกครั้งเพื่อเปิดบนอุปกรณ์นี้</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>กระเป๋าเงินจะตรวจสอบนโยบายและการอนุมัติในปัจจุบัน มีการร้องขอลายเซ็นฮาร์ดแวร์ที่จำเป็นสำหรับแผนที่แน่นอนนี้</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>อุปกรณ์นี้มีการเปลี่ยนแปลงที่ยังไม่ได้ซิงค์ บันทึกสิ่งที่คุณต้องการก่อนที่จะลบบัญชี</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>อุปกรณ์นี้ไม่มีคีย์ผู้ลงนามร่วมสำหรับข้อเสนอนี้</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>อุปกรณ์นี้ไม่มีสำเนาในเครื่อง การลบข้อมูลสำรองนี้อาจทำให้สำเนาเดียวที่กู้คืนได้สูญหาย</string>
 	<key>This device is authorized</key>
 	<string>อุปกรณ์นี้ได้รับอนุญาตแล้ว</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>ช่องข้อมูลนี้จะมองเห็นได้จนกว่าคุณจะซ่อนหรือออกจากหน้าจอนี้</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>ไฟล์นี้มีขนาดเกินขีดจำกัดสำหรับการดำเนินการนี้</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>ไฟล์นี้เกินขีดจำกัดขนาดไฟล์สำรองบนคลาวด์ปัจจุบัน</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>ไฟล์นี้อยู่ในถังขยะ โปรดกู้คืนก่อนเปิด</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ประวัตินี้เป็นของอุปกรณ์นี้ ไม่จำลอง CLI, SSH ภายในเดสก์ท็อป หรือการอนุมัติการติดตั้งไฟล์จากอุปกรณ์อื่น</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>สแนปชอตนี้ต้องการความสนใจ ตรวจสอบสถานะก่อนดำเนินการต่อ</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>สิ่งนี้จะติดตามงานของคุณบนอุปกรณ์นี้ มันไม่ได้สร้าง ทดสอบ หรือเพิกถอนข้อมูลรับรองจากผู้ให้บริการ</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>เวอร์ชันนี้มีการถ่ายโอนที่กำลังดำเนินการอยู่แล้ว</string>
+	<key>This version is already backed up.</key>
+	<string>เวอร์ชันนี้สำรองข้อมูลไว้แล้ว</string>
 	<key>This wallet's key</key>
 	<string>คีย์ของกระเป๋าเงินนี้</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>รวม</string>
 	<key>Transfer between devices</key>
 	<string>ถ่ายโอนระหว่างอุปกรณ์</string>
+	<key>Transfer needs attention</key>
+	<string>การถ่ายโอนต้องได้รับการตรวจสอบ</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>โอนหรือเก็บถาวรการสนทนาที่เป็นเจ้าของก่อน</string>
+	<key>Transfer paused</key>
+	<string>พักการถ่ายโอนแล้ว</string>
 	<key>Transfer proposal</key>
 	<string>ข้อเสนอการโอน</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>เพิ่มการโอนในคิวแล้ว ติดตามความคืบหน้าในไฟล์</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>ไม่สามารถรีเฟรชสถานะการถ่ายโอนได้ งานที่บันทึกไว้ยังคงอยู่</string>
 	<key>Transferred</key>
 	<string>ย้ายแล้ว</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>การใช้งาน</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>ใช้ชื่อยาว 1–255 อักขระ โดยไม่มีเครื่องหมายทับหรืออักขระควบคุม</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>ใช้รหัสผ่านจากสแน็ปช็อตที่คุณส่งออกอย่างชัดเจนใน dMsg</string>
 	<key>Use a secret through a device policy</key>

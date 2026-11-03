@@ -24,7 +24,7 @@ struct IncomingSharesView: View {
             if entries.isEmpty { Text(LocalizedStringKey(failed ? "Shared items are unavailable. Open the app again after unlocking this device." : "No shared items waiting")).foregroundStyle(.secondary) }
         }.privateScreen().navigationTitle("Shared with dMsg").task { await load() }.refreshable { await load() }
             .confirmationDialog("Discard this staged copy?", isPresented: Binding(get: { discarding != nil }, set: { if !$0 { discarding = nil } })) {
-                Button("Discard", role: .destructive) { if let discarding { Task { do { try IncomingShares().remove(discarding); await load() } catch { model.report(error) } } } }
+                Button("Discard", role: .destructive) { if let discarding { Task { do { try IncomingShares().remove(discarding); await load() } catch { model.reportFileError(error) } } } }
             }
     }
     private func load() async {
@@ -49,6 +49,6 @@ struct IncomingSharesView: View {
             _ = try await model.transfer.run(entry.name) { try await engine.importFile(name: handle, folder: folder, sharedId: entry.id, operation: $0) }
             try paths.finishImport(staged); try storage.remove(entry)
             if epoch == model.epoch { await load(); await model.refresh() }
-        } catch { if epoch == model.epoch { model.report(error) } }
+        } catch { if epoch == model.epoch { model.reportFileError(error) } }
     }
 }

@@ -39,7 +39,7 @@ struct AttachmentPicker: View {
             .onDisappear { visible = false }
             .task { await load() }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { result in Task {
-                do { await importFile(try result.get()) } catch { if (error as NSError).code != NSUserCancelledError { model.report(error) } }
+                do { await importFile(try result.get()) } catch { if (error as NSError).code != NSUserCancelledError { model.reportFileError(error) } }
             } }
             .onChange(of: photo) { _, item in Task {
                 let epoch = model.epoch
@@ -47,7 +47,7 @@ struct AttachmentPicker: View {
                     guard let item, let imported = try await item.loadTransferable(type: PhotoImport.self) else { return }
                     defer { imported.finish() }
                     if epoch == model.epoch { await importFile(imported.file) }
-                } catch { if epoch == model.epoch { model.report(error) } }
+                } catch { if epoch == model.epoch { model.reportFileError(error) } }
             } }
     }
     private func load() async {
@@ -64,8 +64,12 @@ struct AttachmentPicker: View {
     private func importFile(_ url: URL) async {
         guard !working else { return }; let epoch = model.epoch
         working = true; defer { working = false }
-        do { let file = try await model.importLibraryDocument(url, folder: folder); if epoch == model.epoch, visible, !Task.isCancelled { choose(file) } }
-        catch { if epoch == model.epoch, visible, !Task.isCancelled { model.report(error) } }
+        do {
+            let file = try await model.importLibraryDocument(url, folder: folder)
+            guard file.size <= 100 * 1024 * 1024 else { throw CocoaError(.fileReadTooLarge) }
+            if epoch == model.epoch, visible, !Task.isCancelled { choose(file) }
+        }
+        catch { if epoch == model.epoch, visible, !Task.isCancelled { model.reportFileError(error) } }
     }
 }
 
@@ -73,14 +77,19 @@ extension SessionModel {
     func importLibraryDocument(_ url: URL, folder: String) async throws -> LibraryFile {
         guard let paths = files, let engine, let account = session?.account else { throw CancellationError() }
         let epoch = epoch
-        let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder) }.value
-        guard epoch == self.epoch else {
-            if !FileManager.default.fileExists(atPath: paths.workspace.appending(path: "accounts").appending(path: account).path) { try? paths.finishImport(staged) }
-            throw CancellationError()
+        let result = try await transfer.run(url.lastPathComponent) { operation in
+            transfer.phase = String(localized: "Preparing and copying file…")
+            let staged = try await Task.detached { try paths.importDocument(url, account: account, folder: folder) }.value
+            guard epoch == self.epoch, !Task.isCancelled else {
+                if !FileManager.default.fileExists(atPath: paths.workspace.appending(path: "accounts").appending(path: account).path) { try? paths.finishImport(staged) }
+                throw CancellationError()
+            }
+            transfer.phase = String(localized: "Encrypting on this device…")
+            let handle = account + "/" + staged.deletingLastPathComponent().lastPathComponent + "/" + staged.lastPathComponent
+            let result = try await engine.importFile(name: handle, folder: folder, sharedId: nil, operation: operation)
+            try paths.finishImport(staged)
+            return result
         }
-        let handle = account + "/" + staged.deletingLastPathComponent().lastPathComponent + "/" + staged.lastPathComponent
-        let result = try await transfer.run(staged.lastPathComponent) { try await engine.importFile(name: handle, folder: folder, sharedId: nil, operation: $0) }
-        try paths.finishImport(staged)
         guard epoch == self.epoch else { throw CancellationError() }
         struct Imported: Decodable { let file: LibraryFile }
         let imported: Imported = try decode(result)

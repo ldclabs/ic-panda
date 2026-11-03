@@ -16,6 +16,8 @@
 	<string>Ảnh chụp nhanh kênh có sẵn cho các thành viên có quyền truy cập vào kỷ nguyên này, bao gồm cả quyền truy cập lịch sử sau này. Nó không có hạn sử dụng liên kết, giới hạn phiên tải xuống hoặc thu hồi.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Phiên tải xuống là mức cho phép truy xuất chứ không phải số lần đọc tệp. Hết hạn hoặc thu hồi không thể xóa các bản sao đã được lưu.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>Đã có tệp hoặc thư mục mang tên này.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>L1 của địa chỉ native gắn với khóa của một thiết bị, nên thiết bị này nhận địa chỉ riêng và coin được chuyển sang đó. Mỗi bước là một đề xuất do thành viên phê duyệt.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>Giới thiệu</string>
 	<key>About dMsg</key>
 	<string>Giới thiệu về dMsg</string>
+	<key>About files and backups</key>
+	<string>Về tệp và bản sao lưu</string>
 	<key>Accept approved binding</key>
 	<string>Chấp nhận ràng buộc đã được phê duyệt</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Tài khoản, thiết bị và danh tính</string>
 	<key>Accounts</key>
 	<string>Tài khoản</string>
+	<key>Actions</key>
+	<string>Thao tác</string>
 	<key>Active</key>
 	<string>Đang hoạt động</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Đã sao lưu</string>
 	<key>Background ciphertext transfer</key>
 	<string>Truyền bản mã nền</string>
+	<key>Background download</key>
+	<string>Tải xuống trong nền</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Khả năng ký nền và tác tử thường trú tách biệt với khóa không gian làm việc này.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Đang sao lưu…</string>
 	<key>Backup failed</key>
 	<string>Sao lưu thất bại</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Không thể làm mới danh sách bản sao lưu</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Đã lưu tiến trình sao lưu. Kiểm tra trạng thái tập tin để hoàn thành.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Kiểm tra trạng thái khôi phục</string>
 	<key>Check request</key>
 	<string>Kiểm tra yêu cầu</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Kiểm tra tên và thư mục đích rồi thử lại.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Kiểm tra hoạt động của thiết bị này trước khi quyết định xem có còn cần quyền truy cập hay không.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Danh sách kiểm tra đã hoàn thành</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Danh sách kiểm tra được hoàn thành từ báo cáo của bạn. Trạng thái ngược dòng vẫn có thể được xác minh độc lập chỉ với nhà cung cấp.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Chọn Sao lưu lên đám mây trên một tệp cục bộ để tạo bản sao lưu đầu tiên.</string>
 	<key>Choose a credential for:</key>
 	<string>Chọn thông tin xác thực cho:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Chọn hình đại diện</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Chọn chính xác những gì ảnh chụp nhanh độc lập này chứa. Chỉnh sửa nguồn sẽ không thay đổi các bản sao đã được gửi.</string>
+	<key>Choose folder</key>
+	<string>Chọn thư mục</string>
 	<key>Choose password export</key>
 	<string>Chọn xuất mật khẩu</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Xóa bộ nhớ đệm</string>
 	<key>Clear filters</key>
 	<string>Xóa bộ lọc</string>
+	<key>Clear search</key>
+	<string>Xóa tìm kiếm</string>
 	<key>Clear selection</key>
 	<string>Bỏ chọn</string>
 	<key>Close invitation</key>
 	<string>Đóng lời mời</string>
 	<key>Closed</key>
 	<string>Đã đóng</string>
+	<key>Cloud backup</key>
+	<string>Bản sao lưu đám mây</string>
 	<key>Cloud backup file limit</key>
 	<string>Giới hạn mỗi tệp sao lưu đám mây</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Việc xóa đám mây đã hoàn tất</string>
 	<key>Cloud storage</key>
 	<string>Lưu trữ đám mây</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Đã vượt giới hạn lưu trữ đám mây hoặc kích thước tệp. Hãy kiểm tra gói và kích thước bản sao lưu.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>So sánh ID thiết bị trên hai màn hình và phê duyệt trên máy tính.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Phục hồi hoàn toàn sau thời gian chờ đợi</string>
 	<key>Completed</key>
 	<string>Đã hoàn thành</string>
+	<key>Completed downloads</key>
+	<string>Lượt tải xuống đã hoàn tất</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Định cấu hình ánh xạ tệp trên máy tính để bàn</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controllers và các đoàn</string>
 	<key>Conversation</key>
 	<string>Cuộc trò chuyện</string>
+	<key>Conversation attachments</key>
+	<string>Tệp đính kèm cuộc trò chuyện</string>
 	<key>Conversation limit</key>
 	<string>Giới hạn cuộc trò chuyện</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Bản sao chỉ ở trên thiết bị này và hết hạn trong vòng 30 giây.</string>
 	<key>Copy</key>
 	<string>Sao chép</string>
+	<key>Copy SHA-256</key>
+	<string>Sao chép SHA-256</string>
 	<key>Copy account ID</key>
 	<string>Sao chép ID tài khoản</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Cơ sở dữ liệu</string>
 	<key>Date</key>
 	<string>Ngày</string>
+	<key>Days before removal</key>
+	<string>Số ngày lưu giữ</string>
 	<key>Delegations</key>
 	<string>Đoàn đại biểu</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Xóa bản sao</string>
 	<key>Delete this cloud backup?</key>
 	<string>Xóa bản sao lưu đám mây này?</string>
+	<key>Deleted</key>
+	<string>Ngày xóa</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Việc xóa tài khoản dMsg của bạn sẽ không hủy đăng ký Apple. Hãy hủy nó trong cài đặt tài khoản Apple của bạn để ngừng gia hạn.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Có thể tải lại dữ liệu hiển thị mã hóa, tệp đính kèm đã lưu đệm và danh sách tệp đám mây. Kho bí mật, tin nhắn, thư viện tệp cục bộ và công việc chưa đồng bộ được giữ lại.</string>
 	<key>Encrypting</key>
 	<string>Mã hóa</string>
+	<key>Encrypting on this device…</key>
+	<string>Đang mã hóa trên thiết bị này…</string>
 	<key>Engine</key>
 	<string>Động cơ</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Tên tập tin</string>
 	<key>File not available on this device</key>
 	<string>Tệp không có sẵn trên thiết bị này</string>
+	<key>File tools</key>
+	<string>Công cụ tệp</string>
 	<key>File transfers</key>
 	<string>Truyền tệp</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Nhập mật khẩu</string>
 	<key>Import photo</key>
 	<string>Nhập ảnh</string>
+	<key>Import photos or videos</key>
+	<string>Nhập ảnh hoặc video</string>
 	<key>Import secret package</key>
 	<string>Nhập gói bí mật</string>
 	<key>Import selected records</key>
 	<string>Nhập bản ghi đã chọn</string>
 	<key>Import selected secrets</key>
 	<string>Nhập các bí mật đã chọn</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Đã nhập vào thiết bị này. Sao lưu đám mây là thao tác riêng.</string>
 	<key>In Trash</key>
 	<string>Trong thùng rác</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · sau thời gian chờ</string>
 	<key>Language</key>
 	<string>Ngôn ngữ</string>
+	<key>Largest first</key>
+	<string>Lớn nhất trước</string>
 	<key>Last known cloud state</key>
 	<string>Trạng thái đám mây được biết đến lần cuối</string>
+	<key>Last refreshed</key>
+	<string>Lần làm mới gần nhất</string>
 	<key>Last successful sync</key>
 	<string>Lần đồng bộ thành công gần nhất</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Đã rút tin nhắn</string>
 	<key>Messages</key>
 	<string>Tin nhắn</string>
+	<key>Modified</key>
+	<string>Ngày sửa đổi</string>
 	<key>Month</key>
 	<string>Tháng</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Chuyển sang thiết bị này</string>
 	<key>Moved</key>
 	<string>Đã chuyển</string>
+	<key>Moved to Trash</key>
+	<string>Đã chuyển vào Thùng rác</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Chuyển thư viện tệp sang thiết bị khác của tài khoản này trên cùng mạng, mã hóa đầu cuối. Giữ cả hai thiết bị ở trạng thái mở khóa cho đến khi xong.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Chuyển vào Thùng rác không giải phóng dung lượng đám mây.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Chuyển sang thiết bị mới: thiết bị mới yêu cầu thay thế thiết bị cũ, thiết bị cũ phê duyệt, rồi cả hai bàn giao từng bước.</string>
+	<key>Moving…</key>
+	<string>Đang di chuyển…</string>
 	<key>Multisig wallets</key>
 	<string>Ví đa chữ ký</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Bản sửa đổi mới</string>
 	<key>New secret</key>
 	<string>Bí mật mới</string>
+	<key>Newest first</key>
+	<string>Mới nhất trước</string>
 	<key>Next</key>
 	<string>Tiếp theo</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Không</string>
 	<key>No accounts</key>
 	<string>Không có tài khoản</string>
+	<key>No active transfers</key>
+	<string>Không có lượt truyền đang hoạt động</string>
 	<key>No activity on this device</key>
 	<string>Không có hoạt động nào trên thiết bị này</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Không chuyển nền</string>
 	<key>No blocked accounts</key>
 	<string>Không có tài khoản bị chặn</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Không có bản sao lưu đám mây cho phiên bản này.</string>
 	<key>No cloud backups</key>
 	<string>Không có bản sao lưu đám mây</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Chưa có mục yêu thích</string>
 	<key>No fields or notes</key>
 	<string>Chưa có gì được viết.</string>
+	<key>No file versions</key>
+	<string>Không có phiên bản tệp</string>
+	<key>No files in this folder</key>
+	<string>Không có tệp trong thư mục này</string>
 	<key>No findings from this device's checks.</key>
 	<string>Không có kết quả nào từ quá trình kiểm tra thiết bị này.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Không có bản chụp</string>
 	<key>No snapshots on this device</key>
 	<string>Không có ảnh chụp nhanh trên thiết bị này</string>
+	<key>No transfer was started.</key>
+	<string>Chưa bắt đầu lượt truyền nào.</string>
 	<key>Not delivered</key>
 	<string>Chưa giao</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Mở dMsg. Việc mở khóa và phê duyệt vẫn yêu cầu sự tương tác của bạn trong ứng dụng.</string>
 	<key>Open invitation in browser</key>
 	<string>Mở lời mời trong trình duyệt</string>
+	<key>Open local file</key>
+	<string>Mở tệp cục bộ</string>
 	<key>Open notification settings</key>
 	<string>Mở cài đặt thông báo</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Mở hồ sơ công khai</string>
 	<key>Open secret</key>
 	<string>Mở bí mật</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Mở tài khoản gốc để xác minh và hoàn tất lượt tải xuống này.</string>
 	<key>Open workspace</key>
 	<string>Mở không gian làm việc</string>
 	<key>Optional password</key>
 	<string>Mật khẩu tùy chọn</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Tùy chọn. Chỉ khi không tự động tìm thấy thiết bị kia, ví dụ 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Thư mục gốc</string>
 	<key>Original revision</key>
 	<string>Bản sửa đổi gốc</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Quyền</string>
 	<key>Phone</key>
 	<string>Điện thoại</string>
+	<key>Photos and videos</key>
+	<string>Ảnh và video</string>
 	<key>Phrase</key>
 	<string>cụm từ</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Chuẩn bị ảnh chụp nhanh đã chọn</string>
 	<key>Prepared on this device</key>
 	<string>Được chuẩn bị trên thiết bị này</string>
+	<key>Preparing and copying file…</key>
+	<string>Đang chuẩn bị và sao chép tệp…</string>
+	<key>Preparing backups…</key>
+	<string>Đang chuẩn bị bản sao lưu…</string>
 	<key>Preview</key>
 	<string>Xem trước</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Xem trước các bản tải xuống và xác minh gói trên thiết bị này và sử dụng phiên tải xuống. Chọn thiết bị nhận trước khi tiếp tục.</string>
 	<key>Preview file</key>
 	<string>Xem trước tập tin</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Không hỗ trợ xem trước loại tệp này. Chia sẻ bản sao để mở trong ứng dụng khác.</string>
 	<key>Preview package</key>
 	<string>Gói xem trước</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Thời gian chờ phục hồi</string>
 	<key>Refresh</key>
 	<string>Làm mới</string>
+	<key>Refresh backup list</key>
+	<string>Làm mới danh sách bản sao lưu</string>
 	<key>Refresh balances</key>
 	<string>Làm mới số dư</string>
 	<key>Refresh dependencies</key>
 	<string>Làm mới phần phụ thuộc</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Làm mới bản xem trước trước khi tiếp tục.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Làm mới để kiểm tra bản sao lưu đám mây</string>
+	<key>Refreshing backups…</key>
+	<string>Đang làm mới bản sao lưu…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Làm mới danh sách không sao lưu các tệp cục bộ. Chọn Sao lưu lên đám mây cho những tệp cần bảo vệ.</string>
 	<key>Register a hardware approval key</key>
 	<string>Đăng ký khóa phê duyệt phần cứng</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Tải lại hồ sơ đã lưu</string>
 	<key>Remaining</key>
 	<string>còn lại</string>
+	<key>Removal date</key>
+	<string>Ngày xóa vĩnh viễn</string>
 	<key>Remove</key>
 	<string>Gỡ bỏ</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Bỏ dấu sao</string>
 	<key>Remove field</key>
 	<string>Xóa trường</string>
+	<key>Remove local copy</key>
+	<string>Xóa bản sao cục bộ</string>
+	<key>Remove local copy?</key>
+	<string>Xóa bản sao cục bộ?</string>
 	<key>Remove local data</key>
 	<string>Xóa dữ liệu cục bộ</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Xóa tác tử địa phương này?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Việc xóa tham chiếu sẽ không xóa tệp. Các tài liệu tham khảo hiện có được lưu giữ ngay cả khi tệp của chúng bị thiếu trên thiết bị này.</string>
+	<key>Rename</key>
+	<string>Đổi tên</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Sửa chữa tham chiếu trường không có sẵn trên thiết bị gốc của nó.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Khôi phục phiên bản này thành phiên bản mới hiện tại?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Khôi phục phiên bản này từ bản sao lưu đám mây trước khi mở nó.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Khôi phục phiên bản này về thiết bị trước khi sao lưu.</string>
 	<key>Restore to this device</key>
 	<string>Khôi phục về thiết bị này</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Quá trình khôi phục tải xuống và xác minh phiên bản đã chọn trước khi cho phép mở.</string>
 	<key>Restoring…</key>
 	<string>Đang khôi phục…</string>
 	<key>Result</key>
 	<string>kết quả</string>
 	<key>Result unconfirmed</key>
 	<string>Kết quả chưa được xác nhận</string>
+	<key>Results</key>
+	<string>Kết quả</string>
 	<key>Resume</key>
 	<string>Tiếp tục</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
 	<key>Saving draft…</key>
 	<string>Đang lưu bản nháp…</string>
+	<key>Saving…</key>
+	<string>Đang lưu…</string>
 	<key>Scan QR code</key>
 	<string>Quét bằng camera</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Ảnh chụp màn hình có thể chứa thông tin cá nhân.</string>
 	<key>Search</key>
 	<string>Tìm kiếm</string>
+	<key>Search cloud backups</key>
+	<string>Tìm bản sao lưu đám mây</string>
 	<key>Search files</key>
 	<string>Tìm kiếm tập tin</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Chọn các trường để nhập</string>
 	<key>Select fields to share</key>
 	<string>Chọn trường để chia sẻ</string>
+	<key>Select files</key>
+	<string>Chọn tệp</string>
 	<key>Select login items</key>
 	<string>Chọn mục đăng nhập</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Các trường OTP đã chọn bao gồm hạt giống có thể tái sử dụng chứ không chỉ là mã hiện tại.</string>
 	<key>Selected accounts</key>
 	<string>Tài khoản đã chọn</string>
+	<key>Selected files</key>
+	<string>Tệp đã chọn</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Các phần đã chọn dùng phiên bản xung đột. Các phần còn lại giữ phiên bản hiện tại.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Một số ví chưa xong. Chạy lại bước này để hoàn tất.</string>
 	<key>Sort</key>
 	<string>Sắp xếp</string>
+	<key>Sort by</key>
+	<string>Sắp xếp theo</string>
 	<key>Source address</key>
 	<string>Địa chỉ nguồn</string>
 	<key>Source address %u</key>
 	<string>Địa chỉ nguồn %u</string>
+	<key>Source device</key>
+	<string>Thiết bị nguồn</string>
 	<key>Spam</key>
 	<string>Thư rác</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>Thông tin đăng nhập đã xuất không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Các bản sao tập tin không có sẵn hoặc đã hết hạn. Mở dMsg để tạo ảnh chụp nhanh mới, sau đó thử lại.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Không thể xác minh tệp. Hãy thử tải lại; không thể mở bản sao chưa hoàn chỉnh.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Thư viện tệp chỉ còn trên thiết bị cũ. Mọi thứ ở đó chưa từng được đồng bộ hay sao lưu sẽ mất khi thiết bị bị thu hồi.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Tệp hoặc thư mục không còn khả dụng. Hãy làm mới danh sách.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>Ủy quyền chuyển nhượng đã hết hạn. Hãy hủy tác vụ này, sau đó tiếp tục sao lưu ban đầu ở nền trước hoặc bắt đầu tải xuống mới.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Quá trình chuyển đã tạm dừng. Thử lại các khối được mã hóa ban đầu.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>Bản sao lưu đám mây đã xác minh và bản ghi tệp được giữ lại. Tải lại phiên bản này để mở trên thiết bị.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>Ví kiểm tra chính sách và phê duyệt hiện tại của nó. Một chữ ký phần cứng bắt buộc được yêu cầu cho kế hoạch chính xác này.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>Thiết bị này có những thay đổi chưa được đồng bộ hóa. Lưu mọi thứ bạn cần trước khi xóa tài khoản.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Thiết bị này không có khóa đồng ký cho đề xuất này.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>Thiết bị này không có bản sao cục bộ. Xóa bản sao lưu này có thể làm mất bản sao duy nhất có thể khôi phục.</string>
 	<key>This device is authorized</key>
 	<string>Thiết bị này đã được cấp quyền</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Trường này sẽ hiển thị cho đến khi bạn ẩn nó hoặc rời màn hình này.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Tệp này vượt quá giới hạn kích thước cho thao tác này.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Tệp này vượt giới hạn kích thước tệp sao lưu đám mây hiện tại.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Tệp này nằm trong Thùng rác. Khôi phục trước khi mở.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Lịch sử này thuộc về thiết bị này. Nó không phản ánh phê duyệt CLI, SSH trên máy tính để bàn cục bộ hoặc phê duyệt gắn tệp từ thiết bị khác.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Ảnh chụp nhanh này cần được chú ý. Kiểm tra trạng thái của nó trước khi tiếp tục.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Điều này theo dõi công việc của bạn trên thiết bị này. Nó không tạo, kiểm tra hoặc thu hồi thông tin đăng nhập từ nhà cung cấp của họ.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>Phiên bản này đã có lượt truyền đang diễn ra.</string>
+	<key>This version is already backed up.</key>
+	<string>Phiên bản này đã được sao lưu.</string>
 	<key>This wallet's key</key>
 	<string>Khóa của ví này</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Tổng cộng</string>
 	<key>Transfer between devices</key>
 	<string>Chuyển giữa các thiết bị</string>
+	<key>Transfer needs attention</key>
+	<string>Lượt truyền cần xử lý</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Chuyển hoặc lưu trữ các cuộc hội thoại thuộc sở hữu trước</string>
+	<key>Transfer paused</key>
+	<string>Đã tạm dừng truyền</string>
 	<key>Transfer proposal</key>
 	<string>Đề xuất chuyển nhượng</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Đã xếp hàng truyền. Theo dõi tiến độ trong Tệp.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Không thể làm mới trạng thái truyền. Các tác vụ đã lưu được giữ lại.</string>
 	<key>Transferred</key>
 	<string>Đã chuyển</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>Url</string>
 	<key>Usage</key>
 	<string>Cách sử dụng</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Dùng tên dài 1–255 ký tự, không chứa dấu gạch chéo hoặc ký tự điều khiển.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Sử dụng mật khẩu từ ảnh chụp nhanh mà bạn đã xuất rõ ràng trong dMsg.</string>
 	<key>Use a secret through a device policy</key>

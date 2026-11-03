@@ -16,6 +16,8 @@
 	<string>頻道快照對有權存取該時期的成員可見，包括之後獲授歷史存取權的成員。它沒有連結到期時間、下載會話限制，也無法收回。</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>下載會話是一次取回授權，並非檔案讀取次數。到期或撤銷不能刪除已儲存的副本。</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>已存在同名檔案或資料夾。</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>原生地址的 L1 只承諾一台裝置的鑰匙，因此本裝置需要自己的新地址，並把幣轉過去。每一步都是需要成員批准的提案。</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>簡介</string>
 	<key>About dMsg</key>
 	<string>關於 dMsg</string>
+	<key>About files and backups</key>
+	<string>關於檔案與備份</string>
 	<key>Accept approved binding</key>
 	<string>接受已批准的繫結</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>帳戶、裝置與身份</string>
 	<key>Accounts</key>
 	<string>帳戶</string>
+	<key>Actions</key>
+	<string>操作</string>
 	<key>Active</key>
 	<string>活躍</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>已雲備份</string>
 	<key>Background ciphertext transfer</key>
 	<string>背景密文傳輸</string>
+	<key>Background download</key>
+	<string>背景下載</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>背景簽名和常駐 Agent 能力不受此工作區鎖定控制。</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>備份中…</string>
 	<key>Backup failed</key>
 	<string>備份失敗</string>
+	<key>Backup list could not be refreshed</key>
+	<string>無法重新整理備份清單</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>備份進度已儲存，請在檔案狀態中檢視是否完成。</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>檢查恢復狀態</string>
 	<key>Check request</key>
 	<string>核對請求</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>請檢查名稱和目標資料夾後重試。</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>先檢查此裝置的活動記錄，再決定是否仍需保留存取權。</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>清單已完成</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>清單已根據你的宣告完成。上游狀態仍須獨立向服務提供方核實。</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>在本機檔案中選擇「備份到雲端」，建立第一份備份。</string>
 	<key>Choose a credential for:</key>
 	<string>為以下物件選擇登入憑據：</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>選擇頭像</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>逐項選擇這份獨立快照的內容。之後修改源條目不會改變已傳送的副本。</string>
+	<key>Choose folder</key>
+	<string>選擇資料夾</string>
 	<key>Choose password export</key>
 	<string>選擇密碼匯出檔案</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>清除快取</string>
 	<key>Clear filters</key>
 	<string>清除篩選</string>
+	<key>Clear search</key>
+	<string>清除搜尋</string>
 	<key>Clear selection</key>
 	<string>取消選擇</string>
 	<key>Close invitation</key>
 	<string>結束邀請</string>
 	<key>Closed</key>
 	<string>關閉</string>
+	<key>Cloud backup</key>
+	<string>雲端備份</string>
 	<key>Cloud backup file limit</key>
 	<string>雲端備份單檔上限</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>雲端刪除已完成</string>
 	<key>Cloud storage</key>
 	<string>雲端空間</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>雲端空間或檔案大小超出限制，請檢查方案和備份大小。</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>核對兩端顯示的裝置 ID，並在桌面確認授權。</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>等待期結束後完成恢復</string>
 	<key>Completed</key>
 	<string>已完成</string>
+	<key>Completed downloads</key>
+	<string>已完成的下載</string>
 	<key>Configure a desktop file mapping</key>
 	<string>配置桌面檔案對映</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>控制器與委託</string>
 	<key>Conversation</key>
 	<string>對話</string>
+	<key>Conversation attachments</key>
+	<string>對話附件</string>
 	<key>Conversation limit</key>
 	<string>對話數量上限</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>複製內容僅保留在本機，並於 30 秒內到期。</string>
 	<key>Copy</key>
 	<string>複製</string>
+	<key>Copy SHA-256</key>
+	<string>複製 SHA-256</string>
 	<key>Copy account ID</key>
 	<string>複製帳戶 ID</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>資料庫名</string>
 	<key>Date</key>
 	<string>日期</string>
+	<key>Days before removal</key>
+	<string>保留天數</string>
 	<key>Delegations</key>
 	<string>委託</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>刪除副本</string>
 	<key>Delete this cloud backup?</key>
 	<string>刪除這份雲備份？</string>
+	<key>Deleted</key>
+	<string>刪除時間</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>刪除 dMsg 帳號不會取消 Apple 訂閱。請在 Apple 帳號設定中取消，以停止續費。</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>加密的顯示資料、附件快取和雲端檔案目錄可以重新下載。清除後保留保險庫、訊息、本機檔案庫和未同步的內容。</string>
 	<key>Encrypting</key>
 	<string>正在加密</string>
+	<key>Encrypting on this device…</key>
+	<string>正在本機加密…</string>
 	<key>Engine</key>
 	<string>資料庫引擎</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>檔名</string>
 	<key>File not available on this device</key>
 	<string>此裝置上沒有該檔案</string>
+	<key>File tools</key>
+	<string>檔案工具</string>
 	<key>File transfers</key>
 	<string>檔案傳輸</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>匯入密碼</string>
 	<key>Import photo</key>
 	<string>匯入照片</string>
+	<key>Import photos or videos</key>
+	<string>匯入照片或影片</string>
 	<key>Import secret package</key>
 	<string>匯入秘密包</string>
 	<key>Import selected records</key>
 	<string>匯入所選記錄</string>
 	<key>Import selected secrets</key>
 	<string>匯入所選秘密內容</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>已匯入本機，雲端備份需另行操作。</string>
 	<key>In Trash</key>
 	<string>已在回收站</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · 延時之後</string>
 	<key>Language</key>
 	<string>語言</string>
+	<key>Largest first</key>
+	<string>大小由大到小</string>
 	<key>Last known cloud state</key>
 	<string>最近已知的雲端狀態</string>
+	<key>Last refreshed</key>
+	<string>上次重新整理</string>
 	<key>Last successful sync</key>
 	<string>最近一次成功同步</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>訊息已撤回</string>
 	<key>Messages</key>
 	<string>訊息</string>
+	<key>Modified</key>
+	<string>修改時間</string>
 	<key>Month</key>
 	<string>年月</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>遷移到本裝置</string>
 	<key>Moved</key>
 	<string>已遷移</string>
+	<key>Moved to Trash</key>
+	<string>已移至垃圾桶</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>在同一網路內把檔案庫傳到此帳戶的另一台裝置，全程端對端加密。完成前請讓兩台裝置都保持解鎖。</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>移至垃圾桶不會釋出雲端空間。</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>換用新裝置：新裝置請求取代舊裝置，舊裝置批准後，兩台裝置逐步完成交接。</string>
+	<key>Moving…</key>
+	<string>正在移動…</string>
 	<key>Multisig wallets</key>
 	<string>多簽錢包</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>新版本</string>
 	<key>New secret</key>
 	<string>新增秘密</string>
+	<key>Newest first</key>
+	<string>時間由新到舊</string>
 	<key>Next</key>
 	<string>下一步</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>否</string>
 	<key>No accounts</key>
 	<string>沒有帳戶</string>
+	<key>No active transfers</key>
+	<string>沒有進行中的傳輸</string>
 	<key>No activity on this device</key>
 	<string>此裝置暫無活動</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>沒有背景傳輸</string>
 	<key>No blocked accounts</key>
 	<string>沒有封鎖的帳號</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>此版本沒有可用的雲端備份。</string>
 	<key>No cloud backups</key>
 	<string>沒有云備份</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>尚無收藏</string>
 	<key>No fields or notes</key>
 	<string>還沒有內容。</string>
+	<key>No file versions</key>
+	<string>沒有檔案版本</string>
+	<key>No files in this folder</key>
+	<string>此資料夾中沒有檔案</string>
 	<key>No findings from this device's checks.</key>
 	<string>此裝置的檢查沒有發現問題。</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>沒有快照</string>
 	<key>No snapshots on this device</key>
 	<string>此裝置尚無快照</string>
+	<key>No transfer was started.</key>
+	<string>未啟動傳輸。</string>
 	<key>Not delivered</key>
 	<string>未送達</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>開啟 dMsg。解鎖和批准仍需你在應用內操作。</string>
 	<key>Open invitation in browser</key>
 	<string>在瀏覽器開啟邀請</string>
+	<key>Open local file</key>
+	<string>開啟本機檔案</string>
 	<key>Open notification settings</key>
 	<string>開啟通知設定</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>開啟公開主頁</string>
 	<key>Open secret</key>
 	<string>開啟秘密條目</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>請開啟原帳號，驗證並完成此次下載。</string>
 	<key>Open workspace</key>
 	<string>開啟工作區</string>
 	<key>Optional password</key>
 	<string>密碼（可選）</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>選填。僅在無法自動找到另一台裝置時填寫，例如 192.168.1.20:52000。</string>
+	<key>Original folder</key>
+	<string>原資料夾</string>
 	<key>Original revision</key>
 	<string>原版本</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>權限</string>
 	<key>Phone</key>
 	<string>電話</string>
+	<key>Photos and videos</key>
+	<string>照片和影片</string>
 	<key>Phrase</key>
 	<string>助記詞</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>準備所選快照</string>
 	<key>Prepared on this device</key>
 	<string>已在此裝置準備</string>
+	<key>Preparing and copying file…</key>
+	<string>正在準備並複製檔案…</string>
+	<key>Preparing backups…</key>
+	<string>正在準備備份…</string>
 	<key>Preview</key>
 	<string>預覽</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>預覽會在本裝置下載並驗證秘密包，佔用一次下載會話。請先選定接收裝置再繼續。</string>
 	<key>Preview file</key>
 	<string>預覽檔案</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>此檔案類型不支援預覽。可分享副本，在其他 App 中開啟。</string>
 	<key>Preview package</key>
 	<string>預覽包內容</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>恢復等待期</string>
 	<key>Refresh</key>
 	<string>重新整理</string>
+	<key>Refresh backup list</key>
+	<string>重新整理備份清單</string>
 	<key>Refresh balances</key>
 	<string>刷新余額</string>
 	<key>Refresh dependencies</key>
 	<string>重新整理依賴</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>請重新整理預覽後再繼續。</string>
+	<key>Refresh to check cloud backups</key>
+	<string>重新整理以檢查雲端備份</string>
+	<key>Refreshing backups…</key>
+	<string>正在重新整理備份…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>重新整理清單不會備份本機檔案。請對需要保護的檔案選擇「備份到雲端」。</string>
 	<key>Register a hardware approval key</key>
 	<string>註冊硬體批准鑰匙</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>重新載入已儲存資料</string>
 	<key>Remaining</key>
 	<string>剩餘</string>
+	<key>Removal date</key>
+	<string>移除日期</string>
 	<key>Remove</key>
 	<string>移除成員</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>取消星標</string>
 	<key>Remove field</key>
 	<string>刪除欄位</string>
+	<key>Remove local copy</key>
+	<string>移除本機副本</string>
+	<key>Remove local copy?</key>
+	<string>移除本機副本？</string>
 	<key>Remove local data</key>
 	<string>移除本機資料</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>移除此本機 Agent？</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>移除引用不會刪除檔案。即使此裝置上沒有對應檔案，現有引用也會保留。</string>
+	<key>Rename</key>
+	<string>重新命名</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>請在來源裝置上修復不可用的欄位引用。</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>將此版本恢復為新的當前版本？</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>請先從雲端備份恢復此版本，再開啟。</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>請先將此版本還原到本機，再進行備份。</string>
 	<key>Restore to this device</key>
 	<string>恢復到本機</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>還原時會下載並驗證所選版本，完成後才能開啟。</string>
 	<key>Restoring…</key>
 	<string>正在恢復…</string>
 	<key>Result</key>
 	<string>結果</string>
 	<key>Result unconfirmed</key>
 	<string>結果未確認</string>
+	<key>Results</key>
+	<string>操作結果</string>
 	<key>Resume</key>
 	<string>繼續</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>已儲存，等待發布。</string>
 	<key>Saving draft…</key>
 	<string>正在儲存草稿…</string>
+	<key>Saving…</key>
+	<string>正在儲存…</string>
 	<key>Scan QR code</key>
 	<string>使用相機掃描</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>截圖可能包含私密資訊。</string>
 	<key>Search</key>
 	<string>搜尋</string>
+	<key>Search cloud backups</key>
+	<string>搜尋雲端備份</string>
 	<key>Search files</key>
 	<string>搜尋檔案</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>選擇要匯入的欄位</string>
 	<key>Select fields to share</key>
 	<string>選擇要分享的欄位</string>
+	<key>Select files</key>
+	<string>選擇檔案</string>
 	<key>Select login items</key>
 	<string>選擇登入項</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>所選一次性密碼欄位包含可重複使用的種子金鑰，不僅是當前驗證碼。</string>
 	<key>Selected accounts</key>
 	<string>指定帳號</string>
+	<key>Selected files</key>
+	<string>已選檔案</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>選取的部分採用衝突版本，其餘部分保留目前版本。</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>還有錢包未完成。請再執行一次此步驟。</string>
 	<key>Sort</key>
 	<string>排序</string>
+	<key>Sort by</key>
+	<string>排序方式</string>
 	<key>Source address</key>
 	<string>來源地址</string>
 	<key>Source address %u</key>
 	<string>來源地址 %u</string>
+	<key>Source device</key>
+	<string>來源裝置</string>
 	<key>Spam</key>
 	<string>垃圾資訊</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>匯出的憑據不可用或已到期，請開啟 dMsg 建立新快照。</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>檔案副本不可用或已到期，請開啟 dMsg 建立新快照後重試。</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>檔案未能通過驗證，請重試下載。不完整的副本無法開啟。</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>檔案庫將只留在舊裝置上。舊裝置被撤銷後，其中從未同步或備份的內容會遺失。</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>檔案或資料夾已無法使用，請重新整理清單。</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>收件匣金鑰尚未同步到此裝置。請先在開啟收信的裝置上同步，再在此重試。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>傳輸授權已到期。請取消此任務，再在前臺繼續原備份或啟動新下載。</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>傳輸已暫停，請重試原密文塊。</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>已驗證的雲端備份和檔案記錄會保留。在本機開啟時，需重新下載此版本。</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>錢包會檢查當前策略和批准狀態。需要硬體簽名時，會為此具體方案請求籤名。</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>此裝置有未同步的修改，請在刪除帳號前儲存需要的內容。</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>本機沒有此提案可用的聯合簽名金鑰。</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>本裝置沒有本機副本。刪除此備份可能會移除唯一可還原的副本。</string>
 	<key>This device is authorized</key>
 	<string>此裝置已獲授權</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>此欄位會保持可見，直到你將它隱藏或離開此頁面。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>此檔案超過此操作允許的大小上限。</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>此檔案超過目前雲端備份的單一檔案大小限制。</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>此檔案在垃圾桶中，請先還原再開啟。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>此歷史記錄僅屬於本裝置，不會映象其他裝置上的桌面本機 CLI、SSH 或檔案掛載審批。</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>此快照需要處理。繼續前，請先核查其狀態。</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>這隻記錄你在此裝置上的工作，不會替你在服務提供方建立、測試或撤銷憑據。</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>此版本已有進行中的傳輸。</string>
+	<key>This version is already backed up.</key>
+	<string>此版本已備份。</string>
 	<key>This wallet's key</key>
 	<string>此錢包的鑰匙</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>合計</string>
 	<key>Transfer between devices</key>
 	<string>裝置間直傳</string>
+	<key>Transfer needs attention</key>
+	<string>傳輸需要處理</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>請先轉移或歸檔你擁有的會話</string>
+	<key>Transfer paused</key>
+	<string>傳輸已暫停</string>
 	<key>Transfer proposal</key>
 	<string>轉帳提案</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>傳輸已加入佇列，可在檔案庫查看進度。</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>無法重新整理傳輸狀態，已儲存的工作仍會保留。</string>
 	<key>Transferred</key>
 	<string>已傳送</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>網址</string>
 	<key>Usage</key>
 	<string>用量</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>名稱須為 1–255 個字元，且不能包含斜線或控制字元。</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>使用你在 dMsg 中明確匯出的快照裡的密碼。</string>
 	<key>Use a secret through a device policy</key>

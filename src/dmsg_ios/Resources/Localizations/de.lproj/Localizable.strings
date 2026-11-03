@@ -16,6 +16,8 @@
 	<string>Für Mitglieder mit Zugriff auf diese Epoche, einschließlich späterer Geschichtszuschüsse, steht ein Kanal-Snapshot zur Verfügung. Es gibt keinen Linkablauf, kein Download-Sitzungslimit oder keinen Rückruf.</string>
 	<key>A download session is a retrieval allowance, not a count of file reads. Expiry or revocation cannot erase copies already saved.</key>
 	<string>Bei einer Download-Sitzung handelt es sich um ein Abrufkontingent, nicht um die Anzahl der Dateilesevorgänge. Durch Ablauf oder Widerruf können bereits gespeicherte Kopien nicht gelöscht werden.</string>
+	<key>A file or folder with this name already exists.</key>
+	<string>Eine Datei oder ein Ordner mit diesem Namen ist bereits vorhanden.</string>
 	<key>A native address's L1 commits to one device's key, so this device gets an address of its own and the coins move to it. Each step is a proposal members approve.</key>
 	<string>Das L1 einer nativen Adresse ist an den Schlüssel eines einzigen Geräts gebunden; daher bekommt dieses Gerät eine eigene Adresse, und das Guthaben wird dorthin verschoben. Jeder Schritt ist ein Vorschlag, den die Mitglieder genehmigen.</string>
 	<key>A record or device key could not be verified. Your workspace has not been erased.</key>
@@ -32,6 +34,8 @@
 	<string>Über mich</string>
 	<key>About dMsg</key>
 	<string>Über dMsg</string>
+	<key>About files and backups</key>
+	<string>Über Dateien und Sicherungen</string>
 	<key>Accept approved binding</key>
 	<string>Akzeptieren Sie die genehmigte Bindung</string>
 	<key>Accepted by service</key>
@@ -58,6 +62,8 @@
 	<string>Konto, Geräte und Identitäten</string>
 	<key>Accounts</key>
 	<string>Konten</string>
+	<key>Actions</key>
+	<string>Aktionen</string>
 	<key>Active</key>
 	<string>Aktiv</string>
 	<key>Active conversations</key>
@@ -262,6 +268,8 @@
 	<string>Gesichert</string>
 	<key>Background ciphertext transfer</key>
 	<string>Chiffretextübertragung im Hintergrund</string>
+	<key>Background download</key>
+	<string>Download im Hintergrund</string>
 	<key>Background signing and resident agent capabilities are separate from this workspace lock.</key>
 	<string>Hintergrundsignatur- und Resident-Agent-Funktionen sind von dieser Arbeitsbereichssperre getrennt.</string>
 	<key>Background transfer started. Review its progress in Transfers.</key>
@@ -270,6 +278,8 @@
 	<string>Sichern…</string>
 	<key>Backup failed</key>
 	<string>Sicherung fehlgeschlagen</string>
+	<key>Backup list could not be refreshed</key>
+	<string>Sicherungsliste konnte nicht aktualisiert werden</string>
 	<key>Backup progress saved. Check the file status for completion.</key>
 	<string>Sicherungsfortschritt gespeichert. Überprüfen Sie den Dateistatus auf Fertigstellung.</string>
 	<key>Backup queued. Keep dMsg open to finish uploading.</key>
@@ -384,6 +394,8 @@
 	<string>Überprüfen Sie den Wiederherstellungsstatus</string>
 	<key>Check request</key>
 	<string>Anfrage prüfen</string>
+	<key>Check the name and destination folder, then try again.</key>
+	<string>Prüfe den Namen und den Zielordner und versuche es erneut.</string>
 	<key>Check this device's activity before deciding whether access is still needed.</key>
 	<string>Überprüfen Sie die Aktivität dieses Geräts, bevor Sie entscheiden, ob weiterhin Zugriff erforderlich ist.</string>
 	<key>Checking permission…</key>
@@ -392,6 +404,8 @@
 	<string>Checkliste abgeschlossen</string>
 	<key>Checklist completed from your statements. Upstream status remains independently verifiable only with the provider.</key>
 	<string>Ausgefüllte Checkliste anhand Ihrer Abrechnungen. Der Upstream-Status bleibt nur beim Anbieter unabhängig überprüfbar.</string>
+	<key>Choose Back up to cloud from a local file to create your first backup.</key>
+	<string>Wähle bei einer lokalen Datei In der Cloud sichern, um deine erste Sicherung zu erstellen.</string>
 	<key>Choose a credential for:</key>
 	<string>Wählen Sie einen Ausweis für:</string>
 	<key>Choose a secret</key>
@@ -406,6 +420,8 @@
 	<string>Wählen Sie Avatar</string>
 	<key>Choose exactly what this independent snapshot contains. Source edits will not change copies already sent.</key>
 	<string>Wählen Sie genau aus, was dieser unabhängige Schnappschuss enthält. Änderungen an der Quelle wirken sich nicht auf bereits gesendete Kopien aus.</string>
+	<key>Choose folder</key>
+	<string>Ordner auswählen</string>
 	<key>Choose password export</key>
 	<string>Wählen Sie Passwort-Export</string>
 	<key>Choose the language for dMsg in iOS Settings.</key>
@@ -420,12 +436,16 @@
 	<string>Cache leeren</string>
 	<key>Clear filters</key>
 	<string>Filter zurücksetzen</string>
+	<key>Clear search</key>
+	<string>Suche löschen</string>
 	<key>Clear selection</key>
 	<string>Löschen Sie die Auswahl</string>
 	<key>Close invitation</key>
 	<string>Einladung schließen</string>
 	<key>Closed</key>
 	<string>Geschlossen</string>
+	<key>Cloud backup</key>
+	<string>Cloud-Sicherung</string>
 	<key>Cloud backup file limit</key>
 	<string>Dateigrößenlimit für Cloud-Backups</string>
 	<key>Cloud backup list could not be refreshed. Retry in Files.</key>
@@ -438,6 +458,8 @@
 	<string>Cloud-Löschung abgeschlossen</string>
 	<key>Cloud storage</key>
 	<string>Cloud-Speicher</string>
+	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
+	<string>Cloud-Speicher oder Dateigrößenlimit überschritten. Prüfe deinen Tarif und die Sicherungsgröße.</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Vergleichen Sie die Geräte-ID auf beiden Bildschirmen und bestätigen Sie am Computer.</string>
 	<key>Compare with current</key>
@@ -448,6 +470,8 @@
 	<string>Vollständige Genesung nach Wartezeit</string>
 	<key>Completed</key>
 	<string>Abgeschlossen</string>
+	<key>Completed downloads</key>
+	<string>Abgeschlossene Downloads</string>
 	<key>Configure a desktop file mapping</key>
 	<string>Konfigurieren Sie eine Desktop-Dateizuordnung</string>
 	<key>Configured on this device</key>
@@ -510,6 +534,8 @@
 	<string>Controller und Delegationen</string>
 	<key>Conversation</key>
 	<string>Gespräch</string>
+	<key>Conversation attachments</key>
+	<string>Anhänge in Unterhaltungen</string>
 	<key>Conversation limit</key>
 	<string>Unterhaltungslimit</string>
 	<key>Conversation name</key>
@@ -530,6 +556,8 @@
 	<string>Kopien bleiben auf diesem Gerät und verfallen innerhalb von 30 Sekunden.</string>
 	<key>Copy</key>
 	<string>Kopieren</string>
+	<key>Copy SHA-256</key>
+	<string>SHA-256 kopieren</string>
 	<key>Copy account ID</key>
 	<string>Konto-ID kopieren</string>
 	<key>Copy address</key>
@@ -644,6 +672,8 @@
 	<string>Datenbank</string>
 	<key>Date</key>
 	<string>Datum</string>
+	<key>Days before removal</key>
+	<string>Aufbewahrung in Tagen</string>
 	<key>Delegations</key>
 	<string>Delegationen</string>
 	<key>Delete account</key>
@@ -654,6 +684,8 @@
 	<string>Kopie löschen</string>
 	<key>Delete this cloud backup?</key>
 	<string>Dieses Cloud-Backup löschen?</string>
+	<key>Deleted</key>
+	<string>Gelöscht am</string>
 	<key>Deleting your dMsg account does not cancel an Apple subscription. Cancel it in your Apple account settings to stop renewal.</key>
 	<string>Durch das Löschen Ihres dMsg-Kontos wird Ihr Apple-Abonnement nicht gekündigt. Kündigen Sie es in den Einstellungen Ihres Apple-Kontos, um die Verlängerung zu stoppen.</string>
 	<key>Deleting your dMsg service account permanently removes its cloud ciphertext, private service data, device notification registrations and public avatar origin copies. It cannot erase blockchain records, other recipients' copies, or data held by other services.</key>
@@ -780,6 +812,8 @@
 	<string>Verschlüsselte Anzeigedaten, zwischengespeicherte Anhänge und Cloud-Dateilisten können erneut geladen werden. Tresor, Nachrichten, lokale Bibliothek und nicht synchronisierte Änderungen bleiben erhalten.</string>
 	<key>Encrypting</key>
 	<string>Verschlüsseln</string>
+	<key>Encrypting on this device…</key>
+	<string>Verschlüsselung auf diesem Gerät…</string>
 	<key>Engine</key>
 	<string>Motor</string>
 	<key>Enrolled biometrics changed. Register a replacement key before relying on this key.</key>
@@ -854,6 +888,8 @@
 	<string>Dateiname</string>
 	<key>File not available on this device</key>
 	<string>Datei auf diesem Gerät nicht verfügbar</string>
+	<key>File tools</key>
+	<string>Dateiwerkzeuge</string>
 	<key>File transfers</key>
 	<string>Dateiübertragungen</string>
 	<key>File versions</key>
@@ -972,12 +1008,16 @@
 	<string>Passwörter importieren</string>
 	<key>Import photo</key>
 	<string>Foto importieren</string>
+	<key>Import photos or videos</key>
+	<string>Fotos oder Videos importieren</string>
 	<key>Import secret package</key>
 	<string>Geheimpaket importieren</string>
 	<key>Import selected records</key>
 	<string>Ausgewählte Datensätze importieren</string>
 	<key>Import selected secrets</key>
 	<string>Ausgewählte Geheimnisse importieren</string>
+	<key>Imported to this device. Cloud backup is a separate action.</key>
+	<string>Auf dieses Gerät importiert. Die Cloud-Sicherung erfolgt separat.</string>
 	<key>In Trash</key>
 	<string>Im Papierkorb</string>
 	<key>In progress</key>
@@ -1056,8 +1096,12 @@
 	<string>L2 · nach der Wartezeit</string>
 	<key>Language</key>
 	<string>Sprache</string>
+	<key>Largest first</key>
+	<string>Größte zuerst</string>
 	<key>Last known cloud state</key>
 	<string>Letzter bekannter Wolkenzustand</string>
+	<key>Last refreshed</key>
+	<string>Zuletzt aktualisiert</string>
 	<key>Last successful sync</key>
 	<string>Letzte erfolgreiche Synchronisierung</string>
 	<key>Latest messages</key>
@@ -1168,6 +1212,8 @@
 	<string>Nachricht zurückgezogen</string>
 	<key>Messages</key>
 	<string>Nachrichten</string>
+	<key>Modified</key>
+	<string>Geändert am</string>
 	<key>Month</key>
 	<string>Monat</string>
 	<key>Monthly execution limit</key>
@@ -1194,6 +1240,8 @@
 	<string>Auf dieses Gerät verschieben</string>
 	<key>Moved</key>
 	<string>Verschoben</string>
+	<key>Moved to Trash</key>
+	<string>In den Papierkorb verschoben</string>
 	<key>Moves the file library to another device of this account on the same network, encrypted end to end. Keep both devices unlocked until it finishes.</key>
 	<string>Überträgt die Dateibibliothek Ende-zu-Ende-verschlüsselt auf ein anderes Gerät dieses Kontos im selben Netzwerk. Halten Sie beide Geräte bis zum Ende entsperrt.</string>
 	<key>Moving from an old device? This device takes over its role, keys and wallets, then the old device is revoked.</key>
@@ -1202,6 +1250,8 @@
 	<string>Das Verschieben in den Papierkorb gibt keinen Cloud-Speicher frei.</string>
 	<key>Moving to a new device: the new device asks to replace an old one, the old device approves, then both hand over step by step.</key>
 	<string>Umzug auf ein neues Gerät: Das neue Gerät bittet darum, ein altes zu ersetzen, das alte genehmigt, dann übergeben beide Schritt für Schritt.</string>
+	<key>Moving…</key>
+	<string>Verschieben…</string>
 	<key>Multisig wallets</key>
 	<string>Multisig-Wallets</string>
 	<key>Mute notifications</key>
@@ -1236,6 +1286,8 @@
 	<string>Neue Überarbeitung</string>
 	<key>New secret</key>
 	<string>Neues Geheimnis</string>
+	<key>Newest first</key>
+	<string>Neueste zuerst</string>
 	<key>Next</key>
 	<string>Als Nächstes</string>
 	<key>Next retry</key>
@@ -1244,6 +1296,8 @@
 	<string>Nein</string>
 	<key>No accounts</key>
 	<string>Keine Konten</string>
+	<key>No active transfers</key>
+	<string>Keine aktiven Übertragungen</string>
 	<key>No activity on this device</key>
 	<string>Keine Aktivität auf diesem Gerät</string>
 	<key>No agents</key>
@@ -1254,6 +1308,8 @@
 	<string>Keine Hintergrundübertragung</string>
 	<key>No blocked accounts</key>
 	<string>Keine gesperrten Konten</string>
+	<key>No cloud backup is available for this version.</key>
+	<string>Für diese Version ist keine Cloud-Sicherung verfügbar.</string>
 	<key>No cloud backups</key>
 	<string>Keine Cloud-Backups</string>
 	<key>No connected browsers</key>
@@ -1268,6 +1324,10 @@
 	<string>Keine Favoriten</string>
 	<key>No fields or notes</key>
 	<string>Noch nichts geschrieben.</string>
+	<key>No file versions</key>
+	<string>Keine Dateiversionen</string>
+	<key>No files in this folder</key>
+	<string>Keine Dateien in diesem Ordner</string>
 	<key>No findings from this device's checks.</key>
 	<string>Keine Erkenntnisse aus den Überprüfungen dieses Geräts.</string>
 	<key>No handovers on this device.</key>
@@ -1304,6 +1364,8 @@
 	<string>Kein Snapshot</string>
 	<key>No snapshots on this device</key>
 	<string>Keine Schnappschüsse auf diesem Gerät</string>
+	<key>No transfer was started.</key>
+	<string>Es wurde keine Übertragung gestartet.</string>
 	<key>Not delivered</key>
 	<string>Nicht geliefert</string>
 	<key>Not enabled</key>
@@ -1384,6 +1446,8 @@
 	<string>Öffnen Sie dMsg. Für die Entsperrung und Genehmigung ist weiterhin Ihre Interaktion in der App erforderlich.</string>
 	<key>Open invitation in browser</key>
 	<string>Einladung im Browser öffnen</string>
+	<key>Open local file</key>
+	<string>Lokale Datei öffnen</string>
 	<key>Open notification settings</key>
 	<string>Benachrichtigungseinstellungen öffnen</string>
 	<key>Open original message</key>
@@ -1394,12 +1458,16 @@
 	<string>Öffentliches Profil öffnen</string>
 	<key>Open secret</key>
 	<string>Offenes Geheimnis</string>
+	<key>Open the original account to verify and finish this download.</key>
+	<string>Öffne das ursprüngliche Konto, um diesen Download zu prüfen und abzuschließen.</string>
 	<key>Open workspace</key>
 	<string>Arbeitsbereich öffnen</string>
 	<key>Optional password</key>
 	<string>Optionales Passwort</string>
 	<key>Optional. Only when the other device is not found automatically, for example 192.168.1.20:52000.</key>
 	<string>Optional. Nur wenn das andere Gerät nicht automatisch gefunden wird, zum Beispiel 192.168.1.20:52000.</string>
+	<key>Original folder</key>
+	<string>Ursprünglicher Ordner</string>
 	<key>Original revision</key>
 	<string>Ursprüngliche Überarbeitung</string>
 	<key>Other</key>
@@ -1464,6 +1532,8 @@
 	<string>Berechtigungen</string>
 	<key>Phone</key>
 	<string>Telefon</string>
+	<key>Photos and videos</key>
+	<string>Fotos und Videos</string>
 	<key>Phrase</key>
 	<string>Satz</string>
 	<key>Pin</key>
@@ -1480,6 +1550,10 @@
 	<string>Bereiten Sie den ausgewählten Schnappschuss vor</string>
 	<key>Prepared on this device</key>
 	<string>Auf diesem Gerät vorbereitet</string>
+	<key>Preparing and copying file…</key>
+	<string>Datei wird vorbereitet und kopiert…</string>
+	<key>Preparing backups…</key>
+	<string>Sicherungen werden vorbereitet…</string>
 	<key>Preview</key>
 	<string>Vorschau</string>
 	<key>Preview and choose what to import</key>
@@ -1488,6 +1562,8 @@
 	<string>Die Vorschau lädt das Paket auf diesem Gerät herunter, überprüft es und verwendet eine Download-Sitzung. Wählen Sie das Empfangsgerät aus, bevor Sie fortfahren.</string>
 	<key>Preview file</key>
 	<string>Vorschaudatei</string>
+	<key>Preview is unavailable for this file type. Share a copy to open it in another app.</key>
+	<string>Für diesen Dateityp ist keine Vorschau verfügbar. Teile eine Kopie, um sie in einer anderen App zu öffnen.</string>
 	<key>Preview package</key>
 	<string>Vorschaupaket</string>
 	<key>Preview transfer</key>
@@ -1630,12 +1706,20 @@
 	<string>Wartezeit für die Wiederherstellung</string>
 	<key>Refresh</key>
 	<string>Aktualisieren</string>
+	<key>Refresh backup list</key>
+	<string>Sicherungsliste aktualisieren</string>
 	<key>Refresh balances</key>
 	<string>Guthaben aktualisieren</string>
 	<key>Refresh dependencies</key>
 	<string>Abhängigkeiten aktualisieren</string>
 	<key>Refresh the preview before continuing.</key>
 	<string>Vorschau vor dem Fortfahren aktualisieren.</string>
+	<key>Refresh to check cloud backups</key>
+	<string>Aktualisieren, um Cloud-Sicherungen zu prüfen</string>
+	<key>Refreshing backups…</key>
+	<string>Sicherungen werden aktualisiert…</string>
+	<key>Refreshing this list does not back up local files. Choose Back up to cloud for the files you want to protect.</key>
+	<string>Das Aktualisieren der Liste sichert keine lokalen Dateien. Wähle In der Cloud sichern für die gewünschten Dateien.</string>
 	<key>Register a hardware approval key</key>
 	<string>Registrieren Sie einen Hardware-Genehmigungsschlüssel</string>
 	<key>Register an SSH binding</key>
@@ -1658,6 +1742,8 @@
 	<string>Gespeichertes Profil neu laden</string>
 	<key>Remaining</key>
 	<string>verbleibend</string>
+	<key>Removal date</key>
+	<string>Entfernungsdatum</string>
 	<key>Remove</key>
 	<string>Entfernen</string>
 	<key>Remove AutoFill snapshot</key>
@@ -1676,6 +1762,10 @@
 	<string>Unstar</string>
 	<key>Remove field</key>
 	<string>Feld entfernen</string>
+	<key>Remove local copy</key>
+	<string>Lokale Kopie entfernen</string>
+	<key>Remove local copy?</key>
+	<string>Lokale Kopie entfernen?</string>
 	<key>Remove local data</key>
 	<string>Lokale Daten entfernen</string>
 	<key>Remove member</key>
@@ -1692,6 +1782,8 @@
 	<string>Diesen lokalen Agenten entfernen?</string>
 	<key>Removing a reference does not delete the file. Existing references are kept even when their files are missing on this device.</key>
 	<string>Durch das Entfernen einer Referenz wird die Datei nicht gelöscht. Vorhandene Referenzen bleiben auch dann erhalten, wenn ihre Dateien auf diesem Gerät fehlen.</string>
+	<key>Rename</key>
+	<string>Umbenennen</string>
 	<key>Repair the unavailable field reference on its originating device.</key>
 	<string>Reparieren Sie die nicht verfügbare Feldreferenz auf dem Ursprungsgerät.</string>
 	<key>Replace AutoFill snapshot</key>
@@ -1756,14 +1848,20 @@
 	<string>Diese Version als neue aktuelle Version wiederherstellen?</string>
 	<key>Restore this version from cloud backups before opening it.</key>
 	<string>Stellen Sie diese Version aus Cloud-Backups wieder her, bevor Sie sie öffnen.</string>
+	<key>Restore this version to this device before backing it up.</key>
+	<string>Stelle diese Version vor dem Sichern auf diesem Gerät wieder her.</string>
 	<key>Restore to this device</key>
 	<string>Auf diesem Gerät wiederherstellen</string>
+	<key>Restoring downloads and verifies the selected version before it can be opened.</key>
+	<string>Beim Wiederherstellen wird die gewählte Version heruntergeladen und vor dem Öffnen geprüft.</string>
 	<key>Restoring…</key>
 	<string>Wiederherstellung…</string>
 	<key>Result</key>
 	<string>Ergebnis</string>
 	<key>Result unconfirmed</key>
 	<string>Ergebnis unbestätigt</string>
+	<key>Results</key>
+	<string>Ergebnisse</string>
 	<key>Resume</key>
 	<string>Fortsetzen</string>
 	<key>Retire a hardware approval key</key>
@@ -1974,6 +2072,8 @@
 	<string>Gespeichert. Die Veröffentlichung steht noch aus.</string>
 	<key>Saving draft…</key>
 	<string>Entwurf wird gespeichert…</string>
+	<key>Saving…</key>
+	<string>Speichern…</string>
 	<key>Scan QR code</key>
 	<string>Mit Kamera scannen</string>
 	<key>Scan desktop invitation</key>
@@ -1986,6 +2086,8 @@
 	<string>Screenshots können private Informationen enthalten.</string>
 	<key>Search</key>
 	<string>Suchen</string>
+	<key>Search cloud backups</key>
+	<string>Cloud-Sicherungen durchsuchen</string>
 	<key>Search files</key>
 	<string>Dateien durchsuchen</string>
 	<key>Search messages</key>
@@ -2022,6 +2124,8 @@
 	<string>Wählen Sie die zu importierenden Felder aus</string>
 	<key>Select fields to share</key>
 	<string>Wählen Sie Felder zum Teilen aus</string>
+	<key>Select files</key>
+	<string>Dateien auswählen</string>
 	<key>Select login items</key>
 	<string>Wählen Sie Anmeldeelemente aus</string>
 	<key>Select non-duplicates</key>
@@ -2034,6 +2138,8 @@
 	<string>Ausgewählte OTP-Felder enthalten den wiederverwendbaren Startwert und nicht nur einen aktuellen Code.</string>
 	<key>Selected accounts</key>
 	<string>Ausgewählte Konten</string>
+	<key>Selected files</key>
+	<string>Ausgewählte Dateien</string>
 	<key>Selected parts use the conflicting version. Other parts keep the current version.</key>
 	<string>Ausgewählte Teile verwenden die Konfliktversion. Andere Teile behalten die aktuelle Version.</string>
 	<key>Send device request</key>
@@ -2158,10 +2264,14 @@
 	<string>Einige Wallets sind noch nicht fertig. Führen Sie den Schritt erneut aus.</string>
 	<key>Sort</key>
 	<string>Sortieren</string>
+	<key>Sort by</key>
+	<string>Sortieren nach</string>
 	<key>Source address</key>
 	<string>Quelladresse</string>
 	<key>Source address %u</key>
 	<string>Quelladresse %u</string>
+	<key>Source device</key>
+	<string>Quellgerät</string>
 	<key>Spam</key>
 	<string>Spam</string>
 	<key>Spendable now</key>
@@ -2266,8 +2376,12 @@
 	<string>Die exportierten Anmeldeinformationen sind nicht verfügbar oder abgelaufen. Öffnen Sie dMsg, um einen neuen Snapshot zu erstellen.</string>
 	<key>The file copies are unavailable or expired. Open dMsg to create a new snapshot, then retry.</key>
 	<string>Die Dateikopien sind nicht verfügbar oder abgelaufen. Öffnen Sie dMsg, um einen neuen Snapshot zu erstellen, und versuchen Sie es dann erneut.</string>
+	<key>The file could not be verified. Retry the download; an incomplete copy cannot be opened.</key>
+	<string>Die Datei konnte nicht geprüft werden. Lade sie erneut herunter; unvollständige Kopien können nicht geöffnet werden.</string>
 	<key>The file library stays only on the old device. Whatever was never synced or backed up there is lost once it is revoked.</key>
 	<string>Die Dateibibliothek bleibt nur auf dem alten Gerät. Was dort nie synchronisiert oder gesichert wurde, geht beim Widerrufen verloren.</string>
+	<key>The file or folder is no longer available. Refresh the list.</key>
+	<string>Die Datei oder der Ordner ist nicht mehr verfügbar. Aktualisiere die Liste.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Der Posteingangsschlüssel wurde noch nicht mit diesem Gerät synchronisiert. Synchronisiere das Gerät, auf dem der Empfang aktiviert wurde, und versuche es hier erneut.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2328,6 +2442,8 @@
 	<string>Die Übertragungsberechtigung ist abgelaufen. Brechen Sie diese Aufgabe ab und setzen Sie dann die ursprüngliche Sicherung im Vordergrund fort oder starten Sie einen neuen Download.</string>
 	<key>The transfer paused. Retry the original encrypted blocks.</key>
 	<string>Die Übertragung wurde unterbrochen. Versuchen Sie es erneut mit den ursprünglich verschlüsselten Blöcken.</string>
+	<key>The verified cloud backup and file record are kept. Download this version again to open it on this device.</key>
+	<string>Die geprüfte Cloud-Sicherung und der Dateieintrag bleiben erhalten. Lade diese Version erneut herunter, um sie hier zu öffnen.</string>
 	<key>The wallet checks its current policy and approvals. A required hardware signature is requested for this exact plan.</key>
 	<string>Das Wallet überprüft seine aktuellen Richtlinien und Genehmigungen. Für genau diesen Plan ist eine erforderliche Hardware-Signatur erforderlich.</string>
 	<key>These are local observations, not a breach scan or proof that a provider revoked a credential. Other devices can have different records.</key>
@@ -2364,6 +2480,8 @@
 	<string>Auf diesem Gerät wurden Änderungen vorgenommen, die nicht synchronisiert wurden. Speichern Sie alles Notwendige, bevor Sie das Konto löschen.</string>
 	<key>This device has no cosigner key for this proposal.</key>
 	<string>Dieses Gerät hat keinen Mitunterzeichner-Schlüssel für diesen Vorschlag.</string>
+	<key>This device has no local copy. Deleting this backup may remove your only recoverable copy.</key>
+	<string>Dieses Gerät hat keine lokale Kopie. Durch das Löschen dieser Sicherung geht möglicherweise deine einzige wiederherstellbare Kopie verloren.</string>
 	<key>This device is authorized</key>
 	<string>Dieses Gerät ist autorisiert</string>
 	<key>This device is replaced by</key>
@@ -2380,6 +2498,10 @@
 	<string>Dieses Feld bleibt sichtbar, bis du es ausblendest oder diese Ansicht verlässt.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Diese Datei überschreitet die Größenbeschränkung für diesen Vorgang.</string>
+	<key>This file exceeds your current cloud backup file limit.</key>
+	<string>Diese Datei überschreitet das aktuelle Dateigrößenlimit für Cloud-Sicherungen.</string>
+	<key>This file is in Trash. Restore it before opening it.</key>
+	<string>Diese Datei liegt im Papierkorb. Stelle sie vor dem Öffnen wieder her.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Dieser Verlauf gehört zu diesem Gerät. Es werden keine Desktop-lokalen CLI-, SSH- oder Datei-Mount-Genehmigungen von einem anderen Gerät gespiegelt.</string>
 	<key>This iPhone</key>
@@ -2428,6 +2550,10 @@
 	<string>Dieser Schnappschuss braucht Aufmerksamkeit. Überprüfen Sie den Status, bevor Sie fortfahren.</string>
 	<key>This tracks your work on this device. It does not create, test or revoke credentials at their provider.</key>
 	<string>Dadurch wird Ihre Arbeit auf diesem Gerät verfolgt. Es werden keine Anmeldeinformationen bei ihrem Anbieter erstellt, getestet oder widerrufen.</string>
+	<key>This version already has a transfer in progress.</key>
+	<string>Für diese Version läuft bereits eine Übertragung.</string>
+	<key>This version is already backed up.</key>
+	<string>Diese Version ist bereits gesichert.</string>
 	<key>This wallet's key</key>
 	<string>Schlüssel dieses Wallets</string>
 	<key>This workspace was made on another iPhone and copied here, for example by a restored backup or a device transfer. To protect your account it never acts as the old device: it does not unlock here, and nothing in it is erased.</key>
@@ -2442,12 +2568,18 @@
 	<string>Insgesamt</string>
 	<key>Transfer between devices</key>
 	<string>Übertragung zwischen Geräten</string>
+	<key>Transfer needs attention</key>
+	<string>Übertragung erfordert Aufmerksamkeit</string>
 	<key>Transfer or archive owned conversations first</key>
 	<string>Übertragen oder archivieren Sie zuerst die eigenen Konversationen</string>
+	<key>Transfer paused</key>
+	<string>Übertragung pausiert</string>
 	<key>Transfer proposal</key>
 	<string>Transfervorschlag</string>
 	<key>Transfer queued. Follow its progress in Files.</key>
 	<string>Übertragung eingereiht. Fortschritt unter Dateien verfolgen.</string>
+	<key>Transfer status could not be refreshed. Saved tasks are kept.</key>
+	<string>Übertragungsstatus konnte nicht aktualisiert werden. Gespeicherte Aufgaben bleiben erhalten.</string>
 	<key>Transferred</key>
 	<string>Übertragen</string>
 	<key>Transferring</key>
@@ -2508,6 +2640,8 @@
 	<string>URL</string>
 	<key>Usage</key>
 	<string>Nutzung</string>
+	<key>Use a name of 1–255 characters without slashes or control characters.</key>
+	<string>Verwende einen Namen mit 1–255 Zeichen ohne Schrägstriche oder Steuerzeichen.</string>
 	<key>Use a password from the snapshot you explicitly exported in dMsg.</key>
 	<string>Verwenden Sie ein Passwort aus dem Snapshot, den Sie explizit in dMsg exportiert haben.</string>
 	<key>Use a secret through a device policy</key>

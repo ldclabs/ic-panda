@@ -10,7 +10,7 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend() } }
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); letters.suspend(); resetFilePresentation() } }
     // Background invalidates reads through epoch while retaining this workspace's forms.
     private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:]; letters.reset() } }
     var concealed = true
@@ -60,6 +60,23 @@ final class SessionModel {
     var loadingCloudBackups: Bool { cloudBackupRequest != nil }
     var filesFolder = "root"
     var filesSearch = ""
+    var filesScope = FileScope.local
+    var filesSort = FileSort.name
+    var filesLoading = false
+    var filesLoaded = false
+    var filesFailed = false
+    var filesRequest: UUID?
+    var filesQuery = ""
+    var filesRevision: UInt64 = 0
+    var filesLocalOnly: LocalOnly?
+    var filesPendingImports = 0
+    var filesSharedImports = 0
+    var fileOperations: Set<String> = []
+    var cloudBackupsObservedAt: UInt64?
+    var cloudBackupsComplete = false
+    var cloudBackupsError: String?
+    var filesQueryKey: String { filesFolder + "\u{0}" + filesSearch }
+    var filesQueryIsCurrent: Bool { filesQuery == filesQueryKey }
     var approvals: [ApprovalView] = []
     private(set) var recoveryWarning: RecoveryObservation?
     private(set) var recoveryRefreshFailed = false
@@ -112,6 +129,12 @@ final class SessionModel {
     private var seenRecoveryDigests: [String: String] = [:]
     #if DEBUG
     let uiTesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    var fixtureFiles: [LibraryFile] = []
+    var fixtureFileFolders: [FolderItem] = []
+    var fixtureFileVersions: [String: [LibraryVersion]] = [:]
+    var fixtureFileLoads = 0
+    var fixtureFileCloudLoads = 0
+    var fixtureFileSaves = 0
     var fixtureVaultItems: [VaultItem] = []
     var fixtureVaultHistory: [String: [VaultItem]] = [:]
     var fixtureVaultSaveAttempts = 0
@@ -142,7 +165,15 @@ final class SessionModel {
                 observedAtMs: UInt64(Date.now.timeIntervalSince1970 * 1000), stale: false)
         }
         channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "Private project conversation")]
-        cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false)]
+        cloudBackups = [CloudBackup(uploadId: "fixture-backup", name: "Project brief.pdf", size: 2048, bytes: 4096, needsRoot: false, local: false,
+                                   fileId: "fixture-cloud", versionId: "v1", path: ["Projects"], mime: "application/pdf", createdAt: 1_793_000_000_000,
+                                   committedAt: 1_793_000_100_000, device: "fixture-device")]
+    }
+
+    func setFileCloudFixture(_ backups: [CloudBackup], failed: Bool = false) {
+        cloudBackups = backups; cloudBackupsKnown = true; cloudBackupsComplete = !failed
+        cloudBackupsFailed = failed; cloudBackupsError = failed ? String(localized: "Connection unavailable. Your saved content stays on this device.") : nil
+        cloudBackupsObservedAt = 1_793_000_100_000
     }
     #endif
 
@@ -775,17 +806,7 @@ final class SessionModel {
                 let result = try await engine.channels()
                 guard current == epoch else { return }; channels = result.items
             case .files:
-                _ = try await engine.maintainFiles()
-                let folder = filesFolder
-                let query = filesSearch
-                let files: LibraryListing
-                if query.isEmpty { files = try decode(try await engine.files(folder: folder)) }
-                else {
-                    let matches: [LibraryFile] = try decode(try await engine.searchFiles(query: query, folder: folder == "root" ? nil : folder))
-                    files = LibraryListing(folder: library.folder, folders: [], files: matches)
-                }
-                guard query == filesSearch, !Task.isCancelled else { return }
-                guard current == epoch, folder == filesFolder else { return }; library = files
+                await loadFiles()
                 await loadCloudBackups(refresh: false)
             case .account: break
             }
@@ -842,11 +863,14 @@ final class SessionModel {
     }
 
     func loadCloudBackups(refresh: Bool) async {
+        #if DEBUG
+        if uiTesting { refreshFileCloudFixture(refresh: refresh); return }
+        #endif
         // Reading a cache must not replace the identity of an in-flight refresh.
         if !refresh && loadingCloudBackups { return }
         let current = epoch
         do { try await coreOperation { try await fetchCloudBackups(refresh: refresh, operation: $0) } }
-        catch { if current == epoch { report(error) } }
+        catch { if current == epoch, !Task.isCancelled { cloudBackupsError = fileFailure(error) } }
     }
 
     private func fetchCloudBackups(refresh: Bool, operation: OperationToken) async throws {
@@ -858,11 +882,13 @@ final class SessionModel {
             let result = try await engine.cloudBackups(refresh: refresh, operation: operation)
             guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
             cloudBackups = try decode(result)
-            struct Observation: Decodable { let complete: Bool }
+            struct Observation: Decodable { let complete: Bool; let observedAtMs: UInt64? }
             let observation: Observation = try decode(try await engine.cloudBackupStatus())
             guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
             cloudBackupsKnown = observation.complete || !cloudBackups.isEmpty
-            if refresh { cloudBackupsFailed = false }
+            cloudBackupsComplete = observation.complete
+            cloudBackupsObservedAt = observation.observedAtMs
+            if refresh { cloudBackupsFailed = false; cloudBackupsError = nil }
         } catch {
             if !Task.isCancelled, current == epoch, cloudBackupRequest == request {
                 // Inventory pages already committed before a later page failed
@@ -872,13 +898,14 @@ final class SessionModel {
                     cloudBackups = (try? decode(saved)) ?? cloudBackups
                 }
                 guard !Task.isCancelled, current == epoch, cloudBackupRequest == request else { return }
-                cloudBackupsFailed = true; throw error
+                cloudBackupsFailed = true; cloudBackupsError = fileFailure(error); throw error
             }
         }
     }
 
     private func clearCloudBackups() {
         cloudBackups = []; cloudBackupsFailed = false; cloudBackupsKnown = false; cloudBackupRequest = nil
+        cloudBackupsObservedAt = nil; cloudBackupsComplete = false; cloudBackupsError = nil
     }
 
     func loadApprovals(refresh: Bool = false) async {

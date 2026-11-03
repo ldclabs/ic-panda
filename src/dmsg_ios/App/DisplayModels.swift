@@ -17,6 +17,7 @@ struct LibraryListing: Decodable {
     let folder: FolderItem?
     let folders: [FolderItem]
     let files: [LibraryFile]
+    var trashDays: UInt64? = nil
     static let empty = LibraryListing(folder: nil, folders: [], files: [])
 }
 
@@ -26,18 +27,37 @@ struct CloudBackup: Decodable, Identifiable {
     let size: UInt64?
     let bytes: UInt64
     let needsRoot: Bool
-    let local: Bool
+    var local: Bool
     var fileId: String? = nil
     var versionId: String? = nil
+    var path: [String]? = nil
+    var mime: String? = nil
+    var sha256: String? = nil
+    var createdAt: UInt64? = nil
+    var committedAt: UInt64? = nil
+    var device: String? = nil
     var id: String { uploadId }
+
+    var displayName: String { name ?? String(localized: "Encrypted backup") }
+    var date: UInt64 { committedAt ?? createdAt ?? 0 }
 }
 
-struct FolderItem: Decodable, Identifiable { let id: String; let name: String; let parent: String? }
+struct FolderItem: Decodable, Identifiable {
+    let id: String; var name: String; var parent: String?
+    var path: [String]? = nil
+    var trashedAt: UInt64? = nil
+}
 struct LibraryFile: Decodable, Identifiable {
-    let id: String; let name: String; let mime: String; let size: UInt64
-    let current: String; let sha256: String; let status: String
+    let id: String; var name: String; let mime: String; let size: UInt64
+    let current: String; let sha256: String; var status: String
     let versions: Int
     var local: Bool? = nil
+    var folder: String? = nil
+    var path: [String]? = nil
+    var createdAt: UInt64? = nil
+    var updatedAt: UInt64? = nil
+    var trashedAt: UInt64? = nil
+    var backup: FileBackupReceipt? = nil
     var canOpen: Bool { local ?? (status != "cloud_only") }
     var statusLabel: String {
         switch status {
@@ -49,6 +69,32 @@ struct LibraryFile: Decodable, Identifiable {
         default: String(localized: "On this device")
         }
     }
+}
+
+struct FileBackupReceipt: Decodable {
+    let uploadId: String
+    let verified: Bool
+    let backedUpAt: UInt64
+}
+
+struct LibraryVersion: Decodable, Identifiable {
+    let id: String; let size: UInt64; let sha256: String; let createdAt: UInt64
+    let current: Bool; var local: Bool
+    var device: String? = nil
+    var status: String? = nil
+    var backup: FileBackupReceipt? = nil
+
+    func file(in parent: LibraryFile) -> LibraryFile {
+        LibraryFile(id: parent.id, name: parent.name, mime: parent.mime, size: size, current: id,
+                    sha256: sha256, status: status ?? (local ? "local" : "cloud_only"), versions: parent.versions,
+                    local: local, folder: parent.folder, path: parent.path, createdAt: createdAt,
+                    updatedAt: createdAt, trashedAt: parent.trashedAt, backup: backup)
+    }
+}
+
+struct LibraryDetails: Decodable {
+    let file: LibraryFile
+    let versions: [LibraryVersion]
 }
 
 struct ApprovalView: Decodable, Identifiable {

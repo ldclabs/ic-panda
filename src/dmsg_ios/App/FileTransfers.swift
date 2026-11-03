@@ -6,19 +6,24 @@ import Observation
 /// the Rust journals resume exactly those requested transfers on the next unlock.
 @MainActor @Observable
 final class FileTransfers {
+    private struct Pass: Decodable { let completed: UInt64 }
     struct Backup: Decodable, Identifiable {
         let file: String; let version: String; let uploadId: String
         let sent: UInt64; let chunks: UInt64; let stage: String
         let bytes: UInt64; let totalBytes: UInt64; let error: String?; let retryAt: UInt64?
+        var name: String? = nil
         var id: String { uploadId }
     }
     struct Download: Decodable, Identifiable {
         let uploadId: String; let stage: String; let done: UInt64; let total: UInt64
         let bytes: UInt64; let totalBytes: UInt64; let error: String?; let retryAt: UInt64?
+        var name: String? = nil
         var id: String { uploadId }
     }
     private(set) var backups: [Backup] = []
     private(set) var downloads: [Download] = []
+    private(set) var loadFailed = false
+    var activeCount: Int { backups.count + downloads.filter { $0.stage != "done" }.count }
     private var backupWork: Task<Void, Never>?
     private var downloadWork: Task<Void, Never>?
     private var handingOff = false
@@ -27,7 +32,7 @@ final class FileTransfers {
     func stop() {
         generation &+= 1
         backupWork?.cancel(); downloadWork?.cancel()
-        backupWork = nil; downloadWork = nil; backups = []; downloads = []
+        backupWork = nil; downloadWork = nil; backups = []; downloads = []; loadFailed = false
     }
 
     func beginHandoff() async {
@@ -52,8 +57,8 @@ final class FileTransfers {
             async let b = engine.downloadStatus()
             let (backup, download) = try await (a, b)
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            backups = try model.decode(backup); downloads = try model.decode(download)
-        } catch { /* Keep the last task state; a missing response is never success. */ }
+            backups = try model.decode(backup); downloads = try model.decode(download); loadFailed = false
+        } catch { if epoch == model.epoch, !Task.isCancelled { loadFailed = true } }
     }
 
     func watch(_ model: SessionModel) async {
@@ -61,8 +66,8 @@ final class FileTransfers {
         if model.uiTesting {
             if ProcessInfo.processInfo.arguments.contains("--ui-file-transfers") {
                 let total: UInt64 = 150 * 1024 * 1024
-                backups = [Backup(file: model.library.files.first?.id ?? "preview-file", version: "one", uploadId: "preview-backup", sent: 150, chunks: 150, stage: "committing", bytes: total, totalBytes: total, error: nil, retryAt: nil)]
-                downloads = [Download(uploadId: "preview-download", stage: "verifying", done: 150, total: 150, bytes: total, totalBytes: total, error: nil, retryAt: nil)]
+                backups = [Backup(file: model.library.files.first?.id ?? "preview-file", version: "one", uploadId: "preview-backup", sent: 150, chunks: 150, stage: "committing", bytes: total, totalBytes: total, error: nil, retryAt: nil, name: "Project archive.zip")]
+                downloads = [Download(uploadId: "preview-download", stage: "verifying", done: 150, total: 150, bytes: total, totalBytes: total, error: nil, retryAt: nil, name: "Project brief.pdf")]
             }
             return
         }
@@ -86,20 +91,27 @@ final class FileTransfers {
             let backgroundUpload = (try? BackgroundTransfers.shared.store?.snapshot())?.transfer
             if !handingOff, backupWork == nil, backups.contains(where: { Self.due(error: $0.error, retryAt: $0.retryAt, now: now) }), backgroundUpload?.method != "PUT" {
                 backupWork = Task {
-                    do { _ = try await coreOperation { try await engine.runBackups(operation: $0) } }
-                    catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
+                    var completed = false
+                    do {
+                        let result = try await coreOperation { try await engine.runBackups(operation: $0) }
+                        let pass: Pass = try model.decode(result); completed = pass.completed > 0
+                    }
+                    catch { if epoch == model.epoch { _ = model.fileFailureMessage(error) } }
                     guard generation == stamp else { return }
                     backupWork = nil
-                    if epoch == model.epoch, !Task.isCancelled { await model.refresh() }
+                    if epoch == model.epoch, !Task.isCancelled {
+                        await model.loadFiles()
+                        if completed { await model.loadCloudBackups(refresh: true) }
+                    }
                 }
             }
             if !handingOff, downloadWork == nil, backgroundUpload?.method != "GET", downloads.contains(where: { $0.stage != "done" && Self.due(error: $0.error, retryAt: $0.retryAt, now: now) }) {
                 downloadWork = Task {
                     do { _ = try await coreOperation { try await engine.runDownloads(operation: $0) } }
-                    catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
+                    catch { if epoch == model.epoch { _ = model.fileFailureMessage(error) } }
                     guard generation == stamp else { return }
                     downloadWork = nil
-                    if epoch == model.epoch, !Task.isCancelled { await model.loadCloudBackups(refresh: false); await model.refresh() }
+                    if epoch == model.epoch, !Task.isCancelled { await model.loadCloudBackups(refresh: false); await model.loadFiles() }
                 }
             }
             do { try await Task.sleep(for: .seconds(1)) } catch { return }

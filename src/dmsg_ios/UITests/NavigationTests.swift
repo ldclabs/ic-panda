@@ -169,7 +169,7 @@ import XCTest
                 back(app)
             }
             tab(app, symbol: "Glyph-folder", title: language == "en" ? "Files" : "文件").tap()
-            let file = app.buttons.containing(.staticText, identifier: "Local image.png").firstMatch
+            let file = app.buttons["file.item.fixture-local"]
             XCTAssertTrue(file.waitForExistence(timeout: 5)); file.tap()
             XCTAssertTrue(app.buttons[language == "en" ? "Preview file" : "预览文件"].waitForExistence(timeout: 5))
             if iteration == 0 { capture(app, name: "File detail after secret navigation · \(language)") }
@@ -451,7 +451,11 @@ import XCTest
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         tab(app, symbol: "Glyph-folder", title: "Files").tap()
-        XCTAssertTrue(app.staticTexts["Project brief.pdf"].waitForExistence(timeout: 5))
+        let cloudScope = app.buttons["files.scope.cloud"]
+        if cloudScope.exists && cloudScope.isHittable { cloudScope.tap() }
+        else { app.buttons["files.scope.local"].tap(); app.buttons["Cloud backups"].tap() }
+        let backup = app.buttons["backup.item.fixture-backup"]
+        XCTAssertTrue(backup.waitForExistence(timeout: 5)); backup.tap()
         XCTAssertTrue(app.buttons["backup.restore.fixture-backup"].isHittable)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Files shows another device's cloud backup"; shot.lifetime = .keepAlways; add(shot)

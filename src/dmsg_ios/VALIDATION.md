@@ -1,5 +1,69 @@
 # iOS implementation validation
 
+## File library and backup workflows (2026-11-03)
+
+Completed the implementation items F01–F22 in `IMPLEMENTATION_CHECKLIST_zh.md`.
+The Files screen separates the local library from cloud backups, consolidates
+backup status and retry controls, and provides explicit restore destinations.
+Folder management, batch operations, import outcomes, historical versions, local
+copy removal and individual transfer controls use the existing core contracts.
+New copy is translated in all 23 supported languages.
+
+Validation performed with Xcode **27.2 (27B52)**:
+
+- Rust: `cargo check --locked -p dmsg_mobile`, mobile all-target Clippy with
+  `-D warnings`, formatting and diff whitespace checks passed. The mobile library
+  suite passed **22 tests**; the client library filter passed **49 tests**, with
+  **1 existing ignored test**. These were local core checks, not production cloud
+  transfers.
+- Both ARM64 Debug native slices (device and Simulator) and UniFFI bindings were
+  rebuilt. Native artifact hashes and the Rust source fingerprint passed
+  verification. Debug app/test compilation and Release ARM64 Simulator app and
+  extension compilation passed. The latter used the verified Debug native bridge
+  with signing disabled; it is not an optimized native release or a signed archive.
+  The initial Release build reported four extension App Intents metadata-skipped
+  warnings; the final incremental build reported no warnings or errors.
+- Across the final passing results, **95 distinct Swift unit tests** and
+  **17 selected UI regressions** passed. This is the unit suite plus FileLibrary,
+  FileTransfer and three selected Navigation UI tests, not the entire UI suite.
+  `acceptance.xcresult` passed **101/101** (94 unit and 7 UI tests) on iPhone 17e /
+  iOS 27.0. After the final error-handling fix, `final-errors-layout.xcresult`
+  passed **16/16** (12 unit and 4 UI tests) on iPhone SE (3rd generation) /
+  iOS 18.4. This includes the added session-revocation/cancellation regression.
+  The final cloud-entry navigation check passed **1/1** in
+  `navigation-final.xcresult` on iPhone 17e.
+- File interactions exercised cloud refresh failure/retry, scope-specific search,
+  historical restore, rename failure with draft retention and keyboard submission,
+  batch backup admission results, local-copy removal, folder creation/trash
+  restoration and explicit move destinations. Tests use DEBUG fixtures for these
+  operations. They do not perform destructive operations against live accounts.
+- Compact-width and maximum Dynamic Type checks passed on the 375-point iPhone
+  SE. On iPad Pro 13-inch (M4) / iOS 18.4, multilingual layout and historical-version
+  restore checks passed **2/2** in `ipad.xcresult`. The automated accessibility
+  check covered sufficient element descriptions and hit regions; it does not
+  replace a full spoken VoiceOver review.
+- Screenshot review covered English/light, Chinese/dark, long French copy,
+  Arabic RTL, maximum Dynamic Type, iPad split navigation, transfer stages,
+  batch results and rename retry. Review exposed clipped scope labels and a fixed
+  large-text header that crowded out the list. Long labels now use an adaptive
+  menu, the large-text scope header scrolls with the list, and file rows retain
+  their complete accessibility names. UI tests also stopped targeting inherited
+  identifiers, hidden adaptive controls and swipe gestures starting under the
+  tab bar. Final screenshots were inspected after those fixes.
+- All **23 localization catalogs** and compiler-extracted strings passed validation
+  for Debug and Release. All **18 iOS build-script tests** passed.
+
+Local test bundles and logs are in `/private/tmp/dmsg-files-final`. Selected
+screenshots and JSON result summaries are retained in the ignored local directory
+`.build/Files-2026-11-03`; generated build artifacts are not committed.
+
+Real two-device cloud restores, physical-device Photos permissions, sustained
+background transfers, a full manual VoiceOver review, signed archive/TestFlight
+packaging and upload were not performed. Simulator fixtures establish interaction
+and presentation coverage, not production-service or hardware acceptance.
+
+Implementation and validation: Codex <noreply@openai.com>.
+
 ## Account switcher names (2026-11-03)
 
 The switcher now reads names for every local account from the existing certified
