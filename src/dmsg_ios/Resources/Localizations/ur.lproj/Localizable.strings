@@ -302,6 +302,8 @@
 	<string>کیش شدہ ڈیٹا</string>
 	<key>Cached data cleared</key>
 	<string>کیش صاف ہو گیا</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>کیمرے تک رسائی دستیاب نہیں ہے۔ سیٹ اپ کلید درج کریں یا ترتیبات میں کیمرے تک رسائی کی اجازت دیں۔</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>کیمرے تک رسائی دستیاب نہیں۔ دعوت چسپاں کریں یا ترتیبات میں کیمرے کی اجازت دیں۔</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>اس ڈیوائس پر محفوظ کیا گیا</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>اس ڈیوائس پر محفوظ کیا گیا۔ تبدیلیاں مطابقت پذیر ہونے کا انتظار کر رہی ہیں۔</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>محفوظ پروفائل شائع ہو گیا ہے۔ آپ کا مسودہ ابھی جمع نہیں ہوا۔</string>
 	<key>Saved. Publication is pending.</key>
 	<string>محفوظ کیا گیا۔ اشاعت زیر التواء ہے۔</string>
 	<key>Scan QR code</key>

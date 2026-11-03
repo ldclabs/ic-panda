@@ -302,6 +302,8 @@
 	<string>Кэшированные данные</string>
 	<key>Cached data cleared</key>
 	<string>Кэш очищен</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Нет доступа к камере. Введите ключ настройки или разрешите доступ к камере в настройках.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Камера недоступна. Вставьте приглашение или разрешите доступ к камере в настройках.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Сохранено на этом устройстве</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Сохранено на этом устройстве. Изменения ожидают синхронизации.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Сохранённый профиль опубликован. Ваш черновик ещё не отправлен.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Сохранено. Публикация ожидается.</string>
 	<key>Scan QR code</key>

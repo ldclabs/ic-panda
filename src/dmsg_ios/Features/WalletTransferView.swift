@@ -117,7 +117,7 @@ struct WalletTransferView: View {
             if let result { Label("Proposal created", systemImage: "checkmark.circle"); DisclosureGroup("Details") { CanonicalDetails(value: result) } }
         }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Propose transfer").confirmLeavingDraft(!attempted && draft != Draft())
             .task {
-                scope = model.epoch
+                scope = model.viewGeneration
                 if let restored = model.formDraft("transfer:" + wallet, as: SavedDraft.self) { draft = restored.draft; requestID = restored.request; attempted = restored.attempted }
                 await load()
             }
@@ -127,7 +127,7 @@ struct WalletTransferView: View {
                 if let source = sources.first { draft.from = source.id }
             }
             .onDisappear {
-                if result == nil { model.keepFormDraft("transfer:" + wallet, value: SavedDraft(draft: draft, request: requestID, attempted: attempted), epoch: scope) }
+                if result == nil { model.keepFormDraft("transfer:" + wallet, value: SavedDraft(draft: draft, request: requestID, attempted: attempted), generation: scope) }
             }
     }
 

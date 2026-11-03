@@ -50,7 +50,7 @@ struct VaultEditor: View {
     @State private var draft: VaultDraft
     @State private var initial: VaultDraft
     @State private var initialized = false
-    @State private var openingEpoch: UInt64 = 0
+    @State private var openingGeneration: UInt64 = 0
     @State private var saving = false
     @State private var discard = false
     @State private var failure: String?
@@ -144,13 +144,13 @@ struct VaultEditor: View {
             }
             .onAppear {
                 guard !initialized else { return }
-                openingEpoch = model.epoch
+                openingGeneration = model.viewGeneration
                 if let data = model.settingsDrafts[draftKey], let saved = try? JSONDecoder().decode(VaultDraft.self, from: data) { draft = saved }
                 initialized = true
             }
             .onChange(of: draft.kind) { previous, _ in if target.item == nil { draft.addTemplate(from: previous) } }
             .onChange(of: draft) { _, _ in
-                guard initialized, openingEpoch == model.epoch, model.unlocked else { return }
+                guard initialized, openingGeneration == model.viewGeneration, model.unlocked else { return }
                 model.activity(); model.settingsDrafts[draftKey] = try? JSONEncoder().encode(draft)
             }
             .task { await loadAttachments() }

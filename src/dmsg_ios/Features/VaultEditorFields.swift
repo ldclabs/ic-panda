@@ -1,5 +1,6 @@
 import SwiftUI
 import VisionKit
+import AVFoundation
 @preconcurrency import DMsgCore
 
 struct VaultEditorField: View {
@@ -9,6 +10,8 @@ struct VaultEditorField: View {
     private enum Tool: String, Identifiable { case scanner, generator, date; var id: Self { self } }
     @State private var tool: Tool?
     @State private var settings = false
+    @State private var requestingCamera = false
+    @State private var cameraDenied = false
     private var label: String { field.label.isEmpty ? (field.kind == "otp" ? String(localized: "One-time code") : vaultFieldName(field.id)) : field.label }
     private var keeping: Bool { existing && field.concealed && !field.changed }
     private var placeholder: LocalizedStringKey { keeping ? "Leave empty to keep existing value" : "Value" }
@@ -29,8 +32,8 @@ struct VaultEditorField: View {
                     if !field.value.isEmpty { Button(showingDraft ? "Hide" : "Show draft") { showingDraft.toggle() } }
                     if field.id == "password" { Button("Generate password") { tool = .generator } }
                     if field.kind == "otp" {
-                        Button("Scan QR code", systemImage: "qrcode.viewfinder") { tool = .scanner }
-                            .disabled(!DataScannerViewController.isSupported || !DataScannerViewController.isAvailable)
+                        Button("Scan QR code", systemImage: "qrcode.viewfinder") { requestingCamera = true }
+                            .disabled(!DataScannerViewController.isSupported || requestingCamera)
                     }
                 }.font(.footnote).buttonStyle(.borderless)
                 if existing && field.changed {
@@ -45,6 +48,10 @@ struct VaultEditorField: View {
                 if !field.value.isEmpty { Button("Clear") { field.value = ""; field.changed = true } }
             }
             if field.kind == "otp" { Text("Enter a setup key or otpauth URL.").font(.caption).foregroundStyle(.secondary) }
+            if cameraDenied {
+                Text("Camera access is unavailable. Enter a setup key or allow camera access in Settings.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if let error = vaultInputError(field, existing: existing) { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("vault.edit.field-error.\(field.id)") }
             DisclosureGroup("Field settings", isExpanded: $settings) {
                 LabeledContent("Field name") { TextField("Field name", text: $field.label).multilineTextAlignment(.trailing) }
@@ -52,6 +59,14 @@ struct VaultEditorField: View {
             }
         }.textInputAutocapitalization(.never).autocorrectionDisabled()
             .onAppear { if field.id.hasPrefix("field_") && field.label.isEmpty { settings = true } }
+            .task(id: requestingCamera) {
+                guard requestingCamera else { return }
+                defer { requestingCamera = false }
+                let allowed = await AVCaptureDevice.requestAccess(for: .video)
+                guard !Task.isCancelled else { return }
+                cameraDenied = !allowed || !DataScannerViewController.isAvailable
+                if !cameraDenied { tool = .scanner }
+            }
             .sheet(item: $tool) { tool in
                 NavigationStack {
                     switch tool {

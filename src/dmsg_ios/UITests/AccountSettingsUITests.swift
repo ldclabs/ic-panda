@@ -58,6 +58,17 @@ import XCTest
         capture(app, "Member can dispute recovery while policy stays read-only")
     }
 
+    func testExpiredRecoveryOffersANewRequestInsteadOfCompletingTheExpiredOne() {
+        let app = open(["--ui-recovery-expired"])
+        tap("account.security", in: app)
+        tap("Account recovery", in: app)
+        XCTAssertTrue(app.buttons["recovery.request"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recovery.request"].isEnabled)
+        XCTAssertFalse(app.buttons["recovery.complete"].exists)
+        XCTAssertTrue(app.staticTexts["Expired"].exists)
+        capture(app, "Expired recovery can be requested again")
+    }
+
     func testGlobalNotificationSettingsAreReadableBeforeLogin() {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
@@ -90,12 +101,48 @@ import XCTest
         for _ in 0..<8 where !name.isHittable { app.swipeUp() }
         name.tap(); name.typeText(" Draft")
         XCTAssertTrue(app.staticTexts["Name"].exists)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertTrue((name.value as? String ?? "").contains("Draft"))
         app.buttons["Back"].firstMatch.tap()
         tap("Keep draft and leave", in: app)
         tap("account.profile", in: app)
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         XCTAssertTrue((name.value as? String ?? "").contains("Draft"))
         capture(app, "Public profile keeps the unsaved draft")
+    }
+
+    func testNotificationDraftSurvivesReturningToTheForeground() {
+        let app = open()
+        tap("Notifications", in: app)
+        let enabled = app.switches["notifications.enabled"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 5))
+        let original = enabled.value as? String
+        enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertNotEqual(enabled.value as? String, original)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(enabled.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(enabled.value as? String, original)
+        capture(app, "Notification draft survives a foreground refresh")
+    }
+
+    func testRetryingPublicationPreservesTheUnsubmittedDraftAndItsVersionConflict() {
+        let app = open(["--ui-profile-pending"])
+        tap("account.profile", in: app)
+        let name = app.textFields["profile.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertEqual(name.value as? String, "Local draft")
+        tap("Retry publication", in: app)
+        XCTAssertEqual(name.value as? String, "Local draft")
+        XCTAssertTrue(app.staticTexts["Saved profile published. Your draft has not been submitted."].exists)
+        XCTAssertTrue(app.buttons["Reload saved profile"].exists)
+        XCTAssertFalse(app.buttons["profile.publish"].isEnabled)
+        tap("Reload saved profile", in: app)
+        XCTAssertEqual(name.value as? String, "Local draft")
+        XCTAssertTrue(app.buttons["profile.publish"].isEnabled)
+        capture(app, "Republishing saved data retains the unsubmitted draft")
     }
 
     func testAccountIDCopyDoesNotOpenProfile() {
@@ -132,6 +179,23 @@ import XCTest
         XCTAssertEqual(github.value as? String, "1")
         XCTAssertEqual(mail.value as? String, "1")
         capture(app, "AutoFill retains selection across search and reopening")
+    }
+
+    func testSystemExportBiometryChoiceSurvivesReturningToTheForeground() {
+        let app = open()
+        tap("System integrations", in: app)
+        let biometry = app.switches["Biometrics only for exported copies"]
+        for _ in 0..<8 where !biometry.isHittable { app.swipeUp() }
+        XCTAssertTrue(biometry.isHittable)
+        biometry.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertEqual(biometry.value as? String, "1")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(biometry.waitForExistence(timeout: 5))
+        let relaxed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: biometry)
+        relaxed.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [relaxed], timeout: 2), .completed)
+        capture(app, "Biometrics-only export choice survives a foreground policy refresh")
     }
 
     func testMessagingOwnsBlockingAndReportHistory() {

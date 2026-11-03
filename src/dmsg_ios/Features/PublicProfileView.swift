@@ -47,6 +47,9 @@ struct PublicProfileView: View {
     @State private var uploadedAvatar: String?
     @State private var changingAvatar = false
     @State private var scope: UInt64 = 0
+    #if DEBUG
+    @State private var fixturePublicationRetried = false
+    #endif
     private var dirty: Bool { draft != saved }
     struct Publication: Decodable { let published: Bool; let updatedAt: Int64?; let pending: Bool? }
 
@@ -115,8 +118,8 @@ struct PublicProfileView: View {
                     } label: { Label("Share", systemImage: "square.and.arrow.up") }
                 }
             }
-            .task { scope = model.epoch; await load() }
-            .onDisappear { if dirty { model.keepFormDraft("profile", value: ProfileDraftRecord(value: draft, expectedVersion: updated), epoch: scope) } }
+            .task { scope = model.viewGeneration; await load() }
+            .onDisappear { if dirty { model.keepFormDraft("profile", value: ProfileDraftRecord(value: draft, expectedVersion: updated), generation: scope) } }
             .onChange(of: photo) { _, selected in Task { await choosePhoto(selected) } }
             .confirmationDialog("Publish these details publicly?", isPresented: $confirming) {
                 Button("Publish") { Task { await publish(retry: false) } }
@@ -140,14 +143,13 @@ struct PublicProfileView: View {
         guard !working else { return }
         let wasDirty = dirty
         var shown = draft
-        let restored: ProfileDraftRecord? = model.formDraft("profile", as: ProfileDraftRecord.self)
+        var restored: ProfileDraftRecord? = model.formDraft("profile", as: ProfileDraftRecord.self)
         #if DEBUG
-        if model.uiTesting {
-            canEdit = true; saved = ProfileDraft(name: "Studio"); draft = restored?.value ?? saved; updated = restored?.expectedVersion ?? 1
-            return
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-profile-pending"), restored == nil, updated == nil {
+            restored = ProfileDraftRecord(value: ProfileDraft(name: "Local draft"), expectedVersion: 1)
         }
         #endif
-        await display.load(model, kind: "profile-editor", force: force) { (profile: AccountProfile) in
+        func apply(_ profile: AccountProfile) {
             let fresh = ProfileDraft(name: profile.name ?? "", about: profile.description ?? "", links: profile.links ?? [], avatarURL: profile.avatarUrl)
             let apply = !wasDirty && draft == shown
             saved = fresh
@@ -158,6 +160,15 @@ struct PublicProfileView: View {
                 conflict = updated != profile.updatedAt
             } else if let updated, updated != profile.updatedAt { conflict = true }
         }
+        #if DEBUG
+        if model.uiTesting {
+            let pendingFixture = ProcessInfo.processInfo.arguments.contains("--ui-profile-pending")
+            canEdit = true; pending = pendingFixture && !fixturePublicationRetried
+            apply(AccountProfile(name: "Studio", description: nil, avatarUrl: nil, updatedAt: pendingFixture ? 2 : 1))
+            return
+        }
+        #endif
+        await display.load(model, kind: "profile-editor", force: force, apply: apply)
         let epoch = model.epoch
         permissionFailed = false
         do {
@@ -181,33 +192,54 @@ struct PublicProfileView: View {
     }
 
     private func publish(retry: Bool) async {
-        guard let engine = model.engine, let updated, !working else { return }
+        guard let updated, !working else { return }
         let epoch = model.epoch, submitted = draft
         working = true; model.activity(); defer { working = false }
         do {
-            if !retry, let bytes = submitted.avatarBytes, uploadedAvatar == nil {
-                uploadedAvatar = try await coreOperation { try await engine.uploadProfileAvatar(bytes: bytes, operation: $0) }
-                guard epoch == model.epoch && visible else { return }
-            }
-            let links = String(decoding: try JSONEncoder().encode(submitted.links), as: UTF8.self)
-            let value = try await (retry ? engine.retryProfilePublication() : engine.publishProfile(
-                name: submitted.name, description: submitted.about, expectedUpdatedAt: updated,
-                avatarUrl: submitted.removingAvatar ? "" : uploadedAvatar, linksJson: links))
+            let result = try await submit(submitted, updated: updated, retry: retry)
             guard epoch == model.epoch && visible, !Task.isCancelled else { return }
-            let result: Publication = try model.decode(value)
             pending = result.pending == true || !result.published
-            if let version = result.updatedAt { self.updated = version }
-            saved = draft; model.settingsDrafts.removeValue(forKey: "profile")
-            status = String(localized: pending ? "Saved. Publication is pending." : "Published")
+            if retry {
+                // Republishing the committed document does not submit this
+                // editor's draft. Recheck its base without marking edits saved.
+                working = false
+                await load(force: true)
+            } else {
+                if let version = result.updatedAt { self.updated = version }
+                saved = submitted; model.settingsDrafts.removeValue(forKey: "profile")
+            }
+            guard epoch == model.epoch && visible, !Task.isCancelled else { return }
+            if retry && !pending && dirty { status = String(localized: "Saved profile published. Your draft has not been submitted.") }
+            else { status = String(localized: pending ? "Saved. Publication is pending." : "Published") }
             model.profileDidChange()
         } catch {
             guard epoch == model.epoch && visible else { return }
             if case MobileError.Failure(let code) = error, code == "VERSION_CONFLICT" { conflict = true }
-            if let result = try? await engine.profilePublication(), epoch == model.epoch && visible,
+            if let result = try? await model.engine?.profilePublication(), epoch == model.epoch && visible,
                let value: Publication = try? model.decode(result) {
                 pending = value.pending == true || !value.published
             }
             if epoch == model.epoch && visible { model.report(error) }
         }
+    }
+
+    private func submit(_ draft: ProfileDraft, updated: Int64, retry: Bool) async throws -> Publication {
+        #if DEBUG
+        if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-profile-pending") {
+            fixturePublicationRetried = true
+            return Publication(published: true, updatedAt: 2, pending: false)
+        }
+        #endif
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let epoch = model.epoch
+        if !retry, let bytes = draft.avatarBytes, uploadedAvatar == nil {
+            uploadedAvatar = try await coreOperation { try await engine.uploadProfileAvatar(bytes: bytes, operation: $0) }
+            guard epoch == model.epoch && visible, !Task.isCancelled else { throw CancellationError() }
+        }
+        let links = String(decoding: try JSONEncoder().encode(draft.links), as: UTF8.self)
+        let value = try await (retry ? engine.retryProfilePublication() : engine.publishProfile(
+            name: draft.name, description: draft.about, expectedUpdatedAt: updated,
+            avatarUrl: draft.removingAvatar ? "" : uploadedAvatar, linksJson: links))
+        return try model.decode(value)
     }
 }

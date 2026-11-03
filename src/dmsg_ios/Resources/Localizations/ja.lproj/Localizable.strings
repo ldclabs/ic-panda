@@ -302,6 +302,8 @@
 	<string>キャッシュデータ</string>
 	<key>Cached data cleared</key>
 	<string>キャッシュを消去しました</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>カメラにアクセスできません。設定キーを入力するか、「設定」でカメラへのアクセスを許可してください。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>カメラを使用できません。招待を貼り付けるか、設定でカメラへのアクセスを許可してください。</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>このデバイスに保存されました</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>このデバイスに保存されます。変更は同期を待機しています。</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>保存済みのプロフィールを公開しました。下書きはまだ送信されていません。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>保存されました。出版は保留中です。</string>
 	<key>Scan QR code</key>

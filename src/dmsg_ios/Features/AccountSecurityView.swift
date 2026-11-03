@@ -73,8 +73,8 @@ struct AccountSecurityView: View {
             }
             if busy { ProgressView() }
         }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Account security").confirmLeavingDraft(dirty)
-            .task(id: model.contentRevision) { scope = model.epoch; await load(force: true) }
-            .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), epoch: scope) } }
+            .task(id: model.contentRevision) { scope = model.viewGeneration; await load(force: true) }
+            .onDisappear { if dirty { model.keepFormDraft("security", value: Draft(token: token, delay: delay, enabled: recoveryEnabled), generation: scope) } }
             .refreshable { await load(force: true) }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }

@@ -127,8 +127,8 @@ struct HardwareSecurityView: View {
             } else if loading { ProgressView() }
             else { SettingsAction("Retry loading hardware security") { Task { await load() } } }
         }.disabled(busy).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Hardware security").navigationBarTitleDisplayMode(.inline).confirmLeavingDraft(dirty)
-            .task { scope = model.epoch; await load() }
-            .onDisappear { if dirty { model.keepFormDraft("hardware", value: Draft(policy: policy, biometry: biometryOnly, token: incomingToken, device: incomingDevice), epoch: scope) } }.refreshable { await load() }
+            .task { scope = model.viewGeneration; await load() }
+            .onDisappear { if dirty { model.keepFormDraft("hardware", value: Draft(policy: policy, biometry: biometryOnly, token: incomingToken, device: incomingDevice), generation: scope) } }.refreshable { await load() }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
                 if let request { ApprovalDetailView(request: request) }
             }

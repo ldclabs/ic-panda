@@ -302,6 +302,8 @@
 	<string>البيانات المخزنة مؤقتًا</string>
 	<key>Cached data cleared</key>
 	<string>تم مسح ذاكرة التخزين المؤقت</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>الوصول إلى الكاميرا غير متاح. أدخل مفتاح الإعداد أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>الكاميرا غير متاحة. الصق الدعوة أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>محفوظ على هذا الجهاز</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>محفوظ على هذا الجهاز. تنتظر التغييرات المزامنة.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>تم نشر الملف الشخصي المحفوظ. لم تُرسل مسودتك بعد.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>تم الحفظ. النشر قيد الانتظار.</string>
 	<key>Scan QR code</key>

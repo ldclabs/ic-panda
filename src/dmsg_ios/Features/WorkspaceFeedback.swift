@@ -125,6 +125,7 @@ struct WorkspaceFeedback: View {
 struct TransientNotice: View {
     @Environment(SessionModel.self) private var model
     var body: some View {
+        let revision = model.noticeRevision
         if let notice = model.notice, !model.concealed, model.notifications.presented == nil {
             NoticeBar(text: notice)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -132,10 +133,10 @@ struct TransientNotice: View {
                 .padding(12).allowsHitTesting(false)
                 .accessibilityElement(children: .ignore).accessibilityLabel(notice).accessibilityAddTraits(.isStaticText)
                 .accessibilityIdentifier("workspace.notice")
-                .onAppear { UIAccessibility.post(notification: .announcement, argument: notice) }
-                .task(id: notice) {
+                .onChange(of: revision, initial: true) { _, _ in UIAccessibility.post(notification: .announcement, argument: notice) }
+                .task(id: revision) {
                     try? await Task.sleep(for: .seconds(4))
-                    if !Task.isCancelled && model.notice == notice { model.notice = nil }
+                    if !Task.isCancelled && model.noticeRevision == revision { model.notice = nil }
                 }
         }
     }

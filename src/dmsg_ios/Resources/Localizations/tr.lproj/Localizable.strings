@@ -302,6 +302,8 @@
 	<string>Önbellek verileri</string>
 	<key>Cached data cleared</key>
 	<string>Önbellek temizlendi</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Kamera erişimi kullanılamıyor. Bir kurulum anahtarı girin veya Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera erişimi kullanılamıyor. Daveti yapıştırın veya Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Bu cihaza kaydedildi</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Bu cihaza kaydedildi. Değişiklikler senkronize edilmeyi bekliyor.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Kaydedilen profil yayımlandı. Taslağınız henüz gönderilmedi.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
 	<key>Scan QR code</key>

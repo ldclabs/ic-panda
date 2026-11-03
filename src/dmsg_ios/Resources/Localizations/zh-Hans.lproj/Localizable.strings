@@ -302,6 +302,8 @@
 	<string>缓存数据</string>
 	<key>Cached data cleared</key>
 	<string>缓存已清理</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>无法访问相机。请输入设置密钥，或在“设置”中允许访问相机。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>无法使用摄像头。请粘贴邀请，或在系统设置中允许访问摄像头。</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>已保存到本机</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>已保存到本机，正在等待同步。</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>已保存的资料已发布。你的草稿尚未提交。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已保存，等待发布。</string>
 	<key>Scan QR code</key>

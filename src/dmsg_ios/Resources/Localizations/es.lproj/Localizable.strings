@@ -302,6 +302,8 @@
 	<string>Datos en caché</string>
 	<key>Cached data cleared</key>
 	<string>Caché borrada</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>No se puede acceder a la cámara. Introduce una clave de configuración o permite el acceso a la cámara en Ajustes.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>La cámara no está disponible. Pega la invitación o permite el acceso a la cámara en Ajustes.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Guardado en este dispositivo</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Guardado en este dispositivo. Hay cambios pendientes de sincronizar.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Se ha publicado el perfil guardado. Tu borrador aún no se ha enviado.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Guardado. Publicación pendiente.</string>
 	<key>Scan QR code</key>

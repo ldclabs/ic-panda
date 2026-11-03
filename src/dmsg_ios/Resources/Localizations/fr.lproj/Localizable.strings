@@ -302,6 +302,8 @@
 	<string>Données en cache</string>
 	<key>Cached data cleared</key>
 	<string>Cache effacé</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>L’accès à la caméra est indisponible. Saisissez une clé de configuration ou autorisez l’accès à la caméra dans Réglages.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>La caméra est indisponible. Collez l’invitation ou autorisez la caméra dans Réglages.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Enregistré sur cet appareil</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Enregistré sur cet appareil. Les modifications attendent la synchronisation.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Le profil enregistré a été publié. Votre brouillon n’a pas été envoyé.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Enregistré. Publication en attente.</string>
 	<key>Scan QR code</key>

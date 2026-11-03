@@ -302,6 +302,8 @@
 	<string>Naka-cache na data</string>
 	<key>Cached data cleared</key>
 	<string>Na-clear ang cache</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Hindi ma-access ang camera. Maglagay ng setup key o payagan ang access sa camera sa Settings.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Hindi magamit ang camera. I-paste ang imbitasyon o payagan ang camera sa Settings.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Naka-save sa device na ito</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Naka-save sa device na ito. Naghihintay na mag-sync ang mga pagbabago.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Na-publish na ang naka-save na profile. Hindi pa naipapasa ang iyong draft.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Nai-save. Nakabinbin ang publikasyon.</string>
 	<key>Scan QR code</key>

@@ -54,8 +54,8 @@ struct InboxSettingsView: View {
             if !loaded && !working { SettingsAction("Retry") { Task { await load(force: true) } } }
             if working { ProgressView() }
         }.privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Inbox settings").confirmLeavingDraft(draft != saved)
-            .task { scope = model.epoch; await load() }
-            .onDisappear { if draft != saved || pending != nil { model.keepFormDraft("inbox", value: Draft(change: draft, pending: pending), epoch: scope) } }
+            .task { scope = model.viewGeneration; await load() }
+            .onDisappear { if draft != saved || pending != nil { model.keepFormDraft("inbox", value: Draft(change: draft, pending: pending), generation: scope) } }
             .confirmationDialog("Apply these receiving rules?", isPresented: $confirming) {
                 Button("Save settings") { Task { await save(draft.normalized) } }
             }

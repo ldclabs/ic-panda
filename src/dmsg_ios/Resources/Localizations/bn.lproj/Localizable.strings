@@ -302,6 +302,8 @@
 	<string>ক্যাশ করা ডেটা</string>
 	<key>Cached data cleared</key>
 	<string>ক্যাশ মুছে ফেলা হয়েছে</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>ক্যামেরা ব্যবহার করা যাচ্ছে না। একটি সেটআপ কী লিখুন অথবা সেটিংসে ক্যামেরা ব্যবহারের অনুমতি দিন।</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>ক্যামেরা ব্যবহার করা যাচ্ছে না। আমন্ত্রণ পেস্ট করুন অথবা সেটিংসে ক্যামেরার অনুমতি দিন।</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>এই ডিভাইসে সংরক্ষিত</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>এই ডিভাইসে সংরক্ষিত. পরিবর্তনগুলি সিঙ্কের জন্য অপেক্ষা করছে৷</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>সংরক্ষিত প্রোফাইল প্রকাশিত হয়েছে। আপনার খসড়া এখনও জমা দেওয়া হয়নি।</string>
 	<key>Saved. Publication is pending.</key>
 	<string>সংরক্ষিত প্রকাশনা বাকি আছে।</string>
 	<key>Scan QR code</key>

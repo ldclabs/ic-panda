@@ -1394,6 +1394,55 @@ production deployment is implied by simulator builds.
 
 Implementation and validation: Codex <noreply@openai.com>.
 
+## 2026-11-03 review of e9f26c44 and 67bea5fe
+
+The follow-up review fixed seven regressions in the account and vault changes:
+
+- Foreground policy refreshes retain an explicitly selected biometrics-only
+  export policy; a required workspace policy can still strengthen it.
+- Form drafts use the workspace view generation instead of the request epoch.
+  A short background visit keeps drafts and subsequent edits; locking, account
+  changes and protected-data loss still clear them. Notification refreshes also
+  preserve unsaved input.
+- Retrying profile publication preserves an unsubmitted draft and its expected
+  version. Feedback distinguishes the published saved document from that draft.
+- An expired pending recovery permits a new request. Completion is offered only
+  within this device's recovery window, or to resume an already completed takeover.
+- OTP scanning requests camera permission before checking scanner availability,
+  and offers a localized manual-entry fallback when access is unavailable.
+- Version history resolves local device labels in the current account's scope.
+- Repeated notices receive distinct revisions, so an earlier timer cannot clear
+  a later copy confirmation with the same text.
+
+Validation performed on iPhone 16e / iOS 18.4:
+
+- `cargo test --locked -p dmsg_client -p dmsg_mobile`: 560 client tests passed
+  with five existing ignored tests; all 22 mobile tests passed.
+- All 82 Swift unit tests passed. The account suite ran all 14 UI cases, alongside
+  vault save-retry and Chinese dark editor/detail cases. This 98-test run had one
+  failure: copying the account ID again after navigating to the profile lost its
+  notice. After fixing notice revisions, that case, the single-host vault copy
+  case and five recovery-policy unit tests passed (7/7).
+- Earlier focused runs also passed optional-date cancellation and profile retry
+  feedback. The final account run covers returning from background with a profile
+  draft, notification edits and a biometrics-only export choice.
+- Exported screenshots were inspected for expired recovery, preserved profile
+  drafts and feedback, biometrics-only selection, and Chinese dark vault detail
+  and editing. These are presentation fixtures, not production accounts.
+- All 18 iOS script tests, 23-language resource/Swift-extraction checks,
+  notification-copy checks, 31 shared-icon checks, native artifact fingerprint
+  verification and `git diff --check` passed.
+- Final Debug and Release simulator builds passed. Release compilation used the
+  verified debug Rust library; this was not a distribution archive validation.
+
+The full account test tool exceeded its 300-second wait, but Xcode continued and
+completed; its log and result bundle were checked directly. Physical camera
+permission/scanning, biometric Keychain ACL enforcement, live publication and
+recovery were not exercised. The broader iPad/small-screen/RTL/VoiceOver matrix,
+distribution archive/signing and production deployment were not rerun.
+
+Review, fixes and validation: Codex <noreply@openai.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

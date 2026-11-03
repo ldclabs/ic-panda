@@ -302,6 +302,8 @@
 	<string>캐시 데이터</string>
 	<key>Cached data cleared</key>
 	<string>캐시를 지웠습니다</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>카메라에 접근할 수 없습니다. 설정 키를 입력하거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>카메라를 사용할 수 없습니다. 초대를 붙여넣거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>이 기기에 저장되었습니다</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>이 기기에 저장되었습니다. 변경사항이 동기화 대기 중입니다.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>저장된 프로필이 게시되었습니다. 초안은 아직 제출되지 않았습니다.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>저장되었습니다. 출판이 보류 중입니다.</string>
 	<key>Scan QR code</key>

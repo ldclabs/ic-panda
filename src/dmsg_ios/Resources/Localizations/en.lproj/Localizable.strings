@@ -302,6 +302,8 @@
 	<string>Cached data</string>
 	<key>Cached data cleared</key>
 	<string>Cached data cleared</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Saved on this device</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Saved on this device. Changes are waiting to sync.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Saved profile published. Your draft has not been submitted.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Saved. Publication is pending.</string>
 	<key>Scan QR code</key>

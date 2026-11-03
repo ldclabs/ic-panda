@@ -51,7 +51,33 @@ final class AccountSettingsTests: XCTestCase {
         XCTAssertEqual(state.recoveryDelayMs, 259200000)
         XCTAssertEqual(state.pending?.executeAfter, 1800000000000)
         XCTAssertEqual(state.pending?.thisDevice, true)
-        XCTAssertFalse(state.canComplete)
+        XCTAssertFalse(state.canComplete(at: Date(timeIntervalSince1970: 1_799_000_000)))
+    }
+
+    func testRecoveryDeadlinesAllowAReplacementAfterExpiryAndCompletionOnlyInItsWindow() {
+        let waiting = Date(timeIntervalSince1970: 1000)
+        let ready = Date(timeIntervalSince1970: 1100)
+        let expired = Date(timeIntervalSince1970: 1200)
+        // The core can retain an expired pending record and its ready flag.
+        let state = RecoveryView.RecoveryState(enabled: true, ready: true, member: false,
+            pending: .init(executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: true))
+        XCTAssertFalse(state.canRequest(at: waiting))
+        XCTAssertFalse(state.canComplete(at: waiting))
+        XCTAssertFalse(state.canRequest(at: ready))
+        XCTAssertTrue(state.canComplete(at: ready))
+        XCTAssertTrue(state.canRequest(at: expired))
+        XCTAssertFalse(state.canComplete(at: expired))
+        let other = RecoveryView.RecoveryState(enabled: true, ready: false, member: false,
+            pending: .init(executeAfter: 1_100_000, expiresAt: 1_200_000, thisDevice: false))
+        XCTAssertFalse(other.canComplete(at: ready))
+        XCTAssertFalse(other.canRequest(at: ready))
+        XCTAssertTrue(other.canRequest(at: expired))
+        let takenOver = RecoveryView.RecoveryState(enabled: true, ready: false, member: true)
+        XCTAssertTrue(takenOver.canComplete(at: expired))
+        XCTAssertFalse(takenOver.canRequest(at: expired))
+        let disabled = RecoveryView.RecoveryState(enabled: false, ready: true, member: false, pending: state.pending)
+        XCTAssertFalse(disabled.canRequest(at: expired))
+        XCTAssertFalse(disabled.canComplete(at: ready))
     }
 
     #if DEBUG
@@ -73,15 +99,21 @@ final class AccountSettingsTests: XCTestCase {
         XCTAssertNil(model.accountIdentities[other]?.name)
     }
 
-    @MainActor func testSettingsDraftsAreClearedOnLockAndLateWritesAreIgnored() async {
+    @MainActor func testSettingsDraftsSurviveBackgroundButClearOnLockAndIgnoreOldViewWrites() async {
         let model = SessionModel()
         model.installFixtures(SessionSnapshot(generation: 1, sequence: 1, state: "unlocked", account: "040g2081040g2081040g", deviceId: "device", pendingSync: 0, conflicts: 0, approvalsWaiting: 0, fastUnlock: false, setupPending: false, lastSyncAtMs: nil, syncError: nil), items: [])
-        let epoch = model.epoch
-        model.keepFormDraft("profile", value: ProfileDraft(name: "Draft"), epoch: epoch)
+        let epoch = model.epoch, generation = model.viewGeneration
+        model.keepFormDraft("profile", value: ProfileDraft(name: "Draft"), generation: generation)
         XCTAssertNotNil(model.formDraft("profile", as: ProfileDraft.self))
+        model.background()
+        XCTAssertNotEqual(model.epoch, epoch)
+        XCTAssertEqual(model.viewGeneration, generation)
+        XCTAssertEqual(model.formDraft("profile", as: ProfileDraft.self)?.name, "Draft")
+        model.keepFormDraft("profile", value: ProfileDraft(name: "Continued draft"), generation: generation)
+        XCTAssertEqual(model.formDraft("profile", as: ProfileDraft.self)?.name, "Continued draft")
         await model.lock()
         XCTAssertNil(model.formDraft("profile", as: ProfileDraft.self))
-        model.keepFormDraft("profile", value: ProfileDraft(name: "Late result"), epoch: epoch)
+        model.keepFormDraft("profile", value: ProfileDraft(name: "Late result"), generation: generation)
         XCTAssertNil(model.formDraft("profile", as: ProfileDraft.self))
     }
     #endif

@@ -81,12 +81,12 @@ struct AgentDetailView: View {
             SettingsAction("Remove this local agent", role: .destructive) { removing = true }
         }.disabled(working || !loaded).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle(agent.label).confirmLeavingDraft(!capabilities.isEmpty)
             .task {
-                scope = model.epoch
+                scope = model.viewGeneration
                 if !loaded { paused = agent.paused }
                 if let draft = model.formDraft("agent:" + agent.id, as: Draft.self) { capabilities = draft.capabilities; days = draft.days }
                 await load()
             }
-            .onDisappear { if !capabilities.isEmpty { model.keepFormDraft("agent:" + agent.id, value: Draft(capabilities: capabilities, days: days), epoch: scope) } }
+            .onDisappear { if !capabilities.isEmpty { model.keepFormDraft("agent:" + agent.id, value: Draft(capabilities: capabilities, days: days), generation: scope) } }
             .confirmationDialog("Remove this local agent?", isPresented: $removing) {
                 Button("Remove", role: .destructive) { Task {
                     if await perform({ try await $0.removeAgent(label: agent.label) }) != nil { dismiss() }
@@ -207,14 +207,14 @@ struct AgentDelegationsView: View {
             if working { ProgressView() }
         }.disabled(working).privateScreen().onAppear { visible = true }.onDisappear { visible = false }.navigationTitle("Delegations").confirmLeavingDraft(draft != Draft())
             .task(id: model.contentRevision) {
-                scope = model.epoch
+                scope = model.viewGeneration
                 if let restored = model.formDraft("agent-delegation", as: Draft.self) {
                     draft = restored
                     model.settingsDrafts.removeValue(forKey: "agent-delegation")
                 }
                 await load()
             }.refreshable { await load() }
-            .onDisappear { if draft != Draft() { model.keepFormDraft("agent-delegation", value: draft, epoch: scope) } }
+            .onDisappear { if draft != Draft() { model.keepFormDraft("agent-delegation", value: draft, generation: scope) } }
             .navigationDestination(isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) { if let request { ApprovalDetailView(request: request) } }
     }
 

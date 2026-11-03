@@ -302,6 +302,8 @@
 	<string>ข้อมูลแคช</string>
 	<key>Cached data cleared</key>
 	<string>ล้างแคชแล้ว</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>ไม่สามารถเข้าถึงกล้องได้ โปรดป้อนคีย์การตั้งค่าหรืออนุญาตให้เข้าถึงกล้องในการตั้งค่า</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>ไม่สามารถใช้กล้องได้ วางคำเชิญหรืออนุญาตการเข้าถึงกล้องในการตั้งค่า</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>บันทึกไว้ในอุปกรณ์นี้</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>บันทึกไว้ในอุปกรณ์นี้ การเปลี่ยนแปลงกำลังรอการซิงค์</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>เผยแพร่โปรไฟล์ที่บันทึกไว้แล้ว แต่ยังไม่ได้ส่งฉบับร่างของคุณ</string>
 	<key>Saved. Publication is pending.</key>
 	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
 	<key>Scan QR code</key>

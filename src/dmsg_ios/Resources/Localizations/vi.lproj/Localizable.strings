@@ -302,6 +302,8 @@
 	<string>Dữ liệu bộ nhớ đệm</string>
 	<key>Cached data cleared</key>
 	<string>Đã xóa bộ nhớ đệm</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Không thể truy cập camera. Nhập khóa thiết lập hoặc cho phép truy cập camera trong Cài đặt.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Không thể truy cập camera. Dán lời mời hoặc cho phép truy cập camera trong Cài đặt.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Đã lưu trên thiết bị này</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Đã lưu trên thiết bị này. Các thay đổi đang chờ đồng bộ hóa.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Hồ sơ đã lưu đã được công bố. Bản nháp của bạn chưa được gửi.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Đã lưu. Việc xuất bản đang chờ xử lý.</string>
 	<key>Scan QR code</key>

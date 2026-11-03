@@ -14,7 +14,7 @@ struct NotificationSettingsView: View {
     /// Other local accounts already receiving notifications on this device.
     @State private var others: [String] = []
     @State private var linking = false
-    @State private var draftEpoch: UInt64 = 0
+    @State private var draftGeneration: UInt64 = 0
     private var dirty: Bool { draft?.global != saved?.global || draft?.account != saved?.account }
     private var scope: String { "\(model.epoch):\(model.session?.account ?? "")" }
     var body: some View {
@@ -90,8 +90,8 @@ struct NotificationSettingsView: View {
         } message: {
             Text(NoticeCopy.text("noticeLinkBody") + "\n\n" + NoticeCopy.text("noticeLinkAccounts") + "\n" + others.joined(separator: "\n"))
         }
-        .task(id: scope) { draftEpoch = model.epoch; await load() }
-        .onDisappear { if dirty, let draft { model.keepFormDraft("notifications", value: draft, epoch: draftEpoch) } }
+        .task(id: scope) { draftGeneration = model.viewGeneration; await load(preserve: dirty) }
+        .onDisappear { if dirty, let draft { model.keepFormDraft("notifications", value: draft, generation: draftGeneration) } }
         .refreshable { await model.notifications.refresh(model, receive: true); await load(preserve: dirty) }
         .accessibilityIdentifier("notifications.settings")
     }

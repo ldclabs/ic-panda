@@ -302,6 +302,8 @@
 	<string>快取資料</string>
 	<key>Cached data cleared</key>
 	<string>快取已清除</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>無法取用相機。請輸入設定金鑰，或在「設定」中允許取用相機。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>無法使用相機。請貼上邀請，或在系統設定中允許取用相機。</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>已儲存到本機</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>已儲存到本機，正在等待同步。</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>已儲存的個人資料已發佈。你的草稿尚未提交。</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已儲存，等待發布。</string>
 	<key>Scan QR code</key>

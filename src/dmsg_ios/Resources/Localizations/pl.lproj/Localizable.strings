@@ -302,6 +302,8 @@
 	<string>Dane w pamięci podręcznej</string>
 	<key>Cached data cleared</key>
 	<string>Pamięć podręczna wyczyszczona</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Dostęp do aparatu jest niedostępny. Wpisz klucz konfiguracji lub zezwól na dostęp do aparatu w Ustawieniach.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera jest niedostępna. Wklej zaproszenie lub zezwól na dostęp do kamery w Ustawieniach.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Zapisano na tym urządzeniu</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Zapisano na tym urządzeniu. Zmiany czekają na synchronizację.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Zapisany profil został opublikowany. Twoja wersja robocza nie została przesłana.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Zapisano. Publikacja jest w oczekiwaniu.</string>
 	<key>Scan QR code</key>

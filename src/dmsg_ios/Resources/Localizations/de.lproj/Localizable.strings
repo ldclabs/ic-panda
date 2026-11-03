@@ -302,6 +302,8 @@
 	<string>Zwischengespeicherte Daten</string>
 	<key>Cached data cleared</key>
 	<string>Cache geleert</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Kein Kamerazugriff. Gib einen Einrichtungsschlüssel ein oder erlaube den Kamerazugriff in den Einstellungen.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Der Kamerazugriff ist nicht verfügbar. Fügen Sie die Einladung ein oder erlauben Sie den Zugriff in den Einstellungen.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Auf diesem Gerät gespeichert</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Auf diesem Gerät gespeichert. Änderungen warten auf Synchronisierung.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Gespeichertes Profil veröffentlicht. Dein Entwurf wurde noch nicht übermittelt.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Gespeichert. Die Veröffentlichung steht noch aus.</string>
 	<key>Scan QR code</key>

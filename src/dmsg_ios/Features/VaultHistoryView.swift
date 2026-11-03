@@ -27,7 +27,7 @@ struct VaultHistoryView: View {
                         if version.deleted { Label("In Trash", systemImage: "trash").font(.caption) }
                         if version.conflict { Label("Sync conflicts", systemImage: "arrow.triangle.branch").font(.caption) }
                         if !version.synced { Text("Waiting to sync").font(.caption) }
-                        Text(model.deviceLabels[version.device] ?? version.device).font(.caption.monospaced()).foregroundStyle(.secondary)
+                        Text(model.deviceLabel(version.device) ?? version.device).font(.caption.monospaced()).foregroundStyle(.secondary)
                     }
                 }
                 if !version.current && !version.deleted && !item.reserved {

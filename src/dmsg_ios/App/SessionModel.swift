@@ -10,8 +10,9 @@ final class SessionModel {
     private(set) var engine: MobileEngine?
     private(set) var files: PrivateFiles?
     private(set) var session: SessionSnapshot?
-    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset(); settingsDrafts = [:] } }
-    private(set) var viewGeneration: UInt64 = 0
+    private(set) var epoch: UInt64 = 0 { didSet { messageSending.reset() } }
+    // Background invalidates reads through epoch while retaining this workspace's forms.
+    private(set) var viewGeneration: UInt64 = 0 { didSet { settingsDrafts = [:] } }
     var concealed = true
     var busy = false
     private(set) var unlocking = false
@@ -19,7 +20,8 @@ final class SessionModel {
     var contentSync: ContentSyncStatus?
     private var syncClock = Date.now
     var error: String?
-    var notice: String?
+    var notice: String? { didSet { noticeRevision &+= 1 } }
+    private(set) var noticeRevision: UInt64 = 0
     /// Visible screens form a presentation stack; only its last screen shows feedback.
     var noticeHosts: [UUID] = []
     var reminderEntry: ReminderEntry?
@@ -235,8 +237,8 @@ final class SessionModel {
         settingsDrafts[key].flatMap { try? JSONDecoder().decode(T.self, from: $0) }
     }
 
-    func keepFormDraft<T: Encodable>(_ key: String, value: T, epoch: UInt64) {
-        guard unlocked, epoch == self.epoch else { return }
+    func keepFormDraft<T: Encodable>(_ key: String, value: T, generation: UInt64) {
+        guard unlocked, generation == viewGeneration else { return }
         settingsDrafts[key] = try? JSONEncoder().encode(value)
     }
 

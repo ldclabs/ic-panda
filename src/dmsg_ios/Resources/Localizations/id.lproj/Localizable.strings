@@ -302,6 +302,8 @@
 	<string>Data cache</string>
 	<key>Cached data cleared</key>
 	<string>Cache dihapus</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>Akses kamera tidak tersedia. Masukkan kunci penyiapan atau izinkan akses kamera di Pengaturan.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>Kamera tidak tersedia. Tempel undangan atau izinkan akses kamera di Pengaturan.</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>Disimpan di perangkat ini</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>Disimpan di perangkat ini. Perubahan menunggu untuk disinkronkan.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>Profil tersimpan telah dipublikasikan. Draf Anda belum dikirim.</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Disimpan. Publikasi sedang menunggu.</string>
 	<key>Scan QR code</key>

@@ -302,6 +302,8 @@
 	<string>कैश किया गया डेटा</string>
 	<key>Cached data cleared</key>
 	<string>कैश साफ़ किया गया</string>
+	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
+	<string>कैमरे का ऐक्सेस उपलब्ध नहीं है। सेटअप कुंजी दर्ज करें या सेटिंग्स में कैमरे का ऐक्सेस दें।</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
 	<string>कैमरे का उपयोग उपलब्ध नहीं है। निमंत्रण चिपकाएँ या सेटिंग्स में कैमरे की अनुमति दें।</string>
 	<key>Cancel</key>
@@ -1908,6 +1910,8 @@
 	<string>इस डिवाइस पर सहेजा गया</string>
 	<key>Saved on this device. Changes are waiting to sync.</key>
 	<string>इस डिवाइस पर सहेजा गया. परिवर्तन सिंक होने की प्रतीक्षा कर रहे हैं.</string>
+	<key>Saved profile published. Your draft has not been submitted.</key>
+	<string>सहेजी गई प्रोफ़ाइल प्रकाशित हो गई है। आपका ड्राफ़्ट अभी सबमिट नहीं हुआ है।</string>
 	<key>Saved. Publication is pending.</key>
 	<string>सहेजा गया. प्रकाशन लंबित है.</string>
 	<key>Scan QR code</key>

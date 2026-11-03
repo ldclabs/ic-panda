@@ -60,10 +60,27 @@ struct SystemExportsView: View {
                 let state = await ASCredentialIdentityStore.shared.state()
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 autoFillEnabled = state.isEnabled
-                do { if let value = try await model.engine?.hardwareSecurity(), epoch == model.epoch, !Task.isCancelled { let state: HardwareSecurityStatus = try model.decode(value); requiresBiometry = state.boundBiometryOnly == true; biometryOnly = requiresBiometry } }
+                do {
+                    let required = try await exportRequiresBiometry()
+                    guard epoch == model.epoch, !Task.isCancelled else { return }
+                    requiresBiometry = required
+                    // A policy refresh can strengthen the user's choice but
+                    // cannot relax it after Settings or system authentication.
+                    if required { biometryOnly = true }
+                }
                 catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
             }
     }
+
+    private func exportRequiresBiometry() async throws -> Bool {
+        #if DEBUG
+        if model.uiTesting { return false }
+        #endif
+        guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let state: HardwareSecurityStatus = try model.decode(try await engine.hardwareSecurity())
+        return state.boundBiometryOnly == true
+    }
+
     private func refreshSnapshots() {
         if model.uiTesting { return }
         snapshotFailed = false
