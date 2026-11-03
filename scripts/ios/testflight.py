@@ -94,6 +94,46 @@ def authentication_args(key_path, key_id, issuer_id):
             "-authenticationKeyIssuerID", issuer_id]
 
 
+def check_signing_account(team, auth_args=()):
+    """Catch an empty saved account list before spending a build number on cloud signing."""
+    if auth_args:
+        return
+    # A running Xcode can retain an account after its persisted list has become empty.
+    # New xcodebuild processes cannot use that in-memory login. Read metadata only;
+    # never rewrite Xcode preferences or read account tokens/private keys.
+    try:
+        result = subprocess.run(["/usr/bin/defaults", "export", "com.apple.dt.Xcode", "-"],
+                                capture_output=True, check=False)
+        if result.returncode != 0:
+            return
+        preferences = plistlib.loads(result.stdout)
+        if not isinstance(preferences, dict):
+            return
+        accounts = preferences.get("DVTDeveloperAccountManagerAppleIDLists")
+        if (not isinstance(accounts, dict) or not accounts
+                or not set(accounts).issubset({"IDE.Prod", "IDE.Identifiers.Prod"})
+                or any(value != [] for value in accounts.values())):
+            return  # Unknown/new account storage formats are left to Xcode to validate.
+        identities = subprocess.run(["/usr/bin/security", "find-identity", "-v", "-p", "codesigning"],
+                                    capture_output=True, text=True, check=False)
+        if identities.returncode != 0:
+            return
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        return  # A failed diagnostic is not evidence of a missing account.
+    if re.search(r'"(?:Apple Distribution|iPhone Distribution): [^\n"]+ \('
+                 + re.escape(team) + r'\)"', identities.stdout):
+        return  # Local signing can use an existing identity and cached profiles.
+    raise RuntimeError(
+        f"Xcode's saved Apple account list is empty, and no local Apple Distribution "
+        f"identity with a private key was found for team {team}.\n"
+        "Xcode's open window may still show a signed-in account, but a new xcodebuild "
+        "process cannot use that in-memory login. In Xcode Settings > Apple Accounts, "
+        "use Sign In to authenticate the same account again, then retry. Alternatively, "
+        "pass the three --authentication-key-* options for an App Store Connect team API key.\n"
+        "No build number was changed and no archive or export was started."
+    )
+
+
 def archive_metadata(archive):
     """Retry from the archived bundles, even if project.yml has since changed."""
     properties = plistlib.loads((archive / "Info.plist").read_bytes())["ApplicationProperties"]
@@ -141,12 +181,19 @@ def export_archive(archive, output, version, build, team, bundle_ids, auth_args=
                     *auth_args], log, env=export_env)
     except RuntimeError as error:
         details = log.read_text(errors="replace") if log.exists() else ""
-        if "No Accounts" in details or "No signing certificate" in details:
+        if "No Accounts" in details:
+            print("\nxcodebuild could not load a usable Apple account. This does not mean "
+                  "Xcode's open window is signed out: its in-memory login can differ from "
+                  "the saved account state used by new command-line processes.\n"
+                  "Check DEVELOPER_DIR / xcode-select and the macOS user running this command. "
+                  "If the same Xcode is already signed in, use Settings > Apple Accounts > "
+                  "Sign In to authenticate the same account again, or pass the three "
+                  "--authentication-key-* options for a team API key.", file=sys.stderr)
+        if "No signing certificate" in details:
             print(f"\nDistribution signing is unavailable for team {team}. "
                   "A development-signed archive is not sufficient for TestFlight.\n"
-                  "In the selected Xcode's Settings > Accounts, sign in to this team and check "
-                  "App Store Connect / cloud-managed distribution certificate access, or pass "
-                  "the three --authentication-key-* options for a team API key.\n"
+                  "Automatic signing needs a usable team account or API key with "
+                  "App Store Connect / cloud-managed distribution certificate access.\n"
                   "Local signing requires an Apple Distribution certificate WITH its private key; "
                   "Apple Development and Developer ID Application cannot replace it.", file=sys.stderr)
         retry = ["python3", str(ROOT / "scripts/ios/testflight.py"), "--export-archive", str(archive)]
@@ -183,6 +230,7 @@ def package(dry_run, auth_args=()):
     if dry_run:
         print("Dry run: no files changed; no archive, export or upload performed.")
         return
+    check_signing_account(team, auth_args)
     output.mkdir(parents=True, exist_ok=False)
     archive = output / "dMsg.xcarchive"
     # Keep existing edits and formatting, and never reset the number after a failure.
@@ -203,6 +251,7 @@ def retry_export(archive, dry_run, auth_args=()):
     if dry_run:
         print("Dry run: no files changed; no archive, export or upload performed.")
         return
+    check_signing_account(team, auth_args)
     # Keep every earlier attempt's logs and IPA, including a partially failed export.
     output = Path(tempfile.mkdtemp(prefix="Export-", dir=archive.parent))
     print(f"Output: {output}", flush=True)

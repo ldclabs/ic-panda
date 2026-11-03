@@ -1,5 +1,38 @@
 # iOS implementation validation
 
+## TestFlight saved-account preflight (2026-11-04)
+
+With Xcode **27.2 (27B52)**, the open Apple Accounts window showed the team's
+signed-in Admin, while both persisted Xcode account lists were empty. Local
+signing identities included development and Developer ID certificates, but no
+distribution identity for this team. Exporting the existing **0.1.0 (11)** archive
+outside the execution sandbox reproduced `No Accounts` and missing distribution
+certificate errors. The GUI login alone did not establish command-line access.
+
+The packaging script now detects this specific empty-account condition before
+changing the build number or creating build/export output, while allowing API
+keys and existing local distribution identities. Unknown or unreadable account
+metadata is left to Xcode's actual validation; this is not a live authentication
+or provisioning check. Error guidance distinguishes GUI state from saved state.
+
+- All **23 iOS tooling tests** and `git diff --check` passed.
+- Both dry-run entry points passed. Real package/export invocations stopped at
+  the new preflight; byte comparison confirmed `project.yml` was unchanged,
+  no build 12 directory was created, and no new export directory was created.
+- After the user reauthenticated the same account in Xcode, the saved identifier
+  list contained one account. Exporting the same build 11 archive through the
+  updated script succeeded, using normal Keychain access outside the sandbox.
+  Output: `.build/TestFlight-0.1.0-11/Export-x72a63ir/Distribution/dMsg.ipa`.
+- All six IPA bundles retained **0.1.0 (11)** and passed
+  `codesign --verify --deep --strict`, with this team's Apple Distribution
+  authority. Embedded profile properties had `beta-reports-active`, no device
+  list, and no development debugging entitlement. `security cms` was blocked
+  from importing certificates in the sandbox; profile metadata was instead
+  decoded with OpenSSL CMS signature verification, without trust-chain validation.
+  The generated SHA-256 sidecar matched the IPA bytes.
+- The original build 11 archive, earlier logs and `project.yml` were retained.
+  No new archive, application tests, upload, or App Store submission was performed.
+
 ## Review of eb6caf1 and 90c33e7 (2026-11-04)
 
 Reset the file-detail lifetime when the split-view selection changes. Conversation

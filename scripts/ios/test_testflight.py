@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import plistlib
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,8 +14,55 @@ import zipfile
 import testflight
 
 
+class SigningAccountTests(unittest.TestCase):
+    def check(self, accounts, identities="", status=0):
+        preferences = plistlib.dumps({"DVTDeveloperAccountManagerAppleIDLists": accounts})
+        results = [subprocess.CompletedProcess([], 0, preferences),
+                   subprocess.CompletedProcess([], status, identities)]
+        with patch.object(testflight.subprocess, "run", side_effect=results) as run:
+            testflight.check_signing_account("S9Z2WAMAV8")
+        return run
+
+    def test_empty_saved_accounts_reject_development_and_other_team_identities(self):
+        identities = ('1) ABC "Apple Development: Developer (S9Z2WAMAV8)"\n'
+                      '2) DEF "Developer ID Application: Company (S9Z2WAMAV8)"\n'
+                      '3) GHI "Apple Distribution: Other Company (OTHER12345)"\n')
+        with self.assertRaisesRegex(RuntimeError, "in-memory login"):
+            self.check({"IDE.Prod": [], "IDE.Identifiers.Prod": []}, identities)
+
+    def test_matching_local_distribution_identity_does_not_require_saved_account(self):
+        for certificate in ("Apple Distribution", "iPhone Distribution"):
+            with self.subTest(certificate=certificate):
+                self.check({"IDE.Prod": []}, f'1) ABC "{certificate}: Company (S9Z2WAMAV8)"\n')
+
+    def test_registered_accounts_and_api_keys_remain_xcodes_responsibility(self):
+        run = self.check({"IDE.Identifiers.Prod": [{"identifier": "test-account"}]})
+        self.assertEqual(run.call_count, 1)
+        with patch.object(testflight.subprocess, "run") as run:
+            testflight.check_signing_account("S9Z2WAMAV8", ["-authenticationKeyPath", "test.p8"])
+            run.assert_not_called()
+
+    def test_unavailable_or_unknown_metadata_does_not_claim_no_accounts(self):
+        for preferences in ({}, [], {"DVTDeveloperAccountManagerAppleIDLists": {}},
+                            {"DVTDeveloperAccountManagerAppleIDLists": {"NewProvider": []}}):
+            with self.subTest(preferences=preferences), \
+                    patch.object(testflight.subprocess, "run", return_value=
+                                 subprocess.CompletedProcess([], 0, plistlib.dumps(preferences))):
+                testflight.check_signing_account("S9Z2WAMAV8")
+        for result in (subprocess.CompletedProcess([], 1, b""),
+                       subprocess.CompletedProcess([], 0, b"invalid plist")):
+            with self.subTest(result=result), patch.object(testflight.subprocess, "run", return_value=result):
+                testflight.check_signing_account("S9Z2WAMAV8")
+        with patch.object(testflight.subprocess, "run", side_effect=OSError("unavailable")):
+            testflight.check_signing_account("S9Z2WAMAV8")
+        self.check({"IDE.Prod": []}, status=1)
+
+
 class TestFlightTests(unittest.TestCase):
     def setUp(self):
+        signing = patch.object(testflight, "check_signing_account")
+        self.signing_preflight = signing.start()
+        self.addCleanup(signing.stop)
         self.temp = tempfile.TemporaryDirectory(prefix="dmsg packaging ")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -84,8 +132,28 @@ class TestFlightTests(unittest.TestCase):
 
     def test_dry_run_does_not_change_source_or_create_output(self):
         self.package(dry_run=True)
+        self.signing_preflight.assert_not_called()
         self.assertEqual(self.project.read_text(), self.source)
         self.assertFalse(self.output.parent.exists())
+
+    def test_missing_saved_account_stops_before_build_number_or_output_changes(self):
+        self.signing_preflight.side_effect = RuntimeError("saved Apple account list is empty")
+        with patch.object(testflight, "run_logged") as build:
+            with self.assertRaisesRegex(RuntimeError, "saved Apple account list is empty"):
+                self.package()
+            build.assert_not_called()
+        self.assertEqual(self.project.read_text(), self.source)
+        self.assertFalse(self.output.exists())
+        archive = self.write_archive()
+        old_log = self.output / "export.log"
+        old_log.write_text("previous failure")
+        before = set(self.output.rglob("*"))
+        with patch.object(testflight, "run_logged") as export, contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError, "saved Apple account list is empty"):
+                testflight.retry_export(archive, False)
+            export.assert_not_called()
+        self.assertEqual(set(self.output.rglob("*")), before)
+        self.assertEqual(old_log.read_text(), "previous failure")
 
     def test_success_exports_without_upload_and_checks_bundles(self):
         calls = []
@@ -144,6 +212,7 @@ class TestFlightTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "--export-archive") as failure:
                 self.package()
         self.assertIn("--authentication-key-*", errors.getvalue())
+        self.assertIn("in-memory login", errors.getvalue())
         self.assertIn("S9Z2WAMAV8", errors.getvalue())
         self.assertIn("export.log", str(failure.exception))
         self.assertTrue((self.output / "dMsg.xcarchive/Info.plist").exists())
@@ -196,6 +265,7 @@ class TestFlightTests(unittest.TestCase):
         with patch.object(testflight, "run_logged") as run, contextlib.redirect_stdout(io.StringIO()):
             testflight.retry_export(archive, True)
             run.assert_not_called()
+        self.signing_preflight.assert_not_called()
         self.assertEqual(set(self.output.rglob("*")), before)
         self.assertEqual(self.project.read_text(), self.source)
 

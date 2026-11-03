@@ -306,6 +306,13 @@ python3 scripts/ios/testflight.py \
 不能替代 App Store Connect API Key。私钥放在仓库之外，脚本只传入文件路径，
 不会复制私钥到产物目录。参数不完整或私钥文件不可读时，在递增构建号前报错。
 
+使用 Xcode 账号时，脚本先检查已保存的账号登记。如果 Xcode 的已知账号列表明确为空，
+且本地没有本团队带私钥的 Apple Distribution / iPhone Distribution 身份，脚本在递增
+构建号、编译和创建导出目录之前停止。已打开的 Xcode 仍可能显示内存中的登录状态，
+而新的 `xcodebuild` 进程读不到它。检查只读取账号登记和签名身份元数据，不读取密钥、
+修改 Xcode 偏好或注销账号。API Key 跳过该检查；已有本地分发身份、未知账号存储格式或
+无法读取诊断信息时，仍交给 Xcode 实际校验。此检查不能保证账号未过期、团队权限或描述文件有效。
+
 脚本复用 `archive.sh`，重新构建优化后的 Rust 核心、生成 Xcode 工程并归档
 Swift Release，再使用自动签名导出 App Store Connect IPA。导出时使用系统工具
 PATH，避免 Homebrew `rsync` 与 Xcode 导出的参数冲突。完成后会检查 IPA 内主 App
@@ -371,9 +378,12 @@ Apple 处理完成后，在 App Store Connect → TestFlight → 测试组中添
 
 如果 `export.log` 出现 `No Accounts`，说明导出进程无法取得可用的团队认证。
 先用 `xcode-select -p` 核对命令行使用的 Xcode；`DEVELOPER_DIR` 如果设置了会覆盖该选择。
-在对应 Xcode → Settings → Accounts 登录并检查团队、App Store Connect 及云端分发证书权限，
-或使用上述 API Key 参数。若仅受限终端失败，而同一 Xcode 的界面可导出，可在 macOS Terminal
-中重试已有归档。
+同时核对是否由同一 macOS 用户运行。**界面显示已登录，不代表命令行能读取到账号**：
+如果脚本报告已保存账号列表为空，在对应 Xcode → Settings → Apple Accounts 中用
+**Sign In** 重新认证同一账号，再重试已有归档；无需为此先删除证书或退出原账号。
+密码和验证码只在 Xcode 输入，也可以使用上述 API Key 参数。账号可读取后，再检查团队、
+App Store Connect 及云端分发证书权限。若仅受限终端失败，而同一 Xcode 的界面可导出，
+可在 macOS Terminal 中重试已有归档；沙箱外也报同样错误时，不能归因于沙箱。
 
 归档可使用已有的 Apple Development 证书和开发描述文件，因此归档成功不代表已具备
 TestFlight 分发签名条件。`security find-identity -v -p codesigning` 可以检查本地带私钥的
