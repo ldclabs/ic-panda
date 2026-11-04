@@ -1,4 +1,4 @@
-//! Wallet state frozen into an approval, including the pre-1.2 member shape.
+//! Wallet state from certified reads or frozen approvals, including pre-1.2 members.
 //! Keep its original encoding: the job's approved digest covers that snapshot.
 
 use crate::codec::{canonical, decode};
@@ -7,8 +7,8 @@ use cbor2::Value;
 use dmsg_types::{Error, Result, ensure, wallet::WalletView};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de, ser};
 
-/// A wallet approval's immutable context and its validated display projection.
-/// This is local journal compatibility, not a substitute for fresh wallet state.
+/// Original wallet bytes and their validated projection. Decoding alone grants
+/// no authority: live reads must verify their certificate before decoding.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WalletSnapshot {
     encoded: Vec<u8>,
@@ -28,6 +28,10 @@ impl WalletSnapshot {
     /// The state shown when the request was made; never execution authority.
     pub fn view(&self) -> &WalletView {
         &self.view
+    }
+
+    pub(super) fn into_view(self) -> WalletView {
+        self.view
     }
 }
 

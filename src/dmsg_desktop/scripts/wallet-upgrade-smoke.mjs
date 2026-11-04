@@ -10,14 +10,21 @@ import { WebSocketServer } from 'ws'
 import { walletFixture } from './wallet-fixture.mjs'
 
 const account = '040g2081040g2081040g', token = 'wallet-upgrade-fixture'
-const fixture = walletFixture(account, [])
+const requests = new Map()
+const fixture = walletFixture(account, (id, type, detail) => {
+  const request = { id, type, kind: type, detail, source: 'gui', risk: 'high', digest: 'dd'.repeat(32),
+    state: 'awaiting_user', created_at: Date.now(), updated_at: Date.now(), expires_at: Date.now() + 300000 }
+  requests.set(id, request)
+  return request
+})
 fixture.state.enabled = true
-let version = 2, accepted = true, releaseInstall, installCalls = 0, rejectInstall = true
+let version = 2, accepted = false, releaseInstall, installCalls = 0, rejectInstall = true
+let releaseProposal, proposalCalls = 0, rejectProposal = true
 let holdVersions = false, releaseVersions
 const sockets = new Set()
 const calls = []
 let sequence = 0
-const status = () => ({ state: 'unlocked', account, device_id: '55'.repeat(32), approvals_waiting: 0, pending_sync: 0, background_online: false, fast_unlock: false, idle_lock_ms: 900000 })
+const status = () => ({ state: 'unlocked', session: 'fixture', account, device_id: '55'.repeat(32), approvals_waiting: requests.size, pending_sync: 0, background_online: false, fast_unlock: false, idle_lock_ms: 900000 })
 const emit = type => { for (const ws of sockets) ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: ++sequence, type, data: {} } })) }
 const versions = () => ({ record: { version, locked: false }, versions: [1, 2, 3].map(v => ({ version: v, module_hash: 'ee'.repeat(32), notes: `canisters-v3.1.${v} — Long release description with installation and recovery details`, retired: false })) })
 const methods = {
@@ -25,16 +32,29 @@ const methods = {
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null, 'daemon/status': status, 'session/status': status,
   'profile/show': () => null, 'profile/pending': () => null,
-  'approval/list': () => [], 'attest/history': () => [], 'channel/list': () => [],
+  'approval/list': p => p.ids_only ? [...requests.keys()] : [...requests.values()],
+  'approval/show': p => requests.get(p.id),
+  'attest/history': () => [], 'channel/list': () => [],
   'agent/ids': () => ({ agents: [] }), 'grants/list': () => [],
   'wallet/list': () => [{ wallet: fixture.a, name: 'Upgrade fixture' }],
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
+  'wallet/readiness': () => ({ blockers: [], read_at: Date.now() }),
   'wallet/deposits': () => [],
   'wallet/show': p => ({ ...fixture.view(p.wallet), code: accepted ? 'Upgrade { version: 3, module_hash: [226, 146] }' : 'None', code_acceptance: accepted ? { Upgrade: { version: 3, module_hash: 'ee'.repeat(32) } } : 'None' }),
   'wallet/versions': async () => {
     const snapshot = versions()
     if (holdVersions) { holdVersions = false; await new Promise(resolve => { releaseVersions = resolve }) }
     return snapshot
+  },
+  'wallet/change': async p => {
+    ++proposalCalls
+    assert.deepEqual(p.change, { kind: 'upgrade', version: 3, module_hash: 'ee'.repeat(32) })
+    await new Promise(resolve => { releaseProposal = resolve })
+    releaseProposal = null
+    if (rejectProposal) throw Error('INTEGRITY_FAILED')
+    const proposal = fixture.methods['wallet/change'](p)
+    emit('wallet/changed')
+    return proposal
   },
   'wallet/upgrade': async () => {
     ++installCalls
@@ -84,7 +104,7 @@ try {
   }
   const screenshot = async name => {
     const section = main.getByTestId('wallet-code-current').locator('xpath=ancestor::section')
-    const receipt = main.getByTestId('wallet-upgrade-error').or(main.getByTestId('wallet-upgrade-success'))
+    const receipt = main.getByTestId('wallet-upgrade-proposal-error').or(main.getByTestId('wallet-upgrade-error')).or(main.getByTestId('wallet-upgrade-success'))
     if (await receipt.count()) await receipt.scrollIntoViewIfNeeded()
     else await section.evaluate(e => e.scrollIntoView({ block: 'start' }))
     assert.ok(await section.evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'version controls fit horizontally')
@@ -95,6 +115,59 @@ try {
     for (let i = 0; i < 100 && !releaseInstall; i++) await new Promise(resolve => setTimeout(resolve, 20))
     assert.ok(releaseInstall)
   }
+  await open()
+  const propose = main.getByTestId('wallet-upgrade-propose-3')
+  const pendingProposal = async () => {
+    for (let i = 0; i < 100 && !releaseProposal; i++) await new Promise(resolve => setTimeout(resolve, 20))
+    assert.ok(releaseProposal)
+    assert.equal(await propose.isDisabled(), true)
+    assert.equal(await propose.getAttribute('aria-busy'), 'true')
+  }
+  await propose.focus(); await main.keyboard.press('Enter')
+  await pendingProposal()
+  await main.keyboard.press('Enter')
+  assert.equal(proposalCalls, 1, 'a pending proposal cannot be submitted twice')
+  releaseProposal()
+  await main.getByTestId('wallet-upgrade-proposal-error').waitFor()
+  assert.equal(await main.getByTestId('wallet-upgrade-error').count(), 0, 'proposal failure is distinct from installation failure')
+  assert.equal(await propose.isEnabled(), true)
+  for (const [locale, theme] of [['zh', 'light'], ['zh', 'dark'], ['fr', 'light'], ['ar', 'dark']]) {
+    await main.evaluate(async ({ locale, theme }) => { await window.dmsg.setLocale(locale); await window.dmsg.setAppearance(theme) }, { locale, theme })
+    await (await app.browserWindow(main)).evaluate(window => window.setContentSize(760, 540))
+    await main.waitForFunction(({ locale, theme }) => document.documentElement.lang.startsWith(locale) && matchMedia('(prefers-color-scheme: dark)').matches === (theme === 'dark'), { locale, theme })
+    await main.evaluate(() => { location.hash = '/channels' })
+    await main.getByTestId('wallet-view').waitFor({ state: 'detached' })
+    await open()
+    await propose.click(); await pendingProposal(); releaseProposal()
+    await main.getByTestId('wallet-upgrade-proposal-error').waitFor()
+    await screenshot(`proposal-failure-${locale}-${theme}-narrow.png`)
+  }
+  await main.evaluate(async () => { await window.dmsg.setLocale('zh'); await window.dmsg.setAppearance('light') })
+  await main.waitForSelector('html[lang="zh-Hans"]')
+  await main.evaluate(() => { location.hash = '/channels' })
+  await main.getByTestId('wallet-view').waitFor({ state: 'detached' })
+  await open()
+  rejectProposal = false
+  await propose.click(); await pendingProposal(); releaseProposal()
+  const detail = main.getByTestId('wallet-proposal-detail')
+  await detail.waitFor()
+  assert.equal(requests.size, 0, 'proposing does not implicitly approve')
+  assert.ok((await detail.innerText()).includes('ee'.repeat(32)), 'proposal displays the exact module hash')
+  const approvalWindow = app.waitForEvent('window')
+  await detail.getByRole('button', { name: '批准', exact: true }).click()
+  const approval = await approvalWindow
+  await approval.getByTestId('approval-wallet').waitFor()
+  await approval.getByTestId('approve').waitFor()
+  await approval.getByTestId('approval-wallet-retry').waitFor({ state: 'detached' })
+  assert.equal([...requests.values()][0].detail.proposal.intent.kind, 'accept_upgrade')
+  await approval.screenshot({ path: join(shots, 'proposal-approval-zh-light.png') })
+  assert.equal(calls.includes('approval/respond'), false, 'the test never approves the request')
+  await (await app.browserWindow(approval)).evaluate(window => window.hide())
+  requests.clear()
+  await main.keyboard.press('Escape')
+  await main.evaluate(() => { location.hash = '/channels' })
+  await main.getByTestId('wallet-view').waitFor({ state: 'detached' })
+  accepted = true
   await open()
   assert.ok((await main.getByTestId('wallet-code-current').innerText()).includes('v2'))
   assert.ok((await main.getByTestId('wallet-code-accepted').innerText()).includes('v3'))
@@ -154,13 +227,22 @@ try {
   releaseInstall()
   await main.waitForTimeout(200)
   assert.equal(await main.getByTestId('wallet-upgrade-success').count(), 0)
-  console.log('wallet upgrade Electron smoke passed: keyboard install, pending duplicate prevention, visible failure and retry, authoritative completion, stale reads/navigation, Chinese/French/Arabic RTL and light/dark at 760×540')
+  version = 2; accepted = false
+  await open()
+  await propose.click(); await pendingProposal()
+  await main.evaluate(() => { location.hash = '/channels' })
+  await main.getByTestId('wallet-view').waitFor({ state: 'detached' })
+  releaseProposal()
+  await main.waitForTimeout(200)
+  assert.equal(await main.getByTestId('wallet-proposal-detail').count(), 0, 'a late proposal cannot reopen a view that was left')
+  assert.equal(await main.evaluate(() => location.hash), '#/channels')
+  console.log('wallet upgrade Electron smoke passed: proposal failure/retry, exact version/hash, proposal-to-approval navigation, keyboard install, duplicate prevention, authoritative completion, stale reads/navigation, Chinese/French/Arabic RTL and light/dark at 760×540')
 } catch (error) {
   console.error(error, calls.slice(-30), await main?.locator('body').innerText())
   await main?.screenshot({ path: join(shots, 'failure-debug.png') })
   throw error
 } finally {
-  releaseInstall?.(); releaseVersions?.()
+  releaseProposal?.(); releaseInstall?.(); releaseVersions?.()
   await app.close()
   for (const ws of sockets) ws.terminate()
   wss.close(); server.close()

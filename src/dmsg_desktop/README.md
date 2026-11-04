@@ -146,7 +146,11 @@ desktop is one of its clients, like the CLI.
     asset-unit amounts and per-chain fee previews precede transfers; the
     wallet rechecks policy. Member, policy, address-book, cosigner, unfreeze,
     refuel and upgrade forms create typed proposals. Approval tickets show
-    every intent and its changes. Proposals page, show votes and receipts,
+    every intent and its changes. Upgrade proposal failures stay beside the
+    selected release, with a waiting state and duplicate-submit guard. Successful
+    proposals open their detail; approving remains a separate ticket. Certified
+    reads also accept the older member `principals` representation so existing
+    wallets can propose and review their upgrade. Proposals page, show votes and receipts,
     and distinguish execution, rebroadcast and replacement. Receive views
     include verified QR codes and both ICP account formats. Cosignatures
     from separate devices can be checked, collected and explicitly executed
@@ -338,7 +342,9 @@ Rules (`src/main/policy.ts`):
 - A new installation starts with system notifications off. An installation
   upgraded from a version without these settings keeps alerting its selected
   account, as before. The app badge, tray and Reminders count include the
-  selected account whether or not it alerts.
+  selected account whether or not it alerts. The app badge follows the daemon's
+  configured action/unread count; pending verification alone does not add a dot,
+  and a zero count clears the badge, including on the macOS Dock.
 - Recovery notices retain their incident identity and phases across restarts.
   Certified public observation works while locked; a verified execution time
   enables the 24-hour and one-hour phases. Missing time never prevents the first

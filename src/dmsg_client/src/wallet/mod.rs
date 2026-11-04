@@ -1092,9 +1092,21 @@ async fn ledger_fee(ic: &Ic, ledger: Principal) -> Result<u128> {
 pub async fn state<H: Hold>(h: &H, wallet: Principal) -> Result<WalletView> {
     let (_, ic) = identity(h).await?;
     let batch: Result<CertifiedBatch> = ic.query(wallet, "get_wallet_certified", ()).await?;
-    let value = certified_leaf(&batch?, b"wallet", wallet, &ic.root_key(), now_ms())?
-        .ok_or(Error::IntegrityFailed)?;
-    let view: WalletView = crate::codec::decode(&value, 1 << 20)?;
+    certified_state(&batch?, wallet, &ic.root_key(), now_ms())
+}
+
+fn certified_state(
+    batch: &CertifiedBatch,
+    wallet: Principal,
+    root_key: &[u8],
+    now: u64,
+) -> Result<WalletView> {
+    let value =
+        certified_leaf(batch, b"wallet", wallet, root_key, now)?.ok_or(Error::IntegrityFailed)?;
+    // Authenticate the original bytes before projecting pre-device-binding
+    // members. Old wallets must remain readable so they can accept an upgrade.
+    let snapshot: WalletSnapshot = crate::codec::decode(&value, 1 << 20)?;
+    let view = snapshot.into_view();
     ensure(view.wallet == wallet, Error::IntegrityFailed)?;
     Ok(view)
 }

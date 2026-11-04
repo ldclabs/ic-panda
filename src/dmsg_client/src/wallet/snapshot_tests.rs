@@ -39,6 +39,97 @@ fn fixture() -> WalletView {
 }
 
 #[test]
+fn certified_wallet_state_reads_legacy_members_and_rejects_invalid_evidence() {
+    use dmsg_types::CertifiedEntry;
+    use ic_certification_v3::{Certificate, fork, labeled, leaf};
+
+    let view = fixture();
+    let mut legacy: Value = decode(&canonical(&view), MAX_PRIVATE).unwrap();
+    let Value::Array(members) = get(&mut legacy, "members") else {
+        panic!("members")
+    };
+    for member in members {
+        let Value::Map(fields) = member else {
+            panic!("member")
+        };
+        let at = fields
+            .iter()
+            .position(|(k, _)| k == &Value::Text("bindings".into()))
+            .unwrap();
+        let (_, Value::Array(mut bindings)) = fields.remove(at) else {
+            panic!("bindings")
+        };
+        let principals = bindings
+            .iter_mut()
+            .map(|b| get(b, "principal").clone())
+            .collect();
+        fields.push((Value::Text("principals".into()), Value::Array(principals)));
+    }
+    let now = 1_000;
+    let key = ic_verify_bls_signature::PrivateKey::deserialize(&[1; 32]).unwrap();
+    let mut root =
+        hex::decode("308182301d060d2b0601040182dc7c0503010201060c2b0601040182dc7c05030201036100")
+            .unwrap();
+    root.extend(key.public_key().serialize());
+    for value in [canonical(&view), canonical(&legacy)] {
+        let witness = labeled(b"wallet", leaf(value.clone()));
+        // 1,000 milliseconds, in nanoseconds encoded as unsigned LEB128.
+        let tree = fork(
+            labeled(
+                b"canister",
+                labeled(
+                    view.wallet.as_slice(),
+                    labeled(b"certified_data", leaf(witness.digest())),
+                ),
+            ),
+            labeled(b"time", leaf(vec![0x80, 0x94, 0xeb, 0xdc, 0x03])),
+        );
+        let signature = key.sign(&[b"\x0dic-state-root".as_slice(), &tree.digest()].concat());
+        let certificate = Certificate {
+            tree,
+            signature: signature.serialize().to_vec(),
+            delegation: None,
+        };
+        let batch = CertifiedBatch {
+            schema: 1,
+            canister: view.wallet,
+            certificate: [vec![0xd9, 0xd9, 0xf7], canonical(&certificate)]
+                .concat()
+                .into(),
+            entries: vec![CertifiedEntry {
+                key: b"wallet".to_vec().into(),
+                value: Some(value.into()),
+                witness: canonical(&witness).into(),
+            }],
+        };
+        assert_eq!(
+            certified_state(&batch, view.wallet, &root, now).unwrap(),
+            view
+        );
+        assert_eq!(
+            certified_state(&batch, view.wallet, &root, now + 60_001),
+            Err(Error::IntegrityFailed)
+        );
+        assert_eq!(
+            certified_state(&batch, Principal::anonymous(), &root, now),
+            Err(Error::IntegrityFailed)
+        );
+        let mut tampered = batch.clone();
+        tampered.entries[0].value = Some(
+            canonical(&WalletView {
+                frozen: !view.frozen,
+                ..view.clone()
+            })
+            .into(),
+        );
+        assert_eq!(
+            certified_state(&tampered, view.wallet, &root, now),
+            Err(Error::IntegrityFailed)
+        );
+    }
+}
+
+#[test]
 fn wallet_snapshots_keep_current_bytes_and_reject_malformed_members() {
     let view = fixture();
     let encoded = canonical(&view);

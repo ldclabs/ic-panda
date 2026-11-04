@@ -141,6 +141,7 @@ export function walletFixture(account, created) {
       v.status = 'Open'
       v.requirement = { approvals: policy.admin_threshold, admin: true, delay_ms: 86400000 }
       v.intent = p.change.kind === 'sol_nonce' ? { kind: 'init_sol_nonce', address: p.change.address, max_fee: p.change.max_fee }
+        : p.change.kind === 'upgrade' ? { kind: 'accept_upgrade', version: p.change.version, module_hash: p.change.module_hash }
         : p.change.kind === 'cosign' ? { kind: 'set_cosign', address: p.change.address, cosign: p.change.cosign }
         : p.change.kind === 'cosigner' ? { kind: 'add_cosigner', ...state.localKeys.find((k) => k.label === p.change.label), member: account, curve: 'P256', envelope: 'Raw' }
         : p.change.kind === 'unfreeze' ? { kind: 'unfreeze' } : { kind: 'set_policy', policy }

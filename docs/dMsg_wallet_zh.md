@@ -188,6 +188,10 @@ ICPanda DAO 多签钱包仍可作为种子用户，持有团队运营资金，�
 
 截至 `b8b8b799` 的开发验证记录包括：钱包协议与各 Rust 模块单测、PocketIC 钱包回归、真实本地 Solana validator 与 Anvil 广播用例、双 daemon 钱包流程、92 项桌面 Node 测试、类型检查和构建、Electron 冒烟、Wasm/Candid 一致性与 Clippy。Electron 本次跳过原生 macOS 全屏切换，CMC 使用替身；详情及复跑入口见[集成测试指南](../tests/dmsg_integration/README.md)和[桌面 README](../src/dmsg_desktop/README.md)。
 
+2026-11-04 升级提案修正：旧实例的成员仍使用 `principals`，实时状态读取曾因仅接受 `bindings` 返回 `INTEGRITY_FAILED`，阻断提案与审批。现复用经过严格验证的旧成员投影，保留原始证书验证；桌面在对应版本旁显示提案失败，等待期间阻止重复提交，成功后打开提案详情，由用户另行进入审批单。窄窗口为版本说明保留换行空间。
+
+本轮验证：Rust 钱包 38 项测试通过（含旧/新成员认证响应、过期证书、错误钱包与篡改响应），`cargo clippy -p dmsg_client --all-targets -- -D warnings`、Rust 格式检查通过；桌面 `pnpm check`（0 错误/警告）、169 项测试、构建及 `node scripts/wallet-upgrade-smoke.mjs` 通过。Electron 使用临时 profile 和模拟 daemon，覆盖提案失败重试、精确版本/哈希、独立审批单、安装失败重试、迟到响应及键盘操作；已检查 760×540 中文明暗、法文长文案、阿拉伯语 RTL 与中文审批单截图。本轮未运行全量 Rust/PocketIC、Windows/Linux 或生产升级验收，未替换已安装应用。
+
 仍需独立完成的交付：
 
 - Bitcoin regtest 广播及 Taproot 恢复路径的链上验收。

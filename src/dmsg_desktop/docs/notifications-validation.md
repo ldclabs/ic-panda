@@ -2,6 +2,17 @@
 
 核对日期：2026-10-29。本页记录公开客户端的本地实现与检查边界，不代表生产推送或全部平台已验收。终态设计和批次方案在本地 `misc/`，公开合同见 [dmsg-notifications/1](../../../docs/protocol/notifications_zh.md)。
 
+## Dock 角标归零修正（2026-11-04）
+
+macOS 主进程在 daemon 返回角标数量 0 后，又因 `counts.unverified` 设置 `•`，导致没有已知未读或待办时仍显示红点；“仅待办”模式也会被待核验的消息点亮。现在图标统一使用 daemon 已应用偏好的 `badge`：0 清除、1–99 显示数字、更大显示 `99+`。待核验元数据、最后可信未读数和业务已读状态不因此被清除。
+
+- 新增 Electron 角标回归，修复前实际复现 `count: 0, label: "•"`；修复后覆盖未读归零、待核验时保留可信计数、待办与未读合计、仅待办、关闭角标及 `99+`。macOS 调用真实角标 API 并读取 `app.dock.getBadge()`，daemon 使用隔离 fixture。
+- `pnpm check` 通过（0 错误、0 警告）、`pnpm test` 169 项通过、`pnpm build` 通过。
+- 完整 `notifications` Electron 流程通过，包括上述角标回归及既有通知设置、失败重试、键盘操作和原账户导航。检查 760×540 下中文明暗、德文长文案与阿拉伯语 RTL 截图，未发现新增布局问题；截图位于本地 `test-results/notifications-*.png`。
+- 本轮通知横幅与原生焦点仍使用模拟；没有替换已安装应用，未验证签名发布包、真实通知投递、Windows 或 Linux。未修改 Rust，未运行 Rust 测试。
+
+角标短流程：`DMSG_DESKTOP_SMOKE=notification-badge node scripts/smoke.mjs`。完整流程：`DMSG_DESKTOP_SHOW=1 DMSG_DESKTOP_NOTIFICATION_FOCUS=mock DMSG_DESKTOP_SMOKE=notifications node scripts/smoke.mjs`；两者均先在桌面目录运行 `pnpm build`。
+
 ## 全局账号入口收敛（2026-11-01）
 
 桌面仅侧栏账号菜单切换工作区；移除提醒页的账号选择与切换按钮、设置页的本机账号列表和其他身份登录入口，以及命令面板的其他身份登录命令。iOS 仅保留“我的 → 切换账号”，移除提醒页的账号选择与切换按钮、浏览器请求页的直接切换按钮。通知设置、收件对象、绑定目标等不改变当前工作区的设置和输入保持各自语义。

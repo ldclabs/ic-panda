@@ -1,8 +1,62 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 
+/** Exercise the real badge APIs with isolated daemon projections, including unknown counts. */
+export async function notificationBadgeFlow({ app, methods, emit, waitFor }) {
+  const settings = methods['notifications/settings'], status = methods['notifications/status']
+  let mode = 'all', counts = { actionable: 0, unread: 0, unverified: false }
+  methods['notifications/settings'] = (params) => {
+    const value = settings(params)
+    return { ...value, global: { ...value.global, badge: mode } }
+  }
+  methods['notifications/status'] = () => ({ ...status(), counts,
+    badge: mode === 'off' ? 0 : counts.actionable + (mode === 'all' ? counts.unread : 0) })
+  await app.evaluate(({ app }) => {
+    globalThis.__badgeCounts = []
+    globalThis.__setBadgeCount = app.setBadgeCount.bind(app)
+    app.setBadgeCount = (count) => {
+      globalThis.__badgeCounts.push(count)
+      return globalThis.__setBadgeCount(count)
+    }
+  })
+  try {
+    for (const [preference, actionable, unread, unverified, expected, label] of [
+      ['all', 0, 3, false, 3, '3'],
+      ['all', 0, 0, true, 0, ''], // Read messages, with another account still awaiting verification.
+      ['all', 0, 3, true, 3, '3'], // Keep the last verified count while syncing.
+      ['all', 2, 3, false, 5, '5'],
+      ['actions', 2, 3, true, 2, '2'],
+      ['actions', 0, 3, true, 0, ''],
+      ['all', 0, 105, false, 105, '99+'],
+      ['off', 2, 3, true, 0, ''],
+      ['all', 0, 0, false, 0, '']
+    ]) {
+      mode = preference
+      counts = { actionable, unread, unverified }
+      await app.evaluate(() => { globalThis.__badgeCounts = [] })
+      emit('notifications/changed')
+      await waitFor(() => app.evaluate(({ app }, { expected, label }) =>
+        globalThis.__badgeCounts.at(-1) === expected
+        && (process.platform !== 'darwin' || app.dock.getBadge() === label), { expected, label })).catch(async () => {
+        const actual = await app.evaluate(({ app }) => ({ count: globalThis.__badgeCounts.at(-1), label: app.dock?.getBadge() }))
+        assert.fail(`Badge ${JSON.stringify({ mode, ...counts })}: expected ${expected}/${JSON.stringify(label)}, got ${JSON.stringify(actual)}`)
+      })
+    }
+  } finally {
+    methods['notifications/settings'] = settings
+    methods['notifications/status'] = status
+    await app.evaluate(({ app }) => {
+      app.setBadgeCount = globalThis.__setBadgeCount
+      delete globalThis.__setBadgeCount
+      delete globalThis.__badgeCounts
+    })
+    emit('notifications/changed')
+  }
+}
+
 /** Native APIs are observed, not sent to the real Notification Center. */
 export async function notificationsFlow({ app, main, shots, methods, requests, emit, hold, waitFor, calls, model, account }) {
+  await notificationBadgeFlow({ app, methods, emit, waitFor })
   const simulatedFocus = process.env.DMSG_DESKTOP_NOTIFICATION_FOCUS === 'mock'
   if (simulatedFocus) {
     console.log('Native focus is simulated for this run; this is not a native-focus acceptance test')

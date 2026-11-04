@@ -37,7 +37,7 @@ import { languagesFlow } from './languages-flow.mjs'
 import { walletFixture } from './wallet-fixture.mjs'
 import { agentFixture } from './agent-fixture.mjs'
 import { notificationsFixture } from './notifications-fixture.mjs'
-import { notificationsFlow } from './notifications-flow.mjs'
+import { notificationBadgeFlow, notificationsFlow } from './notifications-flow.mjs'
 import { accountsFlow } from './accounts-flow.mjs'
 import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
@@ -1908,6 +1908,12 @@ smoke: try {
     await accountsFlow({ app, main, shots, methods, emit, hold, waitFor, calls, model: notificationModel, account, other })
     assert.deepEqual(pageErrors, [])
     console.log('desktop single account context smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'notification-badge') {
+    await notificationBadgeFlow({ app, methods, emit, waitFor })
+    assert.deepEqual(pageErrors, [])
+    console.log('desktop notification badge smoke test passed')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'notifications') {

@@ -858,7 +858,9 @@ const refreshNotices = single(async () => {
     waiting = counts.counts.actionable
     const badge = Math.max(0, Math.min(2_147_483_647, counts.badge || 0))
     app.setBadgeCount(badge)
-    if (process.platform === 'darwin') app.dock?.setBadge(badge > 99 ? '99+' : badge ? String(badge) : preferences.global.badge !== 'off' && counts.counts.unverified ? '•' : '')
+    // The daemon applies the badge preference. Pending verification alone is
+    // not unread work and must not turn a zero count back into a Dock dot.
+    if (process.platform === 'darwin') app.dock?.setBadge(badge > 99 ? '99+' : badge ? String(badge) : '')
     updateTray(status.state ?? 'unknown')
     const visible = noticeForeground() ? [...noticeViewports.values()] : []
     await daemon.call('notifications/context', { session: status.session, context: {

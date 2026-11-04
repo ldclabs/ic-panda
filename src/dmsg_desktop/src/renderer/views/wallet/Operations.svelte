@@ -67,6 +67,7 @@
   const acceptedUpgrade = $derived(wallet.code_acceptance?.Upgrade)
   const pendingUpgrade = $derived(acceptedUpgrade && acceptedUpgrade.version !== versions?.record?.version)
   let codePending = $state(false), codeError = $state(''), installedVersion = $state<number | null>(null)
+  let proposingVersion = $state<number | null>(null), proposalError = $state<{ version: number; message: string } | null>(null)
   let versionRead = 0
   let alive = true
   let errors = $state<Record<string, string>>({})
@@ -155,9 +156,12 @@
     }
   }
   async function run(method: string, params: any = {}) {
+    if (busy) return
+    const codeChange = method === 'wallet/change' && params.change?.kind === 'upgrade'
     busy = true
     error = ''
     notice = ''
+    if (codeChange) { proposingVersion = params.change.version; proposalError = null }
     try {
       const result: any = await call(method, { wallet: wallet.wallet, ...params })
       if (!alive) return
@@ -185,10 +189,12 @@
       if (result.notification_error) notice = w('notificationFailed')
     } catch (e) {
       if (!alive) return
-      if (method === 'wallet/cosigner_new' && params.hardware && e instanceof CallError && e.code === 'UNAVAILABLE') softwareKey = true
+      if (codeChange) proposalError = { version: params.change.version, message: errorText(e) }
+      else if (method === 'wallet/cosigner_new' && params.hardware && e instanceof CallError && e.code === 'UNAVAILABLE') softwareKey = true
       else error = errorText(e)
     } finally {
       busy = false
+      if (codeChange) proposingVersion = null
     }
   }
   const active = $derived(wallet.me?.status === 'Active')
@@ -344,21 +350,23 @@
       {#each versions.versions as v (v.version)}<div class="border-line flex flex-wrap items-center gap-2 border-t py-3"
           ><b>v{v.version}</b>{#if v.version === versions.record?.version}<Pill>{w('currentVersion')}</Pill>{:else if v.retired}<Pill
               >{w('retiredVersion')}</Pill
-            >{:else if v.version === latestVersion}<Pill>{w('recommendedVersion')}</Pill>{/if}<div class="min-w-0 flex-1"
+            >{:else if v.version === latestVersion}<Pill>{w('recommendedVersion')}</Pill>{/if}<div class="min-w-0 flex-1 basis-56"
             ><p class="text-[12px]">{v.notes || w('releaseNotesMissing')}</p><Collapsible
               >{#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}<p class="font-mono text-[12px] break-all"
                 >{v.module_hash}</p
               ></Collapsible
             ></div
           >{#if mayPropose && !versions.record?.locked && !v.retired && v.version !== versions.record?.version && v.version !== acceptedUpgrade?.version}<button
+              data-testid={`wallet-upgrade-propose-${v.version}`}
               class={buttonClass('secondary', 'sm')}
               disabled={busy}
+              aria-busy={proposingVersion === v.version}
               onclick={() =>
                 v.version < versions.record.version
                   ? (rollback = v)
                   : run('wallet/change', { change: { kind: 'upgrade', version: v.version, module_hash: v.module_hash } })}
-              >{w(v.version < versions.record.version ? 'rollback' : 'upgrade')}</button
-            >{/if}</div
+              >{w(proposingVersion === v.version ? 'loading' : v.version < versions.record.version ? 'rollback' : 'upgrade')}</button
+            >{/if}{#if proposalError && proposalError.version === v.version}<Notice class="w-full" tone="danger" failure={proposalError.message} testid="wallet-upgrade-proposal-error">{proposalError.message}</Notice>{/if}</div
         >{/each}
       {#if rollback}<Notice tone="warn"
           >{w('rollbackHint')} · v{versions.record?.version} → v{rollback.version}<button
