@@ -6,6 +6,18 @@ bare versions (`1.3.0`, `1.4.0-beta.1`); historical release links stay unchanged
 Canister and website changes are released separately; they appear here only
 where the client depends on them.
 
+## [1.3.3] - 2026-11-04
+
+### Fixes
+
+- Clear the macOS Dock badge when the configured notification count is zero.
+  Pending verification no longer leaves a dot or overrides actions-only mode.
+- Restore reading and upgrade proposals for multisig wallets created before
+  per-device member bindings, while preserving certificate and payload validation.
+- Show wallet upgrade proposal progress and failures beside the selected release,
+  prevent duplicate submissions and keep long release notes readable in narrow
+  windows.
+
 ## [1.3.2] - 2026-11-02
 
 ### Sync and offline use
@@ -598,6 +610,7 @@ where the client depends on them.
 
 The first release of the dMsg client.
 
+[1.3.3]: https://github.com/ldclabs/ic-panda/compare/1.3.2...1.3.3
 [1.3.2]: https://github.com/ldclabs/ic-panda/compare/1.3.1...1.3.2
 [1.3.1]: https://github.com/ldclabs/ic-panda/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/ldclabs/ic-panda/compare/dmsg-v1.2.1...1.3.0
