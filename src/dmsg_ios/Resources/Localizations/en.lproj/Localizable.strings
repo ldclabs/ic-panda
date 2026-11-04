@@ -1226,6 +1226,8 @@
 	<string>Move a native address</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</string>
+	<key>Move here</key>
+	<string>Move here</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Move the file library over the local network, import it from a copied workspace, or leave it behind.</string>
 	<key>Move this local file to Trash?</key>

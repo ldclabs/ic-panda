@@ -8,7 +8,7 @@ struct SyncSettingsView: View {
         Form {
             Section {
                 Toggle("Automatic foreground sync", isOn: Binding(get: { model.automaticSyncEnabled }, set: { model.setAutomaticSync($0) }))
-                ContentSyncStatusView(always: true)
+                ContentSyncStatusView()
                 SettingsAction(LocalizedStringKey(model.synchronizing ? "Syncing…" : "Sync now"), systemImage: "arrow.triangle.2.circlepath") {
                     Task { await model.synchronize(); local = await LocalOnly.load(model) }
                 }.disabled(model.busy || model.syncCoolingDown).accessibilityIdentifier("account.sync")

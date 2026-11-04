@@ -1226,6 +1226,8 @@
 	<string>Chuyển một địa chỉ native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Chuyển từng địa chỉ Taproot native sang khóa của thiết bị này, hoặc để lại để quét sau qua L2.</string>
+	<key>Move here</key>
+	<string>Di chuyển đến đây</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Chuyển thư viện tệp qua mạng cục bộ, nhập từ không gian làm việc đã sao chép, hoặc bỏ lại.</string>
 	<key>Move this local file to Trash?</key>

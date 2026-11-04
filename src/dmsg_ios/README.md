@@ -46,12 +46,18 @@ favorite filters are applied before sorting and pagination; counts describe the
 whole query. Sorting retains only non-hidden summaries while releasing the client
 between decryptions. The old duplicate Favorites grid and its separate read are
 removed. Empty, loading and failed reads have distinct actions.
+Search stays visible above the category bar. Switching categories retains their
+query counts and only scrolls the bar when the selected category is offscreen.
+Vault and Files keep 8 pt between their category bar and the list content.
 
 Recovery and synchronization feedback use overlays and a persistent toolbar
 entry, so background status changes do not move list rows. That entry retains
 progress, pending counts, failures, retry deadlines and the last successful sync.
 Critical notices stay available after dismissal; copy/save feedback also appears
-inside sheets. Displayed OTP expiry is independent of other field operations,
+inside sheets. Sync failures remain in the toolbar's status details, without an
+automatic "Sync paused" overlay or VoiceOver announcement. Messages likewise
+keeps the sync panel out of its conversation list. Displayed OTP expiry is
+independent of other field operations,
 and an OTP clipboard copy expires no later than its displayed validity.
 
 Details show type, tags, modification time, version state and ordered field
@@ -821,6 +827,9 @@ verifying stages, and supplies task-specific retries and cancellation.
 
 The library supports folder naming/moving/trashing, multiple file imports,
 photo/video selection, and per-file outcomes for batch backup/move/trash actions.
+In the move workflow, the destination picker's **Move here** button executes the
+move directly and returns to per-file results. There is no second submit step;
+failed items can retry the chosen destination without repeating completed moves.
 Interrupted imports retain their original staging record for continuation. Backup
 admission distinguishes existing backups, running jobs, size limits and missing
 local copies instead of always claiming a queued transfer. A local copy can be

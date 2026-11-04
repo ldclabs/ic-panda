@@ -1226,6 +1226,8 @@
 	<string>Pindahkan alamat native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Pindahkan setiap alamat Taproot native kepada kunci peranti ini, atau biarkan untuk disapu kemudian melalui L2.</string>
+	<key>Move here</key>
+	<string>Pindahkan ke sini</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Pindahkan pustaka fail melalui rangkaian setempat, import daripada ruang kerja yang disalin, atau tinggalkannya.</string>
 	<key>Move this local file to Trash?</key>

@@ -232,6 +232,12 @@ mod tests {
     async fn local_mobile_views_answer_beside_a_stalled_inbox_and_clear_preserves_content() {
         let dir = testing::TempDir::new();
         let mut client = testing::unlocked(&dir.0, false, None);
+        let path = dir.path("report.txt");
+        std::fs::write(&path, b"keep these bytes").unwrap();
+        let file = client
+            .files_import(&path, "root", false, &mut |_, _| {})
+            .unwrap()
+            .file;
         client
             .vault_create(
                 "note",
@@ -280,6 +286,25 @@ mod tests {
                 1
             );
             engine.files("root".into()).await.unwrap();
+            let folder = engine
+                .create_folder("root".into(), "Projects".into())
+                .await
+                .unwrap();
+            let folder: Value = serde_json::from_str(&folder.json).unwrap();
+            let destination = folder["id"].as_str().unwrap().to_string();
+            engine
+                .move_file(file.id.clone(), destination.clone())
+                .await
+                .unwrap();
+            let root = engine.files("root".into()).await.unwrap();
+            let root: Value = serde_json::from_str(&root.json).unwrap();
+            assert!(root["files"].as_array().unwrap().is_empty());
+            let moved = engine.files(destination.clone()).await.unwrap();
+            let moved: Value = serde_json::from_str(&moved.json).unwrap();
+            assert_eq!(moved["files"][0]["id"], file.id);
+            assert_eq!(moved["files"][0]["folder"], destination);
+            assert_eq!(moved["files"][0]["sha256"], file.sha256);
+            assert_eq!(moved["files"][0]["current"], file.current);
             engine.clear_display_cache().await.unwrap();
             let snapshot = engine
                 .cached_display("account".into(), "".into())

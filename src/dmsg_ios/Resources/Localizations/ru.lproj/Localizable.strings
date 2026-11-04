@@ -1226,6 +1226,8 @@
 	<string>Перенос нативного адреса</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Перенесите каждый нативный адрес Taproot на ключ этого устройства или оставьте их для перевода через L2 позже.</string>
+	<key>Move here</key>
+	<string>Переместить сюда</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Передайте библиотеку файлов по локальной сети, импортируйте её из скопированного рабочего пространства или оставьте.</string>
 	<key>Move this local file to Trash?</key>

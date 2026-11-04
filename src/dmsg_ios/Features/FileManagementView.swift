@@ -88,12 +88,12 @@ struct FileMoveView: View {
     @State private var working = false
     @State private var completed: Set<String> = []
     @State private var outcomes: [String: FileActionResult] = [:]
-    @State private var visible = true
+    @State private var moveTask: Task<Void, Never>?
     @State private var destinationChosen = false
     var body: some View {
         List {
             Section {
-                LabeledContent("Destination folder", value: folderName)
+                if destinationChosen { LabeledContent("Destination folder", value: folderName) }
                 Button("Choose folder") { choosing = true }.disabled(working)
             }
             ForEach(items) { item in
@@ -103,38 +103,49 @@ struct FileMoveView: View {
                 }
             }
             if working { ProgressView("Moving…") }
-            if completed.count < items.count {
-                SettingsAction("Move to another folder", prominent: true) { Task { await move() } }.disabled(working || !destinationChosen)
-                    .accessibilityIdentifier("files.move.save")
+            if outcomes.values.contains(where: \.failed) {
+                SettingsAction("Retry", prominent: true) { startMove() }.disabled(working)
+                    .accessibilityIdentifier("files.move.retry")
             }
         }.privateScreen().navigationTitle("Move to another folder")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(working) } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(outcomes.isEmpty ? "Cancel" : "Done") { dismiss() }.disabled(working) } }
             .sheet(isPresented: $choosing) { NavigationStack {
-                FileFolderPicker(excluding: Set(items.filter(\.folder).map(\.id))) { id, name in
+                FileFolderPicker(excluding: Set(items.filter(\.folder).map(\.id)), confirmationTitle: "Move here") { id, name in
                     if folder != id { completed = []; outcomes = [:] }
                     folder = id; folderName = name; destinationChosen = true
+                    startMove()
                 }
             } }
-            .onAppear { visible = true }.onDisappear { visible = false }.interactiveDismissDisabled(working)
+            // Moving starts with the picker confirmation, while its sheet closes.
+            // Cancel actual work on departure instead of gating it on visibility.
+            .onDisappear { moveTask?.cancel(); moveTask = nil }
+            .interactiveDismissDisabled(working)
+    }
+
+    private func startMove() {
+        guard !working, destinationChosen else { return }
+        working = true
+        moveTask = Task { await move() }
     }
 
     private func move() async {
-        guard !working else { return }; let stamp = model.epoch, destination = folder
-        working = true; defer { working = false }
+        let stamp = model.epoch, destination = folder
+        defer { working = false }
         for item in items where !completed.contains(item.id) {
-            guard stamp == model.epoch, visible, !Task.isCancelled else { return }
+            guard stamp == model.epoch, !Task.isCancelled else { return }
             do {
                 try await model.moveLibraryItem(item.id, folder: destination)
-                guard stamp == model.epoch, visible, !Task.isCancelled else { return }
+                guard stamp == model.epoch, !Task.isCancelled else { return }
                 completed.insert(item.id); outcomes[item.id] = FileActionResult(name: item.name, message: String(localized: "Moved"))
-            } catch { if stamp == model.epoch, visible, !Task.isCancelled { guard let message = model.fileFailureMessage(error) else { return }; outcomes[item.id] = FileActionResult(name: item.name, message: message, failed: true) } }
+            } catch { if stamp == model.epoch, !Task.isCancelled { guard let message = model.fileFailureMessage(error) else { return }; outcomes[item.id] = FileActionResult(name: item.name, message: message, failed: true) } }
         }
-        if stamp == model.epoch { await model.loadFiles() }
+        if stamp == model.epoch, !Task.isCancelled { await model.loadFiles() }
     }
 }
 
 struct FileFolderPicker: View {
     var excluding: Set<String> = []
+    var confirmationTitle: LocalizedStringKey = "Use this folder"
     let selected: (String, String) -> Void
     @Environment(SessionModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -152,7 +163,7 @@ struct FileFolderPicker: View {
                     Button { folder = child.id } label: { FileSummaryRow(name: child.name, mime: "inode/directory", subtitle: "") }
                         .disabled(excluding.contains(child.id)).compactObjectRow().accessibilityIdentifier("files.folder.\(child.id)")
                 }
-                SettingsAction("Use this folder", prominent: true) { selected(folder, listing.folder?.name ?? String(localized: "Files")); dismiss() }
+                SettingsAction(confirmationTitle, prominent: true) { selected(folder, listing.folder?.name ?? String(localized: "Files")); dismiss() }
                     .disabled(excluding.contains(folder)).accessibilityIdentifier("files.folder.choose")
             }
         }.privateScreen().navigationTitle(listing?.folder?.name ?? String(localized: "Files"))

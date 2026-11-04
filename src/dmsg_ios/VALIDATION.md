@@ -1,5 +1,50 @@
 # iOS implementation validation
 
+## Vault browsing, file moves and quiet sync status (2026-11-04)
+
+Vault search now uses the same always-visible navigation drawer as Files.
+Category counts retain their search/tag context during category and sort changes;
+the bar reveals offscreen selections without recentering visible ones. Capsule
+hit regions are stable, and both browse bars leave 8 pt before list content.
+
+The old move flow only selected a destination in the folder picker, then required
+a second submit on the previous page; its Done button could close that page
+without moving anything. The picker now explicitly says **Move here** and executes
+the move before showing per-file results. Pending operations show progress;
+failed items retry without repeating successes. The move task is cancelled on
+departure instead of being gated by a separate page-visibility flag. All 23
+languages include the new confirmation label.
+
+Sync errors no longer produce the automatic Sync paused overlay or its VoiceOver
+announcement. Messages no longer inserts a sync panel before conversations.
+Detailed status and retry remain in the toolbar entry and account sync settings;
+recovery and conflict notices retain their existing behavior.
+
+Validation:
+- All 95 Swift unit tests passed. Across the final targeted runs, four vault UI
+  cases, four file-move cases and three sync UI cases passed on iPhone 17e /
+  iOS 27.0. Coverage includes searching during delayed reads, stable category
+  positions, picker cancellation/reopening, delayed moves, partial batch failure,
+  destination changes, retry, destination contents and quiet browsing.
+- Three focused UI cases passed on the 375 pt iPhone SE simulator / iOS 18.4:
+  vault search/category stability, delayed file move after picker cancellation,
+  and suppressing the sync overlay. The final Messages-panel removal was tested
+  on iOS 27.0.
+- Inspected Chinese light and Arabic dark/RTL vault screenshots, Chinese Files,
+  Messages, and the small-screen move result. The initial intermediate UI failures
+  were resolved: capsule hit-region differences, a too-short progress fixture,
+  and an ambiguous Cancel selector after the move flow changed.
+- All 23 mobile Rust tests passed, including real folder creation/move while an
+  inbox request is stalled, checking source/destination listings and unchanged
+  version/hash. The shared-client folder/file/version round-trip test passed.
+  Mobile all-target Clippy with `-D warnings`, Rustfmt, all 23 localization tables
+  plus Swift extraction, and `git diff --check` passed.
+
+UI tests use isolated presentation fixtures; the Rust test exercises real local
+storage. No signed-device installation, Release archive, TestFlight upload or
+production-account move was performed for this change. Full iPad/Duo, maximum
+Dynamic Type and hardware-keyboard matrices were not rerun.
+
 ## TestFlight saved-account preflight (2026-11-04)
 
 With Xcode **27.2 (27B52)**, the open Apple Accounts window showed the team's

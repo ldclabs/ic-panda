@@ -1226,6 +1226,8 @@
 	<string>نقل عنوان أصلي</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>انقل كل عنوان Taproot أصلي إلى مفتاح هذا الجهاز، أو اتركها لنقل لاحق عبر L2.</string>
+	<key>Move here</key>
+	<string>نقل إلى هنا</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>انقل مكتبة الملفات عبر الشبكة المحلية، أو استوردها من مساحة عمل منسوخة، أو اتركها.</string>
 	<key>Move this local file to Trash?</key>

@@ -82,7 +82,6 @@ struct MessagesView: View {
     }
 
     @ViewBuilder private var channelRows: some View {
-        ContentSyncStatusView().listRowBackground(Color.clear).listRowSeparator(.hidden)
         ForEach(channels, id: \.id) { channel in
             NavigationLink(value: channel.id) {
                 HStack(spacing: 10) {

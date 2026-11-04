@@ -1,54 +1,47 @@
 import SwiftUI
 @preconcurrency import DMsgCore
 
-/// Shared by the initial vault, channel list and account controls.
+/// Detailed status reached through the toolbar or account settings.
 struct ContentSyncStatusView: View {
     @Environment(SessionModel.self) private var model
-    var always = false
 
     var body: some View {
         let status = model.contentSync
-        if always || status?.initialized != true || status?.running == true || status?.error != nil {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    if status?.running == true { ProgressView().controlSize(.small) }
-                    Text(title(status)).font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                if status?.running == true { ProgressView().controlSize(.small) }
+                Text(title(status)).font(.subheadline.weight(.semibold))
+            }
+            if let status, status.running {
+                Text(stage(status.stage)).font(.footnote).foregroundStyle(.secondary)
+            }
+            if let status, status.running || !status.initialized {
+                if status.total > 0 {
+                    ProgressView(value: Double(status.entries), total: Double(status.total))
+                    Text(verbatim: "\(status.entries.formatted()) / \(status.total.formatted())")
+                        .font(.caption.monospacedDigit()).accessibilityIdentifier("sync.entries")
                 }
-                if let status, status.running {
-                    Text(stage(status.stage)).font(.footnote).foregroundStyle(.secondary)
-                }
-                if let status, status.running || !status.initialized {
-                    if status.total > 0 {
-                        ProgressView(value: Double(status.entries), total: Double(status.total))
-                        Text(verbatim: "\(status.entries.formatted()) / \(status.total.formatted())")
-                            .font(.caption.monospacedDigit()).accessibilityIdentifier("sync.entries")
-                    }
-                    if status.downloadedBytes > 0 {
-                        Label(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file), systemImage: "arrow.down")
-                            .font(.caption).accessibilityLabel(Text("Downloaded") + Text(verbatim: " ") + Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file)))
-                    }
-                }
-                if let error = status?.error, status?.running != true {
-                    Text(failure(error)).font(.footnote).foregroundStyle(.secondary)
-                }
-                if always, let pending = model.session?.pendingSync, pending > 0 {
-                    LabeledContent("Waiting to sync", value: pending.formatted()).font(.footnote)
-                }
-                if let retry = status?.retryAtMs {
-                    dateRow("Next retry", retry)
-                }
-                if let success = status?.lastSuccessAtMs, always || status?.error != nil {
-                    dateRow("Last successful sync", success)
-                }
-                if !always && status?.running != true && (status?.initialized != true || status?.error != nil) {
-                    Button("Sync now") { Task { await model.synchronize() } }.disabled(model.busy || model.syncCoolingDown)
-                        .accessibilityIdentifier("sync.retry")
+                if status.downloadedBytes > 0 {
+                    Label(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file), systemImage: "arrow.down")
+                        .font(.caption).accessibilityLabel(Text("Downloaded") + Text(verbatim: " ") + Text(ByteCountFormatter.string(fromByteCount: Int64(clamping: status.downloadedBytes), countStyle: .file)))
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 4)
-            .accessibilityElement(children: .contain).accessibilityIdentifier("sync.status")
+            if let error = status?.error, status?.running != true {
+                Text(failure(error)).font(.footnote).foregroundStyle(.secondary)
+            }
+            if let pending = model.session?.pendingSync, pending > 0 {
+                LabeledContent("Waiting to sync", value: pending.formatted()).font(.footnote)
+            }
+            if let retry = status?.retryAtMs {
+                dateRow("Next retry", retry)
+            }
+            if let success = status?.lastSuccessAtMs {
+                dateRow("Last successful sync", success)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain).accessibilityIdentifier("sync.status")
     }
 
     private func dateRow(_ label: LocalizedStringKey, _ value: UInt64) -> some View {

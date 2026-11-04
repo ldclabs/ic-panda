@@ -1226,6 +1226,8 @@
 	<string>迁移原生地址</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>把每个原生 Taproot 地址迁移到本设备的钥匙，或留待以后经 L2 扫回。</string>
+	<key>Move here</key>
+	<string>移动到此处</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>通过局域网传送文件库、从复制来的工作区导入，或将其留在旧设备。</string>
 	<key>Move this local file to Trash?</key>

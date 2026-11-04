@@ -6,6 +6,7 @@ struct WorkspaceStatus {
     let symbol: String
     var urgent = false
     var count: UInt64 = 0
+    var presentsFeedback = true
 
     @MainActor static func current(_ model: SessionModel, at date: Date) -> WorkspaceStatus? {
         guard model.session?.account != nil else { return nil }
@@ -16,7 +17,7 @@ struct WorkspaceStatus {
             return WorkspaceStatus(key: "conflicts:\(count)", title: "Review sync conflicts", symbol: "arrow.triangle.branch", urgent: true, count: count)
         }
         if let error = model.contentSync?.error {
-            return WorkspaceStatus(key: "sync-error:" + error, title: "Sync paused", symbol: "exclamationmark.icloud", urgent: true, count: model.session?.pendingSync ?? 0)
+            return WorkspaceStatus(key: "sync-error:" + error, title: "Sync paused", symbol: "exclamationmark.icloud", urgent: true, count: model.session?.pendingSync ?? 0, presentsFeedback: false)
         }
         if model.unlocked && model.contentSync?.initialized != true {
             return WorkspaceStatus(key: "initial-sync", title: model.contentSync?.running == true ? "First sync" : "Waiting for first sync", symbol: "arrow.triangle.2.circlepath")
@@ -65,7 +66,7 @@ struct WorkspaceStatusView: View {
             List {
                 if RecoveryNotice.isVisible(model, at: timeline.date) { RecoveryNotice() }
                 if model.unlocked {
-                    ContentSyncStatusView(always: true)
+                    ContentSyncStatusView()
                     Button("Sync now") { Task { await model.synchronize() } }.disabled(model.busy || model.syncCoolingDown).accessibilityIdentifier("sync.retry")
                     if (model.session?.conflicts ?? 0) > 0 { NavigationLink("Review sync conflicts") { ConflictsView() } }
                 }
@@ -76,7 +77,8 @@ struct WorkspaceStatusView: View {
 }
 
 /// Brief feedback uses an overlay, while a persistent toolbar entry keeps all
-/// pending work reachable. Security/failed-sync notices require dismissal.
+/// pending work reachable. Sync failures stay in that entry's details instead
+/// of interrupting browsing with an automatic notice or VoiceOver announcement.
 struct WorkspaceFeedback: View {
     @Environment(SessionModel.self) private var model
     @State private var active: String?
@@ -84,7 +86,7 @@ struct WorkspaceFeedback: View {
     @State private var showing = false
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
-            let status = WorkspaceStatus.current(model, at: timeline.date)
+            let status = WorkspaceStatus.current(model, at: timeline.date).flatMap { $0.presentsFeedback ? $0 : nil }
             Group {
                 if let status, active == status.key, dismissed != status.key,
                    !model.concealed, model.notice == nil, model.notifications.presented == nil {
@@ -108,7 +110,7 @@ struct WorkspaceFeedback: View {
                 active = status?.key
                 if status?.urgent == true {
                     let message = model.recoveryWarning?.pending == true ? String(localized: "Account recovery is pending")
-                        : (model.session?.conflicts ?? 0) > 0 ? String(localized: "Review sync conflicts") : String(localized: "Sync paused")
+                        : String(localized: "Review sync conflicts")
                     UIAccessibility.post(notification: .announcement, argument: message)
                 }
                 if status?.urgent != true {

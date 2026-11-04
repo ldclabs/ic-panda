@@ -1226,6 +1226,8 @@
 	<string>Przenieś adres natywny</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Przenieś każdy natywny adres Taproot na klucz tego urządzenia lub zostaw je do późniejszego przeniesienia przez L2.</string>
+	<key>Move here</key>
+	<string>Przenieś tutaj</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Prześlij bibliotekę plików przez sieć lokalną, zaimportuj ją ze skopiowanego obszaru roboczego lub ją pozostaw.</string>
 	<key>Move this local file to Trash?</key>

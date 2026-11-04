@@ -53,7 +53,7 @@ struct FileBrowseBar: View {
                 }
             } label: { Image(systemName: "arrow.up.arrow.down").font(.system(size: 18)).frame(width: 44, height: 44) }
                 .accessibilityLabel("Sort by").accessibilityValue(sort.title).accessibilityIdentifier("files.sort")
-        }.font(.subheadline).background(Theme.paper)
+        }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
     }
 
     private var scopeMenu: some View {

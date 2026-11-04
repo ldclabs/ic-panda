@@ -1226,6 +1226,8 @@
 	<string>네이티브 주소 옮기기</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>각 네이티브 Taproot 주소를 이 장치의 키로 옮기거나, 나중에 L2로 옮기도록 남겨 둡니다.</string>
+	<key>Move here</key>
+	<string>여기로 이동</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>파일 보관함을 로컬 네트워크로 보내거나, 복사된 작업 공간에서 가져오거나, 남겨 둡니다.</string>
 	<key>Move this local file to Trash?</key>

@@ -2,6 +2,27 @@ import XCTest
 
 @MainActor
 final class SyncUITests: XCTestCase {
+    func testPausedSyncDoesNotInterruptBrowsing() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-files-rich", "--ui-channel", "--ui-sync-paused", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "workspace.feedback").firstMatch.exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Files without an automatic sync-paused notice"; shot.lifetime = .keepAlways; add(shot)
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(app.segmentedControls["messages.mode"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["channel.row.fixture-channel"].exists)
+        XCTAssertFalse(app.otherElements["sync.status"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "workspace.feedback").firstMatch.exists)
+        let messages = XCTAttachment(screenshot: app.screenshot())
+        messages.name = "Messages without an inline sync status"; messages.lifetime = .keepAlways; add(messages)
+        app.buttons["workspace.status"].tap()
+        XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["同步已暂停"].exists)
+        XCTAssertFalse(app.buttons["sync.retry"].isEnabled)
+    }
+
     private func inspect(_ language: String, _ locale: String, dark: Bool, paused: Bool = false) {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", paused ? "--ui-sync-paused" : "--ui-first-sync",
@@ -17,11 +38,12 @@ final class SyncUITests: XCTestCase {
         vault.name = "First sync \(language) \(dark ? "dark" : "light") \(paused ? "paused" : "running")"
         vault.lifetime = .keepAlways; add(vault)
         app.buttons["workspace.status.done"].tap()
-        // Tab changes keep the session-owned progress visible.
+        // Browsing keeps sync details in the toolbar instead of adding list rows.
         let tabs = app.tabBars.buttons
         XCTAssertEqual(tabs.count, 4)
         tabs.element(boundBy: 1).tap()
-        XCTAssertTrue(app.otherElements["sync.status"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["workspace.status"].exists)
+        XCTAssertFalse(app.otherElements["sync.status"].exists)
         tabs.element(boundBy: 3).tap()
         let settings = app.buttons["account.sync-settings"]
         for _ in 0..<4 where !settings.isHittable { app.swipeUp() }

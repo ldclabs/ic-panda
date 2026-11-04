@@ -1226,6 +1226,8 @@
 	<string>নেটিভ ঠিকানা সরান</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>প্রতিটি নেটিভ Taproot ঠিকানা এই ডিভাইসের কীতে সরান, বা পরে L2 দিয়ে সরানোর জন্য রেখে দিন।</string>
+	<key>Move here</key>
+	<string>এখানে সরান</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>ফাইল লাইব্রেরি স্থানীয় নেটওয়ার্কে পাঠান, কপি করা ওয়ার্কস্পেস থেকে আমদানি করুন, বা রেখে যান।</string>
 	<key>Move this local file to Trash?</key>

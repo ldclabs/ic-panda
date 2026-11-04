@@ -14,7 +14,47 @@ final class VaultUITests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, _ name: String) {
+        let loading = app.activityIndicators["vault.loading"]
+        if loading.exists { XCTAssertTrue(loading.waitForNonExistence(timeout: 8)) }
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    func testSearchAndCategoryPositionsStayStableWhileLoading() {
+        let app = launch(["--ui-vault-slow-load"])
+        XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.isHittable)
+        let all = app.buttons["vault.scope.all"], favorites = app.buttons["vault.scope.favorites"]
+        let originalAll = all.frame, originalFavorites = favorites.frame, originalLabel = favorites.label
+        favorites.tap()
+        XCTAssertTrue(app.activityIndicators["vault.loading"].waitForExistence(timeout: 1))
+        XCTAssertEqual(favorites.label, originalLabel)
+        XCTAssertEqual(all.frame.minX, originalAll.minX, accuracy: 0.5)
+        XCTAssertEqual(favorites.frame.width, originalFavorites.width, accuracy: 0.5)
+        XCTAssertEqual(favorites.frame.minY, originalFavorites.minY, accuracy: 0.5)
+        XCTAssertTrue(search.isHittable)
+        XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
+        XCTAssertEqual(favorites.frame.minX, originalFavorites.minX, accuracy: 0.5)
+        all.tap()
+        XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
+        search.tap(); search.typeText("GitHub")
+        XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["vault.item.fixture-note"].exists)
+        capture(app, "Visible vault search and stable categories")
+    }
+
+    func testBrowserSearchInChineseAndArabic() {
+        for language in ["zh-Hans", "ar"] {
+            let app = launch(language == "ar" ? ["--ui-dark"] : [], language: language)
+            XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.searchFields.firstMatch.isHittable)
+            capture(app, "Vault search \(language)")
+            app.buttons["vault.scope.favorites"].tap()
+            XCTAssertTrue(app.buttons["vault.item.fixture-github"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.searchFields.firstMatch.isHittable)
+            capture(app, "Vault favorites \(language)")
+            app.terminate()
+        }
     }
 
     func testFavoritesAndAllTypesAreReachable() {

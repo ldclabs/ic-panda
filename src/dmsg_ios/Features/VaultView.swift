@@ -34,7 +34,7 @@ struct VaultView: View {
                     }
                 }.listStyle(.plain).refreshable { await model.synchronize() }
             }.privateScreen().navigationTitle("Vault")
-                .searchable(text: $model.search, prompt: "Search your vault")
+                .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search your vault")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
                     ToolbarItemGroup(placement: .primaryAction) {
@@ -105,7 +105,7 @@ private struct VaultBrowseBar: View {
                             ForEach(vaultKinds(), id: \.self) { kind in
                                 Button { model.vaultFilter = kind } label: {
                                     Label {
-                                        if model.vaultQueryIsCurrent && model.contentSync?.initialized == true {
+                                        if model.vaultCountsAreCurrent && model.contentSync?.initialized == true {
                                             Text(vaultKindName(kind)) + Text(verbatim: " · \(model.vaultCounts.count(kind))")
                                         } else { Text(vaultKindName(kind)) }
                                     } icon: { AppGlyph.vaultItem(kind).image }
@@ -122,13 +122,14 @@ private struct VaultBrowseBar: View {
                     }.padding(.horizontal, 16)
                 }
                 .onChange(of: model.vaultFilter) { _, filter in
-                    proxy.scrollTo(["all", "favorites", "login", "note"].contains(filter) ? filter : "types", anchor: .center)
+                    // Reveal an offscreen selection without recentering visible tabs.
+                    proxy.scrollTo(["all", "favorites", "login", "note"].contains(filter) ? filter : "types")
                 }
             }
             Button { filtering = true } label: {
                 Image(systemName: model.vaultTag.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill").frame(width: 44, height: 44)
             }.accessibilityLabel("Filters").accessibilityIdentifier("vault.filters")
-        }.font(.subheadline).background(Theme.paper)
+        }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
     }
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {
@@ -139,10 +140,15 @@ private struct VaultBrowseBar: View {
                     AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
                 } else { Image(systemName: symbol) }
                 Text(title)
-                if model.vaultLoaded && model.vaultQueryIsCurrent && model.contentSync?.initialized == true { Text(model.vaultCounts.count(value).formatted()).font(.caption.monospacedDigit()) }
+                if model.vaultLoaded && model.contentSync?.initialized == true {
+                    Text(model.vaultCounts.count(value).formatted()).font(.caption.monospacedDigit())
+                        .opacity(model.vaultCountsAreCurrent ? 1 : 0)
+                        .accessibilityHidden(!model.vaultCountsAreCurrent)
+                }
             }.padding(.horizontal, 12).frame(minHeight: 44)
                 .foregroundStyle(selected ? Theme.forest : Color.secondary)
                 .background(selected ? Theme.forest.opacity(0.10) : .clear, in: Capsule())
+                .contentShape(Capsule())
         }.buttonStyle(.plain).id(value).accessibilityAddTraits(selected ? .isSelected : []).accessibilityIdentifier("vault.scope.\(value)")
     }
 }

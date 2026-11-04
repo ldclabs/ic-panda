@@ -1226,6 +1226,8 @@
 	<string>नेटिव पता ले जाएँ</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>हर नेटिव Taproot पते को इस उपकरण की कुंजी पर ले जाएँ, या बाद में L2 से ले जाने के लिए छोड़ दें।</string>
+	<key>Move here</key>
+	<string>यहाँ ले जाएँ</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>फ़ाइल लाइब्रेरी स्थानीय नेटवर्क से भेजें, कॉपी किए गए वर्कस्पेस से आयात करें, या छोड़ दें।</string>
 	<key>Move this local file to Trash?</key>

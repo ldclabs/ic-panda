@@ -1226,6 +1226,8 @@
 	<string>مقامی پتہ منتقل کریں</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>ہر مقامی Taproot پتہ اس آلے کی کلید پر منتقل کریں، یا بعد میں L2 کے ذریعے منتقلی کے لیے چھوڑ دیں۔</string>
+	<key>Move here</key>
+	<string>یہاں منتقل کریں</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>فائل لائبریری مقامی نیٹ ورک سے بھیجیں، نقل شدہ ورک اسپیس سے درآمد کریں، یا پیچھے چھوڑ دیں۔</string>
 	<key>Move this local file to Trash?</key>

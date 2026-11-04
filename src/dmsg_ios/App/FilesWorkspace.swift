@@ -127,7 +127,12 @@ extension SessionModel {
 
     func moveLibraryItem(_ id: String, folder: String) async throws {
         #if DEBUG
-        if uiTesting { try moveFileFixture(id, folder: folder); return }
+        if uiTesting {
+            if ProcessInfo.processInfo.arguments.contains("--ui-files-slow-move") {
+                try await Task.sleep(for: .seconds(5))
+            }
+            try moveFileFixture(id, folder: folder); return
+        }
         #endif
         guard let engine else { throw CancellationError() }
         try await engine.moveFile(id: id, folder: folder)

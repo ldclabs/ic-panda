@@ -1226,6 +1226,8 @@
 	<string>Yerel adresi taşı</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Her yerel Taproot adresini bu cihazın anahtarına taşıyın ya da daha sonra L2 ile aktarmak üzere bırakın.</string>
+	<key>Move here</key>
+	<string>Buraya taşı</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Dosya kitaplığını yerel ağ üzerinden gönderin, kopyalanmış bir çalışma alanından içe aktarın ya da geride bırakın.</string>
 	<key>Move this local file to Trash?</key>

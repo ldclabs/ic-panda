@@ -1226,6 +1226,8 @@
 	<string>ネイティブアドレスを移す</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>各ネイティブ Taproot アドレスをこのデバイスのキーへ移すか、後で L2 経由で移すために残します。</string>
+	<key>Move here</key>
+	<string>ここに移動</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>ファイルライブラリをローカルネットワークで送るか、コピーされたワークスペースから取り込むか、残しておきます。</string>
 	<key>Move this local file to Trash?</key>

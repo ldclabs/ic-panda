@@ -1226,6 +1226,8 @@
 	<string>Een native adres verplaatsen</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Verplaats elk native Taproot-adres naar de sleutel van dit apparaat, of laat ze voor een latere overheveling via L2.</string>
+	<key>Move here</key>
+	<string>Hierheen verplaatsen</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Verstuur de bestandsbibliotheek via het lokale netwerk, importeer haar uit een gekopieerde werkruimte of laat haar achter.</string>
 	<key>Move this local file to Trash?</key>

@@ -1226,6 +1226,8 @@
 	<string>Ilipat ang isang native address</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>Ilipat ang bawat native Taproot address sa susi ng device na ito, o iwan para sa sweep sa L2 sa ibang pagkakataon.</string>
+	<key>Move here</key>
+	<string>Ilipat dito</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>Ilipat ang file library sa lokal na network, i-import ito mula sa kinopyang workspace, o iwan ito.</string>
 	<key>Move this local file to Trash?</key>

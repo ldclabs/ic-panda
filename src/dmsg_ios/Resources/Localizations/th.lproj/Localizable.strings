@@ -1226,6 +1226,8 @@
 	<string>ย้ายที่อยู่ native</string>
 	<key>Move each native Taproot address to this device's key, or leave them for a later sweep through L2.</key>
 	<string>ย้ายที่อยู่ Taproot native แต่ละรายการไปยังคีย์ของอุปกรณ์นี้ หรือเก็บไว้กวาดภายหลังผ่าน L2</string>
+	<key>Move here</key>
+	<string>ย้ายมาที่นี่</string>
 	<key>Move the file library over the local network, import it from a copied workspace, or leave it behind.</key>
 	<string>ย้ายคลังไฟล์ผ่านเครือข่ายภายใน นำเข้าจากพื้นที่ทำงานที่คัดลอกมา หรือทิ้งไว้</string>
 	<key>Move this local file to Trash?</key>

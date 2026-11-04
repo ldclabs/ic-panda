@@ -39,6 +39,10 @@ final class SessionModel {
     private(set) var vaultFailed = false
     var vaultQueryKey: String { [search, vaultFilter, vaultTag, vaultSort].joined(separator: "\u{0}") }
     var vaultQueryIsCurrent: Bool { vaultQuery == vaultQueryKey }
+    // Category counts depend on search and tag, not the selected category or sort.
+    private var vaultCountsKey: String { [search, vaultTag].joined(separator: "\u{0}") }
+    var vaultCountsAreCurrent: Bool { vaultLoaded && vaultCountsQuery == vaultCountsKey }
+    private var vaultCountsQuery = ""
     private(set) var loadingVault = false
     private var vaultRequest: UUID?
     private var vaultQuery = ""
@@ -824,9 +828,14 @@ final class SessionModel {
         do {
             #if DEBUG
             if uiTesting {
+                if ProcessInfo.processInfo.arguments.contains("--ui-vault-slow-load") {
+                    try await Task.sleep(for: .seconds(2))
+                }
+                guard current == epoch, request == vaultRequest, key == vaultQueryKey, !Task.isCancelled else { return }
                 let page = fixtureVaultPage(offset: offset, limit: count)
                 vault = more ? vault + page.items : page.items
                 vaultCounts = page.counts; vaultHasMore = page.more
+                vaultCountsQuery = vaultCountsKey
                 vaultLoaded = true; vaultQuery = key
                 return
             }
@@ -840,6 +849,7 @@ final class SessionModel {
             let page: VaultBrowsePage = try decode(result)
             vault = more ? vault + page.items.map(\.item) : page.items.map(\.item)
             vaultCounts = VaultCounts(total: page.total, all: page.all, favorites: page.favorites, kinds: page.kinds, tags: page.tags)
+            vaultCountsQuery = vaultCountsKey
             vaultHasMore = page.hasMore; vaultLoaded = true; vaultQuery = key
         } catch {
             if current == epoch, request == vaultRequest, !Task.isCancelled { vaultFailed = true }
