@@ -11,7 +11,7 @@
   import { call, errorText, size, when } from '../../rpc'
   import RequestComposer from './RequestComposer.svelte'
   import RequestDetail from './RequestDetail.svelte'
-  import { isActiveRequest, requestStates } from './requests'
+  import { isActiveRequest, requestLimit, requestStates } from './requests'
 
   /** Links that take files from people without an account. */
   let {
@@ -189,7 +189,7 @@
           {t('requestsUsage', {
             active,
             limit: allowed,
-            size: usage?.backup_max_file_bytes ? size(usage.backup_max_file_bytes) : '-'
+            size: usage?.backup_max_file_bytes ? requestLimit(usage.backup_max_file_bytes) : '-'
           })}
         </p>
       {/if}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, localOnlyRisk, matchesFile, ordered, runsAsProgram, STALE_SYNC_MS, within } from '../src/renderer/views/files/files.ts'
-import { isActiveRequest, MAX_REQUEST_LABELS, requestLabels, requestTotals } from '../src/renderer/views/files/requests.ts'
+import { isActiveRequest, MAX_REQUEST_LABELS, requestLabels, requestLimit, requestTotals } from '../src/renderer/views/files/requests.ts'
 
 const file = (name: string, updated_at: number, size: number, mime = 'application/octet-stream') => ({ name, updated_at, size, mime })
 
@@ -85,6 +85,13 @@ test('a link total stays within the plan and starts where the plan does', () => 
   assert.deepEqual(requestTotals({ storage_limit: 300 * MIB, backup_max_file_bytes: 100 * MIB }), { options: [100], preferred: 100 })
   assert.deepEqual(requestTotals({ storage_limit: 10 * MIB }).options, [1])
   assert.equal(requestTotals(null).preferred, 500)
+})
+
+test('a limit reads in the unit it is set in', () => {
+  const MIB = 1024 * 1024
+  assert.equal(requestLimit(100 * MIB), '100 MiB')
+  assert.equal(requestLimit(1000 * MIB), '1000 MiB')
+  assert.equal(requestLimit(2048 * MIB), '2 GiB')
 })
 
 test('a link counts against the plan until it expires or closes', () => {

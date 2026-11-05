@@ -352,7 +352,7 @@ const messages = {
   requestStatePaused: "Paused",
   requestStateExpired: "Expired",
   requestStateClosed: "Closed",
-  requestFilesCount: "{n} files · {size}",
+  requestFilesCount: "Files: {n} · {size}",
   requestUnread: "New files",
   requestNoKey: "This device does not have this link’s key yet.",
   requestClose: "Close link",

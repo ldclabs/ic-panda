@@ -8,8 +8,8 @@
   import { buttonClass } from '../../components/ui'
   import { copyText } from '../../components/clipboard'
   import { t } from '../../i18n/index.svelte'
-  import { call, errorText, size } from '../../rpc'
-  import { requestLabels, requestTotals, MAX_REQUEST_LABELS } from './requests'
+  import { call, errorText } from '../../rpc'
+  import { requestLabels, requestLimit, requestTotals, MAX_REQUEST_LABELS } from './requests'
 
   /** A link, or one for each name of a list; a failure keeps the names still to do. */
   let {
@@ -40,7 +40,7 @@
     [7, 14, 30, 90].map((n) => ({ value: String(n), label: t('requestDays', { n }) }))
   )
   const totalOptions = $derived(
-    totals.options.map((mib) => ({ value: String(mib), label: size(mib * MIB) }))
+    totals.options.map((mib) => ({ value: String(mib), label: requestLimit(mib * MIB) }))
   )
   const allLinks = $derived(
     created.map((link) => (link.label ? `${link.label},${link.url}` : link.url)).join('\n')

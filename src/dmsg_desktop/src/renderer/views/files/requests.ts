@@ -24,6 +24,13 @@ export function requestLabels(names: string): string[] {
 }
 
 const MIB = 1024 * 1024
+const GIB = 1024 * MIB
+
+/** A plan's limit in the unit it is set in: 100 MiB reads as that, not as 104.9 MB. */
+export function requestLimit(bytes: number): string {
+  return bytes >= GIB && bytes % GIB === 0 ? `${bytes / GIB} GiB` : `${Math.floor(bytes / MIB)} MiB`
+}
+
 const TOTALS = [100, 500, 1024, 2048, 5120, 10240]
 
 /** What a link may take in all, in MiB: never more than the plan stores; Max starts higher. */

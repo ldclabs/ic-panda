@@ -105,6 +105,14 @@
   )
   const limit = $derived(maxFileBytes ?? HARD_LIMIT)
 
+  // A plan's limit in the unit it is set in: 100 MiB reads as that, not as 104.9 MB.
+  function limitLabel(bytes: number): string {
+    const mib = 1024 * 1024
+    return bytes % (1024 * mib) === 0
+      ? `${bytes / (1024 * mib)} GiB`
+      : `${Math.floor(bytes / mib)} MiB`
+  }
+
   function size(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`
     const units = ['KB', 'MB', 'GB']
@@ -225,7 +233,7 @@
           ? $t('This file is empty.')
           : file.size > limit
             ? $t('This file is larger than this link takes ({size}).', {
-                size: size(limit)
+                size: limitLabel(limit)
               })
             : ''
       items.push({
@@ -251,7 +259,7 @@
     if (e instanceof RequestApiError) {
       if (e.code === 'TOO_LARGE')
         return $t('This file is larger than this link takes ({size}).', {
-          size: size(limit)
+          size: limitLabel(limit)
         })
       if (e.status < 500 && e.status !== 429)
         return statusText || $t('This file could not be sent.')
@@ -500,7 +508,7 @@
         {#if maxFileBytes && status === 'open'}
           <div>
             <dt>{$t('Largest file')}</dt>
-            <dd dir="ltr">{size(maxFileBytes)}</dd>
+            <dd dir="ltr">{limitLabel(maxFileBytes)}</dd>
           </div>
         {/if}
       </dl>
