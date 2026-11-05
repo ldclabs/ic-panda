@@ -218,3 +218,31 @@ UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 K
 分享 descriptor 仍是 `GET /public/shares/:share`。公开 `/manifest` 和 `/chunks/:index` 移除：页面生成非零随机 32 字节 session ID，`POST /public/shares/:share/downloads/:session` 开始或重试同一会话，`GET` 同一路径续签。data 增加 `session_expires_at`，会话固定最多一小时且不超过分享期限；续签不延长、不计新次数，不存在/过期拒绝。开始响应丢失仍用原 ID 重试，已知会话只能 GET 续签，显式新下载才生成新 ID。会话 ID 是 bearer secret，只保存在页面内存。
 
 次数限制表示新下载会话数；已经开始的会话在次数用尽后仍可完成。撤销/删除停止新签发，但原 URL 在截止或物理删除前可重复读取密文；URL 不含解密密钥，已开始的传输和已保存副本不可收回。客户端完成状态晚于全文件校验。跨语言样本由 `downloads::tests::print_download_vector` 输出，固定测试密钥不证明真实部署。
+
+## 收取文件（2026-11-06）
+
+Plus 及以上账户可以生成只能上传的链接 `<site>/r/<account>/<request_id>#<page_key>`。发送方不需要账号；`request_id` 是 32 字节十六进制，`page_key` 是 fragment 中的 32 字节 base64url，不发给任何服务器。格式和跨语言样本见 `tests/vectors/client/request-v1.json`：
+
+- `upload_token = HKDF(page_key, ["dmsg/request-upload-token/1", account, request_id])`，以 `X-Dmsg-Request-Token` 发送；中继只保存 SHA-256。`receipt_key` 以 `dmsg/request-receipt/1` 同样派生。
+- descriptor（标题、说明、HPKE 公钥，至多 8 KiB）用 `page_key` 封装。文件清单用 HPKE（X25519-HKDF-SHA256、HKDF-SHA256、AES-256-GCM）封给链接的公钥，线上为 `enc(32) || ciphertext`。块格式与普通文件相同，不接受零字节文件。
+- HPKE 种子和 `page_key` 由账户根封装保存在 management 中，账户的其他设备因此能读到链接和文件；中继和持有链接的人都打不开已收到的文件。
+
+公共路由前缀 `/public/requests/:account/:request`，写操作只接受 `SITE_ORIGIN`，任何路由都不返回字节或签名 URL：
+
+| 路由 | 作用 |
+| ---- | ---- |
+| `GET /` | 状态；令牌正确时附带 descriptor、到期时间和单文件上限 |
+| `GET /mine` | 当前浏览器（cookie）的记录，内容由 `receipt_key` 封装 |
+| `POST /uploads` | 预留一次上传，带封装的回执；首次发放 cookie |
+| `PUT /uploads/:upload/chunks/:chunk`、`.../chunks/manifest` | 写块和清单 |
+| `POST /uploads/:upload/finalize` | 提交 |
+| `POST /uploads/:upload/withdraw` | 撤回本浏览器的文件；对方确认收到后不可撤回 |
+| `POST /forget` | 清除本浏览器的记录和 cookie，已送达的文件不受影响 |
+
+cookie 为路径限定到本链接的 `__Secure-dmsg-rq`（本地为 `dmsg-rq`），`HttpOnly`、`SameSite=Strict`，不含密钥；读取记录同时需要 cookie 和 fragment。替换不是单独的中继动作：页面先上传新文件并在清单的 `replaces` 中指明旧文件，再撤回旧文件。
+
+状态为 `open`、`full`、`paused`、`expired` 或 `revoked`。额度不足返回 429 `QUOTA_EXCEEDED`（`full` 表示链接总量用尽，`paused` 表示账户额度用尽），预留过期返回 410 `RESULT_EXPIRED`，功能关闭时创建和上传返回 `UNAVAILABLE`，已收文件的下载和删除不受影响。
+
+设备路由前缀 `/v1/file-requests/:account`（`links`、`links/revoke`、`files`、`files/ack`、`objects/collect`、`objects/:upload/download`），使用设备 PoP。收到的文件不进入账户同步；只有显式保存时才下载、核对并用文件库密钥重新加密为新文件，来源 `received` 记录链接和上传 ID。到达提示为 `file-request`，不触发推送。
+
+活跃链接数按档位 Plus 10、Pro 50、Max 200；单文件上限跟随备份政策；链接期限 1–90 天，总量至少 1 MiB 且不超过存储额度。账户读取 `file_request_limit` 了解当前额度。

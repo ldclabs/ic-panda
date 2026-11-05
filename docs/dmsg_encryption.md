@@ -205,6 +205,8 @@ Resumption requires matching name/size, verifies persisted plaintext chunk diges
 
 Library files stay local by default; backup and cloud-copy deletion are explicit. Downloads obtain short-lived S3 GET URLs via authenticated APIs and verify ciphertext/decrypted content; root/vault/epoch envelopes retain authenticated reads. Share-session expiry, revocation and password wrapping are in the [cloud contract](protocol/cloud.md). Revoking a link cannot recall already obtained plaintext or keys.
 
+File requests ([contract](protocol/cloud.md)) let people with no account upload and nothing else: file manifests are sealed with HPKE to the link's own public key, whose seed is sealed under the account root, so neither a leaked link nor the relay opens received files. A file is downloaded, verified and re-encrypted under the library key only when saved. Whoever holds the link can upload and read its title and instructions; names and notes shown before saving are the sender's own claims, unverified.
+
 ## 8. Content roots, rotation and recovery
 
 ### 8.1 RootBundle v3

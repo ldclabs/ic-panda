@@ -208,6 +208,34 @@ Share descriptors remain `GET /public/shares/:share`; public /manifest and /chun
 
 Count limits count new download sessions; started sessions can finish after the quota is exhausted. Revocation/deletion stops issuance, but old URLs may repeatedly read ciphertext until expiry/physical deletion. URLs contain no decryption key; in-progress transfers/saved copies cannot be recalled. Client completion follows whole-file verification. `downloads::tests::print_download_vector` emits cross-language fixtures whose fixed keys prove no real deployment.
 
+## File requests (2026-11-06)
+
+Plus and above can make upload-only links, `<site>/r/<account>/<request_id>#<page_key>`. The sender needs no account; `request_id` is 32 bytes of hex and `page_key` 32 bytes of base64url in the fragment, sent to no server. Formats and cross-language vectors are in `tests/vectors/client/request-v1.json`:
+
+- `upload_token = HKDF(page_key, ["dmsg/request-upload-token/1", account, request_id])`, sent as `X-Dmsg-Request-Token`; the relay keeps only its SHA-256. `receipt_key` derives the same way from `dmsg/request-receipt/1`.
+- The descriptor (title, instructions, HPKE public key, at most 8 KiB) is sealed under `page_key`. File manifests are sealed with HPKE (X25519-HKDF-SHA256, HKDF-SHA256, AES-256-GCM) to the link's public key, on the wire as `enc(32) || ciphertext`. Chunks use the ordinary file format; zero-byte files are refused.
+- The HPKE seed and `page_key` are kept sealed under the account root in the management blob, so the account's other devices can read the link and its files; neither the relay nor anyone holding the link can open received files.
+
+Public routes start with `/public/requests/:account/:request`. Writes accept only `SITE_ORIGIN`, and no route returns bytes or signed URLs:
+
+| Route | Purpose |
+| ---- | ---- |
+| `GET /` | Status; with a correct token, also the descriptor, expiry and single-file limit |
+| `GET /mine` | This browser's (cookie) records, sealed under `receipt_key` |
+| `POST /uploads` | Reserve one upload, with the sealed receipt; sets the cookie the first time |
+| `PUT /uploads/:upload/chunks/:chunk`, `.../chunks/manifest` | Write chunks and the manifest |
+| `POST /uploads/:upload/finalize` | Commit |
+| `POST /uploads/:upload/withdraw` | Withdraw this browser's file; not after the recipient acknowledged it |
+| `POST /forget` | Clear this browser's records and cookie; delivered files are unaffected |
+
+The cookie is `__Secure-dmsg-rq` (`dmsg-rq` locally), limited to this link's path, `HttpOnly`, `SameSite=Strict`, and holds no key; reading records takes both the cookie and the fragment. Replacing is not a relay action: the page uploads the new file, names the old one in the manifest's `replaces`, then withdraws the old one.
+
+Status is `open`, `full`, `paused`, `expired` or `revoked`. Exceeding a limit returns 429 `QUOTA_EXCEEDED` (`full` means the link's total is used up, `paused` the account's quota), an expired reservation returns 410 `RESULT_EXPIRED`, and with the feature off creating and uploading return `UNAVAILABLE`, while downloading and deleting received files keep working.
+
+Device routes start with `/v1/file-requests/:account` (`links`, `links/revoke`, `files`, `files/ack`, `objects/collect`, `objects/:upload/download`) with device PoP. Received files do not enter account sync; only an explicit save downloads and verifies one, then re-encrypts it under the library key as a new file whose `received` origin names the link and upload. The arrival hint is `file-request` and sends no push.
+
+Active links: Plus 10, Pro 50, Max 200. The single-file limit follows the backup policy. Links stay open 1 to 90 days and take at least 1 MiB in all, at most the storage quota. Accounts read their allowance from `file_request_limit`.
+
 ## Incremental account content (content_sync: 1)
 
 Daily reads use `GET /v1/accounts/:account/content/changes?after=C&limit=100`.

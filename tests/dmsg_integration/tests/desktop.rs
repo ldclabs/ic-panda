@@ -9887,6 +9887,221 @@ fn desktop_presigned_share() {
     env.finish();
 }
 
+/// A file request from end to end: a Plus account makes a link, a browser with
+/// no account sends files through the page's own code, and another device of
+/// the account opens and keeps them.
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC, the private relay (DMSG_CLOUD_DIR) and Node"]
+fn desktop_file_request() {
+    use dmsg_types::integration::{AppCapability, AppRegistration};
+    let env = Env::start("file-request", "background_online = true\n");
+    let http = &env.http;
+    let d = &env.deployment;
+    d.register_app(&AppRegistration {
+        version: 1,
+        environment: dmsg_types::Environment::Local,
+        app_id: "dmsg".into(),
+        config_version: 1,
+        origins: vec!["https://dmsg.net".into()],
+        product_ids: vec!["dmsg".into()],
+        capabilities: vec![AppCapability::Checkout],
+        profiles: vec![],
+        authentication_receiver: d.user,
+        action_authority: d.user,
+        action_schema: None,
+        paused: false,
+    });
+    let reply =
+        d.ic.update_call(
+            d.commerce,
+            d.peer,
+            "publish_settlement_price",
+            candid::encode_args((d.ledger, 1_000_000u128, 30 * dmsg_types::MINUTE)).unwrap(),
+        )
+        .unwrap();
+    candid::decode_one::<dmsg_types::Result<dmsg_types::integration_billing::SettlementAsset>>(
+        &reply,
+    )
+    .unwrap()
+    .unwrap();
+
+    // The login 42 is the funded wallet; B is a second device of the account.
+    let (a, b) = (&env.a, &env.b);
+    assert_eq!(a.login(http, 42).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(http, 42).unwrap()["state"], "pairing_required");
+    let pairing = b.run(&["device", "pair-request"]);
+    assert_eq!(a.approve_pairing(http, &pairing)["state"], "done");
+    assert_eq!(b.run(&["unlock"])["state"], "unlocked");
+
+    // A free account can make no link.
+    let create = ["files", "request", "create", "--title", "Signed documents"];
+    assert_eq!(a.fail(&create), "QUOTA_EXCEEDED");
+    let enable = a.run(&["device", "formal-approve", "on"]);
+    assert_eq!(a.decide(http, &enable, true).unwrap()["state"], "done");
+    let quote = a.run(&["plan", "quote", "plus", &d.ledger.to_text()]);
+    let order = quote["id"].as_str().unwrap().to_string();
+    let checkout = a.run(&["plan", "checkout", &order]);
+    assert_eq!(a.decide(http, &checkout, true).unwrap()["state"], "done");
+    assert_eq!(a.run(&["plan", "order", &order])["status"], "Applied");
+    assert_eq!(a.run(&["plan", "status"])["plan"], "Plus");
+
+    let link = eventually(60, || {
+        a.command(&[
+            "files",
+            "request",
+            "create",
+            "--title",
+            "Signed documents",
+            "--instructions",
+            "Send the signed copy.",
+            "--label",
+            "Ada Lovelace",
+        ])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| serde_json::from_slice::<Value>(&output.stdout).unwrap())
+    });
+    let request = link["request_id"].as_str().unwrap().to_string();
+    let url = link["url"].as_str().unwrap().to_string();
+    assert_eq!(link["status"], "open");
+    assert!(url.contains(&format!("/r/{account}/{request}#")), "{url}");
+
+    // Without the whole URL the relay says nothing of it and takes nothing.
+    let public = format!("{}/public/requests/{account}/{request}", env.relay);
+    let blind = http.get(&public).send().unwrap().json::<Value>().unwrap();
+    assert!(blind["data"]["descriptor"].is_null(), "{blind}");
+    assert_eq!(
+        http.post(format!("{public}/uploads"))
+            .send()
+            .unwrap()
+            .status(),
+        403
+    );
+
+    // A browser with no account sends two files through the page's own code.
+    let large = pattern(5 * 1024 * 1024 + 123, 41);
+    let small = "请把合同寄回。".as_bytes().to_vec();
+    let (large_path, small_path) = (env.dir.join("large.bin"), env.dir.join("small.txt"));
+    std::fs::write(&large_path, &large).unwrap();
+    std::fs::write(&small_path, &small).unwrap();
+    let output = env.dir.join("request-live-output.json");
+    let live = env.dir.join("request-live.json");
+    std::fs::write(
+        &live,
+        json!({
+            "url": url,
+            "relay": env.relay,
+            "site": "http://localhost:5173",
+            "output": output,
+            "sender": "Ada",
+            "files": [
+                {"path": large_path, "name": "合同 scan.bin", "mime": "application/octet-stream"},
+                {"path": small_path, "name": "note.txt", "mime": "text/plain"}
+            ]
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let sent = Command::new("node")
+        .args([
+            "node_modules/vitest/vitest.mjs",
+            "run",
+            "src/lib/request/live.test.ts",
+        ])
+        .current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/dmsg_frontend"))
+        .env("DMSG_REQUEST_LIVE", &live)
+        .status()
+        .unwrap();
+    assert!(sent.success(), "the page's upload did not finish");
+    let uploads: Value = serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
+    assert_eq!(uploads["uploads"].as_array().unwrap().len(), 2);
+
+    // The other device holds the link's keys and sees the arrivals.
+    let listed = eventually(60, || {
+        b.run(&["files", "request", "ls", "--refresh"])
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|l| l["request_id"] == request.as_str() && l["files"] == 2)
+            .cloned()
+    });
+    assert_eq!(listed["title"], "Signed documents");
+    assert_eq!(listed["label"], "Ada Lovelace");
+    assert_eq!(listed["url"], url.as_str());
+    assert_eq!(listed["unread"], true);
+    let files = b.run(&["files", "request", "files", &request]);
+    let named = |name: &str| {
+        files
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["name"] == name)
+            .unwrap()
+            .clone()
+    };
+    let (scan, note) = (named("合同 scan.bin"), named("note.txt"));
+    assert_eq!(scan["state"], "received");
+    assert_eq!(scan["size"], large.len() as u64);
+    assert_eq!(scan["sender"]["name"], "Ada");
+    assert_eq!(scan["sender"]["note"], "As agreed.");
+    let (scan_upload, note_upload) = (
+        scan["upload_id"].as_str().unwrap(),
+        note["upload_id"].as_str().unwrap(),
+    );
+    assert_eq!(
+        b.run(&["files", "request", "ls"])[0]["unread"],
+        false,
+        "reading the list settles it"
+    );
+
+    // Saved on request: into the library under its own key, with its origin.
+    let saved = b.run(&["files", "request", "save", scan_upload]);
+    let saved_id = saved["id"].as_str().unwrap().to_string();
+    assert_eq!(saved["name"], "合同 scan.bin");
+    let export = env.dir.join("exported.bin");
+    b.run(&["files", "get", &saved_id, "--out", export.to_str().unwrap()]);
+    assert_eq!(std::fs::read(&export).unwrap(), large);
+    let shown = b.run(&["files", "show", &saved_id]);
+    assert_eq!(
+        shown["versions"][0]["origin"]["type"], "received",
+        "{shown}"
+    );
+    assert_eq!(shown["versions"][0]["origin"]["request"], request.as_str());
+    // Asking again keeps the one copy.
+    let again = b.run(&["files", "request", "save", scan_upload]);
+    assert_eq!(again["id"], saved_id.as_str());
+
+    // The first device reads the list too, and deleting a cloud copy reaches both.
+    a.run(&["files", "request", "rm", note_upload]);
+    eventually(30, || {
+        let left = b.run(&["files", "request", "files", &request]);
+        let left = left.as_array().unwrap();
+        (left.len() == 1 && left[0]["upload_id"] == scan_upload && left[0]["state"] == "saved")
+            .then_some(())
+    });
+
+    // Closing the link: the page learns, and the saved file stays.
+    let closed = a.run(&["files", "request", "revoke", &request]);
+    assert_eq!(closed["status"], "revoked");
+    let after = http.get(&public).send().unwrap().json::<Value>().unwrap();
+    assert_eq!(after["data"]["status"], "revoked", "{after}");
+    let after_close = env.dir.join("exported-after-close.bin");
+    b.run(&[
+        "files",
+        "get",
+        &saved_id,
+        "--out",
+        after_close.to_str().unwrap(),
+    ]);
+    assert_eq!(std::fs::read(&after_close).unwrap(), large);
+    env.finish();
+}
+
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_inbox_cache_and_pagination() {

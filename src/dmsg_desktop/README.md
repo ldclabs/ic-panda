@@ -676,6 +676,8 @@ as skipped. This is not a passing native fullscreen validation.
 
 The Cloud storage page, its navigation and file-detail links were removed on
 2026-10-28. Membership shows account storage usage through `files/cloud_usage`.
+Files → Collect files lists upload-only links with `files/requests` and `files/request_files`; only opening or refreshing the page, or a `file-request` hint, reads the relay. A received file comes down when saved (`files/request_save`), never by itself. Opening any library file that would run as a program asks first (`runsAsProgram`).
+
 Files → Links uses `files/share_links` and `files/share_revoke`; it remains independent
 of the local source and can recover link metadata from other devices. Cloud backups
 and file/version backup actions remain in Files. The desktop no longer allows or
