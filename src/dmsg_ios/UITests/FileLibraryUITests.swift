@@ -35,10 +35,27 @@ final class FileLibraryUITests: XCTestCase {
 
     private func back(_ app: XCUIApplication) { app.navigationBars.buttons.element(boundBy: 0).tap() }
 
+    /// Whether the screen shows one flat color where the element sits.
+    private func isBlank(_ element: XCUIElement) -> Bool {
+        guard let image = element.screenshot().image.cgImage else { return false }
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        pixels.withUnsafeMutableBytes { buffer in
+            CGContext(data: buffer.baseAddress, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)?
+                .draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return stride(from: 0, to: pixels.count, by: 4).allSatisfy { pixel in
+            (0..<3).allSatisfy { abs(Int(pixels[pixel + $0]) - Int(pixels[$0])) < 16 }
+        }
+    }
+
     func testWorkspaceRootShowsNoTitleButPushedScreensDo() {
         let app = launch()
         // The expanded layout's floating tab bar counts as part of the navigation bars.
-        if !app.buttons["ToggleSidebar"].exists { XCTAssertFalse(app.navigationBars.staticTexts["Files"].exists) }
+        // iOS 18 keeps the hidden title in the accessibility tree for VoiceOver, and
+        // reports it as hittable too, so only the screen shows whether it is drawn.
+        let title = app.navigationBars.staticTexts["Files"]
+        if !app.buttons["ToggleSidebar"].exists && title.exists { XCTAssertTrue(isBlank(title)) }
         tap(app.buttons["files.transfers"], in: app)
         XCTAssertTrue(app.navigationBars.staticTexts["File transfers"].waitForExistence(timeout: 5))
         capture(app, "Pushed screen keeps a compact title")

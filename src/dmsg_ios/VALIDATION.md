@@ -1,5 +1,19 @@
 # iOS implementation validation
 
+## Root title test on iOS 18.4 (2026-11-05)
+
+`testWorkspaceRootShowsNoTitleButPushedScreensDo` failed on iOS 18.4 because of the
+test, not the app. The screenshot shows no title, but iOS 18 keeps the hidden title in
+the accessibility tree and reports it as hittable, while iOS 27 does not expose it. The
+test now checks the screen: where a title element sits, it must find one flat color.
+
+- Only this test was run for the fix. It passes on iPhone 16 / iOS 18.4 and on
+  iPhone 18 Pro / iOS 27.0.
+- With `.toolbar(removing: .title)` temporarily removed, it fails at that assertion on
+  iOS 18.4, so it still catches a visible title. The app code was restored afterwards.
+
+Implementation and validation: Claude Opus 5.5.
+
 ## Share by link (2026-11-05)
 
 Files gains **Share by link** on file rows, file details and cloud backups, and
@@ -8,9 +22,7 @@ only to encrypt the new copy, and the library does not change.
 
 - iPhone 16 / iOS 18.4: all 100 Swift unit tests passed. Of the 25 `FileLibraryUITests`,
   23 passed, one was skipped and `testWorkspaceRootShowsNoTitleButPushedScreensDo`
-  failed at its root-title assertion. The same test passes on iOS 27.0 and this change
-  does not touch titles, but it was not rerun on an unmodified commit on iOS 18.4, so
-  that failure stays open.
+  failed at its root-title assertion. That was a test defect, fixed in the section above.
 - iPhone 18 Pro / iOS 27.0: the title test and the local, backup with failure and
   retry, oversized, list and revoke, language and Dynamic Type link tests passed.
 - The localization check with compiler extraction passed for all 23 languages.
