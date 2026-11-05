@@ -2038,6 +2038,8 @@
 	<string>놓친 것이 없는지 확인한 뒤 이전 장치를 해지합니다.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>장치를 해지하면 동기화나 백업되지 않은 파일처럼 그 장치에만 있는 내용은 사라집니다.</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>취소하면 이 링크를 통한 새 다운로드가 중지됩니다. 로컬 파일은 유지됩니다. 다운로드가 이미 시작되었으며 다운로드한 복사본은 회수할 수 없습니다.</string>
 	<key>Role</key>
 	<string>역할</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>제공업체에서 새 자격 증명을 테스트하세요.</string>
 	<key>Text</key>
 	<string>텍스트</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>클라우드 사본이 바로 삭제되고 링크가 작동을 멈춥니다. 이미 내려받은 사본에는 영향이 없습니다.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>복사본은 가져오기에 쓸 수 있도록 이 iPhone에 읽기 전용으로 남습니다. 그런 다음 이 iPhone이 새 기기로 계정에 추가됩니다. 로그인한 뒤 다른 기기에서 승인하거나 계정을 복구하세요. 이전 iPhone은 계속 작동합니다.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

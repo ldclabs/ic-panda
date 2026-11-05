@@ -2038,6 +2038,8 @@
 	<string>Trekt het oude apparaat in zodra er niets ongemerkt achterblijft.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Als je een apparaat intrekt, gaat verloren wat alleen daarop staat, zoals bestanden die nooit zijn gesynchroniseerd of geback-upt.</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>Intrekken stopt nieuwe downloads via deze link. Lokale bestanden blijven; downloads die al zijn gestart en gedownloade kopieën kunnen niet worden teruggehaald.</string>
 	<key>Role</key>
 	<string>Rol</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>Test de nieuwe referentie bij de provider</string>
 	<key>Text</key>
 	<string>Tekst</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>De cloudkopie wordt meteen verwijderd en de link werkt niet meer. Reeds gedownloade kopieën blijven bestaan.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>De kopie blijft alleen-lezen op deze iPhone staan om te importeren. Daarna sluit deze iPhone zich als nieuw apparaat aan bij je account: log in en keur hem goed vanaf een ander apparaat, of herstel het account. De oude iPhone blijft werken.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

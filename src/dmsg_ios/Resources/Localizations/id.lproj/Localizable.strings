@@ -2038,6 +2038,8 @@
 	<string>Mencabut perangkat lama setelah tidak ada yang tertinggal tanpa disadari.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Mencabut perangkat menghilangkan apa pun yang hanya ada di sana, seperti berkas yang tidak pernah disinkronkan atau dicadangkan.</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>Mencabut menghentikan unduhan baru melalui tautan ini. File lokal tetap ada; pengunduhan sudah dimulai dan salinan yang diunduh tidak dapat ditarik kembali.</string>
 	<key>Role</key>
 	<string>Peran</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>Uji kredensial baru di penyedianya</string>
 	<key>Text</key>
 	<string>Teks</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>Salinan cloud langsung dihapus dan tautan berhenti berfungsi. Salinan yang sudah diunduh tidak terpengaruh.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Salinan tetap ada di iPhone ini, hanya baca, untuk diimpor. Lalu iPhone ini bergabung ke akun Anda sebagai perangkat baru: masuk, lalu setujui dari perangkat lain atau pulihkan akun. iPhone lama tetap berfungsi.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

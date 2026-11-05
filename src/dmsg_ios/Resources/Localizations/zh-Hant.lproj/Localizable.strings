@@ -2038,6 +2038,8 @@
 	<string>確認沒有遺漏後，撤銷舊裝置。</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>撤銷裝置會遺失只存在於該裝置上的內容，例如從未同步或備份的檔案。</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>撤銷後無法再通過此連結開始下載。本機檔案不受影響，已開始的下載及已下載的副本無法收回。</string>
 	<key>Role</key>
 	<string>角色</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>在服務提供方測試新憑據</string>
 	<key>Text</key>
 	<string>文本</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>雲端副本會立即刪除，連結隨即失效。已經下載的副本不受影響。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>副本以唯讀方式保留在本機，供匯入使用。之後本機會以新裝置加入帳號：登入後，由另一台裝置批准，或復原帳號。舊 iPhone 仍可照常使用。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

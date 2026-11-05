@@ -232,6 +232,45 @@ async fn an_edition_from_a_backup_is_independent_and_leaves_nothing_behind() {
 }
 
 #[tokio::test]
+async fn sharing_a_backup_preserves_existing_download_jobs() {
+    for stage in ["done", "queued", "retrying"] {
+        let dir = crate::testing::TempDir::new();
+        let (mut c, id, manifest, upload) = cloud_only_fixture(&dir);
+        let mut job = c.files_download_start(&upload, None, false).unwrap();
+        job.stage = stage.into();
+        if stage == "done" {
+            job.done = job.total;
+            job.bytes = job.total_bytes;
+        } else if stage == "retrying" {
+            job.error = Some("UNAVAILABLE".into());
+            job.retry_at = Some(crate::now_ms() + dmsg_types::MINUTE);
+            job.attempts = 1;
+        }
+        c.save_fetch(&job).unwrap();
+        let before = serde_json::to_value(c.files_download_status().unwrap()).unwrap();
+
+        prepare_edition(&c.hold(), &manifest, Some(&upload), &mut |_, _, _| {})
+            .await
+            .unwrap();
+
+        assert_eq!(
+            serde_json::to_value(c.files_download_status().unwrap()).unwrap(),
+            before,
+            "sharing must not change a {stage} download"
+        );
+        assert!(!c.files_show(&id).unwrap().file.local);
+        if stage == "done" {
+            let report = super::super::fetch::run(&c.hold(), &mut |_| {})
+                .await
+                .unwrap();
+            assert_eq!(report.completed, 0);
+            assert_eq!(report.pending, 0);
+            assert!(!c.files_show(&id).unwrap().file.local);
+        }
+    }
+}
+
+#[tokio::test]
 async fn links_from_the_cloud_refuse_what_they_cannot_read_before_anything_moves() {
     let dir = crate::testing::TempDir::new();
     let (mut c, id, _, upload) = cloud_only_fixture(&dir);

@@ -2038,6 +2038,8 @@
 	<string>অজান্তে কিছু পেছনে না থাকলে পুরনো ডিভাইস বাতিল করে।</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>কোনো ডিভাইস বাতিল করলে শুধু তাতেই থাকা জিনিস হারিয়ে যায়, যেমন কখনো সিঙ্ক বা ব্যাকআপ না হওয়া ফাইল।</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>প্রত্যাহার করা এই লিঙ্কের মাধ্যমে নতুন ডাউনলোড বন্ধ করে। স্থানীয় ফাইল থাকে; ডাউনলোডগুলি ইতিমধ্যেই শুরু হয়েছে এবং ডাউনলোড করা অনুলিপিগুলি প্রত্যাহার করা যাবে না৷</string>
 	<key>Role</key>
 	<string>ভূমিকা</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>এর প্রদানকারীতে নতুন শংসাপত্র পরীক্ষা করুন</string>
 	<key>Text</key>
 	<string>পাঠ্য</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>ক্লাউড কপি সঙ্গে সঙ্গে মুছে যায় এবং লিঙ্ক কাজ করা বন্ধ করে। আগে ডাউনলোড করা কপিতে প্রভাব পড়ে না।</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>কপিটি ইমপোর্টের জন্য এই iPhone-এ শুধু পড়ার অবস্থায় থাকে। তারপর এই iPhone নতুন ডিভাইস হিসেবে আপনার অ্যাকাউন্টে যুক্ত হয়: সাইন ইন করুন, তারপর অন্য ডিভাইস থেকে অনুমোদন দিন বা অ্যাকাউন্ট পুনরুদ্ধার করুন। পুরোনো iPhone কাজ করতে থাকে।</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

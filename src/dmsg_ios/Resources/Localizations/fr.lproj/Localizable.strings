@@ -2038,6 +2038,8 @@
 	<string>Révoque l’ancien appareil une fois que rien n’est oublié.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Révoquer un appareil fait perdre ce qui n’existe que sur lui, comme les fichiers jamais synchronisés ni sauvegardés.</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>La révocation empêche de nouveaux téléchargements via ce lien. Les fichiers locaux sont conservés ; les téléchargements commencés et les copies téléchargées ne peuvent pas être rappelés.</string>
 	<key>Role</key>
 	<string>Rôle</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>Tester le nouvel identifiant chez son fournisseur</string>
 	<key>Text</key>
 	<string>Texte</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>La copie en ligne est supprimée immédiatement et le lien cesse de fonctionner. Les copies déjà téléchargées ne sont pas concernées.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>La copie reste sur cet iPhone, en lecture seule, pour l’importation. Cet iPhone rejoint ensuite votre compte comme nouvel appareil : connectez-vous, puis approuvez-le depuis un autre appareil ou récupérez le compte. L’ancien iPhone continue de fonctionner.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

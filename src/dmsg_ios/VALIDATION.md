@@ -1,5 +1,47 @@
 # iOS implementation validation
 
+## File link review (2026-11-05)
+
+Reviewed `ab5579b..=b6dc1c5` inclusively, retaining the subsequent root-title test
+fix `76379106`. Two defects were corrected:
+
+- Temporary backup reads for a share link no longer update an existing restore
+  job. Previously, even a completed job could become `verifying` and restore an
+  evicted local copy again on the next download pass. The regression test failed
+  before the fix and now preserves completed, queued and retrying jobs, including
+  the completed job's exclusion from the next pass.
+- The iOS revoke confirmation reuses the desktop's wording in all 23 languages:
+  new downloads stop, while started downloads and saved copies cannot be recalled.
+  It no longer promises immediate removal of the cloud copy.
+
+Validation:
+
+- Rust: 578 client, 115 CLI and 26 mobile tests passed; 11 existing tests ignored.
+  All-target Clippy with warnings denied, Rustfmt and `git diff --check` passed.
+- Desktop: `pnpm check`, 173 tests, build and the isolated Electron `transfers`
+  flow passed. Cloud-link progress, failure/retry and keyboard checks passed;
+  Chinese light/dark, French and Arabic RTL screenshots were inspected, including
+  the 760-pixel minimum window width.
+- Web: `pnpm check` passed; 4 heartbeat tests and 107 Vitest tests passed, with the
+  live share test skipped.
+- Rebuilt debug native device/simulator slices and Swift bindings; artifact/source
+  fingerprints and all 23 localizations, including fresh compiler extraction,
+  passed. A separate DerivedData directory avoided stale extraction from old builds.
+- iPhone 17e / iOS 27.0: all 100 unit tests and 50 selected UI tests passed, with
+  one iPad sidebar test skipped and no failures. The UI selection covered Files,
+  links, capture fixtures, messages, inbox, sync and the changed settings tests.
+  Final evidence: `.build/Review-ab5579b-b6dc1c5.xcresult` reports 151 tests,
+  150 passed and 1 skipped. The native run continued after the tool's wait timeout;
+  its completed result bundle was checked independently.
+- The revoke confirmation was also inspected in English light, Chinese dark,
+  Arabic RTL dark and German at maximum Dynamic Type.
+
+Physical photo/video capture and microphone authorization, iOS 18.4/iPad runs,
+real-relay/PocketIC integration and production behavior were not revalidated.
+The iOS UI tests use fixtures and do not establish live mobile sharing behavior.
+
+Implementation and validation: Codex (OpenAI).
+
 ## Root title test on iOS 18.4 (2026-11-05)
 
 `testWorkspaceRootShowsNoTitleButPushedScreensDo` failed on iOS 18.4 because of the

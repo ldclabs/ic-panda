@@ -2038,6 +2038,8 @@
 	<string>見落としがないことを確かめてから、古いデバイスを取り消します。</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>デバイスを取り消すと、同期もバックアップもされていないファイルなど、そのデバイスにしかない内容は失われます。</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>取り消すと、このリンクからの新しいダウンロードが停止されます。ローカルファイルはそのまま残ります。ダウンロードはすでに開始されており、ダウンロードしたコピーを取り消すことはできません。</string>
 	<key>Role</key>
 	<string>役割</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>プロバイダーで新しい認証情報をテストする</string>
 	<key>Text</key>
 	<string>テキスト</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>クラウドのコピーはすぐに削除され、リンクは使えなくなります。すでにダウンロードされたコピーには影響しません。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>コピーは読み取り専用のままこの iPhone に残り、読み込みに使えます。その後、この iPhone は新しいデバイスとしてアカウントに参加します。サインインしてから、別のデバイスで承認するか、アカウントを復旧してください。古い iPhone はそのまま使えます。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

@@ -2038,6 +2038,8 @@
 	<string>Widerruft das alte Gerät, sobald nichts unbemerkt zurückbleibt.</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>Beim Widerrufen eines Geräts geht verloren, was nur auf ihm liegt, etwa nie synchronisierte oder gesicherte Dateien.</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>Durch den Widerruf werden neue Downloads über diesen Link gestoppt. Lokale Dateien bleiben bestehen; Bereits gestartete Downloads und heruntergeladene Kopien können nicht zurückgerufen werden.</string>
 	<key>Role</key>
 	<string>Rolle</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>Testen Sie den neuen Ausweis bei seinem Anbieter</string>
 	<key>Text</key>
 	<string>Text</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>Die Cloud-Kopie wird sofort entfernt und der Link funktioniert nicht mehr. Bereits heruntergeladene Kopien bleiben unberührt.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Die Kopie bleibt schreibgeschützt auf diesem iPhone, damit Sie sie importieren können. Danach tritt dieses iPhone Ihrem Konto als neues Gerät bei: Melden Sie sich an und genehmigen Sie es auf einem anderen Gerät, oder stellen Sie das Konto wieder her. Das alte iPhone funktioniert weiter.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

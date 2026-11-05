@@ -720,6 +720,7 @@ async fn fetch_chunks<H: Hold>(
     upload_id: &str,
     plan: &UploadPlan,
     manifest: &BackupManifest,
+    track_download: bool,
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<String> {
     let hold = crate::upload::random_hex();
@@ -756,8 +757,10 @@ async fn fetch_chunks<H: Hold>(
         .map(|c| c.size)
         .sum();
     let mut bytes_done = total_bytes.saturating_sub(missing_bytes);
-    h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "downloading", now_ms()))
-        .await?;
+    if track_download {
+        h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "downloading", now_ms()))
+            .await?;
+    }
     progress(done, count);
     crate::downloads::chunks(h, &missing, |c, group, fetched| {
         let now = now_ms();
@@ -767,23 +770,27 @@ async fn fetch_chunks<H: Hold>(
         }
         pin(c, now)?;
         done += group.len() as u64;
-        c.fetch_progress(
-            upload_id,
-            done,
-            bytes_done,
-            if done == count {
-                "verifying"
-            } else {
-                "downloading"
-            },
-            now,
-        )?;
+        if track_download {
+            c.fetch_progress(
+                upload_id,
+                done,
+                bytes_done,
+                if done == count {
+                    "verifying"
+                } else {
+                    "downloading"
+                },
+                now,
+            )?;
+        }
         progress(done, count);
         Ok(())
     })
     .await?;
-    h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "verifying", now_ms()))
-        .await?;
+    if track_download {
+        h.with(|c| c.fetch_progress(upload_id, done, bytes_done, "verifying", now_ms()))
+            .await?;
+    }
     super::reading::check_manifest(h, &manifest.file, MAX_BACKUP).await?;
     Ok(hold)
 }
@@ -810,7 +817,8 @@ pub(crate) async fn pull_chunks<H: Hold>(
         }
     };
     let manifest = entry.manifest.as_ref().ok_or(Error::RecoveryIncomplete)?;
-    fetch_chunks(h, upload_id, &entry.plan, manifest, progress).await
+    // A temporary read must not advance or restart a restore for this backup.
+    fetch_chunks(h, upload_id, &entry.plan, manifest, false, progress).await
 }
 
 /// Fetch a backup into the library: its chunks are downloaded and checked,
@@ -838,7 +846,7 @@ pub async fn cloud_fetch<H: Hold>(
         })
         .await?;
     let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-    let hold = fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await?;
+    let hold = fetch_chunks(h, upload_id, &entry.plan, &manifest, true, progress).await?;
     h.with(|c| {
         let result = c.fetched(upload_id, folder, &entry, &manifest);
         c.release_chunks(&hold)?;
@@ -894,7 +902,7 @@ pub async fn cloud_verify<H: Hold>(
         .with(|c| c.cloud_entry(upload_id)?.ok_or(Error::NotFound))
         .await?;
     let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-    let checked = fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await;
+    let checked = fetch_chunks(h, upload_id, &entry.plan, &manifest, true, progress).await;
     if let Ok(hold) = &checked {
         h.with(|c| {
             let result = c.verified(upload_id, &manifest);
@@ -923,7 +931,7 @@ pub(crate) async fn verify_download<H: Hold>(
         .with(|c| c.cloud_entry(upload_id)?.ok_or(Error::NotFound))
         .await?;
     let manifest = entry.manifest.as_ref().ok_or(Error::RecoveryIncomplete)?;
-    let hold = fetch_chunks(h, upload_id, &entry.plan, manifest, progress).await?;
+    let hold = fetch_chunks(h, upload_id, &entry.plan, manifest, true, progress).await?;
     h.with(|c| {
         let result = c.verified(upload_id, manifest);
         c.release_chunks(&hold)?;

@@ -2038,6 +2038,8 @@
 	<string>确认没有遗漏后，撤销旧设备。</string>
 	<key>Revoking a device loses whatever exists only on it, such as files never synced or backed up.</key>
 	<string>撤销设备会丢失只在该设备上的内容，例如从未同步或备份的文件。</string>
+	<key>Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.</key>
+	<string>撤销后无法再通过此链接开始下载。本机文件不受影响，已开始的下载及已下载的副本无法收回。</string>
 	<key>Role</key>
 	<string>角色</string>
 	<key>Rotate conversation keys</key>
@@ -2398,8 +2400,6 @@
 	<string>在服务提供方测试新凭据</string>
 	<key>Text</key>
 	<string>文本</string>
-	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
-	<string>云端副本会立即删除，链接随即失效。已经下载的副本不受影响。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>副本以只读方式保留在本机，供导入使用。随后本机作为新设备加入账号：登录后，由另一台设备批准，或恢复账号。旧 iPhone 照常使用。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>

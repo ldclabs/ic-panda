@@ -174,7 +174,7 @@ struct FileLinkDetailView: View {
         }.privateScreen().navigationTitle("Share link").navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Revoke this link?", isPresented: $confirming, titleVisibility: .visible) {
                 Button("Revoke", role: .destructive) { Task { await revoke() } }
-            } message: { Text("The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.") }
+            } message: { Text("Revoking stops new downloads through this link. Local files stay; downloads already started and downloaded copies cannot be recalled.") }
     }
 
     private func revoke() async {
