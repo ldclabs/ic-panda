@@ -925,7 +925,8 @@ fn default_folder(root: &str, secrets: &RequestSecrets) -> String {
 /// come down and are checked, the file is encrypted anew under the library's
 /// own key, the sender's key and the downloaded ciphertext are then forgotten,
 /// and the relay hears the account has it. It always becomes a new file, so
-/// two senders' files of one name stay apart.
+/// two senders' files of one name stay apart. Progress reports plaintext bytes
+/// completed and total bytes for each stage.
 ///
 /// # Errors
 /// Returns `Error::NotFound` for an unknown or withdrawn file and
@@ -1004,17 +1005,29 @@ pub async fn request_save<H: Hold>(
             Ok((target, missing))
         })
         .await?;
-    let count = manifest.chunks.len() as u64;
-    let mut done = count - missing.len() as u64;
-    progress("download", done, count);
+    let sizes: std::collections::BTreeMap<_, _> = manifest
+        .chunks
+        .iter()
+        .map(|chunk| (chunk.digest.as_str(), chunk.size))
+        .collect();
+    let total = manifest.size;
+    let mut done = total
+        - missing
+            .iter()
+            .map(|(_, digest)| sizes[digest.as_str()])
+            .sum::<u64>();
+    progress("download", done, total);
     let saved = async {
         crate::downloads::chunks(h, &missing, |c, group, fetched| {
             for ((_, digest), bytes) in group.iter().zip(fetched) {
                 c.blobs()?.put_chunk(digest, &bytes)?;
             }
             pin(c, now_ms())?;
-            done += group.len() as u64;
-            progress("download", done, count);
+            done += group
+                .iter()
+                .map(|(_, digest)| sizes[digest.as_str()])
+                .sum::<u64>();
+            progress("download", done, total);
             Ok(())
         })
         .await?;
@@ -1027,7 +1040,13 @@ pub async fn request_save<H: Hold>(
                 request: record.request_id.clone(),
                 upload: upload_id.to_owned(),
             },
-            &mut |done, total| progress("save", done, total),
+            &mut |done, _| {
+                progress(
+                    "save",
+                    (done * crate::files::CHUNK as u64).min(total),
+                    total,
+                )
+            },
         )
         .await
     }

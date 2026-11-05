@@ -224,16 +224,24 @@ export async function fileRequestsFlow({ app, main, shots, methods, hold, waitFo
   assert.ok(await uploadRow.getByTestId('request-save').isEnabled())
   failSave = false
 
+  const finishRefresh = hold('files/request_files')
+  await main.getByTestId('request-refresh').click()
+  await waitFor(() => main.getByTestId('request-refresh').isDisabled())
+  assert.ok(await uploadRow.getByTestId('request-save').isDisabled(), 'refresh and save must not invalidate each other')
+  await finishRefresh()
+  await waitFor(() => main.getByTestId('request-refresh').isEnabled())
+
   const finishSave = hold('files/request_save')
   await uploadRow.getByTestId('request-save').click()
   await waitFor(() => uploadRow.getByTestId('request-save').isDisabled())
+  assert.ok(await main.getByTestId('request-refresh').isDisabled(), 'refresh must not strand an active save')
   emit('files/progress', { job: 'request', path: 'c1'.repeat(32), stage: 'download', done: 1048576, total: 4 * 1048576 })
   await uploadRow.getByTestId('request-progress').waitFor()
   assert.match(await uploadRow.getByTestId('request-progress').innerText(), /Downloading/)
   // Another transfer's progress is not this one's.
   emit('files/progress', { job: 'backup', path: 'c1'.repeat(32), stage: 'save', done: 9, total: 9 })
   assert.match(await uploadRow.getByTestId('request-progress').innerText(), /Downloading/)
-  emit('files/progress', { job: 'request', path: 'c1'.repeat(32), stage: 'save', done: 2, total: 4 })
+  emit('files/progress', { job: 'request', path: 'c1'.repeat(32), stage: 'save', done: 2 * 1048576, total: 4 * 1048576 })
   await waitFor(async () => /Saving/.test(await uploadRow.getByTestId('request-progress').innerText()))
   await finishSave()
   await uploadRow.getByTestId('request-show').waitFor()
@@ -272,6 +280,40 @@ export async function fileRequestsFlow({ app, main, shots, methods, hold, waitFo
   setSession('unlocked'); emit('session/changed', { state: 'unlocked' })
   await main.getByTestId('requests-open').first().waitFor()
   await waitFor(() => main.getByTestId('requests-refresh').isEnabled())
+
+  // A batch stops after its current call when its page leaves or the session locks.
+  for (const leaving of ['navigate', 'lock']) {
+    await main.getByTestId('requests-new').click()
+    await main.getByTestId('request-title').fill('Interrupted batch')
+    await main.getByTestId('request-names').fill('First\nShould not be created')
+    await main.click('[data-testid="request-days"]')
+    await main.click('[data-testid="request-days-menu"] [data-value="30"]')
+    const before = calls.filter(call => call.method === 'files/request_create').length
+    const finishCreate = hold('files/request_create')
+    await main.getByTestId('request-create').click()
+    await waitFor(() => calls.filter(call => call.method === 'files/request_create').length === before + 1)
+    if (leaving === 'navigate') {
+      await go('/files')
+      await main.getByTestId('files-list').waitFor()
+    } else {
+      setSession('locked'); emit('session/changed', { state: 'locked' })
+    }
+    await main.getByTestId('request-composer').waitFor({ state: 'detached' })
+    await finishCreate()
+    // An RPC after the held reply lets the renderer finish its continuation.
+    await main.evaluate(() => window.dmsg.call('files/requests'))
+    assert.equal(calls.filter(call => call.method === 'files/request_create').length, before + 1, leaving)
+    if (leaving === 'lock') {
+      setSession('unlocked'); emit('session/changed', { state: 'unlocked' })
+    }
+    await go('/files/requests')
+    await main.getByTestId('requests-open').first().waitFor()
+    await waitFor(() => main.getByTestId('requests-refresh').isEnabled())
+    await main.getByTestId('requests-new').click()
+    assert.equal(await main.getByTestId('request-title').inputValue(), '')
+    await main.keyboard.press('Escape')
+    await main.getByTestId('request-composer').waitFor({ state: 'detached' })
+  }
 
   // Locale, theme and the narrowest window, on the list, the composer and the details.
   files = [

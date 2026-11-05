@@ -330,7 +330,7 @@ impl Client {
             )?;
         }
         let now = now_ms();
-        let (job, resumed) = match self.import_job(folder, name, size, into.as_deref())? {
+        let (job, resumed) = match self.import_job(folder, name, size, into.as_deref(), &origin)? {
             Some(job) => (job, true),
             None => (
                 ImportJob {
@@ -544,11 +544,16 @@ impl Client {
         name: &str,
         size: u64,
         into: Option<&str>,
+        origin: &Origin,
     ) -> Result<Option<ImportJob>> {
         for key in self.workspace.store.sealed_keys(IMPORT)? {
             let job: Option<ImportJob> = self.workspace.private(self.keys()?, &key)?;
             if let Some(job) = job.filter(|j| {
-                j.folder == folder && j.name == name && j.size == size && j.file.as_deref() == into
+                j.folder == folder
+                    && j.name == name
+                    && j.size == size
+                    && j.file.as_deref() == into
+                    && &j.origin == origin
             }) {
                 return Ok(Some(job));
             }

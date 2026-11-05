@@ -92,20 +92,31 @@ export class RequestApi {
   mine(): Promise<Mine> {
     return this.call('/mine')
   }
-  reserve(plan: UploadPlan, receipt: string) {
+  reserve(
+    plan: UploadPlan,
+    receipt: string,
+    signal: AbortSignal | null = null
+  ) {
     return this.call<{ upload_id: string; status: string }>('/uploads', {
       method: 'POST',
+      signal,
       body: JSON.stringify({ plan, receipt })
     })
   }
-  put(upload: string, chunk: number | 'manifest', bytes: Uint8Array) {
+  put(
+    upload: string,
+    chunk: number | 'manifest',
+    bytes: Uint8Array,
+    signal: AbortSignal | null = null
+  ) {
     return this.call(`/uploads/${upload}/chunks/${chunk}`, {
       method: 'PUT',
+      signal,
       body: bytes as BodyInit
     })
   }
-  finalize(upload: string) {
-    return this.call(`/uploads/${upload}/finalize`, { method: 'POST' })
+  finalize(upload: string, signal: AbortSignal | null = null) {
+    return this.call(`/uploads/${upload}/finalize`, { method: 'POST', signal })
   }
   withdraw(upload: string) {
     return this.call(`/uploads/${upload}/withdraw`, { method: 'POST' })

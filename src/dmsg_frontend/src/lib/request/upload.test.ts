@@ -311,6 +311,109 @@ describe('sending a file through a request link', () => {
       )
     ).rejects.toBeInstanceOf(UploadStop)
   })
+
+  it('aborts an in-flight request when stopped and keeps its reservation ID', async () => {
+    for (const phase of ['reserve', 'chunk', 'manifest', 'finalize']) {
+      const relay = new Relay()
+      const abort = new AbortController()
+      const blocked = Promise.withResolvers<void>()
+      const released = Promise.withResolvers<Response>()
+      let signal: AbortSignal | null | undefined
+      let reserved: string | undefined
+      const api = new RequestApi(
+        'https://relay.test',
+        'token',
+        async (input, init) => {
+          const path = String(input)
+          if (
+            (phase === 'reserve' && path.endsWith('/uploads')) ||
+            (phase === 'chunk' && path.endsWith('/chunks/0')) ||
+            (phase === 'manifest' && path.endsWith('/chunks/manifest')) ||
+            (phase === 'finalize' && path.endsWith('/finalize'))
+          ) {
+            signal = init?.signal
+            signal?.addEventListener(
+              'abort',
+              () => released.reject(new DOMException('Stopped', 'AbortError')),
+              { once: true }
+            )
+            blocked.resolve()
+            return released.promise
+          }
+          return relay.send(input, init)
+        }
+      )
+      const outcome = uploadFile(
+        api,
+        link,
+        {
+          file: named(new Uint8Array(9)),
+          sender: null,
+          replaces: null
+        },
+        {
+          ...hooks(),
+          signal: abort.signal,
+          reserved: (id) => {
+            reserved = id
+          }
+        }
+      ).catch((error) => error)
+      await blocked.promise
+      abort.abort()
+      const interrupted = signal?.aborted
+      // Release a broken implementation too, so the regression fails without
+      // leaving a hung fetch or background upload in the test runner.
+      released.reject(new DOMException('Stopped', 'AbortError'))
+      expect(await outcome).toBeInstanceOf(UploadStop)
+      expect(interrupted, phase).toBe(true)
+      expect(reserved, phase).toMatch(/^[0-9a-f]{64}$/)
+    }
+  })
+
+  it('stops sibling chunk requests before a failed upload returns', async () => {
+    const relay = new Relay()
+    const first = Promise.withResolvers<Response>()
+    const sibling = Promise.withResolvers<Response>()
+    const started = Promise.withResolvers<void>()
+    let signal: AbortSignal | null | undefined
+    const api = new RequestApi(
+      'https://relay.test',
+      'token',
+      async (input, init) => {
+        const path = String(input)
+        if (path.endsWith('/chunks/0')) return first.promise
+        if (path.endsWith('/chunks/1')) {
+          signal = init?.signal
+          signal?.addEventListener(
+            'abort',
+            () => sibling.reject(new DOMException('Stopped', 'AbortError')),
+            { once: true }
+          )
+          started.resolve()
+          return sibling.promise
+        }
+        return relay.send(input, init)
+      }
+    )
+    const outcome = uploadFile(
+      api,
+      link,
+      {
+        file: named(new Uint8Array(1024 * 1024 + 1)),
+        sender: null,
+        replaces: null
+      },
+      hooks()
+    ).catch((error) => error)
+    await started.promise
+    first.resolve(failure(403, 'FORBIDDEN'))
+    const error = await outcome
+    const interrupted = signal?.aborted
+    sibling.reject(new DOMException('Stopped', 'AbortError'))
+    expect(error).toMatchObject({ code: 'FORBIDDEN' })
+    expect(interrupted).toBe(true)
+  })
 })
 
 describe('what this browser sent', () => {

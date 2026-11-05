@@ -56,7 +56,7 @@ export class UploadStop extends Error {
 
 type Hooks = {
   progress(progress: UploadProgress): void
-  /** Called once the relay holds the reservation, so the page can offer to stop it. */
+  /** Keep the ID before reserving, so a lost or cancelled reply can still be withdrawn. */
   reserved?(uploadId: string): void
   signal?: AbortSignal
   now?: () => number
@@ -99,7 +99,8 @@ async function retrying<T>(
     try {
       return await attempt()
     } catch (error) {
-      if (isAbort(error)) throw new UploadStop('stopped')
+      if (hooks.signal?.aborted || isAbort(error))
+        throw new UploadStop('stopped')
       const again =
         error instanceof TypeError ||
         (error instanceof RequestApiError && error.retryable)
@@ -119,6 +120,13 @@ async function once(
 ): Promise<Sent> {
   const { file } = input
   const now = hooks.now ?? Date.now
+  const controller = new AbortController()
+  const stop = () => controller.abort()
+  const callerSignal = hooks.signal
+  if (callerSignal?.aborted) stop()
+  else callerSignal?.addEventListener('abort', stop, { once: true })
+  hooks = { ...hooks, signal: controller.signal }
+  let workers: Promise<void>[] = []
   const key = crypto.getRandomValues(new Uint8Array(32))
   try {
     const [uploadId, id, version] = [randomId(), randomId(), randomId()]
@@ -195,8 +203,12 @@ async function once(
       uploadId,
       receipt
     )
-    await retrying(() => api.reserve(plan, sealedReceipt), hooks, now)
     hooks.reserved?.(uploadId)
+    await retrying(
+      () => api.reserve(plan, sealedReceipt, hooks.signal),
+      hooks,
+      now
+    )
 
     let next = 0
     let done = 0
@@ -209,16 +221,28 @@ async function once(
         // A file changed since the first pass seals to other bytes.
         if ((await sha256Hex(sealed)) !== chunks[index]!.digest)
           throw new UploadStop('changed')
-        await retrying(() => api.put(uploadId, index, sealed), hooks, now)
+        await retrying(
+          () => api.put(uploadId, index, sealed, hooks.signal),
+          hooks,
+          now
+        )
         done++
         hooks.progress({ stage: 'uploading', done, total: count })
       }
     }
-    await Promise.all(Array.from({ length: PARALLEL }, worker))
-    await retrying(() => api.put(uploadId, 'manifest', manifest), hooks, now)
-    await retrying(() => api.finalize(uploadId), hooks, now)
+    workers = Array.from({ length: PARALLEL }, worker)
+    await Promise.all(workers)
+    await retrying(
+      () => api.put(uploadId, 'manifest', manifest, hooks.signal),
+      hooks,
+      now
+    )
+    await retrying(() => api.finalize(uploadId, hooks.signal), hooks, now)
     return { uploadId, receipt }
   } finally {
+    controller.abort()
+    await Promise.allSettled(workers)
+    callerSignal?.removeEventListener('abort', stop)
     key.fill(0)
   }
 }

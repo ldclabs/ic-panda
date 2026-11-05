@@ -662,3 +662,112 @@ async fn saving_keeps_senders_apart_under_the_librarys_own_key() {
             .all(|f| f.name != "lying.txt")
     );
 }
+
+#[tokio::test]
+async fn a_failed_received_file_does_not_resume_as_another_senders_file() {
+    for bytes in [b"from Ada", b"from Lin"] {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let folder = c.files_mkdir_path("Received").unwrap().id;
+        let origin = |upload: &str| Origin::Received {
+            request: "ab".repeat(32),
+            upload: upload.repeat(32),
+        };
+        let mut bad = in_blobs(&c, "contract.txt", b"from Ada");
+        bad.sha256 = "00".repeat(32);
+        let good = in_blobs(&c, "contract.txt", bytes);
+        let h = c.cooperative_hold();
+        assert_eq!(
+            import::from_received(&h, &bad, &folder, origin("11"), &mut |_, _| {})
+                .await
+                .err(),
+            Some(Error::IntegrityFailed)
+        );
+        // Same name and size, but a different upload: neither its chunks nor
+        // its provenance may come from the unfinished import above.
+        let saved = import::from_received(&h, &good, &folder, origin("22"), &mut |_, _| {})
+            .await
+            .unwrap();
+        assert!(!saved.resumed);
+        let (_, version, _) = c.library_manifest(&saved.file.id, None).unwrap();
+        assert_eq!(version.origin, origin("22"));
+        let out = dir.path("saved.txt");
+        c.files_export(&saved.file.id, None, &out).unwrap();
+        assert_eq!(std::fs::read(out).unwrap(), bytes);
+    }
+}
+
+#[tokio::test]
+async fn saving_a_received_file_reports_bytes_including_its_short_last_chunk() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let dir = crate::testing::TempDir::new();
+    let mut c = crate::testing::unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut c);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    crate::testing::relay_to(
+        &mut c,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = [0; 8192];
+        let read = socket.read(&mut request).await.unwrap();
+        assert!(String::from_utf8_lossy(&request[..read]).contains("/files/ack"));
+        let body = r#"{"ok":true,"data":{"received_at":100}}"#;
+        socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+    });
+    let request = "ab".repeat(32);
+    let account = c.account().unwrap().id.to_string();
+    let plain = vec![7; CHUNK + 7];
+    let (plan, sealed) = sealed_file(&[1; 32], &account, &request, &plain, |_| {});
+    let opened = open_request_file(&[1; 32], &account, &request, &plan, &sealed).unwrap();
+    for (i, part) in plain.chunks(CHUNK).enumerate() {
+        let (bytes, digest) = crate::files::seal_chunk(
+            &opened.file.file_key().unwrap(),
+            &opened.file.id,
+            &opened.file.version,
+            i as u64,
+            plan.chunks.len() as u64,
+            part,
+        );
+        c.blobs().unwrap().put_chunk(&digest, &bytes).unwrap();
+    }
+    let management = c.seal_request_secrets(&request, &secrets("T", "")).unwrap();
+    c.keep_link(remote(&request, management), 1).unwrap();
+    c.keep_received(&ReceivedRecord {
+        request_id: request.clone(),
+        plan: plan.clone(),
+        file: Some(opened),
+        stored_at: 1,
+        received_at: None,
+        withdrawn_at: None,
+        saved: None,
+    })
+    .unwrap();
+    let mut progress = Vec::new();
+    let saved = request_save(
+        &c.hold(),
+        &plan.upload_id,
+        None,
+        "Received",
+        &mut |stage, done, total| {
+            progress.push((stage, done, total));
+        },
+    )
+    .await
+    .unwrap();
+    server.await.unwrap();
+    let size = plain.len() as u64;
+    assert_eq!(
+        progress,
+        vec![
+            ("download", size, size),
+            ("save", CHUNK as u64, size),
+            ("save", size, size)
+        ]
+    );
+    let out = dir.path("received.txt");
+    c.files_export(&saved.id, None, &out).unwrap();
+    assert_eq!(std::fs::read(out).unwrap(), plain);
+}

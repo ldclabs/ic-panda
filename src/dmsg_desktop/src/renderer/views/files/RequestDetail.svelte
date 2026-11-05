@@ -45,7 +45,7 @@
   const replaced = (id: string) => files.find((file) => file.upload_id === id)?.name
 
   async function refresh() {
-    if (!unlocked) return
+    if (!unlocked || busy || saving) return
     const at = ++revision
     busy = true
     error = ''
@@ -63,7 +63,7 @@
   }
 
   async function save(upload: string, folder?: string) {
-    if (saving || !unlocked) return
+    if (saving || busy || !unlocked) return
     const at = ++revision
     error = ''
     saving = { upload, stage: 'download', done: 0, total: 0 }
@@ -86,7 +86,7 @@
   }
 
   async function remove() {
-    if (!deleting || busy || !unlocked) return
+    if (!deleting || busy || saving || !unlocked) return
     const at = ++revision
     busy = true
     error = ''
@@ -133,7 +133,7 @@
         {#if link.label}<bdi dir="auto">{link.label}</bdi>{' · '}{/if}{t(requestStates[link.status] ?? 'requestStateOpen')} · {t('linkExpires', { time: when(link.expires_at) })}
       </p>
     </div>
-    <button class={buttonClass('secondary')} disabled={busy || !unlocked} onclick={refresh} data-testid="request-refresh"
+    <button class={buttonClass('secondary')} disabled={busy || !!saving || !unlocked} onclick={refresh} data-testid="request-refresh"
       ><Icon name="sync" />{t('refreshLinks')}</button
     >
   </header>
@@ -182,13 +182,13 @@
                 {#if file.state === 'received'}
                   <button
                     class={buttonClass('secondary', 'xs')}
-                    disabled={!!saving || !unlocked}
+                    disabled={!!saving || busy || !unlocked}
                     onclick={() => save(file.upload_id)}
                     data-testid="request-save">{t('requestSave')}</button
                   >
                   <button
                     class={buttonClass('ghost', 'xs')}
-                    disabled={!!saving || !unlocked}
+                    disabled={!!saving || busy || !unlocked}
                     onclick={() => (choosing = file.upload_id)}
                     data-testid="request-save-to">{t('requestSaveTo')}</button
                   >

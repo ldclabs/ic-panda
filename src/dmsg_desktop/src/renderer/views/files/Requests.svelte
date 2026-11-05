@@ -247,7 +247,9 @@
   </section>
 {/if}
 
-<RequestComposer bind:open={composing} {usage} onCreated={refresh} />
+{#if unlocked}
+  <RequestComposer bind:open={composing} {usage} onCreated={refresh} />
+{/if}
 
 <Dialog bind:open={upgrading} title={t('requestUpgradeTitle')} icon="inbox" testid="requests-upgrade">
   <p class="text-[13px] text-muted">{t('requestUpgrade')}</p>

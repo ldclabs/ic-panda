@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Select from '../../components/Select.svelte'
@@ -32,6 +33,8 @@
   let progress = $state({ done: 0, total: 0 })
   let error = $state('')
   let created = $state<any[]>([])
+  let alive = true
+  onDestroy(() => { alive = false })
 
   const labels = $derived(requestLabels(names))
   const tooMany = $derived(labels.length > MAX_REQUEST_LABELS)
@@ -79,6 +82,7 @@
           expires_in_ms: Number(days) * 86_400_000,
           max_total_bytes: Number(total) * MIB
         })
+        if (!alive) return
         created = [...created, link]
         pending.shift()
         progress.done++
@@ -86,6 +90,7 @@
       names = ''
       onCreated()
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
       names = pending.join('\n')
       if (created.length) onCreated()
