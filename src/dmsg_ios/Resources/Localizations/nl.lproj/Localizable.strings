@@ -8,6 +8,8 @@
 	<string>1 dag</string>
 	<key>1 hour</key>
 	<string>1 uur</string>
+	<key>30 days</key>
+	<string>30 dagen</string>
 	<key>7 days</key>
 	<string>7 dagen</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Een lege vervanging wist de opgeslagen waarde.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Iedereen met de volledige link en het vereiste wachtwoord kan deze binnen zijn grenzen ophalen.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Iedereen met de link kan dit bestand downloaden tot de link verloopt of je hem intrekt. Een dMsg-account of -app is niet nodig.</string>
 	<key>Anyone, free of charge</key>
 	<string>Iedereen, gratis</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Checklist ingevuld op basis van je afschriften. De upstreamstatus blijft alleen onafhankelijk verifieerbaar bij de provider.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Kies Back-up in de cloud bij een lokaal bestand om je eerste back-up te maken.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Kies Delen via link bij een bestand om het naar iedereen te sturen. Een dMsg-account of -app is niet nodig.</string>
 	<key>Choose a credential for:</key>
 	<string>Kies een referentie voor:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Uitnodiging maken</string>
 	<key>Create key root</key>
 	<string>Sleutelroot maken</string>
+	<key>Create link</key>
+	<string>Link maken</string>
 	<key>Create proposal</key>
 	<string>Voorstel maken</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Gereed</string>
 	<key>Download encrypted copy in background</key>
 	<string>Download gecodeerde kopie op de achtergrond</string>
+	<key>Download limit reached</key>
+	<string>Downloadlimiet bereikt</string>
 	<key>Download sessions</key>
 	<string>Sessies downloaden</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Gecodeerde back-up downloaden</string>
 	<key>Downloads</key>
 	<string>Downloads</string>
+	<key>Downloads allowed</key>
+	<string>Toegestane downloads</string>
 	<key>Draft saved</key>
 	<string>Concept opgeslagen</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Versleutelde weergavegegevens, bijlagen in cache en bestandslijsten uit de cloud kunnen opnieuw worden gedownload. De kluis, berichten, lokale bibliotheek en niet-gesynchroniseerd werk blijven behouden.</string>
 	<key>Encrypting</key>
 	<string>Versleutelen</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Nieuwe kopie versleutelen en uploaden…</string>
 	<key>Encrypting on this device…</key>
 	<string>Versleutelen op dit apparaat…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Bestanden geïmporteerd.</string>
 	<key>Files in this folder</key>
 	<string>Bestanden in deze map</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Bestanden groter dan 100 MiB kunnen niet via een link worden gedeeld.</string>
 	<key>Filters</key>
 	<string>Kluisfilters</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Nog geen gegevens</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Geen geselecteerde medeondertekenaars betekent geen aanvullend beleid voor medeondertekenaars. Controleer het volledige voorstel voordat je het goedkeurt.</string>
+	<key>No share links yet</key>
+	<string>Nog geen deellinks</string>
 	<key>No shared items waiting</key>
 	<string>Er wachten geen gedeelde items</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Dit apparaat intrekken</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Trek dit apparaat in en roteer de inhoudssleutels</string>
+	<key>Revoke this link?</key>
+	<string>Deze link intrekken?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Deze link naar snapshot intrekken?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Deel een kopie</string>
 	<key>Share binding request</key>
 	<string>Bindend verzoek delen</string>
+	<key>Share by link</key>
+	<string>Delen via link</string>
 	<key>Share cosign packet</key>
 	<string>Medeondertekeningspakket delen</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Deel uitnodiging</string>
 	<key>Share link</key>
 	<string>Deel link</string>
+	<key>Share links</key>
+	<string>Deellinks</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Deellinks konden niet worden vernieuwd. Opgeslagen links worden getoond.</string>
 	<key>Share pairing request</key>
 	<string>Koppelingsverzoek delen</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Test de nieuwe referentie bij de provider</string>
 	<key>Text</key>
 	<string>Tekst</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>De cloudkopie wordt meteen verwijderd en de link werkt niet meer. Reeds gedownloade kopieën blijven bestaan.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>De kopie blijft alleen-lezen op deze iPhone staan om te importeren. Daarna sluit deze iPhone zich als nieuw apparaat aan bij je account: log in en keur hem goed vanaf een ander apparaat, of herstel het account. De oude iPhone blijft werken.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>De bestandsbibliotheek blijft alleen op het oude apparaat. Wat daar nooit is gesynchroniseerd of geback-upt, gaat verloren zodra het wordt ingetrokken.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>Het bestand of de map is niet meer beschikbaar. Vernieuw de lijst.</string>
+	<key>The full link is not available on this device.</key>
+	<string>De volledige link is niet beschikbaar op dit apparaat.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>De inboxsleutel is nog niet met dit apparaat gesynchroniseerd. Synchroniseer het apparaat waarop je de ontvangst hebt ingeschakeld en probeer het hier opnieuw.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>De uitnodiging wordt gecontroleerd wanneer je kiest om aan het gesprek deel te nemen.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>De laatste geverifieerde waarneming wordt bewaard. De huidige status kan niet worden bevestigd.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>De link is klaar. Hij bevat de sleutel van dit bestand, dus verstuur hem via een privékanaal.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>De link opent alleen met het wachtwoord. Stuur het wachtwoord op een andere manier.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>De link gebruikt een nieuwe versleutelde kopie die meetelt voor je cloudopslag tot de link is ingetrokken of verlopen.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>De lokale bindingssleutel is niet beschikbaar. Bewaar deze werkruimte en bekijk je herstelopties voordat je deze vergrendelt.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Dit bestand overschrijdt de huidige bestandsgroottelimiet voor cloudback-ups.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Dit bestand staat in de prullenmand. Herstel het voordat je het opent.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Dit bestand staat niet op dit apparaat. dMsg downloadt het alleen zolang als nodig is om de nieuwe kopie te versleutelen, en je bibliotheek verandert niet.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Deze geschiedenis hoort bij dit apparaat. Het weerspiegelt geen desktop-lokale CLI, SSH of goedkeuringen voor het koppelen van bestanden vanaf een ander apparaat.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Onbevestigde voorstellen</string>
 	<key>Unknown state</key>
 	<string>Onbekende staat</string>
+	<key>Unlimited</key>
+	<string>Onbeperkt</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Ontgrendel dMsg om dit verzoek te beoordelen.</string>
 	<key>Unlock policy</key>

@@ -833,6 +833,20 @@ export default {
   'Take an inventory': '清点可读历史',
   'Compare with the desktop app': '与桌面应用核对',
   'Create the migration file': '生成迁移文件',
+  'No account needed': '无需账户',
+  'Nothing to install': '无需安装',
+  'Decrypted only in your browser': '只在你的浏览器中解密',
+  'Send your own files this way': '用同样的方式发送你的文件',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg 是你的私密工作空间，用来保存文件、消息和密码。只有你和你选择的人才能读取。',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    '通过链接分享文件，可以设置有效期、要求口令，也可以随时撤销。',
+  'The person you send it to needs no account or app.':
+    '对方不需要账户，也不需要安装应用。',
+  'Free to start, with encryption included in every plan.':
+    '免费开始，所有套餐都包含加密。',
+  'See how dMsg works': '了解 dMsg',
+  'Download on the App Store': '在 App Store 下载',
   'A file shared with you': '有人分享给你一个文件',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     '有人通过 dMsg 分享给你一个文件。文件是加密的；浏览器在这里用链接中的密钥解密，明文不会到达任何服务器。',

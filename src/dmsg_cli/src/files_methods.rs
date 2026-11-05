@@ -412,9 +412,10 @@ impl Daemon {
                 "files/storage_action" => {
                     storage::act(&h, &parse::<Vec<storage::Target>>(params, "targets")?).await?
                 }
-                "files/share_quote" => {
-                    storage::quote(&h, &id()?, version, params["channel"].as_str()).await?
-                }
+                "files/share_quote" => match params["upload_id"].as_str() {
+                    Some(upload) => storage::quote_backup(&h, upload).await?,
+                    None => storage::quote(&h, &id()?, version, params["channel"].as_str()).await?,
+                },
                 "files/share_channel" => {
                     let message_id = params["message_id"].as_str();
                     let _turn = self.message_turn(message_id).await;
@@ -426,17 +427,30 @@ impl Daemon {
                     channel::send_file(&h, &channel, &id()?, version, &draft, message_id).await?
                 }
                 "files/share_link" => {
-                    let name = self.client().lock().await.files_show(&id()?)?.file.name;
-                    let link = link::share_link(
-                        &h,
-                        &id()?,
-                        version,
-                        params["expires_in_ms"].as_u64(),
-                        params["max_downloads"].as_u64().unwrap_or(0),
-                        params["password"].as_str().filter(|p| !p.is_empty()),
-                        &mut progress("share", name.into()),
-                    )
-                    .await?;
+                    let terms = link::LinkTerms {
+                        expires_in_ms: params["expires_in_ms"].as_u64(),
+                        max_downloads: params["max_downloads"].as_u64().unwrap_or(0),
+                        password: params["password"].as_str().filter(|p| !p.is_empty()),
+                    };
+                    let report = |path: Value| {
+                        move |stage: &'static str, done: u64, total: u64| {
+                            self.emit(
+                                "files/progress",
+                                json!({"job": "share", "path": path, "stage": stage, "done": done, "total": total}),
+                            );
+                        }
+                    };
+                    let link = match params["upload_id"].as_str() {
+                        Some(upload) => {
+                            link::share_backup_link(&h, upload, terms, &mut report(upload.into()))
+                                .await?
+                        }
+                        None => {
+                            let name = self.client().lock().await.files_show(&id()?)?.file.name;
+                            link::share_link(&h, &id()?, version, terms, &mut report(name.into()))
+                                .await?
+                        }
+                    };
                     to_json(&link)
                 }
                 "files/share_links" if params["refresh"] == true => {

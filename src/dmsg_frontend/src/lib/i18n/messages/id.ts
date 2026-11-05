@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "Lakukan inventarisasi",
   "Compare with the desktop app": "Bandingkan dengan aplikasi desktop",
   "Create the migration file": "Buat file migrasi",
+  'No account needed': 'Tanpa akun',
+  'Nothing to install': 'Tanpa instalasi',
+  'Decrypted only in your browser': 'Didekripsi hanya di browser Anda',
+  'Send your own files this way': 'Kirim file Anda dengan cara yang sama',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg adalah ruang kerja pribadi untuk file, pesan, dan kata sandi Anda. Hanya Anda dan orang yang Anda pilih yang dapat membacanya.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Bagikan file lewat tautan yang dapat kedaluwarsa, meminta kata sandi, atau dicabut.',
+  'The person you send it to needs no account or app.':
+    'Penerima tidak memerlukan akun atau aplikasi.',
+  'Free to start, with encryption included in every plan.':
+    'Gratis untuk memulai, enkripsi termasuk di setiap paket.',
+  'See how dMsg works': 'Lihat cara kerja dMsg',
+  'Download on the App Store': 'Unduh di App Store',
   "A file shared with you": "File yang dibagikan dengan Anda",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "Seseorang berbagi file dengan Anda melalui dMsg. Itu dienkripsi; browser Anda mendekripsinya di sini dengan kunci dari tautan, dan tidak ada yang sampai ke server dengan jelas.",
   "This link has expired.": "Tautan ini telah kedaluwarsa.",

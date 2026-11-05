@@ -8,6 +8,8 @@
 	<string>1 dia</string>
 	<key>1 hour</key>
 	<string>1 hora</string>
+	<key>30 days</key>
+	<string>30 dias</string>
 	<key>7 days</key>
 	<string>7 dias</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Uma substituição vazia apaga o valor salvo.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Qualquer pessoa com o link completo e a senha necessária pode recuperá-lo dentro de seus limites.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Qualquer pessoa com o link pode baixar este arquivo até ele expirar ou você revogá-lo. Não é preciso ter conta nem app do dMsg.</string>
 	<key>Anyone, free of charge</key>
 	<string>Qualquer pessoa, gratuitamente</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Lista de verificação preenchida a partir de suas declarações. O status upstream permanece verificável de forma independente apenas com o provedor.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Escolha Fazer backup na nuvem em um arquivo local para criar seu primeiro backup.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Escolha Compartilhar por link em um arquivo para enviá-lo a qualquer pessoa. Não é preciso ter conta nem app do dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Escolha uma credencial para:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Criar convite</string>
 	<key>Create key root</key>
 	<string>Criar raiz de chaves</string>
+	<key>Create link</key>
+	<string>Criar link</string>
 	<key>Create proposal</key>
 	<string>Criar proposta</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Concluído</string>
 	<key>Download encrypted copy in background</key>
 	<string>Baixe cópia criptografada em segundo plano</string>
+	<key>Download limit reached</key>
+	<string>Limite de downloads atingido</string>
 	<key>Download sessions</key>
 	<string>Baixar sessões</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Baixando backup criptografado</string>
 	<key>Downloads</key>
 	<string>Downloads</string>
+	<key>Downloads allowed</key>
+	<string>Downloads permitidos</string>
 	<key>Draft saved</key>
 	<string>Rascunho salvo</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Dados de exibição criptografados, anexos em cache e listas de arquivos na nuvem podem ser baixados novamente. O cofre, as mensagens, a biblioteca local e as alterações não sincronizadas são mantidos.</string>
 	<key>Encrypting</key>
 	<string>Criptografando</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Criptografando e enviando uma nova cópia…</string>
 	<key>Encrypting on this device…</key>
 	<string>Criptografando neste dispositivo…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Arquivos importados.</string>
 	<key>Files in this folder</key>
 	<string>Arquivos nesta pasta</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Arquivos com mais de 100 MiB não podem ser compartilhados por link.</string>
 	<key>Filters</key>
 	<string>Filtros do cofre</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Ainda não há registros</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Nenhum fiador selecionado significa nenhuma política de fiança adicional. Revise a proposta completa antes de aprovar.</string>
+	<key>No share links yet</key>
+	<string>Nenhum link de compartilhamento ainda</string>
 	<key>No shared items waiting</key>
 	<string>Nenhum item compartilhado aguardando</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Revogar este dispositivo</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Revogar este dispositivo e girar as chaves de conteúdo</string>
+	<key>Revoke this link?</key>
+	<string>Revogar este link?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Revogar este link de instantâneo?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Compartilhe uma cópia</string>
 	<key>Share binding request</key>
 	<string>Solicitação de vinculação de compartilhamento</string>
+	<key>Share by link</key>
+	<string>Compartilhar por link</string>
 	<key>Share cosign packet</key>
 	<string>Compartilhar pacote de coassinatura</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Compartilhar convite</string>
 	<key>Share link</key>
 	<string>Compartilhar link</string>
+	<key>Share links</key>
+	<string>Links de compartilhamento</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Não foi possível atualizar os links. Mostrando os links salvos.</string>
 	<key>Share pairing request</key>
 	<string>Solicitação de pareamento de compartilhamento</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Teste a nova credencial em seu provedor</string>
 	<key>Text</key>
 	<string>Texto</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>A cópia na nuvem é removida na hora e o link para de funcionar. Cópias já baixadas não são afetadas.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>A cópia fica neste iPhone, somente leitura, para importação. Depois este iPhone entra na sua conta como novo dispositivo: entre e aprove-o em outro dispositivo ou recupere a conta. O iPhone antigo continua funcionando.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>A biblioteca de arquivos fica só no dispositivo antigo. O que nunca foi sincronizado nem copiado lá se perde quando ele for revogado.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>O arquivo ou pasta não está mais disponível. Atualize a lista.</string>
+	<key>The full link is not available on this device.</key>
+	<string>O link completo não está disponível neste dispositivo.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>A chave da caixa de entrada ainda não foi sincronizada com este dispositivo. Sincronize o dispositivo que ativou o recebimento e tente novamente aqui.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>O convite é verificado quando você escolhe Entrar na conversa.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>A última observação verificada é mantida. O status atual não pôde ser confirmado.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>O link está pronto. Ele contém a chave deste arquivo, então envie-o por um canal privado.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>O link só abre com a senha. Envie a senha de outra forma.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>O link usa uma nova cópia criptografada que conta no seu armazenamento em nuvem até ser revogado ou expirar.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>A chave de ligação local não está disponível. Mantenha este espaço de trabalho e revise suas opções de recuperação antes de bloqueá-lo.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Este arquivo excede o limite atual de tamanho por arquivo para backups na nuvem.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Este arquivo está na lixeira. Restaure-o antes de abri-lo.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Este arquivo não está neste dispositivo. O dMsg o baixa apenas pelo tempo necessário para criptografar a nova cópia, e sua biblioteca não muda.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Este histórico pertence a este dispositivo. Ele não espelha CLI local de desktop, SSH ou aprovações de montagem de arquivo de outro dispositivo.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Propostas não confirmadas</string>
 	<key>Unknown state</key>
 	<string>Estado desconhecido</string>
+	<key>Unlimited</key>
+	<string>Ilimitado</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Desbloqueie dMsg para revisar esta solicitação.</string>
 	<key>Unlock policy</key>

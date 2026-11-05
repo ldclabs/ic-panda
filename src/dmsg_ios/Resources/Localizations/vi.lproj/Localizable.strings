@@ -8,6 +8,8 @@
 	<string>1 ngày</string>
 	<key>1 hour</key>
 	<string>1 giờ</string>
+	<key>30 days</key>
+	<string>30 ngày</string>
 	<key>7 days</key>
 	<string>7 ngày</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Giá trị thay thế trống sẽ xóa giá trị đã lưu.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Bất kỳ ai có liên kết đầy đủ và mật khẩu được yêu cầu đều có thể truy xuất nó trong giới hạn của nó.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Bất kỳ ai có liên kết đều có thể tải tệp này xuống cho đến khi hết hạn hoặc bạn thu hồi. Họ không cần tài khoản hay ứng dụng dMsg.</string>
 	<key>Anyone, free of charge</key>
 	<string>Bất cứ ai, miễn phí</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Danh sách kiểm tra được hoàn thành từ báo cáo của bạn. Trạng thái ngược dòng vẫn có thể được xác minh độc lập chỉ với nhà cung cấp.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Chọn Sao lưu lên đám mây trên một tệp cục bộ để tạo bản sao lưu đầu tiên.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Chọn Chia sẻ qua liên kết trên một tệp để gửi cho bất kỳ ai. Họ không cần tài khoản hay ứng dụng dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Chọn thông tin xác thực cho:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Tạo lời mời</string>
 	<key>Create key root</key>
 	<string>Tạo gốc khóa</string>
+	<key>Create link</key>
+	<string>Tạo liên kết</string>
 	<key>Create proposal</key>
 	<string>Tạo đề xuất</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Xong</string>
 	<key>Download encrypted copy in background</key>
 	<string>Tải xuống bản sao được mã hóa ở chế độ nền</string>
+	<key>Download limit reached</key>
+	<string>Đã đạt giới hạn tải xuống</string>
 	<key>Download sessions</key>
 	<string>Phiên tải xuống</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Đang tải xuống bản sao lưu được mã hóa</string>
 	<key>Downloads</key>
 	<string>Tải xuống</string>
+	<key>Downloads allowed</key>
+	<string>Số lượt tải được phép</string>
 	<key>Draft saved</key>
 	<string>Đã lưu bản nháp</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Có thể tải lại dữ liệu hiển thị mã hóa, tệp đính kèm đã lưu đệm và danh sách tệp đám mây. Kho bí mật, tin nhắn, thư viện tệp cục bộ và công việc chưa đồng bộ được giữ lại.</string>
 	<key>Encrypting</key>
 	<string>Mã hóa</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Đang mã hóa và tải lên bản sao mới…</string>
 	<key>Encrypting on this device…</key>
 	<string>Đang mã hóa trên thiết bị này…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Đã nhập tệp.</string>
 	<key>Files in this folder</key>
 	<string>Các tập tin trong thư mục này</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Không thể chia sẻ tệp lớn hơn 100 MiB qua liên kết.</string>
 	<key>Filters</key>
 	<string>Bộ lọc vault</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Chưa có hồ sơ nào</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Không có người đồng ký được chọn có nghĩa là không có chính sách đồng ký bổ sung. Xem xét đề xuất hoàn chỉnh trước khi phê duyệt.</string>
+	<key>No share links yet</key>
+	<string>Chưa có liên kết chia sẻ</string>
 	<key>No shared items waiting</key>
 	<string>Không có mục chia sẻ nào đang chờ</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Thu hồi thiết bị này</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Thu hồi thiết bị này và đổi khóa nội dung</string>
+	<key>Revoke this link?</key>
+	<string>Thu hồi liên kết này?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Thu hồi liên kết ảnh chụp nhanh này?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Chia sẻ một bản sao</string>
 	<key>Share binding request</key>
 	<string>Chia sẻ yêu cầu ràng buộc</string>
+	<key>Share by link</key>
+	<string>Chia sẻ qua liên kết</string>
 	<key>Share cosign packet</key>
 	<string>Chia sẻ gói đồng ký</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Chia sẻ lời mời</string>
 	<key>Share link</key>
 	<string>Chia sẻ liên kết</string>
+	<key>Share links</key>
+	<string>Liên kết chia sẻ</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Không thể làm mới liên kết chia sẻ. Đang hiển thị các liên kết đã lưu.</string>
 	<key>Share pairing request</key>
 	<string>Chia sẻ yêu cầu ghép nối</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Kiểm tra thông tin xác thực mới tại nhà cung cấp của nó</string>
 	<key>Text</key>
 	<string>văn bản</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>Bản sao trên đám mây bị xóa ngay và liên kết ngừng hoạt động. Các bản đã tải xuống không bị ảnh hưởng.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Bản sao được giữ trên iPhone này ở chế độ chỉ đọc để nhập. Sau đó iPhone này tham gia tài khoản như thiết bị mới: đăng nhập, rồi phê duyệt từ thiết bị khác hoặc khôi phục tài khoản. iPhone cũ vẫn hoạt động.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>Thư viện tệp chỉ còn trên thiết bị cũ. Mọi thứ ở đó chưa từng được đồng bộ hay sao lưu sẽ mất khi thiết bị bị thu hồi.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>Tệp hoặc thư mục không còn khả dụng. Hãy làm mới danh sách.</string>
+	<key>The full link is not available on this device.</key>
+	<string>Liên kết đầy đủ không có trên thiết bị này.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Khóa hộp thư đến chưa được đồng bộ với thiết bị này. Hãy đồng bộ thiết bị đã bật nhận thư, rồi thử lại tại đây.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>Lời mời được xác minh khi bạn chọn tham gia cuộc trò chuyện.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Quan sát được xác minh cuối cùng được lưu giữ. Trạng thái hiện tại không thể được xác nhận.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>Liên kết đã sẵn sàng. Liên kết chứa khóa của tệp này, vì vậy hãy gửi qua kênh riêng tư.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>Liên kết chỉ mở được khi có mật khẩu. Hãy gửi mật khẩu bằng cách khác.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>Liên kết dùng một bản sao mã hóa mới, được tính vào dung lượng đám mây của bạn cho đến khi bị thu hồi hoặc hết hạn.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Khóa liên kết cục bộ không có sẵn. Giữ không gian làm việc này và xem xét các tùy chọn khôi phục của bạn trước khi khóa nó.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Tệp này vượt giới hạn kích thước tệp sao lưu đám mây hiện tại.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Tệp này nằm trong Thùng rác. Khôi phục trước khi mở.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Tệp này không có trên thiết bị này. dMsg chỉ tải xuống tạm thời để mã hóa bản sao mới và thư viện của bạn không thay đổi.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Lịch sử này thuộc về thiết bị này. Nó không phản ánh phê duyệt CLI, SSH trên máy tính để bàn cục bộ hoặc phê duyệt gắn tệp từ thiết bị khác.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Đề xuất chưa được xác nhận</string>
 	<key>Unknown state</key>
 	<string>Trạng thái không xác định</string>
+	<key>Unlimited</key>
+	<string>Không giới hạn</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Mở khóa dMsg để xem xét yêu cầu này.</string>
 	<key>Unlock policy</key>

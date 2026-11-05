@@ -883,6 +883,20 @@ export default {
   'Take an inventory': 'Hacer el inventario',
   'Compare with the desktop app': 'Comparar con la aplicación de escritorio',
   'Create the migration file': 'Crear el archivo de migración',
+  'No account needed': 'Sin necesidad de cuenta',
+  'Nothing to install': 'Nada que instalar',
+  'Decrypted only in your browser': 'Se descifra solo en tu navegador',
+  'Send your own files this way': 'Envía tus propios archivos así',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg es un espacio de trabajo privado para tus archivos, mensajes y contraseñas. Solo tú y las personas que elijas pueden leerlos.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Comparte un archivo con un enlace que puede caducar, pedir contraseña o revocarse.',
+  'The person you send it to needs no account or app.':
+    'Quien lo reciba no necesita cuenta ni app.',
+  'Free to start, with encryption included in every plan.':
+    'Empieza gratis, con cifrado incluido en todos los planes.',
+  'See how dMsg works': 'Descubre dMsg',
+  'Download on the App Store': 'Descargar en el App Store',
   'A file shared with you': 'Un archivo compartido contigo',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Alguien compartió un archivo contigo a través de dMsg. Está cifrado; tu navegador lo descifra aquí con la clave del enlace y nada de él llega a un servidor en claro.',

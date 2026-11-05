@@ -8,6 +8,8 @@
 	<string>1 hari</string>
 	<key>1 hour</key>
 	<string>1 jam</string>
+	<key>30 days</key>
+	<string>30 hari</string>
 	<key>7 days</key>
 	<string>7 hari</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Pengganti kosong akan menghapus nilai tersimpan.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Siapa pun yang memiliki tautan lengkap dan kata sandi yang diperlukan dapat mengambilnya kembali dalam batasannya.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Siapa pun yang memiliki tautan dapat mengunduh file ini sampai kedaluwarsa atau Anda mencabutnya. Mereka tidak memerlukan akun atau aplikasi dMsg.</string>
 	<key>Anyone, free of charge</key>
 	<string>Siapa pun, gratis</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Daftar periksa selesai dari pernyataan Anda. Status upstream tetap dapat diverifikasi secara independen hanya dengan penyedia.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Pilih Cadangkan ke cloud pada file lokal untuk membuat cadangan pertama.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Pilih Bagikan lewat tautan pada file untuk mengirimkannya kepada siapa saja. Mereka tidak memerlukan akun atau aplikasi dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Pilih kredensial untuk:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Buat undangan</string>
 	<key>Create key root</key>
 	<string>Buat akar kunci</string>
+	<key>Create link</key>
+	<string>Buat tautan</string>
 	<key>Create proposal</key>
 	<string>Buat usulan</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Selesai</string>
 	<key>Download encrypted copy in background</key>
 	<string>Unduh salinan terenkripsi di latar belakang</string>
+	<key>Download limit reached</key>
+	<string>Batas unduhan tercapai</string>
 	<key>Download sessions</key>
 	<string>Unduh sesi</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Mengunduh cadangan terenkripsi</string>
 	<key>Downloads</key>
 	<string>Unduhan</string>
+	<key>Downloads allowed</key>
+	<string>Unduhan yang diizinkan</string>
 	<key>Draft saved</key>
 	<string>Draf tersimpan</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Data tampilan terenkripsi, lampiran dalam cache, dan daftar file cloud dapat diunduh kembali. Brankas, pesan, pustaka file lokal, dan pekerjaan yang belum disinkronkan tetap tersimpan.</string>
 	<key>Encrypting</key>
 	<string>Mengenkripsi</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Mengenkripsi dan mengunggah salinan baru…</string>
 	<key>Encrypting on this device…</key>
 	<string>Mengenkripsi di perangkat ini…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Berkas diimpor.</string>
 	<key>Files in this folder</key>
 	<string>File dalam folder ini</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>File lebih dari 100 MiB tidak dapat dibagikan lewat tautan.</string>
 	<key>Filters</key>
 	<string>Filter brankas</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Belum ada catatan</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Tidak ada pemberi tanda tangan yang dipilih berarti tidak ada kebijakan tanda tangan tambahan. Tinjau proposal lengkap sebelum menyetujui.</string>
+	<key>No share links yet</key>
+	<string>Belum ada tautan berbagi</string>
 	<key>No shared items waiting</key>
 	<string>Tidak ada item bersama yang menunggu</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Cabut perangkat ini</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Cabut perangkat ini dan rotasi kunci konten</string>
+	<key>Revoke this link?</key>
+	<string>Cabut tautan ini?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Cabut tautan cuplikan ini?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Bagikan salinannya</string>
 	<key>Share binding request</key>
 	<string>Bagikan permintaan pengikatan</string>
+	<key>Share by link</key>
+	<string>Bagikan lewat tautan</string>
 	<key>Share cosign packet</key>
 	<string>Bagikan paket tanda tangan bersama</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Bagikan undangan</string>
 	<key>Share link</key>
 	<string>Bagikan tautan</string>
+	<key>Share links</key>
+	<string>Tautan berbagi</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Tautan berbagi tidak dapat disegarkan. Menampilkan tautan tersimpan.</string>
 	<key>Share pairing request</key>
 	<string>Bagikan permintaan pemasangan</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Uji kredensial baru di penyedianya</string>
 	<key>Text</key>
 	<string>Teks</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>Salinan cloud langsung dihapus dan tautan berhenti berfungsi. Salinan yang sudah diunduh tidak terpengaruh.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Salinan tetap ada di iPhone ini, hanya baca, untuk diimpor. Lalu iPhone ini bergabung ke akun Anda sebagai perangkat baru: masuk, lalu setujui dari perangkat lain atau pulihkan akun. iPhone lama tetap berfungsi.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>Pustaka berkas hanya akan tetap ada di perangkat lama. Apa pun di sana yang tidak pernah disinkronkan atau dicadangkan akan hilang setelah perangkat itu dicabut.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>File atau folder tidak lagi tersedia. Perbarui daftar.</string>
+	<key>The full link is not available on this device.</key>
+	<string>Tautan lengkap tidak tersedia di perangkat ini.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Kunci kotak masuk belum disinkronkan ke perangkat ini. Sinkronkan perangkat yang mengaktifkan penerimaan pesan, lalu coba lagi di sini.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>Undangan diverifikasi saat Anda memilih Gabung percakapan.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Pengamatan terverifikasi terakhir disimpan. Status saat ini tidak dapat dikonfirmasi.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>Tautan sudah siap. Tautan berisi kunci file ini, jadi kirim melalui saluran pribadi.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>Tautan hanya terbuka dengan kata sandinya. Kirim kata sandi dengan cara lain.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>Tautan menggunakan salinan terenkripsi baru yang dihitung dalam penyimpanan cloud Anda sampai dicabut atau kedaluwarsa.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Kunci pengikatan lokal tidak tersedia. Simpan ruang kerja ini dan tinjau opsi pemulihan Anda sebelum menguncinya.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>File ini melebihi batas ukuran file cadangan cloud saat ini.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>File ini ada di Sampah. Pulihkan sebelum membukanya.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>File ini tidak ada di perangkat ini. dMsg mengunduhnya hanya untuk mengenkripsi salinan baru, dan pustaka Anda tidak berubah.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Riwayat ini milik perangkat ini. Itu tidak mencerminkan CLI lokal-desktop, SSH, atau persetujuan pemasangan file dari perangkat lain.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Proposal yang belum dikonfirmasi</string>
 	<key>Unknown state</key>
 	<string>Keadaan tidak diketahui</string>
+	<key>Unlimited</key>
+	<string>Tanpa batas</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Buka kunci dMsg untuk meninjau permintaan ini.</string>
 	<key>Unlock policy</key>

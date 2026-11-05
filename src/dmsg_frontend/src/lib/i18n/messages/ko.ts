@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "재고를 가져 가라.",
   "Compare with the desktop app": "데스크톱 앱과 비교",
   "Create the migration file": "마이그레이션 파일 만들기",
+  'No account needed': '계정 불필요',
+  'Nothing to install': '설치 불필요',
+  'Decrypted only in your browser': '브라우저에서만 복호화',
+  'Send your own files this way': '내 파일도 같은 방법으로 보내세요',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg는 파일, 메시지, 비밀번호를 위한 비공개 작업 공간입니다. 나와 내가 선택한 사람만 읽을 수 있습니다.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    '만료, 비밀번호 요구, 취소가 가능한 링크로 파일을 공유하세요.',
+  'The person you send it to needs no account or app.':
+    '받는 사람에게 계정이나 앱은 필요 없습니다.',
+  'Free to start, with encryption included in every plan.':
+    '무료로 시작할 수 있으며 모든 요금제에 암호화가 포함됩니다.',
+  'See how dMsg works': 'dMsg 알아보기',
+  'Download on the App Store': 'App Store에서 다운로드',
   "A file shared with you": "나와 공유된 파일",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "누군가 dMsg를 통해 나와 파일을 공유했습니다. 암호화되어 있습니다. 귀하의 브라우저는 링크의 키를 사용하여 여기의 암호를 해독하며 ​​그 중 아무것도 서버에 전달되지 않습니다.",
   "This link has expired.": "이 링크는 만료되었습니다.",

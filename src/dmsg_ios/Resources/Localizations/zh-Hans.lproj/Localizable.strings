@@ -8,6 +8,8 @@
 	<string>1 天</string>
 	<key>1 hour</key>
 	<string>1 小时</string>
+	<key>30 days</key>
+	<string>30 天</string>
 	<key>7 days</key>
 	<string>7 天</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>空的替换值会清除已保存的内容。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>持有完整链接及所需密码的人，都可在限制范围内取回内容。</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>持有链接的人都能下载这个文件，直到链接过期或被你撤销。对方不需要 dMsg 账户或应用。</string>
 	<key>Anyone, free of charge</key>
 	<string>所有人，免费</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>清单已根据你的声明完成。上游状态仍须独立向服务提供方核实。</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>在本机文件中选择“备份到云端”，创建第一份备份。</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>在文件上选择“通过链接分享”，就能发给任何人。对方不需要 dMsg 账户或应用。</string>
 	<key>Choose a credential for:</key>
 	<string>为以下对象选择登录凭据：</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>创建邀请</string>
 	<key>Create key root</key>
 	<string>创建钥匙根</string>
+	<key>Create link</key>
+	<string>生成链接</string>
 	<key>Create proposal</key>
 	<string>创建提案</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>完成</string>
 	<key>Download encrypted copy in background</key>
 	<string>在后台下载加密副本</string>
+	<key>Download limit reached</key>
+	<string>下载次数已用完</string>
 	<key>Download sessions</key>
 	<string>下载会话数</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>正在下载加密备份</string>
 	<key>Downloads</key>
 	<string>下载</string>
+	<key>Downloads allowed</key>
+	<string>允许的下载次数</string>
 	<key>Draft saved</key>
 	<string>草稿已保存</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>加密的展示数据、附件缓存和云端文件目录可以重新下载。清理后保留保险库、消息、本地文件库和未同步的内容。</string>
 	<key>Encrypting</key>
 	<string>正在加密</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>正在加密并上传新副本…</string>
 	<key>Encrypting on this device…</key>
 	<string>正在本机加密…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>文件已导入。</string>
 	<key>Files in this folder</key>
 	<string>此文件夹中的文件</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>超过 100 MiB 的文件无法通过链接分享。</string>
 	<key>Filters</key>
 	<string>保险库筛选</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>暂无举报</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>不选择联合签名者，表示不设置额外协签策略。批准前请核对完整提案。</string>
+	<key>No share links yet</key>
+	<string>还没有分享链接</string>
 	<key>No shared items waiting</key>
 	<string>没有待接收的分享内容</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>撤销这台设备</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>撤销这台设备并轮换内容密钥</string>
+	<key>Revoke this link?</key>
+	<string>撤销这个链接？</string>
 	<key>Revoke this snapshot link?</key>
 	<string>撤销此快照链接？</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>分享副本</string>
 	<key>Share binding request</key>
 	<string>分享绑定请求</string>
+	<key>Share by link</key>
+	<string>通过链接分享</string>
 	<key>Share cosign packet</key>
 	<string>分享联合签名包</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>分享邀请</string>
 	<key>Share link</key>
 	<string>分享链接</string>
+	<key>Share links</key>
+	<string>分享链接</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>分享链接未能刷新，当前显示已保存的链接。</string>
 	<key>Share pairing request</key>
 	<string>分享配对请求</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>在服务提供方测试新凭据</string>
 	<key>Text</key>
 	<string>文本</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>云端副本会立即删除，链接随即失效。已经下载的副本不受影响。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>副本以只读方式保留在本机，供导入使用。随后本机作为新设备加入账号：登录后，由另一台设备批准，或恢复账号。旧 iPhone 照常使用。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>文件库将只留在旧设备上。旧设备被撤销后，其中从未同步或备份的内容会丢失。</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>文件或文件夹已不可用，请刷新列表。</string>
+	<key>The full link is not available on this device.</key>
+	<string>此设备上无法取得完整链接。</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>收件箱密钥尚未同步到此设备。请先在开启收信的设备上同步，再在此重试。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>选择加入会话时会验证邀请。</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>已保留最近一次验证结果，当前状态尚无法确认。</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>链接已生成。链接中包含这个文件的密钥，请通过私密渠道发送。</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>链接须配合口令才能打开。请另行告知口令。</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>链接使用一份新的加密副本，在撤销或过期之前占用你的云端存储空间。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>本机绑定钥匙不可用。请保留此工作区，并在锁定前检查恢复方式。</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>此文件超过当前云端备份的单文件大小限制。</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>此文件在回收站中，请先恢复再打开。</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>这个文件不在本机。dMsg 只会临时下载它来加密新副本，文件库不会有任何变化。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>此历史记录仅属于本设备，不会镜像其他设备上的桌面本地 CLI、SSH 或文件挂载审批。</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>未确认提案</string>
 	<key>Unknown state</key>
 	<string>未知状态</string>
+	<key>Unlimited</key>
+	<string>不限</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>解锁 dMsg 后审阅此请求。</string>
 	<key>Unlock policy</key>

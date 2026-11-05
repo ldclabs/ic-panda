@@ -846,6 +846,15 @@ explicitly confirmed choice and still needs final verification in the original
 account. The task page prioritizes active transfers, preserves committing and
 verifying stages, and supplies task-specific retries and cancellation.
 
+**Share by link** creates a link that anyone can open in a browser, with no account
+or app. It is offered on a file row, in file details and on a cloud backup, with the
+same terms as the desktop: expiry, download limit and an optional password. A backup
+that is not on this device is fetched only to encrypt the new copy, which the sheet
+explains; the library does not change. Files over 100 MiB explain why they cannot be
+shared. **Share links** in the tools menu and in file details list links with their
+state and counts, keep the saved list when a refresh fails, and revoke after a
+confirmation. Secret snapshots stay under their own screen.
+
 The library supports folder naming/moving/trashing, multiple file imports,
 photo/video selection, and per-file outcomes for batch backup/move/trash actions.
 In the move workflow, the destination picker's **Move here** button executes the

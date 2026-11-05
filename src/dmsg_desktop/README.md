@@ -682,7 +682,9 @@ and file/version backup actions remain in Files. The desktop no longer allows or
 calls the deprecated `files/storage`, `files/storage_refresh` or `files/storage_action` RPCs.
 
 Sharing still previews the estimated new storage and payer and identifies existing
-copies. Local deletion does not revoke links or remove backups; removing a cloud
+copies. A cloud backup or a version without a local copy can be shared as well: the
+dialog says the file is fetched only to encrypt the new copy, shows its progress and
+leaves the library unchanged. The action is disabled above the 100 MiB link limit. Local deletion does not revoke links or remove backups; removing a cloud
 copy cannot recall downloaded copies. Link revocation requires confirmation, keeps
 its error available for retry, and ignores replies after locking or leaving the page.
 Electron smoke covers links, backup navigation, membership usage, and absence of the

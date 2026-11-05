@@ -848,6 +848,20 @@ export default {
   'Take an inventory': 'جرد السجل',
   'Compare with the desktop app': 'المطابقة مع تطبيق سطح المكتب',
   'Create the migration file': 'إنشاء ملف النقل',
+  'No account needed': 'لا حاجة إلى حساب',
+  'Nothing to install': 'لا حاجة إلى تثبيت',
+  'Decrypted only in your browser': 'فك التشفير في متصفحك فقط',
+  'Send your own files this way': 'أرسل ملفاتك بالطريقة نفسها',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg مساحة عمل خاصة لملفاتك ورسائلك وكلمات مرورك. لا يقرؤها سواك ومن تختارهم.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'شارك ملفًا عبر رابط يمكن أن تنتهي صلاحيته أو يتطلب كلمة مرور أو يُلغى.',
+  'The person you send it to needs no account or app.':
+    'لا يحتاج المستلم إلى حساب أو تطبيق.',
+  'Free to start, with encryption included in every plan.':
+    'ابدأ مجانًا، والتشفير مشمول في كل خطة.',
+  'See how dMsg works': 'تعرّف على dMsg',
+  'Download on the App Store': 'التنزيل من App Store',
   'A file shared with you': 'ملف تمت مشاركته معك',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'شارك معك شخص ما ملفًا عبر dMsg. الملف مشفّر؛ يفكّ متصفحك تشفيره هنا بالمفتاح الموجود في الرابط، ولا يصل منه شيء إلى أي خادم بشكل مكشوف.',

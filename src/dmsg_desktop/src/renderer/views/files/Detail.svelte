@@ -14,7 +14,7 @@
   import { iconButtonClass, buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, onChange, size, when } from '../../rpc'
-  import { fileIcon, originLabel, previewable, statusIcon, statusLabel, statusOf, statusTone, type Status } from './files'
+  import { LINK_MAX_BYTES, fileIcon, originLabel, previewable, statusIcon, statusLabel, statusOf, statusTone, type Status } from './files'
 
   /**
    * One file, opened: a preview of any version, its tags and note, where
@@ -55,7 +55,7 @@
     onBackup: (allVersions: boolean) => void
     onShare: (version: string | null) => void
     links: any[]
-    onLink: (version: string | null) => void
+    onLink: (version: string | null, remote: boolean) => void
     onRevokeLink: (shareId: string) => void
     onRefreshLinks: () => void
     onMove: () => void
@@ -82,6 +82,8 @@
   const status = $derived<Status>(statusOf(file.status))
   const current = $derived(versions.find((v) => v.current) ?? versions.at(-1))
   const canRead = $derived(unlocked && !trash && status !== 'cloud_only')
+  /** A link reads a version freed from this device from its backup. */
+  const canLink = $derived(unlocked && !trash && file.size <= LINK_MAX_BYTES)
   const digests = $derived(new Set(versions.map((v) => v.sha256)))
   const mine = $derived(statements.filter((s) => s.statement?.profile === 'file_statement' && digests.has(s.statement.content?.sha256)))
 
@@ -243,7 +245,7 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onShare(null)}>
                   <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || file.size > 100 * 1024 * 1024} onSelect={() => onLink(null)} data-testid="files-link">
+                <DropdownMenu.Item class={menuItemClass} disabled={!canLink} onSelect={() => onLink(null, status === 'cloud_only')} data-testid="files-link">
                   <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
                 </DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">
@@ -448,6 +450,9 @@
                   </DropdownMenu.Item>
                   <DropdownMenu.Item class={menuItemClass} disabled={!version.local || version.size > 100 * 1024 * 1024} onSelect={() => onShare(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item class={menuItemClass} disabled={version.size > LINK_MAX_BYTES || (!version.local && !version.backup)} onSelect={() => onLink(version.id, !version.local)} data-testid="files-version-link">
+                    <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
                   </DropdownMenu.Item>
                   <DropdownMenu.Item class={menuItemClass} onSelect={() => (stating = { version, text: '' })}>
                     <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>

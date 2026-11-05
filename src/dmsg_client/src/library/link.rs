@@ -9,7 +9,9 @@
 //! share ID. The browser page decrypts by the chunk rules of
 //! `content-v1.json`. Revoking retires the edition on the relay; nothing of
 //! it is kept here but the record, so the library's own copy and any backup
-//! share neither a key nor a byte with it.
+//! share neither a key nor a byte with it. That holds for a version only in
+//! the cloud too: its backup comes down just long enough to be re-encrypted,
+//! and the library gains nothing.
 
 use super::Client;
 use crate::codec::canonical;
@@ -40,6 +42,33 @@ pub const PASSWORD_M_KIB: u32 = 19_456;
 pub const PASSWORD_T: u32 = 2;
 /// Argon2id lanes.
 pub const PASSWORD_P: u32 = 1;
+
+/// What a new link allows.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LinkTerms<'a> {
+    /// How long it lasts: a week by default, at most 30 days.
+    pub expires_in_ms: Option<u64>,
+    /// How many downloads may start; 0 for no limit.
+    pub max_downloads: u64,
+    /// With a password the link carries no key; the key travels wrapped
+    /// under the password, and the person needs both.
+    pub password: Option<&'a str>,
+}
+
+impl LinkTerms<'_> {
+    /// How long the link lasts, once the terms are known to be good.
+    fn lifetime(&self) -> Result<u64> {
+        let lifetime = self.expires_in_ms.unwrap_or(LINK_DEFAULT_MS);
+        ensure_valid((1..=LINK_MAX_MS).contains(&lifetime), "expires_in_ms")?;
+        ensure_valid(self.max_downloads <= 1_000_000, "max_downloads")?;
+        Ok(lifetime)
+    }
+}
+
+/// The stage of [`share_link`]'s progress while a backup comes down.
+pub const LINK_DOWNLOADING: &str = "downloading";
+/// The stage of [`share_link`]'s progress while the edition goes up.
+pub const LINK_UPLOADING: &str = "uploading";
 
 /// What a share manifest carries, sealed under the edition's key.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -409,42 +438,106 @@ pub(crate) struct Sharing {
 }
 
 /// Share a version by link: upload a fresh edition of it as a `share`
-/// object and have the relay publish the link, good for `expires_in_ms`
-/// (the default week, at most 30 days) and `max_downloads` starts (0 for
-/// no limit). With a password the link carries no key; the key travels
-/// wrapped under the password, and the person needs both.
+/// object and have the relay publish the link on `terms`. A version freed
+/// from this device comes down from its backup first.
 ///
 /// # Errors
 /// Returns `Error::NotFound` for an unknown file or version,
-/// `Error::QuotaExceeded` for a version over 100 MiB or a cloud without
-/// room, `Error::RekeyRequired` while the account waits for a new root and
-/// `Error::InvalidInput` for a bad expiry or an empty password.
+/// `Error::RecoveryIncomplete` for a version with neither its chunks nor a
+/// backup here, `Error::QuotaExceeded` for a version over 100 MiB or a cloud
+/// without room, `Error::RekeyRequired` while the account waits for a new
+/// root and `Error::InvalidInput` for a bad expiry or an empty password.
 pub async fn share_link<H: Hold>(
     h: &H,
     id: &str,
     version: Option<&str>,
-    expires_in_ms: Option<u64>,
-    max_downloads: u64,
-    password: Option<&str>,
-    progress: &mut (dyn FnMut(u64, u64) + Send),
+    terms: LinkTerms<'_>,
+    progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
 ) -> Result<LinkView> {
-    let expires_in = expires_in_ms.unwrap_or(LINK_DEFAULT_MS);
-    ensure_valid((1..=LINK_MAX_MS).contains(&expires_in), "expires_in_ms")?;
-    ensure_valid(max_downloads <= 1_000_000, "max_downloads")?;
-    let manifest = h
+    terms.lifetime()?;
+    let (manifest, backup) = h
         .with(|c| {
             let (_, record, manifest) = c.library_manifest(id, version)?;
-            ensure(record.local, Error::RecoveryIncomplete)?;
             ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)?;
-            Ok(manifest)
+            let backup = match record.local {
+                true => None,
+                false => Some(record.backup.ok_or(Error::RecoveryIncomplete)?.upload_id),
+            };
+            Ok((manifest, backup))
         })
         .await?;
+    publish_link(h, manifest, backup.as_deref(), terms, progress).await
+}
+
+/// Share a backup by link, whether or not this device's library has it. The
+/// library does not change.
+///
+/// # Errors
+/// Returns `Error::NotFound` for a backup not in the inventory,
+/// `Error::RecoveryIncomplete` for one whose root this device lacks, and
+/// otherwise as [`share_link`].
+pub async fn share_backup_link<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    terms: LinkTerms<'_>,
+    progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
+) -> Result<LinkView> {
+    terms.lifetime()?;
+    let manifest = h
+        .with(|c| {
+            let entry = c.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
+            let manifest = entry.manifest.ok_or(Error::RecoveryIncomplete)?;
+            ensure(manifest.file.size <= MAX_FILE, Error::QuotaExceeded)?;
+            Ok(manifest.file)
+        })
+        .await?;
+    publish_link(h, manifest, Some(upload_id), terms, progress).await
+}
+
+/// A fresh edition of `source`, read from its backup when this device does
+/// not hold its chunks. What came down for this is collected at once, while
+/// the edition's own chunks stay held.
+async fn prepare_edition<H: Hold>(
+    h: &H,
+    source: &FileManifest,
+    backup: Option<&str>,
+    progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
+) -> Result<FileManifest> {
+    let pulled = match backup {
+        Some(upload) => Some(
+            super::cloud::pull_chunks(h, upload, &mut |done, total| {
+                progress(LINK_DOWNLOADING, done, total)
+            })
+            .await?,
+        ),
+        None => None,
+    };
+    let edition = super::share::edition(h, source).await;
+    if let Some(pulled) = pulled {
+        h.with(|c| {
+            c.release_chunks(&pulled)?;
+            c.collect_blobs().map(|_| ())
+        })
+        .await?;
+    }
+    edition
+}
+
+async fn publish_link<H: Hold>(
+    h: &H,
+    manifest: FileManifest,
+    backup: Option<&str>,
+    terms: LinkTerms<'_>,
+    progress: &mut (dyn FnMut(&'static str, u64, u64) + Send),
+) -> Result<LinkView> {
+    let expires_in = terms.lifetime()?;
+    let (max_downloads, password) = (terms.max_downloads, terms.password);
     let (_, security) = h.signed(Client::fresh).await?;
     ensure(
         security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
         Error::RekeyRequired,
     )?;
-    let edition = super::share::edition(h, &manifest).await?;
+    let edition = prepare_edition(h, &manifest, backup, progress).await?;
     // Password derivation and full-file re-encryption do not hold the client.
     let key_wrap = password
         .map(|password| wrap_key(&*edition.file_key()?, password, &edition.id))
@@ -466,7 +559,7 @@ pub async fn share_link<H: Hold>(
     let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
     let link = LinkRecord {
         source: LinkSource::FileVersion {
-            file: id.into(),
+            file: manifest.id.clone(),
             version: manifest.version.clone(),
         },
         name: manifest.name.clone(),
@@ -483,7 +576,7 @@ pub async fn share_link<H: Hold>(
         downloads: 0,
     };
     plan.management = Some(h.with(|c| c.seal_management(&plan, &json!({
-        "name":manifest.name,"source_file":id,"source_version":manifest.version,"plain_bytes":manifest.size,
+        "name":manifest.name,"source_file":manifest.id,"source_version":manifest.version,"plain_bytes":manifest.size,
         "intent":{"kind":"link","record":link,"key_wrap":key_wrap}
     }))).await?);
     h.with(|c| {
@@ -504,7 +597,7 @@ pub async fn share_link<H: Hold>(
         0,
         Source::Library,
         |_, sent| {
-            progress(sent as u64, total);
+            progress(LINK_UPLOADING, sent as u64, total);
             Ok(())
         },
     )

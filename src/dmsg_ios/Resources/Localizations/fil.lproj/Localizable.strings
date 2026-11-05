@@ -8,6 +8,8 @@
 	<string>1 araw</string>
 	<key>1 hour</key>
 	<string>1 oras</string>
+	<key>30 days</key>
+	<string>30 araw</string>
 	<key>7 days</key>
 	<string>7 araw</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Mabubura ang naka-save na halaga kapag blangko ang ipinalit.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Maaaring makuha ito ng sinumang may kumpletong link at kinakailangang password sa loob ng mga limitasyon nito.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Puwedeng i-download ng sinumang may link ang file na ito hanggang mag-expire ito o bawiin mo. Hindi nila kailangan ng dMsg account o app.</string>
 	<key>Anyone, free of charge</key>
 	<string>Kahit sino, walang bayad</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Nakumpleto ang checklist mula sa iyong mga pahayag. Ang upstream status ay nananatiling independyenteng mabe-verify lamang sa provider.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Piliin ang I-back up sa cloud sa isang lokal na file para gawin ang unang backup.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Piliin ang Ibahagi gamit ang link sa isang file para ipadala ito kahit kanino. Hindi nila kailangan ng dMsg account o app.</string>
 	<key>Choose a credential for:</key>
 	<string>Pumili ng kredensyal para sa:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Gumawa ng imbitasyon</string>
 	<key>Create key root</key>
 	<string>Gumawa ng key root</string>
+	<key>Create link</key>
+	<string>Gumawa ng link</string>
 	<key>Create proposal</key>
 	<string>Gumawa ng panukala</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Tapos na</string>
 	<key>Download encrypted copy in background</key>
 	<string>I-download ang naka-encrypt na kopya sa background</string>
+	<key>Download limit reached</key>
+	<string>Naabot na ang limitasyon ng download</string>
 	<key>Download sessions</key>
 	<string>Mag-download ng mga session</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Nagda-download ng naka-encrypt na backup</string>
 	<key>Downloads</key>
 	<string>Mga download</string>
+	<key>Downloads allowed</key>
+	<string>Mga pinapayagang download</string>
 	<key>Draft saved</key>
 	<string>Na-save ang draft</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Maaaring i-download muli ang naka-encrypt na display data, naka-cache na attachment, at listahan ng cloud file. Mananatili ang vault, mga mensahe, lokal na library, at hindi pa naka-sync na gawain.</string>
 	<key>Encrypting</key>
 	<string>Pag-encrypt</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Ine-encrypt at ina-upload ang bagong kopya…</string>
 	<key>Encrypting on this device…</key>
 	<string>Ini-encrypt sa device na ito…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Na-import ang mga file.</string>
 	<key>Files in this folder</key>
 	<string>Mga file sa folder na ito</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Hindi maibabahagi gamit ang link ang mga file na higit sa 100 MiB.</string>
 	<key>Filters</key>
 	<string>Mga filter ng Vault</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Wala pang record</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Walang mga napiling cosigner ang ibig sabihin ay walang karagdagang patakaran sa cosignature. Suriin ang kumpletong panukala bago aprubahan.</string>
+	<key>No share links yet</key>
+	<string>Wala pang mga link sa pagbabahagi</string>
 	<key>No shared items waiting</key>
 	<string>Walang nakabahaging item na naghihintay</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Bawiin ang device na ito</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Bawiin ang device na ito at i-rotate ang mga content key</string>
+	<key>Revoke this link?</key>
+	<string>Bawiin ang link na ito?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Bawiin ang link ng snapshot na ito?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Magbahagi ng kopya</string>
 	<key>Share binding request</key>
 	<string>Ibahagi ang may-bisang kahilingan</string>
+	<key>Share by link</key>
+	<string>Ibahagi gamit ang link</string>
 	<key>Share cosign packet</key>
 	<string>Ibahagi ang cosign packet</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Ibahagi ang imbitasyon</string>
 	<key>Share link</key>
 	<string>Ibahagi ang link</string>
+	<key>Share links</key>
+	<string>Mga link sa pagbabahagi</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Hindi na-refresh ang mga link sa pagbabahagi. Ipinapakita ang mga naka-save na link.</string>
 	<key>Share pairing request</key>
 	<string>Ibahagi ang kahilingan sa pagpapares</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Subukan ang bagong kredensyal sa provider nito</string>
 	<key>Text</key>
 	<string>Text</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>Agad na aalisin ang cloud copy at hihinto ang link. Hindi maaapektuhan ang mga kopyang na-download na.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Mananatili ang kopya sa iPhone na ito bilang read-only para ma-import. Pagkatapos, sasali ang iPhone na ito sa iyong account bilang bagong device: mag-sign in, saka aprubahan ito mula sa ibang device o i-recover ang account. Gagana pa rin ang lumang iPhone.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>Mananatili lang sa lumang device ang file library. Mawawala ang anumang hindi kailanman na-sync o na-back up doon kapag binawi na ito.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>Hindi na available ang file o folder. I-refresh ang listahan.</string>
+	<key>The full link is not available on this device.</key>
+	<string>Hindi available sa device na ito ang buong link.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Hindi pa naka-sync ang susi ng inbox sa device na ito. I-sync ang device na nag-enable ng pagtanggap, at subukan muli rito.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>Bineberipika ang imbitasyon kapag pinili mong sumali sa pag-uusap.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Pinapanatili ang huling na-verify na obserbasyon. Hindi makumpirma ang kasalukuyang katayuan.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>Handa na ang link. Nasa loob nito ang key ng file, kaya ipadala ito sa pribadong channel.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>Bubukas lang ang link gamit ang password nito. Ipadala ang password sa ibang paraan.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>Gumagamit ang link ng bagong naka-encrypt na kopya na binibilang sa cloud storage mo hanggang mabawi o mag-expire ito.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Hindi available ang lokal na binding key. Panatilihin ang workspace na ito at suriin ang iyong mga opsyon sa pagbawi bago ito i-lock.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Lumampas ang file na ito sa kasalukuyang limitasyon ng laki ng file para sa cloud backup.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Nasa Basurahan ang file na ito. Ibalik muna bago buksan.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Wala sa device na ito ang file. Dina-download lang ito ng dMsg nang sapat para i-encrypt ang bagong kopya, at hindi magbabago ang library mo.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ang kasaysayang ito ay kabilang sa device na ito. Hindi nito sinasalamin ang mga pag-apruba sa desktop-local CLI, SSH o file-mount mula sa isa pang device.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Mga hindi kumpirmadong panukala</string>
 	<key>Unknown state</key>
 	<string>Hindi kilalang estado</string>
+	<key>Unlimited</key>
+	<string>Walang limitasyon</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>I-unlock ang dMsg upang suriin ang kahilingang ito.</string>
 	<key>Unlock policy</key>

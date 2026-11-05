@@ -117,6 +117,43 @@ extension SessionModel {
         notice = String(localized: "Transfer queued. Follow its progress in Files.")
     }
 
+    func createFileLink(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: String?) async throws -> FileLink {
+        #if DEBUG
+        if uiTesting { return try await createFileLinkFixture(target, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password != nil) }
+        #endif
+        guard let engine else { throw CancellationError() }
+        let result: ObjectSnapshot
+        switch target.source {
+        case .version(let file, let version):
+            result = try await coreOperation {
+                try await engine.createFileLink(id: file, version: version, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, operation: $0)
+            }
+        case .backup(let upload):
+            result = try await coreOperation {
+                try await engine.createBackupLink(upload: upload, expiresInMs: expiresInMs, maxDownloads: maxDownloads, password: password, operation: $0)
+            }
+        }
+        return try decode(result)
+    }
+
+    /// The account's file links; secret snapshots stay under Shared snapshots.
+    func fileLinks(refresh: Bool) async throws -> [FileLink] {
+        #if DEBUG
+        if uiTesting { return try fileLinksFixture(refresh: refresh) }
+        #endif
+        guard let engine else { throw CancellationError() }
+        let links: [FileLink] = try decode(try await coreOperation { try await engine.fileLinks(refresh: refresh, operation: $0) })
+        return links.filter { !$0.isSecretSnapshot }
+    }
+
+    func revokeFileLink(_ id: String) async throws -> FileLink {
+        #if DEBUG
+        if uiTesting { return try revokeFileLinkFixture(id) }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation { try await engine.revokeFileLink(shareId: id, operation: $0) })
+    }
+
     func renameLibraryItem(_ id: String, name: String) async throws {
         #if DEBUG
         if uiTesting { try renameFileFixture(id, name: name); return }

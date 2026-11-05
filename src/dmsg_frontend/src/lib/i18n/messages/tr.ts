@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "Envanter alın",
   "Compare with the desktop app": "Masaüstü uygulamasıyla karşılaştırın",
   "Create the migration file": "Geçiş dosyasını oluşturun",
+  'No account needed': 'Hesap gerekmez',
+  'Nothing to install': 'Kurulum gerekmez',
+  'Decrypted only in your browser': 'Yalnızca tarayıcınızda çözülür',
+  'Send your own files this way': 'Kendi dosyalarınızı da böyle gönderin',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg; dosyalarınız, mesajlarınız ve parolalarınız için özel bir çalışma alanıdır. Onları yalnızca siz ve seçtiğiniz kişiler okuyabilir.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Bir dosyayı süresi dolabilen, parola isteyebilen veya iptal edilebilen bir bağlantıyla paylaşın.',
+  'The person you send it to needs no account or app.':
+    'Alıcının hesaba veya uygulamaya ihtiyacı yoktur.',
+  'Free to start, with encryption included in every plan.':
+    'Ücretsiz başlayın; şifreleme her plana dahildir.',
+  'See how dMsg works': 'dMsg nasıl çalışır',
+  'Download on the App Store': 'App Store’dan indirin',
   "A file shared with you": "Sizinle paylaşılan bir dosya",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "Birisi sizinle dMsg aracılığıyla bir dosya paylaştı. Şifrelenmiştir; tarayıcınız burada bağlantıdaki anahtarla şifreyi çözer ve hiçbir şey açık bir şekilde sunucuya ulaşmaz.",
   "This link has expired.": "Bu bağlantının süresi doldu.",

@@ -81,6 +81,52 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertTrue(FileNameEditor.valid(String(repeating: "文", count: 255)))
     }
 
+    func testFileLinksDecodeAsTheCoreWritesThemAndExplainTheirState() throws {
+        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let made = try decoder.decode(FileLink.self, from: Data(#"""
+        {"source":{"type":"file_version"},"share_id":"share","file":"file","version":"version","name":"a.png","size":2048,
+         "url":"https://dmsg.net/s/share#key","expires_at":1794000000000,"max_downloads":5,"password":false,
+         "created_at":1,"last_checked_at":null,"revoked_at":null,"state":"active","downloads":2}
+        """#.utf8))
+        XCTAssertEqual(made.id, "share")
+        XCTAssertTrue(made.active)
+        XCTAssertFalse(made.isSecretSnapshot)
+        XCTAssertEqual(made.url, "https://dmsg.net/s/share#key")
+        XCTAssertEqual(made.downloadsText, "2 / 5")
+        // A link made on another device carries no file, name or URL.
+        let elsewhere = try decoder.decode(FileLink.self, from: Data(#"""
+        {"source":null,"share_id":"other","file":null,"version":null,"name":null,"size":null,"url":null,
+         "expires_at":1,"max_downloads":0,"password":true,"created_at":1,"state":"expired","downloads":9}
+        """#.utf8))
+        XCTAssertNil(elsewhere.url)
+        XCTAssertFalse(elsewhere.active)
+        XCTAssertEqual(elsewhere.downloadsText, 9.formatted())
+        let snapshot = try decoder.decode(FileLink.self, from: Data(#"""
+        {"source":{"type":"vault_snapshot"},"share_id":"secret","expires_at":1,"max_downloads":1,"password":false,"state":"active","downloads":0}
+        """#.utf8))
+        XCTAssertTrue(snapshot.isSecretSnapshot)
+        let titles = ["active", "revoked", "expired", "exhausted"].map { state in
+            FileLink(shareId: "s", expiresAt: 1, maxDownloads: 0, password: false, state: state, downloads: 0).stateTitle
+        }
+        XCTAssertEqual(Set(titles).count, 4)
+    }
+
+    func testFileLinkTargetsNameTheirSourceAndTheSizeLimit() {
+        func file(size: UInt64) -> LibraryFile {
+            LibraryFile(id: "file", name: "a.png", mime: "image/png", size: size, current: "version", sha256: "", status: "local", versions: 1)
+        }
+        let local = FileLinkTarget(file: file(size: FileLinkTarget.maxBytes), remote: false)
+        XCTAssertFalse(local.tooLarge)
+        XCTAssertFalse(local.remote)
+        XCTAssertEqual(local.id, "version:file:version")
+        XCTAssertTrue(FileLinkTarget(file: file(size: FileLinkTarget.maxBytes + 1), remote: true).tooLarge)
+        let backup = CloudBackup(uploadId: "upload", name: "b.png", size: 10, bytes: 20, needsRoot: false, local: false)
+        let remote = FileLinkTarget(backup: backup)
+        XCTAssertTrue(remote.remote)
+        XCTAssertEqual(remote.id, "backup:upload")
+        XCTAssertFalse(remote.tooLarge)
+    }
+
     func testTransferAtFullBytesRetainsVerificationAndCommitMeaning() {
         XCTAssertNotEqual(FileTransferProgressView.title(stage: "verifying", failed: false), FileTransferProgressView.title(stage: "done", failed: false))
         XCTAssertNotEqual(FileTransferProgressView.title(stage: "committing", failed: false), FileTransferProgressView.title(stage: "done", failed: false))

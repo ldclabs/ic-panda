@@ -863,6 +863,20 @@ const en = {
   'Take an inventory': 'Take an inventory',
   'Compare with the desktop app': 'Compare with the desktop app',
   'Create the migration file': 'Create the migration file',
+  'No account needed': 'No account needed',
+  'Nothing to install': 'Nothing to install',
+  'Decrypted only in your browser': 'Decrypted only in your browser',
+  'Send your own files this way': 'Send your own files this way',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Share a file by link that can expire, ask for a password or be revoked.',
+  'The person you send it to needs no account or app.':
+    'The person you send it to needs no account or app.',
+  'Free to start, with encryption included in every plan.':
+    'Free to start, with encryption included in every plan.',
+  'See how dMsg works': 'See how dMsg works',
+  'Download on the App Store': 'Download on the App Store',
   'A file shared with you': 'A file shared with you',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.',

@@ -154,6 +154,41 @@ extension SessionModel {
         setFileCloudFixture(backups)
     }
 
+    func createFileLinkFixture(_ target: FileLinkTarget, expiresInMs: UInt64, maxDownloads: UInt64, password: Bool) async throws -> FileLink {
+        fixtureFileLinkAttempts += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-link-slow") { try await Task.sleep(for: .seconds(2)) }
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-link-failure"), fixtureFileLinkAttempts == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
+        let share = "fixture-link-\(fixtureFileLinkAttempts)"
+        var file: String?
+        if case .version(let id, _) = target.source { file = id }
+        let link = FileLink(shareId: share, source: .init(type: "file_version"), file: file, name: target.name, size: target.size,
+            url: "https://dmsg.net/s/\(share)" + (password ? "" : "#fixture-key"), expiresAt: 1_794_000_000_000 + expiresInMs,
+            maxDownloads: maxDownloads, password: password, state: "active", downloads: 0)
+        fixtureFileLinks.insert(link, at: 0)
+        return link
+    }
+
+    func fileLinksFixture(refresh: Bool) throws -> [FileLink] {
+        if refresh { fixtureFileLinkRefreshes += 1 }
+        if refresh, ProcessInfo.processInfo.arguments.contains("--ui-files-links-failure"), fixtureFileLinkRefreshes == 1 { throw MobileError.Failure(code: "UNAVAILABLE") }
+        if fixtureFileLinks.isEmpty, ProcessInfo.processInfo.arguments.contains("--ui-files-links") {
+            fixtureFileLinks = [
+                FileLink(shareId: "fixture-link-active", source: .init(type: "file_version"), file: "fixture-local", name: "Local image.png", size: 2048,
+                         url: "https://dmsg.net/s/fixture-link-active#fixture-key", expiresAt: 1_794_000_000_000, maxDownloads: 5, password: false, state: "active", downloads: 2),
+                FileLink(shareId: "fixture-link-guarded", source: .init(type: "file_version"), name: "研究笔记与产品设计 — A very long research document with a visible extension.md", size: 8192,
+                         url: "https://dmsg.net/s/fixture-link-guarded", expiresAt: 1_793_000_000_000, maxDownloads: 0, password: true, state: "expired", downloads: 11),
+                FileLink(shareId: "fixture-link-other-device", expiresAt: 1_794_000_000_000, maxDownloads: 0, password: false, state: "active", downloads: 0),
+            ]
+        }
+        return fixtureFileLinks
+    }
+
+    func revokeFileLinkFixture(_ id: String) throws -> FileLink {
+        guard let index = fixtureFileLinks.firstIndex(where: { $0.id == id }) else { throw MobileError.Failure(code: "NOT_FOUND") }
+        fixtureFileLinks[index].state = "revoked"
+        return fixtureFileLinks[index]
+    }
+
     func deleteFileCloudFixture(_ id: String) {
         setFileCloudFixture(cloudBackups.filter { $0.id != id })
         for index in fixtureFiles.indices where fixtureFiles[index].backup?.uploadId == id {

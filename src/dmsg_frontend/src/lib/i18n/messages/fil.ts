@@ -698,6 +698,21 @@ export default {
   "Take an inventory": "Kumuha ng imbentaryo",
   "Compare with the desktop app": "Ikumpara sa desktop app",
   "Create the migration file": "Gumawa ng migration file",
+  'No account needed': 'Walang kailangang account',
+  'Nothing to install': 'Walang kailangang i-install',
+  'Decrypted only in your browser': 'Nade-decrypt lang sa browser mo',
+  'Send your own files this way':
+    'Ipadala rin ang sarili mong mga file sa ganitong paraan',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'Ang dMsg ay pribadong workspace para sa mga file, mensahe, at password mo. Ikaw lang at ang mga pinili mo ang makakabasa ng mga ito.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Magbahagi ng file gamit ang link na puwedeng mag-expire, humingi ng password, o bawiin.',
+  'The person you send it to needs no account or app.':
+    'Hindi kailangan ng tatanggap ng account o app.',
+  'Free to start, with encryption included in every plan.':
+    'Libreng simulan, at kasama ang encryption sa bawat plan.',
+  'See how dMsg works': 'Tingnan kung paano gumagana ang dMsg',
+  'Download on the App Store': 'I-download sa App Store',
   "A file shared with you": "Isang file na ibinahagi sa iyo",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "May nagbahagi ng file sa iyo sa pamamagitan ng dMsg. Ito ay naka-encrypt; ang iyong browser ay nagde-decrypt dito gamit ang susi mula sa link, at wala nito ang nakakarating sa isang server sa malinaw.",
   "This link has expired.": "Nag-expire na ang link na ito.",

@@ -75,6 +75,7 @@ struct FilesView: View {
                 case .rename(let target): FileNameEditor(target: target, parent: model.filesFolder)
                 case .create: FileNameEditor(target: nil, parent: model.filesFolder)
                 case .backup(let files): FileBackupView(files: files)
+                case .link(let target): FileLinkComposer(target: target)
                 case .move(let targets): FileMoveView(items: targets)
                 case .results(let values): FileResultsView(results: values)
                 case .imports(let urls, let folder): FileImportView(urls: urls, folder: folder) { file in
@@ -161,6 +162,8 @@ struct FilesView: View {
                 }.compactObjectRow().accessibilityIdentifier("file.item.\(file.id)")
                     .contextMenu {
                         Button("Back up to cloud", systemImage: "icloud.and.arrow.up") { sheet = .backup([file]) }
+                        Button("Share by link", systemImage: "link") { sheet = .link(FileLinkTarget(file: file, remote: !file.canOpen)) }
+                            .disabled(file.size > FileLinkTarget.maxBytes)
                         itemMenu(LibraryItemTarget(id: file.id, name: file.name, folder: false))
                     }
             }
@@ -214,6 +217,7 @@ struct FilesView: View {
                         .disabled(targets.isEmpty || !model.filesQueryIsCurrent)
                 }
                 Button("Trash", systemImage: "trash") { sheet = .trash }
+                NavigationLink("Share links") { FileLinksView() }
                 NavigationLink("Pending imports") { PendingImportsView() }
                 NavigationLink("Shared with dMsg") { IncomingSharesView() }
                 Button("About files and backups", systemImage: "info.circle") { sheet = .help }

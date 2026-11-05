@@ -82,6 +82,7 @@ struct CloudBackupDetailView: View {
     @State private var working = false
     @State private var failure: String?
     @State private var deleting = false
+    @State private var linking = false
     @State private var background = false
     @State private var localDetails: LibraryDetails?
     @State private var initialized = false
@@ -124,6 +125,11 @@ struct CloudBackupDetailView: View {
                         Button("Download encrypted copy in background") { background = true }.disabled(working || pending || model.busy)
                     }
                 }
+                if !current.needsRoot {
+                    SettingsAction("Share by link", systemImage: "link") { linking = true }
+                        .disabled(working || current.size ?? 0 > FileLinkTarget.maxBytes).accessibilityIdentifier("backup.link.\(backup.id)")
+                    if current.size ?? 0 > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
+                }
                 if working { ProgressView() }
                 if let failure { Text(failure).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("files.action.failure") }
             }
@@ -143,6 +149,7 @@ struct CloudBackupDetailView: View {
             .onDisappear { visible = false }
             .onChange(of: current.local) { _, _ in Task { await loadLocal() } }
             .sheet(isPresented: $choosing) { NavigationStack { FileFolderPicker { id, name in folder = id; folderName = name } } }
+            .sheet(isPresented: $linking) { NavigationStack { FileLinkComposer(target: FileLinkTarget(backup: current)) } }
             .confirmationDialog("Background download", isPresented: $background, titleVisibility: .visible) {
                 Button("Download encrypted copy in background") { Task { await model.startBackgroundDownload(upload: backup.id, folder: folder) } }
             } message: { Text("Open the original account to verify and finish this download.") }

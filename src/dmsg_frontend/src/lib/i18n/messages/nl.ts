@@ -698,6 +698,21 @@ export default {
   "Take an inventory": "Maak een inventaris",
   "Compare with the desktop app": "Vergelijk met de desktop-app",
   "Create the migration file": "Maak het migratiebestand",
+  'No account needed': 'Geen account nodig',
+  'Nothing to install': 'Niets te installeren',
+  'Decrypted only in your browser': 'Alleen in je browser ontsleuteld',
+  'Send your own files this way':
+    'Verstuur je eigen bestanden op dezelfde manier',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg is een privéwerkruimte voor je bestanden, berichten en wachtwoorden. Alleen jij en de mensen die je kiest kunnen ze lezen.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Deel een bestand via een link die kan verlopen, om een wachtwoord kan vragen of kan worden ingetrokken.',
+  'The person you send it to needs no account or app.':
+    'De ontvanger heeft geen account of app nodig.',
+  'Free to start, with encryption included in every plan.':
+    'Gratis beginnen, met versleuteling in elk abonnement.',
+  'See how dMsg works': 'Zo werkt dMsg',
+  'Download on the App Store': 'Downloaden in de App Store',
   "A file shared with you": "Een bestand dat met je is gedeeld",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "Iemand heeft een bestand met je gedeeld via dMsg. Het is gecodeerd; je browser decodeert het hier met de sleutel van de link, en niets ervan bereikt een server in het ongewisse.",
   "This link has expired.": "Deze link is verlopen.",

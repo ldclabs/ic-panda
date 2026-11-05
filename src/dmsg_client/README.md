@@ -200,7 +200,10 @@ after complete integrity verification. Thumbnail decoding, disk-usage scans
 and checking copies opened in another program run outside the client lock.
 Shared editions are also re-encrypted in chunk-sized steps, and password
 derivation runs outside the lock. Temporary chunk references protect an
-edition from collection until its upload plan has been journaled.
+edition from collection until its upload plan has been journaled. A link made
+from a backup pulls and verifies that backup's chunks under such a reference,
+seals the edition from them and collects them right away; the catalog is not
+touched and the backup's key never reaches the link.
 
 Backup planning queries the relay’s current per-file limit, persists jobs and
 returns without waiting for uploads. Eligible Max memberships can create

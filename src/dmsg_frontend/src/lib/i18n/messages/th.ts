@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "ใช้สินค้าคงคลัง",
   "Compare with the desktop app": "เปรียบเทียบกับแอปเดสก์ท็อป",
   "Create the migration file": "สร้างไฟล์การโยกย้าย",
+  'No account needed': 'ไม่ต้องมีบัญชี',
+  'Nothing to install': 'ไม่ต้องติดตั้ง',
+  'Decrypted only in your browser': 'ถอดรหัสในเบราว์เซอร์ของคุณเท่านั้น',
+  'Send your own files this way': 'ส่งไฟล์ของคุณเองด้วยวิธีเดียวกัน',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg คือพื้นที่ทำงานส่วนตัวสำหรับไฟล์ ข้อความ และรหัสผ่านของคุณ มีเพียงคุณและคนที่คุณเลือกเท่านั้นที่อ่านได้',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'แชร์ไฟล์ด้วยลิงก์ที่กำหนดวันหมดอายุ ขอรหัสผ่าน หรือเพิกถอนได้',
+  'The person you send it to needs no account or app.':
+    'ผู้รับไม่ต้องมีบัญชีหรือแอป',
+  'Free to start, with encryption included in every plan.':
+    'เริ่มต้นได้ฟรี และทุกแพ็กเกจมีการเข้ารหัส',
+  'See how dMsg works': 'ดูว่า dMsg ทำงานอย่างไร',
+  'Download on the App Store': 'ดาวน์โหลดจาก App Store',
   "A file shared with you": "ไฟล์ที่แชร์กับคุณ",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "มีคนแชร์ไฟล์กับคุณผ่าน dMsg มันถูกเข้ารหัส เบราว์เซอร์ของคุณถอดรหัสที่นี่ด้วยรหัสจากลิงก์ และไม่มีสิ่งใดไปถึงเซิร์ฟเวอร์อย่างชัดเจน",
   "This link has expired.": "ลิงค์นี้หมดอายุแล้ว",

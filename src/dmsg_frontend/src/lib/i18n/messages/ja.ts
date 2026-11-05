@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "棚卸しをする",
   "Compare with the desktop app": "デスクトップアプリとの比較",
   "Create the migration file": "移行ファイルを作成する",
+  'No account needed': 'アカウント不要',
+  'Nothing to install': 'インストール不要',
+  'Decrypted only in your browser': 'ブラウザの中でのみ復号',
+  'Send your own files this way': 'あなたのファイルも同じように送れます',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg は、ファイル、メッセージ、パスワードのためのプライベートなワークスペースです。読めるのはあなたと、あなたが選んだ相手だけです。',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    '期限やパスワードを設定でき、取り消しもできるリンクでファイルを共有できます。',
+  'The person you send it to needs no account or app.':
+    '受け取る人にアカウントやアプリは必要ありません。',
+  'Free to start, with encryption included in every plan.':
+    '無料で始められ、暗号化はすべてのプランに含まれます。',
+  'See how dMsg works': 'dMsg の仕組みを見る',
+  'Download on the App Store': 'App Store でダウンロード',
   "A file shared with you": "あなたと共有されたファイル",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "誰かが dMsg を通じてあなたとファイルを共有しました。それは暗号化されています。ブラウザはここでリンクからのキーを使用してそれを復号化しますが、その内容は何も平文でサーバーに届きません。",
   "This link has expired.": "このリンクの有効期限は切れています。",

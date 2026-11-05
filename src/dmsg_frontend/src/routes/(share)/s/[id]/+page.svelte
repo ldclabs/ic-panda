@@ -5,8 +5,10 @@
   let alive = true
   import { page } from '$app/state'
   import UtilityPage from '$lib/components/site/UtilityPage.svelte'
+  import Glyph from '$lib/components/landing/Glyph.svelte'
   import IconFile from '$lib/components/icons/IconArticleLine.svelte'
   import { API_ORIGIN } from '$lib/constants'
+  import { installFor } from '$lib/downloads'
   import { locale, t } from '$lib/i18n'
   import {
     assemble,
@@ -42,6 +44,9 @@
   let progress = $state({ done: 0, total: 0 })
   let reason = $state('')
   let error = $state('')
+  // A link is often someone's first sight of dMsg, so the page says what made
+  // it and offers the install that fits this device.
+  const install = installFor(navigator.userAgent, navigator.maxTouchPoints)
 
   const ciphertextSize = $derived(
     descriptor ? descriptor.chunks.reduce((n, c) => n + c.size, 0) : 0
@@ -226,6 +231,41 @@
 </svelte:head>
 
 <UtilityPage>
+  {#snippet aside()}
+    {#if phase !== 'loading'}
+      <aside
+        class="invite"
+        class:ready={phase === 'done'}
+        aria-labelledby="invite-title"
+        data-testid="share-invite"
+      >
+        <h2 id="invite-title">{$t('Send your own files this way')}</h2>
+        <p
+          >{$t(
+            'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.'
+          )}</p
+        >
+        <ul>
+          {#each ['Share a file by link that can expire, ask for a password or be revoked.', 'The person you send it to needs no account or app.', 'Free to start, with encryption included in every plan.'] as const as point}
+            <li><Glyph name="check" size={16} /><span>{$t(point)}</span></li>
+          {/each}
+        </ul>
+        <div class="invite-actions">
+          <a
+            class="button primary"
+            href={install.href}
+            data-testid="share-install"
+            data-sveltekit-reload
+            ><Glyph name="download" size={18} />{$t(install.label)}</a
+          >
+          <a class="button secondary" href="/" data-sveltekit-reload
+            >{$t('See how dMsg works')}</a
+          >
+        </div>
+      </aside>
+    {/if}
+  {/snippet}
+
   <div
     aria-live="polite"
     aria-busy={phase === 'working' || phase === 'loading'}
@@ -237,6 +277,15 @@
         'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.'
       )}
     </p>
+    <ul class="assurances">
+      <li><Glyph name="check" size={14} />{$t('No account needed')}</li>
+      <li><Glyph name="check" size={14} />{$t('Nothing to install')}</li>
+      <li
+        ><Glyph name="lock" size={14} />{$t(
+          'Decrypted only in your browser'
+        )}</li
+      >
+    </ul>
 
     {#if phase === 'loading'}
       <p class="utility-status">{$t('Loading…')}</p>
@@ -287,10 +336,14 @@
           >
         </form>
       {:else if phase === 'ready'}
-        <p class="utility-status">{$t('Receiving here uses a download session. Importing in dMsg uses a separate session.')}</p>
+        {#if descriptor?.max_downloads}<p class="utility-status"
+            >{$t(
+              'Receiving here uses a download session. Importing in dMsg uses a separate session.'
+            )}</p
+          >{/if}
         {#if error}<p class="utility-status error" role="alert">{error}</p>{/if}
         <button class="button primary utility-action" onclick={download}
-          >{$t('Download')}</button
+          ><Glyph name="download" size={18} />{$t('Download')}</button
         >
       {:else if phase === 'working'}
         <p class="utility-status">
@@ -329,6 +382,77 @@
 </UtilityPage>
 
 <style>
+  .assurances {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: -8px 0 0;
+    padding: 0;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 550;
+    list-style: none;
+  }
+  .assurances li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .assurances :global(svg) {
+    flex: none;
+    color: var(--action);
+  }
+  .invite {
+    margin-top: 16px;
+    padding: 24px 32px 28px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--pale);
+    font-size: 14px;
+  }
+  .invite.ready {
+    border-color: var(--action);
+  }
+  .invite h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .invite p {
+    margin: 0;
+    color: var(--ink);
+  }
+  .invite ul {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0 20px;
+    padding: 0;
+    list-style: none;
+  }
+  .invite li {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    color: var(--ink);
+  }
+  .invite li :global(svg) {
+    margin-top: 3px;
+    color: var(--action);
+  }
+  .invite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .invite-actions .button {
+    flex: 1 1 200px;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
   .facts {
     display: grid;
     gap: 14px;
@@ -372,6 +496,11 @@
     background: #fff;
     color: var(--ink);
     font: inherit;
+  }
+  @media (max-width: 540px) {
+    .invite {
+      padding: 20px;
+    }
   }
   @media (max-width: 400px) {
     .facts div {

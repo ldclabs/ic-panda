@@ -8,6 +8,8 @@
 	<string>1日</string>
 	<key>1 hour</key>
 	<string>1時間</string>
+	<key>30 days</key>
+	<string>30 日</string>
 	<key>7 days</key>
 	<string>7日間</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>空の値で置き換えると、保存済みの値が消去されます。</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>完全なリンクと必要なパスワードを持っている人は誰でも、制限内でそれを取得できます。</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>リンクを知っている人は、期限が切れるか取り消されるまでこのファイルをダウンロードできます。dMsg のアカウントやアプリは不要です。</string>
 	<key>Anyone, free of charge</key>
 	<string>どなたでも無料</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>あなたの発言からチェックリストが完成しました。アップストリームのステータスは、プロバイダーのみが独立して検証できます。</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>本機のファイルで「クラウドにバックアップ」を選び、最初のバックアップを作成してください。</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>ファイルで「リンクで共有」を選ぶと、誰にでも送れます。dMsg のアカウントやアプリは不要です。</string>
 	<key>Choose a credential for:</key>
 	<string>次の資格情報を選択します。</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>招待状を作成する</string>
 	<key>Create key root</key>
 	<string>キールートを作成</string>
+	<key>Create link</key>
+	<string>リンクを作成</string>
 	<key>Create proposal</key>
 	<string>提案書の作成</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>完了</string>
 	<key>Download encrypted copy in background</key>
 	<string>暗号化されたコピーをバックグラウンドでダウンロードする</string>
+	<key>Download limit reached</key>
+	<string>ダウンロード上限に達しました</string>
 	<key>Download sessions</key>
 	<string>ダウンロードセッション</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>暗号化されたバックアップをダウンロードする</string>
 	<key>Downloads</key>
 	<string>ダウンロード</string>
+	<key>Downloads allowed</key>
+	<string>許可するダウンロード回数</string>
 	<key>Draft saved</key>
 	<string>下書きを保存済み</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>暗号化された表示データ、添付ファイルのキャッシュ、クラウドのファイル一覧は再ダウンロードできます。保管庫、メッセージ、ローカルのファイルライブラリ、未同期の変更は保持されます。</string>
 	<key>Encrypting</key>
 	<string>暗号化</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>新しいコピーを暗号化してアップロードしています…</string>
 	<key>Encrypting on this device…</key>
 	<string>このデバイスで暗号化中…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>ファイルを取り込みました。</string>
 	<key>Files in this folder</key>
 	<string>このフォルダー内のファイル</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>100 MiB を超えるファイルはリンクで共有できません。</string>
 	<key>Filters</key>
 	<string>ボールトフィルター</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>まだ記録がありません</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>連帯署名者が選択されていないということは、追加の連署ポリシーがないことを意味します。承認する前に、提案全体を確認してください。</string>
+	<key>No share links yet</key>
+	<string>共有リンクはまだありません</string>
 	<key>No shared items waiting</key>
 	<string>待機中の共有アイテムはありません</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>このデバイスを取り消します</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>このデバイスを取り消してコンテンツ キーをローテーションします</string>
+	<key>Revoke this link?</key>
+	<string>このリンクを取り消しますか？</string>
 	<key>Revoke this snapshot link?</key>
 	<string>このスナップショット リンクを取り消しますか?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>コピーを共有する</string>
 	<key>Share binding request</key>
 	<string>共有バインディングリクエスト</string>
+	<key>Share by link</key>
+	<string>リンクで共有</string>
 	<key>Share cosign packet</key>
 	<string>共同署名パケットを共有</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>招待状を共有する</string>
 	<key>Share link</key>
 	<string>リンクを共有する</string>
+	<key>Share links</key>
+	<string>共有リンク</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>共有リンクを更新できませんでした。保存済みのリンクを表示しています。</string>
 	<key>Share pairing request</key>
 	<string>ペアリングリクエストを共有する</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>プロバイダーで新しい認証情報をテストする</string>
 	<key>Text</key>
 	<string>テキスト</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>クラウドのコピーはすぐに削除され、リンクは使えなくなります。すでにダウンロードされたコピーには影響しません。</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>コピーは読み取り専用のままこの iPhone に残り、読み込みに使えます。その後、この iPhone は新しいデバイスとしてアカウントに参加します。サインインしてから、別のデバイスで承認するか、アカウントを復旧してください。古い iPhone はそのまま使えます。</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>ファイルライブラリは古いデバイスにだけ残ります。古いデバイスを取り消すと、同期もバックアップもされていない内容は失われます。</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>ファイルまたはフォルダは利用できなくなりました。一覧を更新してください。</string>
+	<key>The full link is not available on this device.</key>
+	<string>このデバイスでは完全なリンクを利用できません。</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>受信箱の鍵がこのデバイスにまだ同期されていません。受信を有効にしたデバイスで同期してから、ここで再試行してください。</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>会話への参加を選択すると招待が検証されます。</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>最後に検証された観測値が保持されます。現在の状況は確認できませんでした。</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>リンクの準備ができました。このファイルの鍵が含まれているため、非公開の経路で送ってください。</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>このリンクはパスワードがないと開けません。パスワードは別の方法で伝えてください。</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>リンクは新しい暗号化コピーを使用します。このコピーは取り消しまたは期限切れまでクラウドストレージを消費します。</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>ローカル バインディング キーは使用できません。このワークスペースを保持し、ロックする前に回復オプションを確認してください。</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>このファイルは現在のクラウドバックアップのファイルサイズ上限を超えています。</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>このファイルはゴミ箱にあります。復元してから開いてください。</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>このファイルはこのデバイスにありません。dMsg は新しいコピーを暗号化するあいだだけ一時的にダウンロードし、ライブラリは変更されません。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>この履歴はこのデバイスに属します。デスクトップローカル CLI、SSH、または別のデバイスからのファイルマウント承認はミラーリングされません。</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>未確認の提案</string>
 	<key>Unknown state</key>
 	<string>不明な状態</string>
+	<key>Unlimited</key>
+	<string>無制限</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>このリクエストを確認するには、dMsg のロックを解除してください。</string>
 	<key>Unlock policy</key>

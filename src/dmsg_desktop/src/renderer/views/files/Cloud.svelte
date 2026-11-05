@@ -7,13 +7,13 @@
   import { iconButtonClass, buttonClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, size, when } from '../../rpc'
-  import { fileIcon } from './files'
+  import { LINK_MAX_BYTES, fileIcon } from './files'
 
   /**
    * The account's backups in the cloud, from every device: what the relay
    * lists, read on request and once when the view first opens. A backup is
    * fetched into the library, where it was or into a folder picked,
-   * checked, or deleted for good.
+   * shared by link, checked, or deleted for good.
    */
   let {
     entries,
@@ -25,7 +25,8 @@
     onFetch,
     onFetchTo,
     onVerify,
-    onDelete
+    onDelete,
+    onLink
   }: {
     entries: any[]
     usage: any
@@ -38,6 +39,7 @@
     onFetchTo: (upload: string) => void
     onVerify: (upload: string) => void
     onDelete: (uploads: string[]) => void
+    onLink: (entry: any) => void
   } = $props()
 
   let ticked = $state<string[]>([])
@@ -128,6 +130,13 @@
                       {#snippet children(props)}
                         <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('fetchTo')} disabled={busy || entry.needs_root || entry.local} onclick={() => onFetchTo(entry.upload_id)} data-testid="files-cloud-fetch-to">
                           <Icon name="folder" />
+                        </button>
+                      {/snippet}
+                    </Tooltip>
+                    <Tooltip content={t('shareByLink')}>
+                      {#snippet children(props)}
+                        <button {...props} class={iconButtonClass('ghost', 'md')} aria-label={t('shareByLink')} disabled={busy || entry.needs_root || entry.size > LINK_MAX_BYTES} onclick={() => onLink(entry)} data-testid="files-cloud-link">
+                          <Icon name="link" />
                         </button>
                       {/snippet}
                     </Tooltip>

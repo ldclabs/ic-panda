@@ -1,5 +1,29 @@
 # iOS implementation validation
 
+## Share by link (2026-11-05)
+
+Files gains **Share by link** on file rows, file details and cloud backups, and
+**Share links** to list and revoke them. A backup that is not on the device is fetched
+only to encrypt the new copy, and the library does not change.
+
+- iPhone 16 / iOS 18.4: all 100 Swift unit tests passed. Of the 25 `FileLibraryUITests`,
+  23 passed, one was skipped and `testWorkspaceRootShowsNoTitleButPushedScreensDo`
+  failed at its root-title assertion. The same test passes on iOS 27.0 and this change
+  does not touch titles, but it was not rerun on an unmodified commit on iOS 18.4, so
+  that failure stays open.
+- iPhone 18 Pro / iOS 27.0: the title test and the local, backup with failure and
+  retry, oversized, list and revoke, language and Dynamic Type link tests passed.
+- The localization check with compiler extraction passed for all 23 languages.
+- Screenshots were inspected for English light, Chinese and Arabic RTL dark, German,
+  maximum Dynamic Type, the saved list after a failed refresh and the revoke
+  confirmation.
+- These UI tests use the fixture core. The same `dmsg_client` paths ran against a local
+  relay and PocketIC in `desktop_content_and_sync`, `desktop_large_file_sharing` and
+  `desktop_presigned_share`, where the share page's decryption opened a link made from
+  a backup. A link was not created from the iOS core against a relay or on a device.
+
+Implementation and validation: Claude Opus 5.5.
+
 ## Link and usage UI test fixes (2026-11-05)
 
 The five failures recorded in the next section were test defects, and no app code

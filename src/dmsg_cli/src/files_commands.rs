@@ -290,6 +290,21 @@ pub enum CloudCommand {
         #[arg(long)]
         to: Option<String>,
     },
+    /// Share a backup by link, as `files link` shares a version; it comes
+    /// down only long enough to be re-encrypted and the library does not change.
+    Link {
+        /// The backup's upload ID.
+        upload: String,
+        /// How many days the link lasts, 1 to 30.
+        #[arg(long, default_value_t = 7)]
+        days: u64,
+        /// How many downloads may start; 0 for no limit.
+        #[arg(long, default_value_t = 0)]
+        max_downloads: u64,
+        /// Ask for a password the link needs; the key then travels wrapped under it.
+        #[arg(long)]
+        password: bool,
+    },
     /// Delete cloud copies for good; files on this device stay.
     Rm {
         /// Upload IDs.
@@ -892,16 +907,6 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
             if !(1..=30).contains(&days) {
                 return Err(Failure::new("INVALID_INPUT", "days must be 1 to 30"));
             }
-            let secret = if password {
-                let typed = rpassword::prompt_password(tr!("Password: ", "口令："))
-                    .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
-                if typed.is_empty() {
-                    return Err(Failure::new("INVALID_INPUT", "empty password"));
-                }
-                Some(typed)
-            } else {
-                None
-            };
             let link = remote
                 .call(
                     "files/share_link",
@@ -910,7 +915,26 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                         "version": version,
                         "expires_in_ms": days * 86_400_000,
                         "max_downloads": max_downloads,
-                        "password": secret,
+                        "password": link_password(password)?,
+                    }),
+                )
+                .await?;
+            print(json, &link, link_line);
+        }
+        FilesCommand::Cloud(CloudCommand::Link {
+            upload,
+            days,
+            max_downloads,
+            password,
+        }) => {
+            let link = remote
+                .call(
+                    "files/share_link",
+                    json!({
+                        "upload_id": upload,
+                        "expires_in_ms": days * 86_400_000,
+                        "max_downloads": max_downloads,
+                        "password": link_password(password)?,
                     }),
                 )
                 .await?;
@@ -960,6 +984,19 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
         }
     }
     Ok(())
+}
+
+/// The password a new link needs, asked for when `--password` says so.
+fn link_password(ask: bool) -> Result<Option<String>, Failure> {
+    if !ask {
+        return Ok(None);
+    }
+    let typed = rpassword::prompt_password(tr!("Password: ", "口令："))
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+    if typed.is_empty() {
+        return Err(Failure::new("INVALID_INPUT", "empty password"));
+    }
+    Ok(Some(typed))
 }
 
 fn link_line(l: &Value) -> String {

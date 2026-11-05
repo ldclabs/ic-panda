@@ -788,6 +788,31 @@ async fn fetch_chunks<H: Hold>(
     Ok(hold)
 }
 
+/// Bring a backup's chunks here for an operation that reads them at once,
+/// without adding anything to the library; a backup this device has not
+/// listed yet takes a read of the inventory first. The hold returned pins the
+/// chunks until it is released, then the collector takes them.
+///
+/// # Errors
+/// As [`cloud_fetch`].
+pub(crate) async fn pull_chunks<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<String> {
+    let listed = h.with(|c| c.cloud_entry(upload_id)).await?;
+    let entry = match listed {
+        Some(entry) => entry,
+        None => {
+            cloud_refresh(h).await?;
+            h.with(|c| c.cloud_entry(upload_id)?.ok_or(Error::NotFound))
+                .await?
+        }
+    };
+    let manifest = entry.manifest.as_ref().ok_or(Error::RecoveryIncomplete)?;
+    fetch_chunks(h, upload_id, &entry.plan, manifest, progress).await
+}
+
 /// Fetch a backup into the library: its chunks are downloaded and checked,
 /// then the version joins its file here, or a new file is made in
 /// `folder`, else where the backup says it was. A version already here

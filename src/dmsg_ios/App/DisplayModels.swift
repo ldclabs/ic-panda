@@ -42,6 +42,68 @@ struct CloudBackup: Decodable, Identifiable {
     var date: UInt64 { committedAt ?? createdAt ?? 0 }
 }
 
+/// A share link as the core reports it. Name, size, URL and source are absent
+/// when this device cannot open the link's encrypted management record.
+struct FileLink: Decodable, Identifiable {
+    struct Source: Decodable { let type: String }
+    let shareId: String
+    var source: Source? = nil
+    var file: String? = nil
+    var name: String? = nil
+    var size: UInt64? = nil
+    var url: String? = nil
+    let expiresAt: UInt64
+    let maxDownloads: UInt64
+    let password: Bool
+    var state: String
+    var downloads: UInt64
+    var id: String { shareId }
+    /// Secret snapshots are managed, and revealed, under Shared snapshots.
+    var isSecretSnapshot: Bool { source?.type == "vault_snapshot" }
+    var active: Bool { state == "active" }
+    var stateTitle: String {
+        switch state {
+        case "active": String(localized: "Active")
+        case "revoked": String(localized: "Revoked")
+        case "expired": String(localized: "Expired")
+        default: String(localized: "Download limit reached")
+        }
+    }
+    var downloadsText: String {
+        maxDownloads > 0 ? "\(downloads.formatted()) / \(maxDownloads.formatted())" : downloads.formatted()
+    }
+}
+
+/// What a new link shares: a library version, or a backup that may not be in
+/// this device's library. `remote` says its chunks must come down first.
+struct FileLinkTarget: Identifiable {
+    enum Source { case version(file: String, version: String), backup(upload: String) }
+    /// The core's limit for a link.
+    static let maxBytes: UInt64 = 100 * 1024 * 1024
+    let source: Source
+    let name: String
+    let mime: String
+    let size: UInt64
+    let remote: Bool
+    var id: String {
+        switch source {
+        case .version(let file, let version): "version:\(file):\(version)"
+        case .backup(let upload): "backup:\(upload)"
+        }
+    }
+    var tooLarge: Bool { size > Self.maxBytes }
+
+    init(file: LibraryFile, remote: Bool) {
+        source = .version(file: file.id, version: file.current)
+        name = file.name; mime = file.mime; size = file.size; self.remote = remote
+    }
+
+    init(backup: CloudBackup) {
+        source = .backup(upload: backup.id)
+        name = backup.displayName; mime = backup.mime ?? ""; size = backup.size ?? 0; remote = !backup.local
+    }
+}
+
 struct FolderItem: Decodable, Identifiable {
     let id: String; var name: String; var parent: String?
     var path: [String]? = nil

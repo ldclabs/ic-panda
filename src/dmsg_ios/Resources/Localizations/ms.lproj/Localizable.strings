@@ -8,6 +8,8 @@
 	<string>1 hari</string>
 	<key>1 hour</key>
 	<string>1 jam</string>
+	<key>30 days</key>
+	<string>30 hari</string>
 	<key>7 days</key>
 	<string>7 hari</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Penggantian kosong akan memadamkan nilai yang disimpan.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Sesiapa sahaja yang mempunyai pautan lengkap dan kata laluan yang diperlukan boleh mendapatkannya dalam hadnya.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Sesiapa yang mempunyai pautan boleh memuat turun fail ini sehingga tamat tempoh atau anda membatalkannya. Mereka tidak memerlukan akaun atau apl dMsg.</string>
 	<key>Anyone, free of charge</key>
 	<string>Sesiapa sahaja, percuma</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Senarai semak dilengkapkan daripada penyata anda. Status huluan kekal boleh disahkan secara bebas hanya dengan pembekal.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Pilih Sandarkan ke awan pada fail setempat untuk membuat sandaran pertama.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Pilih Kongsi melalui pautan pada fail untuk menghantarnya kepada sesiapa sahaja. Mereka tidak memerlukan akaun atau apl dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>Pilih kelayakan untuk:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Buat jemputan</string>
 	<key>Create key root</key>
 	<string>Buat akar kunci</string>
+	<key>Create link</key>
+	<string>Cipta pautan</string>
 	<key>Create proposal</key>
 	<string>Buat cadangan</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Selesai</string>
 	<key>Download encrypted copy in background</key>
 	<string>Muat turun salinan yang disulitkan di latar belakang</string>
+	<key>Download limit reached</key>
+	<string>Had muat turun dicapai</string>
 	<key>Download sessions</key>
 	<string>Muat turun sesi</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Memuat turun sandaran yang disulitkan</string>
 	<key>Downloads</key>
 	<string>Muat turun</string>
+	<key>Downloads allowed</key>
+	<string>Muat turun yang dibenarkan</string>
 	<key>Draft saved</key>
 	<string>Draf disimpan</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Data paparan disulitkan, lampiran dalam cache dan senarai fail awan boleh dimuat turun semula. Peti simpanan, mesej, pustaka fail tempatan dan kerja yang belum disegerakkan dikekalkan.</string>
 	<key>Encrypting</key>
 	<string>Menyulitkan</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Menyulitkan dan memuat naik salinan baharu…</string>
 	<key>Encrypting on this device…</key>
 	<string>Menyulitkan pada peranti ini…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Fail diimport.</string>
 	<key>Files in this folder</key>
 	<string>Fail dalam folder ini</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Fail melebihi 100 MiB tidak boleh dikongsi melalui pautan.</string>
 	<key>Filters</key>
 	<string>Penapis bilik kebal</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Tiada rekod lagi</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Tiada kosigner terpilih bermakna tiada dasar cosignature tambahan. Semak cadangan lengkap sebelum diluluskan.</string>
+	<key>No share links yet</key>
+	<string>Belum ada pautan perkongsian</string>
 	<key>No shared items waiting</key>
 	<string>Tiada item kongsi menunggu</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Batalkan peranti ini</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Batalkan peranti ini dan tukar kunci kandungan</string>
+	<key>Revoke this link?</key>
+	<string>Batalkan pautan ini?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Batalkan pautan petikan ini?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Kongsi salinan</string>
 	<key>Share binding request</key>
 	<string>Kongsi permintaan yang mengikat</string>
+	<key>Share by link</key>
+	<string>Kongsi melalui pautan</string>
 	<key>Share cosign packet</key>
 	<string>Kongsi paket tandatangan bersama</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Kongsi jemputan</string>
 	<key>Share link</key>
 	<string>Kongsi pautan</string>
+	<key>Share links</key>
+	<string>Pautan perkongsian</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Pautan perkongsian tidak dapat dimuat semula. Memaparkan pautan yang disimpan.</string>
 	<key>Share pairing request</key>
 	<string>Kongsi permintaan pasangan</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Uji kelayakan baharu di pembekalnya</string>
 	<key>Text</key>
 	<string>Teks</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>Salinan awan dialih keluar serta-merta dan pautan berhenti berfungsi. Salinan yang sudah dimuat turun tidak terjejas.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Salinan kekal pada iPhone ini, baca sahaja, untuk diimport. Kemudian iPhone ini menyertai akaun anda sebagai peranti baharu: log masuk, kemudian luluskannya dari peranti lain atau pulihkan akaun. iPhone lama terus berfungsi.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>Pustaka fail kekal hanya pada peranti lama. Apa sahaja di sana yang tidak pernah disegerakkan atau disandarkan akan hilang setelah peranti itu ditarik balik.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>Fail atau folder tidak lagi tersedia. Segarkan senarai.</string>
+	<key>The full link is not available on this device.</key>
+	<string>Pautan penuh tidak tersedia pada peranti ini.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Kunci peti masuk belum disegerakkan ke peranti ini. Segerakkan peranti yang mengaktifkan penerimaan, kemudian cuba lagi di sini.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>Jemputan disahkan apabila anda memilih untuk menyertai perbualan.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Pemerhatian terakhir yang disahkan disimpan. Status semasa tidak dapat disahkan.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>Pautan sudah sedia. Pautan mengandungi kunci fail ini, jadi hantar melalui saluran peribadi.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>Pautan hanya dibuka dengan kata laluannya. Hantar kata laluan dengan cara lain.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>Pautan menggunakan salinan tersulit baharu yang dikira dalam storan awan anda sehingga dibatalkan atau tamat tempoh.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Kunci pengikat tempatan tidak tersedia. Simpan ruang kerja ini dan semak pilihan pemulihan anda sebelum menguncinya.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Fail ini melebihi had saiz fail sandaran awan semasa.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Fail ini berada dalam Sampah. Pulihkannya sebelum dibuka.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Fail ini tiada pada peranti ini. dMsg memuat turunnya hanya untuk menyulitkan salinan baharu, dan pustaka anda tidak berubah.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Sejarah ini kepunyaan peranti ini. Ia tidak mencerminkan CLI setempat desktop, SSH atau kelulusan pemasangan fail daripada peranti lain.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Cadangan yang tidak disahkan</string>
 	<key>Unknown state</key>
 	<string>Keadaan tidak diketahui</string>
+	<key>Unlimited</key>
+	<string>Tanpa had</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Buka kunci dMsg untuk menyemak permintaan ini.</string>
 	<key>Unlock policy</key>

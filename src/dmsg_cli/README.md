@@ -333,7 +333,7 @@ dmsg files verify <id> | verify --all | versions <id> | version-use <id> <versio
 dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage | local-only
 dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--to <folder>]
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
-dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | rm <upload>... | verify <upload> | usage
+dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | link <upload> [--days 7] [--max-downloads N] [--password] | rm <upload>... | verify <upload> | usage
 dmsg files evict <id> [--version V]
 dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] | links [--refresh] | link-revoke <share_id>
 dmsg files mount [--status] | unmount
@@ -658,6 +658,13 @@ lists this device's links with the counts the relay last reported, and
 with names and URLs when this device holds the account root for their encrypted management record, and otherwise by ID. `files link-revoke` accepts asynchronous cleanup;
 an expired link's copy is queued for cleanup automatically. Space returns only after physical cleanup and quota settlement. The browser page at `/s/` decrypts
 by the chunk rules of `content-v1.json`.
+
+`files cloud link <upload>` takes the same terms and shares a backup that may
+not be on this device. The link never exposes the backup's key or ciphertext:
+the chunks come down and are verified only long enough to seal the new edition,
+then they are released, so the library does not change. `files link` does the
+same for a version whose local copy was removed. A link holds at most 100 MiB,
+and larger backups are refused before anything moves.
 
 Mount. With `files_mount = true`, or the desktop's settings allowing it,
 `files mount` serves the library as a
@@ -1435,7 +1442,9 @@ The deprecated `files/storage_action` still accepts at most 50 targets, each
 `retry` or `recover` and per-target outcomes. `files/cloud_delete` returns `accepted`,
 not a claim that physical deletion or quota release already completed.
 `files/share_quote {id,version?,channel?}` remains supported for payer/size estimates
-and existing copies. Names, source versions and publication recovery details remain
+and existing copies. `files/share_quote` and `files/share_link` also accept
+`{upload_id}` to share a backup; `files/progress` then reports
+`{job:"share",path,stage,done,total}` until the link is ready. Names, source versions and publication recovery details remain
 account-root encrypted; deleting a local source does not remove link management.
 Low-level metadata synchronization, attachment deletion evidence and quota accounting
 remain supported. Sponsorship alone never grants content/deletion permission.

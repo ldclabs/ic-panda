@@ -1,5 +1,8 @@
 use crate::*;
-use dmsg_client::library::{backup, cloud};
+use dmsg_client::library::{
+    backup, cloud,
+    link::{self, LinkTerms},
+};
 
 #[uniffi::export]
 impl MobileEngine {
@@ -27,6 +30,86 @@ impl MobileEngine {
                     cloud::cloud_refresh(h).await?;
                     h.with(|c| c.files_evict(&id, Some(&version))).await
                 })
+            }))
+            .await
+    }
+
+    /// Share a library version by link; one freed from this device comes down
+    /// from its backup only long enough to be re-encrypted.
+    pub async fn create_file_link(
+        &self,
+        id: String,
+        version: String,
+        expires_in_ms: u64,
+        max_downloads: u64,
+        password: Option<String>,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let terms = LinkTerms {
+                        expires_in_ms: Some(expires_in_ms),
+                        max_downloads,
+                        password: password.as_deref(),
+                    };
+                    link::share_link(h, &id, Some(&version), terms, &mut |_, _, _| {}).await
+                })
+            }))
+            .await
+    }
+
+    /// Share a cloud backup by link; the library does not change.
+    pub async fn create_backup_link(
+        &self,
+        upload: String,
+        expires_in_ms: u64,
+        max_downloads: u64,
+        password: Option<String>,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let terms = LinkTerms {
+                        expires_in_ms: Some(expires_in_ms),
+                        max_downloads,
+                        password: password.as_deref(),
+                    };
+                    link::share_backup_link(h, &upload, terms, &mut |_, _, _| {}).await
+                })
+            }))
+            .await
+    }
+
+    /// The account's share links as saved here; `refresh` reads the relay's
+    /// counts and the links other devices made first.
+    pub async fn file_links(
+        &self,
+        refresh: bool,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    if refresh {
+                        link::share_links_refresh(h).await
+                    } else {
+                        h.with(|c| c.files_share_links()).await
+                    }
+                })
+            }))
+            .await
+    }
+
+    pub async fn revoke_file_link(
+        &self,
+        share_id: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move { link::share_revoke(h, &share_id).await })
             }))
             .await
     }

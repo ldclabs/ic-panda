@@ -632,14 +632,28 @@ pub async fn quote<H: Hold>(
     version: Option<&str>,
     channel: Option<&str>,
 ) -> Result<Value> {
-    let (account, source) = h
+    let source = h.with(|c| Ok(c.library_manifest(file, version)?.2)).await?;
+    quote_source(h, &source, channel).await
+}
+
+/// The same estimate for a link made from a backup, which this device's
+/// library may not have.
+pub async fn quote_backup<H: Hold>(h: &H, upload_id: &str) -> Result<Value> {
+    let source = h
         .with(|c| {
-            Ok((
-                c.account()?.id.to_string(),
-                c.library_manifest(file, version)?.2,
-            ))
+            let entry = c.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
+            Ok(entry.manifest.ok_or(Error::RecoveryIncomplete)?.file)
         })
         .await?;
+    quote_source(h, &source, None).await
+}
+
+async fn quote_source<H: Hold>(
+    h: &H,
+    source: &crate::files::FileManifest,
+    channel: Option<&str>,
+) -> Result<Value> {
+    let account = h.with(|c| Ok(c.account()?.id.to_string())).await?;
     let payer = if let Some(channel) = channel {
         hex_id(channel)?;
         let head = h.get(&format!("/v1/channels/{channel}")).await?;
@@ -671,7 +685,7 @@ pub async fn quote<H: Hold>(
     let existing: Vec<Value> = copies
         .iter()
         .filter(|item| {
-            item["source_file"] == file
+            item["source_file"] == source.id
                 && item["source_version"] == source.version
                 && item["phase"] == "stored"
         })

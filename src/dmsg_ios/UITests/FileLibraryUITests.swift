@@ -304,6 +304,99 @@ final class FileLibraryUITests: XCTestCase {
         XCTAssertTrue(app.buttons["file.item.fixture-video"].waitForExistence(timeout: 5))
     }
 
+    func testLinkFromALocalFileWaitsThenHandsOverTheLink() {
+        let app = launch(["--ui-files-link-slow"])
+        app.buttons["file.item.fixture-local"].press(forDuration: 1)
+        tap(app.buttons["Share by link"], in: app)
+        let create = app.buttons["file.link.create"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["file.link.remote"].exists)
+        capture(app, "Link terms for a local file")
+        create.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["file.link.working"].waitForExistence(timeout: 2))
+        capture(app, "Link waits for its new encrypted copy")
+        XCTAssertTrue(app.staticTexts["file.link.ready"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.descendants(matching: .any)["file.link.share"].exists)
+        tap(app.buttons["file.link.copy"], in: app)
+        capture(app, "Finished link")
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["file.link.copy"].waitForNonExistence(timeout: 5))
+    }
+
+    func testLinkFromACloudBackupExplainsTheDownloadAndCanRetry() {
+        let app = launch(["--ui-files-link-failure"])
+        chooseCloud(app)
+        tap(app.buttons["backup.item.fixture-old-backup"], in: app)
+        tap(app.buttons["backup.link.fixture-old-backup"], in: app)
+        XCTAssertTrue(app.staticTexts["file.link.remote"].waitForExistence(timeout: 5))
+        capture(app, "Link terms for a backup that is not on this device")
+        tap(app.buttons["file.link.create"], in: app)
+        XCTAssertTrue(app.staticTexts["Connection unavailable. Your saved content stays on this device."].waitForExistence(timeout: 5))
+        capture(app, "Link failure keeps its terms")
+        tap(app.buttons["file.link.create"], in: app)
+        XCTAssertTrue(app.staticTexts["file.link.ready"].waitForExistence(timeout: 5))
+    }
+
+    func testOversizedFilesCannotStartALink() {
+        let app = launch()
+        tap(app.buttons["file.item.fixture-video"], in: app)
+        let link = app.buttons["file.link"]
+        for _ in 0..<6 where !link.exists { app.swipeUp() }
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        XCTAssertFalse(link.isEnabled)
+        XCTAssertTrue(app.staticTexts["Files over 100 MiB cannot be shared by link."].exists)
+        capture(app, "Oversized file explains the link limit")
+    }
+
+    func testLinksListShowsStateAndRevokes() {
+        let app = launch(["--ui-files-links", "--ui-files-links-failure"])
+        tap(app.buttons["files.tools"], in: app)
+        tap(app.buttons["Share links"], in: app)
+        let active = app.buttons["file.link.item.fixture-link-active"]
+        XCTAssertTrue(active.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Share links could not be refreshed. Showing saved links."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["file.link.item.fixture-link-guarded"].exists)
+        capture(app, "Links keep the saved list when a refresh fails")
+        // A link made on another device can be revoked but not shared from here.
+        app.buttons["file.link.item.fixture-link-other-device"].tap()
+        XCTAssertTrue(app.staticTexts["The full link is not available on this device."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["file.link.copy"].exists)
+        back(app)
+        tap(active, in: app)
+        XCTAssertTrue(app.buttons["file.link.copy"].waitForExistence(timeout: 5))
+        tap(app.buttons["file.link.revoke"], in: app)
+        capture(app, "Revoke asks first")
+        let confirm = app.sheets.buttons["Revoke"].exists ? app.sheets.buttons["Revoke"] : app.buttons["Revoke"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        let revoked = app.staticTexts.matching(NSPredicate(format: "identifier == 'file.link.state' AND label CONTAINS 'Revoked'")).firstMatch
+        XCTAssertTrue(revoked.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["file.link.copy"].exists)
+        XCTAssertFalse(app.buttons["file.link.revoke"].exists)
+        capture(app, "Revoked link")
+    }
+
+    func testLinkScreensInLanguagesAndLargeText() {
+        for (language, locale, title) in [("zh-Hans", "zh_CN", "通过链接分享"), ("ar", "ar_SA", nil as String?), ("de", "de_DE", "Per Link teilen")] {
+            let app = launch(language == "de" ? [] : ["--ui-dark"], language: language, locale: locale)
+            app.buttons["file.item.fixture-local"].press(forDuration: 1)
+            let menu = title.map { app.buttons[$0] } ?? app.buttons.matching(NSPredicate(format: "label CONTAINS 'رابط'")).firstMatch
+            tap(menu, in: app)
+            XCTAssertTrue(app.buttons["file.link.create"].waitForExistence(timeout: 5))
+            capture(app, "Link terms \(language)")
+            app.terminate()
+        }
+        let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        chooseCloud(app)
+        tap(app.buttons["backup.item.fixture-old-backup"], in: app)
+        tap(app.buttons["backup.link.fixture-old-backup"], in: app)
+        XCTAssertTrue(app.staticTexts["file.link.remote"].waitForExistence(timeout: 5))
+        capture(app, "Link terms at maximum Dynamic Type")
+        let create = app.buttons["file.link.create"]
+        for _ in 0..<8 where !create.isHittable { app.swipeUp() }
+        XCTAssertTrue(create.isHittable)
+        capture(app, "Create link reachable at maximum Dynamic Type")
+    }
+
     func testAccessibilityAndLargeText() throws {
         let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         capture(app, "Files maximum Dynamic Type header")

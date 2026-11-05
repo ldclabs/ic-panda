@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "Ambil inventori",
   "Compare with the desktop app": "Bandingkan dengan apl desktop",
   "Create the migration file": "Buat fail migrasi",
+  'No account needed': 'Tiada akaun diperlukan',
+  'Nothing to install': 'Tiada apa untuk dipasang',
+  'Decrypted only in your browser': 'Dinyahsulit hanya dalam pelayar anda',
+  'Send your own files this way': 'Hantar fail anda sendiri dengan cara ini',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg ialah ruang kerja peribadi untuk fail, mesej dan kata laluan anda. Hanya anda dan orang yang anda pilih boleh membacanya.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Kongsi fail melalui pautan yang boleh tamat tempoh, meminta kata laluan atau dibatalkan.',
+  'The person you send it to needs no account or app.':
+    'Penerima tidak memerlukan akaun atau apl.',
+  'Free to start, with encryption included in every plan.':
+    'Percuma untuk bermula, dengan penyulitan disertakan dalam setiap pelan.',
+  'See how dMsg works': 'Lihat cara dMsg berfungsi',
+  'Download on the App Store': 'Muat turun di App Store',
   "A file shared with you": "Fail yang dikongsi dengan anda",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "Seseorang berkongsi fail dengan anda melalui dMsg. Ia disulitkan; penyemak imbas anda menyahsulitnya di sini dengan kunci daripada pautan, dan tiada apa-apa pun daripadanya sampai ke pelayan secara jelas.",
   "This link has expired.": "Pautan ini telah tamat tempoh.",

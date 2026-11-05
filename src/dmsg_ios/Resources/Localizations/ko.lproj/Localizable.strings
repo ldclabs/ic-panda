@@ -8,6 +8,8 @@
 	<string>1일</string>
 	<key>1 hour</key>
 	<string>1시간</string>
+	<key>30 days</key>
+	<string>30일</string>
 	<key>7 days</key>
 	<string>7일</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>빈 값으로 바꾸면 저장된 값이 지워집니다.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>전체 링크와 필수 비밀번호를 아는 사람은 누구나 한도 내에서 링크를 검색할 수 있습니다.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>링크가 있는 사람은 링크가 만료되거나 취소될 때까지 이 파일을 내려받을 수 있습니다. dMsg 계정이나 앱은 필요 없습니다.</string>
 	<key>Anyone, free of charge</key>
 	<string>누구나 무료로</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>귀하의 명세서에서 완성된 체크리스트입니다. 업스트림 상태는 공급자를 통해서만 독립적으로 확인할 수 있습니다.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>로컬 파일에서 클라우드에 백업을 선택하여 첫 백업을 만드세요.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>파일에서 링크로 공유를 선택하면 누구에게나 보낼 수 있습니다. dMsg 계정이나 앱은 필요 없습니다.</string>
 	<key>Choose a credential for:</key>
 	<string>다음에 대한 자격 증명을 선택하세요.</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>초대장 만들기</string>
 	<key>Create key root</key>
 	<string>키 루트 만들기</string>
+	<key>Create link</key>
+	<string>링크 만들기</string>
 	<key>Create proposal</key>
 	<string>제안서 작성</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>완료</string>
 	<key>Download encrypted copy in background</key>
 	<string>백그라운드에서 암호화된 사본 다운로드</string>
+	<key>Download limit reached</key>
+	<string>다운로드 한도 도달</string>
 	<key>Download sessions</key>
 	<string>세션 다운로드</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>암호화된 백업 다운로드 중</string>
 	<key>Downloads</key>
 	<string>다운로드</string>
+	<key>Downloads allowed</key>
+	<string>허용 다운로드 횟수</string>
 	<key>Draft saved</key>
 	<string>초안 저장됨</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>암호화된 표시 데이터, 첨부 파일 캐시 및 클라우드 파일 목록은 다시 다운로드할 수 있습니다. 보관함, 메시지, 로컬 파일 라이브러리 및 동기화되지 않은 작업은 유지됩니다.</string>
 	<key>Encrypting</key>
 	<string>암호화 중</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>새 사본을 암호화해 올리는 중…</string>
 	<key>Encrypting on this device…</key>
 	<string>이 기기에서 암호화 중…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>파일을 가져왔습니다.</string>
 	<key>Files in this folder</key>
 	<string>이 폴더의 파일</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>100 MiB를 넘는 파일은 링크로 공유할 수 없습니다.</string>
 	<key>Filters</key>
 	<string>볼트 필터</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>아직 기록이 없습니다</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>선택한 공동 서명자가 없다는 것은 추가 공동 서명 정책이 없음을 의미합니다. 승인하기 전에 전체 제안을 검토하세요.</string>
+	<key>No share links yet</key>
+	<string>아직 공유 링크가 없습니다</string>
 	<key>No shared items waiting</key>
 	<string>대기 중인 공유 항목이 없습니다.</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>이 장치를 취소합니다</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>이 장치를 취소하고 콘텐츠 키를 순환합니다.</string>
+	<key>Revoke this link?</key>
+	<string>이 링크를 취소할까요?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>이 스냅샷 링크를 취소하시겠습니까?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>사본 공유</string>
 	<key>Share binding request</key>
 	<string>공유 바인딩 요청</string>
+	<key>Share by link</key>
+	<string>링크로 공유</string>
 	<key>Share cosign packet</key>
 	<string>공동 서명 패킷 공유</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>초대 공유</string>
 	<key>Share link</key>
 	<string>링크 공유</string>
+	<key>Share links</key>
+	<string>공유 링크</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>공유 링크를 새로 고치지 못했습니다. 저장된 링크를 표시합니다.</string>
 	<key>Share pairing request</key>
 	<string>페어링 요청 공유</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>제공업체에서 새 자격 증명을 테스트하세요.</string>
 	<key>Text</key>
 	<string>텍스트</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>클라우드 사본이 바로 삭제되고 링크가 작동을 멈춥니다. 이미 내려받은 사본에는 영향이 없습니다.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>복사본은 가져오기에 쓸 수 있도록 이 iPhone에 읽기 전용으로 남습니다. 그런 다음 이 iPhone이 새 기기로 계정에 추가됩니다. 로그인한 뒤 다른 기기에서 승인하거나 계정을 복구하세요. 이전 iPhone은 계속 작동합니다.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>파일 보관함은 이전 장치에만 남습니다. 이전 장치를 해지하면 동기화나 백업되지 않은 내용은 사라집니다.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>파일 또는 폴더를 더 이상 사용할 수 없습니다. 목록을 새로 고치세요.</string>
+	<key>The full link is not available on this device.</key>
+	<string>이 기기에서는 전체 링크를 사용할 수 없습니다.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>받은편지함 키가 아직 이 기기에 동기화되지 않았습니다. 수신을 활성화한 기기에서 동기화한 후 여기서 다시 시도하세요.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>대화 참여를 선택하면 초대를 검증합니다.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>마지막으로 확인된 관찰이 유지됩니다. 현재 상태를 확인할 수 없습니다.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>링크가 준비되었습니다. 이 파일의 키가 포함되어 있으니 비공개 경로로 보내세요.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>이 링크는 비밀번호가 있어야 열립니다. 비밀번호는 다른 방법으로 전달하세요.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>링크는 새 암호화 사본을 사용하며, 취소되거나 만료될 때까지 클라우드 저장 공간을 차지합니다.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>로컬 바인딩 키를 사용할 수 없습니다. 이 작업 공간을 유지하고 잠그기 전에 복구 옵션을 검토하세요.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>이 파일이 현재 클라우드 백업의 파일 크기 한도를 초과합니다.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>이 파일은 휴지통에 있습니다. 복원한 후 여세요.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>이 파일은 이 기기에 없습니다. dMsg는 새 사본을 암호화하는 동안에만 임시로 내려받으며 라이브러리는 바뀌지 않습니다.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>이 기록은 이 장치에 속합니다. 데스크탑-로컬 CLI, SSH 또는 다른 장치의 파일 마운트 승인을 미러링하지 않습니다.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>확인되지 않은 제안</string>
 	<key>Unknown state</key>
 	<string>알 수 없는 상태</string>
+	<key>Unlimited</key>
+	<string>제한 없음</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>이 요청을 검토하려면 dMsg를 잠금 해제하세요.</string>
 	<key>Unlock policy</key>

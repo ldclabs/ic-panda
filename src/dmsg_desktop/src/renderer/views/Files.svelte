@@ -8,6 +8,7 @@
   import Icon from '../components/Icon.svelte'
   import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
+  import Progress from '../components/Progress.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
@@ -90,7 +91,7 @@
   let mounting = $state(false)
   /** `files/share_links`: the links this device made, for the detail's list. */
   let links = $state<any[]>([])
-  let linking = $state<{ id: string; version: string | null; name: string; days: number; maxDownloads: number; password: string; result: any | null } | null>(null)
+  let linking = $state<{ id: string; version: string | null; name: string; upload: string | null; remote: boolean; days: number; maxDownloads: number; password: string; progress: { stage: string; done: number; total: number } | null; result: any | null } | null>(null)
   let quote = $state<any>(null)
   let quoteError = $state('')
   let quoting = $state(false)
@@ -575,11 +576,12 @@
   $effect(() => {
     const item = sharing ?? linking
     const channel = sharing?.channel
+    const upload = sharing ? null : linking?.upload
     const serial = ++quoteSerial
     quote = null; quoteError = ''
     if (!item) return
     quoting = true
-    call('files/share_quote', { id: item.id, version: item.version, channel: channel || null })
+    call('files/share_quote', upload ? { upload_id: upload } : { id: item.id, version: item.version, channel: channel || null })
       .then((value) => { if (serial === quoteSerial) quote = value })
       .catch((e) => { if (serial === quoteSerial) quoteError = errorText(e) })
       .finally(() => { if (serial === quoteSerial) quoting = false })
@@ -594,7 +596,9 @@
       sharing = null
     }, t('savedVerified'))
 
-  const askLink = (id: string, version: string | null, name: string) => (linking = { id, version, name, days: 7, maxDownloads: 0, password: '', result: null })
+  /** `remote` says the chunks must come down from a backup first; `upload` shares that backup instead of a library version. */
+  const askLink = (id: string, version: string | null, name: string, remote: boolean, upload: string | null = null) =>
+    (linking = { id, version, name, upload, remote, days: 7, maxDownloads: 0, password: '', progress: null, result: null })
   let linkError = $state('')
   $effect(() => { linking?.id; linkError = '' })
   async function createLink() {
@@ -604,13 +608,13 @@
     linkError = ''
     try {
       const result = await call('files/share_link', {
-        id: draft.id, version: draft.version, expires_in_ms: draft.days * 86_400_000,
-        max_downloads: draft.maxDownloads, password: draft.password || null
+        ...(draft.upload ? { upload_id: draft.upload } : { id: draft.id, version: draft.version }),
+        expires_in_ms: draft.days * 86_400_000, max_downloads: draft.maxDownloads, password: draft.password || null
       })
       if (linking === draft) { draft.result = result; draft.password = '' }
     } catch (e) {
       if (linking === draft) linkError = failure(e)
-    } finally { busy = false }
+    } finally { busy = false; draft.progress = null }
   }
   const revokeLink = (shareId: string) => attempt(() => call('files/share_revoke', { share_id: shareId }), t('linkRevoked'))
   const refreshLinks = () => attempt(async () => (links = await call('files/share_links', { refresh: true })))
@@ -674,6 +678,7 @@
     const offWork = window.dmsg.onEvent((event) => {
       const data = (event.data ?? {}) as any
       if (event.type === 'files/adding') picked(Array.isArray(data.names) ? data.names : [], Array.isArray(data.folders) ? data.folders : [])
+      else if (event.type === 'files/progress' && data.job === 'share') { if (linking && busy) linking.progress = { stage: data.stage, done: data.done, total: data.total } }
       else if (event.type === 'files/progress') progress(data)
       else if (event.type === 'files/open_changed') changedCopy = data
       // A mount or unmount names only its method; the daemon's own announcement carries the status.
@@ -789,6 +794,7 @@
           onFetchTo={(upload) => (fetching = upload)}
           onVerify={verifyBackup}
           onDelete={(uploads) => (deletingCloud = uploads)}
+          onLink={(entry) => askLink(entry.file_id, entry.version_id, entry.name, !entry.local, entry.upload_id)}
         />
         <Jobs {nameOf} onCancel={cancelBackup} onRetry={retryTransfer} onCancelImport={cancelImport} />
       </div>
@@ -990,7 +996,7 @@
               }}
               onShare={(version) => askShare(current.id, version, current.name)}
               links={links.filter((l) => l.file === current.id)}
-              onLink={(version) => askLink(current.id, version, current.name)}
+              onLink={(version, remote) => askLink(current.id, version, current.name, remote)}
               onRevokeLink={revokeLink}
               onRefreshLinks={refreshLinks}
               onMove={() => (moving = [current.id])}
@@ -1118,7 +1124,12 @@
     </div>
   {:else if linking}
     <div class="grid gap-3">
+      {#if busy}
+        {@const moving = linking.progress}
+        <Progress value={moving?.total ? moving.done : null} max={moving?.total || 100} label={t(moving?.stage === 'downloading' ? 'linkDownloading' : moving?.stage === 'uploading' ? 'linkUploading' : 'linkPreparing')} testid="files-link-progress" />
+      {/if}
       <Notice tone="info">{t('linkHint')}</Notice>
+      {#if linking.remote}<Notice tone="info" icon="cloud-down" testid="files-link-remote">{t('linkFromCloud')}</Notice>{/if}
       {@render costQuote()}
       <fieldset disabled={busy} class="grid min-w-0 gap-3">
       <div class="grid gap-1 text-[12px] text-faint">

@@ -8,6 +8,8 @@
 	<string>1 день</string>
 	<key>1 hour</key>
 	<string>1 час</string>
+	<key>30 days</key>
+	<string>30 дней</string>
 	<key>7 days</key>
 	<string>7 дней</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>Пустое новое значение удалит сохранённое значение.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>Любой, у кого есть полная ссылка и необходимый пароль, может получить содержимое в пределах заданных ограничений.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>Любой, у кого есть ссылка, сможет скачать этот файл, пока срок её действия не истечёт или вы её не отзовёте. Аккаунт и приложение dMsg не нужны.</string>
 	<key>Anyone, free of charge</key>
 	<string>Любой, бесплатно</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>Список выполнен согласно вашим подтверждениям. Состояние у поставщика по-прежнему нужно проверять отдельно у него.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>Выберите «Сохранить в облако» у локального файла, чтобы создать первую резервную копию.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>Выберите «Поделиться ссылкой» у файла, чтобы отправить его кому угодно. Аккаунт и приложение dMsg не нужны.</string>
 	<key>Choose a credential for:</key>
 	<string>Выберите учётные данные для:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>Создать приглашение</string>
 	<key>Create key root</key>
 	<string>Создать корень ключей</string>
+	<key>Create link</key>
+	<string>Создать ссылку</string>
 	<key>Create proposal</key>
 	<string>Создать предложение</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>Готово</string>
 	<key>Download encrypted copy in background</key>
 	<string>Скачать зашифрованную копию в фоне</string>
+	<key>Download limit reached</key>
+	<string>Лимит скачиваний исчерпан</string>
 	<key>Download sessions</key>
 	<string>Сеансы скачивания</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>Загрузка зашифрованной резервной копии</string>
 	<key>Downloads</key>
 	<string>Загрузки</string>
+	<key>Downloads allowed</key>
+	<string>Разрешено скачиваний</string>
 	<key>Draft saved</key>
 	<string>Черновик сохранён</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>Зашифрованные данные отображения, кэш вложений и списки облачных файлов можно загрузить повторно. Сейф, сообщения, локальная библиотека и несинхронизированные изменения сохранятся.</string>
 	<key>Encrypting</key>
 	<string>Шифрование</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>Шифрование и отправка новой копии…</string>
 	<key>Encrypting on this device…</key>
 	<string>Шифрование на этом устройстве…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>Файлы импортированы.</string>
 	<key>Files in this folder</key>
 	<string>Файлы в этой папке</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>Файлы больше 100 MiB нельзя отправить по ссылке.</string>
 	<key>Filters</key>
 	<string>Фильтры хранилища</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>Записей пока нет</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>Без выбранных соподписантов дополнительная политика совместной подписи не применяется. Проверьте всё предложение перед одобрением.</string>
+	<key>No share links yet</key>
+	<string>Ссылок пока нет</string>
 	<key>No shared items waiting</key>
 	<string>Нет ожидающих общих элементов</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>Отозвать это устройство</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>Отозвать устройство и сменить ключи содержимого</string>
+	<key>Revoke this link?</key>
+	<string>Отозвать эту ссылку?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>Отозвать ссылку на этот снимок?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>Поделиться копией</string>
 	<key>Share binding request</key>
 	<string>Поделиться запросом привязки</string>
+	<key>Share by link</key>
+	<string>Поделиться ссылкой</string>
 	<key>Share cosign packet</key>
 	<string>Поделиться пакетом соподписей</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>Поделиться приглашением</string>
 	<key>Share link</key>
 	<string>Ссылка для доступа</string>
+	<key>Share links</key>
+	<string>Ссылки для доступа</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>Не удалось обновить ссылки. Показаны сохранённые.</string>
 	<key>Share pairing request</key>
 	<string>Поделиться запросом сопряжения</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>Проверить новые учётные данные у поставщика</string>
 	<key>Text</key>
 	<string>Текст</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>Облачная копия сразу удаляется, и ссылка перестаёт работать. Уже скачанные копии это не затронет.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>Копия остаётся на этом iPhone только для чтения, чтобы её можно было импортировать. Затем этот iPhone присоединяется к аккаунту как новое устройство: войдите, затем одобрите его с другого устройства или восстановите аккаунт. Старый iPhone продолжает работать.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>Библиотека файлов останется только на старом устройстве. То, что там не синхронизировалось и не копировалось, пропадёт после его отзыва.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>Файл или папка больше недоступны. Обновите список.</string>
+	<key>The full link is not available on this device.</key>
+	<string>Полная ссылка недоступна на этом устройстве.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>Ключ входящих ещё не синхронизирован с этим устройством. Выполните синхронизацию на устройстве, где включён приём писем, и повторите попытку здесь.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>Приглашение проверяется при выборе вступления в беседу.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>Последнее проверенное наблюдение сохранено. Текущее состояние подтвердить не удалось.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>Ссылка готова. Она содержит ключ к этому файлу, поэтому отправьте её по закрытому каналу.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>Ссылка открывается только с паролем. Сообщите пароль другим способом.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>Ссылка использует новую зашифрованную копию, которая занимает место в облачном хранилище, пока ссылка не будет отозвана или не истечёт.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>Ключ локальной привязки недоступен. Сохраните рабочую область и проверьте способы восстановления перед блокировкой.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>Этот файл превышает текущий лимит размера файла для облачного резервного копирования.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>Этот файл в корзине. Восстановите его перед открытием.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>Этого файла нет на устройстве. dMsg скачает его только на время шифрования новой копии, а ваша библиотека не изменится.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Эта история относится к данному устройству. Локальные подтверждения CLI, SSH и монтирования файлов с другого компьютера здесь не отображаются.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>Неподтверждённые предложения</string>
 	<key>Unknown state</key>
 	<string>Неизвестное состояние</string>
+	<key>Unlimited</key>
+	<string>Без ограничений</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>Разблокируйте dMsg, чтобы проверить запрос.</string>
 	<key>Unlock policy</key>

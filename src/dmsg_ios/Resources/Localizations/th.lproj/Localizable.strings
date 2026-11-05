@@ -8,6 +8,8 @@
 	<string>1 วัน</string>
 	<key>1 hour</key>
 	<string>1 ชั่วโมง</string>
+	<key>30 days</key>
+	<string>30 วัน</string>
 	<key>7 days</key>
 	<string>7 วัน</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>การแทนที่ด้วยค่าว่างจะลบค่าที่บันทึกไว้</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>ใครก็ตามที่มีลิงก์ที่สมบูรณ์และรหัสผ่านที่จำเป็นสามารถเรียกค้นได้ภายในขีดจำกัด</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>ทุกคนที่มีลิงก์สามารถดาวน์โหลดไฟล์นี้ได้จนกว่าลิงก์จะหมดอายุหรือคุณเพิกถอน โดยไม่ต้องมีบัญชีหรือแอป dMsg</string>
 	<key>Anyone, free of charge</key>
 	<string>ใครๆ ก็ได้ฟรี</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>รายการตรวจสอบเสร็จสมบูรณ์จากใบแจ้งยอดของคุณ สถานะอัปสตรีมยังคงตรวจสอบได้โดยอิสระกับผู้ให้บริการเท่านั้น</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>เลือกสำรองข้อมูลไปยังคลาวด์จากไฟล์ในเครื่องเพื่อสร้างข้อมูลสำรองครั้งแรก</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>เลือกแชร์ผ่านลิงก์ที่ไฟล์เพื่อส่งให้ใครก็ได้ โดยไม่ต้องมีบัญชีหรือแอป dMsg</string>
 	<key>Choose a credential for:</key>
 	<string>เลือกข้อมูลรับรองสำหรับ:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>สร้างคำเชิญ</string>
 	<key>Create key root</key>
 	<string>สร้างรากคีย์</string>
+	<key>Create link</key>
+	<string>สร้างลิงก์</string>
 	<key>Create proposal</key>
 	<string>สร้างข้อเสนอ</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>เสร็จสิ้น</string>
 	<key>Download encrypted copy in background</key>
 	<string>ดาวน์โหลดสำเนาที่เข้ารหัสในเบื้องหลัง</string>
+	<key>Download limit reached</key>
+	<string>ถึงขีดจำกัดการดาวน์โหลดแล้ว</string>
 	<key>Download sessions</key>
 	<string>ดาวน์โหลดเซสชั่น</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>กำลังดาวน์โหลดข้อมูลสำรองที่เข้ารหัส</string>
 	<key>Downloads</key>
 	<string>การดาวน์โหลด</string>
+	<key>Downloads allowed</key>
+	<string>จำนวนดาวน์โหลดที่อนุญาต</string>
 	<key>Draft saved</key>
 	<string>บันทึกฉบับร่างแล้ว</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>ดาวน์โหลดข้อมูลการแสดงผลที่เข้ารหัส ไฟล์แนบในแคช และรายการไฟล์คลาวด์ใหม่ได้ คลังลับ ข้อความ คลังไฟล์ในเครื่อง และงานที่ยังไม่ซิงค์จะยังคงอยู่</string>
 	<key>Encrypting</key>
 	<string>กำลังเข้ารหัส</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>กำลังเข้ารหัสและอัปโหลดสำเนาใหม่…</string>
 	<key>Encrypting on this device…</key>
 	<string>กำลังเข้ารหัสบนอุปกรณ์นี้…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>นำเข้าไฟล์แล้ว</string>
 	<key>Files in this folder</key>
 	<string>ไฟล์ในโฟลเดอร์นี้</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>ไฟล์ที่ใหญ่กว่า 100 MiB ไม่สามารถแชร์ผ่านลิงก์ได้</string>
 	<key>Filters</key>
 	<string>ตัวกรองห้องนิรภัย</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>ยังไม่มีบันทึก</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>ไม่มีผู้ลงนามร่วมที่เลือก หมายความว่าไม่มีนโยบายการลงนามร่วมเพิ่มเติม ตรวจสอบข้อเสนอที่สมบูรณ์ก่อนที่จะอนุมัติ</string>
+	<key>No share links yet</key>
+	<string>ยังไม่มีลิงก์ที่แชร์</string>
 	<key>No shared items waiting</key>
 	<string>ไม่มีรายการที่ใช้ร่วมกันรอ</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>เพิกถอนอุปกรณ์นี้</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>เพิกถอนอุปกรณ์นี้และหมุนเวียนคีย์เนื้อหา</string>
+	<key>Revoke this link?</key>
+	<string>เพิกถอนลิงก์นี้หรือไม่</string>
 	<key>Revoke this snapshot link?</key>
 	<string>เพิกถอนลิงก์สแนปชอตนี้หรือไม่</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>แบ่งปันสำเนา</string>
 	<key>Share binding request</key>
 	<string>แบ่งปันคำขอผูกพัน</string>
+	<key>Share by link</key>
+	<string>แชร์ผ่านลิงก์</string>
 	<key>Share cosign packet</key>
 	<string>แชร์แพ็กเก็ตการลงนามร่วม</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>แบ่งปันคำเชิญ</string>
 	<key>Share link</key>
 	<string>แชร์ลิงก์</string>
+	<key>Share links</key>
+	<string>ลิงก์ที่แชร์</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>รีเฟรชลิงก์ที่แชร์ไม่ได้ กำลังแสดงลิงก์ที่บันทึกไว้</string>
 	<key>Share pairing request</key>
 	<string>แบ่งปันคำขอจับคู่</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>ทดสอบข้อมูลประจำตัวใหม่ที่ผู้ให้บริการ</string>
 	<key>Text</key>
 	<string>ข้อความ</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>สำเนาบนคลาวด์จะถูกลบทันทีและลิงก์จะใช้งานไม่ได้ สำเนาที่ดาวน์โหลดไปแล้วจะไม่ได้รับผลกระทบ</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>สำเนาจะเก็บไว้บน iPhone เครื่องนี้แบบอ่านอย่างเดียวเพื่อนำเข้า จากนั้น iPhone เครื่องนี้จะเข้าร่วมบัญชีของคุณเป็นอุปกรณ์ใหม่: ลงชื่อเข้าใช้ แล้วอนุมัติจากอุปกรณ์อื่นหรือกู้คืนบัญชี iPhone เครื่องเดิมยังใช้งานได้ตามปกติ</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>คลังไฟล์จะยังอยู่บนอุปกรณ์เก่าเท่านั้น สิ่งที่ไม่เคยซิงค์หรือสำรองไว้ที่นั่นจะสูญหายเมื่ออุปกรณ์ถูกเพิกถอน</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>ไฟล์หรือโฟลเดอร์ไม่พร้อมใช้งานแล้ว โปรดรีเฟรชรายการ</string>
+	<key>The full link is not available on this device.</key>
+	<string>ไม่มีลิงก์แบบเต็มในอุปกรณ์นี้</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>คีย์กล่องขาเข้ายังไม่ได้ซิงค์กับอุปกรณ์นี้ โปรดซิงค์อุปกรณ์ที่เปิดใช้การรับจดหมาย แล้วลองอีกครั้งที่นี่</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>ระบบจะตรวจสอบคำเชิญเมื่อคุณเลือกเข้าร่วมการสนทนา</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>การสังเกตที่ตรวจสอบแล้วครั้งล่าสุดจะถูกเก็บไว้ ไม่สามารถยืนยันสถานะปัจจุบันได้</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>ลิงก์พร้อมแล้ว ลิงก์มีกุญแจของไฟล์นี้ จึงควรส่งผ่านช่องทางส่วนตัว</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>ลิงก์เปิดได้ด้วยรหัสผ่านเท่านั้น โปรดส่งรหัสผ่านด้วยวิธีอื่น</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>ลิงก์ใช้สำเนาเข้ารหัสใหม่ซึ่งนับรวมในพื้นที่คลาวด์ของคุณจนกว่าจะถูกเพิกถอนหรือหมดอายุ</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>คีย์การเชื่อมโยงในเครื่องไม่พร้อมใช้งาน เก็บพื้นที่ทำงานนี้ไว้และตรวจสอบตัวเลือกการกู้คืนของคุณก่อนที่จะล็อค</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>ไฟล์นี้เกินขีดจำกัดขนาดไฟล์สำรองบนคลาวด์ปัจจุบัน</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>ไฟล์นี้อยู่ในถังขยะ โปรดกู้คืนก่อนเปิด</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>ไฟล์นี้ไม่ได้อยู่ในอุปกรณ์นี้ dMsg จะดาวน์โหลดชั่วคราวเพื่อเข้ารหัสสำเนาใหม่เท่านั้น และคลังของคุณจะไม่เปลี่ยนแปลง</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ประวัตินี้เป็นของอุปกรณ์นี้ ไม่จำลอง CLI, SSH ภายในเดสก์ท็อป หรือการอนุมัติการติดตั้งไฟล์จากอุปกรณ์อื่น</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>ข้อเสนอที่ไม่ได้รับการยืนยัน</string>
 	<key>Unknown state</key>
 	<string>รัฐที่ไม่รู้จัก</string>
+	<key>Unlimited</key>
+	<string>ไม่จำกัด</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>ปลดล็อค dMsg เพื่อตรวจสอบคำขอนี้</string>
 	<key>Unlock policy</key>

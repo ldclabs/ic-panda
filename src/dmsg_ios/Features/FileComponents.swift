@@ -15,7 +15,7 @@ struct FileActionResult: Identifiable {
 
 enum FileLibrarySheet: Identifiable {
     case trash, help, create
-    case rename(LibraryItemTarget), move([LibraryItemTarget]), backup([LibraryFile])
+    case rename(LibraryItemTarget), move([LibraryItemTarget]), backup([LibraryFile]), link(FileLinkTarget)
     case results([FileActionResult]), imports([URL], String)
     var id: String {
         switch self {
@@ -25,6 +25,7 @@ enum FileLibrarySheet: Identifiable {
         case .rename(let item): "rename:" + item.id
         case .move: "move"
         case .backup: "backup"
+        case .link: "link"
         case .results: "results"
         case .imports: "imports"
         }

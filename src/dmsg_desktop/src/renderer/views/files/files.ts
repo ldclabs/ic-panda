@@ -9,6 +9,9 @@ import type { Label } from '../../i18n/messages/en'
 /** The root folder's ID, as the daemon names it. */
 export const ROOT = 'root'
 
+/** The largest version a share link takes, as the daemon enforces it. */
+export const LINK_MAX_BYTES = 100 * 1024 * 1024
+
 /** What the library knows of a version's copies, as the daemon reports it. */
 export type Status = 'local' | 'backing_up' | 'backed_up' | 'cloud_only' | 'too_large' | 'failed'
 

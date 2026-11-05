@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { MAC_APP, RELEASE, REPO, WINDOWS_APP } from '$lib/downloads'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { locale, t } from '$lib/i18n'
   import AgentPlayground from './AgentPlayground.svelte'
@@ -25,12 +26,6 @@
   import './hero.css'
   import './tour.css'
 
-  const REPO = 'https://github.com/ldclabs/ic-panda'
-  // The repository's latest release is always a stable dMsg client release, so these
-  // links follow each new version without a change here.
-  const RELEASE = `${REPO}/releases/latest`
-  const MAC_APP = `${REPO}/releases/latest/download/dMsg-mac-arm64.dmg`
-  const WINDOWS_APP = `${REPO}/releases/latest/download/dMsg-win-x64.exe`
   type Method = 'brew' | 'sh' | 'ps'
   const METHODS: Method[] = ['brew', 'sh', 'ps']
   const INSTALL: Record<Method, { label: string; lines: string[] }> = {

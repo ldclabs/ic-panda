@@ -1885,7 +1885,7 @@ smoke: try {
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'transfers') {
-    await fileTransfersFlow({ app, main, shots, methods, emit, calls, waitFor, formMatrix, setSession: value => { session = value } })
+    await fileTransfersFlow({ app, main, shots, methods, emit, calls, hold, waitFor, formMatrix, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('Desktop transfers passed: commit/verify phases, retry/cancel, lock, keyboard, locale/theme/width matrix')
     break smoke

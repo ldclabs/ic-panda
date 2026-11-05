@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "Kiểm kê hàng tồn kho",
   "Compare with the desktop app": "So sánh với ứng dụng dành cho máy tính để bàn",
   "Create the migration file": "Tạo tập tin di chuyển",
+  'No account needed': 'Không cần tài khoản',
+  'Nothing to install': 'Không cần cài đặt',
+  'Decrypted only in your browser': 'Chỉ giải mã trong trình duyệt của bạn',
+  'Send your own files this way': 'Gửi tệp của bạn theo cách tương tự',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg là không gian làm việc riêng tư cho tệp, tin nhắn và mật khẩu của bạn. Chỉ bạn và những người bạn chọn mới đọc được.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Chia sẻ tệp qua liên kết có thể hết hạn, yêu cầu mật khẩu hoặc bị thu hồi.',
+  'The person you send it to needs no account or app.':
+    'Người nhận không cần tài khoản hay ứng dụng.',
+  'Free to start, with encryption included in every plan.':
+    'Bắt đầu miễn phí, mọi gói đều có mã hóa.',
+  'See how dMsg works': 'Xem cách dMsg hoạt động',
+  'Download on the App Store': 'Tải xuống trên App Store',
   "A file shared with you": "Một tệp được chia sẻ với bạn",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "Ai đó đã chia sẻ tệp với bạn thông qua dMsg. Nó được mã hóa; trình duyệt của bạn giải mã nó ở đây bằng khóa từ liên kết và không có gì trong số đó đến được máy chủ một cách rõ ràng.",
   "This link has expired.": "Liên kết này đã hết hạn.",

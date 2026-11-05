@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "清點可讀歷史",
   "Compare with the desktop app": "與桌面應用核對",
   "Create the migration file": "生成遷移檔案",
+  'No account needed': '無需帳戶',
+  'Nothing to install': '無需安裝',
+  'Decrypted only in your browser': '只在你的瀏覽器中解密',
+  'Send your own files this way': '用同樣的方式傳送你的檔案',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg 是你的私密工作空間，用來保存檔案、訊息和密碼。只有你和你選擇的人才能讀取。',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    '透過連結分享檔案，可以設定有效期限、要求密碼，也可以隨時撤銷。',
+  'The person you send it to needs no account or app.':
+    '對方不需要帳戶，也不需要安裝應用程式。',
+  'Free to start, with encryption included in every plan.':
+    '免費開始，所有方案都包含加密。',
+  'See how dMsg works': '了解 dMsg',
+  'Download on the App Store': '在 App Store 下載',
   "A file shared with you": "有人分享給你一個檔案",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "有人通過 dMsg 分享給你一個檔案。檔案是加密的；瀏覽器在這裡用連結中的金鑰解密，明文不會到達任何伺服器。",
   "This link has expired.": "這個連結已過期。",

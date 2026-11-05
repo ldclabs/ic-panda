@@ -8,6 +8,8 @@
 	<string>يوم واحد</string>
 	<key>1 hour</key>
 	<string>ساعة واحدة</string>
+	<key>30 days</key>
+	<string>30 يومًا</string>
 	<key>7 days</key>
 	<string>7 أيام</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>سيؤدي البديل الفارغ إلى مسح القيمة المحفوظة.</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>يمكن لأي شخص يملك الرابط الكامل وكلمة المرور المطلوبة استرجاع المحتوى ضمن الحدود المحددة.</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>يمكن لأي شخص لديه الرابط تنزيل هذا الملف حتى تنتهي صلاحيته أو تلغيه. لا يحتاج إلى حساب أو تطبيق dMsg.</string>
 	<key>Anyone, free of charge</key>
 	<string>أي شخص، مجانًا</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>اكتملت القائمة استنادًا إلى إفاداتك. لا يزال التحقق المستقل من الحالة لدى المزود متاحًا من خلاله فقط.</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>اختر النسخ الاحتياطي إلى السحابة من ملف محلي لإنشاء أول نسخة احتياطية.</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>اختر «مشاركة عبر رابط» في أي ملف لإرساله إلى أي شخص. لا يحتاج إلى حساب أو تطبيق dMsg.</string>
 	<key>Choose a credential for:</key>
 	<string>اختر بيانات الدخول لـ:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>إنشاء دعوة</string>
 	<key>Create key root</key>
 	<string>إنشاء جذر المفاتيح</string>
+	<key>Create link</key>
+	<string>إنشاء الرابط</string>
 	<key>Create proposal</key>
 	<string>إنشاء اقتراح</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>تم</string>
 	<key>Download encrypted copy in background</key>
 	<string>تنزيل نسخة مشفّرة في الخلفية</string>
+	<key>Download limit reached</key>
+	<string>تم بلوغ حد التنزيلات</string>
 	<key>Download sessions</key>
 	<string>جلسات التنزيل</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>جارٍ تنزيل النسخة الاحتياطية المشفّرة</string>
 	<key>Downloads</key>
 	<string>التنزيلات</string>
+	<key>Downloads allowed</key>
+	<string>التنزيلات المسموح بها</string>
 	<key>Draft saved</key>
 	<string>تم حفظ المسودة</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>يمكن تنزيل بيانات العرض المشفرة والمرفقات المخزنة مؤقتًا وقوائم الملفات السحابية مجددًا. يبقى المخزن والرسائل ومكتبة الملفات المحلية والعمل غير المتزامن محفوظًا.</string>
 	<key>Encrypting</key>
 	<string>جارٍ التشفير</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>جارٍ تشفير نسخة جديدة ورفعها…</string>
 	<key>Encrypting on this device…</key>
 	<string>جارٍ التشفير على هذا الجهاز…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>تم استيراد الملفات.</string>
 	<key>Files in this folder</key>
 	<string>ملفات هذا المجلد</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>لا يمكن مشاركة الملفات الأكبر من 100 MiB عبر رابط.</string>
 	<key>Filters</key>
 	<string>عوامل تصفية الخزنة</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>لا سجلات بعد</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>عدم اختيار مشاركي توقيع يعني عدم وجود سياسة توقيع إضافية. راجع الاقتراح كاملًا قبل الموافقة.</string>
+	<key>No share links yet</key>
+	<string>لا توجد روابط مشاركة بعد</string>
 	<key>No shared items waiting</key>
 	<string>لا توجد عناصر مشتركة بانتظار الاستيراد</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>إلغاء تفويض هذا الجهاز</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>إلغاء تفويض هذا الجهاز وتدوير مفاتيح المحتوى</string>
+	<key>Revoke this link?</key>
+	<string>إلغاء هذا الرابط؟</string>
 	<key>Revoke this snapshot link?</key>
 	<string>إبطال رابط هذه اللقطة؟</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>مشاركة نسخة</string>
 	<key>Share binding request</key>
 	<string>مشاركة طلب الربط</string>
+	<key>Share by link</key>
+	<string>مشاركة عبر رابط</string>
 	<key>Share cosign packet</key>
 	<string>مشاركة حزمة التوقيع المشترك</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>مشاركة الدعوة</string>
 	<key>Share link</key>
 	<string>رابط المشاركة</string>
+	<key>Share links</key>
+	<string>روابط المشاركة</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>تعذر تحديث روابط المشاركة. تُعرض الروابط المحفوظة.</string>
 	<key>Share pairing request</key>
 	<string>مشاركة طلب الاقتران</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>اختبار بيانات الاعتماد الجديدة لدى مزودها</string>
 	<key>Text</key>
 	<string>نص</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>تُحذف النسخة السحابية فورًا ويتوقف الرابط عن العمل. لا تتأثر النسخ التي نُزّلت بالفعل.</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>تبقى النسخة على جهاز iPhone هذا للقراءة فقط لاستيرادها. ثم ينضم جهاز iPhone هذا إلى حسابك كجهاز جديد: سجّل الدخول، ثم وافق عليه من جهاز آخر أو استعد الحساب. يستمر جهاز iPhone القديم في العمل.</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>تبقى مكتبة الملفات على الجهاز القديم وحده. وما لم يُزامَن أو يُنسخ احتياطيًا هناك يضيع بعد إلغائه.</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>لم يعد الملف أو المجلد متاحاً. حدّث القائمة.</string>
+	<key>The full link is not available on this device.</key>
+	<string>الرابط الكامل غير متاح على هذا الجهاز.</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>لم تتم مزامنة مفتاح صندوق الوارد مع هذا الجهاز بعد. زامن الجهاز الذي فعّلت عليه استقبال الرسائل، ثم أعد المحاولة هنا.</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>يتم التحقق من الدعوة عند اختيار الانضمام إلى المحادثة.</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>تم الاحتفاظ بآخر ملاحظة متحقق منها. تعذّر تأكيد الحالة الحالية.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>الرابط جاهز. يتضمن مفتاح هذا الملف، لذا أرسله عبر قناة خاصة.</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>لا يُفتح الرابط إلا بكلمة مروره. أرسل كلمة المرور بطريقة أخرى.</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>يستخدم الرابط نسخة مشفرة جديدة تُحتسب من مساحتك السحابية حتى يُلغى أو تنتهي صلاحيته.</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>مفتاح الربط المحلي غير متاح. احتفظ بمساحة العمل وراجع خيارات الاسترداد قبل قفلها.</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>يتجاوز هذا الملف الحد الحالي لحجم ملف النسخ الاحتياطي السحابي.</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>هذا الملف في سلة المهملات. استعده قبل فتحه.</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>هذا الملف غير موجود على هذا الجهاز. يُنزّله dMsg مؤقتًا فقط لتشفير النسخة الجديدة، ولا تتغير مكتبتك.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>هذا السجل خاص بهذا الجهاز. ولا يعكس موافقات CLI أو SSH أو تركيب الملفات المحلية على حاسوب آخر.</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>اقتراحات غير مؤكدة</string>
 	<key>Unknown state</key>
 	<string>حالة غير معروفة</string>
+	<key>Unlimited</key>
+	<string>غير محدود</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>افتح قفل dMsg لمراجعة هذا الطلب.</string>
 	<key>Unlock policy</key>

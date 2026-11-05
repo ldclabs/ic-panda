@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 
 /** Real Electron renderer/main IPC; the relay fixture controls task outcomes. */
-export async function fileTransfersFlow({ app, main, shots, methods, emit, calls, waitFor, formMatrix, setSession }) {
+export async function fileTransfersFlow({ app, main, shots, methods, emit, calls, hold, waitFor, formMatrix, setSession }) {
   const file = '23'.repeat(32), upload = '72'.repeat(32), download = '73'.repeat(32)
   const total = 150 * 1024 * 1024
   let backups = [{ file, version: 'v1', upload_id: upload, size: total, sent: 4, chunks: 150, stage: 'uploading', bytes: 4 * 1024 * 1024, total_bytes: total, created_at: Date.now(), error: null }]
@@ -75,6 +75,41 @@ export async function fileTransfersFlow({ app, main, shots, methods, emit, calls
   emit('files/progress', { ...synchronous, stage: 'done' })
   await main.waitForFunction(() => document.querySelector('[data-kind="fetch"][data-testid="files-job"]')?.dataset.stage === 'done')
   assert.equal(await fetch.count(), 1)
+
+  // A backup too large for a link cannot start one; a smaller one shares
+  // without joining the library, and the dialog follows the daemon's stages.
+  const shared = '75'.repeat(32)
+  const listed = methods['files/cloud_list']()
+  methods['files/cloud_list'] = () => [...listed, { upload_id: shared, file_id: '76'.repeat(32), version_id: 'v2', name: 'Only in the cloud.pdf', size: 4 * 1024 * 1024, bytes: 4 * 1024 * 1024 + 4096, device: '31'.repeat(32), committed_at: Date.now(), local: false, needs_root: false }]
+  emit('files/changed')
+  const row = main.locator(`[data-upload="${shared}"]`)
+  await row.waitFor()
+  assert.ok(await main.locator(`[data-upload="${download}"]`).getByTestId('files-cloud-link').isDisabled())
+  await row.getByTestId('files-cloud-link').click()
+  const linkDialog = main.getByTestId('files-link-dialog')
+  await linkDialog.getByTestId('files-link-remote').waitFor()
+  await main.waitForSelector('[data-testid="files-link-create"]:enabled')
+  assert.ok(calls.some((c) => c.method === 'files/share_quote' && c.params.upload_id === shared))
+  const finishLink = hold('files/share_link')
+  await main.getByTestId('files-link-create').click()
+  await linkDialog.getByText('Encrypting a new copy…').waitFor()
+  emit('files/progress', { job: 'share', path: shared, stage: 'downloading', done: 2, total: 4 })
+  await linkDialog.getByText('Downloading from the cloud…').waitFor()
+  await formMatrix(app, main, shots, 'link-from-cloud', '[data-testid="files-link-dialog"]')
+  emit('files/progress', { job: 'share', path: shared, stage: 'uploading', done: 1, total: 5 })
+  await linkDialog.getByText('Uploading the encrypted copy…').waitFor()
+  assert.equal(await main.locator('[data-testid="files-job"][data-kind="share"]').count(), 0)
+  // The fixture's first link fails: the dialog keeps the draft to try again.
+  await finishLink()
+  await linkDialog.getByRole('alert').waitFor()
+  assert.equal(await linkDialog.getByTestId('files-link-progress').count(), 0)
+  await main.getByTestId('files-link-create').click()
+  await main.getByTestId('files-link-url').waitFor()
+  const created = calls.findLast((c) => c.method === 'files/share_link')
+  assert.equal(created.params.upload_id, shared)
+  assert.equal(created.params.id, undefined)
+  await linkDialog.getByRole('button', { name: 'Done', exact: true }).click()
+  await linkDialog.waitFor({ state: 'detached' })
 
   setSession('locked'); emit('session/changed')
   await main.getByTestId('files-locked').waitFor()

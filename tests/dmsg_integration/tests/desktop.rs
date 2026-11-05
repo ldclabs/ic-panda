@@ -3214,6 +3214,27 @@ fn desktop_content_and_sync() {
         assert_eq!(idle["revisions"], 0);
     }
     b.run(&["files", "cloud", "refresh"]);
+    // A link from a backup this device does not hold: the chunks come down
+    // only long enough to seal a new copy, and B's library stays without the
+    // file until B asks for it. The share page opens it with the links below.
+    let from_cloud = b.run(&["files", "cloud", "link", &medium_upload]);
+    assert_eq!(from_cloud["size"], medium.len(), "{from_cloud}");
+    assert!(
+        from_cloud["url"]
+            .as_str()
+            .unwrap()
+            .contains(&format!("/s/{}#", from_cloud["share_id"].as_str().unwrap())),
+        "{from_cloud}"
+    );
+    let inventory = b.run(&["files", "cloud", "ls"]);
+    assert!(
+        inventory
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry["upload_id"] == medium_upload.as_str() && entry["local"] == false),
+        "{inventory}"
+    );
     b.run(&["files", "cloud", "get", &medium_upload]);
     let out = env.dir.join("medium.out");
     b.run(&["files", "get", &medium_id, "-o", out.to_str().unwrap()]);
@@ -3315,6 +3336,7 @@ fn desktop_content_and_sync() {
         json!([
             {"url": link["url"], "relay": env.relay, "sha256": medium_sha},
             {"url": guarded["url"], "relay": env.relay, "password": "correct horse", "sha256": medium_sha},
+            {"url": from_cloud["url"], "relay": env.relay, "sha256": medium_sha},
         ])
         .to_string(),
     )

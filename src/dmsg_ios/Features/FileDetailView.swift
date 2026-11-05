@@ -50,6 +50,8 @@ struct FileDetailView: View {
     @State private var confirmBackup = false
     @State private var confirmShare = false
     @State private var confirmEvict = false
+    @State private var linking = false
+    @State private var links: [FileLink] = []
     @State private var working = false
     @State private var failure: String?
     @State private var openedNonce: String?
@@ -72,6 +74,13 @@ struct FileDetailView: View {
                 SettingsAction("Preview file", systemImage: "doc.text.magnifyingglass", prominent: available) { actionTask = Task { await open(share: false) } }
                     .disabled(!available)
                 SettingsAction("Share a copy", systemImage: "square.and.arrow.up") { confirmShare = true }.disabled(!available)
+                SettingsAction("Share by link", systemImage: "link") { linking = true }
+                    .disabled(file.size > FileLinkTarget.maxBytes || !(available || file.backup != nil)).accessibilityIdentifier("file.link")
+                if file.size > FileLinkTarget.maxBytes { Text("Files over 100 MiB cannot be shared by link.").font(.footnote).foregroundStyle(.secondary) }
+                if !links.isEmpty {
+                    NavigationLink { FileLinksView(file: file.id) } label: { LabeledContent("Share links", value: links.count.formatted()) }
+                        .accessibilityIdentifier("file.links")
+                }
                 if !available {
                     SettingsAction("Restore to this device", systemImage: "icloud.and.arrow.down", prominent: true) { actionTask = Task { await restore() } }
                         .disabled(download != nil).accessibilityIdentifier("file.restore")
@@ -113,6 +122,8 @@ struct FileDetailView: View {
             .sheet(item: $preview) { file in VerifiedPreview(url: file.url) }
             .sheet(item: $sharing) { file in ShareSheet(items: [file.url]) }
             .sheet(isPresented: $confirmBackup) { NavigationStack { FileBackupView(files: [file]) } }
+            .sheet(isPresented: $linking) { NavigationStack { FileLinkComposer(target: FileLinkTarget(file: file, remote: !available)) } }
+            .task(id: linking) { if !linking { await loadLinks() } }
             .confirmationDialog("Share a copy", isPresented: $confirmShare, titleVisibility: .visible) {
                 Button("Share a copy") { actionTask = Task { await open(share: true) } }
             } message: { Text("Shared copies leave dMsg's protection and cannot be recalled.") }
@@ -148,6 +159,12 @@ struct FileDetailView: View {
             if let error = error as? MobileError, ["NOT_FOUND", "INTEGRITY_FAILED"].contains(error.fileCode ?? "") { needsRestore = true }
             cleanup(); failure = model.fileFailureMessage(error)
         }
+    }
+
+    private func loadLinks() async {
+        let stamp = model.epoch
+        guard let saved = try? await model.fileLinks(refresh: false), stamp == model.epoch, !Task.isCancelled else { return }
+        links = saved.filter { $0.file == file.id }
     }
 
     private func restore() async {

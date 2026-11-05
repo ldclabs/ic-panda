@@ -698,6 +698,20 @@ export default {
   "Take an inventory": "ایک انوینٹری لیں",
   "Compare with the desktop app": "ڈیسک ٹاپ ایپ کے ساتھ موازنہ کریں",
   "Create the migration file": "مائیگریشن فائل بنائیں",
+  'No account needed': 'اکاؤنٹ کی ضرورت نہیں',
+  'Nothing to install': 'کچھ انسٹال نہیں کرنا',
+  'Decrypted only in your browser': 'صرف آپ کے براؤزر میں ڈکرپٹ',
+  'Send your own files this way': 'اپنی فائلیں بھی اسی طرح بھیجیں',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg آپ کی فائلوں، پیغامات اور پاس ورڈز کے لیے نجی ورک اسپیس ہے۔ انہیں صرف آپ اور آپ کے منتخب لوگ پڑھ سکتے ہیں۔',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'فائل ایسے لنک سے شیئر کریں جس کی مدت ختم ہو سکے، جو پاس ورڈ مانگے یا جسے منسوخ کیا جا سکے۔',
+  'The person you send it to needs no account or app.':
+    'وصول کنندہ کو اکاؤنٹ یا ایپ کی ضرورت نہیں۔',
+  'Free to start, with encryption included in every plan.':
+    'مفت شروع کریں، ہر پلان میں انکرپشن شامل ہے۔',
+  'See how dMsg works': 'دیکھیں dMsg کیسے کام کرتا ہے',
+  'Download on the App Store': 'App Store سے ڈاؤن لوڈ کریں',
   "A file shared with you": "ایک فائل آپ کے ساتھ شیئر کی گئی ہے",
   "Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.": "کسی نے dMsg کے ذریعے آپ کے ساتھ ایک فائل کا اشتراک کیا۔ یہ خفیہ کردہ ہے؛ آپ کا براؤزر اسے لنک کی کلید سے یہاں ڈیکرپٹ کرتا ہے، اور اس میں سے کچھ بھی سرور تک نہیں پہنچتا۔",
   "This link has expired.": "اس لنک کی میعاد ختم ہو گئی ہے۔",

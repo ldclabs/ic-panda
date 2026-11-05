@@ -144,6 +144,149 @@ fn link_records_reject_incomplete_ambiguous_and_unknown_sources() {
     }
 }
 
+/// A backup on this account whose version this device's library has only as
+/// a record, with the backup's chunks at hand as if just downloaded.
+fn cloud_only_fixture(dir: &crate::testing::TempDir) -> (Client, String, FileManifest, String) {
+    use super::super::backup::{BACKUP_FORMAT, BackupManifest};
+    use super::super::catalog::{Backup, ROOT};
+    use super::super::cloud::CloudEntry;
+
+    let mut c = crate::testing::unlocked(&dir.0, false, None);
+    let path = dir.path("cloud.txt");
+    std::fs::write(&path, b"only in the cloud").unwrap();
+    let imported = c.files_import(&path, ROOT, false, &mut |_, _| {}).unwrap();
+    let id = imported.file.id;
+    let (file, mut version, manifest) = c.library_manifest(&id, None).unwrap();
+    let job = c
+        .plan_backup(&id, &imported.version, crate::now_ms())
+        .unwrap();
+    let upload = job.plan.upload_id.clone();
+    c.save_cloud_entry(
+        &upload,
+        &CloudEntry {
+            plan: job.plan,
+            device: version.device.clone(),
+            committed_at: Some(7),
+            manifest: Some(BackupManifest {
+                format: BACKUP_FORMAT.into(),
+                file: manifest.clone(),
+                path: vec![],
+                tags: file.tags,
+                note: file.note,
+                created_at: version.created_at,
+                modified_at: file.updated_at,
+                device: version.device.clone(),
+            }),
+        },
+    )
+    .unwrap();
+    version.local = false;
+    version.backup = Some(Backup {
+        upload_id: upload.clone(),
+        generation: 0,
+        backed_up_at: 7,
+        verified: true,
+    });
+    c.save_version(&id, &imported.version, &version).unwrap();
+    (c, id, manifest, upload)
+}
+
+#[tokio::test]
+async fn an_edition_from_a_backup_is_independent_and_leaves_nothing_behind() {
+    let dir = crate::testing::TempDir::new();
+    let (mut c, id, manifest, upload) = cloud_only_fixture(&dir);
+    let digest = manifest.chunks[0].digest.clone();
+    assert!(c.blobs().unwrap().chunk(&digest).unwrap().is_some());
+    let before = c.files_list(super::super::catalog::ROOT, false).unwrap();
+
+    let edition = prepare_edition(&c.hold(), &manifest, Some(&upload), &mut |_, _, _| {})
+        .await
+        .unwrap();
+
+    // Same bytes, but neither a key nor a chunk in common with the backup.
+    assert_ne!(edition.id, manifest.id);
+    assert_ne!(edition.key, manifest.key);
+    assert_ne!(edition.chunks[0].digest, digest);
+    assert_eq!(edition.sha256, manifest.sha256);
+    // The backup's copy is gone while the edition's stays for its upload.
+    assert!(c.blobs().unwrap().chunk(&digest).unwrap().is_none());
+    assert!(
+        c.blobs()
+            .unwrap()
+            .chunk(&edition.chunks[0].digest)
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(
+        c.held_chunks(crate::now_ms()).unwrap(),
+        [edition.chunks[0].digest.clone()].into()
+    );
+    // The library is as it was.
+    assert_eq!(
+        c.files_list(super::super::catalog::ROOT, false).unwrap(),
+        before
+    );
+    assert!(!c.files_show(&id).unwrap().file.local);
+    let plain = crate::files::read_chunk(c.blobs().unwrap(), &edition, 0).unwrap();
+    assert_eq!(plain.as_slice(), b"only in the cloud");
+}
+
+#[tokio::test]
+async fn links_from_the_cloud_refuse_what_they_cannot_read_before_anything_moves() {
+    let dir = crate::testing::TempDir::new();
+    let (mut c, id, _, upload) = cloud_only_fixture(&dir);
+    let terms = LinkTerms::default();
+    let mut progress = |_: &'static str, _: u64, _: u64| {};
+    assert_eq!(
+        share_backup_link(&c.hold(), &"ff".repeat(32), terms, &mut progress)
+            .await
+            .err(),
+        Some(Error::NotFound)
+    );
+    for bad in [
+        LinkTerms {
+            expires_in_ms: Some(LINK_MAX_MS + 1),
+            ..terms
+        },
+        LinkTerms {
+            max_downloads: 1_000_001,
+            ..terms
+        },
+    ] {
+        assert!(matches!(
+            share_backup_link(&c.hold(), &upload, bad, &mut progress).await,
+            Err(Error::InvalidInput(_))
+        ));
+        assert!(matches!(
+            share_link(&c.hold(), &id, None, bad, &mut progress).await,
+            Err(Error::InvalidInput(_))
+        ));
+    }
+
+    // A backup past the link limit stays out, whatever the membership allowed.
+    let mut entry = c.cloud_entry(&upload).unwrap().unwrap();
+    entry.manifest.as_mut().unwrap().file.size = MAX_FILE + 1;
+    c.save_cloud_entry(&upload, &entry).unwrap();
+    assert_eq!(
+        share_backup_link(&c.hold(), &upload, terms, &mut progress)
+            .await
+            .err(),
+        Some(Error::QuotaExceeded)
+    );
+
+    // A record with neither chunks nor a backup has nothing to read from.
+    let version = c.files_show(&id).unwrap().file.current;
+    let mut record = c.version(&id, &version).unwrap();
+    record.backup = None;
+    c.save_version(&id, &version, &record).unwrap();
+    assert_eq!(
+        share_link(&c.hold(), &id, None, terms, &mut progress)
+            .await
+            .err(),
+        Some(Error::RecoveryIncomplete)
+    );
+}
+
 /// The share vector: a browser page that follows `content-v1.json` opens
 /// the same manifest, key wrap and chunk.
 #[test]

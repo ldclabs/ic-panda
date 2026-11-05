@@ -6,7 +6,9 @@
   import '$lib/components/landing/site.css'
   import './utility.css'
 
-  let { children }: { children: Snippet } = $props()
+  // `aside` takes the place of the way back, for a page whose reader never came
+  // from dMsg.
+  let { children, aside }: { children: Snippet; aside?: Snippet } = $props()
 </script>
 
 <div class="dmsg-site utility-site">
@@ -16,8 +18,10 @@
   </header>
   <main id="main" class="utility-main" tabindex="-1">
     <section class="utility-card">{@render children()}</section>
-    <a class="text-link utility-back" href="/" data-sveltekit-reload
-      >{$t('Back to dMsg')}</a
-    >
+    {#if aside}{@render aside()}{:else}<a
+        class="text-link utility-back"
+        href="/"
+        data-sveltekit-reload>{$t('Back to dMsg')}</a
+      >{/if}
   </main>
 </div>

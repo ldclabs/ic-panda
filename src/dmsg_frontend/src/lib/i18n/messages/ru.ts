@@ -872,6 +872,20 @@ export default {
   'Take an inventory': 'Опись истории',
   'Compare with the desktop app': 'Сверка с настольным приложением',
   'Create the migration file': 'Создание файла переноса',
+  'No account needed': 'Аккаунт не нужен',
+  'Nothing to install': 'Ничего устанавливать не нужно',
+  'Decrypted only in your browser': 'Расшифровка только в вашем браузере',
+  'Send your own files this way': 'Отправляйте свои файлы так же',
+  'dMsg is a private workspace for your files, messages and passwords. Only you and the people you choose can read them.':
+    'dMsg — личное рабочее пространство для файлов, сообщений и паролей. Прочитать их можете только вы и те, кого вы выберете.',
+  'Share a file by link that can expire, ask for a password or be revoked.':
+    'Делитесь файлом по ссылке со сроком действия и паролем, которую можно отозвать.',
+  'The person you send it to needs no account or app.':
+    'Получателю не нужны ни аккаунт, ни приложение.',
+  'Free to start, with encryption included in every plan.':
+    'Начать можно бесплатно, шифрование входит в каждый тариф.',
+  'See how dMsg works': 'Узнать о dMsg',
+  'Download on the App Store': 'Загрузить в App Store',
   'A file shared with you': 'Файл, которым с вами поделились',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Кто-то поделился с вами файлом через dMsg. Он зашифрован; браузер расшифровывает его здесь ключом из ссылки, и ничего из него не попадает на сервер в открытом виде.',

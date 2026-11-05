@@ -8,6 +8,8 @@
 	<string>1 दिन</string>
 	<key>1 hour</key>
 	<string>1 घंटा</string>
+	<key>30 days</key>
+	<string>30 दिन</string>
 	<key>7 days</key>
 	<string>7 दिन</string>
 	<key>A background transfer belongs to another account. Switch to that account to finish or cancel it.</key>
@@ -150,6 +152,8 @@
 	<string>खाली प्रतिस्थापन सहेजे गए मान को मिटा देगा।</string>
 	<key>Anyone with the complete link and required password can retrieve it within its limits.</key>
 	<string>पूर्ण लिंक और आवश्यक पासवर्ड वाला कोई भी व्यक्ति इसकी सीमा के भीतर इसे पुनः प्राप्त कर सकता है।</string>
+	<key>Anyone with the link can download this file until it expires or you revoke it. They need no dMsg account or app.</key>
+	<string>लिंक वाला कोई भी व्यक्ति इसकी अवधि समाप्त होने या आपके रद्द करने तक यह फ़ाइल डाउनलोड कर सकता है। उसे dMsg खाते या ऐप की ज़रूरत नहीं है।</string>
 	<key>Anyone, free of charge</key>
 	<string>कोई भी, नि:शुल्क</string>
 	<key>Anything that exists only in this copy, such as files that were never backed up, is lost for good.</key>
@@ -408,6 +412,8 @@
 	<string>आपके बयानों से चेकलिस्ट पूरी हो गई। अपस्ट्रीम स्थिति केवल प्रदाता के साथ स्वतंत्र रूप से सत्यापन योग्य रहती है।</string>
 	<key>Choose Back up to cloud from a local file to create your first backup.</key>
 	<string>पहला बैकअप बनाने के लिए स्थानीय फ़ाइल पर क्लाउड में बैकअप चुनें।</string>
+	<key>Choose Share by link on a file to send it to anyone. They need no dMsg account or app.</key>
+	<string>किसी फ़ाइल पर लिंक से शेयर करें चुनकर उसे किसी को भी भेजें। उसे dMsg खाते या ऐप की ज़रूरत नहीं है।</string>
 	<key>Choose a credential for:</key>
 	<string>इसके लिए एक क्रेडेंशियल चुनें:</string>
 	<key>Choose a secret</key>
@@ -618,6 +624,8 @@
 	<string>आमंत्रण बनाएँ</string>
 	<key>Create key root</key>
 	<string>कुंजी रूट बनाएँ</string>
+	<key>Create link</key>
+	<string>लिंक बनाएँ</string>
 	<key>Create proposal</key>
 	<string>प्रस्ताव बनाएं</string>
 	<key>Create request</key>
@@ -768,6 +776,8 @@
 	<string>हो गया</string>
 	<key>Download encrypted copy in background</key>
 	<string>पृष्ठभूमि में एन्क्रिप्टेड प्रति डाउनलोड करें</string>
+	<key>Download limit reached</key>
+	<string>डाउनलोड सीमा पूरी हो गई</string>
 	<key>Download sessions</key>
 	<string>सत्र डाउनलोड करें</string>
 	<key>Downloaded</key>
@@ -778,6 +788,8 @@
 	<string>एन्क्रिप्टेड बैकअप डाउनलोड हो रहा है</string>
 	<key>Downloads</key>
 	<string>डाउनलोड</string>
+	<key>Downloads allowed</key>
+	<string>अनुमत डाउनलोड</string>
 	<key>Draft saved</key>
 	<string>ड्राफ़्ट सहेजा गया</string>
 	<key>Draft: </key>
@@ -814,6 +826,8 @@
 	<string>एन्क्रिप्ट किया गया प्रदर्शन डेटा, कैश किए गए अटैचमेंट और क्लाउड फ़ाइल सूचियाँ फिर से डाउनलोड की जा सकती हैं। वॉल्ट, संदेश, स्थानीय फ़ाइल लाइब्रेरी और असिंक किया गया काम सुरक्षित रहेगा।</string>
 	<key>Encrypting</key>
 	<string>एन्क्रिप्ट करना</string>
+	<key>Encrypting and uploading a new copy…</key>
+	<string>नई कॉपी एन्क्रिप्ट और अपलोड हो रही है…</string>
 	<key>Encrypting on this device…</key>
 	<string>इस डिवाइस पर एन्क्रिप्ट किया जा रहा है…</string>
 	<key>Engine</key>
@@ -908,6 +922,8 @@
 	<string>फ़ाइलें आयात हो गईं।</string>
 	<key>Files in this folder</key>
 	<string>इस फ़ोल्डर में फ़ाइलें</string>
+	<key>Files over 100 MiB cannot be shared by link.</key>
+	<string>100 MiB से बड़ी फ़ाइलें लिंक से शेयर नहीं की जा सकतीं।</string>
 	<key>Filters</key>
 	<string>वॉल्ट फ़िल्टर</string>
 	<key>Fingerprint</key>
@@ -1362,6 +1378,8 @@
 	<string>अभी तक कोई रिकॉर्ड नहीं</string>
 	<key>No selected cosigners means no additional cosignature policy. Review the complete proposal before approving.</key>
 	<string>कोई चयनित सहहस्ताक्षरकर्ता नहीं होने का मतलब कोई अतिरिक्त सहहस्ताक्षरकर्ता नीति नहीं है। मंजूरी देने से पहले पूरे प्रस्ताव की समीक्षा करें.</string>
+	<key>No share links yet</key>
+	<string>अभी कोई शेयर लिंक नहीं</string>
 	<key>No shared items waiting</key>
 	<string>कोई साझा आइटम प्रतीक्षा में नहीं है</string>
 	<key>No snapshot</key>
@@ -2010,6 +2028,8 @@
 	<string>इस उपकरण को निरस्त करें</string>
 	<key>Revoke this device and rotate content keys</key>
 	<string>इस डिवाइस को निरस्त करें और सामग्री कुंजियाँ घुमाएँ</string>
+	<key>Revoke this link?</key>
+	<string>यह लिंक रद्द करें?</string>
 	<key>Revoke this snapshot link?</key>
 	<string>इस स्नैपशॉट लिंक को निरस्त करें?</string>
 	<key>Revoked</key>
@@ -2186,6 +2206,8 @@
 	<string>एक प्रति साझा करें</string>
 	<key>Share binding request</key>
 	<string>बाइंडिंग अनुरोध साझा करें</string>
+	<key>Share by link</key>
+	<string>लिंक से शेयर करें</string>
 	<key>Share cosign packet</key>
 	<string>सह-हस्ताक्षर पैकेट साझा करें</string>
 	<key>Share enrollment request</key>
@@ -2194,6 +2216,10 @@
 	<string>आमंत्रण साझा करें</string>
 	<key>Share link</key>
 	<string>लिंक साझा करें</string>
+	<key>Share links</key>
+	<string>शेयर लिंक</string>
+	<key>Share links could not be refreshed. Showing saved links.</key>
+	<string>शेयर लिंक रीफ़्रेश नहीं हो सके। सहेजे गए लिंक दिखाए जा रहे हैं।</string>
 	<key>Share pairing request</key>
 	<string>जोड़ी बनाने का अनुरोध साझा करें</string>
 	<key>Share request</key>
@@ -2372,6 +2398,8 @@
 	<string>अपने प्रदाता पर नए क्रेडेंशियल का परीक्षण करें</string>
 	<key>Text</key>
 	<string>पाठ</string>
+	<key>The cloud copy is removed right away and the link stops working. Copies already downloaded are not affected.</key>
+	<string>क्लाउड कॉपी तुरंत हटा दी जाती है और लिंक काम करना बंद कर देता है। पहले से डाउनलोड की गई कॉपियों पर असर नहीं पड़ता।</string>
 	<key>The copy stays on this iPhone, read-only, for importing. This iPhone then joins your account as a new device: sign in, then approve it from another device or recover the account. The old iPhone keeps working.</key>
 	<string>कॉपी आयात के लिए इस iPhone पर केवल पढ़ने के लिए रहती है। फिर यह iPhone नए डिवाइस के रूप में आपके खाते से जुड़ता है: साइन इन करें, फिर किसी दूसरे डिवाइस से इसे स्वीकृत करें या खाता पुनर्प्राप्त करें। पुराना iPhone काम करता रहता है।</string>
 	<key>The encrypted version will use cloud storage. Your local copy stays on this device.</key>
@@ -2386,6 +2414,8 @@
 	<string>फ़ाइल लाइब्रेरी केवल पुराने उपकरण पर रहेगी। वहाँ जो कभी सिंक या बैकअप नहीं हुआ, वह उपकरण रद्द होने पर खो जाएगा।</string>
 	<key>The file or folder is no longer available. Refresh the list.</key>
 	<string>फ़ाइल या फ़ोल्डर अब उपलब्ध नहीं है। सूची रीफ़्रेश करें।</string>
+	<key>The full link is not available on this device.</key>
+	<string>पूरा लिंक इस डिवाइस पर उपलब्ध नहीं है।</string>
 	<key>The inbox key has not synced to this device. Sync the device that enabled receiving, then retry here.</key>
 	<string>इनबॉक्स की कुंजी अभी इस डिवाइस पर सिंक नहीं हुई है। जिस डिवाइस पर संदेश प्राप्त करना चालू किया था, उसे सिंक करें, फिर यहाँ दोबारा कोशिश करें।</string>
 	<key>The invitation is bound to this account. Sharing the link does not grant access to another account.</key>
@@ -2396,6 +2426,12 @@
 	<string>बातचीत में शामिल होने का विकल्प चुनने पर आमंत्रण सत्यापित होता है।</string>
 	<key>The last verified observation is kept. Current status could not be confirmed.</key>
 	<string>अंतिम सत्यापित अवलोकन रखा गया है। वर्तमान स्थिति की पुष्टि नहीं की जा सकी.</string>
+	<key>The link is ready. It contains the key to this file, so send it over a private channel.</key>
+	<string>लिंक तैयार है। इसमें इस फ़ाइल की कुंजी है, इसलिए इसे निजी माध्यम से भेजें।</string>
+	<key>The link opens only with its password. Send the password another way.</key>
+	<string>लिंक केवल अपने पासवर्ड से खुलता है। पासवर्ड किसी और तरीके से भेजें।</string>
+	<key>The link uses a new encrypted copy that counts toward your cloud storage until it is revoked or expires.</key>
+	<string>लिंक एक नई एन्क्रिप्ट की गई कॉपी का उपयोग करता है, जो रद्द होने या अवधि समाप्त होने तक आपके क्लाउड स्टोरेज में गिनी जाती है।</string>
 	<key>The local binding key is unavailable. Keep this workspace and review your recovery options before locking it.</key>
 	<string>स्थानीय बाइंडिंग कुंजी अनुपलब्ध है. इस कार्यक्षेत्र को रखें और इसे लॉक करने से पहले अपने पुनर्प्राप्ति विकल्पों की समीक्षा करें।</string>
 	<key>The maximum fee is below the estimate.</key>
@@ -2506,6 +2542,8 @@
 	<string>यह फ़ाइल क्लाउड बैकअप की मौजूदा फ़ाइल आकार सीमा से बड़ी है।</string>
 	<key>This file is in Trash. Restore it before opening it.</key>
 	<string>यह फ़ाइल ट्रैश में है। खोलने से पहले इसे रीस्टोर करें।</string>
+	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
+	<string>यह फ़ाइल इस डिवाइस पर नहीं है। dMsg इसे केवल नई कॉपी एन्क्रिप्ट करने के लिए अस्थायी रूप से डाउनलोड करता है, और आपकी लाइब्रेरी नहीं बदलती।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ये इतिहास इसी डिवाइस का है. यह डेस्कटॉप-स्थानीय CLI, SSH या किसी अन्य डिवाइस से फ़ाइल-माउंट अनुमोदन को प्रतिबिंबित नहीं करता है।</string>
 	<key>This iPhone</key>
@@ -2612,6 +2650,8 @@
 	<string>अपुष्ट प्रस्ताव</string>
 	<key>Unknown state</key>
 	<string>अज्ञात अवस्था</string>
+	<key>Unlimited</key>
+	<string>असीमित</string>
 	<key>Unlock dMsg to review this request.</key>
 	<string>इस अनुरोध की समीक्षा करने के लिए dMsg को अनलॉक करें।</string>
 	<key>Unlock policy</key>
