@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld रद्द किए गए या अब आपके खाते में न रहे उपकरण अभी भी इस वॉलेट से बँधे हैं।</string>
+	<key>%lld files · %@</key>
+	<string>%lld फ़ाइलें · %@</string>
 	<key>1 day</key>
 	<string>1 दिन</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>अनुमोदित बंधन स्वीकार करें</string>
 	<key>Accepted by service</key>
 	<string>सेवा ने स्वीकार किया</string>
+	<key>Accepting files</key>
+	<string>खुला</string>
 	<key>Access granted</key>
 	<string>प्रवेश दिया गया</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>सक्रिय</string>
 	<key>Active conversations</key>
 	<string>सक्रिय वार्तालाप</string>
+	<key>Active links</key>
+	<string>सक्रिय लिंक</string>
 	<key>Activity on this device</key>
 	<string>इस डिवाइस पर गतिविधि</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>संपत्ति का विवरण उपलब्ध नहीं है। राशि भरने से पहले पुनः प्रयास करें।</string>
 	<key>Asset identifier</key>
 	<string>संपत्ति पहचानकर्ता</string>
+	<key>At most %lld names at a time.</key>
+	<string>एक बार में अधिकतम %lld नाम।</string>
 	<key>Attach</key>
 	<string>संलग्न करें</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>चयन साफ़ करें</string>
 	<key>Close invitation</key>
 	<string>आमंत्रण बंद करें</string>
+	<key>Close link</key>
+	<string>लिंक बंद करें</string>
 	<key>Closed</key>
 	<string>बंद</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>क्लाउड स्टोरेज</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>क्लाउड स्टोरेज या फ़ाइल आकार की सीमा पार हो गई है। अपना प्लान और बैकअप आकार जाँचें।</string>
+	<key>Collect files</key>
+	<string>फ़ाइलें मँगाएँ</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>फ़ाइलें मँगाने के लिए सशुल्क प्लान चाहिए</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>दोनों स्क्रीन पर डिवाइस ID मिलाएँ और कंप्यूटर पर मंज़ूरी दें।</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>खाता ID कॉपी करें</string>
 	<key>Copy address</key>
 	<string>पता कॉपी करें</string>
+	<key>Copy all</key>
+	<string>सभी कॉपी करें</string>
 	<key>Copy binding request</key>
 	<string>बाइंडिंग अनुरोध की प्रतिलिपि बनाएँ</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>प्रस्तावित पता नीति के लिए सहहस्ताक्षरकर्ता</string>
 	<key>Create</key>
 	<string>बनाएँ</string>
+	<key>Create %lld links</key>
+	<string>%lld लिंक बनाएँ</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>इसके प्रदाता पर एक नया क्रेडेंशियल बनाएं और इसे वॉल्ट में सहेजें</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>स्थानांतरण प्रस्ताव बनाएं</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>पासवर्ड, नोट्स और फ़ाइलों को सहेजना शुरू करने के लिए अपना एन्क्रिप्टेड कार्यक्षेत्र बनाएं।</string>
+	<key>Creating %lld of %lld…</key>
+	<string>बन रहे हैं %lld/%lld…</string>
 	<key>Credential</key>
 	<string>साख</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>खाता हटाएँ</string>
 	<key>Delete cloud backup</key>
 	<string>क्लाउड बैकअप हटाएँ</string>
+	<key>Delete cloud copy</key>
+	<string>क्लाउड कॉपी हटाएँ</string>
 	<key>Delete copy</key>
 	<string>कॉपी हटाएँ</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>इस बटुए को फ़्रीज़ करें?</string>
 	<key>Freeze wallet</key>
 	<string>बटुआ फ़्रीज़ करें</string>
+	<key>From (not verified):</key>
+	<string>प्रेषक (असत्यापित):</string>
 	<key>From block %llu</key>
 	<string>ब्लॉक %llu से</string>
+	<key>Full</key>
+	<string>भरा हुआ</string>
 	<key>Generate password</key>
 	<string>पासवर्ड बनाएँ</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>युग्मन अनुरोध का निरीक्षण करें</string>
 	<key>Inspect this version</key>
 	<string>इस संस्करण का निरीक्षण करें</string>
+	<key>Instructions (optional)</key>
+	<string>निर्देश (वैकल्पिक)</string>
 	<key>Insufficient balance</key>
 	<string>अपर्याप्त टोकन शेष.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>डिवाइस बदलने के लिए ऐसा अधिकृत डिवाइस रखें जिसे आप अनलॉक कर सकें। सभी अधिकृत डिवाइस खोने पर लॉगिन वापस मिलने से भी क्लाउड सामग्री वापस नहीं आएगी।</string>
 	<key>Keep current version</key>
 	<string>वर्तमान संस्करण रखें</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>पूरा होने तक dMsg खुला रखें।</string>
 	<key>Keep draft and leave</key>
 	<string>ड्राफ़्ट रखकर बाहर जाएँ</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · प्रतीक्षा अवधि के बाद</string>
 	<key>Language</key>
 	<string>भाषा</string>
+	<key>Largest file</key>
+	<string>सबसे बड़ी फ़ाइल</string>
 	<key>Largest first</key>
 	<string>सबसे बड़ी पहले</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>लाइसेंस कुंजी</string>
 	<key>Licensed To</key>
 	<string>को लाइसेंस दिया गया</string>
+	<key>Link closed</key>
+	<string>बंद</string>
 	<key>Link limits</key>
 	<string>लिंक सीमा</string>
 	<key>Links</key>
 	<string>कड़ियाँ</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>लिंक तैयार हैं। हर लिंक सिर्फ़ उसी व्यक्ति को भेजें।</string>
 	<key>Load earlier activity</key>
 	<string>पिछली गतिविधि लोड करें</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>नई बातचीत</string>
 	<key>New field type</key>
 	<string>नया फ़ील्ड प्रकार</string>
+	<key>New files</key>
+	<string>नई फ़ाइलें</string>
 	<key>New folder</key>
 	<string>नया फ़ोल्डर</string>
 	<key>New free letter</key>
 	<string>नया निःशुल्क पत्र</string>
+	<key>New link</key>
+	<string>नया लिंक</string>
 	<key>New revision</key>
 	<string>नया संशोधन</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>अभी तक कोई रिकॉर्ड नहीं</string>
 	<key>No letters yet</key>
 	<string>अभी तक कोई पत्र नहीं</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>अभी कोई लिंक नहीं। एक बनाएँ और उन्हें भेजें जिन्हें आपको फ़ाइलें भेजनी हैं।</string>
 	<key>No matching accounts</key>
 	<string>कोई मिलान नहीं मिला</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>इस डिवाइस पर कोई स्नैपशॉट नहीं</string>
 	<key>No transfer was started.</key>
 	<string>कोई ट्रांसफ़र शुरू नहीं हुआ।</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>इससे अब कोई फ़ाइलें नहीं भेज सकेगा। मिली हुई फ़ाइलें बनी रहेंगी।</string>
 	<key>Not delivered</key>
 	<string>वितरित नहीं किया गया</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>टिप्पणियाँ</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>इस मार्ग से अभी डस्ट सीमा से ऊपर कुछ भी नहीं जा सकता।</string>
+	<key>Nothing has arrived yet.</key>
+	<string>अभी कुछ नहीं आया।</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>अधिसूचना पंजीकरण को पुनः प्रयास करने की आवश्यकता है। फ़ोरग्राउंड सिंक उपलब्ध रहता है.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>ऑन-चेन पुनर्प्राप्ति</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>अनुमोदन के बाद नया उपकरण इस उपकरण की भूमिका के साथ जुड़ता है और सामग्री रूट उसे मिल जाता है; इसके बाद यह उपकरण केवल सौंपने का काम पूरा कर सकता है।</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>हर पंक्ति में एक नाम से हर व्यक्ति के लिए अलग लिंक बनता है। नाम सिर्फ़ आप देखते हैं।</string>
 	<key>One-time code</key>
 	<string>एक बार का कोड</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>dMsg कार्यक्षेत्र खोलें</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg खोलें। अनलॉक और अनुमोदन के लिए अभी भी ऐप में आपकी सहभागिता की आवश्यकता होती है।</string>
+	<key>Open for</key>
+	<string>कब तक खुला</string>
 	<key>Open invitation in browser</key>
 	<string>ब्राउज़र में आमंत्रण खोलें</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>इस एजेंट को रोकें</string>
 	<key>Pause transfer</key>
 	<string>स्थानांतरण रोकें</string>
+	<key>Paused</key>
+	<string>रुका हुआ</string>
 	<key>Payment card</key>
 	<string>भुगतान कार्ड</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>प्लान</string>
 	<key>Plan and usage</key>
 	<string>योजना एवं उपयोग</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus और उससे ऊपर के प्लान में आप लिंक से किसी से भी फ़ाइलें माँग सकते हैं। खाते की ज़रूरत नहीं, हर कोई सिर्फ़ अपना भेजा देखता है, और फ़ाइलें सिर्फ़ आप खोल सकते हैं।</string>
 	<key>Policy points to an unavailable field</key>
 	<string>नीति एक अनुपलब्ध फ़ील्ड की ओर इशारा करती है</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>कारण</string>
 	<key>Receive here</key>
 	<string>यहाँ प्राप्त करें</string>
+	<key>Received files</key>
+	<string>प्राप्त</string>
 	<key>Received for review</key>
 	<string>समीक्षा हेतु प्राप्त हुआ</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>पुराने iPhone की जगह लें</string>
 	<key>Replacement key</key>
 	<string>बदले में कुंजी</string>
+	<key>Replaces %@</key>
+	<string>%@ की जगह</string>
 	<key>Reply</key>
 	<string>उत्तर</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>इन आइटमों को dMsg के लिए सहेजें। एक खाता चुनें और ऐप खोलने और अनलॉक करने के बाद उन्हें आयात करें।</string>
 	<key>Save to dMsg</key>
 	<string>dMsg में सहेजें</string>
+	<key>Save to library</key>
+	<string>लाइब्रेरी में सहेजें</string>
 	<key>Saved</key>
 	<string>सहेजा गया</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>इस डिवाइस पर सहेजा गया. परिवर्तन सिंक होने की प्रतीक्षा कर रहे हैं.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>सहेजी गई प्रोफ़ाइल प्रकाशित हो गई है। आपका ड्राफ़्ट अभी सबमिट नहीं हुआ है।</string>
+	<key>Saved to your library</key>
+	<string>आपकी लाइब्रेरी में सहेजा गया</string>
 	<key>Saved. Publication is pending.</key>
 	<string>सहेजा गया. प्रकाशन लंबित है.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave इस डिवाइस पर उपलब्ध नहीं है।</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>सुरक्षा आवश्यकताएँ बदल गईं. अनुरोध को स्वीकृत करने से पहले उसकी दोबारा समीक्षा करें.</string>
+	<key>See plans</key>
+	<string>प्लान देखें</string>
 	<key>Select a conversation</key>
 	<string>एक वार्तालाप चुनें</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>खारिज किए गए निष्कर्ष दिखाएँ</string>
 	<key>Show draft</key>
 	<string>दिखाएँ कि आपने क्या टाइप किया है</string>
+	<key>Show in library</key>
+	<string>लाइब्रेरी में दिखाएँ</string>
 	<key>Show share link</key>
 	<string>शेयर लिंक दिखाएँ</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>सोलाना</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>कुछ फ़ाइलें सिर्फ़ इस iPhone पर हैं, उनका न क्लाउड बैकअप है न हाल का सिंक।</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>कुछ लिंक नहीं बने। बचे नाम नीचे हैं, फिर से कोशिश करें।</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>कुछ स्रोत रिकॉर्ड या गुण समर्थित नहीं हैं. यह आयात केवल चयनित फ़ील्ड की प्रतिलिपि बनाता है; पुरालेख अनुलग्नक, पासकी और इतिहास यहां आयात नहीं किए जाते हैं।</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>यह एक प्रस्ताव बनाता है. यह तब तक फंड ट्रांसफर नहीं करता जब तक वॉलेट की मंजूरी और निष्पादन आवश्यकताएं पूरी नहीं हो जातीं। राशियाँ सटीक आधार-इकाई पूर्णांक हैं।</string>
 	<key>This device</key>
 	<string>यह उपकरण</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>इस डिवाइस पर अभी इस लिंक की कुंजी नहीं है।</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>इस डिवाइस में ऐसे परिवर्तन हैं जो समन्वयित नहीं हुए हैं. खाता हटाने से पहले आपको जो कुछ भी चाहिए उसे सहेज लें।</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>यह उपकरण इसकी जगह लेता है</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>यह फ़ील्ड तब तक दिखाई देगा जब तक आप इसे छिपाएँ या यह स्क्रीन छोड़ें।</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>यह फ़ाइल खुल नहीं सकती। आप इसे हटा सकते हैं।</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>यह फ़ाइल इस कार्रवाई के लिए अनुमत आकार सीमा से बड़ी है।</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>यह फ़ाइल ट्रैश में है। खोलने से पहले इसे रीस्टोर करें।</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>यह फ़ाइल इस डिवाइस पर नहीं है। dMsg इसे केवल नई कॉपी एन्क्रिप्ट करने के लिए अस्थायी रूप से डाउनलोड करता है, और आपकी लाइब्रेरी नहीं बदलती।</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>इससे जगह खाली होगी। लाइब्रेरी में सहेजी गई कॉपी बनी रहेगी।</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ये इतिहास इसी डिवाइस का है. यह डेस्कटॉप-स्थानीय CLI, SSH या किसी अन्य डिवाइस से फ़ाइल-माउंट अनुमोदन को प्रतिबिंबित नहीं करता है।</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>इस iPhone पर अपने मौजूदा खाते का उपयोग करने के लिए, अपने किसी अधिकृत डिवाइस से इस डिवाइस को स्वीकृत करें।</string>
 	<key>Total</key>
 	<string>कुल</string>
+	<key>Total size</key>
+	<string>कुल आकार</string>
 	<key>Transfer between devices</key>
 	<string>उपकरणों के बीच स्थानांतरण</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>वेबसाइट</string>
 	<key>Welcome back.</key>
 	<string>पुनः स्वागत है.</string>
+	<key>What are you asking for?</key>
+	<string>आप क्या माँग रहे हैं?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg खुला और अनलॉक होने पर वॉल्ट अपने आप सिंक होता है। बातचीत या इनबॉक्स खोलने पर संदेश अपडेट होते हैं। फ़ाइल बैकअप के लिए अलग पुष्टि आवश्यक है। आप ऑटो सिंक कभी भी बंद कर सकते हैं।</string>
+	<key>Who is it for? (optional)</key>
+	<string>यह किसके लिए है? (वैकल्पिक)</string>
 	<key>Who may contact you</key>
 	<string>आपसे कौन संपर्क कर सकता है</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>लिंक वाला हर व्यक्ति इन्हें सादे पाठ में देखेगा।</string>
 	<key>Withdraw</key>
 	<string>वापस लेना</string>
 	<key>Withdraw message</key>
 	<string>संदेश वापस लें</string>
 	<key>Withdraw this message?</key>
 	<string>यह संदेश वापस लें?</string>
+	<key>Withdrawn by the sender</key>
+	<string>भेजने वाले ने वापस ली</string>
 	<key>Without a cloud backup</key>
 	<string>क्लाउड बैकअप के बिना</string>
 	<key>Workspace copied from another iPhone</key>

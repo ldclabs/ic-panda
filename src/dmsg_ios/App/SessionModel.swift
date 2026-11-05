@@ -149,6 +149,9 @@ final class SessionModel {
     var fixtureFileSaves = 0
     var fixtureFileMoveFailed = false
     var fixtureFileLinks: [FileLink] = []
+    var fixtureFileRequests: [FileRequest]?
+    var fixtureReceivedFiles: [ReceivedFile] = []
+    var fixtureFileRequestAttempts = 0
     var fixtureFileLinkAttempts = 0
     var fixtureFileLinkRefreshes = 0
     var fixtureVaultItems: [VaultItem] = []

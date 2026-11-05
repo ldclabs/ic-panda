@@ -183,6 +183,55 @@ extension SessionModel {
         return fixtureFileLinks
     }
 
+    func fileRequestsFixture() -> [FileRequest] {
+        if let fixtureFileRequests { return fixtureFileRequests }
+        let links = ProcessInfo.processInfo.arguments.contains("--ui-files-requests") ? [
+            FileRequest(requestId: "fixture-request-open", url: "https://dmsg.test/r/account/open#key", title: "Tax documents", instructions: "Send last year’s statements.", label: "Ada", expiresAt: 1_794_000_000_000, status: "open", files: 4, bytes: 4_194_304, unread: true),
+            FileRequest(requestId: "fixture-request-long", url: "https://dmsg.test/r/account/long#key", title: "项目交付资料 — Delivery documents with a long descriptive title وثائق المشروع المشتركة", instructions: nil, label: "Long client name", expiresAt: 1_794_000_000_000, status: "full", files: 12, bytes: 524_288_000, unread: false),
+            FileRequest(requestId: "fixture-request-closed", title: "Closed link", expiresAt: 1_794_000_000_000, status: "revoked", files: 0, bytes: 0, unread: false),
+            FileRequest(requestId: "fixture-request-other-device", expiresAt: 1_794_000_000_000, status: "open", files: 0, bytes: 0, unread: false),
+        ] : []
+        fixtureFileRequests = links
+        fixtureReceivedFiles = links.isEmpty ? [] : [
+            ReceivedFile(uploadId: "fixture-upload-new", state: "received", name: "statement.pdf", mime: "application/pdf", size: 2048, sender: .init(name: "Ada", note: "Page 3 is the one you asked for."), bytes: 2100),
+            ReceivedFile(uploadId: "fixture-upload-saved", state: "saved", name: "客户合同扫描件 — Signed contract with a long descriptive filename.pdf", mime: "application/pdf", size: 4096, sender: .init(name: "عائشة بنت محمد", note: ""), replaces: "fixture-upload-new", bytes: 4200, savedFile: "fixture-note"),
+            ReceivedFile(uploadId: "fixture-upload-withdrawn", state: "withdrawn", name: "withdrawn.pdf", mime: "application/pdf", size: 1024, bytes: 1100),
+            ReceivedFile(uploadId: "fixture-upload-unreadable", state: "unreadable", bytes: 1100),
+        ]
+        return links
+    }
+
+    func fileRequestCapacityFixture() -> FileBackupCapacity {
+        let free = ProcessInfo.processInfo.arguments.contains("--ui-files-request-free")
+        return FileBackupCapacity(backupMaxFileBytes: 100 * 1024 * 1024, storageLimit: 5120 * 1024 * 1024, committed: 0, reserved: 0, fileRequestLimit: free ? 0 : 10)
+    }
+
+    func createFileRequestFixture(title: String, instructions: String, label: String) throws -> FileRequest {
+        fixtureFileRequestAttempts += 1
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-request-failure"), label == "Lin", fixtureFileRequestAttempts == 2 {
+            throw MobileError.Failure(code: "UNAVAILABLE")
+        }
+        let id = "fixture-request-\(fixtureFileRequestAttempts)"
+        let link = FileRequest(requestId: id, url: "https://dmsg.test/r/account/\(id)#key", title: title, instructions: instructions, label: label.isEmpty ? nil : label, expiresAt: 1_794_000_000_000, status: "open", files: 0, bytes: 0, unread: false)
+        fixtureFileRequests = [link] + fileRequestsFixture()
+        return link
+    }
+
+    func revokeFileRequestFixture(_ id: String) throws -> FileRequest {
+        var links = fileRequestsFixture()
+        guard let index = links.firstIndex(where: { $0.id == id }) else { throw MobileError.Failure(code: "NOT_FOUND") }
+        links[index].status = "revoked"
+        fixtureFileRequests = links
+        return links[index]
+    }
+
+    func saveRequestFileFixture(_ upload: String) async throws {
+        if ProcessInfo.processInfo.arguments.contains("--ui-files-request-slow") { try await Task.sleep(for: .seconds(2)) }
+        guard let index = fixtureReceivedFiles.firstIndex(where: { $0.id == upload }) else { throw MobileError.Failure(code: "NOT_FOUND") }
+        fixtureReceivedFiles[index].state = "saved"
+        fixtureReceivedFiles[index].savedFile = "fixture-local"
+    }
+
     func revokeFileLinkFixture(_ id: String) throws -> FileLink {
         guard let index = fixtureFileLinks.firstIndex(where: { $0.id == id }) else { throw MobileError.Failure(code: "NOT_FOUND") }
         fixtureFileLinks[index].state = "revoked"

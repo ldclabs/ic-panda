@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>Urządzenia unieważnione lub nieobecne już na Twoim koncie wciąż powiązane z tym portfelem: %lld.</string>
+	<key>%lld files · %@</key>
+	<string>Pliki: %lld · %@</string>
 	<key>1 day</key>
 	<string>1 dzień</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Zaakceptuj zatwierdzone wiązanie</string>
 	<key>Accepted by service</key>
 	<string>Przyjęte przez usługę</string>
+	<key>Accepting files</key>
+	<string>Otwarte</string>
 	<key>Access granted</key>
 	<string>Dostęp przyznany</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Aktywny</string>
 	<key>Active conversations</key>
 	<string>Aktywne rozmowy</string>
+	<key>Active links</key>
+	<string>Aktywne linki</string>
 	<key>Activity on this device</key>
 	<string>Aktywność na tym urządzeniu</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Dane aktywa są niedostępne. Spróbuj ponownie przed wpisaniem kwoty.</string>
 	<key>Asset identifier</key>
 	<string>Identyfikator zasobu</string>
+	<key>At most %lld names at a time.</key>
+	<string>Najwyżej %lld imion naraz.</string>
 	<key>Attach</key>
 	<string>Dołącz</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Wyczyść zaznaczenie</string>
 	<key>Close invitation</key>
 	<string>Zamknij zaproszenie</string>
+	<key>Close link</key>
+	<string>Zamknij link</string>
 	<key>Closed</key>
 	<string>Zamknięte</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Przechowywanie w chmurze</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Przekroczono limit miejsca w chmurze lub rozmiaru pliku. Sprawdź plan i rozmiar kopii.</string>
+	<key>Collect files</key>
+	<string>Zbieraj pliki</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Zbieranie plików wymaga płatnego planu</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Porównaj identyfikator urządzenia na obu ekranach i zatwierdź na komputerze.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Kopiuj ID konta</string>
 	<key>Copy address</key>
 	<string>Skopiuj adres</string>
+	<key>Copy all</key>
+	<string>Kopiuj wszystko</string>
 	<key>Copy binding request</key>
 	<string>Skopiuj wiążące żądanie</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Cosigners dla proponowanej polityki adresowej</string>
 	<key>Create</key>
 	<string>Utwórz</string>
+	<key>Create %lld links</key>
+	<string>Utwórz linki: %lld</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Utwórz nowe poświadczenie u jego dostawcy i zapisz je w skarbcu</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Utwórz propozycję przeniesienia</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Utwórz zaszyfrowany obszar roboczy, aby rozpocząć zapisywanie haseł, notatek i plików.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Tworzenie %lld z %lld…</string>
 	<key>Credential</key>
 	<string>Poświadczenie</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Usuń konto</string>
 	<key>Delete cloud backup</key>
 	<string>Usuń kopię zapasową w chmurze</string>
+	<key>Delete cloud copy</key>
+	<string>Usuń kopię w chmurze</string>
 	<key>Delete copy</key>
 	<string>Usuń kopię</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>Zamrozić ten portfel?</string>
 	<key>Freeze wallet</key>
 	<string>Zamroź portfel</string>
+	<key>From (not verified):</key>
+	<string>Od (niezweryfikowane):</string>
 	<key>From block %llu</key>
 	<string>Od bloku %llu</string>
+	<key>Full</key>
+	<string>Pełne</string>
 	<key>Generate password</key>
 	<string>Wygeneruj hasło</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Sprawdź żądanie parowania</string>
 	<key>Inspect this version</key>
 	<string>Sprawdź tę wersję</string>
+	<key>Instructions (optional)</key>
+	<string>Instrukcje (opcjonalnie)</string>
 	<key>Insufficient balance</key>
 	<string>Niewystarczające saldo konta tokenowego.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Zachowaj autoryzowane urządzenie, które możesz odblokować, aby zmienić urządzenie. Po utracie wszystkich odzyskanie logowania nie przywróci treści w chmurze.</string>
 	<key>Keep current version</key>
 	<string>Zachowaj aktualną wersję</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Nie zamykaj dMsg do zakończenia.</string>
 	<key>Keep draft and leave</key>
 	<string>Zachowaj szkic i wyjdź</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · po upływie czasu</string>
 	<key>Language</key>
 	<string>Język</string>
+	<key>Largest file</key>
+	<string>Największy plik</string>
 	<key>Largest first</key>
 	<string>Największe najpierw</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>Klucz licencyjny</string>
 	<key>Licensed To</key>
 	<string>Licencjonowane dla</string>
+	<key>Link closed</key>
+	<string>Zamknięte</string>
 	<key>Link limits</key>
 	<string>Limity linków</string>
 	<key>Links</key>
 	<string>Linki</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Linki gotowe. Wyślij każdy tylko do właściwej osoby.</string>
 	<key>Load earlier activity</key>
 	<string>Załaduj wcześniejszą aktywność</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>Nowa rozmowa</string>
 	<key>New field type</key>
 	<string>Nowy typ pola</string>
+	<key>New files</key>
+	<string>Nowe pliki</string>
 	<key>New folder</key>
 	<string>Nowy folder</string>
 	<key>New free letter</key>
 	<string>Nowy darmowy list</string>
+	<key>New link</key>
+	<string>Nowy link</string>
 	<key>New revision</key>
 	<string>Nowa wersja</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>Nie ma jeszcze żadnych rekordów</string>
 	<key>No letters yet</key>
 	<string>Nie ma jeszcze żadnych listów</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>Nie ma jeszcze linków. Utwórz link i wyślij go osobom, które mają przesłać Ci pliki.</string>
 	<key>No matching accounts</key>
 	<string>Brak pasujących wyników</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>Brak zrzutów ekranu na tym urządzeniu</string>
 	<key>No transfer was started.</key>
 	<string>Nie rozpoczęto żadnego transferu.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Nikt nie wyśle już przez niego plików. Otrzymane pliki zostają.</string>
 	<key>Not delivered</key>
 	<string>Nie dostarczono</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Notatki</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Tą ścieżką nie da się jeszcze przenieść niczego powyżej progu pyłu.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Jeszcze nic nie dotarło.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Należy ponowić rejestrację powiadomienia. Synchronizacja na pierwszym planie pozostaje dostępna.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>Odzyskiwanie on-chain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Po zatwierdzeniu nowe urządzenie dołącza z rolą tego urządzenia, a korzeń treści przechodzi na nie; to urządzenie może potem tylko dokończyć przekazanie.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>Jedno imię w wierszu tworzy osobny link dla każdej osoby. Imiona widzisz tylko Ty.</string>
 	<key>One-time code</key>
 	<string>Kod jednorazowy</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>Otwórz obszar roboczy dMsg</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Otwórz dMsg. Odblokowanie i zatwierdzenie nadal wymaga interakcji w aplikacji.</string>
+	<key>Open for</key>
+	<string>Otwarte przez</string>
 	<key>Open invitation in browser</key>
 	<string>Otwórz zaproszenie w przeglądarce</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>Wstrzymaj tego agenta</string>
 	<key>Pause transfer</key>
 	<string>Wstrzymaj transfer</string>
+	<key>Paused</key>
+	<string>Wstrzymane</string>
 	<key>Payment card</key>
 	<string>Karta płatnicza</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Planuj</string>
 	<key>Plan and usage</key>
 	<string>Planuj i używaj</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Od planu Plus możesz prosić o pliki przez link. Konto nie jest potrzebne, każdy widzi tylko to, co wysłał, a pliki otworzysz tylko Ty.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Zasada wskazuje na niedostępne pole</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Powód</string>
 	<key>Receive here</key>
 	<string>Odbierz tutaj</string>
+	<key>Received files</key>
+	<string>Otrzymane</string>
 	<key>Received for review</key>
 	<string>Otrzymane do recenzji</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Zastąp stary iPhone</string>
 	<key>Replacement key</key>
 	<string>Klucz zastępczy</string>
+	<key>Replaces %@</key>
+	<string>Zastępuje %@</string>
 	<key>Reply</key>
 	<string>Odpowiedz</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>Zapisz te elementy dla dMsg. Wybierz konto i zaimportuj je po otwarciu i odblokowaniu aplikacji.</string>
 	<key>Save to dMsg</key>
 	<string>Zapisz w dMsg</string>
+	<key>Save to library</key>
+	<string>Zapisz w bibliotece</string>
 	<key>Saved</key>
 	<string>Zapisano</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Zapisano na tym urządzeniu. Zmiany czekają na synchronizację.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Zapisany profil został opublikowany. Twoja wersja robocza nie została przesłana.</string>
+	<key>Saved to your library</key>
+	<string>Zapisano w bibliotece</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Zapisano. Publikacja jest w oczekiwaniu.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave jest niedostępny na tym urządzeniu.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Zmieniły się wymagania bezpieczeństwa. Przejrzyj prośbę ponownie przed jej zatwierdzeniem.</string>
+	<key>See plans</key>
+	<string>Zobacz plany</string>
 	<key>Select a conversation</key>
 	<string>Wybierz rozmowę</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Pokaż odrzucone ustalenia</string>
 	<key>Show draft</key>
 	<string>Pokaż co wpisałeś</string>
+	<key>Show in library</key>
+	<string>Pokaż w bibliotece</string>
 	<key>Show share link</key>
 	<string>Pokaż link do udostępniania</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Niektóre pliki istnieją tylko na tym iPhonie, bez kopii w chmurze i bez niedawnej synchronizacji.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>Nie wszystkie linki powstały. Pozostałe imiona są poniżej, aby spróbować ponownie.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Niektóre rekordy lub właściwości źródłowe nie są obsługiwane. Ten import kopiuje tylko wybrane pola; załączniki archiwalne, hasła i historia nie są tutaj importowane.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>To tworzy propozycję. Nie przekazuje środków, dopóki portfel nie zostanie spełniony wymagania dotyczące zatwierdzenia i działania. Kwoty są dokładnymi liczbami całkowitymi w jednostkach podstawowych.</string>
 	<key>This device</key>
 	<string>To urządzenie</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>To urządzenie nie ma jeszcze klucza tego linku.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Na tym urządzeniu znajdują się zmiany, które nie zostały zsynchronizowane. Zanim usuniesz konto, zapisz wszystko, czego potrzebujesz.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>To urządzenie zastępuje</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>To pole pozostanie widoczne, dopóki go nie ukryjesz lub nie opuścisz tego ekranu.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>Nie można otworzyć tego pliku. Możesz go usunąć.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Ten plik przekracza limit rozmiaru dla tej operacji.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>Ten plik jest w koszu. Przywróć go przed otwarciem.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Tego pliku nie ma na tym urządzeniu. dMsg pobiera go tylko na czas zaszyfrowania nowej kopii, a Twoja biblioteka się nie zmienia.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>To zwalnia miejsce. Kopia zapisana w bibliotece zostaje.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ta historia należy do tego urządzenia. Nie odzwierciedla lokalnego interfejsu CLI na komputerze stacjonarnym, SSH ani zatwierdzeń montowania plików z innego urządzenia.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>Aby korzystać z istniejącego konta na tym iPhonie, zatwierdź to urządzenie na jednym z autoryzowanych urządzeń.</string>
 	<key>Total</key>
 	<string>Razem</string>
+	<key>Total size</key>
+	<string>Łączny rozmiar</string>
 	<key>Transfer between devices</key>
 	<string>Przesyłanie między urządzeniami</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Witryna</string>
 	<key>Welcome back.</key>
 	<string>Witaj ponownie.</string>
+	<key>What are you asking for?</key>
+	<string>O co prosisz?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Gdy dMsg jest otwarty i odblokowany, sejf synchronizuje się automatycznie. Wiadomości odświeżają się po otwarciu rozmowy lub skrzynki odbiorczej. Kopie zapasowe plików wymagają osobnego potwierdzenia. Automatyczną synchronizację można wyłączyć w dowolnej chwili.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Dla kogo? (opcjonalnie)</string>
 	<key>Who may contact you</key>
 	<string>Kto może się z Tobą skontaktować</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Każdy z linkiem zobaczy je jako zwykły tekst.</string>
 	<key>Withdraw</key>
 	<string>Wycofaj</string>
 	<key>Withdraw message</key>
 	<string>Wycofaj wiadomość</string>
 	<key>Withdraw this message?</key>
 	<string>Wycofać tę wiadomość?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Wycofane przez nadawcę</string>
 	<key>Without a cloud backup</key>
 	<string>Bez kopii w chmurze</string>
 	<key>Workspace copied from another iPhone</key>

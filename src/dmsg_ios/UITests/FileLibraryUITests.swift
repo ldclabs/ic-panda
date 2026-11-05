@@ -354,6 +354,112 @@ final class FileLibraryUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["file.link.ready"].waitForExistence(timeout: 5))
     }
 
+    private func openRequests(_ app: XCUIApplication, title: String = "Collect files") {
+        tap(app.buttons["files.tools"], in: app)
+        tap(app.buttons[title], in: app)
+    }
+
+    func testCollectingFilesOnAFreePlanLeadsToThePlans() {
+        let app = launch(["--ui-files-request-free"])
+        openRequests(app)
+        XCTAssertTrue(app.descendants(matching: .any)["file.request.upgrade"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["No links yet. Make one and send it to whoever should send you files."].exists)
+        XCTAssertFalse(app.buttons["file.request.new"].isEnabled)
+        capture(app, "Collecting files explains the paid plan")
+        tap(app.buttons["file.request.plans"], in: app)
+        XCTAssertFalse(app.buttons["file.request.plans"].waitForExistence(timeout: 2))
+    }
+
+    func testOneLinkPerNameAndAFailureKeepsTheRest() {
+        let app = launch(["--ui-files-request-failure"])
+        openRequests(app)
+        tap(app.buttons["file.request.new"], in: app)
+        let create = app.buttons["file.request.create"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertFalse(create.isEnabled)
+        let title = app.textFields["file.request.title"]
+        title.tap(); title.typeText("Tax documents")
+        let names = app.textFields["file.request.names"]
+        names.tap(); names.typeText("Ada\nLin\nMira")
+        capture(app, "New link with three names")
+        create.tap()
+        XCTAssertTrue(app.staticTexts["file.request.failure"].waitForExistence(timeout: 5))
+        XCTAssertEqual(names.value as? String, "Lin\nMira")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "file.request.created").count, 1)
+        capture(app, "A failure keeps the names still to do")
+        XCTAssertTrue(app.keyboards.element.waitForNonExistence(timeout: 2), "Creating puts the keyboard away")
+        create.tap()
+        XCTAssertTrue(app.staticTexts["file.request.ready"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "file.request.created").count, 3)
+        XCTAssertFalse(app.textFields["file.request.title"].exists)
+        tap(app.buttons["file.request.copy.all"], in: app)
+        capture(app, "Links ready")
+        app.buttons["file.request.done"].tap()
+        XCTAssertTrue(app.buttons["file.request.item.fixture-request-1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["file.request.item.fixture-request-3"].exists)
+    }
+
+    func testAReceivedFileIsSavedOnRequestAndALinkCloses() {
+        let app = launch(["--ui-files-requests", "--ui-files-request-slow"])
+        openRequests(app)
+        let item = app.buttons["file.request.item.fixture-request-open"]
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["file.request.usage"].exists)
+        XCTAssertTrue(app.staticTexts["file.request.unread"].exists)
+        capture(app, "Links with their states")
+        item.tap()
+        let save = app.buttons["file.request.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(identifier: "file.request.save").count, 1)
+        XCTAssertTrue(app.staticTexts["file.request.sender"].exists)
+        capture(app, "What a link received")
+        tap(save, in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["file.request.saving"].waitForExistence(timeout: 2))
+        capture(app, "Saving a received file")
+        XCTAssertTrue(save.waitForNonExistence(timeout: 8))
+        XCTAssertEqual(app.buttons.matching(identifier: "file.request.show").count, 2)
+
+        // Each control in a row answers on its own: this one opens the saved file.
+        tap(app.buttons.matching(identifier: "file.request.show").firstMatch, in: app)
+        XCTAssertFalse(app.buttons["file.request.close"].waitForExistence(timeout: 2))
+        back(app)
+        XCTAssertTrue(app.buttons["file.request.close"].waitForExistence(timeout: 5))
+
+        // A cloud copy goes only after asking.
+        let unreadable = app.descendants(matching: .any).matching(identifier: "file.request.file.fixture-upload-unreadable").firstMatch
+        tap(unreadable.buttons["file.request.delete"], in: app)
+        let confirm = app.buttons["file.request.delete.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "Deleting a cloud copy asks first")
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["file.request.unreadable"].waitForNonExistence(timeout: 5))
+
+        tap(app.buttons["file.request.close"], in: app)
+        let close = app.buttons["file.request.close.confirm"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        close.tap()
+        XCTAssertTrue(app.buttons["file.request.close"].waitForNonExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["file.request.copy"].exists)
+    }
+
+    func testCollectingFilesInOtherLanguages() {
+        for (language, locale, title) in [("zh-Hans", "zh_CN", "收取文件"), ("ar", "ar_SA", "جمع الملفات"), ("de", "de_DE", "Dateien sammeln")] {
+            let app = launch(language == "de" ? ["--ui-files-requests"] : ["--ui-files-requests", "--ui-dark"], language: language, locale: locale)
+            openRequests(app, title: title)
+            let item = app.buttons["file.request.item.fixture-request-long"]
+            XCTAssertTrue(item.waitForExistence(timeout: 5))
+            capture(app, "Links \(language)")
+            tap(app.buttons["file.request.new"], in: app)
+            XCTAssertTrue(app.buttons["file.request.create"].waitForExistence(timeout: 5))
+            capture(app, "New link \(language)")
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            tap(app.buttons["file.request.item.fixture-request-open"], in: app)
+            XCTAssertTrue(app.buttons["file.request.save"].waitForExistence(timeout: 5))
+            capture(app, "Received files \(language)")
+            app.terminate()
+        }
+    }
+
     func testOversizedFilesCannotStartALink() {
         let app = launch()
         tap(app.buttons["file.item.fixture-video"], in: app)

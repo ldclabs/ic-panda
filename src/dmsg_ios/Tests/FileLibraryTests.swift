@@ -81,6 +81,41 @@ final class FileLibraryTests: XCTestCase {
         XCTAssertTrue(FileNameEditor.valid(String(repeating: "文", count: 255)))
     }
 
+    func testFileRequestsDecodeWhatTheCoreSends() throws {
+        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let link = try decoder.decode(FileRequest.self, from: Data("""
+        {"request_id":"r1","url":"https://dmsg.net/r/a/r1#k","title":"Tax","instructions":"","label":"Ada","expires_at":5,"max_total_bytes":6,
+         "created_at":1,"revoked_at":null,"status":"full","files":2,"bytes":3,"last_stored_at":4,"unread":true,"last_checked_at":null}
+        """.utf8))
+        XCTAssertEqual(link.id, "r1"); XCTAssertEqual(link.label, "Ada"); XCTAssertTrue(link.active); XCTAssertTrue(link.unread)
+        XCTAssertEqual(link.stateTitle, String(localized: "Full"))
+        let blind = try decoder.decode(FileRequest.self, from: Data("""
+        {"request_id":"r2","url":null,"title":null,"instructions":null,"label":null,"expires_at":5,"max_total_bytes":6,
+         "created_at":1,"revoked_at":2,"status":"revoked","files":0,"bytes":0,"last_stored_at":null,"unread":false,"last_checked_at":null}
+        """.utf8))
+        XCTAssertNil(blind.url); XCTAssertNil(blind.title); XCTAssertFalse(blind.active)
+        XCTAssertEqual(blind.stateTitle, String(localized: "Link closed"))
+
+        let file = try decoder.decode(ReceivedFile.self, from: Data("""
+        {"request_id":"r1","upload_id":"u1","state":"saved","name":"a.pdf","mime":"application/pdf","size":9,"sender":{"name":"Ada","note":"Hi"},
+         "replaces":"u0","sent_at":1,"stored_at":2,"bytes":10,"received_at":3,"withdrawn_at":null,"saved_file":"f1"}
+        """.utf8))
+        XCTAssertEqual(file.id, "u1"); XCTAssertEqual(file.sender?.name, "Ada"); XCTAssertEqual(file.replaces, "u0"); XCTAssertEqual(file.savedFile, "f1")
+        let unreadable = try decoder.decode(ReceivedFile.self, from: Data("""
+        {"request_id":"r1","upload_id":"u2","state":"unreadable","name":null,"mime":null,"size":null,"sender":null,
+         "replaces":null,"sent_at":null,"stored_at":2,"bytes":10,"received_at":null,"withdrawn_at":null,"saved_file":null}
+        """.utf8))
+        XCTAssertNil(unreadable.name); XCTAssertNil(unreadable.sender)
+
+        let capacity = try decoder.decode(FileBackupCapacity.self, from: Data(#"{"backup_max_file_bytes":1,"storage_limit":2,"committed":0,"reserved":0,"file_request_limit":10}"#.utf8))
+        XCTAssertEqual(capacity.fileRequestLimit, 10)
+        let unknown = try decoder.decode(FileBackupCapacity.self, from: Data(#"{"backup_max_file_bytes":null,"storage_limit":null,"committed":0,"reserved":0,"file_request_limit":null}"#.utf8))
+        XCTAssertNil(unknown.fileRequestLimit)
+        XCTAssertEqual(fileLimit(100 * 1024 * 1024), "100 MiB")
+        XCTAssertEqual(fileLimit(1000 * 1024 * 1024), "1000 MiB")
+        XCTAssertEqual(fileLimit(2048 * 1024 * 1024), "2 GiB")
+    }
+
     func testFileLinksDecodeAsTheCoreWritesThemAndExplainTheirState() throws {
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
         let made = try decoder.decode(FileLink.self, from: Data(#"""

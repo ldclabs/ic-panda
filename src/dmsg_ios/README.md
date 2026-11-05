@@ -855,6 +855,13 @@ shared. **Share links** in the tools menu and in file details list links with th
 state and counts, keep the saved list when a refresh fails, and revoke after a
 confirmation. Secret snapshots stay under their own screen.
 
+**Collect files** in the tools menu makes upload-only links for people with no account, one
+per name if asked, on Plus and above; a Free account sees what it does and the way to the
+plans. A link's detail lists what arrived, with the sender's name marked as unverified. A
+file comes down only when saved, re-encrypted into the library under `Received files`, in
+the foreground: unlike a restore it has no background transfer, so the screen asks to keep
+dMsg open and holds off the idle lock meanwhile.
+
 The library supports folder naming/moving/trashing, multiple file imports,
 photo/video selection, and per-file outcomes for batch backup/move/trash actions.
 In the move workflow, the destination picker's **Move here** button executes the

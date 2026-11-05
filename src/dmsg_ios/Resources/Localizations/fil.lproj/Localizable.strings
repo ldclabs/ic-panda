@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld device na binawi o wala na sa account mo ang nakatali pa rin sa wallet na ito.</string>
+	<key>%lld files · %@</key>
+	<string>%lld file · %@</string>
 	<key>1 day</key>
 	<string>1 araw</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Tanggapin ang naaprubahang pagbubuklod</string>
 	<key>Accepted by service</key>
 	<string>Tinanggap ng serbisyo</string>
+	<key>Accepting files</key>
+	<string>Bukas</string>
 	<key>Access granted</key>
 	<string>Ibinigay ang access</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Aktibo</string>
 	<key>Active conversations</key>
 	<string>Mga aktibong pag-uusap</string>
+	<key>Active links</key>
+	<string>Mga aktibong link</string>
 	<key>Activity on this device</key>
 	<string>Aktibidad sa device na ito</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Hindi available ang detalye ng asset. Subukan muli bago maglagay ng halaga.</string>
 	<key>Asset identifier</key>
 	<string>Tagatukoy ng asset</string>
+	<key>At most %lld names at a time.</key>
+	<string>Hanggang %lld pangalan lang bawat beses.</string>
 	<key>Attach</key>
 	<string>Kalakip</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Alisin ang pagpili</string>
 	<key>Close invitation</key>
 	<string>Isara ang imbitasyon</string>
+	<key>Close link</key>
+	<string>Isara ang link</string>
 	<key>Closed</key>
 	<string>sarado</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Imbakan ng ulap</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Lumampas sa limitasyon ng cloud storage o laki ng file. Suriin ang iyong plan at laki ng backup.</string>
+	<key>Collect files</key>
+	<string>Mangolekta ng files</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Kailangan ng bayad na plan para mangolekta ng files</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Ihambing ang device ID sa dalawang screen at aprubahan sa computer.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Kopyahin ang account ID</string>
 	<key>Copy address</key>
 	<string>Kopyahin ang address</string>
+	<key>Copy all</key>
+	<string>Kopyahin lahat</string>
 	<key>Copy binding request</key>
 	<string>Kopyahin ang nagbubuklod na kahilingan</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Mga cosigner para sa iminungkahing patakaran sa address</string>
 	<key>Create</key>
 	<string>Lumikha</string>
+	<key>Create %lld links</key>
+	<string>Gumawa ng %lld link</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Gumawa ng bagong kredensyal sa provider nito at i-save ito sa vault</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Gumawa ng panukala sa paglipat</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Gawin ang iyong naka-encrypt na workspace para simulan ang pag-save ng mga password, tala, at file.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Ginagawa %lld sa %lld…</string>
 	<key>Credential</key>
 	<string>kredensyal</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Tanggalin ang account</string>
 	<key>Delete cloud backup</key>
 	<string>Tanggalin ang cloud backup</string>
+	<key>Delete cloud copy</key>
+	<string>Burahin ang cloud copy</string>
 	<key>Delete copy</key>
 	<string>Burahin ang kopya</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>I-freeze ang wallet na ito?</string>
 	<key>Freeze wallet</key>
 	<string>I-freeze ang wallet</string>
+	<key>From (not verified):</key>
+	<string>Mula kay (hindi beripikado):</string>
 	<key>From block %llu</key>
 	<string>Mula block %llu</string>
+	<key>Full</key>
+	<string>Puno</string>
 	<key>Generate password</key>
 	<string>Bumuo ng password</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Suriin ang kahilingan sa pagpapares</string>
 	<key>Inspect this version</key>
 	<string>Suriin ang bersyon na ito</string>
+	<key>Instructions (optional)</key>
+	<string>Mga tagubilin (opsyonal)</string>
 	<key>Insufficient balance</key>
 	<string>Hindi sapat na balanse ng token account.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Magtabi ng awtorisadong device na mabubuksan mo para makalipat ng device. Kung mawala ang lahat, hindi maibabalik ng pagbawi sa login ang nilalaman sa cloud.</string>
 	<key>Keep current version</key>
 	<string>Panatilihin ang kasalukuyang bersyon</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Panatilihing bukas ang dMsg hanggang matapos.</string>
 	<key>Keep draft and leave</key>
 	<string>Panatilihin ang draft at umalis</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · pagkatapos ng delay</string>
 	<key>Language</key>
 	<string>Wika</string>
+	<key>Largest file</key>
+	<string>Pinakamalaking file</string>
 	<key>Largest first</key>
 	<string>Pinakamalaki muna</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>Susi ng Lisensya</string>
 	<key>Licensed To</key>
 	<string>Lisensyado Sa</string>
+	<key>Link closed</key>
+	<string>Sarado</string>
 	<key>Link limits</key>
 	<string>Mga limitasyon ng link</string>
 	<key>Links</key>
 	<string>Mga link</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Handa na ang mga link. Ipadala ang bawat isa sa taong para rito lang.</string>
 	<key>Load earlier activity</key>
 	<string>Mag-load ng mas maagang aktibidad</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>Bagong usapan</string>
 	<key>New field type</key>
 	<string>Bagong uri ng field</string>
+	<key>New files</key>
+	<string>Mga bagong file</string>
 	<key>New folder</key>
 	<string>Bagong folder</string>
 	<key>New free letter</key>
 	<string>Bagong libreng sulat</string>
+	<key>New link</key>
+	<string>Bagong link</string>
 	<key>New revision</key>
 	<string>Bagong rebisyon</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>Wala pang record</string>
 	<key>No letters yet</key>
 	<string>Wala pang sulat</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>Wala pang link. Gumawa ng isa at ipadala sa dapat magpadala sa iyo ng files.</string>
 	<key>No matching accounts</key>
 	<string>Walang tugmang resulta</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>Walang mga snapshot sa device na ito</string>
 	<key>No transfer was started.</key>
 	<string>Walang sinimulang paglilipat.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Wala nang makakapagpadala ng files dito. Mananatili ang mga natanggap na.</string>
 	<key>Not delivered</key>
 	<string>Hindi naihatid</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Mga tala</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Wala pang lampas sa dust limit na maililipat sa daang ito.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Wala pang dumating.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Kailangang muling subukan ang pagpaparehistro ng notification. Nananatiling available ang foreground sync.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>Pagbawi sa blockchain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Kapag naaprubahan, sasali ang bagong device na may tungkulin ng device na ito at lilipat dito ang content root; pagkatapos ay tatapusin na lang ng device na ito ang pagpapasa.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>Isang pangalan bawat linya ay gagawa ng hiwalay na link para sa bawat isa. Ikaw lang ang nakakakita ng mga pangalan.</string>
 	<key>One-time code</key>
 	<string>Isang beses na code</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>Buksan ang dMsg workspace</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Buksan ang dMsg. Ang pag-unlock at pag-apruba ay nangangailangan pa rin ng iyong pakikipag-ugnayan sa app.</string>
+	<key>Open for</key>
+	<string>Bukas nang</string>
 	<key>Open invitation in browser</key>
 	<string>Buksan ang imbitasyon sa browser</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>I-pause ang agent na ito</string>
 	<key>Pause transfer</key>
 	<string>I-pause ang paglipat</string>
+	<key>Paused</key>
+	<string>Naka-pause</string>
 	<key>Payment card</key>
 	<string>Payment card</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Plano</string>
 	<key>Plan and usage</key>
 	<string>Plano at paggamit</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Sa Plus pataas, puwede kang humingi ng files sa kahit kanino gamit ang link. Walang account na kailangan, sariling padala lang ang nakikita ng bawat isa, at ikaw lang ang makakapagbukas.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Tumuturo ang patakaran sa isang hindi available na field</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Dahilan</string>
 	<key>Receive here</key>
 	<string>Tanggapin dito</string>
+	<key>Received files</key>
+	<string>Natanggap</string>
 	<key>Received for review</key>
 	<string>Natanggap para sa pagsusuri</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Palitan ang lumang iPhone</string>
 	<key>Replacement key</key>
 	<string>Pamalit na key</string>
+	<key>Replaces %@</key>
+	<string>Pumapalit sa %@</string>
 	<key>Reply</key>
 	<string>Sumagot</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>I-save ang mga item na ito para sa dMsg. Pumili ng account at i-import ang mga ito pagkatapos buksan at i-unlock ang app.</string>
 	<key>Save to dMsg</key>
 	<string>I-save sa dMsg</string>
+	<key>Save to library</key>
+	<string>I-save sa library</string>
 	<key>Saved</key>
 	<string>Nai-save</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Naka-save sa device na ito. Naghihintay na mag-sync ang mga pagbabago.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Na-publish na ang naka-save na profile. Hindi pa naipapasa ang iyong draft.</string>
+	<key>Saved to your library</key>
+	<string>Na-save sa library mo</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Nai-save. Nakabinbin ang publikasyon.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Hindi available ang Secure Enclave sa device na ito.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Binago ang mga kinakailangan sa seguridad. Suriin muli ang kahilingan bago ito aprubahan.</string>
+	<key>See plans</key>
+	<string>Tingnan ang mga plan</string>
 	<key>Select a conversation</key>
 	<string>Pumili ng pag-uusap</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Ipakita ang mga na-dismiss na natuklasan</string>
 	<key>Show draft</key>
 	<string>Ipakita kung ano ang iyong na-type</string>
+	<key>Show in library</key>
+	<string>Ipakita sa library</string>
 	<key>Show share link</key>
 	<string>Ipakita ang share link</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>May mga file na nasa iPhone na ito lang, walang cloud backup o kamakailang sync.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>May mga link na hindi nagawa. Nasa ibaba ang natitirang pangalan para subukan ulit.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Hindi sinusuportahan ang ilang source record o property. Kinokopya ng import na ito ang mga napiling field lamang; hindi na-import dito ang mga archive attachment, passkey at history.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>Lumilikha ito ng isang panukala. Hindi ito naglilipat ng mga pondo hangga't hindi natutugunan ang pag-apruba ng pitaka at mga kinakailangan sa operasyon. Ang mga halaga ay eksaktong base-unit integer.</string>
 	<key>This device</key>
 	<string>Ang device na ito</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>Wala pa sa device na ito ang key ng link na ito.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Ang device na ito ay may mga pagbabagong hindi naka-sync. I-save ang anumang kailangan mo bago tanggalin ang account.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>Pinapalitan ng device na ito ang</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>Makikita ang field na ito hanggang itago mo ito o umalis sa screen na ito.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>Hindi mabubuksan ang file na ito. Puwede mo itong burahin.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Lumampas ang file na ito sa limitasyon ng laki para sa operasyong ito.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>Nasa Basurahan ang file na ito. Ibalik muna bago buksan.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Wala sa device na ito ang file. Dina-download lang ito ng dMsg nang sapat para i-encrypt ang bagong kopya, at hindi magbabago ang library mo.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>Magpapaluwag ito ng storage. Mananatili ang kopyang naka-save sa library mo.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Ang kasaysayang ito ay kabilang sa device na ito. Hindi nito sinasalamin ang mga pag-apruba sa desktop-local CLI, SSH o file-mount mula sa isa pang device.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>Upang gamitin ang iyong kasalukuyang account sa iPhone na ito, aprubahan ang device na ito mula sa isa sa iyong mga awtorisadong device.</string>
 	<key>Total</key>
 	<string>Kabuuan</string>
+	<key>Total size</key>
+	<string>Kabuuang laki</string>
 	<key>Transfer between devices</key>
 	<string>Paglipat sa pagitan ng mga device</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Website</string>
 	<key>Welcome back.</key>
 	<string>Maligayang pagbabalik.</string>
+	<key>What are you asking for?</key>
+	<string>Ano ang hinihingi mo?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Habang bukas at naka-unlock ang dMsg, awtomatikong nagsi-sync ang vault. Nire-refresh ang mga mensahe kapag binuksan ang pag-uusap o inbox. Kailangan pa rin ng hiwalay na kumpirmasyon para sa backup ng file. Maaari mong i-off ang awtomatikong sync anumang oras.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Para kanino? (opsyonal)</string>
 	<key>Who may contact you</key>
 	<string>Sino ang maaaring makipag-ugnayan sa iyo</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Makikita ito ng sinumang may link bilang plain text.</string>
 	<key>Withdraw</key>
 	<string>Mag-withdraw</string>
 	<key>Withdraw message</key>
 	<string>Bawiin ang mensahe</string>
 	<key>Withdraw this message?</key>
 	<string>Bawiin ang mensaheng ito?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Binawi ng nagpadala</string>
 	<key>Without a cloud backup</key>
 	<string>Walang cloud backup</string>
 	<key>Workspace copied from another iPhone</key>

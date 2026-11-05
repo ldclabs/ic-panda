@@ -1868,6 +1868,40 @@ not exercised in this pass and remain separate acceptance checks.
 
 Implementation and validation: Codex <noreply@openai.com>.
 
+## 2026-11-06 file requests
+
+Added **Collect files** to the Files tool menu: the saved links and then the
+relay's, a composer that makes one link per name, and a link's details with its
+files. A received file stays in the cloud until someone saves it. Saving runs in
+the foreground, keeps the session active and goes to
+`Received files/<title>/<label>`; there is no background path and no folder
+choice on iOS.
+
+Validation performed, on iPhone 17e / iOS 27.0:
+
+- All 101 Swift unit tests passed, including decoding the shapes the core sends.
+  `FileLibraryUITests` ran 29 tests with one skipped and no failures
+  (`Full-20261105T181004Z.xcresult`). The four new cases cover the free plan
+  leading to the plans, one link per name with a failure keeping the remaining
+  names, saving a file only on request, closing a link, and Chinese dark mode,
+  Arabic RTL and German.
+- `scripts/ios/localizations.py` passed all 23 localizations, with compiler
+  extraction from this run's Debug products. Pointing it at the whole shared
+  DerivedData reports two `missing extracted key` lines, both from a 2026-11-03
+  Release `SystemExportsView.stringsdata` older than the current copy; neither
+  text is in the sources.
+- Exported screenshots were inspected for the list, composer and details. They
+  led to dismissing the keyboard that covered Create, anchoring each confirmation
+  on its own row, hiding the empty state on a free plan and using text-only
+  actions where German would wrap. These screenshots use presentation fixtures.
+
+The UI tests use fixtures, so the iOS flow has not run against a real relay.
+`desktop_file_request` takes the shared client core through a local relay, but
+through the daemon rather than the mobile bindings. iPad, physical devices, a
+Release build, VoiceOver and a real account were not exercised in this pass.
+
+Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

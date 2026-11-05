@@ -154,6 +154,66 @@ extension SessionModel {
         return try decode(try await coreOperation { try await engine.revokeFileLink(shareId: id, operation: $0) })
     }
 
+    func fileRequests(refresh: Bool) async throws -> [FileRequest] {
+        #if DEBUG
+        if uiTesting { return fileRequestsFixture() }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation { try await engine.fileRequests(refresh: refresh, operation: $0) })
+    }
+
+    func fileRequestCapacity() async throws -> FileBackupCapacity {
+        #if DEBUG
+        if uiTesting { return fileRequestCapacityFixture() }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation { try await engine.fileBackupCapacity(operation: $0) })
+    }
+
+    func createFileRequest(title: String, instructions: String, label: String, expiresInMs: UInt64, maxTotalBytes: UInt64) async throws -> FileRequest {
+        #if DEBUG
+        if uiTesting { return try createFileRequestFixture(title: title, instructions: instructions, label: label) }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation {
+            try await engine.createFileRequest(title: title, instructions: instructions, label: label, expiresInMs: expiresInMs, maxTotalBytes: maxTotalBytes, operation: $0)
+        })
+    }
+
+    func revokeFileRequest(_ id: String) async throws -> FileRequest {
+        #if DEBUG
+        if uiTesting { return try revokeFileRequestFixture(id) }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation { try await engine.revokeFileRequest(requestId: id, operation: $0) })
+    }
+
+    func fileRequestFiles(_ id: String) async throws -> [ReceivedFile] {
+        #if DEBUG
+        if uiTesting { return fixtureReceivedFiles }
+        #endif
+        guard let engine else { throw CancellationError() }
+        return try decode(try await coreOperation { try await engine.fileRequestFiles(requestId: id, operation: $0) })
+    }
+
+    /// Downloads one received file and re-encrypts it into the library, in the foreground.
+    func saveRequestFile(_ upload: String) async throws {
+        #if DEBUG
+        if uiTesting { try await saveRequestFileFixture(upload); return }
+        #endif
+        guard let engine else { throw CancellationError() }
+        let root = String(localized: "Received files")
+        _ = try await coreOperation { try await engine.saveRequestFile(upload: upload, folder: nil, root: root, operation: $0) }
+    }
+
+    func deleteRequestFile(_ upload: String) async throws {
+        #if DEBUG
+        if uiTesting { fixtureReceivedFiles.removeAll { $0.id == upload }; return }
+        #endif
+        guard let engine else { throw CancellationError() }
+        _ = try await coreOperation { try await engine.deleteRequestFile(upload: upload, operation: $0) }
+    }
+
     func renameLibraryItem(_ id: String, name: String) async throws {
         #if DEBUG
         if uiTesting { try renameFileFixture(id, name: name); return }

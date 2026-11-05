@@ -217,6 +217,7 @@ struct FilesView: View {
                         .disabled(targets.isEmpty || !model.filesQueryIsCurrent)
                 }
                 Button("Trash", systemImage: "trash") { sheet = .trash }
+                NavigationLink("Collect files") { FileRequestsView() }
                 NavigationLink("Share links") { FileLinksView() }
                 NavigationLink("Pending imports") { PendingImportsView() }
                 NavigationLink("Shared with dMsg") { IncomingSharesView() }

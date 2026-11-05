@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>อุปกรณ์ %lld เครื่องที่ถูกเพิกถอนหรือไม่อยู่ในบัญชีของคุณแล้วยังผูกอยู่กับกระเป๋าเงินนี้</string>
+	<key>%lld files · %@</key>
+	<string>%lld ไฟล์ · %@</string>
 	<key>1 day</key>
 	<string>1 วัน</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>ยอมรับการผูกมัดที่ได้รับอนุมัติ</string>
 	<key>Accepted by service</key>
 	<string>บริการยอมรับแล้ว</string>
+	<key>Accepting files</key>
+	<string>เปิด</string>
 	<key>Access granted</key>
 	<string>ให้สิทธิ์การเข้าถึงแล้ว</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>ใช้งานอยู่</string>
 	<key>Active conversations</key>
 	<string>การสนทนาที่ใช้งานอยู่</string>
+	<key>Active links</key>
+	<string>ลิงก์ที่ใช้งาน</string>
 	<key>Activity on this device</key>
 	<string>กิจกรรมบนอุปกรณ์นี้</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>ข้อมูลสินทรัพย์ไม่พร้อมใช้งาน ลองใหม่ก่อนกรอกจำนวนเงิน</string>
 	<key>Asset identifier</key>
 	<string>ตัวระบุสินทรัพย์</string>
+	<key>At most %lld names at a time.</key>
+	<string>สูงสุดครั้งละ %lld ชื่อ</string>
 	<key>Attach</key>
 	<string>แนบ</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>ล้างการเลือก</string>
 	<key>Close invitation</key>
 	<string>ปิดคำเชิญ</string>
+	<key>Close link</key>
+	<string>ปิดลิงก์</string>
 	<key>Closed</key>
 	<string>ปิดแล้ว</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>ที่เก็บข้อมูลบนคลาวด์</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>เกินขีดจำกัดพื้นที่คลาวด์หรือขนาดไฟล์ โปรดตรวจสอบแพ็กเกจและขนาดข้อมูลสำรอง</string>
+	<key>Collect files</key>
+	<string>รวบรวมไฟล์</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>การรวบรวมไฟล์ต้องใช้แผนแบบชำระเงิน</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>เปรียบเทียบ ID อุปกรณ์บนทั้งสองหน้าจอ แล้วอนุมัติบนคอมพิวเตอร์</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>คัดลอก ID บัญชี</string>
 	<key>Copy address</key>
 	<string>คัดลอกที่อยู่</string>
+	<key>Copy all</key>
+	<string>คัดลอกทั้งหมด</string>
 	<key>Copy binding request</key>
 	<string>คัดลอกคำขอเข้าเล่ม</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Cosigners สำหรับนโยบายที่อยู่ที่นำเสนอ</string>
 	<key>Create</key>
 	<string>สร้าง</string>
+	<key>Create %lld links</key>
+	<string>สร้าง %lld ลิงก์</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>สร้างข้อมูลประจำตัวใหม่ที่ผู้ให้บริการและบันทึกไว้ในห้องนิรภัย</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>สร้างข้อเสนอการโอน</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>สร้างพื้นที่ทำงานที่เข้ารหัสของคุณเพื่อเริ่มบันทึกรหัสผ่าน บันทึกย่อ และไฟล์</string>
+	<key>Creating %lld of %lld…</key>
+	<string>กำลังสร้าง %lld/%lld…</string>
 	<key>Credential</key>
 	<string>หนังสือรับรอง</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>ลบบัญชี</string>
 	<key>Delete cloud backup</key>
 	<string>ลบข้อมูลสำรองบนคลาวด์</string>
+	<key>Delete cloud copy</key>
+	<string>ลบสำเนาบนคลาวด์</string>
 	<key>Delete copy</key>
 	<string>ลบสำเนา</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>แช่แข็งกระเป๋าเงินนี้เหรอ?</string>
 	<key>Freeze wallet</key>
 	<string>แช่แข็งกระเป๋าสตางค์</string>
+	<key>From (not verified):</key>
+	<string>จาก (ยังไม่ยืนยัน):</string>
 	<key>From block %llu</key>
 	<string>ตั้งแต่บล็อก %llu</string>
+	<key>Full</key>
+	<string>เต็ม</string>
 	<key>Generate password</key>
 	<string>สร้างรหัสผ่าน</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>ตรวจสอบคำขอจับคู่</string>
 	<key>Inspect this version</key>
 	<string>ตรวจสอบรุ่นนี้</string>
+	<key>Instructions (optional)</key>
+	<string>คำแนะนำ (ไม่บังคับ)</string>
 	<key>Insufficient balance</key>
 	<string>ยอดคงเหลือในบัญชีโทเค็นไม่เพียงพอ</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>เก็บอุปกรณ์ที่ได้รับอนุญาตและปลดล็อกได้ไว้สำหรับย้ายเครื่อง หากสูญหายทั้งหมด แม้กู้คืนการเข้าสู่ระบบได้ก็ไม่สามารถกู้คืนเนื้อหาบนคลาวด์ได้</string>
 	<key>Keep current version</key>
 	<string>เก็บเวอร์ชันปัจจุบันไว้</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>เปิด dMsg ไว้จนกว่าจะเสร็จ</string>
 	<key>Keep draft and leave</key>
 	<string>เก็บฉบับร่างแล้วออก</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · หลังระยะหน่วง</string>
 	<key>Language</key>
 	<string>ภาษา</string>
+	<key>Largest file</key>
+	<string>ไฟล์ใหญ่สุด</string>
 	<key>Largest first</key>
 	<string>ใหญ่ที่สุดก่อน</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>รหัสใบอนุญาต</string>
 	<key>Licensed To</key>
 	<string>ได้รับอนุญาตให้</string>
+	<key>Link closed</key>
+	<string>ปิดแล้ว</string>
 	<key>Link limits</key>
 	<string>ขีดจำกัดของลิงก์</string>
 	<key>Links</key>
 	<string>ลิงค์</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>ลิงก์พร้อมแล้ว ส่งแต่ละลิงก์ให้เจ้าของเท่านั้น</string>
 	<key>Load earlier activity</key>
 	<string>โหลดกิจกรรมก่อนหน้า</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>บทสนทนาใหม่</string>
 	<key>New field type</key>
 	<string>ประเภทฟิลด์ใหม่</string>
+	<key>New files</key>
+	<string>ไฟล์ใหม่</string>
 	<key>New folder</key>
 	<string>โฟลเดอร์ใหม่</string>
 	<key>New free letter</key>
 	<string>จดหมายฟรีใหม่</string>
+	<key>New link</key>
+	<string>ลิงก์ใหม่</string>
 	<key>New revision</key>
 	<string>การแก้ไขใหม่</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>ยังไม่มีบันทึก</string>
 	<key>No letters yet</key>
 	<string>ยังไม่มีจดหมายเลย</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>ยังไม่มีลิงก์ สร้างลิงก์แล้วส่งให้ผู้ที่ควรส่งไฟล์ถึงคุณ</string>
 	<key>No matching accounts</key>
 	<string>ไม่พบผลลัพธ์ที่ตรงกัน</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>ไม่มีสแนปชอตบนอุปกรณ์นี้</string>
 	<key>No transfer was started.</key>
 	<string>ไม่ได้เริ่มการถ่ายโอน</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>จะไม่มีใครส่งไฟล์ผ่านลิงก์นี้ได้อีก ไฟล์ที่ได้รับแล้วยังคงอยู่</string>
 	<key>Not delivered</key>
 	<string>ไม่ได้จัดส่ง</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>บันทึกย่อ</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>ยังไม่มีจำนวนที่สูงกว่าขีดจำกัด dust ซึ่งย้ายผ่านเส้นทางนี้ได้</string>
+	<key>Nothing has arrived yet.</key>
+	<string>ยังไม่มีไฟล์เข้ามา</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>การลงทะเบียนการแจ้งเตือนจำเป็นต้องลองอีกครั้ง การซิงค์เบื้องหน้ายังคงใช้งานได้</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>การกู้คืนบนเชน</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>เมื่ออนุมัติแล้ว อุปกรณ์ใหม่จะเข้าร่วมด้วยบทบาทของอุปกรณ์นี้และรากเนื้อหาจะย้ายไปยังอุปกรณ์นั้น จากนั้นอุปกรณ์นี้จะทำได้เพียงส่งมอบงานให้เสร็จ</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>หนึ่งชื่อต่อบรรทัดจะสร้างลิงก์แยกสำหรับแต่ละคน มีเพียงคุณที่เห็นชื่อ</string>
 	<key>One-time code</key>
 	<string>รหัสครั้งเดียว</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>เปิดเวิร์กสเปซ dMsg</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>เปิด dMsg การปลดล็อกและการอนุมัติยังคงต้องมีการโต้ตอบจากคุณในแอป</string>
+	<key>Open for</key>
+	<string>เปิดเป็นเวลา</string>
 	<key>Open invitation in browser</key>
 	<string>เปิดคำเชิญในเบราว์เซอร์</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>หยุดเอเจนต์นี้ชั่วคราว</string>
 	<key>Pause transfer</key>
 	<string>หยุดการโอนชั่วคราว</string>
+	<key>Paused</key>
+	<string>หยุดชั่วคราว</string>
 	<key>Payment card</key>
 	<string>บัตรชำระเงิน</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>แผน</string>
 	<key>Plan and usage</key>
 	<string>การวางแผนและการใช้งาน</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>แผน Plus ขึ้นไปขอไฟล์จากใครก็ได้ผ่านลิงก์ ผู้ส่งไม่ต้องมีบัญชี เห็นเฉพาะสิ่งที่ตนส่ง และมีเพียงคุณที่เปิดไฟล์ได้</string>
 	<key>Policy points to an unavailable field</key>
 	<string>นโยบายชี้ไปที่ช่องที่ไม่พร้อมใช้งาน</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>เหตุผล</string>
 	<key>Receive here</key>
 	<string>รับที่นี่</string>
+	<key>Received files</key>
+	<string>ที่ได้รับ</string>
 	<key>Received for review</key>
 	<string>ได้รับการตรวจทานแล้ว</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>แทนที่ iPhone เครื่องเก่า</string>
 	<key>Replacement key</key>
 	<string>คีย์ทดแทน</string>
+	<key>Replaces %@</key>
+	<string>แทนที่ %@</string>
 	<key>Reply</key>
 	<string>ตอบกลับ</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>บันทึกรายการเหล่านี้สำหรับ dMsg เลือกบัญชีและนำเข้าหลังจากเปิดและปลดล็อคแอป</string>
 	<key>Save to dMsg</key>
 	<string>บันทึกไปที่ dMsg</string>
+	<key>Save to library</key>
+	<string>บันทึกลงคลัง</string>
 	<key>Saved</key>
 	<string>บันทึกแล้ว</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>บันทึกไว้ในอุปกรณ์นี้ การเปลี่ยนแปลงกำลังรอการซิงค์</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>เผยแพร่โปรไฟล์ที่บันทึกไว้แล้ว แต่ยังไม่ได้ส่งฉบับร่างของคุณ</string>
+	<key>Saved to your library</key>
+	<string>บันทึกลงคลังแล้ว</string>
 	<key>Saved. Publication is pending.</key>
 	<string>บันทึกแล้ว อยู่ระหว่างการตีพิมพ์</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave ไม่พร้อมใช้งานบนอุปกรณ์นี้</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>ข้อกำหนดด้านความปลอดภัยมีการเปลี่ยนแปลง ตรวจสอบคำขออีกครั้งก่อนที่จะอนุมัติ</string>
+	<key>See plans</key>
+	<string>ดูแผน</string>
 	<key>Select a conversation</key>
 	<string>เลือกการสนทนา</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>แสดงผลการสืบค้นที่ถูกปิด</string>
 	<key>Show draft</key>
 	<string>แสดงสิ่งที่คุณพิมพ์</string>
+	<key>Show in library</key>
+	<string>แสดงในคลัง</string>
 	<key>Show share link</key>
 	<string>แสดงลิงก์แชร์</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>โซลานา</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>ไฟล์บางรายการมีอยู่บน iPhone เครื่องนี้เท่านั้น ไม่มีข้อมูลสำรองบนคลาวด์หรือการซิงค์ล่าสุด</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>บางลิงก์สร้างไม่สำเร็จ ชื่อที่เหลืออยู่ด้านล่างเพื่อลองอีกครั้ง</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>ไม่รองรับระเบียนหรือคุณสมบัติแหล่งที่มาบางอย่าง การนำเข้านี้จะคัดลอกเฉพาะช่องที่เลือกเท่านั้น ไฟล์แนบที่เก็บถาวร พาสคีย์ และประวัติจะไม่ถูกนำเข้าที่นี่</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>สิ่งนี้จะสร้างข้อเสนอ จะไม่โอนเงินจนกว่าจะเป็นไปตามข้อกำหนดการอนุมัติและการดำเนินการของกระเป๋าเงิน จำนวนเป็นจำนวนเต็มหน่วยฐานที่แน่นอน</string>
 	<key>This device</key>
 	<string>อุปกรณ์นี้</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>อุปกรณ์นี้ยังไม่มีกุญแจของลิงก์นี้</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>อุปกรณ์นี้มีการเปลี่ยนแปลงที่ยังไม่ได้ซิงค์ บันทึกสิ่งที่คุณต้องการก่อนที่จะลบบัญชี</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>อุปกรณ์นี้แทนที่</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>ช่องข้อมูลนี้จะมองเห็นได้จนกว่าคุณจะซ่อนหรือออกจากหน้าจอนี้</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>เปิดไฟล์นี้ไม่ได้ คุณลบได้</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>ไฟล์นี้มีขนาดเกินขีดจำกัดสำหรับการดำเนินการนี้</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>ไฟล์นี้อยู่ในถังขยะ โปรดกู้คืนก่อนเปิด</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>ไฟล์นี้ไม่ได้อยู่ในอุปกรณ์นี้ dMsg จะดาวน์โหลดชั่วคราวเพื่อเข้ารหัสสำเนาใหม่เท่านั้น และคลังของคุณจะไม่เปลี่ยนแปลง</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>การลบจะเพิ่มพื้นที่ว่าง สำเนาที่บันทึกในคลังยังคงอยู่</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>ประวัตินี้เป็นของอุปกรณ์นี้ ไม่จำลอง CLI, SSH ภายในเดสก์ท็อป หรือการอนุมัติการติดตั้งไฟล์จากอุปกรณ์อื่น</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>หากต้องการใช้บัญชีที่มีอยู่ของคุณบน iPhone เครื่องนี้ ให้อนุมัติอุปกรณ์นี้จากหนึ่งในอุปกรณ์ที่ได้รับอนุญาตของคุณ</string>
 	<key>Total</key>
 	<string>รวม</string>
+	<key>Total size</key>
+	<string>ขนาดรวม</string>
 	<key>Transfer between devices</key>
 	<string>ถ่ายโอนระหว่างอุปกรณ์</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>เว็บไซต์</string>
 	<key>Welcome back.</key>
 	<string>ยินดีต้อนรับกลับ</string>
+	<key>What are you asking for?</key>
+	<string>คุณต้องการขออะไร</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>เมื่อเปิด dMsg และปลดล็อกอยู่ คลังลับจะซิงค์อัตโนมัติ ข้อความจะอัปเดตเมื่อเปิดการสนทนาหรือกล่องขาเข้า การสำรองไฟล์ยังต้องยืนยันแยกต่างหาก คุณปิดการซิงค์อัตโนมัติได้ทุกเมื่อ</string>
+	<key>Who is it for? (optional)</key>
+	<string>สำหรับใคร (ไม่บังคับ)</string>
 	<key>Who may contact you</key>
 	<string>ใครสามารถติดต่อคุณได้</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>ทุกคนที่มีลิงก์จะเห็นเป็นข้อความธรรมดา</string>
 	<key>Withdraw</key>
 	<string>ถอนออก</string>
 	<key>Withdraw message</key>
 	<string>ถอนข้อความ</string>
 	<key>Withdraw this message?</key>
 	<string>ถอนข้อความนี้?</string>
+	<key>Withdrawn by the sender</key>
+	<string>ผู้ส่งถอนแล้ว</string>
 	<key>Without a cloud backup</key>
 	<string>ไม่มีข้อมูลสำรองบนคลาวด์</string>
 	<key>Workspace copied from another iPhone</key>

@@ -66,6 +66,8 @@ struct FileBackupCapacity: Decodable {
     let storageLimit: UInt64?
     let committed: UInt64
     let reserved: UInt64
+    /// Active file request links the plan allows; absent while the entitlement is unknown.
+    var fileRequestLimit: UInt64? = nil
 
     var remaining: UInt64? {
         storageLimit.map { $0 > committed && $0 - committed > reserved ? $0 - committed - reserved : 0 }
@@ -74,6 +76,12 @@ struct FileBackupCapacity: Decodable {
 
 func fileSize(_ bytes: UInt64) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .file)
+}
+
+/// A plan's limit in the unit it is set in: 100 MiB reads as that, not as 104.9 MB.
+func fileLimit(_ bytes: UInt64) -> String {
+    let mib: UInt64 = 1024 * 1024, gib = 1024 * mib
+    return bytes >= gib && bytes % gib == 0 ? "\(bytes / gib) GiB" : "\(bytes / mib) MiB"
 }
 
 func fileDate(_ milliseconds: UInt64) -> Date { Date(timeIntervalSince1970: Double(milliseconds) / 1000) }

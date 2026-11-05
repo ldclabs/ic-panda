@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld peranti yang ditarik balik atau tidak lagi dalam akaun anda masih terikat pada dompet ini.</string>
+	<key>%lld files · %@</key>
+	<string>%lld fail · %@</string>
 	<key>1 day</key>
 	<string>1 hari</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Terima pengikatan yang diluluskan</string>
 	<key>Accepted by service</key>
 	<string>Diterima oleh perkhidmatan</string>
+	<key>Accepting files</key>
+	<string>Dibuka</string>
 	<key>Access granted</key>
 	<string>Akses diberikan</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Aktif</string>
 	<key>Active conversations</key>
 	<string>Perbualan aktif</string>
+	<key>Active links</key>
+	<string>Pautan aktif</string>
 	<key>Activity on this device</key>
 	<string>Aktiviti pada peranti ini</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Butiran aset tidak tersedia. Cuba lagi sebelum memasukkan amaun.</string>
 	<key>Asset identifier</key>
 	<string>Pengecam aset</string>
+	<key>At most %lld names at a time.</key>
+	<string>Paling banyak %lld nama sekali gus.</string>
 	<key>Attach</key>
 	<string>Lampirkan</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Kosongkan pilihan</string>
 	<key>Close invitation</key>
 	<string>Tutup jemputan</string>
+	<key>Close link</key>
+	<string>Tutup pautan</string>
 	<key>Closed</key>
 	<string>tertutup</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Storan awan</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Had storan awan atau saiz fail telah dilampaui. Semak pelan dan saiz sandaran anda.</string>
+	<key>Collect files</key>
+	<string>Kumpul fail</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Mengumpul fail memerlukan pelan berbayar</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Bandingkan ID peranti pada kedua-dua skrin dan luluskan pada komputer.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Salin ID akaun</string>
 	<key>Copy address</key>
 	<string>Salin alamat</string>
+	<key>Copy all</key>
+	<string>Salin semua</string>
 	<key>Copy binding request</key>
 	<string>Salin permintaan mengikat</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Cosigners untuk dasar alamat yang dicadangkan</string>
 	<key>Create</key>
 	<string>Buat</string>
+	<key>Create %lld links</key>
+	<string>Buat %lld pautan</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Buat bukti kelayakan baharu di pembekalnya dan simpan dalam peti besi</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Buat cadangan pemindahan</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Cipta ruang kerja anda yang disulitkan untuk mula menyimpan kata laluan, nota dan fail.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Membuat %lld daripada %lld…</string>
 	<key>Credential</key>
 	<string>Tauliah</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Padam akaun</string>
 	<key>Delete cloud backup</key>
 	<string>Padamkan sandaran awan</string>
+	<key>Delete cloud copy</key>
+	<string>Padam salinan awan</string>
 	<key>Delete copy</key>
 	<string>Padam salinan</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>Bekukan dompet ini?</string>
 	<key>Freeze wallet</key>
 	<string>Bekukan dompet</string>
+	<key>From (not verified):</key>
+	<string>Daripada (tidak disahkan):</string>
 	<key>From block %llu</key>
 	<string>Mulai blok %llu</string>
+	<key>Full</key>
+	<string>Penuh</string>
 	<key>Generate password</key>
 	<string>Jana kata laluan</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Periksa permintaan pasangan</string>
 	<key>Inspect this version</key>
 	<string>Periksa versi ini</string>
+	<key>Instructions (optional)</key>
+	<string>Arahan (pilihan)</string>
 	<key>Insufficient balance</key>
 	<string>Baki akaun token tidak mencukupi.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Simpan peranti dibenarkan yang boleh dibuka untuk bertukar peranti. Jika semuanya hilang, memulihkan log masuk tidak memulihkan kandungan awan.</string>
 	<key>Keep current version</key>
 	<string>Kekalkan versi semasa</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Biarkan dMsg terbuka sehingga selesai.</string>
 	<key>Keep draft and leave</key>
 	<string>Simpan draf dan keluar</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · selepas penangguhan</string>
 	<key>Language</key>
 	<string>Bahasa</string>
+	<key>Largest file</key>
+	<string>Fail terbesar</string>
 	<key>Largest first</key>
 	<string>Terbesar dahulu</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>Kunci Lesen</string>
 	<key>Licensed To</key>
 	<string>Berlesen Kepada</string>
+	<key>Link closed</key>
+	<string>Ditutup</string>
 	<key>Link limits</key>
 	<string>Had pautan</string>
 	<key>Links</key>
 	<string>Pautan</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Pautan sedia. Hantar setiap satu hanya kepada orangnya.</string>
 	<key>Load earlier activity</key>
 	<string>Muatkan aktiviti lebih awal</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>Perbualan baru</string>
 	<key>New field type</key>
 	<string>Jenis medan baharu</string>
+	<key>New files</key>
+	<string>Fail baharu</string>
 	<key>New folder</key>
 	<string>Folder baharu</string>
 	<key>New free letter</key>
 	<string>Surat percuma baru</string>
+	<key>New link</key>
+	<string>Pautan baharu</string>
 	<key>New revision</key>
 	<string>Semakan baru</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>Tiada rekod lagi</string>
 	<key>No letters yet</key>
 	<string>Belum ada surat</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>Belum ada pautan. Buat satu dan hantar kepada mereka yang perlu menghantar fail kepada anda.</string>
 	<key>No matching accounts</key>
 	<string>Tiada hasil sepadan</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>Tiada syot kilat pada peranti ini</string>
 	<key>No transfer was started.</key>
 	<string>Tiada pemindahan dimulakan.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Tiada sesiapa boleh menghantar fail lagi melaluinya. Fail yang diterima kekal.</string>
 	<key>Not delivered</key>
 	<string>Tidak dihantar</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Nota</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Belum ada jumlah melebihi had dust yang boleh dipindahkan melalui laluan ini.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Belum ada yang tiba.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Pendaftaran pemberitahuan perlu dicuba semula. Penyegerakan latar depan kekal tersedia.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>Pemulihan pada rantaian</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Setelah diluluskan, peranti baharu menyertai dengan peranan peranti ini dan akar kandungan berpindah kepadanya; peranti ini kemudian hanya menyelesaikan penyerahan.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>Satu nama setiap baris membuat pautan berasingan untuk setiap orang. Hanya anda melihat nama.</string>
 	<key>One-time code</key>
 	<string>Kod sekali sahaja</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>Buka ruang kerja dMsg</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Buka dMsg. Membuka kunci dan kelulusan masih memerlukan interaksi anda dalam apl.</string>
+	<key>Open for</key>
+	<string>Dibuka selama</string>
 	<key>Open invitation in browser</key>
 	<string>Buka jemputan dalam penyemak imbas</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>Jeda ejen ini</string>
 	<key>Pause transfer</key>
 	<string>Jeda pemindahan</string>
+	<key>Paused</key>
+	<string>Dijeda</string>
 	<key>Payment card</key>
 	<string>Kad pembayaran</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Rancang</string>
 	<key>Plan and usage</key>
 	<string>Pelan dan penggunaan</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus dan ke atas boleh meminta fail daripada sesiapa melalui pautan. Tiada akaun diperlukan, setiap orang hanya melihat kirimannya, dan hanya anda boleh membuka fail.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Dasar menunjukkan medan yang tidak tersedia</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Sebab</string>
 	<key>Receive here</key>
 	<string>Terima di sini</string>
+	<key>Received files</key>
+	<string>Diterima</string>
 	<key>Received for review</key>
 	<string>Diterima untuk semakan</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Gantikan iPhone lama</string>
 	<key>Replacement key</key>
 	<string>Kunci gantian</string>
+	<key>Replaces %@</key>
+	<string>Menggantikan %@</string>
 	<key>Reply</key>
 	<string>Balas</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>Simpan item ini untuk dMsg. Pilih akaun dan importnya selepas membuka dan membuka kunci apl.</string>
 	<key>Save to dMsg</key>
 	<string>Jimat kepada dMsg</string>
+	<key>Save to library</key>
+	<string>Simpan ke pustaka</string>
 	<key>Saved</key>
 	<string>Disimpan</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Disimpan pada peranti ini. Perubahan sedang menunggu untuk disegerakkan.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Profil yang disimpan telah diterbitkan. Draf anda belum dihantar.</string>
+	<key>Saved to your library</key>
+	<string>Disimpan ke pustaka anda</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Disimpan. Penerbitan belum selesai.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave tidak tersedia pada peranti ini.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Keperluan keselamatan berubah. Semak semula permintaan itu sebelum meluluskannya.</string>
+	<key>See plans</key>
+	<string>Lihat pelan</string>
 	<key>Select a conversation</key>
 	<string>Pilih perbualan</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Tunjukkan penemuan yang ditolak</string>
 	<key>Show draft</key>
 	<string>Tunjukkan apa yang anda taip</string>
+	<key>Show in library</key>
+	<string>Tunjukkan dalam pustaka</string>
 	<key>Show share link</key>
 	<string>Tunjukkan pautan kongsi</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Sesetengah fail hanya wujud pada iPhone ini, tanpa sandaran awan atau penyegerakan terkini.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>Sesetengah pautan tidak dibuat. Nama yang tinggal ada di bawah untuk dicuba semula.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Sesetengah rekod sumber atau sifat tidak disokong. Import ini menyalin medan yang dipilih sahaja; lampiran arkib, kunci laluan dan sejarah tidak diimport di sini.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>Ini mewujudkan cadangan. Ia tidak memindahkan dana sehingga kelulusan dompet dan keperluan operasi dipenuhi. Jumlah adalah integer unit asas yang tepat.</string>
 	<key>This device</key>
 	<string>Peranti ini</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>Peranti ini belum ada kunci pautan ini.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Peranti ini mempunyai perubahan yang belum disegerakkan. Simpan apa sahaja yang anda perlukan sebelum memadamkan akaun.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>Peranti ini menggantikan</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>Medan ini akan kelihatan sehingga anda menyembunyikannya atau meninggalkan skrin ini.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>Fail ini tidak dapat dibuka. Anda boleh memadamnya.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Fail ini melebihi had saiz untuk operasi ini.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>Fail ini berada dalam Sampah. Pulihkannya sebelum dibuka.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Fail ini tiada pada peranti ini. dMsg memuat turunnya hanya untuk menyulitkan salinan baharu, dan pustaka anda tidak berubah.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>Ini mengosongkan ruang. Salinan dalam pustaka anda kekal.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Sejarah ini kepunyaan peranti ini. Ia tidak mencerminkan CLI setempat desktop, SSH atau kelulusan pemasangan fail daripada peranti lain.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>Untuk menggunakan akaun sedia ada anda pada iPhone ini, luluskan peranti ini daripada salah satu peranti anda yang dibenarkan.</string>
 	<key>Total</key>
 	<string>Jumlah</string>
+	<key>Total size</key>
+	<string>Saiz keseluruhan</string>
 	<key>Transfer between devices</key>
 	<string>Pemindahan antara peranti</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Laman web</string>
 	<key>Welcome back.</key>
 	<string>Selamat kembali.</string>
+	<key>What are you asking for?</key>
+	<string>Apa yang anda minta?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Apabila dMsg dibuka dan tidak dikunci, peti simpanan disegerakkan secara automatik. Mesej dikemas kini apabila perbualan atau peti masuk dibuka. Sandaran fail masih memerlukan pengesahan berasingan. Anda boleh mematikan penyegerakan automatik pada bila-bila masa.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Untuk siapa? (pilihan)</string>
 	<key>Who may contact you</key>
 	<string>Siapa yang boleh menghubungi anda</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Sesiapa yang ada pautan melihatnya sebagai teks biasa.</string>
 	<key>Withdraw</key>
 	<string>tarik diri</string>
 	<key>Withdraw message</key>
 	<string>Tarik balik mesej</string>
 	<key>Withdraw this message?</key>
 	<string>Tarik balik mesej ini?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Ditarik balik oleh penghantar</string>
 	<key>Without a cloud backup</key>
 	<string>Tiada sandaran awan</string>
 	<key>Workspace copied from another iPhone</key>

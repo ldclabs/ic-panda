@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>해지되었거나 더 이상 계정에 없는 장치 %lld대가 아직 이 지갑에 연결되어 있습니다.</string>
+	<key>%lld files · %@</key>
+	<string>파일 %lld개 · %@</string>
 	<key>1 day</key>
 	<string>1일</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>승인된 바인딩 수락</string>
 	<key>Accepted by service</key>
 	<string>서비스에서 수락됨</string>
+	<key>Accepting files</key>
+	<string>열림</string>
 	<key>Access granted</key>
 	<string>액세스 권한이 부여됨</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>활성</string>
 	<key>Active conversations</key>
 	<string>활성 대화</string>
+	<key>Active links</key>
+	<string>활성 링크</string>
 	<key>Activity on this device</key>
 	<string>이 기기에서의 활동</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>자산 정보를 불러올 수 없습니다. 다시 시도한 후 금액을 입력하세요.</string>
 	<key>Asset identifier</key>
 	<string>자산 식별자</string>
+	<key>At most %lld names at a time.</key>
+	<string>한 번에 최대 %lld명입니다.</string>
 	<key>Attach</key>
 	<string>부착</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>선택 취소</string>
 	<key>Close invitation</key>
 	<string>초대 종료</string>
+	<key>Close link</key>
+	<string>링크 닫기</string>
 	<key>Closed</key>
 	<string>휴무</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>클라우드 스토리지</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>클라우드 저장 공간 또는 파일 크기 한도를 초과했습니다. 요금제와 백업 크기를 확인하세요.</string>
+	<key>Collect files</key>
+	<string>파일 수집</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>파일 수집에는 유료 요금제가 필요합니다</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>두 화면의 기기 ID를 비교한 후 컴퓨터에서 승인하세요.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>계정 ID 복사</string>
 	<key>Copy address</key>
 	<string>주소 복사</string>
+	<key>Copy all</key>
+	<string>모두 복사</string>
 	<key>Copy binding request</key>
 	<string>복사 제본 요청</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>제안된 주소 정책의 공동 서명자</string>
 	<key>Create</key>
 	<string>만들기</string>
+	<key>Create %lld links</key>
+	<string>링크 %lld개 만들기</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>공급자에서 새 자격 증명을 생성하고 저장소에 저장합니다.</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>이적 제안 생성</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>암호화된 작업 공간을 만들어 비밀번호, 메모, 파일을 저장해 보세요.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>만드는 중 %lld/%lld…</string>
 	<key>Credential</key>
 	<string>자격 증명</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>계정 삭제</string>
 	<key>Delete cloud backup</key>
 	<string>클라우드 백업 삭제</string>
+	<key>Delete cloud copy</key>
+	<string>클라우드 사본 삭제</string>
 	<key>Delete copy</key>
 	<string>복사본 삭제</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>이 지갑을 동결하시겠습니까?</string>
 	<key>Freeze wallet</key>
 	<string>지갑 동결</string>
+	<key>From (not verified):</key>
+	<string>보낸 사람(미확인):</string>
 	<key>From block %llu</key>
 	<string>블록 %llu부터</string>
+	<key>Full</key>
+	<string>가득 참</string>
 	<key>Generate password</key>
 	<string>비밀번호 생성</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>페어링 요청 검사</string>
 	<key>Inspect this version</key>
 	<string>이 버전을 검사하세요</string>
+	<key>Instructions (optional)</key>
+	<string>안내(선택)</string>
 	<key>Insufficient balance</key>
 	<string>토큰 잔액이 부족합니다.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>기기를 바꾸려면 잠금 해제할 수 있는 승인된 기기를 보관하세요. 승인된 기기를 모두 잃으면 로그인을 되찾아도 클라우드 내용을 복구할 수 없습니다.</string>
 	<key>Keep current version</key>
 	<string>현재 버전 유지</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>완료될 때까지 dMsg를 열어 두세요.</string>
 	<key>Keep draft and leave</key>
 	<string>초안을 유지하고 나가기</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · 대기 기간 후</string>
 	<key>Language</key>
 	<string>언어</string>
+	<key>Largest file</key>
+	<string>최대 파일</string>
 	<key>Largest first</key>
 	<string>크기가 큰 순</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>라이센스 키</string>
 	<key>Licensed To</key>
 	<string>라이센스가 부여된 대상</string>
+	<key>Link closed</key>
+	<string>닫힘</string>
 	<key>Link limits</key>
 	<string>링크 제한</string>
 	<key>Links</key>
 	<string>링크</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>링크가 준비되었습니다. 각 링크는 해당하는 사람에게만 보내세요.</string>
 	<key>Load earlier activity</key>
 	<string>이전 활동 로드</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>새로운 대화</string>
 	<key>New field type</key>
 	<string>새 필드 유형</string>
+	<key>New files</key>
+	<string>새 파일</string>
 	<key>New folder</key>
 	<string>새 폴더</string>
 	<key>New free letter</key>
 	<string>새로운 무료 편지</string>
+	<key>New link</key>
+	<string>새 링크</string>
 	<key>New revision</key>
 	<string>새로운 개정판</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>아직 기록이 없습니다</string>
 	<key>No letters yet</key>
 	<string>아직 편지가 없습니다</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>아직 링크가 없습니다. 링크를 만들어 파일을 보내야 할 사람에게 전달하세요.</string>
 	<key>No matching accounts</key>
 	<string>일치하는 결과 없음</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>이 기기에는 스냅샷이 없습니다.</string>
 	<key>No transfer was started.</key>
 	<string>전송이 시작되지 않았습니다.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>이제 이 링크로 파일을 보낼 수 없습니다. 받은 파일은 유지됩니다.</string>
 	<key>Not delivered</key>
 	<string>배송되지 않음</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>메모</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>이 경로로는 아직 더스트 한도를 넘는 금액을 옮길 수 없습니다.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>아직 도착한 파일이 없습니다.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>알림 등록을 다시 시도해야 합니다. 전경 동기화는 계속 사용할 수 있습니다.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>온체인 복구</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>승인하면 새 장치가 이 장치의 역할로 가입하고 콘텐츠 루트도 새 장치로 옮겨집니다. 이후 이 장치는 인계를 마치는 일만 할 수 있습니다.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>한 줄에 이름 하나씩 입력하면 사람마다 별도의 링크가 만들어집니다. 이름은 나만 볼 수 있습니다.</string>
 	<key>One-time code</key>
 	<string>일회용 코드</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>dMsg 작업공간 열기</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg를 엽니다. 잠금 해제 및 승인에는 여전히 앱에서의 상호 작용이 필요합니다.</string>
+	<key>Open for</key>
+	<string>열림 기간</string>
 	<key>Open invitation in browser</key>
 	<string>브라우저에서 초대 열기</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>이 에이전트를 일시중지합니다.</string>
 	<key>Pause transfer</key>
 	<string>전송 일시중지</string>
+	<key>Paused</key>
+	<string>일시 중지됨</string>
 	<key>Payment card</key>
 	<string>결제 카드</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>플랜</string>
 	<key>Plan and usage</key>
 	<string>계획 및 사용법</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus 이상 요금제는 링크로 누구에게나 파일을 요청할 수 있습니다. 상대방은 계정이 필요 없고 자신이 보낸 것만 보며, 파일은 나만 열 수 있습니다.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>정책이 사용할 수 없는 필드를 가리킵니다.</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>이유</string>
 	<key>Receive here</key>
 	<string>여기서 받기</string>
+	<key>Received files</key>
+	<string>받은 자료</string>
 	<key>Received for review</key>
 	<string>검토를 위해 접수됨</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>이전 iPhone 대체</string>
 	<key>Replacement key</key>
 	<string>교체할 키</string>
+	<key>Replaces %@</key>
+	<string>%@ 교체</string>
 	<key>Reply</key>
 	<string>답장하다</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>이 항목을 dMsg용으로 저장하세요. 계정을 선택하고 앱을 열고 잠금을 해제한 후 가져오세요.</string>
 	<key>Save to dMsg</key>
 	<string>dMsg에 저장</string>
+	<key>Save to library</key>
+	<string>라이브러리에 저장</string>
 	<key>Saved</key>
 	<string>저장됨</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>이 기기에 저장되었습니다. 변경사항이 동기화 대기 중입니다.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>저장된 프로필이 게시되었습니다. 초안은 아직 제출되지 않았습니다.</string>
+	<key>Saved to your library</key>
+	<string>라이브러리에 저장됨</string>
 	<key>Saved. Publication is pending.</key>
 	<string>저장되었습니다. 출판이 보류 중입니다.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>이 장치에서는 Secure Enclave를 사용할 수 없습니다.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>보안 요구 사항이 변경되었습니다. 요청을 승인하기 전에 다시 검토하세요.</string>
+	<key>See plans</key>
+	<string>요금제 보기</string>
 	<key>Select a conversation</key>
 	<string>대화를 선택하세요</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>무시된 발견 항목 표시</string>
 	<key>Show draft</key>
 	<string>입력한 내용 표시</string>
+	<key>Show in library</key>
+	<string>라이브러리에서 보기</string>
 	<key>Show share link</key>
 	<string>공유 링크 표시</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>솔라나</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>일부 파일은 이 iPhone에만 있으며 클라우드 백업이나 최근 동기화가 없습니다.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>일부 링크를 만들지 못했습니다. 남은 이름은 아래에 있으니 다시 시도하세요.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>일부 소스 레코드 또는 속성은 지원되지 않습니다. 이 가져오기는 선택한 필드만 복사합니다. 아카이브 첨부 파일, 암호 키 및 기록은 여기로 가져오지 않습니다.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>그러면 제안이 생성됩니다. 지갑의 승인 및 실행 요구 사항이 충족될 때까지 자금을 이체하지 않습니다. 금액은 정확한 기본 단위 정수입니다.</string>
 	<key>This device</key>
 	<string>이 장치</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>이 기기에는 아직 이 링크의 키가 없습니다.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>이 기기에는 동기화되지 않은 변경사항이 있습니다. 계정을 삭제하기 전에 필요한 모든 것을 저장하세요.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>이 장치가 대체하는 장치</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>이 필드는 숨기거나 이 화면을 나갈 때까지 표시됩니다.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>이 파일을 열 수 없습니다. 삭제할 수 있습니다.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>이 파일은 이 작업에 허용된 크기 제한을 초과합니다.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>이 파일은 휴지통에 있습니다. 복원한 후 여세요.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>이 파일은 이 기기에 없습니다. dMsg는 새 사본을 암호화하는 동안에만 임시로 내려받으며 라이브러리는 바뀌지 않습니다.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>저장 공간이 확보됩니다. 라이브러리에 저장한 사본은 유지됩니다.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>이 기록은 이 장치에 속합니다. 데스크탑-로컬 CLI, SSH 또는 다른 장치의 파일 마운트 승인을 미러링하지 않습니다.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>이 iPhone에서 기존 계정을 사용하려면 인증된 장치 중 하나에서 이 장치를 승인하세요.</string>
 	<key>Total</key>
 	<string>합계</string>
+	<key>Total size</key>
+	<string>총 크기</string>
 	<key>Transfer between devices</key>
 	<string>장치 간 전송</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>웹사이트</string>
 	<key>Welcome back.</key>
 	<string>돌아온 것을 환영합니다.</string>
+	<key>What are you asking for?</key>
+	<string>무엇을 요청하나요?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg가 열려 있고 잠금 해제되어 있으면 보관함이 자동으로 동기화됩니다. 대화나 받은 편지함을 열면 메시지가 업데이트됩니다. 파일 백업에는 별도의 확인이 필요합니다. 자동 동기화는 언제든지 끌 수 있습니다.</string>
+	<key>Who is it for? (optional)</key>
+	<string>누구에게 보내나요?(선택)</string>
 	<key>Who may contact you</key>
 	<string>귀하에게 연락할 수 있는 사람</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>링크를 가진 사람은 누구나 일반 텍스트로 볼 수 있습니다.</string>
 	<key>Withdraw</key>
 	<string>철수</string>
 	<key>Withdraw message</key>
 	<string>메시지 철회</string>
 	<key>Withdraw this message?</key>
 	<string>이 메시지를 철회하시겠습니까?</string>
+	<key>Withdrawn by the sender</key>
+	<string>보낸 사람이 철회함</string>
 	<key>Without a cloud backup</key>
 	<string>클라우드 백업 없음</string>
 	<key>Workspace copied from another iPhone</key>

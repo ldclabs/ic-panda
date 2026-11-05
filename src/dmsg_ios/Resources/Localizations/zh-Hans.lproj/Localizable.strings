@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>有 %lld 台已撤销或已不在你账户中的设备仍绑定在此钱包上。</string>
+	<key>%lld files · %@</key>
+	<string>%lld 个文件 · %@</string>
 	<key>1 day</key>
 	<string>1 天</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>接受已批准的绑定</string>
 	<key>Accepted by service</key>
 	<string>服务已接受</string>
+	<key>Accepting files</key>
+	<string>开放中</string>
 	<key>Access granted</key>
 	<string>已授予访问权</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>活跃</string>
 	<key>Active conversations</key>
 	<string>活动会话</string>
+	<key>Active links</key>
+	<string>活跃链接</string>
 	<key>Activity on this device</key>
 	<string>本设备活动</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>无法获取资产信息，请重试后再输入金额。</string>
 	<key>Asset identifier</key>
 	<string>资产标识</string>
+	<key>At most %lld names at a time.</key>
+	<string>一次最多 %lld 个名字。</string>
 	<key>Attach</key>
 	<string>添加附件</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>取消选择</string>
 	<key>Close invitation</key>
 	<string>结束邀请</string>
+	<key>Close link</key>
+	<string>关闭链接</string>
 	<key>Closed</key>
 	<string>关闭</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>云端空间</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>云端空间或文件大小超出限制，请检查套餐和备份大小。</string>
+	<key>Collect files</key>
+	<string>收取文件</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>收取文件需要付费方案</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>核对两端显示的设备 ID，并在桌面确认授权。</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>复制账户 ID</string>
 	<key>Copy address</key>
 	<string>复制地址</string>
+	<key>Copy all</key>
+	<string>全部复制</string>
 	<key>Copy binding request</key>
 	<string>复制绑定请求</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>拟定地址策略的联合签名者</string>
 	<key>Create</key>
 	<string>创建</string>
+	<key>Create %lld links</key>
+	<string>创建 %lld 条链接</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>在服务提供方创建新凭据，并保存到保险库</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>创建转账提案</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>创建你的加密工作区，即可开始保存密码、笔记和文件。</string>
+	<key>Creating %lld of %lld…</key>
+	<string>正在创建 %lld/%lld…</string>
 	<key>Credential</key>
 	<string>凭据</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>删除账号</string>
 	<key>Delete cloud backup</key>
 	<string>删除云备份</string>
+	<key>Delete cloud copy</key>
+	<string>删除云端副本</string>
 	<key>Delete copy</key>
 	<string>删除副本</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>冻结此钱包？</string>
 	<key>Freeze wallet</key>
 	<string>冻结钱包</string>
+	<key>From (not verified):</key>
+	<string>来自（未验证）：</string>
 	<key>From block %llu</key>
 	<string>自区块 %llu 起</string>
+	<key>Full</key>
+	<string>已满</string>
 	<key>Generate password</key>
 	<string>生成密码</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>核对配对请求</string>
 	<key>Inspect this version</key>
 	<string>查看这个版本</string>
+	<key>Instructions (optional)</key>
+	<string>说明（可选）</string>
 	<key>Insufficient balance</key>
 	<string>余额不足</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>换机需要一台仍可解锁的授权设备。丢失全部授权设备后，即使找回登录，也无法恢复云端内容。</string>
 	<key>Keep current version</key>
 	<string>保留当前版本</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>请保持 dMsg 打开，直到完成。</string>
 	<key>Keep draft and leave</key>
 	<string>保留草稿并离开</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · 延时之后</string>
 	<key>Language</key>
 	<string>语言</string>
+	<key>Largest file</key>
+	<string>单文件上限</string>
 	<key>Largest first</key>
 	<string>大小从大到小</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>许可证密钥</string>
 	<key>Licensed To</key>
 	<string>授权给</string>
+	<key>Link closed</key>
+	<string>已关闭</string>
 	<key>Link limits</key>
 	<string>链接限制</string>
 	<key>Links</key>
 	<string>链接</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>链接已就绪。每条链接只发给对应的人。</string>
 	<key>Load earlier activity</key>
 	<string>加载更早的活动</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>新建对话</string>
 	<key>New field type</key>
 	<string>新字段类型</string>
+	<key>New files</key>
+	<string>有新文件</string>
 	<key>New folder</key>
 	<string>新建文件夹</string>
 	<key>New free letter</key>
 	<string>新建免费信件</string>
+	<key>New link</key>
+	<string>新建链接</string>
 	<key>New revision</key>
 	<string>新版本</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>暂无记录</string>
 	<key>No letters yet</key>
 	<string>还没有来信</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>还没有链接。新建一条，发给需要向你提交文件的人。</string>
 	<key>No matching accounts</key>
 	<string>无匹配结果</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>此设备尚无快照</string>
 	<key>No transfer was started.</key>
 	<string>没有启动传输。</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>关闭后无法再通过它发送文件，已收到的文件会保留。</string>
 	<key>Not delivered</key>
 	<string>未送达</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>备注</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>目前经此路径能转出的金额都低于粉尘线。</string>
+	<key>Nothing has arrived yet.</key>
+	<string>还没有收到文件。</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>通知注册需要重试，前台同步仍可使用。</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>链上恢复</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>批准后，新设备以本设备的角色加入，内容根随之转到新设备；此后本设备只能完成交接。</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>每行一个名字，每人一条独立链接。名字只有你能看到。</string>
 	<key>One-time code</key>
 	<string>一次性验证码</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>打开 dMsg 工作区</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>打开 dMsg。解锁和批准仍需你在应用内操作。</string>
+	<key>Open for</key>
+	<string>开放时长</string>
 	<key>Open invitation in browser</key>
 	<string>在浏览器打开邀请</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>暂停此 Agent</string>
 	<key>Pause transfer</key>
 	<string>暂停传输</string>
+	<key>Paused</key>
+	<string>已暂停</string>
 	<key>Payment card</key>
 	<string>银行卡</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>会员</string>
 	<key>Plan and usage</key>
 	<string>套餐与用量</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus 及以上方案可以通过链接向任何人收取文件。对方无需账号，只能看到自己发送的内容，文件只有你能打开。</string>
 	<key>Policy points to an unavailable field</key>
 	<string>策略引用了不可用的字段</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>原因</string>
 	<key>Receive here</key>
 	<string>在本机接收</string>
+	<key>Received files</key>
+	<string>收到的资料</string>
 	<key>Received for review</key>
 	<string>已收到，等待处理</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>替换旧 iPhone</string>
 	<key>Replacement key</key>
 	<string>替换为</string>
+	<key>Replaces %@</key>
+	<string>替换了 %@</string>
 	<key>Reply</key>
 	<string>回复</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>为 dMsg 暂存这些内容。打开并解锁应用后，选择账号再导入。</string>
 	<key>Save to dMsg</key>
 	<string>保存到 dMsg</string>
+	<key>Save to library</key>
+	<string>保存到文件库</string>
 	<key>Saved</key>
 	<string>已保存</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>已保存到本机，正在等待同步。</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>已保存的资料已发布。你的草稿尚未提交。</string>
+	<key>Saved to your library</key>
+	<string>已保存到文件库</string>
 	<key>Saved. Publication is pending.</key>
 	<string>已保存，等待发布。</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>此设备无法使用 Secure Enclave。</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>安全要求已变更。请重新审阅请求后再批准。</string>
+	<key>See plans</key>
+	<string>查看方案</string>
 	<key>Select a conversation</key>
 	<string>选择一个对话</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>显示已忽略的发现</string>
 	<key>Show draft</key>
 	<string>显示输入内容</string>
+	<key>Show in library</key>
+	<string>在文件库中显示</string>
 	<key>Show share link</key>
 	<string>显示分享链接</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>有些文件只在这台 iPhone 上，没有云端备份或近期同步。</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>部分链接未创建。剩下的名字保留在下方，可以重试。</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>部分源记录或属性不受支持。此处只导入所选字段，不导入归档附件、通行密钥和历史记录。</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>此操作会创建提案，满足钱包批准和执行要求后才会转账。金额以最小单位的精确整数填写。</string>
 	<key>This device</key>
 	<string>此设备</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>这台设备还没有这条链接的密钥。</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>此设备有未同步的修改，请在删除账号前保存需要的内容。</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>本设备替换</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>该字段将保持可见，直到你隐藏它或离开此页面。</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>这个文件无法打开。你可以删除它。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>此文件超过了此操作允许的大小上限。</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>此文件在回收站中，请先恢复再打开。</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>这个文件不在本机。dMsg 只会临时下载它来加密新副本，文件库不会有任何变化。</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>这会释放存储空间。已保存到文件库的副本不受影响。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>此历史记录仅属于本设备，不会镜像其他设备上的桌面本地 CLI、SSH 或文件挂载审批。</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>要在这台 iPhone 上使用已有账号，请在一台已授权设备上批准此设备。</string>
 	<key>Total</key>
 	<string>合计</string>
+	<key>Total size</key>
+	<string>总量上限</string>
 	<key>Transfer between devices</key>
 	<string>设备间直传</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>网站</string>
 	<key>Welcome back.</key>
 	<string>欢迎回来。</string>
+	<key>What are you asking for?</key>
+	<string>你要收取什么？</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg 打开且已解锁时，保险库会自动同步。进入会话或收件箱后才会更新消息。文件备份仍需单独确认。你可以随时关闭自动同步。</string>
+	<key>Who is it for? (optional)</key>
+	<string>发给谁？（可选）</string>
 	<key>Who may contact you</key>
 	<string>谁可以联系你</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>拿到链接的人都能看到，按纯文本显示。</string>
 	<key>Withdraw</key>
 	<string>撤回</string>
 	<key>Withdraw message</key>
 	<string>撤回消息</string>
 	<key>Withdraw this message?</key>
 	<string>撤回这条消息？</string>
+	<key>Withdrawn by the sender</key>
+	<string>发送者已撤回</string>
 	<key>Without a cloud backup</key>
 	<string>没有云端备份</string>
 	<key>Workspace copied from another iPhone</key>

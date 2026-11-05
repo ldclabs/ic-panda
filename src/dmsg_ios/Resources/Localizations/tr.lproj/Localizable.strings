@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>İptal edilmiş ya da artık hesabınızda olmayan %lld cihaz hâlâ bu cüzdana bağlı.</string>
+	<key>%lld files · %@</key>
+	<string>%lld dosya · %@</string>
 	<key>1 day</key>
 	<string>1 gün</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Onaylanmış bağlamayı kabul et</string>
 	<key>Accepted by service</key>
 	<string>Hizmet tarafından kabul edildi</string>
+	<key>Accepting files</key>
+	<string>Açık</string>
 	<key>Access granted</key>
 	<string>Erişim verildi</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Aktif</string>
 	<key>Active conversations</key>
 	<string>Aktif konuşmalar</string>
+	<key>Active links</key>
+	<string>Etkin bağlantılar</string>
 	<key>Activity on this device</key>
 	<string>Bu cihazdaki etkinlik</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Varlık ayrıntıları alınamadı. Tutar girmeden önce yeniden deneyin.</string>
 	<key>Asset identifier</key>
 	<string>Varlık tanımlayıcı</string>
+	<key>At most %lld names at a time.</key>
+	<string>Aynı anda en fazla %lld ad.</string>
 	<key>Attach</key>
 	<string>Ekle</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Seçimi temizle</string>
 	<key>Close invitation</key>
 	<string>Daveti kapat</string>
+	<key>Close link</key>
+	<string>Bağlantıyı kapat</string>
 	<key>Closed</key>
 	<string>Kapalı</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Bulut depolama</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Bulut depolama veya dosya boyutu sınırı aşıldı. Planınızı ve yedek boyutunu kontrol edin.</string>
+	<key>Collect files</key>
+	<string>Dosya topla</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Dosya toplamak için ücretli plan gerekir</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>İki ekrandaki cihaz kimliğini karşılaştırın ve bilgisayarda onaylayın.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Hesap kimliğini kopyala</string>
 	<key>Copy address</key>
 	<string>Adresi kopyala</string>
+	<key>Copy all</key>
+	<string>Tümünü kopyala</string>
 	<key>Copy binding request</key>
 	<string>Bağlama isteğini kopyala</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Önerilen adres politikası için ortak imzacılar</string>
 	<key>Create</key>
 	<string>Oluştur</string>
+	<key>Create %lld links</key>
+	<string>%lld bağlantı oluştur</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Sağlayıcısında yeni bir kimlik bilgisi oluşturun ve bunu kasaya kaydedin</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Transfer teklifi oluştur</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Şifreleri, notları ve dosyaları kaydetmeye başlamak için şifrelenmiş çalışma alanınızı oluşturun.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Oluşturuluyor %lld/%lld…</string>
 	<key>Credential</key>
 	<string>Kimlik bilgisi</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Hesabı sil</string>
 	<key>Delete cloud backup</key>
 	<string>Bulut yedeklemesini sil</string>
+	<key>Delete cloud copy</key>
+	<string>Bulut kopyasını sil</string>
 	<key>Delete copy</key>
 	<string>Kopyayı sil</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>Bu cüzdan dondurulsun mu?</string>
 	<key>Freeze wallet</key>
 	<string>Cüzdanı dondur</string>
+	<key>From (not verified):</key>
+	<string>Gönderen (doğrulanmadı):</string>
 	<key>From block %llu</key>
 	<string>%llu numaralı bloktan itibaren</string>
+	<key>Full</key>
+	<string>Dolu</string>
 	<key>Generate password</key>
 	<string>Parola oluştur</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Eşleştirme isteğini inceleyin</string>
 	<key>Inspect this version</key>
 	<string>Bu sürümü inceleyin</string>
+	<key>Instructions (optional)</key>
+	<string>Talimatlar (isteğe bağlı)</string>
 	<key>Insufficient balance</key>
 	<string>Yetersiz jeton bakiyesi.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Cihaz değiştirmek için kilidini açabildiğiniz yetkili bir cihazı saklayın. Tüm yetkili cihazlar kaybolursa girişinizi kurtarmak bulut içeriğini geri getirmez.</string>
 	<key>Keep current version</key>
 	<string>Mevcut sürümü koru</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Bitene kadar dMsg’i açık tutun.</string>
 	<key>Keep draft and leave</key>
 	<string>Taslağı tut ve çık</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · bekleme süresinden sonra</string>
 	<key>Language</key>
 	<string>Dil</string>
+	<key>Largest file</key>
+	<string>En büyük dosya</string>
 	<key>Largest first</key>
 	<string>Önce en büyük</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>Lisans Anahtarı</string>
 	<key>Licensed To</key>
 	<string>Lisanslı</string>
+	<key>Link closed</key>
+	<string>Kapalı</string>
 	<key>Link limits</key>
 	<string>Bağlantı sınırları</string>
 	<key>Links</key>
 	<string>Bağlantılar</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Bağlantılar hazır. Her birini yalnızca ilgili kişiye gönderin.</string>
 	<key>Load earlier activity</key>
 	<string>Önceki etkinliği yükle</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>Yeni görüşme</string>
 	<key>New field type</key>
 	<string>Yeni alan türü</string>
+	<key>New files</key>
+	<string>Yeni dosyalar</string>
 	<key>New folder</key>
 	<string>Yeni klasör</string>
 	<key>New free letter</key>
 	<string>Yeni ücretsiz mektup</string>
+	<key>New link</key>
+	<string>Yeni bağlantı</string>
 	<key>New revision</key>
 	<string>Yeni revizyon</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>Henüz kayıt yok</string>
 	<key>No letters yet</key>
 	<string>Henüz mektup yok</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>Henüz bağlantı yok. Bir tane oluşturup size dosya göndermesi gereken kişilere iletin.</string>
 	<key>No matching accounts</key>
 	<string>Eşleşen sonuç yok</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>Bu cihazda anlık görüntü yok</string>
 	<key>No transfer was started.</key>
 	<string>Hiçbir aktarım başlatılmadı.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Artık kimse bu bağlantıyla dosya gönderemez. Alınan dosyalar kalır.</string>
 	<key>Not delivered</key>
 	<string>Teslim edilmedi</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Notlar</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Bu yoldan henüz toz sınırının üzerinde bir şey taşınamaz.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Henüz bir şey gelmedi.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Bildirim kaydının yeniden denenmesi gerekiyor. Ön plan senkronizasyonu kullanılabilir durumda kalır.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>Zincir üzerinden kurtarma</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Onaylandığında yeni cihaz bu cihazın rolüyle katılır ve içerik kökü ona geçer; bu cihaz bundan sonra yalnızca devri tamamlayabilir.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>Satır başına bir ad, her kişi için ayrı bir bağlantı oluşturur. Adları yalnızca siz görürsünüz.</string>
 	<key>One-time code</key>
 	<string>Tek kullanımlık kod</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>dMsg çalışma alanını açın</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg'yu açın. Kilit açma ve onaylar yine de uygulamadaki etkileşiminizi gerektirir.</string>
+	<key>Open for</key>
+	<string>Açık kalma süresi</string>
 	<key>Open invitation in browser</key>
 	<string>Davetiyeyi tarayıcıda aç</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>Bu temsilciyi duraklat</string>
 	<key>Pause transfer</key>
 	<string>Aktarımı duraklat</string>
+	<key>Paused</key>
+	<string>Duraklatıldı</string>
 	<key>Payment card</key>
 	<string>Ödeme kartı</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Plan</string>
 	<key>Plan and usage</key>
 	<string>Plan ve kullanım</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus ve üzeri planlarla bağlantı üzerinden herkesten dosya isteyebilirsiniz. Hesap gerekmez, herkes yalnızca kendi gönderdiğini görür ve dosyaları yalnızca siz açabilirsiniz.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Politika kullanılamayan bir alanı işaret ediyor</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Sebep</string>
 	<key>Receive here</key>
 	<string>Burada al</string>
+	<key>Received files</key>
+	<string>Alınanlar</string>
 	<key>Received for review</key>
 	<string>İncelenmek üzere alındı</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Eski iPhone’un yerine geç</string>
 	<key>Replacement key</key>
 	<string>Yeni anahtar</string>
+	<key>Replaces %@</key>
+	<string>%@ yerine</string>
 	<key>Reply</key>
 	<string>Yanıtla</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>Bu öğeleri dMsg için kaydedin. Bir hesap seçin ve uygulamayı açıp kilidini açtıktan sonra bunları içe aktarın.</string>
 	<key>Save to dMsg</key>
 	<string>dMsg'ya kaydet</string>
+	<key>Save to library</key>
+	<string>Kitaplığa kaydet</string>
 	<key>Saved</key>
 	<string>Kaydedildi</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Bu cihaza kaydedildi. Değişiklikler senkronize edilmeyi bekliyor.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Kaydedilen profil yayımlandı. Taslağınız henüz gönderilmedi.</string>
+	<key>Saved to your library</key>
+	<string>Kitaplığınıza kaydedildi</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Kaydedildi. Yayınlanma bekleniyor.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave bu cihazda kullanılamıyor.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Güvenlik gereksinimleri değişti. İsteği onaylamadan önce tekrar inceleyin.</string>
+	<key>See plans</key>
+	<string>Planları gör</string>
 	<key>Select a conversation</key>
 	<string>Bir görüşme seçin</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Reddedilen bulguları göster</string>
 	<key>Show draft</key>
 	<string>Ne yazdığınızı gösterin</string>
+	<key>Show in library</key>
+	<string>Kitaplıkta göster</string>
 	<key>Show share link</key>
 	<string>Paylaşım bağlantısını göster</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Bazı dosyalar yalnızca bu iPhone’da; bulut yedeği veya yakın tarihli eşitleme yok.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>Bazı bağlantılar oluşturulamadı. Kalan adlar yeniden denemek için aşağıda.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Bazı kaynak kayıtları veya özellikler desteklenmiyor. Bu içe aktarma yalnızca seçilen alanları kopyalar; arşiv ekleri, şifreler ve geçmiş buraya aktarılmaz.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>Bu bir teklif yaratır. Cüzdanın onay ve yürütme gereksinimleri karşılanana kadar para transferi yapmaz. Tutarlar tam temel birim tam sayılarıdır.</string>
 	<key>This device</key>
 	<string>Bu cihaz</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>Bu cihazda bu bağlantının anahtarı henüz yok.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Bu cihazda senkronize edilmemiş değişiklikler var. Hesabı silmeden önce ihtiyacınız olan her şeyi kaydedin.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>Bu cihazın yerini aldığı cihaz</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>Bu alan, siz gizleyene veya bu ekrandan ayrılana kadar görünür kalır.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>Bu dosya açılamıyor. Silebilirsiniz.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Bu dosya, bu işlem için izin verilen boyut sınırını aşıyor.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>Bu dosya çöp kutusunda. Açmadan önce geri yükleyin.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Bu dosya bu cihazda değil. dMsg onu yalnızca yeni kopyayı şifreleyecek kadar süreyle indirir ve kitaplığınız değişmez.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>Bu, alan açar. Kitaplığınızdaki kopya kalır.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Bu geçmiş bu cihaza aittir. Başka bir cihazdan masaüstü yerel CLI, SSH veya dosya bağlama onaylarını yansıtmaz.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>Mevcut hesabınızı bu iPhone'da kullanmak için bu cihazı yetkili cihazlarınızdan birinden onaylayın.</string>
 	<key>Total</key>
 	<string>Toplam</string>
+	<key>Total size</key>
+	<string>Toplam boyut</string>
 	<key>Transfer between devices</key>
 	<string>Cihazlar arası aktarım</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Web sitesi</string>
 	<key>Welcome back.</key>
 	<string>Tekrar hoş geldiniz.</string>
+	<key>What are you asking for?</key>
+	<string>Ne istiyorsunuz?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg açık ve kilidi açılmışken kasa otomatik eşitlenir. Mesajlar konuşma veya gelen kutusu açıldığında yenilenir. Dosya yedeklemeleri ayrı onay gerektirir. Otomatik eşitlemeyi istediğiniz zaman kapatabilirsiniz.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Kimin için? (isteğe bağlı)</string>
 	<key>Who may contact you</key>
 	<string>Sizinle kim iletişime geçebilir?</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Bağlantıya sahip herkes bunları düz metin olarak görür.</string>
 	<key>Withdraw</key>
 	<string>Çekilme</string>
 	<key>Withdraw message</key>
 	<string>Mesajı geri çek</string>
 	<key>Withdraw this message?</key>
 	<string>Bu mesaj geri çekilsin mi?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Gönderen geri çekti</string>
 	<key>Without a cloud backup</key>
 	<string>Bulut yedeği olmayan</string>
 	<key>Workspace copied from another iPhone</key>

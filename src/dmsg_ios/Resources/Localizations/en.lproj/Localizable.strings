@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld devices revoked or no longer in your account are still bound to this wallet.</string>
+	<key>%lld files · %@</key>
+	<string>Files: %lld · %@</string>
 	<key>1 day</key>
 	<string>1 day</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Accept approved binding</string>
 	<key>Accepted by service</key>
 	<string>Accepted by service</string>
+	<key>Accepting files</key>
+	<string>Accepting files</string>
 	<key>Access granted</key>
 	<string>Access granted</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Active</string>
 	<key>Active conversations</key>
 	<string>Active conversations</string>
+	<key>Active links</key>
+	<string>Active links</string>
 	<key>Activity on this device</key>
 	<string>Activity on this device</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Asset details are unavailable. Retry before entering an amount.</string>
 	<key>Asset identifier</key>
 	<string>Asset identifier</string>
+	<key>At most %lld names at a time.</key>
+	<string>At most %lld names at a time.</string>
 	<key>Attach</key>
 	<string>Attach</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Clear selection</string>
 	<key>Close invitation</key>
 	<string>Close invitation</string>
+	<key>Close link</key>
+	<string>Close link</string>
 	<key>Closed</key>
 	<string>Closed</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Cloud storage</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</string>
+	<key>Collect files</key>
+	<string>Collect files</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Collecting files needs a paid plan</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Compare the device ID on both screens and approve on your desktop.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Copy account ID</string>
 	<key>Copy address</key>
 	<string>Copy address</string>
+	<key>Copy all</key>
+	<string>Copy all</string>
 	<key>Copy binding request</key>
 	<string>Copy binding request</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Cosigners for the proposed address policy</string>
 	<key>Create</key>
 	<string>Create</string>
+	<key>Create %lld links</key>
+	<string>Create %lld links</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Create a new credential at its provider and save it in the vault</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Create transfer proposal</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Create your encrypted workspace to start saving passwords, notes and files.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Creating %lld of %lld…</string>
 	<key>Credential</key>
 	<string>Credential</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Delete account</string>
 	<key>Delete cloud backup</key>
 	<string>Delete cloud backup</string>
+	<key>Delete cloud copy</key>
+	<string>Delete cloud copy</string>
 	<key>Delete copy</key>
 	<string>Delete copy</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>Freeze this wallet?</string>
 	<key>Freeze wallet</key>
 	<string>Freeze wallet</string>
+	<key>From (not verified):</key>
+	<string>From (not verified):</string>
 	<key>From block %llu</key>
 	<string>From block %llu</string>
+	<key>Full</key>
+	<string>Full</string>
 	<key>Generate password</key>
 	<string>Generate password</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Inspect pairing request</string>
 	<key>Inspect this version</key>
 	<string>Inspect this version</string>
+	<key>Instructions (optional)</key>
+	<string>Instructions (optional)</string>
 	<key>Insufficient balance</key>
 	<string>Insufficient balance</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Keep an authorized device you can unlock to move to a new device. If all authorized devices are lost, recovering your login will not recover cloud content.</string>
 	<key>Keep current version</key>
 	<string>Keep current version</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Keep dMsg open until this finishes.</string>
 	<key>Keep draft and leave</key>
 	<string>Keep draft and leave</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · after the delay</string>
 	<key>Language</key>
 	<string>Language</string>
+	<key>Largest file</key>
+	<string>Largest file</string>
 	<key>Largest first</key>
 	<string>Largest first</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>License Key</string>
 	<key>Licensed To</key>
 	<string>Licensed To</string>
+	<key>Link closed</key>
+	<string>Link closed</string>
 	<key>Link limits</key>
 	<string>Link limits</string>
 	<key>Links</key>
 	<string>Links</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Links ready. Send each one only to its person.</string>
 	<key>Load earlier activity</key>
 	<string>Load earlier activity</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>New conversation</string>
 	<key>New field type</key>
 	<string>New field type</string>
+	<key>New files</key>
+	<string>New files</string>
 	<key>New folder</key>
 	<string>New folder</string>
 	<key>New free letter</key>
 	<string>New free letter</string>
+	<key>New link</key>
+	<string>New link</string>
 	<key>New revision</key>
 	<string>New revision</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>No items</string>
 	<key>No letters yet</key>
 	<string>No letters yet</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>No links yet. Make one and send it to whoever should send you files.</string>
 	<key>No matching accounts</key>
 	<string>No matching results</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>No snapshots on this device</string>
 	<key>No transfer was started.</key>
 	<string>No transfer was started.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Nobody can send more files through it. Files already received stay.</string>
 	<key>Not delivered</key>
 	<string>Not delivered</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Notes</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Nothing above the dust limit can move through this path yet.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Nothing has arrived yet.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Notification registration needs retrying. Foreground sync remains available.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>On-chain recovery</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>One name per line makes a separate link for each. Only you see the names.</string>
 	<key>One-time code</key>
 	<string>One-time code</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>Open dMsg workspace</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Open dMsg. Unlocking and approvals still require your interaction in the app.</string>
+	<key>Open for</key>
+	<string>Open for</string>
 	<key>Open invitation in browser</key>
 	<string>Open invitation in browser</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>Pause this agent</string>
 	<key>Pause transfer</key>
 	<string>Pause transfer</string>
+	<key>Paused</key>
+	<string>Paused</string>
 	<key>Payment card</key>
 	<string>Payment card</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Plan</string>
 	<key>Plan and usage</key>
 	<string>Plan and usage</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Policy points to an unavailable field</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Reason</string>
 	<key>Receive here</key>
 	<string>Receive here</string>
+	<key>Received files</key>
+	<string>Received files</string>
 	<key>Received for review</key>
 	<string>Received for review</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Replace the old iPhone</string>
 	<key>Replacement key</key>
 	<string>Replacement key</string>
+	<key>Replaces %@</key>
+	<string>Replaces %@</string>
 	<key>Reply</key>
 	<string>Reply</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>Save these items for dMsg. Choose an account and import them after opening and unlocking the app.</string>
 	<key>Save to dMsg</key>
 	<string>Save to dMsg</string>
+	<key>Save to library</key>
+	<string>Save to library</string>
 	<key>Saved</key>
 	<string>Saved</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Saved on this device. Changes are waiting to sync.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Saved profile published. Your draft has not been submitted.</string>
+	<key>Saved to your library</key>
+	<string>Saved to your library</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Saved. Publication is pending.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave is unavailable on this device.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Security requirements changed. Review the request again before approving it.</string>
+	<key>See plans</key>
+	<string>See plans</string>
 	<key>Select a conversation</key>
 	<string>Select a conversation</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Show dismissed findings</string>
 	<key>Show draft</key>
 	<string>Show draft</string>
+	<key>Show in library</key>
+	<string>Show in library</string>
 	<key>Show share link</key>
 	<string>Show share link</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Some files exist only on this iPhone, without a cloud backup or a recent sync.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>Some links were not made. The names left are below to try again.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>This creates a proposal. It does not transfer funds until the wallet's approval and execution requirements are met. Amounts are exact base-unit integers.</string>
 	<key>This device</key>
 	<string>This device</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>This device does not have this link’s key yet.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>This device has changes that have not synced. Save anything you need before deleting the account.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>This device replaces</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>This field will be visible until you hide it or leave this screen.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>This file cannot be opened. You can delete it.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>This file exceeds the size limit for this operation.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>This file is in Trash. Restore it before opening it.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>This frees its storage. A copy saved to your library stays.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>To use your existing account on this iPhone, approve this device from one of your authorized devices.</string>
 	<key>Total</key>
 	<string>Total</string>
+	<key>Total size</key>
+	<string>Total size</string>
 	<key>Transfer between devices</key>
 	<string>Transfer between devices</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Website</string>
 	<key>Welcome back.</key>
 	<string>Welcome back.</string>
+	<key>What are you asking for?</key>
+	<string>What are you asking for?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Who is it for? (optional)</string>
 	<key>Who may contact you</key>
 	<string>Who may contact you</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Whoever has the link sees these, as plain text.</string>
 	<key>Withdraw</key>
 	<string>Withdraw</string>
 	<key>Withdraw message</key>
 	<string>Withdraw message</string>
 	<key>Withdraw this message?</key>
 	<string>Withdraw this message?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Withdrawn by the sender</string>
 	<key>Without a cloud backup</key>
 	<string>Without a cloud backup</string>
 	<key>Workspace copied from another iPhone</key>

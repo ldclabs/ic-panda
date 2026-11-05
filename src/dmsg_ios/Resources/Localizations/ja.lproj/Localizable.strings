@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>取り消された、またはアカウントにもう存在しない %lld 台のデバイスが、まだこのウォレットにバインドされています。</string>
+	<key>%lld files · %@</key>
+	<string>%lld 件のファイル · %@</string>
 	<key>1 day</key>
 	<string>1日</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>承認されたバインディングを受け入れる</string>
 	<key>Accepted by service</key>
 	<string>サービスが受理済み</string>
+	<key>Accepting files</key>
+	<string>受付中</string>
 	<key>Access granted</key>
 	<string>アクセスが許可されました</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>アクティブ</string>
 	<key>Active conversations</key>
 	<string>活発な会話</string>
+	<key>Active links</key>
+	<string>有効なリンク</string>
 	<key>Activity on this device</key>
 	<string>このデバイスでのアクティビティ</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>資産情報を取得できません。再試行してから金額を入力してください。</string>
 	<key>Asset identifier</key>
 	<string>資産識別子</string>
+	<key>At most %lld names at a time.</key>
+	<string>一度に %lld 名までです。</string>
 	<key>Attach</key>
 	<string>添付する</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>選択をクリアします</string>
 	<key>Close invitation</key>
 	<string>招待を終了</string>
+	<key>Close link</key>
+	<string>リンクを閉じる</string>
 	<key>Closed</key>
 	<string>閉店</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>クラウドストレージ</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>クラウド容量またはファイルサイズの上限を超えています。プランとバックアップのサイズを確認してください。</string>
+	<key>Collect files</key>
+	<string>ファイルの収集</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>ファイルの収集には有料プランが必要です</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>両方の画面でデバイスIDを照合し、パソコンで承認してください。</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>アカウントIDをコピー</string>
 	<key>Copy address</key>
 	<string>アドレスをコピーする</string>
+	<key>Copy all</key>
+	<string>すべてコピー</string>
 	<key>Copy binding request</key>
 	<string>バインディングのコピー要求</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>提案されたアドレスポリシーの連帯保証人</string>
 	<key>Create</key>
 	<string>作成</string>
+	<key>Create %lld links</key>
+	<string>%lld 件のリンクを作成</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>プロバイダーで新しい認証情報を作成し、ボールトに保存します。</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>移転提案書を作成する</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>暗号化されたワークスペースを作成して、パスワード、メモ、ファイルの保存を開始します。</string>
+	<key>Creating %lld of %lld…</key>
+	<string>作成中 %lld/%lld…</string>
 	<key>Credential</key>
 	<string>資格情報</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>アカウントを削除する</string>
 	<key>Delete cloud backup</key>
 	<string>クラウドバックアップを削除する</string>
+	<key>Delete cloud copy</key>
+	<string>クラウドのコピーを削除</string>
 	<key>Delete copy</key>
 	<string>コピーを削除</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>このウォレットを凍結しますか?</string>
 	<key>Freeze wallet</key>
 	<string>ウォレットを凍結する</string>
+	<key>From (not verified):</key>
+	<string>送信者（未確認）：</string>
 	<key>From block %llu</key>
 	<string>ブロック %llu から</string>
+	<key>Full</key>
+	<string>満杯</string>
 	<key>Generate password</key>
 	<string>パスワードを生成</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>ペアリング要求の検査</string>
 	<key>Inspect this version</key>
 	<string>このバージョンを検査する</string>
+	<key>Instructions (optional)</key>
+	<string>説明（任意）</string>
 	<key>Insufficient balance</key>
 	<string>トークン残高が不足しています。</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>機種変更にはロック解除できる承認済み端末が必要です。すべての承認済み端末を紛失すると、ログインを取り戻してもクラウドの内容は復元できません。</string>
 	<key>Keep current version</key>
 	<string>現在のバージョンを維持する</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>完了するまで dMsg を開いたままにしてください。</string>
 	<key>Keep draft and leave</key>
 	<string>下書きを保持して戻る</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · 待機期間の後</string>
 	<key>Language</key>
 	<string>言語</string>
+	<key>Largest file</key>
+	<string>最大ファイル</string>
 	<key>Largest first</key>
 	<string>サイズが大きい順</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>ライセンスキー</string>
 	<key>Licensed To</key>
 	<string>ライセンス供与先</string>
+	<key>Link closed</key>
+	<string>終了</string>
 	<key>Link limits</key>
 	<string>リンク制限</string>
 	<key>Links</key>
 	<string>リンク</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>リンクの準備ができました。それぞれ該当する人だけに送ってください。</string>
 	<key>Load earlier activity</key>
 	<string>以前のアクティビティをロードする</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>新しい会話</string>
 	<key>New field type</key>
 	<string>新しいフィールドタイプ</string>
+	<key>New files</key>
+	<string>新しいファイル</string>
 	<key>New folder</key>
 	<string>新しいフォルダー</string>
 	<key>New free letter</key>
 	<string>新しいフリーレター</string>
+	<key>New link</key>
+	<string>新しいリンク</string>
 	<key>New revision</key>
 	<string>新しいリビジョン</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>まだ記録がありません</string>
 	<key>No letters yet</key>
 	<string>まだ文字はありません</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>リンクはまだありません。作成して、ファイルを送ってほしい人に渡しましょう。</string>
 	<key>No matching accounts</key>
 	<string>一致する結果がありません</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>このデバイスにはスナップショットがありません</string>
 	<key>No transfer was started.</key>
 	<string>転送は開始されませんでした。</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>このリンクからはファイルを送れなくなります。受信済みのファイルは残ります。</string>
 	<key>Not delivered</key>
 	<string>配達されませんでした</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>注意事項</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>この経路では、まだダスト上限を超える金額を移せません。</string>
+	<key>Nothing has arrived yet.</key>
+	<string>まだ何も届いていません。</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>通知の登録を再試行する必要があります。フォアグラウンド同期は引き続き利用可能です。</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>オンチェーン復元</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>承認すると、新しいデバイスがこのデバイスの役割で参加し、コンテンツルートもそちらへ移ります。以後このデバイスは引き継ぎを完了させることしかできません。</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>1 行に 1 名で、それぞれ別のリンクを作成します。名前はあなたにだけ表示されます。</string>
 	<key>One-time code</key>
 	<string>ワンタイムコード</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>dMsg ワークスペースを開く</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>dMsg を開きます。ロック解除と承認には、引き続きアプリ内での操作が必要です。</string>
+	<key>Open for</key>
+	<string>受付期間</string>
 	<key>Open invitation in browser</key>
 	<string>ブラウザで招待状を開く</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>このエージェントを一時停止する</string>
 	<key>Pause transfer</key>
 	<string>転送を一時停止する</string>
+	<key>Paused</key>
+	<string>一時停止中</string>
 	<key>Payment card</key>
 	<string>支払いカード</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>プラン</string>
 	<key>Plan and usage</key>
 	<string>プランと使い方</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Plus 以上のプランなら、リンクで誰からでもファイルを集められます。相手にアカウントは不要で、自分が送ったものだけが見え、ファイルを開けるのはあなただけです。</string>
 	<key>Policy points to an unavailable field</key>
 	<string>ポリシーが使用できないフィールドを指しています</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>理由</string>
 	<key>Receive here</key>
 	<string>このデバイスで受信</string>
+	<key>Received files</key>
+	<string>受信した資料</string>
 	<key>Received for review</key>
 	<string>レビューのために受け取りました</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>古い iPhone を置き換える</string>
 	<key>Replacement key</key>
 	<string>置き換え先のキー</string>
+	<key>Replaces %@</key>
+	<string>%@ を置き換え</string>
 	<key>Reply</key>
 	<string>返信</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>これらのアイテムを dMsg 用に保存します。アカウントを選択し、アプリを開いてロックを解除した後、アカウントをインポートします。</string>
 	<key>Save to dMsg</key>
 	<string>dMsg に保存します</string>
+	<key>Save to library</key>
+	<string>ライブラリに保存</string>
 	<key>Saved</key>
 	<string>保存されました</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>このデバイスに保存されます。変更は同期を待機しています。</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>保存済みのプロフィールを公開しました。下書きはまだ送信されていません。</string>
+	<key>Saved to your library</key>
+	<string>ライブラリに保存しました</string>
 	<key>Saved. Publication is pending.</key>
 	<string>保存されました。出版は保留中です。</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave はこのデバイスでは使用できません。</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>セキュリティ要件が変更されました。リクエストを承認する前にもう一度確認してください。</string>
+	<key>See plans</key>
+	<string>プランを見る</string>
 	<key>Select a conversation</key>
 	<string>会話を選択してください</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>却下された調査結果を表示する</string>
 	<key>Show draft</key>
 	<string>入力した内容を表示する</string>
+	<key>Show in library</key>
+	<string>ライブラリで表示</string>
 	<key>Show share link</key>
 	<string>共有リンクを表示</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>ソラナ</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>一部のファイルはこの iPhone にしかなく、クラウドバックアップも最近の同期もありません。</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>作成できなかったリンクがあります。残りの名前は下に残っているので、再試行できます。</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>一部のソース レコードまたはプロパティはサポートされていません。このインポートでは、選択したフィールドのみがコピーされます。アーカイブの添付ファイル、パスキー、履歴はここではインポートされません。</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>これにより提案書が作成されます。ウォレットの承認および実行要件が満たされるまで、資金は転送されません。金額は正確な基本単位の整数です。</string>
 	<key>This device</key>
 	<string>このデバイス</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>このデバイスにはまだこのリンクの鍵がありません。</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>このデバイスには同期されていない変更があります。アカウントを削除する前に、必要なものをすべて保存してください。</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>このデバイスが置き換える相手</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>このフィールドは、非表示にするか画面を離れるまで表示されます。</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>このファイルは開けません。削除できます。</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>このファイルは、この操作で許可されるサイズの上限を超えています。</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>このファイルはゴミ箱にあります。復元してから開いてください。</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>このファイルはこのデバイスにありません。dMsg は新しいコピーを暗号化するあいだだけ一時的にダウンロードし、ライブラリは変更されません。</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>ストレージが空きます。ライブラリに保存したコピーは残ります。</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>この履歴はこのデバイスに属します。デスクトップローカル CLI、SSH、または別のデバイスからのファイルマウント承認はミラーリングされません。</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>この iPhone で既存のアカウントを使用するには、承認されたデバイスの 1 つからこのデバイスを承認してください。</string>
 	<key>Total</key>
 	<string>合計</string>
+	<key>Total size</key>
+	<string>合計サイズ</string>
 	<key>Transfer between devices</key>
 	<string>デバイス間の転送</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>ウェブサイト</string>
 	<key>Welcome back.</key>
 	<string>おかえりなさい。</string>
+	<key>What are you asking for?</key>
+	<string>何を依頼しますか？</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>dMsg が開いていてロック解除されている間、保管庫は自動的に同期されます。メッセージは会話や受信箱を開くと更新されます。ファイルのバックアップには別途確認が必要です。自動同期はいつでもオフにできます。</string>
+	<key>Who is it for? (optional)</key>
+	<string>宛先（任意）</string>
 	<key>Who may contact you</key>
 	<string>あなたに連絡できる人</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>リンクを持つ人全員にプレーンテキストで表示されます。</string>
 	<key>Withdraw</key>
 	<string>撤退</string>
 	<key>Withdraw message</key>
 	<string>メッセージの撤回</string>
 	<key>Withdraw this message?</key>
 	<string>このメッセージを撤回しますか?</string>
+	<key>Withdrawn by the sender</key>
+	<string>送信者が取り下げました</string>
 	<key>Without a cloud backup</key>
 	<string>クラウドバックアップなし</string>
 	<key>Workspace copied from another iPhone</key>

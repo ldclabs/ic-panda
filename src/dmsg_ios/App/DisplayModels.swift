@@ -76,6 +76,46 @@ struct FileLink: Decodable, Identifiable {
 
 /// What a new link shares: a library version, or a backup that may not be in
 /// this device's library. `remote` says its chunks must come down first.
+/// A link that takes files from people with no account.
+struct FileRequest: Decodable, Identifiable {
+    let requestId: String
+    var url: String? = nil
+    var title: String? = nil
+    var instructions: String? = nil
+    var label: String? = nil
+    let expiresAt: UInt64
+    var status: String
+    var files: UInt64
+    var bytes: UInt64
+    var unread: Bool
+    var id: String { requestId }
+    var active: Bool { status != "expired" && status != "revoked" }
+    var stateTitle: String {
+        switch status {
+        case "full": String(localized: "Full")
+        case "paused": String(localized: "Paused")
+        case "expired": String(localized: "Expired")
+        case "revoked": String(localized: "Link closed")
+        default: String(localized: "Accepting files")
+        }
+    }
+}
+
+/// A file a link received; its contents stay in the cloud until saved.
+struct ReceivedFile: Decodable, Identifiable {
+    struct Sender: Decodable { let name: String; let note: String }
+    let uploadId: String
+    var state: String
+    var name: String? = nil
+    var mime: String? = nil
+    var size: UInt64? = nil
+    var sender: Sender? = nil
+    var replaces: String? = nil
+    let bytes: UInt64
+    var savedFile: String? = nil
+    var id: String { uploadId }
+}
+
 struct FileLinkTarget: Identifiable {
     enum Source { case version(file: String, version: String), backup(upload: String) }
     /// The core's limit for a link.

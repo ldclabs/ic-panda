@@ -4,6 +4,8 @@
 <dict>
 	<key>%lld devices revoked or no longer in your account are still bound to this wallet.</key>
 	<string>%lld ingetrokken of niet meer in je account aanwezige apparaten zijn nog aan deze wallet gekoppeld.</string>
+	<key>%lld files · %@</key>
+	<string>%lld bestanden · %@</string>
 	<key>1 day</key>
 	<string>1 dag</string>
 	<key>1 hour</key>
@@ -42,6 +44,8 @@
 	<string>Accepteer goedgekeurde binding</string>
 	<key>Accepted by service</key>
 	<string>Geaccepteerd door de dienst</string>
+	<key>Accepting files</key>
+	<string>Open</string>
 	<key>Access granted</key>
 	<string>Toegang verleend</string>
 	<key>Access the copies you explicitly exported from dMsg</key>
@@ -70,6 +74,8 @@
 	<string>Actief</string>
 	<key>Active conversations</key>
 	<string>Actieve gesprekken</string>
+	<key>Active links</key>
+	<string>Actieve links</string>
 	<key>Activity on this device</key>
 	<string>Activiteit op dit apparaat</string>
 	<key>Add account</key>
@@ -220,6 +226,8 @@
 	<string>Activagegevens niet beschikbaar. Probeer opnieuw voordat je een bedrag invoert.</string>
 	<key>Asset identifier</key>
 	<string>Item-ID</string>
+	<key>At most %lld names at a time.</key>
+	<string>Maximaal %lld namen tegelijk.</string>
 	<key>Attach</key>
 	<string>Bevestig</string>
 	<key>Attach a file</key>
@@ -450,6 +458,8 @@
 	<string>Selectie wissen</string>
 	<key>Close invitation</key>
 	<string>Uitnodiging sluiten</string>
+	<key>Close link</key>
+	<string>Link sluiten</string>
 	<key>Closed</key>
 	<string>Gesloten</string>
 	<key>Cloud backup</key>
@@ -468,6 +478,10 @@
 	<string>Cloudopslag</string>
 	<key>Cloud storage or the file size limit is exceeded. Review your plan and backup size.</key>
 	<string>De limiet voor cloudopslag of bestandsgrootte is overschreden. Controleer je abonnement en de back-upgrootte.</string>
+	<key>Collect files</key>
+	<string>Bestanden verzamelen</string>
+	<key>Collecting files needs a paid plan</key>
+	<string>Bestanden verzamelen vereist een betaald abonnement</string>
 	<key>Compare the device ID on both screens and approve on your desktop.</key>
 	<string>Vergelijk de apparaat-ID op beide schermen en keur goed op de computer.</string>
 	<key>Compare with current</key>
@@ -570,6 +584,8 @@
 	<string>Account-ID kopiëren</string>
 	<key>Copy address</key>
 	<string>Kopieer adres</string>
+	<key>Copy all</key>
+	<string>Alles kopiëren</string>
 	<key>Copy binding request</key>
 	<string>Kopieer bindend verzoek</string>
 	<key>Copy device ID</key>
@@ -602,6 +618,8 @@
 	<string>Medeondertekenaars voor het voorgestelde adresbeleid</string>
 	<key>Create</key>
 	<string>Creëer</string>
+	<key>Create %lld links</key>
+	<string>%lld links maken</string>
 	<key>Create a new credential at its provider and save it in the vault</key>
 	<string>Maak een nieuwe referentie aan bij de provider en sla deze op in de kluis</string>
 	<key>Create a new pairing request</key>
@@ -640,6 +658,8 @@
 	<string>Overdrachtsvoorstel maken</string>
 	<key>Create your encrypted workspace to start saving passwords, notes and files.</key>
 	<string>Creëer je gecodeerde werkruimte om wachtwoorden, notities en bestanden op te slaan.</string>
+	<key>Creating %lld of %lld…</key>
+	<string>Bezig met %lld van %lld…</string>
 	<key>Credential</key>
 	<string>Referentie</string>
 	<key>Credential ID</key>
@@ -690,6 +710,8 @@
 	<string>Account verwijderen</string>
 	<key>Delete cloud backup</key>
 	<string>Cloudback-up verwijderen</string>
+	<key>Delete cloud copy</key>
+	<string>Cloudkopie verwijderen</string>
 	<key>Delete copy</key>
 	<string>Kopie verwijderen</string>
 	<key>Delete this cloud backup?</key>
@@ -942,8 +964,12 @@
 	<string>Deze portemonnee bevriezen?</string>
 	<key>Freeze wallet</key>
 	<string>Bevries portemonnee</string>
+	<key>From (not verified):</key>
+	<string>Van (niet geverifieerd):</string>
 	<key>From block %llu</key>
 	<string>Vanaf blok %llu</string>
+	<key>Full</key>
+	<string>Vol</string>
 	<key>Generate password</key>
 	<string>Wachtwoord genereren</string>
 	<key>Grant delegation</key>
@@ -1056,6 +1082,8 @@
 	<string>Koppelingsverzoek controleren</string>
 	<key>Inspect this version</key>
 	<string>Inspecteer deze versie</string>
+	<key>Instructions (optional)</key>
+	<string>Instructies (optioneel)</string>
 	<key>Insufficient balance</key>
 	<string>Onvoldoende tokenrekeningsaldo.</string>
 	<key>Integrity</key>
@@ -1092,6 +1120,8 @@
 	<string>Bewaar een bevoegd apparaat dat je kunt ontgrendelen om van apparaat te wisselen. Als ze allemaal verloren gaan, herstelt opnieuw toegang krijgen geen cloudinhoud.</string>
 	<key>Keep current version</key>
 	<string>Behoud de huidige versie</string>
+	<key>Keep dMsg open until this finishes.</key>
+	<string>Houd dMsg open tot dit klaar is.</string>
 	<key>Keep draft and leave</key>
 	<string>Concept bewaren en verlaten</string>
 	<key>Keep existing value</key>
@@ -1114,6 +1144,8 @@
 	<string>L2 · na de wachttijd</string>
 	<key>Language</key>
 	<string>Taal</string>
+	<key>Largest file</key>
+	<string>Grootste bestand</string>
 	<key>Largest first</key>
 	<string>Grootste eerst</string>
 	<key>Last known cloud state</key>
@@ -1146,10 +1178,14 @@
 	<string>Licentiesleutel</string>
 	<key>Licensed To</key>
 	<string>Gelicentieerd aan</string>
+	<key>Link closed</key>
+	<string>Gesloten</string>
 	<key>Link limits</key>
 	<string>Linklimieten</string>
 	<key>Links</key>
 	<string>Koppelingen</string>
+	<key>Links ready. Send each one only to its person.</key>
+	<string>Links klaar. Stuur elke link alleen naar de juiste persoon.</string>
 	<key>Load earlier activity</key>
 	<string>Laad eerdere activiteit</string>
 	<key>Load earlier messages</key>
@@ -1298,10 +1334,14 @@
 	<string>Nieuw gesprek</string>
 	<key>New field type</key>
 	<string>Nieuw veldtype</string>
+	<key>New files</key>
+	<string>Nieuwe bestanden</string>
 	<key>New folder</key>
 	<string>Nieuwe map</string>
 	<key>New free letter</key>
 	<string>Nieuwe gratis brief</string>
+	<key>New link</key>
+	<string>Nieuwe link</string>
 	<key>New revision</key>
 	<string>Nieuwe revisie</string>
 	<key>New secret</key>
@@ -1360,6 +1400,8 @@
 	<string>Nog geen gegevens</string>
 	<key>No letters yet</key>
 	<string>Nog geen brieven</string>
+	<key>No links yet. Make one and send it to whoever should send you files.</key>
+	<string>Nog geen links. Maak er een en stuur die naar wie je bestanden moet sturen.</string>
 	<key>No matching accounts</key>
 	<string>Geen overeenkomende resultaten</string>
 	<key>No matching results</key>
@@ -1388,6 +1430,8 @@
 	<string>Geen momentopnamen op dit apparaat</string>
 	<key>No transfer was started.</key>
 	<string>Er is geen overdracht gestart.</string>
+	<key>Nobody can send more files through it. Files already received stay.</key>
+	<string>Niemand kan er nog bestanden mee sturen. Ontvangen bestanden blijven.</string>
 	<key>Not delivered</key>
 	<string>Niet geleverd</string>
 	<key>Not enabled</key>
@@ -1404,6 +1448,8 @@
 	<string>Notities</string>
 	<key>Nothing above the dust limit can move through this path yet.</key>
 	<string>Via dit pad kan nog niets boven de dustgrens worden verplaatst.</string>
+	<key>Nothing has arrived yet.</key>
+	<string>Er is nog niets binnengekomen.</string>
 	<key>Notification registration needs retrying. Foreground sync remains available.</key>
 	<string>Meldingsregistratie moet opnieuw worden geprobeerd. Voorgrondsynchronisatie blijft beschikbaar.</string>
 	<key>Notifications</key>
@@ -1436,6 +1482,8 @@
 	<string>Herstel via de blockchain</string>
 	<key>Once approved, the new device joins with this device's role and the content root moves to it; this device then only finishes the handover.</key>
 	<string>Na goedkeuring sluit het nieuwe apparaat aan met de rol van dit apparaat en gaat de inhoudsroot naar het nieuwe; dit apparaat kan daarna alleen de overdracht afronden.</string>
+	<key>One name per line makes a separate link for each. Only you see the names.</key>
+	<string>Eén naam per regel maakt voor ieder een aparte link. Alleen jij ziet de namen.</string>
 	<key>One-time code</key>
 	<string>Eenmalige code</string>
 	<key>Only do this when you are ready to use it. Copies stay on this device and expire after 30 seconds.</key>
@@ -1466,6 +1514,8 @@
 	<string>Open de dMsg-werkruimte</string>
 	<key>Open dMsg. Unlocking and approvals still require your interaction in the app.</key>
 	<string>Open dMsg. Voor het ontgrendelen en goedkeuren is nog steeds je interactie in de app vereist.</string>
+	<key>Open for</key>
+	<string>Open gedurende</string>
 	<key>Open invitation in browser</key>
 	<string>Uitnodiging openen in browser</string>
 	<key>Open local file</key>
@@ -1534,6 +1584,8 @@
 	<string>Pauzeer deze agent</string>
 	<key>Pause transfer</key>
 	<string>Pauzeer de overdracht</string>
+	<key>Paused</key>
+	<string>Gepauzeerd</string>
 	<key>Payment card</key>
 	<string>Betaalkaart</string>
 	<key>Payment required</key>
@@ -1564,6 +1616,8 @@
 	<string>Plannen</string>
 	<key>Plan and usage</key>
 	<string>Plan en gebruik</string>
+	<key>Plus and above can ask anyone for files by link. People need no account, see only what they sent, and only you can open the files.</key>
+	<string>Vanaf Plus kun je iedereen via een link om bestanden vragen. Geen account nodig, iedereen ziet alleen wat diegene zelf stuurde, en alleen jij kunt de bestanden openen.</string>
 	<key>Policy points to an unavailable field</key>
 	<string>Het beleid wijst naar een niet-beschikbaar veld</string>
 	<key>Port</key>
@@ -1682,6 +1736,8 @@
 	<string>Reden</string>
 	<key>Receive here</key>
 	<string>Hier ontvangen</string>
+	<key>Received files</key>
+	<string>Ontvangen</string>
 	<key>Received for review</key>
 	<string>Ter beoordeling ontvangen</string>
 	<key>Receiving</key>
@@ -1820,6 +1876,8 @@
 	<string>Oude iPhone vervangen</string>
 	<key>Replacement key</key>
 	<string>Vervangende sleutel</string>
+	<key>Replaces %@</key>
+	<string>Vervangt %@</string>
 	<key>Reply</key>
 	<string>Antwoord</string>
 	<key>Reply to message %llu</key>
@@ -2076,6 +2134,8 @@
 	<string>Bewaar deze items voor dMsg. Kies een account en importeer deze na het openen en ontgrendelen van de app.</string>
 	<key>Save to dMsg</key>
 	<string>Opslaan in dMsg</string>
+	<key>Save to library</key>
+	<string>Opslaan in bibliotheek</string>
 	<key>Saved</key>
 	<string>Opgeslagen</string>
 	<key>Saved as a separate version. Review sync conflicts.</key>
@@ -2092,6 +2152,8 @@
 	<string>Opgeslagen op dit apparaat. Wijzigingen wachten op synchronisatie.</string>
 	<key>Saved profile published. Your draft has not been submitted.</key>
 	<string>Het opgeslagen profiel is gepubliceerd. Je concept is nog niet ingediend.</string>
+	<key>Saved to your library</key>
+	<string>Opgeslagen in je bibliotheek</string>
 	<key>Saved. Publication is pending.</key>
 	<string>Opgeslagen. Publicatie is in behandeling.</string>
 	<key>Saving draft…</key>
@@ -2132,6 +2194,8 @@
 	<string>Secure Enclave is niet beschikbaar op dit apparaat.</string>
 	<key>Security requirements changed. Review the request again before approving it.</key>
 	<string>Beveiligingseisen zijn gewijzigd. Controleer het verzoek opnieuw voordat je het goedkeurt.</string>
+	<key>See plans</key>
+	<string>Abonnementen bekijken</string>
 	<key>Select a conversation</key>
 	<string>Selecteer een gesprek</string>
 	<key>Select a file</key>
@@ -2248,6 +2312,8 @@
 	<string>Toon afgewezen bevindingen</string>
 	<key>Show draft</key>
 	<string>Laat zien wat je hebt getypt</string>
+	<key>Show in library</key>
+	<string>Tonen in bibliotheek</string>
 	<key>Show share link</key>
 	<string>Deellink tonen</string>
 	<key>Showing saved content. The latest sync did not finish.</key>
@@ -2286,6 +2352,8 @@
 	<string>Solana</string>
 	<key>Some files exist only on this iPhone, without a cloud backup or a recent sync.</key>
 	<string>Sommige bestanden staan alleen op deze iPhone, zonder cloudback-up of recente synchronisatie.</string>
+	<key>Some links were not made. The names left are below to try again.</key>
+	<string>Sommige links zijn niet gemaakt. De overgebleven namen staan hieronder om opnieuw te proberen.</string>
 	<key>Some source records or properties are unsupported. This import copies selected fields only; archive attachments, passkeys and history are not imported here.</key>
 	<string>Sommige bronrecords of eigenschappen worden niet ondersteund. Met deze import worden alleen geselecteerde velden gekopieerd; archiefbijlagen, wachtwoordsleutels en geschiedenis worden hier niet geïmporteerd.</string>
 	<key>Some usage could not be refreshed. Unavailable values are not zero.</key>
@@ -2516,6 +2584,8 @@
 	<string>Hierdoor ontstaat een voorstel. Het maakt geen geld over totdat aan de goedkeurings- en werkingsvereisten van de portemonnee is voldaan. Bedragen zijn exacte gehele getallen op grondtalbasis.</string>
 	<key>This device</key>
 	<string>Dit apparaat</string>
+	<key>This device does not have this link’s key yet.</key>
+	<string>Dit apparaat heeft de sleutel van deze link nog niet.</string>
 	<key>This device has changes that have not synced. Save anything you need before deleting the account.</key>
 	<string>Dit apparaat heeft wijzigingen die niet zijn gesynchroniseerd. Bewaar alles wat je nodig heeft voordat je het account verwijdert.</string>
 	<key>This device has no cosigner key for this proposal.</key>
@@ -2536,6 +2606,8 @@
 	<string>Dit apparaat vervangt</string>
 	<key>This field will be visible until you hide it or leave this screen.</key>
 	<string>Dit veld blijft zichtbaar totdat je het verbergt of dit scherm verlaat.</string>
+	<key>This file cannot be opened. You can delete it.</key>
+	<string>Dit bestand kan niet worden geopend. Je kunt het verwijderen.</string>
 	<key>This file exceeds the size limit for this operation.</key>
 	<string>Dit bestand overschrijdt de maximale grootte voor deze bewerking.</string>
 	<key>This file exceeds your current cloud backup file limit.</key>
@@ -2544,6 +2616,8 @@
 	<string>Dit bestand staat in de prullenmand. Herstel het voordat je het opent.</string>
 	<key>This file is not on this device. dMsg downloads it only long enough to encrypt the new copy, and your library does not change.</key>
 	<string>Dit bestand staat niet op dit apparaat. dMsg downloadt het alleen zolang als nodig is om de nieuwe kopie te versleutelen, en je bibliotheek verandert niet.</string>
+	<key>This frees its storage. A copy saved to your library stays.</key>
+	<string>Dit maakt opslag vrij. De kopie in je bibliotheek blijft.</string>
 	<key>This history belongs to this device. It does not mirror desktop-local CLI, SSH or file-mount approvals from another device.</key>
 	<string>Deze geschiedenis hoort bij dit apparaat. Het weerspiegelt geen desktop-lokale CLI, SSH of goedkeuringen voor het koppelen van bestanden vanaf een ander apparaat.</string>
 	<key>This iPhone</key>
@@ -2608,6 +2682,8 @@
 	<string>Als je je bestaande account op deze iPhone wilt gebruiken, moet je dit apparaat goedkeuren vanaf een van je geautoriseerde apparaten.</string>
 	<key>Total</key>
 	<string>Totaal</string>
+	<key>Total size</key>
+	<string>Totale grootte</string>
 	<key>Transfer between devices</key>
 	<string>Overdracht tussen apparaten</string>
 	<key>Transfer needs attention</key>
@@ -2792,16 +2868,24 @@
 	<string>Website</string>
 	<key>Welcome back.</key>
 	<string>Welkom terug.</string>
+	<key>What are you asking for?</key>
+	<string>Waar vraag je om?</string>
 	<key>While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.</key>
 	<string>Als dMsg open en ontgrendeld is, synchroniseert de kluis automatisch. Berichten worden vernieuwd wanneer je het gesprek of de inbox opent. Back-ups van bestanden vereisen nog steeds aparte bevestiging. Je kunt automatische synchronisatie altijd uitschakelen.</string>
+	<key>Who is it for? (optional)</key>
+	<string>Voor wie? (optioneel)</string>
 	<key>Who may contact you</key>
 	<string>Wie kan contact met je opnemen</string>
+	<key>Whoever has the link sees these, as plain text.</key>
+	<string>Iedereen met de link ziet dit als platte tekst.</string>
 	<key>Withdraw</key>
 	<string>Intrekken</string>
 	<key>Withdraw message</key>
 	<string>Bericht intrekken</string>
 	<key>Withdraw this message?</key>
 	<string>Dit bericht intrekken?</string>
+	<key>Withdrawn by the sender</key>
+	<string>Ingetrokken door de afzender</string>
 	<key>Without a cloud backup</key>
 	<string>Zonder cloudback-up</string>
 	<key>Workspace copied from another iPhone</key>
