@@ -300,14 +300,20 @@ pub fn validate_name(name: &str) -> Result<()> {
     dmsg_types::ensure_valid(ok, "name")
 }
 
-/// A name from outside (a shared file, a mounted write) made acceptable:
-/// separators and control characters replaced, clipped to 255 characters,
-/// `file` when nothing is left.
+/// A name from outside (a shared file, a received file, a mounted write)
+/// made acceptable: separators, control characters and the bidirectional
+/// controls that can show `exe.pdf` for `fdp.exe` replaced, clipped to 255
+/// characters, `file` when nothing is left.
 pub fn safe_name(name: &str) -> String {
     let cleaned: String = name
         .chars()
         .map(|c| match c {
             '/' | '\\' | '\0' => '_',
+            '\u{200e}'
+            | '\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{61c}' => '_',
             c if c.is_control() => '_',
             c => c,
         })

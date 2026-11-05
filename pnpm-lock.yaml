@@ -178,6 +178,12 @@ importers:
       '@dmsg/legacy':
         specifier: workspace:*
         version: link:../dmsg_legacy
+      '@hpke/core':
+        specifier: ^1.9.0
+        version: 1.9.0
+      '@hpke/dhkem-x25519':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@icp-sdk/auth':
         specifier: ^8.0.3
         version: 8.0.3(@icp-sdk/core@6.1.0)

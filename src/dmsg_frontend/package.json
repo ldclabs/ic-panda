@@ -3,6 +3,9 @@
     "@dfinity/oisy-wallet-signer": "^6.0.0",
     "@dfinity/utils": "~4.0.3",
     "@dfinity/zod-schemas": "^3.0.0",
+    "@dmsg/legacy": "workspace:*",
+    "@hpke/core": "^1.9.0",
+    "@hpke/dhkem-x25519": "^1.8.0",
     "@icp-sdk/auth": "^8.0.3",
     "@icp-sdk/canisters": "~3.1.0",
     "@icp-sdk/core": "^6.1.0",
@@ -13,12 +16,11 @@
     "@noble/hashes": "^2.3.0",
     "cborg": "^6.1.1",
     "debounce": "^3.0.0",
+    "dmsg-sdk": "workspace:*",
     "idb": "^8.0.3",
     "markdown-it": "^15.0.0",
     "qr": "^0.6.0",
-    "zod": "^4.5.4",
-    "@dmsg/legacy": "workspace:*",
-    "dmsg-sdk": "workspace:*"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",

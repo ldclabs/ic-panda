@@ -29,6 +29,7 @@ pub mod link;
 pub mod mount;
 pub mod open;
 pub mod reading;
+pub mod request;
 pub mod share;
 pub mod storage;
 
