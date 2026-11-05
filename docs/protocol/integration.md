@@ -109,7 +109,7 @@ half-open intervals: equality with expiry is already expired.
 | Cash funding | 30 minutes from acceptance |
 | Initial cash activation | 24 hours, bounded by contract end |
 | PANDA application | 24 hours, bounded by contract end |
-| PANDA qualification lease | At most one hour, truncated to the contract end |
+| PANDA qualification lease | At most one day, truncated to the contract end |
 | Cash, expired and Free resource lease | At most 30 days, ending at the next known limit change |
 | Rate policy notice | At least 15 days; the first policy may take effect at publication |
 | Per-account pending operations | 32 |

@@ -142,7 +142,7 @@ Production 拒绝 Sandbox 事实。TestFlight 的沙盒购买必须使用独立 
 
 - 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。主体只在首次购买时创建，之后不会删除，数量受 `max_subjects` 限制，因此只与付费过的账户数成正比。
 - 从未购买的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
-- `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：首购现金退款窗口内的租约最长一小时；窗口外的现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
+- `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：首购现金退款窗口内的租约最长一小时；窗口外的现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 天，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
 - `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化、目录切换或新增目录排期落入旧租约时重新投影，否则返回原视图。新增排期会截断刷新后的租约；仅目录变化沿用已核验资格，不额外读取 SNS。当前合同来自 PANDA 且需要续租时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending`、`QuotaExceeded`，或调用本身没有完成（membership 停止、`Unavailable`、`ExecutionUnknown`），都表示没有读取 SNS，原资格截止时间继续有效；目录变化仍会更新资源投影和租约版本，但不会延长资格。只有明确的否定答案把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
 - 新老会员都可享受当前同档套餐更高的资源额度：`effective_limits` 取合同快照与当前目录的逐项较大值，执行额度只比较相同执行权重下的单位；合同价格、期限和 `plan_snapshot` 保持原样。月签名额度按目录实际生效时间分段折算，不追溯改写之前的片段，也不重置已用次数。已有账户刷新权益即可领取新额度，无需重新购买。
@@ -466,7 +466,7 @@ icp canister start dmsg_commerce -e ic
 - 原生计数（release，100 万个 key）：一次认证写的 stable 读从 4,394 次降到 167 次，写从 439 次降到 57 次；单个 key 的 witness 读取从 2,216 次降到 156 次；每个 key 的内部节点占 201 字节（B 树为 208 字节）。主机构建 100 万主体的时间从 135 秒降到 62 秒。
 - 每个付费主体约 1.3 KB（主体记录约 980 B，叶子 140 B，内部节点 201 B），另有 ProductBook、决定和回执；由两份镜像的差值反推，热订单连同索引约 9 KB/单。`MAX_SUBJECTS` 与 `MAX_ORDERS` 取 1,000 万，按此估算的数据量远低于 256 GiB 的寻址上限。超过 100 万主体的规模没有实测。
 - 从未购买的账户不占 commerce 状态，所以注册用户数不受限；上限只与付费主体数和累计订单数有关。dmsg_user 只在正式执行且月缓存过期时调用 `get_execution_entitlement`，云端每小时用 query 重读，两者都不随账户数线性占用 update 吞吐。
-- 活跃 PANDA 会员每小时约一次 SNS 读取，受 commerce 的 `refreshes_per_minute` 和 membership 的 `qualifications_per_minute` 共同限制（初始各 200/分钟，约 1 万活跃会员）；提高前须实测 SNS `get_neuron` 的 query 吞吐。
+- 活跃 PANDA 会员每天约一次 SNS 读取，受 commerce 的 `refreshes_per_minute` 和 membership 的 `qualifications_per_minute` 共同限制（初始各 200/分钟，约 28 万活跃会员，高于 PANDA SNS 20 万的神经元上限）；提高前须实测 SNS `get_neuron` 的 query 吞吐。
 
 2026-10-03 的较早样本（schema 5，认证树驻留 heap）：10,000 条热记录重建认证树耗时 6,526 ms；32 个订单时，PocketIC 测得稳定内存从基线 `8082df5` 的 83,951,616 B 降到 14,745,600 B，无关读者查询从 16,086,227 cycles 降到 8,927,600 cycles。认证树移入 stable memory 后不再有重建成本。
 

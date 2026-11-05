@@ -51,6 +51,10 @@ pub fn end(c: &MembershipContract) -> u64 {
 /// Longest resource lease for rights that are never withdrawn once issued.
 pub const CASH_LEASE_MS: u64 = 30 * DAY;
 
+/// Longest resource lease for rights a refund can end at any moment: a first
+/// cash purchase in its refund window, or an App Store subscription.
+pub const REFUNDABLE_LEASE_MS: u64 = 60 * MINUTE;
+
 /// The subject's first cash base contract while its unused time can still be
 /// refunded: its only base contract ever, started, not ended, within
 /// [`CASH_REFUND_WINDOW_MS`] of its start. An upgrade or a renewal adds a
@@ -207,16 +211,20 @@ pub fn project(
     let mut sources = vec![];
     // Issued Free and cash rights are withdrawn only by the early refund of a
     // first cash purchase, whose leases stay short until its window closes; an
-    // unstarted term lies beyond the next boundary. A PANDA qualification can
-    // be lost at any time, so its lease stays short too.
-    let short = refund_window(s, at).is_some()
-        || active.as_ref().is_some_and(|c| {
-            matches!(
-                c.source,
-                ContractSource::Sns { .. } | ContractSource::AppStore { .. }
-            )
-        });
-    let mut until = at.saturating_add(if short { PANDA_LEASE_MS } else { CASH_LEASE_MS });
+    // unstarted term lies beyond the next boundary. The App Store can refund a
+    // subscription at any time. A PANDA qualification can be lost at any time,
+    // so its lease is bounded by the day membership issues.
+    let source = active.as_ref().map(|c| &c.source);
+    let lease = if refund_window(s, at).is_some()
+        || matches!(source, Some(ContractSource::AppStore { .. }))
+    {
+        REFUNDABLE_LEASE_MS
+    } else if matches!(source, Some(ContractSource::Sns { .. })) {
+        PANDA_LEASE_MS
+    } else {
+        CASH_LEASE_MS
+    };
+    let mut until = at.saturating_add(lease);
     let mut observed = at;
     let mut terminated = s
         .contracts
@@ -546,12 +554,12 @@ mod tests {
     }
 
     #[test]
-    fn cash_leases_last_thirty_days_and_panda_leases_one_hour() {
+    fn cash_leases_last_thirty_days_panda_a_day_and_refundable_an_hour() {
         let (start, end) = month_bounds(202609).unwrap();
         let at = start + DAY;
         let mut s = subject(start, end + 365 * DAY);
         let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
-        assert_eq!(v.valid_until_ms, at + PANDA_LEASE_MS);
+        assert_eq!(v.valid_until_ms, at + DAY);
         assert_eq!(refund_window(&s, at), None);
         s.contracts[0].source = ContractSource::Cash {
             order_id: Hash::new([5; 32]),
@@ -561,7 +569,7 @@ mod tests {
         assert_eq!(window.until_ms, start + CASH_REFUND_WINDOW_MS);
         assert_eq!(window.order_id, Hash::new([5; 32]));
         let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
-        assert_eq!(v.valid_until_ms, at + PANDA_LEASE_MS);
+        assert_eq!(v.valid_until_ms, at + 60 * MINUTE);
         let later = start + CASH_REFUND_WINDOW_MS;
         assert_eq!(refund_window(&s, later), None);
         let v = project(HOME, &mut s, &catalog(), later, None).unwrap();

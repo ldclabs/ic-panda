@@ -336,7 +336,7 @@ async fn refresh(
             }
             // Membership coalesced or rate-limited the check, or the call did
             // not complete: nothing was learned, so the previous qualification
-            // lease stands. It ends within the hour in any case.
+            // lease stands. It ends within a day in any case.
             Ok(Err(
                 Error::Pending
                 | Error::QuotaExceeded

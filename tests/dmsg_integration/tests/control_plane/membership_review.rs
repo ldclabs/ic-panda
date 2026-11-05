@@ -537,7 +537,7 @@ fn a_neuron_read_returning_after_the_sns_verification_expired_issues_no_lease() 
     let account = f.create(1);
     neuron(&f, 100_000_000_000_100);
     // Verify at a known time, then apply two minutes before that verification expires.
-    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
+    f.ic.advance_time(Duration::from_millis(60 * MINUTE + 1));
     let verified: Result<()> = update(
         &f.ic,
         f.membership,
@@ -546,7 +546,7 @@ fn a_neuron_read_returning_after_the_sns_verification_expired_issues_no_lease() 
         (),
     );
     verified.unwrap();
-    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS - 2 * MINUTE));
+    f.ic.advance_time(Duration::from_millis(58 * MINUTE));
     let bill = offer(&f, &account, 230);
     let terms: Result<PandaApplicationTerms> = update(
         &f.ic,

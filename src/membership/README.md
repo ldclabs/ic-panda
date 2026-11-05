@@ -83,7 +83,7 @@ stateDiagram-v2
 
 一个神经元同一时间只支撑一份权益，由全局占用保证（见“占用与期限”），与神经元上列了几个 principal 无关。反过来，凡是列在神经元上的 principal，都能用自己的 dMsg 账户以该神经元申请；Apply 后占用该神经元，正常到期到 E，已知不合格终止后保留到已发租约到期。所有者只应添加自己的 principal。移除 `actor` 会使申请立即变为 `Terminated`，不再签发新租约，占用保留到已发租约到期。
 
-- 资格租约 `valid_until_ms = min(观察时间 + 1 小时, E)`，观察时间取查询开始的时间，而不是回调时间。同一申请 1 分钟内复用上一次观察。
+- 资格租约 `valid_until_ms = min(观察时间 + 1 天, E)`，观察时间取查询开始的时间，而不是回调时间。同一申请 1 分钟内复用上一次观察。
 - `refresh_panda_claim` 只在租约剩余不超过 10 分钟（commerce 续期资源租约的同一窗口），或上一次结果不是合格时，才重新读取。因此续期后的资源租约一定晚于原租约。
 - `Ineligible` 立即结束租约并变为 `Terminated`，不可恢复；已发租约到期后释放神经元，用户恢复资格后可重新申请。
 - `Unverifiable` 同样立即结束当前租约，但不终止申请；下一次可信观察可恢复，不视为用户违约。
@@ -179,11 +179,11 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 | PANDA SNS 神经元上限     | 200,000                    | 主网 `max_number_of_neurons`（2026-10-08 查询）；每个神经元同时只支撑一个受益主体                        |
 | 完整记录 `MAX_FULL_CLAIMS` | 1,000,000                | 代码常量：占用中的申请，加 30 天保留期内的终态记录；`max_claims` 不能超过它                              |
 | 累计操作 `MAX_OPERATIONS` | 10,000,000                | 代码常量：完整记录加 tombstone，终身计数，达到后不再接受新申请                                           |
-| 在用会员的 SNS 读取      | 约 50 × `qualifications_per_minute` 人 | 每个在用会员约每 50–60 分钟读取一次 `get_neuron`；200 次/分钟约支撑 1 万人，commerce 的 `refreshes_per_minute` 也限制同一流量 |
+| 在用会员的 SNS 读取      | 约 1,400 × `qualifications_per_minute` 人 | 每个在用会员约每天读取一次 `get_neuron`；200 次/分钟约支撑 28 万人，commerce 的 `refreshes_per_minute` 也限制同一流量 |
 | 新申请                   | 约 6,000 份/小时           | 默认配置下，一份申请的 quote 与 request 共用 200 次/分钟的授权额度，激活另有一份；可由治理调整          |
 
 - 100 万条完整记录高于 PANDA SNS 20 万个神经元的上限：即使每个神经元都在支撑当前一期和下一期，再加上 30 天内的终态记录，单实例也能容纳。PANDA 会员本身不会达到千万或亿级。
-- 实际上限是 SNS 读取：在用会员每小时都要读取一次神经元，默认配置下约支撑 1 万人。提高 `qualifications_per_minute` 之前，须实测 PANDA SNS governance 的 `get_neuron` 吞吐、跨子网往返时间，以及 IC 对单对 canister 在途请求数的限制。
+- SNS 读取不是实际上限：在用会员每天读取一次神经元，默认配置下约支撑 28 万人，高于 20 万个神经元。提高 `qualifications_per_minute` 之前，须实测 PANDA SNS governance 的 `get_neuron` 吞吐、跨子网往返时间，以及 IC 对单对 canister 在途请求数的限制。
 
 2026-10-08 的 `membership_capacity_profile`：主机用 membership 自己的存储代码构建 stable memory 镜像（每条都是带决定与回执的 `Active` 申请，各有独立的 actor 和神经元，另有 64 条到期的已取消记录），压缩上传到 PocketIC 后升级并测量。cycles 只统计 membership，升级 cycles 包含安装 Wasm 模块：
 
@@ -193,7 +193,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 | 1,000,000 | 4,723 MB | 1,306,219 | 11.87B | 33,213,577 | 23,372,870 | 298,837,520 |
 
 - 升级只发布认证根，指令数与规模无关（约 130 万条）。
-- 刷新是一次真实写入：读取神经元、更新申请和认证路径。从 10 万到 100 万只增加 6.5%。每名在用会员每小时刷新一次，每年约 0.2T cycles（不含 commerce 与 SNS 的成本），1 万名在用会员每年约 2,000T。
+- 刷新是一次真实写入：读取神经元、更新申请和认证路径。从 10 万到 100 万只增加 6.5%。每名在用会员每天刷新一次，每年约 0.008T cycles（不含 commerce 与 SNS 的成本），1 万名在用会员每年约 83T。
 - 一次 sweep 处理 64 条，从 10 万到 100 万增加 24%，远低于单条消息的指令上限。
 - 每条 `Active` 申请连同索引和认证节点约 4.7 KB；完整记录本身为 3,542 B（CBOR），`Cancelled` 为 2,454 B。tombstone 每条约 100 B，1,000 万条约 1 GB。这些都远低于 256 GiB 的寻址上限。
 - 主机构建 100 万条镜像约 2–3 分钟；申请、报价等需要其他 canister 的调用没有在大规模镜像上测量，它们写入的表与刷新、sweep 相同。

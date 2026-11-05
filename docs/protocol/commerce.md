@@ -294,7 +294,7 @@ purchase refund window, leases last at most one hour. Outside that window,
 started cash terms are not refundable and unstarted renewals lie beyond the
 next boundary, so cash, expired and Free leases last at most 30 days and end
 at the next known limit change. PANDA qualification can be lost, so a
-PANDA-backed lease stays within one hour.
+PANDA-backed lease stays within one day.
 Commerce reuses a lease until 10 minutes remain and then issues a new one, and
 membership requalifies an eligible claim within the same window, so a consumer
 renewing a few minutes before expiry receives a later lease. A membership

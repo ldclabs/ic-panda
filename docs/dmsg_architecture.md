@@ -121,7 +121,7 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 - **Handles**: the account first records an exact handle intent in its home, valid for 60 seconds, or ten minutes for either side of a transfer; on registration, claim or transfer, handle consumes the intent from that home and charges through ICRC-2 on the PANDA ledger.
 - **Paid delivery**: the cloud signs a Quote from the recipient's signed payment offer. On `open_escrow`, payment verifies the offer with the recipient account's home, and the payer transfers to a subaccount unique to the escrow. Once the cloud admits the ciphertext it signs an admission receipt; `finalize_receipt` settles to the recipient and the platform, and escrows not settled by the admission deadline are refunded.
 - **Cash purchases**: commerce quotes, opens the order, verifies deposits to its subaccount, and on delivery writes the contract, resource entitlement and receipt in one message.
-- **PANDA waivers**: membership verifies the neuron's qualification and ensures that one neuron backs at most one entitlement across all products at a time, then calls back the product adapter. A PANDA-backed lease lasts at most one hour, and each active member causes roughly one SNS read per hour.
+- **PANDA waivers**: membership verifies the neuron's qualification and ensures that one neuron backs at most one entitlement across all products at a time, then calls back the product adapter. A PANDA-backed lease lasts at most one day, and each active member causes roughly one SNS read per day.
 
 ### 4.6 Agent Principals
 
@@ -160,7 +160,7 @@ depends on the OS, packaged native module and platform validation. See
 | Handle registration and transfer | A handle update, a home check and a ledger charge |
 | Paid delivery | Per escrow, about one authorization, one funding check, one settlement and two payouts |
 | Cash purchase | Order opening, funding check and delivery on commerce, then lease renewals |
-| PANDA membership | Per active member, about one SNS read and one renewal write per hour |
+| PANDA membership | Per active member, about one SNS read and one renewal write per day |
 
 ## 6. Storage and Upgrade Model
 
@@ -191,7 +191,7 @@ Upgrade cycles are dominated by installing the Wasm module and do not depend on 
 | dmsg_cose | Accounts that have performed a recovery derivation | 1 million across all homes | Records appear only on recovery after losing every device | Network-wide vetKD throughput of about 18 per second |
 | dmsg_payment | Lifetime escrows, independent of registered users | 10 million | 3.25 GB at 1 million escrows, ~3.2 KB each; ~32 GB extrapolated for 10 million | Ledger call budget: ~100 escrows per minute when `ledger_writes_per_minute` is 200 |
 | dmsg_commerce | Paying subjects and lifetime orders; Free accounts hold no state | 10 million each | 2.28 GB at 1 million subjects; ~1.3 KB per subject and ~9 KB per hot order with indexes | Price publication, per-order revenue collection and PANDA refreshes concentrate in one instance |
-| membership | PANDA waiver claims, independent of account count | 1 million complete records, 10 million lifetime operations | 4.7 GB at 1 million `Active` claims, ~4.7 KB each | SNS reads: the default 200 per minute supports about 10,000 active members; the PANDA SNS caps neurons at 200,000 |
+| membership | PANDA waiver claims, independent of account count | 1 million complete records, 10 million lifetime operations | 4.7 GB at 1 million `Active` claims, ~4.7 KB each | The PANDA SNS caps neurons at 200,000; the default 200 SNS reads per minute cover about 280,000 active members |
 | dmsg_directory | Accounts with an enabled principal | No total constant; each document ≤ 64 KiB | Small samples only | Not measured at scale |
 
 Only handle has been measured beyond one million records (to 10 million); user's 21 million and the other services' 10-million limits are extrapolated from per-record storage, with the growth trend checked by measurements at one million.
