@@ -1,5 +1,26 @@
 # iOS implementation validation
 
+## Link and usage UI test fixes (2026-11-05)
+
+The five failures recorded in the next section were test defects, and no app code
+changed. SwiftUI exposes `Link` as a button on iOS 18.4 and as a link on iOS 27.0, so
+`app.buttons` found nothing on iOS 27; those checks now accept either type. The usage
+test waited for a label inside a merged `LabeledContent` row to become hittable, which
+never happens, and scrolled `Used` out of the list; it now scrolls until the label
+exists.
+
+- All five pass on iPhone 17e / iOS 27.0 and iPhone SE (3rd generation) / iOS 18.4.
+- A full run on iPhone 17 / iOS 27.0 was stopped before it finished, with 163 tests
+  passed, 1 skipped and 2 failed. `NavigationTests` did not complete, and the
+  notification, sync and vault UI classes did not run.
+- Two failures from that run are open and undiagnosed; both passed in the earlier
+  iPhone 17e runs, and neither was run on iPhone 17 before these changes.
+  `testPublicProfileKeepsDraftWhenLeavingAndLabelsRemainVisible` found several
+  `profile.name` fields after returning from Home. `testFrenchLargeText` did not find
+  the reply recipient field within 5 seconds.
+
+Validation: Claude Opus 5.5 <noreply@anthropic.com>.
+
 ## Files camera and workspace layout (2026-11-05)
 
 **Import photos or videos** did nothing because a `PhotosPicker` placed inside a
@@ -24,7 +45,8 @@ in the tab row, with a count while transfers are active.
   `testAccessActionsRemainReachableInDarkArabic`,
   `testAccessHasNoDemoAndPrivacyIsAvailableOffline`,
   `testExpandedLanguageAccessScreens` and
-  `testLanguageSettingsAvailableBeforeLoginAndInAccount`. They remain open.
+  `testLanguageSettingsAvailableBeforeLoginAndInAccount`. They are fixed in the
+  section above.
 - Release ARM64 Simulator build and the localization check with compiler extraction
   passed. Screenshots were inspected for Chinese light, English, French dark and
   Arabic RTL, on iPhone 17e and on iPhone SE (3rd generation) / iOS 18.4.

@@ -8,6 +8,11 @@ import XCTest
         return app.descendants(matching: .any).matching(identifier: symbol).firstMatch
     }
 
+    /// SwiftUI reports a `Link` as a button on iOS 18 and as a link on iOS 27.
+    private func linkOrButton(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
     private func back(_ app: XCUIApplication) {
         let rail = app.buttons["BackButton"].firstMatch
         if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 {
@@ -36,7 +41,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let language = app.buttons["settings.language"]
+        let language = linkOrButton(app, "settings.language")
         XCTAssertTrue(language.waitForExistence(timeout: 5))
         for _ in 0..<4 where !language.isHittable { app.swipeUp() }
         XCTAssertTrue(language.isHittable)
@@ -74,7 +79,7 @@ import XCTest
             app.launchArguments = ["--ui-testing", "--ui-access", "-AppleLanguages", "(\(language))", "-AppleLocale", locale]
             if index.isMultiple(of: 2) { app.launchArguments.append("--ui-dark") }
             app.launch()
-            let button = app.buttons["settings.language"]
+            let button = linkOrButton(app, "settings.language")
             XCTAssertTrue(button.waitForExistence(timeout: 10), language)
             for _ in 0..<4 where !button.isHittable { app.swipeUp() }
             XCTAssertTrue(button.isHittable, language)
@@ -420,7 +425,7 @@ import XCTest
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Dark Arabic large-text access actions"; shot.lifetime = .keepAlways; add(shot)
         for identifier in ["settings.language", "access.privacy"] {
-            let link = app.buttons[identifier]
+            let link = linkOrButton(app, identifier)
             for _ in 0..<6 where !link.isHittable { app.swipeUp() }
             XCTAssertTrue(link.isHittable)
         }
@@ -480,12 +485,12 @@ import XCTest
         app.launch()
         XCTAssertTrue(app.buttons["login.start"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["access.demo"].exists)
-        XCTAssertFalse(app.buttons["Contact support"].exists)
+        XCTAssertFalse(linkOrButton(app, "Contact support").exists)
         let privacy = app.buttons["access.privacy"]
         for _ in 0..<6 where !privacy.isHittable { app.swipeUp() }
         privacy.tap()
         XCTAssertTrue(app.staticTexts["dMsg Privacy Policy"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Contact support"].exists)
+        XCTAssertTrue(linkOrButton(app, "Contact support").exists)
     }
 
     func testDeviceHandoverEntriesInEnglish() { handover(language: "en", locale: "en_US", account: "Account", dark: false) }

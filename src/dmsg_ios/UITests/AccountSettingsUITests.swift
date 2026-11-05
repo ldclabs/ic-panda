@@ -214,7 +214,8 @@ import XCTest
         let app = open()
         tap("account.plan", in: app)
         XCTAssertTrue(app.staticTexts["Storage limit"].waitForExistence(timeout: 5))
-        for _ in 0..<5 where !app.staticTexts["Used"].isHittable { app.swipeUp() }
+        // The row's merged element covers this label, so it is never hittable.
+        for _ in 0..<5 where !app.staticTexts["Used"].exists { app.swipeUp() }
         XCTAssertTrue(app.staticTexts["Used"].exists)
         XCTAssertTrue(app.staticTexts["Reserved for uploads"].exists)
         XCTAssertTrue(app.staticTexts["Remaining"].firstMatch.exists)
