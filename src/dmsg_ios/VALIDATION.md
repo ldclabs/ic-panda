@@ -1,5 +1,38 @@
 # iOS implementation validation
 
+## Sync review simulator follow-up (2026-11-05)
+
+Validated `db088dc1`, the follow-up fixes for `0eddbd98`, on iPhone 17e /
+iOS 27.0 Simulator. The native debug artifacts and source fingerprint were
+verified before building and launching the app.
+
+- All 94 Swift unit tests and 16 selected UI tests passed: 110 total, zero
+  failures, zero skipped tests and no runtime warnings in the result summary.
+- UI coverage comprises seven conversation cases, seven sync cases, AutoFill
+  selection across search/reopening, and account profile/manual-sync progress.
+  It covers sends surviving navigation, retained drafts after failed sends,
+  saved messages during refresh, initial sync, retry deadlines, server cooldowns
+  and uninterrupted browsing during sync failures.
+- Exported screenshots were inspected for AutoFill selection, conversation
+  delivery/drafts, quiet message browsing, English/French light presentation,
+  Chinese dark presentation and Arabic RTL sync status.
+- The MCP wait timed out after 300 seconds while Xcode continued the same run.
+  The completed log reports `TEST EXECUTE SUCCEEDED`; the finished result bundle
+  independently reports all 110 tests passed. No duplicate run was started.
+
+Local evidence is in `.build/review-db088dc1/summary.json` and its `attachments/`
+directory. The full result bundle is named
+`test_sim_2026-11-05T10-18-46-466Z_pid43211_027d365d.xcresult` in the local
+XcodeBuildMCP workspace. No application-code changes were needed after this run.
+
+These UI cases use synthetic presentation fixtures. Live two-device hint
+delivery, system AutoFill authentication/publication on a physical device,
+the actual iOS background time allowance, APNs and production relay deployment
+remain separate checks. The earlier Rust and desktop results are recorded in
+`db088dc1`; they were not rerun in this simulator-only follow-up.
+
+Validation: Codex <noreply@openai.com>.
+
 ## Vault browsing, file moves and quiet sync status (2026-11-04)
 
 Vault search now uses the same always-visible navigation drawer as Files.
@@ -1741,9 +1774,9 @@ Foreground recovery checks are independent of content-sync opt-in and cannot
 promise notification delivery while the app is suspended or protected data is
 unavailable. Desktop-local approvals and grants are not mirrored to the phone.
 
-Automatic foreground synchronization is off until the user opts in for that
-account. File backup still needs a separate explicit choice. Interrupted import
-staging is retained rather than erased on startup. These deliberate differences
-from automatic defaults are also described in the README.
+Automatic foreground synchronization is on by default while the app is open and
+unlocked; each account can turn it off. File backup still needs a separate
+explicit choice. Interrupted import staging is retained rather than erased on
+startup. The current synchronization scope is also described in the README.
 
 Implementation and validation: Codex (OpenAI).
