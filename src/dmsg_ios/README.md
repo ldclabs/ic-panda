@@ -617,8 +617,9 @@ pass of an account says so once, and settings turn it off for that account
 (`manualSyncAccounts` in the local preferences). It runs only while the app is
 open and unlocked. Interaction does not cancel it, and leaving the app gives
 what the person just did a short window to finish: on the way to the background,
-unless immediate locking is on, sends left open and pending vault versions go
-out for at most 20 seconds under `beginBackgroundTask`, then the engine stops.
+unless immediate locking is on, sends left open and already signed vault
+submissions finish for at most 20 seconds under `beginBackgroundTask`, then the
+engine stops. Unprepared vault versions wait for the next foreground pass.
 Nothing fetches content in the background, and the next foreground catches up.
 It does not select files for backup. Files require their own explicit selection
 and confirmation.

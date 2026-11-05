@@ -16,6 +16,27 @@ pub trait HintObserver: Send + Sync {
     fn hint(&self, kind: String, resource: Option<String>, news: bool);
 }
 
+/// Cancellation drops the connection just as a socket error does.
+struct Connected<'a> {
+    signal: &'a sync::SyncSignal,
+    observer: &'a dyn HintObserver,
+}
+
+impl<'a> Connected<'a> {
+    fn new(signal: &'a sync::SyncSignal, observer: &'a dyn HintObserver) -> Self {
+        signal.hinted.store(true, Ordering::Relaxed);
+        observer.connected(true);
+        Self { signal, observer }
+    }
+}
+
+impl Drop for Connected<'_> {
+    fn drop(&mut self) {
+        self.signal.hinted.store(false, Ordering::Relaxed);
+        self.observer.connected(false);
+    }
+}
+
 /// One connection, until it drops.
 async fn listen<H: Hold>(
     h: &H,
@@ -33,8 +54,7 @@ async fn listen<H: Hold>(
         .ok_or_else(|| failure(Error::AuthRequired))?;
     let url = hint_channel::url(origin, &account);
     let mut connection = Connection::open(&url, &token.token).await?;
-    signal.hinted.store(true, Ordering::Relaxed);
-    observer.connected(true);
+    let _connected = Connected::new(signal, observer);
     loop {
         tokio::select! {
             // A socket from before a network change is likely dead.
@@ -56,6 +76,12 @@ async fn listen<H: Hold>(
 
 #[uniffi::export]
 impl MobileEngine {
+    /// A wake or a changed network path invalidates the old socket. Receiving
+    /// a successful connection callback is not a reason to reconnect it.
+    pub fn reconnect_hints(&self) {
+        self.hints_redial.notify_waiters();
+    }
+
     /// Keep this session's hint channel connected until the operation ends,
     /// the session changes or the app leaves the foreground.
     pub async fn listen_hints(
@@ -72,8 +98,6 @@ impl MobileEngine {
                     let mut backoff = 1;
                     loop {
                         let result = listen(h, &origin, &redial, &signal, observer.as_ref()).await;
-                        signal.hinted.store(false, Ordering::Relaxed);
-                        observer.connected(false);
                         backoff = match result {
                             Ok(()) => 1,
                             Err(error) => {
@@ -163,5 +187,38 @@ pub(crate) async fn maintain_channel<H: Hold>(
         && let Ok(_turn) = control.try_lock()
     {
         let _ = dmsg_client::channel::rotate(h, channel).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Observer(Mutex<Vec<bool>>);
+
+    impl HintObserver for Observer {
+        fn connected(&self, connected: bool) {
+            self.0.lock().unwrap().push(connected);
+        }
+
+        fn hint(&self, _: String, _: Option<String>, _: bool) {}
+    }
+
+    #[tokio::test]
+    async fn cancelling_a_connected_listener_restores_polling_and_notifies_the_app() {
+        let signal = sync::SyncSignal::default();
+        let observer = Observer(Mutex::new(Vec::new()));
+        let operation = OperationToken::new();
+        let result = operation
+            .run(async {
+                let _connection = Connected::new(&signal, &observer);
+                assert!(signal.hinted.load(Ordering::Relaxed));
+                operation.cancel();
+                std::future::pending::<Result<()>>().await
+            })
+            .await;
+        assert!(matches!(result, Err(MobileError::Failure { code }) if code == "CANCELLED"));
+        assert!(!signal.hinted.load(Ordering::Relaxed));
+        assert_eq!(*observer.0.lock().unwrap(), [true, false]);
     }
 }

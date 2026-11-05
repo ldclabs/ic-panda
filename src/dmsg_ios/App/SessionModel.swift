@@ -327,11 +327,12 @@ final class SessionModel {
 
     /// Replace the AutoFill snapshot and the identities the system suggests;
     /// false when the session moved on meanwhile.
-    func publishCredentials(_ entries: [AutoFillEntry], biometryOnly: Bool, account: String, epoch current: UInt64) async throws -> Bool {
+    func publishCredentials(_ entries: [AutoFillEntry], biometryOnly: Bool, account: String, epoch current: UInt64, replacing snapshot: String? = nil) async throws -> Bool {
         let selected = entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url)) }
         let store = try SystemExports(.credentials)
         let prepared = try await Task.detached { try store.prepareCredentials(selected, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
-        guard current == epoch else { store.discard(prepared); return false }
+        guard current == epoch, !Task.isCancelled,
+              snapshot == nil || (try? store.header(checkExpiry: false).id) == snapshot else { store.discard(prepared); return false }
         do { try store.publish(prepared, biometryOnly: biometryOnly) } catch { store.discard(prepared); throw error }
         let metadata = try store.credentialMetadata(OpenExport(header: prepared.header, key: prepared.key))
         let identities = metadata.filter { !$0.origin.isEmpty }.map { ASPasswordCredentialIdentity(serviceIdentifier: ASCredentialServiceIdentifier(identifier: $0.origin, type: .URL), user: $0.username, recordIdentifier: prepared.header.id + ":" + $0.id) }
@@ -343,22 +344,24 @@ final class SessionModel {
     /// without asking again, and renews before it expires. A failure leaves
     /// the snapshot as it is until the next try.
     func refreshAutoFill() async {
-        struct Refresh: Decodable { let changed: Bool; let entries: [AutoFillEntry]; let biometryOnly: Bool }
         struct Security: Decodable { let boundBiometryOnly: Bool? }
         guard let engine, let account = session?.account, unlocked, !concealed,
               let store = try? SystemExports(.credentials), let header = try? store.header(checkExpiry: false),
               header.accountHash == IncomingShares.accountHash(account) else { return }
         let current = epoch, renewing = UInt64(Date.now.timeIntervalSince1970 * 1000) + 12 * 3_600_000
         do {
-            let refresh: Refresh? = try decode(try await engine.refreshAutofill(force: header.expires < renewing))
-            guard current == epoch, let refresh, refresh.changed else { return }
+            let refresh: AutoFillRefresh? = try decode(try await engine.refreshAutofill(force: header.expires < renewing))
+            guard current == epoch, !Task.isCancelled, let refresh, refresh.changed,
+                  (try? store.header(checkExpiry: false).id) == header.id else { return }
             if refresh.entries.isEmpty {
                 try store.invalidate()
                 try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
-                return
+            } else {
+                let security: Security = try decode(try await engine.hardwareSecurity())
+                guard try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current, replacing: header.id) else { return }
             }
-            let security: Security = try decode(try await engine.hardwareSecurity())
-            _ = try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current)
+            guard current == epoch else { return }
+            try await engine.autofillPublished(digest: refresh.digest)
         } catch { }
     }
 
@@ -618,6 +621,7 @@ final class SessionModel {
 
     func watchHints() async {
         guard let engine else { return }
+        let current = epoch
         let (events, continuation) = AsyncStream.makeStream(of: HintBridge.Event.self)
         let listening = Task {
             // A foreground that is still resuming refuses the first attempt.
@@ -629,6 +633,7 @@ final class SessionModel {
         }
         defer { listening.cancel(); hintsConnected = false }
         for await event in events {
+            guard current == epoch, !Task.isCancelled else { return }
             switch event {
             case .connected(let connected):
                 hintsConnected = connected
@@ -674,7 +679,7 @@ final class SessionModel {
     }
 
     private func hintChannelConnected() async {
-        await networkReturned()
+        await networkReturned(redial: false)
         await checkChannels()
         if let activeChannel { channelHints[activeChannel, default: 0] &+= 1 }
         inboxHints &+= 1
@@ -684,10 +689,10 @@ final class SessionModel {
     private func receiveHint(kind: String, resource: String?, news: Bool) {
         let current = epoch
         // The relay hints at most every five seconds: read once more after that.
-        func again(_ work: @escaping @MainActor () -> Void) {
+        func again(_ work: @escaping @MainActor () async -> Void) {
             Task {
-                try? await Task.sleep(for: .seconds(6))
-                if current == epoch { work() }
+                do { try await Task.sleep(for: .seconds(6)) } catch { return }
+                if current == epoch, !concealed { await work() }
             }
         }
         switch kind {
@@ -695,13 +700,13 @@ final class SessionModel {
             if news { engine?.requestContentSync() }
             again { self.engine?.requestContentSync() }
         case "channel":
-            guard let resource, let engine else { return }
-            Task {
-                _ = try? await coreOperation { try await engine.readChannelControls(channel: resource, operation: $0) }
-                if current == epoch { await loadChannels(); await readChannelsAhead() }
-            }
+            guard let resource else { return }
+            Task { await refreshHintedChannel(resource) }
             channelHints[resource, default: 0] &+= 1
-            again { self.channelHints[resource, default: 0] &+= 1 }
+            again {
+                self.channelHints[resource, default: 0] &+= 1
+                await self.refreshHintedChannel(resource)
+            }
         case "read":
             // Another device of this account read further: the channel's head says how far.
             guard let resource, let engine else { return }
@@ -720,9 +725,20 @@ final class SessionModel {
         }
     }
 
-    /// A waiting retry starts now; the automatic pass picks it up.
-    private func networkReturned() async {
+    /// The delayed read also updates the list when no conversation is open.
+    private func refreshHintedChannel(_ channel: String) async {
         guard let engine, unlocked, !concealed else { return }
+        let current = epoch
+        _ = try? await coreOperation { try await engine.readChannelControls(channel: channel, operation: $0) }
+        guard current == epoch, !Task.isCancelled else { return }
+        await loadChannels()
+        await readChannelsAhead()
+    }
+
+    /// A waiting retry starts now; the automatic pass picks it up.
+    private func networkReturned(redial: Bool = true) async {
+        guard let engine, unlocked, !concealed else { return }
+        if redial { engine.reconnectHints() }
         _ = try? await engine.retrySyncEarly(network: true)
         engine.requestContentSync()
         await recoverMessages()
@@ -833,7 +849,6 @@ final class SessionModel {
         let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
         let account = session?.account
         let finishing = unlocked && !immediateBackgroundLock
-        let interrupted = contentSync?.running == true
         stopAutomaticSync(.background)
         automaticUnlock.rearm()
         lifecycleGeneration &+= 1
@@ -846,7 +861,7 @@ final class SessionModel {
         deviceTransfer.background()
         backgroundAt = .now
         if finishing, let engine {
-            finishInBackground(engine, interrupted: interrupted)
+            finishInBackground(engine)
         } else {
             engine?.suspend()
         }
@@ -863,8 +878,8 @@ final class SessionModel {
     }
 
     /// What the person just did leaves before the app stops: sends an
-    /// interruption left open, then local edits. The screen is already covered.
-    private func finishInBackground(_ engine: MobileEngine, interrupted: Bool) {
+    /// interruption left open, then already signed versions. The screen is covered.
+    private func finishInBackground(_ engine: MobileEngine) {
         endBackgroundFinish()
         let operation = OperationToken(), syncing = automaticSyncEnabled
         let task = UIApplication.shared.beginBackgroundTask(withName: "dMsg finish") { [weak self] in
@@ -876,9 +891,8 @@ final class SessionModel {
             for row in (try? await engine.recoverableMessages()) ?? [] {
                 _ = try? await engine.sendMessage(channel: row.channel, messageId: row.message.id, operation: operation)
             }
-            let pending = (try? await engine.sessionState())?.pendingSync ?? 0
-            if syncing, interrupted || pending > 0 {
-                _ = try? await engine.sync(automatic: true, operation: operation)
+            if syncing {
+                _ = try? await engine.flushContent(operation: operation)
             }
             guard let self, self.backgroundFinish?.task == task else { return }
             self.endBackgroundFinish(); engine.suspend()

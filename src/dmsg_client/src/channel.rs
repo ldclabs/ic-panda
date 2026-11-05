@@ -563,7 +563,7 @@ pub struct ChannelView {
     pub message_cursor: u64,
     /// Latest verified sequence, including a recent window ahead of history.
     pub latest_cursor: u64,
-    /// The relay holds messages this device has yet to read, as last checked.
+    /// The relay holds messages not fetched here or read by this account.
     pub news: bool,
     /// When news last came; for ordering a list before the messages arrive.
     pub active_at: u64,
@@ -3543,7 +3543,7 @@ impl Client {
             ledger: local.ledger,
             message_cursor: local.message,
             latest_cursor,
-            news: local.remote_latest > latest_cursor,
+            news: local.remote_latest > latest_cursor.max(local.read),
             active_at: local.active_at,
             cursor_due: local.message > local.delivered || local.read > local.reported_read,
             history_before,

@@ -124,8 +124,10 @@ struct SystemExportsView: View {
             await model.integrationReset?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
             let snapshot = try await engine.exportAutofill(items: credentials.map { CredentialSelection(id: $0.id, revision: $0.revision) }, biometryOnly: biometryOnly)
-            let entries: [AutoFillEntry] = try model.decode(snapshot)
-            guard try await model.publishCredentials(entries, biometryOnly: biometryOnly, account: account, epoch: epoch), !Task.isCancelled else { return }
+            let refresh: AutoFillRefresh = try model.decode(snapshot)
+            guard try await model.publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly, account: account, epoch: epoch), !Task.isCancelled else { return }
+            try await engine.autofillPublished(digest: refresh.digest)
+            guard epoch == model.epoch, !Task.isCancelled else { return }
             refreshSnapshots(); model.notice = String(localized: "AutoFill snapshot updated")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
     }

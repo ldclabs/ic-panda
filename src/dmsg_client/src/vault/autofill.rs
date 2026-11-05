@@ -64,14 +64,19 @@ pub struct Refresh {
     pub entries: Vec<Entry>,
     /// Exported copies open only with biometrics.
     pub biometry_only: bool,
+    /// Acknowledge this value only after the system snapshot was published.
+    pub digest: String,
 }
 
-fn digest(entries: &[Entry]) -> String {
-    hex::encode(*dmsg_protocol::digest("dmsg/autofill-export/2", &entries))
+fn digest(selection: &Selection, entries: &[Entry]) -> String {
+    hex::encode(*dmsg_protocol::digest(
+        "dmsg/autofill-export/2",
+        &(&selection.items, selection.biometry_only, entries),
+    ))
 }
 
 impl Client {
-    /// Remember what the person just confirmed and handed out.
+    /// Remember what the person confirmed. Publication is acknowledged separately.
     ///
     /// # Errors
     /// Refuses a locked workspace.
@@ -80,16 +85,19 @@ impl Client {
         items: Vec<String>,
         biometry_only: bool,
         entries: &[Entry],
-    ) -> Result<()> {
-        self.workspace.put_private(
-            self.keys()?,
-            KEY,
-            &Selection {
-                items,
-                biometry_only,
-                digest: digest(entries),
-            },
-        )
+    ) -> Result<Refresh> {
+        let selection = Selection {
+            items,
+            biometry_only,
+            digest: String::new(),
+        };
+        self.workspace.put_private(self.keys()?, KEY, &selection)?;
+        Ok(Refresh {
+            changed: true,
+            digest: digest(&selection, entries),
+            entries: entries.to_vec(),
+            biometry_only,
+        })
     }
 
     /// What the person last confirmed, if anything.
@@ -116,7 +124,7 @@ impl Client {
     /// # Errors
     /// Refuses a locked workspace or a corrupt record.
     pub fn autofill_refresh(&self, force: bool) -> Result<Option<Refresh>> {
-        let Some(mut selection) = self.autofill_chosen()? else {
+        let Some(selection) = self.autofill_chosen()? else {
             return Ok(None);
         };
         let entries: Vec<Entry> = selection
@@ -124,17 +132,32 @@ impl Client {
             .iter()
             .filter_map(|id| Entry::of(&self.vault_show(id).ok()?).ok())
             .collect();
-        let current = digest(&entries);
+        let current = digest(&selection, &entries);
         let changed = force || current != selection.digest;
-        if changed {
-            selection.digest = current;
-            self.workspace.put_private(self.keys()?, KEY, &selection)?;
-        }
         Ok(Some(Refresh {
             changed,
             entries: if changed { entries } else { vec![] },
             biometry_only: selection.biometry_only,
+            digest: current,
         }))
+    }
+
+    /// Record a successful system publication, only if its selection and values
+    /// are still current. Failed or superseded publications stay due for retry.
+    ///
+    /// # Errors
+    /// Refuses a locked workspace or a corrupt record.
+    pub fn autofill_published(&self, published: &str) -> Result<()> {
+        let Some(current) = self.autofill_refresh(false)? else {
+            return Ok(());
+        };
+        if current.digest == published
+            && let Some(mut selection) = self.autofill_chosen()?
+        {
+            selection.digest = current.digest;
+            self.workspace.put_private(self.keys()?, KEY, &selection)?;
+        }
+        Ok(())
     }
 }
 
@@ -170,7 +193,8 @@ mod tests {
             .iter()
             .map(|id| Entry::of(&client.vault_show(id).unwrap()).unwrap())
             .collect();
-        client.autofill_choose(chosen, true, &entries).unwrap();
+        let published = client.autofill_choose(chosen, true, &entries).unwrap();
+        client.autofill_published(&published.digest).unwrap();
 
         let quiet = client.autofill_refresh(false).unwrap().unwrap();
         assert!(!quiet.changed && quiet.entries.is_empty() && quiet.biometry_only);
@@ -186,12 +210,29 @@ mod tests {
         let moved = client.autofill_refresh(false).unwrap().unwrap();
         assert!(moved.changed);
         assert_eq!(moved.entries[0].password, "e");
+        // A failed platform publication must not consume the change.
+        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
+        client.autofill_published(&moved.digest).unwrap();
         assert!(!client.autofill_refresh(false).unwrap().unwrap().changed);
 
         client.vault_delete(&second).unwrap();
         let shrunk = client.autofill_refresh(false).unwrap().unwrap();
         assert!(shrunk.changed);
         assert_eq!(shrunk.entries.len(), 1);
+
+        // A later edit must survive an acknowledgement for the older snapshot.
+        client.vault_edit(&first, None, &login("one", "f")).unwrap();
+        client.autofill_published(&shrunk.digest).unwrap();
+        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
+
+        // The same values selected with a different authentication policy also
+        // cannot be acknowledged by a publication of the previous choice.
+        let current = client.autofill_refresh(true).unwrap().unwrap();
+        client
+            .autofill_choose(vec![first], false, &current.entries)
+            .unwrap();
+        client.autofill_published(&current.digest).unwrap();
+        assert!(client.autofill_refresh(false).unwrap().unwrap().changed);
 
         client.autofill_forget().unwrap();
         assert_eq!(client.autofill_refresh(true).unwrap(), None);

@@ -69,6 +69,13 @@ struct AutoFillEntry: Decodable, Sendable {
     }
 }
 
+struct AutoFillRefresh: Decodable, Sendable {
+    let changed: Bool
+    let entries: [AutoFillEntry]
+    let biometryOnly: Bool
+    let digest: String
+}
+
 enum ContentSyncEvent: String { case background, locked, disabled, sessionChanged = "session_changed" }
 
 enum ContentSyncLog {

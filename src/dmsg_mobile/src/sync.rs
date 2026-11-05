@@ -249,6 +249,21 @@ pub(crate) async fn content_pass<H: Hold>(
 
 #[uniffi::export]
 impl MobileEngine {
+    /// Finish already signed submissions during the short background window.
+    /// This never opens a snapshot or downloads account content. Unprepared
+    /// versions wait for the next foreground pass.
+    pub async fn flush_content(&self, operation: Arc<OperationToken>) -> Result<u64> {
+        let turn = self.read_turns.lane("sync");
+        operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let _turn = turn.lock().await;
+                    dmsg_client::sync::flush(h).await.map(|sent| sent as u64)
+                })
+            }))
+            .await
+    }
+
     pub async fn sync(
         &self,
         automatic: bool,
@@ -280,11 +295,10 @@ impl MobileEngine {
     }
 
     /// Start a waiting automatic retry now, after an unlock or when the
-    /// connection returned, which also redials the hint channel; a cooldown the
-    /// relay asked for stays.
+    /// connection returned; a cooldown the relay asked for stays. This does not
+    /// redial an already connected hint channel.
     pub async fn retry_sync_early(&self, network: bool) -> Result<bool> {
         let cause = if network {
-            self.hints_redial.notify_waiters();
             RetryCause::Network
         } else {
             RetryCause::Unlock

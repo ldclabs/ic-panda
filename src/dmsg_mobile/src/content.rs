@@ -115,8 +115,7 @@ impl MobileEngine {
                     session.check(c)?;
                     c.autofill_choose(chosen, biometry_only, &exported)
                 })
-                .await?;
-                Ok(exported)
+                .await
             })
         })
         .await
@@ -131,6 +130,14 @@ impl MobileEngine {
             Box::pin(async move { h.with(|c| c.autofill_refresh(force)).await })
         })
         .await
+    }
+
+    /// The platform published both the snapshot and its system suggestions.
+    pub async fn autofill_published(&self, digest: String) -> Result<()> {
+        self.host
+            .run(move |c| Box::pin(async move { c.autofill_published(&digest) }))
+            .await
+            .map_err(Into::into)
     }
 
     /// The login items the person last chose, those still there.

@@ -55,7 +55,15 @@ struct MessagesView: View {
                         else { Button("Write a letter", systemImage: "square.and.pencil") { writing = LetterDraft() }.accessibilityIdentifier("letters.compose") }
                     }
                 }
-                .task { await model.refresh(); await model.checkChannels() }
+                .task(id: "channels:\(mode):\(model.epoch):\(model.concealed)") {
+                    guard !model.concealed else { return }
+                    await model.refresh()
+                    guard mode == 0 else { return }
+                    while !Task.isCancelled {
+                        await model.checkChannels()
+                        do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
+                    }
+                }
                 .task(id: "\(mode):\(model.contentRevision):\(model.epoch)") { if mode == 1 { await loadLetters(refresh: false) } }
                 .task(id: "inbox:\(mode):\(model.epoch):\(model.concealed)") {
                     guard mode == 1, !model.concealed else { return }

@@ -1722,6 +1722,22 @@ async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claim
         let view = h.with(|c| c.channel_view(&channel)).await.unwrap();
         assert!(!view.news);
         assert_eq!(view.history_before, Some(1_000_081));
+
+        // Another device read beyond our cached tail. Taking that account's
+        // position clears the unread dot without claiming we fetched the gap.
+        head["capacity"]["messages"]["used"] = json!(1_000_200);
+        head["seen"] = json!(1_000_200);
+        h.replies.lock().unwrap().push_back(head.clone());
+        read(&h, &mut Reading::controls(&channel)).await.unwrap();
+        let view = h.with(|c| c.channel_view(&channel)).await.unwrap();
+        assert_eq!(view.read, 1_000_200);
+        assert_eq!(view.latest_cursor, 1_000_100);
+        assert!(!view.news);
+
+        head["capacity"]["messages"]["used"] = json!(1_000_201);
+        h.replies.lock().unwrap().push_back(head);
+        read(&h, &mut Reading::controls(&channel)).await.unwrap();
+        assert!(h.with(|c| c.channel_view(&channel)).await.unwrap().news);
     }
 }
 

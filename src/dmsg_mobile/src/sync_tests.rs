@@ -137,6 +137,63 @@ impl Drop for Fixture {
 }
 
 #[tokio::test]
+async fn background_completion_never_starts_a_content_download_for_pending_edits() {
+    let fixture = Fixture::new(None).await;
+    let engine = &fixture.engine;
+    engine
+        .host
+        .with(|c| {
+            c.vault_create(
+                "note",
+                &dmsg_client::vault::Changes {
+                    title: Some("pending edit".into()),
+                    ..Default::default()
+                },
+            )
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        engine.flush_content(OperationToken::new()).await.unwrap(),
+        0
+    );
+    assert_eq!(fixture.exports.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.deltas.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.uploads.load(Ordering::SeqCst), 0);
+    assert_eq!(engine.session_state().await.unwrap().pending_sync, 1);
+    assert!(!engine.content_sync_status().await.unwrap().initialized);
+}
+
+#[tokio::test]
+async fn a_network_retry_keeps_the_hint_connection_until_explicitly_redialed() {
+    let fixture = Fixture::new(Some("UNAVAILABLE")).await;
+    let engine = &fixture.engine;
+    assert!(engine.sync(true, OperationToken::new()).await.is_err());
+    let redial = engine.hints_redial.notified();
+    tokio::pin!(redial);
+    redial.as_mut().enable();
+    assert!(engine.retry_sync_early(true).await.unwrap());
+    assert!(
+        engine
+            .content_sync_status()
+            .await
+            .unwrap()
+            .retry_at_ms
+            .unwrap()
+            <= dmsg_client::now_ms()
+    );
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(20), &mut redial)
+            .await
+            .is_err()
+    );
+    engine.reconnect_hints();
+    tokio::time::timeout(std::time::Duration::from_secs(1), redial)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
 async fn manual_sync_retries_a_failure_requiring_user_action() {
     let fixture = Fixture::new(Some("INTEGRITY_FAILED")).await;
     let engine = &fixture.engine;
