@@ -43,6 +43,7 @@ import { securityFlow } from './security-flow.mjs'
 import { pairingFlow } from './pairing-flow.mjs'
 import { settingsFlow } from './settings-flow.mjs'
 import { updatesFlow } from './updates-flow.mjs'
+import { fileRequestsFlow } from './file-requests-flow.mjs'
 import { filesFlow } from './files-flow.mjs'
 import { fileTransfersFlow } from './file-transfers-flow.mjs'
 import { successionFlow } from './succession-flow.mjs'
@@ -1895,6 +1896,12 @@ smoke: try {
     if (process.env.DMSG_DESKTOP_TEST_TRAY === '1') await trayFlow({ app, methods, emit, waitFor, shots, setSession: value => { session = value } })
     assert.deepEqual(pageErrors, [])
     console.log('desktop files and tray smoke test passed')
+    break smoke
+  }
+  if (process.env.DMSG_DESKTOP_SMOKE === 'file-requests') {
+    await fileRequestsFlow({ app, main, shots, methods, hold, waitFor, calls, emit, setSession: value => { session = value } })
+    assert.deepEqual(pageErrors, [])
+    console.log('Desktop file requests passed: plan gate, batch links, partial failure, save, delete, lock, late replies, program warning, locale/theme/width matrix')
     break smoke
   }
   if (process.env.DMSG_DESKTOP_SMOKE === 'pairing') {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, localOnlyRisk, matchesFile, ordered, STALE_SYNC_MS, within } from '../src/renderer/views/files/files.ts'
+import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, localOnlyRisk, matchesFile, ordered, runsAsProgram, STALE_SYNC_MS, within } from '../src/renderer/views/files/files.ts'
+import { isActiveRequest, MAX_REQUEST_LABELS, requestLabels, requestTotals } from '../src/renderer/views/files/requests.ts'
 
 const file = (name: string, updated_at: number, size: number, mime = 'application/octet-stream') => ({ name, updated_at, size, mime })
 
@@ -61,4 +62,35 @@ test('what only this device holds is at risk without a backup, with unsynced cha
   assert.deepEqual(localOnlyRisk({ ...clear, last_sync_ok_at: null }, now), { unbacked: false, pending: false, never: true, stale: false, any: true })
   assert.equal(localOnlyRisk({ ...clear, last_sync_ok_at: now - STALE_SYNC_MS }, now).stale, false)
   assert.equal(localOnlyRisk({ ...clear, last_sync_ok_at: now - STALE_SYNC_MS - 1 }, now).stale, true)
+})
+
+test('a file that runs when opened is told apart by its extension', () => {
+  for (const name of ['setup.exe', 'Installer.PKG', 'run.sh', 'a.b.command']) assert.equal(runsAsProgram(name), true, name)
+  for (const name of ['report.pdf', 'exe', 'photo.exe.png', '']) assert.equal(runsAsProgram(name), false, name)
+})
+
+test('a list of names makes one link per line, blanks left out', () => {
+  assert.deepEqual(requestLabels(' Ada \n\n  \nLin\n'), ['Ada', 'Lin'])
+  assert.deepEqual(requestLabels(''), [])
+  assert.equal(MAX_REQUEST_LABELS, 50)
+})
+
+test('a link total stays within the plan and starts where the plan does', () => {
+  const MIB = 1024 * 1024
+  const plus = requestTotals({ storage_limit: 5120 * MIB, backup_max_file_bytes: 100 * MIB })
+  assert.deepEqual(plus.options, [100, 500, 1024, 2048, 5120])
+  assert.equal(plus.preferred, 500)
+  const max = requestTotals({ storage_limit: 102400 * MIB, backup_max_file_bytes: 1000 * MIB })
+  assert.equal(max.preferred, 2048)
+  assert.deepEqual(requestTotals({ storage_limit: 300 * MIB, backup_max_file_bytes: 100 * MIB }), { options: [100], preferred: 100 })
+  assert.deepEqual(requestTotals({ storage_limit: 10 * MIB }).options, [1])
+  assert.equal(requestTotals(null).preferred, 500)
+})
+
+test('a link counts against the plan until it expires or closes', () => {
+  assert.equal(isActiveRequest({ status: 'open' }), true)
+  assert.equal(isActiveRequest({ status: 'full' }), true)
+  assert.equal(isActiveRequest({ status: 'paused' }), true)
+  assert.equal(isActiveRequest({ status: 'expired' }), false)
+  assert.equal(isActiveRequest({ status: 'revoked' }), false)
 })

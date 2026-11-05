@@ -19,8 +19,9 @@
   import { added, backups, downloads, scopeJobs, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Links from './files/Links.svelte'
+  import Requests from './files/Requests.svelte'
   import Detail from './files/Detail.svelte'
-  import { ancestorsOf, isSort, matchesFile, ordered, ROOT, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
+  import { ancestorsOf, isSort, matchesFile, ordered, ROOT, runsAsProgram, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
   import { focus } from './files/focus.svelte'
   import FolderPicker from './files/FolderPicker.svelte'
@@ -59,6 +60,7 @@
   let query = $state('')
   let selected = $state<string[]>([])
   let placesOpen = $state(false)
+  let program = $state<{ id: string; version: string | null; name: string } | null>(null)
   /** Where a shift-extended selection starts. */
   let anchor = $state<string | null>(null)
   let details = $state<any>(null)
@@ -105,7 +107,7 @@
 
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
-  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && !tag)
+  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'links' && scope !== 'requests' && !tag)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
@@ -167,9 +169,9 @@
 
   // The route names the place; the place changes the route.
   $effect(() => {
-    const next = route.startsWith('/files/links') ? 'links' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
+    const next = route.startsWith('/files/links') ? 'links' : route.startsWith('/files/requests') ? 'requests' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
     if (next && next !== scope) scope = next
-    if (!next && ['cloud', 'trash', 'links'].includes(scope)) scope = ROOT
+    if (!next && ['cloud', 'trash', 'links', 'requests'].includes(scope)) scope = ROOT
   })
 
   function pick(next: string) {
@@ -179,7 +181,7 @@
     selected = []
     anchor = null
     trashOpened = null
-    if (next === 'links') go(`/files/${next}`)
+    if (next === 'links' || next === 'requests') go(`/files/${next}`)
     else if (next === 'cloud') go('/files/cloud')
     else if (next === 'trash') go('/files/trash')
     else if (route !== '/files') go('/files')
@@ -476,7 +478,12 @@
     void add(dropped, false, target)
   }
 
-  const open = (id: string, version: string | null) => attempt(() => bridge(() => window.dmsg.filesOpen(id, version)))
+  const launch = (id: string, version: string | null) => attempt(() => bridge(() => window.dmsg.filesOpen(id, version)))
+  function open(id: string, version: string | null) {
+    const name = rows.find((row) => row.id === id)?.name ?? current?.name ?? ''
+    if (runsAsProgram(name)) program = { id, version, name }
+    else void launch(id, version)
+  }
   const exportFile = (id: string, version: string | null, name: string) => attempt(() => bridge(() => window.dmsg.filesExport(id, version, name)))
   const exportMany = (items: any[]) =>
     attempt(async () => {
@@ -587,7 +594,7 @@
       .finally(() => { if (serial === quoteSerial) quoting = false })
   })
   $effect(() => {
-    if (!unlocked) { placesOpen = false; sharing = null; linking = null; quote = null; quoteSerial++ }
+    if (!unlocked) { placesOpen = false; program = null; sharing = null; linking = null; quote = null; quoteSerial++ }
   })
   const share = () =>
     attempt(async () => {
@@ -781,6 +788,8 @@
 
     {#if scope === 'links'}
       <div class="min-w-0 flex-1">{#key status?.account}<Links {unlocked} />{/key}</div>
+    {:else if scope === 'requests'}
+      <div class="min-w-0 flex-1">{#key status?.account}<Requests {unlocked} {folders} onShowFile={(id) => { focus.id = id; go('/files') }} onPlans={() => go('/plan')} />{/key}</div>
     {:else if scope === 'cloud'}
       <div class="relative min-w-0 flex-1">
         <Cloud
@@ -1039,6 +1048,22 @@
   {/if}
 </div>
 
+<Dialog bind:open={() => !!program, (next) => !next && (program = null)} title={t('openProgramTitle')} description={program?.name} icon="warning" tone="warn" testid="files-open-program">
+  <p class="text-[13px] text-muted">{t('openProgramHint')}</p>
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} onclick={() => (program = null)}>{t('cancel')}</button>
+    <button
+      class={buttonClass('danger')}
+      onclick={() => {
+        const chosen = program
+        program = null
+        if (chosen) void launch(chosen.id, chosen.version)
+      }}
+      data-testid="files-open-program-yes">{t('openProgramAnyway')}</button
+    >
+  {/snippet}
+</Dialog>
 <Dialog bind:open={placesOpen} title={t('files')} icon="folder" testid="files-places-dialog">
   <div class="flex min-h-0 max-h-[65vh] flex-col">{@render places()}</div>
 </Dialog>

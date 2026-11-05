@@ -49,13 +49,22 @@ export const statusTone: Record<Status, 'neutral' | 'forest' | 'gem' | 'warn' | 
   failed: 'danger'
 }
 
+const PROGRAMS = new Set('app appimage bat cmd com command cpl deb desktop dmg exe hta jar js jse lnk msi msix pif pkg ps1 py rpm scr sh terminal tool url vbe vbs workflow wsf'.split(' '))
+
+/** Opening one of these runs it instead of showing it, whoever it came from. */
+export function runsAsProgram(name: string): boolean {
+  const dot = name.lastIndexOf('.')
+  return dot >= 0 && PROGRAMS.has(name.slice(dot + 1).toLowerCase())
+}
+
 /** Where a version came from, as the daemon's `origin.type` names it. */
 export const originLabel: Record<string, Label> = {
   imported: 'originImported',
   edited: 'originEdited',
   fetched: 'originFetched',
   mounted: 'originMounted',
-  shared_in: 'originShared'
+  shared_in: 'originShared',
+  received: 'originReceived'
 }
 
 /** An icon for a media type: pictures, text, anything else. */
