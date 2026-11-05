@@ -109,7 +109,14 @@ impl Kind {
         match self {
             Self::Catalog | Self::Assets => 3_600_000,
             Self::Asset | Self::Avatar => display::AVATAR_TTL,
-            Self::Storage => 300_000,
+            // What only the person changes, usually on this very device.
+            Self::Storage
+            | Self::Profile
+            | Self::ProfileEditor
+            | Self::Handles
+            | Self::Account
+            | Self::Summary
+            | Self::Plan => 300_000,
             _ => 60_000,
         }
     }

@@ -10,8 +10,10 @@
 //! Idle for `idle_lock_minutes`, the daemon locks (agents' calls are not
 //! the person's activity and never hold it off); versions already signed
 //! for submission are still sent by a keyless flush, and with
-//! `background_online` the device key stays for sending and fetching
-//! ciphertext. `sync_interval_minutes` adds a scheduled sync.
+//! `background_online` the device key stays for sending what needs no reseal.
+//! `sync_interval_minutes` paces automatic sync (zero leaves it to explicit
+//! requests); while the hint channel is connected a scheduled pass only backs
+//! up a lost hint.
 //!
 //! `daemon/stop` with `if_idle` (updates and restarts) first refuses new
 //! requests and background passes, waits for the running operation, and
@@ -63,11 +65,12 @@ use dmsg_types::{Error, Result, ensure, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU64, Ordering},
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, Notify, broadcast};
 
 #[path = "daemon_sync.rs"]
@@ -76,8 +79,9 @@ pub(crate) use content_sync::Trigger as SyncTrigger;
 
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;
-/// How often the relay mailbox is polled besides hints.
+/// How often the relay mailbox is polled, and how seldom while hints arrive.
 const CONNECT_POLL_MS: u64 = 30_000;
+const CONNECT_POLL_HINTED_MS: u64 = 300_000;
 /// The library's daily self-check waits for this much quiet at the device.
 const CHECK_IDLE_MS: u64 = 60_000;
 /// A self-check that could not finish is tried again after this long.
@@ -89,7 +93,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 66] = [
+const METHODS: [&str; 67] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -154,6 +158,7 @@ const METHODS: [&str; 66] = [
     "hint/status",
     "app/initialize",
     "app/activity",
+    "app/network",
     "daemon/status",
     "events/poll",
 ];
@@ -258,6 +263,7 @@ pub(crate) struct Daemon {
     seq: AtomicU64,
     hints: std::sync::Mutex<HintState>,
     hints_changed: Notify,
+    hints_redial: Notify,
     wake: Notify,
     sync_requested: AtomicBool,
     sync_resumed: AtomicBool,
@@ -285,6 +291,8 @@ pub(crate) struct Daemon {
     pub(crate) import_cancel: Arc<AtomicBool>,
     /// Channels the relay hinted at, for the channel loop; `*` reads all.
     channel_hints: tokio::sync::mpsc::UnboundedSender<String>,
+    /// When each channel was last read ahead for a list on screen.
+    read_ahead: std::sync::Mutex<BTreeMap<String, Instant>>,
     /// The loop's end of `channel_hints`, until it takes it.
     channel_hinted: std::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<String>>>,
     /// What operations waiting on the network without the client take
@@ -454,15 +462,8 @@ pub(crate) fn app(daemon: Arc<Daemon>) -> Router {
         .with_state(daemon)
 }
 
-/// A failed pass stays in its account's workspace. Only transient failures
-/// retry automatically, after a pause and while content is unlocked.
-fn sync_retry_due(client: &Client, now: u64) -> bool {
-    client.session_state().state == "unlocked"
-        && client.last_sync().ok().flatten().is_some_and(|last| {
-            last.error.is_some() && last.automatic_at().is_some_and(|at| now >= at)
-        })
-}
-
+/// A failed pass stays in its account's workspace. Every failure retries
+/// automatically, after a pause and while content is unlocked.
 /// Idle lock, mailbox, file and mount maintenance. Content sync and
 /// presigned submissions have an independent scheduler. Neither is activity.
 async fn background(daemon: Arc<Daemon>) {
@@ -497,7 +498,12 @@ async fn background(daemon: Arc<Daemon>) {
         daemon.check_secret_mounts().await;
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
-        if ready && now >= polled + CONNECT_POLL_MS {
+        let every = if daemon.hints_connected() {
+            CONNECT_POLL_HINTED_MS
+        } else {
+            CONNECT_POLL_MS
+        };
+        if ready && now >= polled + every {
             polled = now;
             let report = daemon.connect_pass().await;
             daemon.note_result("connect", &report);
@@ -634,6 +640,7 @@ impl Daemon {
             seq: AtomicU64::new(0),
             hints: std::sync::Mutex::new(HintState::default()),
             hints_changed: Notify::new(),
+            hints_redial: Notify::new(),
             wake: Notify::new(),
             sync_requested: AtomicBool::new(false),
             sync_resumed: AtomicBool::new(false),
@@ -652,6 +659,7 @@ impl Daemon {
             files_mount: AtomicBool::new(settings_mount),
             import_cancel: Arc::new(AtomicBool::new(false)),
             channel_hints,
+            read_ahead: Default::default(),
             channel_hinted: std::sync::Mutex::new(Some(channel_hinted)),
             turns: Default::default(),
             display: Default::default(),
@@ -669,6 +677,20 @@ impl Daemon {
     }
 
     /// Have the channel loop read `channel`, or every channel for `*`.
+    /// Whether a channel's read-ahead may run, which then counts as run.
+    pub(crate) fn read_ahead_due(&self, channel: &str, every: Duration) -> bool {
+        let mut read = self.read_ahead.lock().unwrap_or_else(|e| e.into_inner());
+        let now = Instant::now();
+        if read
+            .get(channel)
+            .is_some_and(|at| now.duration_since(*at) < every)
+        {
+            return false;
+        }
+        read.insert(channel.to_string(), now);
+        true
+    }
+
     pub(crate) fn hint_channel(&self, channel: &str) {
         let _ = self.channel_hints.send(channel.to_string());
     }
@@ -713,6 +735,7 @@ impl Daemon {
                 | "wallet/changed"
                 | "cache/changed"
                 | "sync/changed"
+                | "sync/finished"
         ) {
             self.notifications.wake.notify_one();
         }
@@ -1009,12 +1032,31 @@ impl Daemon {
         &self.hints_changed
     }
 
+    pub(crate) fn hints_redial(&self) -> &Notify {
+        &self.hints_redial
+    }
+
+    /// The connection may be back, after a wake or a network change: the hint
+    /// channel redials at once and a waiting sync retry starts now.
+    async fn network_returned(&self) {
+        self.hints_redial.notify_waiters();
+        let client = self.client.lock().await;
+        let _ = dmsg_client::sync::retry_early(&client, dmsg_client::sync::RetryCause::Network);
+        drop(client);
+        self.request_content_sync();
+    }
+
     pub(crate) fn mcp(&self) -> &crate::mcp_events::McpEvents {
         &self.mcp
     }
 
     pub(crate) fn set_hints(&self, f: impl FnOnce(&mut HintState)) {
         f(&mut self.hints.lock().expect("hint state"));
+    }
+
+    /// The relay is telling this device what moved, so polling is only a backstop.
+    pub(crate) fn hints_connected(&self) -> bool {
+        self.hints.lock().expect("hint state").connected
     }
 
     /// The owner credential and no `Origin`.
@@ -1581,6 +1623,10 @@ impl Daemon {
                 "status": self.status().await?,
             })),
             "app/activity" => Ok(Value::Null),
+            "app/network" => {
+                self.network_returned().await;
+                Ok(Value::Null)
+            }
             "events/poll" => Ok(json!({"seq": self.seq.load(Ordering::Relaxed)})),
             "approval/list" => {
                 let all = params["all"].as_bool().unwrap_or(false);
@@ -1933,7 +1979,7 @@ fn is_activity(request: &RpcRequest, reports: bool) -> bool {
     }
     !matches!(
         method,
-        "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
+        "events/poll" | "daemon/status" | "app/initialize" | "app/network" | "mcp-events/poll"
     )
 }
 
@@ -2036,6 +2082,7 @@ fn log_call(
             | "daemon/status"
             | "app/initialize"
             | "app/activity"
+            | "app/network"
             | "events/poll"
             | "hint/status"
             | "connect/status"
@@ -2272,6 +2319,18 @@ mod sync_tests;
 mod tests {
     use super::*;
     use crate::remote::Remote;
+
+    /// What the scheduler decides with only the latest attempt to go on.
+    fn sync_retry_due(client: &Client, now: u64) -> bool {
+        use dmsg_client::sync::{Due, Moment, Schedule};
+        let last = client.last_sync().ok().flatten();
+        client.session_state().state == "unlocked"
+            && Schedule::new(now).due(&Moment {
+                now,
+                last: last.as_ref(),
+                ..Moment::default()
+            }) == Due::Now
+    }
 
     #[tokio::test]
     async fn failure_logs_keep_causes_without_private_messages_or_rpc_input() {
@@ -2839,12 +2898,12 @@ mod tests {
                     let last = client.last_sync().unwrap().unwrap();
                     assert_eq!(last.error.as_deref(), Some(code));
                     assert_eq!(last.stage, Some(dmsg_client::sync::SyncStage::ExportStart));
-                    let due = last.retry_at.unwrap_or(last.at + 60_000);
+                    let due = last.retry_at.unwrap();
                     assert!(!sync_retry_due(&client, due - 1));
-                    assert_eq!(sync_retry_due(&client, due), code != "INTEGRITY_FAILED");
+                    assert!(sync_retry_due(&client, due));
                     if code != "UNAVAILABLE" {
                         client.lock();
-                        assert!(!sync_retry_due(&client, last.at + 600_000));
+                        assert!(!sync_retry_due(&client, due));
                         continue;
                     }
                 }

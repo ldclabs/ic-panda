@@ -39,6 +39,24 @@ async fn mobile_presence_policy_refuses_plain_keys_and_lock_invalidates_a_prompt
     assert!(storage.get(&name).unwrap().is_none());
 }
 
+#[tokio::test]
+async fn fast_unlock_opens_what_this_device_verified_while_the_network_stalls() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, Some(Arc::new(MemoryStorage::default())));
+    client.vault_create("note", &note("kept")).unwrap();
+    client.enable_fast_unlock().unwrap();
+    client.lock();
+    // Accepts connections and never answers.
+    let stalled = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", stalled.local_addr().unwrap());
+    crate::testing::ic_to(&mut client, &origin);
+    let started = std::time::Instant::now();
+    let status = client.unlock_fast().await.unwrap();
+    assert_eq!(status.state, "unlocked");
+    assert!(started.elapsed() < std::time::Duration::from_secs(3));
+    assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 1);
+}
+
 #[test]
 fn idle_lock_keeps_a_locked_generation_for_work_that_runs_while_locked() {
     let dir = TempDir::new();

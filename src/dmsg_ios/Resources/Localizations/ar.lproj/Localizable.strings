@@ -248,8 +248,8 @@
 	<string>جهاز مخوّل</string>
 	<key>Authorized devices</key>
 	<string>الأجهزة المفوّضة</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>يتلقى الملء التلقائي بيانات الدخول المختارة فقط. تنتهي اللقطة بعد 24 ساعة وتتطلب مصادقة نظام مستقلة عن مساحة العمل. قد تظهر أسماء المستخدمين والمواقع في اقتراحات النظام.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>لا يتلقى الملء التلقائي سوى عناصر تسجيل الدخول التي تحددها، ويتطلب مصادقة النظام بشكل مستقل عن مساحة العمل. أثناء فتح dMsg وإلغاء قفله، تتبع اللقطة تغييرات تلك العناصر؛ وإذا لم تُحدَّث تنتهي صلاحيتها بعد 24 ساعة. قد تظهر أسماء المستخدمين وأسماء المواقع في اقتراحات النظام.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>تم تحديث لقطة الملء التلقائي</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>مطابقة العملية الأصلية</string>
 	<key>Reconcile original proposal</key>
 	<string>مطابقة الاقتراح الأصلي</string>
-	<key>Reconcile original send</key>
-	<string>التحقق من الإرسال الأصلي</string>
 	<key>Reconcile original snapshot</key>
 	<string>التحقق من نتيجة اللقطة الأصلية</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>هذه مهام اللقطات المنشأة على هذا الجهاز. لا تتم مزامنة طلبات الموافقة المحلية على الحاسوب هنا.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>هذه نسخ احتياطية تم التحقق منها من أجهزة حسابك. اختر الاستعادة صراحةً للاحتفاظ بنسخة على هذا الجهاز.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>لا تتضمن هذه الصادرات مفاتيح الحساب الجذرية أو مفاتيح توقيع الجهاز. تتطلب تغييرات المصدر لقطة جديدة.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>لا تحتوي هذه التصديرات مطلقًا على مفاتيح جذر الحساب أو مفاتيح توقيع الجهاز. لا تتبع النسخ الموجودة في تطبيق الملفات تغييرات الملفات المصدر؛ وتحتاج إلى لقطة جديدة.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ستظل هذه العناوين الأصلية تحتاج إلى الجهاز القديم في L1. ويمكن للأعضاء نقلها عبر L2 حين يصبح كل مُخرج قديمًا بما يكفي.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

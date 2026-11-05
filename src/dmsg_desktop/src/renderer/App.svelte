@@ -221,9 +221,13 @@
     }))
     if (isMain) {
       void loadReminders()
+      const online = () => messageDeliveries.resume()
+      window.addEventListener('online', online)
       offs.push(
+        () => window.removeEventListener('online', online),
         onChange(['notifications/changed', 'session/changed', 'resync'], loadReminders),
-        onChange(['approval/changed', 'sync/changed', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
+        onChange(['approval/changed', 'sync/changed', 'sync/finished', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
+        onChange(['sync/finished'], () => messageDeliveries.resume()),
         onChange(['legacy/changed'], loadOffers),
         onChange(['names/changed'], namesChanged),
         window.dmsg.onEvent((event) => { if (event.type === 'cache/changed' && (event.data as any)?.kind === 'all') { namesSession(null); namesSession(status) } })

@@ -1,10 +1,38 @@
 //! One content lane for foreground sync and inbox key recovery.
 use super::*;
-use dmsg_client::sync::{SyncProgress, initialized, sync_observed};
+use dmsg_client::sync::{
+    Due, Moment, RetryCause, Schedule, SyncProgress, initialized, position, sync_observed,
+};
 use serde_json::{Value, json};
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
+use tokio::sync::Notify;
 
-#[derive(Clone, Default, uniffi::Record)]
+/// The wait between passes while nothing moves, before it grows.
+const APP_SYNC_MS: u64 = dmsg_types::MINUTE;
+/// How often the driver looks at the local state.
+const LOOK: Duration = Duration::from_secs(2);
+/// How often a running pass reports its progress.
+const PROGRESS: Duration = Duration::from_secs(1);
+
+/// What reaches the driver from outside its loop.
+#[derive(Default)]
+pub(crate) struct SyncSignal {
+    pub(crate) wake: Notify,
+    pub(crate) requested: AtomicBool,
+    pub(crate) hinted: AtomicBool,
+}
+
+/// Told of the status and of passes that ended, from a background thread.
+#[uniffi::export(callback_interface)]
+pub trait ContentSyncObserver: Send + Sync {
+    fn status(&self, status: ContentSyncStatus);
+    /// `changed`: the pass moved what views show without moving the position
+    /// the status reports. `error`: why it failed.
+    fn passed(&self, changed: bool, error: Option<String>);
+}
+
+#[derive(Clone, Default, PartialEq, Eq, uniffi::Record)]
 pub struct ContentSyncStatus {
     pub running: bool,
     pub initialized: bool,
@@ -17,6 +45,8 @@ pub struct ContentSyncStatus {
     pub last_success_at_ms: Option<u64>,
     pub retry_at_ms: Option<u64>,
     pub retry_required: bool,
+    pub failures: u32,
+    pub through: u64,
     pub error: Option<String>,
 }
 
@@ -137,6 +167,29 @@ impl Drop for Pass<'_> {
     }
 }
 
+/// Local status only; no network and no new synchronization request.
+async fn status_of<H: Hold>(
+    h: &H,
+    tracker: &Tracker,
+    generation: u64,
+) -> dmsg_types::Result<ContentSyncStatus> {
+    h.with(|c| {
+        let mut status = tracker.status(generation);
+        status.initialized = initialized(c)?;
+        status.through = position(c)?;
+        if let Some(last) = c.last_sync()? {
+            status.last_attempt_at_ms = Some(last.at);
+            status.last_success_at_ms = last.succeeded_at();
+            status.retry_required = last.error.is_some();
+            status.failures = last.failures;
+            status.retry_at_ms = last.error.as_ref().map(|_| last.automatic_at());
+            status.error = last.error.or(last.upload_error);
+        }
+        Ok(status)
+    })
+    .await
+}
+
 /// Called only while owning the account's sync lane; cancellation releases it.
 pub(crate) async fn content_pass<H: Hold>(
     h: &H,
@@ -163,10 +216,10 @@ pub(crate) async fn content_pass<H: Hold>(
             );
             return Ok(json!({"coalesced":true}));
         }
-        if automatic && last.error.is_some() && last.automatic_at().is_none_or(|at| at > now) {
+        if automatic && last.error.is_some() && last.automatic_at() > now {
             eprintln!(
                 "dmsg: sync trigger={trigger:?} outcome=paused retry_at_ms={}",
-                last.automatic_at().unwrap_or(0)
+                last.automatic_at()
             );
             return Ok(json!({"paused":true,"last_sync":last}));
         }
@@ -176,8 +229,12 @@ pub(crate) async fn content_pass<H: Hold>(
         tracker.progress(p)
     })
     .await;
-    if let Err(error) = &result {
-        eprintln!("dmsg: sync error={}", dmsg_client::error_code(error));
+    match &result {
+        Ok(report) => eprintln!(
+            "dmsg: sync sent={} blocked={} conflicts={}",
+            report.sent, report.blocked, report.conflicts
+        ),
+        Err(error) => eprintln!("dmsg: sync error={}", dmsg_client::error_code(error)),
     }
     pass.outcome = if result.is_ok() { "complete" } else { "failed" };
     if let Some(last) = h.with(|c| c.last_sync()).await? {
@@ -222,27 +279,139 @@ impl MobileEngine {
             .await
     }
 
+    /// Start a waiting automatic retry now, after an unlock or when the
+    /// connection returned, which also redials the hint channel; a cooldown the
+    /// relay asked for stays.
+    pub async fn retry_sync_early(&self, network: bool) -> Result<bool> {
+        let cause = if network {
+            self.hints_redial.notify_waiters();
+            RetryCause::Network
+        } else {
+            RetryCause::Unlock
+        };
+        self.held(move |h| {
+            Box::pin(async move { h.with(|c| dmsg_client::sync::retry_early(c, cause)).await })
+        })
+        .await
+    }
+
     /// Local status only; no network and no new synchronization request.
     pub async fn content_sync_status(&self) -> Result<ContentSyncStatus> {
         let tracker = self.sync_tracker.clone();
         let generation = self.host.generation();
-        self.held(move |h| {
-            Box::pin(async move {
-                h.with(|c| {
-                    let mut status = tracker.status(generation);
-                    status.initialized = initialized(c)?;
-                    if let Some(last) = c.last_sync()? {
-                        status.last_attempt_at_ms = Some(last.at);
-                        status.last_success_at_ms = last.succeeded_at();
-                        status.retry_required = last.error.is_some();
-                        status.retry_at_ms = last.error.as_ref().and_then(|_| last.automatic_at());
-                        status.error = last.error.or(last.upload_error);
+        self.held(move |h| Box::pin(async move { status_of(h, &tracker, generation).await }))
+            .await
+    }
+
+    /// A hint or the network says there is something to do.
+    pub fn request_content_sync(&self) {
+        self.sync_signal.requested.store(true, Ordering::Relaxed);
+        self.sync_signal.wake.notify_one();
+    }
+
+    /// Run automatic passes when they are due and report the status while the
+    /// app is open and unlocked, until the operation ends, the session changes
+    /// or the app leaves the foreground. A failed pass is recorded and retried
+    /// on its own time; without `automatic` this only reports the status.
+    pub async fn run_content_sync(
+        &self,
+        automatic: bool,
+        observer: Box<dyn ContentSyncObserver>,
+        operation: Arc<OperationToken>,
+    ) -> Result<()> {
+        let turn = self.read_turns.lane("sync");
+        let tracker = self.sync_tracker.clone();
+        let generation = self.host.generation();
+        let signal = self.sync_signal.clone();
+        operation
+            .run(self.held(move |h| {
+                Box::pin(async move {
+                    let mut schedule = Schedule::new(dmsg_client::now_ms());
+                    // Coming back to the foreground or unlocking is a reason by itself.
+                    signal.requested.store(true, Ordering::Relaxed);
+                    // A retry's time passing is news even with an equal status.
+                    let mut shown = None;
+                    let mut publish = async |observer: &dyn ContentSyncObserver| {
+                        let status = status_of(h, &tracker, generation).await?;
+                        let now = dmsg_client::now_ms();
+                        let view = (
+                            status.clone(),
+                            status.retry_at_ms.is_some_and(|at| at <= now),
+                        );
+                        if shown.as_ref() != Some(&view) {
+                            observer.status(status.clone());
+                            shown = Some(view);
+                        }
+                        dmsg_types::Result::Ok(status)
+                    };
+                    loop {
+                        let status = publish(observer.as_ref()).await?;
+                        let now = dmsg_client::now_ms();
+                        let requested = signal.requested.swap(false, Ordering::Relaxed);
+                        let due = h
+                            .with(|c| {
+                                let last = c.last_sync()?;
+                                let session = c.session_state();
+                                Ok(schedule.due(&Moment {
+                                    now,
+                                    account: session.account.as_deref(),
+                                    local_change: c.local_change()?,
+                                    last: last.as_ref(),
+                                    interval: APP_SYNC_MS,
+                                    hinted: signal.hinted.load(Ordering::Relaxed),
+                                    requested,
+                                    running: status.running,
+                                }))
+                            })
+                            .await?;
+                        if !automatic || due == Due::No {
+                            tokio::select! {
+                                _ = tokio::time::sleep(LOOK) => {},
+                                _ = signal.wake.notified() => {},
+                            }
+                            continue;
+                        }
+                        schedule.started(now);
+                        let before = h.with(|c| position(c)).await?;
+                        let pass = async {
+                            let _turn = turn.lock().await;
+                            content_pass(
+                                h,
+                                &tracker,
+                                generation,
+                                dmsg_client::now_ms(),
+                                Trigger::Automatic,
+                            )
+                            .await
+                        };
+                        tokio::pin!(pass);
+                        let result = loop {
+                            tokio::select! {
+                                result = &mut pass => break result,
+                                _ = tokio::time::sleep(PROGRESS) => {
+                                    publish(observer.as_ref()).await?;
+                                },
+                            }
+                        };
+                        let moved = h.with(|c| position(c)).await? != before;
+                        schedule.finished(result.as_ref().ok().and_then(|report| {
+                            let sent = report["sent"].as_u64().unwrap_or(0);
+                            Some((sent as usize, report["through"].as_u64()?))
+                        }));
+                        let count =
+                            |report: &Value, field: &str| report[field].as_u64().unwrap_or(0);
+                        let changed = !moved
+                            && result.as_ref().is_ok_and(|report| {
+                                count(report, "changes")
+                                    + count(report, "sent")
+                                    + count(report, "blocked")
+                                    > 0
+                            });
+                        publish(observer.as_ref()).await?;
+                        observer.passed(changed, result.err().map(|e| dmsg_client::error_code(&e)));
                     }
-                    Ok(status)
                 })
-                .await
-            })
-        })
-        .await
+            }))
+            .await
     }
 }

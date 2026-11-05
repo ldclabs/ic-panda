@@ -1,21 +1,20 @@
 //! The relay's hint channel (connect-v1 §7.5): a WebSocket authenticated by
 //! a bearer token that receives only content-free hints, so a locked daemon
 //! still learns that a web request, an MCP event, a channel message or a
-//! letter waits. The token is registered while the
-//! device key is available and renewed a week before it expires.
+//! letter waits, and an unlocked one that the account's content moved. The
+//! token is registered while the device key is available and renewed a week
+//! before it expires.
 
 use crate::daemon::Daemon;
-use dmsg_client::{diagnostic::Diagnostic, now_ms};
-use futures_util::{SinkExt, StreamExt};
-use serde_json::{Value, json};
+use dmsg_client::hint_channel::{self, Connection, Hint};
+use dmsg_client::{diagnostic::Diagnostic, now_ms, sync::RetryCause};
+use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest};
 
-/// The client heartbeat; the relay answers each `ping` with `pong`.
-const PING: Duration = Duration::from_secs(25);
-/// Silence after which the connection counts as lost.
-const SILENCE: Duration = Duration::from_secs(60);
+/// A `content` hint is followed by one more read after this long: the relay
+/// hints at most every five seconds.
+const CONTENT_AGAIN: Duration = Duration::from_secs(6);
 
 /// Keep the hint channel connected for as long as the daemon runs.
 pub async fn run(daemon: Arc<Daemon>) {
@@ -33,18 +32,10 @@ pub async fn run(daemon: Arc<Daemon>) {
                     continue;
                 }
                 if let Ok(Some(token)) = client.notification_hint_token(&context) {
-                    let origin = daemon
-                        .settings()
-                        .config
-                        .relay_origin()
-                        .replacen("https://", "wss://", 1)
-                        .replacen("http://", "ws://", 1);
+                    let origin = daemon.settings().config.relay_origin();
                     endpoints.insert(
                         context.account.clone(),
-                        (
-                            format!("{origin}/v1/hints/ws?account={}", context.account),
-                            token.token,
-                        ),
+                        (hint_channel::url(&origin, &context.account), token.token),
                     );
                 }
             }
@@ -91,7 +82,10 @@ pub async fn run(daemon: Arc<Daemon>) {
                     } else {
                         (backoff * 2).min(60)
                     };
-                    tokio::time::sleep(Duration::from_secs(backoff)).await;
+                    tokio::select! {
+                        _ = tokio::time::sleep(Duration::from_secs(backoff)) => {},
+                        _ = d.hints_redial().notified() => {},
+                    }
                 }
             });
             tasks.insert(account, (saved, task));
@@ -133,11 +127,8 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, D
         None => return Ok(None),
     };
     let relay = daemon.settings().config.relay_origin();
-    let ws = relay
-        .replacen("https://", "wss://", 1)
-        .replacen("http://", "ws://", 1);
     Ok(Some((
-        format!("{ws}/v1/hints/ws?account={account}"),
+        hint_channel::url(&relay, &account),
         token.token,
         account,
     )))
@@ -150,16 +141,7 @@ async fn connect_account(
     token: &str,
     account: &str,
 ) -> Result<(), Diagnostic> {
-    let mut request = url.into_client_request().map_err(socket_failure)?;
-    request.headers_mut().insert(
-        "authorization",
-        format!("Bearer {token}")
-            .parse()
-            .map_err(|_| Diagnostic::new("hints", "invalid_endpoint"))?,
-    );
-    let (socket, _) = tokio_tungstenite::connect_async(request)
-        .await
-        .map_err(socket_failure)?;
+    let mut connection = Connection::open(url, token).await?;
     if daemon
         .client()
         .lock()
@@ -177,15 +159,16 @@ async fn connect_account(
     daemon.note("hints", "connected");
     // Hints sent while it was down are lost: catch up authoritative state.
     daemon.notifications.receive.notify_one();
-    if daemon
-        .client()
-        .lock()
-        .await
-        .session_state()
-        .account
-        .as_deref()
-        == Some(account)
-    {
+    let current = {
+        let client = daemon.client().lock().await;
+        let current = client.session_state().account.as_deref() == Some(account);
+        if current {
+            // Reaching the relay again ends a wait for the network.
+            let _ = dmsg_client::sync::retry_early(&client, RetryCause::Network);
+        }
+        current
+    };
+    if current {
         daemon.hint_channel("*");
         daemon.emit("channel/hint", json!({"id":"*"}));
         daemon.request_content_sync();
@@ -193,44 +176,16 @@ async fn connect_account(
         daemon.mail_push().receive.notify_one();
         daemon.mcp().wake();
     }
-    let (mut sink, mut stream) = socket.split();
-    let mut ping = tokio::time::interval(PING);
-    let mut heard = tokio::time::Instant::now();
     loop {
         tokio::select! {
-            _ = ping.tick() => {
-                if heard.elapsed() > SILENCE {
-                    return Err(Diagnostic::new("hints", "heartbeat_timeout"));
-                }
-                sink.send(Message::Text("ping".into())).await.map_err(socket_failure)?;
-            }
-            message = stream.next() => {
-                let Some(message) = message else { return Ok(()) };
-                let message = message.map_err(socket_failure)?;
-                heard = tokio::time::Instant::now();
-                let Message::Text(text) = message else { continue };
-                let Ok(hint) = serde_json::from_str::<Value>(&text) else { continue };
-                if hint["type"] == "hint" {
-                    daemon.set_hints(|h| h.received += 1);
-                    handle(daemon, account, &hint).await;
-                }
+            // A socket from before a wake or network change is likely dead.
+            _ = daemon.hints_redial().notified() => return Ok(()),
+            hint = connection.next() => {
+                let Some(hint) = hint? else { return Ok(()) };
+                daemon.set_hints(|h| h.received += 1);
+                handle(daemon, account, &hint).await;
             }
         }
-    }
-}
-
-/// WebSocket errors may contain a handshake body, URL or close-frame text.
-fn socket_failure(error: tokio_tungstenite::tungstenite::Error) -> Diagnostic {
-    use tokio_tungstenite::tungstenite::Error;
-    match error {
-        Error::Io(error) => Diagnostic::io("hints", &error),
-        Error::Tls(_) => Diagnostic::new("hints", "tls"),
-        Error::Http(response) => Diagnostic::http("hints", response.status().as_u16()),
-        Error::ConnectionClosed | Error::AlreadyClosed => {
-            Diagnostic::new("hints", "connection_closed")
-        }
-        Error::Url(_) => Diagnostic::new("hints", "invalid_endpoint"),
-        _ => Diagnostic::new("hints", "protocol"),
     }
 }
 
@@ -240,10 +195,12 @@ fn socket_failure(error: tokio_tungstenite::tungstenite::Error) -> Diagnostic {
 /// unlocked, the channel loop reads the channel the hint names; locked,
 /// the desktop notifies that messages arrived, never for a control.
 /// `inbox`: locked, the desktop notifies; unlocked, the inbox view reloads.
-async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Value) {
-    let kind = hint["kind"].as_str().unwrap_or_default();
+/// `content`: unlocked, a device behind its cursor syncs now, and every device
+/// reads once more after [`CONTENT_AGAIN`] for what the relay did not hint.
+pub(crate) async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Hint) {
+    let kind = hint.kind.as_str();
     let session = daemon.client().lock().await.session_state();
-    if hint["account"].as_str() != Some(expected_account) {
+    if hint.account != expected_account {
         return;
     }
     if session.account.as_deref() != Some(expected_account) {
@@ -276,14 +233,15 @@ async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Value) {
             daemon.notifications.receive.notify_one();
         }
         "channel" if unlocked => {
-            daemon.hint_channel(hint["resource"].as_str().unwrap_or("*"));
-            daemon.emit(
-                "channel/hint",
-                json!({"id":hint["resource"].as_str().unwrap_or("*")}),
-            );
+            let channel = hint.resource.as_deref().unwrap_or("*");
+            daemon.hint_channel(channel);
+            daemon.emit("channel/hint", json!({"id": channel}));
             daemon.notifications.receive.notify_one();
         }
-        "channel" if hint["event"] == "control" => {}
+        // Another device of this account read further: the read of the head takes it.
+        "read" if unlocked => daemon.hint_channel(hint.resource.as_deref().unwrap_or("*")),
+        "read" => {}
+        "channel" if hint.event.as_deref() == Some("control") => {}
         "channel" | "inbox" => {
             daemon.notifications.receive.notify_one();
             let supported = daemon
@@ -296,10 +254,28 @@ async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &Value) {
                 .any(|c| c.account == expected_account && c.expires_at > now_ms());
             if !supported && let Some(account) = session.account.as_deref() {
                 daemon
-                    .notification_hint(account, kind, hint["resource"].as_str())
+                    .notification_hint(account, kind, hint.resource.as_deref())
                     .await;
             }
             daemon.emit("hint", json!({"kind": kind}));
+        }
+        "content" if unlocked => {
+            let news = {
+                let client = daemon.client().lock().await;
+                let news = dmsg_client::sync::hint_is_news(&client, hint.cursor);
+                if news {
+                    let _ = dmsg_client::sync::retry_early(&client, RetryCause::Network);
+                }
+                news
+            };
+            if news {
+                daemon.request_content_sync();
+            }
+            let later = daemon.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(CONTENT_AGAIN).await;
+                later.request_content_sync();
+            });
         }
         _ => {}
     }

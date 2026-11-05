@@ -14,7 +14,7 @@ final class ConversationTests: XCTestCase {
     func testVerifiedMessagesAppearBeforeSlowRefreshCompletes() {
         let app = open(["--ui-channel-slow", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
         XCTAssertTrue(app.staticTexts["Hello channel · 频道消息已显示"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["conversation.loading"].exists || app.activityIndicators.firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any)["conversation.loading"].exists)
         XCTAssertTrue(app.textFields["message.draft"].exists || app.textViews["message.draft"].exists)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Channel content during slow sync"; shot.lifetime = .keepAlways; add(shot)

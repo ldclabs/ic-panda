@@ -55,16 +55,17 @@ struct MessagesView: View {
                         else { Button("Write a letter", systemImage: "square.and.pencil") { writing = LetterDraft() }.accessibilityIdentifier("letters.compose") }
                     }
                 }
-                .task { await model.refresh() }
+                .task { await model.refresh(); await model.checkChannels() }
                 .task(id: "\(mode):\(model.contentRevision):\(model.epoch)") { if mode == 1 { await loadLetters(refresh: false) } }
                 .task(id: "inbox:\(mode):\(model.epoch):\(model.concealed)") {
                     guard mode == 1, !model.concealed else { return }
                     await loadLetters(refresh: false)
                     while !Task.isCancelled {
                         await loadLetters(refresh: true)
-                        do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                        do { try await Task.sleep(for: .seconds(model.hintsConnected ? 120 : 30)) } catch { break }
                     }
                 }
+                .onChange(of: model.inboxHints) { _, _ in if mode == 1 { Task { await loadLetters(refresh: true) } } }
                 .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
         } detail: { id in
             if mode == 1, let id, id.hasPrefix("received:"), let letter = inbox.letters.first(where: { "received:" + $0.id == id }) {
@@ -100,6 +101,7 @@ struct MessagesView: View {
                         }.font(.caption2).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     if channel.unread > 0 { Text(channel.unread.formatted()).font(.caption.bold()).padding(6).background(Theme.forest.opacity(0.1), in: Circle()).accessibilityLabel("Unread messages").accessibilityValue(channel.unread.formatted()) }
+                    else if channel.news { Circle().fill(channel.muted ? Color.secondary : Theme.forest).frame(width: 8, height: 8).accessibilityElement().accessibilityLabel("Unread messages") }
                 }
             }.compactObjectRow().accessibilityIdentifier("channel.row.\(channel.id)")
         }

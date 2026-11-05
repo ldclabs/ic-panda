@@ -248,8 +248,8 @@
 	<string>Appareil autorisé</string>
 	<key>Authorized devices</key>
 	<string>Appareils autorisés</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>AutoFill reçoit uniquement les identifiants choisis. L’instantané expire après 24 heures et exige une authentification système indépendante. Les noms d’utilisateur et de sites peuvent apparaître dans les suggestions.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Le remplissage automatique ne reçoit que les identifiants que vous sélectionnez et exige une authentification système indépendante de l'espace de travail. Tant que dMsg est ouvert et déverrouillé, l'instantané suit les modifications de ces éléments ; sans mise à jour, il expire au bout de 24 heures. Les noms d'utilisateur et de sites web peuvent apparaître dans les suggestions du système.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Instantané AutoFill mis à jour</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Vérifier l’opération initiale</string>
 	<key>Reconcile original proposal</key>
 	<string>Vérifier la proposition initiale</string>
-	<key>Reconcile original send</key>
-	<string>Vérifier l’envoi initial</string>
 	<key>Reconcile original snapshot</key>
 	<string>Vérifier l’instantané d’origine</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Cette liste contient les tâches d’instantané créées sur cet appareil. Les demandes d’approbation locales à un ordinateur ne sont pas synchronisées ici.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ces sauvegardes vérifiées proviennent des appareils de votre compte. Restaurez-les explicitement pour conserver une copie sur cet appareil.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Ces exports ne contiennent jamais de clés racines ou de signature de l’appareil. Modifier la source nécessite un nouvel instantané.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Ces exports ne contiennent jamais les clés racines du compte ni les clés de signature de l'appareil. Les copies dans l'app Fichiers ne suivent pas les modifications des fichiers source ; elles nécessitent un nouvel instantané.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Ces adresses natives auront toujours besoin de l’ancien appareil pour L1. Les membres pourront les balayer par L2 lorsque chaque sortie sera assez ancienne.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

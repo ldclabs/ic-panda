@@ -16,19 +16,20 @@ struct WorkspaceStatus {
         if let count = model.session?.conflicts, count > 0 {
             return WorkspaceStatus(key: "conflicts:\(count)", title: "Review sync conflicts", symbol: "arrow.triangle.branch", urgent: true, count: count)
         }
-        if let error = model.contentSync?.error {
+        if ContentSyncPolicy.needsAttention(model.contentSync), let error = model.contentSync?.error {
             return WorkspaceStatus(key: "sync-error:" + error, title: "Sync paused", symbol: "exclamationmark.icloud", urgent: true, count: model.session?.pendingSync ?? 0, presentsFeedback: false)
         }
         if model.unlocked && model.contentSync?.initialized != true {
             return WorkspaceStatus(key: "initial-sync", title: model.contentSync?.running == true ? "First sync" : "Waiting for first sync", symbol: "arrow.triangle.2.circlepath")
         }
-        if let count = model.session?.pendingSync, count > 0 {
+        // With automatic sync on, waiting versions leave by themselves; a failure
+        // that lasts is reported above, with their count.
+        if !model.automaticSyncEnabled, let count = model.session?.pendingSync, count > 0 {
             return WorkspaceStatus(key: "pending:\(count)", title: model.contentSync?.running == true ? "Syncing…" : "Waiting to sync", symbol: "arrow.triangle.2.circlepath", count: count)
         }
         if model.recoveryWarning == nil || model.recoveryWarning?.isStale(at: date) == true || model.recoveryRefreshFailed {
             return WorkspaceStatus(key: "recovery-check", title: "Recovery status needs checking", symbol: "shield.lefthalf.filled")
         }
-        if model.contentSync?.running == true { return WorkspaceStatus(key: "syncing", title: "Syncing…", symbol: "arrow.triangle.2.circlepath") }
         return nil
     }
 }

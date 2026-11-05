@@ -303,3 +303,72 @@ async fn queued_automatic_sync_rechecks_the_previous_pass_cooldown() {
     assert!(owner.await.unwrap().is_err());
     assert_eq!(fixture.state.exports.load(Ordering::SeqCst), 1);
 }
+
+#[tokio::test]
+async fn a_pass_that_moved_nothing_ends_without_asking_views_to_reload() {
+    let fixture = Fixture::new().await;
+    fixture
+        .daemon
+        .call_daemon("sync/run", &Value::Null)
+        .await
+        .unwrap();
+    let mut events = fixture.daemon.subscribe_events();
+    fixture
+        .daemon
+        .call_daemon("sync/run", &Value::Null)
+        .await
+        .unwrap();
+    let mut kinds = Vec::new();
+    while let Ok(event) = events.try_recv() {
+        kinds.push(event["type"].as_str().unwrap().to_string());
+    }
+    assert!(kinds.contains(&"sync/finished".to_string()), "{kinds:?}");
+    assert!(!kinds.contains(&"sync/changed".to_string()), "{kinds:?}");
+}
+
+#[tokio::test]
+async fn a_returning_network_requests_a_pass_but_keeps_a_relay_cooldown() {
+    let fixture = Fixture::new().await;
+    fixture.state.busy.store(true, Ordering::SeqCst);
+    assert!(
+        fixture
+            .daemon
+            .call_daemon("sync/run", &Value::Null)
+            .await
+            .is_err()
+    );
+    let before = fixture.daemon.client.lock().await.last_sync().unwrap();
+    fixture
+        .daemon
+        .call_daemon("app/network", &Value::Null)
+        .await
+        .unwrap();
+    assert!(fixture.daemon.sync_requested.load(Ordering::Relaxed));
+    let after = fixture.daemon.client.lock().await.last_sync().unwrap();
+    assert_eq!(after, before);
+}
+
+#[tokio::test]
+async fn a_content_hint_requests_a_pass_only_for_news() {
+    let fixture = Fixture::new().await;
+    let account = dmsg_client::testing::account().id.to_string();
+    let hint = |cursor| dmsg_client::hint_channel::Hint {
+        account: account.clone(),
+        kind: "content".into(),
+        resource: None,
+        event: None,
+        cursor: Some(cursor),
+    };
+    // This device is already there, usually because it made the version.
+    crate::hints::handle(&fixture.daemon, &account, &hint(0)).await;
+    assert!(!fixture.daemon.sync_requested.load(Ordering::Relaxed));
+    crate::hints::handle(&fixture.daemon, &account, &hint(1)).await;
+    assert!(fixture.daemon.sync_requested.load(Ordering::Relaxed));
+    // Another account's hint is not this session's.
+    fixture
+        .daemon
+        .sync_requested
+        .store(false, Ordering::Relaxed);
+    crate::hints::handle(&fixture.daemon, "other", &hint(9)).await;
+    assert!(!fixture.daemon.sync_requested.load(Ordering::Relaxed));
+}

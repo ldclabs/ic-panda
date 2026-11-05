@@ -11,6 +11,7 @@ mod diagnostics;
 mod display;
 mod error;
 mod file_library;
+mod hints;
 mod messaging;
 mod models;
 pub use messaging::LetterDraftInput;
@@ -107,6 +108,10 @@ pub struct MobileEngine {
     approval_turn: Arc<tokio::sync::Mutex<()>>,
     read_turns: Arc<display::ReadTurns>,
     sync_tracker: Arc<sync::Tracker>,
+    hints_redial: Arc<tokio::sync::Notify>,
+    sync_signal: Arc<sync::SyncSignal>,
+    /// When the plan's expiry reminders were last refreshed.
+    plan_checked: Arc<std::sync::atomic::AtomicU64>,
     /// The device transfer, shared by every view of the engine.
     transfers: Arc<dmsg_client::transfer::Transfers>,
 }
@@ -217,6 +222,9 @@ impl MobileEngine {
             approval_turn: Arc::new(tokio::sync::Mutex::new(())),
             read_turns: Arc::new(display::ReadTurns::default()),
             sync_tracker: Arc::default(),
+            hints_redial: Arc::default(),
+            sync_signal: Arc::default(),
+            plan_checked: Arc::default(),
             transfers: Arc::default(),
         }))
     }
@@ -282,6 +290,9 @@ impl MobileEngine {
             approval_turn: self.approval_turn.clone(),
             read_turns: self.read_turns.clone(),
             sync_tracker: self.sync_tracker.clone(),
+            hints_redial: self.hints_redial.clone(),
+            sync_signal: self.sync_signal.clone(),
+            plan_checked: self.plan_checked.clone(),
             transfers: self.transfers.clone(),
         }))
     }
@@ -1033,7 +1044,9 @@ impl MobileEngine {
                                     .last
                                     .as_ref()
                                     .map_or(0, |m| m.stored_at)
-                                    .max(pending.iter().map(|i| i.created_at).max().unwrap_or(0)),
+                                    .max(pending.iter().map(|i| i.created_at).max().unwrap_or(0))
+                                    .max(v.active_at),
+                                news: v.news,
                                 muted: v.muted,
                                 status: v
                                     .ledger
@@ -1257,13 +1270,7 @@ impl MobileEngine {
                 Box::pin(async move {
                     Ok(c.message_intents(&channel)?
                         .into_iter()
-                        .map(|i| OutgoingMessage {
-                            id: i.id,
-                            text: i.text,
-                            attachment_name: i.attachment.map(|f| f.name),
-                            attempted: i.attempted,
-                            error: i.error,
-                        })
+                        .map(OutgoingMessage::from)
                         .collect())
                 })
             })
@@ -1301,6 +1308,7 @@ impl MobileEngine {
         operation: Arc<OperationToken>,
     ) -> Result<ObjectSnapshot> {
         let turn = self.read_turns.lane(&format!("channel:{channel}"));
+        let control = self.read_turns.lane(&format!("channel-control:{channel}"));
         let requested = dmsg_client::now_ms();
         operation
             .run(self.held_object(move |h| {
@@ -1321,7 +1329,10 @@ impl MobileEngine {
                             })
                             .await;
                     }
-                    dmsg_client::channel::sync_recent(h, &channel).await
+                    let result = dmsg_client::channel::sync_recent(h, &channel).await;
+                    drop(_turn);
+                    hints::maintain_channel(h, &control, &channel).await;
+                    result
                 })
             }))
             .await

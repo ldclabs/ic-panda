@@ -18,6 +18,7 @@
 //! tagged `dmsg-…` that only the client itself writes: no edit, trash,
 //! merge or copy reaches them, and no other item takes such a tag.
 
+pub mod autofill;
 pub mod health;
 pub mod import;
 pub mod otp;

@@ -114,6 +114,10 @@ final class SessionModel {
     private var closing: Task<Void, Never>?
     private var authenticationGeneration: UInt64 = 0
     private var lifecycleGeneration: UInt64 = 0
+    private var backgroundFinish: (operation: OperationToken, task: UIBackgroundTaskIdentifier)?
+    private var cursorReports: [String: Task<Void, Never>] = [:]
+    private var channelChecked: [String: ContinuousClock.Instant] = [:]
+    private var channelReadAhead: [String: ContinuousClock.Instant] = [:]
     private var isForeground = false
     private var automaticUnlock = AutomaticUnlockPolicy()
     private var busyOperation: UUID?
@@ -125,9 +129,13 @@ final class SessionModel {
     private var syncIntroduced: Set<String> = []
     private var automaticPassRunning = false
     private var automaticOperation: OperationToken?
-    private var nextAutomaticSync: ContinuousClock.Instant?
-    private var lastLocalChange: UInt64?
-    private var lastSyncThrough: UInt64?
+    private var unlockRetryDue = false
+    /// The relay is telling this device what moved, so polling is only a backstop.
+    private(set) var hintsConnected = false
+    /// Counts hints per channel; an open conversation reads when its count moves.
+    private(set) var channelHints: [String: UInt64] = [:]
+    /// Moves on each letter hint; an open inbox reads when it does.
+    private(set) var inboxHints: UInt64 = 0
     private var recoveryOperation: OperationToken?
     private var recoveryRequest: UUID?
     private var seenRecoveryDigests: [String: String] = [:]
@@ -317,6 +325,43 @@ final class SessionModel {
         }
     }
 
+    /// Replace the AutoFill snapshot and the identities the system suggests;
+    /// false when the session moved on meanwhile.
+    func publishCredentials(_ entries: [AutoFillEntry], biometryOnly: Bool, account: String, epoch current: UInt64) async throws -> Bool {
+        let selected = entries.map { CredentialInput(title: $0.title, username: $0.username, password: $0.password, origin: AutoFillEntry.origin($0.url)) }
+        let store = try SystemExports(.credentials)
+        let prepared = try await Task.detached { try store.prepareCredentials(selected, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
+        guard current == epoch else { store.discard(prepared); return false }
+        do { try store.publish(prepared, biometryOnly: biometryOnly) } catch { store.discard(prepared); throw error }
+        let metadata = try store.credentialMetadata(OpenExport(header: prepared.header, key: prepared.key))
+        let identities = metadata.filter { !$0.origin.isEmpty }.map { ASPasswordCredentialIdentity(serviceIdentifier: ASCredentialServiceIdentifier(identifier: $0.origin, type: .URL), user: $0.username, recordIdentifier: prepared.header.id + ":" + $0.id) }
+        try await ASCredentialIdentityStore.shared.replaceCredentialIdentities(identities)
+        return current == epoch
+    }
+
+    /// An existing AutoFill snapshot follows the items the person chose,
+    /// without asking again, and renews before it expires. A failure leaves
+    /// the snapshot as it is until the next try.
+    func refreshAutoFill() async {
+        struct Refresh: Decodable { let changed: Bool; let entries: [AutoFillEntry]; let biometryOnly: Bool }
+        struct Security: Decodable { let boundBiometryOnly: Bool? }
+        guard let engine, let account = session?.account, unlocked, !concealed,
+              let store = try? SystemExports(.credentials), let header = try? store.header(checkExpiry: false),
+              header.accountHash == IncomingShares.accountHash(account) else { return }
+        let current = epoch, renewing = UInt64(Date.now.timeIntervalSince1970 * 1000) + 12 * 3_600_000
+        do {
+            let refresh: Refresh? = try decode(try await engine.refreshAutofill(force: header.expires < renewing))
+            guard current == epoch, let refresh, refresh.changed else { return }
+            if refresh.entries.isEmpty {
+                try store.invalidate()
+                try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
+                return
+            }
+            let security: Security = try decode(try await engine.hardwareSecurity())
+            _ = try await publishCredentials(refresh.entries, biometryOnly: refresh.biometryOnly || security.boundBiometryOnly == true, account: account, epoch: current)
+        } catch { }
+    }
+
     func removeLocalAccount() async {
         guard let account = session?.account, let engine, let files else { return }
         await cancelBackgroundForAccount(account)
@@ -352,6 +397,17 @@ final class SessionModel {
 
     func clearQueuedDraft(channel: String, sent: String) {
         if drafts[channel] == sent { drafts[channel] = "" }
+    }
+
+    /// The read position follows to this account's other devices, once reading pauses.
+    func channelRead(_ channel: String, through: UInt64) async {
+        guard let engine else { return }
+        try? await engine.markRead(channel: channel, through: through)
+        cursorReports[channel]?.cancel()
+        cursorReports[channel] = Task {
+            do { try await Task.sleep(for: .seconds(3)) } catch { return }
+            _ = try? await coreOperation { try await engine.reportChannelCursor(channel: channel, operation: $0) }
+        }
     }
 
     func deliverMessage(channel: String, item: OutgoingMessage) {
@@ -429,11 +485,11 @@ final class SessionModel {
             (session?.deviceId != nil && session?.deviceId != state.deviceId) {
             fileTransfers.stop()
             stopAutomaticSync(.sessionChanged); contentSync = nil
-            nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
             epoch &+= 1; viewGeneration &+= 1
             vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; drafts = [:]; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
             clearCloudBackups()
         }
+        if session?.state != "unlocked" && state.state == "unlocked" { unlockRetryDue = true }
         if let old = session?.account, old != state.account { invalidateSystemExports() }
         if let account = state.account, [ExportPurpose.credentials, .files].contains(where: { purpose in
             guard let header = try? SystemExports(purpose).header(checkExpiry: false) else { return false }
@@ -452,7 +508,7 @@ final class SessionModel {
     /// which this device keeps for that account.
     func setAutomaticSync(_ enabled: Bool) {
         guard let account = session?.account else { return }
-        if enabled { manualSyncAccounts.remove(account); nextAutomaticSync = nil } else { manualSyncAccounts.insert(account); stopAutomaticSync(.disabled) }
+        if enabled { manualSyncAccounts.remove(account) } else { manualSyncAccounts.insert(account); stopAutomaticSync(.disabled) }
         if let files {
             do { try writePreferences(at: files.root) }
             catch { report(error) }
@@ -475,18 +531,24 @@ final class SessionModel {
                              accountIdentities: accountIdentities, deviceLabels: deviceLabels).write(at: root)
     }
 
-    func automaticSyncPass() async {
-        guard automaticSyncEnabled, unlocked, !concealed, !busy, !automaticPassRunning,
-              let account = session?.account else { return }
-        guard let engine else { return }
-        await updateSyncStatus()
-        let change = try? await engine.localChange()
-        let edited = change != nil && change != lastLocalChange && change != 0
-        guard ContentSyncPolicy.isDue(status: contentSync, edited: edited,
-            idleDue: nextAutomaticSync.map { ContinuousClock.now >= $0 } ?? true,
-            now: UInt64(Date.now.timeIntervalSince1970 * 1000)) else { return }
-        lastLocalChange = change
-        if !syncIntroduced.contains(account) {
+    /// The engine decides when a pass is due and says what moved; this keeps
+    /// the views current. It belongs to the account session, so navigation
+    /// never cancels it.
+    func watchContentSync() async {
+        guard let engine, let account = session?.account else {
+            // Fixtures have no engine; only the status's deadline moves.
+            while !Task.isCancelled {
+                syncClock = .now
+                do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            }
+            return
+        }
+        if unlockRetryDue {
+            unlockRetryDue = false
+            _ = try? await engine.retrySyncEarly(network: false)
+        }
+        let automatic = automaticSyncEnabled
+        if automatic && !syncIntroduced.contains(account) {
             // Said once per account, where it first syncs by itself.
             syncIntroduced.insert(account)
             notice = String(localized: "While dMsg is open and unlocked, your vault syncs automatically. Messages refresh when you open their conversation or inbox. File backups still require a separate confirmation. You can turn this off at any time.")
@@ -495,7 +557,31 @@ final class SessionModel {
                 catch { report(error) }
             }
         }
-        await runAutomaticSync { try await self.syncPass(operation: $0, automatic: true) }
+        let (events, continuation) = AsyncStream.makeStream(of: ContentSyncBridge.Event.self)
+        let bridge = ContentSyncBridge(continuation)
+        let driver = Task { [weak self] in
+            // A foreground that is still resuming refuses the first attempt.
+            while !Task.isCancelled {
+                await self?.runAutomaticSync { try await engine.runContentSync(automatic: automatic, observer: bridge, operation: $0) }
+                try? await Task.sleep(for: .seconds(2))
+            }
+            continuation.finish()
+        }
+        defer { driver.cancel() }
+        let current = epoch
+        for await event in events {
+            guard current == epoch else { return }
+            // Covered views stay as they are; coming back reads the status again.
+            if concealed { continue }
+            switch event {
+            case .status(let status):
+                await adoptSyncStatus(status)
+            case let .passed(changed, error):
+                if let error, error == "DEVICE_NOT_APPROVED" { report(MobileError.Failure(code: error)) }
+                if changed { contentRevision &+= 1; await refresh() }
+                await readSession()
+            }
+        }
     }
 
     /// The pass belongs to the account session, so navigation never cancels it.
@@ -516,8 +602,141 @@ final class SessionModel {
 
     private func stopAutomaticSync(_ reason: ContentSyncEvent) {
         automaticOperation?.cancel()
-        nextAutomaticSync = nil
         ContentSyncLog.record(reason)
+    }
+
+    func watchNetwork() async {
+        var online = true
+        for await satisfied in NetworkPath.updates() {
+            if satisfied && !online { await networkReturned() }
+            online = satisfied
+        }
+    }
+
+    /// Polling is a backstop while hints arrive: five times as long, at least five minutes.
+    func pollSeconds(_ alone: Int) -> Int { hintsConnected ? max(alone * 5, 300) : alone }
+
+    func watchHints() async {
+        guard let engine else { return }
+        let (events, continuation) = AsyncStream.makeStream(of: HintBridge.Event.self)
+        let listening = Task {
+            // A foreground that is still resuming refuses the first attempt.
+            while !Task.isCancelled {
+                _ = try? await coreOperation { try await engine.listenHints(observer: HintBridge(continuation), operation: $0) }
+                try? await Task.sleep(for: .seconds(2))
+            }
+            continuation.finish()
+        }
+        defer { listening.cancel(); hintsConnected = false }
+        for await event in events {
+            switch event {
+            case .connected(let connected):
+                hintsConnected = connected
+                // Hints sent while it was down are lost: catch up.
+                if connected { await hintChannelConnected() }
+            case let .hint(kind, resource, news):
+                receiveHint(kind: kind, resource: resource, news: news)
+            }
+        }
+    }
+
+    /// The latest conversations, for the list: how far each reaches, at most
+    /// once a minute, without their messages.
+    func checkChannels() async {
+        guard let engine, unlocked, !concealed else { return }
+        let current = epoch, now = ContinuousClock.now
+        let due = channels.prefix(20).map(\.id).filter { channelChecked[$0].map { $0.duration(to: now) >= .seconds(60) } ?? true }
+        for id in due {
+            channelChecked[id] = now
+            _ = try? await coreOperation { try await engine.readChannelControls(channel: id, operation: $0) }
+            guard current == epoch, !Task.isCancelled else { return }
+        }
+        await loadChannels()
+        await readChannelsAhead()
+    }
+
+    /// While on screen, a conversation with news that is not muted has its
+    /// latest page read ahead, at most every 30 seconds.
+    private func readChannelsAhead() async {
+        guard let engine, unlocked, !concealed, isForeground else { return }
+        let current = epoch, now = ContinuousClock.now
+        let due = channels.filter { channel in
+            channel.news && !channel.muted && channel.id != activeChannel
+                && (channelReadAhead[channel.id].map { $0.duration(to: now) >= .seconds(30) } ?? true)
+        }
+        guard !due.isEmpty else { return }
+        for channel in due.prefix(8) {
+            channelReadAhead[channel.id] = now
+            _ = try? await coreOperation { try await engine.readChannelTail(channel: channel.id, operation: $0) }
+            guard current == epoch, !Task.isCancelled else { return }
+        }
+        await loadChannels()
+    }
+
+    private func hintChannelConnected() async {
+        await networkReturned()
+        await checkChannels()
+        if let activeChannel { channelHints[activeChannel, default: 0] &+= 1 }
+        inboxHints &+= 1
+        await notifications.refresh(self, receive: true)
+    }
+
+    private func receiveHint(kind: String, resource: String?, news: Bool) {
+        let current = epoch
+        // The relay hints at most every five seconds: read once more after that.
+        func again(_ work: @escaping @MainActor () -> Void) {
+            Task {
+                try? await Task.sleep(for: .seconds(6))
+                if current == epoch { work() }
+            }
+        }
+        switch kind {
+        case "content":
+            if news { engine?.requestContentSync() }
+            again { self.engine?.requestContentSync() }
+        case "channel":
+            guard let resource, let engine else { return }
+            Task {
+                _ = try? await coreOperation { try await engine.readChannelControls(channel: resource, operation: $0) }
+                if current == epoch { await loadChannels(); await readChannelsAhead() }
+            }
+            channelHints[resource, default: 0] &+= 1
+            again { self.channelHints[resource, default: 0] &+= 1 }
+        case "read":
+            // Another device of this account read further: the channel's head says how far.
+            guard let resource, let engine else { return }
+            Task {
+                _ = try? await coreOperation { try await engine.readChannelControls(channel: resource, operation: $0) }
+                if current == epoch { await loadChannels() }
+            }
+        case "inbox":
+            inboxHints &+= 1
+            Task { await notifications.refresh(self, receive: true) }
+        case "notification":
+            Task { await notifications.refresh(self, receive: true) }
+        case "connect":
+            Task { await maintenancePass() }
+        default: break
+        }
+    }
+
+    /// A waiting retry starts now; the automatic pass picks it up.
+    private func networkReturned() async {
+        guard let engine, unlocked, !concealed else { return }
+        _ = try? await engine.retrySyncEarly(network: true)
+        engine.requestContentSync()
+        await recoverMessages()
+    }
+
+    /// Sends an interruption left open leave again, under their own IDs and in
+    /// their original order per channel.
+    private func recoverMessages() async {
+        guard let engine else { return }
+        let current = epoch
+        guard let waiting = try? await engine.recoverableMessages(), current == epoch else { return }
+        for row in waiting where !messageSending.contains(row.message.id) {
+            deliverMessage(channel: row.channel, item: row.message)
+        }
     }
 
     func updateSyncStatus() async {
@@ -530,12 +749,18 @@ final class SessionModel {
         do {
             let status = try await engine.contentSyncStatus()
             guard current == epoch, !Task.isCancelled else { return }
-            let changed = contentSync?.lastAttemptAtMs != status.lastAttemptAtMs || contentSync?.initialized != status.initialized
-            contentSync = status
-            // Inbox recovery also applies account content; publish it without
-            // waiting for a separate automatic pass to finish.
-            if changed { contentRevision &+= 1; await refresh() }
+            await adoptSyncStatus(status)
         } catch { /* Lifecycle changes invalidate the handle; the next visit reloads it. */ }
+    }
+
+    private func adoptSyncStatus(_ status: ContentSyncStatus) async {
+        syncClock = .now
+        let changed = contentSync?.through != status.through || contentSync?.initialized != status.initialized
+        contentSync = status
+        // Inbox recovery also applies account content; publish it without
+        // waiting for a separate automatic pass to finish. A pass that
+        // verified nothing new leaves the views alone.
+        if changed { contentRevision &+= 1; await refresh() }
     }
 
     /// Vault completion is published before any independent service work.
@@ -545,18 +770,16 @@ final class SessionModel {
         do {
             let value = try await engine.sync(automatic: automatic, operation: operation)
             guard current == epoch, !Task.isCancelled else { throw CancellationError() }
-            struct Report: Decodable { let through: UInt64?; let sent: UInt64?; let paused: Bool?; let coalesced: Bool? }
+            struct Report: Decodable { let sent: UInt64?; let blocked: UInt64?; let changes: UInt64? }
             let report: Report = try decode(value)
-            if report.paused != true && report.coalesced != true {
-                let changed = report.through != nil && report.through != lastSyncThrough || (report.sent ?? 0) > 0
-                nextAutomaticSync = .now.advanced(by: .seconds(changed ? 30 : 60))
-            }
-            lastSyncThrough = report.through ?? lastSyncThrough
-            contentRevision &+= 1
+            let revision = contentRevision
             await updateSyncStatus()
-            await updateSession()
+            if contentRevision == revision, (report.changes ?? 0) + (report.sent ?? 0) + (report.blocked ?? 0) > 0 {
+                contentRevision &+= 1; await refresh()
+            }
+            await readSession()
         } catch {
-            if current == epoch { contentRevision &+= 1; await updateSyncStatus(); await updateSession() }
+            if current == epoch { await updateSyncStatus(); await readSession() }
             throw error
         }
     }
@@ -581,6 +804,15 @@ final class SessionModel {
         } catch { if current == epoch { report(error) } }
     }
 
+    /// The counts and state a pass moved, without reloading any view.
+    private func readSession() async {
+        let current = epoch
+        do {
+            let state = try await engine?.sessionState()
+            guard current == epoch else { return }; try adopt(state)
+        } catch { report(error) }
+    }
+
     func updateSession() async {
         let current = epoch
         do {
@@ -594,15 +826,16 @@ final class SessionModel {
         if unlocked && !concealed && lastActivity.duration(to: .now) >= .seconds(15 * 60) { await lock() }
     }
 
-    func inactive() { stopAutomaticSync(.inactive); lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
+    func inactive() { lifecycleGeneration &+= 1; isForeground = false; concealed = true; if unlocked { privacyShield.show() } }
 
     func background() {
         let letterDrafts = letters.pendingInputs
         let messageDrafts = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
         let account = session?.account
+        let finishing = unlocked && !immediateBackgroundLock
+        let interrupted = contentSync?.running == true
         stopAutomaticSync(.background)
         automaticUnlock.rearm()
-        nextAutomaticSync = nil
         lifecycleGeneration &+= 1
         isForeground = false
         concealed = true
@@ -611,8 +844,12 @@ final class SessionModel {
         fileTransfers.stop()
         transfer.cancel()
         deviceTransfer.background()
-        engine?.suspend()
         backgroundAt = .now
+        if finishing, let engine {
+            finishInBackground(engine, interrupted: interrupted)
+        } else {
+            engine?.suspend()
+        }
         if immediateBackgroundLock {
             let engine = engine
             clearContent(clearClipboard: false)
@@ -625,8 +862,44 @@ final class SessionModel {
         }
     }
 
+    /// What the person just did leaves before the app stops: sends an
+    /// interruption left open, then local edits. The screen is already covered.
+    private func finishInBackground(_ engine: MobileEngine, interrupted: Bool) {
+        endBackgroundFinish()
+        let operation = OperationToken(), syncing = automaticSyncEnabled
+        let task = UIApplication.shared.beginBackgroundTask(withName: "dMsg finish") { [weak self] in
+            self?.endBackgroundFinish(); engine.suspend()
+        }
+        guard task != .invalid else { engine.suspend(); return }
+        backgroundFinish = (operation, task)
+        Task { [weak self] in
+            for row in (try? await engine.recoverableMessages()) ?? [] {
+                _ = try? await engine.sendMessage(channel: row.channel, messageId: row.message.id, operation: operation)
+            }
+            let pending = (try? await engine.sessionState())?.pendingSync ?? 0
+            if syncing, interrupted || pending > 0 {
+                _ = try? await engine.sync(automatic: true, operation: operation)
+            }
+            guard let self, self.backgroundFinish?.task == task else { return }
+            self.endBackgroundFinish(); engine.suspend()
+        }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(20))
+            guard let self, self.backgroundFinish?.task == task else { return }
+            self.endBackgroundFinish(); engine.suspend()
+        }
+    }
+
+    private func endBackgroundFinish() {
+        guard let finish = backgroundFinish else { return }
+        backgroundFinish = nil
+        finish.operation.cancel()
+        UIApplication.shared.endBackgroundTask(finish.task)
+    }
+
     func foreground() async {
         guard UIApplication.shared.applicationState == .active else { return }
+        endBackgroundFinish()
         isForeground = true
         lifecycleGeneration &+= 1
         let activation = lifecycleGeneration
@@ -658,6 +931,8 @@ final class SessionModel {
         guard activation == lifecycleGeneration, UIApplication.shared.applicationState == .active, !Task.isCancelled else { return }
         uncoverIfActive()
         if unlocked {
+            await updateSyncStatus()
+            await networkReturned()
             await letters.flush(self)
             let pending = dirtyDrafts.compactMap { channel in drafts[channel].map { MessageDraft(channel: channel, text: $0) } }
             let current = epoch
@@ -674,6 +949,7 @@ final class SessionModel {
     }
 
     func protectedDataUnavailable() {
+        endBackgroundFinish()
         stopAutomaticSync(.locked); contentSync = nil
         automaticUnlock.rearm()
         (try? SystemExports(.files))?.lockFiles()
@@ -721,7 +997,6 @@ final class SessionModel {
         transfer.cancel()
         recoveryOperation?.cancel()
         epoch &+= 1
-        nextAutomaticSync = nil; lastLocalChange = nil; lastSyncThrough = nil
         viewGeneration &+= 1; drafts = [:]; dirtyDrafts = []
         vault = []; blockedAccounts = []; vaultCounts = VaultCounts(); vaultLoaded = false; vaultFailed = false; vaultFilter = "all"; vaultTag = ""; vaultRequest = nil; loadingVault = false; activeChannel = nil; channels = []; library = .empty; filesFolder = "root"; filesSearch = ""; approvals = []; search = ""
         clearCloudBackups()

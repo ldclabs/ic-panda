@@ -248,8 +248,8 @@
 	<string>Yetkili cihaz</string>
 	<key>Authorized devices</key>
 	<string>Yetkili cihazlar</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Otomatik Doldurma yalnızca seçtiğiniz oturum açma öğelerini alır. Anlık görüntünün süresi 24 saat sonra dolar ve çalışma alanından bağımsız olarak sistem kimlik doğrulaması gerektirir. Kullanıcı adları ve web sitesi adları sistem önerilerinde görünebilir.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Otomatik Doldurma yalnızca seçtiğiniz giriş öğelerini alır ve çalışma alanından bağımsız sistem kimlik doğrulaması gerektirir. dMsg açık ve kilidi açıkken anlık görüntü bu öğelerdeki değişiklikleri izler; güncellenmezse 24 saat sonra sona erer. Kullanıcı adları ve web sitesi adları sistem önerilerinde görünebilir.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Otomatik Doldurma anlık görüntüsü güncellendi</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Orijinal işlemi uzlaştır</string>
 	<key>Reconcile original proposal</key>
 	<string>Orijinal teklifi uzlaştırın</string>
-	<key>Reconcile original send</key>
-	<string>Orijinal gönderimi uzlaştır</string>
 	<key>Reconcile original snapshot</key>
 	<string>Orijinal anlık görüntüyü uzlaştır</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Bunlar, bu cihazda oluşturulan anlık görüntü işleridir. Masaüstü-yerel onay istekleri burada senkronize edilmez.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Bunlar, hesabınızın cihazlarından alınan doğrulanmış yedeklemelerdir. Bir kopyasını bu cihazda tutmak için açıkça geri yükleyin.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Bu dışa aktarmalar hiçbir zaman hesap kök anahtarlarını veya cihaz imzalama anahtarlarını içermez. Kaynak öğelerde yapılan değişiklikler yeni bir anlık görüntü gerektirir.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Bu dışa aktarmalar hiçbir zaman hesap kök anahtarlarını veya cihaz imzalama anahtarlarını içermez. Dosyalar uygulamasındaki kopyalar kaynak dosyalardaki değişiklikleri izlemez; yeni bir anlık görüntü gerekir.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Bu yerel adreslerin L1’i için eski cihaz gerekmeye devam eder. Her çıktı yeterince eskiyince üyeler bunları L2 üzerinden yine de aktarabilir.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

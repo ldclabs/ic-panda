@@ -3,6 +3,10 @@
 use super::*;
 use dmsg_client::{notifications as notice, now_ms};
 use serde_json::json;
+use std::sync::atomic::Ordering;
+
+/// How often a notification refresh also reads the plan, for its expiry reminders.
+const PLAN_CHECK_MS: u64 = 3_600_000;
 
 #[derive(Clone, Copy, uniffi::Enum)]
 pub enum ReminderScope {
@@ -301,15 +305,20 @@ impl MobileEngine {
     }
 
     pub async fn notification_refresh(&self) -> Result<ObjectSnapshot> {
-        self.held_object(|h| {
-            Box::pin(async {
+        let plan_checked = self.plan_checked.clone();
+        self.held_object(move |h| {
+            Box::pin(async move {
                 let _ = notice::remote::revoke_retired(h).await;
                 let session = h.with(|c| Ok(c.session_state())).await?;
                 if session.unlocked_account().is_some() {
                     let _ = notice::refresh_capabilities(h).await;
                     h.with(|c| c.reconcile_notifications(now_ms())).await?;
                     let _ = dmsg_client::wallet::refresh_notifications(h).await;
-                    let _ = dmsg_client::commerce::plan_status(h, false).await;
+                    let now = now_ms();
+                    if now >= plan_checked.load(Ordering::Relaxed) + PLAN_CHECK_MS {
+                        plan_checked.store(now, Ordering::Relaxed);
+                        let _ = dmsg_client::commerce::plan_status(h, false).await;
+                    }
                 }
                 let contexts = h.with(|c| c.notification_receivers()).await?;
                 let mut changed = false;

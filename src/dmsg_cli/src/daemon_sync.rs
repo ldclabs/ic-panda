@@ -1,5 +1,6 @@
 //! Content scheduling is independent of mailbox, file and mount maintenance.
 use super::*;
+use dmsg_client::sync::{Due, Moment, RetryCause, Schedule};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Trigger {
@@ -20,28 +21,27 @@ impl Trigger {
     }
 }
 
-fn repaired(last: &dmsg_client::sync::LastSync) -> bool {
-    matches!(
-        last.error.as_deref(),
-        Some("AUTH_REQUIRED" | "LOCKED" | "REKEY_REQUIRED" | "DEVICE_NOT_APPROVED")
-    )
+struct Running<'a> {
+    daemon: &'a Daemon,
+    /// Whether the pass moved anything a view shows. A pass that was cut off
+    /// may have, so it counts until the pass reports otherwise.
+    changed: bool,
 }
 
-struct Running<'a>(&'a Daemon);
-
+/// `sync/finished` ends every pass and carries status; `sync/changed` also says
+/// that views have new content to read.
 impl Drop for Running<'_> {
     fn drop(&mut self) {
-        self.0.syncing.store(false, Ordering::Relaxed);
-        self.0.emit("sync/changed", Value::Null);
+        self.daemon.syncing.store(false, Ordering::Relaxed);
+        self.daemon.emit("sync/finished", Value::Null);
+        if self.changed {
+            self.daemon.emit("sync/changed", Value::Null);
+        }
     }
 }
 
 pub(super) async fn run(daemon: Arc<Daemon>) {
-    let mut synced = now_ms();
-    let mut content_seen = None;
-    let mut content_changed = 0;
-    let mut idle_rounds = 0u32;
-    let mut observed_through = None;
+    let mut schedule = Schedule::new(now_ms());
     let mut flushed = 0;
     loop {
         tokio::select! {
@@ -51,48 +51,35 @@ pub(super) async fn run(daemon: Arc<Daemon>) {
         if daemon.stopping() {
             continue;
         }
-        let (now, session, requested, resumed, retry, content, automatic, last_at) = {
+        let (now, session, resumed, due, automatic) = {
             let client = daemon.client.lock().await;
+            let resumed = daemon.sync_resumed.swap(false, Ordering::Relaxed);
+            if resumed {
+                let _ = dmsg_client::sync::retry_early(&client, RetryCause::Unlock);
+            }
             let now = now_ms();
             let session = client.session_state();
             let last = client.last_sync().ok().flatten();
-            let resumed = daemon.sync_resumed.swap(false, Ordering::Relaxed);
-            let automatic = resumed && last.as_ref().is_some_and(repaired)
-                || last
-                    .as_ref()
-                    .is_none_or(|s| s.automatic_at().is_some_and(|at| now >= at));
-            (
+            let due = schedule.due(&Moment {
                 now,
-                session.clone(),
-                daemon.sync_requested.swap(false, Ordering::Relaxed),
-                resumed,
-                sync_retry_due(&client, now),
-                (session.account, client.local_change().unwrap_or(0)),
-                automatic,
-                last.as_ref().map_or(0, |s| s.at),
-            )
+                account: session.account.as_deref(),
+                local_change: client.local_change().unwrap_or(0),
+                last: last.as_ref(),
+                interval: daemon.settings.sync_interval_ms,
+                hinted: daemon.hints_connected(),
+                requested: daemon.sync_requested.swap(false, Ordering::Relaxed),
+                running: daemon.syncing.load(Ordering::Relaxed),
+            });
+            let automatic = last.as_ref().is_none_or(|s| now >= s.automatic_at());
+            (now, session, resumed, due, automatic)
         };
-        let interval = daemon.settings.sync_interval_ms;
-        if content_seen.as_ref() != Some(&content) {
-            content_changed = now;
-            content_seen = Some(content);
-            idle_rounds = 0;
-        }
-        let edited = interval > 0
-            && content_seen.as_ref().is_some_and(|c| c.1 > 0)
-            && content_changed > synced
-            && now >= content_changed + 500;
-        let periodic = interval.saturating_mul(1 + u64::from(idle_rounds.min(4)));
         let unlocked = session.state == "unlocked";
-        let ready = unlocked || session.resident;
-        if ready
-            && automatic
-            && ((requested && unlocked)
-                || (edited && unlocked)
-                || (retry && !daemon.syncing.load(Ordering::Relaxed))
-                || periodic > 0 && now >= synced.max(last_at).saturating_add(periodic))
-        {
-            synced = now;
+        if match due {
+            Due::Now => unlocked,
+            Due::Periodic => unlocked || session.resident,
+            Due::No => false,
+        } {
+            schedule.started(now);
             let result = daemon
                 .sync_pass(
                     if resumed {
@@ -103,19 +90,8 @@ pub(super) async fn run(daemon: Arc<Daemon>) {
                     None,
                 )
                 .await;
-            if let Ok(Some(report)) = &result {
-                idle_rounds = if report.sent == 0
-                    && report.pending == 0
-                    && observed_through == Some(report.through)
-                {
-                    idle_rounds.saturating_add(1)
-                } else {
-                    0
-                };
-                observed_through = Some(report.through);
-            } else {
-                idle_rounds = 0;
-            }
+            let report = result.as_ref().ok().and_then(Option::as_ref);
+            schedule.finished(report.map(|r| (r.sent, r.through)));
             daemon.note_result("sync", &result);
         } else if automatic && now >= flushed + FLUSH_MS {
             flushed = now;
@@ -182,15 +158,18 @@ impl Daemon {
             let now = now_ms();
             if let Some(last) = last
                 && last.error.is_some()
-                && !(trigger == Trigger::Resume && repaired(&last))
-                && last.automatic_at().is_none_or(|at| at > now)
+                && last.automatic_at() > now
             {
                 return Ok(None);
             }
         }
         *self.sync_progress.lock().expect("sync progress") = Some((generation, Default::default()));
         self.syncing.store(true, Ordering::Relaxed);
-        let _running = Running(self);
+        let mut running = Running {
+            daemon: self,
+            changed: true,
+        };
+        let position = h.with(|c| dmsg_client::sync::position(c)).await?;
         self.emit("sync/progress", Value::Null);
         let started = std::time::Instant::now();
         let started_at = now_ms();
@@ -239,6 +218,11 @@ impl Daemon {
             } else {
                 "unrecorded"
             });
+        let moved = h.with(|c| dmsg_client::sync::position(c)).await != Ok(position);
+        running.changed = moved
+            || result
+                .as_ref()
+                .is_ok_and(|r| r.changes + r.sent + r.blocked > 0);
         *self.sync_result.lock().expect("sync result") =
             Some((generation, trigger == Trigger::Inbox, result.clone()));
         self.sync_revision.fetch_add(1, Ordering::Release);
@@ -261,6 +245,8 @@ impl Daemon {
                     ("verify_ms", &report.verify_ms),
                     ("apply_ms", &report.apply_ms),
                     ("sent", &report.sent),
+                    ("blocked", &report.blocked),
+                    ("conflicts", &report.conflicts),
                     ("pending", &report.pending),
                     ("upload", &report.upload_error.as_deref().unwrap_or("ok")),
                 ],

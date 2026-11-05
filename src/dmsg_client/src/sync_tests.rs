@@ -152,6 +152,139 @@ fn saved_sync_status_without_a_stage_remains_readable() {
     assert_eq!(last.succeeded_at(), Some(42));
 }
 
+#[test]
+fn every_failure_has_an_automatic_retry_and_only_a_relay_cooldown_resists_waking_early() {
+    let failed = |code: &str, failures, retry_at| LastSync {
+        at: 1_000,
+        error: Some(code.into()),
+        failures,
+        retry_at,
+        ..LastSync::default()
+    };
+    // Records written before every failure carried a retry time.
+    for (failures, delay) in [(1, 15), (2, 30), (3, 60), (9, 60)] {
+        assert_eq!(
+            failed("INTEGRITY_FAILED", failures, None).automatic_at(),
+            1_000 + delay * 60_000
+        );
+    }
+    assert_eq!(failed("UNAVAILABLE", 1, None).automatic_at(), 6_000);
+    assert_eq!(failed("UNAVAILABLE", 9, None).automatic_at(), 301_000);
+    assert_eq!(failed("UNAVAILABLE", 9, Some(7)).automatic_at(), 7);
+
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    assert!(!retry_early(&client, RetryCause::Unlock).unwrap());
+    let later = now_ms() + 3_600_000;
+    let cases = [
+        ("UNAVAILABLE", true, true),
+        ("NETWORK_UNAVAILABLE", true, true),
+        ("INTEGRITY_FAILED", false, true),
+        ("AUTH_REQUIRED", false, true),
+        ("SYNC_BUSY", false, false),
+    ];
+    for (code, network, unlock) in cases {
+        for (cause, expected) in [(RetryCause::Network, network), (RetryCause::Unlock, unlock)] {
+            let last = failed(code, 1, Some(later));
+            client.workspace.store.set_meta(LAST_SYNC, &last).unwrap();
+            assert_eq!(retry_early(&client, cause).unwrap(), expected, "{code}");
+            let at = client.last_sync().unwrap().unwrap().automatic_at();
+            assert_eq!(at <= now_ms(), expected, "{code}");
+        }
+    }
+    let synced = LastSync {
+        at: 1_000,
+        ..LastSync::default()
+    };
+    client.workspace.store.set_meta(LAST_SYNC, &synced).unwrap();
+    assert!(!retry_early(&client, RetryCause::Network).unwrap());
+}
+
+#[tokio::test]
+async fn a_refused_version_waits_while_the_rest_of_the_queue_moves() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let refused = client.vault_create("note", &item("refused")).unwrap();
+    client
+        .vault_edit(&refused.id, None, &item("refused again"))
+        .unwrap();
+    client.vault_create("note", &item("accepted")).unwrap();
+    let rows = ordered(client.workspace.store.objects_in(LOCAL).unwrap()).unwrap();
+    let base = client.base().unwrap();
+    let job_replies = |client: &Client, row: &ObjectRow, answer: Option<serde_json::Value>| {
+        let mut job: ContentJob = match client.workspace.store.job(&row.key).unwrap() {
+            Some(job) => job,
+            None => {
+                let record = record(row).unwrap();
+                let file = client.version_file(&record).unwrap();
+                client
+                    .prepare_job(&record, file.as_ref(), now_ms())
+                    .unwrap()
+            }
+        };
+        job.vault.done = true;
+        client.workspace.store.set_job(&row.key, &job).unwrap();
+        let status = format!("{base}/operations/{}", hex::encode(*job.request_id));
+        vec![
+            ("GET", status, reply(json!({"found": false}))),
+            ("POST", format!("{base}/vault"), answer),
+        ]
+    };
+    let accepted = |row: &ObjectRow| {
+        reply(
+            json!({"revision_id": row.revision, "head": row.revision, "conflict": false, "tombstone": false}),
+        )
+    };
+    let too_large = Some(json!({"ok": false, "error": {"code": "TOO_LARGE"}}));
+    let mut replies = Vec::new();
+    for row in &rows {
+        match row.item == refused.id {
+            true if row.revision == refused.revision => {
+                replies.extend(job_replies(&client, row, too_large.clone()));
+            }
+            true => {}
+            false => replies.extend(job_replies(&client, row, accepted(row))),
+        }
+    }
+    let server = scripted_relay(&mut client, replies).await;
+    assert_eq!(push(&client.hold()).await.unwrap(), (1, 0));
+    server.await.unwrap();
+    // Both versions of the refused item wait; the other item went out.
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 2);
+    let held = held_uploads(&client).unwrap();
+    assert_eq!(held[&refused.id].code, "REQUEST_TOO_LARGE");
+    assert_eq!(held[&refused.id].attempts, 1);
+    assert!(held[&refused.id].retry_at > now_ms() + 14 * 60_000);
+    assert_eq!(
+        upload_error(&mut client).unwrap().as_deref(),
+        Some("REQUEST_TOO_LARGE")
+    );
+    // Still cooling: nothing is sent, so nothing needs a relay.
+    assert_eq!(push(&client.hold()).await.unwrap(), (0, 0));
+    // A failure a second time waits longer.
+    let mut due = held;
+    due.get_mut(&refused.id).unwrap().retry_at = 0;
+    set_held_uploads(&client, &due).unwrap();
+    let rows = ordered(client.workspace.store.objects_in(LOCAL).unwrap()).unwrap();
+    let replies = job_replies(&client, &rows[0], too_large.clone());
+    let server = scripted_relay(&mut client, replies).await;
+    assert_eq!(push(&client.hold()).await.unwrap(), (0, 0));
+    server.await.unwrap();
+    let held = held_uploads(&client).unwrap();
+    assert_eq!(held[&refused.id].attempts, 2);
+    assert!(held[&refused.id].retry_at > now_ms() + 29 * 60_000);
+    // A manual retry sends it at once, and acceptance releases the item.
+    retry_uploads(&mut client).unwrap();
+    assert!(held_uploads(&client).unwrap().is_empty());
+    let mut replies = job_replies(&client, &rows[0], accepted(&rows[0]));
+    replies.extend(job_replies(&client, &rows[1], accepted(&rows[1])));
+    let server = scripted_relay(&mut client, replies).await;
+    assert_eq!(push(&client.hold()).await.unwrap(), (2, 0));
+    server.await.unwrap();
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 0);
+    assert!(upload_error(&mut client).unwrap().is_none());
+}
+
 #[tokio::test]
 async fn a_large_push_continues_after_a_committed_revisions_reply_is_lost() {
     let dir = TempDir::new();
@@ -1218,4 +1351,78 @@ fn incremental_sync_wire_vectors_match() {
     }
     let saved: Json = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
     assert_eq!(saved, vector);
+}
+
+#[test]
+fn the_schedule_waits_for_nothing_an_edit_needs_and_longer_when_nothing_moves() {
+    const MINUTE: u64 = 60_000;
+    let mut schedule = Schedule::new(1_000);
+    let at = |now, local_change| Moment {
+        now,
+        account: Some("a"),
+        local_change,
+        interval: MINUTE,
+        ..Moment::default()
+    };
+    assert_eq!(schedule.due(&at(2_000, 0)), Due::No);
+    // An edit settles for a moment, then needs a pass at once.
+    assert_eq!(schedule.due(&at(3_000, 7)), Due::No);
+    assert_eq!(schedule.due(&at(3_500, 7)), Due::Now);
+    schedule.started(3_500);
+    schedule.finished(Some((1, 9)));
+    assert_eq!(schedule.due(&at(4_000, 7)), Due::No);
+
+    // A pass that moved nothing makes the next wait longer, up to five intervals.
+    assert_eq!(schedule.due(&at(3_500 + MINUTE, 7)), Due::Periodic);
+    let mut now = 3_500 + MINUTE;
+    for rounds in 1..=6u64 {
+        schedule.started(now);
+        schedule.finished(Some((0, 9)));
+        let wait = MINUTE * rounds.min(4) + MINUTE;
+        assert_eq!(
+            schedule.due(&at(now + wait - 1, 7)),
+            Due::No,
+            "round {rounds}"
+        );
+        assert_eq!(schedule.due(&at(now + wait, 7)), Due::Periodic);
+        now += wait;
+    }
+    // A pass that moved something, or a new edit, starts over.
+    schedule.started(now);
+    schedule.finished(Some((0, 10)));
+    assert_eq!(schedule.due(&at(now + MINUTE, 7)), Due::Periodic);
+
+    // While hints arrive a periodic pass only backs up a lost one, and a
+    // request comes first.
+    let mut hinted = Schedule::new(0);
+    let quiet = |now, requested| Moment {
+        now,
+        hinted: true,
+        requested,
+        interval: MINUTE,
+        ..Moment::default()
+    };
+    assert_eq!(hinted.due(&quiet(14 * MINUTE, false)), Due::No);
+    assert_eq!(hinted.due(&quiet(14 * MINUTE, true)), Due::Now);
+    assert_eq!(hinted.due(&quiet(15 * MINUTE, false)), Due::Periodic);
+
+    // No interval: nothing by itself, a failure's retry and a request aside.
+    let mut manual = Schedule::new(0);
+    let failed = LastSync {
+        at: 1_000,
+        error: Some("UNAVAILABLE".into()),
+        retry_at: Some(5_000),
+        ..LastSync::default()
+    };
+    let alone = |now, last, running| Moment {
+        now,
+        last,
+        running,
+        local_change: 7,
+        ..Moment::default()
+    };
+    assert_eq!(manual.due(&alone(4_000, None, false)), Due::No);
+    assert_eq!(manual.due(&alone(4_999, Some(&failed), false)), Due::No);
+    assert_eq!(manual.due(&alone(5_000, Some(&failed), true)), Due::No);
+    assert_eq!(manual.due(&alone(5_000, Some(&failed), false)), Due::Now);
 }

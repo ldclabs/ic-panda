@@ -48,7 +48,7 @@ extension SessionModel {
         if ProcessInfo.processInfo.arguments.contains("--ui-channel") {
             channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "")]
             if ProcessInfo.processInfo.arguments.contains("--ui-channel-readonly") {
-                channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "", lastAt: 0, muted: false, status: "active", canPublish: false, canInvite: false, pendingSends: 0, readThrough: 0)]
+                channels = [ChannelItem(id: "fixture-channel", name: "Studio", unread: 0, draft: "", preview: "", lastAt: 0, muted: false, status: "active", canPublish: false, canInvite: false, pendingSends: 0, readThrough: 0, news: false)]
             }
             selectedTab = .messages
         }
@@ -269,7 +269,8 @@ extension ContentSyncStatus {
                         retry: UInt64? = nil, success: UInt64? = nil) -> ContentSyncStatus {
         ContentSyncStatus(running: running, initialized: initialized, stage: "download", entries: entries,
             total: total, downloadedBytes: bytes, elapsedMs: 2500, lastAttemptAtMs: nil,
-            lastSuccessAtMs: success, retryAtMs: retry, retryRequired: error != nil, error: error)
+            lastSuccessAtMs: success, retryAtMs: retry, retryRequired: error != nil,
+            failures: error == nil ? 0 : 4, through: 0, error: error)
     }
 }
 #endif

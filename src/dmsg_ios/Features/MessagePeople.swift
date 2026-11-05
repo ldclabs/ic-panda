@@ -114,6 +114,6 @@ extension ChannelItem {
     // comes from the core's verified ledger and local send queue.
     init(id: String, name: String, unread: UInt64, draft: String, preview: String) {
         self.init(id: id, name: name, unread: unread, draft: draft, preview: preview,
-                  lastAt: 0, muted: false, status: "active", canPublish: true, canInvite: true, pendingSends: 0, readThrough: 0)
+                  lastAt: 0, muted: false, status: "active", canPublish: true, canInvite: true, pendingSends: 0, readThrough: 0, news: false)
     }
 }

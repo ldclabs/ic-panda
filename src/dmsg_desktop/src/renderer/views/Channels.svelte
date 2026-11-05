@@ -162,6 +162,7 @@
     try {
       channels = await call('channel/list')
       error = ''
+      readAhead()
       if (selected && !channels.some((c) => c.id === selected)) selected = channel = null
       if (selected) await open(selected)
     } catch (e) {
@@ -169,6 +170,13 @@
       error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
   })
+
+  /** What came elsewhere is read ahead while this list is on screen; the daemon paces it. */
+  function readAhead() {
+    if (document.visibilityState !== 'visible' || document.body.inert) return
+    for (const entry of listed.live.filter((c) => c.news && !c.muted && c.id !== selected).slice(0, 8))
+      void call('channel/catch_up', { id: entry.id }).catch(() => {})
+  }
 
   const refreshChannel = single(async (id: string | null = selected) => {
     if (!alive || !unlocked || !id || selected !== id || document.visibilityState !== 'visible' || document.body.inert) return
@@ -249,6 +257,7 @@
     channel = next
     outbox = box
     messageDeliveries.loaded(id, list.map((m: any) => m.seq), sendRevision)
+    for (const item of box) if (messageDeliveries.adopt(id, item)) retry(item)
   }
 
   let receiptsAt = 0
@@ -539,7 +548,7 @@
 
 {#snippet item(entry: any)}
   {@const draft = (drafts[entry.id] ?? entry.draft)?.trim()}
-  {@const at = entry.last?.stored_at}
+  {@const at = Math.max(entry.last?.stored_at ?? 0, entry.active_at ?? 0)}
   <li>
     <button
       class={cn(
@@ -579,6 +588,10 @@
             class={cn('min-w-4.5 rounded-full px-1.5 text-center text-[10.5px] leading-[18px] font-semibold tabular-nums', entry.muted ? 'bg-wash text-muted' : 'bg-forest text-on-forest')}
             data-testid="channel-unread">{entry.unread > 99 ? '99+' : entry.unread}</span
           >
+        {:else if entry.news && selected !== entry.id}
+          <span
+            class={cn('me-1 mt-1 size-2 rounded-full', entry.muted ? 'bg-faint' : 'bg-forest')}
+            role="img" aria-label={t('unread')} data-testid="channel-news"></span>
         {/if}
       </span>
     </button>

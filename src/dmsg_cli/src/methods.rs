@@ -18,7 +18,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 74] = [
+pub(crate) const METHODS: [&str; 75] = [
     "channel/avatar",
     "channel/list",
     "channel/show",
@@ -34,6 +34,7 @@ pub(crate) const METHODS: [&str; 74] = [
     "channel/queue",
     "channel/send_file",
     "channel/sync",
+    "channel/catch_up",
     "channel/messages",
     "channel/message_page",
     "channel/earlier",
@@ -109,6 +110,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "channel/names"
         | "channel/avatar"
         | "channel/receipts"
+        | "channel/catch_up"
         | "channel/draft" => &[],
         // A read position moves only counts, which the views keep themselves.
         "channel/mark" => &["channel/read"],
@@ -201,6 +203,7 @@ impl Daemon {
                 }
                 return Ok(to_json(&result?));
             }
+            "channel/catch_up" => return crate::channels::catch_up(self, &id()?).await,
             "channel/earlier" => {
                 let id = id()?;
                 let bound = Unlocked::new(&h).await?;
@@ -247,9 +250,15 @@ impl Daemon {
                 let view = self.client().lock().await.channel_mark(&channel, through)?;
                 // A read receipt only when the account says so (C04). The
                 // mark is kept either way, and the next one carries the
-                // receipt a lost one left behind.
+                // receipt a lost one left behind. The channel loop tells this
+                // account's other devices either way.
                 if params["receipt"] == true {
-                    let _ = crate::channels::report(self, &channel, Some(view.read)).await;
+                    let _ = dmsg_client::channel::report_cursor(
+                        &self.hold(),
+                        &channel,
+                        Some(view.read),
+                    )
+                    .await;
                 }
                 return Ok(to_json(&view));
             }

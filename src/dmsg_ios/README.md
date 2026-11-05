@@ -74,8 +74,10 @@ from Cancel or a swipe, preserve edits when changing type, and disable mutation
 while saving. Failures retain the draft with a visible retryable error. Fields can
 be reordered; date, month, email, website and OTP inputs have suitable input and
 validation. Password generation is local, and QR scanning only fills an OTP draft
-for review. AutoFill remains an explicit selected snapshot with its existing
-24-hour expiry and system authentication. Import summaries expose selection,
+for review. AutoFill exports only an explicit selection: choosing it asks for
+system authentication, and while dMsg is open and unlocked the snapshot then
+follows those items without asking again. System authentication opens it, and
+left alone it expires after 24 hours. Import summaries expose selection,
 duplicates and incomplete records, then link to the imported items; trash and
 history lists distinguish an unavailable read from an empty result.
 
@@ -613,9 +615,24 @@ Automatic synchronization is **on by default** for every account, as the
 product requires after login unlock, binding and recovery; the first automatic
 pass of an account says so once, and settings turn it off for that account
 (`manualSyncAccounts` in the local preferences). It runs only while the app is
-open and unlocked; interaction cancels it in favor of the user's operation.
+open and unlocked. Interaction does not cancel it, and leaving the app gives
+what the person just did a short window to finish: on the way to the background,
+unless immediate locking is on, sends left open and pending vault versions go
+out for at most 20 seconds under `beginBackgroundTask`, then the engine stops.
+Nothing fetches content in the background, and the next foreground catches up.
 It does not select files for backup. Files require their own explicit selection
 and confirmation.
+
+`MobileEngine.run_content_sync` owns the schedule (`dmsg_client::sync::Schedule`,
+shared with the daemon) and reports status and passes through
+`ContentSyncObserver`; Swift only keeps the views current. While the hint channel
+is connected, a periodic pass only backs up a lost hint. A send without a verdict
+leaves again under its own ID when the network returns or the app comes back,
+for 24 hours. Conversations with news show a dot before their messages arrive,
+and unmuted ones have at most their latest page read ahead every 30 seconds while
+on screen. The read position and delivery cursor follow to the account's other
+devices, and an authorized device rotates a channel that waits for a new epoch
+when it reads it.
 
 Manual synchronization shows an activity indicator until completion or failure.
 Vault synchronization publishes completion before independent maintenance work. It does not fetch channel/Inbox bodies or cloud-backup inventory. Files reads its saved cloud inventory first and refreshes it while that screen is in use; restoring

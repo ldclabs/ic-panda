@@ -248,8 +248,8 @@
 	<string>अधिकृत उपकरण</string>
 	<key>Authorized devices</key>
 	<string>अधिकृत उपकरण</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>स्वतः भरण केवल आपके द्वारा चयनित लॉगिन आइटम प्राप्त करता है। स्नैपशॉट 24 घंटों के बाद समाप्त हो जाता है और कार्यस्थान से स्वतंत्र रूप से सिस्टम प्रमाणीकरण की आवश्यकता होती है। उपयोगकर्ता नाम और वेबसाइट नाम सिस्टम सुझावों में दिखाई दे सकते हैं।</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>ऑटोफ़िल को केवल आपके चुने हुए लॉगिन आइटम मिलते हैं और इसके लिए वर्कस्पेस से अलग सिस्टम प्रमाणीकरण ज़रूरी है। जब dMsg खुला और अनलॉक हो, तब स्नैपशॉट उन आइटम के बदलावों के साथ अपडेट होता है; अपडेट न होने पर यह 24 घंटे बाद समाप्त हो जाता है। उपयोगकर्ता नाम और वेबसाइट के नाम सिस्टम सुझावों में दिख सकते हैं।</string>
 	<key>AutoFill snapshot updated</key>
 	<string>स्वतः भरण स्नैपशॉट अद्यतन किया गया</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>मूल ऑपरेशन का मिलान करें</string>
 	<key>Reconcile original proposal</key>
 	<string>मूल प्रस्ताव का मिलान करें</string>
-	<key>Reconcile original send</key>
-	<string>मूल प्रेषण का मिलान करें</string>
 	<key>Reconcile original snapshot</key>
 	<string>मूल स्नैपशॉट का मिलान करें</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>ये इस डिवाइस पर बनाए गए स्नैपशॉट कार्य हैं। डेस्कटॉप-स्थानीय अनुमोदन अनुरोध यहां सिंक्रनाइज़ नहीं हैं।</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>ये आपके खाते के उपकरणों से सत्यापित बैकअप हैं। इस डिवाइस पर एक प्रति रखने के लिए स्पष्ट रूप से पुनर्स्थापित करें।</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>इन निर्यातों में कभी भी खाता रूट कुंजियाँ या डिवाइस हस्ताक्षर कुंजियाँ शामिल नहीं होती हैं। स्रोत आइटम में परिवर्तन के लिए एक नए स्नैपशॉट की आवश्यकता होती है।</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>इन निर्यातों में खाते की रूट कुंजियाँ या डिवाइस की हस्ताक्षर कुंजियाँ कभी नहीं होतीं। Files ऐप की प्रतियाँ स्रोत फ़ाइलों के बदलावों के साथ अपडेट नहीं होतीं; उनके लिए नया स्नैपशॉट चाहिए।</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>इन नेटिव पतों के L1 के लिए पुराना उपकरण आगे भी चाहिए होगा। हर आउटपुट पर्याप्त पुराना होने पर सदस्य इन्हें L2 से अब भी ले जा सकते हैं।</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

@@ -248,8 +248,8 @@
 	<string>مجاز آلہ</string>
 	<key>Authorized devices</key>
 	<string>مجاز آلات</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>آٹو فل کو صرف آپ کے منتخب کردہ لاگ ان آئٹمز موصول ہوتے ہیں۔ اسنیپ شاٹ کی میعاد 24 گھنٹے بعد ختم ہو جاتی ہے اور اس کے لیے ورک اسپیس سے آزادانہ طور پر سسٹم کی تصدیق کی ضرورت ہوتی ہے۔ صارف نام اور ویب سائٹ کے نام سسٹم کی تجاویز میں ظاہر ہو سکتے ہیں۔</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>آٹو فل صرف آپ کے منتخب کردہ لاگ ان آئٹمز وصول کرتا ہے اور ورک اسپیس سے الگ سسٹم کی تصدیق کا تقاضا کرتا ہے۔ جب dMsg کھلا اور غیر مقفل ہو تو اسنیپ شاٹ ان آئٹمز کی تبدیلیوں کی پیروی کرتا ہے؛ اپ ڈیٹ نہ ہونے پر یہ 24 گھنٹے بعد ختم ہو جاتا ہے۔ صارف نام اور ویب سائٹ کے نام سسٹم کی تجاویز میں ظاہر ہو سکتے ہیں۔</string>
 	<key>AutoFill snapshot updated</key>
 	<string>آٹو فل سنیپ شاٹ اپ ڈیٹ ہو گیا</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>اصل آپریشن کے نتائج کی تصدیق کریں</string>
 	<key>Reconcile original proposal</key>
 	<string>اصل تجویز کو ہم آہنگ کریں</string>
-	<key>Reconcile original send</key>
-	<string>اصل بھیجنے میں صلح کریں</string>
 	<key>Reconcile original snapshot</key>
 	<string>اصل سنیپ شاٹ کو جوڑیں</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>یہ اسنیپ شاٹ جابز ہیں جو اس ڈیوائس پر بنائی گئی ہیں۔ ڈیسک ٹاپ-مقامی منظوری کی درخواستیں یہاں مطابقت پذیر نہیں ہیں۔</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>یہ آپ کے اکاؤنٹ کے آلات سے تصدیق شدہ بیک اپس ہیں۔ اس آلہ پر ایک کاپی رکھنے کے لیے واضح طور پر بحال کریں۔</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>ان برآمدات میں کبھی بھی اکاؤنٹ کی روٹ کیز یا ڈیوائس سائننگ کیز شامل نہیں ہوتی ہیں۔ سورس آئٹمز میں تبدیلیوں کے لیے ایک نیا سنیپ شاٹ درکار ہے۔</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>ان ایکسپورٹس میں کبھی اکاؤنٹ کی روٹ کلیدیں یا ڈیوائس کی دستخطی کلیدیں شامل نہیں ہوتیں۔ Files ایپ کی کاپیاں ماخذ فائلوں کی تبدیلیوں کی پیروی نہیں کرتیں؛ ان کے لیے نیا اسنیپ شاٹ درکار ہے۔</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ان مقامی پتوں کے L1 کے لیے پرانا آلہ بدستور درکار رہے گا۔ ہر آؤٹ پٹ کافی پرانا ہو جانے پر ارکان انہیں L2 کے ذریعے منتقل کر سکتے ہیں۔</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

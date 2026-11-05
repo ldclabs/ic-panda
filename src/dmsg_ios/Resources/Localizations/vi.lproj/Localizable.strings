@@ -248,8 +248,8 @@
 	<string>Thiết bị được ủy quyền</string>
 	<key>Authorized devices</key>
 	<string>Thiết bị được ủy quyền</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Tự động điền chỉ nhận các mục đăng nhập bạn chọn. Ảnh chụp nhanh sẽ hết hạn sau 24 giờ và yêu cầu xác thực hệ thống độc lập với không gian làm việc. Tên người dùng và tên trang web có thể xuất hiện trong đề xuất của hệ thống.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Tự động điền chỉ nhận các mục đăng nhập bạn chọn và yêu cầu xác thực hệ thống độc lập với không gian làm việc. Khi dMsg đang mở và đã mở khóa, ảnh chụp sẽ theo các thay đổi của những mục đó; nếu không được cập nhật, ảnh chụp hết hạn sau 24 giờ. Tên người dùng và tên trang web có thể xuất hiện trong gợi ý của hệ thống.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Đã cập nhật ảnh chụp nhanh Tự động điền</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Xác nhận kết quả của hoạt động ban đầu</string>
 	<key>Reconcile original proposal</key>
 	<string>Điều chỉnh đề xuất ban đầu</string>
-	<key>Reconcile original send</key>
-	<string>Đối chiếu bản gửi ban đầu</string>
 	<key>Reconcile original snapshot</key>
 	<string>Điều chỉnh ảnh chụp nhanh gốc</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Đây là những công việc chụp nhanh được tạo trên thiết bị này. Yêu cầu phê duyệt cục bộ trên máy tính để bàn không được đồng bộ hóa ở đây.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Đây là những bản sao lưu đã được xác minh từ thiết bị trong tài khoản của bạn. Khôi phục rõ ràng để giữ một bản sao trên thiết bị này.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Những bản xuất này không bao giờ chứa khóa gốc của tài khoản hoặc khóa ký thiết bị. Những thay đổi đối với các mục nguồn yêu cầu một ảnh chụp nhanh mới.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Các bản xuất này không bao giờ chứa khóa gốc của tài khoản hoặc khóa ký của thiết bị. Bản sao trong ứng dụng Tệp không theo các thay đổi của tệp nguồn; cần tạo ảnh chụp mới.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Các địa chỉ native này vẫn cần thiết bị cũ cho L1. Thành viên vẫn có thể quét chúng qua L2 khi mỗi output đủ lâu.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

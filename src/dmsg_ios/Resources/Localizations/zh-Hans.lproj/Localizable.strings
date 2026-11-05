@@ -248,8 +248,8 @@
 	<string>已授权设备</string>
 	<key>Authorized devices</key>
 	<string>已授权设备</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>自动填充只接收你选择的登录项。快照在 24 小时后到期，并要求独立于工作区的系统认证。用户名和网站名可能出现在系统建议中。</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>AutoFill 只接收你选择的登录项，并独立于工作区要求系统身份验证。dMsg 打开且已解锁时，快照会跟随这些条目的变化；长时间未更新时，快照会在 24 小时后过期。用户名和网站名称可能出现在系统建议中。</string>
 	<key>AutoFill snapshot updated</key>
 	<string>自动填充快照已更新</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>核对原操作结果</string>
 	<key>Reconcile original proposal</key>
 	<string>核对原提案结果</string>
-	<key>Reconcile original send</key>
-	<string>核对原发送结果</string>
 	<key>Reconcile original snapshot</key>
 	<string>核对原快照结果</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>这里只列出此设备创建的快照任务。桌面本地的审批请求不会同步到这里。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>这些是账户内设备的已验证备份。请明确选择恢复，将副本保存到本机。</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>这些导出不包含账号根密钥或设备签名密钥。源条目更改后，需要创建新快照。</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>这些导出绝不包含账户根密钥或设备签名密钥。「文件」App 中的副本不会跟随源文件变化，需要重新生成快照。</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>这些原生地址的 L1 仍需要旧设备签名。等每笔输出足够久后，成员仍可经 L2 扫回。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

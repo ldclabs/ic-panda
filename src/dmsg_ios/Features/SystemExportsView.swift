@@ -28,7 +28,7 @@ struct SystemExportsView: View {
                 LabeledContent("System permission", value: String(localized: autoFillEnabled ? "Allowed" : "Not enabled"))
                 ExportSnapshotStatus(header: credentialSnapshot)
 
-                Text("AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.").font(.footnote).foregroundStyle(.secondary)
+                Text("AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.").font(.footnote).foregroundStyle(.secondary)
                 ForEach(credentials, id: \.id) { item in HStack { Text(item.title); Spacer(); Button("Remove", role: .destructive) { credentials.removeAll { $0.id == item.id } } } }
                 SettingsAction("Select login items") { selectingCredentials = true }
                 SettingsAction("Replace AutoFill snapshot", prominent: true) { work = Task { await exportCredentials() } }.disabled(credentials.isEmpty)
@@ -44,7 +44,7 @@ struct SystemExportsView: View {
                 SettingsAction("Remove Files app snapshot", role: .destructive) { work = Task { await removeSnapshot(.files) } }.disabled(fileSnapshot == nil)
             }
             Toggle("Biometrics only for exported copies", isOn: $biometryOnly).disabled(requiresBiometry)
-            Text("These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.").font(.footnote).foregroundStyle(.secondary)
+            Text("These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.").font(.footnote).foregroundStyle(.secondary)
             if working { ProgressView() }
         }.disabled(working).privateScreen().navigationTitle("System integrations")
             .sheet(isPresented: $selectingCredentials) { NavigationStack { AutoFillSelectionView(initial: credentials) { values in credentials = values } } }
@@ -56,7 +56,14 @@ struct SystemExportsView: View {
                 guard scenePhase == .active else { return }
                 let epoch = model.epoch
                 refreshSnapshots()
-                if !initialized { initialized = true; if let initialCredential { credentials = [initialCredential] } }
+                if !initialized {
+                    initialized = true
+                    if let chosen = try? await model.engine?.autofillSelection() {
+                        guard epoch == model.epoch, !Task.isCancelled else { return }
+                        credentials = chosen.items; biometryOnly = chosen.biometryOnly
+                    }
+                    if let initialCredential { credentials = [initialCredential] }
+                }
                 let state = await ASCredentialIdentityStore.shared.state()
                 guard epoch == model.epoch, !Task.isCancelled else { return }
                 autoFillEnabled = state.isEnabled
@@ -99,38 +106,28 @@ struct SystemExportsView: View {
         working = true; defer { working = false }
         do {
             try SystemExports(purpose).invalidate()
-            if purpose == .credentials { try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities() }
+            if purpose == .credentials {
+                try await ASCredentialIdentityStore.shared.removeAllCredentialIdentities()
+                try await model.engine?.forgetAutofill()
+            }
             else { try await NSFileProviderManager.remove(domain) }
             guard epoch == model.epoch, !Task.isCancelled else { return }
+            if purpose == .credentials { credentials = [] }
             refreshSnapshots(); model.notice = String(localized: "Saved")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
     }
 
     private func exportCredentials() async {
-        struct Entry: Decodable { let title: String; let username: String; let password: String; let url: String }
         guard let engine = model.engine, let account = model.session?.account, !working else { return }
         let epoch = model.epoch; working = true; model.activity(); defer { working = false }
         do {
             await model.integrationReset?.value
             guard epoch == model.epoch, !Task.isCancelled else { return }
-            let snapshot = try await engine.exportAutofill(items: credentials.map { CredentialSelection(id: $0.id, revision: $0.revision) })
-            let entries: [Entry] = try model.decode(snapshot)
-            let selected = entries.map { entry in CredentialInput(title: entry.title, username: entry.username, password: entry.password, origin: Self.origin(entry.url)) }
-            let store = try SystemExports(.credentials)
-            let prepared = try await Task.detached { try store.prepareCredentials(selected, account: account, expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 86_400_000) }.value
-            guard epoch == model.epoch, !Task.isCancelled else { store.discard(prepared); return }
-            do { try store.publish(prepared, biometryOnly: biometryOnly) } catch { store.discard(prepared); throw error }
-            let metadata = try store.credentialMetadata(OpenExport(header: prepared.header, key: prepared.key))
-            let identities = metadata.filter { !$0.origin.isEmpty }.map { ASPasswordCredentialIdentity(serviceIdentifier: ASCredentialServiceIdentifier(identifier: $0.origin, type: .URL), user: $0.username, recordIdentifier: prepared.header.id + ":" + $0.id) }
-            try await ASCredentialIdentityStore.shared.replaceCredentialIdentities(identities)
-            guard epoch == model.epoch, !Task.isCancelled else { return }
+            let snapshot = try await engine.exportAutofill(items: credentials.map { CredentialSelection(id: $0.id, revision: $0.revision) }, biometryOnly: biometryOnly)
+            let entries: [AutoFillEntry] = try model.decode(snapshot)
+            guard try await model.publishCredentials(entries, biometryOnly: biometryOnly, account: account, epoch: epoch), !Task.isCancelled else { return }
             refreshSnapshots(); model.notice = String(localized: "AutoFill snapshot updated")
         } catch { if epoch == model.epoch, !Task.isCancelled { model.report(error) } }
-    }
-    private static func origin(_ text: String) -> String {
-        guard var url = URLComponents(string: text), ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return "" }
-        url.user = nil; url.password = nil; url.path = ""; url.query = nil; url.fragment = nil
-        return url.string ?? ""
     }
     private func exportFiles() async {
         struct Opened: Decodable { let path: String; let nonce: String }

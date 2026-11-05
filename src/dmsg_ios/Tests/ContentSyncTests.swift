@@ -4,16 +4,6 @@ import XCTest
 
 @MainActor
 final class ContentSyncTests: XCTestCase {
-    func testFailureDeadlineOverridesTheNormalOneMinuteInterval() {
-        let failed = ContentSyncStatus.fixture(error: "NETWORK_UNAVAILABLE", retry: 5_000)
-        XCTAssertFalse(ContentSyncPolicy.isDue(status: failed, edited: true, idleDue: true, now: 4_999))
-        XCTAssertTrue(ContentSyncPolicy.isDue(status: failed, edited: false, idleDue: false, now: 5_000))
-        let blocked = ContentSyncStatus.fixture(error: "INTEGRITY_FAILED")
-        XCTAssertFalse(ContentSyncPolicy.isDue(status: blocked, edited: true, idleDue: true, now: 100_000))
-        XCTAssertTrue(ContentSyncPolicy.isDue(status: .fixture(), edited: false, idleDue: true, now: 0))
-        XCTAssertFalse(ContentSyncPolicy.isDue(status: .fixture(running: true), edited: true, idleDue: true, now: 0))
-    }
-
     func testNavigationKeepsTheRunningTokenButBackgroundCancelsIt() async throws {
         let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)

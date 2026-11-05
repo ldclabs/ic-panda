@@ -224,6 +224,8 @@ pub struct ChannelItem {
     pub can_invite: bool,
     pub pending_sends: u64,
     pub read_through: u64,
+    /// The relay holds messages this device has yet to read.
+    pub news: bool,
 }
 
 #[derive(uniffi::Record)]
@@ -272,6 +274,24 @@ pub struct OutgoingMessage {
     pub attachment_name: Option<String>,
     pub attempted: bool,
     pub error: Option<String>,
+}
+
+impl From<dmsg_client::outbox::Intent> for OutgoingMessage {
+    fn from(intent: dmsg_client::outbox::Intent) -> Self {
+        Self {
+            id: intent.id,
+            text: intent.text,
+            attachment_name: intent.attachment.map(|f| f.name),
+            attempted: intent.attempted,
+            error: intent.error,
+        }
+    }
+}
+
+#[derive(uniffi::Record)]
+pub struct RecoverableMessage {
+    pub channel: String,
+    pub message: OutgoingMessage,
 }
 
 #[derive(uniffi::Record)]

@@ -50,7 +50,7 @@ export function arrange(channels: any[], me: string | undefined): { live: any[];
     if (member && channel.ledger?.status !== 'archived' && !channel.hidden) live.push(channel)
     else other.push(channel)
   }
-  const at = (c: any) => c.last?.stored_at ?? 0
+  const at = (c: any) => Math.max(c.last?.stored_at ?? 0, c.active_at ?? 0)
   live.sort((a, b) => at(b) - at(a) || String(a.name).localeCompare(String(b.name)))
   other.sort((a, b) => String(a.name).localeCompare(String(b.name)))
   return { live, other }

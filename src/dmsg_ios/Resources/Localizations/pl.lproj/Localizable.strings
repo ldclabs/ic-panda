@@ -248,8 +248,8 @@
 	<string>Autoryzowane urządzenie</string>
 	<key>Authorized devices</key>
 	<string>Autoryzowane urządzenia</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Funkcja automatycznego wypełniania otrzymuje tylko wybrane przez Ciebie elementy logowania. Migawka wygasa po 24 godzinach i wymaga uwierzytelnienia systemu niezależnie od obszaru roboczego. Nazwy użytkowników i nazwy witryn mogą pojawiać się w sugestiach systemowych.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Autouzupełnianie otrzymuje tylko wybrane przez Ciebie dane logowania i wymaga uwierzytelnienia systemowego niezależnie od obszaru roboczego. Gdy dMsg jest otwarty i odblokowany, migawka śledzi zmiany tych elementów; bez aktualizacji wygasa po 24 godzinach. Nazwy użytkowników i witryn mogą pojawiać się w podpowiedziach systemu.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Zaktualizowano migawkę Autouzupełniania</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Potwierdź wynik pierwotnej operacji</string>
 	<key>Reconcile original proposal</key>
 	<string>Uzgodnij oryginalną propozycję</string>
-	<key>Reconcile original send</key>
-	<string>Uzgodnij oryginalne wysłanie</string>
 	<key>Reconcile original snapshot</key>
 	<string>Uzgodnij oryginalną migawkę</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Są to zadania migawki utworzone na tym urządzeniu. Żądania zatwierdzenia lokalnego komputera stacjonarnego nie są tutaj synchronizowane.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Są to zweryfikowane kopie zapasowe z urządzeń Twojego konta. Przywróć jawnie, aby zachować kopię na tym urządzeniu.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Te eksporty nigdy nie zawierają kluczy głównych konta ani kluczy podpisywania urządzeń. Zmiany w elementach źródłowych wymagają nowej migawki.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Te eksporty nigdy nie zawierają kluczy głównych konta ani kluczy podpisywania urządzenia. Kopie w aplikacji Pliki nie śledzą zmian plików źródłowych; wymagają nowej migawki.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Te natywne adresy nadal będą wymagać starego urządzenia dla L1. Członkowie mogą je przenieść przez L2, gdy każde wyjście będzie wystarczająco stare.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

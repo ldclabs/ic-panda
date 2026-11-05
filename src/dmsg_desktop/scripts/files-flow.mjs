@@ -75,7 +75,7 @@ export async function filesFlow({ app, main, shots, methods, hold, waitFor, call
   const release = hold('files/share_links', p => p.refresh === true)
   await main.getByTestId('links-refresh').click()
   setSession('locked'); emit('session/changed', { state: 'locked' })
-  await waitFor(() => main.getByTestId('links-search').isDisabled())
+  await waitFor(async () => !(await main.getByTestId('links-search').count()) || main.getByTestId('links-search').isDisabled())
   await release()
   assert.equal(await main.getByText(entries[0].name, { exact: true }).count(), 0)
   entries = [{ ...entries[0], state: 'active', name: '项目交付资料 · Shared report with a long descriptive filename · Rapport de livraison avec un nom très détaillé · وثائق المشروع المشتركة.pdf' }]

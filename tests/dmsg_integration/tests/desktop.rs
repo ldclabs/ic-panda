@@ -2831,6 +2831,127 @@ fn desktop_unlock_syncs_in_background_with_periodic_sync_disabled() {
     env.finish();
 }
 
+/// How long a change takes between two devices and what an idle device costs.
+/// A measurement: it asserts only that changes arrive, and prints the numbers.
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_sync_latency() {
+    let env = Env::start("latency", "");
+    env.pair();
+    let (a, b) = (&env.a, &env.b);
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+    let mut samples = Vec::new();
+    for i in 0..12 {
+        // Past the relay's hint limit and the follow-up read of the last round.
+        std::thread::sleep(Duration::from_secs(7));
+        let title = format!("latency {i}");
+        let started = Instant::now();
+        a.run(&["vault", "add", "--title", &title]);
+        eventually(120, || titles(b).contains(&title).then_some(()));
+        samples.push(started.elapsed());
+    }
+    samples.sort();
+    eprintln!(
+        "vault change between devices: p50 {:?}, p95 {:?}, max {:?}",
+        samples[samples.len() / 2],
+        samples[samples.len() * 95 / 100],
+        samples[samples.len() - 1]
+    );
+    // An idle, unlocked device: its passes in two minutes, from its own log.
+    let passes = || {
+        std::fs::read_dir(b.home.join("logs"))
+            .unwrap()
+            .flatten()
+            .map(|file| std::fs::read_to_string(file.path()).unwrap_or_default())
+            .map(|log| log.matches("sync/start").count())
+            .sum::<usize>()
+    };
+    let before = passes();
+    std::thread::sleep(Duration::from_secs(120));
+    eprintln!(
+        "idle device: {} sync passes per minute",
+        (passes() - before) as f64 / 2.0
+    );
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_channel_news_and_read_position_follow_the_account() {
+    let mut env = Env::start("reading", "");
+    let account = env.pair();
+    let (other, _) = env.desktop("other");
+    let http = env.http.clone();
+    let (a, b) = (&env.a, &env.b);
+
+    // Another account owns a channel that this account joins.
+    assert_eq!(other.login(&http, 62).unwrap()["state"], "no_account");
+    other.run(&["account", "create"]);
+    let id = other.run(&["channel", "create", "Reading"])["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let invitation = other.run(&["channel", "invite", &id, &account]);
+    a.run(&["channel", "accept", &invitation.to_string()]);
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+    eventually(60, || {
+        b.run(&["channel", "show", &id])["ledger"]
+            .is_object()
+            .then_some(())
+    });
+
+    // The hint tells both devices how far the channel reaches, before any
+    // message arrives; a list on screen then reads it ahead.
+    let started = Instant::now();
+    for text in ["one", "two", "three"] {
+        other.run(&["channel", "send", &id, text]);
+    }
+    eventually(60, || {
+        (b.run(&["channel", "show", &id])["news"] == true).then_some(())
+    });
+    eprintln!("news on another device's list: {:?}", started.elapsed());
+    assert_eq!(b.run(&["channel", "show", &id])["unread"], 0);
+    let read = b.rpc(&http, "channel/catch_up", json!({"id": id})).unwrap();
+    assert_eq!(read["received"], 3);
+    let view = b.run(&["channel", "show", &id]);
+    assert_eq!(
+        (view["news"].clone(), view["unread"].clone()),
+        (json!(false), json!(3))
+    );
+    // A second call within the window reads nothing.
+    other.run(&["channel", "send", &id, "four"]);
+    eventually(60, || {
+        (b.run(&["channel", "show", &id])["news"] == true).then_some(())
+    });
+    assert_eq!(
+        b.rpc(&http, "channel/catch_up", json!({"id": id})).unwrap()["received"],
+        0
+    );
+
+    // What A reads follows to B without opening the channel there, and the
+    // other account sees no read receipt.
+    a.run(&["channel", "read", &id]);
+    let latest = a.run(&["channel", "show", &id])["latest_cursor"]
+        .as_u64()
+        .unwrap();
+    a.rpc(&http, "channel/mark", json!({"id": id, "through": latest}))
+        .unwrap();
+    let started = Instant::now();
+    eventually(90, || {
+        let view = b.run(&["channel", "show", &id]);
+        (view["read"].as_u64() >= Some(latest) && view["unread"] == 0).then_some(())
+    });
+    eprintln!("read position between devices: {:?}", started.elapsed());
+    let receipts = other.run(&["channel", "receipts", &id]);
+    let cursor = &receipts["cursors"][&account];
+    assert!(cursor["read"].is_null(), "{receipts}");
+    assert!(cursor.get("seen").is_none(), "{receipts}");
+    let _ = other.command(&["stop"]).output();
+    env.finish();
+}
+
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_content_and_sync() {
@@ -4540,11 +4661,20 @@ fn desktop_channels() {
         "NOT_FOUND"
     );
     a.run(&["channel", "send", &id, "new shared epoch message"]);
-    // The hint socket lets B's daemon read it without being asked.
-    let seen = eventually(60, || {
-        let messages = b.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
-        (!texts(&messages).is_empty()).then_some(messages)
+    // The hint socket tells B's daemon how far the channel reaches without
+    // its messages; a list on screen then reads them ahead.
+    eventually(60, || {
+        (b.run(&["channel", "show", &id])["news"] == true).then_some(())
     });
+    assert_eq!(
+        texts(&b.rpc(&http, "channel/messages", json!({"id": id})).unwrap()),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        b.rpc(&http, "channel/catch_up", json!({"id": id})).unwrap()["received"],
+        1
+    );
+    let seen = b.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
     assert_eq!(texts(&seen), ["new shared epoch message"]);
     b.run(&["channel", "send", &id, "member reply"]);
     assert!(texts(&a.run(&["channel", "read", &id])).contains(&"member reply".to_string()));
@@ -4581,17 +4711,14 @@ fn desktop_channels() {
     let path = env.dir.join("channel-owner-principal.json");
     std::fs::write(&path, serde_json::to_vec(&principal).unwrap()).unwrap();
     a.run(&["profile", "publish", path.to_str().unwrap()]);
-    let names = b
-        .rpc(&http, "channel/names", json!({"accounts": [owner, member]}))
-        .unwrap();
-    assert_eq!(
-        (
-            &names[&owner],
-            &names[&member],
-            names.as_object().map(|n| n.len())
-        ),
-        (&json!("Channel owner"), &Value::Null, Some(2))
-    );
+    // Names answer from the cache at once and refresh behind it.
+    let names = eventually(60, || {
+        let names = b
+            .rpc(&http, "channel/names", json!({"accounts": [owner, member]}))
+            .unwrap();
+        (names[&owner]["name"] == "Channel owner").then_some(names)
+    });
+    assert!(names[&member]["name"].is_null(), "{names}");
 
     // B answers a message of A, A edits it and withdraws another; each shows
     // through the message it names, on B's device as on A's.
@@ -4719,10 +4846,9 @@ fn desktop_channels() {
     ]);
     assert_eq!(downloaded["size"], 1024 * 1024 + 17);
     assert_eq!(std::fs::read(&out).unwrap(), vec![73u8; 1024 * 1024 + 17]);
-    // The download cached the attachment's two chunks; nothing needs them,
-    // so the next sync collects them, and a download fetches them again.
-    let collected = b.run(&["sync"])["collected"].as_u64().unwrap();
-    assert!(collected >= 2, "{collected}");
+    // The download cached the attachment's chunks for reading offline: a sync
+    // that moves something keeps them, and a download works from them.
+    b.run(&["vault", "add", "--title", "moves a sync"]);
     assert_eq!(b.run(&["sync"])["collected"], 0);
     std::fs::remove_file(&out).unwrap();
     b.run(&[

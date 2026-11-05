@@ -156,6 +156,12 @@ struct Local {
     invites: BTreeMap<String, Invitation>,
     /// The delivery cursor last reported to the relay.
     delivered: u64,
+    /// The read position last reported to or taken from the relay.
+    reported_read: u64,
+    /// How far the relay's messages reach, as last read.
+    remote_latest: u64,
+    /// When that last showed messages this device has yet to read.
+    active_at: u64,
 }
 
 impl Local {
@@ -557,6 +563,12 @@ pub struct ChannelView {
     pub message_cursor: u64,
     /// Latest verified sequence, including a recent window ahead of history.
     pub latest_cursor: u64,
+    /// The relay holds messages this device has yet to read, as last checked.
+    pub news: bool,
+    /// When news last came; for ordering a list before the messages arrive.
+    pub active_at: u64,
+    /// This device took or read messages past what it reported.
+    pub cursor_due: bool,
     /// Exclusive cursor for the next uncached historical page, if any.
     pub history_before: Option<u64>,
     /// Epochs this account holds keys for.
@@ -644,6 +656,8 @@ pub struct Reading {
     /// A visible timeline read records a recent interval without advancing
     /// the complete-history delivery cursor over a gap.
     recent: bool,
+    /// A recent read takes at most the latest page, even over a gap.
+    tail: bool,
     /// The range reads epochs granted to this account.
     granting: bool,
     invitation: Option<String>,
@@ -679,6 +693,7 @@ impl Reading {
             messages: false,
             range: None,
             recent: false,
+            tail: false,
             granting: false,
             invitation: None,
             pinned: None,
@@ -1532,6 +1547,24 @@ async fn recipients<H: Hold>(h: &H, accounts: &[String]) -> Result<Current> {
     Ok(current)
 }
 
+/// Report this device's delivery cursor and the account's read position, and
+/// the read receipt when given, without holding the client; whether one went.
+///
+/// # Errors
+/// Relay errors as returned.
+pub async fn report_cursor<H: Hold>(h: &H, channel: &str, read: Option<u64>) -> Result<bool> {
+    let due = h.with(|c| c.channel_cursor_due(channel)).await?;
+    if due.is_none() && read.is_none() {
+        return Ok(false);
+    }
+    let (delivered, seen) = due.unwrap_or_default();
+    h.send(|c| c.channel_cursor_request(channel, delivered, read, seen))
+        .await?;
+    h.with(|c| c.channel_cursor_settle(channel, delivered, seen))
+        .await?;
+    Ok(true)
+}
+
 /// Rotate a channel without holding the client during network requests.
 /// # Errors
 /// As [`Client::channel_rotate`].
@@ -2057,11 +2090,28 @@ pub async fn sync_messages<H: Hold>(h: &H, channel: &str, backfill: bool) -> Res
 /// # Errors
 /// As [`sync_messages`]. A failed page never advances either verified cursor.
 pub async fn sync_recent<H: Hold>(h: &H, channel: &str) -> Result<ChannelSync> {
-    let _timing = MessageTiming::start(MessagePhase::Recent);
-    let mut reading = Reading {
+    let reading = Reading {
         recent: true,
         ..Reading::new(channel)
     };
+    read_recent(h, channel, reading).await
+}
+
+/// Read a channel ahead of anyone opening it: at most its latest page. Older
+/// messages stay for the reader, as with [`sync_recent`] over a gap.
+/// # Errors
+/// As [`sync_messages`]. A failed page never advances either verified cursor.
+pub async fn sync_tail<H: Hold>(h: &H, channel: &str) -> Result<ChannelSync> {
+    let reading = Reading {
+        recent: true,
+        tail: true,
+        ..Reading::new(channel)
+    };
+    read_recent(h, channel, reading).await
+}
+
+async fn read_recent<H: Hold>(h: &H, channel: &str, mut reading: Reading) -> Result<ChannelSync> {
+    let _timing = MessageTiming::start(MessagePhase::Recent);
     read(h, &mut reading).await?;
     h.with(|c| {
         c.workspace
@@ -3301,6 +3351,21 @@ impl Client {
             billing["transition"] = remote["billing_transition"].clone();
             local.billing = Some(billing);
         }
+        // Another device of this account read further. It may have read
+        // messages this one has yet to fetch, which then arrive as read.
+        if let Some(seen) = remote["seen"].as_u64().filter(|seen| *seen > local.read) {
+            local.read = seen;
+            local.unread = self.unread_after(&channel, seen)?;
+        }
+        local.reported_read = local
+            .reported_read
+            .max(remote["seen"].as_u64().unwrap_or(0));
+        if let Some(latest) = remote["capacity"]["messages"]["used"].as_u64() {
+            if latest > local.latest() && latest > local.remote_latest {
+                local.active_at = now_ms();
+            }
+            local.remote_latest = latest;
+        }
         local.ledger = Some(ledger.clone());
         self.save_local(&channel, &local)?;
         reading.ledger = Some(ledger);
@@ -3314,6 +3379,8 @@ impl Client {
                 // message signatures and continuity still verify below.
                 let after = if local.latest() == 0 || !local.granted.is_empty() {
                     latest.saturating_sub(MESSAGE_PAGE)
+                } else if reading.tail {
+                    latest.saturating_sub(MESSAGE_PAGE).max(local.latest())
                 } else {
                     local.latest()
                 };
@@ -3476,6 +3543,9 @@ impl Client {
             ledger: local.ledger,
             message_cursor: local.message,
             latest_cursor,
+            news: local.remote_latest > latest_cursor,
+            active_at: local.active_at,
+            cursor_due: local.message > local.delivered || local.read > local.reported_read,
             history_before,
             readable_epochs: ring.keys.keys().copied().collect(),
             muted: preference.muted && preference.until.is_none_or(|at| at > now),
@@ -4920,17 +4990,24 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown channel.
     pub fn channel_mark(&self, channel: &str, through: u64) -> Result<ChannelView> {
-        let me = self.me()?;
         let mut local = self.local(channel)?;
         local.read = local.read.max(through.min(local.latest()));
+        local.unread = self.unread_after(channel, local.read)?;
+        self.save_local(channel, &local)?;
+        self.channel_view(channel)
+    }
+
+    /// Others' messages kept after `read`.
+    fn unread_after(&self, channel: &str, read: u64) -> Result<u64> {
+        let me = self.me()?;
         let prefix = format!("{INBOX}{channel}:");
         let after: Vec<Message> = self.workspace.private_after(
             self.keys()?,
             &prefix,
-            &format!("{prefix}{:020}", local.read),
+            &format!("{prefix}{read:020}"),
             1000,
         )?;
-        local.unread = after
+        Ok(after
             .iter()
             .filter(|m| {
                 !m.unreadable
@@ -4938,9 +5015,7 @@ impl Client {
                     && !m.amends()
                     && !background_packet(&m.text, m.file.is_some(), m.packet.as_ref())
             })
-            .count() as u64;
-        self.save_local(channel, &local)?;
-        self.channel_view(channel)
+            .count() as u64)
     }
 
     /// Keep the composer's unsent text on this device.
@@ -5798,20 +5873,24 @@ impl Client {
         self.channel_rotate(channel).await
     }
 
-    /// The delivery cursor to report: the messages this device read past
-    /// what it reported last, if any.
+    /// The cursors to report, `(delivered, seen)`: the messages this device
+    /// took and read past what it reported last, if any.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
-    pub fn channel_delivery_due(&self, channel: &str) -> Result<Option<u64>> {
+    pub fn channel_cursor_due(&self, channel: &str) -> Result<Option<(u64, u64)>> {
         let local = self.local(channel)?;
-        Ok((local.message > local.delivered).then_some(local.message))
+        Ok(
+            (local.message > local.delivered || local.read > local.reported_read)
+                .then_some((local.message, local.read)),
+        )
     }
 
     /// Tell the relay this account's devices took the messages through
-    /// `delivered`, and, when it chooses to say so, read those through
-    /// `read`: members see both (C04). Signed to send without the client;
-    /// [`Self::channel_cursor_settle`] notes a delivery sent.
+    /// `delivered` and, when it chooses to say so, read those through `read`:
+    /// members see both (C04). `seen` is the account's own read position, for
+    /// its other devices only. Signed to send without the client;
+    /// [`Self::channel_cursor_settle`] notes a report sent.
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
@@ -5820,23 +5899,36 @@ impl Client {
         channel: &str,
         delivered: u64,
         read: Option<u64>,
+        seen: u64,
     ) -> Result<Prepared> {
         self.signed_post(
             &format!("{}/cursor", base(channel)?),
             CURSOR,
-            &json!({"delivered": delivered, "read": read}),
+            &json!({"delivered": delivered, "read": read, "seen": seen}),
             &Hash::new(crate::crypto::random_id()),
         )
     }
 
-    /// Note the delivery cursor the relay took.
+    /// Note the cursors the relay took.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
-    pub fn channel_cursor_settle(&self, channel: &str, delivered: u64) -> Result<()> {
+    pub fn channel_cursor_settle(&self, channel: &str, delivered: u64, seen: u64) -> Result<()> {
         let mut local = self.local(channel)?;
         local.delivered = local.delivered.max(delivered);
+        local.reported_read = local.reported_read.max(seen);
         self.save_local(channel, &local)
+    }
+
+    /// The channel waits for a new epoch this account may coordinate.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_rotation_due(&self, channel: &str) -> Result<bool> {
+        let me = self.me()?;
+        Ok(self.local(channel)?.ledger.is_some_and(|ledger| {
+            ledger.status == Status::RotationRequired && may_rotate(&ledger, &me)
+        }))
     }
 
     /// The request for the members' delivery and read cursors, as the relay

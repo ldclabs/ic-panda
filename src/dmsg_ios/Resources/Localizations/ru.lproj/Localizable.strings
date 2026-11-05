@@ -248,8 +248,8 @@
 	<string>Авторизованное устройство</string>
 	<key>Authorized devices</key>
 	<string>Авторизованные устройства</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Автозаполнение получает только выбранные записи. Снимок истекает через 24 часа и требует отдельной системной аутентификации. Имена пользователей и сайтов могут отображаться в подсказках системы.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Автозаполнение получает только выбранные вами логины и требует системной аутентификации независимо от рабочего пространства. Пока dMsg открыт и разблокирован, снимок следует за изменениями этих записей; без обновления он истекает через 24 часа. Имена пользователей и названия сайтов могут появляться в системных подсказках.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Снимок автозаполнения обновлён</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Сверить исходную операцию</string>
 	<key>Reconcile original proposal</key>
 	<string>Сверить исходное предложение</string>
-	<key>Reconcile original send</key>
-	<string>Проверить исходную отправку</string>
 	<key>Reconcile original snapshot</key>
 	<string>Проверить результат исходного снимка</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Здесь показаны задачи создания снимков на этом устройстве. Локальные запросы подтверждения с компьютера сюда не синхронизируются.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Это проверенные копии с устройств вашего аккаунта. Выберите восстановление, чтобы сохранить копию здесь.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Экспорт не содержит корневых ключей или ключей подписи устройства. После изменения исходных данных нужен новый снимок.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Эти экспорты никогда не содержат корневых ключей учётной записи и ключей подписи устройства. Копии в приложении «Файлы» не следуют за изменениями исходных файлов; для них нужен новый снимок.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Для L1 этих нативных адресов по-прежнему нужно старое устройство. Участники смогут перевести средства через L2, когда каждый выход станет достаточно старым.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

@@ -1812,8 +1812,13 @@ smoke: try {
     await main.evaluate(() => location.hash = '/files')
     await main.getByTestId('files-list').waitFor()
 
-    lastSync = { at: Date.now(), ok_at: okAt, error: 'NETWORK_UNAVAILABLE', retry_at: Date.now() + 15000 }
-    emit('sync/changed')
+    // A network failure that retries by itself stays out of the rail until it lasts.
+    lastSync = { at: Date.now(), ok_at: okAt, error: 'NETWORK_UNAVAILABLE', failures: 1, retry_at: Date.now() + 15000 }
+    emit('sync/finished')
+    await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('2 versions to sync'))
+    assert.equal(await main.getByTestId('gate-sync-retry').count(), 0)
+    lastSync = { ...lastSync, failures: 4 }
+    emit('sync/finished')
     await main.getByTestId('gate-sync-retry').waitFor()
     assert.match(await main.getByTestId('gate-sync-pending').innerText(), /2/)
     assert.match(await main.getByTestId('gate-sync-success').innerText(), /Last cloud sync/)
@@ -2183,6 +2188,20 @@ smoke: try {
   await main.getByTestId('sidebar-toggle').click()
   await main.getByTestId('channel-members-toggle').click()
   methods['channel/send'] = realSend
+
+  // A channel with news shows a dot before its messages arrive, and the list
+  // on screen asks the daemon to read it ahead.
+  let readAhead = 0
+  methods['channel/catch_up'] = () => { readAhead++; return { received: 0 } }
+  methods['channel/list'] = () => [...realList(), { ...otherChannel, news: true, active_at: Date.now() }]
+  emit('channel/changed', {})
+  await main.getByTestId('channel-news').waitFor()
+  await waitFor(() => readAhead > 0)
+  assert.equal(await main.getByTestId('channel-news').getAttribute('aria-label'), 'Unread')
+  await formMatrix(app, main, shots, 'channel-news', '[data-testid="channel-list"]')
+  methods['channel/list'] = () => [...realList(), otherChannel]
+  emit('channel/changed', {})
+  await waitFor(async () => !(await main.getByTestId('channel-news').count()))
   await main.getByTestId('outgoing-retry').focus()
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="channel-messages"] article[data-seq="6"]')
@@ -2988,7 +3007,7 @@ smoke: try {
   await main.getByRole('button',{name:'History',exact:true}).click()
   await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-history"]')?.textContent.includes('#1'))
   assert.equal(await main.locator('[data-testid="wallet-history"] button').filter({hasText:'#'}).count(),55)
-  await main.getByRole('button',{name:'Team tasks',exact:true}).click()
+  await main.getByRole('button',{name:'Wallet tasks',exact:true}).click()
   await main.locator('[data-testid="wallet-proposal"]').first().getByRole('button',{name:'Details',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
   assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Publicly readable/)
@@ -4568,22 +4587,13 @@ smoke: try {
   await new Promise((r) => setTimeout(r, 300))
   assert.equal(await main.inputValue('[data-testid="daily-executions"]'), '7')
   await main.keyboard.press('Escape')
-  await main.getByTestId('security-approve-others').click()
+  await main.getByTestId('security-approve-login').click()
   await main.fill('[data-testid="approve-request"]', 'binding-token')
   await main.fill('[data-testid="approve-shown"]', 'aaaaa-aa')
-  await main.click('button:has-text("Approve the login"), button:has-text("批准绑定登录")')
+  await main.getByTestId('security-submit').click()
   await approval.waitForSelector('[data-testid="approval-principal"]', { timeout: 20_000 })
   assert.equal(await approval.textContent('[data-testid="approval-principal"]'), 'aaaaa-aa')
   await approval.screenshot({ path: join(shots, 'bind-login.png') })
-  // A pairing request is an approval request too, held and confirmed like a revocation.
-  await main.getByTestId('security-approve-others').click()
-  await main.fill('[data-testid="approve-request"]', 'pairing-token')
-  await main.fill('[data-testid="approve-shown"]', '34'.repeat(32))
-  await main.click('button:has-text("Approve the device"), button:has-text("批准设备加入")')
-  await approval.waitForSelector('[data-testid="approval-device"]', { timeout: 20_000 })
-  assert.equal(await approval.textContent('[data-testid="approval-device"]'), '34'.repeat(32))
-  assert.deepEqual(latest('device/approve').params, { token: 'pairing-token', device: '34'.repeat(32), source: 'gui' })
-  await approval.screenshot({ path: join(shots, 'approval-pair.png') })
   // An approval key is registered through the approval center too; keys
   // can be required only once this device has one.
   await main.waitForSelector('[data-testid="approval-keys"]')
@@ -4777,7 +4787,12 @@ smoke: try {
   await main.waitForSelector('[data-testid="vault-list"]')
   await main.screenshot({ path: join(shots, 'unlock-syncing.png') })
   syncing = false
-  lastSync = { at: Date.now(), error: 'UNAVAILABLE' }
+  // A network failure retries quietly for about a minute before it says so.
+  lastSync = { at: Date.now(), error: 'UNAVAILABLE', failures: 1 }
+  emit('sync/changed')
+  await main.waitForFunction(() => !document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Syncing'))
+  assert.ok(!(await main.textContent('[data-testid="gate-sync"]')).includes('Temporarily unable to update'))
+  lastSync = { at: Date.now(), error: 'UNAVAILABLE', failures: 4 }
   emit('sync/changed')
   await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Temporarily unable to update'))
   assert.equal(await main.locator('[data-testid="gate-sync"]').isDisabled(), false)

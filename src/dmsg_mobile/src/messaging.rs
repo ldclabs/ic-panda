@@ -23,6 +23,24 @@ pub struct LetterDraftInput {
 
 #[uniffi::export]
 impl MobileEngine {
+    /// Local only; the sends an interruption left open, oldest first.
+    pub async fn recoverable_messages(&self) -> Result<Vec<RecoverableMessage>> {
+        self.host
+            .run(|c| {
+                Box::pin(async {
+                    Ok(c.recoverable_intents(dmsg_client::now_ms())?
+                        .into_iter()
+                        .map(|i| RecoverableMessage {
+                            channel: i.channel.clone(),
+                            message: i.into(),
+                        })
+                        .collect())
+                })
+            })
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn saved_attachment(&self, channel: String, sequence: u64) -> Result<ObjectSnapshot> {
         self.object(move |c| {
             Box::pin(async move { c.channel_saved_attachment(&channel, sequence) })

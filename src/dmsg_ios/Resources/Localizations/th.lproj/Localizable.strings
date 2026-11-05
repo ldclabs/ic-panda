@@ -248,8 +248,8 @@
 	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
 	<key>Authorized devices</key>
 	<string>อุปกรณ์ที่ได้รับอนุญาต</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>ป้อนอัตโนมัติจะได้รับเฉพาะรายการเข้าสู่ระบบที่คุณเลือก สแน็ปช็อตจะหมดอายุหลังจาก 24 ชั่วโมง และต้องมีการรับรองความถูกต้องของระบบโดยไม่ขึ้นอยู่กับพื้นที่ทำงาน ชื่อผู้ใช้และชื่อเว็บไซต์อาจปรากฏในคำแนะนำของระบบ</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>การป้อนอัตโนมัติจะได้รับเฉพาะรายการเข้าสู่ระบบที่คุณเลือก และต้องยืนยันตัวตนของระบบแยกจากพื้นที่ทำงาน ขณะที่ dMsg เปิดและปลดล็อกอยู่ สแนปช็อตจะติดตามการเปลี่ยนแปลงของรายการเหล่านั้น หากไม่มีการอัปเดตจะหมดอายุภายใน 24 ชั่วโมง ชื่อผู้ใช้และชื่อเว็บไซต์อาจปรากฏในคำแนะนำของระบบ</string>
 	<key>AutoFill snapshot updated</key>
 	<string>อัปเดตสแนปชอตการป้อนอัตโนมัติแล้ว</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>ยืนยันผลการดำเนินงานเดิม</string>
 	<key>Reconcile original proposal</key>
 	<string>ตกลงข้อเสนอเดิม</string>
-	<key>Reconcile original send</key>
-	<string>กระทบยอดการส่งต้นฉบับ</string>
 	<key>Reconcile original snapshot</key>
 	<string>ปรับภาพสแนปชอตต้นฉบับ</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>งานเหล่านี้เป็นงานสแนปชอตที่สร้างขึ้นบนอุปกรณ์นี้ คำขออนุมัติภายในเดสก์ท็อปจะไม่ซิงโครไนซ์ที่นี่</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>สิ่งเหล่านี้เป็นข้อมูลสำรองที่ได้รับการยืนยันจากอุปกรณ์ของบัญชีของคุณ กู้คืนอย่างชัดเจนเพื่อเก็บสำเนาไว้ในอุปกรณ์นี้</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>การส่งออกเหล่านี้ไม่มีคีย์รูทของบัญชีหรือคีย์การลงนามอุปกรณ์ การเปลี่ยนแปลงรายการแหล่งที่มาจำเป็นต้องมีสแนปชอตใหม่</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>การส่งออกเหล่านี้ไม่มีคีย์รูทของบัญชีหรือคีย์ลงนามของอุปกรณ์ สำเนาในแอปไฟล์จะไม่ติดตามการเปลี่ยนแปลงของไฟล์ต้นฉบับ และต้องสร้างสแนปช็อตใหม่</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>ที่อยู่ native เหล่านี้ยังต้องใช้อุปกรณ์เก่าสำหรับ L1 สมาชิกยังคงกวาดผ่าน L2 ได้เมื่อแต่ละเอาต์พุตมีอายุนานพอ</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

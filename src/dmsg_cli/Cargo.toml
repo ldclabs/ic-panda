@@ -37,11 +37,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2.workspace = true
 tokio = { workspace = true }
-tokio-tungstenite = { workspace = true, features = [
-  "connect",
-  "handshake",
-  "rustls-tls-webpki-roots",
-] }
 toml.workspace = true
 zeroize.workspace = true
 

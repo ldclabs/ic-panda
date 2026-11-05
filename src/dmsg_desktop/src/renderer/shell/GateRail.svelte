@@ -6,7 +6,7 @@
   import { iconButtonClass, buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
   import { when, size } from '../rpc'
-  import { syncState } from '../sync-state'
+  import { syncShown, syncState } from '../sync-state'
   import { lock, nextStep, sync, unlocking } from './session'
 
   /**
@@ -26,7 +26,12 @@
   let requested = $state(false)
   let now = $state(Date.now())
   onMount(() => { const timer = setInterval(() => { now = Date.now() }, 1000); return () => clearInterval(timer) })
-  const syncing = $derived(requested || !!status?.syncing)
+  let syncingSince = $state<number | undefined>()
+  $effect(() => {
+    if (!status?.syncing) syncingSince = undefined
+    else if (syncingSince === undefined) syncingSince = Date.now()
+  })
+  const syncing = $derived(syncShown(status, requested, syncingSince, now))
 
   const session = $derived<string>(status?.state ?? '')
   const unlocked = $derived(session === 'unlocked')

@@ -44,6 +44,7 @@ const MAX_PLANS: usize = 10_000;
 const MAX_REVISIONS: usize = 100_000;
 const SNAPSHOT: &str = "snapshot-through";
 const LAST_SYNC: &str = "last-sync";
+const UPLOAD_HELD: &str = "sync-upload-held";
 
 #[path = "sync_pull.rs"]
 mod pull;
@@ -195,7 +196,7 @@ pub struct LastSync {
     /// Consecutive failed passes, used for bounded automatic backoff.
     #[serde(default)]
     pub failures: u32,
-    /// The earliest automatic retry, or none for a failure requiring action.
+    /// The earliest automatic retry of a failed pass.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry_at: Option<u64>,
 }
@@ -208,19 +209,100 @@ impl LastSync {
             .or((self.error.is_none() && self.upload_error.is_none()).then_some(self.at))
     }
 
-    /// Whether the scheduler may start a pass, including periodic and reconnect triggers.
-    pub fn automatic_at(&self) -> Option<u64> {
-        if self.error.is_none() {
-            return Some(self.at);
+    /// When the scheduler may start a pass, including periodic and reconnect
+    /// triggers. Every failure retries: its cause may be fixed elsewhere.
+    pub fn automatic_at(&self) -> u64 {
+        match &self.error {
+            None => self.at,
+            Some(code) => self
+                .retry_at
+                .unwrap_or_else(|| self.at.saturating_add(retry_delay(code, self.failures))),
         }
-        self.retry_at.or_else(|| {
-            matches!(
-                self.error.as_deref(),
-                Some("UNAVAILABLE" | "NETWORK_UNAVAILABLE" | "EXECUTION_UNKNOWN")
-            )
-            .then_some(self.at.saturating_add(60_000))
-        })
     }
+}
+
+/// Failures of the connection or the relay's moment, which pass by themselves.
+pub(crate) fn transient(code: &str) -> bool {
+    matches!(
+        code,
+        "UNAVAILABLE"
+            | "NETWORK_UNAVAILABLE"
+            | "EXECUTION_UNKNOWN"
+            | "RESULT_EXPIRED"
+            | "POLICY_STALE"
+    )
+}
+
+/// The pause before attempt `failures + 1`, without jitter. Anything but a
+/// transient failure waits long enough not to repeat its work needlessly.
+fn retry_delay(code: &str, failures: u32) -> u64 {
+    if transient(code) {
+        match failures {
+            0 | 1 => 5_000,
+            2 => 15_000,
+            3 => 30_000,
+            n => 60_000u64.saturating_mul(1 << (n - 4).min(3)).min(300_000),
+        }
+    } else {
+        match failures {
+            0 | 1 => 15 * 60_000,
+            2 => 30 * 60_000,
+            _ => 60 * 60_000,
+        }
+    }
+}
+
+/// How far this device has verified the account's content; it moves whenever
+/// a pass, complete or not, applied something.
+///
+/// # Errors
+/// Local storage errors.
+pub fn position(client: &Client) -> Result<u64> {
+    let store = &client.workspace.store;
+    Ok(store
+        .meta(pull::CURSOR)?
+        .or(store.meta(SNAPSHOT)?)
+        .unwrap_or(0))
+}
+
+/// Whether a `content` hint tells this device something new: a device already
+/// past its cursor, usually the one whose version moved it, has nothing to read.
+pub fn hint_is_news(client: &Client, cursor: Option<u64>) -> bool {
+    cursor.is_none_or(|cursor| position(client).is_ok_and(|at| at < cursor))
+}
+
+/// What makes a waiting retry worth starting early.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RetryCause {
+    /// The person unlocked: login and keys may be what the pass lacked.
+    Unlock,
+    /// The connection came back, which only helps a transient failure.
+    Network,
+}
+
+/// Bring a waiting automatic retry forward; a cooldown the relay asked for
+/// stays. Whether there was a retry to bring forward.
+///
+/// # Errors
+/// Local storage errors.
+pub fn retry_early(client: &Client, cause: RetryCause) -> Result<bool> {
+    let Some(mut last) = client.last_sync()? else {
+        return Ok(false);
+    };
+    let now = now_ms();
+    let Some(code) = last.error.as_deref() else {
+        return Ok(false);
+    };
+    let applies = match cause {
+        RetryCause::Unlock => code != "SYNC_BUSY",
+        RetryCause::Network => transient(code),
+    };
+    if !applies || last.automatic_at() <= now {
+        return Ok(false);
+    }
+    last.retry_at = Some(now);
+    client.workspace.store.set_meta(LAST_SYNC, &last)?;
+    Ok(true)
 }
 
 /// Fixed diagnostic names for the steps of an account sync.
@@ -511,7 +593,7 @@ impl Client {
 
     /// Read the relay snapshot, send local versions, and read it again when
     /// anything changed. Locked with a resident device key ("后台在线"),
-    /// it only sends versions that need no reseal and caches ciphertext.
+    /// it only sends versions that need no reseal and reads nothing.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked without a resident key,
@@ -616,7 +698,7 @@ impl Client {
         let now = now_ms();
         if self
             .last_sync()?
-            .is_some_and(|last| last.automatic_at().is_none_or(|at| now < at))
+            .is_some_and(|last| now < last.automatic_at())
             || self
                 .workspace
                 .store
@@ -1035,30 +1117,13 @@ pub async fn sync_observed<H: Hold>(
             } else {
                 0
             };
-            let retry_at = result.as_ref().err().and_then(|e| {
+            let retry_at = result.as_ref().err().map(|e| {
                 if let Some(delay) = crate::transport::retry_after(e) {
-                    return Some(now.saturating_add(delay));
+                    return now.saturating_add(delay);
                 }
-                if matches!(
-                    error.as_deref(),
-                    Some(
-                        "UNAVAILABLE"
-                            | "NETWORK_UNAVAILABLE"
-                            | "EXECUTION_UNKNOWN"
-                            | "RESULT_EXPIRED"
-                            | "POLICY_STALE"
-                    )
-                ) {
-                    let delay = match failures {
-                        0 | 1 => 5_000,
-                        2 => 15_000,
-                        3 => 30_000,
-                        n => 60_000u64.saturating_mul(1 << (n - 4).min(3)).min(300_000),
-                    };
-                    let jitter = delay * u64::from(crate::crypto::random_id()[0]) / 1280;
-                    return Some(now.saturating_add(delay + jitter));
-                }
-                None
+                let delay = retry_delay(&crate::error_code(e), failures);
+                let jitter = delay * u64::from(crate::crypto::random_id()[0]) / 1280;
+                now.saturating_add(delay + jitter)
             });
             c.workspace.store.set_meta(
                 LAST_SYNC,
@@ -1075,7 +1140,14 @@ pub async fn sync_observed<H: Hold>(
             if c.session_state().state == "unlocked" {
                 // Synced encrypted channel preferences must also filter locked
                 // notifications; update the minimal projection while keys exist.
-                c.reconcile_channel_notifications(now)?;
+                // A pass that moved nothing changed no preference, and a failed
+                // one may have committed some before it stopped.
+                if !result
+                    .as_ref()
+                    .is_ok_and(|r| r.changes + r.sent + r.blocked == 0)
+                {
+                    c.reconcile_channel_notifications(now)?;
+                }
                 c.notification_health(now)?;
             }
             Ok(())
@@ -1146,15 +1218,7 @@ async fn sync_once<H: Hold>(
     if unlocked {
         pull::run(h, stage, &mut report).await?;
     } else {
-        report.through = h
-            .with(|c| {
-                Ok(c.workspace
-                    .store
-                    .meta(pull::CURSOR)?
-                    .or(c.workspace.store.meta(SNAPSHOT)?)
-                    .unwrap_or(0))
-            })
-            .await?;
+        report.through = h.with(|c| position(c)).await?;
     }
     stage.stage(SyncStage::Upload);
     let paused = h
@@ -1165,9 +1229,7 @@ async fn sync_once<H: Hold>(
         (0, 0)
     } else {
         let result = push(h).await?;
-        report.upload_error = h
-            .with(|c| c.workspace.store.meta(pull::UPLOAD_BLOCKED))
-            .await?;
+        report.upload_error = h.with(upload_error).await?;
         result
     };
     if unlocked && sent + blocked > 0 {
@@ -1190,6 +1252,121 @@ async fn sync_once<H: Hold>(
     .await
 }
 
+/// The longest wait between passes while the hint channel is connected.
+const HINTED_SYNC_MS: u64 = 15 * dmsg_types::MINUTE;
+/// An edit waits this long for the next one before a pass takes them.
+const EDIT_SETTLE_MS: u64 = 500;
+/// A wait with nothing moving grows to this many intervals.
+const IDLE_INTERVALS: u32 = 5;
+
+/// What a device sees when it asks whether a pass is due.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Moment<'a> {
+    /// Unix milliseconds.
+    pub now: u64,
+    /// The session's account.
+    pub account: Option<&'a str>,
+    /// [`Client::local_change`].
+    pub local_change: u64,
+    /// The latest attempt.
+    pub last: Option<&'a LastSync>,
+    /// The wait between passes when nothing happens; none when zero, which
+    /// also leaves edits for a manual pass.
+    pub interval: u64,
+    /// The hint channel is connected, so a periodic pass backs up a lost hint.
+    pub hinted: bool,
+    /// A hint or a returning network asked for a pass.
+    pub requested: bool,
+    /// Another pass is running.
+    pub running: bool,
+}
+
+/// Whether a pass should start, and for whom.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Due {
+    /// Not now.
+    No,
+    /// Someone waits for it: an edit, a request or a failure's retry. It
+    /// needs the workspace unlocked.
+    Now,
+    /// Only time passed.
+    Periodic,
+}
+
+/// When the next automatic pass is due, for the daemon and the app alike. It
+/// holds no clock and does no I/O: callers say what they see and what ran.
+#[derive(Debug, Default)]
+pub struct Schedule {
+    seen: Option<(Option<String>, u64)>,
+    changed_at: u64,
+    passed_at: u64,
+    idle_rounds: u32,
+    through: Option<u64>,
+}
+
+impl Schedule {
+    /// A schedule starting now counts as having just passed.
+    pub fn new(now: u64) -> Self {
+        Self {
+            passed_at: now,
+            ..Self::default()
+        }
+    }
+
+    /// Whether a pass should start. A failure's retry time holds everything back.
+    pub fn due(&mut self, at: &Moment<'_>) -> Due {
+        let content = (at.account.map(str::to_string), at.local_change);
+        if self.seen.as_ref() != Some(&content) {
+            self.changed_at = at.now;
+            self.seen = Some(content);
+            self.idle_rounds = 0;
+        }
+        if at.last.is_some_and(|last| at.now < last.automatic_at()) {
+            return Due::No;
+        }
+        let edited = at.interval > 0
+            && at.local_change > 0
+            && self.changed_at > self.passed_at
+            && at.now >= self.changed_at + EDIT_SETTLE_MS;
+        let retry = !at.running && at.last.is_some_and(|last| last.error.is_some());
+        if at.requested || edited || retry {
+            return Due::Now;
+        }
+        let wait = if at.interval > 0 && at.hinted {
+            at.interval.max(HINTED_SYNC_MS)
+        } else {
+            at.interval
+                .saturating_mul(u64::from(self.idle_rounds.min(IDLE_INTERVALS - 1) + 1))
+        };
+        let since = self.passed_at.max(at.last.map_or(0, |last| last.at));
+        if wait > 0 && at.now >= since.saturating_add(wait) {
+            Due::Periodic
+        } else {
+            Due::No
+        }
+    }
+
+    /// A pass starts.
+    pub fn started(&mut self, now: u64) {
+        self.passed_at = now;
+    }
+
+    /// A pass ended with what it sent and how far it reached, if it ran. One
+    /// that moved nothing makes the next wait longer; a version the relay
+    /// holds back needs no faster polling, as a new edit resets the wait.
+    pub fn finished(&mut self, report: Option<(usize, u64)>) {
+        self.idle_rounds = match report {
+            Some((0, through)) if self.through == Some(through) => {
+                self.idle_rounds.saturating_add(1)
+            }
+            _ => 0,
+        };
+        if let Some((_, through)) = report {
+            self.through = Some(through);
+        }
+    }
+}
+
 /// Resume an upload blocked by a confirmed resource limit after an owner retry or quota refresh.
 /// # Errors
 /// Local storage errors.
@@ -1201,6 +1378,7 @@ pub fn retry_uploads(client: &mut Client) -> Result<()> {
     {
         return Err(crate::transport::busy(at - now));
     }
+    client.workspace.store.delete_meta(UPLOAD_HELD)?;
     client.workspace.store.delete_meta(pull::UPLOAD_BLOCKED)
 }
 
@@ -1241,12 +1419,66 @@ async fn reconcile<H: Hold>(h: &H) -> Result<()> {
     Ok(())
 }
 
+/// An item the relay refused. Its later versions wait behind it, and the rest
+/// of the queue moves on.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+struct HeldUpload {
+    code: String,
+    attempts: u32,
+    retry_at: u64,
+}
+
+/// A refusal of the version itself, which sending it again soon cannot change.
+/// Everything else concerns the connection or the account and stops the pass.
+fn refuses_version(error: &Error) -> bool {
+    matches!(
+        error,
+        Error::InvalidInput(_)
+            | Error::IntegrityFailed
+            | Error::IdempotencyConflict
+            | Error::NotFound
+            | Error::RecoveryIncomplete
+            | Error::Expired
+    )
+}
+
+fn held_uploads(c: &Client) -> Result<BTreeMap<String, HeldUpload>> {
+    Ok(c.workspace.store.meta(UPLOAD_HELD)?.unwrap_or_default())
+}
+
+fn set_held_uploads(c: &Client, held: &BTreeMap<String, HeldUpload>) -> Result<()> {
+    if held.is_empty() {
+        c.workspace.store.delete_meta(UPLOAD_HELD)
+    } else {
+        c.workspace.store.set_meta(UPLOAD_HELD, held)
+    }
+}
+
+/// Why local versions are not leaving: the account's limit, or a refused item.
+fn upload_error(c: &mut Client) -> Result<Option<String>> {
+    if let Some(code) = c.workspace.store.meta(pull::UPLOAD_BLOCKED)? {
+        return Ok(Some(code));
+    }
+    Ok(held_uploads(c)?.into_values().next().map(|held| held.code))
+}
+
 async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
-    let rows = h
-        .with(|c| ordered(c.workspace.store.objects_in(LOCAL)?))
+    let (rows, mut held) = h
+        .with(|c| {
+            let rows = ordered(c.workspace.store.objects_in(LOCAL)?)?;
+            let mut held = held_uploads(c)?;
+            // An item that no longer waits has nothing left to hold.
+            held.retain(|item, _| rows.iter().any(|row| row.item == *item));
+            set_held_uploads(c, &held)?;
+            Ok((rows, held))
+        })
         .await?;
     let (mut sent, mut blocked) = (0, 0);
+    let now = now_ms();
     for row in rows {
+        if held.get(&row.item).is_some_and(|hold| hold.retry_at > now) {
+            continue;
+        }
         if !h
             .with(|c| {
                 Ok(c.workspace
@@ -1258,9 +1490,18 @@ async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
         {
             continue;
         }
+        let item = row.item.clone();
         match push_one(h, row).await {
-            Ok(true) => sent += 1,
-            Ok(false) => blocked += 1,
+            Ok(accepted) => {
+                if accepted {
+                    sent += 1;
+                } else {
+                    blocked += 1;
+                }
+                if held.remove(&item).is_some() {
+                    h.with(|c| set_held_uploads(c, &held)).await?;
+                }
+            }
             Err(Error::Locked) if h.with(|c| Ok(c.keys.is_none())).await? => {}
             Err(Error::QuotaExceeded) => {
                 h.with(|c| {
@@ -1270,6 +1511,20 @@ async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
                 })
                 .await?;
                 break;
+            }
+            Err(error) if refuses_version(&error) => {
+                let code = crate::error_code(&error);
+                let attempts = held.get(&item).map_or(1, |hold| hold.attempts + 1);
+                let retry_at = now_ms().saturating_add(retry_delay(&code, attempts));
+                held.insert(
+                    item,
+                    HeldUpload {
+                        code,
+                        attempts,
+                        retry_at,
+                    },
+                );
+                h.with(|c| set_held_uploads(c, &held)).await?;
             }
             Err(error) => return Err(error),
         }

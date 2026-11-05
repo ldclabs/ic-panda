@@ -32,7 +32,7 @@ struct DMsgApp: App {
                     guard scenePhase == .active else { return }
                     while !Task.isCancelled {
                         await model.notifications.refresh(model, receive: true)
-                        do { try await Task.sleep(for: .seconds(60)) } catch { break }
+                        do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
                     }
                 }
                 .onChange(of: model.contentRevision) { _, _ in Task { await model.notifications.refresh(model) } }
@@ -47,19 +47,24 @@ struct DMsgApp: App {
                         do { try await Task.sleep(for: .seconds(60)) } catch { break }
                     }
                 }
-                .task(id: "sync-status:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
-                    guard scenePhase == .active, model.unlocked else { return }
-                    while !Task.isCancelled {
-                        await model.updateSyncStatus()
-                        do { try await Task.sleep(for: .seconds(model.contentSync?.running == true ? 1 : 2)) } catch { break }
-                    }
+                // Only leaving the foreground ends the driver, not a passing control center.
+                .task(id: "content-sync:\(scenePhase != .background):\(model.session?.generation ?? 0):\(model.unlocked):\(model.automaticSyncEnabled)") {
+                    guard scenePhase != .background, model.unlocked else { return }
+                    await model.watchContentSync()
                 }
-                .task(id: model.unlocked && model.automaticSyncEnabled && scenePhase == .active) {
-                    guard model.automaticSyncEnabled, model.unlocked, scenePhase == .active else { return }
-                    while !Task.isCancelled {
-                        await model.automaticSyncPass()
-                        do { try await Task.sleep(for: .seconds(2)) } catch { break }
-                    }
+                .task(id: "autofill:\(scenePhase == .active):\(model.unlocked):\(model.contentRevision)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    // Changes come in bursts: the next revision restarts this wait.
+                    do { try await Task.sleep(for: .seconds(2)) } catch { return }
+                    await model.refreshAutoFill()
+                }
+                .task(id: "hints:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    await model.watchHints()
+                }
+                .task(id: "network:\(scenePhase == .active):\(model.unlocked)") {
+                    guard scenePhase == .active, model.unlocked else { return }
+                    await model.watchNetwork()
                 }
                 .task(id: "file-transfers:\(scenePhase == .active):\(model.session?.generation ?? 0):\(model.unlocked)") {
                     guard scenePhase == .active, model.unlocked else { return }
@@ -69,7 +74,7 @@ struct DMsgApp: App {
                     guard scenePhase == .active, model.unlocked else { return }
                     while !Task.isCancelled {
                         await model.maintenancePass()
-                        do { try await Task.sleep(for: .seconds(60)) } catch { break }
+                        do { try await Task.sleep(for: .seconds(model.pollSeconds(60))) } catch { break }
                     }
                 }
                 .onChange(of: scenePhase) { _, phase in

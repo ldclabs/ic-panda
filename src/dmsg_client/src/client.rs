@@ -47,7 +47,7 @@ use candid::Principal;
 use dmsg_types::{
     AccountId, CertifiedBatch, DAY, Environment, Error, Hash, Result, ensure, user::Device,
 };
-use futures_util::future::try_join_all;
+use futures_util::future::{Either, select, try_join_all};
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
 use serde_json::Value as Json;
@@ -60,6 +60,9 @@ use zeroize::Zeroizing;
 /// Fast unlock is refused this long after the last login unlock, as long as
 /// the login lasts.
 pub const FAST_UNLOCK_MS: u64 = 30 * DAY;
+/// How long a fast unlock waits for the network before opening what this
+/// device already verified.
+const FAST_UNLOCK_NETWORK: std::time::Duration = std::time::Duration::from_secs(1);
 /// The login kept sealed under the LDK.
 const KEPT_LOGIN: &str = "login";
 /// The agent connectors' state file in the workspace directory.
@@ -970,6 +973,29 @@ impl Client {
         self.lock();
         self.keys = Some(keys);
         let account = self.account()?.clone();
+        let checked = match select(
+            Box::pin(self.fast_unlock_checks(&account)),
+            Box::pin(futures_timer::Delay::new(FAST_UNLOCK_NETWORK)),
+        )
+        .await
+        {
+            Either::Left((checked, _)) => Some(checked),
+            Either::Right(_) => None,
+        };
+        match checked {
+            Some(checked) => checked?,
+            // Out of time, as when offline: open what this device verified and
+            // let the first sync check security. Only a missing root must wait.
+            None if self.root.is_none() => self.open_root().await?,
+            None => {}
+        }
+        if self.workspace.meta.fast_presence {
+            let _ = self.restore_login().await;
+        }
+        self.status()
+    }
+
+    async fn fast_unlock_checks(&mut self, account: &AccountRef) -> Result<()> {
         match self.refresh_security(account.home, &account.id).await {
             Ok(security) => self.check_revoked(&security)?,
             Err(Error::Unavailable(_)) => {}
@@ -978,11 +1004,7 @@ impl Client {
                 return Err(error);
             }
         }
-        self.open_root().await?;
-        if self.workspace.meta.fast_presence {
-            let _ = self.restore_login().await;
-        }
-        self.status()
+        self.open_root().await
     }
 
     fn invalidate_fast_unlock(&mut self) -> Result<()> {

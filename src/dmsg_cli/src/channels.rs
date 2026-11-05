@@ -1,5 +1,7 @@
-//! Background channel control maintenance. Message bodies are fetched only by
-//! a visible owner view (or an explicit channel/sync call), never by hints alone.
+//! Background channel control maintenance. Message bodies are fetched only for
+//! a visible owner view: the open conversation, or [`catch_up`] for a list on
+//! screen, never by hints alone; a view hears of a channel from the relay's
+//! hint and once more after [`AGAIN`].
 
 use crate::daemon::Daemon;
 use dmsg_client::channel::Reading;
@@ -19,11 +21,11 @@ const TICK: Duration = Duration::from_secs(1);
 const READERS: usize = 4;
 /// Each channel is read at least this often.
 const READ: Duration = Duration::from_secs(600);
-/// A hinted channel is read again after this long, for the messages the
-/// relay did not hint.
+/// A hinted channel is read again after this long, and its view told again,
+/// for the messages the relay did not hint.
 const AGAIN: Duration = Duration::from_secs(6);
-/// A rotation that failed is tried again after this long, and a delivery
-/// cursor goes at most this often.
+/// A rotation that failed is tried again after this long, and the delivery
+/// and read cursors go at most this often.
 const RETRY: Duration = Duration::from_secs(30);
 
 /// A channel this account is a member of.
@@ -31,6 +33,8 @@ struct Joined {
     id: String,
     /// It waits for a rotation this account may coordinate.
     rotate: bool,
+    /// This device took or read messages past what it reported.
+    report: bool,
 }
 
 /// What the loop remembers of a channel.
@@ -40,7 +44,7 @@ struct Seen {
     again: Option<Instant>,
     rotated: Option<Instant>,
     reported: Option<Instant>,
-    /// Messages came since the delivery cursor last went.
+    /// Messages came or were read since the cursors last went.
     unreported: bool,
     running: bool,
     pending: bool,
@@ -78,6 +82,7 @@ pub async fn run(daemon: Arc<Daemon>) {
         seen.retain(|id, state| state.running || channels.iter().any(|c| c.id == *id));
         for channel in &channels {
             let state = seen.entry(channel.id.clone()).or_default();
+            state.unreported |= channel.report;
             if hinted
                 .as_deref()
                 .is_some_and(|h| h == channel.id || h == "*")
@@ -112,6 +117,7 @@ pub async fn run(daemon: Arc<Daemon>) {
                 state.read = Some(Instant::now());
                 if again {
                     state.again = None;
+                    daemon.emit("channel/hint", json!({"id": channel.id}));
                 }
             }
             if rotate_due {
@@ -127,7 +133,7 @@ pub async fn run(daemon: Arc<Daemon>) {
                         .client()
                         .lock()
                         .await
-                        .channel_delivery_due(&channel.id)
+                        .channel_cursor_due(&channel.id)
                         .ok()
                         .flatten()
                         .is_some();
@@ -135,7 +141,10 @@ pub async fn run(daemon: Arc<Daemon>) {
                 let mut reported = None;
                 if unreported && report_due {
                     reported = Some(Instant::now());
-                    unreported = report(&daemon, &channel.id, None).await.is_err();
+                    unreported =
+                        dmsg_client::channel::report_cursor(&daemon.hold(), &channel.id, None)
+                            .await
+                            .is_err();
                 }
                 if rotate_due {
                     rotate(&daemon, &channel.id).await;
@@ -159,32 +168,8 @@ pub async fn run(daemon: Arc<Daemon>) {
     }
 }
 
-/// Report this device's delivery cursor, and the read one when given,
-/// without holding the client; whether one went.
-///
-/// # Errors
-/// Relay errors as returned.
-pub(crate) async fn report(daemon: &Daemon, channel: &str, read: Option<u64>) -> Result<bool> {
-    let due = daemon.client().lock().await.channel_delivery_due(channel)?;
-    let delivered = match (due, read) {
-        (Some(delivered), _) => delivered,
-        (None, Some(_)) => 0,
-        (None, None) => return Ok(false),
-    };
-    daemon
-        .hold()
-        .send(|client| client.channel_cursor_request(channel, delivered, read))
-        .await?;
-    daemon
-        .client()
-        .lock()
-        .await
-        .channel_cursor_settle(channel, delivered)?;
-    Ok(true)
-}
-
-/// The channels this account is a member of and that are not archived,
-/// while unlocked; none otherwise.
+/// The channels this account is a member of and that are not archived, or
+/// that it holds and has yet to read, while unlocked; none otherwise.
 async fn joined(daemon: &Daemon) -> Vec<Joined> {
     let client = daemon.client().lock().await;
     let Some(me) = client
@@ -199,10 +184,18 @@ async fn joined(daemon: &Daemon) -> Vec<Joined> {
         .unwrap_or_default()
         .into_iter()
         .filter_map(|c| {
-            let ledger = c.ledger?;
+            // Another device joined it and nothing read its log here yet.
+            let Some(ledger) = c.ledger else {
+                return (!c.hidden && !c.deletable_legacy_draft).then_some(Joined {
+                    id: c.id,
+                    rotate: false,
+                    report: false,
+                });
+            };
             (ledger.members.contains_key(&me) && ledger.status != Status::Archived).then(|| {
                 Joined {
                     rotate: ledger.status == Status::RotationRequired && may_rotate(&ledger, &me),
+                    report: c.cursor_due,
                     id: c.id,
                 }
             })
@@ -210,11 +203,12 @@ async fn joined(daemon: &Daemon) -> Vec<Joined> {
         .collect()
 }
 
-/// Read a channel's controls and messages; a change is announced with the
-/// count of others' messages that came. Whether messages came, for the
-/// delivery cursor.
+/// Read a channel's controls and messages; a change, including what another
+/// device of this account read, is announced with the count of others'
+/// messages that came. Whether messages came, for the delivery cursor.
 async fn sync(daemon: &Daemon, channel: &str) -> bool {
-    // The log's head and status, the message cursor and the unread count.
+    // The log's head and status, the message cursor, the unread count and
+    // whether the relay holds more.
     let state = |client: &dmsg_client::Client| {
         client
             .channel_view(channel)
@@ -223,6 +217,7 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
                     v.ledger.map(|l| (l.head, l.status)),
                     v.message_cursor,
                     v.unread,
+                    v.news,
                 )
             })
             .unwrap_or_default()
@@ -231,16 +226,23 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
     let Ok(bound) = dmsg_client::hold::Unlocked::new(&shared).await else {
         return false;
     };
-    let Ok((log, cursor, unread)) = bound.with(|c| Ok(state(c))).await else {
+    let Ok((log, cursor, unread, news)) = bound.with(|c| Ok(state(c))).await else {
         return false;
     };
     let _turn = daemon.turn(&format!("channel-read:{channel}")).await;
     let mut reading = Reading::controls(channel);
     let _ = dmsg_client::channel::read(&bound, &mut reading).await;
-    let Ok((log_after, cursor_after, unread_after)) = bound.with(|c| Ok(state(c))).await else {
+    let Ok((log_after, cursor_after, unread_after, news_after)) =
+        bound.with(|c| Ok(state(c))).await
+    else {
         return false;
     };
-    if reading.received > 0 || log_after != log || cursor_after > cursor {
+    if reading.received > 0
+        || log_after != log
+        || cursor_after > cursor
+        || unread_after != unread
+        || news_after != news
+    {
         let view = daemon.client().lock().await.channel_view(channel).ok();
         daemon.emit(
             "channel/changed",
@@ -255,6 +257,22 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
         );
     }
     cursor_after > cursor
+}
+
+/// A list on screen reads ahead a channel with news that is not muted: its
+/// latest page, at most every [`RETRY`].
+pub(crate) async fn catch_up(daemon: &Daemon, channel: &str) -> Result<serde_json::Value> {
+    let shared = daemon.hold();
+    let bound = dmsg_client::hold::Unlocked::new(&shared).await?;
+    let view = bound.with(|c| c.channel_view(channel)).await?;
+    if !view.news || view.muted || view.hidden || !daemon.read_ahead_due(channel, RETRY) {
+        return Ok(json!({"received": 0}));
+    }
+    let _turn = daemon.turn(&format!("channel-read:{channel}")).await;
+    let result = dmsg_client::channel::sync_tail(&bound, channel).await;
+    // A failed later page can still have committed earlier messages.
+    daemon.emit("channel/changed", json!({"id": channel}));
+    Ok(json!({"received": result?.received}))
 }
 
 /// Seal a new epoch to the channel's members without blocking other channels.

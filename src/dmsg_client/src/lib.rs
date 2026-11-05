@@ -31,6 +31,7 @@ pub mod evidence;
 pub mod files;
 pub mod handle;
 pub mod hardware;
+pub mod hint_channel;
 pub mod hold;
 pub mod host;
 pub mod ic;

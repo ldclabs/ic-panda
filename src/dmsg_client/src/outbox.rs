@@ -8,6 +8,8 @@ pub use crate::letters::send_free_letter;
 
 const PREFIX: &str = "send-intent:";
 const LIMIT: usize = 100;
+/// An older send waits for the person, who may no longer mean it.
+const RECOVER_MS: u64 = 24 * 60 * 60 * 1000;
 
 /// A locally sealed message awaiting relay confirmation.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -189,6 +191,25 @@ impl Client {
         self.workspace
             .private_after(self.keys()?, &prefix, &prefix, LIMIT)
     }
+
+    /// Sends in any channel that never reached a verdict, oldest first, to
+    /// submit again under their own IDs. A refusal stays for the person.
+    ///
+    /// # Errors
+    /// Refuses a locked workspace or a corrupt record.
+    pub fn recoverable_intents(&self, now: u64) -> Result<Vec<Intent>> {
+        let mut intents: Vec<Intent> =
+            self.workspace
+                .private_after(self.keys()?, PREFIX, PREFIX, LIMIT)?;
+        intents.retain(|i| {
+            i.created_at.saturating_add(RECOVER_MS) > now
+                && i.error
+                    .as_deref()
+                    .is_none_or(|code| code == "CANCELLED" || crate::sync::transient(code))
+        });
+        intents.sort_by_key(|i| i.created_at);
+        Ok(intents)
+    }
 }
 
 impl Intent {
@@ -296,5 +317,38 @@ mod tests {
         assert!(pending[0].attempted);
         client.lock();
         assert_eq!(client.message_intents(&channel), Err(Error::Locked));
+    }
+
+    #[test]
+    fn only_recent_sends_without_a_verdict_are_recovered_and_oldest_first() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let (first, second) = ("a1".repeat(32), "b2".repeat(32));
+        joined_channel(&mut client, &first);
+        joined_channel(&mut client, &second);
+        let stored = |channel: &str, created_at: u64, error: Option<&str>| {
+            let mut intent = client.queue_message(channel, "text").unwrap();
+            intent.created_at = created_at;
+            intent.error = error.map(str::to_string);
+            let keys = client.keys().unwrap();
+            client
+                .workspace
+                .put_private(keys, &intent.key(), &intent)
+                .unwrap();
+            intent.id
+        };
+        let now = RECOVER_MS * 2;
+        let later = stored(&first, now - 1, Some("NETWORK_UNAVAILABLE"));
+        let earlier = stored(&second, now - 2, None);
+        let interrupted = stored(&first, now - 3, Some("CANCELLED"));
+        stored(&first, now - 4, Some("DEVICE_NOT_APPROVED"));
+        stored(&first, now - RECOVER_MS, None);
+        let ids: Vec<String> = client
+            .recoverable_intents(now)
+            .unwrap()
+            .into_iter()
+            .map(|i| i.id)
+            .collect();
+        assert_eq!(ids, [interrupted, earlier, later]);
     }
 }

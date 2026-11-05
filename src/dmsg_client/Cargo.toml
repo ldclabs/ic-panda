@@ -22,7 +22,7 @@ cbor2.workspace = true
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true
-futures-util = { workspace = true, features = ["std"] }
+futures-util = { workspace = true, features = ["sink", "std"] }
 getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
 hkdf.workspace = true
@@ -57,6 +57,11 @@ url.workspace = true
 zeroize.workspace = true
 zip.workspace = true
 tokio.workspace = true
+tokio-tungstenite = { workspace = true, features = [
+  "connect",
+  "handshake",
+  "rustls-tls-webpki-roots",
+] }
 toml09.workspace = true
 
 [features]

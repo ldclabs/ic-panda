@@ -224,6 +224,9 @@ mod tests {
             approval_turn: Arc::default(),
             read_turns: Arc::default(),
             sync_tracker: Arc::default(),
+            hints_redial: Arc::default(),
+            sync_signal: Arc::default(),
+            plan_checked: Arc::default(),
             transfers: Arc::default(),
         })
     }

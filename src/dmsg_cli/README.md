@@ -544,12 +544,15 @@ remain available. A dedicated content loop is independent of mailbox, backup
 and mount maintenance. Status includes `syncing` and the last sync error; the log's
 `sync/pass` records each pass's duration and failed stage without content or
 identifiers; `last_sync.stage` also identifies that step. An unlocked account
-automatically retries `NETWORK_UNAVAILABLE`, `UNAVAILABLE` and `EXECUTION_UNKNOWN` failures after
-60 seconds, even with periodic sync disabled. The content loop checks every
-second and wakes immediately on unlock or a content hint. After waiting for a
-previous pass it rechecks that pass's server deadline and session state.
-Success clears the failure. Locking pauses these retries; integrity,
-permission and other permanent failures require attention rather than retrying.
+automatically retries every failed pass, even with periodic sync disabled: a
+network failure after 5, 15 and 30 seconds, then doubling from a minute up to
+five, and any other failure after 15 to 60 minutes. A cooldown the relay asked
+for always stands; a returning network or an unlock otherwise starts the retry
+at once. The content loop checks every second and wakes immediately on unlock
+or a content hint. After waiting for a previous pass it rechecks that pass's
+server deadline and session state. Success clears the failure, and locking
+pauses these retries. `dmsg_client::sync::Schedule` decides when a pass is due,
+for this loop and the iOS app alike.
 Every write waits for the next sync pass (`dmsg sync`, the scheduled sync, or
 the one after unlock); `status` shows pending versions and conflict copies.
 An edit that lost a race is kept as a conflict copy on every
@@ -803,7 +806,14 @@ to this account; the device keeps the last state it verified.
 
 The channel loop reads up to four independent channels concurrently and
 prioritizes hints over periodic reads. A hint during a read queues another
-pass; the follow-up for the relay's five-second hint window remains.
+pass; the follow-up for the relay's five-second hint window remains. These
+reads take controls and how far messages reach, not their bodies: `channel/list`
+reports `news` and `active_at`, and `channel/catch_up`, which a list on screen
+calls, reads a channel with news that is not muted, at most its latest page and
+at most every 30 seconds. The same loop reports each channel's delivery cursor
+and this account's read position (`seen`) at most every 30 seconds; another
+device's `read` hint or next read of the head takes that position and recounts
+what is unread. Read receipts stay a separate choice.
 Inviting and rotating hold only the channel's control-operation turn, so
 other channels and local reads remain responsive during network waits.
 The desktop opens cached messages immediately and refreshes the selected
@@ -1217,7 +1227,7 @@ The daemon listens on `127.0.0.1` only.
   `{seq, type, data}`: `session/changed`, `login/changed`, `vault/changed`,
   `files/changed`,
   `files/progress {path, done, total}`, `files/open_changed`,
-  `files/mount_changed`, `sync/changed`, `sync/progress`, `profile/changed`,
+  `files/mount_changed`, `sync/changed`, `sync/finished`, `sync/progress`, `profile/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `channel/read`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`,
@@ -1246,7 +1256,7 @@ The daemon listens on `127.0.0.1` only.
   message ID at a time. Login binding, recovery, device pairing, channel
   controls, payments, names, other approved requests carrying themselves
   out, unlocking, login checks and the legacy migration still wait under it.
-- Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
+- Methods: `app/initialize {activity?}`, `app/activity`, `app/network`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
   `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay|recovery_policy`,
@@ -1577,13 +1587,24 @@ blocks. Backup, restore and direct cloud-file reads remain explicit user actions
 `sync/run` establishes a resumable full snapshot on initialization, recovery or
 the first upgrade of a workspace. Later passes read only changes after the
 verified content cursor; an idle pass creates no export. `sync/status` retains
-pending versions and the last successful time even after a failure. `last_sync`
-includes `retry_at` for automatic retries and `upload_error` when storage limits
-pause uploads while receiving continues. `sync/run` is an owner retry; it can
-resume uploads but still honors a server busy deadline. The upload gate is
-cleared after taking the sync turn, so a preceding automatic pass cannot undo
-the owner's retry. Simultaneous callers share a successful pass when its scope
-is sufficient and no local work still needs sending.
+pending versions and the last successful time even after a failure. Every
+failure retries by itself: `last_sync.retry_at` follows a quick backoff for
+network failures and 15, 30 and then 60 minutes for anything else. An unlock
+retries at once unless the relay asked for a cooldown; a wake, a network change
+(`app/network` from the desktop) or the hint channel reconnecting does the same
+for network failures, and redials the hint channel.
+
+`last_sync.upload_error` says why local versions wait while receiving continues:
+a storage limit pauses every upload, and a version the relay refuses on its own
+merits holds back only its item, retried on the same 15 to 60 minute schedule,
+under that refusal's error code. `sync/run` is an owner retry; it resumes both
+but still honors a server busy deadline. The upload gate is cleared after taking
+the sync turn, so a preceding automatic pass cannot undo the owner's retry.
+Simultaneous callers share a successful pass when its scope is sufficient and no
+local work still needs sending.
+
+`sync/finished` ends every pass, for status displays. `sync/changed` follows only
+when the pass moved content a view shows, so an idle round reloads nothing.
 
 `status` and `sync/status` include `sync_initialized` (the first verified local
 baseline) and `sync_progress` (stage, entries, total, downloaded bytes and page

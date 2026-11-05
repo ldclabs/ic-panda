@@ -63,7 +63,8 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    if refreshing || !messagesKnown && !loadFailed {
+                    // Saved messages stay on screen without comment while newer ones arrive.
+                    if shownMessages.isEmpty && (refreshing || !messagesKnown && !loadFailed) {
                         ProgressView("Syncing…").accessibilityIdentifier("conversation.loading")
                     }
                     if loadFailed || refreshFailed {
@@ -89,7 +90,7 @@ struct ConversationView: View {
                             .onAppear { visibleParticipants.insert(message.account) }
                             .reminderVisible(.channel(channel.id), watermark: message.sequence,
                                 ready: query.isEmpty && !message.unreadable && message.id == shownMessages.last?.id) {
-                                try? await model.engine?.markRead(channel: channel.id, through: message.sequence)
+                                await model.channelRead(channel.id, through: message.sequence)
                             }
                             .id(message.id).accessibilityIdentifier("message.row.\(message.sequence)").contextMenu {
                             if !message.hidden && !message.unreadable && !message.retracted {
@@ -125,7 +126,7 @@ struct ConversationView: View {
                             }
                             if let name = pending.attachmentName { Label(name, systemImage: "doc") }
                             if !model.messageSending.contains(pending.id) {
-                                Button(LocalizedStringKey(pending.attempted ? "Reconcile original send" : "Send queued message")) {
+                                Button(LocalizedStringKey(pending.attempted ? "Retry" : "Send queued message")) {
                                     model.deliverMessage(channel: channel.id, item: pending)
                                 }.accessibilityIdentifier("message.retry.\(pending.id)")
                             }
@@ -220,9 +221,10 @@ struct ConversationView: View {
                 guard !model.concealed else { return }
                 while !Task.isCancelled {
                     await refreshMessages()
-                    do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                    do { try await Task.sleep(for: .seconds(model.hintsConnected ? 120 : 30)) } catch { break }
                 }
             }
+            .onChange(of: model.channelHints[channel.id]) { _, _ in Task { await refreshMessages() } }
             .task(id: "attachments:\(channel.id):\(model.epoch):\(model.concealed)") {
                 guard !model.concealed, let engine = model.engine else { return }
                 while !Task.isCancelled {
@@ -232,7 +234,7 @@ struct ConversationView: View {
                         try await coreOperation { try await engine.refreshChannelAttachments(channel: channel.id, operation: $0) }
                         if !Task.isCancelled { await load() }
                     } catch { /* Keep saved metadata; retry on the next visible pass. */ }
-                    do { try await Task.sleep(for: .seconds(30)) } catch { break }
+                    do { try await Task.sleep(for: .seconds(model.hintsConnected ? 120 : 30)) } catch { break }
                 }
             }
             .onChange(of: draft) { _, value in

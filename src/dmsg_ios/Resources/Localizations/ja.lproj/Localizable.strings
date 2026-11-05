@@ -248,8 +248,8 @@
 	<string>認可されたデバイス</string>
 	<key>Authorized devices</key>
 	<string>認可されたデバイス</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>オートフィルは、選択したログイン項目のみを受け取ります。スナップショットは 24 時間後に期限切れになり、ワークスペースとは関係なくシステム認証が必要になります。ユーザー名と Web サイト名がシステムの提案に表示される場合があります。</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>自動入力は選択したログイン項目のみを受け取り、ワークスペースとは別にシステム認証を必要とします。dMsg を開いてロックを解除している間、スナップショットはそれらの項目の変更に追従します。更新されない場合は 24 時間後に期限切れになります。ユーザー名と Web サイト名はシステムの候補に表示されることがあります。</string>
 	<key>AutoFill snapshot updated</key>
 	<string>自動入力スナップショットが更新されました</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>元の操作を調整する</string>
 	<key>Reconcile original proposal</key>
 	<string>当初の提案を調整する</string>
-	<key>Reconcile original send</key>
-	<string>元の送信を調整する</string>
 	<key>Reconcile original snapshot</key>
 	<string>元のスナップショットを調整する</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>これらは、このデバイス上で作成されたスナップショット ジョブです。デスクトップとローカルの承認リクエストはここでは同期されません。</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>これらは、アカウントのデバイスからの検証済みのバックアップです。このデバイスにコピーを保存するには、明示的に復元します。</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>これらのエクスポートには、アカウント ルート キーやデバイス署名キーが含まれることはありません。ソース項目を変更するには、新しいスナップショットが必要です。</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>これらのエクスポートにアカウントのルートキーやデバイスの署名鍵が含まれることはありません。「ファイル」App のコピーは元のファイルの変更に追従しないため、新しいスナップショットが必要です。</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>これらのネイティブアドレスの L1 には引き続き古いデバイスが必要です。各出力が十分に古くなれば、メンバーは L2 経由で移せます。</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

@@ -35,6 +35,8 @@ pub(crate) const METHODS: [&str; 8] = [
 
 /// Fetch this often while unlocked; a hint or a waiting reader fetches sooner.
 const FETCH_MS: u64 = 60_000;
+/// How seldom while the hint channel carries the wakeups.
+const FETCH_HINTED_MS: u64 = 300_000;
 /// Fetch passes are at least this far apart.
 const SPACING_MS: u64 = 2_000;
 /// A reader waits at most this long for a delivery.
@@ -123,8 +125,13 @@ impl McpEvents {
 /// Fetch for as long as the daemon runs.
 pub(crate) async fn run(daemon: Arc<Daemon>) {
     loop {
+        let every = if daemon.hints_connected() {
+            FETCH_HINTED_MS
+        } else {
+            FETCH_MS
+        };
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_millis(FETCH_MS)) => {}
+            _ = tokio::time::sleep(Duration::from_millis(every)) => {}
             _ = daemon.mcp().wake.notified() => {}
         }
         if daemon.stopping() {

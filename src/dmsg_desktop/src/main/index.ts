@@ -17,6 +17,7 @@ import {
   Menu,
   nativeImage,
   nativeTheme,
+  net,
   Notification,
   powerMonitor,
   shell,
@@ -836,6 +837,14 @@ async function openNotice(account: string, target: NoticeTarget, id?: string, na
   showMain(target.kind === 'summary' ? `${noticeRoute(target)}&account=${account}` : noticeRoute(target))
 }
 
+/** How often the main process looks for a returning connection; Electron has no event for it. */
+const NETWORK_POLL_MS = 10_000
+
+/** A wake or a returning connection ends the daemon's waits for the network. */
+function networkReturned() {
+  if (daemon.connected) daemon.call('app/network').catch(() => {})
+}
+
 /** One serialized native consumer; no renderer can call next/result/context. */
 const refreshNotices = single(async () => {
   if (!daemon.connected || quitting) return
@@ -1045,7 +1054,7 @@ function updateTray(state: string) {
 daemon.on('event', (event: DaemonEvent) => {
   if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
   broadcast('dmsg:event', event)
-  if (['notifications/changed', 'session/changed', 'resync', 'sync/changed'].includes(event.type)) {
+  if (['notifications/changed', 'session/changed', 'resync', 'sync/changed', 'sync/finished'].includes(event.type)) {
     noticeEpoch++
     if (event.type === 'session/changed' || event.type === 'resync') noticeViewports.clear()
     void refreshNotices()
@@ -1116,7 +1125,13 @@ app.whenReady().then(async () => {
     respond(permission !== 'media' || (!!main && contents === main.webContents && details.isMainFrame === true && 'mediaTypes' in details && details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'video')))
   powerMonitor.on('lock-screen', () => { screenLocked = true; noticeViewports.clear(); noticeEpoch++; void refreshNotices() })
   powerMonitor.on('unlock-screen', () => { screenLocked = false; noticeEpoch++; void refreshNotices() })
-  powerMonitor.on('resume', () => { noticeEpoch++; void refreshNotices() })
+  powerMonitor.on('resume', () => { noticeEpoch++; void refreshNotices(); networkReturned() })
+  let online = net.isOnline()
+  setInterval(() => {
+    const now = net.isOnline()
+    if (now && !online) networkReturned()
+    online = now
+  }, NETWORK_POLL_MS).unref()
   if (process.platform === 'win32') Notification.handleActivation((details) => {
     const match = /^dmsg-notice:([A-Za-z0-9_-]{16})$/.exec(details.arguments)
     if (!match) { noticeActivation = 'unknown'; showMain('/reminders?ended=1'); return }

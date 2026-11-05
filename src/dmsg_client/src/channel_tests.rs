@@ -1659,7 +1659,7 @@ async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claim
             assert_eq!(local.message, 0);
             assert_eq!(local.recent, Some((999_980, 1_000_000)));
             assert_eq!(local.skipped[&1], (999_981, 1_000_000));
-            assert_eq!(c.channel_delivery_due(&channel)?, None);
+            assert_eq!(c.channel_cursor_due(&channel)?, None);
             let page = c.channel_message_page(&channel, u64::MAX, 100)?;
             assert!(page.items.is_empty() && page.has_more);
             assert_eq!(page.next_before, Some(999_981));
@@ -1691,13 +1691,37 @@ async fn a_large_cold_channel_reads_the_tail_then_one_history_page_without_claim
         h.replies
             .lock()
             .unwrap()
-            .extend([head, page(1_000_000, 1_000_003, 1_000_003)]);
+            .extend([head.clone(), page(1_000_000, 1_000_003, 1_000_003)]);
         assert_eq!(sync_recent(&h, &channel).await.unwrap().through, 1_000_003);
         assert!(h.replies.lock().unwrap().is_empty());
         assert_eq!(
-            h.with(|c| c.channel_delivery_due(&channel)).await.unwrap(),
-            None
+            h.with(|c| c.channel_cursor_due(&channel)).await.unwrap(),
+            Some((0, 1_000_000))
         );
+        if !with_hint {
+            continue;
+        }
+
+        // The list knows of messages before they arrive, and a tail read
+        // takes one page however many came.
+        let view = h.with(|c| c.channel_view(&channel)).await.unwrap();
+        assert!(!view.news);
+        let mut ahead = head.clone();
+        ahead["capacity"]["messages"]["used"] = json!(1_000_100);
+        h.replies.lock().unwrap().push_back(ahead.clone());
+        read(&h, &mut Reading::controls(&channel)).await.unwrap();
+        assert!(h.replies.lock().unwrap().is_empty());
+        let view = h.with(|c| c.channel_view(&channel)).await.unwrap();
+        assert!(view.news && view.active_at > 0);
+        h.replies
+            .lock()
+            .unwrap()
+            .extend([ahead, page(1_000_080, 1_000_100, 1_000_100)]);
+        assert_eq!(sync_tail(&h, &channel).await.unwrap().through, 1_000_100);
+        assert!(h.replies.lock().unwrap().is_empty());
+        let view = h.with(|c| c.channel_view(&channel)).await.unwrap();
+        assert!(!view.news);
+        assert_eq!(view.history_before, Some(1_000_081));
     }
 }
 
@@ -1733,7 +1757,7 @@ fn cached_history_does_not_bridge_a_gap_and_merges_into_the_complete_prefix() {
             .items
             .is_empty()
     );
-    assert_eq!(client.channel_delivery_due(&channel).unwrap(), Some(20));
+    assert_eq!(client.channel_cursor_due(&channel).unwrap(), Some((20, 0)));
 
     local.received(60, 80);
     assert_eq!(local.recent, Some((60, 100)));
@@ -1755,7 +1779,7 @@ fn cached_history_does_not_bridge_a_gap_and_merges_into_the_complete_prefix() {
     assert_eq!(page.items.len(), 80);
     assert!(!page.has_more);
     assert_eq!(page.next_before, None);
-    assert_eq!(client.channel_delivery_due(&channel).unwrap(), Some(100));
+    assert_eq!(client.channel_cursor_due(&channel).unwrap(), Some((100, 0)));
 }
 
 #[test]

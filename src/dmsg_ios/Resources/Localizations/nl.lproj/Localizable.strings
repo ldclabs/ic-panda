@@ -248,8 +248,8 @@
 	<string>Geautoriseerd apparaat</string>
 	<key>Authorized devices</key>
 	<string>Geautoriseerde apparaten</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Automatisch aanvullen ontvangt alleen de inlogitems die je selecteert. De momentopname verloopt na 24 uur en vereist systeemauthenticatie, onafhankelijk van de werkruimte. Gebruikersnamen en websitenamen kunnen verschijnen in systeemsuggesties.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Automatisch invullen ontvangt alleen de inloggegevens die je selecteert en vereist systeemverificatie, los van de werkruimte. Zolang dMsg open en ontgrendeld is, volgt de momentopname wijzigingen in die items; zonder update verloopt ze na 24 uur. Gebruikersnamen en websitenamen kunnen in systeemsuggesties verschijnen.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Momentopname van Automatisch aanvullen bijgewerkt</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Bevestig het resultaat van de oorspronkelijke bewerking</string>
 	<key>Reconcile original proposal</key>
 	<string>Origineel voorstel afstemmen</string>
-	<key>Reconcile original send</key>
-	<string>Oorspronkelijke verzending afstemmen</string>
 	<key>Reconcile original snapshot</key>
 	<string>Originele momentopname afstemmen</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Dit zijn momentopnametaken die op dit apparaat zijn gemaakt. Desktop-lokale goedkeuringsverzoeken worden hier niet gesynchroniseerd.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Dit zijn geverifieerde back-ups van de apparaten van je account. Herstel expliciet om een ​​kopie op dit apparaat te bewaren.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Deze exports bevatten nooit accounthoofdsleutels of apparaatondertekeningssleutels. Wijzigingen in de bronitems vereisen een nieuwe momentopname.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Deze exports bevatten nooit hoofdsleutels van het account of ondertekeningssleutels van het apparaat. Kopieën in de app Bestanden volgen wijzigingen in de bronbestanden niet; daarvoor is een nieuwe momentopname nodig.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Deze native adressen blijven het oude apparaat nodig hebben voor L1. De leden kunnen ze nog via L2 overhevelen zodra elke output oud genoeg is.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

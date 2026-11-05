@@ -72,3 +72,52 @@ test('disconnection before a queued turn retains its draft without publishing in
   assert.ok(uncertainSend(rows[1]))
   assert.equal(uncertainSend({ ...item('refused'), error: 'FORBIDDEN' }), false)
 })
+
+test('a returning connection resends failed sends without a verdict under their own IDs', async () => {
+  let rows: Delivery[] = [], online = true
+  const queue = new MessageDeliveries(next => { rows = next }, () => online)
+  const sent: string[] = []
+  let fail: Record<string, string> = { lost: 'NETWORK_UNAVAILABLE', refused: 'DEVICE_NOT_APPROVED' }
+  const work = (id: string) => async () => {
+    sent.push(id)
+    if (fail[id]) throw { code: fail[id] }
+    return { message: { seq: sent.length } }
+  }
+  await queue.submit('channel', item('lost'), async () => {}, work('lost'))
+  await queue.submit('channel', item('refused'), async () => {}, work('refused'))
+  assert.deepEqual(rows.map(row => row.state), ['failed', 'failed'])
+  fail = {}
+
+  const later = Date.now() + 31_000
+  queue.resume(Date.now())
+  online = false
+  queue.resume(later)
+  await setImmediate()
+  assert.deepEqual(sent, ['lost', 'refused'], 'too soon, or still offline')
+
+  online = true
+  queue.resume(later)
+  await setImmediate()
+  await setImmediate()
+  assert.deepEqual(sent, ['lost', 'refused', 'lost'], 'a refusal stays for the person')
+  assert.deepEqual(rows.map(row => row.state), ['confirmed', 'failed'])
+
+  queue.resume(later + 25 * 60 * 60 * 1000)
+  await setImmediate()
+  assert.equal(sent.length, 3)
+})
+
+test('a send from an earlier run is adopted once and only while recent and undecided', () => {
+  let online = true
+  const queue = new MessageDeliveries(() => {}, () => online)
+  const now = Date.now(), recent = { ...item('recent'), created_at: now - 1000 }
+  assert.equal(queue.adopt('channel', recent, now), true)
+  assert.equal(queue.adopt('channel', recent, now), false)
+  assert.equal(queue.adopt('channel', { ...item('old'), created_at: now - 25 * 60 * 60 * 1000 }, now), false)
+  assert.equal(queue.adopt('channel', { ...item('refused'), created_at: now, error: 'DEVICE_NOT_APPROVED' }, now), false)
+  online = false
+  const waiting = { ...item('waiting'), created_at: now }
+  assert.equal(queue.adopt('channel', waiting, now), false)
+  online = true
+  assert.equal(queue.adopt('channel', waiting, now), true, 'the daemon was away, so this send is still open')
+})

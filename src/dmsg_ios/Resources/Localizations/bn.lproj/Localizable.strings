@@ -248,8 +248,8 @@
 	<string>অনুমোদিত ডিভাইস</string>
 	<key>Authorized devices</key>
 	<string>অনুমোদিত ডিভাইস</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>অটোফিল শুধুমাত্র আপনার নির্বাচিত লগইন আইটেমগুলি পায়৷ স্ন্যাপশট 24 ঘন্টা পরে মেয়াদ শেষ হয় এবং কর্মক্ষেত্র থেকে স্বাধীনভাবে সিস্টেম প্রমাণীকরণ প্রয়োজন। ব্যবহারকারীর নাম এবং ওয়েবসাইটের নামগুলি সিস্টেমের পরামর্শগুলিতে উপস্থিত হতে পারে৷</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>অটোফিল শুধু আপনার বেছে নেওয়া লগইন আইটেম পায় এবং ওয়ার্কস্পেস থেকে আলাদাভাবে সিস্টেম প্রমাণীকরণ প্রয়োজন। dMsg খোলা ও আনলক থাকা অবস্থায় স্ন্যাপশট ওই আইটেমগুলোর পরিবর্তন অনুসরণ করে; আপডেট না হলে ২৪ ঘণ্টা পরে এর মেয়াদ শেষ হয়। ব্যবহারকারীর নাম ও ওয়েবসাইটের নাম সিস্টেমের পরামর্শে দেখা যেতে পারে।</string>
 	<key>AutoFill snapshot updated</key>
 	<string>অটোফিল স্ন্যাপশট আপডেট করা হয়েছে৷</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>মূল অপারেশন এর ফলাফল নিশ্চিত করুন</string>
 	<key>Reconcile original proposal</key>
 	<string>মূল প্রস্তাব পুনর্মিলন</string>
-	<key>Reconcile original send</key>
-	<string>মূল পাঠান পুনর্মিলন</string>
 	<key>Reconcile original snapshot</key>
 	<string>মূল স্ন্যাপশট পুনর্মিলন</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>এগুলি এই ডিভাইসে তৈরি করা স্ন্যাপশট কাজ৷ ডেস্কটপ-স্থানীয় অনুমোদনের অনুরোধ এখানে সিঙ্ক্রোনাইজ করা হয় না।</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>এগুলি আপনার অ্যাকাউন্টের ডিভাইসগুলি থেকে যাচাইকৃত ব্যাকআপ৷ এই ডিভাইসে একটি অনুলিপি রাখতে স্পষ্টভাবে পুনরুদ্ধার করুন।</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>এই এক্সপোর্টগুলিতে কখনই অ্যাকাউন্ট রুট কী বা ডিভাইস সাইনিং কী থাকে না। উৎস আইটেম পরিবর্তন একটি নতুন স্ন্যাপশট প্রয়োজন.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>এই এক্সপোর্টগুলোতে কখনও অ্যাকাউন্টের রুট কী বা ডিভাইসের স্বাক্ষর কী থাকে না। Files অ্যাপের কপিগুলো উৎস ফাইলের পরিবর্তন অনুসরণ করে না; সেগুলোর জন্য নতুন স্ন্যাপশট দরকার।</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>এই নেটিভ ঠিকানাগুলোর L1-এর জন্য পুরনো ডিভাইস দরকার থাকবে। প্রতিটি আউটপুট যথেষ্ট পুরনো হলে সদস্যরা এগুলো L2 দিয়ে সরাতে পারবে।</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

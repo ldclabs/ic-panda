@@ -61,8 +61,10 @@ struct DisplayLoadStatus: View {
     let retry: () -> Void
 
     var body: some View {
-        if state.refreshing { ProgressView("Syncing…").controlSize(.small) }
-        if state.stale, let observed = state.observed {
+        // Saved values stay on screen without comment while they refresh; their
+        // age matters only once a refresh failed.
+        if state.refreshing && !state.loaded { ProgressView("Syncing…").controlSize(.small) }
+        if state.stale, state.failed, let observed = state.observed {
             HStack { Text("Saved on this device"); Text(observed, style: .relative) }
                 .font(.caption).foregroundStyle(.secondary)
         }

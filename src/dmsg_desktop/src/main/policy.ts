@@ -243,6 +243,7 @@ export const WINDOW_METHODS = new Set([
   'channel/queue',
   'channel/send_file',
   'channel/sync',
+  'channel/catch_up',
   'channel/messages',
   'channel/message_page',
   'channel/earlier',

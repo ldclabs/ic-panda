@@ -5,6 +5,7 @@ export interface Outgoing {
   sending?: boolean
   queued?: boolean
   error?: string
+  created_at?: number
 }
 
 export interface Delivery extends Outgoing {
@@ -13,6 +14,11 @@ export interface Delivery extends Outgoing {
   message?: any
 }
 
+/** An older send waits for the person, who may no longer mean it. */
+const RECOVER_MS = 24 * 60 * 60 * 1000
+/** A connection that keeps failing is not asked again on every event. */
+const RESUME_GAP_MS = 30_000
+
 /** Session-owned sends. Navigation releases views, not their delivery queue. */
 export class MessageDeliveries {
   revision = 0
@@ -20,6 +26,8 @@ export class MessageDeliveries {
   private rows: Delivery[] = []
   private jobs = new Map<string, Promise<void>>()
   private tails = new Map<string, { key: string; task: Promise<void> }>()
+  private attempts = new Map<string, { item: Outgoing; prepare: () => Promise<unknown>; work: () => Promise<{ message: any }>; at: number; born: number }>()
+  private adopted = new Set<string>()
   private changed: (rows: Delivery[]) => void
   private ready: () => boolean
 
@@ -33,6 +41,8 @@ export class MessageDeliveries {
     const running = this.jobs.get(key)
     if (running) return running
     const generation = this.generation, previous = this.tails.get(channel)?.task
+    const now = Date.now()
+    this.attempts.set(key, { item, prepare, work, at: now, born: this.attempts.get(key)?.born ?? item.created_at ?? now })
     const pending: Delivery = { ...item, channel, state: 'queued', queued: true, sending: false, error: undefined }
     this.put(pending)
     // Every intent is journaled immediately, including messages waiting for
@@ -53,6 +63,7 @@ export class MessageDeliveries {
         const result = await work()
         if (generation !== this.generation) return
         if (!result?.message || typeof result.message.seq !== 'number') throw { code: 'INTEGRITY_FAILED' }
+        this.attempts.delete(key)
         this.put({ ...pending, state: 'confirmed', queued: false, sending: false, message: result.message })
         const completed = this.rows.filter(row => row.state === 'confirmed')
         if (completed.length > 100) {
@@ -76,6 +87,25 @@ export class MessageDeliveries {
     return task
   }
 
+  /** The connection returned: failed sends without a verdict go again under their own IDs. */
+  resume(now = Date.now()) {
+    if (!this.ready()) return
+    for (const row of this.rows) {
+      const key = `${row.channel}:${row.message_id}`, attempt = this.attempts.get(key)
+      if (row.state !== 'failed' || !attempt || !uncertainSend(row)) continue
+      if (now - attempt.born >= RECOVER_MS || now - attempt.at < RESUME_GAP_MS) continue
+      void this.submit(row.channel, attempt.item, attempt.prepare, attempt.work)
+    }
+  }
+
+  /** A send left in the outbox by an earlier run is picked up once, when its channel opens. */
+  adopt(channel: string, item: Outgoing, now = Date.now()) {
+    const key = `${channel}:${item.message_id}`
+    if (!this.ready() || this.adopted.has(key) || this.attempts.has(key) || this.jobs.has(key)) return false
+    this.adopted.add(key)
+    return uncertainSend(item) && item.created_at !== undefined && now - item.created_at < RECOVER_MS
+  }
+
   /** Only snapshots started after confirmation may replace the ACK's rows. */
   loaded(channel: string, sequences: number[], since: number) {
     if (since !== this.revision) return
@@ -86,13 +116,14 @@ export class MessageDeliveries {
 
   discard(channel: string, id: string) {
     if (this.jobs.has(`${channel}:${id}`)) return
+    this.attempts.delete(`${channel}:${id}`)
     this.rows = this.rows.filter(row => row.channel !== channel || row.message_id !== id)
     this.publish()
   }
 
   reset() {
     this.generation++
-    this.jobs.clear(); this.tails.clear(); this.rows = []
+    this.jobs.clear(); this.tails.clear(); this.attempts.clear(); this.adopted.clear(); this.rows = []
     this.publish()
   }
 

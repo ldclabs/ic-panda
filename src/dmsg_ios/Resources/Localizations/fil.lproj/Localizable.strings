@@ -248,8 +248,8 @@
 	<string>Awtorisadong device</string>
 	<key>Authorized devices</key>
 	<string>Mga awtorisadong device</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Ang AutoFill ay tumatanggap lamang ng mga item sa pag-log in na iyong pinili. Mag-e-expire ang snapshot pagkatapos ng 24 na oras at nangangailangan ng pagpapatunay ng system nang hiwalay sa workspace. Maaaring lumitaw ang mga username at pangalan ng website sa mga suhestiyon ng system.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Tumatanggap lang ang AutoFill ng mga login item na pinili mo at nangangailangan ng system authentication na hiwalay sa workspace. Habang bukas at naka-unlock ang dMsg, sinusundan ng snapshot ang mga pagbabago sa mga item na iyon; kapag hindi na-update, mag-e-expire ito pagkalipas ng 24 na oras. Maaaring lumabas ang mga username at pangalan ng website sa mga mungkahi ng system.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>Na-update ang snapshot ng AutoFill</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Kumpirmahin ang kinalabasan ng orihinal na operasyon</string>
 	<key>Reconcile original proposal</key>
 	<string>Ipagkasundo ang orihinal na panukala</string>
-	<key>Reconcile original send</key>
-	<string>Ipagkasundo ang orihinal na pagpapadala</string>
 	<key>Reconcile original snapshot</key>
 	<string>Ipagkasundo ang orihinal na snapshot</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Ito ay mga snapshot na trabaho na ginawa sa device na ito. Ang mga kahilingan sa pag-apruba sa desktop-lokal ay hindi naka-synchronize dito.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ito ay mga na-verify na backup mula sa mga device ng iyong account. I-restore nang tahasan upang mapanatili ang isang kopya sa device na ito.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Ang mga pag-export na ito ay hindi kailanman naglalaman ng mga root key ng account o mga signing key ng device. Ang mga pagbabago sa source item ay nangangailangan ng bagong snapshot.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Hindi kailanman naglalaman ang mga export na ito ng mga root key ng account o signing key ng device. Hindi sinusundan ng mga kopya sa Files app ang mga pagbabago sa source file; kailangan ng mga ito ng bagong snapshot.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Patuloy na kakailanganin ng mga native address na ito ang lumang device para sa L1. Maaari pa rin itong i-sweep ng mga miyembro sa L2 kapag sapat na ang tanda ng bawat output.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>

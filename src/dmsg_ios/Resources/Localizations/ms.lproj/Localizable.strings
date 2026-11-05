@@ -248,8 +248,8 @@
 	<string>Peranti yang dibenarkan</string>
 	<key>Authorized devices</key>
 	<string>Peranti yang dibenarkan</string>
-	<key>AutoFill receives only the login items you select. The snapshot expires after 24 hours and requires system authentication independently of the workspace. Usernames and website names may appear in system suggestions.</key>
-	<string>Isi Auto hanya menerima item log masuk yang anda pilih. Syot kilat tamat tempoh selepas 24 jam dan memerlukan pengesahan sistem secara bebas daripada ruang kerja. Nama pengguna dan nama tapak web mungkin muncul dalam cadangan sistem.</string>
+	<key>AutoFill receives only the login items you select and requires system authentication independently of the workspace. While dMsg is open and unlocked, the snapshot follows changes to those items; left alone, it expires after 24 hours. Usernames and website names may appear in system suggestions.</key>
+	<string>Autoisi hanya menerima item log masuk yang anda pilih dan memerlukan pengesahan sistem secara berasingan daripada ruang kerja. Semasa dMsg dibuka dan tidak dikunci, syot kilat mengikut perubahan item tersebut; jika tidak dikemas kini, ia tamat tempoh selepas 24 jam. Nama pengguna dan nama laman web mungkin muncul dalam cadangan sistem.</string>
 	<key>AutoFill snapshot updated</key>
 	<string>petikan AutoIsi dikemas kini</string>
 	<key>Automatic foreground sync</key>
@@ -1686,8 +1686,6 @@
 	<string>Sahkan hasil operasi asal</string>
 	<key>Reconcile original proposal</key>
 	<string>Selaraskan cadangan asal</string>
-	<key>Reconcile original send</key>
-	<string>Selaraskan hantaran asal</string>
 	<key>Reconcile original snapshot</key>
 	<string>Selaraskan petikan asal</string>
 	<key>Record manual review</key>
@@ -2454,8 +2452,8 @@
 	<string>Ini ialah kerja syot kilat yang dibuat pada peranti ini. Permintaan kelulusan tempatan desktop tidak disegerakkan di sini.</string>
 	<key>These are verified backups from your account's devices. Restore explicitly to keep a copy on this device.</key>
 	<string>Ini ialah sandaran yang disahkan daripada peranti akaun anda. Pulihkan secara eksplisit untuk menyimpan salinan pada peranti ini.</string>
-	<key>These exports never contain account root keys or device signing keys. Changes to the source items require a new snapshot.</key>
-	<string>Eksport ini tidak pernah mengandungi kunci akar akaun atau kunci tandatangan peranti. Perubahan kepada item sumber memerlukan syot kilat baharu.</string>
+	<key>These exports never contain account root keys or device signing keys. Files app copies do not follow changes to the source files; those need a new snapshot.</key>
+	<string>Eksport ini tidak sekali-kali mengandungi kunci akar akaun atau kunci tandatangan peranti. Salinan dalam apl Fail tidak mengikut perubahan fail sumber; salinan itu memerlukan syot kilat baharu.</string>
 	<key>These native addresses keep needing the old device for L1. Members can still sweep them through L2 once each output is old enough.</key>
 	<string>Alamat native ini terus memerlukan peranti lama untuk L1. Ahli masih boleh menyapunya melalui L2 setelah setiap output cukup lama.</string>
 	<key>This account requires a registered approval key. Set up this device in Hardware security, or ask another authorized device.</key>
