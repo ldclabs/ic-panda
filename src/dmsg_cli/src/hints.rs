@@ -259,6 +259,10 @@ pub(crate) async fn handle(daemon: &Arc<Daemon>, expected_account: &str, hint: &
             }
             daemon.emit("hint", json!({"kind": kind}));
         }
+        // A file arrived through a request link; listing it stays explicit.
+        "file-request" if unlocked => {
+            daemon.emit("files/changed", json!({"method": "file-request"}));
+        }
         "content" if unlocked => {
             let news = {
                 let client = daemon.client().lock().await;

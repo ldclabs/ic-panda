@@ -2,6 +2,7 @@ use crate::*;
 use dmsg_client::library::{
     backup, cloud,
     link::{self, LinkTerms},
+    request::{self, RequestDraft, RequestTerms},
 };
 
 #[uniffi::export]
@@ -110,6 +111,114 @@ impl MobileEngine {
         operation
             .run(self.held_object(move |h| {
                 Box::pin(async move { link::share_revoke(h, &share_id).await })
+            }))
+            .await
+    }
+
+    /// Make a link that receives files from people without an account.
+    pub async fn create_file_request(
+        &self,
+        title: String,
+        instructions: String,
+        label: String,
+        expires_in_ms: Option<u64>,
+        max_total_bytes: Option<u64>,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    let draft = RequestDraft {
+                        title: &title,
+                        instructions: &instructions,
+                        label: &label,
+                    };
+                    let terms = RequestTerms {
+                        expires_in_ms,
+                        max_total_bytes,
+                    };
+                    request::request_create(h, draft, terms).await
+                })
+            }))
+            .await
+    }
+
+    /// The account's request links as saved here; `refresh` reads the relay first.
+    pub async fn file_requests(
+        &self,
+        refresh: bool,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    if refresh {
+                        request::requests_refresh(h).await
+                    } else {
+                        h.with(|c| c.files_requests()).await
+                    }
+                })
+            }))
+            .await
+    }
+
+    /// Close a request link; files already received stay.
+    pub async fn revoke_file_request(
+        &self,
+        request_id: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move { request::request_revoke(h, &request_id).await })
+            }))
+            .await
+    }
+
+    /// A request link's files; their contents stay in the cloud until saved.
+    pub async fn file_request_files(
+        &self,
+        request_id: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move { request::request_files(h, &request_id).await })
+            }))
+            .await
+    }
+
+    /// Download a received file and save it to the library; without `folder`
+    /// it goes under `root`, the app's localized name for received files.
+    pub async fn save_request_file(
+        &self,
+        upload: String,
+        folder: Option<String>,
+        root: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    request::request_save(h, &upload, folder.as_deref(), &root, &mut |_, _, _| {})
+                        .await
+                })
+            }))
+            .await
+    }
+
+    /// Delete a received file's cloud copy; a saved copy stays.
+    pub async fn delete_request_file(
+        &self,
+        upload: String,
+        operation: Arc<OperationToken>,
+    ) -> Result<ObjectSnapshot> {
+        operation
+            .run(self.held_object(move |h| {
+                Box::pin(async move {
+                    request::request_delete_file(h, &upload).await?;
+                    Ok(serde_json::json!({"deleted": true}))
+                })
             }))
             .await
     }

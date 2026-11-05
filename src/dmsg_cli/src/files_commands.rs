@@ -258,6 +258,9 @@ pub enum FilesCommand {
         /// Share ID.
         share_id: String,
     },
+    /// Links that receive files from people without an account.
+    #[command(subcommand)]
+    Request(RequestCommand),
     /// Mount the library as a disk through the daemon (needs
     /// `files_mount = true` in config.toml, or the desktop's settings):
     /// reading decrypts, writing makes versions, locking unmounts.
@@ -269,6 +272,58 @@ pub enum FilesCommand {
     },
     /// Unmount the disk.
     Unmount,
+}
+
+/// Links that receive files: whoever opens one can only upload.
+#[derive(Subcommand)]
+pub enum RequestCommand {
+    /// Make a link and print it.
+    Create {
+        /// What is asked for; the sender sees it.
+        #[arg(long)]
+        title: String,
+        /// More about it; the sender sees it.
+        #[arg(long, default_value = "")]
+        instructions: String,
+        /// Who it is for; only you see it.
+        #[arg(long, default_value = "")]
+        label: String,
+        /// Days it stays open, 1 to 90.
+        #[arg(long, default_value_t = 14)]
+        days: u64,
+        /// MiB it takes in all; the default depends on the plan.
+        #[arg(long)]
+        max_total_mib: Option<u64>,
+    },
+    /// The links this device knows of; --refresh reads the relay first.
+    Ls {
+        /// Read the relay first.
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Close a link; files already received stay.
+    Revoke {
+        /// The link's ID.
+        request: String,
+    },
+    /// A link's files; their contents stay in the cloud until saved.
+    Files {
+        /// The link's ID.
+        request: String,
+    },
+    /// Download a received file and save it to the library.
+    Save {
+        /// The upload's ID.
+        upload: String,
+        /// Folder ID or path; the default is Received/<title>/<label>.
+        #[arg(long)]
+        to: Option<String>,
+    },
+    /// Delete a received file's cloud copy; a saved copy stays.
+    Rm {
+        /// The upload's ID.
+        upload: String,
+    },
 }
 
 /// The cloud: backups of every device of the account.
@@ -964,6 +1019,96 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                 .await?;
             print(json, &link, link_line);
         }
+        FilesCommand::Request(RequestCommand::Create {
+            title,
+            instructions,
+            label,
+            days,
+            max_total_mib,
+        }) => {
+            if !(1..=90).contains(&days) {
+                return Err(Failure::new("INVALID_INPUT", "days must be 1 to 90"));
+            }
+            let link = remote
+                .call(
+                    "files/request_create",
+                    json!({
+                        "title": title,
+                        "instructions": instructions,
+                        "label": label,
+                        "expires_in_ms": days * 86_400_000,
+                        "max_total_bytes": max_total_mib.map(|mib| mib.saturating_mul(1024 * 1024)),
+                    }),
+                )
+                .await?;
+            print(json, &link, request_line);
+        }
+        FilesCommand::Request(RequestCommand::Ls { refresh }) => {
+            let links = remote
+                .call("files/requests", json!({"refresh": refresh}))
+                .await?;
+            print(json, &links, |list| {
+                let lines: Vec<String> = list
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(request_line)
+                    .collect();
+                if lines.is_empty() {
+                    tr!("no links", "没有链接")
+                } else {
+                    lines.join("\n")
+                }
+            });
+        }
+        FilesCommand::Request(RequestCommand::Revoke { request }) => {
+            let link = remote
+                .call("files/request_revoke", json!({"request_id": request}))
+                .await?;
+            print(json, &link, request_line);
+        }
+        FilesCommand::Request(RequestCommand::Files { request }) => {
+            let files = remote
+                .call("files/request_files", json!({"request_id": request}))
+                .await?;
+            print(json, &files, |list| {
+                let lines: Vec<String> = list
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(received_line)
+                    .collect();
+                if lines.is_empty() {
+                    tr!("no files", "没有文件")
+                } else {
+                    lines.join("\n")
+                }
+            });
+        }
+        FilesCommand::Request(RequestCommand::Save { upload, to }) => {
+            let file = remote
+                .call(
+                    "files/request_save",
+                    json!({
+                        "upload_id": upload,
+                        "folder": folder_param(to),
+                        "root": tr!("Received", "收到的资料"),
+                    }),
+                )
+                .await?;
+            print(json, &file, file_line);
+        }
+        FilesCommand::Request(RequestCommand::Rm { upload }) => {
+            let result = remote
+                .call("files/request_delete_file", json!({"upload_id": upload}))
+                .await?;
+            print(json, &result, |_| {
+                tr!(
+                    "cloud copy deleted; a saved copy stays",
+                    "云端副本已删除；已保存的副本不变"
+                )
+            });
+        }
         FilesCommand::Mount { status } => {
             let method = if status {
                 "files/mount_status"
@@ -997,6 +1142,32 @@ fn link_password(ask: bool) -> Result<Option<String>, Failure> {
         return Err(Failure::new("INVALID_INPUT", "empty password"));
     }
     Ok(Some(typed))
+}
+
+fn request_line(l: &Value) -> String {
+    let id = l["request_id"].as_str().unwrap_or_default();
+    let title = l["title"].as_str().unwrap_or("(another device's link)");
+    let label = l["label"].as_str().unwrap_or_default();
+    let status = l["status"].as_str().unwrap_or_default();
+    let files = l["files"].as_u64().unwrap_or(0);
+    let mut line = tr!(
+        "{id} {title} {label} [{status}] {files} files",
+        "{id} {title} {label} [{status}] {files} 个文件"
+    );
+    if let Some(url) = l["url"].as_str() {
+        line.push('\n');
+        line.push_str(url);
+    }
+    line
+}
+
+fn received_line(f: &Value) -> String {
+    let upload = f["upload_id"].as_str().unwrap_or_default();
+    let name = f["name"].as_str().unwrap_or("?");
+    let state = f["state"].as_str().unwrap_or_default();
+    let size = f["size"].as_u64().unwrap_or(0);
+    let sender = f["sender"]["name"].as_str().unwrap_or("-");
+    format!("{upload} {name} {size} [{state}] {sender}")
 }
 
 fn link_line(l: &Value) -> String {

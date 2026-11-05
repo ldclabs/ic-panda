@@ -147,7 +147,16 @@ pub fn unwrap_key(wrap: &str, password: &str, share_id: &str) -> Result<Zeroizin
 /// The link of a share: the site's `/s/<share_id>`, with the key in the
 /// fragment unless a password carries it.
 pub fn share_url(login_url: &str, share_id: &str, key: Option<&str>) -> String {
-    let origin = login_url
+    let origin = site(login_url);
+    match key {
+        Some(key) => format!("{origin}/s/{share_id}#{key}"),
+        None => format!("{origin}/s/{share_id}"),
+    }
+}
+
+/// The site's origin, out of the login URL.
+pub(super) fn site(login_url: &str) -> &str {
+    login_url
         .find("://")
         .and_then(|scheme| {
             login_url[scheme + 3..]
@@ -155,11 +164,7 @@ pub fn share_url(login_url: &str, share_id: &str, key: Option<&str>) -> String {
                 .map(|end| &login_url[..scheme + 3 + end])
         })
         .unwrap_or(login_url)
-        .trim_end_matches('/');
-    match key {
-        Some(key) => format!("{origin}/s/{share_id}#{key}"),
-        None => format!("{origin}/s/{share_id}"),
-    }
+        .trim_end_matches('/')
 }
 
 /// Encrypted management relationship; a snapshot never pretends to be a library file.

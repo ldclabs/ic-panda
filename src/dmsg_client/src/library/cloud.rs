@@ -154,6 +154,8 @@ pub struct CloudUsage {
     pub storage_limit: Option<u64>,
     /// Current membership's maximum plaintext bytes per new cloud backup.
     pub backup_max_file_bytes: Option<u64>,
+    /// How many file request links the plan keeps open at once.
+    pub file_request_limit: Option<u64>,
     /// `within_limit`, `over_limit` or `unknown`.
     pub status: String,
     /// The plan's active-channel limit, when the relay knows it.
@@ -578,7 +580,7 @@ impl Client {
     }
 
     /// The root of `generation`, while this device has it.
-    fn root_of(&self, generation: u64) -> Result<Option<Zeroizing<Key>>> {
+    pub(super) fn root_of(&self, generation: u64) -> Result<Option<Zeroizing<Key>>> {
         Ok(self.roots()?.key(generation).map(|k| Zeroizing::new(*k)))
     }
 
@@ -954,6 +956,7 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
             committed: quota["committed"].as_u64().unwrap_or(0),
             storage_limit: quota["lifecycle"]["storage_limit"].as_u64(),
             backup_max_file_bytes: quota["lifecycle"]["backup_max_file_bytes"].as_u64(),
+            file_request_limit: quota["lifecycle"]["file_request_limit"].as_u64(),
             status: quota["lifecycle"]["status"]
                 .as_str()
                 .unwrap_or("unknown")

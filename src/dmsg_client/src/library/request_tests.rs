@@ -406,3 +406,259 @@ fn opens_a_manifest_the_browser_sealed() {
     assert_eq!(hex::encode(*sha256(&plain)), opened.file.sha256);
     assert_eq!(*plain, bytes(&browser["plaintext_hex"]));
 }
+
+fn secrets(title: &str, label: &str) -> RequestSecrets {
+    RequestSecrets {
+        hpke_seed: b64(&[1; 32]),
+        page_key: b64(&[2; 32]),
+        label: label.into(),
+        title: title.into(),
+        instructions: "As PDF.".into(),
+    }
+}
+
+fn remote(request_id: &str, management: ManagementEnvelope) -> RemoteLink {
+    RemoteLink {
+        request_id: request_id.into(),
+        expires_at: 4_000_000_000_000,
+        max_total_bytes: MIB,
+        management,
+        created_at: 1,
+        revoked_at: None,
+        status: "open".into(),
+        files: 2,
+        bytes: 9,
+        last_stored_at: Some(100),
+    }
+}
+
+#[test]
+fn management_opens_only_for_its_link_and_while_the_root_is_here() {
+    let dir = crate::testing::TempDir::new();
+    let c = crate::testing::unlocked(&dir.0, false, None);
+    let id = "ab".repeat(32);
+    let sealed = c.seal_request_secrets(&id, &secrets("T", "L")).unwrap();
+    assert_eq!(
+        c.open_request_secrets(&id, &sealed).unwrap(),
+        Some(secrets("T", "L"))
+    );
+    assert_eq!(
+        c.open_request_secrets(&"cd".repeat(32), &sealed).err(),
+        Some(Error::IntegrityFailed)
+    );
+    let later = ManagementEnvelope {
+        generation: sealed.generation + 1,
+        ..sealed
+    };
+    assert_eq!(c.open_request_secrets(&id, &later).unwrap(), None);
+}
+
+#[test]
+fn a_link_reads_as_the_relay_last_said_and_keeps_its_secrets() {
+    let dir = crate::testing::TempDir::new();
+    let c = crate::testing::unlocked(&dir.0, false, None);
+    let id = "ab".repeat(32);
+    let sealed = c.seal_request_secrets(&id, &secrets("T", "L")).unwrap();
+    c.keep_link(remote(&id, sealed.clone()), 50).unwrap();
+    let view = &c.files_requests().unwrap()[0];
+    let account = c.account().unwrap().id.to_string();
+    let key = b64(&[2; 32]);
+    assert!(
+        view.url
+            .as_deref()
+            .unwrap()
+            .ends_with(&format!("/r/{account}/{id}#{key}"))
+    );
+    assert_eq!(view.title.as_deref(), Some("T"));
+    assert_eq!(view.label.as_deref(), Some("L"));
+    assert_eq!(view.status, "open");
+    assert!(view.unread);
+    // Listing the files clears unread; a newer file brings it back.
+    let mut record = c.request_record(&id).unwrap().unwrap();
+    record.seen_at = Some(100);
+    c.save_request(&record).unwrap();
+    c.keep_link(remote(&id, sealed.clone()), 60).unwrap();
+    assert!(!c.files_requests().unwrap()[0].unread);
+    let newer = RemoteLink {
+        last_stored_at: Some(101),
+        ..remote(&id, sealed.clone())
+    };
+    c.keep_link(newer, 70).unwrap();
+    assert!(c.files_requests().unwrap()[0].unread);
+    let closed = RemoteLink {
+        revoked_at: Some(80),
+        ..remote(&id, sealed.clone())
+    };
+    c.keep_link(closed, 80).unwrap();
+    assert_eq!(c.files_requests().unwrap()[0].status, "revoked");
+    let lapsed = RemoteLink {
+        expires_at: 1,
+        ..remote(&id, sealed)
+    };
+    c.keep_link(lapsed, 90).unwrap();
+    assert_eq!(c.files_requests().unwrap()[0].status, "expired");
+    // Made on a device with a root this one lacks: listed, with no link to give.
+    let other = "cd".repeat(32);
+    let unknown = ManagementEnvelope {
+        generation: 99,
+        ciphertext: "AAAA".into(),
+    };
+    c.keep_link(remote(&other, unknown), 90).unwrap();
+    let list = c.files_requests().unwrap();
+    let shown = list.iter().find(|v| v.request_id == other).unwrap();
+    assert_eq!(shown.url, None);
+    assert_eq!(shown.title, None);
+}
+
+#[test]
+fn a_received_file_shows_what_it_is_and_what_became_of_it() {
+    let plan = UploadPlan {
+        management: None,
+        upload_id: "11".repeat(32),
+        object_id: "22".repeat(32),
+        version_id: "33".repeat(32),
+        root_generation: 0,
+        epoch: 0,
+        control_head: None,
+        kind: REQUEST_FILE.into(),
+        chunks: vec![],
+        manifest_digest: "44".repeat(32),
+        manifest_size: 64,
+        expires_at: 1,
+    };
+    let mut record = ReceivedRecord {
+        request_id: "ab".repeat(32),
+        plan,
+        file: None,
+        stored_at: 5,
+        received_at: None,
+        withdrawn_at: None,
+        saved: None,
+    };
+    assert_eq!(record.view().state, "unreadable");
+    assert_eq!(record.view().bytes, 64);
+    record.withdrawn_at = Some(6);
+    assert_eq!(record.view().state, "withdrawn");
+    record.saved = Some(("f".into(), "v".into()));
+    assert_eq!(record.view().state, "saved");
+    assert_eq!(record.view().saved_file.as_deref(), Some("f"));
+}
+
+#[test]
+fn drafts_and_folders_keep_to_their_bounds() {
+    let draft = |title, instructions, label| RequestDraft {
+        title,
+        instructions,
+        label,
+    };
+    assert!(check_draft(&draft("Contracts", "", "")).is_ok());
+    let big = "x".repeat(MAX_TITLE + 1);
+    assert!(check_draft(&draft("  ", "", "")).is_err());
+    assert!(check_draft(&draft(&big, "", "")).is_err());
+    let note = "x".repeat(MAX_INSTRUCTIONS + 1);
+    assert!(check_draft(&draft("T", &note, "")).is_err());
+    let label = "x".repeat(MAX_LABEL + 1);
+    assert!(check_draft(&draft("T", "", &label)).is_err());
+    // The longest draft still fits a descriptor.
+    let page_key = [4; 32];
+    let sealed = seal_descriptor(
+        &page_key,
+        &RequestDescriptor {
+            format: REQUEST_FORMAT.into(),
+            account: "aaaaa-aa".into(),
+            request_id: "ab".repeat(32),
+            hpke_pub: b64(&[5; 32]),
+            title: "x".repeat(MAX_TITLE),
+            instructions: "x".repeat(MAX_INSTRUCTIONS),
+        },
+    );
+    assert!(sealed.len() <= MAX_DESCRIPTOR);
+    // A title can't reach outside its folder, nor a label make another level.
+    assert_eq!(
+        default_folder("Received", &secrets("Q3/../contracts", "Ada / Lin")),
+        "Received/Q3_.._contracts/Ada _ Lin"
+    );
+    assert_eq!(
+        default_folder("Received", &secrets("Q3", "  ")),
+        "Received/Q3"
+    );
+}
+
+/// A file as a browser seals it, its chunks in the library's blobs.
+fn in_blobs(c: &Client, name: &str, plain: &[u8]) -> FileManifest {
+    let key = [7; 32];
+    let (id, version) = (random_hex(), random_hex());
+    let (sealed, digest) = crate::files::seal_chunk(&key, &id, &version, 0, 1, plain);
+    c.blobs().unwrap().put_chunk(&digest, &sealed).unwrap();
+    FileManifest {
+        id: id.clone(),
+        version: version.clone(),
+        name: name.into(),
+        mime: "text/plain".into(),
+        size: plain.len() as u64,
+        sha256: hex::encode(*sha256(plain)),
+        chunks: vec![FileChunk {
+            id: format!("{id}:{version}:0"),
+            digest,
+            size: plain.len() as u64,
+        }],
+        key: b64(&key),
+    }
+}
+
+#[tokio::test]
+async fn saving_keeps_senders_apart_under_the_librarys_own_key() {
+    let dir = crate::testing::TempDir::new();
+    let mut c = crate::testing::unlocked(&dir.0, false, None);
+    let origin = || Origin::Received {
+        request: "ab".repeat(32),
+        upload: "cd".repeat(32),
+    };
+    let first = in_blobs(&c, "contract\u{202E}fdp.exe", b"from Ada");
+    let second = in_blobs(&c, "contract\u{202E}fdp.exe", b"from Lin");
+    let folder = c.files_mkdir_path("Received/Q3").unwrap().id;
+    let h = c.cooperative_hold();
+    let one = import::from_received(&h, &first, &folder, origin(), &mut |_, _| {})
+        .await
+        .unwrap();
+    let two = import::from_received(&h, &second, &folder, origin(), &mut |_, _| {})
+        .await
+        .unwrap();
+    assert_ne!(one.file.id, two.file.id);
+    assert!(!one.file.name.contains('\u{202E}'));
+    assert_ne!(one.file.name, two.file.name);
+    let (.., version, manifest) = c.library_manifest(&one.file.id, None).unwrap();
+    assert_eq!(version.origin, origin());
+    // Encrypted anew: neither its key nor its chunks are the sender's.
+    assert_ne!(manifest.key, first.key);
+    assert_ne!(manifest.chunks[0].digest, first.chunks[0].digest);
+    let out = dir.path("out.txt");
+    c.files_export(&one.file.id, None, &out).unwrap();
+    assert_eq!(std::fs::read(&out).unwrap(), b"from Ada");
+    // The download goes once nothing holds it; the saved copy stays.
+    c.collect_blobs().unwrap();
+    assert_eq!(
+        c.blobs().unwrap().chunk(&first.chunks[0].digest).unwrap(),
+        None
+    );
+    let out = dir.path("out-2.txt");
+    c.files_export(&two.file.id, None, &out).unwrap();
+    assert_eq!(std::fs::read(&out).unwrap(), b"from Lin");
+    // A file whose bytes are not what its manifest says never joins the library.
+    let mut lying = in_blobs(&c, "lying.txt", b"not this");
+    lying.sha256 = "00".repeat(32);
+    let h = c.cooperative_hold();
+    assert_eq!(
+        import::from_received(&h, &lying, &folder, origin(), &mut |_, _| {})
+            .await
+            .err(),
+        Some(Error::IntegrityFailed)
+    );
+    assert!(
+        c.files_list(&folder, false)
+            .unwrap()
+            .files
+            .iter()
+            .all(|f| f.name != "lying.txt")
+    );
+}

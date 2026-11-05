@@ -103,6 +103,13 @@ pub enum Origin {
         /// The message's relay sequence.
         seq: u64,
     },
+    /// Sent through a file request link.
+    Received {
+        /// The link.
+        request: String,
+        /// The upload.
+        upload: String,
+    },
 }
 
 /// A version's cloud backup.

@@ -5,8 +5,8 @@
 //! (`files/backup*`), the account's backup inventory, fetching, deleting
 //! and verifying a cloud copy (`files/cloud_*`), freeing a verified
 //! version's local chunks (`files/evict`), and share links for people
-//! outside dMsg (`files/share_link*`, `files/share_revoke`). Nothing here
-//! uploads by itself.
+//! outside dMsg (`files/share_link*`, `files/share_revoke`), and links that
+//! receive files from them (`files/request*`). Nothing here uploads by itself.
 
 use crate::daemon::Daemon;
 use crate::params::{absolute, number, optional, parse, text, to_json};
@@ -15,7 +15,10 @@ use dmsg_client::{
     channel::{self, Draft},
     hold::Hold,
     library::{
-        SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, import, link, open, reading,
+        SearchFilter, VerifyReport, backup,
+        catalog::ROOT,
+        cloud, import, link, open, reading,
+        request::{self, RequestDraft, RequestTerms},
         storage,
     },
 };
@@ -25,7 +28,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 50] = [
+pub(crate) const METHODS: [&str; 56] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -77,6 +80,12 @@ pub(crate) const METHODS: [&str; 50] = [
     "files/share_link",
     "files/share_links",
     "files/share_revoke",
+    "files/request_create",
+    "files/requests",
+    "files/request_revoke",
+    "files/request_files",
+    "files/request_save",
+    "files/request_delete_file",
 ];
 
 /// The events a method's success announces.
@@ -100,6 +109,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/cloud_status"
         | "files/cloud_usage"
         | "files/share_links"
+        | "files/requests"
+        | "files/request_files"
         | "files/storage"
         | "files/share_quote" => &[],
         "files/share_channel" => &["channel/changed", "files/changed"],
@@ -298,6 +309,7 @@ impl Daemon {
             #[allow(deprecated)] // Keep the deprecated RPC callable until its removal.
             "files/storage" => client.files_storage(),
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
+            "files/requests" => Ok(to_json(&client.files_requests()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
             "files/download_status" => Ok(to_json(&client.files_download_status()?)),
             "files/backup_retry" => {
@@ -458,6 +470,58 @@ impl Daemon {
                 }
                 "files/share_revoke" => {
                     to_json(&link::share_revoke(&h, &text(params, "share_id")?).await?)
+                }
+                "files/request_create" => {
+                    let title = text(params, "title")?;
+                    let draft = RequestDraft {
+                        title: &title,
+                        instructions: params["instructions"].as_str().unwrap_or_default(),
+                        label: params["label"].as_str().unwrap_or_default(),
+                    };
+                    let terms = RequestTerms {
+                        expires_in_ms: params["expires_in_ms"].as_u64(),
+                        max_total_bytes: params["max_total_bytes"].as_u64(),
+                    };
+                    to_json(&request::request_create(&h, draft, terms).await?)
+                }
+                "files/requests" if params["refresh"] == true => {
+                    to_json(&request::requests_refresh(&h).await?)
+                }
+                "files/request_revoke" => {
+                    to_json(&request::request_revoke(&h, &text(params, "request_id")?).await?)
+                }
+                "files/request_files" => {
+                    to_json(&request::request_files(&h, &text(params, "request_id")?).await?)
+                }
+                "files/request_save" => {
+                    let upload = text(params, "upload_id")?;
+                    let target = match params["folder"].is_null() {
+                        true => None,
+                        false => Some(folder(
+                            &mut *self.client().lock().await,
+                            &params["folder"],
+                            true,
+                        )?),
+                    };
+                    let root = params["root"].as_str().unwrap_or("Received");
+                    let file = request::request_save(
+                        &h,
+                        &upload,
+                        target.as_deref(),
+                        root,
+                        &mut |stage, done, total| {
+                            self.emit(
+                                "files/progress",
+                                json!({"job": "request", "path": upload, "stage": stage, "done": done, "total": total}),
+                            );
+                        },
+                    )
+                    .await?;
+                    to_json(&file)
+                }
+                "files/request_delete_file" => {
+                    request::request_delete_file(&h, &text(params, "upload_id")?).await?;
+                    json!({"deleted": true})
                 }
                 "files/backup" => {
                     let ids = ids(params)?;

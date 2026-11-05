@@ -730,17 +730,50 @@ pub(crate) async fn from_manifest<H: Hold>(
     progress: &mut (dyn FnMut(u64, u64) + Send),
 ) -> Result<Imported> {
     let name = super::catalog::safe_name(&manifest.name);
-    let mut importing = h
+    let importing = h
         .with(|c| {
             let into = c.catalog()?.find(folder, &name);
             c.import_start(manifest.size, &name, folder, into, origin)
         })
         .await?;
+    let read =
+        |c: &mut Client, index| crate::files::read_chunk(&c.workspace.store, manifest, index);
+    reseal(h, manifest, importing, read, progress).await
+}
+
+/// Re-encrypt a file a stranger sent, its chunks in the library's blobs. It
+/// never joins a file already here: two senders' files of one name stay apart.
+/// # Errors
+/// As [`file`].
+pub(crate) async fn from_received<H: Hold>(
+    h: &H,
+    manifest: &crate::files::FileManifest,
+    folder: &str,
+    origin: Origin,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
+    let importing = h
+        .with(|c| {
+            let catalog = c.catalog()?;
+            catalog.live_folder(folder)?;
+            let name = catalog.free_name(folder, &super::catalog::safe_name(&manifest.name));
+            c.import_start(manifest.size, &name, folder, None, origin)
+        })
+        .await?;
+    let read = |c: &mut Client, index| crate::files::read_chunk(c.blobs()?, manifest, index);
+    reseal(h, manifest, importing, read, progress).await
+}
+
+async fn reseal<H: Hold>(
+    h: &H,
+    manifest: &crate::files::FileManifest,
+    mut importing: Importing,
+    read: impl Fn(&mut Client, u64) -> Result<Zeroizing<Vec<u8>>> + Sync,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
     let count = chunk_count(manifest.size);
     for index in 0..count {
-        let plain = h
-            .with(|c| crate::files::read_chunk(&c.workspace.store, manifest, index))
-            .await?;
+        let plain = h.with(|c| read(c, index)).await?;
         h.with(|c| c.import_part(&mut importing, index, &plain))
             .await?;
         progress(index + 1, count);
