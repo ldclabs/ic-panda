@@ -320,6 +320,8 @@
 	<string>Naka-cache na data</string>
 	<key>Cached data cleared</key>
 	<string>Na-clear ang cache</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Hindi magamit ang camera. Payagan ang camera sa Settings para makakuha ng mga larawan at video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Hindi ma-access ang camera. Maglagay ng setup key o payagan ang access sa camera sa Settings.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Mga tag</string>
 	<key>Tags, separated by commas</key>
 	<string>Mga tag, na pinaghihiwalay ng mga kuwit</string>
+	<key>Take photo or video</key>
+	<string>Kumuha ng larawan o video</string>
 	<key>Terms of service</key>
 	<string>Mga tuntunin ng serbisyo</string>
 	<key>Test environment · Separate accounts and test purchases</key>

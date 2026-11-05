@@ -320,6 +320,8 @@
 	<string>Zwischengespeicherte Daten</string>
 	<key>Cached data cleared</key>
 	<string>Cache geleert</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Der Kamerazugriff ist nicht verfügbar. Erlauben Sie den Zugriff in den Einstellungen, um Fotos und Videos aufzunehmen.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Kein Kamerazugriff. Gib einen Einrichtungsschlüssel ein oder erlaube den Kamerazugriff in den Einstellungen.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Schlagworte</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, durch Kommas getrennt</string>
+	<key>Take photo or video</key>
+	<string>Foto oder Video aufnehmen</string>
 	<key>Terms of service</key>
 	<string>Nutzungsbedingungen</string>
 	<key>Test environment · Separate accounts and test purchases</key>

@@ -320,6 +320,8 @@
 	<string>البيانات المخزنة مؤقتًا</string>
 	<key>Cached data cleared</key>
 	<string>تم مسح ذاكرة التخزين المؤقت</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>الكاميرا غير متاحة. اسمح بالوصول إلى الكاميرا في الإعدادات لالتقاط الصور والفيديوهات.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>الوصول إلى الكاميرا غير متاح. أدخل مفتاح الإعداد أو اسمح بالوصول إلى الكاميرا في الإعدادات.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>الوسوم</string>
 	<key>Tags, separated by commas</key>
 	<string>وسوم مفصولة بفواصل</string>
+	<key>Take photo or video</key>
+	<string>التقاط صورة أو فيديو</string>
 	<key>Terms of service</key>
 	<string>شروط الخدمة</string>
 	<key>Test environment · Separate accounts and test purchases</key>

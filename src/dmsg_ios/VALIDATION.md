@@ -1,5 +1,42 @@
 # iOS implementation validation
 
+## Files camera and workspace layout (2026-11-05)
+
+**Import photos or videos** did nothing because a `PhotosPicker` placed inside a
+`Menu` closes with it; the picker is now presented from the screen. The **+** menu
+gains **Take photo or video**, which encrypts the capture into the open folder
+without touching the Photos library. Messages now uses the capsule tabs and the
+**+** then **⋯** toolbar order of Vault and Files, through one shared `BrowseTab`.
+Workspace roots show no title, and File transfers moved from a list row to an icon
+in the tab row, with a count while transfers are active.
+
+- The picker regression test fails with the picker back inside the menu and passes
+  with the fix. On Simulator a photo was picked and imported with the fixture core.
+- Final run on iPhone 17e / iOS 27.0: all 98 Swift unit tests and 45 UI tests
+  (Files, transfers, messaging, letters and sync) passed, with one skipped test that
+  needs the expanded sidebar. iPad (A16) / iOS 18.4 ran the picker, the camera
+  fixture and its denied alert, four languages, sidebar selection, pushed titles,
+  the Letters tab and the large-text scope menus; the last two exposed that a menu in
+  a selectable list row never opened, now fixed for Files and Messages.
+- An earlier full run of all 120 UI tests, before the settings icon and that iPad
+  fix, had five failures outside this work. The same five fail with identical
+  assertions on unmodified `17c66bf1`: `testUsageShowsConsumptionSeparatelyFromLimits`,
+  `testAccessActionsRemainReachableInDarkArabic`,
+  `testAccessHasNoDemoAndPrivacyIsAvailableOffline`,
+  `testExpandedLanguageAccessScreens` and
+  `testLanguageSettingsAvailableBeforeLoginAndInAccount`. They remain open.
+- Release ARM64 Simulator build and the localization check with compiler extraction
+  passed. Screenshots were inspected for Chinese light, English, French dark and
+  Arabic RTL, on iPhone 17e and on iPhone SE (3rd generation) / iOS 18.4.
+
+Simulators have no camera, so the capture path ran only through a fixture image and
+the fixture core. A real photo and video, the camera and microphone prompts, encrypted
+import through the Rust core and absence from the Photos library on a physical device
+remain open; see [Review/README_zh.md](Review/README_zh.md). Rust and desktop checks
+were not run because neither changed.
+
+Validation: Claude Opus 5.5 <noreply@anthropic.com>.
+
 ## Sync review simulator follow-up (2026-11-05)
 
 Validated `db088dc1`, the follow-up fixes for `0eddbd98`, on iPhone 17e /

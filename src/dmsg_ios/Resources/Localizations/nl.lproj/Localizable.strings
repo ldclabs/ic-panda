@@ -320,6 +320,8 @@
 	<string>Gegevens in cache</string>
 	<key>Cached data cleared</key>
 	<string>Cache gewist</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Cameratoegang is niet beschikbaar. Sta cameratoegang toe in Instellingen om foto’s en video’s te maken.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Geen toegang tot de camera. Voer een instelsleutel in of sta cameratoegang toe in Instellingen.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Labels</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, gescheiden door komma's</string>
+	<key>Take photo or video</key>
+	<string>Foto of video maken</string>
 	<key>Terms of service</key>
 	<string>Servicevoorwaarden</string>
 	<key>Test environment · Separate accounts and test purchases</key>

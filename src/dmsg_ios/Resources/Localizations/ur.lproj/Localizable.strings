@@ -320,6 +320,8 @@
 	<string>کیش شدہ ڈیٹا</string>
 	<key>Cached data cleared</key>
 	<string>کیش صاف ہو گیا</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>کیمرے تک رسائی دستیاب نہیں۔ تصاویر اور ویڈیوز بنانے کے لیے ترتیبات میں کیمرے کی اجازت دیں۔</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>کیمرے تک رسائی دستیاب نہیں ہے۔ سیٹ اپ کلید درج کریں یا ترتیبات میں کیمرے تک رسائی کی اجازت دیں۔</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>ٹیگز</string>
 	<key>Tags, separated by commas</key>
 	<string>ٹیگز، کوما سے الگ</string>
+	<key>Take photo or video</key>
+	<string>تصویر یا ویڈیو بنائیں</string>
 	<key>Terms of service</key>
 	<string>سروس کی شرائط</string>
 	<key>Test environment · Separate accounts and test purchases</key>

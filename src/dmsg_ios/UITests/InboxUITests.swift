@@ -2,11 +2,11 @@ import XCTest
 
 @MainActor
 final class InboxUITests: XCTestCase {
-    private func open(_ arguments: [String] = [], inbox: String = "Letters") -> XCUIApplication {
+    private func open(_ arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-inbox"] + arguments
         app.launch()
-        let tab = app.segmentedControls.buttons[inbox]
+        let tab = app.buttons["messages.mode.letters"]
         XCTAssertTrue(tab.waitForExistence(timeout: 10)); tab.tap()
         return app
     }
@@ -17,7 +17,7 @@ final class InboxUITests: XCTestCase {
     }
 
     func testMissingKeyRetryLoadsAndReadArchiveRestoreUpdateImmediately() {
-        let app = open(["--ui-inbox-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"], inbox: "信件")
+        let app = open(["--ui-inbox-failure", "--ui-dark", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"])
         let retry = app.buttons["inbox.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any)["inbox.empty"].exists)
@@ -58,7 +58,7 @@ final class InboxUITests: XCTestCase {
     }
 
     func testArabicFailureAndRetryKeepTheLetterReadable() {
-        let app = open(["--ui-inbox-failure", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"], inbox: "الرسائل")
+        let app = open(["--ui-inbox-failure", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_SA"])
         let retry = app.buttons["inbox.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 5))
         capture(app, "Inbox missing key · Arabic RTL")

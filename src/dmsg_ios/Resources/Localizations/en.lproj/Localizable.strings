@@ -320,6 +320,8 @@
 	<string>Cached data</string>
 	<key>Cached data cleared</key>
 	<string>Cached data cleared</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Tags</string>
 	<key>Tags, separated by commas</key>
 	<string>Tags, separated by commas</string>
+	<key>Take photo or video</key>
+	<string>Take photo or video</string>
 	<key>Terms of service</key>
 	<string>Terms of service</string>
 	<key>Test environment · Separate accounts and test purchases</key>

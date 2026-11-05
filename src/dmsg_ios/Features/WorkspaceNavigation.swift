@@ -1,5 +1,13 @@
 import SwiftUI
 
+extension View {
+    /// The tab bar already names a workspace, so its root shows no title and the
+    /// title only serves VoiceOver. Screens pushed from it inherit compact titles.
+    func workspaceRootTitle() -> some View {
+        navigationBarTitleDisplayMode(.inline).toolbar(removing: .title)
+    }
+}
+
 /// Phones use a real stack: replacing a collapsed split-view detail during
 /// its push transition can cancel the destination task and strand selection.
 /// Both layouts share one selection, including programmatic favorite links.
@@ -18,13 +26,14 @@ struct WorkspaceNavigation<Sidebar: View, Detail: View>: View {
                 set: { selection = $0.last }
             )) {
                 sidebar(nil)
+                    .workspaceRootTitle()
                     .navigationDestination(for: String.self) { detail($0) }
             }
         } else {
             NavigationSplitView(columnVisibility: $columnVisibility) {
-                sidebar($selection)
+                sidebar($selection).workspaceRootTitle()
             } detail: {
-                detail(selection)
+                detail(selection).navigationBarTitleDisplayMode(.inline)
             }
             .navigationSplitViewStyle(.balanced)
             .onAppear { if sidebarInitiallyVisible && selection == nil { columnVisibility = .all } }

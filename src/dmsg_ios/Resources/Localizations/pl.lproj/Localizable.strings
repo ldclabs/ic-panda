@@ -320,6 +320,8 @@
 	<string>Dane w pamięci podręcznej</string>
 	<key>Cached data cleared</key>
 	<string>Pamięć podręczna wyczyszczona</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Kamera jest niedostępna. Zezwól na dostęp do kamery w Ustawieniach, aby robić zdjęcia i nagrywać filmy.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Dostęp do aparatu jest niedostępny. Wpisz klucz konfiguracji lub zezwól na dostęp do aparatu w Ustawieniach.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Tagi</string>
 	<key>Tags, separated by commas</key>
 	<string>Tagi oddzielone przecinkami</string>
+	<key>Take photo or video</key>
+	<string>Zrób zdjęcie lub nagraj film</string>
 	<key>Terms of service</key>
 	<string>Warunki usługi</string>
 	<key>Test environment · Separate accounts and test purchases</key>

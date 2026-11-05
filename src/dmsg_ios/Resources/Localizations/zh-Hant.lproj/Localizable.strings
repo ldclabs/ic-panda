@@ -320,6 +320,8 @@
 	<string>快取資料</string>
 	<key>Cached data cleared</key>
 	<string>快取已清除</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>無法使用相機。請在「設定」中允許取用相機，以便拍照或錄影。</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>無法取用相機。請輸入設定金鑰，或在「設定」中允許取用相機。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>標籤</string>
 	<key>Tags, separated by commas</key>
 	<string>標籤，以逗號分隔</string>
+	<key>Take photo or video</key>
+	<string>拍照或錄影</string>
 	<key>Terms of service</key>
 	<string>服務條款</string>
 	<key>Test environment · Separate accounts and test purchases</key>

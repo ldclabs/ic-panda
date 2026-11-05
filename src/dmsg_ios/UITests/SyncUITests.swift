@@ -11,7 +11,7 @@ final class SyncUITests: XCTestCase {
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "Files without an automatic sync-paused notice"; shot.lifetime = .keepAlways; add(shot)
         app.tabBars.buttons.element(boundBy: 1).tap()
-        XCTAssertTrue(app.segmentedControls["messages.mode"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["messages.mode.conversations"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["channel.row.fixture-channel"].exists)
         XCTAssertFalse(app.otherElements["sync.status"].exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "workspace.feedback").firstMatch.exists)

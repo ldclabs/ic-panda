@@ -320,6 +320,8 @@
 	<string>ক্যাশ করা ডেটা</string>
 	<key>Cached data cleared</key>
 	<string>ক্যাশ মুছে ফেলা হয়েছে</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>ক্যামেরা ব্যবহার করা যাচ্ছে না। ছবি ও ভিডিও তুলতে সেটিংসে ক্যামেরার অনুমতি দিন।</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>ক্যামেরা ব্যবহার করা যাচ্ছে না। একটি সেটআপ কী লিখুন অথবা সেটিংসে ক্যামেরা ব্যবহারের অনুমতি দিন।</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>ট্যাগ</string>
 	<key>Tags, separated by commas</key>
 	<string>ট্যাগ, কমা দ্বারা পৃথক</string>
+	<key>Take photo or video</key>
+	<string>ছবি বা ভিডিও তুলুন</string>
 	<key>Terms of service</key>
 	<string>পরিষেবার শর্তাবলী</string>
 	<key>Test environment · Separate accounts and test purchases</key>

@@ -320,6 +320,8 @@
 	<string>Data cache</string>
 	<key>Cached data cleared</key>
 	<string>Cache dihapus</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Kamera tidak tersedia. Izinkan akses kamera di Pengaturan untuk mengambil foto dan video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Akses kamera tidak tersedia. Masukkan kunci penyiapan atau izinkan akses kamera di Pengaturan.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Tag</string>
 	<key>Tags, separated by commas</key>
 	<string>Tag, dipisahkan dengan koma</string>
+	<key>Take photo or video</key>
+	<string>Ambil foto atau video</string>
 	<key>Terms of service</key>
 	<string>Persyaratan layanan</string>
 	<key>Test environment · Separate accounts and test purchases</key>

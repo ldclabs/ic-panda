@@ -48,7 +48,10 @@ between decryptions. The old duplicate Favorites grid and its separate read are
 removed. Empty, loading and failed reads have distinct actions.
 Search stays visible above the category bar. Switching categories retains their
 query counts and only scrolls the bar when the selected category is offscreen.
-Vault and Files keep 8 pt between their category bar and the list content.
+Vault, Files and Messages share one capsule tab and keep 8 pt between their bar
+and the list content, with search always visible above it. The tab bar names the
+workspace, so a workspace root shows no title; screens pushed from it use compact
+titles. Inside a folder, Files shows the folder's path above its list.
 
 Recovery and synchronization feedback use overlays and a persistent toolbar
 entry, so background status changes do not move list rows. That entry retains
@@ -855,6 +858,15 @@ removed only after the core refreshes the inventory and checks its verified back
 its file record and restore action remain available. Trash displays the configured
 retention period and removal dates. Cloud deletion is separate and warns when this
 device has no copy.
+
+The **+** menu also offers **Take photo or video** on devices with a camera. The
+system camera returns the capture only to the app, so it never enters the Photos
+library and no Photos permission is requested. Photos are stored as JPEG, keeping
+orientation but no location or other capture metadata, so every client can view
+them; recordings stop at seven minutes to stay within the 1000 MiB file limit. The
+capture is staged and encrypted in the open folder like any import, and cloud backup
+stays a separate action. Its temporary plaintext copy is removed after staging, or
+at the next start if the app was interrupted.
 
 The existing theme and compact file rows are reused. Maximum Dynamic Type uses a
 wrapping scope menu; the local warning keeps its count and a labelled help control.

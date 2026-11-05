@@ -320,6 +320,8 @@
 	<string>Datos en caché</string>
 	<key>Cached data cleared</key>
 	<string>Caché borrada</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>La cámara no está disponible. Permite el acceso a la cámara en Ajustes para hacer fotos y vídeos.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>No se puede acceder a la cámara. Introduce una clave de configuración o permite el acceso a la cámara en Ajustes.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Etiquetas</string>
 	<key>Tags, separated by commas</key>
 	<string>Etiquetas separadas por comas</string>
+	<key>Take photo or video</key>
+	<string>Hacer foto o vídeo</string>
 	<key>Terms of service</key>
 	<string>Términos del servicio</string>
 	<key>Test environment · Separate accounts and test purchases</key>

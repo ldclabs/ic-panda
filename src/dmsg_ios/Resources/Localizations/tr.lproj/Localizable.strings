@@ -320,6 +320,8 @@
 	<string>Önbellek verileri</string>
 	<key>Cached data cleared</key>
 	<string>Önbellek temizlendi</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Kamera erişimi kullanılamıyor. Fotoğraf ve video çekmek için Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Kamera erişimi kullanılamıyor. Bir kurulum anahtarı girin veya Ayarlar’dan kamera erişimine izin verin.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Etiketler</string>
 	<key>Tags, separated by commas</key>
 	<string>Virgülle ayrılmış etiketler</string>
+	<key>Take photo or video</key>
+	<string>Fotoğraf veya video çek</string>
 	<key>Terms of service</key>
 	<string>Hizmet şartları</string>
 	<key>Test environment · Separate accounts and test purchases</key>

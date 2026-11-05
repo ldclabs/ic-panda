@@ -30,6 +30,7 @@ struct PrivateFiles: Sendable {
                 if manager.fileExists(atPath: copies.path) { try manager.removeItem(at: copies) }
             }
         }
+        PhotoImport.removeAbandoned()
         let marker = root.appending(path: "installation")
         if let value = try? String(contentsOf: marker, encoding: .utf8), UUID(uuidString: value) != nil {
             installation = value

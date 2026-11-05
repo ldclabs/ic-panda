@@ -35,6 +35,66 @@ final class FileLibraryUITests: XCTestCase {
 
     private func back(_ app: XCUIApplication) { app.navigationBars.buttons.element(boundBy: 0).tap() }
 
+    func testWorkspaceRootShowsNoTitleButPushedScreensDo() {
+        let app = launch()
+        // The expanded layout's floating tab bar counts as part of the navigation bars.
+        if !app.buttons["ToggleSidebar"].exists { XCTAssertFalse(app.navigationBars.staticTexts["Files"].exists) }
+        tap(app.buttons["files.transfers"], in: app)
+        XCTAssertTrue(app.navigationBars.staticTexts["File transfers"].waitForExistence(timeout: 5))
+        capture(app, "Pushed screen keeps a compact title")
+    }
+
+    func testLargeTextScopeMenuSwitchesToCloud() {
+        let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        chooseCloud(app)
+        XCTAssertTrue(app.buttons["backup.item.fixture-local-backup"].waitForExistence(timeout: 5))
+        capture(app, "Scope menu at maximum Dynamic Type")
+    }
+
+    func testImportPhotosOpensThePickerFromTheAddMenu() {
+        let app = launch()
+        app.buttons["files.add"].tap(); app.buttons["Import photos or videos"].tap()
+        let cancel = app.buttons["Cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 8))
+        capture(app, "Photo picker opened from the add menu")
+        cancel.tap()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
+    }
+
+    func testCameraEntryOnlyAppearsWithACamera() {
+        let app = launch()
+        app.buttons["files.add"].tap()
+        XCTAssertTrue(app.buttons["New folder"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Take photo or video"].exists)
+    }
+
+    func testCameraCaptureIsListedInTheOpenFolder() {
+        let app = launch(["--ui-camera"])
+        tap(app.buttons["folder.item.fixture-folder"], in: app)
+        XCTAssertTrue(app.buttons["file.item.fixture-nested"].waitForExistence(timeout: 5))
+        app.buttons["files.add"].tap(); app.buttons["Take photo or video"].tap()
+        let captured = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "IMG_")).firstMatch
+        XCTAssertTrue(captured.waitForExistence(timeout: 5))
+        XCTAssertTrue(captured.label.contains(".jpg"))
+        XCTAssertTrue(app.descendants(matching: .any)["workspace.notice"].waitForExistence(timeout: 5))
+        capture(app, "Camera capture listed in the open folder")
+        app.buttons["files.parent"].tap()
+        XCTAssertTrue(app.buttons["file.item.fixture-local"].waitForExistence(timeout: 5))
+        XCTAssertFalse(captured.exists)
+    }
+
+    func testCameraDeniedOffersSettings() {
+        let app = launch(["--ui-camera-denied"])
+        app.buttons["files.add"].tap(); app.buttons["Take photo or video"].tap()
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        XCTAssertTrue(alert.buttons["Open Settings"].exists)
+        capture(app, "Camera access denied")
+        alert.buttons["Cancel"].tap()
+        XCTAssertTrue(alert.waitForNonExistence(timeout: 5))
+    }
+
     func testCloudRefreshFailureStaysWithItsRetryControl() {
         let app = launch(["--ui-files-cloud-failure"])
         chooseCloud(app)

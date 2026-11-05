@@ -320,6 +320,8 @@
 	<string>ข้อมูลแคช</string>
 	<key>Cached data cleared</key>
 	<string>ล้างแคชแล้ว</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>ไม่สามารถใช้กล้องได้ อนุญาตการเข้าถึงกล้องในการตั้งค่าเพื่อถ่ายรูปและวิดีโอ</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>ไม่สามารถเข้าถึงกล้องได้ โปรดป้อนคีย์การตั้งค่าหรืออนุญาตให้เข้าถึงกล้องในการตั้งค่า</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>แท็ก</string>
 	<key>Tags, separated by commas</key>
 	<string>แท็ก คั่นด้วยเครื่องหมายจุลภาค</string>
+	<key>Take photo or video</key>
+	<string>ถ่ายรูปหรือวิดีโอ</string>
 	<key>Terms of service</key>
 	<string>ข้อกำหนดในการให้บริการ</string>
 	<key>Test environment · Separate accounts and test purchases</key>

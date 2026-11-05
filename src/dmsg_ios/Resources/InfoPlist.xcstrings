@@ -33,139 +33,139 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "مسح رموز QR لمراجعتها."
+            "value": "مسح رموز QR لمراجعتها، والتقاط صور وفيديوهات تُحفظ مشفّرة في الملفات."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan QR codes for review."
+            "value": "Scan QR codes for review, and take photos and videos that are saved encrypted in Files."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escanear códigos QR para revisarlos."
+            "value": "Escanear códigos QR para revisarlos y hacer fotos y vídeos que se guardan cifrados en Archivos."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scanner des codes QR pour vérification."
+            "value": "Scanner des codes QR pour vérification, et prendre des photos et des vidéos enregistrées chiffrées dans Fichiers."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сканирование QR-кодов для проверки."
+            "value": "Сканирование QR-кодов для проверки, а также съёмка фото и видео, которые сохраняются в зашифрованном виде в разделе «Файлы»."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "扫描二维码，以便核对。"
+            "value": "扫描二维码以便核对，以及拍摄照片和视频并加密保存到“文件”。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "掃描 QR 碼，以便核對。"
+            "value": "掃描 QR 碼以便核對，以及拍攝照片和影片並加密儲存到「檔案」。"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "समीक्षा के लिए QR कोड स्कैन करें।"
+            "value": "समीक्षा के लिए QR कोड स्कैन करें, और ऐसे फ़ोटो और वीडियो लें जो फ़ाइलें में एन्क्रिप्ट होकर सहेजे जाते हैं।"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pindai kode QR untuk ditinjau."
+            "value": "Pindai kode QR untuk ditinjau, serta ambil foto dan video yang disimpan terenkripsi di Berkas."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escanear códigos QR para revisão."
+            "value": "Escanear códigos QR para revisão e tirar fotos e gravar vídeos que ficam salvos com criptografia em Arquivos."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "確認のためにQRコードをスキャンします。"
+            "value": "確認のためにQRコードをスキャンし、ファイルに暗号化して保存する写真や動画を撮影します。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR-Codes zur Prüfung scannen."
+            "value": "QR-Codes zur Prüfung scannen sowie Fotos und Videos aufnehmen, die verschlüsselt in „Dateien“ gespeichert werden."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "확인을 위해 QR 코드를 스캔합니다."
+            "value": "확인을 위해 QR 코드를 스캔하고, 파일에 암호화되어 저장되는 사진과 비디오를 촬영합니다."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scansiona codici QR per verificarli."
+            "value": "Scansiona codici QR per verificarli e scatta foto e video salvati cifrati in File."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "İncelemek için QR kodlarını tarayın."
+            "value": "İncelemek için QR kodlarını tarayın, Dosyalar’a şifreli olarak kaydedilen fotoğraf ve videolar çekin."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quét mã QR để kiểm tra."
+            "value": "Quét mã QR để kiểm tra, đồng thời chụp ảnh và quay video được mã hóa và lưu trong Tệp."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "สแกนคิวอาร์โค้ดเพื่อตรวจสอบ"
+            "value": "สแกนคิวอาร์โค้ดเพื่อตรวจสอบ และถ่ายรูปและวิดีโอที่จะถูกเข้ารหัสและบันทึกไว้ในไฟล์"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skanowanie kodów QR do sprawdzenia."
+            "value": "Skanowanie kodów QR do sprawdzenia oraz robienie zdjęć i nagrywanie filmów zapisywanych w postaci zaszyfrowanej w Plikach."
           }
         },
         "fil": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mag-scan ng mga QR code para suriin."
+            "value": "Mag-scan ng mga QR code para suriin, at kumuha ng mga larawan at video na naka-encrypt na sine-save sa Mga file."
           }
         },
         "ms": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imbas kod QR untuk semakan."
+            "value": "Imbas kod QR untuk semakan, dan ambil foto serta video yang disimpan tersulit dalam Fail."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "পর্যালোচনার জন্য QR কোড স্ক্যান করুন।"
+            "value": "পর্যালোচনার জন্য QR কোড স্ক্যান করুন, এবং ছবি ও ভিডিও তুলুন যা ফাইলে এনক্রিপ্ট করে সংরক্ষিত হয়।"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "QR-codes scannen om te controleren."
+            "value": "QR-codes scannen om te controleren, en foto’s en video’s maken die versleuteld worden bewaard in Bestanden."
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "جائزے کے لیے QR کوڈ اسکین کریں۔"
+            "value": "جائزے کے لیے QR کوڈ اسکین کریں، اور ایسی تصاویر اور ویڈیوز بنائیں جو فائلوں میں خفیہ کاری کے ساتھ محفوظ ہوتی ہیں۔"
           }
         }
       }
@@ -452,6 +452,149 @@
           "stringUnit": {
             "state": "translated",
             "value": "اپنی فائلیں براہِ راست اینڈ ٹو اینڈ انکرپٹڈ منتقل کرنے کے لیے اس نیٹ ورک پر اپنا دوسرا آلہ تلاش کریں۔"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "comment": "Privacy - Microphone Usage Description",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل الصوت لمقاطع الفيديو التي تصورها. تُحفظ مشفّرة في الملفات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record sound for the videos you take. They are saved encrypted in Files."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar el sonido de los vídeos que haces. Se guardan cifrados en Archivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer le son de vos vidéos. Elles sont enregistrées chiffrées dans Fichiers."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запись звука для снимаемых видео. Они сохраняются в зашифрованном виде в разделе «Файлы»."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍摄视频时录制声音。视频会加密保存到“文件”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拍攝影片時錄製聲音。影片會加密儲存到「檔案」。"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके वीडियो के लिए ध्वनि रिकॉर्ड करें। वे फ़ाइलें में एन्क्रिप्ट होकर सहेजे जाते हैं।"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rekam suara untuk video yang Anda ambil. Video disimpan terenkripsi di Berkas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravar o som dos vídeos que você faz. Eles ficam salvos com criptografia em Arquivos."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撮影する動画の音声を録音します。動画はファイルに暗号化して保存されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton für Ihre Videos aufnehmen. Sie werden verschlüsselt in „Dateien“ gespeichert."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "촬영하는 비디오의 소리를 녹음합니다. 비디오는 파일에 암호화되어 저장됩니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra l’audio dei video che giri. I video vengono salvati cifrati in File."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çektiğiniz videolar için ses kaydedin. Videolar Dosyalar’a şifreli olarak kaydedilir."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi âm cho video bạn quay. Video được mã hóa và lưu trong Tệp."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึกเสียงสำหรับวิดีโอที่คุณถ่าย วิดีโอจะถูกเข้ารหัสและบันทึกไว้ในไฟล์"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nagrywanie dźwięku do nagrywanych filmów. Są one zapisywane w postaci zaszyfrowanej w Plikach."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mag-record ng tunog para sa mga video na kinukuha mo. Naka-encrypt itong sine-save sa Mga file."
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rakam bunyi untuk video yang anda ambil. Video disimpan tersulit dalam Fail."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার তোলা ভিডিওর জন্য শব্দ রেকর্ড করুন। এগুলো ফাইলে এনক্রিপ্ট করে সংরক্ষিত হয়।"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geluid opnemen bij de video’s die je maakt. Ze worden versleuteld bewaard in Bestanden."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "آپ کی بنائی ہوئی ویڈیوز کے لیے آواز ریکارڈ کریں۔ یہ فائلوں میں خفیہ کاری کے ساتھ محفوظ ہوتی ہیں۔"
           }
         }
       }

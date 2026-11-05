@@ -65,7 +65,7 @@ struct AccountView: View {
                 SettingsAction("Lock workspace", systemImage: "lock") { Task { await model.lock() } }
                 SettingsAction("Sign out", role: .destructive) { signingOut = true }.disabled(model.busy)
             }
-        }.privateScreen().navigationTitle("Account")
+        }.privateScreen().navigationTitle("Account").workspaceRootTitle()
             .task(id: "\(model.session?.generation ?? 0):\(model.session?.lastSyncAtMs ?? 0):\(model.profileRevision)") { await loadProfile(force: loadedProfileRevision != model.profileRevision) }
             .onDisappear { avatarTask?.cancel() }
             .toolbar { Button("Lock workspace", systemImage: "lock") { Task { await model.lock() } }.accessibilityIdentifier("account.lock") }

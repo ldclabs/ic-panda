@@ -75,6 +75,9 @@ struct AttachmentPicker: View {
 
 extension SessionModel {
     func importLibraryDocument(_ url: URL, folder: String) async throws -> LibraryFile {
+        #if DEBUG
+        if uiTesting { return importFileFixture(url, folder: folder) }
+        #endif
         guard let paths = files, let engine, let account = session?.account else { throw CancellationError() }
         let epoch = epoch
         let result = try await transfer.run(url.lastPathComponent) { operation in

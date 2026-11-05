@@ -38,21 +38,27 @@ struct MessagesView: View {
 
     var body: some View {
         WorkspaceNavigation(selection: $selected, sidebarInitiallyVisible: true) { listSelection in
-            List(selection: listSelection) {
-                Picker("Messages", selection: $mode) { Text("Conversations").tag(0); Text("Letters").tag(1) }
-                    .pickerStyle(.segmented).listRowBackground(Color.clear).accessibilityIdentifier("messages.mode")
-                if mode == 0 { channelRows }
-                else { letterRows }
-            }.listStyle(.plain).privateScreen().navigationTitle("Messages")
-                .searchable(text: $query, prompt: "Search messages")
+            // Large text scrolls the bar away on phones. A selectable list would swallow taps on its menu.
+            let barInList = dynamicTypeSize.isAccessibilitySize && listSelection == nil
+            VStack(spacing: 0) {
+                if !barInList { modeBar }
+                List(selection: listSelection) {
+                    if barInList {
+                        modeBar.buttonStyle(.borderless)
+                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                    if mode == 0 { channelRows }
+                    else { letterRows }
+                }.listStyle(.plain)
+                    .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
+            }.privateScreen().navigationTitle("Messages")
+                .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search messages")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { ApprovalButton() }
-                    ToolbarItem(placement: .primaryAction) {
-                        NavigationLink { MessageSettingsView() } label: { Label("Message settings", systemImage: "slider.horizontal.3") }.accessibilityIdentifier("messages.settings")
-                    }
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItemGroup(placement: .primaryAction) {
                         if mode == 0 { Button("New conversation", systemImage: "plus") { creating = true } }
                         else { Button("Write a letter", systemImage: "square.and.pencil") { writing = LetterDraft() }.accessibilityIdentifier("letters.compose") }
+                        NavigationLink { MessageSettingsView() } label: { Label("Message settings", systemImage: "ellipsis.circle") }.accessibilityIdentifier("messages.settings")
                     }
                 }
                 .task(id: "channels:\(mode):\(model.epoch):\(model.concealed)") {
@@ -74,7 +80,6 @@ struct MessagesView: View {
                     }
                 }
                 .onChange(of: model.inboxHints) { _, _ in if mode == 1 { Task { await loadLetters(refresh: true) } } }
-                .refreshable { if mode == 1 { await loadLetters(refresh: true) } else { await model.synchronize() } }
         } detail: { id in
             if mode == 1, let id, id.hasPrefix("received:"), let letter = inbox.letters.first(where: { "received:" + $0.id == id }) {
                 InboxDetail(letter: letter) { await loadLetters(refresh: false) }.id(letter.id)
@@ -88,6 +93,13 @@ struct MessagesView: View {
         .onChange(of: query) { _, _ in limit = 50 }
         .sheet(isPresented: $creating) { NavigationStack { ConversationSetupView { selected = $0 } } }
         .sheet(item: $writing) { draft in NavigationStack { LetterComposerView(draft: draft) } }
+    }
+
+    private var modeBar: some View {
+        BrowseScopes(title: "Messages", selection: $mode, options: [
+            .init(value: 0, title: "Conversations", icon: AppGlyph.channels.image, identifier: "messages.mode.conversations"),
+            .init(value: 1, title: "Letters", icon: AppGlyph.inbox.image, identifier: "messages.mode.letters"),
+        ]).font(.subheadline).padding(.bottom, 8).background(Theme.paper)
     }
 
     @ViewBuilder private var channelRows: some View {

@@ -1,12 +1,18 @@
+import AVFoundation
 import SwiftUI
 import PhotosUI
 
 struct FilesView: View {
     @Environment(SessionModel.self) private var model
     @Environment(\.dynamicTypeSize) private var textSize
+    @Environment(\.openURL) private var openURL
     @State private var selected: String?
     @State private var importing = false
+    @State private var choosingPhotos = false
     @State private var photos: [PhotosPickerItem] = []
+    @State private var capturing = false
+    @State private var cameraDenied = false
+    @State private var showingTransfers = false
     @State private var sheet: FileLibrarySheet?
     @State private var selecting = false
     @State private var selection: Set<String> = []
@@ -24,11 +30,13 @@ struct FilesView: View {
     var body: some View {
         @Bindable var model = model
         WorkspaceNavigation(selection: $selected, sidebarInitiallyVisible: true) { listSelection in
+            // Large text scrolls the bar away on phones. A selectable list would swallow taps on its menus.
+            let barInList = textSize.isAccessibilitySize && listSelection == nil
             VStack(spacing: 0) {
-                if !textSize.isAccessibilitySize { FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort) }
+                if !barInList { FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort, showingTransfers: $showingTransfers) }
                 List(selection: selecting ? nil : listSelection) {
-                    if textSize.isAccessibilitySize {
-                        FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort).buttonStyle(.borderless)
+                    if barInList {
+                        FileBrowseBar(scope: $model.filesScope, sort: $model.filesSort, showingTransfers: $showingTransfers).buttonStyle(.borderless)
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
                     }
                     transferEntry
@@ -44,6 +52,7 @@ struct FilesView: View {
             }.privateScreen().navigationTitle(model.filesScope == .local ? model.library.folder?.name ?? String(localized: "Files") : String(localized: "Files"))
                 .searchable(text: $model.filesSearch, placement: .navigationBarDrawer(displayMode: .always), prompt: model.filesScope == .cloud ? "Search cloud backups" : "Search files")
                 .toolbar { toolbar }
+                .navigationDestination(isPresented: $showingTransfers) { TransfersView() }
                 .task(id: model.filesQueryKey) {
                     try? await Task.sleep(for: .milliseconds(200))
                     guard !Task.isCancelled else { return }
@@ -80,7 +89,26 @@ struct FilesView: View {
             case .failure(let error): model.reportFileError(error)
             }
         }
+        // Presented from here because a picker placed inside the + menu closes with it.
+        .photosPicker(isPresented: $choosingPhotos, selection: $photos, maxSelectionCount: 30, matching: .any(of: [.images, .videos]), preferredItemEncoding: .current)
         .onChange(of: photos) { _, values in if !values.isEmpty { Task { await importPhotos(values) } } }
+        .fullScreenCover(isPresented: $capturing) {
+            CameraCapture { result in
+                capturing = false
+                if let result { Task { await importCapture(result) } }
+            }.ignoresSafeArea().task {
+                // The camera's controls never reach the app, so a recording would run into
+                // the idle lock and be lost. Bounded so a forgotten camera still locks.
+                for _ in 0..<60 {
+                    model.activity()
+                    do { try await Task.sleep(for: .seconds(30)) } catch { return }
+                }
+            }
+        }
+        .alert("Camera access is unavailable. Allow camera access in Settings to take photos and videos.", isPresented: $cameraDenied) {
+            Button("Open Settings") { if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) } }
+            Button("Cancel", role: .cancel) {}
+        }
         .confirmationDialog("Move to Trash", isPresented: Binding(get: { !removing.isEmpty }, set: { if !$0 { removing = [] } }), titleVisibility: .visible) {
             Button("Move to Trash", role: .destructive) { let values = removing; removing = []; Task { await trash(values) } }
         } message: { Text("Cloud backups are kept. This only changes the copy on this device.") }
@@ -159,13 +187,6 @@ struct FilesView: View {
         Section {
             TransferStatusView()
             if importingPhotos { ProgressView("Preparing and copying file…") }
-            NavigationLink { TransfersView() } label: {
-                HStack {
-                    Label("File transfers", systemImage: "arrow.up.arrow.down")
-                    Spacer()
-                    if model.fileTransfers.activeCount > 0 { Text(model.fileTransfers.activeCount.formatted()).monospacedDigit() }
-                }.font(.subheadline)
-            }.accessibilityIdentifier("files.transfers")
             if model.filesPendingImports > 0 {
                 NavigationLink { PendingImportsView() } label: { LabeledContent("Pending imports", value: model.filesPendingImports.formatted()) }
             }
@@ -180,8 +201,9 @@ struct FilesView: View {
         ToolbarItemGroup(placement: .primaryAction) {
             Menu("Import", systemImage: "plus") {
                 Button("Import file", systemImage: "doc") { importing = true }
-                PhotosPicker(selection: $photos, maxSelectionCount: 30, matching: .any(of: [.images, .videos])) {
-                    Label("Import photos or videos", systemImage: "photo.on.rectangle")
+                Button("Import photos or videos", systemImage: "photo.on.rectangle") { choosingPhotos = true }
+                if cameraAvailable {
+                    Button("Take photo or video", systemImage: "camera") { Task { await openCamera() } }
                 }
                 Button("New folder", systemImage: "folder.badge.plus") { sheet = .create }
             }.disabled(working || importingPhotos || model.transfer.running || !model.filesQueryIsCurrent)
@@ -267,5 +289,40 @@ struct FilesView: View {
         }
         guard stamp == model.epoch, !Task.isCancelled else { return }
         await model.loadFiles(); sheet = .results(results)
+    }
+
+    private var cameraAvailable: Bool {
+        #if DEBUG
+        if model.uiTesting { return !Set(ProcessInfo.processInfo.arguments).isDisjoint(with: ["--ui-camera", "--ui-camera-denied"]) }
+        #endif
+        return CameraCapture.isAvailable
+    }
+
+    private func openCamera() async {
+        #if DEBUG
+        if model.uiTesting {
+            if ProcessInfo.processInfo.arguments.contains("--ui-camera-denied") { cameraDenied = true }
+            else { await importCapture(Result { try model.cameraCaptureFixture() }) }
+            return
+        }
+        #endif
+        if await AVCaptureDevice.requestAccess(for: .video) { capturing = true } else { cameraDenied = true }
+    }
+
+    private func importCapture(_ capture: Result<PhotoImport, Error>) async {
+        let stamp = model.epoch, folder = model.filesFolder
+        importingPhotos = true; defer { importingPhotos = false }
+        do {
+            let copy = try capture.get()
+            defer { copy.finish() }
+            _ = try await model.importLibraryDocument(copy.file, folder: folder)
+            guard stamp == model.epoch else { return }
+            // The new file is listed even if the camera was opened from cloud backups or a search.
+            model.filesScope = .local; model.filesSearch = ""
+            await model.loadFiles()
+            model.notice = String(localized: "Imported to this device. Cloud backup is a separate action.")
+        } catch {
+            if stamp == model.epoch { model.reportFileError(error) }
+        }
     }
 }

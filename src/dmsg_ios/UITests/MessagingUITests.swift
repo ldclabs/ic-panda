@@ -14,7 +14,7 @@ final class MessagingUITests: XCTestCase {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     private func letters(_ app: XCUIApplication) {
-        let tab = app.segmentedControls.buttons.element(boundBy: 1)
+        let tab = app.buttons["messages.mode.letters"]
         XCTAssertTrue(tab.waitForExistence(timeout: 10)); tab.tap()
     }
     private func folder(_ app: XCUIApplication, _ label: String) {
@@ -117,12 +117,21 @@ final class MessagingLayoutUITests: XCTestCase {
         if dark { app.launchArguments.append("--ui-dark") }
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launch()
-        let title = ["zh-Hans": "信件", "ar": "الرسائل", "fr": "Lettres"][language] ?? "Letters"
-        let letters = app.segmentedControls.buttons[title]
-        XCTAssertTrue(letters.waitForExistence(timeout: 10)); letters.tap()
-        let selection = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: letters)
-        if XCTWaiter.wait(for: [selection], timeout: 2) != .completed { letters.tap() }
-        XCTAssertTrue(letters.isSelected)
+        let letters = app.buttons["messages.mode.letters"]
+        if large {
+            // Accessibility text sizes offer the two scopes as a menu.
+            let scopes = app.buttons["messages.mode.conversations"]
+            XCTAssertTrue(scopes.waitForExistence(timeout: 10)); scopes.tap()
+            app.buttons["Lettres"].tap()
+            XCTAssertTrue(letters.waitForExistence(timeout: 5))
+        } else {
+            XCTAssertTrue(letters.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.searchFields.firstMatch.exists)
+            letters.tap()
+            let selection = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: letters)
+            if XCTWaiter.wait(for: [selection], timeout: 2) != .completed { letters.tap() }
+            XCTAssertTrue(letters.isSelected)
+        }
         let row = app.buttons["inbox.row.fixture-letter"]
         for _ in 0..<4 {
             if row.exists && row.isHittable { break }

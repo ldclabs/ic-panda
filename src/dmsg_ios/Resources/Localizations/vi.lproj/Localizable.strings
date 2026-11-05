@@ -320,6 +320,8 @@
 	<string>Dữ liệu bộ nhớ đệm</string>
 	<key>Cached data cleared</key>
 	<string>Đã xóa bộ nhớ đệm</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Không thể truy cập camera. Cho phép truy cập camera trong Cài đặt để chụp ảnh và quay video.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Không thể truy cập camera. Nhập khóa thiết lập hoặc cho phép truy cập camera trong Cài đặt.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Thẻ</string>
 	<key>Tags, separated by commas</key>
 	<string>Thẻ, cách nhau bằng dấu phẩy</string>
+	<key>Take photo or video</key>
+	<string>Chụp ảnh hoặc quay video</string>
 	<key>Terms of service</key>
 	<string>Điều khoản dịch vụ</string>
 	<key>Test environment · Separate accounts and test purchases</key>

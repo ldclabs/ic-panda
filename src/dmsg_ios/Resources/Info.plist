@@ -25,7 +25,9 @@
 	<key>UIPrefersShowingLanguageSettings</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan QR codes for review.</string>
+	<string>Scan QR codes for review, and take photos and videos that are saved encrypted in Files.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record sound for the videos you take. They are saved encrypted in Files.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock your private workspace and confirm the request you reviewed.</string>
 	<key>NSLocalNetworkUsageDescription</key>

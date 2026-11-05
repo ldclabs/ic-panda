@@ -115,9 +115,7 @@ private struct VaultBrowseBar: View {
                             HStack(spacing: 5) {
                                 Text(moreSelected ? vaultKindName(model.vaultFilter) : "More types")
                                 Image(systemName: "chevron.down").font(.caption)
-                            }.padding(.horizontal, 12).frame(minHeight: 44)
-                                .foregroundStyle(moreSelected ? Theme.forest : Color.secondary)
-                                .background(moreSelected ? Theme.forest.opacity(0.10) : .clear, in: Capsule())
+                            }.browseTabShape(selected: moreSelected)
                         }.id("types").accessibilityAddTraits(moreSelected ? .isSelected : []).accessibilityIdentifier("vault.types")
                     }.padding(.horizontal, 16)
                 }
@@ -133,23 +131,17 @@ private struct VaultBrowseBar: View {
     }
 
     private func scope(_ value: String, title: LocalizedStringKey, symbol: String) -> some View {
-        let selected = model.vaultFilter == value
-        return Button { model.vaultFilter = value } label: {
-            HStack(spacing: 5) {
-                if ["login", "note"].contains(value) {
-                    AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
-                } else { Image(systemName: symbol) }
-                Text(title)
-                if model.vaultLoaded && model.contentSync?.initialized == true {
-                    Text(model.vaultCounts.count(value).formatted()).font(.caption.monospacedDigit())
-                        .opacity(model.vaultCountsAreCurrent ? 1 : 0)
-                        .accessibilityHidden(!model.vaultCountsAreCurrent)
-                }
-            }.padding(.horizontal, 12).frame(minHeight: 44)
-                .foregroundStyle(selected ? Theme.forest : Color.secondary)
-                .background(selected ? Theme.forest.opacity(0.10) : .clear, in: Capsule())
-                .contentShape(Capsule())
-        }.buttonStyle(.plain).id(value).accessibilityAddTraits(selected ? .isSelected : []).accessibilityIdentifier("vault.scope.\(value)")
+        BrowseTab(selected: model.vaultFilter == value) { model.vaultFilter = value } label: {
+            if ["login", "note"].contains(value) {
+                AppGlyph.vaultItem(value).image.resizable().scaledToFit().frame(width: 17, height: 17).accessibilityHidden(true)
+            } else { Image(systemName: symbol) }
+            Text(title)
+            if model.vaultLoaded && model.contentSync?.initialized == true {
+                Text(model.vaultCounts.count(value).formatted()).font(.caption.monospacedDigit())
+                    .opacity(model.vaultCountsAreCurrent ? 1 : 0)
+                    .accessibilityHidden(!model.vaultCountsAreCurrent)
+            }
+        }.id(value).accessibilityIdentifier("vault.scope.\(value)")
     }
 }
 

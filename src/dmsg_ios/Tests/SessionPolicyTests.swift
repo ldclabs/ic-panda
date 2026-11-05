@@ -80,6 +80,46 @@ final class SessionPolicyTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: pending.path))
     }
 
+    func testCapturedPhotoBecomesADatedJPEGAndLeavesNoCopyBehind() throws {
+        let date = Date(timeIntervalSince1970: 1_793_000_000)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4)).image { $0.fill(CGRect(x: 0, y: 0, width: 4, height: 4)) }
+        let capture = try PhotoImport.capturedPhoto(image, at: date)
+        XCTAssertEqual(capture.file.pathExtension, "jpg")
+        XCTAssertTrue(capture.file.lastPathComponent.hasPrefix("IMG_"))
+        XCTAssertEqual(try Data(contentsOf: capture.file).prefix(2), Data([0xFF, 0xD8]))
+        capture.finish()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: capture.directory.path))
+    }
+
+    func testCapturedMovieIsMovedOutOfTheCameraTemporaryFile() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + ".MOV")
+        try Data("movie".utf8).write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let capture = try PhotoImport.capturedMovie(source, at: Date(timeIntervalSince1970: 1_793_000_000))
+        defer { capture.finish() }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: source.path))
+        XCTAssertEqual(capture.file.pathExtension, "mov")
+        XCTAssertTrue(capture.file.lastPathComponent.hasPrefix("VID_"))
+        XCTAssertEqual(try Data(contentsOf: capture.file), Data("movie".utf8))
+    }
+
+    func testFailedCaptureLeavesNoDirectory() throws {
+        let missing = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + ".MOV")
+        PhotoImport.removeAbandoned()
+        XCTAssertThrowsError(try PhotoImport.capturedMovie(missing, at: .now))
+        let left = try FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)
+        XCTAssertFalse(left.contains { $0.hasPrefix("dmsg-photo-") })
+    }
+
+    func testStartingAgainRemovesCopiesAnInterruptedRunLeftBehind() throws {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4)).image { $0.fill(CGRect(x: 0, y: 0, width: 4, height: 4)) }
+        let abandoned = try PhotoImport.capturedPhoto(image, at: .now)
+        let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        _ = try PrivateFiles(base: base)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: abandoned.directory.path))
+    }
+
     func testImmediateBackgroundLockPreferenceSurvivesRestart() throws {
         let base = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: base) }

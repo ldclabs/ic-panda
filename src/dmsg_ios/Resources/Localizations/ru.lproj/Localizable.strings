@@ -320,6 +320,8 @@
 	<string>Кэшированные данные</string>
 	<key>Cached data cleared</key>
 	<string>Кэш очищен</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>Камера недоступна. Разрешите доступ к камере в настройках, чтобы снимать фото и видео.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>Нет доступа к камере. Введите ключ настройки или разрешите доступ к камере в настройках.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>Теги</string>
 	<key>Tags, separated by commas</key>
 	<string>Метки через запятую</string>
+	<key>Take photo or video</key>
+	<string>Снять фото или видео</string>
 	<key>Terms of service</key>
 	<string>Условия использования</string>
 	<key>Test environment · Separate accounts and test purchases</key>

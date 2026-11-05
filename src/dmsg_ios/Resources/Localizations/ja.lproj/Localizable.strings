@@ -320,6 +320,8 @@
 	<string>キャッシュデータ</string>
 	<key>Cached data cleared</key>
 	<string>キャッシュを消去しました</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>カメラを使用できません。写真や動画を撮るには、設定でカメラへのアクセスを許可してください。</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>カメラにアクセスできません。設定キーを入力するか、「設定」でカメラへのアクセスを許可してください。</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>タグ</string>
 	<key>Tags, separated by commas</key>
 	<string>カンマで区切られたタグ</string>
+	<key>Take photo or video</key>
+	<string>写真や動画を撮る</string>
 	<key>Terms of service</key>
 	<string>利用規約</string>
 	<key>Test environment · Separate accounts and test purchases</key>

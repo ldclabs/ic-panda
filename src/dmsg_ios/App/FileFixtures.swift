@@ -1,5 +1,7 @@
 #if DEBUG
 import Foundation
+import UIKit
+import UniformTypeIdentifiers
 import DMsgCore
 
 extension SessionModel {
@@ -85,6 +87,21 @@ extension SessionModel {
         var backups = cloudBackups
         if let index = backups.firstIndex(where: { $0.id == backup.id }) { backups[index].local = true }
         setFileCloudFixture(backups); filesRevision &+= 1
+    }
+
+    func importFileFixture(_ url: URL, folder: String) -> LibraryFile {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        let file = LibraryFile(id: "fixture-import-" + UUID().uuidString, name: url.lastPathComponent, mime: UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "",
+            size: UInt64(size), current: "v1", sha256: "fixture-import", status: "local", versions: 1, local: true, folder: folder, path: [], updatedAt: 1_794_000_000_000)
+        fixtureFiles.append(file)
+        fixtureFileVersions[file.id] = [LibraryVersion(id: file.current, size: file.size, sha256: file.sha256, createdAt: 1_794_000_000_000, current: true, local: true, status: file.status, backup: nil)]
+        updateFileSummaryFixture()
+        return file
+    }
+
+    func cameraCaptureFixture() throws -> PhotoImport {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { $0.fill(CGRect(x: 0, y: 0, width: 8, height: 8)) }
+        return try PhotoImport.capturedPhoto(image, at: .now)
     }
 
     func renameFileFixture(_ id: String, name: String) throws {

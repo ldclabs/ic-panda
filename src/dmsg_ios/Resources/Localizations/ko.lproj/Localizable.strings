@@ -320,6 +320,8 @@
 	<string>캐시 데이터</string>
 	<key>Cached data cleared</key>
 	<string>캐시를 지웠습니다</string>
+	<key>Camera access is unavailable. Allow camera access in Settings to take photos and videos.</key>
+	<string>카메라를 사용할 수 없습니다. 사진과 비디오를 촬영하려면 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Camera access is unavailable. Enter a setup key or allow camera access in Settings.</key>
 	<string>카메라에 접근할 수 없습니다. 설정 키를 입력하거나 설정에서 카메라 접근을 허용하세요.</string>
 	<key>Camera access is unavailable. Paste the invitation or allow camera access in Settings.</key>
@@ -2360,6 +2362,8 @@
 	<string>태그</string>
 	<key>Tags, separated by commas</key>
 	<string>쉼표로 구분된 태그</string>
+	<key>Take photo or video</key>
+	<string>사진 또는 비디오 촬영</string>
 	<key>Terms of service</key>
 	<string>서비스 약관</string>
 	<key>Test environment · Separate accounts and test purchases</key>

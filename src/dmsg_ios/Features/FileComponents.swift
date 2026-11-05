@@ -34,19 +34,25 @@ enum FileLibrarySheet: Identifiable {
 struct FileBrowseBar: View {
     @Binding var scope: FileScope
     @Binding var sort: FileSort
-    @Environment(\.dynamicTypeSize) private var textSize
+    @Binding var showingTransfers: Bool
+    @Environment(SessionModel.self) private var model
     var body: some View {
+        let active = model.fileTransfers.activeCount
         HStack(spacing: 4) {
-            if textSize.isAccessibilitySize { scopeMenu }
-            else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 6) {
-                        button(.local, title: "On this device", symbol: "internaldrive")
-                        button(.cloud, title: "Cloud backups", symbol: "icloud")
-                    }.padding(.leading, 16).fixedSize(horizontal: true, vertical: false)
-                    scopeMenu
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
+            BrowseScopes(title: "Files", selection: $scope, options: [
+                .init(value: .local, title: "On this device", icon: Image(systemName: "internaldrive"), identifier: "files.scope.local"),
+                .init(value: .cloud, title: "Cloud backups", icon: Image(systemName: "icloud"), identifier: "files.scope.cloud"),
+            ])
+            Button { showingTransfers = true } label: {
+                Image(systemName: "arrow.left.arrow.right").font(.system(size: 18)).frame(width: 44, height: 44)
+                    .overlay(alignment: .topTrailing) {
+                        if active > 0 {
+                            Text(active.formatted()).font(.caption2.bold().monospacedDigit()).foregroundStyle(Theme.paper)
+                                .padding(.horizontal, 4).background(Theme.forest, in: Capsule())
+                        }
+                    }
+            }.accessibilityLabel("File transfers").accessibilityValue(active > 0 ? active.formatted() : "")
+                .accessibilityIdentifier("files.transfers")
             Menu {
                 Picker("Sort by", selection: $sort) {
                     ForEach(FileSort.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -54,29 +60,6 @@ struct FileBrowseBar: View {
             } label: { Image(systemName: "arrow.up.arrow.down").font(.system(size: 18)).frame(width: 44, height: 44) }
                 .accessibilityLabel("Sort by").accessibilityValue(sort.title).accessibilityIdentifier("files.sort")
         }.font(.subheadline).padding(.bottom, 8).background(Theme.paper)
-    }
-
-    private var scopeMenu: some View {
-        Menu {
-            Picker("Files", selection: $scope) {
-                Text("On this device").tag(FileScope.local)
-                Text("Cloud backups").tag(FileScope.cloud)
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Text(scope == .local ? "On this device" : "Cloud backups").fixedSize(horizontal: false, vertical: true)
-                Image(systemName: "chevron.down").font(.system(size: 16)).accessibilityHidden(true)
-            }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).padding(.horizontal, 16).padding(.vertical, 8)
-        }.accessibilityIdentifier("files.scope.\(scope.rawValue)")
-    }
-
-    private func button(_ value: FileScope, title: LocalizedStringKey, symbol: String) -> some View {
-        Button { scope = value } label: {
-            Label(title, systemImage: symbol).padding(.horizontal, 12).frame(minHeight: 44)
-                .foregroundStyle(scope == value ? Theme.forest : Color.secondary)
-                .background(scope == value ? Theme.forest.opacity(0.10) : .clear, in: Capsule())
-        }.buttonStyle(.plain).accessibilityAddTraits(scope == value ? .isSelected : [])
-            .accessibilityIdentifier("files.scope.\(value.rawValue)")
     }
 }
 
