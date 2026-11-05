@@ -1000,5 +1000,71 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "Nag-e-export ang dMsg ng pirma kasama ang ebidensya nito. I-verify ang bundle sa iyong browser; ang orihinal na file ay hindi kailanman umaalis sa iyong computer.",
   "Open the verifier": "Buksan ang verifier",
   "Can strangers write to me?": "Maaari bang sumulat sa akin ang mga estranghero?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Kung pinapayagan lang ito ng iyong mga panuntunan: walang sinuman, iyong mga contact, lahat, o mga nagpadala na magbabayad ng presyong itinakda mo. Sinasaklaw ng pagbabayad ang paghahatid, hindi tugon."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Kung pinapayagan lang ito ng iyong mga panuntunan: walang sinuman, iyong mga contact, lahat, o mga nagpadala na magbabayad ng presyong itinakda mo. Sinasaklaw ng pagbabayad ang paghahatid, hindi tugon.",
+  'Send files through dMsg': 'Magpadala ng files sa dMsg',
+  '{name} is asking you for files': 'Humihingi ng files sa iyo si {name}',
+  'Someone is asking you for files': 'May humihingi ng files sa iyo',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Ine-encrypt dito ng browser mo ang bawat file, kaya ang humiling lang ang makakapagbukas. Pang-upload lang ang link na ito: walang makakapag-download sa pamamagitan nito.',
+  'Only they can open your files': 'Siya lang ang makakapagbukas ng files mo',
+  'Asked by': 'Humiling',
+  'Check their public profile': 'Tingnan ang public profile',
+  'Open until': 'Bukas hanggang',
+  'Largest file': 'Pinakamalaking file',
+  'Your name (optional)': 'Pangalan mo (opsyonal)',
+  'A note (optional)': 'Tala (opsyonal)',
+  'They see this with your files. dMsg does not verify it.':
+    'Makikita niya ito kasama ng files mo. Hindi ito bine-verify ng dMsg.',
+  'Choose files or drop them here': 'Pumili ng files o i-drop dito',
+  'Send files': 'Ipadala ang files',
+  'Waiting': 'Naghihintay',
+  'Preparing… {percent}%': 'Inihahanda… {percent}%',
+  'Uploading… {percent}%': 'Ina-upload… {percent}%',
+  'Sent': 'Naipadala',
+  'Stop': 'Ihinto',
+  'This file is empty.': 'Walang laman ang file na ito.',
+  'This file is larger than this link takes ({size}).':
+    'Mas malaki ang file na ito kaysa sa tinatanggap ng link ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Nagbago ang file habang ipinapadala. Piliin ito ulit.',
+  'The connection was lost. Try again.': 'Naputol ang koneksyon. Subukan ulit.',
+  'This file could not be sent.': 'Hindi naipadala ang file na ito.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Wala nang espasyo ang link na ito para sa iba pang files. Humingi ng bago sa nagpadala.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Hindi tumatanggap ng files ang link na ito ngayon. Tanungin ang nagpadala.',
+  'This link was closed by the person who sent it.':
+    'Isinara ng nagpadala ang link na ito.',
+  'This link is incomplete. Ask for the whole link.':
+    'Kulang ang link na ito. Hingin ang buong link.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Hindi makakapag-encrypt ng files dito ang browser na ito. Buksan ang link sa bagong browser.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Malaki ang file na ito para sa telepono. Baka mas madali sa computer.',
+  'Sent from this browser': 'Naipadala mula sa browser na ito',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Ang browser na ito lang ang nakakaalala nito; walang ipapakita ang ibang browser.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Hindi magtatago ng rekord ng uploads ang browser na ito. Kopyahin ang bawat resibo kung kailangan.',
+  'Copy receipt': 'Kopyahin ang resibo',
+  'Not finished': 'Hindi natapos',
+  'Delivered': 'Naihatid',
+  'Saved by them': 'Na-save niya',
+  'Withdrawn': 'Binawi',
+  'Replaced': 'Napalitan',
+  'Removed by them': 'Inalis niya',
+  'Replace': 'Palitan',
+  'Withdraw': 'Bawiin',
+  'Withdraw this file?': 'Bawiin ang file na ito?',
+  'Send a new version': 'Magpadala ng bagong bersyon',
+  'They have already saved this file. Contact them directly.':
+    'Na-save na niya ang file na ito. Direktang makipag-ugnayan sa kanya.',
+  'Clear this list': 'I-clear ang listahang ito',
+  'Keep this page open until your files are sent.':
+    'Panatilihing bukas ang page na ito hanggang maipadala ang files mo.',
+  'Collect files this way too': 'Mangolekta rin ng files sa ganitong paraan',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'Ang dMsg ay pribadong workspace para sa files, mensahe, at password mo. Humingi ng files sa kahit kanino gamit ang link, at ikaw lang ang makakapagbukas.',
+  'Each person sees only what they sent.':
+    'Ang ipinadala lang niya ang makikita ng bawat tao.',
 } satisfies Messages

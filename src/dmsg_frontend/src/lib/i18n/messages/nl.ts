@@ -1000,5 +1000,72 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg exporteert een handtekening met bewijsmateriaal. Controleer de bundel in je browser; het originele bestand verlaat nooit je computer.",
   "Open the verifier": "Open de verificateur",
   "Can strangers write to me?": "Kunnen vreemden mij schrijven?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Alleen als je regels het toelaten: niemand, je contacten, iedereen of afzenders die de prijs betalen die je hebt ingesteld. Betalen dekt de levering, geen antwoord."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Alleen als je regels het toelaten: niemand, je contacten, iedereen of afzenders die de prijs betalen die je hebt ingesteld. Betalen dekt de levering, geen antwoord.",
+  'Send files through dMsg': 'Bestanden sturen via dMsg',
+  '{name} is asking you for files': '{name} vraagt je om bestanden',
+  'Someone is asking you for files': 'Iemand vraagt je om bestanden',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Je browser versleutelt elk bestand hier, zodat alleen degene die erom vroeg het kan openen. Deze link is alleen om te uploaden: niemand kan er iets mee downloaden.',
+  'Only they can open your files': 'Alleen die persoon kan je bestanden openen',
+  'Asked by': 'Gevraagd door',
+  'Check their public profile': 'Openbaar profiel controleren',
+  'Open until': 'Open tot',
+  'Largest file': 'Grootste bestand',
+  'Your name (optional)': 'Je naam (optioneel)',
+  'A note (optional)': 'Een notitie (optioneel)',
+  'They see this with your files. dMsg does not verify it.':
+    'Die persoon ziet dit bij je bestanden. dMsg controleert het niet.',
+  'Choose files or drop them here': 'Kies bestanden of zet ze hier neer',
+  'Send files': 'Bestanden versturen',
+  'Waiting': 'Wachten',
+  'Preparing… {percent}%': 'Voorbereiden… {percent}%',
+  'Uploading… {percent}%': 'Uploaden… {percent}%',
+  'Sent': 'Verstuurd',
+  'Stop': 'Stoppen',
+  'This file is empty.': 'Dit bestand is leeg.',
+  'This file is larger than this link takes ({size}).':
+    'Dit bestand is groter dan deze link toestaat ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Het bestand is tijdens het versturen gewijzigd. Kies het opnieuw.',
+  'The connection was lost. Try again.':
+    'De verbinding is verbroken. Probeer het opnieuw.',
+  'This file could not be sent.': 'Dit bestand kon niet worden verstuurd.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Deze link heeft geen ruimte meer voor bestanden. Vraag de afzender om een andere.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Deze link neemt nu geen bestanden aan. Vraag het aan de afzender.',
+  'This link was closed by the person who sent it.':
+    'De afzender heeft deze link gesloten.',
+  'This link is incomplete. Ask for the whole link.':
+    'Deze link is onvolledig. Vraag om de hele link.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Deze browser kan hier geen bestanden versleutelen. Open de link in een recente browser.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Dit is een groot bestand voor een telefoon. Een computer is misschien makkelijker.',
+  'Sent from this browser': 'Verstuurd vanuit deze browser',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Alleen deze browser onthoudt deze; een andere browser toont er geen.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Deze browser bewaart geen overzicht van je uploads. Kopieer elk ontvangstbewijs als je het nodig hebt.',
+  'Copy receipt': 'Ontvangstbewijs kopiëren',
+  'Not finished': 'Niet voltooid',
+  'Delivered': 'Afgeleverd',
+  'Saved by them': 'Opgeslagen door die persoon',
+  'Withdrawn': 'Ingetrokken',
+  'Replaced': 'Vervangen',
+  'Removed by them': 'Verwijderd door die persoon',
+  'Replace': 'Vervangen',
+  'Withdraw': 'Intrekken',
+  'Withdraw this file?': 'Dit bestand intrekken?',
+  'Send a new version': 'Nieuwe versie versturen',
+  'They have already saved this file. Contact them directly.':
+    'Die persoon heeft dit bestand al opgeslagen. Neem rechtstreeks contact op.',
+  'Clear this list': 'Deze lijst wissen',
+  'Keep this page open until your files are sent.':
+    'Houd deze pagina open tot je bestanden zijn verstuurd.',
+  'Collect files this way too': 'Verzamel ook zo bestanden',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg is een privéwerkruimte voor je bestanden, berichten en wachtwoorden. Vraag iedereen via een link om bestanden, en alleen jij kunt ze openen.',
+  'Each person sees only what they sent.':
+    'Iedereen ziet alleen wat diegene zelf heeft verstuurd.',
 } satisfies Messages

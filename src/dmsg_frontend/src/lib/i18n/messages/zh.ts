@@ -1224,4 +1224,69 @@ export default {
   'Can strangers write to me?': '陌生人能给我写信吗？',
   'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
     '只有你的规则允许时才行：不接收、仅联系人、所有人，或支付你所设价格的发信人。付费只买到送达，不保证回复。',
+  'Send files through dMsg': '通过 dMsg 发送文件',
+  '{name} is asking you for files': '{name} 正在向你收取文件',
+  'Someone is asking you for files': '有人正在向你收取文件',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    '你的浏览器会在本地加密每个文件，只有发起请求的人才能打开。这条链接只能上传，任何人都无法通过它下载。',
+  'Only they can open your files': '只有对方能打开你的文件',
+  'Asked by': '发起人',
+  'Check their public profile': '查看对方的公开资料',
+  'Open until': '开放至',
+  'Largest file': '单个文件上限',
+  'Your name (optional)': '你的姓名（可选）',
+  'A note (optional)': '备注（可选）',
+  'They see this with your files. dMsg does not verify it.':
+    '对方会和文件一起看到这些内容。dMsg 不会核实。',
+  'Choose files or drop them here': '选择文件，或拖到这里',
+  'Send files': '发送文件',
+  'Waiting': '等待中',
+  'Preparing… {percent}%': '正在准备… {percent}%',
+  'Uploading… {percent}%': '正在上传… {percent}%',
+  'Sent': '已发送',
+  'Stop': '停止',
+  'This file is empty.': '这个文件是空的。',
+  'This file is larger than this link takes ({size}).':
+    '这个文件超过了这条链接的上限（{size}）。',
+  'The file changed while it was being sent. Choose it again.':
+    '文件在发送过程中发生了变化，请重新选择。',
+  'The connection was lost. Try again.': '连接已中断，请重试。',
+  'This file could not be sent.': '这个文件未能发送。',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    '这条链接已没有空间接收更多文件。请向发送链接的人索取新链接。',
+  'This link is not taking files right now. Ask the person who sent it.':
+    '这条链接暂时不接收文件。请联系发送链接的人。',
+  'This link was closed by the person who sent it.':
+    '发送链接的人已关闭这条链接。',
+  'This link is incomplete. Ask for the whole link.':
+    '这条链接不完整。请索取完整的链接。',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    '这个浏览器无法在此加密文件。请用较新的浏览器打开链接。',
+  'This is a large file for a phone. A computer may be easier.':
+    '对手机来说这个文件较大，用电脑可能更方便。',
+  'Sent from this browser': '从这个浏览器发送的文件',
+  'Only this browser remembers these; another browser shows none of them.':
+    '只有这个浏览器记得这些记录，换一个浏览器就看不到了。',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    '这个浏览器不会保留你的上传记录。如有需要，请复制每个回执。',
+  'Copy receipt': '复制回执',
+  'Not finished': '未完成',
+  'Delivered': '已送达',
+  'Saved by them': '对方已保存',
+  'Withdrawn': '已撤回',
+  'Replaced': '已替换',
+  'Removed by them': '对方已移除',
+  'Replace': '替换',
+  'Withdraw': '撤回',
+  'Withdraw this file?': '撤回这个文件？',
+  'Send a new version': '发送新版本',
+  'They have already saved this file. Contact them directly.':
+    '对方已经保存了这个文件。请直接联系对方。',
+  'Clear this list': '清除这份列表',
+  'Keep this page open until your files are sent.':
+    '文件发送完成前请不要关闭这个页面。',
+  'Collect files this way too': '你也可以这样收取文件',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg 是存放文件、消息和密码的私密工作区。发一条链接就能向任何人收取文件，而且只有你能打开。',
+  'Each person sees only what they sent.': '每个人只能看到自己发送的内容。',
 } satisfies Messages

@@ -999,5 +999,69 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg ส่งออกลายเซ็นพร้อมหลักฐาน ตรวจสอบบันเดิลในเบราว์เซอร์ของคุณ ไฟล์ต้นฉบับจะไม่ออกจากคอมพิวเตอร์ของคุณ",
   "Open the verifier": "เปิดตัวตรวจสอบ",
   "Can strangers write to me?": "คนแปลกหน้าสามารถเขียนถึงฉันได้ไหม?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "เฉพาะในกรณีที่กฎของคุณอนุญาต: ไม่มีใคร ผู้ติดต่อของคุณ ทุกคน หรือผู้ส่งที่จ่ายตามราคาที่คุณตั้งไว้ การจ่ายเงินครอบคลุมถึงการจัดส่ง ไม่ใช่การตอบกลับ"
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "เฉพาะในกรณีที่กฎของคุณอนุญาต: ไม่มีใคร ผู้ติดต่อของคุณ ทุกคน หรือผู้ส่งที่จ่ายตามราคาที่คุณตั้งไว้ การจ่ายเงินครอบคลุมถึงการจัดส่ง ไม่ใช่การตอบกลับ",
+  'Send files through dMsg': 'ส่งไฟล์ผ่าน dMsg',
+  '{name} is asking you for files': '{name} ขอไฟล์จากคุณ',
+  'Someone is asking you for files': 'มีคนขอไฟล์จากคุณ',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'เบราว์เซอร์ของคุณเข้ารหัสแต่ละไฟล์ที่นี่ จึงมีเพียงผู้ขอเท่านั้นที่เปิดได้ ลิงก์นี้ใช้อัปโหลดได้อย่างเดียว ไม่มีใครดาวน์โหลดผ่านลิงก์นี้ได้',
+  'Only they can open your files': 'มีเพียงเขาเท่านั้นที่เปิดไฟล์ของคุณได้',
+  'Asked by': 'ผู้ขอ',
+  'Check their public profile': 'ตรวจสอบโปรไฟล์สาธารณะ',
+  'Open until': 'เปิดถึง',
+  'Largest file': 'ไฟล์ใหญ่สุด',
+  'Your name (optional)': 'ชื่อของคุณ (ไม่บังคับ)',
+  'A note (optional)': 'บันทึก (ไม่บังคับ)',
+  'They see this with your files. dMsg does not verify it.':
+    'เขาจะเห็นข้อความนี้พร้อมไฟล์ของคุณ dMsg ไม่ได้ตรวจสอบข้อความนี้',
+  'Choose files or drop them here': 'เลือกไฟล์หรือวางที่นี่',
+  'Send files': 'ส่งไฟล์',
+  'Waiting': 'กำลังรอ',
+  'Preparing… {percent}%': 'กำลังเตรียม… {percent}%',
+  'Uploading… {percent}%': 'กำลังอัปโหลด… {percent}%',
+  'Sent': 'ส่งแล้ว',
+  'Stop': 'หยุด',
+  'This file is empty.': 'ไฟล์นี้ว่างเปล่า',
+  'This file is larger than this link takes ({size}).':
+    'ไฟล์นี้ใหญ่กว่าที่ลิงก์นี้รับได้ ({size})',
+  'The file changed while it was being sent. Choose it again.':
+    'ไฟล์เปลี่ยนไประหว่างส่ง โปรดเลือกอีกครั้ง',
+  'The connection was lost. Try again.': 'การเชื่อมต่อขาดหาย โปรดลองอีกครั้ง',
+  'This file could not be sent.': 'ส่งไฟล์นี้ไม่ได้',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'ลิงก์นี้ไม่มีพื้นที่รับไฟล์เพิ่ม โปรดขอลิงก์ใหม่จากผู้ส่ง',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'ลิงก์นี้ยังไม่รับไฟล์ในตอนนี้ โปรดสอบถามผู้ส่ง',
+  'This link was closed by the person who sent it.': 'ผู้ส่งปิดลิงก์นี้แล้ว',
+  'This link is incomplete. Ask for the whole link.':
+    'ลิงก์นี้ไม่ครบถ้วน โปรดขอลิงก์ฉบับเต็ม',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'เบราว์เซอร์นี้เข้ารหัสไฟล์ที่นี่ไม่ได้ โปรดเปิดลิงก์ในเบราว์เซอร์รุ่นใหม่',
+  'This is a large file for a phone. A computer may be easier.':
+    'ไฟล์นี้ใหญ่สำหรับโทรศัพท์ ใช้คอมพิวเตอร์อาจสะดวกกว่า',
+  'Sent from this browser': 'ส่งจากเบราว์เซอร์นี้',
+  'Only this browser remembers these; another browser shows none of them.':
+    'มีเพียงเบราว์เซอร์นี้ที่จำรายการเหล่านี้ เบราว์เซอร์อื่นจะไม่แสดง',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'เบราว์เซอร์นี้จะไม่เก็บประวัติการอัปโหลด โปรดคัดลอกใบรับแต่ละใบหากต้องการ',
+  'Copy receipt': 'คัดลอกใบรับ',
+  'Not finished': 'ยังไม่เสร็จ',
+  'Delivered': 'ส่งถึงแล้ว',
+  'Saved by them': 'เขาบันทึกแล้ว',
+  'Withdrawn': 'ถอนแล้ว',
+  'Replaced': 'แทนที่แล้ว',
+  'Removed by them': 'เขานำออกแล้ว',
+  'Replace': 'แทนที่',
+  'Withdraw': 'ถอน',
+  'Withdraw this file?': 'ถอนไฟล์นี้หรือไม่',
+  'Send a new version': 'ส่งเวอร์ชันใหม่',
+  'They have already saved this file. Contact them directly.':
+    'เขาบันทึกไฟล์นี้แล้ว โปรดติดต่อเขาโดยตรง',
+  'Clear this list': 'ล้างรายการนี้',
+  'Keep this page open until your files are sent.':
+    'โปรดเปิดหน้านี้ไว้จนกว่าจะส่งไฟล์เสร็จ',
+  'Collect files this way too': 'รวบรวมไฟล์ด้วยวิธีนี้ได้เช่นกัน',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg คือพื้นที่ทำงานส่วนตัวสำหรับไฟล์ ข้อความ และรหัสผ่านของคุณ ขอไฟล์จากใครก็ได้ผ่านลิงก์ และมีเพียงคุณที่เปิดได้',
+  'Each person sees only what they sent.': 'แต่ละคนเห็นเฉพาะสิ่งที่ตนส่ง',
 } satisfies Messages

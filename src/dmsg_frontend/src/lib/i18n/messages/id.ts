@@ -999,5 +999,71 @@ export default {
   "Open the verifier": "Buka verifikasi",
   "Can strangers write to me?": "Bisakah orang asing menulis surat kepada saya?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Hanya jika aturan Anda mengizinkannya: tidak ada orang, kontak Anda, semua orang, atau pengirim yang membayar harga yang Anda tetapkan. Pembayaran mencakup pengiriman, bukan balasan.",
-  "Your language": "Bahasa Anda"
+  "Your language": "Bahasa Anda",
+  'Send files through dMsg': 'Kirim file lewat dMsg',
+  '{name} is asking you for files': '{name} meminta file dari Anda',
+  'Someone is asking you for files': 'Seseorang meminta file dari Anda',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Browser Anda mengenkripsi setiap file di sini, jadi hanya peminta yang bisa membukanya. Tautan ini hanya untuk mengunggah: tidak ada yang bisa mengunduh apa pun lewat tautan ini.',
+  'Only they can open your files': 'Hanya mereka yang bisa membuka file Anda',
+  'Asked by': 'Diminta oleh',
+  'Check their public profile': 'Periksa profil publiknya',
+  'Open until': 'Terbuka sampai',
+  'Largest file': 'File terbesar',
+  'Your name (optional)': 'Nama Anda (opsional)',
+  'A note (optional)': 'Catatan (opsional)',
+  'They see this with your files. dMsg does not verify it.':
+    'Mereka melihat ini bersama file Anda. dMsg tidak memverifikasinya.',
+  'Choose files or drop them here': 'Pilih file atau letakkan di sini',
+  'Send files': 'Kirim file',
+  'Waiting': 'Menunggu',
+  'Preparing… {percent}%': 'Menyiapkan… {percent}%',
+  'Uploading… {percent}%': 'Mengunggah… {percent}%',
+  'Sent': 'Terkirim',
+  'Stop': 'Hentikan',
+  'This file is empty.': 'File ini kosong.',
+  'This file is larger than this link takes ({size}).':
+    'File ini lebih besar dari batas tautan ini ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'File berubah saat dikirim. Pilih lagi.',
+  'The connection was lost. Try again.': 'Koneksi terputus. Coba lagi.',
+  'This file could not be sent.': 'File ini tidak dapat dikirim.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Tautan ini tidak punya ruang untuk file lagi. Minta tautan lain kepada pengirimnya.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Tautan ini sedang tidak menerima file. Hubungi pengirimnya.',
+  'This link was closed by the person who sent it.':
+    'Pengirim telah menutup tautan ini.',
+  'This link is incomplete. Ask for the whole link.':
+    'Tautan ini tidak lengkap. Minta tautan yang utuh.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Browser ini tidak dapat mengenkripsi file di sini. Buka tautan di browser terbaru.',
+  'This is a large file for a phone. A computer may be easier.':
+    'File ini besar untuk ponsel. Komputer mungkin lebih mudah.',
+  'Sent from this browser': 'Terkirim dari browser ini',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Hanya browser ini yang mengingatnya; browser lain tidak menampilkannya.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Browser ini tidak akan menyimpan catatan unggahan Anda. Salin setiap tanda terima jika perlu.',
+  'Copy receipt': 'Salin tanda terima',
+  'Not finished': 'Belum selesai',
+  'Delivered': 'Tersampaikan',
+  'Saved by them': 'Disimpan oleh mereka',
+  'Withdrawn': 'Ditarik',
+  'Replaced': 'Diganti',
+  'Removed by them': 'Dihapus oleh mereka',
+  'Replace': 'Ganti',
+  'Withdraw': 'Tarik',
+  'Withdraw this file?': 'Tarik file ini?',
+  'Send a new version': 'Kirim versi baru',
+  'They have already saved this file. Contact them directly.':
+    'Mereka sudah menyimpan file ini. Hubungi mereka langsung.',
+  'Clear this list': 'Bersihkan daftar ini',
+  'Keep this page open until your files are sent.':
+    'Biarkan halaman ini terbuka sampai file Anda terkirim.',
+  'Collect files this way too': 'Kumpulkan file dengan cara ini juga',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg adalah ruang kerja pribadi untuk file, pesan, dan kata sandi Anda. Minta file dari siapa pun lewat tautan, dan hanya Anda yang bisa membukanya.',
+  'Each person sees only what they sent.':
+    'Setiap orang hanya melihat yang dikirimnya sendiri.',
 } satisfies Messages

@@ -999,5 +999,71 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg mengeksport tandatangan dengan buktinya. Sahkan berkas dalam penyemak imbas anda; fail asal tidak pernah meninggalkan komputer anda.",
   "Open the verifier": "Buka pengesah",
   "Can strangers write to me?": "Bolehkah orang yang tidak dikenali menulis kepada saya?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Hanya jika peraturan anda membenarkannya: tiada sesiapa, kenalan anda, semua orang atau penghantar yang membayar harga yang anda tetapkan. Membayar meliputi penghantaran, bukan balasan."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Hanya jika peraturan anda membenarkannya: tiada sesiapa, kenalan anda, semua orang atau penghantar yang membayar harga yang anda tetapkan. Membayar meliputi penghantaran, bukan balasan.",
+  'Send files through dMsg': 'Hantar fail melalui dMsg',
+  '{name} is asking you for files': '{name} meminta fail daripada anda',
+  'Someone is asking you for files': 'Seseorang meminta fail daripada anda',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Pelayar anda menyulitkan setiap fail di sini, jadi hanya peminta yang boleh membukanya. Pautan ini untuk memuat naik sahaja: tiada sesiapa boleh memuat turun apa-apa melaluinya.',
+  'Only they can open your files': 'Hanya mereka boleh membuka fail anda',
+  'Asked by': 'Diminta oleh',
+  'Check their public profile': 'Semak profil awam mereka',
+  'Open until': 'Dibuka hingga',
+  'Largest file': 'Fail terbesar',
+  'Your name (optional)': 'Nama anda (pilihan)',
+  'A note (optional)': 'Nota (pilihan)',
+  'They see this with your files. dMsg does not verify it.':
+    'Mereka melihat ini bersama fail anda. dMsg tidak mengesahkannya.',
+  'Choose files or drop them here': 'Pilih fail atau lepaskan di sini',
+  'Send files': 'Hantar fail',
+  'Waiting': 'Menunggu',
+  'Preparing… {percent}%': 'Menyediakan… {percent}%',
+  'Uploading… {percent}%': 'Memuat naik… {percent}%',
+  'Sent': 'Dihantar',
+  'Stop': 'Henti',
+  'This file is empty.': 'Fail ini kosong.',
+  'This file is larger than this link takes ({size}).':
+    'Fail ini lebih besar daripada had pautan ini ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Fail berubah semasa dihantar. Pilih semula.',
+  'The connection was lost. Try again.': 'Sambungan terputus. Cuba lagi.',
+  'This file could not be sent.': 'Fail ini tidak dapat dihantar.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Pautan ini tiada ruang untuk fail lagi. Minta pautan lain daripada penghantar.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Pautan ini tidak menerima fail buat masa ini. Hubungi penghantar.',
+  'This link was closed by the person who sent it.':
+    'Penghantar telah menutup pautan ini.',
+  'This link is incomplete. Ask for the whole link.':
+    'Pautan ini tidak lengkap. Minta pautan penuh.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Pelayar ini tidak dapat menyulitkan fail di sini. Buka pautan dalam pelayar terkini.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Ini fail yang besar untuk telefon. Komputer mungkin lebih mudah.',
+  'Sent from this browser': 'Dihantar daripada pelayar ini',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Hanya pelayar ini yang mengingatnya; pelayar lain tidak memaparkannya.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Pelayar ini tidak akan menyimpan rekod muat naik anda. Salin setiap resit jika perlu.',
+  'Copy receipt': 'Salin resit',
+  'Not finished': 'Belum selesai',
+  'Delivered': 'Disampaikan',
+  'Saved by them': 'Disimpan oleh mereka',
+  'Withdrawn': 'Ditarik balik',
+  'Replaced': 'Diganti',
+  'Removed by them': 'Dialih keluar oleh mereka',
+  'Replace': 'Ganti',
+  'Withdraw': 'Tarik balik',
+  'Withdraw this file?': 'Tarik balik fail ini?',
+  'Send a new version': 'Hantar versi baharu',
+  'They have already saved this file. Contact them directly.':
+    'Mereka sudah menyimpan fail ini. Hubungi mereka terus.',
+  'Clear this list': 'Kosongkan senarai ini',
+  'Keep this page open until your files are sent.':
+    'Biarkan halaman ini terbuka sehingga fail anda dihantar.',
+  'Collect files this way too': 'Kumpul fail dengan cara ini juga',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg ialah ruang kerja peribadi untuk fail, mesej dan kata laluan anda. Minta fail daripada sesiapa melalui pautan, dan hanya anda boleh membukanya.',
+  'Each person sees only what they sent.':
+    'Setiap orang hanya melihat apa yang dihantarnya.',
 } satisfies Messages

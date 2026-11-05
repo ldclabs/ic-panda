@@ -999,5 +999,72 @@ export default {
   "Open the verifier": "ベリファイアを開く",
   "Can strangers write to me?": "見知らぬ人が私に手紙を書くことはできますか?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "ルールで許可されている場合にのみ、設定した価格を支払う人、連絡先、全員、または送信者が許可されます。支払いには配送が含まれますが、返信は含まれません。",
-  "Your language": "あなたの言語"
+  "Your language": "あなたの言語",
+  'Send files through dMsg': 'dMsg でファイルを送る',
+  '{name} is asking you for files': '{name} さんがファイルを求めています',
+  'Someone is asking you for files': 'ファイルの提出を求められています',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'ファイルはこのブラウザ内で暗号化されるため、依頼した人だけが開けます。このリンクはアップロード専用で、誰もここからダウンロードできません。',
+  'Only they can open your files': '開けるのは依頼した人だけです',
+  'Asked by': '依頼者',
+  'Check their public profile': '公開プロフィールを確認',
+  'Open until': '受付期限',
+  'Largest file': '最大ファイルサイズ',
+  'Your name (optional)': 'お名前（任意）',
+  'A note (optional)': 'メモ（任意）',
+  'They see this with your files. dMsg does not verify it.':
+    'ファイルと一緒に相手に表示されます。dMsg は内容を確認しません。',
+  'Choose files or drop them here': 'ファイルを選択するか、ここにドロップ',
+  'Send files': 'ファイルを送信',
+  'Waiting': '待機中',
+  'Preparing… {percent}%': '準備中… {percent}%',
+  'Uploading… {percent}%': 'アップロード中… {percent}%',
+  'Sent': '送信済み',
+  'Stop': '停止',
+  'This file is empty.': 'このファイルは空です。',
+  'This file is larger than this link takes ({size}).':
+    'このファイルはこのリンクの上限（{size}）を超えています。',
+  'The file changed while it was being sent. Choose it again.':
+    '送信中にファイルが変更されました。もう一度選択してください。',
+  'The connection was lost. Try again.':
+    '接続が切れました。もう一度お試しください。',
+  'This file could not be sent.': 'このファイルを送信できませんでした。',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'このリンクにはこれ以上ファイルを入れる余裕がありません。送信者に別のリンクを依頼してください。',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'このリンクは現在ファイルを受け付けていません。送信者にお問い合わせください。',
+  'This link was closed by the person who sent it.':
+    '送信者がこのリンクを閉じました。',
+  'This link is incomplete. Ask for the whole link.':
+    'このリンクは不完全です。完全なリンクを依頼してください。',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'このブラウザではここでファイルを暗号化できません。最新のブラウザでリンクを開いてください。',
+  'This is a large file for a phone. A computer may be easier.':
+    'スマートフォンには大きなファイルです。パソコンのほうが楽かもしれません。',
+  'Sent from this browser': 'このブラウザから送信したファイル',
+  'Only this browser remembers these; another browser shows none of them.':
+    'この記録はこのブラウザにのみ残り、他のブラウザには表示されません。',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'このブラウザはアップロードの記録を保持しません。必要なら各受領証をコピーしてください。',
+  'Copy receipt': '受領証をコピー',
+  'Not finished': '未完了',
+  'Delivered': '配信済み',
+  'Saved by them': '相手が保存済み',
+  'Withdrawn': '取り下げ済み',
+  'Replaced': '置き換え済み',
+  'Removed by them': '相手が削除済み',
+  'Replace': '置き換え',
+  'Withdraw': '取り下げ',
+  'Withdraw this file?': 'このファイルを取り下げますか？',
+  'Send a new version': '新しいバージョンを送信',
+  'They have already saved this file. Contact them directly.':
+    '相手はすでにこのファイルを保存しています。直接ご連絡ください。',
+  'Clear this list': 'この一覧を消去',
+  'Keep this page open until your files are sent.':
+    'ファイルの送信が終わるまでこのページを開いたままにしてください。',
+  'Collect files this way too': 'あなたもこの方法でファイルを集めましょう',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg はファイル、メッセージ、パスワードのためのプライベートなワークスペースです。リンクひとつで誰からでもファイルを集められ、開けるのはあなただけです。',
+  'Each person sees only what they sent.':
+    '各自に見えるのは自分が送ったものだけです。',
 } satisfies Messages

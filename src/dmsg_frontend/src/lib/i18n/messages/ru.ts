@@ -1276,4 +1276,71 @@ export default {
   'Can strangers write to me?': 'Могут ли мне писать незнакомцы?',
   'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
     'Только если это разрешают ваши правила: никто, ваши контакты, все или те, кто платит назначенную вами цену. Оплата покрывает доставку, а не ответ.',
+  'Send files through dMsg': 'Отправка файлов через dMsg',
+  '{name} is asking you for files': '{name} просит вас прислать файлы',
+  'Someone is asking you for files': 'Вас просят прислать файлы',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Браузер шифрует каждый файл прямо здесь, поэтому открыть его сможет только тот, кто попросил. По этой ссылке можно только загружать: скачать через неё ничего нельзя.',
+  'Only they can open your files': 'Открыть файлы сможет только получатель',
+  'Asked by': 'Кто просит',
+  'Check their public profile': 'Проверить публичный профиль',
+  'Open until': 'Открыта до',
+  'Largest file': 'Самый большой файл',
+  'Your name (optional)': 'Ваше имя (необязательно)',
+  'A note (optional)': 'Заметка (необязательно)',
+  'They see this with your files. dMsg does not verify it.':
+    'Получатель увидит это вместе с файлами. dMsg это не проверяет.',
+  'Choose files or drop them here': 'Выберите файлы или перетащите их сюда',
+  'Send files': 'Отправить файлы',
+  'Waiting': 'Ожидание',
+  'Preparing… {percent}%': 'Подготовка… {percent}%',
+  'Uploading… {percent}%': 'Загрузка… {percent}%',
+  'Sent': 'Отправлено',
+  'Stop': 'Остановить',
+  'This file is empty.': 'Этот файл пустой.',
+  'This file is larger than this link takes ({size}).':
+    'Этот файл больше, чем принимает ссылка ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Файл изменился во время отправки. Выберите его снова.',
+  'The connection was lost. Try again.':
+    'Соединение прервано. Попробуйте снова.',
+  'This file could not be sent.': 'Не удалось отправить этот файл.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'По этой ссылке больше нет места для файлов. Попросите у отправителя новую.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Эта ссылка сейчас не принимает файлы. Обратитесь к тому, кто её прислал.',
+  'This link was closed by the person who sent it.':
+    'Отправитель закрыл эту ссылку.',
+  'This link is incomplete. Ask for the whole link.':
+    'Ссылка неполная. Попросите полную ссылку.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Этот браузер не может шифровать здесь файлы. Откройте ссылку в современном браузере.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Для телефона это большой файл. С компьютера может быть удобнее.',
+  'Sent from this browser': 'Отправлено из этого браузера',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Этот список хранится только в этом браузере; в другом браузере его не будет.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Этот браузер не сохранит историю загрузок. При необходимости скопируйте каждую квитанцию.',
+  'Copy receipt': 'Скопировать квитанцию',
+  'Not finished': 'Не завершено',
+  'Delivered': 'Доставлено',
+  'Saved by them': 'Сохранено получателем',
+  'Withdrawn': 'Отозвано',
+  'Replaced': 'Заменено',
+  'Removed by them': 'Удалено получателем',
+  'Replace': 'Заменить',
+  'Withdraw': 'Отозвать',
+  'Withdraw this file?': 'Отозвать этот файл?',
+  'Send a new version': 'Отправить новую версию',
+  'They have already saved this file. Contact them directly.':
+    'Получатель уже сохранил этот файл. Свяжитесь с ним напрямую.',
+  'Clear this list': 'Очистить этот список',
+  'Keep this page open until your files are sent.':
+    'Не закрывайте страницу, пока файлы не будут отправлены.',
+  'Collect files this way too': 'Собирайте файлы так же',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg — личное рабочее пространство для файлов, сообщений и паролей. Попросите файлы у кого угодно по ссылке, и открыть их сможете только вы.',
+  'Each person sees only what they sent.':
+    'Каждый видит только то, что отправил сам.',
 } satisfies Messages

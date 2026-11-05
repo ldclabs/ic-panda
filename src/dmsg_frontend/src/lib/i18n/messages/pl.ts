@@ -999,5 +999,72 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg eksportuje podpis wraz z dowodem. Sprawdź pakiet w swojej przeglądarce; oryginalny plik nigdy nie opuszcza komputera.",
   "Open the verifier": "Otwórz weryfikator",
   "Can strangers write to me?": "Czy obcy ludzie mogą do mnie pisać?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Tylko jeśli Twoje reguły na to pozwalają: nikt, Twoje kontakty, wszyscy lub nadawcy, którzy płacą ustaloną przez Ciebie cenę. Płatność obejmuje dostawę, a nie odpowiedź."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Tylko jeśli Twoje reguły na to pozwalają: nikt, Twoje kontakty, wszyscy lub nadawcy, którzy płacą ustaloną przez Ciebie cenę. Płatność obejmuje dostawę, a nie odpowiedź.",
+  'Send files through dMsg': 'Wyślij pliki przez dMsg',
+  '{name} is asking you for files': '{name} prosi Cię o pliki',
+  'Someone is asking you for files': 'Ktoś prosi Cię o pliki',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Twoja przeglądarka szyfruje każdy plik tutaj, więc otworzyć go może tylko osoba, która prosiła. Ten link służy wyłącznie do przesyłania: nikt nie pobierze przez niego niczego.',
+  'Only they can open your files': 'Tylko ta osoba otworzy Twoje pliki',
+  'Asked by': 'Prosi',
+  'Check their public profile': 'Sprawdź profil publiczny',
+  'Open until': 'Otwarte do',
+  'Largest file': 'Największy plik',
+  'Your name (optional)': 'Twoje imię (opcjonalnie)',
+  'A note (optional)': 'Notatka (opcjonalnie)',
+  'They see this with your files. dMsg does not verify it.':
+    'Ta osoba zobaczy to razem z plikami. dMsg tego nie weryfikuje.',
+  'Choose files or drop them here': 'Wybierz pliki lub upuść je tutaj',
+  'Send files': 'Wyślij pliki',
+  'Waiting': 'Oczekuje',
+  'Preparing… {percent}%': 'Przygotowywanie… {percent}%',
+  'Uploading… {percent}%': 'Przesyłanie… {percent}%',
+  'Sent': 'Wysłano',
+  'Stop': 'Zatrzymaj',
+  'This file is empty.': 'Ten plik jest pusty.',
+  'This file is larger than this link takes ({size}).':
+    'Ten plik jest większy, niż przyjmuje ten link ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Plik zmienił się podczas wysyłania. Wybierz go ponownie.',
+  'The connection was lost. Try again.':
+    'Połączenie zostało przerwane. Spróbuj ponownie.',
+  'This file could not be sent.': 'Nie udało się wysłać tego pliku.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Ten link nie ma miejsca na kolejne pliki. Poproś nadawcę o nowy.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Ten link nie przyjmuje teraz plików. Skontaktuj się z nadawcą.',
+  'This link was closed by the person who sent it.':
+    'Nadawca zamknął ten link.',
+  'This link is incomplete. Ask for the whole link.':
+    'Ten link jest niepełny. Poproś o cały link.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Ta przeglądarka nie może tutaj szyfrować plików. Otwórz link w aktualnej przeglądarce.',
+  'This is a large file for a phone. A computer may be easier.':
+    'To duży plik jak na telefon. Na komputerze może być łatwiej.',
+  'Sent from this browser': 'Wysłane z tej przeglądarki',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Pamięta je tylko ta przeglądarka; inna nie pokaże żadnego z nich.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Ta przeglądarka nie zachowa historii przesłanych plików. W razie potrzeby skopiuj każde potwierdzenie.',
+  'Copy receipt': 'Kopiuj potwierdzenie',
+  'Not finished': 'Nieukończone',
+  'Delivered': 'Dostarczono',
+  'Saved by them': 'Zapisane przez tę osobę',
+  'Withdrawn': 'Wycofano',
+  'Replaced': 'Zastąpiono',
+  'Removed by them': 'Usunięte przez tę osobę',
+  'Replace': 'Zastąp',
+  'Withdraw': 'Wycofaj',
+  'Withdraw this file?': 'Wycofać ten plik?',
+  'Send a new version': 'Wyślij nową wersję',
+  'They have already saved this file. Contact them directly.':
+    'Ta osoba już zapisała ten plik. Skontaktuj się z nią bezpośrednio.',
+  'Clear this list': 'Wyczyść tę listę',
+  'Keep this page open until your files are sent.':
+    'Nie zamykaj tej strony, dopóki pliki nie zostaną wysłane.',
+  'Collect files this way too': 'Zbieraj pliki w ten sam sposób',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg to prywatna przestrzeń robocza na pliki, wiadomości i hasła. Poproś kogokolwiek o pliki przez link, a otworzyć je możesz tylko Ty.',
+  'Each person sees only what they sent.':
+    'Każdy widzi tylko to, co sam wysłał.',
 } satisfies Messages

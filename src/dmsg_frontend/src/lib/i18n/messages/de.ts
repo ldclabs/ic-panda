@@ -999,5 +999,72 @@ export default {
   "Open the verifier": "Öffnen Sie den Prüfer",
   "Can strangers write to me?": "Können mir Fremde schreiben?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Nur wenn Ihre Regeln es zulassen: niemand, Ihre Kontakte, alle oder Absender, die den von Ihnen festgelegten Preis zahlen. Die Zahlung gilt für die Lieferung, nicht für eine Antwort.",
-  "Your language": "Ihre Sprache"
+  "Your language": "Ihre Sprache",
+  'Send files through dMsg': 'Dateien über dMsg senden',
+  '{name} is asking you for files': '{name} bittet Sie um Dateien',
+  'Someone is asking you for files': 'Jemand bittet Sie um Dateien',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Ihr Browser verschlüsselt jede Datei hier, sodass nur die anfragende Person sie öffnen kann. Dieser Link dient nur zum Hochladen: Niemand kann darüber etwas herunterladen.',
+  'Only they can open your files': 'Nur diese Person kann Ihre Dateien öffnen',
+  'Asked by': 'Angefragt von',
+  'Check their public profile': 'Öffentliches Profil prüfen',
+  'Open until': 'Offen bis',
+  'Largest file': 'Größte Datei',
+  'Your name (optional)': 'Ihr Name (optional)',
+  'A note (optional)': 'Eine Notiz (optional)',
+  'They see this with your files. dMsg does not verify it.':
+    'Das sieht die Person zusammen mit Ihren Dateien. dMsg prüft es nicht.',
+  'Choose files or drop them here': 'Dateien auswählen oder hier ablegen',
+  'Send files': 'Dateien senden',
+  'Waiting': 'Wartet',
+  'Preparing… {percent}%': 'Wird vorbereitet… {percent} %',
+  'Uploading… {percent}%': 'Wird hochgeladen… {percent} %',
+  'Sent': 'Gesendet',
+  'Stop': 'Stoppen',
+  'This file is empty.': 'Diese Datei ist leer.',
+  'This file is larger than this link takes ({size}).':
+    'Diese Datei ist größer, als dieser Link erlaubt ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Die Datei hat sich beim Senden geändert. Wählen Sie sie erneut aus.',
+  'The connection was lost. Try again.':
+    'Die Verbindung wurde unterbrochen. Versuchen Sie es erneut.',
+  'This file could not be sent.': 'Diese Datei konnte nicht gesendet werden.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Dieser Link hat keinen Platz für weitere Dateien. Bitten Sie den Absender um einen neuen.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Dieser Link nimmt gerade keine Dateien an. Wenden Sie sich an den Absender.',
+  'This link was closed by the person who sent it.':
+    'Der Absender hat diesen Link geschlossen.',
+  'This link is incomplete. Ask for the whole link.':
+    'Dieser Link ist unvollständig. Bitten Sie um den ganzen Link.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Dieser Browser kann hier keine Dateien verschlüsseln. Öffnen Sie den Link in einem aktuellen Browser.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Das ist eine große Datei für ein Telefon. Mit einem Computer geht es vielleicht leichter.',
+  'Sent from this browser': 'Von diesem Browser gesendet',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Nur dieser Browser merkt sich das; ein anderer Browser zeigt nichts davon.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Dieser Browser speichert keine Aufzeichnung Ihrer Uploads. Kopieren Sie bei Bedarf jede Quittung.',
+  'Copy receipt': 'Quittung kopieren',
+  'Not finished': 'Nicht abgeschlossen',
+  'Delivered': 'Zugestellt',
+  'Saved by them': 'Von der Person gespeichert',
+  'Withdrawn': 'Zurückgezogen',
+  'Replaced': 'Ersetzt',
+  'Removed by them': 'Von der Person entfernt',
+  'Replace': 'Ersetzen',
+  'Withdraw': 'Zurückziehen',
+  'Withdraw this file?': 'Diese Datei zurückziehen?',
+  'Send a new version': 'Neue Version senden',
+  'They have already saved this file. Contact them directly.':
+    'Die Person hat diese Datei bereits gespeichert. Wenden Sie sich direkt an sie.',
+  'Clear this list': 'Diese Liste löschen',
+  'Keep this page open until your files are sent.':
+    'Lassen Sie diese Seite geöffnet, bis Ihre Dateien gesendet sind.',
+  'Collect files this way too': 'Sammeln Sie Dateien auch so',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg ist ein privater Arbeitsbereich für Ihre Dateien, Nachrichten und Passwörter. Bitten Sie per Link um Dateien, und nur Sie können sie öffnen.',
+  'Each person sees only what they sent.':
+    'Jede Person sieht nur, was sie selbst gesendet hat.',
 } satisfies Messages

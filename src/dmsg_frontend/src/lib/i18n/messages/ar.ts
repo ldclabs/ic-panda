@@ -1243,4 +1243,68 @@ export default {
   'Can strangers write to me?': 'هل يمكن للغرباء مراسلتي؟',
   'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
     'فقط إن سمحت قواعدك بذلك: لا أحد، أو جهات اتصالك، أو الجميع، أو المرسلون الذين يدفعون السعر الذي تحدده. الدفع يغطي التسليم لا الرد.',
+  'Send files through dMsg': 'إرسال الملفات عبر dMsg',
+  '{name} is asking you for files': 'يطلب منك {name} إرسال ملفات',
+  'Someone is asking you for files': 'يطلب منك شخص ما إرسال ملفات',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'يشفّر متصفحك كل ملف هنا، لذا لا يفتحه إلا من طلبه. يتيح هذا الرابط الرفع فقط: لا يمكن لأحد تنزيل أي شيء عبره.',
+  'Only they can open your files': 'لا يفتح ملفاتك سوى الطالب',
+  'Asked by': 'الطالب',
+  'Check their public profile': 'تحقّق من ملفه العام',
+  'Open until': 'مفتوح حتى',
+  'Largest file': 'أكبر حجم للملف',
+  'Your name (optional)': 'اسمك (اختياري)',
+  'A note (optional)': 'ملاحظة (اختيارية)',
+  'They see this with your files. dMsg does not verify it.':
+    'سيرى الطالب هذا مع ملفاتك. لا يتحقق dMsg منه.',
+  'Choose files or drop them here': 'اختر الملفات أو أفلتها هنا',
+  'Send files': 'إرسال الملفات',
+  'Waiting': 'قيد الانتظار',
+  'Preparing… {percent}%': 'جارٍ التحضير… {percent}%',
+  'Uploading… {percent}%': 'جارٍ الرفع… {percent}%',
+  'Sent': 'تم الإرسال',
+  'Stop': 'إيقاف',
+  'This file is empty.': 'هذا الملف فارغ.',
+  'This file is larger than this link takes ({size}).':
+    'هذا الملف أكبر مما يقبله الرابط ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'تغيّر الملف أثناء إرساله. اختره مرة أخرى.',
+  'The connection was lost. Try again.': 'انقطع الاتصال. حاول مرة أخرى.',
+  'This file could not be sent.': 'تعذّر إرسال هذا الملف.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'لا توجد مساحة لملفات أخرى في هذا الرابط. اطلب رابطًا آخر ممن أرسله.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'لا يقبل هذا الرابط الملفات الآن. تواصل مع من أرسله.',
+  'This link was closed by the person who sent it.': 'أغلق المرسِل هذا الرابط.',
+  'This link is incomplete. Ask for the whole link.':
+    'هذا الرابط غير مكتمل. اطلب الرابط كاملًا.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'لا يمكن لهذا المتصفح تشفير الملفات هنا. افتح الرابط في متصفح حديث.',
+  'This is a large file for a phone. A computer may be easier.':
+    'هذا ملف كبير بالنسبة إلى الهاتف. قد يكون الحاسوب أسهل.',
+  'Sent from this browser': 'المرسَل من هذا المتصفح',
+  'Only this browser remembers these; another browser shows none of them.':
+    'هذا المتصفح وحده يتذكر هذه السجلات؛ ولا تظهر في متصفح آخر.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'لن يحتفظ هذا المتصفح بسجل لما رفعته. انسخ كل إيصال إذا احتجت إليه.',
+  'Copy receipt': 'نسخ الإيصال',
+  'Not finished': 'غير مكتمل',
+  'Delivered': 'تم التسليم',
+  'Saved by them': 'حفظه الطالب',
+  'Withdrawn': 'تم السحب',
+  'Replaced': 'تم الاستبدال',
+  'Removed by them': 'أزاله الطالب',
+  'Replace': 'استبدال',
+  'Withdraw': 'سحب',
+  'Withdraw this file?': 'هل تريد سحب هذا الملف؟',
+  'Send a new version': 'إرسال نسخة جديدة',
+  'They have already saved this file. Contact them directly.':
+    'حفظ الطالب هذا الملف بالفعل. تواصل معه مباشرة.',
+  'Clear this list': 'مسح هذه القائمة',
+  'Keep this page open until your files are sent.':
+    'أبقِ هذه الصفحة مفتوحة حتى تُرسل ملفاتك.',
+  'Collect files this way too': 'اجمع الملفات بهذه الطريقة أيضًا',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg مساحة عمل خاصة لملفاتك ورسائلك وكلمات مرورك. اطلب الملفات من أي شخص عبر رابط، ولن يفتحها سواك.',
+  'Each person sees only what they sent.': 'لا يرى كل شخص إلا ما أرسله.',
 } satisfies Messages

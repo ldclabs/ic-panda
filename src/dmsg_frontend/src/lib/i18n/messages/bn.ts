@@ -999,5 +999,72 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg তার প্রমাণ সহ একটি স্বাক্ষর রপ্তানি করে। আপনার ব্রাউজারে বান্ডিল যাচাই করুন; আসল ফাইলটি কখনই আপনার কম্পিউটার ছেড়ে যায় না।",
   "Open the verifier": "যাচাইকারী খুলুন",
   "Can strangers write to me?": "অপরিচিতরা কি আমাকে লিখতে পারে?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "শুধুমাত্র যদি আপনার নিয়ম এটির অনুমতি দেয়: কেউ, আপনার পরিচিতি, প্রত্যেকে বা প্রেরক যারা আপনার সেট করা মূল্য প্রদান করে। পেমেন্ট কভার ডেলিভারি, একটি উত্তর না."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "শুধুমাত্র যদি আপনার নিয়ম এটির অনুমতি দেয়: কেউ, আপনার পরিচিতি, প্রত্যেকে বা প্রেরক যারা আপনার সেট করা মূল্য প্রদান করে। পেমেন্ট কভার ডেলিভারি, একটি উত্তর না.",
+  'Send files through dMsg': 'dMsg দিয়ে ফাইল পাঠান',
+  '{name} is asking you for files': '{name} আপনার কাছে ফাইল চাইছেন',
+  'Someone is asking you for files': 'কেউ আপনার কাছে ফাইল চাইছেন',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'আপনার ব্রাউজার প্রতিটি ফাইল এখানেই এনক্রিপ্ট করে, তাই শুধু যিনি চেয়েছেন তিনিই খুলতে পারবেন। এই লিঙ্ক শুধু আপলোডের জন্য: এটি দিয়ে কেউ কিছু ডাউনলোড করতে পারবে না।',
+  'Only they can open your files': 'আপনার ফাইল শুধু তিনিই খুলতে পারবেন',
+  'Asked by': 'অনুরোধকারী',
+  'Check their public profile': 'তাঁর পাবলিক প্রোফাইল দেখুন',
+  'Open until': 'খোলা থাকবে',
+  'Largest file': 'সবচেয়ে বড় ফাইল',
+  'Your name (optional)': 'আপনার নাম (ঐচ্ছিক)',
+  'A note (optional)': 'একটি নোট (ঐচ্ছিক)',
+  'They see this with your files. dMsg does not verify it.':
+    'তিনি আপনার ফাইলের সঙ্গে এটি দেখবেন। dMsg এটি যাচাই করে না।',
+  'Choose files or drop them here': 'ফাইল বেছে নিন বা এখানে ছেড়ে দিন',
+  'Send files': 'ফাইল পাঠান',
+  'Waiting': 'অপেক্ষায়',
+  'Preparing… {percent}%': 'প্রস্তুত হচ্ছে… {percent}%',
+  'Uploading… {percent}%': 'আপলোড হচ্ছে… {percent}%',
+  'Sent': 'পাঠানো হয়েছে',
+  'Stop': 'থামান',
+  'This file is empty.': 'এই ফাইলটি খালি।',
+  'This file is larger than this link takes ({size}).':
+    'এই ফাইলটি লিঙ্কের সীমার চেয়ে বড় ({size})।',
+  'The file changed while it was being sent. Choose it again.':
+    'পাঠানোর সময় ফাইলটি বদলে গেছে। আবার বেছে নিন।',
+  'The connection was lost. Try again.':
+    'সংযোগ বিচ্ছিন্ন হয়েছে। আবার চেষ্টা করুন।',
+  'This file could not be sent.': 'এই ফাইলটি পাঠানো যায়নি।',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'এই লিঙ্কে আর ফাইলের জায়গা নেই। প্রেরকের কাছে অন্য লিঙ্ক চান।',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'এই লিঙ্ক এখন ফাইল নিচ্ছে না। প্রেরককে জিজ্ঞাসা করুন।',
+  'This link was closed by the person who sent it.':
+    'প্রেরক এই লিঙ্কটি বন্ধ করেছেন।',
+  'This link is incomplete. Ask for the whole link.':
+    'এই লিঙ্কটি অসম্পূর্ণ। পুরো লিঙ্কটি চান।',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'এই ব্রাউজার এখানে ফাইল এনক্রিপ্ট করতে পারে না। একটি নতুন ব্রাউজারে লিঙ্কটি খুলুন।',
+  'This is a large file for a phone. A computer may be easier.':
+    'ফোনের জন্য এটি বড় ফাইল। কম্পিউটারে সহজ হতে পারে।',
+  'Sent from this browser': 'এই ব্রাউজার থেকে পাঠানো',
+  'Only this browser remembers these; another browser shows none of them.':
+    'শুধু এই ব্রাউজারই এগুলো মনে রাখে; অন্য ব্রাউজারে এগুলো দেখা যাবে না।',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'এই ব্রাউজার আপনার আপলোডের রেকর্ড রাখবে না। প্রয়োজনে প্রতিটি রসিদ কপি করুন।',
+  'Copy receipt': 'রসিদ কপি করুন',
+  'Not finished': 'শেষ হয়নি',
+  'Delivered': 'পৌঁছেছে',
+  'Saved by them': 'তিনি সংরক্ষণ করেছেন',
+  'Withdrawn': 'প্রত্যাহার করা হয়েছে',
+  'Replaced': 'প্রতিস্থাপিত',
+  'Removed by them': 'তিনি সরিয়ে দিয়েছেন',
+  'Replace': 'প্রতিস্থাপন',
+  'Withdraw': 'প্রত্যাহার',
+  'Withdraw this file?': 'এই ফাইলটি প্রত্যাহার করবেন?',
+  'Send a new version': 'নতুন সংস্করণ পাঠান',
+  'They have already saved this file. Contact them directly.':
+    'তিনি এই ফাইলটি আগেই সংরক্ষণ করেছেন। সরাসরি যোগাযোগ করুন।',
+  'Clear this list': 'এই তালিকা মুছুন',
+  'Keep this page open until your files are sent.':
+    'ফাইল পাঠানো শেষ না হওয়া পর্যন্ত এই পাতাটি খোলা রাখুন।',
+  'Collect files this way too': 'আপনিও এভাবে ফাইল সংগ্রহ করুন',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg আপনার ফাইল, বার্তা ও পাসওয়ার্ডের জন্য একটি ব্যক্তিগত ওয়ার্কস্পেস। লিঙ্ক দিয়ে যে কারও কাছে ফাইল চান, আর শুধু আপনিই সেগুলো খুলতে পারবেন।',
+  'Each person sees only what they sent.':
+    'প্রত্যেকে শুধু নিজের পাঠানো জিনিস দেখেন।',
 } satisfies Messages

@@ -999,5 +999,71 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg اپنے ثبوت کے ساتھ ایک دستخط برآمد کرتا ہے۔ اپنے براؤزر میں بنڈل کی تصدیق کریں۔ اصل فائل آپ کے کمپیوٹر کو کبھی نہیں چھوڑتی ہے۔",
   "Open the verifier": "تصدیق کنندہ کھولیں",
   "Can strangers write to me?": "کیا اجنبی مجھے لکھ سکتے ہیں؟",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "صرف اس صورت میں جب آپ کے قواعد اس کی اجازت دیتے ہیں: کوئی بھی نہیں، آپ کے رابطے، ہر کوئی، یا بھیجنے والے جو آپ کی مقرر کردہ قیمت ادا کرتے ہیں۔ ادائیگی ڈیلیوری کا احاطہ کرتی ہے، جواب نہیں۔"
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "صرف اس صورت میں جب آپ کے قواعد اس کی اجازت دیتے ہیں: کوئی بھی نہیں، آپ کے رابطے، ہر کوئی، یا بھیجنے والے جو آپ کی مقرر کردہ قیمت ادا کرتے ہیں۔ ادائیگی ڈیلیوری کا احاطہ کرتی ہے، جواب نہیں۔",
+  'Send files through dMsg': 'dMsg سے فائلیں بھیجیں',
+  '{name} is asking you for files': '{name} آپ سے فائلیں مانگ رہے ہیں',
+  'Someone is asking you for files': 'کوئی آپ سے فائلیں مانگ رہا ہے',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'آپ کا براؤزر ہر فائل کو یہیں خفیہ کرتا ہے، اس لیے صرف مانگنے والا ہی اسے کھول سکتا ہے۔ یہ لنک صرف اپ لوڈ کے لیے ہے: اس سے کوئی کچھ ڈاؤن لوڈ نہیں کر سکتا۔',
+  'Only they can open your files': 'آپ کی فائلیں صرف وہی کھول سکتے ہیں',
+  'Asked by': 'مانگنے والا',
+  'Check their public profile': 'ان کا عوامی پروفائل دیکھیں',
+  'Open until': 'اس وقت تک کھلا',
+  'Largest file': 'سب سے بڑی فائل',
+  'Your name (optional)': 'آپ کا نام (اختیاری)',
+  'A note (optional)': 'ایک نوٹ (اختیاری)',
+  'They see this with your files. dMsg does not verify it.':
+    'وہ اسے آپ کی فائلوں کے ساتھ دیکھیں گے۔ dMsg اس کی تصدیق نہیں کرتا۔',
+  'Choose files or drop them here': 'فائلیں منتخب کریں یا یہاں چھوڑیں',
+  'Send files': 'فائلیں بھیجیں',
+  'Waiting': 'منتظر',
+  'Preparing… {percent}%': 'تیار ہو رہا ہے… {percent}%',
+  'Uploading… {percent}%': 'اپ لوڈ ہو رہا ہے… {percent}%',
+  'Sent': 'بھیج دیا گیا',
+  'Stop': 'روکیں',
+  'This file is empty.': 'یہ فائل خالی ہے۔',
+  'This file is larger than this link takes ({size}).':
+    'یہ فائل اس لنک کی حد سے بڑی ہے ({size})۔',
+  'The file changed while it was being sent. Choose it again.':
+    'بھیجتے وقت فائل بدل گئی۔ اسے دوبارہ منتخب کریں۔',
+  'The connection was lost. Try again.': 'کنکشن ٹوٹ گیا۔ دوبارہ کوشش کریں۔',
+  'This file could not be sent.': 'یہ فائل نہیں بھیجی جا سکی۔',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'اس لنک میں مزید فائلوں کی جگہ نہیں۔ بھیجنے والے سے دوسرا لنک مانگیں۔',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'یہ لنک ابھی فائلیں نہیں لے رہا۔ بھیجنے والے سے پوچھیں۔',
+  'This link was closed by the person who sent it.':
+    'بھیجنے والے نے یہ لنک بند کر دیا ہے۔',
+  'This link is incomplete. Ask for the whole link.':
+    'یہ لنک نامکمل ہے۔ پورا لنک مانگیں۔',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'یہ براؤزر یہاں فائلیں خفیہ نہیں کر سکتا۔ لنک کو کسی نئے براؤزر میں کھولیں۔',
+  'This is a large file for a phone. A computer may be easier.':
+    'فون کے لیے یہ بڑی فائل ہے۔ کمپیوٹر سے آسان ہو سکتا ہے۔',
+  'Sent from this browser': 'اس براؤزر سے بھیجی گئیں',
+  'Only this browser remembers these; another browser shows none of them.':
+    'صرف یہ براؤزر انہیں یاد رکھتا ہے؛ دوسرے براؤزر میں یہ نظر نہیں آئیں گی۔',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'یہ براؤزر آپ کے اپ لوڈ کا ریکارڈ نہیں رکھے گا۔ ضرورت ہو تو ہر رسید کاپی کر لیں۔',
+  'Copy receipt': 'رسید کاپی کریں',
+  'Not finished': 'مکمل نہیں ہوا',
+  'Delivered': 'پہنچ گئی',
+  'Saved by them': 'انہوں نے محفوظ کر لی',
+  'Withdrawn': 'واپس لی گئی',
+  'Replaced': 'بدل دی گئی',
+  'Removed by them': 'انہوں نے ہٹا دی',
+  'Replace': 'بدلیں',
+  'Withdraw': 'واپس لیں',
+  'Withdraw this file?': 'یہ فائل واپس لیں؟',
+  'Send a new version': 'نیا ورژن بھیجیں',
+  'They have already saved this file. Contact them directly.':
+    'وہ یہ فائل پہلے ہی محفوظ کر چکے ہیں۔ ان سے براہ راست رابطہ کریں۔',
+  'Clear this list': 'یہ فہرست صاف کریں',
+  'Keep this page open until your files are sent.':
+    'فائلیں بھیجے جانے تک یہ صفحہ کھلا رکھیں۔',
+  'Collect files this way too': 'آپ بھی ایسے ہی فائلیں جمع کریں',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg آپ کی فائلوں، پیغامات اور پاس ورڈز کے لیے نجی ورک اسپیس ہے۔ لنک سے کسی سے بھی فائلیں مانگیں، اور انہیں صرف آپ کھول سکیں گے۔',
+  'Each person sees only what they sent.':
+    'ہر شخص صرف وہی دیکھتا ہے جو اس نے بھیجا۔',
 } satisfies Messages

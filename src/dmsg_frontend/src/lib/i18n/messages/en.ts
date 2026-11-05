@@ -1264,6 +1264,72 @@ const en = {
   'Can strangers write to me?': 'Can strangers write to me?',
   'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.':
     'Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.',
+  'Send files through dMsg': 'Send files through dMsg',
+  '{name} is asking you for files': '{name} is asking you for files',
+  'Someone is asking you for files': 'Someone is asking you for files',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.',
+  'Only they can open your files': 'Only they can open your files',
+  'Asked by': 'Asked by',
+  'Check their public profile': 'Check their public profile',
+  'Open until': 'Open until',
+  'Largest file': 'Largest file',
+  'Your name (optional)': 'Your name (optional)',
+  'A note (optional)': 'A note (optional)',
+  'They see this with your files. dMsg does not verify it.':
+    'They see this with your files. dMsg does not verify it.',
+  'Choose files or drop them here': 'Choose files or drop them here',
+  'Send files': 'Send files',
+  'Waiting': 'Waiting',
+  'Preparing… {percent}%': 'Preparing… {percent}%',
+  'Uploading… {percent}%': 'Uploading… {percent}%',
+  'Sent': 'Sent',
+  'Stop': 'Stop',
+  'This file is empty.': 'This file is empty.',
+  'This file is larger than this link takes ({size}).':
+    'This file is larger than this link takes ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'The file changed while it was being sent. Choose it again.',
+  'The connection was lost. Try again.': 'The connection was lost. Try again.',
+  'This file could not be sent.': 'This file could not be sent.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'This link has no room for more files. Ask the person who sent it for another.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'This link is not taking files right now. Ask the person who sent it.',
+  'This link was closed by the person who sent it.':
+    'This link was closed by the person who sent it.',
+  'This link is incomplete. Ask for the whole link.':
+    'This link is incomplete. Ask for the whole link.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'This browser cannot encrypt files here. Open the link in a current browser.',
+  'This is a large file for a phone. A computer may be easier.':
+    'This is a large file for a phone. A computer may be easier.',
+  'Sent from this browser': 'Sent from this browser',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Only this browser remembers these; another browser shows none of them.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'This browser will not keep a record of your uploads. Copy each receipt if you need one.',
+  'Copy receipt': 'Copy receipt',
+  'Not finished': 'Not finished',
+  'Delivered': 'Delivered',
+  'Saved by them': 'Saved by them',
+  'Withdrawn': 'Withdrawn',
+  'Replaced': 'Replaced',
+  'Removed by them': 'Removed by them',
+  'Replace': 'Replace',
+  'Withdraw': 'Withdraw',
+  'Withdraw this file?': 'Withdraw this file?',
+  'Send a new version': 'Send a new version',
+  'They have already saved this file. Contact them directly.':
+    'They have already saved this file. Contact them directly.',
+  'Clear this list': 'Clear this list',
+  'Keep this page open until your files are sent.':
+    'Keep this page open until your files are sent.',
+  'Collect files this way too': 'Collect files this way too',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.',
+  'Each person sees only what they sent.':
+    'Each person sees only what they sent.',
 }
 
 export type MessageKey = keyof typeof en

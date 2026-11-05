@@ -6,7 +6,13 @@ import { decode, encode } from 'cborg'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { bytesHex, hexBytes, open, sha256Hex, unbase64url } from '$lib/share/decrypt'
+import {
+  bytesHex,
+  hexBytes,
+  open,
+  sha256Hex,
+  unbase64url
+} from '$lib/share/decrypt'
 import {
   base64url,
   descriptorAad,
@@ -59,7 +65,12 @@ describe('file requests follow the request vector', () => {
     expect(descriptor.hpke_pub).toBe(vectors.hpke_pub)
     expect(bytesHex(encode(descriptor))).toBe(vectors.descriptor.plaintext_hex)
     await expect(
-      openDescriptor(pageKey, account, '7b'.repeat(32), vectors.descriptor.sealed)
+      openDescriptor(
+        pageKey,
+        account,
+        '7b'.repeat(32),
+        vectors.descriptor.sealed
+      )
     ).rejects.toMatchObject({ code: 'INTEGRITY_FAILED' })
   })
 
@@ -118,7 +129,9 @@ describe('file requests follow the request vector', () => {
       hexBytes(vectors.hpke_seed_hex).slice().buffer
     )
     expect(
-      base64url(new Uint8Array(await suite.kem.serializePublicKey(pair.publicKey)))
+      base64url(
+        new Uint8Array(await suite.kem.serializePublicKey(pair.publicKey))
+      )
     ).toBe(vectors.hpke_pub)
     const info = fileInfo(
       account,
@@ -153,7 +166,9 @@ describe('file requests follow the request vector', () => {
 
   // The Rust client opens this: `opens_a_manifest_the_browser_sealed`.
   it('seals a manifest the Rust client opens', async () => {
-    const plaintext = new TextEncoder().encode('Sealed in a browser. 浏览器加密。')
+    const plaintext = new TextEncoder().encode(
+      'Sealed in a browser. 浏览器加密。'
+    )
     const key = crypto.getRandomValues(new Uint8Array(32))
     const [id, version, upload] = ['81', '82', '83'].map((b) => b.repeat(32))
     const chunk = await sealChunk(key, id!, version!, 0, 1, plaintext)
@@ -169,9 +184,7 @@ describe('file requests follow the request vector', () => {
         mime: 'text/plain',
         size: plaintext.length,
         sha256: await sha256Hex(plaintext),
-        chunks: [
-          { id: `${id}:${version}:0`, digest, size: plaintext.length }
-        ],
+        chunks: [{ id: `${id}:${version}:0`, digest, size: plaintext.length }],
         key: base64url(key)
       },
       sender: { name: 'Lin', note: '' },
@@ -197,7 +210,7 @@ describe('file requests follow the request vector', () => {
       info.slice().buffer
     )
     expect(decode(new Uint8Array(plain))).toEqual(file)
-    if (process.env.DMSG_WRITE_CLIENT_VECTORS) {
+    if (process.env['DMSG_WRITE_CLIENT_VECTORS']) {
       vectors.browser = {
         generator: 'src/dmsg_frontend/src/lib/request/seal.test.ts',
         name: file.file.name,

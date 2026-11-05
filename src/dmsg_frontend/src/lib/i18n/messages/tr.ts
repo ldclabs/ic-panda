@@ -999,5 +999,71 @@ export default {
   "Open the verifier": "Doğrulayıcıyı aç",
   "Can strangers write to me?": "Yabancılar bana yazabilir mi?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Yalnızca kurallarınız buna izin veriyorsa: hiç kimse, kişileriniz, herkes veya belirlediğiniz fiyatı ödeyen gönderenler. Ödeme, yanıtı değil teslimatı kapsar.",
-  "Your language": "Diliniz"
+  "Your language": "Diliniz",
+  'Send files through dMsg': 'dMsg ile dosya gönderin',
+  '{name} is asking you for files': '{name} sizden dosya istiyor',
+  'Someone is asking you for files': 'Biri sizden dosya istiyor',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Tarayıcınız her dosyayı burada şifreler; böylece onları yalnızca isteyen kişi açabilir. Bu bağlantı yalnızca yükleme içindir: kimse bu bağlantıdan bir şey indiremez.',
+  'Only they can open your files': 'Dosyalarınızı yalnızca o kişi açabilir',
+  'Asked by': 'İsteyen',
+  'Check their public profile': 'Herkese açık profilini kontrol edin',
+  'Open until': 'Şu tarihe kadar açık',
+  'Largest file': 'En büyük dosya',
+  'Your name (optional)': 'Adınız (isteğe bağlı)',
+  'A note (optional)': 'Not (isteğe bağlı)',
+  'They see this with your files. dMsg does not verify it.':
+    'Bunu dosyalarınızla birlikte görür. dMsg bunu doğrulamaz.',
+  'Choose files or drop them here': 'Dosya seçin veya buraya bırakın',
+  'Send files': 'Dosyaları gönder',
+  'Waiting': 'Bekliyor',
+  'Preparing… {percent}%': 'Hazırlanıyor… %{percent}',
+  'Uploading… {percent}%': 'Yükleniyor… %{percent}',
+  'Sent': 'Gönderildi',
+  'Stop': 'Durdur',
+  'This file is empty.': 'Bu dosya boş.',
+  'This file is larger than this link takes ({size}).':
+    'Bu dosya, bağlantının kabul ettiğinden büyük ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Dosya gönderilirken değişti. Yeniden seçin.',
+  'The connection was lost. Try again.': 'Bağlantı kesildi. Yeniden deneyin.',
+  'This file could not be sent.': 'Bu dosya gönderilemedi.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Bu bağlantıda daha fazla dosya için yer yok. Gönderen kişiden yenisini isteyin.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Bu bağlantı şu anda dosya kabul etmiyor. Gönderen kişiye sorun.',
+  'This link was closed by the person who sent it.':
+    'Gönderen kişi bu bağlantıyı kapattı.',
+  'This link is incomplete. Ask for the whole link.':
+    'Bu bağlantı eksik. Bağlantının tamamını isteyin.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Bu tarayıcı burada dosya şifreleyemiyor. Bağlantıyı güncel bir tarayıcıda açın.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Bu, telefon için büyük bir dosya. Bilgisayar daha kolay olabilir.',
+  'Sent from this browser': 'Bu tarayıcıdan gönderilenler',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Bunları yalnızca bu tarayıcı hatırlar; başka bir tarayıcıda görünmezler.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Bu tarayıcı yüklemelerinizin kaydını tutmayacak. Gerekirse her makbuzu kopyalayın.',
+  'Copy receipt': 'Makbuzu kopyala',
+  'Not finished': 'Tamamlanmadı',
+  'Delivered': 'Teslim edildi',
+  'Saved by them': 'O kişi kaydetti',
+  'Withdrawn': 'Geri çekildi',
+  'Replaced': 'Değiştirildi',
+  'Removed by them': 'O kişi kaldırdı',
+  'Replace': 'Değiştir',
+  'Withdraw': 'Geri çek',
+  'Withdraw this file?': 'Bu dosya geri çekilsin mi?',
+  'Send a new version': 'Yeni sürüm gönder',
+  'They have already saved this file. Contact them directly.':
+    'O kişi bu dosyayı zaten kaydetti. Doğrudan iletişime geçin.',
+  'Clear this list': 'Bu listeyi temizle',
+  'Keep this page open until your files are sent.':
+    'Dosyalarınız gönderilene kadar bu sayfayı açık tutun.',
+  'Collect files this way too': 'Siz de dosyaları böyle toplayın',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg; dosyalarınız, mesajlarınız ve parolalarınız için özel bir çalışma alanıdır. Bağlantıyla herkesten dosya isteyin; onları yalnızca siz açabilirsiniz.',
+  'Each person sees only what they sent.':
+    'Herkes yalnızca kendi gönderdiğini görür.',
 } satisfies Messages

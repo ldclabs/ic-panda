@@ -999,5 +999,71 @@ export default {
   "dMsg exports a signature with its evidence. Verify the bundle in your browser; the original file never leaves your computer.": "dMsg xuất chữ ký kèm theo bằng chứng của nó. Xác minh gói trong trình duyệt của bạn; tập tin gốc không bao giờ rời khỏi máy tính của bạn.",
   "Open the verifier": "Mở trình xác minh",
   "Can strangers write to me?": "Người lạ có thể viết thư cho tôi không?",
-  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Chỉ khi quy tắc của bạn cho phép: không ai, những người liên hệ của bạn, mọi người hoặc người gửi trả mức giá bạn đặt. Thanh toán bao gồm giao hàng, không phải là trả lời."
+  "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "Chỉ khi quy tắc của bạn cho phép: không ai, những người liên hệ của bạn, mọi người hoặc người gửi trả mức giá bạn đặt. Thanh toán bao gồm giao hàng, không phải là trả lời.",
+  'Send files through dMsg': 'Gửi tệp qua dMsg',
+  '{name} is asking you for files': '{name} đang yêu cầu bạn gửi tệp',
+  'Someone is asking you for files': 'Có người đang yêu cầu bạn gửi tệp',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'Trình duyệt của bạn mã hóa từng tệp ngay tại đây, nên chỉ người yêu cầu mới mở được. Liên kết này chỉ để tải lên: không ai có thể tải xuống qua liên kết này.',
+  'Only they can open your files': 'Chỉ họ mới mở được tệp của bạn',
+  'Asked by': 'Người yêu cầu',
+  'Check their public profile': 'Kiểm tra hồ sơ công khai',
+  'Open until': 'Mở đến',
+  'Largest file': 'Tệp lớn nhất',
+  'Your name (optional)': 'Tên của bạn (không bắt buộc)',
+  'A note (optional)': 'Ghi chú (không bắt buộc)',
+  'They see this with your files. dMsg does not verify it.':
+    'Họ sẽ thấy nội dung này cùng tệp của bạn. dMsg không xác minh.',
+  'Choose files or drop them here': 'Chọn tệp hoặc thả vào đây',
+  'Send files': 'Gửi tệp',
+  'Waiting': 'Đang chờ',
+  'Preparing… {percent}%': 'Đang chuẩn bị… {percent}%',
+  'Uploading… {percent}%': 'Đang tải lên… {percent}%',
+  'Sent': 'Đã gửi',
+  'Stop': 'Dừng',
+  'This file is empty.': 'Tệp này trống.',
+  'This file is larger than this link takes ({size}).':
+    'Tệp này lớn hơn mức liên kết cho phép ({size}).',
+  'The file changed while it was being sent. Choose it again.':
+    'Tệp đã thay đổi trong khi gửi. Hãy chọn lại.',
+  'The connection was lost. Try again.': 'Mất kết nối. Hãy thử lại.',
+  'This file could not be sent.': 'Không thể gửi tệp này.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'Liên kết này không còn chỗ cho thêm tệp. Hãy xin người gửi liên kết khác.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'Liên kết này hiện không nhận tệp. Hãy hỏi người gửi.',
+  'This link was closed by the person who sent it.':
+    'Người gửi đã đóng liên kết này.',
+  'This link is incomplete. Ask for the whole link.':
+    'Liên kết này chưa đầy đủ. Hãy xin liên kết hoàn chỉnh.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'Trình duyệt này không thể mã hóa tệp tại đây. Hãy mở liên kết bằng trình duyệt mới.',
+  'This is a large file for a phone. A computer may be easier.':
+    'Tệp này lớn so với điện thoại. Dùng máy tính có thể dễ hơn.',
+  'Sent from this browser': 'Đã gửi từ trình duyệt này',
+  'Only this browser remembers these; another browser shows none of them.':
+    'Chỉ trình duyệt này nhớ các mục này; trình duyệt khác sẽ không hiển thị.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'Trình duyệt này sẽ không lưu lịch sử tải lên. Hãy sao chép từng biên nhận nếu cần.',
+  'Copy receipt': 'Sao chép biên nhận',
+  'Not finished': 'Chưa xong',
+  'Delivered': 'Đã chuyển',
+  'Saved by them': 'Họ đã lưu',
+  'Withdrawn': 'Đã rút lại',
+  'Replaced': 'Đã thay thế',
+  'Removed by them': 'Họ đã xóa',
+  'Replace': 'Thay thế',
+  'Withdraw': 'Rút lại',
+  'Withdraw this file?': 'Rút lại tệp này?',
+  'Send a new version': 'Gửi phiên bản mới',
+  'They have already saved this file. Contact them directly.':
+    'Họ đã lưu tệp này. Hãy liên hệ trực tiếp với họ.',
+  'Clear this list': 'Xóa danh sách này',
+  'Keep this page open until your files are sent.':
+    'Hãy giữ trang này mở cho đến khi tệp được gửi xong.',
+  'Collect files this way too': 'Bạn cũng có thể thu tệp như vậy',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg là không gian làm việc riêng tư cho tệp, tin nhắn và mật khẩu của bạn. Xin tệp từ bất kỳ ai bằng liên kết, và chỉ bạn mới mở được.',
+  'Each person sees only what they sent.':
+    'Mỗi người chỉ thấy những gì mình đã gửi.',
 } satisfies Messages

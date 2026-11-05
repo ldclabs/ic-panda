@@ -999,5 +999,70 @@ export default {
   "Open the verifier": "開啟驗證頁",
   "Can strangers write to me?": "陌生人能給我寫信嗎？",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "只有你的規則允許時才行：不接收、僅聯絡人、所有人，或支付你所設價格的發信人。付費只買到送達，不保證回覆。",
-  "Your language": "你的語言"
+  "Your language": "你的語言",
+  'Send files through dMsg': '透過 dMsg 傳送檔案',
+  '{name} is asking you for files': '{name} 正在向你收取檔案',
+  'Someone is asking you for files': '有人正在向你收取檔案',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    '你的瀏覽器會在本機加密每個檔案，只有提出請求的人才能開啟。這條連結只能上傳，任何人都無法透過它下載。',
+  'Only they can open your files': '只有對方能開啟你的檔案',
+  'Asked by': '提出人',
+  'Check their public profile': '查看對方的公開資料',
+  'Open until': '開放至',
+  'Largest file': '單一檔案上限',
+  'Your name (optional)': '你的姓名（選填）',
+  'A note (optional)': '備註（選填）',
+  'They see this with your files. dMsg does not verify it.':
+    '對方會和檔案一起看到這些內容。dMsg 不會核實。',
+  'Choose files or drop them here': '選擇檔案，或拖曳到這裡',
+  'Send files': '傳送檔案',
+  'Waiting': '等待中',
+  'Preparing… {percent}%': '正在準備… {percent}%',
+  'Uploading… {percent}%': '正在上傳… {percent}%',
+  'Sent': '已傳送',
+  'Stop': '停止',
+  'This file is empty.': '這個檔案是空的。',
+  'This file is larger than this link takes ({size}).':
+    '這個檔案超過了這條連結的上限（{size}）。',
+  'The file changed while it was being sent. Choose it again.':
+    '檔案在傳送過程中發生了變化，請重新選擇。',
+  'The connection was lost. Try again.': '連線已中斷，請重試。',
+  'This file could not be sent.': '這個檔案未能傳送。',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    '這條連結已沒有空間接收更多檔案。請向傳送連結的人索取新連結。',
+  'This link is not taking files right now. Ask the person who sent it.':
+    '這條連結暫時不接收檔案。請聯絡傳送連結的人。',
+  'This link was closed by the person who sent it.':
+    '傳送連結的人已關閉這條連結。',
+  'This link is incomplete. Ask for the whole link.':
+    '這條連結不完整。請索取完整的連結。',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    '這個瀏覽器無法在此加密檔案。請用較新的瀏覽器開啟連結。',
+  'This is a large file for a phone. A computer may be easier.':
+    '對手機來說這個檔案較大，用電腦可能更方便。',
+  'Sent from this browser': '從這個瀏覽器傳送的檔案',
+  'Only this browser remembers these; another browser shows none of them.':
+    '只有這個瀏覽器記得這些紀錄，換一個瀏覽器就看不到了。',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    '這個瀏覽器不會保留你的上傳紀錄。如有需要，請複製每個回執。',
+  'Copy receipt': '複製回執',
+  'Not finished': '未完成',
+  'Delivered': '已送達',
+  'Saved by them': '對方已儲存',
+  'Withdrawn': '已撤回',
+  'Replaced': '已取代',
+  'Removed by them': '對方已移除',
+  'Replace': '取代',
+  'Withdraw': '撤回',
+  'Withdraw this file?': '撤回這個檔案？',
+  'Send a new version': '傳送新版本',
+  'They have already saved this file. Contact them directly.':
+    '對方已經儲存了這個檔案。請直接聯絡對方。',
+  'Clear this list': '清除這份清單',
+  'Keep this page open until your files are sent.':
+    '檔案傳送完成前請不要關閉這個頁面。',
+  'Collect files this way too': '你也可以這樣收取檔案',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg 是存放檔案、訊息和密碼的私密工作區。傳一條連結就能向任何人收取檔案，而且只有你能開啟。',
+  'Each person sees only what they sent.': '每個人只能看到自己傳送的內容。',
 } satisfies Messages

@@ -999,5 +999,71 @@ export default {
   "Open the verifier": "सत्यापनकर्ता खोलें",
   "Can strangers write to me?": "क्या अजनबी मुझे लिख सकते हैं?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "केवल अगर आपके नियम इसकी अनुमति देते हैं: कोई नहीं, आपके संपर्क, हर कोई, या प्रेषक जो आपके द्वारा निर्धारित कीमत का भुगतान करते हैं। भुगतान में डिलीवरी शामिल है, उत्तर नहीं।",
-  "Your language": "आपकी भाषा"
+  "Your language": "आपकी भाषा",
+  'Send files through dMsg': 'dMsg से फ़ाइलें भेजें',
+  '{name} is asking you for files': '{name} आपसे फ़ाइलें माँग रहे हैं',
+  'Someone is asking you for files': 'कोई आपसे फ़ाइलें माँग रहा है',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    'आपका ब्राउज़र हर फ़ाइल को यहीं एन्क्रिप्ट करता है, इसलिए उसे सिर्फ़ माँगने वाला ही खोल सकता है। इस लिंक से केवल अपलोड होता है: इससे कोई कुछ डाउनलोड नहीं कर सकता।',
+  'Only they can open your files': 'आपकी फ़ाइलें सिर्फ़ वही खोल सकते हैं',
+  'Asked by': 'माँगने वाले',
+  'Check their public profile': 'उनकी सार्वजनिक प्रोफ़ाइल जाँचें',
+  'Open until': 'इस समय तक खुला',
+  'Largest file': 'सबसे बड़ी फ़ाइल',
+  'Your name (optional)': 'आपका नाम (वैकल्पिक)',
+  'A note (optional)': 'एक नोट (वैकल्पिक)',
+  'They see this with your files. dMsg does not verify it.':
+    'वे इसे आपकी फ़ाइलों के साथ देखेंगे। dMsg इसकी पुष्टि नहीं करता।',
+  'Choose files or drop them here': 'फ़ाइलें चुनें या यहाँ छोड़ें',
+  'Send files': 'फ़ाइलें भेजें',
+  'Waiting': 'प्रतीक्षा में',
+  'Preparing… {percent}%': 'तैयार हो रहा है… {percent}%',
+  'Uploading… {percent}%': 'अपलोड हो रहा है… {percent}%',
+  'Sent': 'भेजा गया',
+  'Stop': 'रोकें',
+  'This file is empty.': 'यह फ़ाइल खाली है।',
+  'This file is larger than this link takes ({size}).':
+    'यह फ़ाइल इस लिंक की सीमा से बड़ी है ({size})।',
+  'The file changed while it was being sent. Choose it again.':
+    'भेजते समय फ़ाइल बदल गई। इसे फिर से चुनें।',
+  'The connection was lost. Try again.': 'कनेक्शन टूट गया। फिर से कोशिश करें।',
+  'This file could not be sent.': 'यह फ़ाइल नहीं भेजी जा सकी।',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    'इस लिंक में और फ़ाइलों के लिए जगह नहीं है। भेजने वाले से दूसरा लिंक माँगें।',
+  'This link is not taking files right now. Ask the person who sent it.':
+    'यह लिंक अभी फ़ाइलें नहीं ले रहा। भेजने वाले से पूछें।',
+  'This link was closed by the person who sent it.':
+    'भेजने वाले ने यह लिंक बंद कर दिया है।',
+  'This link is incomplete. Ask for the whole link.':
+    'यह लिंक अधूरा है। पूरा लिंक माँगें।',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    'यह ब्राउज़र यहाँ फ़ाइलें एन्क्रिप्ट नहीं कर सकता। लिंक को किसी नए ब्राउज़र में खोलें।',
+  'This is a large file for a phone. A computer may be easier.':
+    'फ़ोन के लिए यह बड़ी फ़ाइल है। कंप्यूटर से आसान हो सकता है।',
+  'Sent from this browser': 'इस ब्राउज़र से भेजी गईं',
+  'Only this browser remembers these; another browser shows none of them.':
+    'ये सिर्फ़ इसी ब्राउज़र को याद हैं; दूसरे ब्राउज़र में ये नहीं दिखेंगी।',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    'यह ब्राउज़र आपके अपलोड का रिकॉर्ड नहीं रखेगा। ज़रूरत हो तो हर रसीद कॉपी कर लें।',
+  'Copy receipt': 'रसीद कॉपी करें',
+  'Not finished': 'पूरा नहीं हुआ',
+  'Delivered': 'पहुँच गया',
+  'Saved by them': 'उन्होंने सहेज लिया',
+  'Withdrawn': 'वापस लिया गया',
+  'Replaced': 'बदल दिया गया',
+  'Removed by them': 'उन्होंने हटा दिया',
+  'Replace': 'बदलें',
+  'Withdraw': 'वापस लें',
+  'Withdraw this file?': 'यह फ़ाइल वापस लें?',
+  'Send a new version': 'नया संस्करण भेजें',
+  'They have already saved this file. Contact them directly.':
+    'उन्होंने यह फ़ाइल पहले ही सहेज ली है। उनसे सीधे संपर्क करें।',
+  'Clear this list': 'यह सूची साफ़ करें',
+  'Keep this page open until your files are sent.':
+    'फ़ाइलें भेजे जाने तक यह पेज खुला रखें।',
+  'Collect files this way too': 'आप भी ऐसे ही फ़ाइलें मँगाएँ',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg आपकी फ़ाइलों, संदेशों और पासवर्ड के लिए निजी वर्कस्पेस है। लिंक से किसी से भी फ़ाइलें माँगें, और उन्हें सिर्फ़ आप खोल पाएँगे।',
+  'Each person sees only what they sent.':
+    'हर व्यक्ति सिर्फ़ वही देखता है जो उसने भेजा।',
 } satisfies Messages

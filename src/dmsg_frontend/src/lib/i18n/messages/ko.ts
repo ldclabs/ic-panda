@@ -999,5 +999,71 @@ export default {
   "Open the verifier": "검증 도구 열기",
   "Can strangers write to me?": "낯선 사람이 나에게 편지를 보낼 수 있나요?",
   "Only if your rules allow it: nobody, your contacts, everyone, or senders who pay the price you set. Paying covers delivery, not a reply.": "귀하의 규칙이 허용하는 경우에만: 귀하가 설정한 가격을 지불하는 사람, 귀하의 연락처, 모든 사람 또는 발신자. 지불하면 답장이 아닌 배송이 적용됩니다.",
-  "Your language": "사용 언어"
+  "Your language": "사용 언어",
+  'Send files through dMsg': 'dMsg로 파일 보내기',
+  '{name} is asking you for files': '{name} 님이 파일을 요청했습니다',
+  'Someone is asking you for files': '누군가 파일을 요청했습니다',
+  'Your browser encrypts each file here, so only the person who asked can open it. This link can only upload: nobody can download anything through it.':
+    '브라우저가 여기서 각 파일을 암호화하므로 요청한 사람만 열 수 있습니다. 이 링크는 업로드 전용이며 누구도 이 링크로 다운로드할 수 없습니다.',
+  'Only they can open your files': '요청한 사람만 파일을 열 수 있습니다',
+  'Asked by': '요청한 사람',
+  'Check their public profile': '공개 프로필 확인',
+  'Open until': '열림 기한',
+  'Largest file': '최대 파일 크기',
+  'Your name (optional)': '이름(선택)',
+  'A note (optional)': '메모(선택)',
+  'They see this with your files. dMsg does not verify it.':
+    '파일과 함께 상대방에게 표시됩니다. dMsg는 이를 확인하지 않습니다.',
+  'Choose files or drop them here': '파일을 선택하거나 여기에 놓으세요',
+  'Send files': '파일 보내기',
+  'Waiting': '대기 중',
+  'Preparing… {percent}%': '준비 중… {percent}%',
+  'Uploading… {percent}%': '업로드 중… {percent}%',
+  'Sent': '보냄',
+  'Stop': '중지',
+  'This file is empty.': '이 파일은 비어 있습니다.',
+  'This file is larger than this link takes ({size}).':
+    '이 파일은 이 링크의 한도({size})보다 큽니다.',
+  'The file changed while it was being sent. Choose it again.':
+    '보내는 동안 파일이 변경되었습니다. 다시 선택하세요.',
+  'The connection was lost. Try again.': '연결이 끊겼습니다. 다시 시도하세요.',
+  'This file could not be sent.': '이 파일을 보낼 수 없습니다.',
+  'This link has no room for more files. Ask the person who sent it for another.':
+    '이 링크에는 파일을 더 받을 공간이 없습니다. 보낸 사람에게 새 링크를 요청하세요.',
+  'This link is not taking files right now. Ask the person who sent it.':
+    '이 링크는 지금 파일을 받지 않습니다. 보낸 사람에게 문의하세요.',
+  'This link was closed by the person who sent it.':
+    '보낸 사람이 이 링크를 닫았습니다.',
+  'This link is incomplete. Ask for the whole link.':
+    '링크가 불완전합니다. 전체 링크를 요청하세요.',
+  'This browser cannot encrypt files here. Open the link in a current browser.':
+    '이 브라우저에서는 여기서 파일을 암호화할 수 없습니다. 최신 브라우저에서 링크를 여세요.',
+  'This is a large file for a phone. A computer may be easier.':
+    '휴대폰에는 큰 파일입니다. 컴퓨터가 더 편할 수 있습니다.',
+  'Sent from this browser': '이 브라우저에서 보낸 파일',
+  'Only this browser remembers these; another browser shows none of them.':
+    '이 기록은 이 브라우저에만 남으며 다른 브라우저에는 표시되지 않습니다.',
+  'This browser will not keep a record of your uploads. Copy each receipt if you need one.':
+    '이 브라우저는 업로드 기록을 남기지 않습니다. 필요하면 각 영수증을 복사하세요.',
+  'Copy receipt': '영수증 복사',
+  'Not finished': '완료되지 않음',
+  'Delivered': '전달됨',
+  'Saved by them': '상대방이 저장함',
+  'Withdrawn': '철회됨',
+  'Replaced': '교체됨',
+  'Removed by them': '상대방이 삭제함',
+  'Replace': '교체',
+  'Withdraw': '철회',
+  'Withdraw this file?': '이 파일을 철회할까요?',
+  'Send a new version': '새 버전 보내기',
+  'They have already saved this file. Contact them directly.':
+    '상대방이 이미 이 파일을 저장했습니다. 직접 연락하세요.',
+  'Clear this list': '이 목록 지우기',
+  'Keep this page open until your files are sent.':
+    '파일을 다 보낼 때까지 이 페이지를 열어 두세요.',
+  'Collect files this way too': '당신도 이렇게 파일을 받아 보세요',
+  'dMsg is a private workspace for your files, messages and passwords. Ask anyone for files by link, and only you can open them.':
+    'dMsg는 파일, 메시지, 비밀번호를 위한 비공개 작업 공간입니다. 링크로 누구에게나 파일을 요청할 수 있으며 나만 열 수 있습니다.',
+  'Each person sees only what they sent.':
+    '각자 자신이 보낸 것만 볼 수 있습니다.',
 } satisfies Messages
