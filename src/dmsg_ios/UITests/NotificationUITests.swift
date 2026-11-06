@@ -6,6 +6,24 @@ import XCTest
     func testReminderSettingsArabicRTL() { check(language: "ar", locale: "ar_SA", dark: false) }
     func testReminderSettingsGerman() { check(language: "de", locale: "de_DE", dark: false) }
 
+    func testLeavingSettingsFinishesAnInFlightSave() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--ui-notification-slow-save", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        app.openActivity("reminders.open")
+        app.buttons["reminders.menu"].tap(); app.buttons["reminders.settings"].tap()
+        let enabled = app.switches["notifications.enabled"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 5))
+        enabled.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        let saving = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == false"), object: enabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [saving], timeout: 3), .completed)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.segmentedControls["reminders.scope"].waitForExistence(timeout: 5))
+        // This prompt observes the saved preferences, not the settings draft.
+        XCTAssertTrue(app.buttons["notifications.setup.open"].waitForExistence(timeout: 10))
+        capture(app, "Leaving settings finishes the notification save")
+    }
+
     func testOtherAccountReminderKeepsCurrentWorkspace() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--ui-notification-setup", "--ui-reminder-other-account", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]

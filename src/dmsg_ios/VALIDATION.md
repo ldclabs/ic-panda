@@ -1964,6 +1964,51 @@ in this pass. `dmsg-ios.yml` was not run on GitHub.
 
 Implementation and validation: Claude Opus 5.5 <noreply@anthropic.com>.
 
+## 2026-11-06 review of 50fa5be
+
+Reviewed the complete commit locally and fixed four regressions:
+
+- Sensitive field actions now check the confirmation deadline when tapped. Only
+  explicit confirmation starts the 30-second interval; another read does not
+  extend it.
+- OTP fields in version-history details keep updating their expiry display, even
+  though only the current item's codes refresh automatically.
+- Clearing the AutoFill picker now removes its exported snapshot, system
+  suggestions and core selection through the existing removal path.
+- Leaving notification settings cancels only the pending debounce. A save that
+  has started finishes, and an obsolete workspace's form cannot start a new save.
+
+Regression evidence on iPhone 18 Pro / iOS 27.0, Xcode 27.2:
+
+- The final targeted run (`Review-50fa5be-fixed.xcresult`) ran all 107 Swift unit
+  tests and 13 UI tests: 119 passed and one failed. The original notification
+  foreground test failed its initial toggle assertion before pressing Home,
+  and again after returning. An unchanged isolated rerun passed
+  (`Review-50fa5be-foreground-retry.xcresult`); this remains evidence of a UI-test
+  timing flake, not a clean first run. No tests were skipped.
+- Before the fixes, the 30-second confirmation test and the delayed notification
+  save/navigation test failed at their behavioral assertions. The first history
+  test stopped at navigation; its fixture and test entry were corrected, then its
+  expiry assertion passed with the fix. These are local UI fixtures, not live
+  accounts or real notification delivery.
+- The new credential-store unit test invalidates a real temporary export and
+  checks that even an already opened credential can no longer be read. The
+  AutoFill picker's empty-selection routing was also checked in source; this
+  does not establish installed-extension or system-authentication behavior.
+- All 23 iOS script tests passed. Catalog validation passed for all 23 languages,
+  including this build's Debug Swift extraction. Notification copy and all 35
+  business icons matched their desktop sources; `git diff --check` passed.
+- Exported screenshots were inspected for the expired confirmation, hidden
+  historical OTP, completed save after leaving, Chinese dark vault/settings,
+  Arabic RTL settings and Arabic dark second-account consent.
+
+The full UI suite, other simulator models/OS versions, physical devices, real
+Face ID/Touch ID, installed system extensions, Release builds, Rust tests and
+the end-to-end `verify.sh` were not run for this review. Rust was unchanged and
+the existing local XCFramework was reused. No deployment or store submission.
+
+Review and fixes: Codex <noreply@openai.com>.
+
 ## Remaining implementation and release gates
 
 This is a working native implementation and local validation record, **not a

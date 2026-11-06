@@ -56,6 +56,22 @@ final class SystemExportsTests: XCTestCase {
         XCTAssertThrowsError(try store.materialize(file, opened: opened, output: output, cancelled: { false }))
         XCTAssertFalse(FileManager.default.fileExists(atPath: output.path))
     }
+
+    func testRemovingCredentialSnapshotRevokesAnAlreadyOpenedCopy() throws {
+        let store = try SystemExports(.credentials, root: root(), keyGroup: "test")
+        let prepared = try store.prepareCredentials([
+            CredentialInput(title: "Example", username: "alice", password: "selected-secret", origin: "https://example.com")
+        ], account: "account-one", expires: UInt64(Date.now.timeIntervalSince1970 * 1000) + 60_000)
+        let opened = try activate(prepared, in: store)
+        let entry = try XCTUnwrap(store.credentialMetadata(opened).first)
+        XCTAssertEqual(try store.credential(entry.id, opened: opened), "selected-secret")
+
+        try store.invalidate()
+
+        XCTAssertThrowsError(try store.header())
+        XCTAssertThrowsError(try store.credential(entry.id, opened: opened))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: prepared.directory.path))
+    }
     func testExpiredAndEscapedCopiesAreRejected() throws {
         let directory = try root(), store = try SystemExports(.credentials, root: directory, keyGroup: "test")
         let expired = ExportHeader(id: UUID().uuidString, purpose: .credentials, accountHash: "one", expires: 1)

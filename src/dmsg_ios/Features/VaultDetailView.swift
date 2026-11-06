@@ -47,7 +47,7 @@ struct VaultDetailView: View {
                 ForEach(groups(item), id: \.self) { group in
                     Section {
                         ForEach(item.fields.filter { $0.section == group }, id: \.id) { field in
-                            if liveCode(field, item: item) {
+                            if field.kind == "otp" {
                                 TimelineView(.periodic(from: .now, by: 1)) { timeline in fieldRow(field, item: item, at: timeline.date) }
                             } else { fieldRow(field, item: item, at: .now) }
                         }
@@ -117,7 +117,7 @@ struct VaultDetailView: View {
         let shown = live ? codes[field.id] : revealed[field.id]
         return VaultDetailField(field: field, value: shown?.value(at: date), remaining: shown?.remaining(at: date),
             busy: workingField == field.id, readOnly: item.reserved || item.deleted, live: live,
-            asks: field.concealed && !live && (trustedUntil.map { $0 <= .now } ?? true),
+            trustedUntil: trustedUntil, confirm: { trustedUntil = .now.addingTimeInterval(30) },
             reveal: {
                 if revealed[field.id]?.value(at: .now) != nil { revealed.removeValue(forKey: field.id) }
                 else { revealTask?.cancel(); revealTask = Task { await read(field, copy: false) } }
@@ -211,7 +211,6 @@ struct VaultDetailView: View {
         do {
             let value = try await model.vaultFieldValue(item, field: field)
             guard epoch == model.epoch, value.generation == model.session?.generation, revealRequest == request, !model.concealed, !Task.isCancelled else { return }
-            if field.concealed && !liveCode(field, item: item) { trustedUntil = .now.addingTimeInterval(30) }
             // Conservatively include the read's latency; never extend a code's validity.
             let expiry = value.remainingMs.map { requestedAt.addingTimeInterval(Double($0) / 1000) }
             let lifetime = expiry.map { max(0, $0.timeIntervalSinceNow) }
@@ -252,12 +251,15 @@ private struct VaultDetailField: View {
     let busy: Bool
     let readOnly: Bool
     let live: Bool
-    let asks: Bool
+    let trustedUntil: Date?
+    let confirm: () -> Void
     let reveal: () -> Void
     let copy: () -> Void
     @State private var pending: Pending?
     @Environment(\.dynamicTypeSize) private var size
     @Environment(\.layoutDirection) private var direction
+    // Evaluate at the tap, even if this row has not rendered since confirmation.
+    private var asks: Bool { field.concealed && !live && (trustedUntil.map { $0 <= .now } ?? true) }
     private var text: String { value ?? field.value }
     private var stacked: Bool { size.isAccessibilitySize || text.count > 34 || text.contains("\n") }
     private var layout: AnyLayout { stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8)) }
@@ -282,7 +284,7 @@ private struct VaultDetailField: View {
                                 }.accessibilityLabel(Text(value == nil ? "Reveal" : "Hide") + Text(verbatim: " · " + vaultFieldTitle(field)))
                                     .accessibilityIdentifier("vault.reveal.\(field.id)")
                                     .confirmationDialog("Reveal this field?", isPresented: asking(.reveal), titleVisibility: .visible) {
-                                        Button("Reveal", action: reveal)
+                                        Button("Reveal") { confirm(); reveal() }
                                     } message: { Text("This field will be visible until you hide it or leave this screen.") }
                             }
                             if !field.value.isEmpty {
@@ -290,7 +292,7 @@ private struct VaultDetailField: View {
                                     Image(systemName: "doc.on.doc").frame(width: 44, height: 44)
                                 }.accessibilityLabel(Text("Copy") + Text(verbatim: " · " + vaultFieldTitle(field))).accessibilityIdentifier("vault.copy.\(field.id)")
                                     .confirmationDialog("Copy this field?", isPresented: asking(.copy), titleVisibility: .visible) {
-                                        Button("Copy for 30 seconds", action: copy)
+                                        Button("Copy for 30 seconds") { confirm(); copy() }
                                     } message: { Text("Copies stay on this device and expire within 30 seconds.") }
                             }
                         }

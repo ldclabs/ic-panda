@@ -49,7 +49,10 @@ struct SystemExportsView: View {
             .sheet(isPresented: $selectingCredentials) { NavigationStack { AutoFillSelectionView(initial: credentials) { values in
                 credentials = values
                 // Choosing the items is the whole step: AutoFill follows the selection.
-                if !values.isEmpty { work = Task { await exportCredentials() } }
+                work = Task {
+                    if values.isEmpty { await removeSnapshot(.credentials) }
+                    else { await exportCredentials() }
+                }
             } } }
             .sheet(isPresented: $selectingFile) { NavigationStack { AttachmentPicker(folder: "root") { file in
                 if !files.contains(where: { $0.id == file.id }) { files.append(file) }; selectingFile = false

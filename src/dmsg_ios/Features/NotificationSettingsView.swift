@@ -168,11 +168,14 @@ struct NotificationSettingsView: View {
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled, dirty else { return }
+            // Only the debounce is cancellable by later edits or navigation.
+            // An in-flight save must finish; a replacement would see `working`.
+            saveTask = nil
             await save()
         }
     }
     private func save(linked: Bool = false) async {
-        guard let saved, var value = draft, !working else { return }
+        guard let saved, var value = draft, !working, draftGeneration == model.viewGeneration else { return }
         saveFailed = false
         // Registering another account tells the notification service and the push
         // provider that these accounts share this device; that needs consent.
@@ -181,6 +184,12 @@ struct NotificationSettingsView: View {
         do {
             if let hours = value.global.quietHours, hours.start == hours.end { throw MobileError.Failure(code: "INVALID_INPUT") }
             if value.global.enabled && !saved.global.enabled { _ = try await model.push.requestPermission() }
+            #if DEBUG
+            if model.uiTesting && ProcessInfo.processInfo.arguments.contains("--ui-notification-slow-save") {
+                // Like an in-flight native/FFI call, this finishes after its caller leaves.
+                await Task.detached { try? await Task.sleep(for: .seconds(6)) }.value
+            }
+            #endif
             guard current == scope, !Task.isCancelled else { return }
             if model.uiTesting {
                 value.global.revision += 1; value.account?.revision += 1; value.globalPendingSync = true

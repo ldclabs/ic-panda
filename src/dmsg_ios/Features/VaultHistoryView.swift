@@ -29,7 +29,7 @@ struct VaultHistoryView: View {
                         if !version.synced { Text("Waiting to sync").font(.caption) }
                         Text(model.deviceLabel(version.device) ?? version.device).font(.caption.monospaced()).foregroundStyle(.secondary)
                     }
-                }
+                }.accessibilityIdentifier("vault.version.\(version.revision)")
                 if !version.current && !version.deleted && !item.reserved {
                     NavigationLink("Compare with current") { VaultVersionComparison(itemID: item.id, revision: version.revision) }
                     Button("Restore this version") { restoring = version }.disabled(working)
@@ -48,6 +48,15 @@ struct VaultHistoryView: View {
     private func load() async {
         loading = true; failed = false; defer { loading = false }; let epoch = model.epoch
         do {
+            #if DEBUG
+            if model.uiTesting {
+                versions = ([item] + (model.fixtureVaultHistory[item.id] ?? [])).map {
+                    Version(revision: $0.revision, at: $0.updatedAt, current: $0.revision == item.revision,
+                            deleted: $0.deleted, conflict: $0.conflict, device: "fixture-device", synced: $0.synced)
+                }
+                return
+            }
+            #endif
             guard let engine = model.engine else { throw MobileError.Failure(code: "UNAVAILABLE") }
             let result = try await engine.vaultHistory(id: item.id)
             guard epoch == model.epoch, !Task.isCancelled else { return }

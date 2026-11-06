@@ -116,11 +116,39 @@ final class VaultUITests: XCTestCase {
         capture(app, "Sensitive copy asks near its button")
         confirm.tap()
         XCTAssertTrue(confirm.waitForNonExistence(timeout: 5))
+        // A read within the grace period must not renew that confirmation.
+        sleep(20)
         app.buttons["vault.reveal.password"].tap()
         let value = app.staticTexts["vault.value.password"]
         let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "fixture-secret"), object: value)
         XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 5), .completed)
         XCTAssertFalse(app.buttons["Reveal"].exists)
+        // Leave the page still: the deadline must be checked when tapped, even
+        // when no state change has caused SwiftUI to render it again.
+        sleep(11)
+        copy.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "Sensitive copy asks again after thirty seconds")
+    }
+
+    func testHistoricalOTPExpiresWithoutAnotherFieldOperation() {
+        let app = launch()
+        let row = app.buttons["vault.item.fixture-rich-0"]
+        for _ in 0..<3 where !row.isHittable { app.swipeUp() }
+        row.tap()
+        XCTAssertTrue(app.buttons["vault.detail.more"].waitForExistence(timeout: 5))
+        app.buttons["vault.detail.more"].tap(); app.buttons["Version history"].tap()
+        let version = app.buttons["vault.version.1"]
+        XCTAssertTrue(version.waitForExistence(timeout: 5)); version.tap()
+        let reveal = app.buttons["vault.reveal.otp"]
+        for _ in 0..<3 where !reveal.isHittable { app.swipeUp() }
+        reveal.tap(); app.buttons["Reveal"].firstMatch.tap()
+        let code = app.staticTexts["vault.value.otp"]
+        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1 2 3 4 5 6"), object: code)
+        XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: 3), .completed)
+        let expired = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Hidden value"), object: code)
+        XCTAssertEqual(XCTWaiter.wait(for: [expired], timeout: 5), .completed)
+        capture(app, "Historical code disappears when it expires")
     }
 
     func testDeletionLeavesNoEditableDetail() {
